@@ -1,9 +1,10 @@
 # Data model
 
-The schema is declared once, with Drizzle, in `shared/schema.ts`, and created by the hand-written SQL
+The schema is declared once, with Drizzle, in `shared/schema/` (one file per domain, re-exported by
+`shared/schema.ts`), and created by the hand-written SQL
 migrations in `migrations/` (see the [developer guide](./developer-guide#database-migrations)). This
 page groups the tables by domain and explains what each one is for. Column-level detail is in
-`shared/schema.ts`, where most columns carry a comment.
+`shared/schema/`, where most columns carry a comment.
 
 Unless noted, a table has an `organization_id` and is protected by row-level security
 ([Tenancy and access](./tenancy)).

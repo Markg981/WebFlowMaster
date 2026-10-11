@@ -44,7 +44,7 @@ CREATE POLICY org_isolation ON "x"
 GRANT SELECT, INSERT, UPDATE[, DELETE] ON TABLE "x" TO app_user;
 ```
 
-The list of such tables is `ORG_SCOPED_TABLES` in `shared/schema.ts`, and an isolation test
+The list of such tables is `ORG_SCOPED_TABLES` in `shared/schema/tenancy.ts`, and an isolation test
 (`server/tests/isolation.test.ts`, run with `npm run test:rls`) proves for each of them that another
 organization's rows are invisible and cannot be written.
 
@@ -168,7 +168,7 @@ that masks passwords, tokens and keys, and HAR captures are sanitised before the
 ## Audit trail
 
 `audit_log` records who did what: the actor (user, API key, or system), the action
-(`AUDIT_ACTIONS` in `shared/schema.ts`), the target, changed fields, and where the request came
+(`AUDIT_ACTIONS` in `shared/schema/identity.ts`), the target, changed fields, and where the request came
 from: the API key it authenticated with (null for a session) and the client's IP address (behind a
 proxy, the one the proxy reports). `app_user` holds only `SELECT` and `INSERT` on it: the
 application cannot rewrite its own history. Entries are written in the same transaction as the

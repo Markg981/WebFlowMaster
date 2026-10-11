@@ -1,6 +1,6 @@
 # Catalogo completo delle tabelle e colonne
 
-Generato da `shared/schema.ts` con `node scripts/generate-schema-catalog.mjs`. Non si connette al database. Il codice SQL delle migrazioni resta autorità per indici, vincoli, policy RLS e permessi effettivi; questo catalogo descrive le dichiarazioni Drizzle, non lo stato di un ambiente installato.
+Generato da `shared/schema/` (un file per dominio) con `node scripts/generate-schema-catalog.mjs`. Non si connette al database. Il codice SQL delle migrazioni resta autorità per indici, vincoli, policy RLS e permessi effettivi; questo catalogo descrive le dichiarazioni Drizzle, non lo stato di un ambiente installato.
 
 Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le relazioni, poi cercare qui la tabella. Ogni riga riporta la proprietà TypeScript, il nome SQL e il builder completo: tipo, nullabilità, default e riferimenti dichiarati nella colonna. I vincoli definiti nel callback della tabella non sono espansi qui.
 
@@ -19,23 +19,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | [user_settings](#user-settings)                               | `userSettings`               | 12      |
 | [projects](#projects)                                         | `projects`                   | 6       |
 | [project_members](#project-members)                           | `projectMembers`             | 5       |
-| [tests](#tests)                                               | `tests`                      | 22      |
-| [test_runs](#test-runs)                                       | `testRuns`                   | 7       |
-| [detected_elements](#detected-elements)                       | `detectedElements`           | 11      |
-| [api_test_history](#api-test-history)                         | `apiTestHistory`             | 13      |
-| [api_tests](#api-tests)                                       | `apiTests`                   | 32      |
 | [system_settings](#system-settings)                           | `systemSettings`             | 2       |
-| [runners](#runners)                                           | `runners`                    | 12      |
-| [test_plans](#test-plans)                                     | `testPlans`                  | 30      |
-| [test_plan_schedules](#test-plan-schedules)                   | `testPlanSchedules`          | 16      |
-| [test_plan_executions](#test-plan-executions)                 | `testPlanExecutions`         | 35      |
-| [report_test_case_results](#report-test-case-results)         | `reportTestCaseResults`      | 30      |
-| [execution_logs](#execution-logs)                             | `executionLogs`              | 10      |
-| [environments](#environments)                                 | `environments`               | 10      |
-| [secrets](#secrets)                                           | `secrets`                    | 10      |
-| [test_plan_webhooks](#test-plan-webhooks)                     | `testPlanWebhooks`           | 8       |
-| [test_plan_selected_tests](#test-plan-selected-tests)         | `testPlanSelectedTests`      | 7       |
-| [excel_sequences_map](#excel-sequences-map)                   | `excelSequencesMap`          | 5       |
 | [invitations](#invitations)                                   | `invitations`                | 9       |
 | [password_resets](#password-resets)                           | `passwordResets`             | 8       |
 | [organization_sso](#organization-sso)                         | `organizationSso`            | 27      |
@@ -48,67 +32,83 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | [sso_domains](#sso-domains)                                   | `ssoDomains`                 | 4       |
 | [sso_identities](#sso-identities)                             | `ssoIdentities`              | 5       |
 | [audit_log](#audit-log)                                       | `auditLog`                   | 11      |
+| [api_keys](#api-keys)                                         | `apiKeys`                    | 11      |
+| [sessions](#sessions)                                         | `sessions`                   | 3       |
+| [tests](#tests)                                               | `tests`                      | 22      |
+| [test_runs](#test-runs)                                       | `testRuns`                   | 7       |
+| [detected_elements](#detected-elements)                       | `detectedElements`           | 11      |
+| [excel_sequences_map](#excel-sequences-map)                   | `excelSequencesMap`          | 5       |
 | [step_groups](#step-groups)                                   | `stepGroups`                 | 9       |
 | [custom_actions](#custom-actions)                             | `customActions`              | 9       |
 | [test_data_sets](#test-data-sets)                             | `testDataSets`               | 8       |
-| [run_work_items](#run-work-items)                             | `runWorkItems`               | 11      |
-| [impact_rules](#impact-rules)                                 | `impactRules`                | 5       |
-| [sms_messages](#sms-messages)                                 | `smsMessages`                | 7       |
 | [project_elements](#project-elements)                         | `projectElements`            | 14      |
 | [tags](#tags)                                                 | `tags`                       | 4       |
 | [test_tags](#test-tags)                                       | `testTags`                   | 8       |
 | [test_versions](#test-versions)                               | `testVersions`               | 19      |
 | [test_publications](#test-publications)                       | `testPublications`           | 10      |
 | [test_reviews](#test-reviews)                                 | `testReviews`                | 13      |
+| [mobile_tests](#mobile-tests)                                 | `mobileTests`                | 15      |
+| [mobile_step_groups](#mobile-step-groups)                     | `mobileStepGroups`           | 10      |
+| [load_tests](#load-tests)                                     | `loadTests`                  | 14      |
+| [api_test_history](#api-test-history)                         | `apiTestHistory`             | 13      |
+| [api_tests](#api-tests)                                       | `apiTests`                   | 32      |
+| [test_plans](#test-plans)                                     | `testPlans`                  | 30      |
+| [test_plan_schedules](#test-plan-schedules)                   | `testPlanSchedules`          | 16      |
+| [test_plan_executions](#test-plan-executions)                 | `testPlanExecutions`         | 35      |
+| [report_test_case_results](#report-test-case-results)         | `reportTestCaseResults`      | 30      |
+| [execution_logs](#execution-logs)                             | `executionLogs`              | 10      |
+| [test_plan_webhooks](#test-plan-webhooks)                     | `testPlanWebhooks`           | 8       |
+| [test_plan_selected_tests](#test-plan-selected-tests)         | `testPlanSelectedTests`      | 7       |
+| [run_work_items](#run-work-items)                             | `runWorkItems`               | 11      |
+| [impact_rules](#impact-rules)                                 | `impactRules`                | 5       |
 | [test_suites](#test-suites)                                   | `testSuites`                 | 10      |
 | [test_suite_items](#test-suite-items)                         | `testSuiteItems`             | 8       |
 | [test_plan_suites](#test-plan-suites)                         | `testPlanSuites`             | 4       |
 | [test_quarantines](#test-quarantines)                         | `testQuarantines`            | 12      |
+| [mobile_test_runs](#mobile-test-runs)                         | `mobileTestRuns`             | 18      |
+| [load_test_runs](#load-test-runs)                             | `loadTestRuns`               | 14      |
+| [runners](#runners)                                           | `runners`                    | 12      |
+| [environments](#environments)                                 | `environments`               | 10      |
+| [secrets](#secrets)                                           | `secrets`                    | 10      |
+| [sms_messages](#sms-messages)                                 | `smsMessages`                | 7       |
 | [agents](#agents)                                             | `agents`                     | 15      |
 | [bdd_execution_profiles](#bdd-execution-profiles)             | `bddExecutionProfiles`       | 10      |
+| [browser_grids](#browser-grids)                               | `browserGrids`               | 13      |
 | [source_hosts](#source-hosts)                                 | `sourceHosts`                | 12      |
 | [issue_trackers](#issue-trackers)                             | `issueTrackers`              | 14      |
-| [browser_grids](#browser-grids)                               | `browserGrids`               | 13      |
 | [requirements](#requirements)                                 | `requirements`               | 15      |
 | [test_management_connections](#test-management-connections)   | `testManagementConnections`  | 15      |
 | [test_case_links](#test-case-links)                           | `testCaseLinks`              | 10      |
 | [test_management_publications](#test-management-publications) | `testManagementPublications` | 14      |
-| [mobile_tests](#mobile-tests)                                 | `mobileTests`                | 15      |
-| [mobile_step_groups](#mobile-step-groups)                     | `mobileStepGroups`           | 10      |
-| [mobile_test_runs](#mobile-test-runs)                         | `mobileTestRuns`             | 18      |
-| [load_tests](#load-tests)                                     | `loadTests`                  | 14      |
-| [load_test_runs](#load-test-runs)                             | `loadTestRuns`               | 14      |
 | [requirement_tests](#requirement-tests)                       | `requirementTests`           | 9       |
 | [issue_links](#issue-links)                                   | `issueLinks`                 | 16      |
-| [api_keys](#api-keys)                                         | `apiKeys`                    | 11      |
-| [sessions](#sessions)                                         | `sessions`                   | 3       |
 
 ## organizations {#organizations}
 
-`organizations` — `shared/schema.ts:56`
+`organizations` — `shared/schema/identity.ts:20`
 
-| Proprietà TS                 | Colonna SQL                     | Dichiarazione                                                     |
-| ---------------------------- | ------------------------------- | ----------------------------------------------------------------- |
-| `id`                         | `id`                            | `serial('id').primaryKey()`                                       |
-| `name`                       | `name`                          | `text('name').notNull()`                                          |
-| `createdAt`                  | `created_at`                    | `timestamp('created_at').defaultNow().notNull()`                  |
-| `maxConcurrentRuns`          | `max_concurrent_runs`           | `integer('max_concurrent_runs')`                                  |
-| `maxQueuedRuns`              | `max_queued_runs`               | `integer('max_queued_runs')`                                      |
-| `quotaMode`                  | `quota_mode`                    | `text('quota_mode').$type<import('./tenant-quotas').QuotaMode>()` |
-| `maxTests`                   | `max_tests`                     | `bigint('max_tests', { mode: 'number' })`                         |
-| `maxArtifactBytes`           | `max_artifact_bytes`            | `bigint('max_artifact_bytes', { mode: 'number' })`                |
-| `maxMonthlyExecutionMinutes` | `max_monthly_execution_minutes` | `bigint('max_monthly_execution_minutes', { mode: 'number' })`     |
-| `quotaRevision`              | `quota_revision`                | `integer('quota_revision').notNull().default(1)`                  |
-| `artifactsReconciledAt`      | `artifacts_reconciled_at`       | `timestamp('artifacts_reconciled_at')`                            |
-| `mfaRequired`                | `mfa_required`                  | `boolean('mfa_required').notNull().default(false)`                |
-| `testReviewRequired`         | `test_review_required`          | `boolean('test_review_required').notNull().default(false)`        |
-| `smsInboundTokenHash`        | `sms_inbound_token_hash`        | `text('sms_inbound_token_hash')`                                  |
-| `smsInboundTokenPrefix`      | `sms_inbound_token_prefix`      | `text('sms_inbound_token_prefix')`                                |
-| `smsInboundTokenCreatedAt`   | `sms_inbound_token_created_at`  | `timestamp('sms_inbound_token_created_at')`                       |
+| Proprietà TS                 | Colonna SQL                     | Dichiarazione                                                      |
+| ---------------------------- | ------------------------------- | ------------------------------------------------------------------ |
+| `id`                         | `id`                            | `serial('id').primaryKey()`                                        |
+| `name`                       | `name`                          | `text('name').notNull()`                                           |
+| `createdAt`                  | `created_at`                    | `timestamp('created_at').defaultNow().notNull()`                   |
+| `maxConcurrentRuns`          | `max_concurrent_runs`           | `integer('max_concurrent_runs')`                                   |
+| `maxQueuedRuns`              | `max_queued_runs`               | `integer('max_queued_runs')`                                       |
+| `quotaMode`                  | `quota_mode`                    | `text('quota_mode').$type<import('../tenant-quotas').QuotaMode>()` |
+| `maxTests`                   | `max_tests`                     | `bigint('max_tests', { mode: 'number' })`                          |
+| `maxArtifactBytes`           | `max_artifact_bytes`            | `bigint('max_artifact_bytes', { mode: 'number' })`                 |
+| `maxMonthlyExecutionMinutes` | `max_monthly_execution_minutes` | `bigint('max_monthly_execution_minutes', { mode: 'number' })`      |
+| `quotaRevision`              | `quota_revision`                | `integer('quota_revision').notNull().default(1)`                   |
+| `artifactsReconciledAt`      | `artifacts_reconciled_at`       | `timestamp('artifacts_reconciled_at')`                             |
+| `mfaRequired`                | `mfa_required`                  | `boolean('mfa_required').notNull().default(false)`                 |
+| `testReviewRequired`         | `test_review_required`          | `boolean('test_review_required').notNull().default(false)`         |
+| `smsInboundTokenHash`        | `sms_inbound_token_hash`        | `text('sms_inbound_token_hash')`                                   |
+| `smsInboundTokenPrefix`      | `sms_inbound_token_prefix`      | `text('sms_inbound_token_prefix')`                                 |
+| `smsInboundTokenCreatedAt`   | `sms_inbound_token_created_at`  | `timestamp('sms_inbound_token_created_at')`                        |
 
 ## quota_execution_sessions {#quota-execution-sessions}
 
-`quotaExecutionSessions` — `shared/schema.ts:82`
+`quotaExecutionSessions` — `shared/schema/identity.ts:46`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -121,7 +121,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## quota_artifacts {#quota-artifacts}
 
-`quotaArtifacts` — `shared/schema.ts:100`
+`quotaArtifacts` — `shared/schema/identity.ts:64`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -134,7 +134,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## quota_installation_defaults {#quota-installation-defaults}
 
-`quotaInstallationDefaults` — `shared/schema.ts:115`
+`quotaInstallationDefaults` — `shared/schema/identity.ts:79`
 
 | Proprietà TS       | Colonna SQL          | Dichiarazione                                                           |
 | ------------------ | -------------------- | ----------------------------------------------------------------------- |
@@ -145,7 +145,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## users {#users}
 
-`users` — `shared/schema.ts:122`
+`users` — `shared/schema/identity.ts:86`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -161,7 +161,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## user_mfa {#user-mfa}
 
-`userMfa` — `shared/schema.ts:150`
+`userMfa` — `shared/schema/identity.ts:114`
 
 | Proprietà TS             | Colonna SQL                | Dichiarazione                                                                           |
 | ------------------------ | -------------------------- | --------------------------------------------------------------------------------------- |
@@ -179,7 +179,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## user_settings {#user-settings}
 
-`userSettings` — `shared/schema.ts:167`
+`userSettings` — `shared/schema/identity.ts:131`
 
 | Proprietà TS               | Colonna SQL                  | Dichiarazione                                                                           |
 | -------------------------- | ---------------------------- | --------------------------------------------------------------------------------------- |
@@ -198,7 +198,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## projects {#projects}
 
-`projects` — `shared/schema.ts:189`
+`projects` — `shared/schema/identity.ts:153`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -211,7 +211,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## project_members {#project-members}
 
-`projectMembers` — `shared/schema.ts:217`
+`projectMembers` — `shared/schema/identity.ts:181`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                              |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -221,9 +221,224 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `role`           | `role`            | `text('role').notNull()`                                                                   |
 | `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                           |
 
+## system_settings {#system-settings}
+
+`systemSettings` — `shared/schema/identity.ts:206`
+
+| Proprietà TS | Colonna SQL | Dichiarazione              |
+| ------------ | ----------- | -------------------------- |
+| `key`        | `key`       | `text('key').primaryKey()` |
+| `value`      | `value`     | `text('value')`            |
+
+## invitations {#invitations}
+
+`invitations` — `shared/schema/identity.ts:224`
+
+| Proprietà TS      | Colonna SQL          | Dichiarazione                                                                         |
+| ----------------- | -------------------- | ------------------------------------------------------------------------------------- |
+| `id`              | `id`                 | `serial('id').primaryKey()`                                                           |
+| `organizationId`  | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id)`           |
+| `username`        | `username`           | `text('username').notNull()`                                                          |
+| `role`            | `role`               | `text('role').notNull().default('editor')`                                            |
+| `token`           | `token`              | `text('token').notNull().unique()`                                                    |
+| `invitedByUserId` | `invited_by_user_id` | `integer('invited_by_user_id').references(() => users.id, { onDelete: 'set null', })` |
+| `expiresAt`       | `expires_at`         | `timestamp('expires_at').notNull()`                                                   |
+| `acceptedAt`      | `accepted_at`        | `timestamp('accepted_at')`                                                            |
+| `createdAt`       | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                                      |
+
+## password_resets {#password-resets}
+
+`passwordResets` — `shared/schema/identity.ts:268`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
+| `id`             | `id`              | `text('id').primaryKey()`                                                            |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`          |
+| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id, { onDelete: 'cascade' })` |
+| `tokenHash`      | `token_hash`      | `text('token_hash').notNull().unique()`                                              |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`         |
+| `expiresAt`      | `expires_at`      | `timestamp('expires_at').notNull()`                                                  |
+| `usedAt`         | `used_at`         | `timestamp('used_at')`                                                               |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                     |
+
+## organization_sso {#organization-sso}
+
+`organizationSso` — `shared/schema/identity.ts:300`
+
+| Proprietà TS                     | Colonna SQL                         | Dichiarazione                                                                                                                      |
+| -------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `organizationId`                 | `organization_id`                   | `integer('organization_id') .primaryKey() .references(() => organizations.id, { onDelete: 'cascade' })`                            |
+| `protocol`                       | `protocol`                          | `text('protocol').notNull().default('oidc')`                                                                                       |
+| `issuer`                         | `issuer`                            | `text('issuer').notNull()`                                                                                                         |
+| `clientId`                       | `client_id`                         | `text('client_id')`                                                                                                                |
+| `clientSecretEncrypted`          | `client_secret_encrypted`           | `text('client_secret_encrypted')`                                                                                                  |
+| `clientSecretIv`                 | `client_secret_iv`                  | `text('client_secret_iv')`                                                                                                         |
+| `clientSecretAuthTag`            | `client_secret_auth_tag`            | `text('client_secret_auth_tag')`                                                                                                   |
+| `samlSsoUrl`                     | `saml_sso_url`                      | `text('saml_sso_url')`                                                                                                             |
+| `samlCertificate`                | `saml_certificate`                  | `text('saml_certificate')`                                                                                                         |
+| `samlAllowIdpInitiated`          | `saml_allow_idp_initiated`          | `boolean('saml_allow_idp_initiated').notNull().default(false)`                                                                     |
+| `samlRequireEncryptedAssertions` | `saml_require_encrypted_assertions` | `boolean('saml_require_encrypted_assertions') .notNull() .default(false)`                                                          |
+| `samlSloUrl`                     | `saml_slo_url`                      | `text('saml_slo_url')`                                                                                                             |
+| `samlSpCertificate`              | `saml_sp_certificate`               | `text('saml_sp_certificate')`                                                                                                      |
+| `samlSpPrivateKeyEncrypted`      | `saml_sp_private_key_encrypted`     | `text('saml_sp_private_key_encrypted')`                                                                                            |
+| `samlSpPrivateKeyIv`             | `saml_sp_private_key_iv`            | `text('saml_sp_private_key_iv')`                                                                                                   |
+| `samlSpPrivateKeyAuthTag`        | `saml_sp_private_key_auth_tag`      | `text('saml_sp_private_key_auth_tag')`                                                                                             |
+| `defaultRole`                    | `default_role`                      | `text('default_role').notNull().default('viewer')`                                                                                 |
+| `enabled`                        | `enabled`                           | `boolean('enabled').notNull().default(true)`                                                                                       |
+| `required`                       | `required`                          | `boolean('required').notNull().default(false)`                                                                                     |
+| `groupAttribute`                 | `group_attribute`                   | `text('group_attribute')`                                                                                                          |
+| `roleMappings`                   | `role_mappings`                     | `jsonb('role_mappings') .$type<Array<{ group: string; role: 'viewer' &#124; 'editor' &#124; 'owner' }>>() .notNull() .default([])` |
+| `requireGroup`                   | `require_group`                     | `boolean('require_group').notNull().default(false)`                                                                                |
+| `scimTokenHash`                  | `scim_token_hash`                   | `text('scim_token_hash')`                                                                                                          |
+| `scimTokenPrefix`                | `scim_token_prefix`                 | `text('scim_token_prefix')`                                                                                                        |
+| `scimTokenCreatedAt`             | `scim_token_created_at`             | `timestamp('scim_token_created_at')`                                                                                               |
+| `scimTokenLastUsedAt`            | `scim_token_last_used_at`           | `timestamp('scim_token_last_used_at')`                                                                                             |
+| `updatedAt`                      | `updated_at`                        | `timestamp('updated_at').defaultNow().notNull()`                                                                                   |
+
+## scim_users {#scim-users}
+
+`scimUsers` — `shared/schema/identity.ts:363`
+
+| Proprietà TS       | Colonna SQL          | Dichiarazione                                                                                        |
+| ------------------ | -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `userId`           | `user_id`            | `integer('user_id') .primaryKey() .references(() => users.id, { onDelete: 'cascade' })`              |
+| `organizationId`   | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
+| `externalId`       | `external_id`        | `text('external_id')`                                                                                |
+| `disabledByGroups` | `disabled_by_groups` | `boolean('disabled_by_groups').notNull().default(false)`                                             |
+| `createdAt`        | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                                                     |
+| `updatedAt`        | `updated_at`         | `timestamp('updated_at').defaultNow().notNull()`                                                     |
+
+## scim_groups {#scim-groups}
+
+`scimGroups` — `shared/schema/identity.ts:382`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`             | `id`              | `text('id').primaryKey()`                                                                            |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
+| `displayName`    | `display_name`    | `text('display_name').notNull()`                                                                     |
+| `externalId`     | `external_id`     | `text('external_id')`                                                                                |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                     |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                                     |
+
+## scim_group_members {#scim-group-members}
+
+`scimGroupMembers` — `shared/schema/identity.ts:397`
+
+| Proprietà TS | Colonna SQL | Dichiarazione                                                                           |
+| ------------ | ----------- | --------------------------------------------------------------------------------------- |
+| `groupId`    | `group_id`  | `text('group_id') .notNull() .references(() => scimGroups.id, { onDelete: 'cascade' })` |
+| `userId`     | `user_id`   | `integer('user_id') .notNull() .references(() => users.id, { onDelete: 'cascade' })`    |
+
+## sso_saml_requests {#sso-saml-requests}
+
+`ssoSamlRequests` — `shared/schema/identity.ts:418`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`             | `id`              | `text('id').primaryKey()`                                                                            |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                     |
+| `purpose`        | `purpose`         | `text('purpose').notNull().default('authn')`                                                         |
+| `sessionId`      | `session_id`      | `text('session_id')`                                                                                 |
+
+## sso_saml_replay {#sso-saml-replay}
+
+`ssoSamlReplay` — `shared/schema/identity.ts:433`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`             | `id`              | `text('id').primaryKey()`                                                                            |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
+| `expiresAt`      | `expires_at`      | `timestamp('expires_at').notNull()`                                                                  |
+
+## sso_saml_sessions {#sso-saml-sessions}
+
+`ssoSamlSessions` — `shared/schema/identity.ts:446`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `sessionId`      | `session_id`      | `text('session_id').primaryKey()`                                                                    |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
+| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id, { onDelete: 'cascade' })`                 |
+| `issuer`         | `issuer`          | `text('issuer').notNull()`                                                                           |
+| `nameId`         | `name_id`         | `text('name_id').notNull()`                                                                          |
+| `nameIdFormat`   | `name_id_format`  | `text('name_id_format')`                                                                             |
+| `sessionIndex`   | `session_index`   | `text('session_index')`                                                                              |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                     |
+
+## sso_domains {#sso-domains}
+
+`ssoDomains` — `shared/schema/identity.ts:472`
+
+| Proprietà TS        | Colonna SQL          | Dichiarazione                                                                                        |
+| ------------------- | -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `domain`            | `domain`             | `text('domain').primaryKey()`                                                                        |
+| `organizationId`    | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
+| `verificationToken` | `verification_token` | `text('verification_token')`                                                                         |
+| `verifiedAt`        | `verified_at`        | `timestamp('verified_at')`                                                                           |
+
+## sso_identities {#sso-identities}
+
+`ssoIdentities` — `shared/schema/identity.ts:488`
+
+| Proprietà TS   | Colonna SQL       | Dichiarazione                                                                                  |
+| -------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
+| `issuer`       | `issuer`          | `text('issuer').notNull()`                                                                     |
+| `subject`      | `subject`         | `text('subject').notNull()`                                                                    |
+| `userId`       | `user_id`         | `integer('user_id') .notNull() .unique() .references(() => users.id, { onDelete: 'cascade' })` |
+| `createdAt`    | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                               |
+| `lastSignInAt` | `last_sign_in_at` | `timestamp('last_sign_in_at').defaultNow().notNull()`                                          |
+
+## audit_log {#audit-log}
+
+`auditLog` — `shared/schema/identity.ts:520`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                     |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`     |
+| `actorUserId`    | `actor_user_id`   | `integer('actor_user_id').references(() => users.id, { onDelete: 'set null' })` |
+| `actorUsername`  | `actor_username`  | `text('actor_username')`                                                        |
+| `action`         | `action`          | `text('action').notNull()`                                                      |
+| `targetType`     | `target_type`     | `text('target_type')`                                                           |
+| `targetId`       | `target_id`       | `text('target_id')`                                                             |
+| `metadata`       | `metadata`        | `jsonb('metadata')`                                                             |
+| `apiKeyId`       | `api_key_id`      | `text('api_key_id')`                                                            |
+| `ipAddress`      | `ip_address`      | `text('ip_address')`                                                            |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                |
+
+## api_keys {#api-keys}
+
+`apiKeys` — `shared/schema/identity.ts:565`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
+| `id`             | `id`              | `text('id').primaryKey()`                                                            |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`          |
+| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id, { onDelete: 'cascade' })` |
+| `name`           | `name`            | `text('name').notNull()`                                                             |
+| `prefix`         | `prefix`          | `text('prefix').notNull()`                                                           |
+| `hashedKey`      | `hashed_key`      | `text('hashed_key').notNull().unique()`                                              |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                     |
+| `lastUsedAt`     | `last_used_at`    | `timestamp('last_used_at')`                                                          |
+| `expiresAt`      | `expires_at`      | `timestamp('expires_at')`                                                            |
+| `revokedAt`      | `revoked_at`      | `timestamp('revoked_at')`                                                            |
+| `scopes`         | `scopes`          | `text('scopes').array()`                                                             |
+
+## sessions {#sessions}
+
+`sessions` — `shared/schema/identity.ts:756`
+
+| Proprietà TS | Colonna SQL | Dichiarazione                   |
+| ------------ | ----------- | ------------------------------- |
+| `sid`        | `sid`       | `text('sid').primaryKey()`      |
+| `sess`       | `sess`      | `jsonb('sess').notNull()`       |
+| `expire`     | `expire`    | `timestamp('expire').notNull()` |
+
 ## tests {#tests}
 
-`tests` — `shared/schema.ts:242`
+`tests` — `shared/schema/authoring.ts:28`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                   |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -252,7 +467,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_runs {#test-runs}
 
-`testRuns` — `shared/schema.ts:297`
+`testRuns` — `shared/schema/authoring.ts:83`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -266,7 +481,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## detected_elements {#detected-elements}
 
-`detectedElements` — `shared/schema.ts:318`
+`detectedElements` — `shared/schema/authoring.ts:104`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                        |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------------ |
@@ -282,9 +497,238 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `attributes`       | `attributes`        | `jsonb('attributes')`                                                                |
 | `createdAt`        | `created_at`        | `timestamp('created_at').defaultNow().notNull()`                                     |
 
+## excel_sequences_map {#excel-sequences-map}
+
+`excelSequencesMap` — `shared/schema/authoring.ts:131`
+
+| Proprietà TS      | Colonna SQL          | Dichiarazione                                                                        |
+| ----------------- | -------------------- | ------------------------------------------------------------------------------------ |
+| `id`              | `id`                 | `serial('id').primaryKey()`                                                          |
+| `testId`          | `test_id`            | `integer('test_id') .notNull() .references(() => tests.id, { onDelete: 'cascade' })` |
+| `organizationId`  | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id)`          |
+| `excelTestCaseId` | `excel_test_case_id` | `text('excel_test_case_id').notNull()`                                               |
+| `createdAt`       | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                                     |
+
+## step_groups {#step-groups}
+
+`stepGroups` — `shared/schema/authoring.ts:167`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------- |
+| `id`             | `id`              | `text('id').primaryKey()`                                                       |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`     |
+| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id)`                     |
+| `projectId`      | `project_id`      | `integer('project_id').references(() => projects.id, { onDelete: 'set null' })` |
+| `name`           | `name`            | `text('name').notNull()`                                                        |
+| `description`    | `description`     | `text('description')`                                                           |
+| `sequence`       | `sequence`        | `jsonb('sequence').notNull()`                                                   |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                |
+
+## custom_actions {#custom-actions}
+
+`customActions` — `shared/schema/authoring.ts:200`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------- |
+| `id`             | `id`              | `text('id').primaryKey()`                                                    |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
+| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id)`                  |
+| `name`           | `name`            | `text('name').notNull()`                                                     |
+| `description`    | `description`     | `text('description')`                                                        |
+| `parameters`     | `parameters`      | `jsonb('parameters').$type<CustomActionParameter[]>().notNull().default([])` |
+| `script`         | `script`          | `text('script').notNull()`                                                   |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                             |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                             |
+
+## test_data_sets {#test-data-sets}
+
+`testDataSets` — `shared/schema/authoring.ts:230`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
+| ---------------- | ----------------- | --------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                 |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)` |
+| `name`           | `name`            | `text('name').notNull()`                                                    |
+| `description`    | `description`     | `text('description')`                                                       |
+| `columns`        | `columns`         | `jsonb('columns').$type<string[]>().notNull()`                              |
+| `rows`           | `rows`            | `jsonb('rows').$type<Array<Record<string, string>>>().notNull()`            |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                            |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                            |
+
+## project_elements {#project-elements}
+
+`projectElements` — `shared/schema/authoring.ts:263`
+
+| Proprietà TS       | Colonna SQL         | Dichiarazione                                                                              |
+| ------------------ | ------------------- | ------------------------------------------------------------------------------------------ |
+| `id`               | `id`                | `text('id').primaryKey()`                                                                  |
+| `organizationId`   | `organization_id`   | `integer('organization_id') .notNull() .references(() => organizations.id)`                |
+| `projectId`        | `project_id`        | `integer('project_id') .notNull() .references(() => projects.id, { onDelete: 'cascade' })` |
+| `name`             | `name`              | `text('name').notNull()`                                                                   |
+| `selector`         | `selector`          | `text('selector').notNull()`                                                               |
+| `originalSelector` | `original_selector` | `text('original_selector')`                                                                |
+| `frameSelector`    | `frame_selector`    | `text('frame_selector')`                                                                   |
+| `tag`              | `tag`               | `text('tag')`                                                                              |
+| `elementType`      | `element_type`      | `text('element_type')`                                                                     |
+| `text`             | `text`              | `text('text')`                                                                             |
+| `attributes`       | `attributes`        | `jsonb('attributes')`                                                                      |
+| `healedAt`         | `healed_at`         | `timestamp('healed_at')`                                                                   |
+| `createdAt`        | `created_at`        | `timestamp('created_at').defaultNow().notNull()`                                           |
+| `updatedAt`        | `updated_at`        | `timestamp('updated_at').defaultNow().notNull()`                                           |
+
+## tags {#tags}
+
+`tags` — `shared/schema/authoring.ts:311`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
+| ---------------- | ----------------- | --------------------------------------------------------------------------- |
+| `id`             | `id`              | `text('id').primaryKey()`                                                   |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)` |
+| `name`           | `name`            | `text('name').notNull()`                                                    |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                            |
+
+## test_tags {#test-tags}
+
+`testTags` — `shared/schema/authoring.ts:335`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                     |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`     |
+| `tagId`          | `tag_id`          | `text('tag_id') .notNull() .references(() => tags.id, { onDelete: 'cascade' })` |
+| `testId`         | `test_id`         | `integer('test_id').references(() => tests.id, { onDelete: 'cascade' })`        |
+| `apiTestId`      | `api_test_id`     | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' })` |
+| `mobileTestId`   | `mobile_test_id`  | `integer('mobile_test_id')`                                                     |
+| `testType`       | `test_type`       | `text('test_type').notNull()`                                                   |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                |
+
+## test_versions {#test-versions}
+
+`testVersions` — `shared/schema/authoring.ts:380`
+
+| Proprietà TS          | Colonna SQL             | Dichiarazione                                                                                       |
+| --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
+| `bdd`                 | `bdd`                   | `jsonb('bdd').$type<BddTest>()`                                                                     |
+| `id`                  | `id`                    | `serial('id').primaryKey()`                                                                         |
+| `organizationId`      | `organization_id`       | `integer('organization_id') .notNull() .references(() => organizations.id)`                         |
+| `testId`              | `test_id`               | `integer('test_id').references(() => tests.id, { onDelete: 'cascade' })`                            |
+| `apiTestId`           | `api_test_id`           | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' })`                     |
+| `mobileTestId`        | `mobile_test_id`        | `integer('mobile_test_id').references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade', })` |
+| `version`             | `version`               | `integer('version').notNull()`                                                                      |
+| `name`                | `name`                  | `text('name').notNull()`                                                                            |
+| `url`                 | `url`                   | `text('url').notNull()`                                                                             |
+| `sequence`            | `sequence`              | `jsonb('sequence').notNull()`                                                                       |
+| `elements`            | `elements`              | `jsonb('elements').notNull()`                                                                       |
+| `preconditions`       | `preconditions`         | `jsonb('preconditions')`                                                                            |
+| `cleanups`            | `cleanups`              | `jsonb('cleanups')`                                                                                 |
+| `dataset`             | `dataset`               | `jsonb('dataset')`                                                                                  |
+| `snapshot`            | `snapshot`              | `jsonb('snapshot').$type<Record<string, unknown>>()`                                                |
+| `summary`             | `summary`               | `text('summary')`                                                                                   |
+| `restoredFromVersion` | `restored_from_version` | `integer('restored_from_version')`                                                                  |
+| `createdBy`           | `created_by`            | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`                        |
+| `createdAt`           | `created_at`            | `timestamp('created_at').defaultNow().notNull()`                                                    |
+
+## test_publications {#test-publications}
+
+`testPublications` — `shared/schema/authoring.ts:444`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                       |
+| ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                                         |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                         |
+| `testId`         | `test_id`         | `integer('test_id').references(() => tests.id, { onDelete: 'cascade' })`                            |
+| `apiTestId`      | `api_test_id`     | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' })`                     |
+| `mobileTestId`   | `mobile_test_id`  | `integer('mobile_test_id').references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade', })` |
+| `version`        | `version`         | `integer('version')`                                                                                |
+| `kind`           | `kind`            | `text('kind').$type<TestPublicationKind>().notNull()`                                               |
+| `reviewId`       | `review_id`       | `integer('review_id')`                                                                              |
+| `publishedBy`    | `published_by`    | `integer('published_by').references(() => users.id, { onDelete: 'set null' })`                      |
+| `publishedAt`    | `published_at`    | `timestamp('published_at').defaultNow().notNull()`                                                  |
+
+## test_reviews {#test-reviews}
+
+`testReviews` — `shared/schema/authoring.ts:487`
+
+| Proprietà TS      | Colonna SQL        | Dichiarazione                                                                                       |
+| ----------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
+| `id`              | `id`               | `serial('id').primaryKey()`                                                                         |
+| `organizationId`  | `organization_id`  | `integer('organization_id') .notNull() .references(() => organizations.id)`                         |
+| `testId`          | `test_id`          | `integer('test_id').references(() => tests.id, { onDelete: 'cascade' })`                            |
+| `apiTestId`       | `api_test_id`      | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' })`                     |
+| `mobileTestId`    | `mobile_test_id`   | `integer('mobile_test_id').references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade', })` |
+| `version`         | `version`          | `integer('version').notNull()`                                                                      |
+| `status`          | `status`           | `text('status').$type<TestReviewStatus>().notNull().default('pending')`                             |
+| `note`            | `note`             | `text('note')`                                                                                      |
+| `requestedBy`     | `requested_by`     | `integer('requested_by').references(() => users.id, { onDelete: 'set null' })`                      |
+| `requestedAt`     | `requested_at`     | `timestamp('requested_at').defaultNow().notNull()`                                                  |
+| `decidedBy`       | `decided_by`       | `integer('decided_by').references(() => users.id, { onDelete: 'set null' })`                        |
+| `decidedAt`       | `decided_at`       | `timestamp('decided_at')`                                                                           |
+| `decisionComment` | `decision_comment` | `text('decision_comment')`                                                                          |
+
+## mobile_tests {#mobile-tests}
+
+`mobileTests` — `shared/schema/authoring.ts:534`
+
+| Proprietà TS       | Colonna SQL         | Dichiarazione                                                                   |
+| ------------------ | ------------------- | ------------------------------------------------------------------------------- |
+| `id`               | `id`                | `serial('id').primaryKey()`                                                     |
+| `organizationId`   | `organization_id`   | `integer('organization_id') .notNull() .references(() => organizations.id)`     |
+| `projectId`        | `project_id`        | `integer('project_id').references(() => projects.id, { onDelete: 'set null' })` |
+| `publishedVersion` | `published_version` | `integer('published_version')`                                                  |
+| `name`             | `name`              | `text('name').notNull()`                                                        |
+| `platform`         | `platform`          | `text('platform').$type<MobilePlatform>().notNull()`                            |
+| `app`              | `app`               | `text('app').notNull()`                                                         |
+| `deviceName`       | `device_name`       | `text('device_name').notNull()`                                                 |
+| `osVersion`        | `os_version`        | `text('os_version')`                                                            |
+| `deviceMatrix`     | `device_matrix`     | `jsonb('device_matrix').$type<MobileDeviceTarget[]>().notNull().default([])`    |
+| `gridId`           | `grid_id`           | `text('grid_id').references(() => browserGrids.id, { onDelete: 'set null' })`   |
+| `steps`            | `steps`             | `jsonb('steps').$type<MobileStep[]>().notNull().default([])`                    |
+| `createdBy`        | `created_by`        | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`    |
+| `createdAt`        | `created_at`        | `timestamp('created_at').defaultNow().notNull()`                                |
+| `updatedAt`        | `updated_at`        | `timestamp('updated_at').defaultNow().notNull()`                                |
+
+## mobile_step_groups {#mobile-step-groups}
+
+`mobileStepGroups` — `shared/schema/authoring.ts:561`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------- |
+| `id`             | `id`              | `text('id').primaryKey()`                                                       |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`     |
+| `projectId`      | `project_id`      | `integer('project_id').references(() => projects.id, { onDelete: 'set null' })` |
+| `name`           | `name`            | `text('name').notNull()`                                                        |
+| `description`    | `description`     | `text('description')`                                                           |
+| `platform`       | `platform`        | `text('platform').$type<MobilePlatform>().notNull()`                            |
+| `steps`          | `steps`           | `jsonb('steps').$type<MobileStep[]>().notNull()`                                |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`    |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                |
+
+## load_tests {#load-tests}
+
+`loadTests` — `shared/schema/authoring.ts:596`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                          |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`          |
+| `projectId`      | `project_id`      | `integer('project_id').references(() => projects.id, { onDelete: 'set null' })`      |
+| `name`           | `name`            | `text('name').notNull()`                                                             |
+| `description`    | `description`     | `text('description')`                                                                |
+| `steps`          | `steps`           | `jsonb('steps').$type<LoadStep[]>().notNull()`                                       |
+| `stages`         | `stages`          | `jsonb('stages').$type<LoadStage[]>().notNull()`                                     |
+| `warmUpSec`      | `warm_up_sec`     | `integer('warm_up_sec').notNull().default(0)`                                        |
+| `dataSetId`      | `data_set_id`     | `integer('data_set_id').references(() => testDataSets.id, { onDelete: 'set null' })` |
+| `dataMode`       | `data_mode`       | `text('data_mode').$type<LoadDataMode>().notNull().default('vu')`                    |
+| `thresholds`     | `thresholds`      | `jsonb('thresholds').$type<LoadThresholds>().notNull().default({})`                  |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`         |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                     |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                     |
+
 ## api_test_history {#api-test-history}
 
-`apiTestHistory` — `shared/schema.ts:344`
+`apiTestHistory` — `shared/schema/api-testing.ts:9`
 
 | Proprietà TS      | Colonna SQL        | Dichiarazione                                                                        |
 | ----------------- | ------------------ | ------------------------------------------------------------------------------------ |
@@ -304,7 +748,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## api_tests {#api-tests}
 
-`apiTests` — `shared/schema.ts:371`
+`apiTests` — `shared/schema/api-testing.ts:36`
 
 | Proprietà TS           | Colonna SQL              | Dichiarazione                                                                   |
 | ---------------------- | ------------------------ | ------------------------------------------------------------------------------- |
@@ -341,37 +785,9 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `priority`             | `priority`               | `text('priority').default('Medium')`                                            |
 | `severity`             | `severity`               | `text('severity').default('Major')`                                             |
 
-## system_settings {#system-settings}
-
-`systemSettings` — `shared/schema.ts:433`
-
-| Proprietà TS | Colonna SQL | Dichiarazione              |
-| ------------ | ----------- | -------------------------- |
-| `key`        | `key`       | `text('key').primaryKey()` |
-| `value`      | `value`     | `text('value')`            |
-
-## runners {#runners}
-
-`runners` — `shared/schema.ts:442`
-
-| Proprietà TS             | Colonna SQL                | Dichiarazione                                                                        |
-| ------------------------ | -------------------------- | ------------------------------------------------------------------------------------ |
-| `id`                     | `id`                       | `text('id').primaryKey()`                                                            |
-| `hostname`               | `hostname`                 | `text('hostname').notNull()`                                                         |
-| `pid`                    | `pid`                      | `integer('pid').notNull()`                                                           |
-| `version`                | `version`                  | `text('version')`                                                                    |
-| `concurrency`            | `concurrency`              | `integer('concurrency').notNull()`                                                   |
-| `browserTaskConcurrency` | `browser_task_concurrency` | `integer('browser_task_concurrency').notNull()`                                      |
-| `browsers`               | `browsers`                 | `jsonb('browsers').$type<string[]>().notNull().default([])`                          |
-| `activeJobs`             | `active_jobs`              | `integer('active_jobs').notNull().default(0)`                                        |
-| `desiredState`           | `desired_state`            | `text('desired_state').$type<'active' &#124; 'drain'>().notNull().default('active')` |
-| `startedAt`              | `started_at`               | `timestamp('started_at').defaultNow().notNull()`                                     |
-| `lastSeenAt`             | `last_seen_at`             | `timestamp('last_seen_at').defaultNow().notNull()`                                   |
-| `stoppedAt`              | `stopped_at`               | `timestamp('stopped_at')`                                                            |
-
 ## test_plans {#test-plans}
 
-`testPlans` — `shared/schema.ts:466`
+`testPlans` — `shared/schema/execution.ts:30`
 
 | Proprietà TS                     | Colonna SQL                           | Dichiarazione                                                                                                         |
 | -------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -408,7 +824,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_plan_schedules {#test-plan-schedules}
 
-`testPlanSchedules` — `shared/schema.ts:556`
+`testPlanSchedules` — `shared/schema/execution.ts:120`
 
 | Proprietà TS                 | Colonna SQL                    | Dichiarazione                                                                              |
 | ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
@@ -431,7 +847,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_plan_executions {#test-plan-executions}
 
-`testPlanExecutions` — `shared/schema.ts:610`
+`testPlanExecutions` — `shared/schema/execution.ts:163`
 
 | Proprietà TS            | Colonna SQL               | Dichiarazione                                                                                    |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -473,7 +889,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## report_test_case_results {#report-test-case-results}
 
-`reportTestCaseResults` — `shared/schema.ts:688`
+`reportTestCaseResults` — `shared/schema/execution.ts:241`
 
 | Proprietà TS          | Colonna SQL              | Dichiarazione                                                                                                 |
 | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -510,7 +926,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## execution_logs {#execution-logs}
 
-`executionLogs` — `shared/schema.ts:771`
+`executionLogs` — `shared/schema/execution.ts:324`
 
 | Proprietà TS          | Colonna SQL              | Dichiarazione                                                                                                 |
 | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -525,43 +941,9 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `testCaseResultId`    | `test_case_result_id`    | `text('test_case_result_id')`                                                                                 |
 | `correlationId`       | `correlation_id`         | `text('correlation_id')`                                                                                      |
 
-## environments {#environments}
-
-`environments` — `shared/schema.ts:796`
-
-| Proprietà TS           | Colonna SQL               | Dichiarazione                                                               |
-| ---------------------- | ------------------------- | --------------------------------------------------------------------------- |
-| `id`                   | `id`                      | `serial('id').primaryKey()`                                                 |
-| `name`                 | `name`                    | `text('name').notNull()`                                                    |
-| `description`          | `description`             | `text('description')`                                                       |
-| `userId`               | `user_id`                 | `integer('user_id') .notNull() .references(() => users.id)`                 |
-| `organizationId`       | `organization_id`         | `integer('organization_id') .notNull() .references(() => organizations.id)` |
-| `createdAt`            | `created_at`              | `timestamp('created_at').notNull().defaultNow()`                            |
-| `loginState`           | `login_state`             | `text('login_state')`                                                       |
-| `loginStateIv`         | `login_state_iv`          | `text('login_state_iv')`                                                    |
-| `loginStateAuthTag`    | `login_state_auth_tag`    | `text('login_state_auth_tag')`                                              |
-| `loginStateCapturedAt` | `login_state_captured_at` | `timestamp('login_state_captured_at')`                                      |
-
-## secrets {#secrets}
-
-`secrets` — `shared/schema.ts:832`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                      |
-| ---------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
-| `id`             | `id`              | `serial('id').primaryKey()`                                                                        |
-| `environmentId`  | `environment_id`  | `integer('environment_id') .notNull() .references(() => environments.id, { onDelete: 'cascade' })` |
-| `keyName`        | `key_name`        | `text('key_name').notNull()`                                                                       |
-| `encryptedValue` | `encrypted_value` | `text('encrypted_value').notNull()`                                                                |
-| `iv`             | `iv`              | `text('iv').notNull()`                                                                             |
-| `authTag`        | `auth_tag`        | `text('auth_tag').notNull()`                                                                       |
-| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id)`                                        |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                        |
-| `createdAt`      | `created_at`      | `timestamp('created_at').notNull().defaultNow()`                                                   |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').notNull().defaultNow()`                                                   |
-
 ## test_plan_webhooks {#test-plan-webhooks}
 
-`testPlanWebhooks` — `shared/schema.ts:859`
+`testPlanWebhooks` — `shared/schema/execution.ts:349`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                              |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -576,7 +958,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_plan_selected_tests {#test-plan-selected-tests}
 
-`testPlanSelectedTests` — `shared/schema.ts:886`
+`testPlanSelectedTests` — `shared/schema/execution.ts:376`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                              |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -588,246 +970,9 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `mobileTestId`   | `mobile_test_id`  | `integer('mobile_test_id')`                                                                |
 | `testType`       | `test_type`       | `text('test_type').notNull()`                                                              |
 
-## excel_sequences_map {#excel-sequences-map}
-
-`excelSequencesMap` — `shared/schema.ts:911`
-
-| Proprietà TS      | Colonna SQL          | Dichiarazione                                                                        |
-| ----------------- | -------------------- | ------------------------------------------------------------------------------------ |
-| `id`              | `id`                 | `serial('id').primaryKey()`                                                          |
-| `testId`          | `test_id`            | `integer('test_id') .notNull() .references(() => tests.id, { onDelete: 'cascade' })` |
-| `organizationId`  | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id)`          |
-| `excelTestCaseId` | `excel_test_case_id` | `text('excel_test_case_id').notNull()`                                               |
-| `createdAt`       | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                                     |
-
-## invitations {#invitations}
-
-`invitations` — `shared/schema.ts:949`
-
-| Proprietà TS      | Colonna SQL          | Dichiarazione                                                                         |
-| ----------------- | -------------------- | ------------------------------------------------------------------------------------- |
-| `id`              | `id`                 | `serial('id').primaryKey()`                                                           |
-| `organizationId`  | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id)`           |
-| `username`        | `username`           | `text('username').notNull()`                                                          |
-| `role`            | `role`               | `text('role').notNull().default('editor')`                                            |
-| `token`           | `token`              | `text('token').notNull().unique()`                                                    |
-| `invitedByUserId` | `invited_by_user_id` | `integer('invited_by_user_id').references(() => users.id, { onDelete: 'set null', })` |
-| `expiresAt`       | `expires_at`         | `timestamp('expires_at').notNull()`                                                   |
-| `acceptedAt`      | `accepted_at`        | `timestamp('accepted_at')`                                                            |
-| `createdAt`       | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                                      |
-
-## password_resets {#password-resets}
-
-`passwordResets` — `shared/schema.ts:993`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
-| ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
-| `id`             | `id`              | `text('id').primaryKey()`                                                            |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`          |
-| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id, { onDelete: 'cascade' })` |
-| `tokenHash`      | `token_hash`      | `text('token_hash').notNull().unique()`                                              |
-| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`         |
-| `expiresAt`      | `expires_at`      | `timestamp('expires_at').notNull()`                                                  |
-| `usedAt`         | `used_at`         | `timestamp('used_at')`                                                               |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                     |
-
-## organization_sso {#organization-sso}
-
-`organizationSso` — `shared/schema.ts:1025`
-
-| Proprietà TS                     | Colonna SQL                         | Dichiarazione                                                                                                                      |
-| -------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `organizationId`                 | `organization_id`                   | `integer('organization_id') .primaryKey() .references(() => organizations.id, { onDelete: 'cascade' })`                            |
-| `protocol`                       | `protocol`                          | `text('protocol').notNull().default('oidc')`                                                                                       |
-| `issuer`                         | `issuer`                            | `text('issuer').notNull()`                                                                                                         |
-| `clientId`                       | `client_id`                         | `text('client_id')`                                                                                                                |
-| `clientSecretEncrypted`          | `client_secret_encrypted`           | `text('client_secret_encrypted')`                                                                                                  |
-| `clientSecretIv`                 | `client_secret_iv`                  | `text('client_secret_iv')`                                                                                                         |
-| `clientSecretAuthTag`            | `client_secret_auth_tag`            | `text('client_secret_auth_tag')`                                                                                                   |
-| `samlSsoUrl`                     | `saml_sso_url`                      | `text('saml_sso_url')`                                                                                                             |
-| `samlCertificate`                | `saml_certificate`                  | `text('saml_certificate')`                                                                                                         |
-| `samlAllowIdpInitiated`          | `saml_allow_idp_initiated`          | `boolean('saml_allow_idp_initiated').notNull().default(false)`                                                                     |
-| `samlRequireEncryptedAssertions` | `saml_require_encrypted_assertions` | `boolean('saml_require_encrypted_assertions') .notNull() .default(false)`                                                          |
-| `samlSloUrl`                     | `saml_slo_url`                      | `text('saml_slo_url')`                                                                                                             |
-| `samlSpCertificate`              | `saml_sp_certificate`               | `text('saml_sp_certificate')`                                                                                                      |
-| `samlSpPrivateKeyEncrypted`      | `saml_sp_private_key_encrypted`     | `text('saml_sp_private_key_encrypted')`                                                                                            |
-| `samlSpPrivateKeyIv`             | `saml_sp_private_key_iv`            | `text('saml_sp_private_key_iv')`                                                                                                   |
-| `samlSpPrivateKeyAuthTag`        | `saml_sp_private_key_auth_tag`      | `text('saml_sp_private_key_auth_tag')`                                                                                             |
-| `defaultRole`                    | `default_role`                      | `text('default_role').notNull().default('viewer')`                                                                                 |
-| `enabled`                        | `enabled`                           | `boolean('enabled').notNull().default(true)`                                                                                       |
-| `required`                       | `required`                          | `boolean('required').notNull().default(false)`                                                                                     |
-| `groupAttribute`                 | `group_attribute`                   | `text('group_attribute')`                                                                                                          |
-| `roleMappings`                   | `role_mappings`                     | `jsonb('role_mappings') .$type<Array<{ group: string; role: 'viewer' &#124; 'editor' &#124; 'owner' }>>() .notNull() .default([])` |
-| `requireGroup`                   | `require_group`                     | `boolean('require_group').notNull().default(false)`                                                                                |
-| `scimTokenHash`                  | `scim_token_hash`                   | `text('scim_token_hash')`                                                                                                          |
-| `scimTokenPrefix`                | `scim_token_prefix`                 | `text('scim_token_prefix')`                                                                                                        |
-| `scimTokenCreatedAt`             | `scim_token_created_at`             | `timestamp('scim_token_created_at')`                                                                                               |
-| `scimTokenLastUsedAt`            | `scim_token_last_used_at`           | `timestamp('scim_token_last_used_at')`                                                                                             |
-| `updatedAt`                      | `updated_at`                        | `timestamp('updated_at').defaultNow().notNull()`                                                                                   |
-
-## scim_users {#scim-users}
-
-`scimUsers` — `shared/schema.ts:1088`
-
-| Proprietà TS       | Colonna SQL          | Dichiarazione                                                                                        |
-| ------------------ | -------------------- | ---------------------------------------------------------------------------------------------------- |
-| `userId`           | `user_id`            | `integer('user_id') .primaryKey() .references(() => users.id, { onDelete: 'cascade' })`              |
-| `organizationId`   | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
-| `externalId`       | `external_id`        | `text('external_id')`                                                                                |
-| `disabledByGroups` | `disabled_by_groups` | `boolean('disabled_by_groups').notNull().default(false)`                                             |
-| `createdAt`        | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                                                     |
-| `updatedAt`        | `updated_at`         | `timestamp('updated_at').defaultNow().notNull()`                                                     |
-
-## scim_groups {#scim-groups}
-
-`scimGroups` — `shared/schema.ts:1107`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
-| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
-| `id`             | `id`              | `text('id').primaryKey()`                                                                            |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
-| `displayName`    | `display_name`    | `text('display_name').notNull()`                                                                     |
-| `externalId`     | `external_id`     | `text('external_id')`                                                                                |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                     |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                                     |
-
-## scim_group_members {#scim-group-members}
-
-`scimGroupMembers` — `shared/schema.ts:1122`
-
-| Proprietà TS | Colonna SQL | Dichiarazione                                                                           |
-| ------------ | ----------- | --------------------------------------------------------------------------------------- |
-| `groupId`    | `group_id`  | `text('group_id') .notNull() .references(() => scimGroups.id, { onDelete: 'cascade' })` |
-| `userId`     | `user_id`   | `integer('user_id') .notNull() .references(() => users.id, { onDelete: 'cascade' })`    |
-
-## sso_saml_requests {#sso-saml-requests}
-
-`ssoSamlRequests` — `shared/schema.ts:1143`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
-| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
-| `id`             | `id`              | `text('id').primaryKey()`                                                                            |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                     |
-| `purpose`        | `purpose`         | `text('purpose').notNull().default('authn')`                                                         |
-| `sessionId`      | `session_id`      | `text('session_id')`                                                                                 |
-
-## sso_saml_replay {#sso-saml-replay}
-
-`ssoSamlReplay` — `shared/schema.ts:1158`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
-| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
-| `id`             | `id`              | `text('id').primaryKey()`                                                                            |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
-| `expiresAt`      | `expires_at`      | `timestamp('expires_at').notNull()`                                                                  |
-
-## sso_saml_sessions {#sso-saml-sessions}
-
-`ssoSamlSessions` — `shared/schema.ts:1171`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
-| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
-| `sessionId`      | `session_id`      | `text('session_id').primaryKey()`                                                                    |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
-| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id, { onDelete: 'cascade' })`                 |
-| `issuer`         | `issuer`          | `text('issuer').notNull()`                                                                           |
-| `nameId`         | `name_id`         | `text('name_id').notNull()`                                                                          |
-| `nameIdFormat`   | `name_id_format`  | `text('name_id_format')`                                                                             |
-| `sessionIndex`   | `session_index`   | `text('session_index')`                                                                              |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                     |
-
-## sso_domains {#sso-domains}
-
-`ssoDomains` — `shared/schema.ts:1197`
-
-| Proprietà TS        | Colonna SQL          | Dichiarazione                                                                                        |
-| ------------------- | -------------------- | ---------------------------------------------------------------------------------------------------- |
-| `domain`            | `domain`             | `text('domain').primaryKey()`                                                                        |
-| `organizationId`    | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
-| `verificationToken` | `verification_token` | `text('verification_token')`                                                                         |
-| `verifiedAt`        | `verified_at`        | `timestamp('verified_at')`                                                                           |
-
-## sso_identities {#sso-identities}
-
-`ssoIdentities` — `shared/schema.ts:1213`
-
-| Proprietà TS   | Colonna SQL       | Dichiarazione                                                                                  |
-| -------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
-| `issuer`       | `issuer`          | `text('issuer').notNull()`                                                                     |
-| `subject`      | `subject`         | `text('subject').notNull()`                                                                    |
-| `userId`       | `user_id`         | `integer('user_id') .notNull() .unique() .references(() => users.id, { onDelete: 'cascade' })` |
-| `createdAt`    | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                               |
-| `lastSignInAt` | `last_sign_in_at` | `timestamp('last_sign_in_at').defaultNow().notNull()`                                          |
-
-## audit_log {#audit-log}
-
-`auditLog` — `shared/schema.ts:1245`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
-| ---------------- | ----------------- | ------------------------------------------------------------------------------- |
-| `id`             | `id`              | `serial('id').primaryKey()`                                                     |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`     |
-| `actorUserId`    | `actor_user_id`   | `integer('actor_user_id').references(() => users.id, { onDelete: 'set null' })` |
-| `actorUsername`  | `actor_username`  | `text('actor_username')`                                                        |
-| `action`         | `action`          | `text('action').notNull()`                                                      |
-| `targetType`     | `target_type`     | `text('target_type')`                                                           |
-| `targetId`       | `target_id`       | `text('target_id')`                                                             |
-| `metadata`       | `metadata`        | `jsonb('metadata')`                                                             |
-| `apiKeyId`       | `api_key_id`      | `text('api_key_id')`                                                            |
-| `ipAddress`      | `ip_address`      | `text('ip_address')`                                                            |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                |
-
-## step_groups {#step-groups}
-
-`stepGroups` — `shared/schema.ts:1290`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
-| ---------------- | ----------------- | ------------------------------------------------------------------------------- |
-| `id`             | `id`              | `text('id').primaryKey()`                                                       |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`     |
-| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id)`                     |
-| `projectId`      | `project_id`      | `integer('project_id').references(() => projects.id, { onDelete: 'set null' })` |
-| `name`           | `name`            | `text('name').notNull()`                                                        |
-| `description`    | `description`     | `text('description')`                                                           |
-| `sequence`       | `sequence`        | `jsonb('sequence').notNull()`                                                   |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                |
-
-## custom_actions {#custom-actions}
-
-`customActions` — `shared/schema.ts:1323`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
-| ---------------- | ----------------- | ---------------------------------------------------------------------------- |
-| `id`             | `id`              | `text('id').primaryKey()`                                                    |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
-| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id)`                  |
-| `name`           | `name`            | `text('name').notNull()`                                                     |
-| `description`    | `description`     | `text('description')`                                                        |
-| `parameters`     | `parameters`      | `jsonb('parameters').$type<CustomActionParameter[]>().notNull().default([])` |
-| `script`         | `script`          | `text('script').notNull()`                                                   |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                             |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                             |
-
-## test_data_sets {#test-data-sets}
-
-`testDataSets` — `shared/schema.ts:1353`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
-| ---------------- | ----------------- | --------------------------------------------------------------------------- |
-| `id`             | `id`              | `serial('id').primaryKey()`                                                 |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)` |
-| `name`           | `name`            | `text('name').notNull()`                                                    |
-| `description`    | `description`     | `text('description')`                                                       |
-| `columns`        | `columns`         | `jsonb('columns').$type<string[]>().notNull()`                              |
-| `rows`           | `rows`            | `jsonb('rows').$type<Array<Record<string, string>>>().notNull()`            |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                            |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                            |
-
 ## run_work_items {#run-work-items}
 
-`runWorkItems` — `shared/schema.ts:1381`
+`runWorkItems` — `shared/schema/execution.ts:405`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                       |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -845,7 +990,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## impact_rules {#impact-rules}
 
-`impactRules` — `shared/schema.ts:1412`
+`impactRules` — `shared/schema/execution.ts:436`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -855,133 +1000,9 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `tagId`          | `tag_id`          | `text('tag_id').references(() => tags.id, { onDelete: 'cascade' })`         |
 | `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                            |
 
-## sms_messages {#sms-messages}
-
-`smsMessages` — `shared/schema.ts:1429`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
-| ---------------- | ----------------- | --------------------------------------------------------------------------- |
-| `id`             | `id`              | `serial('id').primaryKey()`                                                 |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)` |
-| `toNumber`       | `to_number`       | `text('to_number').notNull()`                                               |
-| `fromNumber`     | `from_number`     | `text('from_number')`                                                       |
-| `body`           | `body`            | `text('body').notNull()`                                                    |
-| `provider`       | `provider`        | `text('provider')`                                                          |
-| `receivedAt`     | `received_at`     | `timestamp('received_at').defaultNow().notNull()`                           |
-
-## project_elements {#project-elements}
-
-`projectElements` — `shared/schema.ts:1463`
-
-| Proprietà TS       | Colonna SQL         | Dichiarazione                                                                              |
-| ------------------ | ------------------- | ------------------------------------------------------------------------------------------ |
-| `id`               | `id`                | `text('id').primaryKey()`                                                                  |
-| `organizationId`   | `organization_id`   | `integer('organization_id') .notNull() .references(() => organizations.id)`                |
-| `projectId`        | `project_id`        | `integer('project_id') .notNull() .references(() => projects.id, { onDelete: 'cascade' })` |
-| `name`             | `name`              | `text('name').notNull()`                                                                   |
-| `selector`         | `selector`          | `text('selector').notNull()`                                                               |
-| `originalSelector` | `original_selector` | `text('original_selector')`                                                                |
-| `frameSelector`    | `frame_selector`    | `text('frame_selector')`                                                                   |
-| `tag`              | `tag`               | `text('tag')`                                                                              |
-| `elementType`      | `element_type`      | `text('element_type')`                                                                     |
-| `text`             | `text`              | `text('text')`                                                                             |
-| `attributes`       | `attributes`        | `jsonb('attributes')`                                                                      |
-| `healedAt`         | `healed_at`         | `timestamp('healed_at')`                                                                   |
-| `createdAt`        | `created_at`        | `timestamp('created_at').defaultNow().notNull()`                                           |
-| `updatedAt`        | `updated_at`        | `timestamp('updated_at').defaultNow().notNull()`                                           |
-
-## tags {#tags}
-
-`tags` — `shared/schema.ts:1511`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
-| ---------------- | ----------------- | --------------------------------------------------------------------------- |
-| `id`             | `id`              | `text('id').primaryKey()`                                                   |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)` |
-| `name`           | `name`            | `text('name').notNull()`                                                    |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                            |
-
-## test_tags {#test-tags}
-
-`testTags` — `shared/schema.ts:1535`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
-| ---------------- | ----------------- | ------------------------------------------------------------------------------- |
-| `id`             | `id`              | `serial('id').primaryKey()`                                                     |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`     |
-| `tagId`          | `tag_id`          | `text('tag_id') .notNull() .references(() => tags.id, { onDelete: 'cascade' })` |
-| `testId`         | `test_id`         | `integer('test_id').references(() => tests.id, { onDelete: 'cascade' })`        |
-| `apiTestId`      | `api_test_id`     | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' })` |
-| `mobileTestId`   | `mobile_test_id`  | `integer('mobile_test_id')`                                                     |
-| `testType`       | `test_type`       | `text('test_type').notNull()`                                                   |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                |
-
-## test_versions {#test-versions}
-
-`testVersions` — `shared/schema.ts:1580`
-
-| Proprietà TS          | Colonna SQL             | Dichiarazione                                                                                       |
-| --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
-| `bdd`                 | `bdd`                   | `jsonb('bdd').$type<BddTest>()`                                                                     |
-| `id`                  | `id`                    | `serial('id').primaryKey()`                                                                         |
-| `organizationId`      | `organization_id`       | `integer('organization_id') .notNull() .references(() => organizations.id)`                         |
-| `testId`              | `test_id`               | `integer('test_id').references(() => tests.id, { onDelete: 'cascade' })`                            |
-| `apiTestId`           | `api_test_id`           | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' })`                     |
-| `mobileTestId`        | `mobile_test_id`        | `integer('mobile_test_id').references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade', })` |
-| `version`             | `version`               | `integer('version').notNull()`                                                                      |
-| `name`                | `name`                  | `text('name').notNull()`                                                                            |
-| `url`                 | `url`                   | `text('url').notNull()`                                                                             |
-| `sequence`            | `sequence`              | `jsonb('sequence').notNull()`                                                                       |
-| `elements`            | `elements`              | `jsonb('elements').notNull()`                                                                       |
-| `preconditions`       | `preconditions`         | `jsonb('preconditions')`                                                                            |
-| `cleanups`            | `cleanups`              | `jsonb('cleanups')`                                                                                 |
-| `dataset`             | `dataset`               | `jsonb('dataset')`                                                                                  |
-| `snapshot`            | `snapshot`              | `jsonb('snapshot').$type<Record<string, unknown>>()`                                                |
-| `summary`             | `summary`               | `text('summary')`                                                                                   |
-| `restoredFromVersion` | `restored_from_version` | `integer('restored_from_version')`                                                                  |
-| `createdBy`           | `created_by`            | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`                        |
-| `createdAt`           | `created_at`            | `timestamp('created_at').defaultNow().notNull()`                                                    |
-
-## test_publications {#test-publications}
-
-`testPublications` — `shared/schema.ts:1644`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                       |
-| ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
-| `id`             | `id`              | `serial('id').primaryKey()`                                                                         |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                         |
-| `testId`         | `test_id`         | `integer('test_id').references(() => tests.id, { onDelete: 'cascade' })`                            |
-| `apiTestId`      | `api_test_id`     | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' })`                     |
-| `mobileTestId`   | `mobile_test_id`  | `integer('mobile_test_id').references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade', })` |
-| `version`        | `version`         | `integer('version')`                                                                                |
-| `kind`           | `kind`            | `text('kind').$type<TestPublicationKind>().notNull()`                                               |
-| `reviewId`       | `review_id`       | `integer('review_id')`                                                                              |
-| `publishedBy`    | `published_by`    | `integer('published_by').references(() => users.id, { onDelete: 'set null' })`                      |
-| `publishedAt`    | `published_at`    | `timestamp('published_at').defaultNow().notNull()`                                                  |
-
-## test_reviews {#test-reviews}
-
-`testReviews` — `shared/schema.ts:1687`
-
-| Proprietà TS      | Colonna SQL        | Dichiarazione                                                                                       |
-| ----------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
-| `id`              | `id`               | `serial('id').primaryKey()`                                                                         |
-| `organizationId`  | `organization_id`  | `integer('organization_id') .notNull() .references(() => organizations.id)`                         |
-| `testId`          | `test_id`          | `integer('test_id').references(() => tests.id, { onDelete: 'cascade' })`                            |
-| `apiTestId`       | `api_test_id`      | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' })`                     |
-| `mobileTestId`    | `mobile_test_id`   | `integer('mobile_test_id').references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade', })` |
-| `version`         | `version`          | `integer('version').notNull()`                                                                      |
-| `status`          | `status`           | `text('status').$type<TestReviewStatus>().notNull().default('pending')`                             |
-| `note`            | `note`             | `text('note')`                                                                                      |
-| `requestedBy`     | `requested_by`     | `integer('requested_by').references(() => users.id, { onDelete: 'set null' })`                      |
-| `requestedAt`     | `requested_at`     | `timestamp('requested_at').defaultNow().notNull()`                                                  |
-| `decidedBy`       | `decided_by`       | `integer('decided_by').references(() => users.id, { onDelete: 'set null' })`                        |
-| `decidedAt`       | `decided_at`       | `timestamp('decided_at')`                                                                           |
-| `decisionComment` | `decision_comment` | `text('decision_comment')`                                                                          |
-
 ## test_suites {#test-suites}
 
-`testSuites` — `shared/schema.ts:1737`
+`testSuites` — `shared/schema/execution.ts:459`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -998,7 +1019,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_suite_items {#test-suite-items}
 
-`testSuiteItems` — `shared/schema.ts:1760`
+`testSuiteItems` — `shared/schema/execution.ts:482`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                              |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1013,7 +1034,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_plan_suites {#test-plan-suites}
 
-`testPlanSuites` — `shared/schema.ts:1781`
+`testPlanSuites` — `shared/schema/execution.ts:503`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                              |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1024,7 +1045,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_quarantines {#test-quarantines}
 
-`testQuarantines` — `shared/schema.ts:1806`
+`testQuarantines` — `shared/schema/execution.ts:528`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                    |
 | ---------------- | ----------------- | -------------------------------------------------------------------------------- |
@@ -1041,229 +1062,9 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `releasedAt`     | `released_at`     | `timestamp('released_at')`                                                       |
 | `releaseNote`    | `release_note`    | `text('release_note')`                                                           |
 
-## agents {#agents}
-
-`agents` — `shared/schema.ts:1836`
-
-| Proprietà TS        | Colonna SQL          | Dichiarazione                                                                |
-| ------------------- | -------------------- | ---------------------------------------------------------------------------- |
-| `id`                | `id`                 | `text('id').primaryKey()`                                                    |
-| `organizationId`    | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
-| `name`              | `name`               | `text('name').notNull()`                                                     |
-| `pool`              | `pool`               | `text('pool').notNull().default('default')`                                  |
-| `tokenPrefix`       | `token_prefix`       | `text('token_prefix').notNull()`                                             |
-| `tokenHash`         | `token_hash`         | `text('token_hash').notNull().unique()`                                      |
-| `createdBy`         | `created_by`         | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
-| `createdAt`         | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                             |
-| `lastSeenAt`        | `last_seen_at`       | `timestamp('last_seen_at')`                                                  |
-| `hostname`          | `hostname`           | `text('hostname')`                                                           |
-| `agentVersion`      | `agent_version`      | `text('agent_version')`                                                      |
-| `playwrightVersion` | `playwright_version` | `text('playwright_version')`                                                 |
-| `browsers`          | `browsers`           | `jsonb('browsers').$type<string[]>()`                                        |
-| `bddProfiles`       | `bdd_profiles`       | `jsonb('bdd_profiles').$type<BddAgentProfile[]>()`                           |
-| `revokedAt`         | `revoked_at`         | `timestamp('revoked_at')`                                                    |
-
-## bdd_execution_profiles {#bdd-execution-profiles}
-
-`bddExecutionProfiles` — `shared/schema.ts:1865`
-
-| Proprietà TS        | Colonna SQL           | Dichiarazione                                                                                        |
-| ------------------- | --------------------- | ---------------------------------------------------------------------------------------------------- |
-| `id`                | `id`                  | `text('id').primaryKey()`                                                                            |
-| `organizationId`    | `organization_id`     | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
-| `projectId`         | `project_id`          | `integer('project_id').references(() => projects.id, { onDelete: 'cascade' })`                       |
-| `name`              | `name`                | `text('name').notNull()`                                                                             |
-| `pool`              | `pool`                | `text('pool').notNull()`                                                                             |
-| `operatorProfileId` | `operator_profile_id` | `text('operator_profile_id').notNull()`                                                              |
-| `revision`          | `revision`            | `text('revision').notNull()`                                                                         |
-| `timeoutMs`         | `timeout_ms`          | `integer('timeout_ms').notNull().default(60000)`                                                     |
-| `createdAt`         | `created_at`          | `timestamp('created_at').defaultNow().notNull()`                                                     |
-| `updatedAt`         | `updated_at`          | `timestamp('updated_at').defaultNow().notNull()`                                                     |
-
-## source_hosts {#source-hosts}
-
-`sourceHosts` — `shared/schema.ts:1895`
-
-| Proprietà TS        | Colonna SQL           | Dichiarazione                                                                |
-| ------------------- | --------------------- | ---------------------------------------------------------------------------- |
-| `id`                | `id`                  | `text('id').primaryKey()`                                                    |
-| `organizationId`    | `organization_id`     | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
-| `provider`          | `provider`            | `text('provider').$type<SourceHostProvider>().notNull()`                     |
-| `apiUrl`            | `api_url`             | `text('api_url').notNull()`                                                  |
-| `encryptedToken`    | `encrypted_token`     | `text('encrypted_token').notNull()`                                          |
-| `tokenIv`           | `token_iv`            | `text('token_iv').notNull()`                                                 |
-| `tokenAuthTag`      | `token_auth_tag`      | `text('token_auth_tag').notNull()`                                           |
-| `createdBy`         | `created_by`          | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
-| `createdAt`         | `created_at`          | `timestamp('created_at').defaultNow().notNull()`                             |
-| `updatedAt`         | `updated_at`          | `timestamp('updated_at').defaultNow().notNull()`                             |
-| `lastDeliveryAt`    | `last_delivery_at`    | `timestamp('last_delivery_at')`                                              |
-| `lastDeliveryError` | `last_delivery_error` | `text('last_delivery_error')`                                                |
-
-## issue_trackers {#issue-trackers}
-
-`issueTrackers` — `shared/schema.ts:1936`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
-| ---------------- | ----------------- | ---------------------------------------------------------------------------- |
-| `id`             | `id`              | `text('id').primaryKey()`                                                    |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
-| `name`           | `name`            | `text('name').notNull()`                                                     |
-| `provider`       | `provider`        | `text('provider').notNull()`                                                 |
-| `baseUrl`        | `base_url`        | `text('base_url').notNull()`                                                 |
-| `projectKey`     | `project_key`     | `text('project_key').notNull()`                                              |
-| `issueType`      | `issue_type`      | `text('issue_type').default('Bug').notNull()`                                |
-| `userEmail`      | `user_email`      | `text('user_email')`                                                         |
-| `encryptedToken` | `encrypted_token` | `text('encrypted_token').notNull()`                                          |
-| `tokenIv`        | `token_iv`        | `text('token_iv').notNull()`                                                 |
-| `tokenAuthTag`   | `token_auth_tag`  | `text('token_auth_tag').notNull()`                                           |
-| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                             |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                             |
-
-## browser_grids {#browser-grids}
-
-`browserGrids` — `shared/schema.ts:1967`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
-| ---------------- | ----------------- | ---------------------------------------------------------------------------- |
-| `id`             | `id`              | `text('id').primaryKey()`                                                    |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
-| `name`           | `name`            | `text('name').notNull()`                                                     |
-| `provider`       | `provider`        | `text('provider').notNull()`                                                 |
-| `username`       | `username`        | `text('username')`                                                           |
-| `endpoint`       | `endpoint`        | `text('endpoint')`                                                           |
-| `encryptedKey`   | `encrypted_key`   | `text('encrypted_key')`                                                      |
-| `keyIv`          | `key_iv`          | `text('key_iv')`                                                             |
-| `keyAuthTag`     | `key_auth_tag`    | `text('key_auth_tag')`                                                       |
-| `agentPool`      | `agent_pool`      | `text('agent_pool')`                                                         |
-| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                             |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                             |
-
-## requirements {#requirements}
-
-`requirements` — `shared/schema.ts:1997`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                    |
-| ---------------- | ----------------- | ------------------------------------------------------------------------------------------------ |
-| `id`             | `id`              | `serial('id').primaryKey()`                                                                      |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                      |
-| `key`            | `key`             | `text('key').notNull()`                                                                          |
-| `title`          | `title`           | `text('title').notNull()`                                                                        |
-| `description`    | `description`     | `text('description')`                                                                            |
-| `kind`           | `kind`            | `text('kind').$type<RequirementKind>().notNull().default('story')`                               |
-| `parentId`       | `parent_id`       | `integer('parent_id').references((): AnyPgColumn => requirements.id, { onDelete: 'set null', })` |
-| `trackerId`      | `tracker_id`      | `text('tracker_id').references(() => issueTrackers.id, { onDelete: 'set null' })`                |
-| `url`            | `url`             | `text('url')`                                                                                    |
-| `externalType`   | `external_type`   | `text('external_type')`                                                                          |
-| `externalStatus` | `external_status` | `text('external_status')`                                                                        |
-| `syncedAt`       | `synced_at`       | `timestamp('synced_at')`                                                                         |
-| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`                     |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                 |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                                 |
-
-## test_management_connections {#test-management-connections}
-
-`testManagementConnections` — `shared/schema.ts:2033`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
-| ---------------- | ----------------- | ---------------------------------------------------------------------------- |
-| `id`             | `id`              | `text('id').primaryKey()`                                                    |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
-| `name`           | `name`            | `text('name').notNull()`                                                     |
-| `provider`       | `provider`        | `text('provider').$type<TestManagementProvider>().notNull()`                 |
-| `baseUrl`        | `base_url`        | `text('base_url').notNull()`                                                 |
-| `username`       | `username`        | `text('username')`                                                           |
-| `projectKey`     | `project_key`     | `text('project_key').notNull()`                                              |
-| `suiteId`        | `suite_id`        | `text('suite_id')`                                                           |
-| `testPlanKey`    | `test_plan_key`   | `text('test_plan_key')`                                                      |
-| `encryptedToken` | `encrypted_token` | `text('encrypted_token').notNull()`                                          |
-| `tokenIv`        | `token_iv`        | `text('token_iv').notNull()`                                                 |
-| `tokenAuthTag`   | `token_auth_tag`  | `text('token_auth_tag').notNull()`                                           |
-| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                             |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                             |
-
-## test_case_links {#test-case-links}
-
-`testCaseLinks` — `shared/schema.ts:2060`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                               |
-| ---------------- | ----------------- | ----------------------------------------------------------------------------------------------------------- |
-| `id`             | `id`              | `serial('id').primaryKey()`                                                                                 |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                                 |
-| `connectionId`   | `connection_id`   | `text('connection_id') .notNull() .references(() => testManagementConnections.id, { onDelete: 'cascade' })` |
-| `testType`       | `test_type`       | `text('test_type').$type<'ui' &#124; 'api' &#124; 'mobile'>().notNull()`                                    |
-| `testId`         | `test_id`         | `integer('test_id').references(() => tests.id, { onDelete: 'cascade' })`                                    |
-| `apiTestId`      | `api_test_id`     | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' })`                             |
-| `mobileTestId`   | `mobile_test_id`  | `integer('mobile_test_id')`                                                                                 |
-| `caseKey`        | `case_key`        | `text('case_key').notNull()`                                                                                |
-| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`                                |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                            |
-
-## test_management_publications {#test-management-publications}
-
-`testManagementPublications` — `shared/schema.ts:2083`
-
-| Proprietà TS          | Colonna SQL              | Dichiarazione                                                                                                 |
-| --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `id`                  | `id`                     | `serial('id').primaryKey()`                                                                                   |
-| `organizationId`      | `organization_id`        | `integer('organization_id') .notNull() .references(() => organizations.id)`                                   |
-| `testPlanExecutionId` | `test_plan_execution_id` | `text('test_plan_execution_id') .notNull() .references(() => testPlanExecutions.id, { onDelete: 'cascade' })` |
-| `connectionId`        | `connection_id`          | `text('connection_id').references(() => testManagementConnections.id, { onDelete: 'set null', })`             |
-| `connectionName`      | `connection_name`        | `text('connection_name').notNull()`                                                                           |
-| `provider`            | `provider`               | `text('provider').notNull()`                                                                                  |
-| `status`              | `status`                 | `text('status').$type<'published' &#124; 'failed' &#124; 'nothing_to_publish'>().notNull()`                   |
-| `externalKey`         | `external_key`           | `text('external_key')`                                                                                        |
-| `externalUrl`         | `external_url`           | `text('external_url')`                                                                                        |
-| `publishedCount`      | `published_count`        | `integer('published_count').notNull().default(0)`                                                             |
-| `unmappedCount`       | `unmapped_count`         | `integer('unmapped_count').notNull().default(0)`                                                              |
-| `message`             | `message`                | `text('message')`                                                                                             |
-| `requestedBy`         | `requested_by`           | `integer('requested_by').references(() => users.id, { onDelete: 'set null' })`                                |
-| `createdAt`           | `created_at`             | `timestamp('created_at').defaultNow().notNull()`                                                              |
-
-## mobile_tests {#mobile-tests}
-
-`mobileTests` — `shared/schema.ts:2116`
-
-| Proprietà TS       | Colonna SQL         | Dichiarazione                                                                   |
-| ------------------ | ------------------- | ------------------------------------------------------------------------------- |
-| `id`               | `id`                | `serial('id').primaryKey()`                                                     |
-| `organizationId`   | `organization_id`   | `integer('organization_id') .notNull() .references(() => organizations.id)`     |
-| `projectId`        | `project_id`        | `integer('project_id').references(() => projects.id, { onDelete: 'set null' })` |
-| `publishedVersion` | `published_version` | `integer('published_version')`                                                  |
-| `name`             | `name`              | `text('name').notNull()`                                                        |
-| `platform`         | `platform`          | `text('platform').$type<MobilePlatform>().notNull()`                            |
-| `app`              | `app`               | `text('app').notNull()`                                                         |
-| `deviceName`       | `device_name`       | `text('device_name').notNull()`                                                 |
-| `osVersion`        | `os_version`        | `text('os_version')`                                                            |
-| `deviceMatrix`     | `device_matrix`     | `jsonb('device_matrix').$type<MobileDeviceTarget[]>().notNull().default([])`    |
-| `gridId`           | `grid_id`           | `text('grid_id').references(() => browserGrids.id, { onDelete: 'set null' })`   |
-| `steps`            | `steps`             | `jsonb('steps').$type<MobileStep[]>().notNull().default([])`                    |
-| `createdBy`        | `created_by`        | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`    |
-| `createdAt`        | `created_at`        | `timestamp('created_at').defaultNow().notNull()`                                |
-| `updatedAt`        | `updated_at`        | `timestamp('updated_at').defaultNow().notNull()`                                |
-
-## mobile_step_groups {#mobile-step-groups}
-
-`mobileStepGroups` — `shared/schema.ts:2143`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
-| ---------------- | ----------------- | ------------------------------------------------------------------------------- |
-| `id`             | `id`              | `text('id').primaryKey()`                                                       |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`     |
-| `projectId`      | `project_id`      | `integer('project_id').references(() => projects.id, { onDelete: 'set null' })` |
-| `name`           | `name`            | `text('name').notNull()`                                                        |
-| `description`    | `description`     | `text('description')`                                                           |
-| `platform`       | `platform`        | `text('platform').$type<MobilePlatform>().notNull()`                            |
-| `steps`          | `steps`           | `jsonb('steps').$type<MobileStep[]>().notNull()`                                |
-| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`    |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                |
-
 ## mobile_test_runs {#mobile-test-runs}
 
-`mobileTestRuns` — `shared/schema.ts:2175`
+`mobileTestRuns` — `shared/schema/execution.ts:554`
 
 | Proprietà TS            | Colonna SQL               | Dichiarazione                                                                                     |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -1286,30 +1087,9 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `finishedAt`            | `finished_at`             | `timestamp('finished_at')`                                                                        |
 | `createdAt`             | `created_at`              | `timestamp('created_at').defaultNow().notNull()`                                                  |
 
-## load_tests {#load-tests}
-
-`loadTests` — `shared/schema.ts:2212`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
-| ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
-| `id`             | `id`              | `serial('id').primaryKey()`                                                          |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`          |
-| `projectId`      | `project_id`      | `integer('project_id').references(() => projects.id, { onDelete: 'set null' })`      |
-| `name`           | `name`            | `text('name').notNull()`                                                             |
-| `description`    | `description`     | `text('description')`                                                                |
-| `steps`          | `steps`           | `jsonb('steps').$type<LoadStep[]>().notNull()`                                       |
-| `stages`         | `stages`          | `jsonb('stages').$type<LoadStage[]>().notNull()`                                     |
-| `warmUpSec`      | `warm_up_sec`     | `integer('warm_up_sec').notNull().default(0)`                                        |
-| `dataSetId`      | `data_set_id`     | `integer('data_set_id').references(() => testDataSets.id, { onDelete: 'set null' })` |
-| `dataMode`       | `data_mode`       | `text('data_mode').$type<LoadDataMode>().notNull().default('vu')`                    |
-| `thresholds`     | `thresholds`      | `jsonb('thresholds').$type<LoadThresholds>().notNull().default({})`                  |
-| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`         |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                     |
-| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                     |
-
 ## load_test_runs {#load-test-runs}
 
-`loadTestRuns` — `shared/schema.ts:2238`
+`loadTestRuns` — `shared/schema/execution.ts:588`
 
 | Proprietà TS      | Colonna SQL        | Dichiarazione                                                                                 |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------- |
@@ -1328,9 +1108,257 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `startedAt`       | `started_at`       | `timestamp('started_at').defaultNow().notNull()`                                              |
 | `finishedAt`      | `finished_at`      | `timestamp('finished_at')`                                                                    |
 
+## runners {#runners}
+
+`runners` — `shared/schema/environments.ts:10`
+
+| Proprietà TS             | Colonna SQL                | Dichiarazione                                                                        |
+| ------------------------ | -------------------------- | ------------------------------------------------------------------------------------ |
+| `id`                     | `id`                       | `text('id').primaryKey()`                                                            |
+| `hostname`               | `hostname`                 | `text('hostname').notNull()`                                                         |
+| `pid`                    | `pid`                      | `integer('pid').notNull()`                                                           |
+| `version`                | `version`                  | `text('version')`                                                                    |
+| `concurrency`            | `concurrency`              | `integer('concurrency').notNull()`                                                   |
+| `browserTaskConcurrency` | `browser_task_concurrency` | `integer('browser_task_concurrency').notNull()`                                      |
+| `browsers`               | `browsers`                 | `jsonb('browsers').$type<string[]>().notNull().default([])`                          |
+| `activeJobs`             | `active_jobs`              | `integer('active_jobs').notNull().default(0)`                                        |
+| `desiredState`           | `desired_state`            | `text('desired_state').$type<'active' &#124; 'drain'>().notNull().default('active')` |
+| `startedAt`              | `started_at`               | `timestamp('started_at').defaultNow().notNull()`                                     |
+| `lastSeenAt`             | `last_seen_at`             | `timestamp('last_seen_at').defaultNow().notNull()`                                   |
+| `stoppedAt`              | `stopped_at`               | `timestamp('stopped_at')`                                                            |
+
+## environments {#environments}
+
+`environments` — `shared/schema/environments.ts:33`
+
+| Proprietà TS           | Colonna SQL               | Dichiarazione                                                               |
+| ---------------------- | ------------------------- | --------------------------------------------------------------------------- |
+| `id`                   | `id`                      | `serial('id').primaryKey()`                                                 |
+| `name`                 | `name`                    | `text('name').notNull()`                                                    |
+| `description`          | `description`             | `text('description')`                                                       |
+| `userId`               | `user_id`                 | `integer('user_id') .notNull() .references(() => users.id)`                 |
+| `organizationId`       | `organization_id`         | `integer('organization_id') .notNull() .references(() => organizations.id)` |
+| `createdAt`            | `created_at`              | `timestamp('created_at').notNull().defaultNow()`                            |
+| `loginState`           | `login_state`             | `text('login_state')`                                                       |
+| `loginStateIv`         | `login_state_iv`          | `text('login_state_iv')`                                                    |
+| `loginStateAuthTag`    | `login_state_auth_tag`    | `text('login_state_auth_tag')`                                              |
+| `loginStateCapturedAt` | `login_state_captured_at` | `timestamp('login_state_captured_at')`                                      |
+
+## secrets {#secrets}
+
+`secrets` — `shared/schema/environments.ts:69`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                      |
+| ---------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                                        |
+| `environmentId`  | `environment_id`  | `integer('environment_id') .notNull() .references(() => environments.id, { onDelete: 'cascade' })` |
+| `keyName`        | `key_name`        | `text('key_name').notNull()`                                                                       |
+| `encryptedValue` | `encrypted_value` | `text('encrypted_value').notNull()`                                                                |
+| `iv`             | `iv`              | `text('iv').notNull()`                                                                             |
+| `authTag`        | `auth_tag`        | `text('auth_tag').notNull()`                                                                       |
+| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id)`                                        |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                        |
+| `createdAt`      | `created_at`      | `timestamp('created_at').notNull().defaultNow()`                                                   |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').notNull().defaultNow()`                                                   |
+
+## sms_messages {#sms-messages}
+
+`smsMessages` — `shared/schema/environments.ts:97`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
+| ---------------- | ----------------- | --------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                 |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)` |
+| `toNumber`       | `to_number`       | `text('to_number').notNull()`                                               |
+| `fromNumber`     | `from_number`     | `text('from_number')`                                                       |
+| `body`           | `body`            | `text('body').notNull()`                                                    |
+| `provider`       | `provider`        | `text('provider')`                                                          |
+| `receivedAt`     | `received_at`     | `timestamp('received_at').defaultNow().notNull()`                           |
+
+## agents {#agents}
+
+`agents` — `shared/schema/environments.ts:126`
+
+| Proprietà TS        | Colonna SQL          | Dichiarazione                                                                |
+| ------------------- | -------------------- | ---------------------------------------------------------------------------- |
+| `id`                | `id`                 | `text('id').primaryKey()`                                                    |
+| `organizationId`    | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
+| `name`              | `name`               | `text('name').notNull()`                                                     |
+| `pool`              | `pool`               | `text('pool').notNull().default('default')`                                  |
+| `tokenPrefix`       | `token_prefix`       | `text('token_prefix').notNull()`                                             |
+| `tokenHash`         | `token_hash`         | `text('token_hash').notNull().unique()`                                      |
+| `createdBy`         | `created_by`         | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
+| `createdAt`         | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                             |
+| `lastSeenAt`        | `last_seen_at`       | `timestamp('last_seen_at')`                                                  |
+| `hostname`          | `hostname`           | `text('hostname')`                                                           |
+| `agentVersion`      | `agent_version`      | `text('agent_version')`                                                      |
+| `playwrightVersion` | `playwright_version` | `text('playwright_version')`                                                 |
+| `browsers`          | `browsers`           | `jsonb('browsers').$type<string[]>()`                                        |
+| `bddProfiles`       | `bdd_profiles`       | `jsonb('bdd_profiles').$type<BddAgentProfile[]>()`                           |
+| `revokedAt`         | `revoked_at`         | `timestamp('revoked_at')`                                                    |
+
+## bdd_execution_profiles {#bdd-execution-profiles}
+
+`bddExecutionProfiles` — `shared/schema/environments.ts:155`
+
+| Proprietà TS        | Colonna SQL           | Dichiarazione                                                                                        |
+| ------------------- | --------------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`                | `id`                  | `text('id').primaryKey()`                                                                            |
+| `organizationId`    | `organization_id`     | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
+| `projectId`         | `project_id`          | `integer('project_id').references(() => projects.id, { onDelete: 'cascade' })`                       |
+| `name`              | `name`                | `text('name').notNull()`                                                                             |
+| `pool`              | `pool`                | `text('pool').notNull()`                                                                             |
+| `operatorProfileId` | `operator_profile_id` | `text('operator_profile_id').notNull()`                                                              |
+| `revision`          | `revision`            | `text('revision').notNull()`                                                                         |
+| `timeoutMs`         | `timeout_ms`          | `integer('timeout_ms').notNull().default(60000)`                                                     |
+| `createdAt`         | `created_at`          | `timestamp('created_at').defaultNow().notNull()`                                                     |
+| `updatedAt`         | `updated_at`          | `timestamp('updated_at').defaultNow().notNull()`                                                     |
+
+## browser_grids {#browser-grids}
+
+`browserGrids` — `shared/schema/environments.ts:180`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------- |
+| `id`             | `id`              | `text('id').primaryKey()`                                                    |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
+| `name`           | `name`            | `text('name').notNull()`                                                     |
+| `provider`       | `provider`        | `text('provider').notNull()`                                                 |
+| `username`       | `username`        | `text('username')`                                                           |
+| `endpoint`       | `endpoint`        | `text('endpoint')`                                                           |
+| `encryptedKey`   | `encrypted_key`   | `text('encrypted_key')`                                                      |
+| `keyIv`          | `key_iv`          | `text('key_iv')`                                                             |
+| `keyAuthTag`     | `key_auth_tag`    | `text('key_auth_tag')`                                                       |
+| `agentPool`      | `agent_pool`      | `text('agent_pool')`                                                         |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                             |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                             |
+
+## source_hosts {#source-hosts}
+
+`sourceHosts` — `shared/schema/integrations.ts:31`
+
+| Proprietà TS        | Colonna SQL           | Dichiarazione                                                                |
+| ------------------- | --------------------- | ---------------------------------------------------------------------------- |
+| `id`                | `id`                  | `text('id').primaryKey()`                                                    |
+| `organizationId`    | `organization_id`     | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
+| `provider`          | `provider`            | `text('provider').$type<SourceHostProvider>().notNull()`                     |
+| `apiUrl`            | `api_url`             | `text('api_url').notNull()`                                                  |
+| `encryptedToken`    | `encrypted_token`     | `text('encrypted_token').notNull()`                                          |
+| `tokenIv`           | `token_iv`            | `text('token_iv').notNull()`                                                 |
+| `tokenAuthTag`      | `token_auth_tag`      | `text('token_auth_tag').notNull()`                                           |
+| `createdBy`         | `created_by`          | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
+| `createdAt`         | `created_at`          | `timestamp('created_at').defaultNow().notNull()`                             |
+| `updatedAt`         | `updated_at`          | `timestamp('updated_at').defaultNow().notNull()`                             |
+| `lastDeliveryAt`    | `last_delivery_at`    | `timestamp('last_delivery_at')`                                              |
+| `lastDeliveryError` | `last_delivery_error` | `text('last_delivery_error')`                                                |
+
+## issue_trackers {#issue-trackers}
+
+`issueTrackers` — `shared/schema/integrations.ts:72`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------- |
+| `id`             | `id`              | `text('id').primaryKey()`                                                    |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
+| `name`           | `name`            | `text('name').notNull()`                                                     |
+| `provider`       | `provider`        | `text('provider').notNull()`                                                 |
+| `baseUrl`        | `base_url`        | `text('base_url').notNull()`                                                 |
+| `projectKey`     | `project_key`     | `text('project_key').notNull()`                                              |
+| `issueType`      | `issue_type`      | `text('issue_type').default('Bug').notNull()`                                |
+| `userEmail`      | `user_email`      | `text('user_email')`                                                         |
+| `encryptedToken` | `encrypted_token` | `text('encrypted_token').notNull()`                                          |
+| `tokenIv`        | `token_iv`        | `text('token_iv').notNull()`                                                 |
+| `tokenAuthTag`   | `token_auth_tag`  | `text('token_auth_tag').notNull()`                                           |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                             |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                             |
+
+## requirements {#requirements}
+
+`requirements` — `shared/schema/integrations.ts:102`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                    |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------------------ |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                                      |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                      |
+| `key`            | `key`             | `text('key').notNull()`                                                                          |
+| `title`          | `title`           | `text('title').notNull()`                                                                        |
+| `description`    | `description`     | `text('description')`                                                                            |
+| `kind`           | `kind`            | `text('kind').$type<RequirementKind>().notNull().default('story')`                               |
+| `parentId`       | `parent_id`       | `integer('parent_id').references((): AnyPgColumn => requirements.id, { onDelete: 'set null', })` |
+| `trackerId`      | `tracker_id`      | `text('tracker_id').references(() => issueTrackers.id, { onDelete: 'set null' })`                |
+| `url`            | `url`             | `text('url')`                                                                                    |
+| `externalType`   | `external_type`   | `text('external_type')`                                                                          |
+| `externalStatus` | `external_status` | `text('external_status')`                                                                        |
+| `syncedAt`       | `synced_at`       | `timestamp('synced_at')`                                                                         |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`                     |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                 |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                                                 |
+
+## test_management_connections {#test-management-connections}
+
+`testManagementConnections` — `shared/schema/integrations.ts:138`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------- |
+| `id`             | `id`              | `text('id').primaryKey()`                                                    |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
+| `name`           | `name`            | `text('name').notNull()`                                                     |
+| `provider`       | `provider`        | `text('provider').$type<TestManagementProvider>().notNull()`                 |
+| `baseUrl`        | `base_url`        | `text('base_url').notNull()`                                                 |
+| `username`       | `username`        | `text('username')`                                                           |
+| `projectKey`     | `project_key`     | `text('project_key').notNull()`                                              |
+| `suiteId`        | `suite_id`        | `text('suite_id')`                                                           |
+| `testPlanKey`    | `test_plan_key`   | `text('test_plan_key')`                                                      |
+| `encryptedToken` | `encrypted_token` | `text('encrypted_token').notNull()`                                          |
+| `tokenIv`        | `token_iv`        | `text('token_iv').notNull()`                                                 |
+| `tokenAuthTag`   | `token_auth_tag`  | `text('token_auth_tag').notNull()`                                           |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                             |
+| `updatedAt`      | `updated_at`      | `timestamp('updated_at').defaultNow().notNull()`                             |
+
+## test_case_links {#test-case-links}
+
+`testCaseLinks` — `shared/schema/integrations.ts:165`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                               |
+| ---------------- | ----------------- | ----------------------------------------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                                                 |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                                 |
+| `connectionId`   | `connection_id`   | `text('connection_id') .notNull() .references(() => testManagementConnections.id, { onDelete: 'cascade' })` |
+| `testType`       | `test_type`       | `text('test_type').$type<'ui' &#124; 'api' &#124; 'mobile'>().notNull()`                                    |
+| `testId`         | `test_id`         | `integer('test_id').references(() => tests.id, { onDelete: 'cascade' })`                                    |
+| `apiTestId`      | `api_test_id`     | `integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' })`                             |
+| `mobileTestId`   | `mobile_test_id`  | `integer('mobile_test_id')`                                                                                 |
+| `caseKey`        | `case_key`        | `text('case_key').notNull()`                                                                                |
+| `createdBy`      | `created_by`      | `integer('created_by').references(() => users.id, { onDelete: 'set null' })`                                |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                            |
+
+## test_management_publications {#test-management-publications}
+
+`testManagementPublications` — `shared/schema/integrations.ts:188`
+
+| Proprietà TS          | Colonna SQL              | Dichiarazione                                                                                                 |
+| --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `id`                  | `id`                     | `serial('id').primaryKey()`                                                                                   |
+| `organizationId`      | `organization_id`        | `integer('organization_id') .notNull() .references(() => organizations.id)`                                   |
+| `testPlanExecutionId` | `test_plan_execution_id` | `text('test_plan_execution_id') .notNull() .references(() => testPlanExecutions.id, { onDelete: 'cascade' })` |
+| `connectionId`        | `connection_id`          | `text('connection_id').references(() => testManagementConnections.id, { onDelete: 'set null', })`             |
+| `connectionName`      | `connection_name`        | `text('connection_name').notNull()`                                                                           |
+| `provider`            | `provider`               | `text('provider').notNull()`                                                                                  |
+| `status`              | `status`                 | `text('status').$type<'published' &#124; 'failed' &#124; 'nothing_to_publish'>().notNull()`                   |
+| `externalKey`         | `external_key`           | `text('external_key')`                                                                                        |
+| `externalUrl`         | `external_url`           | `text('external_url')`                                                                                        |
+| `publishedCount`      | `published_count`        | `integer('published_count').notNull().default(0)`                                                             |
+| `unmappedCount`       | `unmapped_count`         | `integer('unmapped_count').notNull().default(0)`                                                              |
+| `message`             | `message`                | `text('message')`                                                                                             |
+| `requestedBy`         | `requested_by`           | `integer('requested_by').references(() => users.id, { onDelete: 'set null' })`                                |
+| `createdAt`           | `created_at`             | `timestamp('created_at').defaultNow().notNull()`                                                              |
+
 ## requirement_tests {#requirement-tests}
 
-`requirementTests` — `shared/schema.ts:2270`
+`requirementTests` — `shared/schema/integrations.ts:218`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                      |
 | ---------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
@@ -1346,7 +1374,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## issue_links {#issue-links}
 
-`issueLinks` — `shared/schema.ts:2311`
+`issueLinks` — `shared/schema/integrations.ts:259`
 
 | Proprietà TS       | Colonna SQL          | Dichiarazione                                                                                   |
 | ------------------ | -------------------- | ----------------------------------------------------------------------------------------------- |
@@ -1366,31 +1394,3 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `resolvedAt`       | `resolved_at`        | `timestamp('resolved_at')`                                                                      |
 | `createdAt`        | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                                                |
 | `updatedAt`        | `updated_at`         | `timestamp('updated_at').defaultNow().notNull()`                                                |
-
-## api_keys {#api-keys}
-
-`apiKeys` — `shared/schema.ts:2367`
-
-| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
-| ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
-| `id`             | `id`              | `text('id').primaryKey()`                                                            |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`          |
-| `userId`         | `user_id`         | `integer('user_id') .notNull() .references(() => users.id, { onDelete: 'cascade' })` |
-| `name`           | `name`            | `text('name').notNull()`                                                             |
-| `prefix`         | `prefix`          | `text('prefix').notNull()`                                                           |
-| `hashedKey`      | `hashed_key`      | `text('hashed_key').notNull().unique()`                                              |
-| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                     |
-| `lastUsedAt`     | `last_used_at`    | `timestamp('last_used_at')`                                                          |
-| `expiresAt`      | `expires_at`      | `timestamp('expires_at')`                                                            |
-| `revokedAt`      | `revoked_at`      | `timestamp('revoked_at')`                                                            |
-| `scopes`         | `scopes`          | `text('scopes').array()`                                                             |
-
-## sessions {#sessions}
-
-`sessions` — `shared/schema.ts:2558`
-
-| Proprietà TS | Colonna SQL | Dichiarazione                   |
-| ------------ | ----------- | ------------------------------- |
-| `sid`        | `sid`       | `text('sid').primaryKey()`      |
-| `sess`       | `sess`      | `jsonb('sess').notNull()`       |
-| `expire`     | `expire`    | `timestamp('expire').notNull()` |

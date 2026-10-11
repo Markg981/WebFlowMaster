@@ -181,11 +181,13 @@ Una nuova **tabella per organizzazione** richiede, nella stessa migrazione:
 1. `organization_id integer NOT NULL REFERENCES organizations(id)` e un indice su di essa;
 2. `ENABLE` e `FORCE ROW LEVEL SECURITY`, la policy `org_isolation` e i permessi che servono ad
    `app_user` (senza `DELETE` quando le righe sono evidenze);
-3. la tabella aggiunta a `ORG_SCOPED_TABLES` in `shared/schema.ts`;
+3. la tabella aggiunta a `ORG_SCOPED_TABLES` in `shared/schema/tenancy.ts`;
 4. ogni foreign key verso un'altra tabella per organizzazione protetta come stessa organizzazione o
    elencata come paternità nel test di deriva.
 
-Riporta la tabella in `shared/schema.ts` (Drizzle) con un commento che la spiega. Applica con
+Riporta la tabella nel file del suo dominio sotto `shared/schema/` (Drizzle) con un commento che la
+spiega; `shared/schema.ts` riesporta tutti i domini, quindi il codice continua a importare
+`@shared/schema`. Applica con
 `npm run db:migrate`; i test applicano tutte le migrazioni a ogni database di test.
 
 #### Payload jsonb
