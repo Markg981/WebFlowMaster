@@ -4,6 +4,7 @@ import {
   authHeader,
   checkConnection,
   createIssue,
+  defaultItemQuery,
   toAdf,
   toHtml,
 } from './issue-providers';
@@ -203,5 +204,13 @@ describe('checkConnection', () => {
 
     expect(result.ok).toBe(false);
     expect(result.detail).toContain('acme.atlassian.net');
+  });
+});
+
+describe('the default Jira query', () => {
+  it('escapes backslashes as well as quotes in the project key', () => {
+    // A key ending in a backslash would otherwise escape the closing quote of the JQL string.
+    const jql = defaultItemQuery({ provider: 'jira', projectKey: 'A"B\\' } as never);
+    expect(jql.startsWith('project = "A\\"B\\\\" AND')).toBe(true);
   });
 });
