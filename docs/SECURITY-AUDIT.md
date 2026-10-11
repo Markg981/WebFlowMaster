@@ -3,14 +3,35 @@
 Snapshot of `npm audit` findings and the decisions taken. Update it whenever dependencies change
 or a finding's exposure changes.
 
-**Last reviewed:** 2026-09-24.
+How to report a vulnerability is in [SECURITY.md](../SECURITY.md).
+
+**Last reviewed:** 2026-10-11.
+
+## 11 October 2026
+
+| | Before | After |
+|---|---|---|
+| Production dependencies (`npm audit --omit=dev`) | 10 (5 high, 5 moderate) | **0** |
+| All dependencies (`npm audit`) | high findings through braces | 8 (6 moderate, 2 low), all development tools |
+
+- braces 3.0.3 (CVE-2026-93687, no fixed release) is gone from both lockfiles: Tailwind 3 → 4,
+  `@typescript-eslint` 7 → 8, and the unused `@types/jest` and `eslint-plugin-vitest` removed.
+  The postinstall patch and the source-only release exception that covered it are removed;
+  `server/tests/dependency-locks.test.ts` fails if braces or micromatch return.
+- `moment` 2.31.0 (path traversal) and `tedious` 20.3.6 through `overrides` (it no longer
+  depends on `sprintf-js`).
+- Left: `drizzle-kit`/`esbuild` and `@tailwindcss/typography`'s `postcss-selector-parser`
+  (moderate), `mermaid`/`katex` (low). Development tools only; the fix npm proposes for each is a
+  downgrade of a major version.
+
+## 24 September 2026
 
 | | Before | After |
 |---|---|---|
 | Production dependencies (`npm audit --omit=dev`) | 15 (9 high, 5 moderate, 1 low) | **0** |
 | All dependencies (`npm audit`) | 25 (2 critical, 11 high, 11 moderate, 1 low) | 7 (1 high, 6 moderate), all development tools |
 
-## What changed
+### What changed
 
 | Change | Findings it cleared |
 |---|---|
@@ -20,7 +41,7 @@ or a finding's exposure changes.
 | `overrides.exceljs.uuid` = `^11.1.1` | `uuid` under `exceljs` (moderate). The fix npm proposes is downgrading `exceljs` to 3.4; instead its own `uuid` is lifted. exceljs only calls `v4()`, which uuid 11 provides. |
 | Client: `vite` 5 → 6.4.3, `@vitejs/plugin-react` 4.3 → 4.7, `vitest` and `@vitest/ui` 3.2 → 4.1.11 (root and client) | `vitest`, `@vitest/ui` (critical), `@vitest/mocker`, `@vitejs/plugin-react`, the client's `vite` |
 
-### drizzle-orm 0.45 wraps database errors
+#### drizzle-orm 0.45 wraps database errors
 
 From 0.45 a failed query throws `DrizzleQueryError`, whose message is "Failed query:" followed by
 the SQL text and its parameter values, with the driver's error as `cause`. The application told a duplicate (409) from a
@@ -31,7 +52,7 @@ Postgres query goes through, so the application sees the driver's error as befor
 refuses to start if a later drizzle-orm version moves that method, and `server/db-errors.test.ts`
 checks both the SQLSTATE and that no SQL or parameter reaches a message.
 
-### Installing drizzle-orm 0.45 on Windows
+#### Installing drizzle-orm 0.45 on Windows
 
 `npm install drizzle-orm@0.45` fails with `ERESOLVE`: its optional peers (`expo-sqlite`,
 `@op-engineering/op-sqlite`) name `react-native`, whose own peer wants React 19. None of them is
@@ -42,11 +63,13 @@ before and after: nothing but the replaced packages may disappear. On Windows, p
 
 ## Remaining findings, all development-only
 
+As of 11 October 2026.
+
 | Package | Severity | Where it comes from | Exposure | Decision |
 |---|---|---|---|---|
-| `vite` 5.4 | High | `vitepress` (the documentation site) bundles its own vite 5 | The documentation dev server (`npm run docs:dev`), on a developer's machine. The production build and the client do not use it. | No fix in vitepress 1.x. Re-evaluate at vitepress 2. Do not run `docs:dev` on an untrusted network. |
-| `vitepress`, `vitepress-plugin-mermaid` | Moderate | the same vite 5 | As above | As above |
 | `drizzle-kit`, `@esbuild-kit/core-utils`, `@esbuild-kit/esm-loader`, `esbuild` | Moderate | `drizzle-kit` 0.31 (schema tooling) still depends on `@esbuild-kit`, whose esbuild accepts cross-origin requests to its dev server | `drizzle-kit` runs no server here; the application's migrations are hand-written SQL applied by `scripts/apply-migrations.ts` | The fix is `drizzle-kit` 1.0, in beta. Re-evaluate at its release. |
+| `@tailwindcss/typography`, `postcss-selector-parser` | Moderate | typography 0.5.20, the latest, pins `postcss-selector-parser` 6.0.10 (quadratic parsing of flat selectors) | Build time only, on the application's own CSS | Forcing version 7 changes the parser's API under the plugin. Re-evaluate at the next typography release. |
+| `mermaid`, `katex` | Low | diagrams in the documentation site (`vitepress-plugin-mermaid`) | The documentation build, on the repository's own pages | npm's fix is mermaid 10, a major downgrade. Re-evaluate at the next mermaid release. |
 
 ## How to review
 

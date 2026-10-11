@@ -7,6 +7,10 @@ for security reviewers and for the operators who answer their questions.
 The technical detail behind each section is in [Tenancy and access](../internals/tenancy); the
 settings named here are in the [configuration reference](../admin/configuration).
 
+To report a vulnerability, follow the
+[security policy](https://github.com/Markg981/WebFlowMaster/security/policy): privately, through
+GitHub, never in a public issue.
+
 ## Shared responsibility
 
 | Area | The product | The operator of the installation | The organization's owners |

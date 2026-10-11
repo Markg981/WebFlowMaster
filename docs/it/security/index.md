@@ -7,6 +7,10 @@ chi valuta la sicurezza del prodotto e per gli operatori che rispondono alle sue
 Il dettaglio tecnico di ogni sezione è in [Tenancy e accessi](../internals/tenancy); le
 impostazioni citate sono nel [riferimento della configurazione](../admin/configuration).
 
+Per segnalare una vulnerabilità seguite la
+[policy di sicurezza](https://github.com/Markg981/WebFlowMaster/security/policy): in privato,
+tramite GitHub, mai in una issue pubblica.
+
 ## Responsabilità condivisa
 
 | Ambito | Il prodotto | Chi gestisce l'installazione | Gli owner dell'organizzazione |
