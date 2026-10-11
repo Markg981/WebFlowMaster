@@ -436,12 +436,6 @@
       "unnamedPlan": "Plan sans nom"
     },
     "testSchedulingsTable": {
-      "upcomingRecentSchedulings": {
-        "title": "Planifications récentes et à venir"
-      },
-      "schedulingDataWillBeAvailable": {
-        "description": "Les données de planification seront bientôt disponibles."
-      },
       "upcomingActiveSchedules": {
         "title": "Prochaines planifications actives"
       },
@@ -3068,12 +3062,12 @@
     "restore": "Restaurer",
     "unversioned_one": "{{count}} exécution antérieure de ce test n'a pas enregistré la version utilisée.",
     "unversioned_other": "{{count}} exécutions antérieures de ce test n'ont pas enregistré la version utilisée.",
-    "compare": "Compare with current",
-    "comparison": "Version comparison",
-    "compareError": "Could not load the versions.",
-    "open": "History",
-    "openFor": "History of {{name}}",
-    "restoreError": "Could not restore that version."
+    "compare": "Comparer avec la version actuelle",
+    "comparison": "Comparaison des versions",
+    "compareError": "Impossible de charger les versions.",
+    "open": "Historique",
+    "openFor": "Historique de {{name}}",
+    "restoreError": "Impossible de restaurer cette version."
   },
   "runners": {
     "loading": "Chargement…",
@@ -3457,7 +3451,7 @@
     "issuer": "Émetteur (issuer)",
     "clientId": "ID client",
     "clientSecret": "Secret client",
-    "secretKept": "Stored. Leave empty to keep it.",
+    "secretKept": "Enregistré. Laissez vide pour le conserver.",
     "domains": "Domaines e-mail",
     "defaultRole": "Rôle des nouveaux comptes",
     "roleViewer": "Lecteur",

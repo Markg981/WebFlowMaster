@@ -779,10 +779,10 @@
       "label": "Test Lab Type"
     },
     "progettoDiAppartenenza": {
-      "label": "Progetto di appartenenza"
+      "label": "Parent project"
     },
     "azioni": {
-      "label": "Azioni"
+      "label": "Actions"
     },
     "noDescription": {
       "text": "No Description"
