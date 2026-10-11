@@ -1,5 +1,5 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
-import { apiTests, requirementTests, requirements, testPlanExecutions, testPlans, tests, type Requirement } from '@shared/schema';
+import { and, asc, eq, sql } from 'drizzle-orm';
+import { requirementTests, requirements, testPlanExecutions, testPlans, type Requirement } from '@shared/schema';
 import { itemOf, visibleNames } from './test-refs';
 import {
   computeCoverage,
