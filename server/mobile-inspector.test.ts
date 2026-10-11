@@ -182,8 +182,12 @@ describe('an inspector session left alone', () => {
     // The idle timer starts the close and does not wait for it; the DELETE goes out once the
     // session has read its earlier responses, which takes real event-loop turns. Under a full
     // parallel run that came after an immediate assertion: wait for it instead.
-    await vi.waitFor(() =>
-      expect(calls.some((c) => c.startsWith('DELETE ') && c.endsWith('/session/s1'))).toBe(true),
+    // vi.waitFor gives up after one real second by default, which a loaded fork can spend before
+    // those turns come round; the wait ends as soon as the DELETE is seen.
+    await vi.waitFor(
+      () =>
+        expect(calls.some((c) => c.startsWith('DELETE ') && c.endsWith('/session/s1'))).toBe(true),
+      { timeout: 10_000 },
     );
     await expect(inspectorSnapshot(opened.id, owner)).rejects.toMatchObject({ status: 404 });
   });
