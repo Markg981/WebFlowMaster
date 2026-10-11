@@ -25,11 +25,11 @@ describe('the test execution queue', () => {
       removeOnComplete: true,
       removeOnFail: { age: 7 * 24 * 3600, count: 5000 },
     });
-    expect(constructed).toEqual([
-      {
-        name: TEST_EXECUTION_QUEUE_NAME,
-        options: expect.objectContaining({ defaultJobOptions: TEST_EXECUTION_JOB_OPTIONS }),
-      },
-    ]);
+    // The load queue is built in the same module with its own options; only this one is
+    // under test here.
+    expect(constructed).toContainEqual({
+      name: TEST_EXECUTION_QUEUE_NAME,
+      options: expect.objectContaining({ defaultJobOptions: TEST_EXECUTION_JOB_OPTIONS }),
+    });
   });
 });

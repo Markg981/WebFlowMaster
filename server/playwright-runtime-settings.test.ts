@@ -32,6 +32,8 @@ vi.mock('./browsers', async (importOriginal) => {
   const context = {
     newPage: vi.fn().mockResolvedValue(page),
     close: vi.fn().mockResolvedValue(undefined),
+    // The egress policy routes every request of a local run's context.
+    route: vi.fn().mockResolvedValue(undefined),
   };
   mocks.newContext.mockResolvedValue(context);
   return {
