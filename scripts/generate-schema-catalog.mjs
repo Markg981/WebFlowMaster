@@ -64,6 +64,11 @@ visit(source);
 if (!tables.length)
   throw new Error('No pgTable declarations found; do not publish an empty catalog.');
 
+// --check compares instead of writing, and fails when a committed catalog no longer matches
+// shared/schema.ts: the page states table and column counts, and a stale one misleads.
+const check = process.argv.includes('--check');
+const stale = [];
+
 for (const lang of ['en', 'it']) {
   const isIt = lang === 'it';
   const lines = [
@@ -103,11 +108,19 @@ for (const lang of ['en', 'it']) {
   }
   const output = path.join(root, 'docs', lang, 'internals/schema-catalog.md');
   const formatOptions = (await prettier.resolveConfig(output)) ?? {};
-  fs.writeFileSync(
-    output,
-    await prettier.format(lines.join('\n'), { ...formatOptions, parser: 'markdown' }),
-  );
+  const content = await prettier.format(lines.join('\n'), { ...formatOptions, parser: 'markdown' });
+  if (check) {
+    const current = fs.existsSync(output) ? fs.readFileSync(output, 'utf8').replace(/\r\n/g, '\n') : '';
+    if (current !== content) stale.push(path.relative(root, output));
+    continue;
+  }
+  fs.writeFileSync(output, content);
   console.log(
     `${path.relative(root, output)}: ${tables.length} tables, ${tables.reduce((n, t) => n + t.fields.length, 0)} columns`,
   );
+}
+
+if (stale.length) {
+  console.error(`Out of date with shared/schema.ts: ${stale.join(', ')}. Run npm run docs:schema-catalog.`);
+  process.exit(1);
 }
