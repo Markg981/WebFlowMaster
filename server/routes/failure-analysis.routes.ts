@@ -5,6 +5,7 @@ import { AUDIT_ACTIONS, reportTestCaseResults, testPlanExecutions } from '@share
 import {
   ANALYSABLE_STATUSES,
   ANALYSIS_LANGUAGES,
+  failureAnalysisPayload,
   readFailureAnalysis,
   type FailureAnalysis,
 } from '@shared/failure-analysis';
@@ -121,7 +122,7 @@ router.post(
       const saved = await withTenantTransaction(async (tx) => {
         const [updated] = await tx
           .update(reportTestCaseResults)
-          .set({ aiAnalysis: analysis })
+          .set({ aiAnalysis: failureAnalysisPayload.write(analysis) })
           .where(eq(reportTestCaseResults.id, resultId))
           .returning();
         if (!updated) return false;
