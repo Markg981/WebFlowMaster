@@ -5,7 +5,7 @@ garanzie descritte nel resto di questa documentazione.
 
 ## Prerequisiti
 
-- **Node.js 20 o successivo** e npm.
+- **Node.js 22 o successivo** e npm; la 24, in `.nvmrc`, è quella di CI e immagini (`nvm use` la seleziona).
 - **Redis o Valkey** su `localhost:6379` per le code (basta `docker compose up -d redis`).
 - **PostgreSQL 15+** solo se si vuole sviluppare su di esso; altrimenti si usa automaticamente PGlite
   (Postgres in WebAssembly, in una cartella locale).

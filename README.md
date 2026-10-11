@@ -83,7 +83,7 @@ can reach it. The
 
 ## Local development
 
-**Requirements:** Node.js 20 or later with npm 10, and Redis 6.2+ or Valkey (the Redis from
+**Requirements:** Node.js 22 or later (24, in `.nvmrc`, is what CI and the images use) with npm 10, and Redis 6.2+ or Valkey (the Redis from
 `docker-compose.yml` is enough). PostgreSQL is optional: without it the server uses PGlite, a
 Postgres that lives in a local folder.
 

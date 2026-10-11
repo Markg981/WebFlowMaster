@@ -83,7 +83,7 @@ flowchart LR
 | Livello        | Scelta                                                                                                                                    |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Linguaggio     | TypeScript 5 ovunque (server, client, codice condiviso, script)                                                                           |
-| Server         | Node.js 20+, Express 4, `ws` per WebSocket, Passport (strategia locale) con express-session                                               |
+| Server         | Node.js 24, Express 4 , `ws` per WebSocket, Passport (strategia locale) con express-session                                               |
 | Dati           | Drizzle ORM su `pg` (PostgreSQL) o PGlite; migrazioni SQL scritte a mano                                                                  |
 | Job            | BullMQ 5 su ioredis; node-cron o job scheduler BullMQ per le schedulazioni                                                                |
 | Browser        | Playwright (Chromium, Firefox, WebKit, canali Chrome ed Edge), axe-core per l'accessibilità                                               |
