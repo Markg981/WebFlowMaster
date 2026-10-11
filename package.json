@@ -175,7 +175,7 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^16.2.0",
-    "mermaid": "^11.17.2",
+    "mermaid": "^12.1.0",
     "node-html-parser": "^9.0.0",
     "prettier": "^3.9.4",
     "supertest": "^7.1.1",
