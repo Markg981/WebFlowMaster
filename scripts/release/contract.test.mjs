@@ -35,7 +35,8 @@ test('production installation stays frozen and named-volume targets exist before
     const source = readFileSync(file, 'utf8');
     assert.doesNotMatch(source, /npm prune/);
     assert.match(source, /npm ci --omit=dev/);
-    if (file !== 'Dockerfile.agent') assert.match(source, /mkdir -p .*\/app\/data\/visual-baselines/);
+    if (file !== 'Dockerfile.agent')
+      assert.match(source, /mkdir -p .*\/app\/data\/visual-baselines/);
   }
 });
 
@@ -43,6 +44,7 @@ test('npm instructions remove nondeterministic Node bytecode within the same lay
   for (const file of ['Dockerfile', 'Dockerfile.worker']) {
     const instructions = readFileSync(file, 'utf8').match(/^RUN npm .+$/gm);
     assert.ok(instructions?.length >= 3);
-    for (const instruction of instructions) assert.match(instruction, /rm -rf \/root\/\.npm \/tmp\/node-compile-cache/);
+    for (const instruction of instructions)
+      assert.match(instruction, /rm -rf \/root\/\.npm \/tmp\/node-compile-cache/);
   }
 });

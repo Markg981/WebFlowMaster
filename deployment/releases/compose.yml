@@ -7,10 +7,10 @@ services:
       NODE_ENV: production
       DATABASE_URL: ${MIGRATION_DATABASE_URL:?Set the migration-owner connection}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set the installation encryption key}
-    restart: "no"
+    restart: 'no'
   api:
     image: ${WFM_API_IMAGE:?Load release.env from a verified release}
-    ports: ["127.0.0.1:5000:5000"]
+    ports: ['127.0.0.1:5000:5000']
     environment: &runtime
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL:?Set the non-superuser application connection}

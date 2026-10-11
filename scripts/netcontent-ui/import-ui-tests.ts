@@ -15,7 +15,8 @@ const BASE_URL = process.env.APP_BASE_URL || process.env.DMO_BASE_URL || 'http:/
 const PROJECT_NAME = 'NetContent UI';
 
 // Steps that leave the NetContent pages -> cross-module, not automatable here.
-const CROSS = /sub-?function|po management|configuration|recipe|plant config|operator console|sub_function|start the po|material group|batch/i;
+const CROSS =
+  /sub-?function|po management|configuration|recipe|plant config|operator console|sub_function|start the po|material group|batch/i;
 
 // Precondition dependencies derived from the code (getRequiredCheckStatus etc.):
 // feature -> substring of the setup API url to look up among the imported apiTests.
@@ -66,7 +67,14 @@ function toTestStep(m: MappedStep, detected: DetectedElement[]) {
   const meta = ACTION_META[m.action];
   const selector = m.selector ?? (m.action === 'assertion' ? 'body' : undefined);
   const target = selector
-    ? detected.find((d) => d.selector === selector) ?? { id: 'elem-adhoc', type: 'element', selector, text: m.label ?? '', tag: 'unknown', attributes: {} }
+    ? (detected.find((d) => d.selector === selector) ?? {
+        id: 'elem-adhoc',
+        type: 'element',
+        selector,
+        text: m.label ?? '',
+        tag: 'unknown',
+        attributes: {},
+      })
     : undefined;
   return {
     action: { id: meta.id, type: meta.id, name: meta.name, icon: '', description: m.rawStep },
@@ -80,9 +88,20 @@ function toTestStep(m: MappedStep, detected: DetectedElement[]) {
 // Robust against the Excel's freeform "Feature Highlight" values.
 const VIEW_RULES: { test: RegExp; views: string[] }[] = [
   { test: /tray\s*weight/i, views: ['TareCheck/TrayWeightCapture.html'] },
-  { test: /tare/i, views: ['TareCheck/TareCheckSimple.html', 'TareCheck/TareCheckAdvance.html', 'TareCheck/TareCheckAdhoc.html', 'TareCheck/TareCheckTareRange.html'] },
+  {
+    test: /tare/i,
+    views: [
+      'TareCheck/TareCheckSimple.html',
+      'TareCheck/TareCheckAdvance.html',
+      'TareCheck/TareCheckAdhoc.html',
+      'TareCheck/TareCheckTareRange.html',
+    ],
+  },
   { test: /cw\s*25|cw25|cwmod|cw\s*mod/i, views: ['CheckweigherCheck.html'] },
-  { test: /monitoring.*checkweigher|ncm\s*cw|cw\s*monitoring/i, views: ['CheckweigherMonitoring.html'] },
+  {
+    test: /monitoring.*checkweigher|ncm\s*cw|cw\s*monitoring/i,
+    views: ['CheckweigherMonitoring.html'],
+  },
   { test: /monitoring.*static\s*scale|ncm\s*sc|ncmsc/i, views: ['NetContentMonitoringSC.html'] },
   { test: /static\s*scale/i, views: ['StaticScaleCheck.html'] },
   { test: /qstat/i, views: ['QStat/NetContentQstat.html'] },
@@ -95,10 +114,19 @@ const VIEW_RULES: { test: RegExp; views: string[] }[] = [
 function featureViews(viewsDir: string, feature: string): string[] {
   const rule = VIEW_RULES.find((r) => r.test.test(feature));
   if (!rule) return [];
-  return rule.views.map((v) => path.join(viewsDir, ...v.split('/'))).filter((p) => fs.existsSync(p));
+  return rule.views
+    .map((v) => path.join(viewsDir, ...v.split('/')))
+    .filter((p) => fs.existsSync(p));
 }
 
-interface Row { id: string; steps: string; expected: string; precond: string; priority: string; feature: string }
+interface Row {
+  id: string;
+  steps: string;
+  expected: string;
+  precond: string;
+  priority: string;
+  feature: string;
+}
 
 async function main() {
   const args = process.argv.slice(2);
@@ -122,11 +150,24 @@ async function main() {
     const steps = cell(row, 12);
     if (CROSS.test(cell(row, 10) + ' ' + steps)) continue; // confined only
     if (!byFeature.has(feature)) byFeature.set(feature, []);
-    byFeature.get(feature)!.push({ id, steps, expected: cell(row, 14), precond: cell(row, 10), priority: cell(row, 2) || 'Medium', feature });
+    byFeature.get(feature)!.push({
+      id,
+      steps,
+      expected: cell(row, 14),
+      precond: cell(row, 10),
+      priority: cell(row, 2) || 'Medium',
+      feature,
+    });
   }
 
   // The importing user also determines the organization every imported row belongs to.
-  const owner = (await privilegedDb.select({ id: users.id, organizationId: users.organizationId }).from(users).orderBy(asc(users.id)).limit(1))[0];
+  const owner = (
+    await privilegedDb
+      .select({ id: users.id, organizationId: users.organizationId })
+      .from(users)
+      .orderBy(asc(users.id))
+      .limit(1)
+  )[0];
   if (!owner) throw new Error('No users in DB.');
   const { id: userId, organizationId } = owner;
   const allApiTests = await privilegedDb.select().from(apiTests);
@@ -140,13 +181,24 @@ async function main() {
       .from(projects)
       .where(and(eq(projects.name, PROJECT_NAME), eq(projects.organizationId, organizationId)))
       .limit(1);
-    projectId = existing[0]?.id ?? (await privilegedDb.insert(projects).values({ name: PROJECT_NAME, userId, organizationId }).returning())[0].id;
+    projectId =
+      existing[0]?.id ??
+      (
+        await privilegedDb
+          .insert(projects)
+          .values({ name: PROJECT_NAME, userId, organizationId })
+          .returning()
+      )[0].id;
   }
 
   let grandTotal = 0;
-  console.log(`Confined features: ${byFeature.size}. Project: "${PROJECT_NAME}"${dryRun ? ' (dry-run)' : ` (id=${projectId})`}\n`);
+  console.log(
+    `Confined features: ${byFeature.size}. Project: "${PROJECT_NAME}"${dryRun ? ' (dry-run)' : ` (id=${projectId})`}\n`,
+  );
 
-  for (const [feature, rows] of Array.from(byFeature.entries()).sort((a, b) => b[1].length - a[1].length)) {
+  for (const [feature, rows] of Array.from(byFeature.entries()).sort(
+    (a, b) => b[1].length - a[1].length,
+  )) {
     // Only import features backed by a real NetContent view (skip freeform/no-view rows).
     const viewFiles = featureViews(viewsDir, feature);
     if (viewFiles.length === 0) continue;
@@ -160,11 +212,18 @@ async function main() {
     if (precApiUrl) {
       const setup = allApiTests.find((t) => t.url.includes(precApiUrl));
       if (setup) {
-        precondition = [{
-          id: `pc-${setup.id}`, name: setup.name, method: setup.method, url: setup.url,
-          queryParams: Array.isArray(setup.queryParams) ? setup.queryParams : null,
-          requestHeaders: null, requestBody: null, sourceApiTestId: setup.id,
-        }];
+        precondition = [
+          {
+            id: `pc-${setup.id}`,
+            name: setup.name,
+            method: setup.method,
+            url: setup.url,
+            queryParams: Array.isArray(setup.queryParams) ? setup.queryParams : null,
+            requestHeaders: null,
+            requestBody: null,
+            sourceApiTestId: setup.id,
+          },
+        ];
       }
     }
 
@@ -174,7 +233,18 @@ async function main() {
       unmatchedSteps += mapped.filter((m) => m.note?.startsWith('unmatched')).length;
       const sequence = mapped.map((m) => toTestStep(m, detected)).filter(Boolean);
       for (const line of splitSteps(c.expected).slice(0, 1)) {
-        sequence.push(toTestStep({ action: 'assertion', assertType: 'containsText', value: line.slice(0, 80), rawStep: line, note: 'assertion from Expected Outcome' }, detected)!);
+        sequence.push(
+          toTestStep(
+            {
+              action: 'assertion',
+              assertType: 'containsText',
+              value: line.slice(0, 80),
+              rawStep: line,
+              note: 'assertion from Expected Outcome',
+            },
+            detected,
+          )!,
+        );
       }
       const hasUnmatched = mapped.some((m) => m.note?.startsWith('unmatched'));
       return {
@@ -187,7 +257,9 @@ async function main() {
         status: elements.length === 0 || hasUnmatched ? 'draft-review' : 'draft',
         module: feature,
         featureArea: 'NetContent',
-        priority: ['Critical', 'High', 'Medium', 'Low'].includes(c.priority) ? c.priority : 'Medium',
+        priority: ['Critical', 'High', 'Medium', 'Low'].includes(c.priority)
+          ? c.priority
+          : 'Medium',
       };
     });
 
@@ -200,17 +272,34 @@ async function main() {
     if (dryRun) continue;
 
     // Idempotent: replace this feature's tests in the project.
-    await privilegedDb.delete(tests).where(and(eq(tests.projectId, projectId!), eq(tests.module, feature)));
+    await privilegedDb
+      .delete(tests)
+      .where(and(eq(tests.projectId, projectId!), eq(tests.module, feature)));
     for (const rec of records) {
-      const seq = rec.sequence.map((s: any) => ({ action: s.action, targetElement: s.targetElement, value: s.value }));
-      await privilegedDb.insert(tests).values({ ...rec, projectId, organizationId, sequence: seq } as any);
+      const seq = rec.sequence.map((s: any) => ({
+        action: s.action,
+        targetElement: s.targetElement,
+        value: s.value,
+      }));
+      await privilegedDb
+        .insert(tests)
+        .values({ ...rec, projectId, organizationId, sequence: seq } as any);
     }
   }
 
-  console.log(`\n${dryRun ? 'Would import' : 'Imported'} ${grandTotal} confined draft UI tests across ${byFeature.size} features.`);
+  console.log(
+    `\n${dryRun ? 'Would import' : 'Imported'} ${grandTotal} confined draft UI tests across ${byFeature.size} features.`,
+  );
   if (dryRun) {
-    const outPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'ui-tests.preview.json');
-    fs.writeFileSync(outPath, JSON.stringify({ features: Array.from(byFeature.keys()), total: grandTotal }, null, 2), 'utf-8');
+    const outPath = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      'ui-tests.preview.json',
+    );
+    fs.writeFileSync(
+      outPath,
+      JSON.stringify({ features: Array.from(byFeature.keys()), total: grandTotal }, null, 2),
+      'utf-8',
+    );
   }
   process.exit(0);
 }

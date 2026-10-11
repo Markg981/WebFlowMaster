@@ -1,5 +1,5 @@
 export const QUOTA_MODES = ['off', 'monitor', 'enforce'] as const;
-export type QuotaMode = typeof QUOTA_MODES[number];
+export type QuotaMode = (typeof QUOTA_MODES)[number];
 export interface TenantQuotas {
   mode: QuotaMode;
   maxConcurrentRuns: number;
@@ -33,7 +33,9 @@ export function quotaDefaults(env: Record<string, string | undefined>): TenantQu
     return Number.isSafeInteger(value) && value >= minimum && env[key]?.trim() ? value : fallback;
   };
   return {
-    mode: QUOTA_MODES.includes(env.TENANT_QUOTA_MODE as QuotaMode) ? env.TENANT_QUOTA_MODE as QuotaMode : 'enforce',
+    mode: QUOTA_MODES.includes(env.TENANT_QUOTA_MODE as QuotaMode)
+      ? (env.TENANT_QUOTA_MODE as QuotaMode)
+      : 'enforce',
     maxConcurrentRuns: Math.min(2_147_483_647, integer('ORG_MAX_CONCURRENT_RUNS', 2, 1)),
     maxQueuedRuns: Math.min(2_147_483_647, integer('ORG_MAX_QUEUED_RUNS', 100, 1)),
     maxTests: integer('ORG_MAX_TESTS', 0),

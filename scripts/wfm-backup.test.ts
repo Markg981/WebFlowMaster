@@ -18,16 +18,43 @@ import {
   type Manifest,
 } from './wfm-backup';
 
-const database: Manifest['database'] = { name: 'webflowmaster', migrationsApplied: 59, rlsTables: 44, counts: { organizations: 2, tests: 10 } };
+const database: Manifest['database'] = {
+  name: 'webflowmaster',
+  migrationsApplied: 59,
+  rlsTables: 44,
+  counts: { organizations: 2, tests: 10 },
+};
 const manifest = (overrides: Partial<Manifest> = {}): Manifest => ({
-  format: MANIFEST_FORMAT, createdAt: '2026-10-01T00:00:00Z', productVersion: '1.0.0', database,
-  artifactStore: 'local', encryptionKeyFingerprint: keyFingerprint('a'.repeat(64)), files: [], ...overrides,
+  format: MANIFEST_FORMAT,
+  createdAt: '2026-10-01T00:00:00Z',
+  productVersion: '1.0.0',
+  database,
+  artifactStore: 'local',
+  encryptionKeyFingerprint: keyFingerprint('a'.repeat(64)),
+  files: [],
+  ...overrides,
 });
 
 describe('parseArgs', () => {
   it('reads a restore with its directory, Compose project and files', () => {
-    const o = parseArgs(['restore', 'backups/x', '-p', 'wfm-collaudo', '-f', 'a.yml', '-f', 'b.yml', '--yes']);
-    expect(o).toMatchObject({ command: 'restore', dir: 'backups/x', project: 'wfm-collaudo', composeFiles: ['a.yml', 'b.yml'], yes: true });
+    const o = parseArgs([
+      'restore',
+      'backups/x',
+      '-p',
+      'wfm-collaudo',
+      '-f',
+      'a.yml',
+      '-f',
+      'b.yml',
+      '--yes',
+    ]);
+    expect(o).toMatchObject({
+      command: 'restore',
+      dir: 'backups/x',
+      project: 'wfm-collaudo',
+      composeFiles: ['a.yml', 'b.yml'],
+      yes: true,
+    });
   });
 
   it('needs a directory to verify or restore, but not to create', () => {
@@ -49,11 +76,16 @@ describe('parseArgs', () => {
 describe('keyFingerprint', () => {
   it('fingerprints the key server/crypto.ts derives, not the string', () => {
     const hex = 'ab'.repeat(32);
-    const expected = createHash('sha256').update(Buffer.from(hex, 'hex')).digest('hex').slice(0, 16);
+    const expected = createHash('sha256')
+      .update(Buffer.from(hex, 'hex'))
+      .digest('hex')
+      .slice(0, 16);
     expect(keyFingerprint(hex)).toBe(expected);
     // A passphrase is hashed to 32 bytes first, as crypto.ts does.
     const derived = createHash('sha256').update('a passphrase').digest();
-    expect(keyFingerprint('a passphrase')).toBe(createHash('sha256').update(derived).digest('hex').slice(0, 16));
+    expect(keyFingerprint('a passphrase')).toBe(
+      createHash('sha256').update(derived).digest('hex').slice(0, 16),
+    );
   });
 
   it('ignores the newline printenv adds, and has nothing for an empty key', () => {
@@ -70,21 +102,31 @@ describe('keyFingerprint', () => {
 });
 
 describe('row counts', () => {
-  it('asks for every counted table and reads psql\'s unaligned output', () => {
+  it("asks for every counted table and reads psql's unaligned output", () => {
     for (const t of COUNTED_TABLES) expect(countsQuery()).toContain(`FROM "${t}"`);
     expect(parseCounts('organizations|2\r\ntests|10\n\n')).toEqual({ organizations: 2, tests: 10 });
   });
 });
 
 describe('compareRestore', () => {
-  const good = { migrationsApplied: 59, rlsTables: 44, counts: { organizations: 2, tests: 10 }, appUserCanRead: true };
+  const good = {
+    migrationsApplied: 59,
+    rlsTables: 44,
+    counts: { organizations: 2, tests: 10 },
+    appUserCanRead: true,
+  };
 
   it('finds nothing when the restore matches the backup', () => {
     expect(compareRestore(database, good)).toEqual([]);
   });
 
   it('names every difference, the security ones in terms of what they break', () => {
-    const problems = compareRestore(database, { migrationsApplied: 58, rlsTables: 0, counts: { organizations: 2 }, appUserCanRead: false });
+    const problems = compareRestore(database, {
+      migrationsApplied: 58,
+      rlsTables: 0,
+      counts: { organizations: 2 },
+      appUserCanRead: false,
+    });
     expect(problems).toEqual([
       'tests: 10 rows backed up, none restored.',
       'Migrations: 59 applied when backed up, 58 in the restore.',
@@ -109,7 +151,9 @@ describe('restoreRefusal', () => {
   });
 
   it('refuses a backup from a newer version than the code', () => {
-    expect(restoreRefusal(manifest(), { ...live, migrationsKnown: 58 }, false)).toMatch(/newer version \(59 migrations; this code has 58\)/);
+    expect(restoreRefusal(manifest(), { ...live, migrationsKnown: 58 }, false)).toMatch(
+      /newer version \(59 migrations; this code has 58\)/,
+    );
   });
 
   it('refuses a manifest format it does not know', () => {
@@ -128,10 +172,12 @@ describe('files', () => {
     const sha = createHash('sha256').update('dump').digest('hex');
     expect(await checkFiles(dir, [{ name: 'database.dump', bytes: 4, sha256: sha }])).toEqual([]);
     fs.writeFileSync(path.join(dir, 'database.dump'), 'dumq');
-    expect(await checkFiles(dir, [
-      { name: 'database.dump', bytes: 4, sha256: sha },
-      { name: 'results.tar', bytes: 1, sha256: sha },
-    ])).toEqual([
+    expect(
+      await checkFiles(dir, [
+        { name: 'database.dump', bytes: 4, sha256: sha },
+        { name: 'results.tar', bytes: 1, sha256: sha },
+      ]),
+    ).toEqual([
       'database.dump does not match its checksum: it changed or is damaged.',
       'results.tar is missing.',
     ]);

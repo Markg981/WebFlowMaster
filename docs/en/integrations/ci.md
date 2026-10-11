@@ -26,12 +26,12 @@ curl -fsSL "$WFM_URL/cli/wfm.mjs" -o wfm.mjs
 node wfm.mjs run <planId> --wait --junit junit.xml --html report.html
 ```
 
-| Command | What it does |
-| --- | --- |
-| `wfm run <planId>` | Starts a run. With `--wait` (implied by any report option) it waits and exits with the verdict. |
-| `wfm status <runId>` | Prints a run's state. |
-| `wfm junit <runId> --junit <file>` | Writes a finished run's JUnit XML. |
-| `wfm export <runId> --html/--pdf/--allure <file>` | Writes a finished run's reports. |
+| Command                                           | What it does                                                                                    |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `wfm run <planId>`                                | Starts a run. With `--wait` (implied by any report option) it waits and exits with the verdict. |
+| `wfm status <runId>`                              | Prints a run's state.                                                                           |
+| `wfm junit <runId> --junit <file>`                | Writes a finished run's JUnit XML.                                                              |
+| `wfm export <runId> --html/--pdf/--allure <file>` | Writes a finished run's reports.                                                                |
 
 Options: `--url` / `$WFM_URL`, `--key` / `$WFM_API_KEY`, `--environment <id>`, `--timeout <seconds>`
 (default 1800), `--junit`, `--html`, `--pdf`, `--allure <file>`, `--update-baselines`,
@@ -99,7 +99,7 @@ e2e:
   extends: .webflowmaster
   stage: test
   variables:
-    WFM_PLAN_ID: "your-plan-id"
+    WFM_PLAN_ID: 'your-plan-id'
 ```
 
 Set `WFM_URL` and `WFM_API_KEY` (masked, protected) under Settings → CI/CD → Variables. The
@@ -155,7 +155,8 @@ into your `bitbucket-pipelines.yml` and reference it where the plan should run:
 ```yaml
 definitions:
   steps:
-    - step: &webflowmaster
+    - step:
+        &webflowmaster
         # … the step from integrations/bitbucket/bitbucket-pipelines.yml …
 
 pipelines:
@@ -206,13 +207,13 @@ the CLI is documented at `GET /api/v1/openapi.json`: `POST /api/v1/plans/{planId
 ## 10. Commit status on GitHub and GitLab
 
 A run started from GitHub Actions or GitLab CI can show on the commit it tested, next to the other
-checks: `WebFlowMaster / <plan>` is *pending* while the run is queued and while it runs, then
-*success*, *failure* or *error* ("3 of 40 failed", "Timed out", "Cancelled"), with a link to the
+checks: `WebFlowMaster / <plan>` is _pending_ while the run is queued and while it runs, then
+_success_, _failure_ or _error_ ("3 of 40 failed", "Timed out", "Cancelled"), with a link to the
 report. The server sets it, so it also works for a run started with `--no-wait`.
 
 1. An owner connects the host in **Settings → GitHub & GitLab** with a token. The token is checked
    before it is saved, stored encrypted, and never shown again.
-   - **GitHub**: a fine-grained token with *Commit statuses: read and write* on the repositories, or
+   - **GitHub**: a fine-grained token with _Commit statuses: read and write_ on the repositories, or
      a classic token with `repo:status`. For GitHub Enterprise, the API URL is
      `https://<host>/api/v3`.
    - **GitLab**: a project, group or personal access token with the `api` scope, from a member with

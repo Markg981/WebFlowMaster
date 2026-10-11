@@ -65,14 +65,17 @@ describe('the incident loop', () => {
 
     // The tap records fire-and-forget, so poll rather than assume the write has landed.
     const store = new IncidentStore(root);
-    const incident = await vi.waitFor(async () => {
-      const index = await store.readIndex();
-      expect(index).toHaveLength(1);
-      expect(index[0].title).toContain('selector');
-      const found = await store.read(index[0].id);
-      expect(found).not.toBeNull();
-      return found!;
-    }, { timeout: 2000 });
+    const incident = await vi.waitFor(
+      async () => {
+        const index = await store.readIndex();
+        expect(index).toHaveLength(1);
+        expect(index[0].title).toContain('selector');
+        const found = await store.read(index[0].id);
+        expect(found).not.toBeNull();
+        return found!;
+      },
+      { timeout: 2000 },
+    );
 
     // 1. Where it broke — with the code in hand, so nothing has to be looked up.
     expect(incident.origin?.file).toBe('server/broken.ts');

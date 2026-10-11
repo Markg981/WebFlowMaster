@@ -70,7 +70,8 @@ export async function tagsOfTests(
     .where(conditions.length === 1 ? conditions[0] : or(...conditions));
 
   for (const row of rows) {
-    const bucket = row.testId != null ? result.ui : row.mobileTestId != null ? result.mobile : result.api;
+    const bucket =
+      row.testId != null ? result.ui : row.mobileTestId != null ? result.mobile : result.api;
     const key = row.testId ?? row.mobileTestId ?? row.apiTestId;
     if (key == null) continue;
     const existing = bucket.get(key) ?? [];
@@ -109,16 +110,22 @@ export async function setTagsForTest(
 ): Promise<SetTagsResult> {
   const wanted = Array.from(new Set(input.tagIds));
 
-  const found = wanted.length === 0
-    ? []
-    : await tx.select({ id: tags.id, name: tags.name }).from(tags).where(inArray(tags.id, wanted));
+  const found =
+    wanted.length === 0
+      ? []
+      : await tx
+          .select({ id: tags.id, name: tags.name })
+          .from(tags)
+          .where(inArray(tags.id, wanted));
 
   if (found.length !== wanted.length) {
     const known = new Set(found.map((tag) => tag.id));
     return { ok: false, unknownTagIds: wanted.filter((id) => !known.has(id)) };
   }
 
-  const column = { ui: testTags.testId, api: testTags.apiTestId, mobile: testTags.mobileTestId }[input.testType];
+  const column = { ui: testTags.testId, api: testTags.apiTestId, mobile: testTags.mobileTestId }[
+    input.testType
+  ];
   const owner = eq(column, input.testId);
   await tx.delete(testTags).where(and(owner, eq(testTags.testType, input.testType)));
 
@@ -146,7 +153,9 @@ export async function testIdsWithTags(
   const tagIds = Array.from(new Set(input.tagIds));
   if (tagIds.length === 0) return [];
 
-  const column = { ui: testTags.testId, api: testTags.apiTestId, mobile: testTags.mobileTestId }[input.testType];
+  const column = { ui: testTags.testId, api: testTags.apiTestId, mobile: testTags.mobileTestId }[
+    input.testType
+  ];
   const rows = await tx
     .select({ testId: column, tagId: testTags.tagId })
     .from(testTags)

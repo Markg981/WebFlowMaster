@@ -29,7 +29,13 @@ function renderCard() {
 }
 
 function answer(body: unknown, ok = true) {
-  fetchMock.mockResolvedValue({ ok, status: ok ? 200 : 500, statusText: ok ? 'OK' : 'Error', json: async () => body, text: async () => JSON.stringify(body) });
+  fetchMock.mockResolvedValue({
+    ok,
+    status: ok ? 200 : 500,
+    statusText: ok ? 'OK' : 'Error',
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  });
 }
 
 beforeEach(() => {
@@ -39,10 +45,23 @@ beforeEach(() => {
 
 describe('RunUsageCard', () => {
   it('shows unlimited quotas, monitoring mode and unmeasured storage honestly', async () => {
-    answer({ running: 0, queued: 0, maxConcurrentRuns: 2, maxQueuedRuns: 100, mode: 'monitor',
-      tests: 4, maxTests: 0, artifactBytes: 0, maxArtifactBytes: 0, reservedArtifactBytes: 0,
-      executionMs: 90_000, maxMonthlyExecutionMinutes: 10, artifactsReconciledAt: null,
-      periodStart: '2026-10-01T00:00:00Z', periodEnd: '2026-11-01T00:00:00Z' });
+    answer({
+      running: 0,
+      queued: 0,
+      maxConcurrentRuns: 2,
+      maxQueuedRuns: 100,
+      mode: 'monitor',
+      tests: 4,
+      maxTests: 0,
+      artifactBytes: 0,
+      maxArtifactBytes: 0,
+      reservedArtifactBytes: 0,
+      executionMs: 90_000,
+      maxMonthlyExecutionMinutes: 10,
+      artifactsReconciledAt: null,
+      periodStart: '2026-10-01T00:00:00Z',
+      periodEnd: '2026-11-01T00:00:00Z',
+    });
     renderCard();
     expect(await screen.findByTestId('usage-tests')).toHaveTextContent('4');
     expect(screen.getByTestId('usage-tests')).toHaveTextContent('Unlimited');
@@ -66,7 +85,9 @@ describe('RunUsageCard', () => {
 
     const full = within(await screen.findByTestId('usage-running')).getByText('2 / 2');
     expect(full.className).toContain('text-amber-700');
-    expect(within(screen.getByTestId('usage-queued')).getByText('0 / 100').className).not.toContain('text-amber-700');
+    expect(within(screen.getByTestId('usage-queued')).getByText('0 / 100').className).not.toContain(
+      'text-amber-700',
+    );
   });
 
   it('says why runs wait when no runner is online', async () => {

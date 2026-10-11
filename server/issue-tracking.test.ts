@@ -59,7 +59,9 @@ describe('dedupeKeyFor', () => {
   it('files every ad-hoc run of a test under one key', () => {
     // Otherwise each manual re-run opens a fresh issue, which is the duplicate storm this
     // exists to prevent.
-    expect(dedupeKeyFor({ testName: 'Checkout' })).toBe(dedupeKeyFor({ planId: null, testName: 'Checkout' }));
+    expect(dedupeKeyFor({ testName: 'Checkout' })).toBe(
+      dedupeKeyFor({ planId: null, testName: 'Checkout' }),
+    );
   });
 });
 
@@ -121,7 +123,9 @@ describe('issueBody', () => {
 
   it('links the report from a recurrence comment too', () => {
     process.env.WEBFLOW_PUBLIC_URL = 'https://qa.example.com';
-    expect(recurrenceComment(failure, 2)).toContain('Report: https://qa.example.com/test-plans/plan-1/executions/exec-9/report');
+    expect(recurrenceComment(failure, 2)).toContain(
+      'Report: https://qa.example.com/test-plans/plan-1/executions/exec-9/report',
+    );
   });
 
   it('truncates a reason that is a whole stack trace', () => {

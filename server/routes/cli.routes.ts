@@ -1,7 +1,7 @@
-import { Router } from "express";
-import path from "path";
-import fs from "fs-extra";
-import loggerPromise from "../logger";
+import { Router } from 'express';
+import path from 'path';
+import fs from 'fs-extra';
+import loggerPromise from '../logger';
 
 /**
  * GET /cli/wfm.mjs — the pipeline CLI, as this server's build of it.
@@ -26,9 +26,9 @@ const logger = await loggerPromise;
  * the playwright and ws packages next to it and so imports them rather than bundling them.
  */
 const PROGRAMS = {
-  "wfm.mjs": { source: "wfm-cli.ts", built: "wfm.js", build: "build:cli" },
-  "wfm-agent.mjs": { source: "wfm-agent.ts", built: "wfm-agent.js", build: "build:agent" },
-  "wfm-bdd-child.mjs": { source: "bdd-child.ts", built: "wfm-bdd-child.mjs", build: "build:agent" },
+  'wfm.mjs': { source: 'wfm-cli.ts', built: 'wfm.js', build: 'build:cli' },
+  'wfm-agent.mjs': { source: 'wfm-agent.ts', built: 'wfm-agent.js', build: 'build:agent' },
+  'wfm-bdd-child.mjs': { source: 'bdd-child.ts', built: 'wfm-bdd-child.mjs', build: 'build:agent' },
 } as const;
 
 const cached = new Map<string, string>();
@@ -36,37 +36,50 @@ const cached = new Map<string, string>();
 async function programSource(name: keyof typeof PROGRAMS): Promise<string> {
   const program = PROGRAMS[name];
   // `npm run build` writes them; the Docker images run that.
-  if (process.env.NODE_ENV === "production") {
-    if (!cached.has(name)) cached.set(name, await fs.readFile(path.resolve(process.cwd(), "dist", program.built), "utf8"));
+  if (process.env.NODE_ENV === 'production') {
+    if (!cached.has(name))
+      cached.set(
+        name,
+        await fs.readFile(path.resolve(process.cwd(), 'dist', program.built), 'utf8'),
+      );
     return cached.get(name)!;
   }
   // Elsewhere, bundled from the source on every request: a dist/ left over from an old build
   // would hand out a program that no longer matches the server.
-  const esbuild = await import("esbuild");
+  const esbuild = await import('esbuild');
   const result = await esbuild.build({
-    entryPoints: [path.resolve(process.cwd(), "scripts", program.source)],
+    entryPoints: [path.resolve(process.cwd(), 'scripts', program.source)],
     bundle: true,
-    platform: "node",
-    format: "esm",
-    packages: "external",
+    platform: 'node',
+    format: 'esm',
+    packages: 'external',
     write: false,
   });
   return result.outputFiles[0].text;
 }
 
-router.get("/cli/:program", async (req, res, next) => {
+router.get('/cli/:program', async (req, res, next) => {
   const name = req.params.program;
   if (!(name in PROGRAMS)) return next();
   try {
     const source = await programSource(name as keyof typeof PROGRAMS);
-    res.setHeader("Content-Type", "text/javascript; charset=utf-8");
-    res.setHeader("Content-Disposition", `inline; filename="${name}"`);
+    res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+    res.setHeader('Content-Disposition', `inline; filename="${name}"`);
     // Short: a pipeline or an agent should get the program of the server it talks to, after an upgrade too.
-    res.setHeader("Cache-Control", "public, max-age=300");
+    res.setHeader('Cache-Control', 'public, max-age=300');
     res.send(source);
   } catch (error: any) {
-    logger.error({ message: "A program could not be served", program: name, error: error?.message });
-    res.status(503).type("text/plain").send(`${name} is not available on this server: run \`npm run ${PROGRAMS[name as keyof typeof PROGRAMS].build}\`.\n`);
+    logger.error({
+      message: 'A program could not be served',
+      program: name,
+      error: error?.message,
+    });
+    res
+      .status(503)
+      .type('text/plain')
+      .send(
+        `${name} is not available on this server: run \`npm run ${PROGRAMS[name as keyof typeof PROGRAMS].build}\`.\n`,
+      );
   }
 });
 

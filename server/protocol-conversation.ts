@@ -121,7 +121,8 @@ export async function executeConversation(
       if (step.type === 'send') {
         const message = substituteConversation(step.message, variables, captures);
         sentBytes += Buffer.byteLength(JSON.stringify(message));
-        if (sentBytes > PROTOCOL_HARD_LIMITS.maxBytes) throw new Error('Conversation request byte limit exceeded.');
+        if (sentBytes > PROTOCOL_HARD_LIMITS.maxBytes)
+          throw new Error('Conversation request byte limit exceeded.');
         await send(message);
       }
       if (step.type === 'end') end();

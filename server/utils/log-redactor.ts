@@ -2,7 +2,7 @@ import winston from 'winston';
 
 /**
  * PII / Secret Redactor for Winston
- * 
+ *
  * Automatically masks sensitive fields (passwords, tokens, API keys, etc.)
  * before they are written to any log transport. This is critical for
  * compliance and to prevent accidental secret leakage, especially given
@@ -22,7 +22,8 @@ import winston from 'winston';
 // didn't anticipate could still slip through; that is an accepted, documented gap, not an
 // oversight — see redactString below and recordIncident's use of redactObject for where this
 // matters most.
-const SENSITIVE_KEYS = /^(password|passwd|pwd|secret|token|authorization|cookie|apikey|api_key|api_?token|access_?token|refresh_?token|client_?secret|private_?key|encryptedvalue|iv|authtag|credit_?card|ssn|session_?id|x-api-key)$/i;
+const SENSITIVE_KEYS =
+  /^(password|passwd|pwd|secret|token|authorization|cookie|apikey|api_key|api_?token|access_?token|refresh_?token|client_?secret|private_?key|encryptedvalue|iv|authtag|credit_?card|ssn|session_?id|x-api-key)$/i;
 
 const REDACTED = '[REDACTED]';
 const MAX_DEPTH = 6;
@@ -36,7 +37,7 @@ function redactValue(obj: any, depth: number = 0): any {
   if (typeof obj === 'number' || typeof obj === 'boolean') return obj;
 
   if (Array.isArray(obj)) {
-    return obj.map(item => redactValue(item, depth + 1));
+    return obj.map((item) => redactValue(item, depth + 1));
   }
 
   if (typeof obj === 'object') {

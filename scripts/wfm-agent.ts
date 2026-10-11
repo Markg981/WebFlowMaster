@@ -28,8 +28,8 @@ import { createRequire } from 'node:module';
 import WebSocket from 'ws';
 import type { BrowserServer } from 'playwright';
 import { serveApiSession } from './agent-api-session';
-import {loadBddProfiles,publicBddProfiles,type OperatorBddProfile} from './bdd-profiles';
-import {serveBddSession} from './agent-bdd-session';
+import { loadBddProfiles, publicBddProfiles, type OperatorBddProfile } from './bdd-profiles';
+import { serveBddSession } from './agent-bdd-session';
 import type { AgentApiProtocol } from '../shared/agent-protocol';
 
 export const AGENT_VERSION = '1.3.0';
@@ -87,7 +87,10 @@ export function runAgent(options: AgentOptions): RunningAgent {
     if (failed) span.setStatus({ code: SpanStatusCode.ERROR });
     span.end();
   };
-  const sessions = new Map<string, { server?: BrowserServer; sockets: WebSocket[]; bdd?:boolean }>();
+  const sessions = new Map<
+    string,
+    { server?: BrowserServer; sockets: WebSocket[]; bdd?: boolean }
+  >();
   let control: WebSocket | null = null;
   let stopping = false;
   let attempt = 0;
@@ -103,7 +106,12 @@ export function runAgent(options: AgentOptions): RunningAgent {
     options.onFatal?.(reason);
   };
 
-  async function lend(sessionId: string, engine: Engine, channel: string | undefined, headless: boolean) {
+  async function lend(
+    sessionId: string,
+    engine: Engine,
+    channel: string | undefined,
+    headless: boolean,
+  ) {
     const entry: { server?: BrowserServer; sockets: WebSocket[] } = { sockets: [] };
     sessions.set(sessionId, entry);
     const finish = async () => {
@@ -115,7 +123,10 @@ export function runAgent(options: AgentOptions): RunningAgent {
     };
     try {
       const playwright = await import('playwright');
-      entry.server = await playwright[engine].launchServer({ headless, ...(channel ? { channel } : {}) });
+      entry.server = await playwright[engine].launchServer({
+        headless,
+        ...(channel ? { channel } : {}),
+      });
     } catch (error) {
       sessions.delete(sessionId);
       finishTrace(sessionId, true);
@@ -126,11 +137,21 @@ export function runAgent(options: AgentOptions): RunningAgent {
     }
 
     const local = new WebSocket(entry.server.wsEndpoint(), { maxPayload: 256 * 1024 * 1024 });
-    const remote = new WebSocket(`${base}${PATHS.session}${sessionId}`, { headers, maxPayload: 256 * 1024 * 1024 });
+    const remote = new WebSocket(`${base}${PATHS.session}${sessionId}`, {
+      headers,
+      maxPayload: 256 * 1024 * 1024,
+    });
     entry.sockets.push(local, remote);
     // Each side may start talking before the other is open; held until it is.
-    const pending: Record<'toLocal' | 'toRemote', Array<{ data: WebSocket.RawData; isBinary: boolean }>> = { toLocal: [], toRemote: [] };
-    const pipe = (from: WebSocket, to: WebSocket, queue: Array<{ data: WebSocket.RawData; isBinary: boolean }>) => {
+    const pending: Record<
+      'toLocal' | 'toRemote',
+      Array<{ data: WebSocket.RawData; isBinary: boolean }>
+    > = { toLocal: [], toRemote: [] };
+    const pipe = (
+      from: WebSocket,
+      to: WebSocket,
+      queue: Array<{ data: WebSocket.RawData; isBinary: boolean }>,
+    ) => {
       from.on('message', (data, isBinary) => {
         if (to.readyState === WebSocket.OPEN) to.send(data, { binary: isBinary });
         else queue.push({ data, isBinary });
@@ -143,16 +164,34 @@ export function runAgent(options: AgentOptions): RunningAgent {
     pipe(local, remote, pending.toRemote);
     for (const socket of [local, remote]) {
       socket.on('close', () => void finish());
-      socket.on('error', () => { finishTrace(sessionId, true); void finish(); });
+      socket.on('error', () => {
+        finishTrace(sessionId, true);
+        void finish();
+      });
     }
     log(`Lent ${engine}${headless ? '' : ' (headed)'} to a run (${sessions.size} lent).`);
   }
 
-  function lendApi(sessionId: string, protocol: AgentApiProtocol, apiFeatures: import('../shared/agent-protocol').AgentApiFeature[] = []) {
-    const remote = new WebSocket(`${base}${PATHS.session}${sessionId}`, { headers, maxPayload: AGENT_API_MAX_PAYLOAD });
+  function lendApi(
+    sessionId: string,
+    protocol: AgentApiProtocol,
+    apiFeatures: import('../shared/agent-protocol').AgentApiFeature[] = [],
+  ) {
+    const remote = new WebSocket(`${base}${PATHS.session}${sessionId}`, {
+      headers,
+      maxPayload: AGENT_API_MAX_PAYLOAD,
+    });
     sessions.set(sessionId, { sockets: [remote] });
     remote.once('error', () => finishTrace(sessionId, true));
-    serveApiSession(remote, protocol, () => { sessions.delete(sessionId); finishTrace(sessionId); }, apiFeatures);
+    serveApiSession(
+      remote,
+      protocol,
+      () => {
+        sessions.delete(sessionId);
+        finishTrace(sessionId);
+      },
+      apiFeatures,
+    );
   }
 
   function connect() {
@@ -161,7 +200,10 @@ export function runAgent(options: AgentOptions): RunningAgent {
     control = ws;
 
     ws.on('unexpected-response', (_req, res) => {
-      if (res.statusCode === 401) return fatal('The server refused this agent\'s token: it is unknown or was revoked. Create a new agent in Settings → Agents.');
+      if (res.statusCode === 401)
+        return fatal(
+          "The server refused this agent's token: it is unknown or was revoked. Create a new agent in Settings → Agents.",
+        );
       log(`The server answered ${res.statusCode}; trying again.`);
       ws.terminate();
     });
@@ -196,35 +238,66 @@ export function runAgent(options: AgentOptions): RunningAgent {
         fatal(`The server refused this agent: ${message.reason}`);
       } else if (message.type === 'open') {
         if (stopping) {
-          ws.send(JSON.stringify({ type: 'open_failed', sessionId: message.sessionId, error: 'The agent is stopping.' }));
+          ws.send(
+            JSON.stringify({
+              type: 'open_failed',
+              sessionId: message.sessionId,
+              error: 'The agent is stopping.',
+            }),
+          );
           return;
         }
         const scope = beginSpan('agent.session', SpanKind.SERVER, message.traceContext ?? {});
         sessionSpans.set(message.sessionId, scope.span);
         scope.run(() => {
           if (message.bddProfile) {
-            const profiles=options.bddProfiles ?? [];
-            const hasProfile = profiles.some(profile => profile.id === message.bddProfile.id && profile.revision === message.bddProfile.revision);
+            const profiles = options.bddProfiles ?? [];
+            const hasProfile = profiles.some(
+              (profile) =>
+                profile.id === message.bddProfile.id &&
+                profile.revision === message.bddProfile.revision,
+            );
             if (!hasProfile || sessions.size >= options.maxSessions) {
-              ws.send(JSON.stringify({type:'open_failed',sessionId:message.sessionId,error:hasProfile ? 'The agent is at capacity.' : 'The BDD profile is unavailable.'}));
+              ws.send(
+                JSON.stringify({
+                  type: 'open_failed',
+                  sessionId: message.sessionId,
+                  error: hasProfile
+                    ? 'The agent is at capacity.'
+                    : 'The BDD profile is unavailable.',
+                }),
+              );
               finishTrace(message.sessionId, true);
               return;
             }
-            const remote=new WebSocket(`${base}${PATHS.session}${message.sessionId}`,{headers,maxPayload:64*1024*1024});
-            sessions.set(message.sessionId,{sockets:[remote],bdd:true});
+            const remote = new WebSocket(`${base}${PATHS.session}${message.sessionId}`, {
+              headers,
+              maxPayload: 64 * 1024 * 1024,
+            });
+            sessions.set(message.sessionId, { sockets: [remote], bdd: true });
             remote.once('error', () => finishTrace(message.sessionId, true));
-            serveBddSession(remote,message.bddProfile,profiles,() => { sessions.delete(message.sessionId); finishTrace(message.sessionId); });
-          }
-          else if (message.apiProtocol === 'grpc' || message.apiProtocol === 'websocket') lendApi(message.sessionId, message.apiProtocol, message.apiFeatures);
-          else void lend(message.sessionId, message.engine, message.channel, message.headless !== false);
-          });
+            serveBddSession(remote, message.bddProfile, profiles, () => {
+              sessions.delete(message.sessionId);
+              finishTrace(message.sessionId);
+            });
+          } else if (message.apiProtocol === 'grpc' || message.apiProtocol === 'websocket')
+            lendApi(message.sessionId, message.apiProtocol, message.apiFeatures);
+          else
+            void lend(
+              message.sessionId,
+              message.engine,
+              message.channel,
+              message.headless !== false,
+            );
+        });
       }
     });
     ws.on('error', () => {
       /* 'close' follows and reconnects. */
     });
     ws.on('close', () => {
-      for (const entry of sessions.values()) if (entry.bdd) for (const socket of entry.sockets) socket.terminate();
+      for (const entry of sessions.values())
+        if (entry.bdd) for (const socket of entry.sockets) socket.terminate();
       if (stopping) return;
       // Backs off to half a minute: a server being deployed comes back, and a thousand agents
       // retrying every second would be what stops it.
@@ -241,7 +314,8 @@ export function runAgent(options: AgentOptions): RunningAgent {
     activeSessions: () => sessions.size,
     stop: async () => {
       stopping = true;
-      if (control?.readyState === WebSocket.OPEN) control.send(JSON.stringify({ type: 'draining' }));
+      if (control?.readyState === WebSocket.OPEN)
+        control.send(JSON.stringify({ type: 'draining' }));
       // The runs using a browser from here finish; nothing new is taken.
       while (sessions.size > 0) await new Promise((resolve) => setTimeout(resolve, 250));
       control?.close();
@@ -254,23 +328,34 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<void> 
   const url = env.WFM_URL;
   const token = env.WFM_AGENT_TOKEN;
   if (!url || !token) {
-    console.error('Set WFM_URL to the server and WFM_AGENT_TOKEN to the token from Settings → Local agents.');
+    console.error(
+      'Set WFM_URL to the server and WFM_AGENT_TOKEN to the token from Settings → Local agents.',
+    );
     process.exit(2);
   }
   const stopTracing = startTracing('agent', env);
   const maxSessions = Math.max(1, Math.min(Number(env.WFM_AGENT_MAX_SESSIONS) || 2, 16));
-  const bddProfiles=env.WFM_BDD_PROFILES ? await loadBddProfiles(env.WFM_BDD_PROFILES) : [];
+  const bddProfiles = env.WFM_BDD_PROFILES ? await loadBddProfiles(env.WFM_BDD_PROFILES) : [];
   const agent = runAgent({ url, token, maxSessions, bddProfiles, onFatal: () => process.exit(2) });
   let stopping = false;
   const stop = () => {
     if (stopping) return process.exit(1);
     stopping = true;
-    console.log('[wfm-agent] Stopping: letting the runs using a browser from here finish. Press Ctrl+C again to quit now.');
-    void agent.stop().then(stopTracing).then(() => process.exit(0));
+    console.log(
+      '[wfm-agent] Stopping: letting the runs using a browser from here finish. Press Ctrl+C again to quit now.',
+    );
+    void agent
+      .stop()
+      .then(stopTracing)
+      .then(() => process.exit(0));
   };
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
 }
 
-if (process.argv[1] && /wfm-agent(\.m?[tj]s)?$/.test(process.argv[1])) void main().catch(error => {console.error(`[wfm-agent] ${error.message}`);process.exit(2);});
+if (process.argv[1] && /wfm-agent(\.m?[tj]s)?$/.test(process.argv[1]))
+  void main().catch((error) => {
+    console.error(`[wfm-agent] ${error.message}`);
+    process.exit(2);
+  });
 /* c8 ignore stop */

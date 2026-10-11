@@ -38,11 +38,13 @@ export interface TestSnapshot {
  */
 export function signatureOf(step: SequenceStep): string {
   const action = step.action?.id ?? 'unknown';
-  const target = step.targetElement as { elementId?: string | null; selector?: string } | null | undefined;
+  const target = step.targetElement as
+    { elementId?: string | null; selector?: string } | null | undefined;
   // The repository id first: a step that resolves through the repository is the same step even
   // after healing moves the selector underneath it.
   const on = target?.elementId ?? target?.selector ?? '';
-  const value = typeof step.value === 'string' ? step.value : step.value == null ? '' : String(step.value);
+  const value =
+    typeof step.value === 'string' ? step.value : step.value == null ? '' : String(step.value);
   return `${action}|${on}|${value}`;
 }
 
@@ -79,7 +81,9 @@ function rowCount(dataset: unknown): number {
 export function describeChange(previous: TestSnapshot | null, next: TestSnapshot): string {
   const nextSteps = asSteps(next.sequence);
   if (!previous) {
-    return nextSteps.length === 1 ? 'Created with 1 step.' : `Created with ${nextSteps.length} steps.`;
+    return nextSteps.length === 1
+      ? 'Created with 1 step.'
+      : `Created with ${nextSteps.length} steps.`;
   }
 
   const previousSteps = asSteps(previous.sequence);
@@ -88,11 +92,14 @@ export function describeChange(previous: TestSnapshot | null, next: TestSnapshot
 
   let added = 0;
   let removed = 0;
-  for (const [signature, count] of after) added += Math.max(0, count - (before.get(signature) ?? 0));
-  for (const [signature, count] of before) removed += Math.max(0, count - (after.get(signature) ?? 0));
+  for (const [signature, count] of after)
+    added += Math.max(0, count - (before.get(signature) ?? 0));
+  for (const [signature, count] of before)
+    removed += Math.max(0, count - (after.get(signature) ?? 0));
 
   const parts: string[] = [];
-  if (JSON.stringify(previous.bdd ?? null) !== JSON.stringify(next.bdd ?? null)) parts.push('BDD definition changed');
+  if (JSON.stringify(previous.bdd ?? null) !== JSON.stringify(next.bdd ?? null))
+    parts.push('BDD definition changed');
   if (added > 0) parts.push(`${added} step${added === 1 ? '' : 's'} added`);
   if (removed > 0) parts.push(`${removed} step${removed === 1 ? '' : 's'} removed`);
   if (added === 0 && removed === 0 && !sameOrder(previousSteps, nextSteps)) {
@@ -115,8 +122,10 @@ export function describeChange(previous: TestSnapshot | null, next: TestSnapshot
   // By content, not only by count: a cleanup pointed at another URL deletes something else.
   const previousCleanups = asSteps(previous.cleanups);
   const nextCleanups = asSteps(next.cleanups);
-  if (previousCleanups.length !== nextCleanups.length) parts.push(`cleanup ${previousCleanups.length} → ${nextCleanups.length}`);
-  else if (JSON.stringify(previousCleanups) !== JSON.stringify(nextCleanups)) parts.push('cleanup changed');
+  if (previousCleanups.length !== nextCleanups.length)
+    parts.push(`cleanup ${previousCleanups.length} → ${nextCleanups.length}`);
+  else if (JSON.stringify(previousCleanups) !== JSON.stringify(nextCleanups))
+    parts.push('cleanup changed');
 
   if (parts.length === 0) return '';
   const sentence = parts.join(', ');

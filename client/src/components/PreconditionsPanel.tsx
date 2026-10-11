@@ -45,7 +45,10 @@ interface ApiCallsPanelProps {
   testId?: string;
 }
 
-export const PreconditionsPanel: React.FC<PreconditionsPanelProps> = ({ preconditions, onChange }) => (
+export const PreconditionsPanel: React.FC<PreconditionsPanelProps> = ({
+  preconditions,
+  onChange,
+}) => (
   <ApiCallsPanel
     calls={preconditions}
     onChange={onChange}
@@ -61,7 +64,10 @@ export const PreconditionsPanel: React.FC<PreconditionsPanelProps> = ({ precondi
  * Cleanup (server/cleanup-runner.ts): API calls made after the test, whatever its outcome, to remove
  * the data it created. Every one is attempted; 404 counts as already gone.
  */
-export const CleanupPanel: React.FC<{ cleanups: Cleanup[]; onChange: (next: Cleanup[]) => void }> = ({ cleanups, onChange }) => {
+export const CleanupPanel: React.FC<{
+  cleanups: Cleanup[];
+  onChange: (next: Cleanup[]) => void;
+}> = ({ cleanups, onChange }) => {
   const { t } = useTranslation();
   return (
     <ApiCallsPanel
@@ -81,7 +87,16 @@ export const CleanupPanel: React.FC<{ cleanups: Cleanup[]; onChange: (next: Clea
   );
 };
 
-const ApiCallsPanel: React.FC<ApiCallsPanelProps> = ({ calls: preconditions, onChange, title, description, addLabel, emptyText, idPrefix, testId }) => {
+const ApiCallsPanel: React.FC<ApiCallsPanelProps> = ({
+  calls: preconditions,
+  onChange,
+  title,
+  description,
+  addLabel,
+  emptyText,
+  idPrefix,
+  testId,
+}) => {
   const { data: apiTests = [] } = useQuery<ApiTest[]>({ queryKey: ['/api/api-tests'] });
 
   // Group the saved API tests by module for a readable picker.
@@ -110,7 +125,9 @@ const ApiCallsPanel: React.FC<ApiCallsPanelProps> = ({ calls: preconditions, onC
       <CardHeader className="py-3 px-4 border-b">
         <CardTitle className="text-base flex items-center gap-2">
           {title}
-          <Badge variant="outline" className="text-xs">{preconditions.length}</Badge>
+          <Badge variant="outline" className="text-xs">
+            {preconditions.length}
+          </Badge>
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1">{description}</p>
       </CardHeader>
@@ -122,41 +139,64 @@ const ApiCallsPanel: React.FC<ApiCallsPanelProps> = ({ calls: preconditions, onC
             </span>
           </SelectTrigger>
           <SelectContent>
-            {Array.from(byModule.keys()).sort().map((mod) => (
-              <SelectGroup key={mod}>
-                <SelectLabel>{mod}</SelectLabel>
-                {byModule.get(mod)!.map((t) => (
-                  <SelectItem key={t.id} value={String(t.id)}>
-                    <span className="font-mono text-xs mr-2">{t.method}</span>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            ))}
+            {Array.from(byModule.keys())
+              .sort()
+              .map((mod) => (
+                <SelectGroup key={mod}>
+                  <SelectLabel>{mod}</SelectLabel>
+                  {byModule.get(mod)!.map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>
+                      <span className="font-mono text-xs mr-2">{t.method}</span>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
           </SelectContent>
         </Select>
 
         {preconditions.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">
-            {emptyText}
-          </p>
+          <p className="text-xs text-muted-foreground text-center py-4">{emptyText}</p>
         ) : (
           <ol className="space-y-2">
             {preconditions.map((p, i) => (
               <li key={p.id} className="flex items-center gap-2 p-2 border rounded-md">
                 <span className="text-xs text-muted-foreground w-5 text-center">{i + 1}</span>
-                <Badge variant="secondary" className="font-mono text-xs">{p.method}</Badge>
+                <Badge variant="secondary" className="font-mono text-xs">
+                  {p.method}
+                </Badge>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm truncate" title={p.name}>{p.name}</div>
-                  <div className="text-xs text-muted-foreground truncate" title={p.url}>{p.url}</div>
+                  <div className="text-sm truncate" title={p.name}>
+                    {p.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate" title={p.url}>
+                    {p.url}
+                  </div>
                 </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => move(i, -1)} disabled={i === 0}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => move(i, -1)}
+                  disabled={i === 0}
+                >
                   <ArrowUp className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => move(i, 1)} disabled={i === preconditions.length - 1}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => move(i, 1)}
+                  disabled={i === preconditions.length - 1}
+                >
                   <ArrowDown className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(p.id)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => remove(p.id)}
+                >
                   <Trash2 className="h-3.5 w-3.5 text-destructive" />
                 </Button>
               </li>

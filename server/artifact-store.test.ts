@@ -35,7 +35,14 @@ async function writeRunFiles() {
 
 describe('keys', () => {
   it('refuses a key that climbs, is absolute, or names a drive', () => {
-    for (const bad of ['../x', 'results/../../.env', '/etc/passwd', 'C:/Windows/win.ini', 'results//x', '']) {
+    for (const bad of [
+      '../x',
+      'results/../../.env',
+      '/etc/passwd',
+      'C:/Windows/win.ini',
+      'results//x',
+      '',
+    ]) {
       expect(() => assertSafeKey(bad), bad).toThrow(/Invalid artifact key/);
     }
     expect(assertSafeKey('results\\plan\\exec\\a.png')).toBe('results/plan/exec/a.png');
@@ -43,7 +50,9 @@ describe('keys', () => {
 
   it('gives a file under ./results the key its path gives it, and nothing else a key', () => {
     expect(keyForLocalPath(path.join('results', 'p', 'e', 'a.png'), cwd)).toBe('results/p/e/a.png');
-    expect(keyForLocalPath(path.join(cwd, 'results', 'p', 'e', 'a.png'), cwd)).toBe('results/p/e/a.png');
+    expect(keyForLocalPath(path.join(cwd, 'results', 'p', 'e', 'a.png'), cwd)).toBe(
+      'results/p/e/a.png',
+    );
     expect(keyForLocalPath(path.join('data', 'secret.txt'), cwd)).toBeNull();
   });
 
@@ -60,11 +69,21 @@ describe('the local store', () => {
     const store = createLocalArtifactStore(cwd);
 
     await store.write('results/p/e/a.png', Buffer.from('run'));
-    await store.write('visual-baselines/org_1/test_2/chromium/step_000.png', Buffer.from('baseline'));
+    await store.write(
+      'visual-baselines/org_1/test_2/chromium/step_000.png',
+      Buffer.from('baseline'),
+    );
 
     expect(await fs.readFile(path.join(cwd, 'results', 'p', 'e', 'a.png'), 'utf8')).toBe('run');
-    expect(await fs.readFile(path.join(cwd, 'baselines-here', 'org_1', 'test_2', 'chromium', 'step_000.png'), 'utf8')).toBe('baseline');
-    expect((await store.read('visual-baselines/org_1/test_2/chromium/step_000.png'))?.toString()).toBe('baseline');
+    expect(
+      await fs.readFile(
+        path.join(cwd, 'baselines-here', 'org_1', 'test_2', 'chromium', 'step_000.png'),
+        'utf8',
+      ),
+    ).toBe('baseline');
+    expect(
+      (await store.read('visual-baselines/org_1/test_2/chromium/step_000.png'))?.toString(),
+    ).toBe('baseline');
     expect(await store.read('results/p/e/missing.png')).toBeNull();
   });
 
@@ -122,13 +141,19 @@ describe('the S3 store', () => {
       'results/plan-1/exec-1/ui_5_chromium/row_1/video.webm',
       'results/plan-1/exec-1/ui_5_chromium/step_click.png',
     ]);
-    expect(client.objects.get('results/plan-1/exec-1/ui_5_chromium/row_1/video.webm')?.contentType).toBe('video/webm');
+    expect(
+      client.objects.get('results/plan-1/exec-1/ui_5_chromium/row_1/video.webm')?.contentType,
+    ).toBe('video/webm');
     expect(await fs.pathExists(dir)).toBe(false);
   });
 
   it('keeps the local copy when an upload fails, because then it is the only copy', async () => {
     const dir = await writeRunFiles();
-    const store = createS3ArtifactStore({ client: fakeS3({ failPutsAfter: 1 }), bucket: 'evidence', cwd });
+    const store = createS3ArtifactStore({
+      client: fakeS3({ failPutsAfter: 1 }),
+      bucket: 'evidence',
+      cwd,
+    });
 
     await expect(store.publishDirectory(dir)).rejects.toThrow(/SlowDown/);
     expect(await fs.pathExists(path.join(dir, 'step_click.png'))).toBe(true);
@@ -136,8 +161,15 @@ describe('the S3 store', () => {
   });
 
   it('never writes a key that climbs out of its prefix', async () => {
-    const store = createS3ArtifactStore({ client: fakeS3(), bucket: 'evidence', prefix: 'tenant-a', cwd });
-    await expect(store.write('../tenant-b/results/x.png', Buffer.from('x'))).rejects.toThrow(/Invalid artifact key/);
+    const store = createS3ArtifactStore({
+      client: fakeS3(),
+      bucket: 'evidence',
+      prefix: 'tenant-a',
+      cwd,
+    });
+    await expect(store.write('../tenant-b/results/x.png', Buffer.from('x'))).rejects.toThrow(
+      /Invalid artifact key/,
+    );
   });
 });
 
@@ -158,7 +190,8 @@ describe('deletePrefix', () => {
   it('removes them from the bucket, page by page, under its prefix only', async () => {
     const client = fakeS3();
     const store = createS3ArtifactStore({ client, bucket: 'evidence', prefix: 'wfm', cwd });
-    for (const name of ['a', 'b', 'c', 'd', 'e']) await store.write(`results/p/exec-1/${name}.png`, Buffer.from(name));
+    for (const name of ['a', 'b', 'c', 'd', 'e'])
+      await store.write(`results/p/exec-1/${name}.png`, Buffer.from(name));
     await store.write('results/p/exec-10/keep.png', Buffer.from('keep'));
 
     expect(await store.deletePrefix('results/p/exec-1/')).toBe(5);
@@ -181,8 +214,18 @@ describe('artifactStoreFromEnv', () => {
   });
 
   it('builds an S3 store from its settings, and refuses one without a bucket or an unknown kind', () => {
-    expect(artifactStoreFromEnv({ ARTIFACT_STORE: 's3', S3_BUCKET: 'b', S3_ENDPOINT: 'http://minio:9000' } as NodeJS.ProcessEnv).kind).toBe('s3');
-    expect(() => artifactStoreFromEnv({ ARTIFACT_STORE: 's3' } as NodeJS.ProcessEnv)).toThrow(/S3_BUCKET/);
-    expect(() => artifactStoreFromEnv({ ARTIFACT_STORE: 'ftp' } as NodeJS.ProcessEnv)).toThrow(/"local" or "s3"/);
+    expect(
+      artifactStoreFromEnv({
+        ARTIFACT_STORE: 's3',
+        S3_BUCKET: 'b',
+        S3_ENDPOINT: 'http://minio:9000',
+      } as NodeJS.ProcessEnv).kind,
+    ).toBe('s3');
+    expect(() => artifactStoreFromEnv({ ARTIFACT_STORE: 's3' } as NodeJS.ProcessEnv)).toThrow(
+      /S3_BUCKET/,
+    );
+    expect(() => artifactStoreFromEnv({ ARTIFACT_STORE: 'ftp' } as NodeJS.ProcessEnv)).toThrow(
+      /"local" or "s3"/,
+    );
   });
 });

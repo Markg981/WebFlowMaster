@@ -4,7 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useAuth } from '@/hooks/use-auth';
 import QuarantineDialog from './QuarantineDialog';
 import { Repeat, ShieldAlert } from 'lucide-react';
@@ -91,7 +98,9 @@ const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) =>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('flakyTests.loading', 'Looking across recent runs…')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('flakyTests.loading', 'Looking across recent runs…')}
+          </p>
         ) : error ? (
           <p className="text-sm text-destructive">{error.message}</p>
         ) : items.length === 0 ? (
@@ -154,17 +163,26 @@ const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) =>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       <Badge variant={item.flakiness >= 0.5 ? 'destructive' : 'secondary'}>
-                        {item.unexplainedFlips}× {t('flakyTests.inRuns', 'in {{runs}} runs', { runs: item.runs })}
+                        {item.unexplainedFlips}×{' '}
+                        {t('flakyTests.inRuns', 'in {{runs}} runs', { runs: item.runs })}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">
-                      <span className={item.lastStatus === 'passed' ? 'text-green-600' : 'text-destructive'}>
+                      <span
+                        className={
+                          item.lastStatus === 'passed' ? 'text-green-600' : 'text-destructive'
+                        }
+                      >
                         {item.lastStatus}
                       </span>
                     </TableCell>
                     <TableCell>
                       {item.quarantine ? (
-                        <Badge variant="outline" title={item.quarantine.reason} className="whitespace-nowrap">
+                        <Badge
+                          variant="outline"
+                          title={item.quarantine.reason}
+                          className="whitespace-nowrap"
+                        >
                           <ShieldAlert className="mr-1 h-3 w-3" />
                           {t('flakyTests.inQuarantine', 'In quarantine')}
                         </Badge>

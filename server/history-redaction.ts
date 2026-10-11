@@ -66,10 +66,13 @@ function redactStructured(value: unknown, secrets: Secrets, depth = 0): unknown 
     for (const [key, item] of Object.entries(value)) {
       const masked = redactStructured(item, secrets, depth + 1);
       const sensitive = isSensitiveKey(key) || SENSITIVE_HEADERS.test(key);
-      out[key] = !sensitive || masked === null || masked === undefined
-        || (typeof masked === 'string' && PURE_PLACEHOLDER.test(masked))
-        ? masked
-        : REDACTED;
+      out[key] =
+        !sensitive ||
+        masked === null ||
+        masked === undefined ||
+        (typeof masked === 'string' && PURE_PLACEHOLDER.test(masked))
+          ? masked
+          : REDACTED;
     }
     return out;
   }
@@ -103,9 +106,13 @@ export function redactHistoryEntry<T extends HistoryFields>(
     ...entry,
     ...(entry.url !== undefined && { url: maskString(entry.url, secrets) }),
     ...('queryParams' in entry && { queryParams: redactStructured(entry.queryParams, secrets) }),
-    ...('requestHeaders' in entry && { requestHeaders: redactStructured(entry.requestHeaders, secrets) }),
+    ...('requestHeaders' in entry && {
+      requestHeaders: redactStructured(entry.requestHeaders, secrets),
+    }),
     ...('requestBody' in entry && { requestBody: redactBody(entry.requestBody, secrets) }),
-    ...('responseHeaders' in entry && { responseHeaders: redactStructured(entry.responseHeaders, secrets) }),
+    ...('responseHeaders' in entry && {
+      responseHeaders: redactStructured(entry.responseHeaders, secrets),
+    }),
     ...('responseBody' in entry && { responseBody: redactBody(entry.responseBody, secrets) }),
   };
 }

@@ -3,6 +3,7 @@
 Una pipeline avvia un piano di test di WebFlowMaster e ne aspetta l'esito. Fa fallire la build se
 il piano fallisce, e pubblica i risultati nel report dei test del sistema di CI. In
 [`integrations/`](https://github.com/Markg981/WebFlowMaster/tree/main/integrations) ci sono integrazioni pronte:
+
 - una GitHub Action;
 - un template per GitLab CI;
 - uno step di shared library per Jenkins;
@@ -34,14 +35,15 @@ curl -fsSL "$WFM_URL/cli/wfm.mjs" -o wfm.mjs
 node wfm.mjs run <planId> --wait --junit junit.xml --html report.html
 ```
 
-| Comando | Cosa fa |
-| --- | --- |
-| `wfm run <planId>` | Avvia un'esecuzione. Con `--wait` (implicito con qualsiasi opzione di report) aspetta ed esce con l'esito. |
-| `wfm status <runId>` | Stampa lo stato di un'esecuzione. |
-| `wfm junit <runId> --junit <file>` | Scrive il JUnit XML di un'esecuzione finita. |
-| `wfm export <runId> --html/--pdf/--allure <file>` | Scrive i report di un'esecuzione finita. |
+| Comando                                           | Cosa fa                                                                                                    |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `wfm run <planId>`                                | Avvia un'esecuzione. Con `--wait` (implicito con qualsiasi opzione di report) aspetta ed esce con l'esito. |
+| `wfm status <runId>`                              | Stampa lo stato di un'esecuzione.                                                                          |
+| `wfm junit <runId> --junit <file>`                | Scrive il JUnit XML di un'esecuzione finita.                                                               |
+| `wfm export <runId> --html/--pdf/--allure <file>` | Scrive i report di un'esecuzione finita.                                                                   |
 
 Opzioni:
+
 - `--url` o `$WFM_URL`, e `--key` o `$WFM_API_KEY`;
 - `--environment <id>`;
 - `--timeout <secondi>` (predefinito 1800);
@@ -53,6 +55,7 @@ Opzioni:
 - `--no-ci` e `--json`.
 
 **Il codice di uscita è l'interfaccia:**
+
 - `0`: l'esecuzione è passata.
 - `1`: l'esecuzione è fallita. Vale anche per errore, annullamento e tempo scaduto.
 - `2`: lo step non è stato eseguibile. Per esempio manca la chiave, l'URL è sbagliato, il server
@@ -63,6 +66,7 @@ I fallimenti dei test in quarantena non fanno fallire l'esecuzione.
 **Da dove viene l'esecuzione.** Dentro GitHub Actions, GitLab CI, Jenkins, Azure Pipelines,
 Bitbucket Pipelines o CircleCI, la CLI legge dall'ambiente del job repository, commit, branch,
 pull request e link alla build, e li invia con l'esecuzione.
+
 - **Dove compare:** report, notifica, export HTML e risultati Allure mostrano quella build e ci
   rimandano.
 - **Come disattivarla:** con `--no-ci`.
@@ -98,6 +102,7 @@ jobs:
 ```
 
 Lo step fallisce se il piano fallisce. Inoltre:
+
 - scrive l'esecuzione nella pagina di riepilogo del job;
 - aggiunge un'annotazione sul fallimento;
 - imposta gli output `run-id`, `status` e `report-url`, che si possono usare per esempio per
@@ -118,7 +123,7 @@ e2e:
   extends: .webflowmaster
   stage: test
   variables:
-    WFM_PLAN_ID: "id-del-piano"
+    WFM_PLAN_ID: 'id-del-piano'
 ```
 
 Impostate `WFM_URL` e `WFM_API_KEY` (mascherata e protetta) in Settings → CI/CD → Variables. I
@@ -141,6 +146,7 @@ steps {
 ```
 
 I risultati JUnit vengono pubblicati con lo step `junit` e il report HTML viene archiviato.
+
 - **Esito:** di default un piano fallito fa fallire la build. Con `onFailure: 'unstable'` la build
   viene segnata come instabile.
 - **Altri parametri:** `environment`, `timeout`, `credentialsId`, `junit`, `html`.
@@ -176,7 +182,8 @@ nel vostro `bitbucket-pipelines.yml` e richiamatelo dove il piano deve girare:
 ```yaml
 definitions:
   steps:
-    - step: &webflowmaster
+    - step:
+        &webflowmaster
         # … lo step di integrations/bitbucket/bitbucket-pipelines.yml …
 
 pipelines:
@@ -221,6 +228,7 @@ quindi i risultati vengono salvati prima e l'esito del piano lo dà un ultimo st
 
 Qualsiasi sistema che esegue Node 18 può usare le due righe della sezione 2. Senza Node, l'API
 dietro la CLI è documentata in `GET /api/v1/openapi.json`:
+
 1. `POST /api/v1/plans/{planId}/runs`;
 2. interrogare `GET /api/v1/runs/{runId}` finché `status` non è più `queued`, `running` o
    `cancelling`;
@@ -229,13 +237,13 @@ dietro la CLI è documentata in `GET /api/v1/openapi.json`:
 ## 10. Stato del commit su GitHub e GitLab
 
 Un run avviato da GitHub Actions o GitLab CI può comparire sul commit che ha testato, accanto agli
-altri check: `WebFlowMaster / <piano>` è *pending* mentre il run è in coda e mentre gira, poi
-*success*, *failure* o *error* ("3 of 40 failed", "Timed out", "Cancelled"), con il link al report.
+altri check: `WebFlowMaster / <piano>` è _pending_ mentre il run è in coda e mentre gira, poi
+_success_, _failure_ o _error_ ("3 of 40 failed", "Timed out", "Cancelled"), con il link al report.
 Lo imposta il server, quindi funziona anche per un run avviato con `--no-wait`.
 
 1. Un owner collega l'host in **Settings → GitHub e GitLab** con un token. Il token viene verificato
    prima di essere salvato, conservato cifrato e mai più mostrato.
-   - **GitHub**: un token fine-grained con *Commit statuses: read and write* sui repository, oppure
+   - **GitHub**: un token fine-grained con _Commit statuses: read and write_ sui repository, oppure
      un token classico con `repo:status`. Per GitHub Enterprise l'URL dell'API è
      `https://<host>/api/v3`.
    - **GitLab**: un token di progetto, di gruppo o personale con scope `api`, di un membro con

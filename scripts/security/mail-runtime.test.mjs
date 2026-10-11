@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import nodemailer from 'nodemailer';
 
 test('updated mail runtime composes UTF-8 messages and in-memory attachments', async () => {
-  const transport = nodemailer.createTransport({ streamTransport: true, buffer: true, newline: 'unix' });
+  const transport = nodemailer.createTransport({
+    streamTransport: true,
+    buffer: true,
+    newline: 'unix',
+  });
   const result = await transport.sendMail({
     from: 'WebFlowMaster <sender@example.test>',
     to: 'Colleague <recipient@example.test>',

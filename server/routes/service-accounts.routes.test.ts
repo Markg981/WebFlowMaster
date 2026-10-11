@@ -5,7 +5,12 @@ import { and, eq } from 'drizzle-orm';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -57,25 +62,48 @@ beforeEach(async () => {
   currentUser = { id: owner, username: 'sa-owner', organizationId: org, role: 'owner' };
 });
 
-const create = (body: Record<string, unknown>) => request(app).post('/api/service-accounts').send(body);
+const create = (body: Record<string, unknown>) =>
+  request(app).post('/api/service-accounts').send(body);
 
 describe('creating a service account', () => {
   it('makes an account of this organization that cannot sign in, and records it', async () => {
     const created = await create({ name: 'GitHub Actions', role: 'editor' }).expect(201);
 
-    expect(created.body).toMatchObject({ name: 'GitHub Actions', role: 'editor', disabledAt: null });
+    expect(created.body).toMatchObject({
+      name: 'GitHub Actions',
+      role: 'editor',
+      disabledAt: null,
+    });
     const [row] = await privilegedDb.select().from(users).where(eq(users.id, created.body.id));
-    expect(row).toMatchObject({ kind: 'service', organizationId: org, displayName: 'GitHub Actions' });
+    expect(row).toMatchObject({
+      kind: 'service',
+      organizationId: org,
+      displayName: 'GitHub Actions',
+    });
 
-    const [entry] = await privilegedDb.select().from(auditLog).where(eq(auditLog.action, 'service_account.created'));
-    expect(entry).toMatchObject({ organizationId: org, actorUserId: owner, targetId: String(created.body.id) });
+    const [entry] = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, 'service_account.created'));
+    expect(entry).toMatchObject({
+      organizationId: org,
+      actorUserId: owner,
+      targetId: String(created.body.id),
+    });
   });
 
   it('is never an owner, by the request or by the database', async () => {
     await create({ name: 'Root', role: 'owner' }).expect(400);
 
-    const account = await storage.createServiceAccount({ organizationId: org, displayName: 'Bot', role: 'editor', actor: { id: owner, username: 'x' } });
-    await expect(privilegedDb.update(users).set({ role: 'owner' }).where(eq(users.id, account.id))).rejects.toThrow();
+    const account = await storage.createServiceAccount({
+      organizationId: org,
+      displayName: 'Bot',
+      role: 'editor',
+      actor: { id: owner, username: 'x' },
+    });
+    await expect(
+      privilegedDb.update(users).set({ role: 'owner' }).where(eq(users.id, account.id)),
+    ).rejects.toThrow();
   });
 
   it('is for owners only', async () => {
@@ -88,10 +116,18 @@ describe('creating a service account', () => {
     const created = await create({ name: 'Nightly', role: 'viewer' }).expect(201);
 
     const organization = await request(app).get('/api/organization').expect(200);
-    expect(organization.body.members.map((m: { id: number }) => m.id)).not.toContain(created.body.id);
+    expect(organization.body.members.map((m: { id: number }) => m.id)).not.toContain(
+      created.body.id,
+    );
 
-    await request(app).patch(`/api/organization/members/${created.body.id}`).send({ role: 'owner' }).expect(404);
-    await request(app).post('/api/organization/members').send({ userId: created.body.id, role: 'owner' }).expect(404);
+    await request(app)
+      .patch(`/api/organization/members/${created.body.id}`)
+      .send({ role: 'owner' })
+      .expect(404);
+    await request(app)
+      .post('/api/organization/members')
+      .send({ userId: created.body.id, role: 'owner' })
+      .expect(404);
     await request(app).delete(`/api/organization/members/${created.body.id}`).expect(404);
 
     const listed = await request(app).get('/api/service-accounts').expect(200);
@@ -119,37 +155,68 @@ describe('its keys', () => {
     const account = await create({ name: 'CI', role: 'editor' }).expect(201);
     currentUser = { ...currentUser, role: 'editor' };
 
-    await request(app).post('/api/api-keys').send({ name: 'ci', serviceAccountId: account.body.id }).expect(403);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'ci', serviceAccountId: account.body.id })
+      .expect(403);
   });
 
   it("nor can anyone issue one to a person, or to another organization's account", async () => {
     const person = await createTestUser(org, `sa-person-${Date.now()}`);
-    await request(app).post('/api/api-keys').send({ name: 'x', serviceAccountId: person }).expect(404);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'x', serviceAccountId: person })
+      .expect(404);
 
-    const theirs = await storage.createServiceAccount({ organizationId: otherOrg, displayName: 'Theirs', role: 'editor', actor: { id: owner, username: 'x' } });
-    await request(app).post('/api/api-keys').send({ name: 'x', serviceAccountId: theirs.id }).expect(404);
+    const theirs = await storage.createServiceAccount({
+      organizationId: otherOrg,
+      displayName: 'Theirs',
+      role: 'editor',
+      actor: { id: owner, username: 'x' },
+    });
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'x', serviceAccountId: theirs.id })
+      .expect(404);
   });
 
   it('refuses a scope that does not exist', async () => {
-    await request(app).post('/api/api-keys').send({ name: 'x', scopes: ['tests:delete'] }).expect(400);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'x', scopes: ['tests:delete'] })
+      .expect(400);
   });
 });
 
 describe('disabling a service account', () => {
   it('revokes every key it holds, keeps the row, and cannot be done twice', async () => {
     const account = await create({ name: 'Retired', role: 'editor' }).expect(201);
-    await request(app).post('/api/api-keys').send({ name: 'a', serviceAccountId: account.body.id }).expect(201);
-    await request(app).post('/api/api-keys').send({ name: 'b', serviceAccountId: account.body.id }).expect(201);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'a', serviceAccountId: account.body.id })
+      .expect(201);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'b', serviceAccountId: account.body.id })
+      .expect(201);
 
-    const disabled = await request(app).delete(`/api/service-accounts/${account.body.id}`).expect(200);
+    const disabled = await request(app)
+      .delete(`/api/service-accounts/${account.body.id}`)
+      .expect(200);
     expect(disabled.body.revokedKeys).toBe(2);
 
-    const live = await privilegedDb.select().from(apiKeys).where(and(eq(apiKeys.userId, account.body.id)));
+    const live = await privilegedDb
+      .select()
+      .from(apiKeys)
+      .where(and(eq(apiKeys.userId, account.body.id)));
     expect(live.every((k) => k.revokedAt !== null)).toBe(true);
     const [row] = await privilegedDb.select().from(users).where(eq(users.id, account.body.id));
     expect(row.disabledAt).not.toBeNull();
 
     await request(app).delete(`/api/service-accounts/${account.body.id}`).expect(404);
-    await request(app).post('/api/api-keys').send({ name: 'c', serviceAccountId: account.body.id }).expect(404);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'c', serviceAccountId: account.body.id })
+      .expect(404);
   });
 });

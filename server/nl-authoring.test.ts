@@ -24,9 +24,30 @@ import {
 
 const detected = [
   { id: 'd1', type: 'button', selector: '#save', tag: 'button', text: 'Save', attributes: {} },
-  { id: 'd2', type: 'input', selector: '#user', tag: 'input', text: '', attributes: { placeholder: 'Username' } },
-  { id: 'd3', type: 'select', selector: '#country', tag: 'select', text: '', attributes: { name: 'country' } },
-  { id: 'd4', type: 'checkbox', selector: '#terms', tag: 'input', text: 'Accept terms', attributes: {} },
+  {
+    id: 'd2',
+    type: 'input',
+    selector: '#user',
+    tag: 'input',
+    text: '',
+    attributes: { placeholder: 'Username' },
+  },
+  {
+    id: 'd3',
+    type: 'select',
+    selector: '#country',
+    tag: 'select',
+    text: '',
+    attributes: { name: 'country' },
+  },
+  {
+    id: 'd4',
+    type: 'checkbox',
+    selector: '#terms',
+    tag: 'input',
+    text: 'Accept terms',
+    attributes: {},
+  },
 ];
 
 const catalogue = buildCatalogue({ detected });
@@ -68,34 +89,64 @@ describe('labelForDetected', () => {
   });
 
   it('still names an element that says nothing about itself', () => {
-    expect(labelForDetected({ selector: 'div > span', tag: 'span', attributes: {} }, 6)).toBe('span 7');
+    expect(labelForDetected({ selector: 'div > span', tag: 'span', attributes: {} }, 6)).toBe(
+      'span 7',
+    );
   });
 });
 
 describe('parseLine', () => {
   it('reads the interactions beyond click and type', () => {
-    expect(parseLine('Premi Invio nel campo Cerca')).toMatchObject({ action: 'pressKey', value: 'Enter', targetPhrase: 'campo Cerca' });
+    expect(parseLine('Premi Invio nel campo Cerca')).toMatchObject({
+      action: 'pressKey',
+      value: 'Enter',
+      targetPhrase: 'campo Cerca',
+    });
     expect(parseLine('Press ctrl+a')).toMatchObject({ action: 'pressKey', value: 'Control+a' });
     // Still a click: "Login" is not a key.
     expect(parseLine('Press Login')).toMatchObject({ action: 'click' });
-    expect(parseLine('Click destro su Riga 1')).toMatchObject({ action: 'rightClick', targetPhrase: 'Riga 1' });
+    expect(parseLine('Click destro su Riga 1')).toMatchObject({
+      action: 'rightClick',
+      targetPhrase: 'Riga 1',
+    });
     expect(parseLine('Double-click the row')).toMatchObject({ action: 'doubleClick' });
-    expect(parseLine('Annulla il prossimo dialog')).toMatchObject({ action: 'handleDialog', value: 'dismiss' });
+    expect(parseLine('Annulla il prossimo dialog')).toMatchObject({
+      action: 'handleDialog',
+      value: 'dismiss',
+    });
     expect(parseLine('Switch to the new tab')).toMatchObject({ action: 'switchTab' });
     expect(parseLine('Chiudi la scheda')).toMatchObject({ action: 'closeTab' });
     expect(parseLine('Clear cookies')).toMatchObject({ action: 'clearCookies' });
     // Collaudo WEB-28: "clic", uploads and a prompt's answer.
-    expect(parseLine('Fai doppio clic su Riga 1')).toMatchObject({ action: 'doubleClick', targetPhrase: 'Riga 1' });
-    expect(parseLine('Clic destro su Riga 1')).toMatchObject({ action: 'rightClick', targetPhrase: 'Riga 1' });
+    expect(parseLine('Fai doppio clic su Riga 1')).toMatchObject({
+      action: 'doubleClick',
+      targetPhrase: 'Riga 1',
+    });
+    expect(parseLine('Clic destro su Riga 1')).toMatchObject({
+      action: 'rightClick',
+      targetPhrase: 'Riga 1',
+    });
     expect(parseLine('Carica il file fattura.pdf nel campo Allegato')).toMatchObject({
       action: 'uploadFile',
       value: 'fattura.pdf',
       targetPhrase: 'campo Allegato',
     });
-    expect(parseLine('Upload "report.csv" to the File field')).toMatchObject({ action: 'uploadFile', value: 'report.csv' });
-    expect(parseLine('Rispondi al prompt con «Mario»')).toMatchObject({ action: 'handleDialog', value: 'accept:Mario' });
-    expect(parseLine('Accept the prompt with "42"')).toMatchObject({ action: 'handleDialog', value: 'accept:42' });
-    expect(parseLine('Accetta il dialog')).toMatchObject({ action: 'handleDialog', value: 'accept' });
+    expect(parseLine('Upload "report.csv" to the File field')).toMatchObject({
+      action: 'uploadFile',
+      value: 'report.csv',
+    });
+    expect(parseLine('Rispondi al prompt con «Mario»')).toMatchObject({
+      action: 'handleDialog',
+      value: 'accept:Mario',
+    });
+    expect(parseLine('Accept the prompt with "42"')).toMatchObject({
+      action: 'handleDialog',
+      value: 'accept:42',
+    });
+    expect(parseLine('Accetta il dialog')).toMatchObject({
+      action: 'handleDialog',
+      value: 'accept',
+    });
     expect(parseLine('Salva il testo del numero ordine come numeroOrdine')).toMatchObject({
       action: 'storeText',
       targetPhrase: 'numero ordine',
@@ -104,21 +155,41 @@ describe('parseLine', () => {
   });
 
   it('reads the ordinary imperatives', () => {
-    expect(parseLine('Click the Save button')).toMatchObject({ action: 'click', targetPhrase: 'the Save button' });
+    expect(parseLine('Click the Save button')).toMatchObject({
+      action: 'click',
+      targetPhrase: 'the Save button',
+    });
     expect(parseLine('Hover over the Save button')).toMatchObject({ action: 'hover' });
-    expect(parseLine('Go to https://example.test')).toMatchObject({ action: 'navigate', value: 'https://example.test' });
+    expect(parseLine('Go to https://example.test')).toMatchObject({
+      action: 'navigate',
+      value: 'https://example.test',
+    });
   });
 
   it('reads them in Italian too', () => {
     expect(parseLine('Clicca su Salva')).toMatchObject({ action: 'click', targetPhrase: 'Salva' });
-    expect(parseLine('Inserisci "mario" nel campo Username')).toMatchObject({ action: 'input', value: 'mario' });
-    expect(parseLine('Verifica che il totale contenga "42"')).toMatchObject({ action: 'assertTextContains', value: '42' });
+    expect(parseLine('Inserisci "mario" nel campo Username')).toMatchObject({
+      action: 'input',
+      value: 'mario',
+    });
+    expect(parseLine('Verifica che il totale contenga "42"')).toMatchObject({
+      action: 'assertTextContains',
+      value: '42',
+    });
   });
 
   it('reads an accessibility check, with or without a severity, and not as an element called "the page"', () => {
-    expect(parseLine('Check that the page is accessible')).toMatchObject({ action: 'assertAccessible', value: null });
-    expect(parseLine('Verify accessibility at critical')).toMatchObject({ action: 'assertAccessible', value: 'critical' });
-    expect(parseLine('Verifica che la pagina sia accessibile')).toMatchObject({ action: 'assertAccessible' });
+    expect(parseLine('Check that the page is accessible')).toMatchObject({
+      action: 'assertAccessible',
+      value: null,
+    });
+    expect(parseLine('Verify accessibility at critical')).toMatchObject({
+      action: 'assertAccessible',
+      value: 'critical',
+    });
+    expect(parseLine('Verifica che la pagina sia accessibile')).toMatchObject({
+      action: 'assertAccessible',
+    });
     expect(parseLine('Check that the banner is visible')).toMatchObject({ action: 'assert' });
   });
 
@@ -140,8 +211,12 @@ describe('parseLine', () => {
     // The same control, the same word, two different steps: "check that" asserts, and a
     // second run of a test that asserted is unchanged. "Make sure" is a precondition, and a
     // click on an already-ticked box would undo it.
-    expect(parseLine('Check that the terms checkbox is checked')).toMatchObject({ action: 'assertState' });
-    expect(parseLine('Make sure the terms checkbox is checked')).toMatchObject({ action: 'ensureState' });
+    expect(parseLine('Check that the terms checkbox is checked')).toMatchObject({
+      action: 'assertState',
+    });
+    expect(parseLine('Make sure the terms checkbox is checked')).toMatchObject({
+      action: 'ensureState',
+    });
   });
 
   it('says nothing about a sentence it does not recognise', () => {
@@ -179,8 +254,20 @@ describe('resolveTarget', () => {
   it('lets the action choose between a label and the control it labels', () => {
     const login = buildCatalogue({
       detected: [
-        { selector: 'label[for=username]', tag: 'label', type: 'label', text: 'Username', attributes: { for: 'username' } },
-        { selector: '#username', tag: 'input', type: 'text', text: '', attributes: { name: 'username', type: 'text' } },
+        {
+          selector: 'label[for=username]',
+          tag: 'label',
+          type: 'label',
+          text: 'Username',
+          attributes: { for: 'username' },
+        },
+        {
+          selector: '#username',
+          tag: 'input',
+          type: 'text',
+          text: '',
+          attributes: { name: 'username', type: 'text' },
+        },
       ],
     });
 
@@ -224,10 +311,17 @@ describe('buildStep', () => {
   });
 
   it('drives a native select by its option and anything else by clicking it open', () => {
-    const native = buildStep({ action: 'select', targetPhrase: 'country', value: 'Italy' }, catalogue);
+    const native = buildStep(
+      { action: 'select', targetPhrase: 'country', value: 'Italy' },
+      catalogue,
+    );
     const material = buildStep(
       { action: 'select', targetPhrase: 'Country', value: 'Italy' },
-      buildCatalogue({ detected: [{ selector: 'mat-select#country', tag: 'mat-select', text: 'Country', attributes: {} }] }),
+      buildCatalogue({
+        detected: [
+          { selector: 'mat-select#country', tag: 'mat-select', text: 'Country', attributes: {} },
+        ],
+      }),
     );
 
     expect(native.ok && native.step.action.id).toBe('select');
@@ -237,7 +331,10 @@ describe('buildStep', () => {
   });
 
   it('refuses a value the action does not accept', () => {
-    const built = buildStep({ action: 'assertState', targetPhrase: 'terms', value: 'greenish' }, catalogue);
+    const built = buildStep(
+      { action: 'assertState', targetPhrase: 'terms', value: 'greenish' },
+      catalogue,
+    );
 
     expect(built.ok).toBe(false);
     expect(!built.ok && built.reason).toContain('checked');
@@ -281,7 +378,9 @@ describe('buildStep', () => {
   });
 
   it('never types into words it only found by quoting them', () => {
-    expect(buildStep({ action: 'input', targetPhrase: '"Secure Area"', value: 'x' }, catalogue).ok).toBe(false);
+    expect(
+      buildStep({ action: 'input', targetPhrase: '"Secure Area"', value: 'x' }, catalogue).ok,
+    ).toBe(false);
     expect(buildStep({ action: 'assert', targetPhrase: 'Secure Area' }, catalogue).ok).toBe(false);
   });
 });
@@ -300,7 +399,10 @@ describe('parseModelResponse', () => {
   const allowed = new Set([1, 2]);
 
   it('reads a fenced answer', () => {
-    const proposals = parseModelResponse('```json\n[{"line":1,"action":"click","element":"D1"}]\n```', allowed);
+    const proposals = parseModelResponse(
+      '```json\n[{"line":1,"action":"click","element":"D1"}]\n```',
+      allowed,
+    );
 
     expect(proposals.get(1)).toMatchObject({ action: 'click', targetKey: 'D1' });
   });
@@ -336,7 +438,12 @@ describe('authorSteps', () => {
     });
 
     expect(result.unresolved).toEqual([]);
-    expect(result.steps.map((item) => item.step.action.id)).toEqual(['navigate', 'input', 'click', 'assert']);
+    expect(result.steps.map((item) => item.step.action.id)).toEqual([
+      'navigate',
+      'input',
+      'click',
+      'assert',
+    ]);
     expect(result.steps.map((item) => item.line)).toEqual([1, 2, 3, 4]);
   });
 
@@ -351,14 +458,37 @@ describe('authorSteps', () => {
         'Verifica che «Secure Area» sia visibile',
       ].join('\n'),
       detected: [
-        { selector: 'label[for=username]', tag: 'label', type: 'label', text: 'Username', attributes: { for: 'username' } },
-        { selector: '#username', tag: 'input', type: 'text', text: '', attributes: { name: 'username', type: 'text' } },
-        { selector: 'button[type=submit]', tag: 'button', type: 'button', text: 'Login', attributes: { type: 'submit' } },
+        {
+          selector: 'label[for=username]',
+          tag: 'label',
+          type: 'label',
+          text: 'Username',
+          attributes: { for: 'username' },
+        },
+        {
+          selector: '#username',
+          tag: 'input',
+          type: 'text',
+          text: '',
+          attributes: { name: 'username', type: 'text' },
+        },
+        {
+          selector: 'button[type=submit]',
+          tag: 'button',
+          type: 'button',
+          text: 'Login',
+          attributes: { type: 'submit' },
+        },
       ],
     });
 
     expect(result.unresolved).toEqual([]);
-    expect(result.steps.map((item) => item.step.action.id)).toEqual(['navigate', 'input', 'click', 'assert']);
+    expect(result.steps.map((item) => item.step.action.id)).toEqual([
+      'navigate',
+      'input',
+      'click',
+      'assert',
+    ]);
     expect(result.steps[1].step.targetElement?.selector).toBe('#username');
     expect(result.steps[3].step.targetElement?.selector).toBe('text="Secure Area"');
   });
@@ -400,7 +530,10 @@ describe('authorSteps', () => {
     // not fail the request, and it does not lose the steps that never needed it.
     const propose = vi.fn().mockRejectedValue(new Error('503'));
 
-    const result = await authorSteps({ text: 'Click the Save button\nDo the needful', detected }, { propose });
+    const result = await authorSteps(
+      { text: 'Click the Save button\nDo the needful', detected },
+      { propose },
+    );
 
     expect(result.steps).toHaveLength(1);
     expect(result.unresolved).toHaveLength(1);

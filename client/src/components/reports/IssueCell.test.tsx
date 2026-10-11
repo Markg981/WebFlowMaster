@@ -58,7 +58,9 @@ describe('IssueCell', () => {
   });
 
   it('repeats what the tracker said rather than failing silently', async () => {
-    const onFile = vi.fn().mockRejectedValue(new Error('403: no permission to create issues in SHOP'));
+    const onFile = vi
+      .fn()
+      .mockRejectedValue(new Error('403: no permission to create issues in SHOP'));
     render(<IssueCell onFile={onFile} />);
 
     fireEvent.click(screen.getByRole('button', { name: /File/ }));

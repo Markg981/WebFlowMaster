@@ -36,9 +36,9 @@ rinominarle, duplicarle, eliminarle e scegliere quella predefinita personale. Un
 copia privata che potete modificare indipendentemente. La scelta predefinita vale per il vostro
 account; eliminando una dashboard si cancellano le selezioni che la utilizzavano.
 
-| Visibilità | Chi può leggerla | Chi può modificarla o eliminarla |
-|---|---|---|
-| Privata | Chi l'ha creata | Chi l'ha creata |
+| Visibilità                     | Chi può leggerla                   | Chi può modificarla o eliminarla                  |
+| ------------------------------ | ---------------------------------- | ------------------------------------------------- |
+| Privata                        | Chi l'ha creata                    | Chi l'ha creata                                   |
 | Condivisa con l'organizzazione | Membri della stessa organizzazione | Chi l'ha creata e proprietari dell'organizzazione |
 
 I proprietari dell’organizzazione non possono aprire le dashboard private degli altri membri. Gli altri

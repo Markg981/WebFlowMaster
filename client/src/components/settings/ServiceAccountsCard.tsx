@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Bot, Loader2, Trash2 } from 'lucide-react';
 import type { ServiceAccountSummary } from './ApiKeysCard';
 
@@ -25,7 +31,11 @@ const ServiceAccountsCard: React.FC = () => {
   const [role, setRole] = useState<'viewer' | 'editor'>('editor');
   const [formError, setFormError] = useState('');
 
-  const { data: accounts = [], isLoading, error } = useQuery<ServiceAccountSummary[]>({
+  const {
+    data: accounts = [],
+    isLoading,
+    error,
+  } = useQuery<ServiceAccountSummary[]>({
     queryKey: ['serviceAccounts'],
     queryFn: async () => {
       const response = await fetch('/api/service-accounts');
@@ -69,7 +79,12 @@ const ServiceAccountsCard: React.FC = () => {
 
   const handleCreate = () => {
     if (name.trim() === '') {
-      setFormError(t('settings.serviceAccounts.nameRequired', 'Give the account a name, such as the pipeline it is for.'));
+      setFormError(
+        t(
+          'settings.serviceAccounts.nameRequired',
+          'Give the account a name, such as the pipeline it is for.',
+        ),
+      );
       return;
     }
     setFormError('');
@@ -93,7 +108,9 @@ const ServiceAccountsCard: React.FC = () => {
       <CardContent className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="flex-1">
-            <Label htmlFor="serviceAccountName">{t('settings.serviceAccounts.nameLabel', 'Name')}</Label>
+            <Label htmlFor="serviceAccountName">
+              {t('settings.serviceAccounts.nameLabel', 'Name')}
+            </Label>
             <Input
               id="serviceAccountName"
               value={name}
@@ -105,12 +122,19 @@ const ServiceAccountsCard: React.FC = () => {
           <div className="w-full sm:w-40">
             <Label>{t('settings.serviceAccounts.roleLabel', 'Role')}</Label>
             <Select value={role} onValueChange={(value) => setRole(value as 'viewer' | 'editor')}>
-              <SelectTrigger className="mt-1" aria-label={t('settings.serviceAccounts.roleLabel', 'Role')}>
+              <SelectTrigger
+                className="mt-1"
+                aria-label={t('settings.serviceAccounts.roleLabel', 'Role')}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="viewer">{t('settings.serviceAccounts.roles.viewer', 'viewer')}</SelectItem>
-                <SelectItem value="editor">{t('settings.serviceAccounts.roles.editor', 'editor')}</SelectItem>
+                <SelectItem value="viewer">
+                  {t('settings.serviceAccounts.roles.viewer', 'viewer')}
+                </SelectItem>
+                <SelectItem value="editor">
+                  {t('settings.serviceAccounts.roles.editor', 'editor')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -122,17 +146,26 @@ const ServiceAccountsCard: React.FC = () => {
         {formError && <p className="text-sm text-destructive">{formError}</p>}
 
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('settings.serviceAccounts.loading', 'Loading accounts…')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('settings.serviceAccounts.loading', 'Loading accounts…')}
+          </p>
         ) : error ? (
           <p className="text-sm text-destructive">{(error as Error).message}</p>
         ) : accounts.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {t('settings.serviceAccounts.empty', 'No service accounts yet. Create one, then issue it a key above.')}
+            {t(
+              'settings.serviceAccounts.empty',
+              'No service accounts yet. Create one, then issue it a key above.',
+            )}
           </p>
         ) : (
           <ul className="space-y-2">
             {accounts.map((account) => (
-              <li key={account.id} className="flex items-center justify-between p-2 border rounded-md" data-testid={`service-account-${account.id}`}>
+              <li
+                key={account.id}
+                className="flex items-center justify-between p-2 border rounded-md"
+                data-testid={`service-account-${account.id}`}
+              >
                 <span className="text-sm">
                   <span className="font-medium">{account.name}</span>
                   <Badge variant="outline" className="ml-2">
@@ -150,7 +183,9 @@ const ServiceAccountsCard: React.FC = () => {
                     size="sm"
                     onClick={() => disable.mutate(account.id)}
                     disabled={disable.isPending}
-                    aria-label={t('settings.serviceAccounts.disableAction', 'Disable {{name}}', { name: account.name })}
+                    aria-label={t('settings.serviceAccounts.disableAction', 'Disable {{name}}', {
+                      name: account.name,
+                    })}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>

@@ -8,18 +8,18 @@ Redis separato e bundle di produzione. Non sono esiti del ciclo manuale `wfm-col
 Il catalogo passa a versione **22**, aggiungendo **API-37–48** (472 casi totali) senza
 riscrivere casi o risultati precedenti. I nuovi casi manuali rimangono da eseguire.
 
-| Verifica | Evidenza automatica |
-| --- | --- |
-| Unary, server/client/bidi, trailer, backpressure, annullamento, limiti e deadline senza false riuscite | `server/api-network-streaming.test.ts`, `server/api-protocols.test.ts` |
-| mTLS verificato, PEM/chiave cifrata, trust/identity/hostname negativi | `server/grpc-tls.test.ts`, fixture sintetiche documentate |
-| Streaming mTLS e conversazioni da agenti, upgrade richiesto ai precedenti, payload serializzati oltre 16 MiB | `server/agents/agent-protocol.test.ts` |
-| Selezione e conversazione avanzata attraverso due relay | `server/agents/relay-cluster.test.ts` |
-| Configurazione, riferimenti a segreti, catture riservate e redazione errori | `server/api-protocol-integration.test.ts`, `server/api-protocol-config.test.ts` |
-| Transcript persistito oscurato, con estrazioni vive per le richieste successive | `server/api-protocol-report.test.ts` |
-| Export/import tra organizzazioni, snapshot, pubblicazione immutabile e ripristino | `server/test-export.test.ts`, `server/typed-test-publishing.test.ts` |
-| Isolamento reale PostgreSQL dei riferimenti TLS | `server/tests/typed-version-isolation.test.ts`, incluso in `npm run test:rls` |
-| WSDL 1.1/2.0, import/include XSD, namespace, endpoint, policy e rifiuti XML/path/limiti | `server/wsdl-import.test.ts`, `server/api-import.test.ts` |
-| Editor TLS/conversazioni, persistenza, export, identità e anteprime obsolete | test client protocollo e import |
+| Verifica                                                                                                     | Evidenza automatica                                                             |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Unary, server/client/bidi, trailer, backpressure, annullamento, limiti e deadline senza false riuscite       | `server/api-network-streaming.test.ts`, `server/api-protocols.test.ts`          |
+| mTLS verificato, PEM/chiave cifrata, trust/identity/hostname negativi                                        | `server/grpc-tls.test.ts`, fixture sintetiche documentate                       |
+| Streaming mTLS e conversazioni da agenti, upgrade richiesto ai precedenti, payload serializzati oltre 16 MiB | `server/agents/agent-protocol.test.ts`                                          |
+| Selezione e conversazione avanzata attraverso due relay                                                      | `server/agents/relay-cluster.test.ts`                                           |
+| Configurazione, riferimenti a segreti, catture riservate e redazione errori                                  | `server/api-protocol-integration.test.ts`, `server/api-protocol-config.test.ts` |
+| Transcript persistito oscurato, con estrazioni vive per le richieste successive                              | `server/api-protocol-report.test.ts`                                            |
+| Export/import tra organizzazioni, snapshot, pubblicazione immutabile e ripristino                            | `server/test-export.test.ts`, `server/typed-test-publishing.test.ts`            |
+| Isolamento reale PostgreSQL dei riferimenti TLS                                                              | `server/tests/typed-version-isolation.test.ts`, incluso in `npm run test:rls`   |
+| WSDL 1.1/2.0, import/include XSD, namespace, endpoint, policy e rifiuti XML/path/limiti                      | `server/wsdl-import.test.ts`, `server/api-import.test.ts`                       |
+| Editor TLS/conversazioni, persistenza, export, identità e anteprime obsolete                                 | test client protocollo e import                                                 |
 
 ## Installazione reale e distribuzione
 

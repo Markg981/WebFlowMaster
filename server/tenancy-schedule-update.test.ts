@@ -2,7 +2,14 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vites
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
 import { privilegedDb } from './db';
-import { users, organizations, auditLog, testPlans, testPlanSchedules, type User } from '../shared/schema';
+import {
+  users,
+  organizations,
+  auditLog,
+  testPlans,
+  testPlanSchedules,
+  type User,
+} from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { createTestOrganization } from './tests/factories';
 
@@ -67,7 +74,11 @@ beforeEach(async () => {
   sessionOrganizationId = await createTestOrganization('C5 Session Organization');
   [sessionUser] = await privilegedDb
     .insert(users)
-    .values({ username: 'c5_session_user', password: 'hashed', organizationId: sessionOrganizationId })
+    .values({
+      username: 'c5_session_user',
+      password: 'hashed',
+      organizationId: sessionOrganizationId,
+    })
     .returning();
   currentUser = sessionUser;
 });
@@ -76,7 +87,12 @@ describe('PUT /api/test-plan-schedules/:id with the real scheduler-service (C5)'
   it('responds without deadlocking the shared database connection', async () => {
     const [plan] = await privilegedDb
       .insert(testPlans)
-      .values({ id: 'c5-plan', name: 'C5 plan', userId: sessionUser.id, organizationId: sessionOrganizationId })
+      .values({
+        id: 'c5-plan',
+        name: 'C5 plan',
+        userId: sessionUser.id,
+        organizationId: sessionOrganizationId,
+      })
       .returning();
 
     // 'daily@02:00' is not a frequency addScheduleJob's frequencyToCronPattern recognizes,

@@ -10,7 +10,13 @@ import { Button } from '@/components/ui/button';
 interface DeliveryHistory {
   configured: boolean;
   trackingConfigured: boolean;
-  deliveries: Array<{ id: string; recipient: string; purpose: string; state: string; createdAt: string }>;
+  deliveries: Array<{
+    id: string;
+    recipient: string;
+    purpose: string;
+    state: string;
+    createdAt: string;
+  }>;
 }
 
 /** Owner-only history: SMTP acceptance is not proof that the recipient received a message. */
@@ -37,31 +43,87 @@ export default function EmailDeliveryCard() {
     run_finished: t('emailDelivery.purposes.run_finished', 'Run notification'),
     other: t('emailDelivery.purposes.other', 'Email'),
   };
-  return <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2"><Mail className="h-4 w-4" />{t('emailDelivery.title', 'Email delivery')}</CardTitle>
-      <CardDescription>{t('emailDelivery.description', 'Invitations, password resets and run notifications include HTML and plain text. SMTP acceptance does not confirm delivery.')}</CardDescription>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      {isLoading ? <p>{t('emailDelivery.loading', 'Loading…')}</p> : isError || !data ?
-        <p role="alert" className="text-sm text-destructive">{t('emailDelivery.error', 'Email delivery history could not be loaded.')}</p> : <>
-          {!data.configured && <p className="text-sm text-muted-foreground">{t('emailDelivery.notConfigured', 'Email sending is not configured for this organization.')}</p>}
-          {!data.trackingConfigured && <p className="text-sm text-muted-foreground">{t('emailDelivery.noTracking', 'Delivery and bounce tracking is not configured.')}</p>}
-          <Button type="button" size="sm" variant="outline" disabled={isFetching} onClick={() => void refetch()}>{t('emailDelivery.refresh', 'Refresh')}</Button>
-          {data.deliveries.length === 0 ? <p className="text-sm text-muted-foreground">{t('emailDelivery.empty', 'No messages recorded yet.')}</p> : <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <caption className="sr-only">{t('emailDelivery.history', 'Latest 100 messages for this organization')}</caption>
-              <thead><tr className="border-b text-left">
-                <th className="p-2">{t('emailDelivery.recipient', 'Recipient')}</th><th className="p-2">{t('emailDelivery.purpose', 'Message')}</th>
-                <th className="p-2">{t('emailDelivery.state', 'Status')}</th><th className="p-2">{t('emailDelivery.created', 'Sent at')}</th>
-              </tr></thead>
-              <tbody>{data.deliveries.map(delivery => <tr key={delivery.id} className="border-b">
-                <td className="p-2 break-all">{delivery.recipient}</td><td className="p-2">{purposes[delivery.purpose] ?? purposes.other}</td>
-                <td className="p-2">{states[delivery.state] ?? delivery.state}</td><td className="p-2 whitespace-nowrap">{new Date(delivery.createdAt).toLocaleString()}</td>
-              </tr>)}</tbody>
-            </table>
-          </div>}
-        </>}
-    </CardContent>
-  </Card>;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Mail className="h-4 w-4" />
+          {t('emailDelivery.title', 'Email delivery')}
+        </CardTitle>
+        <CardDescription>
+          {t(
+            'emailDelivery.description',
+            'Invitations, password resets and run notifications include HTML and plain text. SMTP acceptance does not confirm delivery.',
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <p>{t('emailDelivery.loading', 'Loading…')}</p>
+        ) : isError || !data ? (
+          <p role="alert" className="text-sm text-destructive">
+            {t('emailDelivery.error', 'Email delivery history could not be loaded.')}
+          </p>
+        ) : (
+          <>
+            {!data.configured && (
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'emailDelivery.notConfigured',
+                  'Email sending is not configured for this organization.',
+                )}
+              </p>
+            )}
+            {!data.trackingConfigured && (
+              <p className="text-sm text-muted-foreground">
+                {t('emailDelivery.noTracking', 'Delivery and bounce tracking is not configured.')}
+              </p>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={isFetching}
+              onClick={() => void refetch()}
+            >
+              {t('emailDelivery.refresh', 'Refresh')}
+            </Button>
+            {data.deliveries.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t('emailDelivery.empty', 'No messages recorded yet.')}
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <caption className="sr-only">
+                    {t('emailDelivery.history', 'Latest 100 messages for this organization')}
+                  </caption>
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="p-2">{t('emailDelivery.recipient', 'Recipient')}</th>
+                      <th className="p-2">{t('emailDelivery.purpose', 'Message')}</th>
+                      <th className="p-2">{t('emailDelivery.state', 'Status')}</th>
+                      <th className="p-2">{t('emailDelivery.created', 'Sent at')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.deliveries.map((delivery) => (
+                      <tr key={delivery.id} className="border-b">
+                        <td className="p-2 break-all">{delivery.recipient}</td>
+                        <td className="p-2">{purposes[delivery.purpose] ?? purposes.other}</td>
+                        <td className="p-2">{states[delivery.state] ?? delivery.state}</td>
+                        <td className="p-2 whitespace-nowrap">
+                          {new Date(delivery.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
 }

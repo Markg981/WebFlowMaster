@@ -31,7 +31,11 @@ export interface ExportedReport {
 export const MAX_EMBEDDED_SCREENSHOTS = 25;
 
 export class ReportExportError extends Error {
-  constructor(readonly code: string, message: string, readonly status: number) {
+  constructor(
+    readonly code: string,
+    message: string,
+    readonly status: number,
+  ) {
     super(message);
     this.name = 'ReportExportError';
   }
@@ -67,7 +71,9 @@ export const chromiumPdf: PdfRenderer = async (html) => {
 };
 
 async function screenshotsOf(model: ReportModel) {
-  const failing = model.results.filter((r) => r.status !== 'Passed' && r.screenshotPath).slice(0, MAX_EMBEDDED_SCREENSHOTS);
+  const failing = model.results
+    .filter((r) => r.status !== 'Passed' && r.screenshotPath)
+    .slice(0, MAX_EMBEDDED_SCREENSHOTS);
   const images = new Map<string, { bytes: Buffer; contentType: string }>();
   for (const result of failing) {
     const image = await readScreenshot(model, result.screenshotPath);
@@ -78,7 +84,12 @@ async function screenshotsOf(model: ReportModel) {
 }
 
 function fileStem(model: ReportModel): string {
-  const plan = model.planName.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40).toLowerCase() || 'run';
+  const plan =
+    model.planName
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40)
+      .toLowerCase() || 'run';
   return `${plan}-${model.executionId.slice(0, 8)}`;
 }
 
@@ -103,7 +114,11 @@ export async function exportRun(
   if (format === 'junit') {
     const xml = await junitReportFor(executionId);
     if (xml === null) return null;
-    return { body: Buffer.from(xml, 'utf8'), contentType: 'application/xml; charset=utf-8', filename: `junit-${executionId}.xml` };
+    return {
+      body: Buffer.from(xml, 'utf8'),
+      contentType: 'application/xml; charset=utf-8',
+      filename: `junit-${executionId}.xml`,
+    };
   }
   const model = await loadReportModel(executionId);
   if (!model) return null;
@@ -120,11 +135,20 @@ export async function exportRun(
   }
 
   const html = renderReportHtml(model, {
-    images: new Map(Array.from(images, ([id, image]) => [id, `data:${image.contentType};base64,${image.bytes.toString('base64')}`])),
+    images: new Map(
+      Array.from(images, ([id, image]) => [
+        id,
+        `data:${image.contentType};base64,${image.bytes.toString('base64')}`,
+      ]),
+    ),
     reportUrl,
   });
   if (format === 'html') {
-    return { body: Buffer.from(html, 'utf8'), contentType: 'text/html; charset=utf-8', filename: `${stem}.html` };
+    return {
+      body: Buffer.from(html, 'utf8'),
+      contentType: 'text/html; charset=utf-8',
+      filename: `${stem}.html`,
+    };
   }
   return { body: await renderPdf(html), contentType: 'application/pdf', filename: `${stem}.pdf` };
 }

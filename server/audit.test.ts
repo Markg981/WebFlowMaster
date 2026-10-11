@@ -23,7 +23,9 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await privilegedDb.execute(sql`DELETE FROM audit_log WHERE organization_id IN (${orgA}, ${orgB})`);
+  await privilegedDb.execute(
+    sql`DELETE FROM audit_log WHERE organization_id IN (${orgA}, ${orgB})`,
+  );
   await privilegedDb.execute(sql`DELETE FROM users WHERE organization_id IN (${orgA}, ${orgB})`);
   await privilegedDb.execute(sql`DELETE FROM organizations WHERE id IN (${orgA}, ${orgB})`);
 });
@@ -48,7 +50,10 @@ describe('recordAudit', () => {
       ),
     );
 
-    const [entry] = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, orgA));
+    const [entry] = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.organizationId, orgA));
     expect(entry.action).toBe('member.role_changed');
     expect(entry.actorUserId).toBe(userA);
     expect(entry.actorUsername).toBe('someone');
@@ -83,7 +88,10 @@ describe('recordAudit', () => {
       ),
     ).rejects.toThrow('the change failed');
 
-    const entries = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, orgA));
+    const entries = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.organizationId, orgA));
     expect(entries).toHaveLength(0);
   });
 
@@ -108,7 +116,10 @@ describe('the audit log is append-only at the database level', () => {
   beforeEach(async () => {
     await runWithTenant(orgA, () =>
       withTenantTransaction((tx) =>
-        recordAudit(tx, { action: AUDIT_ACTIONS.MEMBER_REMOVED, actor: { id: userA, username: 'someone' } }),
+        recordAudit(tx, {
+          action: AUDIT_ACTIONS.MEMBER_REMOVED,
+          actor: { id: userA, username: 'someone' },
+        }),
       ),
     );
   });
@@ -151,7 +162,10 @@ describe('the audit log is append-only at the database level', () => {
     // they did, and must not be blocked by the fact that they did it.
     await privilegedDb.execute(sql`DELETE FROM users WHERE id = ${userA}`);
 
-    const [entry] = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, orgA));
+    const [entry] = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.organizationId, orgA));
     expect(entry).toBeDefined();
     expect(entry.actorUserId).toBeNull();
     expect(entry.actorUsername).toBe('someone');

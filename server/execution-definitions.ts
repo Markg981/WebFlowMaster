@@ -17,22 +17,43 @@ export interface FrozenTestDefinitions {
 }
 
 /** Definitions and version numbers are resolved together, inside the enqueue transaction. */
-export async function freezeTestDefinitions(tx: TenantTx, uiIds: number[], apiIds: number[]): Promise<FrozenTestDefinitions> {
+export async function freezeTestDefinitions(
+  tx: TenantTx,
+  uiIds: number[],
+  apiIds: number[],
+): Promise<FrozenTestDefinitions> {
   const ui: FrozenDefinition<Test>[] = [];
   const api: FrozenDefinition<ApiTest>[] = [];
   if (uiIds.length) {
     const rows = await tx.select().from(tests).where(inArray(tests.id, uiIds));
-    const latest = await tx.selectDistinctOn([testVersions.testId]).from(testVersions)
-      .where(inArray(testVersions.testId, uiIds)).orderBy(testVersions.testId, desc(testVersions.version));
-    const current = new Map(latest.map(row => [row.testId, row]));
+    const latest = await tx
+      .selectDistinctOn([testVersions.testId])
+      .from(testVersions)
+      .where(inArray(testVersions.testId, uiIds))
+      .orderBy(testVersions.testId, desc(testVersions.version));
+    const current = new Map(latest.map((row) => [row.testId, row]));
     const published = await publishedContentOf(tx, uiIds);
     for (const row of rows) {
       const content = published.get(row.id) ?? current.get(row.id);
-      const definition = content ? {
-        ...row, name: content.name, url: content.url, sequence: content.sequence, elements: content.elements,
-        preconditions: content.preconditions, cleanups: content.cleanups, dataset: content.dataset, bdd: content.bdd,
-      } as Test : row;
-      ui.push({ id: row.id, definition, version: content?.version ?? null, source: published.has(row.id) ? 'published' : 'working' });
+      const definition = content
+        ? ({
+            ...row,
+            name: content.name,
+            url: content.url,
+            sequence: content.sequence,
+            elements: content.elements,
+            preconditions: content.preconditions,
+            cleanups: content.cleanups,
+            dataset: content.dataset,
+            bdd: content.bdd,
+          } as Test)
+        : row;
+      ui.push({
+        id: row.id,
+        definition,
+        version: content?.version ?? null,
+        source: published.has(row.id) ? 'published' : 'working',
+      });
     }
   }
   if (apiIds.length) {
@@ -41,8 +62,12 @@ export async function freezeTestDefinitions(tx: TenantTx, uiIds: number[], apiId
     const published = await publishedContentOf(tx, apiIds, 'api');
     for (const row of rows) {
       const content = published.get(row.id) ?? current.get(row.id);
-      api.push({ id: row.id, definition: { ...row, ...content?.snapshot } as ApiTest,
-        version: content?.version ?? null, source: published.has(row.id) ? 'published' : 'working' });
+      api.push({
+        id: row.id,
+        definition: { ...row, ...content?.snapshot } as ApiTest,
+        version: content?.version ?? null,
+        source: published.has(row.id) ? 'published' : 'working',
+      });
     }
   }
   // Use the persisted JSON representation in both the first attempt and subsequent replays.

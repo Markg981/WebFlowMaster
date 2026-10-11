@@ -23,16 +23,19 @@ const { privilegedDb } = await import('./db');
 const { environments, secrets, tests, users } = await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
 const { encryptSecret } = await import('./crypto');
-const {
-  BrowserTaskError,
-  browserTaskMode,
-  createBrowserTaskRunner,
-  performBrowserTask,
-} = await import('./browser-tasks');
+const { BrowserTaskError, browserTaskMode, createBrowserTaskRunner, performBrowserTask } =
+  await import('./browser-tasks');
 
-const envelope = { task: { kind: 'load-website' as const, url: 'https://example.test' }, userId: 1, organizationId: 1 };
+const envelope = {
+  task: { kind: 'load-website' as const, url: 'https://example.test' },
+  userId: 1,
+  organizationId: 1,
+};
 
-function fakeQueue(workers: number, answer: () => Promise<unknown> = async () => ({ success: true })) {
+function fakeQueue(
+  workers: number,
+  answer: () => Promise<unknown> = async () => ({ success: true }),
+) {
   const added: Array<{ name: string; data: unknown; options: Record<string, unknown> }> = [];
   const queue = {
     added,
@@ -52,15 +55,47 @@ describe('browserTaskMode', () => {
     const org = await createTestOrganization('Queued debug budget');
     const id = uuidv4();
     const channel = await debugChannel();
-    await channel.open(id, { userId: 777, organizationId: org, createdAt: new Date().toISOString() });
-    await channel.publish(id, { id, status: 'starting', paused: null, steps: [], variables: [], breakpoints: [], outcome: null, updatedAt: new Date().toISOString() });
+    await channel.open(id, {
+      userId: 777,
+      organizationId: org,
+      createdAt: new Date().toISOString(),
+    });
+    await channel.publish(id, {
+      id,
+      status: 'starting',
+      paused: null,
+      steps: [],
+      variables: [],
+      breakpoints: [],
+      outcome: null,
+      updatedAt: new Date().toISOString(),
+    });
     await channel.setActive(777, id);
-    await privilegedDb.execute(sql`UPDATE organizations SET max_monthly_execution_minutes=1 WHERE id=${org}`);
-    const start = new Date(); start.setUTCDate(1); start.setUTCHours(0, 0, 0, 0);
+    await privilegedDb.execute(
+      sql`UPDATE organizations SET max_monthly_execution_minutes=1 WHERE id=${org}`,
+    );
+    const start = new Date();
+    start.setUTCDate(1);
+    start.setUTCHours(0, 0, 0, 0);
     const end = new Date(start.getTime() + 60_000);
-    await privilegedDb.execute(sql`INSERT INTO quota_execution_sessions VALUES (${org},'api','previous',${start.toISOString()}::timestamp,${end.toISOString()}::timestamp,${end.toISOString()}::timestamp)`);
-    await expect(performBrowserTask({ organizationId: org, userId: 777, task: { kind: 'debug-sequence', sessionId: id, breakpoints: [], payload: { name: 'Budget', url: 'https://example.test', sequence: [], elements: [] } } })).rejects.toMatchObject({ code: 'execution_quota_exceeded' });
-    await privilegedDb.execute(sql`UPDATE organizations SET max_monthly_execution_minutes=NULL WHERE id=${org}`);
+    await privilegedDb.execute(
+      sql`INSERT INTO quota_execution_sessions VALUES (${org},'api','previous',${start.toISOString()}::timestamp,${end.toISOString()}::timestamp,${end.toISOString()}::timestamp)`,
+    );
+    await expect(
+      performBrowserTask({
+        organizationId: org,
+        userId: 777,
+        task: {
+          kind: 'debug-sequence',
+          sessionId: id,
+          breakpoints: [],
+          payload: { name: 'Budget', url: 'https://example.test', sequence: [], elements: [] },
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'execution_quota_exceeded' });
+    await privilegedDb.execute(
+      sql`UPDATE organizations SET max_monthly_execution_minutes=NULL WHERE id=${org}`,
+    );
     expect(await channel.activeFor(777)).toBeNull();
     expect(await channel.read(id)).toMatchObject({ status: 'error', outcome: { success: false } });
   });
@@ -68,27 +103,43 @@ describe('browserTaskMode', () => {
     expect(browserTaskMode({ NODE_ENV: 'production' } as NodeJS.ProcessEnv)).toBe('worker');
     expect(browserTaskMode({ NODE_ENV: 'development' } as NodeJS.ProcessEnv)).toBe('worker');
     expect(browserTaskMode({ NODE_ENV: 'test' } as NodeJS.ProcessEnv)).toBe('inline');
-    expect(browserTaskMode({ NODE_ENV: 'production', BROWSER_TASKS: 'inline' } as NodeJS.ProcessEnv)).toBe('inline');
-    expect(browserTaskMode({ NODE_ENV: 'test', BROWSER_TASKS: 'worker' } as NodeJS.ProcessEnv)).toBe('worker');
+    expect(
+      browserTaskMode({ NODE_ENV: 'production', BROWSER_TASKS: 'inline' } as NodeJS.ProcessEnv),
+    ).toBe('inline');
+    expect(
+      browserTaskMode({ NODE_ENV: 'test', BROWSER_TASKS: 'worker' } as NodeJS.ProcessEnv),
+    ).toBe('worker');
   });
 });
 
 describe('a task sent to the worker', () => {
   it('is submitted once, not retried, and answered with what the worker returned', async () => {
     const queue = fakeQueue(1, async () => ({ success: true, html: '<html/>' }));
-    const runner = createBrowserTaskRunner({ mode: 'worker', queue: () => queue, events: () => ({}) });
+    const runner = createBrowserTaskRunner({
+      mode: 'worker',
+      queue: () => queue,
+      events: () => ({}),
+    });
 
     const answer = await runner.run(envelope);
 
     expect(answer).toEqual({ success: true, html: '<html/>' });
     expect(queue.added).toEqual([
-      expect.objectContaining({ name: 'load-website', data: expect.objectContaining(envelope), options: expect.objectContaining({ attempts: 1 }) }),
+      expect.objectContaining({
+        name: 'load-website',
+        data: expect.objectContaining(envelope),
+        options: expect.objectContaining({ attempts: 1 }),
+      }),
     ]);
   });
 
   it('is not submitted when no worker is running, and says how to start one', async () => {
     const queue = fakeQueue(0);
-    const runner = createBrowserTaskRunner({ mode: 'worker', queue: () => queue, events: () => ({}) });
+    const runner = createBrowserTaskRunner({
+      mode: 'worker',
+      queue: () => queue,
+      events: () => ({}),
+    });
 
     const failure = await runner.run(envelope).catch((error) => error);
 
@@ -101,7 +152,13 @@ describe('a task sent to the worker', () => {
   it('asks whether a worker is running at most once in a while', async () => {
     let clock = 0;
     const queue = fakeQueue(1);
-    const runner = createBrowserTaskRunner({ mode: 'worker', queue: () => queue, events: () => ({}), workerCheckTtlMs: 5_000, now: () => clock });
+    const runner = createBrowserTaskRunner({
+      mode: 'worker',
+      queue: () => queue,
+      events: () => ({}),
+      workerCheckTtlMs: 5_000,
+      now: () => clock,
+    });
 
     await runner.run(envelope);
     clock = 1_000;
@@ -114,9 +171,16 @@ describe('a task sent to the worker', () => {
 
   it('reports a task that did not come back in time as a timeout, not as its failure', async () => {
     const queue = fakeQueue(1, async () => {
-      throw new Error('Job wait load-website timed out before finishing, no finish notification arrived after 10ms (id=job-1)');
+      throw new Error(
+        'Job wait load-website timed out before finishing, no finish notification arrived after 10ms (id=job-1)',
+      );
     });
-    const runner = createBrowserTaskRunner({ mode: 'worker', queue: () => queue, events: () => ({}), timeoutMs: 10 });
+    const runner = createBrowserTaskRunner({
+      mode: 'worker',
+      queue: () => queue,
+      events: () => ({}),
+      timeoutMs: 10,
+    });
 
     await expect(runner.run(envelope)).rejects.toMatchObject({ code: 'timed_out', status: 504 });
   });
@@ -125,7 +189,11 @@ describe('a task sent to the worker', () => {
     const queue = fakeQueue(1, async () => {
       throw new Error('net::ERR_NAME_NOT_RESOLVED');
     });
-    const runner = createBrowserTaskRunner({ mode: 'worker', queue: () => queue, events: () => ({}) });
+    const runner = createBrowserTaskRunner({
+      mode: 'worker',
+      queue: () => queue,
+      events: () => ({}),
+    });
 
     const failure = await runner.run(envelope).catch((error) => error);
     expect(failure).not.toBeInstanceOf(BrowserTaskError);
@@ -135,9 +203,16 @@ describe('a task sent to the worker', () => {
   it('says the queue is unreachable when it cannot even ask', async () => {
     const queue = fakeQueue(1);
     queue.getWorkersCount.mockRejectedValueOnce(new Error('ECONNREFUSED'));
-    const runner = createBrowserTaskRunner({ mode: 'worker', queue: () => queue, events: () => ({}) });
+    const runner = createBrowserTaskRunner({
+      mode: 'worker',
+      queue: () => queue,
+      events: () => ({}),
+    });
 
-    await expect(runner.run(envelope)).rejects.toMatchObject({ code: 'queue_unavailable', status: 503 });
+    await expect(runner.run(envelope)).rejects.toMatchObject({
+      code: 'queue_unavailable',
+      status: 503,
+    });
   });
 });
 
@@ -171,7 +246,14 @@ describe('performBrowserTask, where the browser runs', () => {
   async function insertTest(orgId: number, ownerId: number) {
     const [test] = await privilegedDb
       .insert(tests)
-      .values({ userId: ownerId, organizationId: orgId, name: 'Login', url: 'https://example.test/{{path}}', sequence: [], elements: [] })
+      .values({
+        userId: ownerId,
+        organizationId: orgId,
+        name: 'Login',
+        url: 'https://example.test/{{path}}',
+        sequence: [],
+        elements: [],
+      })
       .returning();
     return test;
   }
@@ -193,7 +275,11 @@ describe('performBrowserTask, where the browser runs', () => {
       authTag: sealed.authTag,
     } as any);
 
-    await performBrowserTask({ task: { kind: 'run-test', testId: test.id, environmentId: environment.id }, userId, organizationId });
+    await performBrowserTask({
+      task: { kind: 'run-test', testId: test.id, environmentId: environment.id },
+      userId,
+      organizationId,
+    });
 
     const [ranTest, ranBy, , , vars, scope] = executeTestSequence.mock.calls[0];
     expect(ranTest.id).toBe(test.id);
@@ -206,19 +292,35 @@ describe('performBrowserTask, where the browser runs', () => {
     const otherOrganizationId = await createTestOrganization(`Other ${uuidv4().slice(0, 6)}`);
     const [stranger] = await privilegedDb
       .insert(users)
-      .values({ username: `stranger-${uuidv4().slice(0, 8)}`, password: 'x', organizationId: otherOrganizationId })
+      .values({
+        username: `stranger-${uuidv4().slice(0, 8)}`,
+        password: 'x',
+        organizationId: otherOrganizationId,
+      })
       .returning();
     const theirs = await insertTest(otherOrganizationId, stranger.id);
 
     await expect(
-      performBrowserTask({ task: { kind: 'run-test', testId: theirs.id, environmentId: null }, userId, organizationId }),
+      performBrowserTask({
+        task: { kind: 'run-test', testId: theirs.id, environmentId: null },
+        userId,
+        organizationId,
+      }),
     ).rejects.toThrow(/not found/);
     expect(executeTestSequence).not.toHaveBeenCalled();
   });
 
   it("gives an ad-hoc preview the session's organization, whatever the payload says", async () => {
     const answer = (await performBrowserTask({
-      task: { kind: 'adhoc-sequence', payload: { url: 'https://example.test', sequence: [], elements: [], organizationId: 999 } as any },
+      task: {
+        kind: 'adhoc-sequence',
+        payload: {
+          url: 'https://example.test',
+          sequence: [],
+          elements: [],
+          organizationId: 999,
+        } as any,
+      },
       userId,
       organizationId,
     })) as { echoed: { organizationId: number } };

@@ -18,11 +18,11 @@
 .webflowmaster:
   image: node:20-alpine
   variables:
-    WFM_PLAN_ID: ""
-    WFM_ENVIRONMENT_ID: ""
-    WFM_TIMEOUT: "1800"
-    WFM_JUNIT: "webflowmaster-junit.xml"
-    WFM_HTML: "webflowmaster-report.html"
+    WFM_PLAN_ID: ''
+    WFM_ENVIRONMENT_ID: ''
+    WFM_TIMEOUT: '1800'
+    WFM_JUNIT: 'webflowmaster-junit.xml'
+    WFM_HTML: 'webflowmaster-report.html'
   script:
     - test -n "$WFM_PLAN_ID" || { echo "Set WFM_PLAN_ID to the plan to run."; exit 2; }
     - >

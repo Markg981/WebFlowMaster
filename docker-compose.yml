@@ -19,13 +19,13 @@ services:
   redis:
     image: valkey/valkey:alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     # Depended on with service_healthy below, so the app is not started against a store that
     # is listening but not ready.
     healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
+      test: ['CMD', 'valkey-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -36,11 +36,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see the top of docker-compose.yml)}
       - POSTGRES_DB=webflowmaster
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d webflowmaster"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d webflowmaster']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -52,8 +52,8 @@ services:
   mailpit:
     image: axllent/mailpit:v1.31.3
     ports:
-      - "8025:8025"
-      - "1025:1025"
+      - '8025:8025'
+      - '1025:1025'
     environment:
       - MP_MAX_MESSAGES=5000
 
@@ -68,7 +68,7 @@ services:
     # node, not `npm run db:migrate`: that script runs tsx, a dev dependency the image
     # prunes, so it exited 127 — `tsx: not found`. The migrator is bundled like the two
     # server entry points, and run the same way.
-    command: ["node", "dist/apply-migrations.js"]
+    command: ['node', 'dist/apply-migrations.js']
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/webflowmaster
@@ -76,14 +76,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: "no"
+    restart: 'no'
 
   api:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - '5000:5000'
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379

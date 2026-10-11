@@ -34,8 +34,16 @@ vi.mock('./precondition-runner', () => ({
 
 const { processTestPlanJob } = await import('./test-execution-service');
 
-const passed = { success: true, steps: [{ name: 'Click', type: 'click', status: 'passed' }], duration: 5 };
-const failedStep = { success: false, steps: [{ name: 'Click', type: 'click', status: 'failed', error: 'Button not found' }], duration: 5 };
+const passed = {
+  success: true,
+  steps: [{ name: 'Click', type: 'click', status: 'passed' }],
+  duration: 5,
+};
+const failedStep = {
+  success: false,
+  steps: [{ name: 'Click', type: 'click', status: 'failed', error: 'Button not found' }],
+  duration: 5,
+};
 
 let organizationId: number;
 let userId: number;
@@ -44,12 +52,21 @@ let testIds: number[];
 
 async function seedPlan(planColumns: Record<string, unknown>, testCount = 3) {
   planId = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Policies', userId, organizationId, ...planColumns } as any);
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Policies', userId, organizationId, ...planColumns } as any);
   testIds = [];
   for (let i = 1; i <= testCount; i++) {
     const [test] = await privilegedDb
       .insert(testsTable)
-      .values({ userId, organizationId, name: `Test ${i}`, url: `https://example.test/${i}`, sequence: [], elements: [] })
+      .values({
+        userId,
+        organizationId,
+        name: `Test ${i}`,
+        url: `https://example.test/${i}`,
+        sequence: [],
+        elements: [],
+      })
       .returning();
     testIds.push(test.id);
     await privilegedDb
@@ -68,7 +85,10 @@ async function runPlan() {
     triggeredBy: 'manual',
   } as any);
   await processTestPlanJob(planId, executionId, userId);
-  const [execution] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
+  const [execution] = await privilegedDb
+    .select()
+    .from(testPlanExecutions)
+    .where(eq(testPlanExecutions.id, executionId));
   const results = await privilegedDb
     .select()
     .from(reportTestCaseResults)
@@ -105,7 +125,15 @@ afterEach(async () => {
 
 describe('what the browser part of each test is handed', () => {
   it("the plan's timeouts, screenshot policy and step retry — seconds from the wizard read as seconds", async () => {
-    await seedPlan({ pageLoadTimeout: 45, elementTimeout: 12_000, captureScreenshots: 'always', onMajorStepFailure: 'retry_step' }, 1);
+    await seedPlan(
+      {
+        pageLoadTimeout: 45,
+        elementTimeout: 12_000,
+        captureScreenshots: 'always',
+        onMajorStepFailure: 'retry_step',
+      },
+      1,
+    );
 
     await runPlan();
 
@@ -127,7 +155,11 @@ describe('when a step fails', () => {
     const { execution, byTest } = await runPlan();
 
     expect(executeTestSequence).toHaveBeenCalledTimes(3);
-    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual(['Failed', 'Passed', 'Passed']);
+    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual([
+      'Failed',
+      'Passed',
+      'Passed',
+    ]);
     expect(execution.status).toBe('failed');
   });
 
@@ -139,7 +171,11 @@ describe('when a step fails', () => {
 
     expect(executeTestSequence).toHaveBeenCalledTimes(1);
     expect(results).toHaveLength(3);
-    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual(['Failed', 'Skipped', 'Skipped']);
+    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual([
+      'Failed',
+      'Skipped',
+      'Skipped',
+    ]);
     expect(byTest(1)?.reasonForFailure).toMatch(/"Test 1".*major step failure/);
     expect(execution).toMatchObject({ status: 'failed', skippedTests: 2 });
   });
@@ -150,12 +186,16 @@ describe('when a step fails', () => {
 
     const { byTest } = await runPlan();
 
-    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual(['Passed', 'Failed', 'Skipped']);
+    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual([
+      'Passed',
+      'Failed',
+      'Skipped',
+    ]);
   });
 });
 
 describe('re-running a failed test', () => {
-  it('runs it again up to the plan\'s number, and records how many attempts the result took', async () => {
+  it("runs it again up to the plan's number, and records how many attempts the result took", async () => {
     await seedPlan({ reRunOnFailure: 'twice' }, 1);
     executeTestSequence.mockResolvedValueOnce(failedStep).mockResolvedValueOnce(passed);
 
@@ -196,7 +236,11 @@ describe("when a test's preconditions fail", () => {
     const { byTest } = await runPlan();
 
     expect(executeTestSequence).not.toHaveBeenCalled();
-    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual(['Error', 'Skipped', 'Skipped']);
+    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual([
+      'Error',
+      'Skipped',
+      'Skipped',
+    ]);
     expect(byTest(0)?.reasonForFailure).toMatch(/Create order/);
   });
 
@@ -206,7 +250,11 @@ describe("when a test's preconditions fail", () => {
 
     const { execution, byTest } = await runPlan();
 
-    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual(['Skipped', 'Passed', 'Passed']);
+    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual([
+      'Skipped',
+      'Passed',
+      'Passed',
+    ]);
     expect(execution.status).toBe('completed');
   });
 

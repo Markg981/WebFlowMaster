@@ -12,8 +12,10 @@ import { largeBlobsSince, largeStagedFiles } from './check-large-files.mjs';
  */
 const LIMIT = 1024;
 let repo: string;
-const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' }).trim();
-const write = (name: string, bytes: number) => fs.writeFileSync(path.join(repo, name), Buffer.alloc(bytes, 97));
+const git = (...args: string[]) =>
+  execFileSync('git', args, { cwd: repo, encoding: 'utf8' }).trim();
+const write = (name: string, bytes: number) =>
+  fs.writeFileSync(path.join(repo, name), Buffer.alloc(bytes, 97));
 
 beforeEach(() => {
   repo = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-large-files-'));
@@ -43,7 +45,9 @@ describe('the large file guard', () => {
     git('commit', '-q', '-m', 'add');
     git('rm', '-q', 'kit.zip');
     git('commit', '-q', '-m', 'remove');
-    expect(largeBlobsSince(base, { cwd: repo, limit: LIMIT })).toEqual([{ path: 'kit.zip', bytes: LIMIT + 1 }]);
+    expect(largeBlobsSince(base, { cwd: repo, limit: LIMIT })).toEqual([
+      { path: 'kit.zip', bytes: LIMIT + 1 },
+    ]);
   });
 
   it('ignores large files that were already in the history before the base', () => {
@@ -61,6 +65,8 @@ describe('the large file guard', () => {
     write('big.tar', LIMIT + 1);
     git('add', 'big.tar');
     write('big.tar', 1);
-    expect(largeStagedFiles({ cwd: repo, limit: LIMIT })).toEqual([{ path: 'big.tar', bytes: LIMIT + 1 }]);
+    expect(largeStagedFiles({ cwd: repo, limit: LIMIT })).toEqual([
+      { path: 'big.tar', bytes: LIMIT + 1 },
+    ]);
   });
 });

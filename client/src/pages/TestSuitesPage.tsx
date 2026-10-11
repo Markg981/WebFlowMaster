@@ -4,12 +4,33 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'wouter';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // Select component from shadcn/ui is not used in the current version of this file for project filtering.
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, Loader2, Link2, Layers, Eye } from 'lucide-react';
+import {
+  Settings,
+  MonitorSmartphone,
+  CalendarDays,
+  FileText,
+  Play,
+  Search,
+  RefreshCcw,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Link2,
+  Layers,
+  Eye,
+} from 'lucide-react';
 import type { TestPlan } from '@shared/schema';
 import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import WebhooksModal from '@/components/dashboard/WebhooksModal';
@@ -17,7 +38,6 @@ import EditTestPlanSettingsModal from '@/components/dashboard/EditTestPlanSettin
 import PlanSuitesDialog from '@/components/suites/PlanSuitesDialog';
 import { fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans';
 import { useAuth } from '@/hooks/use-auth';
-
 
 const TestSuitesPage: React.FC = () => {
   const { t } = useTranslation();
@@ -31,7 +51,10 @@ const TestSuitesPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreatePlanWizardOpen, setIsCreatePlanWizardOpen] = useState(false);
   const [isWebhooksModalOpen, setIsWebhooksModalOpen] = useState(false);
-  const [selectedPlanForWebhooks, setSelectedPlanForWebhooks] = useState<{ id: string, name: string } | null>(null);
+  const [selectedPlanForWebhooks, setSelectedPlanForWebhooks] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   /** The plan whose run settings are open for editing, if any. */
   const [planBeingEdited, setPlanBeingEdited] = useState<TestPlan | null>(null);
   /** The plan whose included suites are open for editing, if any. */
@@ -40,7 +63,11 @@ const TestSuitesPage: React.FC = () => {
   const [runningPlanId] = useState<string | null>(null);
   const itemsPerPage = 5;
 
-  const { data: allTestPlans = [], isLoading: isLoadingTestPlans, error: testPlansError } = useQuery<TestPlan[]>({
+  const {
+    data: allTestPlans = [],
+    isLoading: isLoadingTestPlans,
+    error: testPlansError,
+  } = useQuery<TestPlan[]>({
     queryKey: ['testPlans'], // Query key for fetching all full test plans
     queryFn: fetchAllTestPlans, // Use the renamed function
   });
@@ -57,7 +84,7 @@ const TestSuitesPage: React.FC = () => {
 
   const filteredTestPlans = useMemo(() => {
     return (allTestPlans as TestPlan[]).filter((plan: TestPlan) =>
-      plan.name.toLowerCase().includes(searchTerm.toLowerCase())
+      plan.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [allTestPlans, searchTerm]);
 
@@ -77,7 +104,7 @@ const TestSuitesPage: React.FC = () => {
 
   const paginatedTestPlans = filteredTestPlans.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   return (
@@ -99,10 +126,21 @@ const TestSuitesPage: React.FC = () => {
                 placeholder={t('testSuitesPage.searchTests.placeholder')}
                 className="pl-8 pr-2 py-2 h-10 w-full sm:w-[200px] lg:w-[250px]"
                 value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
-            <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => { setSearchTerm(''); setCurrentPage(1); }}>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10"
+              onClick={() => {
+                setSearchTerm('');
+                setCurrentPage(1);
+              }}
+            >
               <RefreshCcw size={18} />
             </Button>
           </div>
@@ -113,26 +151,33 @@ const TestSuitesPage: React.FC = () => {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1 || isLoadingTestPlans}
               >
                 <ChevronLeft size={16} />
               </Button>
               <span className="mx-2">
-                {isLoadingTestPlans ? '...' : `${Math.min((currentPage - 1) * itemsPerPage + 1, filteredTestPlans.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1)}-${Math.min(currentPage * itemsPerPage, filteredTestPlans.length)} of ${filteredTestPlans.length}`}
+                {isLoadingTestPlans
+                  ? '...'
+                  : `${Math.min((currentPage - 1) * itemsPerPage + 1, filteredTestPlans.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1)}-${Math.min(currentPage * itemsPerPage, filteredTestPlans.length)} of ${filteredTestPlans.length}`}
               </span>
               <Button
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages || filteredTestPlans.length === 0 || isLoadingTestPlans}
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={
+                  currentPage === totalPages || filteredTestPlans.length === 0 || isLoadingTestPlans
+                }
               >
                 <ChevronRight size={16} />
               </Button>
             </div>
             {canEdit && (
-              <Button className="bg-success hover:bg-success/90 text-white" onClick={() => setIsCreatePlanWizardOpen(true)}>
+              <Button
+                className="bg-success hover:bg-success/90 text-white"
+                onClick={() => setIsCreatePlanWizardOpen(true)}
+              >
                 {t('testSuitesPage.testPlan.button')}
               </Button>
             )}
@@ -201,54 +246,77 @@ const TestSuitesPage: React.FC = () => {
                         <TableCell>
                           <div className="space-x-2">
                             {canEdit && (
-                            <>
-                            <Button variant="outline" size="sm" onClick={() => setPlanBeingEdited(item)}>
-                              <Settings size={16} className="mr-1" /> {t('testSuitesPage.settings.button', 'Settings')}
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => setPlanForSuites({ id: item.id, name: item.name })}>
-                              <Layers size={16} className="mr-1" /> {t('planSuites.button', 'Suites')}
-                            </Button>
-                            </>
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setPlanBeingEdited(item)}
+                                >
+                                  <Settings size={16} className="mr-1" />{' '}
+                                  {t('testSuitesPage.settings.button', 'Settings')}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setPlanForSuites({ id: item.id, name: item.name })}
+                                >
+                                  <Layers size={16} className="mr-1" />{' '}
+                                  {t('planSuites.button', 'Suites')}
+                                </Button>
+                              </>
                             )}
                             {canEdit && (
-                            <Button variant="outline" size="sm" onClick={openScheduling}>
-                              <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
-                            </Button>
+                              <Button variant="outline" size="sm" onClick={openScheduling}>
+                                <CalendarDays size={16} className="mr-1" />{' '}
+                                {t('testSuitesPage.schedule.button')}
+                              </Button>
                             )}
                             {canEdit && (
-                            <Button variant="outline" size="sm" onClick={() => {
-                              setSelectedPlanForWebhooks({ id: item.id, name: item.name });
-                              setIsWebhooksModalOpen(true);
-                            }}>
-                              <Link2 size={16} className="mr-1" /> Webhooks
-                            </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedPlanForWebhooks({ id: item.id, name: item.name });
+                                  setIsWebhooksModalOpen(true);
+                                }}
+                              >
+                                <Link2 size={16} className="mr-1" /> Webhooks
+                              </Button>
                             )}
                             {!canEdit && (
-                            // A viewer cannot run a plan, and had no other way into one: this
-                            // opens the same page read-only, with what it runs and its latest report.
-                            <Button variant="outline" size="sm" onClick={() => handleRunPlan(item.id, item.name)}>
-                              <Eye size={16} className="mr-1" /> {t('testSuitesPage.open.button', 'Open')}
-                            </Button>
+                              // A viewer cannot run a plan, and had no other way into one: this
+                              // opens the same page read-only, with what it runs and its latest report.
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRunPlan(item.id, item.name)}
+                              >
+                                <Eye size={16} className="mr-1" />{' '}
+                                {t('testSuitesPage.open.button', 'Open')}
+                              </Button>
                             )}
                             <Button variant="outline" size="sm" asChild>
                               <Link href={`/reports?planId=${item.id}`}>
-                                <FileText size={16} className="mr-1" /> {t('testSuitesPage.reports.button')}
+                                <FileText size={16} className="mr-1" />{' '}
+                                {t('testSuitesPage.reports.button')}
                               </Link>
                             </Button>
                             {canEdit && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRunPlan(item.id, item.name)}
-                              disabled={runningPlanId === item.id || !!runningPlanId}
-                            >
-                              {runningPlanId === item.id ? (
-                                <Loader2 size={16} className="mr-1 animate-spin" />
-                              ) : (
-                                <Play size={16} className="mr-1" />
-                              )}
-                              {runningPlanId === item.id ? t('testSuitesPage.running.button') : t('testSuitesPage.run.button')}
-                            </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRunPlan(item.id, item.name)}
+                                disabled={runningPlanId === item.id || !!runningPlanId}
+                              >
+                                {runningPlanId === item.id ? (
+                                  <Loader2 size={16} className="mr-1 animate-spin" />
+                                ) : (
+                                  <Play size={16} className="mr-1" />
+                                )}
+                                {runningPlanId === item.id
+                                  ? t('testSuitesPage.running.button')
+                                  : t('testSuitesPage.run.button')}
+                              </Button>
                             )}
                           </div>
                         </TableCell>
@@ -261,7 +329,9 @@ const TestSuitesPage: React.FC = () => {
           </TabsContent>
           <TabsContent value="schedules" className="mt-6">
             <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
-              <p className="text-muted-foreground">{t('testSuitesPage.schedulesContentGoesHere.text')}</p>
+              <p className="text-muted-foreground">
+                {t('testSuitesPage.schedulesContentGoesHere.text')}
+              </p>
               <Button variant="outline" onClick={openScheduling}>
                 <CalendarDays size={16} className="mr-2" /> {t('testSuitesPage.schedule.button')}
               </Button>

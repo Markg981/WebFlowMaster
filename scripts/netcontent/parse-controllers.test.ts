@@ -57,6 +57,11 @@ describe('parseControllerSource', () => {
 
     expect(endpoints[2].httpMethod).toBe('POST');
     expect(endpoints[2].action).toBe('UpdateMeasurement');
-    expect(endpoints[2].params.map(p => p.name)).toEqual(['valueRowId', 'value', 'comment', 'isManual']);
+    expect(endpoints[2].params.map((p) => p.name)).toEqual([
+      'valueRowId',
+      'value',
+      'comment',
+      'isManual',
+    ]);
   });
 });

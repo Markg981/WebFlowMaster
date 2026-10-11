@@ -38,7 +38,8 @@ const formatDuration = (ms: number | null) => {
 const toDate = (value: RecentExecution['startedAt']): Date | null => {
   if (value === null || value === undefined) return null;
   // The aggregation returns seconds for some rows and an ISO string for others.
-  const date = value instanceof Date ? value : new Date(typeof value === 'number' ? value * 1000 : value);
+  const date =
+    value instanceof Date ? value : new Date(typeof value === 'number' ? value * 1000 : value);
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
@@ -75,13 +76,17 @@ const QuickAccessReports: React.FC<QuickAccessReportsProps> = ({ data, isLoading
           {executions.map((execution) => {
             const startedAt = toDate(execution.startedAt);
             return (
-              <li key={execution.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 sm:flex-nowrap">
+              <li
+                key={execution.id}
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 sm:flex-nowrap"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium" title={execution.planName ?? undefined}>
                     {execution.planName || t('dashboard.quickAccessReports.unnamedPlan')}
                   </p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
-                    {startedAt ? format(startedAt, 'PPp') : '—'} · {formatDuration(execution.duration)}
+                    {startedAt ? format(startedAt, 'PPp') : '—'} ·{' '}
+                    {formatDuration(execution.duration)}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">

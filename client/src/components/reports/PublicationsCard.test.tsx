@@ -8,7 +8,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) => {
       let text = typeof fallback === 'string' ? fallback : _key;
-      for (const [name, value] of Object.entries(options ?? {})) text = text.split(`{{${name}}}`).join(String(value));
+      for (const [name, value] of Object.entries(options ?? {}))
+        text = text.split(`{{${name}}}`).join(String(value));
       return text;
     },
   }),
@@ -23,15 +24,46 @@ let publishStatus = 200;
 
 beforeEach(() => {
   publications = [
-    { id: 2, connectionName: 'Xray', provider: 'xray_cloud', status: 'published', externalKey: 'SHOP-900', externalUrl: 'https://acme.atlassian.net/browse/SHOP-900', publishedCount: 4, unmappedCount: 1, message: null, createdAt: '2026-09-30T08:00:00Z' },
-    { id: 1, connectionName: 'TestRail', provider: 'testrail', status: 'failed', externalKey: null, externalUrl: null, publishedCount: 0, unmappedCount: 0, message: 'TestRail refused those credentials.', createdAt: '2026-09-30T07:00:00Z' },
+    {
+      id: 2,
+      connectionName: 'Xray',
+      provider: 'xray_cloud',
+      status: 'published',
+      externalKey: 'SHOP-900',
+      externalUrl: 'https://acme.atlassian.net/browse/SHOP-900',
+      publishedCount: 4,
+      unmappedCount: 1,
+      message: null,
+      createdAt: '2026-09-30T08:00:00Z',
+    },
+    {
+      id: 1,
+      connectionName: 'TestRail',
+      provider: 'testrail',
+      status: 'failed',
+      externalKey: null,
+      externalUrl: null,
+      publishedCount: 0,
+      unmappedCount: 0,
+      message: 'TestRail refused those credentials.',
+      createdAt: '2026-09-30T07:00:00Z',
+    },
   ];
   connections = [{ id: 'tm1', name: 'Xray' }];
   publishStatus = 200;
   fetchMock.mockReset();
   fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-    if (init?.method === 'POST') return Promise.resolve({ ok: publishStatus < 400, status: publishStatus, json: async () => (publishStatus === 409 ? { error: 'The run has not finished: publish it when it has.' } : {}) });
-    if (url.endsWith('/publications')) return Promise.resolve({ ok: true, json: async () => publications });
+    if (init?.method === 'POST')
+      return Promise.resolve({
+        ok: publishStatus < 400,
+        status: publishStatus,
+        json: async () =>
+          publishStatus === 409
+            ? { error: 'The run has not finished: publish it when it has.' }
+            : {},
+      });
+    if (url.endsWith('/publications'))
+      return Promise.resolve({ ok: true, json: async () => publications });
     return Promise.resolve({ ok: true, json: async () => connections });
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -39,7 +71,9 @@ beforeEach(() => {
 
 const renderCard = (runStatus = 'completed') =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       <PublicationsCard executionId="exec-1" runStatus={runStatus} />
     </QueryClientProvider>,
   );
@@ -56,7 +90,9 @@ describe('PublicationsCard', () => {
   it('publishes again to the plan’s connection', async () => {
     renderCard();
     fireEvent.click(await screen.findByText('Publish again'));
-    await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true),
+    );
     const [url, init] = fetchMock.mock.calls.find(([, i]) => i?.method === 'POST')!;
     expect(url).toBe('/api/test-plan-executions/exec-1/publish');
     expect(JSON.parse(init.body)).toEqual({ connectionId: null });
@@ -66,7 +102,9 @@ describe('PublicationsCard', () => {
     publishStatus = 409;
     renderCard();
     fireEvent.click(await screen.findByText('Publish again'));
-    expect((await screen.findByRole('alert')).textContent).toBe('The run has not finished: publish it when it has.');
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'The run has not finished: publish it when it has.',
+    );
   });
 
   it('offers no publishing while the run is in flight', async () => {

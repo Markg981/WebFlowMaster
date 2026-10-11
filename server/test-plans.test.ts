@@ -2,7 +2,13 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
 import { privilegedDb } from './db';
-import { testPlans, testPlanSchedules as schedules, users, type InsertTestPlan, type TestPlan } from '../shared/schema';
+import {
+  testPlans,
+  testPlanSchedules as schedules,
+  users,
+  type InsertTestPlan,
+  type TestPlan,
+} from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { createTestOrganization } from './tests/factories';
@@ -28,27 +34,37 @@ beforeAll(async () => {
   // This is a workaround for not easily importing the full app router.
   const testPlanRouter = express.Router();
 
-  testPlanRouter.get("/api/test-plans", async (req, res) => {
+  testPlanRouter.get('/api/test-plans', async (req, res) => {
     try {
-      const allTestPlans = await privilegedDb.select().from(testPlans).orderBy(eq(testPlans.createdAt, testPlans.createdAt));
+      const allTestPlans = await privilegedDb
+        .select()
+        .from(testPlans)
+        .orderBy(eq(testPlans.createdAt, testPlans.createdAt));
       res.json(allTestPlans);
-    } catch (error) { res.status(500).json({ error: "Failed to fetch test plans" }); }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch test plans' });
+    }
   });
 
-  testPlanRouter.get("/api/test-plans/:id", async (req, res) => {
+  testPlanRouter.get('/api/test-plans/:id', async (req, res) => {
     const testPlanId = req.params.id;
     try {
-      const result = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, testPlanId));
-      if (result.length === 0) return res.status(404).json({ error: "Test plan not found" });
+      const result = await privilegedDb
+        .select()
+        .from(testPlans)
+        .where(eq(testPlans.id, testPlanId));
+      if (result.length === 0) return res.status(404).json({ error: 'Test plan not found' });
       res.json(result[0]);
-    } catch (error) { res.status(500).json({ error: "Failed to fetch test plan" }); }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch test plan' });
+    }
   });
 
-  testPlanRouter.post("/api/test-plans", async (req, res) => {
+  testPlanRouter.post('/api/test-plans', async (req, res) => {
     try {
       // Simplified validation for test router - actual app uses Zod
       const { name, description } = req.body;
-      if (!name) return res.status(400).json({ error: "Name is required" });
+      if (!name) return res.status(400).json({ error: 'Name is required' });
 
       const planId = uuidv4();
       const newPlan: InsertTestPlan = {
@@ -60,35 +76,49 @@ beforeAll(async () => {
       };
       const result = await privilegedDb.insert(testPlans).values(newPlan).returning();
       res.status(201).json(result[0]);
-    } catch (error) { res.status(400).json({ error: (error as Error).message }); }
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
   });
 
-  testPlanRouter.put("/api/test-plans/:id", async (req, res) => {
+  testPlanRouter.put('/api/test-plans/:id', async (req, res) => {
     const testPlanId = req.params.id;
     try {
       const { name, description } = req.body;
-      if (!name && description === undefined) return res.status(400).json({ error: "No update data provided" });
+      if (!name && description === undefined)
+        return res.status(400).json({ error: 'No update data provided' });
 
       const updateData: Partial<TestPlan> = {};
       if (name) updateData.name = name;
       if (description !== undefined) updateData.description = description;
       updateData.updatedAt = new Date();
 
-      const result = await privilegedDb.update(testPlans).set(updateData).where(eq(testPlans.id, testPlanId)).returning();
-      if (result.length === 0) return res.status(404).json({ error: "Test plan not found" });
+      const result = await privilegedDb
+        .update(testPlans)
+        .set(updateData)
+        .where(eq(testPlans.id, testPlanId))
+        .returning();
+      if (result.length === 0) return res.status(404).json({ error: 'Test plan not found' });
       res.json(result[0]);
-    } catch (error) { res.status(400).json({ error: (error as Error).message }); }
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
   });
 
-  testPlanRouter.delete("/api/test-plans/:id", async (req, res) => {
+  testPlanRouter.delete('/api/test-plans/:id', async (req, res) => {
     const testPlanId = req.params.id;
     try {
       // Simulate cascade delete for schedules if any exist (for test completeness)
       await privilegedDb.delete(schedules).where(eq(schedules.testPlanId, testPlanId));
-      const result = await privilegedDb.delete(testPlans).where(eq(testPlans.id, testPlanId)).returning();
-      if (result.length === 0) return res.status(404).json({ error: "Test plan not found" });
+      const result = await privilegedDb
+        .delete(testPlans)
+        .where(eq(testPlans.id, testPlanId))
+        .returning();
+      if (result.length === 0) return res.status(404).json({ error: 'Test plan not found' });
       res.status(204).send();
-    } catch (error) { res.status(500).json({ error: "Failed to delete test plan" }); }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete test plan' });
+    }
   });
 
   app.use(testPlanRouter);
@@ -104,17 +134,16 @@ beforeEach(async () => {
   await privilegedDb.delete(users);
   organizationId = await createTestOrganization();
   (mockUser as any).organizationId = organizationId;
-  await privilegedDb.insert(users).values({ id: mockUser.id, username: 'testuser', password: 'hashed', organizationId });
+  await privilegedDb
+    .insert(users)
+    .values({ id: mockUser.id, username: 'testuser', password: 'hashed', organizationId });
 });
 
 describe('Test Plans API (/api/test-plans)', () => {
   describe('POST /api/test-plans', () => {
     it('should create a new test plan with valid data', async () => {
       const payload = { name: 'New Plan', description: 'A great plan' };
-      const response = await request(app)
-        .post('/api/test-plans')
-        .send(payload)
-        .expect(201);
+      const response = await request(app).post('/api/test-plans').send(payload).expect(201);
 
       expect(response.body).toHaveProperty('id');
       expect(response.body.name).toBe(payload.name);
@@ -123,17 +152,17 @@ describe('Test Plans API (/api/test-plans)', () => {
       expect(response.body.createdAt).toBeTypeOf('string');
       expect(response.body.updatedAt).toBeTypeOf('string');
 
-      const dbPlan = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, response.body.id));
+      const dbPlan = await privilegedDb
+        .select()
+        .from(testPlans)
+        .where(eq(testPlans.id, response.body.id));
       expect(dbPlan.length).toBe(1);
       expect(dbPlan[0].name).toBe(payload.name);
     });
 
     it('should return 400 for invalid data (missing name)', async () => {
       const payload = { description: 'Missing name' };
-      await request(app)
-        .post('/api/test-plans')
-        .send(payload)
-        .expect(400);
+      await request(app).post('/api/test-plans').send(payload).expect(400);
     });
   });
 
@@ -144,8 +173,20 @@ describe('Test Plans API (/api/test-plans)', () => {
     });
 
     it('should return all test plans', async () => {
-      const plan1 = { id: uuidv4(), name: 'Plan A', description: 'First plan', userId: mockUser.id, organizationId };
-      const plan2 = { id: uuidv4(), name: 'Plan B', description: 'Second plan', userId: mockUser.id, organizationId };
+      const plan1 = {
+        id: uuidv4(),
+        name: 'Plan A',
+        description: 'First plan',
+        userId: mockUser.id,
+        organizationId,
+      };
+      const plan2 = {
+        id: uuidv4(),
+        name: 'Plan B',
+        description: 'Second plan',
+        userId: mockUser.id,
+        organizationId,
+      };
       await privilegedDb.insert(testPlans).values([plan1, plan2]);
 
       const response = await request(app).get('/api/test-plans').expect(200);
@@ -157,7 +198,13 @@ describe('Test Plans API (/api/test-plans)', () => {
   describe('GET /api/test-plans/:id', () => {
     it('should return a single test plan if found', async () => {
       const planId = uuidv4();
-      const plan = { id: planId, name: 'Specific Plan', description: 'Details here', userId: mockUser.id, organizationId };
+      const plan = {
+        id: planId,
+        name: 'Specific Plan',
+        description: 'Details here',
+        userId: mockUser.id,
+        organizationId,
+      };
       await privilegedDb.insert(testPlans).values(plan);
 
       const response = await request(app).get(`/api/test-plans/${planId}`).expect(200);
@@ -172,7 +219,13 @@ describe('Test Plans API (/api/test-plans)', () => {
   describe('PUT /api/test-plans/:id', () => {
     it('should update an existing test plan', async () => {
       const planId = uuidv4();
-      const initialPlan = { id: planId, name: 'Old Name', description: 'Old Desc', userId: mockUser.id, organizationId };
+      const initialPlan = {
+        id: planId,
+        name: 'Old Name',
+        description: 'Old Desc',
+        userId: mockUser.id,
+        organizationId,
+      };
       await privilegedDb.insert(testPlans).values(initialPlan);
 
       const updatedPayload = { name: 'New Name', description: 'New Desc' };
@@ -203,7 +256,13 @@ describe('Test Plans API (/api/test-plans)', () => {
 
     it('should return 400 if no update data provided (name or description)', async () => {
       const planId = uuidv4();
-      const initialPlan = { id: planId, name: 'Old Name', description: 'Old Desc', userId: mockUser.id, organizationId };
+      const initialPlan = {
+        id: planId,
+        name: 'Old Name',
+        description: 'Old Desc',
+        userId: mockUser.id,
+        organizationId,
+      };
       await privilegedDb.insert(testPlans).values(initialPlan);
       await request(app)
         .put(`/api/test-plans/${planId}`)
@@ -215,7 +274,9 @@ describe('Test Plans API (/api/test-plans)', () => {
   describe('DELETE /api/test-plans/:id', () => {
     it('should delete an existing test plan', async () => {
       const planId = uuidv4();
-      await privilegedDb.insert(testPlans).values({ id: planId, name: 'To Delete', userId: mockUser.id, organizationId });
+      await privilegedDb
+        .insert(testPlans)
+        .values({ id: planId, name: 'To Delete', userId: mockUser.id, organizationId });
 
       await request(app).delete(`/api/test-plans/${planId}`).expect(204);
 
@@ -230,17 +291,36 @@ describe('Test Plans API (/api/test-plans)', () => {
     // Cascade delete test
     it('should delete associated schedules when a test plan is deleted', async () => {
       const planId = uuidv4();
-      await privilegedDb.insert(testPlans).values({ id: planId, name: 'Plan with Schedules', userId: mockUser.id, organizationId });
+      await privilegedDb
+        .insert(testPlans)
+        .values({ id: planId, name: 'Plan with Schedules', userId: mockUser.id, organizationId });
 
       const scheduleId1 = uuidv4();
       const scheduleId2 = uuidv4();
       await privilegedDb.insert(schedules).values([
-        { id: scheduleId1, scheduleName: 'Schedule 1 for Plan', testPlanId: planId, organizationId, frequency: 'Daily', nextRunAt: new Date() },
-        { id: scheduleId2, scheduleName: 'Schedule 2 for Plan', testPlanId: planId, organizationId, frequency: 'Weekly', nextRunAt: new Date() },
+        {
+          id: scheduleId1,
+          scheduleName: 'Schedule 1 for Plan',
+          testPlanId: planId,
+          organizationId,
+          frequency: 'Daily',
+          nextRunAt: new Date(),
+        },
+        {
+          id: scheduleId2,
+          scheduleName: 'Schedule 2 for Plan',
+          testPlanId: planId,
+          organizationId,
+          frequency: 'Weekly',
+          nextRunAt: new Date(),
+        },
       ]);
 
       // Verify schedules exist
-      let schs = await privilegedDb.select().from(schedules).where(eq(schedules.testPlanId, planId));
+      let schs = await privilegedDb
+        .select()
+        .from(schedules)
+        .where(eq(schedules.testPlanId, planId));
       expect(schs.length).toBe(2);
 
       // Delete the test plan

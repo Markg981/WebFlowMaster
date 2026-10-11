@@ -1,23 +1,25 @@
-import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
-import loggerPromise from "./logger";
-import { privilegedDb } from "./db";
-import { tests, detectedElements } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import loggerPromise from './logger';
+import { privilegedDb } from './db';
+import { tests, detectedElements } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
 
 export class AIAutomationService {
   private genAI: GoogleGenerativeAI;
   private model: GenerativeModel;
   private apiKey: string | undefined;
   /** GEMINI_BASE_URL: another endpoint for the same API, such as a test double in the collaudo stack. */
-  private readonly requestOptions = process.env.GEMINI_BASE_URL ? { baseUrl: process.env.GEMINI_BASE_URL } : undefined;
+  private readonly requestOptions = process.env.GEMINI_BASE_URL
+    ? { baseUrl: process.env.GEMINI_BASE_URL }
+    : undefined;
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
     if (!this.apiKey) {
-      this.logWarn("GEMINI_API_KEY not set. AI features disabled.");
+      this.logWarn('GEMINI_API_KEY not set. AI features disabled.');
     }
-    this.genAI = new GoogleGenerativeAI(this.apiKey || "dummy_key");
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" }, this.requestOptions);
+    this.genAI = new GoogleGenerativeAI(this.apiKey || 'dummy_key');
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' }, this.requestOptions);
   }
 
   private async logInfo(message: string, meta?: any) {
@@ -26,13 +28,13 @@ export class AIAutomationService {
   }
 
   private async logWarn(message: string, meta?: any) {
-      const logger = await loggerPromise;
-      logger.warn(message, meta);
+    const logger = await loggerPromise;
+    logger.warn(message, meta);
   }
 
   private async logError(message: string, meta?: any) {
-      const logger = await loggerPromise;
-      logger.error(message, meta);
+    const logger = await loggerPromise;
+    logger.error(message, meta);
   }
 
   isAvailable(): boolean {
@@ -56,13 +58,13 @@ export class AIAutomationService {
 
     try {
       const model = this.genAI.getGenerativeModel(
-        { model: process.env.GEMINI_MODEL || "gemini-2.0-flash" },
+        { model: process.env.GEMINI_MODEL || 'gemini-2.0-flash' },
         this.requestOptions,
       );
       const result = await model.generateContent(prompt);
       return result.response.text();
     } catch (e: any) {
-      this.logError("AI step authoring failed", { error: e.message });
+      this.logError('AI step authoring failed', { error: e.message });
       return null;
     }
   }
@@ -75,53 +77,69 @@ export class AIAutomationService {
     if (!this.isAvailable()) return null;
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: this.analysisModel }, this.requestOptions);
+      const model = this.genAI.getGenerativeModel(
+        { model: this.analysisModel },
+        this.requestOptions,
+      );
       const result = await model.generateContent(prompt);
       return result.response.text();
     } catch (e: any) {
-      this.logError("AI test proposal failed", { error: e.message });
+      this.logError('AI test proposal failed', { error: e.message });
       return null;
     }
   }
 
   /** The model a failure analysis is asked of, as the analysis records it. */
   get analysisModel(): string {
-    return process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    return process.env.GEMINI_MODEL || 'gemini-2.0-flash';
   }
 
   /**
    * Answers a failure analysis prompt (server/failure-analysis.ts), with the page's screenshot
    * when there is one, or nothing. As thin as proposeTestSteps, and for the same reason.
    */
-  async explainFailure(prompt: string, screenshot?: { bytes: Buffer; contentType: string } | null): Promise<string | null> {
+  async explainFailure(
+    prompt: string,
+    screenshot?: { bytes: Buffer; contentType: string } | null,
+  ): Promise<string | null> {
     if (!this.isAvailable()) return null;
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: this.analysisModel }, this.requestOptions);
+      const model = this.genAI.getGenerativeModel(
+        { model: this.analysisModel },
+        this.requestOptions,
+      );
       const parts: any[] = [{ text: prompt }];
-      if (screenshot) parts.push({ inlineData: { mimeType: screenshot.contentType, data: screenshot.bytes.toString("base64") } });
+      if (screenshot)
+        parts.push({
+          inlineData: {
+            mimeType: screenshot.contentType,
+            data: screenshot.bytes.toString('base64'),
+          },
+        });
       const result = await model.generateContent(parts);
       return result.response.text();
     } catch (e: any) {
-      this.logError("AI failure analysis failed", { error: e.message });
+      this.logError('AI failure analysis failed', { error: e.message });
       return null;
     }
   }
 
-
-
-
   /**
    * Self-Healing: Analyze DOM and find new selector
    */
-  async healSelector(originalSelector: string, pageSource: string, error: string): Promise<string | null> {
+  async healSelector(
+    originalSelector: string,
+    pageSource: string,
+    error: string,
+  ): Promise<string | null> {
     if (!this.isAvailable()) return null;
 
     try {
-      this.logInfo("Attempting AI Self-Healing", { originalSelector });
+      this.logInfo('Attempting AI Self-Healing', { originalSelector });
 
       // Truncate pageSource if too large to avoid token limits
-      const truncatedSource = pageSource.substring(0, 30000); 
+      const truncatedSource = pageSource.substring(0, 30000);
 
       const prompt = `
         You are a Test Automation Expert. A Playwright test failed because the selector "${originalSelector}" was not found.
@@ -142,13 +160,12 @@ export class AIAutomationService {
       let newSelector = response.text().trim();
 
       // Cleanup response if it contains backticks
-      newSelector = newSelector.replace(/```/g, "").replace(/css/g, "").trim();
+      newSelector = newSelector.replace(/```/g, '').replace(/css/g, '').trim();
 
-      this.logInfo("AI proposed new selector", { newSelector });
+      this.logInfo('AI proposed new selector', { newSelector });
       return newSelector;
-
     } catch (e: any) {
-      this.logError("AI Self-Healing failed", { error: e.message });
+      this.logError('AI Self-Healing failed', { error: e.message });
       return null;
     }
   }
@@ -159,91 +176,108 @@ export class AIAutomationService {
   async updateSelectorInDb(testId: number, stepIndex: number, newSelector: string) {
     try {
       // Fetch current test
-      const testRecord = await privilegedDb.select().from(tests).where(eq(tests.id, testId)).limit(1);
+      const testRecord = await privilegedDb
+        .select()
+        .from(tests)
+        .where(eq(tests.id, testId))
+        .limit(1);
       if (testRecord.length === 0) return;
 
       const sequence = testRecord[0].sequence as any[];
       const elements = testRecord[0].elements as any[];
       let updatedElements = false;
-      
+
       // Update the specific step in sequence
       if (sequence && sequence[stepIndex]) {
         // If the step has a targetElement, update its selector
         if (sequence[stepIndex].targetElement) {
-            const oldSelector = sequence[stepIndex].targetElement.selector;
-            const elementId = sequence[stepIndex].targetElement.id; // Assuming ID is present
+          const oldSelector = sequence[stepIndex].targetElement.selector;
+          const elementId = sequence[stepIndex].targetElement.id; // Assuming ID is present
 
-            // 1. Update Sequence Step
-            sequence[stepIndex].targetElement.selector = newSelector;
-            this.logInfo("Updated Sequence Step with healed selector", { testId, stepIndex });
+          // 1. Update Sequence Step
+          sequence[stepIndex].targetElement.selector = newSelector;
+          this.logInfo('Updated Sequence Step with healed selector', { testId, stepIndex });
 
-            // 2. Update Elements Repository if ID matches
-            if (elements && Array.isArray(elements) && elementId) {
-                const elementIndex = elements.findIndex((e: any) => e.id === elementId);
-                if (elementIndex !== -1) {
-                    elements[elementIndex].selector = newSelector;
-                    updatedElements = true;
-                    this.logInfo("Updated Elements Repository with healed selector", { testId, elementId });
-                }
-            } else if (elements && Array.isArray(elements)) {
-                 // Fallback: Try to match by old selector if ID missing
-                 const elementIndex = elements.findIndex((e: any) => e.selector === oldSelector);
-                 if (elementIndex !== -1) {
-                    elements[elementIndex].selector = newSelector;
-                    updatedElements = true;
-                     this.logInfo("Updated Elements Repository by matching old selector", { testId, oldSelector });
-                 }
+          // 2. Update Elements Repository if ID matches
+          if (elements && Array.isArray(elements) && elementId) {
+            const elementIndex = elements.findIndex((e: any) => e.id === elementId);
+            if (elementIndex !== -1) {
+              elements[elementIndex].selector = newSelector;
+              updatedElements = true;
+              this.logInfo('Updated Elements Repository with healed selector', {
+                testId,
+                elementId,
+              });
             }
-        } 
-        
-        await privilegedDb.update(tests)
-          .set({ 
-              sequence: sequence,
-              elements: updatedElements ? elements : undefined // Update elements only if changed
+          } else if (elements && Array.isArray(elements)) {
+            // Fallback: Try to match by old selector if ID missing
+            const elementIndex = elements.findIndex((e: any) => e.selector === oldSelector);
+            if (elementIndex !== -1) {
+              elements[elementIndex].selector = newSelector;
+              updatedElements = true;
+              this.logInfo('Updated Elements Repository by matching old selector', {
+                testId,
+                oldSelector,
+              });
+            }
+          }
+        }
+
+        await privilegedDb
+          .update(tests)
+          .set({
+            sequence: sequence,
+            elements: updatedElements ? elements : undefined, // Update elements only if changed
           })
           .where(eq(tests.id, testId));
-          
-        this.logInfo("Legacy DB Sync Complete", { testId });
-        
+
+        this.logInfo('Legacy DB Sync Complete', { testId });
+
         // 3. Update Normalized Table (detectedElements)
         if (sequence[stepIndex].targetElement && sequence[stepIndex].targetElement.id) {
-            const elementId = sequence[stepIndex].targetElement.id;
-             // Check if exists
-             const existingElement = await privilegedDb.select().from(detectedElements).where(and(eq(detectedElements.testId, testId), eq(detectedElements.elementId, elementId))).limit(1);
-             
-             if (existingElement.length > 0) {
-                 await privilegedDb.update(detectedElements)
-                    .set({ 
-                        selector: newSelector,
-                        originalSelector: existingElement[0].originalSelector || existingElement[0].selector // Keep origin if exists
-                    })
-                    .where(eq(detectedElements.id, existingElement[0].id));
-                 this.logInfo("Normalized DB Update - Updated existing element", { testId, elementId });
-             } else {
-                 await privilegedDb.insert(detectedElements).values({
-                     // A detected element belongs to the same organization as its test.
-                     organizationId: testRecord[0].organizationId,
-                     testId,
-                     elementId,
-                     selector: newSelector,
-                     originalSelector: sequence[stepIndex].targetElement.selector, // The 'old' one before this update? No, that was updated in memory above.
-                     // Actually, we should probably grab the old one before we mutated 'sequence' object above?
-                     // But for now, let's just insert.
-                     type: sequence[stepIndex].targetElement.tag,
-                     text: sequence[stepIndex].targetElement.text,
-                     tag: sequence[stepIndex].targetElement.tag,
-                     attributes: sequence[stepIndex].targetElement.attributes,
-                 });
-                 this.logInfo("Normalized DB Update - Inserted new element", { testId, elementId });
-             }
+          const elementId = sequence[stepIndex].targetElement.id;
+          // Check if exists
+          const existingElement = await privilegedDb
+            .select()
+            .from(detectedElements)
+            .where(
+              and(eq(detectedElements.testId, testId), eq(detectedElements.elementId, elementId)),
+            )
+            .limit(1);
+
+          if (existingElement.length > 0) {
+            await privilegedDb
+              .update(detectedElements)
+              .set({
+                selector: newSelector,
+                originalSelector:
+                  existingElement[0].originalSelector || existingElement[0].selector, // Keep origin if exists
+              })
+              .where(eq(detectedElements.id, existingElement[0].id));
+            this.logInfo('Normalized DB Update - Updated existing element', { testId, elementId });
+          } else {
+            await privilegedDb.insert(detectedElements).values({
+              // A detected element belongs to the same organization as its test.
+              organizationId: testRecord[0].organizationId,
+              testId,
+              elementId,
+              selector: newSelector,
+              originalSelector: sequence[stepIndex].targetElement.selector, // The 'old' one before this update? No, that was updated in memory above.
+              // Actually, we should probably grab the old one before we mutated 'sequence' object above?
+              // But for now, let's just insert.
+              type: sequence[stepIndex].targetElement.tag,
+              text: sequence[stepIndex].targetElement.text,
+              tag: sequence[stepIndex].targetElement.tag,
+              attributes: sequence[stepIndex].targetElement.attributes,
+            });
+            this.logInfo('Normalized DB Update - Inserted new element', { testId, elementId });
+          }
         }
       }
-
     } catch (e: any) {
-      this.logError("Failed to update DB with healed selector", { error: e.message });
+      this.logError('Failed to update DB with healed selector', { error: e.message });
     }
   }
 }
-
 
 export const aiService = new AIAutomationService();

@@ -32,7 +32,14 @@ const fetchMock = vi.fn();
 const step = (id: string, selector: string) => ({
   id: `step-${id}`,
   action: { id, type: id, name: `actions.${id}.name`, icon: 'x', description: 'd' },
-  targetElement: { id: 'D1', type: 'button', selector, text: 'Save', tag: 'button', attributes: {} },
+  targetElement: {
+    id: 'D1',
+    type: 'button',
+    selector,
+    text: 'Save',
+    tag: 'button',
+    attributes: {},
+  },
 });
 
 const authoringResponse = {
@@ -40,7 +47,9 @@ const authoringResponse = {
     { line: 1, text: 'Click the Save button', source: 'pattern', step: step('click', '#save') },
     { line: 2, text: 'Put the order through', source: 'model', step: step('click', '#submit') },
   ],
-  unresolved: [{ line: 3, text: 'Do the needful', reason: 'Nothing here is called "the needful".' }],
+  unresolved: [
+    { line: 3, text: 'Do the needful', reason: 'Nothing here is called "the needful".' },
+  ],
   usedModel: true,
   modelAvailable: true,
   catalogue: { repository: [], detected: 2 },
@@ -96,7 +105,9 @@ describe('AuthorStepsModal', () => {
     renderModal();
     await readDescription();
 
-    const [, request] = fetchMock.mock.calls.find(([url]) => String(url).includes('/api/authoring/steps'))!;
+    const [, request] = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes('/api/authoring/steps'),
+    )!;
     expect(JSON.parse(request.body).elements).toHaveLength(1);
     expect(JSON.parse(request.body).text).toBe('Click the Save button');
   });
@@ -140,8 +151,12 @@ describe('AuthorStepsModal', () => {
 
   it('reports a refusal instead of an empty preview', async () => {
     fetchMock.mockImplementation((url: string) => {
-      if (String(url).includes('/api/projects')) return Promise.resolve({ ok: true, json: async () => [] });
-      return Promise.resolve({ ok: false, json: async () => ({ error: 'Could not read those instructions.' }) });
+      if (String(url).includes('/api/projects'))
+        return Promise.resolve({ ok: true, json: async () => [] });
+      return Promise.resolve({
+        ok: false,
+        json: async () => ({ error: 'Could not read those instructions.' }),
+      });
     });
     renderModal();
 
@@ -154,7 +169,8 @@ describe('AuthorStepsModal', () => {
 
   it('says when only the built-in phrasings were available', async () => {
     fetchMock.mockImplementation((url: string) => {
-      if (String(url).includes('/api/projects')) return Promise.resolve({ ok: true, json: async () => [] });
+      if (String(url).includes('/api/projects'))
+        return Promise.resolve({ ok: true, json: async () => [] });
       return Promise.resolve({
         ok: true,
         json: async () => ({ ...authoringResponse, usedModel: false, modelAvailable: false }),

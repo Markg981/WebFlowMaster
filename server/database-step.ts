@@ -24,7 +24,12 @@ export interface DatabaseResult {
 }
 
 /** Runs one statement. A field so a test can stand in for the real drivers. */
-export type DatabaseRunner = (kind: DatabaseKind, url: string, sql: string, timeoutMs: number) => Promise<DatabaseResult>;
+export type DatabaseRunner = (
+  kind: DatabaseKind,
+  url: string,
+  sql: string,
+  timeoutMs: number,
+) => Promise<DatabaseResult>;
 
 export const DATABASE_TIMEOUT_MS = 30_000;
 /** Rows kept from a result. A step reads a value or a few rows, never a table. */
@@ -42,9 +47,13 @@ export interface DatabaseQuery {
 export function parseDatabaseQuery(value: string): DatabaseQuery | { error: string } {
   const text = value.trim();
   const named = /^@([A-Za-z][\w-]*)\s+([\s\S]+)$/.exec(text);
-  const query = named ? { connection: named[1], sql: named[2].trim() } : { connection: null, sql: text };
+  const query = named
+    ? { connection: named[1], sql: named[2].trim() }
+    : { connection: null, sql: text };
   if (query.sql === '' || query.sql.startsWith('@')) {
-    return { error: `"${value}" is not a SQL statement. Write the statement, or @name and the statement for the database in db.name.url.` };
+    return {
+      error: `"${value}" is not a SQL statement. Write the statement, or @name and the statement for the database in db.name.url.`,
+    };
   }
   return query;
 }
@@ -90,7 +99,8 @@ export function cellText(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (value instanceof Date) return value.toISOString();
   if (Buffer.isBuffer(value)) return value.toString('hex');
-  if (typeof value === 'object') return JSON.stringify(value, (_key, v) => (typeof v === 'bigint' ? String(v) : v));
+  if (typeof value === 'object')
+    return JSON.stringify(value, (_key, v) => (typeof v === 'bigint' ? String(v) : v));
   return String(value);
 }
 
@@ -104,7 +114,11 @@ export function resultVariables(result: DatabaseResult): Record<string, string> 
     'db.rowCount': String(result.rowCount),
     'db.value': first && result.columns.length ? cellText(first[result.columns[0]]) : '',
     'db.json': JSON.stringify(
-      result.rows.slice(0, JSON_ROWS).map((row) => Object.fromEntries(result.columns.map((c) => [c, row[c] === undefined ? null : row[c]]))),
+      result.rows
+        .slice(0, JSON_ROWS)
+        .map((row) =>
+          Object.fromEntries(result.columns.map((c) => [c, row[c] === undefined ? null : row[c]])),
+        ),
       (_key, v) => (typeof v === 'bigint' ? String(v) : Buffer.isBuffer(v) ? v.toString('hex') : v),
     ),
   };
@@ -116,16 +130,29 @@ export function resultVariables(result: DatabaseResult): Record<string, string> 
   return vars;
 }
 
-const runPostgres = async (url: string, sql: string, timeoutMs: number): Promise<DatabaseResult> => {
+const runPostgres = async (
+  url: string,
+  sql: string,
+  timeoutMs: number,
+): Promise<DatabaseResult> => {
   const { default: pg } = await import('pg');
-  const client = new pg.Client({ connectionString: url, connectionTimeoutMillis: timeoutMs, statement_timeout: timeoutMs, query_timeout: timeoutMs });
+  const client = new pg.Client({
+    connectionString: url,
+    connectionTimeoutMillis: timeoutMs,
+    statement_timeout: timeoutMs,
+    query_timeout: timeoutMs,
+  });
   await client.connect();
   try {
     const result = await client.query(sql);
     // Several statements give one result each; the last is the one a test asks about.
     const last = Array.isArray(result) ? result[result.length - 1] : result;
     const columns = (last.fields ?? []).map((f: { name: string }) => f.name);
-    return { columns, rows: (last.rows ?? []).slice(0, MAX_ROWS), rowCount: last.rowCount ?? last.rows?.length ?? 0 };
+    return {
+      columns,
+      rows: (last.rows ?? []).slice(0, MAX_ROWS),
+      rowCount: last.rowCount ?? last.rows?.length ?? 0,
+    };
   } finally {
     await client.end().catch(() => {});
   }
@@ -133,7 +160,10 @@ const runPostgres = async (url: string, sql: string, timeoutMs: number): Promise
 
 const runMysql = async (url: string, sql: string, timeoutMs: number): Promise<DatabaseResult> => {
   const mysql = await import('mysql2/promise');
-  const connection = await mysql.createConnection({ uri: url.replace(/^mariadb:/i, 'mysql:'), connectTimeout: timeoutMs });
+  const connection = await mysql.createConnection({
+    uri: url.replace(/^mariadb:/i, 'mysql:'),
+    connectTimeout: timeoutMs,
+  });
   try {
     const [result, fields] = await connection.query({ sql, timeout: timeoutMs });
     if (Array.isArray(result)) {
@@ -141,7 +171,11 @@ const runMysql = async (url: string, sql: string, timeoutMs: number): Promise<Da
       const columns = (fields ?? []).map((f) => f.name);
       return { columns, rows: rows.slice(0, MAX_ROWS), rowCount: rows.length };
     }
-    return { columns: [], rows: [], rowCount: (result as { affectedRows?: number }).affectedRows ?? 0 };
+    return {
+      columns: [],
+      rows: [],
+      rowCount: (result as { affectedRows?: number }).affectedRows ?? 0,
+    };
   } finally {
     await connection.end().catch(() => {});
   }
@@ -174,13 +208,19 @@ export function sqlServerConfig(url: string, timeoutMs: number) {
   };
 }
 
-const runSqlServer = async (url: string, sql: string, timeoutMs: number): Promise<DatabaseResult> => {
+const runSqlServer = async (
+  url: string,
+  sql: string,
+  timeoutMs: number,
+): Promise<DatabaseResult> => {
   const { default: mssql } = await import('mssql');
   const pool = new mssql.ConnectionPool(sqlServerConfig(url, timeoutMs));
   await pool.connect();
   try {
     const result = await pool.request().query(sql);
-    const sets = result.recordsets as unknown as Array<Array<Record<string, unknown>> & { columns?: Record<string, unknown> }>;
+    const sets = result.recordsets as unknown as Array<
+      Array<Record<string, unknown>> & { columns?: Record<string, unknown> }
+    >;
     const last = sets.length ? sets[sets.length - 1] : null;
     if (last) {
       const columns = last.columns ? Object.keys(last.columns) : Object.keys(last[0] ?? {});
@@ -197,6 +237,11 @@ export const runDatabaseQuery: DatabaseRunner = (kind, url, sql, timeoutMs) => {
   // Every driver has its own timeouts, and each covers only part of the way; this covers it all.
   return Promise.race([
     run(url, sql, timeoutMs),
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`No answer within ${Math.round(timeoutMs / 1000)}s.`)), timeoutMs + 1000).unref()),
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`No answer within ${Math.round(timeoutMs / 1000)}s.`)),
+        timeoutMs + 1000,
+      ).unref(),
+    ),
   ]);
 };

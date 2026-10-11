@@ -35,9 +35,9 @@ rename them, duplicate them, delete them, and choose your personal default. A du
 private copy that you can change independently. Your default selection applies to your account;
 deleting a dashboard clears selections that referred to it.
 
-| Visibility | Who can read it | Who can change or delete it |
-|---|---|---|
-| Private | Its creator | Its creator |
+| Visibility               | Who can read it                  | Who can change or delete it         |
+| ------------------------ | -------------------------------- | ----------------------------------- |
+| Private                  | Its creator                      | Its creator                         |
 | Shared with organization | Members of the same organization | Its creator and organization owners |
 
 Organization owners cannot open another member's private dashboard. Other members can duplicate

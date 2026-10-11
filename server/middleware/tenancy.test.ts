@@ -179,7 +179,9 @@ describe('withTenantTransaction reentrancy', () => {
       ),
     ).rejects.toThrow('force rollback');
 
-    const rows = await privilegedDb.execute(sql`SELECT id FROM projects WHERE name = ${projectName}`);
+    const rows = await privilegedDb.execute(
+      sql`SELECT id FROM projects WHERE name = ${projectName}`,
+    );
     expect(rows.rows).toHaveLength(0);
   });
 

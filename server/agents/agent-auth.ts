@@ -13,7 +13,9 @@ import { hashAgentToken } from './agent-credentials';
  * inside its own tenant context.
  */
 
-export async function authenticateAgentToken(token: string | undefined | null): Promise<Agent | null> {
+export async function authenticateAgentToken(
+  token: string | undefined | null,
+): Promise<Agent | null> {
   if (!token) return null;
   const [agent] = await privilegedDb
     .select()
@@ -24,13 +26,25 @@ export async function authenticateAgentToken(token: string | undefined | null): 
 }
 
 /** Stamped when it connects, and every so often while it stays connected. */
-export async function recordAgentSeen(agentId: string, hello?: Pick<AgentHello, 'hostname' | 'agentVersion' | 'playwrightVersion' | 'browsers' | 'bddProfiles'>): Promise<void> {
+export async function recordAgentSeen(
+  agentId: string,
+  hello?: Pick<
+    AgentHello,
+    'hostname' | 'agentVersion' | 'playwrightVersion' | 'browsers' | 'bddProfiles'
+  >,
+): Promise<void> {
   await privilegedDb
     .update(agents)
     .set({
       lastSeenAt: new Date(),
       ...(hello
-        ? { hostname: hello.hostname, agentVersion: hello.agentVersion, playwrightVersion: hello.playwrightVersion, browsers: hello.browsers, bddProfiles: hello.bddProfiles ?? [] }
+        ? {
+            hostname: hello.hostname,
+            agentVersion: hello.agentVersion,
+            playwrightVersion: hello.playwrightVersion,
+            browsers: hello.browsers,
+            bddProfiles: hello.bddProfiles ?? [],
+          }
         : {}),
     })
     .where(eq(agents.id, agentId));

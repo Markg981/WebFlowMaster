@@ -83,10 +83,10 @@ npx playwright install chromium        # e firefox / webkit / msedge se i piani 
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```
 
-| Variabile | Significato |
-|---|---|
-| `WFM_URL` | Il server WebFlowMaster |
-| `WFM_AGENT_TOKEN` | Il token da Settings |
+| Variabile                | Significato                                                     |
+| ------------------------ | --------------------------------------------------------------- |
+| `WFM_URL`                | Il server WebFlowMaster                                         |
+| `WFM_AGENT_TOKEN`        | Il token da Settings                                            |
 | `WFM_AGENT_MAX_SESSIONS` | Sessioni browser e API native contemporanee (default 2, max 16) |
 
 L'agente si riconnette da solo quando la connessione cade. Esce con codice **2** quando il server
@@ -98,16 +98,16 @@ riprovando. `SIGTERM`/`Ctrl+C` lascia prima finire i run che usano i suoi browse
 Un agente raggiunge anche un server **Appium** sulla sua macchina o nella sua rete, per i test di
 app mobili su emulatori e telefoni: vedi [Appium locale](../guide/mobile-apps#appium-locale).
 
-In **Run settings → Esegui su** del piano scegli *Agenti locali: &lt;pool&gt;*. La lista dei browser
+In **Run settings → Esegui su** del piano scegli _Agenti locali: &lt;pool&gt;_. La lista dei browser
 del piano resta valida: ogni browser viene preso in prestito dal pool.
 
 ## Configurazione del server
 
-| Variabile | Dove | Significato |
-|---|---|---|
-| `AGENT_RELAY_SECRET` | web e worker | Firma i ticket. Di default `SESSION_SECRET`; impostala esplicitamente se il worker non condivide il session secret del web server. |
-| `AGENT_RELAY_URL` | worker | Dove il runner raggiunge il relay. Di default `http://127.0.0.1:$PORT`, corretto quando il worker gira nel processo web. Con worker separati, puntala al web server (o al suo load balancer). |
-| `AGENT_RELAY_ADVERTISE_URL` | web, con più web server | L'indirizzo di questo web server come lo raggiungono gli altri web server (IP del pod, nome del container — non il load balancer). Impostarla attiva la directory condivisa in Redis. |
+| Variabile                   | Dove                    | Significato                                                                                                                                                                                   |
+| --------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENT_RELAY_SECRET`        | web e worker            | Firma i ticket. Di default `SESSION_SECRET`; impostala esplicitamente se il worker non condivide il session secret del web server.                                                            |
+| `AGENT_RELAY_URL`           | worker                  | Dove il runner raggiunge il relay. Di default `http://127.0.0.1:$PORT`, corretto quando il worker gira nel processo web. Con worker separati, puntala al web server (o al suo load balancer). |
+| `AGENT_RELAY_ADVERTISE_URL` | web, con più web server | L'indirizzo di questo web server come lo raggiungono gli altri web server (IP del pod, nome del container — non il load balancer). Impostarla attiva la directory condivisa in Redis.         |
 
 Il relay vive nel processo web e accetta upgrade WebSocket su `/api/agent/v1/*`: un reverse proxy
 davanti deve inoltrare gli upgrade WebSocket su quei percorsi.

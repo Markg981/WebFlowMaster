@@ -48,7 +48,12 @@ export function linkWhere(
   columns: { testId: AnyPgColumn; apiTestId: AnyPgColumn; mobileTestId: AnyPgColumn },
   item: TestItem,
 ): SQL {
-  const column = item.type === 'ui' ? columns.testId : item.type === 'api' ? columns.apiTestId : columns.mobileTestId;
+  const column =
+    item.type === 'ui'
+      ? columns.testId
+      : item.type === 'api'
+        ? columns.apiTestId
+        : columns.mobileTestId;
   return eq(column, item.id);
 }
 
@@ -58,20 +63,29 @@ const TABLES = { ui: tests, api: apiTests, mobile: mobileTests } as const;
  * The names of the tests the requester can see, by itemKey. Through RLS: a test in a project they
  * are not on, or of another organization, is missing from the map.
  */
-export async function visibleNames(tx: Pick<TenantTx, 'select'>, items: TestItem[]): Promise<Map<string, string>> {
+export async function visibleNames(
+  tx: Pick<TenantTx, 'select'>,
+  items: TestItem[],
+): Promise<Map<string, string>> {
   const names = new Map<string, string>();
   for (const type of TEST_KINDS) {
     const ids = Array.from(new Set(items.filter((i) => i.type === type).map((i) => i.id)));
     if (ids.length === 0) continue;
     const table = TABLES[type];
-    const rows = await tx.select({ id: table.id, name: table.name }).from(table).where(inArray(table.id, ids));
+    const rows = await tx
+      .select({ id: table.id, name: table.name })
+      .from(table)
+      .where(inArray(table.id, ids));
     for (const row of rows) names.set(itemKey(type, row.id), row.name);
   }
   return names;
 }
 
 /** The type of the first kind of test named that the requester cannot see; null when all are there. */
-export async function firstMissingKind(tx: Pick<TenantTx, 'select'>, items: TestItem[]): Promise<TestKind | null> {
+export async function firstMissingKind(
+  tx: Pick<TenantTx, 'select'>,
+  items: TestItem[],
+): Promise<TestKind | null> {
   const names = await visibleNames(tx, items);
   const missing = items.find((item) => !names.has(itemKey(item.type, item.id)));
   return missing ? missing.type : null;
@@ -79,11 +93,19 @@ export async function firstMissingKind(tx: Pick<TenantTx, 'select'>, items: Test
 
 /** "One or more … do not exist.", in the words each kind of test goes by. */
 export function missingMessage(kind: TestKind): string {
-  return kind === 'api' ? 'One or more API tests do not exist.' : kind === 'mobile' ? 'One or more mobile tests do not exist.' : 'One or more tests do not exist.';
+  return kind === 'api'
+    ? 'One or more API tests do not exist.'
+    : kind === 'mobile'
+      ? 'One or more mobile tests do not exist.'
+      : 'One or more tests do not exist.';
 }
 
 /** Items as a page lists them: with the name, or null when the requester cannot see the test. */
 export async function namedItems(tx: Pick<TenantTx, 'select'>, items: TestItem[]) {
   const names = await visibleNames(tx, items);
-  return items.map((item) => ({ type: item.type, id: item.id, name: names.get(itemKey(item.type, item.id)) ?? null }));
+  return items.map((item) => ({
+    type: item.type,
+    id: item.id,
+    name: names.get(itemKey(item.type, item.id)) ?? null,
+  }));
 }

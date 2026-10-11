@@ -17,7 +17,11 @@ import { runAsOrganization, withTenantTransaction } from './middleware/tenancy';
 import { expandPlanTests, type TestReference } from './test-suites';
 import { selectForChanges } from './test-impact';
 import { announceExecution, transitionExecution } from './execution-state';
-import { buildExecutionSnapshot, readExecutionSnapshot, type SnapshotTestReference } from './execution-snapshot';
+import {
+  buildExecutionSnapshot,
+  readExecutionSnapshot,
+  type SnapshotTestReference,
+} from './execution-snapshot';
 import { testExecutionQueue } from './queue';
 import { fairPriority, liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
 import { checkExecutionBudget } from './execution-usage';
@@ -45,7 +49,11 @@ import { buildExecutionProvenance, reproducibilitySummary } from './execution-pr
  */
 
 export interface ExecutionQueuePort {
-  add(name: string, data: Record<string, unknown>, options: { jobId: string; delay?: number; priority?: number }): Promise<unknown>;
+  add(
+    name: string,
+    data: Record<string, unknown>,
+    options: { jobId: string; delay?: number; priority?: number },
+  ): Promise<unknown>;
 }
 
 export interface EnqueueExecutionInput {
@@ -107,7 +115,12 @@ export const QUEUE_SUBMISSION_FAILED = 'queue_submission_failed';
 
 function isUniqueViolation(error: unknown): boolean {
   const record = error as { code?: string; message?: string } | null;
-  return record?.code === '23505' || String(record?.message ?? '').toLowerCase().includes('unique');
+  return (
+    record?.code === '23505' ||
+    String(record?.message ?? '')
+      .toLowerCase()
+      .includes('unique')
+  );
 }
 
 /**
@@ -123,19 +136,31 @@ async function reclaimUnsubmittedRun(executionId: string): Promise<TestPlanExecu
   const [reclaimed] = await withTenantTransaction((tx) =>
     tx
       .update(testPlanExecutions)
-      .set({ status: 'queued', queuedAt: new Date(), completedAt: null, failureCode: null, failureMessage: null })
-      .where(and(
-        eq(testPlanExecutions.id, executionId),
-        eq(testPlanExecutions.status, 'error'),
-        eq(testPlanExecutions.failureCode, QUEUE_SUBMISSION_FAILED),
-      ))
+      .set({
+        status: 'queued',
+        queuedAt: new Date(),
+        completedAt: null,
+        failureCode: null,
+        failureMessage: null,
+      })
+      .where(
+        and(
+          eq(testPlanExecutions.id, executionId),
+          eq(testPlanExecutions.status, 'error'),
+          eq(testPlanExecutions.failureCode, QUEUE_SUBMISSION_FAILED),
+        ),
+      )
       .returning(),
   );
   return reclaimed ?? null;
 }
 
 export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
-  async function submit(execution: TestPlanExecution, delayMs = 0, priority = 1): Promise<TestPlanExecution> {
+  async function submit(
+    execution: TestPlanExecution,
+    delayMs = 0,
+    priority = 1,
+  ): Promise<TestPlanExecution> {
     try {
       await queue.add(
         'execute-plan',
@@ -146,18 +171,23 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
           testPlanRunId: execution.id,
           planId: execution.testPlanId,
           userId: execution.requestedByUserId,
-          updateBaselines: readExecutionSnapshot(execution.configurationSnapshot)?.visualTesting.updateBaselines === true,
+          updateBaselines:
+            readExecutionSnapshot(execution.configurationSnapshot)?.visualTesting
+              .updateBaselines === true,
           correlationId: getCorrelationId() ?? `job-${execution.id.slice(0, 8)}`,
         },
         // The run's fair place in the queue — see server/tenant-quotas.ts.
-        delayMs > 0 ? { jobId: execution.id, delay: delayMs, priority } : { jobId: execution.id, priority },
+        delayMs > 0
+          ? { jobId: execution.id, delay: delayMs, priority }
+          : { jobId: execution.id, priority },
       );
       return execution;
     } catch (error: any) {
       await transitionExecution(execution.id, 'error', {
         failureCode: QUEUE_SUBMISSION_FAILED,
         // The queue's own words stay in the log; this is what a person reading the run sees.
-        failureMessage: 'The run could not be handed to a worker. Asking again with the same idempotency key will retry it.',
+        failureMessage:
+          'The run could not be handed to a worker. Asking again with the same idempotency key will retry it.',
       });
       throw new ExecutionEnqueueError(
         QUEUE_SUBMISSION_FAILED,
@@ -188,7 +218,11 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
       const findByKey = async () => {
         if (!key) return null;
         const [existing] = await withTenantTransaction((tx) =>
-          tx.select().from(testPlanExecutions).where(eq(testPlanExecutions.idempotencyKey, key)).limit(1),
+          tx
+            .select()
+            .from(testPlanExecutions)
+            .where(eq(testPlanExecutions.idempotencyKey, key))
+            .limit(1),
         );
         return existing ?? null;
       };
@@ -202,10 +236,16 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
           const [requester] = await tx
             .select({ id: users.id })
             .from(users)
-            .where(and(eq(users.id, input.requestedByUserId), eq(users.organizationId, organizationId)))
+            .where(
+              and(eq(users.id, input.requestedByUserId), eq(users.organizationId, organizationId)),
+            )
             .limit(1);
           if (!requester) {
-            throw new ExecutionEnqueueError('requester_not_in_organization', 'The requester is not a member of this organization', 403);
+            throw new ExecutionEnqueueError(
+              'requester_not_in_organization',
+              'The requester is not a member of this organization',
+              403,
+            );
           }
 
           if (key) {
@@ -220,7 +260,10 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
           // Counted under the organization's lock, so two requests at the limit cannot both get
           // through, and the count also gives the run its fair place in the queue.
           await lockOrganizationRuns(tx, organizationId);
-          const [quotas, counts] = await Promise.all([quotasFor(tx, organizationId), liveRunCounts(tx, organizationId)]);
+          const [quotas, counts] = await Promise.all([
+            quotasFor(tx, organizationId),
+            liveRunCounts(tx, organizationId),
+          ]);
           await checkExecutionBudget(tx, organizationId);
           if (quotas.mode === 'enforce' && counts.queued >= quotas.maxQueuedRuns) {
             throw new ExecutionEnqueueError(
@@ -231,7 +274,11 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
           }
           const priority = fairPriority(counts);
 
-          const [plan] = await tx.select().from(testPlans).where(eq(testPlans.id, input.planId)).limit(1);
+          const [plan] = await tx
+            .select()
+            .from(testPlans)
+            .where(eq(testPlans.id, input.planId))
+            .limit(1);
           if (!plan) throw new ExecutionEnqueueError('plan_not_found', 'Test plan not found', 404);
 
           if (input.environmentId != null) {
@@ -241,7 +288,12 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               .from(environments)
               .where(eq(environments.id, input.environmentId))
               .limit(1);
-            if (!environment) throw new ExecutionEnqueueError('environment_not_found', 'Environment not found', 404);
+            if (!environment)
+              throw new ExecutionEnqueueError(
+                'environment_not_found',
+                'Environment not found',
+                404,
+              );
           }
 
           const selected = await tx
@@ -262,20 +314,43 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
             ? await selectForChanges(tx, plan.id, expanded, input.changedFiles)
             : null;
 
-          const snapshot = buildExecutionSnapshot(plan, (narrowed?.refs ?? expanded) as SnapshotTestReference[], {
-            environmentId: input.environmentId ?? null,
-            browsers: input.browsers,
-            updateBaselines: input.updateBaselines,
-          });
+          const snapshot = buildExecutionSnapshot(
+            plan,
+            (narrowed?.refs ?? expanded) as SnapshotTestReference[],
+            {
+              environmentId: input.environmentId ?? null,
+              browsers: input.browsers,
+              updateBaselines: input.updateBaselines,
+            },
+          );
           if (narrowed) snapshot.selection = narrowed.selection;
-          snapshot.definitions = await freezeTestDefinitions(tx,
-            snapshot.selectedTests.flatMap(ref => ref.testType === 'ui' && ref.testId ? [ref.testId] : []),
-            snapshot.selectedTests.flatMap(ref => ref.testType === 'api' && ref.apiTestId ? [ref.apiTestId] : []));
-          snapshot.datasets = await freezeExecutionDatasets(tx, organizationId, snapshot.selectedTests.flatMap(ref => ref.testType === 'ui' && ref.testId ? [ref.testId] : []), snapshot.definitions.ui.map(row => row.definition));
-          snapshot.mobileDefinitions=await freezeMobilePlanDefinitions(tx,snapshot.selectedTests.flatMap(ref=>ref.testType==='mobile'&&ref.mobileTestId?[ref.mobileTestId]:[]));
+          snapshot.definitions = await freezeTestDefinitions(
+            tx,
+            snapshot.selectedTests.flatMap((ref) =>
+              ref.testType === 'ui' && ref.testId ? [ref.testId] : [],
+            ),
+            snapshot.selectedTests.flatMap((ref) =>
+              ref.testType === 'api' && ref.apiTestId ? [ref.apiTestId] : [],
+            ),
+          );
+          snapshot.datasets = await freezeExecutionDatasets(
+            tx,
+            organizationId,
+            snapshot.selectedTests.flatMap((ref) =>
+              ref.testType === 'ui' && ref.testId ? [ref.testId] : [],
+            ),
+            snapshot.definitions.ui.map((row) => row.definition),
+          );
+          snapshot.mobileDefinitions = await freezeMobilePlanDefinitions(
+            tx,
+            snapshot.selectedTests.flatMap((ref) =>
+              ref.testType === 'mobile' && ref.mobileTestId ? [ref.mobileTestId] : [],
+            ),
+          );
           snapshot.provenance = buildExecutionProvenance(snapshot);
           const retained = reproducibilitySummary(snapshot);
-          if (!retained.available) throw new ExecutionEnqueueError('replay_unavailable', retained.reason!, 409);
+          if (!retained.available)
+            throw new ExecutionEnqueueError('replay_unavailable', retained.reason!, 409);
 
           const [inserted] = await tx
             .insert(testPlanExecutions)
@@ -288,13 +363,19 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               status: 'queued',
               triggeredBy: input.trigger,
               // Kept on their own columns as well, because the reports list reads them there.
-              environment: input.environmentId != null ? String(input.environmentId) : (input.environmentLabel ?? null),
+              environment:
+                input.environmentId != null
+                  ? String(input.environmentId)
+                  : (input.environmentLabel ?? null),
               browsers: input.browsers ?? null,
               configurationSnapshot: snapshot,
               idempotencyKey: key,
               ciContext: input.ciContext ?? null,
               attempt: 1,
-              maxAttempts: Math.min(Math.max(Math.trunc(input.maxAttempts ?? 1), 1), MAX_ATTEMPTS_LIMIT),
+              maxAttempts: Math.min(
+                Math.max(Math.trunc(input.maxAttempts ?? 1), 1),
+                MAX_ATTEMPTS_LIMIT,
+              ),
             })
             .returning();
           return { execution: inserted, created: true, priority };
@@ -314,7 +395,10 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
         return submit(outcome.execution, 0, outcome.priority);
       }
 
-      if (outcome.execution.status === 'error' && outcome.execution.failureCode === QUEUE_SUBMISSION_FAILED) {
+      if (
+        outcome.execution.status === 'error' &&
+        outcome.execution.failureCode === QUEUE_SUBMISSION_FAILED
+      ) {
         const reclaimed = await reclaimUnsubmittedRun(outcome.execution.id);
         if (reclaimed) return submit(reclaimed);
       }
@@ -335,7 +419,10 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
    * is derived from the first run and the attempt number, so a worker that finishes the same run
    * twice still queues one retry.
    */
-  async function retryFailedRun(failed: TestPlanExecution, delayMs: number): Promise<TestPlanExecution | null> {
+  async function retryFailedRun(
+    failed: TestPlanExecution,
+    delayMs: number,
+  ): Promise<TestPlanExecution | null> {
     if (failed.status !== 'failed' && failed.status !== 'error') return null;
     if (failed.attempt >= failed.maxAttempts) return null;
 
@@ -358,7 +445,11 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
     const key = `retry-${firstAttemptId}-${failed.attempt + 1}`;
     const findByKey = async () => {
       const [existing] = await withTenantTransaction((tx) =>
-        tx.select().from(testPlanExecutions).where(eq(testPlanExecutions.idempotencyKey, key)).limit(1),
+        tx
+          .select()
+          .from(testPlanExecutions)
+          .where(eq(testPlanExecutions.idempotencyKey, key))
+          .limit(1),
       );
       return existing ?? null;
     };
@@ -402,45 +493,97 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
   }
 
   /** Explicit replay reads the source under the caller's RLS; it never expands today's plan. */
-  async function replay(executionId: string, requestedByUserId: number, idempotencyKey?: string): Promise<TestPlanExecution> {
-    const source = await withTenantTransaction(async tx => {
-      const [row] = await tx.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId)).limit(1);
+  async function replay(
+    executionId: string,
+    requestedByUserId: number,
+    idempotencyKey?: string,
+  ): Promise<TestPlanExecution> {
+    const source = await withTenantTransaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(testPlanExecutions)
+        .where(eq(testPlanExecutions.id, executionId))
+        .limit(1);
       if (!row) throw new ExecutionEnqueueError('execution_not_found', 'Execution not found', 404);
-      const [requester] = await tx.select({ id: users.id }).from(users)
-        .where(and(eq(users.id, requestedByUserId), eq(users.organizationId, row.organizationId))).limit(1);
-      if (!requester) throw new ExecutionEnqueueError('requester_not_in_organization', 'The requester is not a member of this organization', 403);
+      const [requester] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.id, requestedByUserId), eq(users.organizationId, row.organizationId)))
+        .limit(1);
+      if (!requester)
+        throw new ExecutionEnqueueError(
+          'requester_not_in_organization',
+          'The requester is not a member of this organization',
+          403,
+        );
       // Also require visibility of the plan: a retained report is not authorization to run it.
-      const [plan] = await tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, row.testPlanId)).limit(1);
+      const [plan] = await tx
+        .select({ id: testPlans.id })
+        .from(testPlans)
+        .where(eq(testPlans.id, row.testPlanId))
+        .limit(1);
       if (!plan) throw new ExecutionEnqueueError('plan_not_found', 'Test plan not found', 404);
       return row;
     });
     const summary = reproducibilitySummary(source.configurationSnapshot);
-    if (!summary.available) throw new ExecutionEnqueueError('replay_unavailable', summary.reason!, 409);
+    if (!summary.available)
+      throw new ExecutionEnqueueError('replay_unavailable', summary.reason!, 409);
     // Scope the caller's key to the source, so replaying a different run cannot return this one.
-    const key = idempotencyKey ? `replay-${executionId}-${idempotencyKey}` : `replay-${executionId}-${uuidv4()}`;
+    const key = idempotencyKey
+      ? `replay-${executionId}-${idempotencyKey}`
+      : `replay-${executionId}-${uuidv4()}`;
     return runAsOrganization(source.organizationId, async () => {
-      const findExisting = async () => (await withTenantTransaction(tx => tx.select().from(testPlanExecutions).where(eq(testPlanExecutions.idempotencyKey, key)).limit(1)))[0];
+      const findExisting = async () =>
+        (
+          await withTenantTransaction((tx) =>
+            tx
+              .select()
+              .from(testPlanExecutions)
+              .where(eq(testPlanExecutions.idempotencyKey, key))
+              .limit(1),
+          )
+        )[0];
       let outcome: { execution: TestPlanExecution; created: boolean; priority: number };
       try {
-        outcome = await withTenantTransaction(async tx => {
+        outcome = await withTenantTransaction(async (tx) => {
           await lockOrganizationRuns(tx, source.organizationId);
-          const [existing] = await tx.select().from(testPlanExecutions).where(eq(testPlanExecutions.idempotencyKey, key)).limit(1);
+          const [existing] = await tx
+            .select()
+            .from(testPlanExecutions)
+            .where(eq(testPlanExecutions.idempotencyKey, key))
+            .limit(1);
           if (existing) return { execution: existing, created: false, priority: 1 };
           const quotas = await quotasFor(tx, source.organizationId);
           const counts = await liveRunCounts(tx, source.organizationId);
           await checkExecutionBudget(tx, source.organizationId);
           if (quotas.mode === 'enforce' && counts.queued >= quotas.maxQueuedRuns)
-            throw new ExecutionEnqueueError('queue_quota_exceeded', 'The organization queue is full.', 429);
+            throw new ExecutionEnqueueError(
+              'queue_quota_exceeded',
+              'The organization queue is full.',
+              429,
+            );
           const snapshot = structuredClone(readExecutionSnapshot(source.configurationSnapshot)!);
           snapshot.replayOf = { executionId: source.id, requestedAt: new Date().toISOString() };
-          const [execution] = await tx.insert(testPlanExecutions).values({
-            id: uuidv4(), organizationId: source.organizationId, testPlanId: source.testPlanId,
-            requestedByUserId, status: 'queued', triggeredBy: 'manual', environment: source.environment,
-            browsers: source.browsers, configurationSnapshot: snapshot, idempotencyKey: key,
-            attempt: 1, maxAttempts: 1,
-            // A historical replay is a new manual run, not another answer to the original CI build.
-            ciContext: null, scheduleId: null,
-          }).returning();
+          const [execution] = await tx
+            .insert(testPlanExecutions)
+            .values({
+              id: uuidv4(),
+              organizationId: source.organizationId,
+              testPlanId: source.testPlanId,
+              requestedByUserId,
+              status: 'queued',
+              triggeredBy: 'manual',
+              environment: source.environment,
+              browsers: source.browsers,
+              configurationSnapshot: snapshot,
+              idempotencyKey: key,
+              attempt: 1,
+              maxAttempts: 1,
+              // A historical replay is a new manual run, not another answer to the original CI build.
+              ciContext: null,
+              scheduleId: null,
+            })
+            .returning();
           return { execution, created: true, priority: fairPriority(counts) };
         });
       } catch (error) {
@@ -450,8 +593,14 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
         }
         throw error;
       }
-      if (outcome.created) { announceExecution(outcome.execution); return submit(outcome.execution, 0, outcome.priority); }
-      if (outcome.execution.status === 'error' && outcome.execution.failureCode === QUEUE_SUBMISSION_FAILED) {
+      if (outcome.created) {
+        announceExecution(outcome.execution);
+        return submit(outcome.execution, 0, outcome.priority);
+      }
+      if (
+        outcome.execution.status === 'error' &&
+        outcome.execution.failureCode === QUEUE_SUBMISSION_FAILED
+      ) {
         const reclaimed = await reclaimUnsubmittedRun(outcome.execution.id);
         if (reclaimed) return submit(reclaimed, 0, outcome.priority);
       }

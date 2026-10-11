@@ -26,14 +26,37 @@ async function api(method, path, body) {
   const setCookie = res.headers.getSetCookie?.() ?? [];
   if (setCookie.length) cookie = setCookie.map((c) => c.split(';')[0]).join('; ');
   const text = await res.text();
-  const data = text ? (() => { try { return JSON.parse(text); } catch { return text; } })() : null;
-  if (!res.ok) throw new Error(`${method} ${path} → ${res.status}: ${typeof data === 'string' ? data : JSON.stringify(data)}`);
+  const data = text
+    ? (() => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return text;
+        }
+      })()
+    : null;
+  if (!res.ok)
+    throw new Error(
+      `${method} ${path} → ${res.status}: ${typeof data === 'string' ? data : JSON.stringify(data)}`,
+    );
   return data;
 }
 
 const action = (id, name, type = id) => ({ id, name, type, icon: 'circle', description: name });
-const el = (selector, tag = 'div', text = '') => ({ id: selector, tag, text, type: tag, selector, attributes: {} });
-const step = (id, act, value = '', target) => ({ id, value, action: act, ...(target ? { targetElement: target } : {}) });
+const el = (selector, tag = 'div', text = '') => ({
+  id: selector,
+  tag,
+  text,
+  type: tag,
+  selector,
+  attributes: {},
+});
+const step = (id, act, value = '', target) => ({
+  id,
+  value,
+  action: act,
+  ...(target ? { targetElement: target } : {}),
+});
 
 const NAVIGATE = action('navigate', 'Navigate');
 const INPUT = action('input', 'Input Text');
@@ -54,7 +77,8 @@ const WEB_TESTS = [
   {
     name: 'Sign in with valid credentials',
     url: `${SITE}/login/`,
-    module: 'Account', priority: 'Critical',
+    module: 'Account',
+    priority: 'Critical',
     sequence: [
       step('nav', NAVIGATE, `${SITE}/login/`),
       step('user', INPUT, 'maya.chen', el('#username', 'input')),
@@ -66,7 +90,8 @@ const WEB_TESTS = [
   {
     name: 'Sign in rejects a wrong password',
     url: `${SITE}/login/`,
-    module: 'Account', priority: 'High',
+    module: 'Account',
+    priority: 'High',
     sequence: [
       step('nav', NAVIGATE, `${SITE}/login/`),
       step('user', INPUT, 'maya.chen', el('#username', 'input')),
@@ -78,7 +103,8 @@ const WEB_TESTS = [
   {
     name: 'Order confirmation appears',
     url: `${SITE}/checkout/`,
-    module: 'Checkout', priority: 'Critical',
+    module: 'Checkout',
+    priority: 'Critical',
     sequence: [
       step('nav', NAVIGATE, `${SITE}/checkout/`),
       step('order', CLICK, '', el('#place-order', 'button', 'Place order')),
@@ -89,7 +115,8 @@ const WEB_TESTS = [
   {
     name: 'Express shipping updates the total',
     url: `${SITE}/checkout/`,
-    module: 'Checkout', priority: 'Medium',
+    module: 'Checkout',
+    priority: 'Medium',
     sequence: [
       step('nav', NAVIGATE, `${SITE}/checkout/`),
       step('choose', SELECT, 'express', el('#shipping', 'select')),
@@ -100,7 +127,8 @@ const WEB_TESTS = [
     // Fails on purpose: the banner offers free shipping. The video opens its report.
     name: FAILING,
     url: `${SITE}/catalog/`,
-    module: 'Catalog', priority: 'Medium',
+    module: 'Catalog',
+    priority: 'Medium',
     sequence: [
       step('nav', NAVIGATE, `${SITE}/catalog/`),
       step('check', ASSERT_TEXT, '20% off everything', el('#promo')),
@@ -113,39 +141,90 @@ const uuid = () => crypto.randomUUID();
 const API_TESTS = [
   {
     name: 'Orders API: create an order',
-    method: 'POST', url: 'https://jsonplaceholder.typicode.com/posts',
+    method: 'POST',
+    url: 'https://jsonplaceholder.typicode.com/posts',
     requestHeaders: { 'Content-Type': 'application/json' },
     requestBody: JSON.stringify({ title: 'Order #1042', body: '2 × Espresso beans', userId: 7 }),
     bodyType: 'raw',
     assertions: [
-      { id: uuid(), source: 'status_code', enabled: true, comparison: 'equals', targetValue: '201' },
-      { id: uuid(), source: 'body_json_path', enabled: true, property: 'title', comparison: 'equals', targetValue: 'Order #1042' },
+      {
+        id: uuid(),
+        source: 'status_code',
+        enabled: true,
+        comparison: 'equals',
+        targetValue: '201',
+      },
+      {
+        id: uuid(),
+        source: 'body_json_path',
+        enabled: true,
+        property: 'title',
+        comparison: 'equals',
+        targetValue: 'Order #1042',
+      },
     ],
     extractions: [{ id: uuid(), name: 'orderId', source: 'body_json_path', property: 'id' }],
   },
   {
     name: 'Orders API: read it back',
-    method: 'GET', url: 'https://httpbin.org/anything/orders/{{orderId}}',
-    requestHeaders: {}, requestBody: '', bodyType: 'raw',
+    method: 'GET',
+    url: 'https://httpbin.org/anything/orders/{{orderId}}',
+    requestHeaders: {},
+    requestBody: '',
+    bodyType: 'raw',
     assertions: [
-      { id: uuid(), source: 'status_code', enabled: true, comparison: 'equals', targetValue: '200' },
-      { id: uuid(), source: 'body_json_path', enabled: true, property: 'url', comparison: 'contains', targetValue: '101' },
+      {
+        id: uuid(),
+        source: 'status_code',
+        enabled: true,
+        comparison: 'equals',
+        targetValue: '200',
+      },
+      {
+        id: uuid(),
+        source: 'body_json_path',
+        enabled: true,
+        property: 'url',
+        comparison: 'contains',
+        targetValue: '101',
+      },
     ],
     extractions: [],
   },
   {
     name: 'Storefront health check',
-    method: 'GET', url: 'https://httpbin.org/get',
-    requestHeaders: {}, requestBody: '', bodyType: 'raw',
+    method: 'GET',
+    url: 'https://httpbin.org/get',
+    requestHeaders: {},
+    requestBody: '',
+    bodyType: 'raw',
     assertions: [
-      { id: uuid(), source: 'status_code', enabled: true, comparison: 'equals', targetValue: '200' },
-      { id: uuid(), source: 'response_time', enabled: true, comparison: 'less_than', targetValue: '3000' },
+      {
+        id: uuid(),
+        source: 'status_code',
+        enabled: true,
+        comparison: 'equals',
+        targetValue: '200',
+      },
+      {
+        id: uuid(),
+        source: 'response_time',
+        enabled: true,
+        comparison: 'less_than',
+        targetValue: '3000',
+      },
     ],
     extractions: [],
   },
 ];
 
-const machine = (browserName) => ({ os: 'linux', osVersion: 'Ubuntu 22.04', browserName, browserVersion: 'latest', headless: true });
+const machine = (browserName) => ({
+  os: 'linux',
+  osVersion: 'Ubuntu 22.04',
+  browserName,
+  browserVersion: 'latest',
+  headless: true,
+});
 
 async function main() {
   await api('POST', '/api/login', { username: USERNAME, password: PASSWORD });
@@ -157,25 +236,36 @@ async function main() {
     const found = existingTests.find((t) => t.name === test.name);
     const body = { ...test, elements: [], status: 'saved' };
     // An existing test is brought up to date, so a fix here reaches the next runs.
-    webIds[test.name] = found ? (await api('PUT', `/api/tests/${found.id}`, body), found.id) : (await api('POST', '/api/tests', body)).id;
+    webIds[test.name] = found
+      ? (await api('PUT', `/api/tests/${found.id}`, body), found.id)
+      : (await api('POST', '/api/tests', body)).id;
   }
   const existingApi = await api('GET', '/api/api-tests');
   const apiIds = {};
   for (const test of API_TESTS) {
     const found = existingApi.find((t) => t.name === test.name);
-    apiIds[test.name] = found?.id ?? (await api('POST', '/api/api-tests', { ...test, queryParams: {}, authType: 'none' })).id;
+    apiIds[test.name] =
+      found?.id ??
+      (await api('POST', '/api/api-tests', { ...test, queryParams: {}, authType: 'none' })).id;
   }
   console.log(`Tests: ${Object.keys(webIds).length} web, ${Object.keys(apiIds).length} API`);
 
   const ui = (names) => names.map((n) => ({ id: webIds[n], type: 'ui' }));
   const apiSel = (names) => names.map((n) => ({ id: apiIds[n], type: 'api' }));
-  const common = { captureScreenshots: 'on_failed_steps', captureVideo: 'on_failure', captureTrace: 'on_failure', captureNetwork: 'always', reRunOnFailure: 'none' };
+  const common = {
+    captureScreenshots: 'on_failed_steps',
+    captureVideo: 'on_failure',
+    captureTrace: 'on_failure',
+    captureNetwork: 'always',
+    reRunOnFailure: 'none',
+  };
   const PLANS = [
     {
       name: 'Nightly regression',
       description: 'Every storefront journey on Chromium, Firefox and WebKit.',
       testMachinesConfig: [machine('chromium'), machine('firefox'), machine('webkit')],
-      maxParallelTests: 4, ...common,
+      maxParallelTests: 4,
+      ...common,
       selectedTests: ui(WEB_TESTS.filter((t) => t.name !== FAILING).map((t) => t.name)),
       runs: 4,
     },
@@ -183,15 +273,21 @@ async function main() {
       name: 'Checkout smoke',
       description: 'The paths that take money, before every release.',
       testMachinesConfig: [machine('chromium')],
-      maxParallelTests: 2, ...common,
-      selectedTests: ui(['Sign in with valid credentials', 'Order confirmation appears', 'Express shipping updates the total']),
+      maxParallelTests: 2,
+      ...common,
+      selectedTests: ui([
+        'Sign in with valid credentials',
+        'Order confirmation appears',
+        'Express shipping updates the total',
+      ]),
       runs: 8,
     },
     {
       name: 'Orders API contract',
       description: 'Create, read back and health-check the orders service.',
       testMachinesConfig: [machine('chromium')],
-      maxParallelTests: 1, ...common,
+      maxParallelTests: 1,
+      ...common,
       selectedTests: apiSel(API_TESTS.map((t) => t.name)),
       runs: 8,
     },
@@ -200,7 +296,8 @@ async function main() {
       name: 'Catalog checks',
       description: 'Banners and prices on the catalog pages.',
       testMachinesConfig: [machine('chromium'), machine('firefox')],
-      maxParallelTests: 2, ...common,
+      maxParallelTests: 2,
+      ...common,
       selectedTests: ui([FAILING, 'Express shipping updates the total']),
       runs: 1,
     },
@@ -235,7 +332,9 @@ async function main() {
 
   // Runs one after the other, so a small collaudo stack is not flooded. RUNS_PER_PLAN, when
   // set, overrides each plan's own count.
-  const rounds = Math.max(...PLANS.map((p) => (process.env.RUNS_PER_PLAN ? RUNS_PER_PLAN : p.runs)));
+  const rounds = Math.max(
+    ...PLANS.map((p) => (process.env.RUNS_PER_PLAN ? RUNS_PER_PLAN : p.runs)),
+  );
   for (let round = 1; round <= rounds; round++) {
     for (const plan of PLANS) {
       const wanted = process.env.RUNS_PER_PLAN ? RUNS_PER_PLAN : plan.runs;

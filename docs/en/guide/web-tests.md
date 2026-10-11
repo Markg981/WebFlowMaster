@@ -20,50 +20,50 @@ Drag an action from **Available Actions** into the **Test Sequence**, then drop 
 on it (or use **Set Element**). Fill in the value the action needs: the text to type, the option to
 choose, the text to expect.
 
-| Action | What it does |
-|---|---|
-| **Navigate** | Goes to an address. |
-| **Click Element** | Clicks. |
-| **Input Text** | Types into a field. |
-| **Select Option** | Chooses an option of a native dropdown. |
-| **Pick From Dropdown** | Opens a custom dropdown and picks an option by its text. |
-| **Hover** | Moves the mouse over an element (for menus that open on hover). |
-| **Scroll** | Scrolls the page or an element. |
-| **Ensure State** | Switches a checkbox or toggle on or off, only if it is not already. |
-| **Wait** | Waits a fixed number of milliseconds. Prefer the waits below. |
-| **Wait For Element** | Waits until an element is visible, or hidden. |
-| **Wait For Text** | Waits until an element contains a text. |
-| **Wait For Network** | Waits until the page's requests have settled. |
-| **Assert Visible** | Fails unless the element is visible. |
-| **Assert Text Contains** | Fails unless the element contains the text. |
-| **Assert Element Count** | Fails unless the number of matching elements is right, e.g. `==1`, `>=5`, `<3`. |
-| **Assert state** | Fails unless a control is checked, enabled, editable — or the opposite. |
-| **Check accessibility** | Checks the page with axe-core at that point, and fails on violations at or above the severity you choose (serious by default). |
-| **Set location** | From then on the browser reports this position to the page — see [Location and downloads](#location-and-downloads). |
-| **Check a download** | Clicks the element and checks the file it downloads — see [Location and downloads](#location-and-downloads). |
-| **Measure page speed** | Checks the Core Web Vitals and timings the browser measured for the page against limits — see [Page speed](#page-speed). |
-| **Lighthouse audit** | Runs Lighthouse on the current page and checks its scores — see [Page speed](#page-speed). |
-| **Press key** | Presses a key or a combination — `Enter`, `Tab`, `Escape`, `Control+A` — on the element, or on whatever has focus when the step has none. |
-| **Double-click** / **Right-click** | Double-clicks, or opens the element's context menu. |
-| **Drag and drop** | Drags the element onto the one whose selector is the value. |
-| **Upload file** | Gives a file input — or the button that opens the file chooser — a file made from the value: `invoice.csv`, or `invoice.csv\|its content`. |
-| **Answer dialog** | Says how to answer the next `alert`, `confirm` or `prompt`: `accept`, `dismiss`, or `accept:text`. Put it **before** the step that opens the dialog. A dialog nobody answered is dismissed. |
-| **Switch tab** | Continues in another tab: empty for the newest, a number (from 1), or text in its address or title. |
-| **Close tab** | Closes the current tab and goes back to the one that opened it. |
-| **Store text in variable** | Reads the element's text, or a field's value, into the variable the value names, for later steps. |
-| **Set variable** | `name=value`, for later steps. See [generated values](#generated-values). |
-| **Wait for email** | Waits for the email sent to an address and reads its code and link into variables. See [emails](#emails). |
-| **Wait for SMS** | Waits for the text message sent to a test number and reads its code into a variable. See [SMS](#sms). |
-| **Query database** | Runs a SQL statement against the environment's database and reads the first row into variables. See [database](#database). |
-| **Assert values** | Fails unless a comparison holds: <code v-pre>{{db.value}} == 1</code>, <code v-pre>{{total}} > 0</code>, <code v-pre>{{email.subject}} contains Welcome</code>. The same comparisons as a condition without an element. |
-| **Set cookie** / **Clear cookies** | `name=value` for the current address; or deletes them all. |
-| **Set localStorage** | `key=value` in the current page's storage. |
-| **Run JavaScript** | Runs the value in the page. Fails when it throws or returns `false`, so it can check what no other step can. |
-| **Mock request** | From then on, answers the page's requests to an address instead of the server — see [Mocking the network](#mocking-the-network). |
-| **Block requests** | From then on, the page's requests to an address fail as if the network were down. |
-| **Clear mocks** | Takes back every mock and block: the page reaches the real servers again. |
-| **If** / **Else** / **End if** | Runs steps only when a condition holds. See [conditions and loops](#conditions-and-loops). |
-| **Repeat** / **Repeat while** / **End loop** | Runs steps a number of times, or while a condition holds. |
+| Action                                       | What it does                                                                                                                                                                                                            |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Navigate**                                 | Goes to an address.                                                                                                                                                                                                     |
+| **Click Element**                            | Clicks.                                                                                                                                                                                                                 |
+| **Input Text**                               | Types into a field.                                                                                                                                                                                                     |
+| **Select Option**                            | Chooses an option of a native dropdown.                                                                                                                                                                                 |
+| **Pick From Dropdown**                       | Opens a custom dropdown and picks an option by its text.                                                                                                                                                                |
+| **Hover**                                    | Moves the mouse over an element (for menus that open on hover).                                                                                                                                                         |
+| **Scroll**                                   | Scrolls the page or an element.                                                                                                                                                                                         |
+| **Ensure State**                             | Switches a checkbox or toggle on or off, only if it is not already.                                                                                                                                                     |
+| **Wait**                                     | Waits a fixed number of milliseconds. Prefer the waits below.                                                                                                                                                           |
+| **Wait For Element**                         | Waits until an element is visible, or hidden.                                                                                                                                                                           |
+| **Wait For Text**                            | Waits until an element contains a text.                                                                                                                                                                                 |
+| **Wait For Network**                         | Waits until the page's requests have settled.                                                                                                                                                                           |
+| **Assert Visible**                           | Fails unless the element is visible.                                                                                                                                                                                    |
+| **Assert Text Contains**                     | Fails unless the element contains the text.                                                                                                                                                                             |
+| **Assert Element Count**                     | Fails unless the number of matching elements is right, e.g. `==1`, `>=5`, `<3`.                                                                                                                                         |
+| **Assert state**                             | Fails unless a control is checked, enabled, editable — or the opposite.                                                                                                                                                 |
+| **Check accessibility**                      | Checks the page with axe-core at that point, and fails on violations at or above the severity you choose (serious by default).                                                                                          |
+| **Set location**                             | From then on the browser reports this position to the page — see [Location and downloads](#location-and-downloads).                                                                                                     |
+| **Check a download**                         | Clicks the element and checks the file it downloads — see [Location and downloads](#location-and-downloads).                                                                                                            |
+| **Measure page speed**                       | Checks the Core Web Vitals and timings the browser measured for the page against limits — see [Page speed](#page-speed).                                                                                                |
+| **Lighthouse audit**                         | Runs Lighthouse on the current page and checks its scores — see [Page speed](#page-speed).                                                                                                                              |
+| **Press key**                                | Presses a key or a combination — `Enter`, `Tab`, `Escape`, `Control+A` — on the element, or on whatever has focus when the step has none.                                                                               |
+| **Double-click** / **Right-click**           | Double-clicks, or opens the element's context menu.                                                                                                                                                                     |
+| **Drag and drop**                            | Drags the element onto the one whose selector is the value.                                                                                                                                                             |
+| **Upload file**                              | Gives a file input — or the button that opens the file chooser — a file made from the value: `invoice.csv`, or `invoice.csv\|its content`.                                                                              |
+| **Answer dialog**                            | Says how to answer the next `alert`, `confirm` or `prompt`: `accept`, `dismiss`, or `accept:text`. Put it **before** the step that opens the dialog. A dialog nobody answered is dismissed.                             |
+| **Switch tab**                               | Continues in another tab: empty for the newest, a number (from 1), or text in its address or title.                                                                                                                     |
+| **Close tab**                                | Closes the current tab and goes back to the one that opened it.                                                                                                                                                         |
+| **Store text in variable**                   | Reads the element's text, or a field's value, into the variable the value names, for later steps.                                                                                                                       |
+| **Set variable**                             | `name=value`, for later steps. See [generated values](#generated-values).                                                                                                                                               |
+| **Wait for email**                           | Waits for the email sent to an address and reads its code and link into variables. See [emails](#emails).                                                                                                               |
+| **Wait for SMS**                             | Waits for the text message sent to a test number and reads its code into a variable. See [SMS](#sms).                                                                                                                   |
+| **Query database**                           | Runs a SQL statement against the environment's database and reads the first row into variables. See [database](#database).                                                                                              |
+| **Assert values**                            | Fails unless a comparison holds: <code v-pre>{{db.value}} == 1</code>, <code v-pre>{{total}} > 0</code>, <code v-pre>{{email.subject}} contains Welcome</code>. The same comparisons as a condition without an element. |
+| **Set cookie** / **Clear cookies**           | `name=value` for the current address; or deletes them all.                                                                                                                                                              |
+| **Set localStorage**                         | `key=value` in the current page's storage.                                                                                                                                                                              |
+| **Run JavaScript**                           | Runs the value in the page. Fails when it throws or returns `false`, so it can check what no other step can.                                                                                                            |
+| **Mock request**                             | From then on, answers the page's requests to an address instead of the server — see [Mocking the network](#mocking-the-network).                                                                                        |
+| **Block requests**                           | From then on, the page's requests to an address fail as if the network were down.                                                                                                                                       |
+| **Clear mocks**                              | Takes back every mock and block: the page reaches the real servers again.                                                                                                                                               |
+| **If** / **Else** / **End if**               | Runs steps only when a condition holds. See [conditions and loops](#conditions-and-loops).                                                                                                                              |
+| **Repeat** / **Repeat while** / **End loop** | Runs steps a number of times, or while a condition holds.                                                                                                                                                               |
 
 Every action already waits for its element to be ready before acting, so a fixed **Wait** is
 rarely needed; when a step fails because something was slow, wait for the thing itself.
@@ -83,7 +83,7 @@ naming the step.
 
 A condition takes one of two forms:
 
-- **With an element**: the state it is in *now* — `visible`, `hidden`, `exists`, `missing`,
+- **With an element**: the state it is in _now_ — `visible`, `hidden`, `exists`, `missing`,
   `checked`, `unchecked`, `enabled`, `disabled`, or `contains:text` / `not contains:text`. The
   answer is immediate: "if the cookie banner is visible, close it" moves on at once when there is
   no banner. For something still loading, put a wait step before the condition.
@@ -116,14 +116,14 @@ When it stops, the **Debugger** panel shows why, the page at that moment and its
 steps run so far and the variables (values that come from the environment are secrets: only their
 names are shown). The step it stopped at has a coloured outline on the canvas. From there:
 
-| Command | Does |
-|---|---|
-| **Continue** | Runs on to the next breakpoint, failure or the end. |
-| **Step** | Runs this step and stops before the next one. |
-| **Retry** | After a failure: runs the step again, with the correction if there is one. |
-| **Skip** | Passes over this step. Not offered for if, else, loops and their ends. |
-| **Stop** | Ends the run and closes the browser. |
-| **Pause** | While running: stops before the next step. |
+| Command      | Does                                                                       |
+| ------------ | -------------------------------------------------------------------------- |
+| **Continue** | Runs on to the next breakpoint, failure or the end.                        |
+| **Step**     | Runs this step and stops before the next one.                              |
+| **Retry**    | After a failure: runs the step again, with the correction if there is one. |
+| **Skip**     | Passes over this step. Not offered for if, else, loops and their ends.     |
+| **Stop**     | Ends the run and closes the browser.                                       |
+| **Pause**    | While running: stops before the next step.                                 |
 
 The step's **selector** and **value** can be corrected before continuing, stepping or retrying.
 A correction to one of the test's own steps is also copied into the canvas; **save** the test to
@@ -193,16 +193,16 @@ A placeholder nothing defines is not blanked: the step fails and names the missi
 A placeholder starting with `$` makes up a value each time it is used, wherever variables are
 accepted — a step, a URL, an API test:
 
-| Placeholder | Value |
-|---|---|
-| <code v-pre>{{$randomEmail}}</code> | `test.k3v9…@example.com` (a domain that delivers nowhere) |
-| <code v-pre>{{$uuid}}</code> | A random UUID |
-| <code v-pre>{{$randomInt(1,100)}}</code> | A whole number between the two, included (0–1000 by default) |
-| <code v-pre>{{$randomString(8)}}</code> | Letters and digits |
-| <code v-pre>{{$randomDigits(6)}}</code> | Digits only |
-| <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | A date, `yyyy-mm-dd`, today or that many days away |
-| <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code> | The current time, ISO or in milliseconds |
-| <code v-pre>{{$totp(secret&#95;mfa)}}</code> | The code an authenticator app shows now for the seed in the variable named; see [two-step sign-in](#totp) |
+| Placeholder                                                      | Value                                                                                                     |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| <code v-pre>{{$randomEmail}}</code>                              | `test.k3v9…@example.com` (a domain that delivers nowhere)                                                 |
+| <code v-pre>{{$uuid}}</code>                                     | A random UUID                                                                                             |
+| <code v-pre>{{$randomInt(1,100)}}</code>                         | A whole number between the two, included (0–1000 by default)                                              |
+| <code v-pre>{{$randomString(8)}}</code>                          | Letters and digits                                                                                        |
+| <code v-pre>{{$randomDigits(6)}}</code>                          | Digits only                                                                                               |
+| <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | A date, `yyyy-mm-dd`, today or that many days away                                                        |
+| <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code>   | The current time, ISO or in milliseconds                                                                  |
+| <code v-pre>{{$totp(secret&#95;mfa)}}</code>                     | The code an authenticator app shows now for the seed in the variable named; see [two-step sign-in](#totp) |
 
 Each placeholder is a new value. To use one twice — register with an address, then log in with
 it — give it a name first: **Set variable** <code v-pre>email={{$randomEmail}}</code>, then
@@ -229,7 +229,7 @@ seconds.
 
 To skip the login in every test: choose the environment in the builder, start a recording, sign in
 inside the recording window, and press **Save login for this environment**. Runs against that
-environment then start with that session; the environment shows as *signed in* in the picker. Save
+environment then start with that session; the environment shows as _signed in_ in the picker. Save
 it again when the session expires.
 
 ### Emails: codes and links {#emails}
@@ -242,12 +242,12 @@ sends to its SMTP port, for any address. Point the application's SMTP at it in t
 
 A sign-up, start to end:
 
-| Action | Value |
-|---|---|
-| Set variable | <code v-pre>email={{$randomEmail}}</code> |
-| Type | <code v-pre>{{email}}</code> in the address field, then submit the form |
-| Wait for email | <code v-pre>{{email}}\|Confirm your account</code> |
-| Type | <code v-pre>{{email.otp}}</code> in the code field — or **Navigate** to <code v-pre>{{email.link}}</code> |
+| Action         | Value                                                                                                     |
+| -------------- | --------------------------------------------------------------------------------------------------------- |
+| Set variable   | <code v-pre>email={{$randomEmail}}</code>                                                                 |
+| Type           | <code v-pre>{{email}}</code> in the address field, then submit the form                                   |
+| Wait for email | <code v-pre>{{email}}\|Confirm your account</code>                                                        |
+| Type           | <code v-pre>{{email.otp}}</code> in the code field — or **Navigate** to <code v-pre>{{email.link}}</code> |
 
 The value is the address, optionally followed by `|` and text the subject contains, and by a
 second `|` and a regular expression for the code: <code v-pre>{{email}}|Your code|code: (&#91;A-Z0-9-]+)</code>
@@ -255,11 +255,11 @@ reads what its first group matches. The step waits up to 60 seconds for the newe
 exact address (in To, Cc or Bcc) that arrived **after the test started**, so a fixed address such
 as a seeded user's does not read the email of the previous run. Then it sets:
 
-| Variable | Holds |
-|---|---|
-| <code v-pre>{{email.otp}}</code> | The code: the first 4–8 digit number after a word such as *code*, *OTP*, *PIN* or *verification*, or the only one in the email; with a pattern, what the pattern found |
-| <code v-pre>{{email.link}}</code> | The first link to follow, skipping unsubscribe links, images and stylesheets |
-| <code v-pre>{{email.subject}}</code>, <code v-pre>{{email.from}}</code>, <code v-pre>{{email.text}}</code> | The subject, the sender's address and the text (an HTML-only email is turned into text) |
+| Variable                                                                                                   | Holds                                                                                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <code v-pre>{{email.otp}}</code>                                                                           | The code: the first 4–8 digit number after a word such as _code_, _OTP_, _PIN_ or _verification_, or the only one in the email; with a pattern, what the pattern found |
+| <code v-pre>{{email.link}}</code>                                                                          | The first link to follow, skipping unsubscribe links, images and stylesheets                                                                                           |
+| <code v-pre>{{email.subject}}</code>, <code v-pre>{{email.from}}</code>, <code v-pre>{{email.text}}</code> | The subject, the sender's address and the text (an HTML-only email is turned into text)                                                                                |
 
 A variable the email did not provide — no code, no link — is left undefined, so a later step that
 uses it fails and names it, rather than typing a value from an earlier email. A pattern that
@@ -276,7 +276,7 @@ browser runs, so a plan on a local agent reaches a Mailpit on the agent's networ
 **Wait for SMS** does for a code sent by text message what **Wait for email** does for one sent by
 email. It reads the organization's **SMS inbox** (Settings → SMS inbox): an owner creates an
 inbound address there, shown once, and sets it as the incoming-message webhook of the test numbers
-at the SMS provider — Twilio's *A message comes in*, Vonage's inbound URL, or any provider that
+at the SMS provider — Twilio's _A message comes in_, Vonage's inbound URL, or any provider that
 posts `To` and `Body` (or `to` and `text`), as a form or JSON. Every message those numbers receive
 is filed there and kept seven days; the settings page lists the latest.
 
@@ -297,19 +297,19 @@ What a screen does not show — the row the checkout wrote, the flag an admin pa
 test must prepare without clicking through ten screens, a **Query database** step reads or writes
 directly. Its value is a SQL statement, with variables:
 
-| Action | Value |
-|---|---|
+| Action         | Value                                                                         |
+| -------------- | ----------------------------------------------------------------------------- |
 | Query database | <code v-pre>SELECT status, total FROM orders WHERE email = '{{email}}'</code> |
-| Assert values | <code v-pre>{{db.status}} == Paid</code> |
+| Assert values  | <code v-pre>{{db.status}} == Paid</code>                                      |
 
 It sets:
 
-| Variable | Holds |
-|---|---|
-| <code v-pre>{{db.value}}</code> | The first column of the first row (empty when there is no row) |
-| <code v-pre>{{db.column}}</code> | Each column of the first row by its name — <code v-pre>{{db.status}}</code>, <code v-pre>{{db.total}}</code>; characters other than letters, digits, `_` and `.` become `_`, so name computed columns (`count(*) AS n`) |
-| <code v-pre>{{db.rowCount}}</code> | The rows returned, or those an INSERT, UPDATE or DELETE changed |
-| <code v-pre>{{db.json}}</code> | The first 100 rows, as JSON |
+| Variable                           | Holds                                                                                                                                                                                                                   |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <code v-pre>{{db.value}}</code>    | The first column of the first row (empty when there is no row)                                                                                                                                                          |
+| <code v-pre>{{db.column}}</code>   | Each column of the first row by its name — <code v-pre>{{db.status}}</code>, <code v-pre>{{db.total}}</code>; characters other than letters, digits, `_` and `.` become `_`, so name computed columns (`count(*) AS n`) |
+| <code v-pre>{{db.rowCount}}</code> | The rows returned, or those an INSERT, UPDATE or DELETE changed                                                                                                                                                         |
+| <code v-pre>{{db.json}}</code>     | The first 100 rows, as JSON                                                                                                                                                                                             |
 
 Dates are ISO, empty values are empty text. Each query forgets the previous one's columns, so a
 column this query did not return is undefined rather than left over. A statement the database
@@ -317,11 +317,11 @@ refuses fails the step with the database's message.
 
 **Which database.** The environment's secret `db.url`, an address whose scheme picks the database:
 
-| Database | Address |
-|---|---|
-| PostgreSQL | `postgres://user:password@host:5432/shop` (`?sslmode=require` for TLS) |
-| MySQL, MariaDB | `mysql://user:password@host:3306/shop` |
-| SQL Server | `sqlserver://user:password@host:1433/Shop` — `sqlserver://…@host%5CSQLEXPRESS/Shop` for a named instance; `?encrypt=false` for a server without TLS, `?trustServerCertificate=true` for a self-signed certificate |
+| Database       | Address                                                                                                                                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PostgreSQL     | `postgres://user:password@host:5432/shop` (`?sslmode=require` for TLS)                                                                                                                                            |
+| MySQL, MariaDB | `mysql://user:password@host:3306/shop`                                                                                                                                                                            |
+| SQL Server     | `sqlserver://user:password@host:1433/Shop` — `sqlserver://…@host%5CSQLEXPRESS/Shop` for a named instance; `?encrypt=false` for a server without TLS, `?trustServerCertificate=true` for a self-signed certificate |
 
 Characters such as `@` or `/` in the password are written as `%40` and `%2F`. For a second
 database, name it: `db.reporting.url` and the value `@reporting SELECT …`.
@@ -367,16 +367,16 @@ point of the flow, and fails when a limit is broken. Its value lists the limits:
 
 `LCP < 2.5s, CLS <= 0.1, INP < 200, TTFB < 800ms, weight < 2MB`
 
-| Metric | What it is |
-|---|---|
-| `LCP` | Largest Contentful Paint: when the main content appeared. |
-| `CLS` | Cumulative Layout Shift: how much the page jumped (largest 5-second window). |
-| `INP` | Interaction to Next Paint: the slowest response to a click or key so far; measured only after the test has interacted. |
-| `FCP`, `TTFB`, `DCL`, `LOAD` | First paint, first byte, DOM ready, load event. |
-| `TBT` | Total Blocking Time: long tasks after the first paint. |
-| `REQUESTS`, `WEIGHT` | How many requests, and how many bytes were transferred (cross-origin files without `Timing-Allow-Origin` count as 0). |
+| Metric                       | What it is                                                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `LCP`                        | Largest Contentful Paint: when the main content appeared.                                                              |
+| `CLS`                        | Cumulative Layout Shift: how much the page jumped (largest 5-second window).                                           |
+| `INP`                        | Interaction to Next Paint: the slowest response to a click or key so far; measured only after the test has interacted. |
+| `FCP`, `TTFB`, `DCL`, `LOAD` | First paint, first byte, DOM ready, load event.                                                                        |
+| `TBT`                        | Total Blocking Time: long tasks after the first paint.                                                                 |
+| `REQUESTS`, `WEIGHT`         | How many requests, and how many bytes were transferred (cross-origin files without `Timing-Allow-Origin` count as 0).  |
 
-Times take `ms` or `s`, sizes `KB` or `MB`. Left empty, it checks the Core Web Vitals' *good*
+Times take `ms` or `s`, sizes `KB` or `MB`. Left empty, it checks the Core Web Vitals' _good_
 thresholds: `LCP <= 2500, CLS <= 0.1, INP <= 200`. Put it after the page has loaded — after a
 **Wait for element** on the main content, for instance — and after an interaction when INP matters.
 Only Chromium measures LCP, CLS, INP and TBT; in Firefox and WebKit they are shown as — and a limit
@@ -505,7 +505,7 @@ application changes, correcting the selector once in **Settings → Element repo
 test.
 
 When a step cannot find its element and the installation has an AI key, the run may **heal** it:
-it asks for a new selector, retries, and marks the step *healed* in the report. A healed kept
+it asks for a new selector, retries, and marks the step _healed_ in the report. A healed kept
 element shows the old and the new selector in the repository, for you to confirm.
 
 ## Saving

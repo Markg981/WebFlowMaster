@@ -19,7 +19,9 @@ describe('redactHistoryEntry', () => {
 
   it('replaces environment values under keys that are not sensitive by name', () => {
     const entry = redactHistoryEntry(
-      { responseBody: JSON.stringify({ echo: `Bearer ${env.token}`, origin: `${env.apiBase}/get` }) },
+      {
+        responseBody: JSON.stringify({ echo: `Bearer ${env.token}`, origin: `${env.apiBase}/get` }),
+      },
       env,
     );
     expect(JSON.parse(entry.responseBody!)).toEqual({
@@ -38,7 +40,10 @@ describe('redactHistoryEntry', () => {
       {},
     );
     expect(JSON.parse(entry.responseBody!)).toEqual({ access_token: '[REDACTED]', user: 'ada' });
-    expect(entry.responseHeaders).toEqual({ 'set-cookie': '[REDACTED]', 'content-type': 'application/json' });
+    expect(entry.responseHeaders).toEqual({
+      'set-cookie': '[REDACTED]',
+      'content-type': 'application/json',
+    });
     expect(entry.requestHeaders).toEqual({ Authorization: '[REDACTED]' });
   });
 
@@ -47,11 +52,16 @@ describe('redactHistoryEntry', () => {
       { requestHeaders: { Authorization: 'Bearer {{token}}', 'X-Api-Key': env.token } },
       env,
     );
-    expect(entry.requestHeaders).toEqual({ Authorization: 'Bearer {{token}}', 'X-Api-Key': '{{token}}' });
+    expect(entry.requestHeaders).toEqual({
+      Authorization: 'Bearer {{token}}',
+      'X-Api-Key': '{{token}}',
+    });
   });
 
   it('scrubs a text body and leaves an untouched one byte-for-byte', () => {
-    expect(redactHistoryEntry({ responseBody: `token=${env.token}` }, env).responseBody).toBe('token=[REDACTED]');
+    expect(redactHistoryEntry({ responseBody: `token=${env.token}` }, env).responseBody).toBe(
+      'token=[REDACTED]',
+    );
     const pretty = '{\n  "ok": true\n}';
     expect(redactHistoryEntry({ responseBody: pretty }, env).responseBody).toBe(pretty);
   });

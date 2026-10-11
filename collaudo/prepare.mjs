@@ -25,7 +25,17 @@ const BASE = process.env.WFM_URL ?? 'https://wfm.collaudo.test';
 const PASSWORD = 'Collaudo.2026!';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SESSIONS = join(HERE, '.sessions');
-const COMPOSE = ['compose', '-p', 'wfm-collaudo', '--env-file', 'collaudo/collaudo.env', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml'];
+const COMPOSE = [
+  'compose',
+  '-p',
+  'wfm-collaudo',
+  '--env-file',
+  'collaudo/collaudo.env',
+  '-f',
+  'docker-compose.yml',
+  '-f',
+  'collaudo/docker-compose.collaudo.yml',
+];
 
 const step = (text) => console.log(`\n▸ ${text}`);
 const ok = (text) => console.log(`  ✓ ${text}`);
@@ -37,10 +47,16 @@ async function login(username) {
     body: JSON.stringify({ username, password: PASSWORD }),
   });
   if (!res.ok) throw new Error(`Sign-in of ${username}: ${res.status} ${await res.text()}`);
-  const cookie = res.headers.getSetCookie().map((c) => c.split(';')[0]).find((c) => c.startsWith('connect.sid='));
+  const cookie = res.headers
+    .getSetCookie()
+    .map((c) => c.split(';')[0])
+    .find((c) => c.startsWith('connect.sid='));
   if (!cookie) throw new Error(`Sign-in of ${username} returned no session cookie`);
   const body = await res.json().catch(() => ({}));
-  if (body?.mfaRequired) throw new Error(`${username} has two-factor on: reset it (collaudo/README.md, "Credenziali perse")`);
+  if (body?.mfaRequired)
+    throw new Error(
+      `${username} has two-factor on: reset it (collaudo/README.md, "Credenziali perse")`,
+    );
   return cookie;
 }
 
@@ -52,7 +68,10 @@ function saveSession(username, cookie) {
     join(SESSIONS, `${username}.cookies`),
     `# Netscape HTTP Cookie File\n#HttpOnly_${host}\tFALSE\t/\tTRUE\t${expires}\tconnect.sid\t${value}\n`,
   );
-  writeFileSync(join(SESSIONS, `${username}.json`), JSON.stringify({ baseUrl: BASE, username, cookie }, null, 2));
+  writeFileSync(
+    join(SESSIONS, `${username}.json`),
+    JSON.stringify({ baseUrl: BASE, username, cookie }, null, 2),
+  );
 }
 
 function client(cookie) {
@@ -125,11 +144,18 @@ async function main() {
   const sso = (await owner('GET', '/api/organization/sso'))?.settings;
   if (sso?.required) {
     const { issuer, clientId, domains, defaultRole, enabled } = sso;
-    await owner('PUT', '/api/organization/sso', { issuer, clientId, domains, defaultRole, enabled, required: false });
+    await owner('PUT', '/api/organization/sso', {
+      issuer,
+      clientId,
+      domains,
+      defaultRole,
+      enabled,
+      required: false,
+    });
     ok('single sign-on non più obbligatorio (lasciato da SSO-06)');
   }
   await owner('PUT', '/api/organization/mfa-policy', { required: false });
-  ok('secondo fattore non richiesto all\'organizzazione');
+  ok("secondo fattore non richiesto all'organizzazione");
 
   for (const username of ['editor.a', 'viewer.a']) {
     sessions[username] = await login(username);
@@ -139,9 +165,15 @@ async function main() {
   const editor = client(sessions['editor.a']);
 
   step('Ambiente Staging');
-  let staging = list(await editor('GET', '/api/environments'), 'environments').find((e) => e.name === 'Staging');
+  let staging = list(await editor('GET', '/api/environments'), 'environments').find(
+    (e) => e.name === 'Staging',
+  );
   if (!staging) staging = await editor('POST', '/api/environments', { name: 'Staging' });
-  const have = new Set(list(await editor('GET', `/api/environments/${staging.id}/secrets`), 'secrets').map((s) => s.keyName));
+  const have = new Set(
+    list(await editor('GET', `/api/environments/${staging.id}/secrets`), 'secrets').map(
+      (s) => s.keyName,
+    ),
+  );
   const secrets = {
     baseUrl: 'https://the-internet.herokuapp.com',
     USERNAME: 'tomsmith',
@@ -150,7 +182,8 @@ async function main() {
     token: 'collaudo-token',
   };
   for (const [keyName, value] of Object.entries(secrets)) {
-    if (!have.has(keyName)) await editor('POST', `/api/environments/${staging.id}/secrets`, { keyName, value });
+    if (!have.has(keyName))
+      await editor('POST', `/api/environments/${staging.id}/secrets`, { keyName, value });
   }
   ok(`Staging (id ${staging.id}) con ${Object.keys(secrets).join(', ')}`);
 
@@ -158,7 +191,9 @@ async function main() {
   const loginTest = await ensureTest(editor, 'Login ok');
   ok(`test "Login ok" (id ${loginTest.id})`);
   const planName = 'Collaudo · rete e trace';
-  let plan = list(await editor('GET', '/api/test-plans'), 'testPlans').find((p) => p.name === planName);
+  let plan = list(await editor('GET', '/api/test-plans'), 'testPlans').find(
+    (p) => p.name === planName,
+  );
   if (!plan) {
     plan = await editor('POST', '/api/test-plans', {
       name: planName,
@@ -173,7 +208,9 @@ async function main() {
     // REP-09 purges a run's evidence on purpose: such a run no longer has the HAR REP-04 opens.
     .filter((r) => r.completedAt && !r.artifactsPurgedAt);
   if (runs.length === 0) {
-    const started = await editor('POST', `/api/run-test-plan/${plan.id}`, { environmentId: staging.id });
+    const started = await editor('POST', `/api/run-test-plan/${plan.id}`, {
+      environmentId: staging.id,
+    });
     const runId = started?.data?.id;
     process.stdout.write(`  … run ${runId} in corso`);
     const deadline = Date.now() + 5 * 60_000;
@@ -184,7 +221,8 @@ async function main() {
       run = await editor('GET', `/api/test-plan-executions/${runId}`);
     } while (!run.completedAt && Date.now() < deadline);
     console.log('');
-    if (!run.completedAt) throw new Error(`Run ${runId} not finished after 5 minutes: is the worker up?`);
+    if (!run.completedAt)
+      throw new Error(`Run ${runId} not finished after 5 minutes: is the worker up?`);
     ok(`run ${runId} concluso: ${run.status}`);
   } else {
     ok(`run già presente (${runs[0].id})`);

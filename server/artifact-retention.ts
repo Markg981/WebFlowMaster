@@ -42,7 +42,9 @@ export interface RetentionReport {
   failed: string[];
 }
 
-export async function purgeExpiredArtifacts(options: RetentionOptions = {}): Promise<RetentionReport> {
+export async function purgeExpiredArtifacts(
+  options: RetentionOptions = {},
+): Promise<RetentionReport> {
   const days = options.days ?? retentionDays();
   const report: RetentionReport = { purgedRuns: 0, removedFiles: 0, failed: [] };
   if (days <= 0) return report;
@@ -54,19 +56,27 @@ export async function purgeExpiredArtifacts(options: RetentionOptions = {}): Pro
   // Across every organization: retention is not a request and has no tenant. It only finds the
   // runs; each is marked inside its own organization's context.
   const expired = await privilegedDb
-    .select({ id: testPlanExecutions.id, organizationId: testPlanExecutions.organizationId, testPlanId: testPlanExecutions.testPlanId })
+    .select({
+      id: testPlanExecutions.id,
+      organizationId: testPlanExecutions.organizationId,
+      testPlanId: testPlanExecutions.testPlanId,
+    })
     .from(testPlanExecutions)
-    .where(and(
-      isNull(testPlanExecutions.artifactsPurgedAt),
-      inArray(testPlanExecutions.status, TERMINAL),
-      lt(testPlanExecutions.completedAt, cutoff),
-    ))
+    .where(
+      and(
+        isNull(testPlanExecutions.artifactsPurgedAt),
+        inArray(testPlanExecutions.status, TERMINAL),
+        lt(testPlanExecutions.completedAt, cutoff),
+      ),
+    )
     .orderBy(asc(testPlanExecutions.completedAt))
     .limit(options.batchSize ?? 500);
 
   for (const run of expired) {
     try {
-      report.removedFiles += await store.deletePrefix(`${RESULTS_PREFIX}${run.testPlanId}/${run.id}/`);
+      report.removedFiles += await store.deletePrefix(
+        `${RESULTS_PREFIX}${run.testPlanId}/${run.id}/`,
+      );
       // Marked only once its files are gone: a run whose removal failed is tried again next time.
       await runWithTenant(run.organizationId, () =>
         withTenantTransaction((tx) =>

@@ -46,7 +46,7 @@ export async function browserMatrixEvidence(
   const brand = choice.channel === 'msedge' ? 'edge' : choice.channel;
   const effective: MatrixConfiguration = {
     // A local channel launches that installed binary; a remote connection proves only its engine.
-    browser: choice.grid && brand ? null : (engine === choice.engine ? brand ?? engine : engine),
+    browser: choice.grid && brand ? null : engine === choice.engine ? (brand ?? engine) : engine,
     browserVersion: text(browser.version?.()),
   };
   // A remote browser's host OS cannot be inferred from the worker or its user agent.
@@ -68,7 +68,8 @@ export async function browserMatrixEvidence(
       const details = typeof answer === 'string' ? JSON.parse(answer) : answer;
       const data = details?.data ?? details;
       const reportedBrowser = text(data?.browser ?? data?.browserName);
-      if (reportedBrowser && reportedBrowser.toLowerCase() !== 'safari') effective.browser = reportedBrowser;
+      if (reportedBrowser && reportedBrowser.toLowerCase() !== 'safari')
+        effective.browser = reportedBrowser;
       sessionId = text(data?.hashed_id ?? data?.test_id ?? data?.sessionId);
       effective.os = text(data?.os ?? data?.platform);
       effective.osVersion = text(data?.os_version ?? data?.osVersion);

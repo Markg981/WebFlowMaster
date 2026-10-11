@@ -8,7 +8,13 @@ const quietInterval = 3_600_000; // the tests call check() themselves
 describe('watchRun', () => {
   it('keeps going while the run is running and within its time', async () => {
     const heartbeat = vi.fn(async () => 'running' as const);
-    const watch = watchRun('run-1', { heartbeat, intervalMs: quietInterval, maxDurationMs: 60_000, startedAt: 0, now: () => 30_000 });
+    const watch = watchRun('run-1', {
+      heartbeat,
+      intervalMs: quietInterval,
+      maxDurationMs: 60_000,
+      startedAt: 0,
+      now: () => 30_000,
+    });
 
     await watch.check();
 
@@ -20,7 +26,11 @@ describe('watchRun', () => {
 
   it('stops when somebody asked to cancel, and aborts the test in progress', async () => {
     const onStop = vi.fn();
-    const watch = watchRun('run-1', { heartbeat: async () => 'cancelling', intervalMs: quietInterval, onStop });
+    const watch = watchRun('run-1', {
+      heartbeat: async () => 'cancelling',
+      intervalMs: quietInterval,
+      onStop,
+    });
 
     await watch.check();
 
@@ -33,7 +43,13 @@ describe('watchRun', () => {
 
   it('stops at its time limit', async () => {
     let clock = 0;
-    const watch = watchRun('run-1', { heartbeat: async () => 'running', intervalMs: quietInterval, maxDurationMs: 60_000, startedAt: 0, now: () => clock });
+    const watch = watchRun('run-1', {
+      heartbeat: async () => 'running',
+      intervalMs: quietInterval,
+      maxDurationMs: 60_000,
+      startedAt: 0,
+      now: () => clock,
+    });
 
     clock = 59_000;
     await watch.check();

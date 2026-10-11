@@ -20,8 +20,14 @@ import {
  * the test rather than quietly shortening it.
  */
 
-const step = (id: string, name = id) => ({ action: { id, name }, targetElement: { selector: `#${id}` } });
-const call = (groupId: string, name = 'Login') => ({ action: { id: STEP_GROUP_ACTION_ID, name }, value: groupId });
+const step = (id: string, name = id) => ({
+  action: { id, name },
+  targetElement: { selector: `#${id}` },
+});
+const call = (groupId: string, name = 'Login') => ({
+  action: { id: STEP_GROUP_ACTION_ID, name },
+  value: groupId,
+});
 
 const loginGroup: LoadedStepGroup = {
   id: 'group-1',
@@ -34,12 +40,17 @@ describe('recognising a call', () => {
     expect(isGroupCall(call('group-1'))).toBe(true);
     expect(isGroupCall(step('click'))).toBe(false);
     expect(groupIdOf(call('group-1'))).toBe('group-1');
-    expect(groupIdOf({ action: { id: STEP_GROUP_ACTION_ID }, value: { groupId: 'group-2' } })).toBe('group-2');
+    expect(groupIdOf({ action: { id: STEP_GROUP_ACTION_ID }, value: { groupId: 'group-2' } })).toBe(
+      'group-2',
+    );
     expect(groupIdOf({ action: { id: STEP_GROUP_ACTION_ID } })).toBeNull();
   });
 
   it('lists what a sequence needs, once each and in order', () => {
-    expect(referencedGroupIds([call('b'), step('click'), call('a'), call('b')])).toEqual(['b', 'a']);
+    expect(referencedGroupIds([call('b'), step('click'), call('a'), call('b')])).toEqual([
+      'b',
+      'a',
+    ]);
     expect(referencedGroupIds([step('click')])).toEqual([]);
     expect(referencedGroupIds('not a sequence')).toEqual([]);
   });
@@ -106,7 +117,10 @@ describe('expandStepGroups', () => {
   });
 
   it('refuses a call that names no group', () => {
-    const { errors } = expandStepGroups([{ action: { id: STEP_GROUP_ACTION_ID, name: 'Login' } }], [loginGroup]);
+    const { errors } = expandStepGroups(
+      [{ action: { id: STEP_GROUP_ACTION_ID, name: 'Login' } }],
+      [loginGroup],
+    );
 
     expect(errors.join(' ')).toContain('does not say which one');
   });

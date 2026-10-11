@@ -24,9 +24,19 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs-extra';
 import type { Download } from 'playwright';
-import { parseSmsQuery, SMS_TIMEOUT_MS, waitForSms as waitForSmsInInbox, type SmsQuery } from './sms-inbox';
+import {
+  parseSmsQuery,
+  SMS_TIMEOUT_MS,
+  waitForSms as waitForSmsInInbox,
+  type SmsQuery,
+} from './sms-inbox';
 import { inspectDownload } from './download-check';
-import { parseDownloadChecks, parseGeolocation, runDownloadChecks, type DownloadFinding } from '@shared/downloads';
+import {
+  parseDownloadChecks,
+  parseGeolocation,
+  runDownloadChecks,
+  type DownloadFinding,
+} from '@shared/downloads';
 import { measurePagePerformance, runLighthouse } from './web-performance';
 import {
   DEFAULT_PERFORMANCE_LIMITS,
@@ -40,8 +50,19 @@ import {
   type PerformanceMetric,
 } from '@shared/web-performance';
 import { scanAccessibility } from './accessibility';
-import { allowsSelfSignedCertificate, requestVariables, substituteVariables } from './outbound-http';
-import { EMAIL_TIMEOUT_MS, findOtp, inboxConfig, parseEmailQuery, waitForEmail, type InboxGet } from './email-inbox';
+import {
+  allowsSelfSignedCertificate,
+  requestVariables,
+  substituteVariables,
+} from './outbound-http';
+import {
+  EMAIL_TIMEOUT_MS,
+  findOtp,
+  inboxConfig,
+  parseEmailQuery,
+  waitForEmail,
+  type InboxGet,
+} from './email-inbox';
 import {
   DATABASE_TIMEOUT_MS,
   connectionVariable,
@@ -237,13 +258,20 @@ export function parseAssertionValue(value: string): { operator: string; count: n
 
 function compareCount(operator: string, actual: number, expected: number): boolean | null {
   switch (operator) {
-    case '==': return actual === expected;
-    case '>=': return actual >= expected;
-    case '<=': return actual <= expected;
-    case '>': return actual > expected;
-    case '<': return actual < expected;
-    case '!=': return actual !== expected;
-    default: return null;
+    case '==':
+      return actual === expected;
+    case '>=':
+      return actual >= expected;
+    case '<=':
+      return actual <= expected;
+    case '>':
+      return actual > expected;
+    case '<':
+      return actual < expected;
+    case '!=':
+      return actual !== expected;
+    default:
+      return null;
   }
 }
 
@@ -294,11 +322,18 @@ interface StepRuntime {
   /** See StepContext.database. */
   database: DatabaseRunner;
   /** The browser's own measurements of the page (server/web-performance.ts). */
-  measurePerformance: () => Promise<{ url: string; metrics: Record<PerformanceMetric, number | null> }>;
+  measurePerformance: () => Promise<{
+    url: string;
+    metrics: Record<PerformanceMetric, number | null>;
+  }>;
   /** Where a step keeps a file it produced (StepContext.artifactDir); none in the builder's preview. */
   artifactDir?: string;
   /** A text message to the number, received after `since`; null when none came in time. */
-  waitForSms: (query: SmsQuery, since: number, timeoutMs: number) => Promise<{ body: string; fromNumber: string | null } | null>;
+  waitForSms: (
+    query: SmsQuery,
+    since: number,
+    timeoutMs: number,
+  ) => Promise<{ body: string; fromNumber: string | null } | null>;
   /** Lighthouse on the page's address, with the test's cookies for it. */
   runLighthouse: (formFactor: 'mobile' | 'desktop') => Promise<Omit<LighthouseFinding, 'checks'>>;
 }
@@ -312,7 +347,10 @@ function requireValue(rt: StepRuntime, action: string): { value: string } | { er
 }
 
 /** Reads the step's selector, or explains what is missing. */
-function requireSelector(rt: StepRuntime, action: string): { selector: string } | { error: string } {
+function requireSelector(
+  rt: StepRuntime,
+  action: string,
+): { selector: string } | { error: string } {
   if (!rt.selector) return { error: `Selector missing for ${action} action.` };
   return { selector: rt.selector };
 }
@@ -352,7 +390,9 @@ export function parseUploadValue(
   const bar = value.indexOf('|');
   const name = (bar === -1 ? value : value.slice(0, bar)).trim();
   if (name === '' || /[\\/]/.test(name)) {
-    return { error: `"${name}" is not a file name. Write a name such as "invoice.csv", optionally followed by |content.` };
+    return {
+      error: `"${name}" is not a file name. Write a name such as "invoice.csv", optionally followed by |content.`,
+    };
   }
   const content = bar === -1 ? `Test file ${name}\n` : value.slice(bar + 1);
   const extension = name.includes('.') ? name.split('.').pop()!.toLowerCase() : '';
@@ -438,7 +478,16 @@ async function findTab(rt: StepRuntime, wanted: string): Promise<Page | null> {
 }
 
 /** What a condition can ask of an element. */
-export const CONDITION_STATES = ['visible', 'hidden', 'exists', 'missing', 'checked', 'unchecked', 'enabled', 'disabled'] as const;
+export const CONDITION_STATES = [
+  'visible',
+  'hidden',
+  'exists',
+  'missing',
+  'checked',
+  'unchecked',
+  'enabled',
+  'disabled',
+] as const;
 
 /**
  * Compares two values: "{{status}} == Paid", "{{count}} > 3", "{{title}} contains Order".
@@ -453,7 +502,10 @@ export const CONDITION_STATES = ['visible', 'hidden', 'exists', 'missing', 'chec
  * of hoping one appears. A condition about something still loading goes after a wait step.
  * Without an element, a comparison of values.
  */
-async function evaluateCondition(rt: StepRuntime, action: string): Promise<{ value: boolean; describe: string } | { error: string }> {
+async function evaluateCondition(
+  rt: StepRuntime,
+  action: string,
+): Promise<{ value: boolean; describe: string } | { error: string }> {
   const wanted = requireValue(rt, action);
   if ('error' in wanted) return wanted;
   const condition = wanted.value.trim();
@@ -824,7 +876,11 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
         .waitFor({ state: 'attached', timeout: rt.timeoutMs });
       return passed;
     } catch {
-      const actual = await rt.locator(target.selector).first().textContent().catch(() => null);
+      const actual = await rt
+        .locator(target.selector)
+        .first()
+        .textContent()
+        .catch(() => null);
       return failed(
         `Timed out after ${rt.timeoutMs}ms waiting for "${target.selector}" to contain ` +
           `"${expected.value}". Last seen: "${actual ?? 'nothing'}".`,
@@ -858,13 +914,17 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
   assertAccessible: async (rt) => {
     const wanted = typeof rt.raw === 'string' ? rt.raw.trim().toLowerCase() : '';
     if (wanted !== '' && !isAccessibilityImpact(wanted)) {
-      return failed(`Unknown severity "${rt.raw}" for assertAccessible. Use one of: ${ACCESSIBILITY_IMPACTS.join(', ')}.`);
+      return failed(
+        `Unknown severity "${rt.raw}" for assertAccessible. Use one of: ${ACCESSIBILITY_IMPACTS.join(', ')}.`,
+      );
     }
     const threshold = wanted === '' ? DEFAULT_ACCESSIBILITY_THRESHOLD : wanted;
     const finding = await rt.scanAccessibility(threshold);
     return {
       status: finding.blocking > 0 ? 'failed' : 'passed',
-      ...(finding.blocking > 0 ? { error: describeFinding(finding) } : { detail: describeFinding(finding) }),
+      ...(finding.blocking > 0
+        ? { error: describeFinding(finding) }
+        : { detail: describeFinding(finding) }),
       accessibility: finding,
     };
   },
@@ -886,7 +946,10 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const context = rt.page.context();
     await context.grantPermissions(['geolocation']);
     await context.setGeolocation(point);
-    return { status: 'passed', detail: `The browser is now at ${point.latitude}, ${point.longitude} (±${point.accuracy} m).` };
+    return {
+      status: 'passed',
+      detail: `The browser is now at ${point.latitude}, ${point.longitude} (±${point.accuracy} m).`,
+    };
   },
 
   /**
@@ -911,7 +974,9 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       ]);
     } catch (error) {
       if (error instanceof Error && /timeout/i.test(error.message)) {
-        return failed(`Clicking ${target.selector} did not download a file within ${Math.round(rt.timeoutMs / 1000)} s.`);
+        return failed(
+          `Clicking ${target.selector} did not download a file within ${Math.round(rt.timeoutMs / 1000)} s.`,
+        );
       }
       throw error;
     }
@@ -920,7 +985,10 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const name = download.suggestedFilename();
     const dir = rt.artifactDir ?? (await fs.mkdtemp(path.join(os.tmpdir(), 'wfm-download-')));
     await fs.ensureDir(dir);
-    const file = path.join(dir, `download_${Date.now()}_${name.replace(/[^\w.-]+/g, '_').slice(-80)}`);
+    const file = path.join(
+      dir,
+      `download_${Date.now()}_${name.replace(/[^\w.-]+/g, '_').slice(-80)}`,
+    );
     await download.saveAs(file);
     let inspected: Awaited<ReturnType<typeof inspectDownload>>;
     try {
@@ -931,18 +999,32 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       if (!rt.artifactDir) await fs.remove(dir).catch(() => undefined);
     }
     const results = runDownloadChecks(inspected.file, inspected.text, checks);
-    const finding: DownloadFinding = { ...inspected.file, checks: results, ...(rt.artifactDir ? { fileUrl: file } : {}) };
+    const finding: DownloadFinding = {
+      ...inspected.file,
+      checks: results,
+      ...(rt.artifactDir ? { fileUrl: file } : {}),
+    };
     rt.storeVariable?.('download.name', name);
     rt.storeVariable?.('download.size', String(inspected.file.size));
-    if (inspected.file.rows !== undefined) rt.storeVariable?.('download.rows', String(inspected.file.rows));
-    if (inspected.file.pages !== undefined) rt.storeVariable?.('download.pages', String(inspected.file.pages));
+    if (inspected.file.rows !== undefined)
+      rt.storeVariable?.('download.rows', String(inspected.file.rows));
+    if (inspected.file.pages !== undefined)
+      rt.storeVariable?.('download.pages', String(inspected.file.pages));
     rt.storeVariable?.('download.text', inspected.text.slice(0, 2000));
     const kind = `${name} (${inspected.file.type}, ${Math.max(1, Math.round(inspected.file.size / 1024))} KB${inspected.file.rows !== undefined ? `, ${inspected.file.rows} rows` : ''}${inspected.file.pages !== undefined ? `, ${inspected.file.pages} page(s)` : ''})`;
     const wrong = results.filter((r) => !r.ok);
     if (wrong.length) {
-      return { status: 'failed', error: `Downloaded ${kind}, but: ${wrong.map((r) => (r.actual ? `${r.text} (found ${r.actual})` : `${r.text} (not found)`)).join('; ')}.`, download: finding };
+      return {
+        status: 'failed',
+        error: `Downloaded ${kind}, but: ${wrong.map((r) => (r.actual ? `${r.text} (found ${r.actual})` : `${r.text} (not found)`)).join('; ')}.`,
+        download: finding,
+      };
     }
-    return { status: 'passed', detail: `Downloaded ${kind}${results.length ? `; ${results.length} check(s) hold` : ''}.`, download: finding };
+    return {
+      status: 'passed',
+      detail: `Downloaded ${kind}${results.length ? `; ${results.length} check(s) hold` : ''}.`,
+      download: finding,
+    };
   },
 
   measurePerformance: async (rt) => {
@@ -971,7 +1053,8 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const parsed = parseLighthouseLimits(resolved.value);
     if ('error' in parsed) return failed(parsed.error);
     const url = rt.page.url();
-    if (!/^https?:/i.test(url)) return failed('Lighthouse needs a page with a web address: navigate first.');
+    if (!/^https?:/i.test(url))
+      return failed('Lighthouse needs a page with a web address: navigate first.');
     let audit: Omit<LighthouseFinding, 'checks'>;
     try {
       audit = await rt.runLighthouse(parsed.formFactor);
@@ -980,12 +1063,22 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     }
     const checks = check(parsed.limits, audit.scores);
     const finding: LighthouseFinding = { ...audit, checks };
-    const scores = Object.entries(audit.scores).map(([k, v]) => `${k} ${v}`).join(', ');
+    const scores = Object.entries(audit.scores)
+      .map(([k, v]) => `${k} ${v}`)
+      .join(', ');
     const failing = checks.filter((c) => c.ok === false);
     if (failing.length) {
-      return { status: 'failed', error: `Lighthouse (${audit.formFactor}) below the limit: ${failing.map((c) => `${c.metric} ${c.actual} (limit ${c.op} ${c.value})`).join('; ')}.`, lighthouse: finding };
+      return {
+        status: 'failed',
+        error: `Lighthouse (${audit.formFactor}) below the limit: ${failing.map((c) => `${c.metric} ${c.actual} (limit ${c.op} ${c.value})`).join('; ')}.`,
+        lighthouse: finding,
+      };
     }
-    return { status: 'passed', detail: `Lighthouse (${audit.formFactor}): ${scores || 'no scores'}.`, lighthouse: finding };
+    return {
+      status: 'passed',
+      detail: `Lighthouse (${audit.formFactor}): ${scores || 'no scores'}.`,
+      lighthouse: finding,
+    };
   },
 
   /**
@@ -1109,7 +1202,9 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in resolved) return failed(resolved.error);
     const answer = parseDialogAnswer(resolved.value);
     if (!answer) {
-      return failed(`Unknown answer "${raw}" for handleDialog. Use accept, dismiss, or accept:text for a prompt.`);
+      return failed(
+        `Unknown answer "${raw}" for handleDialog. Use accept, dismiss, or accept:text for a prompt.`,
+      );
     }
     queueDialogAnswer(rt.page, answer);
     return {
@@ -1126,7 +1221,10 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in wanted) return failed(wanted.error);
     const tab = await findTab(rt, wanted.value);
     if (!tab) {
-      const open = rt.page.context().pages().map((p, i) => `${i + 1}: ${p.url()}`);
+      const open = rt.page
+        .context()
+        .pages()
+        .map((p, i) => `${i + 1}: ${p.url()}`);
       return failed(
         `No tab matching "${wanted.value || 'the newest'}" within ${rt.timeoutMs}ms. Open tabs — ${open.join(', ')}.`,
       );
@@ -1138,7 +1236,10 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
 
   /** Closes the current tab and goes back to the one that opened it, or to the first. */
   closeTab: async (rt) => {
-    const remaining = rt.page.context().pages().filter((p) => p !== rt.page && !p.isClosed());
+    const remaining = rt.page
+      .context()
+      .pages()
+      .filter((p) => p !== rt.page && !p.isClosed());
     if (remaining.length === 0) {
       return failed('This is the only open tab; closing it would leave the test nowhere to go.');
     }
@@ -1153,18 +1254,24 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const target = requireSelector(rt, 'storeText');
     if ('error' in target) return failed(target.error);
     const name = typeof rt.raw === 'string' ? rt.raw.trim().replace(/^\{\{\s*|\s*\}\}$/g, '') : '';
-    if (name === '') return failed('Value missing for storeText action: the name of the variable to store into.');
+    if (name === '')
+      return failed('Value missing for storeText action: the name of the variable to store into.');
     if (!VARIABLE_NAME.test(name)) {
-      return failed(`"${rt.raw ?? ''}" is not a variable name. Use letters, digits, _ and . — for example orderNumber.`);
+      return failed(
+        `"${rt.raw ?? ''}" is not a variable name. Use letters, digits, _ and . — for example orderNumber.`,
+      );
     }
-    if (!rt.storeVariable) return failed('This run has no variables of its own to store a value in.');
+    if (!rt.storeVariable)
+      return failed('This run has no variables of its own to store a value in.');
 
     const element = rt.locator(target.selector).first();
     await element.waitFor({ state: 'attached', timeout: rt.timeoutMs });
     // A field's content is its value; anything else's is the text a person reads on it.
     const read = await element.evaluate((node) => ({
       text:
-        node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement
+        node instanceof HTMLInputElement ||
+        node instanceof HTMLTextAreaElement ||
+        node instanceof HTMLSelectElement
           ? node.value
           : ((node as HTMLElement).innerText ?? node.textContent ?? ''),
       secret: node instanceof HTMLInputElement && node.type === 'password',
@@ -1172,7 +1279,10 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const value = read.text.trim();
     rt.storeVariable(name, value);
     // The report is read by more people than the test's variables are.
-    return { status: 'passed', detail: `{{${name}}} = ${read.secret ? '(a password field, not shown)' : `"${excerpt(value)}"`}` };
+    return {
+      status: 'passed',
+      detail: `{{${name}}} = ${read.secret ? '(a password field, not shown)' : `"${excerpt(value)}"`}`,
+    };
   },
 
   setCookie: async (rt) => {
@@ -1181,7 +1291,8 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const cookie = parseAssignment(wanted.value);
     if (!cookie) return failed(`"${rt.raw}" is not name=value.`);
     const url = rt.page.url();
-    if (!/^https?:/i.test(url)) return failed('Open a page first: a cookie is set for the address the tab is on.');
+    if (!/^https?:/i.test(url))
+      return failed('Open a page first: a cookie is set for the address the tab is on.');
     await rt.page.context().addCookies([{ name: cookie.name, value: cookie.value, url }]);
     return passed;
   },
@@ -1210,14 +1321,21 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const wanted = requireValue(rt, 'blockRequests');
     if ('error' in wanted) return failed(wanted.error);
     const pattern = wanted.value.trim();
-    if (!pattern) return failed('Name the address to block: a URL or a pattern such as **/analytics/**.');
+    if (!pattern)
+      return failed('Name the address to block: a URL or a pattern such as **/analytics/**.');
     await installBlock(rt.page.context(), pattern);
     return { status: 'passed', detail: `Requests to ${pattern} fail, for the rest of the test.` };
   },
 
   clearMocks: async (rt) => {
     const count = await clearMocks(rt.page.context());
-    return { status: 'passed', detail: count === 0 ? 'No mock or block was set.' : `${count} mock(s) and block(s) taken back: the page reaches the servers again.` };
+    return {
+      status: 'passed',
+      detail:
+        count === 0
+          ? 'No mock or block was set.'
+          : `${count} mock(s) and block(s) taken back: the page reaches the servers again.`,
+    };
   },
 
   setLocalStorage: async (rt) => {
@@ -1226,9 +1344,14 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const entry = parseAssignment(wanted.value);
     if (!entry) return failed(`"${rt.raw}" is not key=value.`);
     try {
-      await rt.page.evaluate(([key, value]) => window.localStorage.setItem(key, value), [entry.name, entry.value] as const);
+      await rt.page.evaluate(([key, value]) => window.localStorage.setItem(key, value), [
+        entry.name,
+        entry.value,
+      ] as const);
     } catch (error: any) {
-      return failed(`Could not write localStorage on ${rt.page.url()}: ${error?.message ?? error}. Open a page of the application first.`);
+      return failed(
+        `Could not write localStorage on ${rt.page.url()}: ${error?.message ?? error}. Open a page of the application first.`,
+      );
     }
     return passed;
   },
@@ -1271,7 +1394,10 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if (result === false) return failed('The script returned false.');
     return result === undefined
       ? passed
-      : { status: 'passed', detail: `Returned ${excerpt(JSON.stringify(result) ?? String(result))}.` };
+      : {
+          status: 'passed',
+          detail: `Returned ${excerpt(JSON.stringify(result) ?? String(result))}.`,
+        };
   },
 
   setVariable: async (rt) => {
@@ -1281,11 +1407,16 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     // string — stays whole.
     const assignment = parseAssignment(wanted.value);
     if (!assignment || !VARIABLE_NAME.test(assignment.name)) {
-      return failed(`"${rt.raw}" is not name=value with a name of letters, digits, _ and . — for example email={{$randomEmail}}.`);
+      return failed(
+        `"${rt.raw}" is not name=value with a name of letters, digits, _ and . — for example email={{$randomEmail}}.`,
+      );
     }
-    if (!rt.storeVariable) return failed('This run has no variables of its own to store a value in.');
+    if (!rt.storeVariable)
+      return failed('This run has no variables of its own to store a value in.');
     rt.storeVariable(assignment.name, assignment.value);
-    const shown = assignment.name.startsWith('secret_') ? '(secret, not shown)' : `"${excerpt(assignment.value)}"`;
+    const shown = assignment.name.startsWith('secret_')
+      ? '(secret, not shown)'
+      : `"${excerpt(assignment.value)}"`;
     return { status: 'passed', detail: `{{${assignment.name}}} = ${shown}` };
   },
 
@@ -1301,7 +1432,8 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
           'or set MAILPIT_URL on the server.',
       );
     }
-    if (!rt.storeVariable) return failed('This run has no variables of its own to store the email in.');
+    if (!rt.storeVariable)
+      return failed('This run has no variables of its own to store the email in.');
 
     const seconds = Number(rt.vars['mailpit.timeout']);
     const timeoutMs = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : EMAIL_TIMEOUT_MS;
@@ -1328,13 +1460,18 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if (otp !== null) rt.storeVariable('email.otp', otp);
     if (link !== null) rt.storeVariable('email.link', link);
     if (query.pattern && otp === null) {
-      return failed(`The email "${message.subject}" arrived, but the pattern /${query.pattern.source}/ matched nothing in it.`);
+      return failed(
+        `The email "${message.subject}" arrived, but the pattern /${query.pattern.source}/ matched nothing in it.`,
+      );
     }
     const read = [
       otp !== null ? `{{email.otp}} = "${otp}"` : 'no code found',
       link !== null ? `{{email.link}} = ${excerpt(link)}` : 'no link found',
     ];
-    return { status: 'passed', detail: `"${excerpt(message.subject)}" from ${message.from || 'an unknown sender'}: ${read.join(', ')}.` };
+    return {
+      status: 'passed',
+      detail: `"${excerpt(message.subject)}" from ${message.from || 'an unknown sender'}: ${read.join(', ')}.`,
+    };
   },
 
   /**
@@ -1347,7 +1484,8 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in wanted) return failed(wanted.error);
     const query = parseSmsQuery(wanted.value);
     if ('error' in query) return failed(query.error);
-    if (!rt.storeVariable) return failed('This run has no variables of its own to store the message in.');
+    if (!rt.storeVariable)
+      return failed('This run has no variables of its own to store the message in.');
     const seconds = Number(rt.vars['sms.timeout']);
     const timeoutMs = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : SMS_TIMEOUT_MS;
     for (const field of ['otp', 'text', 'from']) rt.forgetVariable?.(`sms.${field}`);
@@ -1362,12 +1500,19 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     rt.storeVariable('sms.text', message.body);
     rt.storeVariable('sms.from', message.fromNumber ?? '');
     if (otp !== null) rt.storeVariable('sms.otp', otp);
-    if (query.pattern && otp === null) return failed(`A message arrived, but the pattern /${query.pattern.source}/ matched nothing in it.`);
-    return { status: 'passed', detail: `Text from ${message.fromNumber || 'an unknown sender'}: ${otp !== null ? `{{sms.otp}} = "${otp}"` : 'no code found'}.` };
+    if (query.pattern && otp === null)
+      return failed(
+        `A message arrived, but the pattern /${query.pattern.source}/ matched nothing in it.`,
+      );
+    return {
+      status: 'passed',
+      detail: `Text from ${message.fromNumber || 'an unknown sender'}: ${otp !== null ? `{{sms.otp}} = "${otp}"` : 'no code found'}.`,
+    };
   },
 
   queryDatabase: async (rt) => {
-    if (typeof rt.raw !== 'string' || rt.raw.trim() === '') return failed('Value missing for queryDatabase action.');
+    if (typeof rt.raw !== 'string' || rt.raw.trim() === '')
+      return failed('Value missing for queryDatabase action.');
     // The connection's name is read before substitution: it names a variable, it is not one.
     const query = parseDatabaseQuery(rt.raw);
     if ('error' in query) return failed(query.error);
@@ -1376,28 +1521,42 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const variable = connectionVariable(query.connection);
     const url = rt.vars[variable];
     if (!url) {
-      return failed(`No database is configured: add ${variable} to the environment, for example postgres://user:password@host:5432/shop.`);
+      return failed(
+        `No database is configured: add ${variable} to the environment, for example postgres://user:password@host:5432/shop.`,
+      );
     }
     const kind = databaseKind(url);
     if (!kind) return failed(`${variable} is not a postgres://, mysql:// or sqlserver:// address.`);
-    if (!rt.storeVariable) return failed('This run has no variables of its own to store the result in.');
+    if (!rt.storeVariable)
+      return failed('This run has no variables of its own to store the result in.');
 
     const seconds = Number(rt.vars['db.timeout']);
-    const timeoutMs = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : DATABASE_TIMEOUT_MS;
+    const timeoutMs =
+      Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : DATABASE_TIMEOUT_MS;
     // The previous query's columns are forgotten, so {{db.total}} never answers for a query
     // that had no such column.
-    for (const name of (rt.vars['db.columns'] ?? '').split(',').filter(Boolean)) rt.forgetVariable?.(`db.${name}`);
-    for (const name of ['db.rowCount', 'db.value', 'db.json', 'db.columns']) rt.forgetVariable?.(name);
+    for (const name of (rt.vars['db.columns'] ?? '').split(',').filter(Boolean))
+      rt.forgetVariable?.(`db.${name}`);
+    for (const name of ['db.rowCount', 'db.value', 'db.json', 'db.columns'])
+      rt.forgetVariable?.(name);
 
     let result;
     try {
       result = await rt.database(kind, url, sql.value, timeoutMs);
     } catch (error: any) {
-      return failed(`The database answered: ${redactMessage(String(error?.message ?? error), url)}`);
+      return failed(
+        `The database answered: ${redactMessage(String(error?.message ?? error), url)}`,
+      );
     }
     const values = resultVariables(result);
     for (const [name, value] of Object.entries(values)) rt.storeVariable(name, value);
-    rt.storeVariable('db.columns', Object.keys(values).filter((n) => !['db.rowCount', 'db.value', 'db.json'].includes(n)).map((n) => n.slice(3)).join(','));
+    rt.storeVariable(
+      'db.columns',
+      Object.keys(values)
+        .filter((n) => !['db.rowCount', 'db.value', 'db.json'].includes(n))
+        .map((n) => n.slice(3))
+        .join(','),
+    );
     const described = result.columns.length
       ? `${result.rowCount} row(s); {{db.value}} = "${excerpt(values['db.value'])}"`
       : `${result.rowCount} row(s) changed`;
@@ -1411,8 +1570,13 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in compared) return failed(compared.error);
     // What the values were, unless one of them is a secret: the report is read by everyone.
     const raw = String(rt.raw).trim();
-    const shown = /\{\{\s*secret_/.test(raw) || raw === wanted.value.trim() ? `"${raw}"` : `"${raw}" (${excerpt(wanted.value.trim())})`;
-    return compared.value ? { status: 'passed', detail: `${shown} holds.` } : failed(`${shown} does not hold.`);
+    const shown =
+      /\{\{\s*secret_/.test(raw) || raw === wanted.value.trim()
+        ? `"${raw}"`
+        : `"${raw}" (${excerpt(wanted.value.trim())})`;
+    return compared.value
+      ? { status: 'passed', detail: `${shown} holds.` }
+      : failed(`${shown} does not hold.`);
   },
 
   if: async (rt) => {
@@ -1434,9 +1598,15 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in wanted) return failed(wanted.error);
     const times = Number(wanted.value.trim());
     if (!Number.isInteger(times) || times < 0 || times > MAX_LOOP_ITERATIONS) {
-      return failed(`"${wanted.value}" is not a number of times between 0 and ${MAX_LOOP_ITERATIONS}.`);
+      return failed(
+        `"${wanted.value}" is not a number of times between 0 and ${MAX_LOOP_ITERATIONS}.`,
+      );
     }
-    return { status: 'passed', iterations: times, detail: `Repeating ${times} time${times === 1 ? '' : 's'}.` };
+    return {
+      status: 'passed',
+      iterations: times,
+      detail: `Repeating ${times} time${times === 1 ? '' : 's'}.`,
+    };
   },
 
   repeatWhile: async (rt) => {
@@ -1522,7 +1692,8 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
       : {}),
     startedAt: ctx.startedAt ?? Date.now(),
     artifactDir: ctx.artifactDir,
-    waitForSms: ctx.waitForSms ?? ((query, since, timeoutMs) => waitForSmsInInbox(query, since, timeoutMs)),
+    waitForSms:
+      ctx.waitForSms ?? ((query, since, timeoutMs) => waitForSmsInInbox(query, since, timeoutMs)),
     inboxGet: async (url, headers) => {
       const response = await page.context().request.get(url, {
         headers,
@@ -1537,7 +1708,10 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
       ctx.runLighthouse ??
       (async (formFactor) => {
         const url = page.url();
-        const cookies = await page.context().cookies(url).catch(() => []);
+        const cookies = await page
+          .context()
+          .cookies(url)
+          .catch(() => []);
         return runLighthouse({
           url,
           formFactor,

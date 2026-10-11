@@ -30,18 +30,16 @@ async function fixture() {
 describe('enqueue datasets', () => {
   it('uses the published dataset instead of the draft', async () => {
     const f = await fixture();
-    await privilegedDb
-      .insert(testVersions)
-      .values({
-        organizationId: f.organizationId,
-        testId: f.test.id,
-        version: 1,
-        name: f.test.name,
-        url: f.test.url,
-        sequence: [],
-        elements: [],
-        dataset: [{ sku: 'published' }],
-      });
+    await privilegedDb.insert(testVersions).values({
+      organizationId: f.organizationId,
+      testId: f.test.id,
+      version: 1,
+      name: f.test.name,
+      url: f.test.url,
+      sequence: [],
+      elements: [],
+      dataset: [{ sku: 'published' }],
+    });
     await privilegedDb
       .update(tests)
       .set({ publishedVersion: 1, dataset: [{ sku: 'draft' }] })

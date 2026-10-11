@@ -54,31 +54,62 @@ export const mailerDeps: { transport?: Pick<Transporter, 'sendMail'> | null } = 
 let cached: { url: string; transport: Transporter } | null = null;
 
 export function mailConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
-  return mailerDeps.transport !== undefined ? mailerDeps.transport !== null : !!(env.SMTP_URL?.trim() && env.SMTP_FROM?.trim());
+  return mailerDeps.transport !== undefined
+    ? mailerDeps.transport !== null
+    : !!(env.SMTP_URL?.trim() && env.SMTP_FROM?.trim());
 }
 
-export async function organizationMailConfigured(organizationId: number | null | undefined, env: NodeJS.ProcessEnv = process.env): Promise<boolean> {
+export async function organizationMailConfigured(
+  organizationId: number | null | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<boolean> {
   const config = await resolveMailConfiguration(organizationId, env);
   return config.inherited ? mailConfigured(env) : config.configured;
 }
 /** Public sign-in capability, independent of a supplied username; account availability is never disclosed. */
-export async function mailAvailableOnInstallation(env: NodeJS.ProcessEnv = process.env): Promise<boolean> {
+export async function mailAvailableOnInstallation(
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<boolean> {
   if (mailConfigured(env)) return true;
-  return !!(await privilegedDb.select({ id: mailSettings.organizationId }).from(mailSettings).where(eq(mailSettings.smtpMode, 'custom')).limit(1)).length;
+  return !!(
+    await privilegedDb
+      .select({ id: mailSettings.organizationId })
+      .from(mailSettings)
+      .where(eq(mailSettings.smtpMode, 'custom'))
+      .limit(1)
+  ).length;
 }
-export function smtpTransportOptions(config: ResolvedMailConfiguration, env: NodeJS.ProcessEnv = process.env): SMTPTransport.Options & { proxy?: string } {
+export function smtpTransportOptions(
+  config: ResolvedMailConfiguration,
+  env: NodeJS.ProcessEnv = process.env,
+): SMTPTransport.Options & { proxy?: string } {
   let smtp = config.smtp;
   if (!smtp && config.smtpUrl) {
     const url = new URL(config.smtpUrl);
     if (!['smtp:', 'smtps:'].includes(url.protocol)) throw new Error('Invalid SMTP URL');
     smtp = parseConnectionUrl(config.smtpUrl) as SMTPTransport.Options;
-    smtp.tls = { ...smtp.tls, ...(env.SMTP_TLS_REJECT_UNAUTHORIZED !== undefined ? { rejectUnauthorized: env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false' } : {}) };
+    smtp.tls = {
+      ...smtp.tls,
+      ...(env.SMTP_TLS_REJECT_UNAUTHORIZED !== undefined
+        ? { rejectUnauthorized: env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false' }
+        : {}),
+    };
   }
   const proxy = egressProxy();
-  return { ...smtp, logger: false, debug: false, connectionTimeout: 10_000, greetingTimeout: 10_000, socketTimeout: 20_000,
-    ...(proxy ? { proxy: proxy.origin } : {}) };
+  return {
+    ...smtp,
+    logger: false,
+    debug: false,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+    ...(proxy ? { proxy: proxy.origin } : {}),
+  };
 }
-function transportFor(env: NodeJS.ProcessEnv, config: ResolvedMailConfiguration): Pick<Transporter, 'sendMail'> {
+function transportFor(
+  env: NodeJS.ProcessEnv,
+  config: ResolvedMailConfiguration,
+): Pick<Transporter, 'sendMail'> {
   if (mailerDeps.transport) return mailerDeps.transport;
   const options = smtpTransportOptions(config, env);
   if (!config.inherited) return nodemailer.createTransport(options);
@@ -101,30 +132,77 @@ function refusalMessage(error: unknown): string {
   return `The mail server refused the message${code ? ` (${code})` : ''}.`;
 }
 
-export async function sendMail(message: MailMessage, env: NodeJS.ProcessEnv = process.env): Promise<MailResult> {
-  if (!isEmailAddress(message.to)) return { sent: false, error: `"${message.to}" is not an e-mail address.` };
+export async function sendMail(
+  message: MailMessage,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<MailResult> {
+  if (!isEmailAddress(message.to))
+    return { sent: false, error: `"${message.to}" is not an e-mail address.` };
   let deliveryId: string | undefined;
   try {
     const config = await resolveMailConfiguration(message.organizationId, env);
-    if (!(config.inherited ? mailConfigured(env) : config.configured)) return { sent: false, error: 'E-mail is not configured for this organization.' };
+    if (!(config.inherited ? mailConfigured(env) : config.configured))
+      return { sent: false, error: 'E-mail is not configured for this organization.' };
     const rendered = await applyMailTemplate(message);
-    const queued = await queueMail(message.organizationId ?? null, message.to, message.purpose ?? 'other');
+    const queued = await queueMail(
+      message.organizationId ?? null,
+      message.to,
+      message.purpose ?? 'other',
+    );
     deliveryId = queued.id;
-    if (queued.suppressed) return { sent: false, state: 'suppressed', deliveryId, error: 'This recipient previously hard-bounced in this organization. Mail was not sent.' };
-    const info = await transportFor(env, config).sendMail({ from: config.from || 'WebFlowMaster <no-reply@localhost>', to: message.to, subject: rendered.subject, text: rendered.text, html: rendered.html,
-      messageId: `<${deliveryId}@webflowmaster.local>`, headers: { 'X-Wfm-Delivery-Id': deliveryId, ...(config.provider ? providerHeaders(config.provider, deliveryId) : {}) }, disableFileAccess: true, disableUrlAccess: true });
-    const address = (value: any) => String(typeof value === 'string' ? value : value?.address ?? '').toLowerCase();
+    if (queued.suppressed)
+      return {
+        sent: false,
+        state: 'suppressed',
+        deliveryId,
+        error: 'This recipient previously hard-bounced in this organization. Mail was not sent.',
+      };
+    const info = await transportFor(env, config).sendMail({
+      from: config.from || 'WebFlowMaster <no-reply@localhost>',
+      to: message.to,
+      subject: rendered.subject,
+      text: rendered.text,
+      html: rendered.html,
+      messageId: `<${deliveryId}@webflowmaster.local>`,
+      headers: {
+        'X-Wfm-Delivery-Id': deliveryId,
+        ...(config.provider ? providerHeaders(config.provider, deliveryId) : {}),
+      },
+      disableFileAccess: true,
+      disableUrlAccess: true,
+    });
+    const address = (value: any) =>
+      String(typeof value === 'string' ? value : (value?.address ?? '')).toLowerCase();
     const recipient = message.to.toLowerCase();
-    const rejected = Array.isArray(info.rejected) && info.rejected.some((value: unknown) => address(value) === recipient);
-    const accepted = Array.isArray(info.accepted) && info.accepted.some((value: unknown) => address(value) === recipient);
+    const rejected =
+      Array.isArray(info.rejected) &&
+      info.rejected.some((value: unknown) => address(value) === recipient);
+    const accepted =
+      Array.isArray(info.accepted) &&
+      info.accepted.some((value: unknown) => address(value) === recipient);
     if (rejected || !accepted) {
       await finishMail(deliveryId, 'rejected');
-      return { sent: false, state: 'rejected', deliveryId, error: 'The mail server rejected or did not confirm this recipient.' };
+      return {
+        sent: false,
+        state: 'rejected',
+        deliveryId,
+        error: 'The mail server rejected or did not confirm this recipient.',
+      };
     }
     await finishMail(deliveryId, 'accepted');
     return { sent: true, state: 'accepted', deliveryId };
   } catch (error) {
-    if (deliveryId) { try { await finishMail(deliveryId, 'failed'); } catch { /* Never claim acceptance when tracking persistence fails. */ } }
-    return { sent: false, ...(deliveryId ? { state: 'failed' as const, deliveryId } : {}), error: refusalMessage(error) };
+    if (deliveryId) {
+      try {
+        await finishMail(deliveryId, 'failed');
+      } catch {
+        /* Never claim acceptance when tracking persistence fails. */
+      }
+    }
+    return {
+      sent: false,
+      ...(deliveryId ? { state: 'failed' as const, deliveryId } : {}),
+      error: refusalMessage(error),
+    };
   }
 }

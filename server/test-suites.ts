@@ -1,5 +1,14 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
-import { apiTests, mobileTests, testPlanSuites, testSuiteItems, testSuites, testTags, tests, type TestSuite } from '@shared/schema';
+import {
+  apiTests,
+  mobileTests,
+  testPlanSuites,
+  testSuiteItems,
+  testSuites,
+  testTags,
+  tests,
+  type TestSuite,
+} from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
 
 /**
@@ -20,13 +29,25 @@ export interface TestReference {
 }
 
 const keyOf = (ref: TestReference) =>
-  ref.testType === 'ui' ? `ui:${ref.testId}` : ref.testType === 'mobile' ? `mobile:${ref.mobileTestId}` : `api:${ref.apiTestId}`;
+  ref.testType === 'ui'
+    ? `ui:${ref.testId}`
+    : ref.testType === 'mobile'
+      ? `mobile:${ref.mobileTestId}`
+      : `api:${ref.apiTestId}`;
 
 /** The tests of one suite, in the order it runs them. */
-export async function testsOfSuite(tx: TenantTx, suite: Pick<TestSuite, 'id' | 'kind' | 'tagIds' | 'projectId'>): Promise<TestReference[]> {
+export async function testsOfSuite(
+  tx: TenantTx,
+  suite: Pick<TestSuite, 'id' | 'kind' | 'tagIds' | 'projectId'>,
+): Promise<TestReference[]> {
   if (suite.kind === 'static') {
     const items = await tx
-      .select({ testType: testSuiteItems.testType, testId: testSuiteItems.testId, apiTestId: testSuiteItems.apiTestId, mobileTestId: testSuiteItems.mobileTestId })
+      .select({
+        testType: testSuiteItems.testType,
+        testId: testSuiteItems.testId,
+        apiTestId: testSuiteItems.apiTestId,
+        mobileTestId: testSuiteItems.mobileTestId,
+      })
       .from(testSuiteItems)
       .where(eq(testSuiteItems.suiteId, suite.id))
       .orderBy(asc(testSuiteItems.position), asc(testSuiteItems.id));
@@ -40,42 +61,69 @@ export async function testsOfSuite(tx: TenantTx, suite: Pick<TestSuite, 'id' | '
 
   // Tests carrying every one of the tags: one row per tag they carry, counted.
   const tagged = await tx
-    .select({ testId: testTags.testId, apiTestId: testTags.apiTestId, mobileTestId: testTags.mobileTestId, matches: sql<number>`count(distinct ${testTags.tagId})` })
+    .select({
+      testId: testTags.testId,
+      apiTestId: testTags.apiTestId,
+      mobileTestId: testTags.mobileTestId,
+      matches: sql<number>`count(distinct ${testTags.tagId})`,
+    })
     .from(testTags)
     .where(inArray(testTags.tagId, tagIds))
     .groupBy(testTags.testId, testTags.apiTestId, testTags.mobileTestId);
   const complete = tagged.filter((row) => Number(row.matches) === tagIds.length);
   const uiIds = complete.map((row) => row.testId).filter((id): id is number => id !== null);
   const apiIds = complete.map((row) => row.apiTestId).filter((id): id is number => id !== null);
-  const mobileIds = complete.map((row) => row.mobileTestId).filter((id): id is number => id !== null);
+  const mobileIds = complete
+    .map((row) => row.mobileTestId)
+    .filter((id): id is number => id !== null);
 
   // In name order, so the run order of a dynamic suite is stable and readable.
   const ui = uiIds.length
     ? await tx
         .select({ id: tests.id })
         .from(tests)
-        .where(and(inArray(tests.id, uiIds), suite.projectId ? eq(tests.projectId, suite.projectId) : undefined))
+        .where(
+          and(
+            inArray(tests.id, uiIds),
+            suite.projectId ? eq(tests.projectId, suite.projectId) : undefined,
+          ),
+        )
         .orderBy(asc(tests.name))
     : [];
   const api = apiIds.length
     ? await tx
         .select({ id: apiTests.id })
         .from(apiTests)
-        .where(and(inArray(apiTests.id, apiIds), suite.projectId ? eq(apiTests.projectId, suite.projectId) : undefined))
+        .where(
+          and(
+            inArray(apiTests.id, apiIds),
+            suite.projectId ? eq(apiTests.projectId, suite.projectId) : undefined,
+          ),
+        )
         .orderBy(asc(apiTests.name))
     : [];
   const mobile = mobileIds.length
     ? await tx
         .select({ id: mobileTests.id })
         .from(mobileTests)
-        .where(and(inArray(mobileTests.id, mobileIds), suite.projectId ? eq(mobileTests.projectId, suite.projectId) : undefined))
+        .where(
+          and(
+            inArray(mobileTests.id, mobileIds),
+            suite.projectId ? eq(mobileTests.projectId, suite.projectId) : undefined,
+          ),
+        )
         .orderBy(asc(mobileTests.name))
     : [];
 
   return [
     ...ui.map((row) => ({ testType: 'ui' as const, testId: row.id, apiTestId: null })),
     ...api.map((row) => ({ testType: 'api' as const, testId: null, apiTestId: row.id })),
-    ...mobile.map((row) => ({ testType: 'mobile' as const, testId: null, apiTestId: null, mobileTestId: row.id })),
+    ...mobile.map((row) => ({
+      testType: 'mobile' as const,
+      testId: null,
+      apiTestId: null,
+      mobileTestId: row.id,
+    })),
   ];
 }
 
@@ -83,7 +131,11 @@ export async function testsOfSuite(tx: TenantTx, suite: Pick<TestSuite, 'id' | '
  * What a run of this plan executes: the plan's own tests, then each included suite's in order,
  * each test once (its first appearance wins, so a test chosen directly keeps its place).
  */
-export async function expandPlanTests(tx: TenantTx, planId: string, direct: TestReference[]): Promise<TestReference[]> {
+export async function expandPlanTests(
+  tx: TenantTx,
+  planId: string,
+  direct: TestReference[],
+): Promise<TestReference[]> {
   const included = await tx
     .select({ suite: testSuites })
     .from(testPlanSuites)

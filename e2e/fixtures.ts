@@ -18,7 +18,10 @@ export async function openPage(context: BrowserContext): Promise<Page> {
       await page.goto('http://127.0.0.1:5080/healthz', { waitUntil: 'commit', timeout: 10_000 });
       return page;
     } catch (error) {
-      await Promise.race([page.close().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 5_000))]);
+      await Promise.race([
+        page.close().catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 5_000)),
+      ]);
       if (attempt === 3) throw error;
     }
   }

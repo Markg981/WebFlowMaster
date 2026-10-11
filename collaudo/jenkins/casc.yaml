@@ -1,13 +1,13 @@
 # INT-08. Values come from the environment npm run collaudo:jenkins gives the container.
 jenkins:
-  systemMessage: "Jenkins di collaudo (INT-08): non usare altrove."
+  systemMessage: 'Jenkins di collaudo (INT-08): non usare altrove.'
   numExecutors: 2
   securityRealm:
     local:
       allowsSignup: false
       users:
         - id: admin
-          password: "Collaudo.2026!"
+          password: 'Collaudo.2026!'
   authorizationStrategy: loggedInUsersCanDoAnything
 
 credentials:
@@ -17,7 +17,7 @@ credentials:
           - string:
               id: webflowmaster-api-key
               scope: GLOBAL
-              secret: "${WFM_API_KEY}"
+              secret: '${WFM_API_KEY}'
 
 unclassified:
   location:

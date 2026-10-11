@@ -1,21 +1,21 @@
 import { PRODUCT_NAME_PREFIX, PRODUCT_NAME_SUFFIX } from '@/lib/brand';
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, TestTube, CheckCircle2, ShieldCheck, Zap, BarChart3 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { motion, AnimatePresence } from "framer-motion";
-import MfaChallengeForm from "@/components/security/MfaChallengeForm";
-import SsoSignIn from "@/components/security/SsoSignIn";
-import ForgotPassword from "@/components/security/ForgotPassword";
-import { ApiError } from "@/lib/queryClient";
+import { useAuth } from '@/hooks/use-auth';
+import { useLocation } from 'wouter';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertCircle, TestTube, CheckCircle2, ShieldCheck, Zap, BarChart3 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { motion, AnimatePresence } from 'framer-motion';
+import MfaChallengeForm from '@/components/security/MfaChallengeForm';
+import SsoSignIn from '@/components/security/SsoSignIn';
+import ForgotPassword from '@/components/security/ForgotPassword';
+import { ApiError } from '@/lib/queryClient';
 
 interface RegistrationPolicy {
   mode: 'open' | 'invitation';
@@ -42,15 +42,15 @@ export default function AuthPage() {
   const [invited] = useState(invitationFromUrl);
   const [reset] = useState(resetFromUrl);
   const [resetDone, setResetDone] = useState(false);
-  const [resetData, setResetData] = useState({ password: "", confirmPassword: "" });
-  const [resetError, setResetError] = useState("");
+  const [resetData, setResetData] = useState({ password: '', confirmPassword: '' });
+  const [resetError, setResetError] = useState('');
   const [resetPending, setResetPending] = useState(false);
 
-  const [loginData, setLoginData] = useState({ username: reset.username, password: "" });
+  const [loginData, setLoginData] = useState({ username: reset.username, password: '' });
   const [registerData, setRegisterData] = useState({
     username: invited.username,
-    password: "",
-    confirmPassword: "",
+    password: '',
+    confirmPassword: '',
     invitationToken: invited.token,
   });
 
@@ -70,7 +70,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      navigate('/dashboard');
     }
   }, [user, navigate]);
 
@@ -80,7 +80,7 @@ export default function AuthPage() {
     e.preventDefault();
     if (resetData.password.length < 8 || resetData.password !== resetData.confirmPassword) return;
     setResetPending(true);
-    setResetError("");
+    setResetError('');
     try {
       const response = await fetch('/api/password-reset', {
         method: 'POST',
@@ -89,7 +89,7 @@ export default function AuthPage() {
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || 'Could not set the new password');
-      if (body.username) setLoginData({ username: body.username, password: "" });
+      if (body.username) setLoginData({ username: body.username, password: '' });
       setResetDone(true);
       window.history.replaceState(null, '', window.location.pathname);
     } catch (error) {
@@ -102,11 +102,13 @@ export default function AuthPage() {
   // The password was right, and the organization signs in through its identity provider.
   const loginError = loginMutation.error;
   const ssoRequired =
-    loginError instanceof ApiError && (loginError.body as { code?: string } | null)?.code === 'sso_required';
+    loginError instanceof ApiError &&
+    (loginError.body as { code?: string } | null)?.code === 'sso_required';
 
   // Too many wrong codes end the attempt, and the password form is back: it says why, since the
   // code form that showed the refusals is gone.
-  const mfaChallengeExpired = !mfaChallenge && verifyMfaMutation.error?.code === 'mfa_challenge_expired';
+  const mfaChallengeExpired =
+    !mfaChallenge && verifyMfaMutation.error?.code === 'mfa_challenge_expired';
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,8 +133,8 @@ export default function AuthPage() {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
+      transition: { staggerChildren: 0.1 },
+    },
   };
 
   const itemVariants = {
@@ -140,8 +142,8 @@ export default function AuthPage() {
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: "spring", stiffness: 100 }
-    }
+      transition: { type: 'spring', stiffness: 100 },
+    },
   };
 
   return (
@@ -154,7 +156,7 @@ export default function AuthPage() {
 
       {/* Left side - Auth forms */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 z-10">
-        <motion.div 
+        <motion.div
           initial="hidden"
           animate="visible"
           variants={containerVariants}
@@ -165,7 +167,8 @@ export default function AuthPage() {
               <TestTube className="h-10 w-10 text-primary animate-pulse" />
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight text-foreground mb-2">
-              {PRODUCT_NAME_PREFIX}<span className="text-primary">{PRODUCT_NAME_SUFFIX}</span>
+              {PRODUCT_NAME_PREFIX}
+              <span className="text-primary">{PRODUCT_NAME_SUFFIX}</span>
             </h1>
             <p className="text-muted-foreground font-medium uppercase tracking-widest text-xs">
               {t('authPage.automatedWebTestingMadeSimple.text')}
@@ -187,10 +190,15 @@ export default function AuthPage() {
                 ) : reset.token && !resetDone ? (
                   <form onSubmit={handleReset} className="space-y-4" data-testid="reset-form">
                     <p className="text-sm text-muted-foreground">
-                      {t('authPage.reset.description', 'Choose a new password for your account. The link works once.')}
+                      {t(
+                        'authPage.reset.description',
+                        'Choose a new password for your account. The link works once.',
+                      )}
                     </p>
                     <div className="space-y-2">
-                      <Label htmlFor="reset-password">{t('authPage.reset.newPassword', 'New password')}</Label>
+                      <Label htmlFor="reset-password">
+                        {t('authPage.reset.newPassword', 'New password')}
+                      </Label>
                       <Input
                         id="reset-password"
                         type="password"
@@ -203,25 +211,38 @@ export default function AuthPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="reset-confirm">{t('authPage.reset.confirm', 'Repeat the new password')}</Label>
+                      <Label htmlFor="reset-confirm">
+                        {t('authPage.reset.confirm', 'Repeat the new password')}
+                      </Label>
                       <Input
                         id="reset-confirm"
                         type="password"
                         autoComplete="new-password"
                         className="bg-muted/30 focus-visible:ring-primary/50"
                         value={resetData.confirmPassword}
-                        onChange={(e) => setResetData({ ...resetData, confirmPassword: e.target.value })}
+                        onChange={(e) =>
+                          setResetData({ ...resetData, confirmPassword: e.target.value })
+                        }
                         required
                       />
                     </div>
-                    {resetData.confirmPassword && resetData.password !== resetData.confirmPassword && (
-                      <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{t('authPage.passwordsDoNotMatch.description')}</AlertDescription>
-                      </Alert>
-                    )}
+                    {resetData.confirmPassword &&
+                      resetData.password !== resetData.confirmPassword && (
+                        <Alert
+                          variant="destructive"
+                          className="bg-destructive/10 text-destructive border-destructive/20"
+                        >
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            {t('authPage.passwordsDoNotMatch.description')}
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     {resetError && (
-                      <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+                      <Alert
+                        variant="destructive"
+                        className="bg-destructive/10 text-destructive border-destructive/20"
+                      >
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>{resetError}</AlertDescription>
                       </Alert>
@@ -229,193 +250,272 @@ export default function AuthPage() {
                     <Button
                       type="submit"
                       className="w-full h-11 text-base font-bold"
-                      disabled={resetPending || resetData.password.length < 8 || resetData.password !== resetData.confirmPassword}
+                      disabled={
+                        resetPending ||
+                        resetData.password.length < 8 ||
+                        resetData.password !== resetData.confirmPassword
+                      }
                     >
                       {t('authPage.reset.submit', 'Set the new password')}
                     </Button>
                   </form>
                 ) : (
                   <>
-                  {mfaChallengeExpired && (
-                    <Alert variant="destructive" className="mb-4 bg-destructive/10 text-destructive border-destructive/20" data-testid="mfa-challenge-expired">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{verifyMfaMutation.error!.message}</AlertDescription>
-                    </Alert>
-                  )}
-                  {resetDone && (
-                    <Alert className="mb-4" data-testid="reset-done">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <AlertDescription>{t('authPage.reset.done', 'Your password has been changed. Sign in with the new one.')}</AlertDescription>
-                    </Alert>
-                  )}
-                <Tabs defaultValue={invited.token ? "register" : "login"} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 p-1">
-                    <TabsTrigger value="login" className="data-[state=active]:shadow-sm">
-                      {t('authPage.signIn.button')}
-                    </TabsTrigger>
-                    <TabsTrigger value="register" className="data-[state=active]:shadow-sm">
-                      {t('authPage.register.button')}
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <AnimatePresence mode="wait">
-                    <TabsContent value="login" key="login">
-                      <motion.form 
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        onSubmit={handleLogin} 
-                        className="space-y-5"
+                    {mfaChallengeExpired && (
+                      <Alert
+                        variant="destructive"
+                        className="mb-4 bg-destructive/10 text-destructive border-destructive/20"
+                        data-testid="mfa-challenge-expired"
                       >
-                        <div className="space-y-2">
-                          <Label htmlFor="login-username" className="text-sm font-semibold">{t('authPage.username.label')}</Label>
-                          <Input
-                            id="login-username"
-                            type="text"
-                            className="bg-muted/30 focus-visible:ring-primary/50 transition-all"
-                            placeholder={t('authPage.enterYourUsername.placeholder')}
-                            value={loginData.username}
-                            onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="login-password">{t('authPage.password.label')}</Label>
-                          <Input
-                            id="login-password"
-                            type="password"
-                            className="bg-muted/30 focus-visible:ring-primary/50 transition-all"
-                            placeholder={t('authPage.enterYourPassword.placeholder')}
-                            value={loginData.password}
-                            onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                            required
-                          />
-                        </div>
-                        {loginMutation.error && (
-                          <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                              {ssoRequired
-                                ? t('sso.requiredAtLogin', 'Your organization signs in with single sign-on. Use "Sign in with SSO" below.')
-                                : loginMutation.error.message}
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        <Button 
-                          type="submit" 
-                          className="w-full h-11 text-base font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all" 
-                          disabled={loginMutation.isPending}
-                        >
-                          {loginMutation.isPending ? t('authPage.signingIn.button') : t('authPage.signIn.button')}
-                        </Button>
-                      </motion.form>
-                      <div className="mt-3">
-                        <ForgotPassword username={loginData.username} />
-                      </div>
-                      <div className="mt-5">
-                        <SsoSignIn key={ssoRequired ? 'required' : 'offered'} open={ssoRequired} />
-                      </div>
-                    </TabsContent>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{verifyMfaMutation.error!.message}</AlertDescription>
+                      </Alert>
+                    )}
+                    {resetDone && (
+                      <Alert className="mb-4" data-testid="reset-done">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <AlertDescription>
+                          {t(
+                            'authPage.reset.done',
+                            'Your password has been changed. Sign in with the new one.',
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <Tabs defaultValue={invited.token ? 'register' : 'login'} className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 p-1">
+                        <TabsTrigger value="login" className="data-[state=active]:shadow-sm">
+                          {t('authPage.signIn.button')}
+                        </TabsTrigger>
+                        <TabsTrigger value="register" className="data-[state=active]:shadow-sm">
+                          {t('authPage.register.button')}
+                        </TabsTrigger>
+                      </TabsList>
 
-                    <TabsContent value="register" key="register">
-                      <motion.form 
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        onSubmit={handleRegister}
-                        className="space-y-4"
-                      >
-                        {policy?.firstAccount && !invited.token && (
-                          <p className="text-sm text-muted-foreground" data-testid="first-account-note">
-                            {t('authPage.firstAccount.description', 'This is the first account on this installation: it creates the first organization, and you will be its owner.')}
-                          </p>
-                        )}
-                        {invitationRequired && !invited.token && (
-                          <p className="text-sm text-muted-foreground" data-testid="invitation-required-note">
-                            {t('authPage.invitationRequired.description', 'Accounts here are created by invitation. Open the link you were sent, or paste its invitation code below.')}
-                          </p>
-                        )}
-                        {showInvitationField && (
-                          <div className="space-y-2">
-                            <Label htmlFor="register-invitation">{t('authPage.invitationCode.label', 'Invitation code')}</Label>
-                            <Input
-                              id="register-invitation"
-                              type="text"
-                              className="bg-muted/30 focus-visible:ring-primary/50 font-mono text-xs"
-                              value={registerData.invitationToken}
-                              onChange={(e) => setRegisterData({ ...registerData, invitationToken: e.target.value })}
-                              required={invitationRequired}
+                      <AnimatePresence mode="wait">
+                        <TabsContent value="login" key="login">
+                          <motion.form
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 10 }}
+                            onSubmit={handleLogin}
+                            className="space-y-5"
+                          >
+                            <div className="space-y-2">
+                              <Label htmlFor="login-username" className="text-sm font-semibold">
+                                {t('authPage.username.label')}
+                              </Label>
+                              <Input
+                                id="login-username"
+                                type="text"
+                                className="bg-muted/30 focus-visible:ring-primary/50 transition-all"
+                                placeholder={t('authPage.enterYourUsername.placeholder')}
+                                value={loginData.username}
+                                onChange={(e) =>
+                                  setLoginData({ ...loginData, username: e.target.value })
+                                }
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="login-password">{t('authPage.password.label')}</Label>
+                              <Input
+                                id="login-password"
+                                type="password"
+                                className="bg-muted/30 focus-visible:ring-primary/50 transition-all"
+                                placeholder={t('authPage.enterYourPassword.placeholder')}
+                                value={loginData.password}
+                                onChange={(e) =>
+                                  setLoginData({ ...loginData, password: e.target.value })
+                                }
+                                required
+                              />
+                            </div>
+                            {loginMutation.error && (
+                              <Alert
+                                variant="destructive"
+                                className="bg-destructive/10 text-destructive border-destructive/20"
+                              >
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                  {ssoRequired
+                                    ? t(
+                                        'sso.requiredAtLogin',
+                                        'Your organization signs in with single sign-on. Use "Sign in with SSO" below.',
+                                      )
+                                    : loginMutation.error.message}
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                            <Button
+                              type="submit"
+                              className="w-full h-11 text-base font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
+                              disabled={loginMutation.isPending}
+                            >
+                              {loginMutation.isPending
+                                ? t('authPage.signingIn.button')
+                                : t('authPage.signIn.button')}
+                            </Button>
+                          </motion.form>
+                          <div className="mt-3">
+                            <ForgotPassword username={loginData.username} />
+                          </div>
+                          <div className="mt-5">
+                            <SsoSignIn
+                              key={ssoRequired ? 'required' : 'offered'}
+                              open={ssoRequired}
                             />
-                            {invited.token && (
-                              <p className="text-xs text-muted-foreground">
-                                {t('authPage.invitationUsername.description', 'Use the username you were invited with.')}
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="register" key="register">
+                          <motion.form
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            onSubmit={handleRegister}
+                            className="space-y-4"
+                          >
+                            {policy?.firstAccount && !invited.token && (
+                              <p
+                                className="text-sm text-muted-foreground"
+                                data-testid="first-account-note"
+                              >
+                                {t(
+                                  'authPage.firstAccount.description',
+                                  'This is the first account on this installation: it creates the first organization, and you will be its owner.',
+                                )}
                               </p>
                             )}
-                          </div>
-                        )}
-                        <div className="space-y-2">
-                          <Label htmlFor="register-username">{t('authPage.username.label')}</Label>
-                          <Input
-                            id="register-username"
-                            type="text"
-                            className="bg-muted/30 focus-visible:ring-primary/50"
-                            placeholder={t('authPage.chooseAUsername.placeholder')}
-                            value={registerData.username}
-                            onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="register-password">{t('authPage.password.label')}</Label>
-                          <Input
-                            id="register-password"
-                            type="password"
-                            className="bg-muted/30 focus-visible:ring-primary/50"
-                            placeholder={t('authPage.chooseAPassword.placeholder')}
-                            value={registerData.password}
-                            onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="confirm-password">{t('authPage.confirmPassword.label')}</Label>
-                          <Input
-                            id="confirm-password"
-                            type="password"
-                            className="bg-muted/30 focus-visible:ring-primary/50"
-                            placeholder={t('authPage.confirmYourPassword.placeholder')}
-                            value={registerData.confirmPassword}
-                            onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })}
-                            required
-                          />
-                        </div>
-                        {registerData.password !== registerData.confirmPassword && registerData.confirmPassword && (
-                          <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                              {t('authPage.passwordsDoNotMatch.description')}
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        {registerMutation.error && (
-                          <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                              {registerMutation.error.message}
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        <Button 
-                          type="submit" 
-                          className="w-full h-11 text-base font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all" 
-                          disabled={registerMutation.isPending || registerData.password !== registerData.confirmPassword}
-                        >
-                          {registerMutation.isPending ? t('authPage.creatingAccount.button') : t('authPage.createAccount.button')}
-                        </Button>
-                      </motion.form>
-                    </TabsContent>
-                  </AnimatePresence>
-                </Tabs>
+                            {invitationRequired && !invited.token && (
+                              <p
+                                className="text-sm text-muted-foreground"
+                                data-testid="invitation-required-note"
+                              >
+                                {t(
+                                  'authPage.invitationRequired.description',
+                                  'Accounts here are created by invitation. Open the link you were sent, or paste its invitation code below.',
+                                )}
+                              </p>
+                            )}
+                            {showInvitationField && (
+                              <div className="space-y-2">
+                                <Label htmlFor="register-invitation">
+                                  {t('authPage.invitationCode.label', 'Invitation code')}
+                                </Label>
+                                <Input
+                                  id="register-invitation"
+                                  type="text"
+                                  className="bg-muted/30 focus-visible:ring-primary/50 font-mono text-xs"
+                                  value={registerData.invitationToken}
+                                  onChange={(e) =>
+                                    setRegisterData({
+                                      ...registerData,
+                                      invitationToken: e.target.value,
+                                    })
+                                  }
+                                  required={invitationRequired}
+                                />
+                                {invited.token && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {t(
+                                      'authPage.invitationUsername.description',
+                                      'Use the username you were invited with.',
+                                    )}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            <div className="space-y-2">
+                              <Label htmlFor="register-username">
+                                {t('authPage.username.label')}
+                              </Label>
+                              <Input
+                                id="register-username"
+                                type="text"
+                                className="bg-muted/30 focus-visible:ring-primary/50"
+                                placeholder={t('authPage.chooseAUsername.placeholder')}
+                                value={registerData.username}
+                                onChange={(e) =>
+                                  setRegisterData({ ...registerData, username: e.target.value })
+                                }
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="register-password">
+                                {t('authPage.password.label')}
+                              </Label>
+                              <Input
+                                id="register-password"
+                                type="password"
+                                className="bg-muted/30 focus-visible:ring-primary/50"
+                                placeholder={t('authPage.chooseAPassword.placeholder')}
+                                value={registerData.password}
+                                onChange={(e) =>
+                                  setRegisterData({ ...registerData, password: e.target.value })
+                                }
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="confirm-password">
+                                {t('authPage.confirmPassword.label')}
+                              </Label>
+                              <Input
+                                id="confirm-password"
+                                type="password"
+                                className="bg-muted/30 focus-visible:ring-primary/50"
+                                placeholder={t('authPage.confirmYourPassword.placeholder')}
+                                value={registerData.confirmPassword}
+                                onChange={(e) =>
+                                  setRegisterData({
+                                    ...registerData,
+                                    confirmPassword: e.target.value,
+                                  })
+                                }
+                                required
+                              />
+                            </div>
+                            {registerData.password !== registerData.confirmPassword &&
+                              registerData.confirmPassword && (
+                                <Alert
+                                  variant="destructive"
+                                  className="bg-destructive/10 text-destructive border-destructive/20"
+                                >
+                                  <AlertCircle className="h-4 w-4" />
+                                  <AlertDescription>
+                                    {t('authPage.passwordsDoNotMatch.description')}
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+                            {registerMutation.error && (
+                              <Alert
+                                variant="destructive"
+                                className="bg-destructive/10 text-destructive border-destructive/20"
+                              >
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                  {registerMutation.error.message}
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                            <Button
+                              type="submit"
+                              className="w-full h-11 text-base font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
+                              disabled={
+                                registerMutation.isPending ||
+                                registerData.password !== registerData.confirmPassword
+                              }
+                            >
+                              {registerMutation.isPending
+                                ? t('authPage.creatingAccount.button')
+                                : t('authPage.createAccount.button')}
+                            </Button>
+                          </motion.form>
+                        </TabsContent>
+                      </AnimatePresence>
+                    </Tabs>
                   </>
                 )}
               </CardContent>
@@ -430,21 +530,21 @@ export default function AuthPage() {
         <div className="absolute inset-0 z-0">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(67,56,202,0.2),transparent_70%)]" />
           <div className="absolute inset-0 bg-noise opacity-20 brightness-100 contrast-150" />
-          <motion.div 
-            animate={{ 
+          <motion.div
+            animate={{
               scale: [1, 1.2, 1],
               rotate: [0, 90, 0],
             }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute top-[-20%] right-[-20%] w-[80%] h-[80%] bg-primary/20 rounded-full blur-[120px]" 
+            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+            className="absolute top-[-20%] right-[-20%] w-[80%] h-[80%] bg-primary/20 rounded-full blur-[120px]"
           />
-          <motion.div 
-            animate={{ 
+          <motion.div
+            animate={{
               scale: [1, 1.3, 1],
               rotate: [0, -90, 0],
             }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            className="absolute bottom-[-20%] left-[-20%] w-[60%] h-[60%] bg-accent/20 rounded-full blur-[100px]" 
+            transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
+            className="absolute bottom-[-20%] left-[-20%] w-[60%] h-[60%] bg-accent/20 rounded-full blur-[100px]"
           />
         </div>
 
@@ -457,15 +557,19 @@ export default function AuthPage() {
           >
             <div className="flex items-center space-x-2 mb-8 justify-center lg:justify-start">
               <Zap className="h-6 w-6 text-accent" />
-              <span className="text-sm font-bold tracking-widest uppercase text-accent/80">{t('authPage.edition.text')}</span>
+              <span className="text-sm font-bold tracking-widest uppercase text-accent/80">
+                {t('authPage.edition.text')}
+              </span>
             </div>
-            
+
             <h2 className="text-5xl font-extrabold mb-6 leading-tight text-center lg:text-left">
               {t('authPage.automateYourWebTesting.title')}
             </h2>
             <p className="text-xl text-zinc-400 mb-12 text-center lg:text-left leading-relaxed">
               {t('authPage.createExecuteAndManageAutomated.description')}{' '}
-              <span className="text-zinc-100 font-semibold">{t('authPage.noCodingRequired.text')}</span>
+              <span className="text-zinc-100 font-semibold">
+                {t('authPage.noCodingRequired.text')}
+              </span>
             </p>
 
             <div className="grid grid-cols-2 gap-8">
@@ -475,17 +579,19 @@ export default function AuthPage() {
                 { icon: CheckCircle2, title: t('authPage.realtimeTestExecution.text') },
                 { icon: BarChart3, title: t('authPage.comprehensiveReporting.text') },
               ].map((feature, idx) => (
-                <motion.div 
+                <motion.div
                   key={idx}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + (idx * 0.1) }}
+                  transition={{ delay: 0.5 + idx * 0.1 }}
                   className="flex flex-col items-center lg:items-start group"
                 >
                   <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-4 group-hover:border-accent/50 group-hover:bg-accent/10 transition-all duration-300 shadow-xl">
                     <feature.icon className="h-6 w-6 text-accent" />
                   </div>
-                  <h3 className="font-bold text-zinc-100 group-hover:text-accent transition-colors">{feature.title}</h3>
+                  <h3 className="font-bold text-zinc-100 group-hover:text-accent transition-colors">
+                    {feature.title}
+                  </h3>
                 </motion.div>
               ))}
             </div>

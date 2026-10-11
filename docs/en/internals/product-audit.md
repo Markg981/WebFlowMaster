@@ -57,14 +57,14 @@ extends their reproducibility, operational verification and usability.
 
 ## Conditions for closing v1
 
-| Priority | Remaining work | Required evidence |
-| --- | --- | --- |
-| High | Current acceptance and regression | New cycle on the installed commit; all P1 pass or justified N/A, no failed P2 without a decision and at least 95% of P2 executed. Frozen history. |
-| High | Installable release and upgrade | Verified candidate, matching manifest/SBOM/digests, staging from the previous baseline, verified backup, login/report/new run and rollback according to schema compatibility. OPS-20…OPS-25. |
-| High when S3 is in scope | Real S3 recovery | Disposable bucket, checkpoint key/version/checksum inventory, recoverable versioning/replication, report/baseline/tenant checks. OPS-31. |
-| High | Representative capacity and recovery | Declared workload/data/resources, agreed duration/thresholds, no lost/duplicate runs, retained evidence and phase timings. OPS-27…OPS-30, OPS-32…OPS-35. |
-| According to declared support | Real grids and Appium | Observed session/capabilities matching requested targets, functional result, report and exports. AUT-11…AUT-12. |
-| By 6 November 2026 | braces dependency | Upstream verification, effective mitigation and fresh scans; remove the exception only after verifying an equivalent fix. Expiry is not extended automatically. OPS-26. |
+| Priority                      | Remaining work                       | Required evidence                                                                                                                                                                            |
+| ----------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| High                          | Current acceptance and regression    | New cycle on the installed commit; all P1 pass or justified N/A, no failed P2 without a decision and at least 95% of P2 executed. Frozen history.                                            |
+| High                          | Installable release and upgrade      | Verified candidate, matching manifest/SBOM/digests, staging from the previous baseline, verified backup, login/report/new run and rollback according to schema compatibility. OPS-20…OPS-25. |
+| High when S3 is in scope      | Real S3 recovery                     | Disposable bucket, checkpoint key/version/checksum inventory, recoverable versioning/replication, report/baseline/tenant checks. OPS-31.                                                     |
+| High                          | Representative capacity and recovery | Declared workload/data/resources, agreed duration/thresholds, no lost/duplicate runs, retained evidence and phase timings. OPS-27…OPS-30, OPS-32…OPS-35.                                     |
+| According to declared support | Real grids and Appium                | Observed session/capabilities matching requested targets, functional result, report and exports. AUT-11…AUT-12.                                                                              |
+| By 6 November 2026            | braces dependency                    | Upstream verification, effective mitigation and fresh scans; remove the exception only after verifying an equivalent fix. Expiry is not extended automatically. OPS-26.                      |
 
 The local recovery drill covers the database and local artifacts. S3 object recovery is external.
 SIGTERM is tested as controlled recovery; after SIGKILL, the identified run ends as

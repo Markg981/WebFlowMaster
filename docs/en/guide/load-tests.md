@@ -29,11 +29,11 @@ authentication, assertions and captures, exactly as in a plan.
 The number of virtual users follows **stages**. Each stage moves it linearly from where the
 previous stage ended (0 at the start) to its **virtual users** target, over its **duration**:
 
-| Stage | Duration | Virtual users | What happens                |
-| ----- | -------- | ------------- | --------------------------- |
-| 1     | 60 s     | 50            | ramp up from 0 to 50        |
+| Stage | Duration | Virtual users | What happens                 |
+| ----- | -------- | ------------- | ---------------------------- |
+| 1     | 60 s     | 50            | ramp up from 0 to 50         |
 | 2     | 600 s    | 50            | hold 50 users for 10 minutes |
-| 3     | 60 s     | 0             | ramp down to 0              |
+| 3     | 60 s     | 0             | ramp down to 0               |
 
 Up to 10 stages, 200 virtual users and 3,600 s in all. A user above the current target stops
 at the end of its iteration, so a ramp down never cuts a scenario in half. The editor draws the

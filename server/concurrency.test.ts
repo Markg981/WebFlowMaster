@@ -48,7 +48,10 @@ describe('runWithConcurrency', () => {
 
     const results = await runWithConcurrency(2, [slow, fast]);
 
-    expect(results.map((r) => (r.status === 'fulfilled' ? r.value : r.reason))).toEqual(['slow', 'fast']);
+    expect(results.map((r) => (r.status === 'fulfilled' ? r.value : r.reason))).toEqual([
+      'slow',
+      'fast',
+    ]);
   });
 
   it('runs the remaining tasks when one of them throws, and reports which', async () => {

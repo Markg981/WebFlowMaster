@@ -4,7 +4,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { AuthParamsSchema, JWT_ALGORITHMS, type AuthParams, type AuthType } from '@shared/schema';
 
 /**
@@ -16,8 +22,18 @@ import { AuthParamsSchema, JWT_ALGORITHMS, type AuthParams, type AuthType } from
  * fields: the table is the list of what each scheme asks for, and the next scheme is a row.
  */
 
-export type SchemeType = 'jwtBearer' | 'digest' | 'oauth1' | 'hawk' | 'aws' | 'ntlm' | 'akamai' | 'asap';
-export const SCHEME_TYPES: readonly SchemeType[] = ['jwtBearer', 'digest', 'oauth1', 'hawk', 'aws', 'ntlm', 'akamai', 'asap'];
+export type SchemeType =
+  'jwtBearer' | 'digest' | 'oauth1' | 'hawk' | 'aws' | 'ntlm' | 'akamai' | 'asap';
+export const SCHEME_TYPES: readonly SchemeType[] = [
+  'jwtBearer',
+  'digest',
+  'oauth1',
+  'hawk',
+  'aws',
+  'ntlm',
+  'akamai',
+  'asap',
+];
 
 type Params = Record<string, string | number | boolean>;
 
@@ -37,7 +53,12 @@ const isHmac = (params: Params) => String(params.algorithm ?? '').startsWith('HS
 const FIELDS: Record<SchemeType, Field[]> = {
   jwtBearer: [
     { key: 'algorithm', kind: 'select', options: JWT_ALGORITHMS },
-    { key: 'secret', kind: 'secret', kindFor: (p) => (isHmac(p) ? 'secret' : 'multiline'), placeholder: '{{jwtSecret}}' },
+    {
+      key: 'secret',
+      kind: 'secret',
+      kindFor: (p) => (isHmac(p) ? 'secret' : 'multiline'),
+      placeholder: '{{jwtSecret}}',
+    },
     { key: 'secretBase64', kind: 'check', when: isHmac },
     { key: 'payload', kind: 'multiline', placeholder: '{"sub": "{{userId}}"}' },
     { key: 'headers', kind: 'multiline', placeholder: '{"kid": "key-1"}' },
@@ -50,7 +71,11 @@ const FIELDS: Record<SchemeType, Field[]> = {
     { key: 'password', kind: 'secret' },
   ],
   oauth1: [
-    { key: 'signatureMethod', kind: 'select', options: ['HMAC-SHA1', 'HMAC-SHA256', 'HMAC-SHA512', 'PLAINTEXT'] },
+    {
+      key: 'signatureMethod',
+      kind: 'select',
+      options: ['HMAC-SHA1', 'HMAC-SHA256', 'HMAC-SHA512', 'PLAINTEXT'],
+    },
     { key: 'consumerKey', kind: 'text' },
     { key: 'consumerSecret', kind: 'secret' },
     { key: 'token', kind: 'text' },
@@ -86,7 +111,11 @@ const FIELDS: Record<SchemeType, Field[]> = {
     { key: 'maxBody', kind: 'number' },
   ],
   asap: [
-    { key: 'algorithm', kind: 'select', options: ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512'] },
+    {
+      key: 'algorithm',
+      kind: 'select',
+      options: ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512'],
+    },
     { key: 'issuer', kind: 'text' },
     { key: 'audience', kind: 'text' },
     { key: 'keyId', kind: 'text' },
@@ -97,7 +126,8 @@ const FIELDS: Record<SchemeType, Field[]> = {
   ],
 };
 
-export const isSchemeType = (type: AuthType): type is SchemeType => (SCHEME_TYPES as readonly string[]).includes(type);
+export const isSchemeType = (type: AuthType): type is SchemeType =>
+  (SCHEME_TYPES as readonly string[]).includes(type);
 
 /** The scheme's settings with every field filled from the schema, as the runner will read them. */
 export function schemeDefaults(type: SchemeType, params?: unknown): Params {
@@ -113,7 +143,12 @@ interface SchemeAuthFormProps {
   disabled?: boolean;
 }
 
-export const SchemeAuthForm: React.FC<SchemeAuthFormProps> = ({ type, params, onChange, disabled = false }) => {
+export const SchemeAuthForm: React.FC<SchemeAuthFormProps> = ({
+  type,
+  params,
+  onChange,
+  disabled = false,
+}) => {
   const { t } = useTranslation();
   const current = schemeDefaults(type, params);
   // The whole settings object each time, as the other forms do: a partial update would drop
@@ -135,7 +170,12 @@ export const SchemeAuthForm: React.FC<SchemeAuthFormProps> = ({ type, params, on
           if (kind === 'check') {
             return (
               <div key={field.key} className="flex items-center gap-2">
-                <Checkbox id={id} checked={Boolean(value)} onCheckedChange={(checked) => set(field.key, checked === true)} disabled={disabled} />
+                <Checkbox
+                  id={id}
+                  checked={Boolean(value)}
+                  onCheckedChange={(checked) => set(field.key, checked === true)}
+                  disabled={disabled}
+                />
                 <Label htmlFor={id}>{label}</Label>
               </div>
             );
@@ -144,14 +184,20 @@ export const SchemeAuthForm: React.FC<SchemeAuthFormProps> = ({ type, params, on
             <div key={field.key}>
               <Label htmlFor={id}>{label}</Label>
               {kind === 'select' ? (
-                <Select value={String(value)} onValueChange={(next) => set(field.key, next)} disabled={disabled}>
+                <Select
+                  value={String(value)}
+                  onValueChange={(next) => set(field.key, next)}
+                  disabled={disabled}
+                >
                   <SelectTrigger id={id} className="w-full mt-1" aria-label={label}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {field.options!.map((option) => (
                       <SelectItem key={option} value={option}>
-                        {option === 'header' || option === 'query' ? t(`authForms.schemeFields.addTo.${option}`) : option}
+                        {option === 'header' || option === 'query'
+                          ? t(`authForms.schemeFields.addTo.${option}`)
+                          : option}
                       </SelectItem>
                     ))}
                   </SelectContent>

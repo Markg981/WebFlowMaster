@@ -34,7 +34,7 @@ poi avrebbe agito sul selettore.
 
 **Dataset parametrici.** Un test può portare righe di input, ognuna delle quali diventa
 `{{variabile}}` per quella esecuzione. Prima si poteva esprimere solo caricando un foglio
-Excel nel Test Manager, che mappa ogni riga su un test *diverso*: venti test quasi identici, e
+Excel nel Test Manager, che mappa ogni riga su un test _diverso_: venti test quasi identici, e
 una modifica al flusso significava modificarli tutti e venti.
 
 ## Scelte prese

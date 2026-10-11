@@ -1,19 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, PlusCircle, XCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestPlan } from '@shared/schema';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from '@shared/locales';
 import { MOBILE_DEVICES, canEmulateDevice } from '@shared/devices';
-import { BROWSER_GRID_LABELS, GRID_OPERATING_SYSTEMS, HONOURS_MACHINE, RUNS_BROWSERS, type BrowserGridProvider } from '@shared/browser-grids';
+import {
+  BROWSER_GRID_LABELS,
+  GRID_OPERATING_SYSTEMS,
+  HONOURS_MACHINE,
+  RUNS_BROWSERS,
+  type BrowserGridProvider,
+} from '@shared/browser-grids';
 
 /**
  * Changing what a plan does on its next run, after it has been created.
@@ -131,7 +150,12 @@ function safeParse(value: string): unknown {
 /** The "run on" value for the runners, since a Select item cannot have an empty value. */
 const ON_RUNNERS = '__runners__';
 
-const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ isOpen, onClose, plan, onSaved }) => {
+const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({
+  isOpen,
+  onClose,
+  plan,
+  onSaved,
+}) => {
   const { t } = useTranslation();
   const [machines, setMachines] = useState<MachineRow[]>([]);
   const [visualTestingEnabled, setVisualTestingEnabled] = useState(false);
@@ -159,7 +183,9 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   /** The TestRail, Xray or Zephyr each finished run is published to. */
   const [testManagementId, setTestManagementId] = useState<string>(NO_TRACKER);
   const [testManagement, setTestManagement] = useState<TrackerOption[]>([]);
-  const [notifications, setNotifications] = useState<NotificationSettingsShape>(notificationsFromPlan(null));
+  const [notifications, setNotifications] = useState<NotificationSettingsShape>(
+    notificationsFromPlan(null),
+  );
   const [webhookError, setWebhookError] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -174,14 +200,24 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     setCaptureTrace((plan as { captureTrace?: string } | null)?.captureTrace ?? 'never');
     setCaptureNetwork((plan as { captureNetwork?: string } | null)?.captureNetwork ?? 'never');
     const planGrid = (plan as { browserGridId?: string | null } | null)?.browserGridId;
-    setRunOn(planGrid ? `${GRID_PREFIX}${planGrid}` : (plan as { agentPool?: string | null } | null)?.agentPool ?? ON_RUNNERS);
+    setRunOn(
+      planGrid
+        ? `${GRID_PREFIX}${planGrid}`
+        : ((plan as { agentPool?: string | null } | null)?.agentPool ?? ON_RUNNERS),
+    );
     setMaxParallelTests(String(plan?.maxParallelTests ?? 1));
     setShards(String((plan as { shards?: number } | null)?.shards ?? 1));
     setLocales(normalizeLocales((plan as { locales?: unknown } | null)?.locales).join(', '));
     setLocalesError('');
-    setIssueTrackerId((plan as { issueTrackerId?: string | null } | null)?.issueTrackerId ?? NO_TRACKER);
-    setCreateIssuesOnFailure((plan as { createIssuesOnFailure?: boolean } | null)?.createIssuesOnFailure === true);
-    setTestManagementId((plan as { testManagementId?: string | null } | null)?.testManagementId ?? NO_TRACKER);
+    setIssueTrackerId(
+      (plan as { issueTrackerId?: string | null } | null)?.issueTrackerId ?? NO_TRACKER,
+    );
+    setCreateIssuesOnFailure(
+      (plan as { createIssuesOnFailure?: boolean } | null)?.createIssuesOnFailure === true,
+    );
+    setTestManagementId(
+      (plan as { testManagementId?: string | null } | null)?.testManagementId ?? NO_TRACKER,
+    );
     setNotifications(notificationsFromPlan(plan));
     setWebhookError('');
     setMaxParallelError('');
@@ -206,7 +242,13 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     fetch('/api/agents')
       .then((response) => (response.ok ? response.json() : { agents: [] }))
       .then((body: { agents?: Array<{ pool: string; revokedAt: string | null }> }) =>
-        setAgentPools([...new Set((body.agents ?? []).filter((agent) => !agent.revokedAt).map((agent) => agent.pool))].sort()),
+        setAgentPools(
+          [
+            ...new Set(
+              (body.agents ?? []).filter((agent) => !agent.revokedAt).map((agent) => agent.pool),
+            ),
+          ].sort(),
+        ),
       )
       .catch(() => setAgentPools([]));
 
@@ -215,17 +257,34 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
       .then((response) => (response.ok ? response.json() : []))
       .then((rows) =>
         // A local Appium runs mobile app tests only: a plan's browsers cannot run there.
-        setGrids(Array.isArray(rows) ? rows.filter((row: GridOption) => RUNS_BROWSERS[row.provider] !== false) : []),
+        setGrids(
+          Array.isArray(rows)
+            ? rows.filter((row: GridOption) => RUNS_BROWSERS[row.provider] !== false)
+            : [],
+        ),
       )
       .catch(() => setGrids([]));
   }, [isOpen, plan]);
 
-  const selectedGrid = runOn.startsWith(GRID_PREFIX) ? grids.find((grid) => grid.id === runOn.slice(GRID_PREFIX.length)) ?? null : null;
+  const selectedGrid = runOn.startsWith(GRID_PREFIX)
+    ? (grids.find((grid) => grid.id === runOn.slice(GRID_PREFIX.length)) ?? null)
+    : null;
   /** Whether the machine rows ask for an OS and versions: only a grid that honours them does. */
   const machineFields = !!selectedGrid && HONOURS_MACHINE[selectedGrid.provider];
 
   const addMachine = () => {
-    setMachines((previous) => [...previous, { key: uuidv4(), browserName: 'chromium', headless: true, os: '', osVersion: '', browserVersion: '', device: '' }]);
+    setMachines((previous) => [
+      ...previous,
+      {
+        key: uuidv4(),
+        browserName: 'chromium',
+        headless: true,
+        os: '',
+        osVersion: '',
+        browserVersion: '',
+        device: '',
+      },
+    ]);
   };
 
   const removeMachine = (key: string) => {
@@ -233,14 +292,19 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   };
 
   const updateMachine = (key: string, patch: Partial<MachineRow>) => {
-    setMachines((previous) => previous.map((machine) => (machine.key === key ? { ...machine, ...patch } : machine)));
+    setMachines((previous) =>
+      previous.map((machine) => (machine.key === key ? { ...machine, ...patch } : machine)),
+    );
   };
 
   const handleSave = async () => {
     const webhookUrl = (notifications.webhookUrl ?? '').trim();
     if (webhookUrl !== '' && !/^https?:\/\//i.test(webhookUrl)) {
       setWebhookError(
-        t('editTestPlanSettings.validation.webhookUrlInvalid', 'The notification URL must start with http:// or https://.'),
+        t(
+          'editTestPlanSettings.validation.webhookUrlInvalid',
+          'The notification URL must start with http:// or https://.',
+        ),
       );
       return;
     }
@@ -249,14 +313,20 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     const parallel = Number(maxParallelTests);
     if (!Number.isInteger(parallel) || parallel < 1 || parallel > 16) {
       setMaxParallelError(
-        t('editTestPlanSettings.validation.parallelInvalid', 'Run at most must be a whole number between 1 and 16.'),
+        t(
+          'editTestPlanSettings.validation.parallelInvalid',
+          'Run at most must be a whole number between 1 and 16.',
+        ),
       );
       return;
     }
     const shardCount = Number(shards);
     if (!Number.isInteger(shardCount) || shardCount < 1 || shardCount > 8) {
       setMaxParallelError(
-        t('editTestPlanSettings.validation.shardsInvalid', 'Workers must be a whole number between 1 and 8.'),
+        t(
+          'editTestPlanSettings.validation.shardsInvalid',
+          'Workers must be a whole number between 1 and 8.',
+        ),
       );
       return;
     }
@@ -269,8 +339,14 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     if (invalidLocales.length > 0 || typedLocales.length > MAX_LOCALES) {
       setLocalesError(
         invalidLocales.length > 0
-          ? t('editTestPlanSettings.validation.localesInvalid', 'Not a language code: {{codes}}. Use codes such as it, it-IT or en-US.', { codes: invalidLocales.join(', ') })
-          : t('editTestPlanSettings.validation.localesTooMany', 'At most {{max}} languages.', { max: MAX_LOCALES }),
+          ? t(
+              'editTestPlanSettings.validation.localesInvalid',
+              'Not a language code: {{codes}}. Use codes such as it, it-IT or en-US.',
+              { codes: invalidLocales.join(', ') },
+            )
+          : t('editTestPlanSettings.validation.localesTooMany', 'At most {{max}} languages.', {
+              max: MAX_LOCALES,
+            }),
       );
       return;
     }
@@ -285,14 +361,16 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           // Only the run settings. Omitting selectedTests leaves the plan's tests as they are.
-          testMachinesConfig: machines.map(({ browserName, headless, os, osVersion, browserVersion, device }) => ({
-            browserName,
-            headless,
-            os: os.trim() || null,
-            osVersion: osVersion.trim() || null,
-            browserVersion: browserVersion.trim() || null,
-            device: device && canEmulateDevice(browserName) ? device : null,
-          })),
+          testMachinesConfig: machines.map(
+            ({ browserName, headless, os, osVersion, browserVersion, device }) => ({
+              browserName,
+              headless,
+              os: os.trim() || null,
+              osVersion: osVersion.trim() || null,
+              browserVersion: browserVersion.trim() || null,
+              device: device && canEmulateDevice(browserName) ? device : null,
+            }),
+          ),
           visualTestingEnabled,
           captureVideo,
           captureTrace,
@@ -330,13 +408,20 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t('editTestPlanSettings.title', 'Run settings')}</DialogTitle>
           <DialogDescription>
             {plan?.name
-              ? t('editTestPlanSettings.description', 'What "{{name}}" does on its next run.', { name: plan.name })
+              ? t('editTestPlanSettings.description', 'What "{{name}}" does on its next run.', {
+                  name: plan.name,
+                })
               : ''}
           </DialogDescription>
         </DialogHeader>
@@ -357,9 +442,17 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                     <Select
                       value={machine.browserName}
                       // Firefox has no mobile mode: choosing it takes the device away rather than keeping a promise it cannot keep.
-                      onValueChange={(value) => updateMachine(machine.key, { browserName: value, ...(canEmulateDevice(value) ? {} : { device: '' }) })}
+                      onValueChange={(value) =>
+                        updateMachine(machine.key, {
+                          browserName: value,
+                          ...(canEmulateDevice(value) ? {} : { device: '' }),
+                        })
+                      }
                     >
-                      <SelectTrigger className="w-[180px]" aria-label={t('editTestPlanSettings.browsers.selectLabel', 'Browser')}>
+                      <SelectTrigger
+                        className="w-[180px]"
+                        aria-label={t('editTestPlanSettings.browsers.selectLabel', 'Browser')}
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -372,14 +465,21 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                     </Select>
                     <Select
                       value={machine.device || DESKTOP}
-                      onValueChange={(value) => updateMachine(machine.key, { device: value === DESKTOP ? '' : value })}
+                      onValueChange={(value) =>
+                        updateMachine(machine.key, { device: value === DESKTOP ? '' : value })
+                      }
                       disabled={!canEmulateDevice(machine.browserName)}
                     >
-                      <SelectTrigger className="w-[170px]" aria-label={t('editTestPlanSettings.browsers.device', 'Device')}>
+                      <SelectTrigger
+                        className="w-[170px]"
+                        aria-label={t('editTestPlanSettings.browsers.device', 'Device')}
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={DESKTOP}>{t('editTestPlanSettings.browsers.desktop', 'Desktop')}</SelectItem>
+                        <SelectItem value={DESKTOP}>
+                          {t('editTestPlanSettings.browsers.desktop', 'Desktop')}
+                        </SelectItem>
                         {MOBILE_DEVICES.map((device) => (
                           <SelectItem key={device.name} value={device.name}>
                             {device.name}
@@ -389,30 +489,49 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                     </Select>
                     {machineFields && (
                       <>
-                        <Select value={machine.os || ANY_OS} onValueChange={(value) => updateMachine(machine.key, { os: value === ANY_OS ? '' : value })}>
-                          <SelectTrigger className="w-[120px]" aria-label={t('editTestPlanSettings.browsers.os', 'Operating system')}>
+                        <Select
+                          value={machine.os || ANY_OS}
+                          onValueChange={(value) =>
+                            updateMachine(machine.key, { os: value === ANY_OS ? '' : value })
+                          }
+                        >
+                          <SelectTrigger
+                            className="w-[120px]"
+                            aria-label={t('editTestPlanSettings.browsers.os', 'Operating system')}
+                          >
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={ANY_OS}>{t('editTestPlanSettings.browsers.anyOs', 'Default OS')}</SelectItem>
+                            <SelectItem value={ANY_OS}>
+                              {t('editTestPlanSettings.browsers.anyOs', 'Default OS')}
+                            </SelectItem>
                             {GRID_OPERATING_SYSTEMS.map((os) => (
-                              <SelectItem key={os} value={os}>{os}</SelectItem>
+                              <SelectItem key={os} value={os}>
+                                {os}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         <Input
                           className="w-[90px]"
                           value={machine.osVersion}
-                          onChange={(e) => updateMachine(machine.key, { osVersion: e.target.value })}
+                          onChange={(e) =>
+                            updateMachine(machine.key, { osVersion: e.target.value })
+                          }
                           placeholder={machine.os === 'macOS' ? 'Sonoma' : '11'}
                           aria-label={t('editTestPlanSettings.browsers.osVersion', 'OS version')}
                         />
                         <Input
                           className="w-[90px]"
                           value={machine.browserVersion}
-                          onChange={(e) => updateMachine(machine.key, { browserVersion: e.target.value })}
+                          onChange={(e) =>
+                            updateMachine(machine.key, { browserVersion: e.target.value })
+                          }
                           placeholder="latest"
-                          aria-label={t('editTestPlanSettings.browsers.browserVersion', 'Browser version')}
+                          aria-label={t(
+                            'editTestPlanSettings.browsers.browserVersion',
+                            'Browser version',
+                          )}
                         />
                       </>
                     )}
@@ -420,7 +539,9 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                       <Checkbox
                         id={`headless-${machine.key}`}
                         checked={machine.headless}
-                        onCheckedChange={(checked) => updateMachine(machine.key, { headless: !!checked })}
+                        onCheckedChange={(checked) =>
+                          updateMachine(machine.key, { headless: !!checked })
+                        }
                       />
                       <Label htmlFor={`headless-${machine.key}`} className="font-normal">
                         {t('editTestPlanSettings.browsers.headless', 'Headless')}
@@ -437,7 +558,8 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                   </div>
                 ))}
                 <Button variant="outline" size="sm" onClick={addMachine}>
-                  <PlusCircle className="h-4 w-4 mr-1" /> {t('editTestPlanSettings.browsers.add', 'Add browser')}
+                  <PlusCircle className="h-4 w-4 mr-1" />{' '}
+                  {t('editTestPlanSettings.browsers.add', 'Add browser')}
                 </Button>
               </div>
             </section>
@@ -451,17 +573,30 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                 )}
               </p>
               <Select value={runOn} onValueChange={setRunOn}>
-                <SelectTrigger className="mt-2 w-[260px]" aria-label={t('editTestPlanSettings.runOn.label', 'Run on')}>
+                <SelectTrigger
+                  className="mt-2 w-[260px]"
+                  aria-label={t('editTestPlanSettings.runOn.label', 'Run on')}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ON_RUNNERS}>{t('editTestPlanSettings.runOn.runners', "This server's runners")}</SelectItem>
+                  <SelectItem value={ON_RUNNERS}>
+                    {t('editTestPlanSettings.runOn.runners', "This server's runners")}
+                  </SelectItem>
                   {grids.map((grid) => (
                     <SelectItem key={grid.id} value={`${GRID_PREFIX}${grid.id}`}>
-                      {t('editTestPlanSettings.runOn.grid', '{{provider}}: {{name}}', { provider: BROWSER_GRID_LABELS[grid.provider] ?? grid.provider, name: grid.name })}
+                      {t('editTestPlanSettings.runOn.grid', '{{provider}}: {{name}}', {
+                        provider: BROWSER_GRID_LABELS[grid.provider] ?? grid.provider,
+                        name: grid.name,
+                      })}
                     </SelectItem>
                   ))}
-                  {[...new Set([...agentPools, ...(runOn === ON_RUNNERS || runOn.startsWith(GRID_PREFIX) ? [] : [runOn])])].map((pool) => (
+                  {[
+                    ...new Set([
+                      ...agentPools,
+                      ...(runOn === ON_RUNNERS || runOn.startsWith(GRID_PREFIX) ? [] : [runOn]),
+                    ]),
+                  ].map((pool) => (
                     <SelectItem key={pool} value={pool}>
                       {t('editTestPlanSettings.runOn.pool', 'Local agents: {{pool}}', { pool })}
                     </SelectItem>
@@ -501,11 +636,15 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                   'Splits one run across up to this many runners, each running the number above at once. Tests are handed out one at a time to whichever runner is free, and the report is one run as usual. 1 keeps the run on one runner.',
                 )}
               </p>
-              {maxParallelError && <p className="text-sm text-destructive mt-1">{maxParallelError}</p>}
+              {maxParallelError && (
+                <p className="text-sm text-destructive mt-1">{maxParallelError}</p>
+              )}
             </section>
 
             <section>
-              <Label htmlFor="editLocales">{t('editTestPlanSettings.locales.label', 'Languages')}</Label>
+              <Label htmlFor="editLocales">
+                {t('editTestPlanSettings.locales.label', 'Languages')}
+              </Label>
               <Input
                 id="editLocales"
                 value={locales}
@@ -524,7 +663,9 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
             </section>
 
             <section>
-              <Label>{t('editTestPlanSettings.evidence.label', 'Keep a recording of the run')}</Label>
+              <Label>
+                {t('editTestPlanSettings.evidence.label', 'Keep a recording of the run')}
+              </Label>
               <p className="text-xs text-muted-foreground mt-1">
                 {t(
                   'editTestPlanSettings.evidence.help',
@@ -593,9 +734,15 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
             </section>
 
             <section className="flex items-center space-x-2">
-              <Switch id="editVisualTesting" checked={visualTestingEnabled} onCheckedChange={setVisualTestingEnabled} />
+              <Switch
+                id="editVisualTesting"
+                checked={visualTestingEnabled}
+                onCheckedChange={setVisualTestingEnabled}
+              />
               <div>
-                <Label htmlFor="editVisualTesting">{t('editTestPlanSettings.visualTesting.label', 'Visual testing')}</Label>
+                <Label htmlFor="editVisualTesting">
+                  {t('editTestPlanSettings.visualTesting.label', 'Visual testing')}
+                </Label>
                 <p className="text-xs text-muted-foreground">
                   {t(
                     'editTestPlanSettings.visualTesting.help',
@@ -616,7 +763,10 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NO_TRACKER}>
-                      {t('editTestPlanSettings.issues.noTracker', 'Nowhere — failures stay in the report')}
+                      {t(
+                        'editTestPlanSettings.issues.noTracker',
+                        'Nowhere — failures stay in the report',
+                      )}
                     </SelectItem>
                     {trackers.map((tracker) => (
                       <SelectItem key={tracker.id} value={tracker.id}>
@@ -657,7 +807,10 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NO_TRACKER}>
-                    {t('editTestPlanSettings.testManagement.none', 'Nowhere — results stay in the report')}
+                    {t(
+                      'editTestPlanSettings.testManagement.none',
+                      'Nowhere — results stay in the report',
+                    )}
                   </SelectItem>
                   {testManagement.map((connection) => (
                     <SelectItem key={connection.id} value={connection.id}>
@@ -675,14 +828,18 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
             </section>
 
             <section>
-              <Label>{t('editTestPlanSettings.notifications.label', 'Send notification when')}</Label>
+              <Label>
+                {t('editTestPlanSettings.notifications.label', 'Send notification when')}
+              </Label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 mt-1 p-3 border rounded-md">
                 {NOTIFICATION_KEYS.map((key) => (
                   <div key={key} className="flex items-center space-x-2">
                     <Checkbox
                       id={`edit-notify-${key}`}
                       checked={notifications[key]}
-                      onCheckedChange={(checked) => setNotifications((previous) => ({ ...previous, [key]: !!checked }))}
+                      onCheckedChange={(checked) =>
+                        setNotifications((previous) => ({ ...previous, [key]: !!checked }))
+                      }
                     />
                     <Label htmlFor={`edit-notify-${key}`} className="font-normal capitalize">
                       {t(`createTestPlanWizard.step3.sendNotificationWhen.options.${key}`, key)}
@@ -699,7 +856,9 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
               <Input
                 id="editNotificationWebhookUrl"
                 value={notifications.webhookUrl ?? ''}
-                onChange={(e) => setNotifications((previous) => ({ ...previous, webhookUrl: e.target.value }))}
+                onChange={(e) =>
+                  setNotifications((previous) => ({ ...previous, webhookUrl: e.target.value }))
+                }
                 placeholder="https://hooks.slack.com/services/..."
                 className="mt-1"
               />

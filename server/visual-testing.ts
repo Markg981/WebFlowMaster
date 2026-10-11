@@ -76,7 +76,11 @@ export { baselineRoot };
 export interface ScreenshotPage {
   waitForLoadState(state: 'load' | 'networkidle', options?: { timeout?: number }): Promise<void>;
   evaluate<R>(fn: () => R | Promise<R>): Promise<R>;
-  screenshot(options: { type: 'png'; animations?: 'disabled' | 'allow'; caret?: 'hide' | 'initial' }): Promise<Buffer>;
+  screenshot(options: {
+    type: 'png';
+    animations?: 'disabled' | 'allow';
+    caret?: 'hide' | 'initial';
+  }): Promise<Buffer>;
 }
 
 /**
@@ -103,7 +107,11 @@ export async function stableScreenshot(page: ScreenshotPage, maxAttempts = 5): P
   await settle(() => page.waitForLoadState('load', { timeout: 10_000 }));
   await settle(() => page.waitForLoadState('networkidle', { timeout: 5_000 }));
   await settle(() =>
-    page.evaluate(() => (typeof document !== 'undefined' && (document as any).fonts ? (document as any).fonts.ready.then(() => true) : true)),
+    page.evaluate(() =>
+      typeof document !== 'undefined' && (document as any).fonts
+        ? (document as any).fonts.ready.then(() => true)
+        : true,
+    ),
   );
 
   const take = () => page.screenshot({ type: 'png', animations: 'disabled', caret: 'hide' });
@@ -118,7 +126,11 @@ export async function stableScreenshot(page: ScreenshotPage, maxAttempts = 5): P
 
 /** Anything that could turn a browser label or a step name into a path traversal. */
 function safeSegment(value: string | number): string {
-  return String(value).replace(/[^a-z0-9_.-]/gi, '_').slice(0, 60) || 'unnamed';
+  return (
+    String(value)
+      .replace(/[^a-z0-9_.-]/gi, '_')
+      .slice(0, 60) || 'unnamed'
+  );
 }
 
 function baselineSegments(ctx: VisualContext, stepIndex: number): string[] {
@@ -220,7 +232,13 @@ export async function compareStepScreenshot(
       };
     }
 
-    const artifacts = await writeArtifacts(ctx, stepIndex, baselineBuffer, actual, PNG.sync.write(diff));
+    const artifacts = await writeArtifacts(
+      ctx,
+      stepIndex,
+      baselineBuffer,
+      actual,
+      PNG.sync.write(diff),
+    );
     return {
       kind: 'diff',
       diffRatio,
@@ -233,7 +251,10 @@ export async function compareStepScreenshot(
   } catch (error: any) {
     // A broken PNG or an unwritable directory is a problem with the comparison, not with the
     // application under test, and must not be reported as a visual regression.
-    return { kind: 'skipped', reason: `Visual comparison could not run: ${error?.message ?? error}` };
+    return {
+      kind: 'skipped',
+      reason: `Visual comparison could not run: ${error?.message ?? error}`,
+    };
   }
 }
 
@@ -274,6 +295,8 @@ function formatPercent(ratio: number): string {
 }
 
 /** True when a visual outcome should make the step, and so the test, fail. */
-export function isVisualFailure(outcome: VisualOutcome): outcome is Extract<VisualOutcome, { kind: 'diff' }> {
+export function isVisualFailure(
+  outcome: VisualOutcome,
+): outcome is Extract<VisualOutcome, { kind: 'diff' }> {
   return outcome.kind === 'diff';
 }

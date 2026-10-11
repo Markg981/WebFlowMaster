@@ -93,9 +93,17 @@ describe('the audit trail records what the member routes do', () => {
     );
 
   it('records a role change with both the old and the new role', async () => {
-    await request(app).patch(`/api/organization/members/${editorId}`).send({ role: 'viewer' }).expect(200);
+    await request(app)
+      .patch(`/api/organization/members/${editorId}`)
+      .send({ role: 'viewer' })
+      .expect(200);
 
-    const rows = (await auditFor()).rows as { action: string; actor_username: string; target_id: string; metadata: Record<string, unknown> }[];
+    const rows = (await auditFor()).rows as {
+      action: string;
+      actor_username: string;
+      target_id: string;
+      metadata: Record<string, unknown>;
+    }[];
     expect(rows).toHaveLength(1);
     expect(rows[0].action).toBe('member.role_changed');
     expect(rows[0].target_id).toBe(String(editorId));
@@ -115,23 +123,44 @@ describe('the audit trail records what the member routes do', () => {
   it('writes no entry when the change is refused', async () => {
     // The last-owner guard rejects this. An audit log that records attempts as if they were
     // changes is worse than none: it makes the trail unreadable.
-    await request(app).patch(`/api/organization/members/${ownerId}`).send({ role: 'viewer' }).expect(409);
+    await request(app)
+      .patch(`/api/organization/members/${ownerId}`)
+      .send({ role: 'viewer' })
+      .expect(409);
     expect((await auditFor()).rows).toHaveLength(0);
   });
 
   it('mails the invitation link when the username is an address and mail is configured, and says when it could not', async () => {
     const { mailerDeps } = await import('../mailer');
     const mails: any[] = [];
-    mailerDeps.transport = { sendMail: async (m: any) => { if (m.to.startsWith('bounce')) throw new Error('550 no such mailbox'); mails.push(m); return { accepted: [m.to], rejected: [] }; } } as any;
+    mailerDeps.transport = {
+      sendMail: async (m: any) => {
+        if (m.to.startsWith('bounce')) throw new Error('550 no such mailbox');
+        mails.push(m);
+        return { accepted: [m.to], rejected: [] };
+      },
+    } as any;
     try {
-      const plain = await request(app).post('/api/organization/invitations').send({ username: 'not-an-address' }).expect(201);
+      const plain = await request(app)
+        .post('/api/organization/invitations')
+        .send({ username: 'not-an-address' })
+        .expect(201);
       expect(plain.body.emailed).toBeUndefined();
-      const mailed = await request(app).post('/api/organization/invitations').send({ username: 'invitee@shop.test', role: 'viewer' }).expect(201);
+      const mailed = await request(app)
+        .post('/api/organization/invitations')
+        .send({ username: 'invitee@shop.test', role: 'viewer' })
+        .expect(201);
       expect(mailed.body).toMatchObject({ emailed: true, token: expect.any(String) });
       expect(mails[0].to).toBe('invitee@shop.test');
       expect(mails[0].text).toContain(`invitation=${mailed.body.token}`);
-      const bounced = await request(app).post('/api/organization/invitations').send({ username: 'bounce@shop.test' }).expect(201);
-      expect(bounced.body).toMatchObject({ emailed: false, emailError: expect.stringContaining('550') });
+      const bounced = await request(app)
+        .post('/api/organization/invitations')
+        .send({ username: 'bounce@shop.test' })
+        .expect(201);
+      expect(bounced.body).toMatchObject({
+        emailed: false,
+        emailError: expect.stringContaining('550'),
+      });
     } finally {
       mailerDeps.transport = undefined;
     }
@@ -151,7 +180,10 @@ describe('the audit trail records what the member routes do', () => {
   });
 
   it('is readable by an owner and refused to an editor', async () => {
-    await request(app).post('/api/organization/invitations').send({ username: 'audited-newcomer' }).expect(201);
+    await request(app)
+      .post('/api/organization/invitations')
+      .send({ username: 'audited-newcomer' })
+      .expect(201);
 
     const asOwner = await request(app).get('/api/organization/audit-log');
     expect(asOwner.status).toBe(200);
@@ -204,7 +236,9 @@ describe('organization invitations', () => {
     const first = await invite({ username: 'newcomer' });
     expect(first.status).toBe(201);
     // Accepted, and then the account removed: the invitation stays, for the audit trail.
-    await privilegedDb.execute(sql`UPDATE invitations SET accepted_at = now() WHERE id = ${first.body.id}`);
+    await privilegedDb.execute(
+      sql`UPDATE invitations SET accepted_at = now() WHERE id = ${first.body.id}`,
+    );
 
     const again = await invite({ username: 'newcomer' });
     expect(again.status).toBe(201);
@@ -473,7 +507,9 @@ describe('DELETE /api/organization/members/:userId', () => {
     const res = await request(app).delete(`/api/organization/members/${editorId}`);
 
     expect(res.status).toBe(200);
-    const rows = await privilegedDb.execute(sql`SELECT count(*) AS n FROM users WHERE id = ${editorId}`);
+    const rows = await privilegedDb.execute(
+      sql`SELECT count(*) AS n FROM users WHERE id = ${editorId}`,
+    );
     expect(Number((rows.rows[0] as { n: string }).n)).toBe(0);
   });
 
@@ -491,7 +527,9 @@ describe('removing a member who made things', () => {
 
   /** One of everything a member can create, all by the editor. */
   beforeEach(async () => {
-    await privilegedDb.execute(sql`INSERT INTO projects (name, user_id, organization_id) VALUES ('Shop', ${editorId}, ${orgId})`);
+    await privilegedDb.execute(
+      sql`INSERT INTO projects (name, user_id, organization_id) VALUES ('Shop', ${editorId}, ${orgId})`,
+    );
     await privilegedDb.execute(sql`
       INSERT INTO tests (user_id, organization_id, name, url, sequence, elements)
       VALUES (${editorId}, ${orgId}, 'Checkout', 'https://app.test', '[]'::jsonb, '[]'::jsonb)
@@ -537,8 +575,21 @@ describe('removing a member who made things', () => {
 
   // Runs before the file's own cleanup, which deletes the users these rows now point at.
   afterEach(async () => {
-    for (const table of ['secrets', 'environments', 'test_plan_schedules', 'test_plans', 'step_groups', 'custom_actions', 'api_tests', 'tests', 'projects', 'api_keys']) {
-      await privilegedDb.execute(sql`DELETE FROM ${sql.identifier(table)} WHERE organization_id = ${orgId}`);
+    for (const table of [
+      'secrets',
+      'environments',
+      'test_plan_schedules',
+      'test_plans',
+      'step_groups',
+      'custom_actions',
+      'api_tests',
+      'tests',
+      'projects',
+      'api_keys',
+    ]) {
+      await privilegedDb.execute(
+        sql`DELETE FROM ${sql.identifier(table)} WHERE organization_id = ${orgId}`,
+      );
     }
   });
 
@@ -548,19 +599,49 @@ describe('removing a member who made things', () => {
     expect(res.status).toBe(200);
     expect(res.body.transferredTo).toEqual({ id: ownerId, username: 'org-owner' });
     expect(res.body.transferred).toEqual({
-      projects: 1, tests: 1, api_tests: 1, test_plans: 1, test_plan_schedules: 1, step_groups: 1, custom_actions: 1, environments: 1, secrets: 1,
+      projects: 1,
+      tests: 1,
+      api_tests: 1,
+      test_plans: 1,
+      test_plan_schedules: 1,
+      step_groups: 1,
+      custom_actions: 1,
+      environments: 1,
+      secrets: 1,
     });
-    for (const table of ['projects', 'tests', 'api_tests', 'test_plans', 'test_plan_schedules', 'step_groups', 'custom_actions', 'environments', 'secrets']) {
-      expect(await count(sql`SELECT count(*) AS n FROM ${sql.identifier(table)} WHERE organization_id = ${orgId} AND user_id = ${ownerId}`)).toBe(1);
+    for (const table of [
+      'projects',
+      'tests',
+      'api_tests',
+      'test_plans',
+      'test_plan_schedules',
+      'step_groups',
+      'custom_actions',
+      'environments',
+      'secrets',
+    ]) {
+      expect(
+        await count(
+          sql`SELECT count(*) AS n FROM ${sql.identifier(table)} WHERE organization_id = ${orgId} AND user_id = ${ownerId}`,
+        ),
+      ).toBe(1);
     }
   });
 
   it('deletes only what was the member’s own, and keeps the invitation they sent', async () => {
     await request(app).delete(`/api/organization/members/${editorId}`);
 
-    expect(await count(sql`SELECT count(*) AS n FROM user_settings WHERE user_id = ${editorId}`)).toBe(0);
-    expect(await count(sql`SELECT count(*) AS n FROM api_keys WHERE user_id = ${editorId}`)).toBe(0);
-    expect(await count(sql`SELECT count(*) AS n FROM invitations WHERE organization_id = ${orgId} AND invited_by_user_id IS NULL`)).toBe(1);
+    expect(
+      await count(sql`SELECT count(*) AS n FROM user_settings WHERE user_id = ${editorId}`),
+    ).toBe(0);
+    expect(await count(sql`SELECT count(*) AS n FROM api_keys WHERE user_id = ${editorId}`)).toBe(
+      0,
+    );
+    expect(
+      await count(
+        sql`SELECT count(*) AS n FROM invitations WHERE organization_id = ${orgId} AND invited_by_user_id IS NULL`,
+      ),
+    ).toBe(1);
   });
 
   it('hands things to the member the request names', async () => {
@@ -569,15 +650,23 @@ describe('removing a member who made things', () => {
     `);
     const viewerId = Number((other.rows[0] as { id: number }).id);
 
-    const res = await request(app).delete(`/api/organization/members/${editorId}`).send({ transferTo: viewerId });
+    const res = await request(app)
+      .delete(`/api/organization/members/${editorId}`)
+      .send({ transferTo: viewerId });
 
     expect(res.status).toBe(200);
     expect(res.body.transferredTo.id).toBe(viewerId);
-    expect(await count(sql`SELECT count(*) AS n FROM tests WHERE organization_id = ${orgId} AND user_id = ${viewerId}`)).toBe(1);
+    expect(
+      await count(
+        sql`SELECT count(*) AS n FROM tests WHERE organization_id = ${orgId} AND user_id = ${viewerId}`,
+      ),
+    ).toBe(1);
   });
 
   it('refuses to hand things to someone outside the organization, or to the member leaving', async () => {
-    const elsewhere = await privilegedDb.execute(sql`INSERT INTO organizations (name) VALUES ('Other') RETURNING id`);
+    const elsewhere = await privilegedDb.execute(
+      sql`INSERT INTO organizations (name) VALUES ('Other') RETURNING id`,
+    );
     const otherOrg = Number((elsewhere.rows[0] as { id: number }).id);
     const stranger = await privilegedDb.execute(sql`
       INSERT INTO users (username, password, organization_id, role) VALUES ('stranger', 'x', ${otherOrg}, 'owner') RETURNING id
@@ -585,8 +674,12 @@ describe('removing a member who made things', () => {
     const strangerId = Number((stranger.rows[0] as { id: number }).id);
 
     try {
-      const outside = await request(app).delete(`/api/organization/members/${editorId}`).send({ transferTo: strangerId });
-      const self = await request(app).delete(`/api/organization/members/${editorId}`).send({ transferTo: editorId });
+      const outside = await request(app)
+        .delete(`/api/organization/members/${editorId}`)
+        .send({ transferTo: strangerId });
+      const self = await request(app)
+        .delete(`/api/organization/members/${editorId}`)
+        .send({ transferTo: editorId });
 
       expect(outside.status).toBe(400);
       expect(self.status).toBe(400);
@@ -602,13 +695,19 @@ describe('removing a member who made things', () => {
       INSERT INTO users (username, password, organization_id, role) VALUES ('org-owner-2', 'x', ${orgId}, 'owner') RETURNING id
     `);
     const secondOwnerId = Number((second.rows[0] as { id: number }).id);
-    await privilegedDb.execute(sql`UPDATE tests SET user_id = ${ownerId} WHERE organization_id = ${orgId}`);
+    await privilegedDb.execute(
+      sql`UPDATE tests SET user_id = ${ownerId} WHERE organization_id = ${orgId}`,
+    );
 
     const res = await request(app).delete(`/api/organization/members/${ownerId}`);
 
     expect(res.status).toBe(200);
     expect(res.body.transferredTo.id).toBe(secondOwnerId);
-    expect(await count(sql`SELECT count(*) AS n FROM tests WHERE organization_id = ${orgId} AND user_id = ${secondOwnerId}`)).toBe(1);
+    expect(
+      await count(
+        sql`SELECT count(*) AS n FROM tests WHERE organization_id = ${orgId} AND user_id = ${secondOwnerId}`,
+      ),
+    ).toBe(1);
   });
 
   it('records who took over, and how much', async () => {
@@ -617,7 +716,9 @@ describe('removing a member who made things', () => {
     const entry = await privilegedDb.execute(sql`
       SELECT metadata FROM audit_log WHERE organization_id = ${orgId} AND action = 'member.removed'
     `);
-    const metadata = (entry.rows[0] as { metadata: { transferredTo: string; transferred: Record<string, number> } }).metadata;
+    const metadata = (
+      entry.rows[0] as { metadata: { transferredTo: string; transferred: Record<string, number> } }
+    ).metadata;
     expect(metadata.transferredTo).toBe('org-owner');
     expect(metadata.transferred.environments).toBe(1);
   });
@@ -634,7 +735,9 @@ describe('POST /api/organization/members/:userId/password-reset', () => {
     expect(res.status).toBe(201);
     expect(res.body.username).toBe('org-editor');
     expect(res.body.token).toEqual(expect.any(String));
-    const stored = await privilegedDb.execute(sql`SELECT token_hash FROM password_resets WHERE user_id = ${editorId}`);
+    const stored = await privilegedDb.execute(
+      sql`SELECT token_hash FROM password_resets WHERE user_id = ${editorId}`,
+    );
     expect((stored.rows[0] as { token_hash: string }).token_hash).not.toBe(res.body.token);
     const entry = await privilegedDb.execute(sql`
       SELECT metadata FROM audit_log WHERE organization_id = ${orgId} AND action = 'auth.password_reset_issued'
@@ -647,7 +750,9 @@ describe('POST /api/organization/members/:userId/password-reset', () => {
     const self = await request(app).post(`/api/organization/members/${ownerId}/password-reset`);
     expect(self.status).toBe(400);
 
-    const elsewhere = await privilegedDb.execute(sql`INSERT INTO organizations (name) VALUES ('Other') RETURNING id`);
+    const elsewhere = await privilegedDb.execute(
+      sql`INSERT INTO organizations (name) VALUES ('Other') RETURNING id`,
+    );
     const otherOrg = Number((elsewhere.rows[0] as { id: number }).id);
     const stranger = await privilegedDb.execute(sql`
       INSERT INTO users (username, password, organization_id, role) VALUES ('reset-stranger', 'x', ${otherOrg}, 'owner') RETURNING id

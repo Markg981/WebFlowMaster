@@ -381,7 +381,10 @@ describe('a dropdown that is not a <select>', () => {
     const { playwrightService } = await import('./playwright-service');
 
     const result = await playwrightService.executeTestSequence(
-      savedTest([step('selectByText', { selector: '#site-select', value: 'Konolfingen' })], '/material'),
+      savedTest(
+        [step('selectByText', { selector: '#site-select', value: 'Konolfingen' })],
+        '/material',
+      ),
       1,
     );
 
@@ -498,7 +501,12 @@ describe('what each action needs', () => {
   const withTarget = (id: AdhocActionId): MappedTestStep => ({
     ...bare(id),
     targetElement: {
-      id: 'e1', type: 'element', selector: '#title', text: '', tag: 'h1', attributes: {},
+      id: 'e1',
+      type: 'element',
+      selector: '#title',
+      text: '',
+      tag: 'h1',
+      attributes: {},
     },
   });
 
@@ -514,7 +522,7 @@ describe('what each action needs', () => {
     const { executeStep } = await import('./step-executor');
     try {
       const outcome = await executeStep({ page } as never, step as never);
-      return outcome.status === 'failed' ? outcome.error ?? '' : null;
+      return outcome.status === 'failed' ? (outcome.error ?? '') : null;
     } catch (error) {
       return (error as Error).message;
     }
@@ -599,8 +607,7 @@ describe('asserting the state of a control', () => {
     return playwrightService.executeTestSequence(savedTest(sequence, '/controls'), 1);
   };
 
-  const stateStep = (selector: string, value: string) =>
-    step('assertState', { selector, value });
+  const stateStep = (selector: string, value: string) => step('assertState', { selector, value });
 
   it('reads a native checkbox', async () => {
     const result = await runOnControls([
@@ -783,8 +790,16 @@ describe('a precondition that is already satisfied', () => {
 describe('interactions a click and a typed value cannot stand in for', () => {
   const run = async (sequence: MappedTestStep[], vars?: Record<string, string>) => {
     const { playwrightService } = await import('./playwright-service');
-    const result = await playwrightService.executeTestSequence(savedTest(sequence, '/interactions'), 1, undefined, undefined, vars);
-    const failures = (result.steps ?? []).filter((s) => s.status === 'failed').map((f) => `${f.type}: ${f.error}`);
+    const result = await playwrightService.executeTestSequence(
+      savedTest(sequence, '/interactions'),
+      1,
+      undefined,
+      undefined,
+      vars,
+    );
+    const failures = (result.steps ?? [])
+      .filter((s) => s.status === 'failed')
+      .map((f) => `${f.type}: ${f.error}`);
     return { result, failures };
   };
 
@@ -882,9 +897,13 @@ describe('interactions a click and a typed value cannot stand in for', () => {
 
 describe('parsing the values of the new actions', () => {
   it('reads uploads, dialog answers and assignments', async () => {
-    const { parseUploadValue, parseDialogAnswer, parseAssignment } = await import('./step-executor');
+    const { parseUploadValue, parseDialogAnswer, parseAssignment } =
+      await import('./step-executor');
     expect(parseUploadValue('../etc/passwd')).toHaveProperty('error');
-    expect(parseUploadValue('a.json|{}')).toMatchObject({ name: 'a.json', mimeType: 'application/json' });
+    expect(parseUploadValue('a.json|{}')).toMatchObject({
+      name: 'a.json',
+      mimeType: 'application/json',
+    });
     expect(parseDialogAnswer('')).toEqual({ accept: true });
     expect(parseDialogAnswer('Dismiss')).toEqual({ accept: false });
     expect(parseDialogAnswer('accept:a:b')).toEqual({ accept: true, promptText: 'a:b' });
@@ -897,8 +916,13 @@ describe('parsing the values of the new actions', () => {
 describe('conditions, loops and generated values', () => {
   const run = async (sequence: MappedTestStep[]) => {
     const { playwrightService } = await import('./playwright-service');
-    const result = await playwrightService.executeTestSequence(savedTest(sequence, '/interactions'), 1);
-    const failures = (result.steps ?? []).filter((s) => s.status === 'failed').map((f) => `${f.type}: ${f.error}`);
+    const result = await playwrightService.executeTestSequence(
+      savedTest(sequence, '/interactions'),
+      1,
+    );
+    const failures = (result.steps ?? [])
+      .filter((s) => s.status === 'failed')
+      .map((f) => `${f.type}: ${f.error}`);
     return { result, failures };
   };
 
@@ -952,7 +976,10 @@ describe('conditions, loops and generated values', () => {
   }, 60_000);
 
   it('refuses a test whose blocks do not close, before running anything', async () => {
-    const { result } = await run([step('if', { value: 'true' }), step('click', { selector: '#dbl' })]);
+    const { result } = await run([
+      step('if', { value: 'true' }),
+      step('click', { selector: '#dbl' }),
+    ]);
     expect(result.success).toBe(false);
     expect(result.error).toContain('Step 1: this "if" has no "endIf".');
     expect(result.steps ?? []).toEqual([]);

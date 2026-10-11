@@ -18,7 +18,12 @@ vi.mock('./logger', () => {
   const noop = () => undefined;
   return {
     default: Promise.resolve({
-      error: noop, warn: noop, info: noop, http: noop, verbose: noop, debug: noop,
+      error: noop,
+      warn: noop,
+      info: noop,
+      http: noop,
+      verbose: noop,
+      debug: noop,
     }),
   };
 });
@@ -49,7 +54,9 @@ describe('connectSessionRedis with an unreachable Redis', () => {
     // The failure mode being pinned: the promise never settles, so `await` in index.ts
     // never returns and server.listen() is never reached.
     const settled = await Promise.race([
-      connectSessionRedis().then(() => 'resolved' as const).catch(() => 'rejected' as const),
+      connectSessionRedis()
+        .then(() => 'resolved' as const)
+        .catch(() => 'rejected' as const),
       new Promise<'pending'>((resolve) => setTimeout(() => resolve('pending'), 15_000)),
     ]);
 

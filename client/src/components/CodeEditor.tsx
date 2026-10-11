@@ -15,7 +15,9 @@ const MonacoEditor = lazy(async () => {
 
 export function CodeEditor(props: EditorProps) {
   return (
-    <Suspense fallback={<div style={{ height: props.height }} className="bg-muted/30" aria-busy="true" />}>
+    <Suspense
+      fallback={<div style={{ height: props.height }} className="bg-muted/30" aria-busy="true" />}
+    >
       <MonacoEditor {...props} />
     </Suspense>
   );

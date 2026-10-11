@@ -40,7 +40,12 @@ describe('mapEndpoint', () => {
   it('adds the default status_code < 500 smoke assertion', () => {
     const t = mapEndpoint(ep, cfg);
     const a = (t.assertions as Array<any>)[0];
-    expect(a).toMatchObject({ source: 'status_code', comparison: 'less_than', targetValue: '500', enabled: true });
+    expect(a).toMatchObject({
+      source: 'status_code',
+      comparison: 'less_than',
+      targetValue: '500',
+      enabled: true,
+    });
     expect(a.id).toMatch(/[0-9a-f-]{36}/);
   });
 });

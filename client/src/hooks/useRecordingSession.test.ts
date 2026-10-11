@@ -42,9 +42,7 @@ function setup() {
   const onStepsChange = vi.fn();
   const onError = vi.fn();
   const onNotice = vi.fn();
-  const hook = renderHook(() =>
-    useRecordingSession({ onStepsChange, onError, onNotice }),
-  );
+  const hook = renderHook(() => useRecordingSession({ onStepsChange, onError, onNotice }));
   return { ...hook, onStepsChange, onError, onNotice };
 }
 

@@ -25,7 +25,8 @@ import { sharedStore } from './rate-limit-store';
 function perMinute(value: string | undefined, fallback: number): number {
   if (value === undefined || value.trim() === '') return fallback;
   const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 0) throw new Error(`Rate limits must be whole numbers of requests per minute; got "${value}".`);
+  if (!Number.isInteger(parsed) || parsed < 0)
+    throw new Error(`Rate limits must be whole numbers of requests per minute; got "${value}".`);
   return parsed;
 }
 
@@ -49,7 +50,12 @@ export function apiRateLimit(env: NodeJS.ProcessEnv = process.env): RequestHandl
       return key ? `key:${key}` : `ip:${ipKeyGenerator(req.ip ?? '')}`;
     },
     handler: (_req, res) => {
-      apiError(res, 429, 'rate_limited', `Too many requests: at most ${limit} a minute. Wait and try again.`);
+      apiError(
+        res,
+        429,
+        'rate_limited',
+        `Too many requests: at most ${limit} a minute. Wait and try again.`,
+      );
     },
   });
 }
@@ -65,7 +71,9 @@ export function webhookRateLimit(env: NodeJS.ProcessEnv = process.env): RequestH
     legacyHeaders: false,
     keyGenerator: (req) => `ip:${ipKeyGenerator(req.ip ?? '')}`,
     handler: (_req, res) => {
-      res.status(429).json({ error: `Too many requests: at most ${limit} a minute. Wait and try again.` });
+      res
+        .status(429)
+        .json({ error: `Too many requests: at most ${limit} a minute. Wait and try again.` });
     },
   });
 }

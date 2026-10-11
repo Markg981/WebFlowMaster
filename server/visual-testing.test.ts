@@ -3,7 +3,13 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
 import { PNG } from 'pngjs';
-import { baselinePathFor, compareStepScreenshot, isVisualFailure, stableScreenshot, type VisualContext } from './visual-testing';
+import {
+  baselinePathFor,
+  compareStepScreenshot,
+  isVisualFailure,
+  stableScreenshot,
+  type VisualContext,
+} from './visual-testing';
 import { createTestOrganization } from './tests/factories';
 
 /**
@@ -15,15 +21,23 @@ const workDir = path.join(os.tmpdir(), `visual-testing-test-${process.pid}`);
 const baselineDir = path.join(workDir, 'baselines');
 const artifactDir = path.join(workDir, 'run');
 let organizationId: number;
-beforeAll(async () => { organizationId = await createTestOrganization('Visual comparison'); });
+beforeAll(async () => {
+  organizationId = await createTestOrganization('Visual comparison');
+});
 
 process.env.VISUAL_BASELINE_DIR = baselineDir;
 
-function png(width: number, height: number, colour: [number, number, number], mark?: { x: number; y: number; w: number; h: number }): Buffer {
+function png(
+  width: number,
+  height: number,
+  colour: [number, number, number],
+  mark?: { x: number; y: number; w: number; h: number },
+): Buffer {
   const image = new PNG({ width, height });
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const inMark = mark && x >= mark.x && x < mark.x + mark.w && y >= mark.y && y < mark.y + mark.h;
+      const inMark =
+        mark && x >= mark.x && x < mark.x + mark.w && y >= mark.y && y < mark.y + mark.h;
       const idx = (width * y + x) << 2;
       image.data[idx] = inMark ? 0 : colour[0];
       image.data[idx + 1] = inMark ? 0 : colour[1];
@@ -72,7 +86,11 @@ describe('compareStepScreenshot', () => {
   it('fails the step when enough pixels changed, and keeps the three pictures for the report', async () => {
     await compareStepScreenshot(ctx(), 0, png(20, 20, [255, 255, 255]));
 
-    const outcome = await compareStepScreenshot(ctx(), 0, png(20, 20, [255, 255, 255], { x: 0, y: 0, w: 10, h: 10 }));
+    const outcome = await compareStepScreenshot(
+      ctx(),
+      0,
+      png(20, 20, [255, 255, 255], { x: 0, y: 0, w: 10, h: 10 }),
+    );
 
     expect(outcome.kind).toBe('diff');
     if (outcome.kind !== 'diff') throw new Error('expected a diff');
@@ -86,7 +104,11 @@ describe('compareStepScreenshot', () => {
     await compareStepScreenshot(ctx(), 0, png(100, 100, [255, 255, 255]));
 
     // 25 pixels of 10,000 — a quarter of a percent, under the 1% default.
-    const outcome = await compareStepScreenshot(ctx(), 0, png(100, 100, [255, 255, 255], { x: 0, y: 0, w: 5, h: 5 }));
+    const outcome = await compareStepScreenshot(
+      ctx(),
+      0,
+      png(100, 100, [255, 255, 255], { x: 0, y: 0, w: 5, h: 5 }),
+    );
 
     expect(outcome.kind).toBe('match');
   });
@@ -104,15 +126,23 @@ describe('compareStepScreenshot', () => {
   it('keeps a separate baseline per browser, because two engines do not render one page alike', async () => {
     await compareStepScreenshot(ctx({ browser: 'chromium' }), 0, png(20, 20, [255, 255, 255]));
 
-    const onFirefox = await compareStepScreenshot(ctx({ browser: 'firefox' }), 0, png(20, 20, [0, 0, 0]));
+    const onFirefox = await compareStepScreenshot(
+      ctx({ browser: 'firefox' }),
+      0,
+      png(20, 20, [0, 0, 0]),
+    );
 
     expect(onFirefox.kind).toBe('baseline-created');
   });
 
-  it("keeps a separate baseline per dataset row, so the dataset working is not a regression", async () => {
+  it('keeps a separate baseline per dataset row, so the dataset working is not a regression', async () => {
     await compareStepScreenshot(ctx({ variant: 'row_1' }), 0, png(20, 20, [255, 255, 255]));
 
-    const secondRow = await compareStepScreenshot(ctx({ variant: 'row_2' }), 0, png(20, 20, [0, 0, 0]));
+    const secondRow = await compareStepScreenshot(
+      ctx({ variant: 'row_2' }),
+      0,
+      png(20, 20, [0, 0, 0]),
+    );
 
     expect(secondRow.kind).toBe('baseline-created');
   });
@@ -148,7 +178,11 @@ describe('compareStepScreenshot', () => {
   });
 
   it('does not let a browser label escape the baseline directory', async () => {
-    const outcome = await compareStepScreenshot(ctx({ browser: '../../etc' }), 0, png(20, 20, [255, 255, 255]));
+    const outcome = await compareStepScreenshot(
+      ctx({ browser: '../../etc' }),
+      0,
+      png(20, 20, [255, 255, 255]),
+    );
 
     expect(outcome.kind).toBe('baseline-created');
     if (outcome.kind !== 'baseline-created') throw new Error('expected a baseline');

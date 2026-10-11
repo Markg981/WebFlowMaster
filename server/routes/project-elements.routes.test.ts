@@ -8,7 +8,12 @@ import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -40,7 +45,10 @@ beforeAll(async () => {
   otherOrganizationId = await createTestOrganization('Other Elements Route Org');
   otherUserId = await createTestUser(otherOrganizationId, 'other-elements-route-user');
 
-  const [project] = await privilegedDb.insert(projects).values({ name: 'App', userId, organizationId }).returning();
+  const [project] = await privilegedDb
+    .insert(projects)
+    .values({ name: 'App', userId, organizationId })
+    .returning();
   projectId = project.id;
   const [otherProject] = await privilegedDb
     .insert(projects)
@@ -76,8 +84,21 @@ async function seedTestUsing(elementId: string, name = 'Checkout') {
     sequence: [
       {
         id: uuidv4(),
-        action: { id: 'click', type: 'click', name: 'Click', icon: 'MousePointer', description: 'Click' },
-        targetElement: { id: 'el', type: 'button', selector: '#save', tag: 'button', attributes: {}, elementId },
+        action: {
+          id: 'click',
+          type: 'click',
+          name: 'Click',
+          icon: 'MousePointer',
+          description: 'Click',
+        },
+        targetElement: {
+          id: 'el',
+          type: 'button',
+          selector: '#save',
+          tag: 'button',
+          attributes: {},
+          elementId,
+        },
       },
     ],
     elements: [],
@@ -86,7 +107,10 @@ async function seedTestUsing(elementId: string, name = 'Checkout') {
 
 describe('POST /api/projects/:projectId/elements', () => {
   it('keeps an element for the project, remembering what its selector was', async () => {
-    const response = await request(app).post(`/api/projects/${projectId}/elements`).send(element()).expect(201);
+    const response = await request(app)
+      .post(`/api/projects/${projectId}/elements`)
+      .send(element())
+      .expect(201);
 
     expect(response.body.projectId).toBe(projectId);
     expect(response.body.selector).toBe('#save');
@@ -96,14 +120,22 @@ describe('POST /api/projects/:projectId/elements', () => {
   it('refuses a second element with the same name in one project', async () => {
     await request(app).post(`/api/projects/${projectId}/elements`).send(element()).expect(201);
 
-    const response = await request(app).post(`/api/projects/${projectId}/elements`).send(element({ selector: '#other' })).expect(409);
+    const response = await request(app)
+      .post(`/api/projects/${projectId}/elements`)
+      .send(element({ selector: '#other' }))
+      .expect(409);
 
     expect(response.body.error).toContain('Save button');
   });
 
   it('lets two projects each have their own "Save button"', async () => {
     await request(app).post(`/api/projects/${projectId}/elements`).send(element()).expect(201);
-    currentUser = { id: otherUserId, username: 'other-elements-route-user', organizationId: otherOrganizationId, role: 'editor' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-elements-route-user',
+      organizationId: otherOrganizationId,
+      role: 'editor',
+    };
 
     await request(app).post(`/api/projects/${otherProjectId}/elements`).send(element()).expect(201);
   });
@@ -123,9 +155,20 @@ describe('POST /api/projects/:projectId/elements', () => {
 
 describe('GET /api/projects/:projectId/elements', () => {
   it("lists one project's elements and not another's", async () => {
-    await request(app).post(`/api/projects/${projectId}/elements`).send(element({ name: 'Ours' })).expect(201);
-    currentUser = { id: otherUserId, username: 'other-elements-route-user', organizationId: otherOrganizationId, role: 'editor' };
-    await request(app).post(`/api/projects/${otherProjectId}/elements`).send(element({ name: 'Theirs' })).expect(201);
+    await request(app)
+      .post(`/api/projects/${projectId}/elements`)
+      .send(element({ name: 'Ours' }))
+      .expect(201);
+    currentUser = {
+      id: otherUserId,
+      username: 'other-elements-route-user',
+      organizationId: otherOrganizationId,
+      role: 'editor',
+    };
+    await request(app)
+      .post(`/api/projects/${otherProjectId}/elements`)
+      .send(element({ name: 'Theirs' }))
+      .expect(201);
 
     const theirs = await request(app).get(`/api/projects/${otherProjectId}/elements`).expect(200);
     currentUser = { id: userId, username: 'elements-route-user', organizationId, role: 'editor' };
@@ -138,7 +181,10 @@ describe('GET /api/projects/:projectId/elements', () => {
 
 describe('PUT /api/project-elements/:id', () => {
   it('corrects a selector once, for every test that names it', async () => {
-    const created = await request(app).post(`/api/projects/${projectId}/elements`).send(element()).expect(201);
+    const created = await request(app)
+      .post(`/api/projects/${projectId}/elements`)
+      .send(element())
+      .expect(201);
 
     const response = await request(app)
       .put(`/api/project-elements/${created.body.id}`)
@@ -151,26 +197,45 @@ describe('PUT /api/project-elements/:id', () => {
   });
 
   it("cannot reach another organization's element", async () => {
-    const created = await request(app).post(`/api/projects/${projectId}/elements`).send(element()).expect(201);
-    currentUser = { id: otherUserId, username: 'other-elements-route-user', organizationId: otherOrganizationId, role: 'editor' };
+    const created = await request(app)
+      .post(`/api/projects/${projectId}/elements`)
+      .send(element())
+      .expect(201);
+    currentUser = {
+      id: otherUserId,
+      username: 'other-elements-route-user',
+      organizationId: otherOrganizationId,
+      role: 'editor',
+    };
 
-    await request(app).put(`/api/project-elements/${created.body.id}`).send({ selector: '#hijacked' }).expect(404);
+    await request(app)
+      .put(`/api/project-elements/${created.body.id}`)
+      .send({ selector: '#hijacked' })
+      .expect(404);
   });
 });
 
 describe('DELETE /api/project-elements/:id', () => {
   it('refuses while tests still name it, and says which', async () => {
-    const created = await request(app).post(`/api/projects/${projectId}/elements`).send(element()).expect(201);
+    const created = await request(app)
+      .post(`/api/projects/${projectId}/elements`)
+      .send(element())
+      .expect(201);
     await seedTestUsing(created.body.id, 'Checkout');
 
-    const response = await request(app).delete(`/api/project-elements/${created.body.id}`).expect(409);
+    const response = await request(app)
+      .delete(`/api/project-elements/${created.body.id}`)
+      .expect(409);
 
     expect(response.body.tests).toEqual(['Checkout']);
     expect(await privilegedDb.select().from(projectElements)).toHaveLength(1);
   });
 
   it('deletes one nothing names', async () => {
-    const created = await request(app).post(`/api/projects/${projectId}/elements`).send(element()).expect(201);
+    const created = await request(app)
+      .post(`/api/projects/${projectId}/elements`)
+      .send(element())
+      .expect(201);
 
     await request(app).delete(`/api/project-elements/${created.body.id}`).expect(200);
 
@@ -180,11 +245,16 @@ describe('DELETE /api/project-elements/:id', () => {
 
 describe('GET /api/project-elements/:id/usage', () => {
   it('names the tests that would change if this element did', async () => {
-    const created = await request(app).post(`/api/projects/${projectId}/elements`).send(element()).expect(201);
+    const created = await request(app)
+      .post(`/api/projects/${projectId}/elements`)
+      .send(element())
+      .expect(201);
     await seedTestUsing(created.body.id, 'Checkout');
     await seedTestUsing(created.body.id, 'Profile');
 
-    const response = await request(app).get(`/api/project-elements/${created.body.id}/usage`).expect(200);
+    const response = await request(app)
+      .get(`/api/project-elements/${created.body.id}/usage`)
+      .expect(200);
 
     expect(response.body.map((t: any) => t.name).sort()).toEqual(['Checkout', 'Profile']);
   });

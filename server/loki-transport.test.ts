@@ -22,7 +22,10 @@ function setup(responses: Array<Response | Error>) {
   });
   transports.push(transport);
   const logger = winston.createLogger({
-    format: winston.format.combine(winston.format((info) => ({ ...info, service: 'webflowmaster-api' }))(), winston.format.json()),
+    format: winston.format.combine(
+      winston.format((info) => ({ ...info, service: 'webflowmaster-api' }))(),
+      winston.format.json(),
+    ),
     transports: [transport],
   });
   return { transport, logger, fetch, pushes, report };
@@ -40,13 +43,21 @@ describe('the Loki transport', () => {
 
     expect(fetch).toHaveBeenCalledWith('http://loki:3100/loki/api/v1/push', expect.anything());
     const [stream] = pushes[0].streams;
-    expect(stream.stream).toEqual({ app: 'webflowmaster', service: 'webflowmaster-api', level: 'info' });
+    expect(stream.stream).toEqual({
+      app: 'webflowmaster',
+      service: 'webflowmaster-api',
+      level: 'info',
+    });
     expect(stream.values).toHaveLength(1);
     const value = stream.values[0];
     expect(value).toHaveLength(2);
     expect(value[0]).toMatch(/^\d{19}$/);
     // The fields stay in the line, for `| json` to find.
-    expect(JSON.parse(value[1])).toMatchObject({ message: 'Request completed', statusCode: 401, correlationId: 'abc' });
+    expect(JSON.parse(value[1])).toMatchObject({
+      message: 'Request completed',
+      statusCode: 401,
+      correlationId: 'abc',
+    });
   });
 
   it('says so when Loki refuses a push, once, and again when it recovers', async () => {
@@ -87,6 +98,8 @@ describe('the Loki transport', () => {
     await settle();
     await transport.flush();
 
-    expect(pushes[1].streams[0].values.map((v: string[]) => JSON.parse(v[1]).message)).toEqual(['next']);
+    expect(pushes[1].streams[0].values.map((v: string[]) => JSON.parse(v[1]).message)).toEqual([
+      'next',
+    ]);
   });
 });

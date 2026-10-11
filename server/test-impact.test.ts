@@ -27,7 +27,10 @@ vi.mock('./logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() },
   updateLogLevel: vi.fn(),
 }));
-vi.mock('./queue', () => ({ TEST_EXECUTION_QUEUE_NAME: 'test-queue', testExecutionQueue: { add: vi.fn(async () => undefined) } }));
+vi.mock('./queue', () => ({
+  TEST_EXECUTION_QUEUE_NAME: 'test-queue',
+  testExecutionQueue: { add: vi.fn(async () => undefined) },
+}));
 
 const { createExecutionOrchestrator } = await import('./execution-orchestrator');
 
@@ -82,31 +85,71 @@ describe('a run narrowed to what a change affects', () => {
     await privilegedDb.delete(tests);
     await privilegedDb.delete(apiTests);
     organizationId = await createTestOrganization(`Impact ${Math.random()}`);
-    [user] = await privilegedDb.insert(users).values({ username: `impact-${uuidv4()}`, password: 'x.y', organizationId, role: 'editor' }).returning();
+    [user] = await privilegedDb
+      .insert(users)
+      .values({ username: `impact-${uuidv4()}`, password: 'x.y', organizationId, role: 'editor' })
+      .returning();
     for (const name of ['checkout', 'search']) {
       tagIds[name] = uuidv4();
       await privilegedDb.insert(tags).values({ id: tagIds[name], name, organizationId });
     }
     planId = uuidv4();
-    await privilegedDb.insert(testPlans).values({ id: planId, name: 'Nightly', userId: user.id, organizationId } as any);
+    await privilegedDb
+      .insert(testPlans)
+      .values({ id: planId, name: 'Nightly', userId: user.id, organizationId } as any);
     // Checkout (tagged checkout), Search (tagged search), Smoke (no tag), Orders API (tagged checkout).
-    for (const [name, tag] of [['Checkout', 'checkout'], ['Search', 'search'], ['Smoke', null]] as const) {
-      const [t] = await privilegedDb.insert(tests).values({ name, url: 'https://x.example', sequence: [], elements: [], userId: user.id, organizationId }).returning();
+    for (const [name, tag] of [
+      ['Checkout', 'checkout'],
+      ['Search', 'search'],
+      ['Smoke', null],
+    ] as const) {
+      const [t] = await privilegedDb
+        .insert(tests)
+        .values({
+          name,
+          url: 'https://x.example',
+          sequence: [],
+          elements: [],
+          userId: user.id,
+          organizationId,
+        })
+        .returning();
       ids[name] = t.id;
-      await privilegedDb.insert(testPlanSelectedTests).values({ testPlanId: planId, testType: 'ui', testId: t.id, organizationId } as any);
-      if (tag) await privilegedDb.insert(testTags).values({ organizationId, tagId: tagIds[tag], testId: t.id, testType: 'ui' });
+      await privilegedDb
+        .insert(testPlanSelectedTests)
+        .values({ testPlanId: planId, testType: 'ui', testId: t.id, organizationId } as any);
+      if (tag)
+        await privilegedDb
+          .insert(testTags)
+          .values({ organizationId, tagId: tagIds[tag], testId: t.id, testType: 'ui' });
     }
-    const [api] = await privilegedDb.insert(apiTests).values({ name: 'Orders API', method: 'GET', url: 'https://x.example/orders', userId: user.id, organizationId }).returning();
+    const [api] = await privilegedDb
+      .insert(apiTests)
+      .values({
+        name: 'Orders API',
+        method: 'GET',
+        url: 'https://x.example/orders',
+        userId: user.id,
+        organizationId,
+      })
+      .returning();
     ids['Orders API'] = api.id;
-    await privilegedDb.insert(testPlanSelectedTests).values({ testPlanId: planId, testType: 'api', apiTestId: api.id, organizationId } as any);
-    await privilegedDb.insert(testTags).values({ organizationId, tagId: tagIds.checkout, apiTestId: api.id, testType: 'api' });
+    await privilegedDb
+      .insert(testPlanSelectedTests)
+      .values({ testPlanId: planId, testType: 'api', apiTestId: api.id, organizationId } as any);
+    await privilegedDb
+      .insert(testTags)
+      .values({ organizationId, tagId: tagIds.checkout, apiTestId: api.id, testType: 'api' });
   });
 
   const addRule = (pattern: string, tag: string | null) =>
-    request(app).post('/api/impact-rules').send({ pattern, tagId: tag ? tagIds[tag] : null });
+    request(app)
+      .post('/api/impact-rules')
+      .send({ pattern, tagId: tag ? tagIds[tag] : null });
   const preview = (changedFiles: string[]) =>
     request(app).post('/api/impact-rules/preview').send({ planId, changedFiles }).expect(200);
-  const names = (res: request.Response) => res.body.tests.map((t: { name: string }) => t.name).sort();
+  const names = (res: request.Response) =>
+    res.body.tests.map((t: { name: string }) => t.name).sort();
 
   it('runs everything without a map, and says so', async () => {
     const res = await preview(['src/checkout/cart.ts']);
@@ -120,7 +163,12 @@ describe('a run narrowed to what a change affects', () => {
     await addRule('docs/**', null).expect(201);
 
     const res = await preview(['src/checkout/cart.ts', 'docs/readme.md']);
-    expect(res.body.selection).toMatchObject({ mode: 'affected', selected: 3, total: 4, affectedTags: ['checkout'] });
+    expect(res.body.selection).toMatchObject({
+      mode: 'affected',
+      selected: 3,
+      total: 4,
+      affectedTags: ['checkout'],
+    });
     expect(names(res)).toEqual(['Checkout', 'Orders API', 'Smoke']);
 
     // Only documentation changed: only what the map does not cover.
@@ -128,15 +176,37 @@ describe('a run narrowed to what a change affects', () => {
 
     // A file no rule matches: everything, and which file decided it.
     const unmapped = await preview(['src/checkout/cart.ts', 'package.json']);
-    expect(unmapped.body.selection).toMatchObject({ mode: 'all', selected: 4, unmappedFiles: ['package.json'] });
+    expect(unmapped.body.selection).toMatchObject({
+      mode: 'all',
+      selected: 4,
+      unmappedFiles: ['package.json'],
+    });
   });
 
   it('also runs what failed in the last finished run', async () => {
     await addRule('src/checkout/**', 'checkout').expect(201);
     await addRule('src/search/**', 'search').expect(201);
     const executionId = uuidv4();
-    await privilegedDb.insert(testPlanExecutions).values({ id: executionId, organizationId, testPlanId: planId, status: 'failed', triggeredBy: 'manual', completedAt: new Date() } as any);
-    await privilegedDb.insert(reportTestCaseResults).values({ id: uuidv4(), organizationId, testPlanExecutionId: executionId, uiTestId: ids.Search, testType: 'ui', testName: 'Search', status: 'Failed', startedAt: new Date(), completedAt: new Date(), durationMs: 1 } as any);
+    await privilegedDb.insert(testPlanExecutions).values({
+      id: executionId,
+      organizationId,
+      testPlanId: planId,
+      status: 'failed',
+      triggeredBy: 'manual',
+      completedAt: new Date(),
+    } as any);
+    await privilegedDb.insert(reportTestCaseResults).values({
+      id: uuidv4(),
+      organizationId,
+      testPlanExecutionId: executionId,
+      uiTestId: ids.Search,
+      testType: 'ui',
+      testName: 'Search',
+      status: 'Failed',
+      startedAt: new Date(),
+      completedAt: new Date(),
+      durationMs: 1,
+    } as any);
 
     const res = await preview(['src/checkout/cart.ts']);
     expect(names(res)).toEqual(['Checkout', 'Orders API', 'Search', 'Smoke']);
@@ -147,10 +217,22 @@ describe('a run narrowed to what a change affects', () => {
     await addRule('src/checkout/**', 'checkout').expect(201);
     await addRule('src/search/**', 'search').expect(201);
     const orchestrator = createExecutionOrchestrator({ add: async () => undefined });
-    const execution = await orchestrator.enqueue({ planId, requestedByUserId: user.id, trigger: 'api', changedFiles: ['src/search/box.tsx'] });
+    const execution = await orchestrator.enqueue({
+      planId,
+      requestedByUserId: user.id,
+      trigger: 'api',
+      changedFiles: ['src/search/box.tsx'],
+    });
     const snapshot = readExecutionSnapshot(execution.configurationSnapshot)!;
-    expect(snapshot.selectedTests.map((t) => t.testId ?? t.apiTestId).sort()).toEqual([ids.Search, ids.Smoke].sort());
-    expect(snapshot.selection).toMatchObject({ mode: 'affected', affectedTags: ['search'], selected: 2, total: 4 });
+    expect(snapshot.selectedTests.map((t) => t.testId ?? t.apiTestId).sort()).toEqual(
+      [ids.Search, ids.Smoke].sort(),
+    );
+    expect(snapshot.selection).toMatchObject({
+      mode: 'affected',
+      affectedTags: ['search'],
+      selected: 2,
+      total: 4,
+    });
 
     // Without changed files, the plan as always.
     const full = await orchestrator.enqueue({ planId, requestedByUserId: user.id, trigger: 'api' });
@@ -164,13 +246,24 @@ describe('a run narrowed to what a change affects', () => {
     const list = await request(app).get('/api/impact-rules').expect(200);
     expect(list.body).toMatchObject([{ pattern: 'src/checkout/**', tagName: 'checkout' }]);
     await request(app).delete(`/api/impact-rules/${list.body[0].id}`).expect(204);
-    const audit = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId));
-    expect(audit.map((a) => a.action).sort()).toEqual(['impact_rule.created', 'impact_rule.deleted']);
+    const audit = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.organizationId, organizationId));
+    expect(audit.map((a) => a.action).sort()).toEqual([
+      'impact_rule.created',
+      'impact_rule.deleted',
+    ]);
 
     // A tag of another organization is not found.
     const otherOrg = await createTestOrganization('Elsewhere');
     const foreign = uuidv4();
-    await privilegedDb.insert(tags).values({ id: foreign, name: 'theirs', organizationId: otherOrg });
-    await request(app).post('/api/impact-rules').send({ pattern: 'a/**', tagId: foreign }).expect(400);
+    await privilegedDb
+      .insert(tags)
+      .values({ id: foreign, name: 'theirs', organizationId: otherOrg });
+    await request(app)
+      .post('/api/impact-rules')
+      .send({ pattern: 'a/**', tagId: foreign })
+      .expect(400);
   });
 });

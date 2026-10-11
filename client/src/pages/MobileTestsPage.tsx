@@ -8,16 +8,36 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { History, Pencil, Play, Plus, ShieldAlert, Shuffle, Trash2 } from 'lucide-react';
-import { MOBILE_GRID_PROVIDERS, MOBILE_PLATFORM_LABELS, type MobileRunStatus } from '@shared/mobile';
-import MobileTestDialog, { type GridOption, type MobileTestRow } from '@/components/mobile/MobileTestDialog';
+import {
+  MOBILE_GRID_PROVIDERS,
+  MOBILE_PLATFORM_LABELS,
+  type MobileRunStatus,
+} from '@shared/mobile';
+import MobileTestDialog, {
+  type GridOption,
+  type MobileTestRow,
+} from '@/components/mobile/MobileTestDialog';
 import MobileRunDialog from '@/components/mobile/MobileRunDialog';
 import MobileGroupsPanel from '@/components/mobile/MobileGroupsPanel';
 import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
@@ -54,35 +74,71 @@ const MobileTestsPage: React.FC = () => {
   const [historyFor, setHistoryFor] = useState<ListedTest | null>(null);
   const [commentsFor, setCommentsFor] = useState<ListedTest | null>(null);
 
-  const { search, setSearch, debouncedSearch, page, setPage, pageSize, setPageSize } = useCatalogControls();
+  const { search, setSearch, debouncedSearch, page, setPage, pageSize, setPageSize } =
+    useCatalogControls();
   const [loadingDetail, setLoadingDetail] = useState(false);
   const detailRequest = useRef(0);
-  useEffect(() => () => { detailRequest.current++; }, []);
+  useEffect(
+    () => () => {
+      detailRequest.current++;
+    },
+    [],
+  );
   const openDefinition = async (id: number, action: 'edit' | 'run') => {
     const request = ++detailRequest.current;
     setLoadingDetail(true);
     try {
       const response = await fetch('/api/mobile-tests/' + id, { credentials: 'include' });
-      if (!response.ok) throw new Error(t('catalog.detailFailed', 'Could not load the test definition.'));
-      const definition = await response.json() as MobileTestRow;
+      if (!response.ok)
+        throw new Error(t('catalog.detailFailed', 'Could not load the test definition.'));
+      const definition = (await response.json()) as MobileTestRow;
       if (request !== detailRequest.current) return;
-      if (definition.id !== id || !Array.isArray(definition.steps)) throw new Error(t('catalog.detailFailed', 'Could not load the test definition.'));
-      if (action === 'edit') setEditing(definition); else setRunning(definition);
+      if (definition.id !== id || !Array.isArray(definition.steps))
+        throw new Error(t('catalog.detailFailed', 'Could not load the test definition.'));
+      if (action === 'edit') setEditing(definition);
+      else setRunning(definition);
     } catch (error) {
-      if (request === detailRequest.current) toast({ variant: 'destructive', title: (error as Error).message });
-    } finally { if (request === detailRequest.current) setLoadingDetail(false); }
+      if (request === detailRequest.current)
+        toast({ variant: 'destructive', title: (error as Error).message });
+    } finally {
+      if (request === detailRequest.current) setLoadingDetail(false);
+    }
   };
-  const { data: catalog, isLoading, isFetching, error: catalogError } = useQuery<{ items: ListedTest[]; total: number; page: number; pageSize: number }>({
-    queryKey: ['mobileTests', 'catalog', user?.organizationId, user?.id, page, pageSize, debouncedSearch],
+  const {
+    data: catalog,
+    isLoading,
+    isFetching,
+    error: catalogError,
+  } = useQuery<{ items: ListedTest[]; total: number; page: number; pageSize: number }>({
+    queryKey: [
+      'mobileTests',
+      'catalog',
+      user?.organizationId,
+      user?.id,
+      page,
+      pageSize,
+      debouncedSearch,
+    ],
     queryFn: async ({ signal }) => {
-      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), search: debouncedSearch });
-      const response = await fetch('/api/catalog/mobile-tests?' + params, { signal, credentials: 'include' });
-      if (!response.ok) throw new Error(t('mobileTests.loadFailed', 'Could not load the mobile tests.'));
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+        search: debouncedSearch,
+      });
+      const response = await fetch('/api/catalog/mobile-tests?' + params, {
+        signal,
+        credentials: 'include',
+      });
+      if (!response.ok)
+        throw new Error(t('mobileTests.loadFailed', 'Could not load the mobile tests.'));
       return response.json();
     },
   });
   const tests = catalog?.items ?? [];
-  useEffect(() => { if (catalog) setPage(current => Math.min(current, Math.max(1, Math.ceil(catalog.total / pageSize)))); }, [catalog, pageSize, setPage]);
+  useEffect(() => {
+    if (catalog)
+      setPage((current) => Math.min(current, Math.max(1, Math.ceil(catalog.total / pageSize))));
+  }, [catalog, pageSize, setPage]);
   const { data: grids = [] } = useQuery<GridOption[]>({
     queryKey: ['browserGrids'],
     queryFn: async () => {
@@ -91,7 +147,9 @@ const MobileTestsPage: React.FC = () => {
       return Array.isArray(rows) ? rows : [];
     },
   });
-  const deviceGrids = grids.filter((grid) => (MOBILE_GRID_PROVIDERS as readonly string[]).includes(grid.provider));
+  const deviceGrids = grids.filter((grid) =>
+    (MOBILE_GRID_PROVIDERS as readonly string[]).includes(grid.provider),
+  );
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['mobileTests'] });
 
   // Tags as the library has them (migration 0056): what a test is for, and what dynamic suites run.
@@ -123,10 +181,13 @@ const MobileTestsPage: React.FC = () => {
   // A test can be unstable on more than one device: each one is a line of the hint.
   const unstable = new Map<number, FlakySummary[]>();
   for (const item of Array.isArray(flakyData?.items) ? flakyData!.items : []) {
-    if (item.test?.type === 'mobile') unstable.set(item.test.id, [...(unstable.get(item.test.id) ?? []), item]);
+    if (item.test?.type === 'mobile')
+      unstable.set(item.test.id, [...(unstable.get(item.test.id) ?? []), item]);
   }
   const quarantined = new Map(
-    (Array.isArray(quarantineData) ? quarantineData : []).filter((row) => row.testType === 'mobile').map((row) => [row.testId, row]),
+    (Array.isArray(quarantineData) ? quarantineData : [])
+      .filter((row) => row.testType === 'mobile')
+      .map((row) => [row.testId, row]),
   );
   const setTags = async (testId: number, tagIds: string[]) => {
     setTaggingId(testId);
@@ -136,7 +197,11 @@ const MobileTestsPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tagIds }),
       });
-      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || t('mobileTests.tagsFailed', 'The tags were not changed.'));
+      if (!response.ok)
+        throw new Error(
+          (await response.json().catch(() => ({}))).error ||
+            t('mobileTests.tagsFailed', 'The tags were not changed.'),
+        );
       await refresh();
       await queryClient.invalidateQueries({ queryKey: ['tags'] });
     } catch (error) {
@@ -146,9 +211,14 @@ const MobileTestsPage: React.FC = () => {
     }
   };
   const createTag = async (name: string): Promise<TagRef> => {
-    const response = await fetch('/api/tags', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    const response = await fetch('/api/tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error || t('mobileTests.tagsFailed', 'The tags were not changed.'));
+    if (!response.ok)
+      throw new Error(body.error || t('mobileTests.tagsFailed', 'The tags were not changed.'));
     await queryClient.invalidateQueries({ queryKey: ['tags'] });
     return body as TagRef;
   };
@@ -156,7 +226,11 @@ const MobileTestsPage: React.FC = () => {
   const remove = useMutation({
     mutationFn: async (test: ListedTest) => {
       const response = await fetch(`/api/mobile-tests/${test.id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || t('mobileTests.deleteFailed', 'The test was not deleted.'));
+      if (!response.ok)
+        throw new Error(
+          (await response.json().catch(() => ({}))).error ||
+            t('mobileTests.deleteFailed', 'The test was not deleted.'),
+        );
     },
     onSuccess: async () => {
       setDeleting(null);
@@ -179,7 +253,10 @@ const MobileTestsPage: React.FC = () => {
       <PageHeader
         className="mb-6"
         title={t('mobileTests.title', 'Mobile apps')}
-        description={t('mobileTests.pageDescription', 'Tests of native Android and iOS apps, on real devices of your BrowserStack or LambdaTest grid.')}
+        description={t(
+          'mobileTests.pageDescription',
+          'Tests of native Android and iOS apps, on real devices of your BrowserStack or LambdaTest grid.',
+        )}
         actions={
           canEdit ? (
             <Button onClick={() => setEditing('new')}>
@@ -190,14 +267,23 @@ const MobileTestsPage: React.FC = () => {
       />
       <Card>
         <CardContent className="pt-6">
-          <Input aria-label={t('catalog.searchTests', 'Search tests')} placeholder={t('catalog.searchTests', 'Search tests')} value={search} onChange={event => setSearch(event.target.value)} className="mb-4" />
+          <Input
+            aria-label={t('catalog.searchTests', 'Search tests')}
+            placeholder={t('catalog.searchTests', 'Search tests')}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="mb-4"
+          />
           {catalogError && <p role="alert">{catalogError.message}</p>}
           {isLoading ? (
             <p className="text-sm text-muted-foreground">{t('mobileTests.loading', 'Loading…')}</p>
           ) : tests.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {deviceGrids.length === 0
-                ? t('mobileTests.emptyNoGrid', 'No mobile test yet. They run on a BrowserStack or LambdaTest grid: add one in Settings → Browser grids first.')
+                ? t(
+                    'mobileTests.emptyNoGrid',
+                    'No mobile test yet. They run on a BrowserStack or LambdaTest grid: add one in Settings → Browser grids first.',
+                  )
                 : t('mobileTests.empty', 'No mobile test yet.')}
             </p>
           ) : (
@@ -209,7 +295,9 @@ const MobileTestsPage: React.FC = () => {
                   <TableHead>{t('mobileTests.columns.device', 'Device')}</TableHead>
                   <TableHead>{t('mobileTests.columns.steps', 'Steps')}</TableHead>
                   <TableHead>{t('mobileTests.columns.lastRun', 'Last run')}</TableHead>
-                  <TableHead className="text-right">{t('mobileTests.columns.actions', 'Actions')}</TableHead>
+                  <TableHead className="text-right">
+                    {t('mobileTests.columns.actions', 'Actions')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -227,11 +315,15 @@ const MobileTestsPage: React.FC = () => {
                           title={unstable
                             .get(test.id)!
                             .map((item) =>
-                              t('mobileTests.unstableOn', '{{device}}: changed verdict {{flips}}× in {{runs}} runs', {
-                                device: item.browser ?? '—',
-                                flips: item.unexplainedFlips,
-                                runs: item.runs,
-                              }),
+                              t(
+                                'mobileTests.unstableOn',
+                                '{{device}}: changed verdict {{flips}}× in {{runs}} runs',
+                                {
+                                  device: item.browser ?? '—',
+                                  flips: item.unexplainedFlips,
+                                  runs: item.runs,
+                                },
+                              ),
                             )
                             .join('\n')}
                         >
@@ -240,7 +332,11 @@ const MobileTestsPage: React.FC = () => {
                         </Badge>
                       )}
                       {quarantined.has(test.id) && (
-                        <Badge variant="secondary" className="ml-2 font-normal" title={quarantined.get(test.id)!.reason}>
+                        <Badge
+                          variant="secondary"
+                          className="ml-2 font-normal"
+                          title={quarantined.get(test.id)!.reason}
+                        >
                           <ShieldAlert className="mr-1 h-3 w-3" />
                           {t('mobileTests.quarantined', 'In quarantine')}
                         </Badge>
@@ -263,17 +359,44 @@ const MobileTestsPage: React.FC = () => {
                         ))
                       )}
                     </TableCell>
-                    <TableCell className="text-sm">{test.deviceCount > 0 ? t('mobileTests.flow.targetCount', '{{count}} device/OS targets', { count: test.deviceCount }) : [test.deviceName, test.osVersion].filter(Boolean).join(' ')}</TableCell>
+                    <TableCell className="text-sm">
+                      {test.deviceCount > 0
+                        ? t('mobileTests.flow.targetCount', '{{count}} device/OS targets', {
+                            count: test.deviceCount,
+                          })
+                        : [test.deviceName, test.osVersion].filter(Boolean).join(' ')}
+                    </TableCell>
                     <TableCell className="text-sm">{test.stepCount}</TableCell>
                     <TableCell className="text-sm">
-                      {test.lastRun ? `${statusLabel(test.lastRun.status)} · ${new Date(test.lastRun.createdAt).toLocaleString()}` : '—'}
+                      {test.lastRun
+                        ? `${statusLabel(test.lastRun.status)} · ${new Date(test.lastRun.createdAt).toLocaleString()}`
+                        : '—'}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap space-x-1">
-                      <Button variant="ghost" size="sm" onClick={() => setHistoryFor(test)} aria-label={t('testHistory.openFor', 'History of {{name}}', { name: test.name })}><History className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => setCommentsFor(test)}>{t('comments.title', 'Comments')}</Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setHistoryFor(test)}
+                        aria-label={t('testHistory.openFor', 'History of {{name}}', {
+                          name: test.name,
+                        })}
+                      >
+                        <History className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setCommentsFor(test)}>
+                        {t('comments.title', 'Comments')}
+                      </Button>
                       {canEdit && (
                         <>
-                          <Button variant="outline" size="sm" disabled={loadingDetail} onClick={() => void openDefinition(test.id, 'run')} aria-label={t('mobileTests.runFor', 'Run {{name}}', { name: test.name })}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={loadingDetail}
+                            onClick={() => void openDefinition(test.id, 'run')}
+                            aria-label={t('mobileTests.runFor', 'Run {{name}}', {
+                              name: test.name,
+                            })}
+                          >
                             <Play className="h-4 w-4" />
                           </Button>
                           {!quarantined.has(test.id) && (
@@ -281,15 +404,32 @@ const MobileTestsPage: React.FC = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => setQuarantining(test)}
-                              aria-label={t('mobileTests.quarantineFor', 'Quarantine {{name}}', { name: test.name })}
+                              aria-label={t('mobileTests.quarantineFor', 'Quarantine {{name}}', {
+                                name: test.name,
+                              })}
                             >
                               <ShieldAlert className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button variant="outline" size="sm" disabled={loadingDetail} onClick={() => void openDefinition(test.id, 'edit')} aria-label={t('mobileTests.editFor', 'Edit {{name}}', { name: test.name })}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={loadingDetail}
+                            onClick={() => void openDefinition(test.id, 'edit')}
+                            aria-label={t('mobileTests.editFor', 'Edit {{name}}', {
+                              name: test.name,
+                            })}
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => setDeleting(test)} aria-label={t('mobileTests.deleteFor', 'Delete {{name}}', { name: test.name })}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDeleting(test)}
+                            aria-label={t('mobileTests.deleteFor', 'Delete {{name}}', {
+                              name: test.name,
+                            })}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </>
@@ -300,18 +440,39 @@ const MobileTestsPage: React.FC = () => {
               </TableBody>
             </Table>
           )}
-          <CatalogPagination page={page} pageSize={pageSize} total={catalog?.total ?? 0} busy={isFetching} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          <CatalogPagination
+            page={page}
+            pageSize={pageSize}
+            total={catalog?.total ?? 0}
+            busy={isFetching}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 
-      {historyFor && <TestHistoryDialog key={historyFor?.id ?? 'closed'} isOpen={historyFor !== null} onClose={() => setHistoryFor(null)} test={historyFor} testType="mobile"
-        onRestore={async version => {
-          const response = await fetch(`/api/mobile-tests/${historyFor!.id}/versions/${version}/restore`, { method: 'POST', credentials: 'include' });
-          const body = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(body.error ?? t('testHistory.restoreError', 'Could not restore that version.'));
-          await refresh();
-        }} />}
-      <MobileGroupsPanel canEdit={canEdit}/>
+      {historyFor && (
+        <TestHistoryDialog
+          key={historyFor?.id ?? 'closed'}
+          isOpen={historyFor !== null}
+          onClose={() => setHistoryFor(null)}
+          test={historyFor}
+          testType="mobile"
+          onRestore={async (version) => {
+            const response = await fetch(
+              `/api/mobile-tests/${historyFor!.id}/versions/${version}/restore`,
+              { method: 'POST', credentials: 'include' },
+            );
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok)
+              throw new Error(
+                body.error ?? t('testHistory.restoreError', 'Could not restore that version.'),
+              );
+            await refresh();
+          }}
+        />
+      )}
+      <MobileGroupsPanel canEdit={canEdit} />
       <MobileTestDialog
         isOpen={editing !== null}
         test={editing && editing !== 'new' ? editing : null}
@@ -323,11 +484,25 @@ const MobileTestsPage: React.FC = () => {
           toast({ title: t('mobileTests.saved', 'Mobile test saved') });
         }}
       />
-      <MobileRunDialog test={running} grids={deviceGrids} onClose={() => setRunning(null)} onFinished={refresh} />
-      <Dialog open={commentsFor !== null} onOpenChange={open => { if (!open) setCommentsFor(null); }}>
+      <MobileRunDialog
+        test={running}
+        grids={deviceGrids}
+        onClose={() => setRunning(null)}
+        onFinished={refresh}
+      />
+      <Dialog
+        open={commentsFor !== null}
+        onOpenChange={(open) => {
+          if (!open) setCommentsFor(null);
+        }}
+      >
         <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
-          <DialogHeader><DialogTitle>{commentsFor?.name}</DialogTitle></DialogHeader>
-          {commentsFor && <CommentsPanel key={commentsFor.id} kind="mobile" targetId={commentsFor.id} />}
+          <DialogHeader>
+            <DialogTitle>{commentsFor?.name}</DialogTitle>
+          </DialogHeader>
+          {commentsFor && (
+            <CommentsPanel key={commentsFor.id} kind="mobile" targetId={commentsFor.id} />
+          )}
         </DialogContent>
       </Dialog>
       <QuarantineDialog
@@ -339,12 +514,18 @@ const MobileTestsPage: React.FC = () => {
       <AlertDialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('mobileTests.deleteTitle', 'Delete {{name}}?', { name: deleting?.name ?? '' })}</AlertDialogTitle>
-            <AlertDialogDescription>{t('mobileTests.deleteBody', 'Its runs go with it. The app stays on the grid.')}</AlertDialogDescription>
+            <AlertDialogTitle>
+              {t('mobileTests.deleteTitle', 'Delete {{name}}?', { name: deleting?.name ?? '' })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('mobileTests.deleteBody', 'Its runs go with it. The app stays on the grid.')}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('mobileTests.cancel', 'Cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleting && remove.mutate(deleting)}>{t('mobileTests.delete', 'Delete')}</AlertDialogAction>
+            <AlertDialogAction onClick={() => deleting && remove.mutate(deleting)}>
+              {t('mobileTests.delete', 'Delete')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

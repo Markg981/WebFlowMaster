@@ -34,7 +34,7 @@ const appThatThrows = () => {
     next();
   });
   app.post('/api/boom', () => {
-    throw new TypeError('Cannot read properties of undefined (reading \'selector\')');
+    throw new TypeError("Cannot read properties of undefined (reading 'selector')");
   });
   app.use(incidentErrorHandler({ error: () => {} }));
   return app;
@@ -42,7 +42,9 @@ const appThatThrows = () => {
 
 describe('incidentErrorHandler', () => {
   it('records an incident and still answers the request', async () => {
-    const response = await request(appThatThrows()).post('/api/boom').send({ url: 'https://x.test' });
+    const response = await request(appThatThrows())
+      .post('/api/boom')
+      .send({ url: 'https://x.test' });
 
     // Asserted here, before anything waits on the recording below, because this is what
     // proves the handler answers without waiting on disk I/O — the whole point of the
@@ -51,11 +53,14 @@ describe('incidentErrorHandler', () => {
 
     // The tap records asynchronously on purpose, so the test polls for the artifact to
     // land instead of assuming it already exists the instant the HTTP response completes.
-    await vi.waitFor(async () => {
-      const index = await new IncidentStore(root).readIndex();
-      expect(index).toHaveLength(1);
-      expect(index[0].kind).toBe('server-api');
-    }, { timeout: 2000 });
+    await vi.waitFor(
+      async () => {
+        const index = await new IncidentStore(root).readIndex();
+        expect(index).toHaveLength(1);
+        expect(index[0].kind).toBe('server-api');
+      },
+      { timeout: 2000 },
+    );
   });
 
   it('captures the request as the trigger', async () => {
@@ -64,18 +69,21 @@ describe('incidentErrorHandler', () => {
     // Same reason as above: the recording is async, so poll for it rather than assume it
     // has landed by the time the HTTP response has been received.
     const store = new IncidentStore(root);
-    await vi.waitFor(async () => {
-      const [entry] = await store.readIndex();
-      const incident = await store.read(entry.id);
+    await vi.waitFor(
+      async () => {
+        const [entry] = await store.readIndex();
+        const incident = await store.read(entry.id);
 
-      expect(incident!.trigger).toMatchObject({
-        method: 'POST',
-        path: '/api/boom',
-        query: { debug: '1' },
-        body: { url: 'https://x.test' },
-        userId: 42,
-      });
-    }, { timeout: 2000 });
+        expect(incident!.trigger).toMatchObject({
+          method: 'POST',
+          path: '/api/boom',
+          query: { debug: '1' },
+          body: { url: 'https://x.test' },
+          userId: 42,
+        });
+      },
+      { timeout: 2000 },
+    );
   });
 
   it('still responds when recording the incident fails', async () => {

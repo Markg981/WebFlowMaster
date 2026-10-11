@@ -1,7 +1,7 @@
-import express, { type Express, type Request, type Response } from "express";
-import fs from "fs";
-import path, { dirname } from "path";
-import { fileURLToPath } from "url";
+import express, { type Express, type Request, type Response } from 'express';
+import fs from 'fs';
+import path, { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Serving the built client, in production.
@@ -22,13 +22,13 @@ import { fileURLToPath } from "url";
  * every page request with "Could not find the build directory", with the build sitting
  * happily in another folder.
  */
-export const CLIENT_BUILD_DIRNAME = "public";
+export const CLIENT_BUILD_DIRNAME = 'public';
 
 const currentModuleFilePath = fileURLToPath(import.meta.url);
 
 /** The answer to an /api path no route handles: a JSON 404, never the client's index.html. */
 export function apiNotFound(_req: Request, res: Response) {
-  res.status(404).json({ error: "No such endpoint." });
+  res.status(404).json({ error: 'No such endpoint.' });
 }
 
 export function serveStatic(app: Express) {
@@ -47,7 +47,7 @@ export function serveStatic(app: Express) {
 
   // Anything that is not a file is a client route: hand back index.html and let the router
   // in the browser deal with it.
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.use('*', (_req, res) => {
+    res.sendFile(path.resolve(distPath, 'index.html'));
   });
 }

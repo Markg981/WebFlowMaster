@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from '@/hooks/use-toast';
 
 export interface ExcelTestCase {
   id: string; // row ID or internal
@@ -28,28 +28,28 @@ export function useExcelImport() {
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
       const res = await fetch('/api/upload-excel', {
         method: 'POST',
-        body: formData, 
+        body: formData,
       });
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
       setParsedTestCases(data);
-      toast({ title: "Success", description: `Parsed ${data.length} test cases.` });
+      toast({ title: 'Success', description: `Parsed ${data.length} test cases.` });
     } catch (error) {
-       toast({ title: "Error", description: "Failed to upload/parse file", variant: "destructive" });
+      toast({ title: 'Error', description: 'Failed to upload/parse file', variant: 'destructive' });
     } finally {
       setIsUploading(false);
     }
   };
 
-  return { 
-    file, 
-    parsedTestCases, 
-    isUploading, 
-    handleFileChange, 
-    handleUpload 
+  return {
+    file,
+    parsedTestCases,
+    isUploading,
+    handleFileChange,
+    handleUpload,
   };
 }

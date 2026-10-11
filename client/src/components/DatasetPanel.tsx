@@ -3,7 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { PlusCircle, XCircle, Table2, Share2 } from 'lucide-react';
 import { sharedSetIdOf, sharedSetMarker } from '@shared/test-data';
 
@@ -57,14 +63,19 @@ function columnsOf(dataset: DatasetRow[]): string[] {
  * has no reason to know or care which one they have.
  */
 export function parsePastedTable(text: string): DatasetRow[] {
-  const lines = text.replace(/\r\n/g, '\n').split('\n').filter((l) => l.trim() !== '');
+  const lines = text
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .filter((l) => l.trim() !== '');
   if (lines.length < 2) return [];
 
   const separator = lines[0].includes('\t') ? '\t' : ',';
   const headers = lines[0].split(separator).map((h) => h.trim());
   // A header that is not a usable variable name would produce a column nothing can
   // reference, so it is renamed rather than silently kept.
-  const safeHeaders = headers.map((h, i) => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(h) ? h : `column${i + 1}`));
+  const safeHeaders = headers.map((h, i) =>
+    /^[A-Za-z_][A-Za-z0-9_]*$/.test(h) ? h : `column${i + 1}`,
+  );
 
   return lines.slice(1).map((line) => {
     const cells = line.split(separator);
@@ -72,7 +83,12 @@ export function parsePastedTable(text: string): DatasetRow[] {
   });
 }
 
-export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, disabled, sharedSets }) => {
+export const DatasetPanel: React.FC<DatasetPanelProps> = ({
+  dataset,
+  onChange,
+  disabled,
+  sharedSets,
+}) => {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasted, setPasted] = useState('');
   const sharedId = sharedSetIdOf(dataset);
@@ -81,7 +97,10 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, d
   if (sharedSets && sharedId !== null) {
     const set = sharedSets.find((s) => s.id === sharedId);
     return (
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3" data-testid="dataset-shared">
+      <div
+        className="rounded-lg border border-border bg-card p-4 space-y-3"
+        data-testid="dataset-shared"
+      >
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Share2 className="h-4 w-4" />
           Data rows from a shared data set
@@ -92,7 +111,11 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, d
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={String(sharedId)} onValueChange={(value) => onChange(sharedSetMarker(Number(value)))} disabled={disabled}>
+          <Select
+            value={String(sharedId)}
+            onValueChange={(value) => onChange(sharedSetMarker(Number(value)))}
+            disabled={disabled}
+          >
             <SelectTrigger className="h-8 w-60" aria-label="Shared data set">
               <SelectValue placeholder="Choose a data set" />
             </SelectTrigger>
@@ -104,7 +127,13 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, d
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" type="button" disabled={disabled} onClick={() => onChange(set ? set.rows.map((row) => ({ ...row })) : [])}>
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(set ? set.rows.map((row) => ({ ...row })) : [])}
+          >
             Use a copy as this test's own rows
           </Button>
         </div>
@@ -121,7 +150,8 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, d
           </p>
         ) : (
           <p className="text-sm text-destructive" role="alert">
-            This test points at a shared data set that no longer exists (id {sharedId}). Choose another, or give it its own rows.
+            This test points at a shared data set that no longer exists (id {sharedId}). Choose
+            another, or give it its own rows.
           </p>
         )}
       </div>
@@ -135,7 +165,9 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, d
   const renameColumn = (from: string, to: string) => {
     onChange(
       dataset.map((row) =>
-        Object.fromEntries(Object.entries(row).map(([key, value]) => [key === from ? to : key, value])),
+        Object.fromEntries(
+          Object.entries(row).map(([key, value]) => [key === from ? to : key, value]),
+        ),
       ),
     );
   };
@@ -145,12 +177,16 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, d
     let name = 'value';
     let n = 1;
     while (columns.includes(name)) name = `value${++n}`;
-    onChange(dataset.length === 0 ? [{ [name]: '' }] : dataset.map((row) => ({ ...row, [name]: '' })));
+    onChange(
+      dataset.length === 0 ? [{ [name]: '' }] : dataset.map((row) => ({ ...row, [name]: '' })),
+    );
   };
 
   const removeColumn = (column: string) => {
     onChange(
-      dataset.map((row) => Object.fromEntries(Object.entries(row).filter(([key]) => key !== column))),
+      dataset.map((row) =>
+        Object.fromEntries(Object.entries(row).filter(([key]) => key !== column)),
+      ),
     );
   };
 
@@ -187,7 +223,11 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, d
         </div>
         <div className="flex shrink-0 gap-2">
           {sharedSets && sharedSets.length > 0 && (
-            <Select value="" onValueChange={(value) => onChange(sharedSetMarker(Number(value)))} disabled={disabled}>
+            <Select
+              value=""
+              onValueChange={(value) => onChange(sharedSetMarker(Number(value)))}
+              disabled={disabled}
+            >
               <SelectTrigger className="h-9 w-48" aria-label="Use a shared data set">
                 <SelectValue placeholder="Use a shared data set" />
               </SelectTrigger>
@@ -200,7 +240,13 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, d
               </SelectContent>
             </Select>
           )}
-          <Button variant="outline" size="sm" type="button" disabled={disabled} onClick={() => setPasteOpen((o) => !o)}>
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            disabled={disabled}
+            onClick={() => setPasteOpen((o) => !o)}
+          >
             Paste from a spreadsheet
           </Button>
           <Button variant="outline" size="sm" type="button" disabled={disabled} onClick={addColumn}>
@@ -225,7 +271,12 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, d
             className="font-mono text-xs"
           />
           <div className="flex items-center gap-2">
-            <Button size="sm" type="button" onClick={applyPaste} disabled={disabled || parsePastedTable(pasted).length === 0}>
+            <Button
+              size="sm"
+              type="button"
+              onClick={applyPaste}
+              disabled={disabled || parsePastedTable(pasted).length === 0}
+            >
               Replace the rows
             </Button>
             <span className="text-xs text-muted-foreground">
@@ -302,7 +353,14 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({ dataset, onChange, d
               ))}
             </tbody>
           </table>
-          <Button variant="outline" size="sm" type="button" className="mt-2" disabled={disabled} onClick={addRow}>
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            className="mt-2"
+            disabled={disabled}
+            onClick={addRow}
+          >
             <PlusCircle className="mr-2 h-4 w-4" />
             Add row
           </Button>

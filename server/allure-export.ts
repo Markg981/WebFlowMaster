@@ -34,11 +34,17 @@ export function allureStatusFor(status: string): AllureStatus {
 }
 
 /** The same test on the same browser is the same Allure test from one run to the next. */
-export function historyIdFor(planId: string, result: Pick<ReportResultModel, 'testName' | 'browser'>): string {
-  return createHash('md5').update(`${planId}\u0000${result.testName}\u0000${result.browser ?? ''}`).digest('hex');
+export function historyIdFor(
+  planId: string,
+  result: Pick<ReportResultModel, 'testName' | 'browser'>,
+): string {
+  return createHash('md5')
+    .update(`${planId}\u0000${result.testName}\u0000${result.browser ?? ''}`)
+    .digest('hex');
 }
 
-const time = (date: Date | null | undefined, fallback: number) => (date ? new Date(date).getTime() : fallback);
+const time = (date: Date | null | undefined, fallback: number) =>
+  date ? new Date(date).getTime() : fallback;
 
 export interface AllureExportOptions {
   /** Screenshots to attach, by result id. */
@@ -48,11 +54,17 @@ export interface AllureExportOptions {
   uuid?: () => string;
 }
 
-export function buildAllureResults(model: ReportModel, options: AllureExportOptions = {}): ZipEntry[] {
+export function buildAllureResults(
+  model: ReportModel,
+  options: AllureExportOptions = {},
+): ZipEntry[] {
   const uuid = options.uuid ?? randomUUID;
   const files: ZipEntry[] = [];
   const provenanceFile = 'execution-provenance.json';
-  files.push({ name: provenanceFile, data: Buffer.from(JSON.stringify(model.reproducibility ?? { available: false })) });
+  files.push({
+    name: provenanceFile,
+    data: Buffer.from(JSON.stringify(model.reproducibility ?? { available: false })),
+  });
   const runStart = time(model.startedAt, time(model.queuedAt, Date.now()));
 
   for (const result of model.results) {
@@ -84,11 +96,19 @@ export function buildAllureResults(model: ReportModel, options: AllureExportOpti
       attachments.push({ name: 'Screenshot', source, type: image.contentType });
     }
 
-    attachments.push({ name: 'Queued input provenance', source: provenanceFile, type: 'application/json' });
+    attachments.push({
+      name: 'Queued input provenance',
+      source: provenanceFile,
+      type: 'application/json',
+    });
     if (result.matrixEvidence?.length) {
       const source = `${id}-matrix.json`;
       files.push({ name: source, data: Buffer.from(JSON.stringify(result.matrixEvidence)) });
-      attachments.push({ name: 'Requested and effective matrix', source, type: 'application/json' });
+      attachments.push({
+        name: 'Requested and effective matrix',
+        source,
+        type: 'application/json',
+      });
     }
     const failedStepIndex = result.steps.findIndex((step) => step.status === 'failed');
     const body = {
@@ -111,10 +131,14 @@ export function buildAllureResults(model: ReportModel, options: AllureExportOpti
       labels,
       parameters: [
         ...(result.browser ? [{ name: 'browser', value: result.browser }] : []),
-        ...(result.testVersion !== null ? [{ name: 'test version', value: String(result.testVersion) }] : []),
+        ...(result.testVersion !== null
+          ? [{ name: 'test version', value: String(result.testVersion) }]
+          : []),
         ...(result.attempts > 1 ? [{ name: 'attempts', value: String(result.attempts) }] : []),
       ],
-      links: options.reportUrl ? [{ name: 'WebFlowMaster report', url: options.reportUrl, type: 'link' }] : [],
+      links: options.reportUrl
+        ? [{ name: 'WebFlowMaster report', url: options.reportUrl, type: 'link' }]
+        : [],
       steps: result.steps.map((step, index) => ({
         name: step.name,
         status:
@@ -126,7 +150,9 @@ export function buildAllureResults(model: ReportModel, options: AllureExportOpti
         stage: 'finished',
         start,
         stop: start,
-        ...(step.status === 'failed' && step.message ? { statusDetails: { message: step.message } } : {}),
+        ...(step.status === 'failed' && step.message
+          ? { statusDetails: { message: step.message } }
+          : {}),
         steps: [],
         attachments: [],
         parameters: [],
@@ -161,7 +187,11 @@ export function buildAllureResults(model: ReportModel, options: AllureExportOpti
         buildName: model.ci ? describeCi(model.ci) : `${model.planName} · ${model.executionId}`,
         ...(options.reportUrl ? { reportUrl: options.reportUrl } : {}),
         // The build that asked for the run when there was one; the report otherwise.
-        ...(model.ci?.buildUrl ? { buildUrl: model.ci.buildUrl } : options.reportUrl ? { buildUrl: options.reportUrl } : {}),
+        ...(model.ci?.buildUrl
+          ? { buildUrl: model.ci.buildUrl }
+          : options.reportUrl
+            ? { buildUrl: options.reportUrl }
+            : {}),
       }),
     ),
   });
@@ -171,9 +201,21 @@ export function buildAllureResults(model: ReportModel, options: AllureExportOpti
     name: 'categories.json',
     data: Buffer.from(
       JSON.stringify([
-        { name: 'Accessibility violations', matchedStatuses: ['failed'], messageRegex: '.*accessibility violation.*' },
-        { name: 'Visual differences', matchedStatuses: ['failed'], messageRegex: '.*[Vv]isual difference.*' },
-        { name: 'Precondition failures', matchedStatuses: ['broken', 'skipped'], messageRegex: '.*[Pp]recondition.*' },
+        {
+          name: 'Accessibility violations',
+          matchedStatuses: ['failed'],
+          messageRegex: '.*accessibility violation.*',
+        },
+        {
+          name: 'Visual differences',
+          matchedStatuses: ['failed'],
+          messageRegex: '.*[Vv]isual difference.*',
+        },
+        {
+          name: 'Precondition failures',
+          matchedStatuses: ['broken', 'skipped'],
+          messageRegex: '.*[Pp]recondition.*',
+        },
         { name: 'Test did not run', matchedStatuses: ['broken'] },
         { name: 'Application failures', matchedStatuses: ['failed'] },
       ]),

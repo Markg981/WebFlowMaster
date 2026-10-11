@@ -19,7 +19,7 @@ function walk(ids: string[], answers: { condition?: boolean; iterations?: number
   while (!cursor.done && guard++ < 1000) {
     const id = ids[cursor.pc];
     visited.push(id.startsWith('step') ? `${id}@${vars[LOOP_INDEX_VARIABLE] ?? '-'}` : id);
-    const outcome = ['if', 'repeatWhile', 'repeat'].includes(id) ? answers.shift() ?? {} : {};
+    const outcome = ['if', 'repeatWhile', 'repeat'].includes(id) ? (answers.shift() ?? {}) : {};
     const error = cursor.advance(outcome);
     if (error) return { visited, error, vars };
   }
@@ -28,7 +28,9 @@ function walk(ids: string[], answers: { condition?: boolean; iterations?: number
 
 describe('analyseFlow', () => {
   it('accepts nested blocks', () => {
-    expect(analyseFlow(steps('if', 'repeat', 'click', 'endLoop', 'else', 'click', 'endIf')).ok).toBe(true);
+    expect(
+      analyseFlow(steps('if', 'repeat', 'click', 'endLoop', 'else', 'click', 'endIf')).ok,
+    ).toBe(true);
   });
 
   it('names every block that does not close, by step number', () => {
@@ -50,16 +52,19 @@ describe('analyseFlow', () => {
 
 describe('FlowCursor', () => {
   it('runs the if branch and skips the else', () => {
-    expect(walk(['if', 'stepA', 'else', 'stepB', 'endIf', 'stepC'], [{ condition: true }]).visited).toEqual([
-      'if', 'stepA@-', 'else', 'stepC@-',
-    ]);
+    expect(
+      walk(['if', 'stepA', 'else', 'stepB', 'endIf', 'stepC'], [{ condition: true }]).visited,
+    ).toEqual(['if', 'stepA@-', 'else', 'stepC@-']);
   });
 
   it('runs the else branch when the condition is false, and nothing when there is no else', () => {
-    expect(walk(['if', 'stepA', 'else', 'stepB', 'endIf'], [{ condition: false }]).visited).toEqual([
-      'if', 'stepB@-', 'endIf',
+    expect(walk(['if', 'stepA', 'else', 'stepB', 'endIf'], [{ condition: false }]).visited).toEqual(
+      ['if', 'stepB@-', 'endIf'],
+    );
+    expect(walk(['if', 'stepA', 'endIf', 'stepC'], [{ condition: false }]).visited).toEqual([
+      'if',
+      'stepC@-',
     ]);
-    expect(walk(['if', 'stepA', 'endIf', 'stepC'], [{ condition: false }]).visited).toEqual(['if', 'stepC@-']);
   });
 
   it('repeats a body the given number of times, counting in loopIndex, and nests', () => {
@@ -68,8 +73,22 @@ describe('FlowCursor', () => {
       [{ iterations: 2 }, { iterations: 2 }, { iterations: 2 }],
     );
     expect(visited).toEqual([
-      'repeat', 'step@1', 'repeat', 'inner', 'endLoop', 'inner', 'endLoop', 'endLoop',
-      'step@2', 'repeat', 'inner', 'endLoop', 'inner', 'endLoop', 'endLoop', 'stepAfter@-',
+      'repeat',
+      'step@1',
+      'repeat',
+      'inner',
+      'endLoop',
+      'inner',
+      'endLoop',
+      'endLoop',
+      'step@2',
+      'repeat',
+      'inner',
+      'endLoop',
+      'inner',
+      'endLoop',
+      'endLoop',
+      'stepAfter@-',
     ]);
     // No loop left open, so no index left behind for later steps to read by mistake.
     expect(vars[LOOP_INDEX_VARIABLE]).toBeUndefined();
@@ -91,7 +110,8 @@ describe('FlowCursor', () => {
 
   it('skips a body repeated zero times', () => {
     expect(walk(['repeat', 'step', 'endLoop', 'stepAfter'], [{ iterations: 0 }]).visited).toEqual([
-      'repeat', 'stepAfter@-',
+      'repeat',
+      'stepAfter@-',
     ]);
   });
 
@@ -101,7 +121,14 @@ describe('FlowCursor', () => {
       [{ condition: true }, { condition: true }, { condition: false }],
     );
     expect(visited).toEqual([
-      'repeatWhile', 'step@1', 'endLoop', 'repeatWhile', 'step@2', 'endLoop', 'repeatWhile', 'stepAfter@-',
+      'repeatWhile',
+      'step@1',
+      'endLoop',
+      'repeatWhile',
+      'step@2',
+      'endLoop',
+      'repeatWhile',
+      'stepAfter@-',
     ]);
   });
 

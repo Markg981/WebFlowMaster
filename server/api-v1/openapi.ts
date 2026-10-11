@@ -26,18 +26,27 @@ const secured = (scope: ApiScope) => ({
 
 const common = {
   '401': errorResponse('No usable API key was sent.'),
-  '403': errorResponse("The key lacks the scope, or its account's role is below what the scope needs."),
+  '403': errorResponse(
+    "The key lacks the scope, or its account's role is below what the scope needs.",
+  ),
 };
 
 const paginated = [
-  { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
+  {
+    name: 'limit',
+    in: 'query',
+    schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+  },
   { name: 'offset', in: 'query', schema: { type: 'integer', minimum: 0, default: 0 } },
 ];
 
 const runId = { name: 'runId', in: 'path', required: true, schema: { type: 'string' } };
 
 const scopeList = (Object.entries(API_SCOPES) as Array<[ApiScope, (typeof API_SCOPES)[ApiScope]]>)
-  .map(([scope, { minimumRole, description }]) => `- \`${scope}\` (role ${minimumRole} or higher): ${description}`)
+  .map(
+    ([scope, { minimumRole, description }]) =>
+      `- \`${scope}\` (role ${minimumRole} or higher): ${description}`,
+  )
   .join('\n');
 
 export const openApiDocument = {
@@ -68,7 +77,10 @@ export const openApiDocument = {
             type: 'object',
             required: ['code', 'message'],
             properties: {
-              code: { type: 'string', examples: ['insufficient_scope', 'plan_not_found', 'queue_quota_exceeded'] },
+              code: {
+                type: 'string',
+                examples: ['insufficient_scope', 'plan_not_found', 'queue_quota_exceeded'],
+              },
               message: { type: 'string' },
             },
             additionalProperties: true,
@@ -87,7 +99,8 @@ export const openApiDocument = {
       },
       CiContext: {
         type: 'object',
-        description: 'The build that asked for a run. The wfm CLI fills it in from the CI system\'s environment.',
+        description:
+          "The build that asked for a run. The wfm CLI fills it in from the CI system's environment.",
         required: ['provider'],
         additionalProperties: false,
         properties: {
@@ -113,7 +126,16 @@ export const openApiDocument = {
           attempt: { type: 'integer' },
           maxAttempts: { type: 'integer' },
           queuedAt: { type: 'string', format: 'date-time' },
-          quotaDeferral: { type: ['object', 'null'], properties: { reason: { type: 'string', enum: ['execution_quota_exceeded', 'concurrent_run_quota'] }, until: { type: ['string', 'null'], format: 'date-time' } } },
+          quotaDeferral: {
+            type: ['object', 'null'],
+            properties: {
+              reason: {
+                type: 'string',
+                enum: ['execution_quota_exceeded', 'concurrent_run_quota'],
+              },
+              until: { type: ['string', 'null'], format: 'date-time' },
+            },
+          },
           startedAt: { type: ['string', 'null'], format: 'date-time' },
           completedAt: { type: ['string', 'null'], format: 'date-time' },
           durationMs: { type: ['integer', 'null'] },
@@ -126,19 +148,27 @@ export const openApiDocument = {
               skipped: { type: ['integer', 'null'] },
               quarantinedFailures: {
                 type: 'integer',
-                description: 'Of the failed tests, those in quarantine. They are counted in failed but do not decide the status.',
+                description:
+                  'Of the failed tests, those in quarantine. They are counted in failed but do not decide the status.',
               },
             },
           },
-          runner: { type: ['string', 'null'], description: 'The runner that took the run, as host:pid:suffix.' },
+          runner: {
+            type: ['string', 'null'],
+            description: 'The runner that took the run, as host:pid:suffix.',
+          },
           failure: {
             type: ['object', 'null'],
             properties: { code: { type: 'string' }, message: { type: ['string', 'null'] } },
           },
-          ci: { oneOf: [ref('CiContext'), { type: 'null' }], description: 'The build that asked for the run, when a pipeline did.' },
+          ci: {
+            oneOf: [ref('CiContext'), { type: 'null' }],
+            description: 'The build that asked for the run, when a pipeline did.',
+          },
           selection: {
             type: ['object', 'null'],
-            description: 'When the run was narrowed to the tests a change affects (changedFiles): what was decided and why.',
+            description:
+              'When the run was narrowed to the tests a change affects (changedFiles): what was decided and why.',
             properties: {
               mode: { type: 'string', enum: ['affected', 'all'] },
               reason: { type: 'string' },
@@ -153,7 +183,11 @@ export const openApiDocument = {
             properties: {
               self: { type: 'string' },
               junit: { type: 'string' },
-              report: { type: ['string', 'null'], description: 'The report page, absolute; null when the server does not know its own address.' },
+              report: {
+                type: ['string', 'null'],
+                description:
+                  'The report page, absolute; null when the server does not know its own address.',
+              },
             },
           },
         },
@@ -176,7 +210,11 @@ export const openApiDocument = {
               'application/json': {
                 schema: {
                   type: 'object',
-                  properties: { items: { type: 'array', items: ref('Plan') }, limit: { type: 'integer' }, offset: { type: 'integer' } },
+                  properties: {
+                    items: { type: 'array', items: ref('Plan') },
+                    limit: { type: 'integer' },
+                    offset: { type: 'integer' },
+                  },
                 },
               },
             },
@@ -195,7 +233,12 @@ export const openApiDocument = {
         ...secured('runs:write'),
         parameters: [
           { name: 'planId', in: 'path', required: true, schema: { type: 'string' } },
-          { name: 'Idempotency-Key', in: 'header', required: false, schema: { type: 'string', maxLength: 255 } },
+          {
+            name: 'Idempotency-Key',
+            in: 'header',
+            required: false,
+            schema: { type: 'string', maxLength: 255 },
+          },
         ],
         requestBody: {
           required: false,
@@ -205,14 +248,21 @@ export const openApiDocument = {
                 type: 'object',
                 additionalProperties: false,
                 properties: {
-                  environmentId: { type: 'integer', description: 'The environment to run against.' },
-                  updateBaselines: { type: 'boolean', description: "Make this run's screenshots the new visual baselines." },
+                  environmentId: {
+                    type: 'integer',
+                    description: 'The environment to run against.',
+                  },
+                  updateBaselines: {
+                    type: 'boolean',
+                    description: "Make this run's screenshots the new visual baselines.",
+                  },
                   ci: ref('CiContext'),
                   changedFiles: {
                     type: 'array',
                     items: { type: 'string' },
                     maxItems: 5000,
-                    description: "The files the change touched, relative to the repository root. The run is narrowed to the tests they affect, by the organization's impact map; a file no rule matches runs every test.",
+                    description:
+                      "The files the change touched, relative to the repository root. The run is narrowed to the tests they affect, by the organization's impact map; a file no rule matches runs every test.",
                   },
                 },
               },
@@ -229,7 +279,9 @@ export const openApiDocument = {
           ...common,
           '404': errorResponse('No such plan, or no such environment, in this organization.'),
           '429': errorResponse("The organization's queue is full (`queue_quota_exceeded`)."),
-          '503': errorResponse('The run could not be handed to a worker; retry with the same Idempotency-Key.'),
+          '503': errorResponse(
+            'The run could not be handed to a worker; retry with the same Idempotency-Key.',
+          ),
         },
       },
     },
@@ -241,7 +293,11 @@ export const openApiDocument = {
         parameters: [
           ...paginated,
           { name: 'planId', in: 'query', schema: { type: 'string' } },
-          { name: 'status', in: 'query', schema: { type: 'string', enum: [...EXECUTION_STATUSES] } },
+          {
+            name: 'status',
+            in: 'query',
+            schema: { type: 'string', enum: [...EXECUTION_STATUSES] },
+          },
         ],
         responses: {
           '200': {
@@ -250,7 +306,11 @@ export const openApiDocument = {
               'application/json': {
                 schema: {
                   type: 'object',
-                  properties: { items: { type: 'array', items: ref('Run') }, limit: { type: 'integer' }, offset: { type: 'integer' } },
+                  properties: {
+                    items: { type: 'array', items: ref('Run') },
+                    limit: { type: 'integer' },
+                    offset: { type: 'integer' },
+                  },
                 },
               },
             },
@@ -267,7 +327,10 @@ export const openApiDocument = {
         ...secured('runs:read'),
         parameters: [runId],
         responses: {
-          '200': { description: 'The run.', content: { 'application/json': { schema: ref('Run') } } },
+          '200': {
+            description: 'The run.',
+            content: { 'application/json': { schema: ref('Run') } },
+          },
           ...common,
           '404': errorResponse('No such run in this organization.'),
         },
@@ -277,12 +340,19 @@ export const openApiDocument = {
       post: {
         operationId: 'cancelRun',
         summary: 'Stop a run.',
-        description: 'A queued run is cancelled at once (200); a running one is asked to stop (202) and ends at its next step.',
+        description:
+          'A queued run is cancelled at once (200); a running one is asked to stop (202) and ends at its next step.',
         ...secured('runs:write'),
         parameters: [runId],
         responses: {
-          '200': { description: 'Cancelled.', content: { 'application/json': { schema: ref('Run') } } },
-          '202': { description: 'Asked to stop.', content: { 'application/json': { schema: ref('Run') } } },
+          '200': {
+            description: 'Cancelled.',
+            content: { 'application/json': { schema: ref('Run') } },
+          },
+          '202': {
+            description: 'Asked to stop.',
+            content: { 'application/json': { schema: ref('Run') } },
+          },
           ...common,
           '404': errorResponse('No such run in this organization.'),
           '409': errorResponse('The run has already ended.'),
@@ -292,11 +362,14 @@ export const openApiDocument = {
     '/api/v1/runs/{runId}/junit': {
       get: {
         operationId: 'getRunJUnit',
-        summary: 'The run as JUnit XML, for the build\'s own test report.',
+        summary: "The run as JUnit XML, for the build's own test report.",
         ...secured('runs:read'),
         parameters: [runId],
         responses: {
-          '200': { description: 'JUnit XML.', content: { 'application/xml': { schema: { type: 'string' } } } },
+          '200': {
+            description: 'JUnit XML.',
+            content: { 'application/xml': { schema: { type: 'string' } } },
+          },
           ...common,
           '404': errorResponse('No such run in this organization.'),
         },
@@ -305,11 +378,17 @@ export const openApiDocument = {
     '/api/v1/runs/{runId}/export/{format}': {
       get: {
         operationId: 'exportRun',
-        summary: 'The run as a file to hand on: a self-contained HTML report, a PDF, or a zip of Allure results.',
+        summary:
+          'The run as a file to hand on: a self-contained HTML report, a PDF, or a zip of Allure results.',
         ...secured('runs:read'),
         parameters: [
           runId,
-          { name: 'format', in: 'path', required: true, schema: { type: 'string', enum: ['html', 'pdf', 'allure', 'junit'] } },
+          {
+            name: 'format',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', enum: ['html', 'pdf', 'allure', 'junit'] },
+          },
         ],
         responses: {
           '200': {
@@ -323,7 +402,9 @@ export const openApiDocument = {
           ...common,
           '400': errorResponse('Unknown format.'),
           '404': errorResponse('No such run in this organization.'),
-          '503': errorResponse('PDF was asked for and the server has no browser to render it; the HTML export has the same content.'),
+          '503': errorResponse(
+            'PDF was asked for and the server has no browser to render it; the HTML export has the same content.',
+          ),
         },
       },
     },

@@ -44,7 +44,9 @@ const SOURCE_COLORS: Record<string, string> = {
 export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeLevels, setActiveLevels] = useState<Set<string>>(new Set(['info', 'warn', 'error', 'step']));
+  const [activeLevels, setActiveLevels] = useState<Set<string>>(
+    new Set(['info', 'warn', 'error', 'step']),
+  );
   const [autoScroll, setAutoScroll] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -78,17 +80,19 @@ export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
     ws.onopen = () => {
-      ws.send(JSON.stringify({
-        type: 'subscribe-execution',
-        executionId
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'subscribe-execution',
+          executionId,
+        }),
+      );
     };
 
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === 'execution-log' && msg.executionId === executionId) {
-          setLogs(prev => [...prev, msg]);
+          setLogs((prev) => [...prev, msg]);
         }
       } catch (e) {
         // ignore
@@ -100,9 +104,10 @@ export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
 
   // Filtering
   const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
+    return logs.filter((log) => {
       const matchesLevel = activeLevels.has(log.level);
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch =
+        searchQuery === '' ||
         log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.source.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesLevel && matchesSearch;
@@ -159,8 +164,8 @@ export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
           <Separator orientation="vertical" className="h-4 bg-zinc-700" />
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500" />
-            <Input 
-              placeholder="Search logs..." 
+            <Input
+              placeholder="Search logs..."
               className="h-7 w-48 pl-7 bg-zinc-800 border-zinc-700 text-zinc-200 focus-visible:ring-zinc-600 text-[10px]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -171,13 +176,17 @@ export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+              >
                 <Filter className="h-3 w-3 mr-2" />
                 Levels
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 text-zinc-300">
-              {['info', 'warn', 'error', 'step', 'debug'].map(level => (
+              {['info', 'warn', 'error', 'step', 'debug'].map((level) => (
                 <DropdownMenuCheckboxItem
                   key={level}
                   checked={activeLevels.has(level)}
@@ -190,9 +199,9 @@ export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className={`h-7 px-2 ${autoScroll ? 'text-blue-400' : 'text-zinc-500'} hover:bg-zinc-800`}
             onClick={() => setAutoScroll(!autoScroll)}
           >
@@ -200,15 +209,20 @@ export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
             {autoScroll ? 'Auto-scroll' : 'Paused'}
           </Button>
 
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800" onClick={downloadLogs}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+            onClick={downloadLogs}
+          >
             <Download className="h-3 w-3" />
           </Button>
         </div>
       </div>
 
       {/* Log area */}
-      <div 
-        ref={parentRef} 
+      <div
+        ref={parentRef}
         className="flex-1 overflow-auto p-2 scrollbar-thin scrollbar-thumb-zinc-800"
         onWheel={() => setAutoScroll(false)}
       >
@@ -221,10 +235,7 @@ export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
             No logs to display
           </div>
         ) : (
-          <motion.div
-            className="relative w-full"
-            style={{ height: virtualizer.getTotalSize() }}
-          >
+          <motion.div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const log = filteredLogs[virtualRow.index];
               const time = new Date(log.timestamp).toLocaleTimeString('en-GB', {
@@ -247,10 +258,14 @@ export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
                   <span className="text-zinc-600 shrink-0 select-none">
                     {time}.{ms}
                   </span>
-                  <span className={`w-10 uppercase font-bold shrink-0 select-none ${LEVEL_COLORS[log.level] || 'text-zinc-400'}`}>
+                  <span
+                    className={`w-10 uppercase font-bold shrink-0 select-none ${LEVEL_COLORS[log.level] || 'text-zinc-400'}`}
+                  >
                     {log.level}
                   </span>
-                  <span className={`w-20 shrink-0 select-none truncate ${SOURCE_COLORS[log.source] || 'text-zinc-500'}`}>
+                  <span
+                    className={`w-20 shrink-0 select-none truncate ${SOURCE_COLORS[log.source] || 'text-zinc-500'}`}
+                  >
                     [{log.source}]
                   </span>
                   <span className="text-zinc-300 group-hover:text-white transition-colors truncate">
@@ -274,11 +289,16 @@ export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
           Showing {filteredLogs.length} of {logs.length} logs
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="h-4 bg-zinc-800 border-zinc-700 text-zinc-400 px-1 font-normal">
+          <Badge
+            variant="outline"
+            className="h-4 bg-zinc-800 border-zinc-700 text-zinc-400 px-1 font-normal"
+          >
             ID: {executionId}
           </Badge>
           <div className="flex items-center gap-1">
-            <div className={`h-1.5 w-1.5 rounded-full ${autoScroll ? 'bg-green-500' : 'bg-zinc-600'}`} />
+            <div
+              className={`h-1.5 w-1.5 rounded-full ${autoScroll ? 'bg-green-500' : 'bg-zinc-600'}`}
+            />
             {autoScroll ? 'Live' : 'Stopped'}
           </div>
         </div>

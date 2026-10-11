@@ -1,6 +1,15 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 import { Loader2, TrendingUp } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
@@ -21,7 +30,9 @@ const TestTrendBarChart: React.FC<TestTrendBarChartProps> = ({ data, isLoading }
   return (
     // A minimum height, like the status chart beside it: the empty state must fit inside.
     <div className="bg-card text-card-foreground p-4 rounded-lg border shadow-sm min-h-80 w-full min-w-0 overflow-hidden flex flex-col">
-      <h3 className="mb-4 text-base font-semibold wrap-break-word">{t('dashboard.testTrendBarChart.weeklyTestTrends.title', '30-Day Execution Trends')}</h3>
+      <h3 className="mb-4 text-base font-semibold wrap-break-word">
+        {t('dashboard.testTrendBarChart.weeklyTestTrends.title', '30-Day Execution Trends')}
+      </h3>
       <div className="flex-1 w-full min-w-0 min-h-56">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
@@ -40,16 +51,44 @@ const TestTrendBarChart: React.FC<TestTrendBarChartProps> = ({ data, isLoading }
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => val.substring(5)} stroke="hsl(var(--border))" />
-              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} stroke="hsl(var(--border))" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                tickFormatter={(val) => val.substring(5)}
+                stroke="hsl(var(--border))"
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                allowDecimals={false}
+                stroke="hsl(var(--border))"
+              />
               <Tooltip
-                contentStyle={{ borderRadius: '10px', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--shadow-md)', fontSize: '12px' }}
+                contentStyle={{
+                  borderRadius: '10px',
+                  backgroundColor: 'hsl(var(--popover))',
+                  color: 'hsl(var(--popover-foreground))',
+                  border: '1px solid hsl(var(--border))',
+                  boxShadow: 'var(--shadow-md)',
+                  fontSize: '12px',
+                }}
                 itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
                 cursor={{ fill: 'hsl(var(--muted))', opacity: 0.5 }}
               />
               <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Bar dataKey="passed" name={t('dashboard.executionStatus.passed')} stackId="a" fill="hsl(var(--success))" radius={[0, 0, 4, 4]} />
-              <Bar dataKey="failed" name={t('dashboard.executionStatus.failed')} stackId="a" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="passed"
+                name={t('dashboard.executionStatus.passed')}
+                stackId="a"
+                fill="hsl(var(--success))"
+                radius={[0, 0, 4, 4]}
+              />
+              <Bar
+                dataKey="failed"
+                name={t('dashboard.executionStatus.failed')}
+                stackId="a"
+                fill="hsl(var(--destructive))"
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         )}

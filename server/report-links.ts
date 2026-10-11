@@ -24,7 +24,10 @@ export function publicBaseUrl(): string | undefined {
  * Without a plan id there is no page to link to — the report route is nested under the plan —
  * so this answers with nothing rather than with a URL that would not resolve.
  */
-export function reportUrlFor(planId: string | null | undefined, executionId: string): string | undefined {
+export function reportUrlFor(
+  planId: string | null | undefined,
+  executionId: string,
+): string | undefined {
   const base = publicBaseUrl();
   const reportPath = reportPathFor(planId, executionId);
   if (!base || !reportPath) return undefined;
@@ -37,7 +40,10 @@ export function reportUrlFor(planId: string | null | undefined, executionId: str
  * What a sender still has when WEBFLOW_PUBLIC_URL is not set: a receiver that knows where the
  * installation is can complete it, where "run 1234" alone leaves them to find the page.
  */
-export function reportPathFor(planId: string | null | undefined, executionId: string): string | undefined {
+export function reportPathFor(
+  planId: string | null | undefined,
+  executionId: string,
+): string | undefined {
   if (!planId) return undefined;
   return `/test-plans/${encodeURIComponent(planId)}/executions/${encodeURIComponent(executionId)}/report`;
 }

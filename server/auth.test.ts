@@ -9,7 +9,13 @@ import { storage } from './storage';
 // Only the logger is mocked; auth runs against the real (PGlite) test database
 // with an in-memory session store (NODE_ENV=test).
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), http: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    http: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -47,11 +53,17 @@ describe('POST /api/register', () => {
   });
 
   it('rejects a too-short password with 400', async () => {
-    await request(app).post('/api/register').send({ username: 'bob', password: 'short' }).expect(400);
+    await request(app)
+      .post('/api/register')
+      .send({ username: 'bob', password: 'short' })
+      .expect(400);
   });
 
   it('rejects a too-short username with 400', async () => {
-    await request(app).post('/api/register').send({ username: 'ab', password: 'password123' }).expect(400);
+    await request(app)
+      .post('/api/register')
+      .send({ username: 'ab', password: 'password123' })
+      .expect(400);
   });
 
   it('rejects a duplicate username with 400', async () => {
@@ -74,7 +86,10 @@ describe('POST /api/register', () => {
     const first = await request(app).post('/api/register').send(validCreds).expect(201);
     expect(first.body.installationAdmin).toBe(true);
 
-    const second = await request(app).post('/api/register').send({ username: 'bob', password: 'password123' }).expect(201);
+    const second = await request(app)
+      .post('/api/register')
+      .send({ username: 'bob', password: 'password123' })
+      .expect(201);
     expect(second.body.installationAdmin).toBe(false);
   });
 });
@@ -83,11 +98,21 @@ describe('POST /api/register with an invitation', () => {
   const token = 'a'.repeat(64);
 
   /** An open invitation from a pre-existing organization, with the given overrides. */
-  async function seedInvitation(overrides: { token?: string; expiresAt?: Date; role?: string } = {}) {
-    const [organization] = await privilegedDb.insert(organizations).values({ name: 'Inviting Org' }).returning();
+  async function seedInvitation(
+    overrides: { token?: string; expiresAt?: Date; role?: string } = {},
+  ) {
+    const [organization] = await privilegedDb
+      .insert(organizations)
+      .values({ name: 'Inviting Org' })
+      .returning();
     const [inviter] = await privilegedDb
       .insert(users)
-      .values({ username: 'inviter', password: 'x', organizationId: organization.id, role: 'owner' })
+      .values({
+        username: 'inviter',
+        password: 'x',
+        organizationId: organization.id,
+        role: 'owner',
+      })
       .returning();
     const [invitation] = await privilegedDb
       .insert(invitations)
@@ -108,7 +133,11 @@ describe('POST /api/register with an invitation', () => {
   it('puts the new account in the inviting organization instead of a fresh one', async () => {
     const { organization } = await seedInvitation();
 
-    const res = await register({ username: 'invitee', password: 'password123', invitationToken: token });
+    const res = await register({
+      username: 'invitee',
+      password: 'password123',
+      invitationToken: token,
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.organizationId).toBe(organization.id);
@@ -122,25 +151,41 @@ describe('POST /api/register with an invitation', () => {
 
   it('marks the invitation used, so the same token cannot be redeemed twice', async () => {
     await seedInvitation();
-    await register({ username: 'invitee', password: 'password123', invitationToken: token }).expect(201);
+    await register({ username: 'invitee', password: 'password123', invitationToken: token }).expect(
+      201,
+    );
 
     // Second attempt fails on the username, so delete the account to isolate the token check.
     await privilegedDb.delete(users).where(eq(users.username, 'invitee'));
 
-    const second = await register({ username: 'invitee', password: 'password123', invitationToken: token });
+    const second = await register({
+      username: 'invitee',
+      password: 'password123',
+      invitationToken: token,
+    });
     expect(second.status).toBe(400);
   });
 
   it('refuses an expired invitation', async () => {
     await seedInvitation({ expiresAt: new Date(Date.now() - 1000) });
-    const res = await register({ username: 'invitee', password: 'password123', invitationToken: token });
+    const res = await register({
+      username: 'invitee',
+      password: 'password123',
+      invitationToken: token,
+    });
     expect(res.status).toBe(400);
-    expect(await privilegedDb.select().from(users).where(eq(users.username, 'invitee'))).toHaveLength(0);
+    expect(
+      await privilegedDb.select().from(users).where(eq(users.username, 'invitee')),
+    ).toHaveLength(0);
   });
 
   it('refuses a token that does not exist', async () => {
     await seedInvitation();
-    const res = await register({ username: 'invitee', password: 'password123', invitationToken: 'b'.repeat(64) });
+    const res = await register({
+      username: 'invitee',
+      password: 'password123',
+      invitationToken: 'b'.repeat(64),
+    });
     expect(res.status).toBe(400);
   });
 
@@ -148,17 +193,26 @@ describe('POST /api/register with an invitation', () => {
     // Otherwise a leaked token is an account in someone else's organization for whoever
     // finds it, under any name they like.
     await seedInvitation();
-    const res = await register({ username: 'gatecrasher', password: 'password123', invitationToken: token });
+    const res = await register({
+      username: 'gatecrasher',
+      password: 'password123',
+      invitationToken: token,
+    });
 
     expect(res.status).toBe(400);
-    expect(await privilegedDb.select().from(users).where(eq(users.username, 'gatecrasher'))).toHaveLength(0);
+    expect(
+      await privilegedDb.select().from(users).where(eq(users.username, 'gatecrasher')),
+    ).toHaveLength(0);
   });
 });
 
 describe('POST /api/login', () => {
   it('rejects wrong credentials with 401', async () => {
     await request(app).post('/api/register').send(validCreds).expect(201);
-    await request(app).post('/api/login').send({ username: 'alice', password: 'wrong' }).expect(401);
+    await request(app)
+      .post('/api/login')
+      .send({ username: 'alice', password: 'wrong' })
+      .expect(401);
   });
 
   it('accepts correct credentials and returns the user without the password', async () => {
@@ -178,17 +232,30 @@ describe('POST /api/login', () => {
     await agent.post('/api/login').send(validCreds).expect(200);
     await agent.post('/api/logout').expect(200);
 
-    const entries = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, alice.organizationId));
+    const entries = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.organizationId, alice.organizationId));
     const byAction = Object.fromEntries(entries.map((e) => [e.action, e]));
-    expect(Object.keys(byAction).sort()).toEqual(['auth.login', 'auth.login_failed', 'auth.logout']);
-    expect(byAction['auth.login_failed']).toMatchObject({ actorUserId: alice.id, metadata: { reason: 'wrong_password' } });
+    expect(Object.keys(byAction).sort()).toEqual([
+      'auth.login',
+      'auth.login_failed',
+      'auth.logout',
+    ]);
+    expect(byAction['auth.login_failed']).toMatchObject({
+      actorUserId: alice.id,
+      metadata: { reason: 'wrong_password' },
+    });
     expect(byAction['auth.login'].ipAddress).toBeTruthy();
     // The password tried is nowhere in it.
     expect(JSON.stringify(entries)).not.toContain('Tr0ub4dor');
   });
 
   it('records nothing for a username that does not exist', async () => {
-    await request(app).post('/api/login').send({ username: 'nobody', password: 'guess' }).expect(401);
+    await request(app)
+      .post('/api/login')
+      .send({ username: 'nobody', password: 'guess' })
+      .expect(401);
 
     expect(await privilegedDb.select().from(auditLog)).toHaveLength(0);
   });
@@ -198,7 +265,10 @@ describe('POST /api/login', () => {
   it('refuses a service account, whatever the password', async () => {
     await request(app).post('/api/register').send(validCreds).expect(201);
     const [alice] = await privilegedDb.select().from(users).where(eq(users.username, 'alice'));
-    await privilegedDb.update(users).set({ kind: 'service', role: 'editor' }).where(eq(users.id, alice.id));
+    await privilegedDb
+      .update(users)
+      .set({ kind: 'service', role: 'editor' })
+      .where(eq(users.id, alice.id));
 
     await request(app).post('/api/login').send(validCreds).expect(401);
   });

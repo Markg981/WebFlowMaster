@@ -17,7 +17,7 @@ export class ExcelService {
 
     const worksheet = workbook.getWorksheet(1); // Assume first sheet
     if (!worksheet) {
-      throw new Error("No worksheet found in Excel file");
+      throw new Error('No worksheet found in Excel file');
     }
 
     const testCases: ExcelTestCase[] = [];
@@ -52,7 +52,7 @@ export class ExcelService {
     await workbook.xlsx.readFile(filePath);
     const worksheet = workbook.getWorksheet(1);
     if (!worksheet) return [];
-    
+
     const headers: string[] = [];
     const headerRow = worksheet.getRow(1);
     headerRow.eachCell((cell) => {
@@ -64,19 +64,19 @@ export class ExcelService {
   getDefaultMappings(columns: string[]): any {
     // Simple heuristics
     return {
-      testCaseId: columns.find(c => /id/i.test(c)) || columns[0],
-      priority: columns.find(c => /priority/i.test(c)) || columns[1],
-      functionalObjective: columns.find(c => /objective|desc/i.test(c)) || columns[2],
-      expectedOutcome: columns.find(c => /outcome|expect/i.test(c)) || columns[3],
+      testCaseId: columns.find((c) => /id/i.test(c)) || columns[0],
+      priority: columns.find((c) => /priority/i.test(c)) || columns[1],
+      functionalObjective: columns.find((c) => /objective|desc/i.test(c)) || columns[2],
+      expectedOutcome: columns.find((c) => /outcome|expect/i.test(c)) || columns[3],
       // ... others
     };
   }
 
   async parseExcel(filePath: string, _mappings: any): Promise<ExcelTestCase[]> {
-      // For now, delegate to parseExcelFile or use mappings if implemented
-      // Ignoring mappings for this quick fix to ensure compilation, or implementing strict mapping.
-      // Re-using parseExcelFile logic but properly:
-      return this.parseExcelFile(filePath); 
+    // For now, delegate to parseExcelFile or use mappings if implemented
+    // Ignoring mappings for this quick fix to ensure compilation, or implementing strict mapping.
+    // Re-using parseExcelFile logic but properly:
+    return this.parseExcelFile(filePath);
   }
 }
 

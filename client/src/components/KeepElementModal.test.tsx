@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import KeepElementModal, { suggestedName } from './KeepElementModal';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_key: string, fallback?: any) => (typeof fallback === 'string' ? fallback : _key) }),
+  useTranslation: () => ({
+    t: (_key: string, fallback?: any) => (typeof fallback === 'string' ? fallback : _key),
+  }),
 }));
 
 /**
@@ -83,7 +85,9 @@ describe('KeepElementModal', () => {
   });
 
   it('shows what the server refused and stays open', async () => {
-    const onKept = vi.fn().mockRejectedValue(new Error('This project already has an element called "Save button".'));
+    const onKept = vi
+      .fn()
+      .mockRejectedValue(new Error('This project already has an element called "Save button".'));
     const onClose = vi.fn();
     renderModal({ onKept, onClose });
 

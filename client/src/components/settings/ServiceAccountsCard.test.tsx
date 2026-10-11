@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -23,8 +25,20 @@ vi.mock('react-i18next', () => ({
 const fetchMock = vi.fn();
 
 const accounts = [
-  { id: 7, name: 'GitHub Actions', role: 'editor', createdAt: '2026-09-01T00:00:00.000Z', disabledAt: null },
-  { id: 8, name: 'Old Jenkins', role: 'viewer', createdAt: '2026-01-01T00:00:00.000Z', disabledAt: '2026-06-01T00:00:00.000Z' },
+  {
+    id: 7,
+    name: 'GitHub Actions',
+    role: 'editor',
+    createdAt: '2026-09-01T00:00:00.000Z',
+    disabledAt: null,
+  },
+  {
+    id: 8,
+    name: 'Old Jenkins',
+    role: 'viewer',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    disabledAt: '2026-06-01T00:00:00.000Z',
+  },
 ];
 
 function renderCard() {
@@ -69,12 +83,19 @@ describe('ServiceAccountsCard', () => {
   it('disables one', async () => {
     renderCard();
     await screen.findByText('GitHub Actions');
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ ...accounts[0], revokedKeys: 1 }) });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ...accounts[0], revokedKeys: 1 }),
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Disable GitHub Actions' }));
 
     await waitFor(() => {
-      expect(fetchMock.mock.calls.some(([url, init]: any[]) => url === '/api/service-accounts/7' && init?.method === 'DELETE')).toBe(true);
+      expect(
+        fetchMock.mock.calls.some(
+          ([url, init]: any[]) => url === '/api/service-accounts/7' && init?.method === 'DELETE',
+        ),
+      ).toBe(true);
     });
   });
 });

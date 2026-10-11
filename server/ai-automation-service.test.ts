@@ -85,7 +85,10 @@ describe('AIAutomationService', () => {
         response: { text: () => '{"category":"timing"}' },
       });
 
-      const result = await service.explainFailure('Why did it fail?', { bytes: Buffer.from('png'), contentType: 'image/png' });
+      const result = await service.explainFailure('Why did it fail?', {
+        bytes: Buffer.from('png'),
+        contentType: 'image/png',
+      });
       expect(result).toBe('{"category":"timing"}');
       expect(mockGenerateContent).toHaveBeenLastCalledWith([
         { text: 'Why did it fail?' },
@@ -135,7 +138,11 @@ describe('AIAutomationService', () => {
       await service.updateSelectorInDb(seededTest.id, 0, 'div.new');
 
       // The sequence step and the elements repository should now carry the healed selector.
-      const [updated] = await privilegedDb.select().from(tests).where(eq(tests.id, seededTest.id)).limit(1);
+      const [updated] = await privilegedDb
+        .select()
+        .from(tests)
+        .where(eq(tests.id, seededTest.id))
+        .limit(1);
       const updatedSequence = updated.sequence as any[];
       const updatedElements = updated.elements as any[];
       expect(updatedSequence[0].targetElement.selector).toBe('div.new');
@@ -145,7 +152,9 @@ describe('AIAutomationService', () => {
       const detected = await privilegedDb
         .select()
         .from(detectedElements)
-        .where(and(eq(detectedElements.testId, seededTest.id), eq(detectedElements.elementId, 'el1')))
+        .where(
+          and(eq(detectedElements.testId, seededTest.id), eq(detectedElements.elementId, 'el1')),
+        )
         .limit(1);
       expect(detected.length).toBe(1);
       expect(detected[0].selector).toBe('div.new');

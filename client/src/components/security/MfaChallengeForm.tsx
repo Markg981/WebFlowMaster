@@ -39,17 +39,29 @@ export default function MfaChallengeForm() {
           placeholder="123456"
         />
         <p className="text-xs text-muted-foreground">
-          {t('security.challenge.hint', 'Lost your phone? Enter one of your recovery codes instead.')}
+          {t(
+            'security.challenge.hint',
+            'Lost your phone? Enter one of your recovery codes instead.',
+          )}
         </p>
       </div>
       {verifyMfaMutation.error && (
-        <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+        <Alert
+          variant="destructive"
+          className="bg-destructive/10 text-destructive border-destructive/20"
+        >
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{verifyMfaMutation.error.message}</AlertDescription>
         </Alert>
       )}
-      <Button type="submit" className="w-full h-11 text-base font-bold" disabled={verifyMfaMutation.isPending || code.trim().length < 6}>
-        {verifyMfaMutation.isPending ? t('security.challenge.verifying', 'Checking…') : t('security.challenge.submit', 'Verify')}
+      <Button
+        type="submit"
+        className="w-full h-11 text-base font-bold"
+        disabled={verifyMfaMutation.isPending || code.trim().length < 6}
+      >
+        {verifyMfaMutation.isPending
+          ? t('security.challenge.verifying', 'Checking…')
+          : t('security.challenge.submit', 'Verify')}
       </Button>
       <Button type="button" variant="ghost" className="w-full" onClick={cancelMfaChallenge}>
         {t('security.challenge.back', 'Back to sign in')}

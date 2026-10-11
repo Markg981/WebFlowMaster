@@ -60,7 +60,8 @@ export function isAccessibilityImpact(value: unknown): value is AccessibilityImp
   return typeof value === 'string' && (ACCESSIBILITY_IMPACTS as readonly string[]).includes(value);
 }
 
-const rank = (impact: AccessibilityImpact | null) => (impact ? ACCESSIBILITY_IMPACTS.indexOf(impact) : -1);
+const rank = (impact: AccessibilityImpact | null) =>
+  impact ? ACCESSIBILITY_IMPACTS.indexOf(impact) : -1;
 
 /** The raw result of axe.run, as far as this reads it. */
 export interface AxeRunResult {
@@ -83,7 +84,11 @@ export interface AxeRunResult {
  * A violation with no impact (axe leaves it null for some rules) is never blocking: failing a
  * build on a level axe itself did not assign would be failing it on a guess.
  */
-export function summariseAxe(result: AxeRunResult, threshold: AccessibilityImpact, url?: string): AccessibilityFinding {
+export function summariseAxe(
+  result: AxeRunResult,
+  threshold: AccessibilityImpact,
+  url?: string,
+): AccessibilityFinding {
   const violations = result.violations
     .map((violation): AccessibilityViolation => {
       const impact = isAccessibilityImpact(violation.impact) ? violation.impact : null;
@@ -94,7 +99,9 @@ export function summariseAxe(result: AxeRunResult, threshold: AccessibilityImpac
         helpUrl: violation.helpUrl,
         tags: violation.tags ?? [],
         count: violation.nodes.length,
-        targets: violation.nodes.slice(0, MAX_TARGETS_PER_RULE).map((node) => targetText(node.target)),
+        targets: violation.nodes
+          .slice(0, MAX_TARGETS_PER_RULE)
+          .map((node) => targetText(node.target)),
         blocking: impact !== null && rank(impact) >= rank(threshold),
       };
     })
@@ -111,7 +118,8 @@ export function summariseAxe(result: AxeRunResult, threshold: AccessibilityImpac
 
 /** axe gives a target as a list of selectors, one per frame or shadow root it crosses. */
 function targetText(target: unknown): string {
-  if (Array.isArray(target)) return target.map((part) => (Array.isArray(part) ? part.join(' ') : String(part))).join(' >> ');
+  if (Array.isArray(target))
+    return target.map((part) => (Array.isArray(part) ? part.join(' ') : String(part))).join(' >> ');
   return String(target);
 }
 
@@ -124,9 +132,15 @@ export function describeFinding(finding: AccessibilityFinding): string {
       .slice(0, 3)
       .map((v) => `${v.id} (${v.impact}, ${v.count} element${v.count === 1 ? '' : 's'})`)
       .join(', ');
-    return `${finding.blocking} accessibility violation${finding.blocking === 1 ? '' : 's'} ${atOrAbove}: ${worst}` +
-      (finding.blocking > 3 ? `, and ${finding.blocking - 3} more` : '') + '.';
+    return (
+      `${finding.blocking} accessibility violation${finding.blocking === 1 ? '' : 's'} ${atOrAbove}: ${worst}` +
+      (finding.blocking > 3 ? `, and ${finding.blocking - 3} more` : '') +
+      '.'
+    );
   }
   const below = finding.violations.length;
-  return `No accessibility violations ${atOrAbove}` + (below > 0 ? ` (${below} below the threshold).` : '.');
+  return (
+    `No accessibility violations ${atOrAbove}` +
+    (below > 0 ? ` (${below} below the threshold).` : '.')
+  );
 }

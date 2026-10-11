@@ -1,13 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import { REQUIREMENT_KEY_PATTERN, REQUIREMENT_KINDS, type RequirementKind } from '@shared/requirements';
+import {
+  REQUIREMENT_KEY_PATTERN,
+  REQUIREMENT_KINDS,
+  type RequirementKind,
+} from '@shared/requirements';
 
 /** Typing a requirement in, or changing one: its key, title, kind and the epic it belongs to. */
 
@@ -39,7 +56,14 @@ interface Props {
   onSave: (payload: RequirementPayload) => void;
 }
 
-export default function RequirementDialog({ isOpen, requirement, options, saving, onClose, onSave }: Props) {
+export default function RequirementDialog({
+  isOpen,
+  requirement,
+  options,
+  saving,
+  onClose,
+  onSave,
+}: Props) {
   const { t } = useTranslation();
   const [key, setKey] = useState('');
   const [title, setTitle] = useState('');
@@ -65,10 +89,15 @@ export default function RequirementDialog({ isOpen, requirement, options, saving
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {requirement ? t('requirements.dialog.editTitle', 'Edit requirement') : t('requirements.dialog.createTitle', 'New requirement')}
+            {requirement
+              ? t('requirements.dialog.editTitle', 'Edit requirement')
+              : t('requirements.dialog.createTitle', 'New requirement')}
           </DialogTitle>
           <DialogDescription>
-            {t('requirements.dialog.description', 'An epic, a user story or a requirement. Link tests to it to see whether it is covered and passing.')}
+            {t(
+              'requirements.dialog.description',
+              'An epic, a user story or a requirement. Link tests to it to see whether it is covered and passing.',
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -76,18 +105,34 @@ export default function RequirementDialog({ isOpen, requirement, options, saving
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label htmlFor="requirement-key">{t('requirements.fields.key', 'Key')}</Label>
-              <Input id="requirement-key" value={key} onChange={(e) => setKey(e.target.value)} placeholder="SHOP-142" maxLength={64} />
+              <Input
+                id="requirement-key"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder="SHOP-142"
+                maxLength={64}
+              />
             </div>
             <div className="col-span-2 space-y-1">
               <Label htmlFor="requirement-kind">{t('requirements.fields.kind', 'Kind')}</Label>
               <Select value={kind} onValueChange={(value) => setKind(value as RequirementKind)}>
-                <SelectTrigger id="requirement-kind" aria-label={t('requirements.fields.kind', 'Kind')}>
+                <SelectTrigger
+                  id="requirement-kind"
+                  aria-label={t('requirements.fields.kind', 'Kind')}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {REQUIREMENT_KINDS.map((option) => (
                     <SelectItem key={option} value={option}>
-                      {t(`requirements.kind.${option}`, option === 'epic' ? 'Epic' : option === 'story' ? 'User story' : 'Requirement')}
+                      {t(
+                        `requirements.kind.${option}`,
+                        option === 'epic'
+                          ? 'Epic'
+                          : option === 'story'
+                            ? 'User story'
+                            : 'Requirement',
+                      )}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -96,21 +141,39 @@ export default function RequirementDialog({ isOpen, requirement, options, saving
           </div>
           {key.trim() !== '' && !keyValid && (
             <p className="text-xs text-destructive">
-              {t('requirements.keyHint', 'Letters, digits, dots, dashes and underscores, like SHOP-142 or REQ_12.')}
+              {t(
+                'requirements.keyHint',
+                'Letters, digits, dots, dashes and underscores, like SHOP-142 or REQ_12.',
+              )}
             </p>
           )}
           <div className="space-y-1">
             <Label htmlFor="requirement-title">{t('requirements.fields.title', 'Title')}</Label>
-            <Input id="requirement-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={500} />
+            <Input
+              id="requirement-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={500}
+            />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="requirement-parent">{t('requirements.fields.parent', 'Belongs to')}</Label>
-            <Select value={parentId == null ? NO_PARENT : String(parentId)} onValueChange={(value) => setParentId(value === NO_PARENT ? null : Number(value))}>
-              <SelectTrigger id="requirement-parent" aria-label={t('requirements.fields.parent', 'Belongs to')}>
+            <Label htmlFor="requirement-parent">
+              {t('requirements.fields.parent', 'Belongs to')}
+            </Label>
+            <Select
+              value={parentId == null ? NO_PARENT : String(parentId)}
+              onValueChange={(value) => setParentId(value === NO_PARENT ? null : Number(value))}
+            >
+              <SelectTrigger
+                id="requirement-parent"
+                aria-label={t('requirements.fields.parent', 'Belongs to')}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_PARENT}>{t('requirements.noParent', 'Nothing: top level')}</SelectItem>
+                <SelectItem value={NO_PARENT}>
+                  {t('requirements.noParent', 'Nothing: top level')}
+                </SelectItem>
                 {parents.map((option) => (
                   <SelectItem key={option.id} value={String(option.id)}>
                     {option.key} — {option.title}
@@ -120,8 +183,15 @@ export default function RequirementDialog({ isOpen, requirement, options, saving
             </Select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="requirement-description">{t('requirements.fields.description', 'Description')}</Label>
-            <Textarea id="requirement-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            <Label htmlFor="requirement-description">
+              {t('requirements.fields.description', 'Description')}
+            </Label>
+            <Textarea
+              id="requirement-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
           </div>
         </div>
 
@@ -130,7 +200,15 @@ export default function RequirementDialog({ isOpen, requirement, options, saving
             {t('requirements.cancel', 'Cancel')}
           </Button>
           <Button
-            onClick={() => onSave({ key: key.trim(), title: title.trim(), description: description.trim() || null, kind, parentId })}
+            onClick={() =>
+              onSave({
+                key: key.trim(),
+                title: title.trim(),
+                description: description.trim() || null,
+                kind,
+                parentId,
+              })
+            }
             disabled={!valid || saving}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

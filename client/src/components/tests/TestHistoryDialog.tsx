@@ -59,12 +59,24 @@ interface TestHistoryDialogProps {
   onRestore: (version: number) => Promise<void>;
 }
 
-const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, test, onRestore, testType = 'ui', readOnly = false }) => {
+const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({
+  isOpen,
+  onClose,
+  test,
+  onRestore,
+  testType = 'ui',
+  readOnly = false,
+}) => {
   const { t } = useTranslation();
   const [restoring, setRestoring] = useState<number | null>(null);
   const [error, setError] = useState('');
 
-  const { data, isLoading, error: loadError, refetch } = useQuery<TestHistoryResponse, Error>({
+  const {
+    data,
+    isLoading,
+    error: loadError,
+    refetch,
+  } = useQuery<TestHistoryResponse, Error>({
     queryKey: ['testVersions', testType, test?.id],
     queryFn: async () => {
       const response = await fetch(`${testRoute(testType, test!.id)}/versions`);
@@ -109,13 +121,24 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
   };
 
   const [compareVersion, setCompareVersion] = useState<number | null>(null);
-  const { data: comparison, isLoading: comparing, error: compareError } = useQuery({
-    queryKey: ['testVersionComparison', testType, test?.id, compareVersion, data?.versions?.[0]?.version],
+  const {
+    data: comparison,
+    isLoading: comparing,
+    error: compareError,
+  } = useQuery({
+    queryKey: [
+      'testVersionComparison',
+      testType,
+      test?.id,
+      compareVersion,
+      data?.versions?.[0]?.version,
+    ],
     queryFn: async () => {
       const latest = data!.versions[0].version;
       const read = async (version: number) => {
         const response = await fetch(`${testRoute(testType, test!.id)}/versions/${version}`);
-        if (!response.ok) throw new Error(t('testHistory.compareError', 'Could not load the versions.'));
+        if (!response.ok)
+          throw new Error(t('testHistory.compareError', 'Could not load the versions.'));
         const detail = await response.json();
         return detail.snapshot ?? detail;
       };
@@ -143,7 +166,12 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center">
@@ -172,7 +200,9 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
         )}
 
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('testHistory.loading', 'Reading the history…')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('testHistory.loading', 'Reading the history…')}
+          </p>
         ) : loadError ? (
           <p className="text-sm text-destructive">{loadError.message}</p>
         ) : versions.length === 0 ? (
@@ -192,11 +222,15 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
                       <Badge variant="outline">{t('testHistory.current', 'Current')}</Badge>
                     )}
                     {publishing?.publishedVersion === version.version && (
-                      <Badge data-testid={`published-${version.version}`}>{t('testHistory.published', 'Published')}</Badge>
+                      <Badge data-testid={`published-${version.version}`}>
+                        {t('testHistory.published', 'Published')}
+                      </Badge>
                     )}
                     {version.restoredFromVersion !== null && (
                       <Badge variant="secondary">
-                        {t('testHistory.restoredFrom', 'restored from {{n}}', { n: version.restoredFromVersion })}
+                        {t('testHistory.restoredFrom', 'restored from {{n}}', {
+                          n: version.restoredFromVersion,
+                        })}
                       </Badge>
                     )}
                   </div>
@@ -204,7 +238,8 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
                     {version.summary ?? t('testHistory.noSummary', 'Saved.')}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {version.name} · {t('testHistory.steps', '{{count}} steps', { count: version.stepCount })} ·{' '}
+                    {version.name} ·{' '}
+                    {t('testHistory.steps', '{{count}} steps', { count: version.stepCount })} ·{' '}
                     {new Date(version.createdAt).toLocaleString()} ·{' '}
                     {version.authorName ?? t('testHistory.unknownAuthor', 'a member who has left')}
                   </p>
@@ -212,14 +247,20 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
                       somebody can choose between. A version nobody ever ran says so. */}
                   <p className="text-xs">
                     {version.runs === 0 ? (
-                      <span className="text-muted-foreground">{t('testHistory.neverRan', 'Never run')}</span>
+                      <span className="text-muted-foreground">
+                        {t('testHistory.neverRan', 'Never run')}
+                      </span>
                     ) : (
                       <>
                         <span className="text-green-600">
                           {t('testHistory.passed', '{{count}} passed', { count: version.passed })}
                         </span>
                         {' · '}
-                        <span className={version.failed > 0 ? 'text-destructive' : 'text-muted-foreground'}>
+                        <span
+                          className={
+                            version.failed > 0 ? 'text-destructive' : 'text-muted-foreground'
+                          }
+                        >
                           {t('testHistory.failed', '{{count}} failed', { count: version.failed })}
                         </span>
                         {version.runs > version.passed + version.failed && (
@@ -240,14 +281,25 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
                     size="sm"
                     onClick={() => handleRollback(version.version)}
                     disabled={rollingBack !== null}
-                    title={t('testHistory.rollbackHint', 'Plans run this version again. It was live before.')}
+                    title={t(
+                      'testHistory.rollbackHint',
+                      'Plans run this version again. It was live before.',
+                    )}
                   >
-                    {rollingBack === version.version ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4 mr-1" />}
+                    {rollingBack === version.version ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Undo2 className="h-4 w-4 mr-1" />
+                    )}
                     {t('testHistory.rollback', 'Roll back to this')}
                   </Button>
                 )}
                 {index > 0 && (
-                  <Button variant="ghost" size="sm" onClick={() => setCompareVersion(version.version)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCompareVersion(version.version)}
+                  >
                     {t('testHistory.compare', 'Compare with current')}
                   </Button>
                 )}
@@ -272,16 +324,24 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
         )}
 
         {compareVersion !== null && (
-          <section aria-label={t('testHistory.comparison', 'Version comparison')} className="space-y-2">
+          <section
+            aria-label={t('testHistory.comparison', 'Version comparison')}
+            className="space-y-2"
+          >
             <h3 className="font-medium">{t('testHistory.comparison', 'Version comparison')}</h3>
             {comparing && <p>{t('testHistory.loading', 'Reading the history…')}</p>}
             {compareError && <p className="text-destructive">{(compareError as Error).message}</p>}
             {comparison && (
               <div className="grid md:grid-cols-2 gap-3">
-                {[{ version: compareVersion, snapshot: comparison.before }, { version: comparison.latest, snapshot: comparison.after }].map(({ version, snapshot }) => (
+                {[
+                  { version: compareVersion, snapshot: comparison.before },
+                  { version: comparison.latest, snapshot: comparison.after },
+                ].map(({ version, snapshot }) => (
                   <div key={version} className="min-w-0 rounded border p-3">
                     <h4>{t('testHistory.version', 'Version {{n}}', { n: version })}</h4>
-                    <pre className="overflow-auto whitespace-pre-wrap break-all text-xs mt-2">{JSON.stringify(snapshot, null, 2)}</pre>
+                    <pre className="overflow-auto whitespace-pre-wrap break-all text-xs mt-2">
+                      {JSON.stringify(snapshot, null, 2)}
+                    </pre>
                   </div>
                 ))}
               </div>

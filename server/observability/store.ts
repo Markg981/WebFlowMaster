@@ -173,9 +173,7 @@ export class IncidentStore {
       const index = await this.readIndex();
       const cutoff = Date.now() - maxAgeDays * 24 * 3600_000;
 
-      const tooOld = new Set(
-        index.filter((e) => Date.parse(e.lastSeen) < cutoff).map((e) => e.id),
-      );
+      const tooOld = new Set(index.filter((e) => Date.parse(e.lastSeen) < cutoff).map((e) => e.id));
 
       // Over the cap: fixed incidents go first, then the least recently seen.
       const survivors = index.filter((e) => !tooOld.has(e.id));
@@ -185,7 +183,9 @@ export class IncidentStore {
         if (aFixed !== bFixed) return bFixed - aFixed;
         return Date.parse(a.lastSeen) - Date.parse(b.lastSeen);
       });
-      const overflow = new Set(ranked.slice(0, Math.max(0, survivors.length - maxFiles)).map((e) => e.id));
+      const overflow = new Set(
+        ranked.slice(0, Math.max(0, survivors.length - maxFiles)).map((e) => e.id),
+      );
 
       const doomed = new Set([...tooOld, ...overflow]);
 
@@ -198,7 +198,10 @@ export class IncidentStore {
       // orphaned incident file that the index no longer lists — nobody ever chases a file
       // that isn't there, and the next prune or a rebuild will pick the orphan back up.
       if (doomed.size > 0) {
-        await this.writeJson(this.indexPath, index.filter((e) => !doomed.has(e.id)));
+        await this.writeJson(
+          this.indexPath,
+          index.filter((e) => !doomed.has(e.id)),
+        );
       }
 
       // Attempt every deletion rather than bailing on the first failure, so one locked

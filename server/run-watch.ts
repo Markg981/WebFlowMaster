@@ -76,7 +76,10 @@ export function watchRun(executionId: string, options: RunWatchOptions = {}): Ru
       } else if (status === 'cancelling') {
         stopWith('cancelled', 'Not run: the run was cancelled.');
       } else if (now() - startedAt > maxDurationMs) {
-        stopWith('timed_out', `Not run: the run went past its limit of ${Math.round(maxDurationMs / 60_000)} minutes.`);
+        stopWith(
+          'timed_out',
+          `Not run: the run went past its limit of ${Math.round(maxDurationMs / 60_000)} minutes.`,
+        );
       }
     } catch {
       // A heartbeat that could not be written is not a reason to stop a run; the next one may

@@ -5,7 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldAlert } from 'lucide-react';
@@ -76,9 +83,17 @@ export default function QuarantinedTestsCard() {
       setNotes(({ [row.id]: _released, ...rest }) => rest);
       await queryClient.invalidateQueries({ queryKey: ['quarantine'] });
       await queryClient.invalidateQueries({ queryKey: ['flakyTests'] });
-      toast({ title: t('quarantine.released', '"{{name}}" is back: its failures count again', { name: row.testName ?? '' }) });
+      toast({
+        title: t('quarantine.released', '"{{name}}" is back: its failures count again', {
+          name: row.testName ?? '',
+        }),
+      });
     } catch (error) {
-      toast({ variant: 'destructive', title: t('quarantine.releaseFailed', 'The test was not released'), description: (error as Error).message });
+      toast({
+        variant: 'destructive',
+        title: t('quarantine.releaseFailed', 'The test was not released'),
+        description: (error as Error).message,
+      });
     } finally {
       setReleasing(null);
     }
@@ -104,7 +119,9 @@ export default function QuarantinedTestsCard() {
       </CardHeader>
       <CardContent>
         {isError ? (
-          <p className="text-sm text-destructive">{t('quarantine.error', 'The quarantined tests could not be loaded.')}</p>
+          <p className="text-sm text-destructive">
+            {t('quarantine.error', 'The quarantined tests could not be loaded.')}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -124,23 +141,42 @@ export default function QuarantinedTestsCard() {
                     <TableRow key={row.id} data-testid={`quarantine-${row.id}`}>
                       <TableCell className="font-medium">
                         {row.testName ?? t('quarantine.hiddenTest', 'A test you cannot see')}
-                        <Badge variant="outline" className="ml-2 font-normal">{row.testType === 'ui' ? 'UI' : row.testType === 'api' ? 'API' : t('quarantine.mobile', 'Mobile')}</Badge>
+                        <Badge variant="outline" className="ml-2 font-normal">
+                          {row.testType === 'ui'
+                            ? 'UI'
+                            : row.testType === 'api'
+                              ? 'API'
+                              : t('quarantine.mobile', 'Mobile')}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-xs max-w-xs">{row.reason}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap">
                         {new Date(row.quarantinedAt).toLocaleDateString()}
-                        {row.quarantinedBy && <div className="text-muted-foreground">{row.quarantinedBy}</div>}
+                        {row.quarantinedBy && (
+                          <div className="text-muted-foreground">{row.quarantinedBy}</div>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs whitespace-nowrap">
                         {row.evidence.runs === 0 ? (
-                          <span className="text-muted-foreground">{t('quarantine.notRunSince', 'Not run since')}</span>
+                          <span className="text-muted-foreground">
+                            {t('quarantine.notRunSince', 'Not run since')}
+                          </span>
                         ) : (
                           <>
-                            {t('quarantine.evidence', '{{passed}} passed, {{failed}} failed', { passed: row.evidence.passed, failed: row.evidence.failed })}
+                            {t('quarantine.evidence', '{{passed}} passed, {{failed}} failed', {
+                              passed: row.evidence.passed,
+                              failed: row.evidence.failed,
+                            })}
                             <div className={ready ? 'text-green-600' : 'text-muted-foreground'}>
                               {ready
-                                ? t('quarantine.ready', 'Passed its last {{count}} runs: ready to release', { count: row.evidence.passingStreak })
-                                : t('quarantine.streak', '{{count}} passes in a row', { count: row.evidence.passingStreak })}
+                                ? t(
+                                    'quarantine.ready',
+                                    'Passed its last {{count}} runs: ready to release',
+                                    { count: row.evidence.passingStreak },
+                                  )
+                                : t('quarantine.streak', '{{count}} passes in a row', {
+                                    count: row.evidence.passingStreak,
+                                  })}
                             </div>
                           </>
                         )}
@@ -150,13 +186,25 @@ export default function QuarantinedTestsCard() {
                           <div className="flex items-center justify-end gap-2">
                             <Input
                               className="h-8 w-40"
-                              placeholder={t('quarantine.notePlaceholder', 'What fixed it (optional)')}
+                              placeholder={t(
+                                'quarantine.notePlaceholder',
+                                'What fixed it (optional)',
+                              )}
                               aria-label={t('quarantine.note', 'Release note')}
                               value={notes[row.id] ?? ''}
-                              onChange={(e) => setNotes((current) => ({ ...current, [row.id]: e.target.value }))}
+                              onChange={(e) =>
+                                setNotes((current) => ({ ...current, [row.id]: e.target.value }))
+                              }
                             />
-                            <Button size="sm" variant={ready ? 'default' : 'outline'} onClick={() => release(row)} disabled={releasing !== null}>
-                              {releasing === row.id && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                            <Button
+                              size="sm"
+                              variant={ready ? 'default' : 'outline'}
+                              onClick={() => release(row)}
+                              disabled={releasing !== null}
+                            >
+                              {releasing === row.id && (
+                                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                              )}
                               {t('quarantine.release', 'Release')}
                             </Button>
                           </div>

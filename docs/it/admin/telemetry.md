@@ -33,16 +33,16 @@ scrape_configs:
 
 Scoprire e interrogare **ogni replica worker separatamente**: un unico indirizzo bilanciato nasconderebbe le metriche delle altre repliche.
 
-| Metrica | Significato |
-| --- | --- |
-| `wfm_http_duration_seconds` | Durata HTTP per metodo, template di route e stato; il conteggio dell'istogramma permette di calcolare richieste ed errori. Le route sconosciute hanno una label fissa. |
-| `wfm_job_wait_seconds` | Età del job all'inizio di un tentativo: comprende ritardi intenzionali, rinvii per quota e retry, oltre all'attesa dello scheduler. |
-| `wfm_job_duration_seconds` | Durata del tentativo di elaborazione sulle code dei piani e dei browser. |
-| `wfm_jobs_total` | Tentativi con esito `success`, `error` o `deferred`; un rinvio non indica un run completato. |
-| `wfm_worker_active_jobs`, `wfm_worker_capacity` | Tentativi in corso e concorrenza configurata per coda/processo. Durante il drain la capacità indica ancora quella configurata. |
-| `wfm_queue_jobs` | Profondità globale per coda/stato, esposta dai worker. Un errore Redis restituisce HTTP 503 senza presentare un successo con valori obsoleti. |
-| `wfm_agent_connected`, `wfm_agent_capacity`, `wfm_agent_active_sessions` | Aggregati locali del relay: agenti connessi, slot degli agenti non in drain e sessioni attive. Sommare sulle repliche API. |
-| Altre metriche di processo `wfm_*` | CPU, memoria, ritardo dell'event loop e garbage collection Node. |
+| Metrica                                                                  | Significato                                                                                                                                                            |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wfm_http_duration_seconds`                                              | Durata HTTP per metodo, template di route e stato; il conteggio dell'istogramma permette di calcolare richieste ed errori. Le route sconosciute hanno una label fissa. |
+| `wfm_job_wait_seconds`                                                   | Età del job all'inizio di un tentativo: comprende ritardi intenzionali, rinvii per quota e retry, oltre all'attesa dello scheduler.                                    |
+| `wfm_job_duration_seconds`                                               | Durata del tentativo di elaborazione sulle code dei piani e dei browser.                                                                                               |
+| `wfm_jobs_total`                                                         | Tentativi con esito `success`, `error` o `deferred`; un rinvio non indica un run completato.                                                                           |
+| `wfm_worker_active_jobs`, `wfm_worker_capacity`                          | Tentativi in corso e concorrenza configurata per coda/processo. Durante il drain la capacità indica ancora quella configurata.                                         |
+| `wfm_queue_jobs`                                                         | Profondità globale per coda/stato, esposta dai worker. Un errore Redis restituisce HTTP 503 senza presentare un successo con valori obsoleti.                          |
+| `wfm_agent_connected`, `wfm_agent_capacity`, `wfm_agent_active_sessions` | Aggregati locali del relay: agenti connessi, slot degli agenti non in drain e sessioni attive. Sommare sulle repliche API.                                             |
+| Altre metriche di processo `wfm_*`                                       | CPU, memoria, ritardo dell'event loop e garbage collection Node.                                                                                                       |
 
 La profondità delle code è duplicata sulle repliche worker: usare `max by (queue, state) (wfm_queue_jobs)`, **non la somma**. Utilizzo worker: `sum by (queue) (wfm_worker_active_jobs) / sum by (queue) (wfm_worker_capacity)`. Attesa p95: `histogram_quantile(0.95, sum by (le, queue) (rate(wfm_job_wait_seconds_bucket[5m])))`. I contatori misurano i tentativi worker e gli errori infrastrutturali; un'asserzione fallita restituita come normale risultato del test resta un job elaborato con successo.
 

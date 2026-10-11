@@ -1,5 +1,10 @@
 import { eq } from 'drizzle-orm';
-import { sourceHosts, type SourceHost, type SourceHostProvider, type TestPlanExecution } from '@shared/schema';
+import {
+  sourceHosts,
+  type SourceHost,
+  type SourceHostProvider,
+  type TestPlanExecution,
+} from '@shared/schema';
 import type { CiContext } from '@shared/ci';
 import { decryptSecret } from './crypto';
 import { fetchTarget } from './outbound-http';
@@ -53,7 +58,9 @@ export interface CommitStatus {
 }
 
 /** Which provider a run's CI context points at, and where on it — or null when it points at none. */
-export function commitTargetOf(ci: CiContext | null | undefined): (CommitTarget & { provider: SourceHostProvider }) | null {
+export function commitTargetOf(
+  ci: CiContext | null | undefined,
+): (CommitTarget & { provider: SourceHostProvider }) | null {
   if (!ci || (ci.provider !== 'github' && ci.provider !== 'gitlab')) return null;
   if (!ci.repository || !ci.commit) return null;
   // Both APIs want the full hash; a short one would set a status on nothing, or be refused.
@@ -68,13 +75,21 @@ function clip(text: string): string {
 }
 
 /** What a run in this state says on its commit, or null for a state that says nothing new. */
-export function commitStatusFor(execution: TestPlanExecution, planName: string, reportUrl?: string): CommitStatus | null {
-  const base = { context: `WebFlowMaster / ${planName}`, ...(reportUrl ? { targetUrl: reportUrl } : {}) };
+export function commitStatusFor(
+  execution: TestPlanExecution,
+  planName: string,
+  reportUrl?: string,
+): CommitStatus | null {
+  const base = {
+    context: `WebFlowMaster / ${planName}`,
+    ...(reportUrl ? { targetUrl: reportUrl } : {}),
+  };
   const total = count(execution.totalTests);
   const failed = count(execution.failedTests);
   const passed = count(execution.passedTests);
   const quarantined = count(execution.quarantinedFailures);
-  const attempt = execution.maxAttempts > 1 ? ` (attempt ${execution.attempt} of ${execution.maxAttempts})` : '';
+  const attempt =
+    execution.maxAttempts > 1 ? ` (attempt ${execution.attempt} of ${execution.maxAttempts})` : '';
 
   switch (execution.status) {
     case 'queued':
@@ -82,17 +97,36 @@ export function commitStatusFor(execution: TestPlanExecution, planName: string, 
     case 'running':
       return { ...base, state: 'running', description: clip(`Running${attempt}`) };
     case 'completed': {
-      const aside = quarantined > 0 ? `, ${quarantined} quarantined failure${quarantined === 1 ? '' : 's'} ignored` : '';
-      return { ...base, state: 'success', description: clip(`${passed} of ${total} passed${aside}`) };
+      const aside =
+        quarantined > 0
+          ? `, ${quarantined} quarantined failure${quarantined === 1 ? '' : 's'} ignored`
+          : '';
+      return {
+        ...base,
+        state: 'success',
+        description: clip(`${passed} of ${total} passed${aside}`),
+      };
     }
     case 'failed':
-      return { ...base, state: 'failure', description: clip(`${failed} of ${total} failed${attempt}`) };
+      return {
+        ...base,
+        state: 'failure',
+        description: clip(`${failed} of ${total} failed${attempt}`),
+      };
     case 'timed_out':
-      return { ...base, state: 'error', description: clip(`Timed out after ${passed + failed} of ${total} tests`) };
+      return {
+        ...base,
+        state: 'error',
+        description: clip(`Timed out after ${passed + failed} of ${total} tests`),
+      };
     case 'cancelled':
       return { ...base, state: 'cancelled', description: 'Cancelled' };
     case 'error':
-      return { ...base, state: 'error', description: clip(execution.failureMessage || 'The run could not finish') };
+      return {
+        ...base,
+        state: 'error',
+        description: clip(execution.failureMessage || 'The run could not finish'),
+      };
     default:
       // `cancelling` is on its way to `cancelled`, which will say so.
       return null;
@@ -123,17 +157,29 @@ function base(apiUrl: string) {
 
 function headersFor(host: HostConfig): Record<string, string> {
   return host.provider === 'github'
-    ? { Authorization: `Bearer ${host.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
+    ? {
+        Authorization: `Bearer ${host.token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      }
     : { 'PRIVATE-TOKEN': host.token };
 }
 
-async function call(host: HostConfig, path: string, init: RequestInit, fetchImpl: typeof fetch): Promise<Response> {
+async function call(
+  host: HostConfig,
+  path: string,
+  init: RequestInit,
+  fetchImpl: typeof fetch,
+): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     return await fetchImpl(`${base(host.apiUrl)}${path}`, {
       ...init,
-      headers: { ...headersFor(host), ...(init.body ? { 'Content-Type': 'application/json' } : {}) },
+      headers: {
+        ...headersFor(host),
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      },
       signal: controller.signal,
     });
   } finally {
@@ -142,7 +188,11 @@ async function call(host: HostConfig, path: string, init: RequestInit, fetchImpl
 }
 
 /** A refusal in a sentence: what the host said, and what that usually means. */
-async function refusal(host: HostConfig, response: Response, target?: CommitTarget): Promise<string> {
+async function refusal(
+  host: HostConfig,
+  response: Response,
+  target?: CommitTarget,
+): Promise<string> {
   const body = await response.text().catch(() => '');
   let message = '';
   try {
@@ -177,7 +227,12 @@ export async function postCommitStatus(
             `/repos/${target.repository.split('/').map(encodeURIComponent).join('/')}/statuses/${target.commit}`,
             {
               method: 'POST',
-              body: JSON.stringify({ state: GITHUB_STATE[status.state], description: status.description, context: status.context, target_url: status.targetUrl }),
+              body: JSON.stringify({
+                state: GITHUB_STATE[status.state],
+                description: status.description,
+                context: status.context,
+                target_url: status.targetUrl,
+              }),
             },
             fetchImpl,
           )
@@ -186,7 +241,12 @@ export async function postCommitStatus(
             `/projects/${encodeURIComponent(target.repository)}/statuses/${target.commit}`,
             {
               method: 'POST',
-              body: JSON.stringify({ state: GITLAB_STATE[status.state], description: status.description, name: status.context, target_url: status.targetUrl }),
+              body: JSON.stringify({
+                state: GITLAB_STATE[status.state],
+                description: status.description,
+                name: status.context,
+                target_url: status.targetUrl,
+              }),
             },
             fetchImpl,
           );
@@ -194,12 +254,18 @@ export async function postCommitStatus(
     // GitLab refuses to set a state a commit already has ("Cannot transition status via :run from
     // :running"): the commit already says what this would say.
     if (host.provider === 'gitlab' && response.status === 400) {
-      const text = await response.clone().text().catch(() => '');
+      const text = await response
+        .clone()
+        .text()
+        .catch(() => '');
       if (/Cannot transition status/i.test(text)) return null;
     }
     return await refusal(host, response, target);
   } catch (error) {
-    const reason = (error as Error)?.name === 'AbortError' ? `no answer within ${REQUEST_TIMEOUT_MS / 1000} seconds` : (error as Error)?.message ?? String(error);
+    const reason =
+      (error as Error)?.name === 'AbortError'
+        ? `no answer within ${REQUEST_TIMEOUT_MS / 1000} seconds`
+        : ((error as Error)?.message ?? String(error));
     return `Could not reach ${base(host.apiUrl)}: ${reason}.`;
   }
 }
@@ -215,12 +281,19 @@ export async function checkSourceHost(
     const user = await response.json();
     return { ok: true, account: String(user.login ?? user.username ?? 'unknown') };
   } catch (error) {
-    return { ok: false, error: `Could not reach ${base(host.apiUrl)}: ${(error as Error).message}.` };
+    return {
+      ok: false,
+      error: `Could not reach ${base(host.apiUrl)}: ${(error as Error).message}.`,
+    };
   }
 }
 
 export function hostConfig(row: SourceHost): HostConfig {
-  return { provider: row.provider, apiUrl: row.apiUrl, token: decryptSecret(row.encryptedToken, row.tokenIv, row.tokenAuthTag) };
+  return {
+    provider: row.provider,
+    apiUrl: row.apiUrl,
+    token: decryptSecret(row.encryptedToken, row.tokenIv, row.tokenAuthTag),
+  };
 }
 
 /**
@@ -234,11 +307,19 @@ export interface ReportDeps {
 }
 
 /** Reports a run's current state on its commit, if it has one and the organization has the host. */
-export function reportCommitStatus(execution: TestPlanExecution, deps: ReportDeps = {}): Promise<void> {
+export function reportCommitStatus(
+  execution: TestPlanExecution,
+  deps: ReportDeps = {},
+): Promise<void> {
   const target = commitTargetOf(execution.ciContext);
   if (!target) return Promise.resolve();
-  const planName = readExecutionSnapshot(execution.configurationSnapshot)?.plan.name || execution.testPlanId;
-  const status = commitStatusFor(execution, planName, reportUrlFor(execution.testPlanId, execution.id));
+  const planName =
+    readExecutionSnapshot(execution.configurationSnapshot)?.plan.name || execution.testPlanId;
+  const status = commitStatusFor(
+    execution,
+    planName,
+    reportUrlFor(execution.testPlanId, execution.id),
+  );
   if (!status) return Promise.resolve();
 
   const previous = inFlight.get(execution.id) ?? Promise.resolve();
@@ -250,7 +331,10 @@ export function reportCommitStatus(execution: TestPlanExecution, deps: ReportDep
       if (!host) return;
       const error = await postCommitStatus(hostConfig(host), target, status, deps.fetchImpl);
       await withTenantTransaction(async (tx) => {
-        await tx.update(sourceHosts).set({ lastDeliveryAt: new Date(), lastDeliveryError: error }).where(eq(sourceHosts.id, host.id));
+        await tx
+          .update(sourceHosts)
+          .set({ lastDeliveryAt: new Date(), lastDeliveryError: error })
+          .where(eq(sourceHosts.id, host.id));
       });
     }).catch(() => {}),
   );

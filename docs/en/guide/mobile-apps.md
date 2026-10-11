@@ -43,41 +43,41 @@ only; a plan's browsers cannot run on it.
 
 **Mobile apps** in the menu → **New mobile test**:
 
-| Field | What it is |
-|---|---|
-| **Name** | Unique in the organization. |
-| **Platform** | Android or iOS. |
-| **App** | Where the grid finds it: **Upload .apk / .ipa** sends the file to the grid chosen next to it and fills in its address (`bs://…` or `lt://…`); or paste one uploaded before, or an https:// address the grid downloads it from. The file is not kept by WebFlowMaster. |
-| **Device** | As the grid names it: `Google Pixel 8`, `Samsung Galaxy S24`, `iPhone 15` — see the grid's device list. |
-| **OS version** | Optional: `14.0`, `17`. Empty: the grid's choice for that device. |
-| **Project** | Like a web test's: in a [restricted project](./organizing) only its members see the test and its runs, and a viewer on it can neither change nor run it. |
-| **Runs in test plans on** | The grid a [test plan](#in-a-test-plan) runs it on. A new test starts with the first BrowserStack or LambdaTest grid; **No grid** keeps it out of plan runs (a plan that includes it reports an error for it). |
+| Field                     | What it is                                                                                                                                                                                                                                                            |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                  | Unique in the organization.                                                                                                                                                                                                                                           |
+| **Platform**              | Android or iOS.                                                                                                                                                                                                                                                       |
+| **App**                   | Where the grid finds it: **Upload .apk / .ipa** sends the file to the grid chosen next to it and fills in its address (`bs://…` or `lt://…`); or paste one uploaded before, or an https:// address the grid downloads it from. The file is not kept by WebFlowMaster. |
+| **Device**                | As the grid names it: `Google Pixel 8`, `Samsung Galaxy S24`, `iPhone 15` — see the grid's device list.                                                                                                                                                               |
+| **OS version**            | Optional: `14.0`, `17`. Empty: the grid's choice for that device.                                                                                                                                                                                                     |
+| **Project**               | Like a web test's: in a [restricted project](./organizing) only its members see the test and its runs, and a viewer on it can neither change nor run it.                                                                                                              |
+| **Runs in test plans on** | The grid a [test plan](#in-a-test-plan) runs it on. A new test starts with the first BrowserStack or LambdaTest grid; **No grid** keeps it out of plan runs (a plan that includes it reports an error for it).                                                        |
 
 Each step is an action, and for most an element:
 
-| Action | What it does |
-|---|---|
-| **Tap** | Taps the element. |
-| **Type** | Clears the field and types the value. |
-| **Clear** | Empties the field. |
-| **Wait for element** / **Assert visible** | Waits until the element is on screen (up to 15 seconds). |
-| **Assert not visible** | Fails if the element is still on screen after up to 5 seconds. |
-| **Assert text contains** | The element's text contains the value. |
-| **Swipe** | `up`, `down`, `left` or `right`: the way the finger moves across the middle of the screen. |
-| **Back** | The system's back (Android), or the app's back navigation. |
-| **Hide keyboard** | Closes the on-screen keyboard when it covers what comes next. |
-| **Wait (seconds)** | Up to 60 seconds. Waiting for the element is better. |
+| Action                                    | What it does                                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Tap**                                   | Taps the element.                                                                          |
+| **Type**                                  | Clears the field and types the value.                                                      |
+| **Clear**                                 | Empties the field.                                                                         |
+| **Wait for element** / **Assert visible** | Waits until the element is on screen (up to 15 seconds).                                   |
+| **Assert not visible**                    | Fails if the element is still on screen after up to 5 seconds.                             |
+| **Assert text contains**                  | The element's text contains the value.                                                     |
+| **Swipe**                                 | `up`, `down`, `left` or `right`: the way the finger moves across the middle of the screen. |
+| **Back**                                  | The system's back (Android), or the app's back navigation.                                 |
+| **Hide keyboard**                         | Closes the on-screen keyboard when it covers what comes next.                              |
+| **Wait (seconds)**                        | Up to 60 seconds. Waiting for the element is better.                                       |
 
 **Naming an element:**
 
-| Write | Finds |
-|---|---|
-| `~login` | The **accessibility id**: `content-desc` on Android, `accessibilityIdentifier` on iOS. The one to ask developers for: it survives redesigns and translations. |
-| `id=com.shop:id/login` | The resource id (Android) or name (iOS). |
-| `text=Sign in` | An element showing exactly that text. |
-| `//android.widget.Button[@text='OK']` | XPath through the app's view tree. |
-| `android=new UiSelector().text("OK")` | Android's UiAutomator. |
-| `ios=label == "OK"`, `chain=**/XCUIElementTypeButton` | iOS predicate strings and class chains. |
+| Write                                                 | Finds                                                                                                                                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `~login`                                              | The **accessibility id**: `content-desc` on Android, `accessibilityIdentifier` on iOS. The one to ask developers for: it survives redesigns and translations. |
+| `id=com.shop:id/login`                                | The resource id (Android) or name (iOS).                                                                                                                      |
+| `text=Sign in`                                        | An element showing exactly that text.                                                                                                                         |
+| `//android.widget.Button[@text='OK']`                 | XPath through the app's view tree.                                                                                                                            |
+| `android=new UiSelector().text("OK")`                 | Android's UiAutomator.                                                                                                                                        |
+| `ios=label == "OK"`, `chain=**/XCUIElementTypeButton` | iOS predicate strings and class chains.                                                                                                                       |
 
 A step the platform cannot read — a CSS selector, `android=…` in an iOS test — is marked in red
 and the test cannot be saved until it is corrected. Values can use the environment's
@@ -154,7 +154,7 @@ delete them.
 
 A plan can include mobile tests beside its web and API tests: in the plan wizard, **Add Test
 Suites** lists them with the label **mobile**, and its tag filter narrows them like the others.
-The plan's page lists them with *(mobile app)*.
+The plan's page lists them with _(mobile app)_.
 
 In a run of the plan a mobile test:
 
@@ -164,7 +164,7 @@ In a run of the plan a mobile test:
 - follows the plan's **Re-Run On Failure** (the attempts appear on the result) and its failure
   policy: a failed mobile test fails the run, and can stop it;
 - is a row of the [report](./results#a-runs-report) like any other: the device (`Google Pixel 8 · 14.0`) in the
-  *Browser* column, its steps under the steps button with the reason of the failed one, the
+  _Browser_ column, its steps under the steps button with the reason of the failed one, the
   device's last screen as the screenshot and, on BrowserStack, **Open the session on the grid**
   for the video and logs.
 
@@ -194,7 +194,7 @@ In each list it carries the label **Mobile**.
 
 The **Tags** column of **Mobile apps** puts the organization's tags on a mobile test, as the test
 library does for web tests (viewers see them). A tag is shared by every kind of test: a dynamic
-suite with *smoke* runs the web, API and mobile tests carrying it.
+suite with _smoke_ runs the web, API and mobile tests carrying it.
 
 ## Quarantine {#quarantine}
 

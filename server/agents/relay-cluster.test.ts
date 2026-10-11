@@ -4,7 +4,7 @@ import net from 'net';
 import type { AddressInfo } from 'net';
 import WebSocket, { WebSocketServer } from 'ws';
 import { runProtocolOnAgent } from './agent-protocol';
-import {runBddOnAgent} from './agent-bdd';
+import { runBddOnAgent } from './agent-bdd';
 
 /**
  * The relay with several web servers, end to end: two relay instances sharing a directory, a load
@@ -17,7 +17,14 @@ import {runBddOnAgent} from './agent-bdd';
  */
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -35,7 +42,7 @@ const tokens = new Map<string, { id: string; organizationId: number; pool: strin
   ['wfa_onprem', { id: 'agent-onprem', organizationId: 1, pool: 'onprem', name: 'Build box' }],
   ['wfa_doomed', { id: 'agent-doomed', organizationId: 1, pool: 'doomed', name: 'To revoke' }],
 ]);
-const authenticate = async (token: string | null) => (token ? tokens.get(token) ?? null : null);
+const authenticate = async (token: string | null) => (token ? (tokens.get(token) ?? null) : null);
 
 interface Instance {
   relay: InstanceType<typeof AgentRelay>;
@@ -93,7 +100,8 @@ function worstBalancer(): net.Server {
   });
 }
 
-const env = (relayUrl: string) => ({ AGENT_RELAY_URL: relayUrl, AGENT_RELAY_SECRET: SECRET }) as NodeJS.ProcessEnv;
+const env = (relayUrl: string) =>
+  ({ AGENT_RELAY_URL: relayUrl, AGENT_RELAY_SECRET: SECRET }) as NodeJS.ProcessEnv;
 
 beforeAll(async () => {
   a = await instance('instance-a');
@@ -109,8 +117,27 @@ beforeAll(async () => {
   });
   intranetUrl = `${await listen(intranet)}/`;
 
-  const agent = runAgent({ url: balancerUrl, token: 'wfa_onprem', maxSessions: 2, browsers: ['chromium'],
-    bddProfiles:[{id:'cluster-bdd',label:'Cluster BDD',provider:'cucumber-js',revision:'rev-1',maxDurationMs:10000,projectDirectory:process.cwd(),requirePaths:['scripts/fixtures/bdd/support.cjs'],importPaths:[],maxConcurrency:1,environment:[]}],log: () => {} });
+  const agent = runAgent({
+    url: balancerUrl,
+    token: 'wfa_onprem',
+    maxSessions: 2,
+    browsers: ['chromium'],
+    bddProfiles: [
+      {
+        id: 'cluster-bdd',
+        label: 'Cluster BDD',
+        provider: 'cucumber-js',
+        revision: 'rev-1',
+        maxDurationMs: 10000,
+        projectDirectory: process.cwd(),
+        requirePaths: ['scripts/fixtures/bdd/support.cjs'],
+        importPaths: [],
+        maxConcurrency: 1,
+        environment: [],
+      },
+    ],
+    log: () => {},
+  });
   running.push(agent);
   await agent.ready;
   // A learns of B's agent from the directory, not from the agent.
@@ -132,18 +159,52 @@ afterAll(async () => {
   await new Promise((resolve) => balancer.close(resolve));
   await new Promise((resolve) => intranet.close(resolve));
 });
-it('routes a pinned BDD session through the other relay and the worst-case load balancer',async () => {
-  const ticket=signTicket({organizationId:1,pool:'onprem',engine:'chromium',headless:true,playwrightVersion:'incompatible-but-not-used',bddProfile:{id:'cluster-bdd',revision:'rev-1'}},SECRET);
-  expect(a.relay.availability(ticket)).toMatchObject({available:true});
-  const result=await runBddOnAgent({organizationId:1,pool:'onprem'},{source:'Feature: Cluster\nScenario: chosen\nGiven row 2',uri:'cluster.feature',scenarioLine:2,profile:{id:'cluster-bdd',revision:'rev-1'},variables:{},timeoutMs:10000},env(a.url));
+it('routes a pinned BDD session through the other relay and the worst-case load balancer', async () => {
+  const ticket = signTicket(
+    {
+      organizationId: 1,
+      pool: 'onprem',
+      engine: 'chromium',
+      headless: true,
+      playwrightVersion: 'incompatible-but-not-used',
+      bddProfile: { id: 'cluster-bdd', revision: 'rev-1' },
+    },
+    SECRET,
+  );
+  expect(a.relay.availability(ticket)).toMatchObject({ available: true });
+  const result = await runBddOnAgent(
+    { organizationId: 1, pool: 'onprem' },
+    {
+      source: 'Feature: Cluster\nScenario: chosen\nGiven row 2',
+      uri: 'cluster.feature',
+      scenarioLine: 2,
+      profile: { id: 'cluster-bdd', revision: 'rev-1' },
+      variables: {},
+      timeoutMs: 10000,
+    },
+    env(a.url),
+  );
   expect(result.status).toBe('passed');
-  expect(result.steps.filter(step => step.kind === 'step')).toEqual([expect.objectContaining({name:'row 2',status:'PASSED'})]);
-},30000);
+  expect(result.steps.filter((step) => step.kind === 'step')).toEqual([
+    expect.objectContaining({ name: 'row 2', status: 'PASSED' }),
+  ]);
+}, 30000);
 
 describe('several relay instances', () => {
   it('executes native WebSocket on B when the runner and agent session both reach A', async () => {
-    tokens.set('wfa_native_single', { id: 'native-single', organizationId: 1, pool: 'native-single', name: 'Single native slot' });
-    const agent = runAgent({ url: balancerUrl, token: 'wfa_native_single', maxSessions: 1, browsers: [], log: () => {} });
+    tokens.set('wfa_native_single', {
+      id: 'native-single',
+      organizationId: 1,
+      pool: 'native-single',
+      name: 'Single native slot',
+    });
+    const agent = runAgent({
+      url: balancerUrl,
+      token: 'wfa_native_single',
+      maxSessions: 1,
+      browsers: [],
+      log: () => {},
+    });
     running.push(agent);
     await agent.ready;
     await b.relay.sync();
@@ -153,20 +214,68 @@ describe('several relay instances', () => {
     target.on('connection', (socket) => socket.on('message', (data) => socket.send(data)));
     try {
       const request = {
-        protocol: 'websocket', url: `ws://127.0.0.1:${(target.address() as AddressInfo).port}`,
-        body: '{"send":["from-private-network"],"until":1}', headers: {}, timeoutMs: 1000,
+        protocol: 'websocket',
+        url: `ws://127.0.0.1:${(target.address() as AddressInfo).port}`,
+        body: '{"send":["from-private-network"],"until":1}',
+        headers: {},
+        timeoutMs: 1000,
       } as const;
-      const answer = await runProtocolOnAgent({ organizationId: 1, pool: 'native-single' }, request, env(a.url));
+      const answer = await runProtocolOnAgent(
+        { organizationId: 1, pool: 'native-single' },
+        request,
+        env(a.url),
+      );
       expect(answer.body).toMatchObject({ last: 'from-private-network', count: 1 });
-      const conversation = await runProtocolOnAgent({ organizationId: 1, pool: 'native-single' }, {
-        ...request, config: { timeoutMs: 1000 },
-        body: JSON.stringify({ steps: [{ type: 'send', message: 'remote-capture' }, { type: 'receive' }, { type: 'capture', name: 'value' }, { type: 'send', message: '{{capture.value}}:done' }, { type: 'receive' }, { type: 'end' }] }),
-      }, env(a.url));
-      expect(conversation.body).toMatchObject({ count: 2, last: 'remote-capture:done', captures: { value: 'remote-capture' } });
+      const conversation = await runProtocolOnAgent(
+        { organizationId: 1, pool: 'native-single' },
+        {
+          ...request,
+          config: { timeoutMs: 1000 },
+          body: JSON.stringify({
+            steps: [
+              { type: 'send', message: 'remote-capture' },
+              { type: 'receive' },
+              { type: 'capture', name: 'value' },
+              { type: 'send', message: '{{capture.value}}:done' },
+              { type: 'receive' },
+              { type: 'end' },
+            ],
+          }),
+        },
+        env(a.url),
+      );
+      expect(conversation.body).toMatchObject({
+        count: 2,
+        last: 'remote-capture:done',
+        captures: { value: 'remote-capture' },
+      });
       // Publish the stale occupied slot, as a non-owner relay can observe before close propagates.
-      await directory.publish({ id: 'instance-b', url: b.url, agents: [{ id: 'native-single', organizationId: 1, pool: 'native-single', playwrightVersion: '0.0.0', browsers: [], apiProtocols: ['websocket'], maxSessions: 1, activeSessions: 1, draining: false }] }, 60_000);
+      await directory.publish(
+        {
+          id: 'instance-b',
+          url: b.url,
+          agents: [
+            {
+              id: 'native-single',
+              organizationId: 1,
+              pool: 'native-single',
+              playwrightVersion: '0.0.0',
+              browsers: [],
+              apiProtocols: ['websocket'],
+              maxSessions: 1,
+              activeSessions: 1,
+              draining: false,
+            },
+          ],
+        },
+        60_000,
+      );
       await a.relay.sync();
-      const second = await runProtocolOnAgent({ organizationId: 1, pool: 'native-single' }, request, env(a.url));
+      const second = await runProtocolOnAgent(
+        { organizationId: 1, pool: 'native-single' },
+        request,
+        env(a.url),
+      );
       expect(second.body).toMatchObject({ count: 1 });
       await expect.poll(() => b.relay.sessionsOf('native-single')).toBe(0);
     } finally {
@@ -175,20 +284,25 @@ describe('several relay instances', () => {
     }
   });
 
-  it('lends a browser held by B to a runner that asked A, with the agent\'s second connection landing on A too', async () => {
+  it("lends a browser held by B to a runner that asked A, with the agent's second connection landing on A too", async () => {
     expect(b.relay.sessionsOf('agent-onprem')).toBe(0);
-    const browser = await connectToAgentBrowser({ engine: 'chromium', headless: true, agent: { organizationId: 1, pool: 'onprem' } }, env(a.url));
+    const browser = await connectToAgentBrowser(
+      { engine: 'chromium', headless: true, agent: { organizationId: 1, pool: 'onprem' } },
+      env(a.url),
+    );
     try {
       const page = await browser.newPage();
       await page.goto(intranetUrl);
       expect(await page.title()).toBe('Intranet');
       expect(b.relay.sessionsOf('agent-onprem')).toBe(1);
       // A knows as much, from the directory.
-      await expect.poll(async () => {
-        await b.relay.sync();
-        await a.relay.sync();
-        return a.relay.sessionsOf('agent-onprem');
-      }).toBe(1);
+      await expect
+        .poll(async () => {
+          await b.relay.sync();
+          await a.relay.sync();
+          return a.relay.sessionsOf('agent-onprem');
+        })
+        .toBe(1);
     } finally {
       await browser.close();
     }
@@ -197,18 +311,45 @@ describe('several relay instances', () => {
 
   it('answers availability from A about the agents of B, reasons included', async () => {
     const ticket = (pool: string, engine: 'chromium' | 'firefox' = 'chromium') =>
-      signTicket({ organizationId: 1, pool, engine, headless: true, playwrightVersion: RUNNER_PLAYWRIGHT_VERSION }, SECRET);
+      signTicket(
+        {
+          organizationId: 1,
+          pool,
+          engine,
+          headless: true,
+          playwrightVersion: RUNNER_PLAYWRIGHT_VERSION,
+        },
+        SECRET,
+      );
     expect(a.relay.availability(ticket('onprem'))).toEqual({ available: true });
-    expect(a.relay.availability(ticket('onprem', 'firefox'))).toEqual({ available: false, reason: 'No agent of pool "onprem" has firefox installed.' });
-    expect(a.relay.availability(ticket('lab'))).toMatchObject({ available: false, reason: expect.stringContaining('No agent of pool "lab"') });
+    expect(a.relay.availability(ticket('onprem', 'firefox'))).toEqual({
+      available: false,
+      reason: 'No agent of pool "onprem" has firefox installed.',
+    });
+    expect(a.relay.availability(ticket('lab'))).toMatchObject({
+      available: false,
+      reason: expect.stringContaining('No agent of pool "lab"'),
+    });
   });
 
   it('does not forward a request that was already forwarded', async () => {
-    const ticket = signTicket({ organizationId: 1, pool: 'onprem', engine: 'chromium', headless: true, playwrightVersion: RUNNER_PLAYWRIGHT_VERSION }, SECRET);
+    const ticket = signTicket(
+      {
+        organizationId: 1,
+        pool: 'onprem',
+        engine: 'chromium',
+        headless: true,
+        playwrightVersion: RUNNER_PLAYWRIGHT_VERSION,
+      },
+      SECRET,
+    );
     const status = await new Promise<number>((resolve, reject) => {
-      const ws = new WebSocket(`${a.url.replace('http', 'ws')}/api/agent/v1/browser?ticket=${encodeURIComponent(ticket)}`, {
-        headers: { [RELAY_HOP_HEADER]: 'instance-b' },
-      });
+      const ws = new WebSocket(
+        `${a.url.replace('http', 'ws')}/api/agent/v1/browser?ticket=${encodeURIComponent(ticket)}`,
+        {
+          headers: { [RELAY_HOP_HEADER]: 'instance-b' },
+        },
+      );
       ws.on('unexpected-response', (_req, res) => resolve(res.statusCode ?? 0));
       ws.on('open', () => reject(new Error('it was served')));
       ws.on('error', () => {});
@@ -225,14 +366,36 @@ describe('several relay instances', () => {
       {
         id: 'instance-ghost',
         url: ghostUrl,
-        agents: [{ id: 'agent-ghost', organizationId: 1, pool: 'ghost', playwrightVersion: RUNNER_PLAYWRIGHT_VERSION, browsers: ['chromium'], maxSessions: 1, activeSessions: 0, draining: false }],
+        agents: [
+          {
+            id: 'agent-ghost',
+            organizationId: 1,
+            pool: 'ghost',
+            playwrightVersion: RUNNER_PLAYWRIGHT_VERSION,
+            browsers: ['chromium'],
+            maxSessions: 1,
+            activeSessions: 0,
+            draining: false,
+          },
+        ],
       },
       60_000,
     );
     await a.relay.sync();
-    const ticket = signTicket({ organizationId: 1, pool: 'ghost', engine: 'chromium', headless: true, playwrightVersion: RUNNER_PLAYWRIGHT_VERSION }, SECRET);
+    const ticket = signTicket(
+      {
+        organizationId: 1,
+        pool: 'ghost',
+        engine: 'chromium',
+        headless: true,
+        playwrightVersion: RUNNER_PLAYWRIGHT_VERSION,
+      },
+      SECRET,
+    );
     const refusal = await new Promise<{ status: number; body: string }>((resolve, reject) => {
-      const ws = new WebSocket(`${a.url.replace('http', 'ws')}/api/agent/v1/browser?ticket=${encodeURIComponent(ticket)}`);
+      const ws = new WebSocket(
+        `${a.url.replace('http', 'ws')}/api/agent/v1/browser?ticket=${encodeURIComponent(ticket)}`,
+      );
       ws.on('unexpected-response', (_req, res) => {
         let body = '';
         res.on('data', (chunk) => (body += chunk));
@@ -249,7 +412,14 @@ describe('several relay instances', () => {
 
   it('drops a revoked agent from whichever instance holds it, and stops it retrying', async () => {
     const onFatal = vi.fn();
-    const agent = runAgent({ url: balancerUrl, token: 'wfa_doomed', maxSessions: 1, browsers: ['chromium'], log: () => {}, onFatal });
+    const agent = runAgent({
+      url: balancerUrl,
+      token: 'wfa_doomed',
+      maxSessions: 1,
+      browsers: ['chromium'],
+      log: () => {},
+      onFatal,
+    });
     running.push(agent);
     await agent.ready;
     expect(b.relay.isConnected('agent-doomed')).toBe(true);
@@ -266,7 +436,22 @@ describe('several relay instances', () => {
   it('stops choosing an instance that went away', async () => {
     const c = await instance('instance-c');
     await directory.publish(
-      { id: 'instance-c', url: c.url, agents: [{ id: 'agent-c', organizationId: 1, pool: 'gone', playwrightVersion: RUNNER_PLAYWRIGHT_VERSION, browsers: ['chromium'], maxSessions: 1, activeSessions: 0, draining: false }] },
+      {
+        id: 'instance-c',
+        url: c.url,
+        agents: [
+          {
+            id: 'agent-c',
+            organizationId: 1,
+            pool: 'gone',
+            playwrightVersion: RUNNER_PLAYWRIGHT_VERSION,
+            browsers: ['chromium'],
+            maxSessions: 1,
+            activeSessions: 0,
+            draining: false,
+          },
+        ],
+      },
       60_000,
     );
     await a.relay.sync();
@@ -274,9 +459,11 @@ describe('several relay instances', () => {
 
     c.relay.close();
     await new Promise((resolve) => c.server.close(resolve));
-    await expect.poll(async () => {
-      await a.relay.sync();
-      return a.relay.isConnected('agent-c');
-    }).toBe(false);
+    await expect
+      .poll(async () => {
+        await a.relay.sync();
+        return a.relay.isConnected('agent-c');
+      })
+      .toBe(false);
   });
 });

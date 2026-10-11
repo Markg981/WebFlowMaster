@@ -8,7 +8,14 @@ import { testPlans, testPlanExecutions } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -27,7 +34,9 @@ beforeAll(async () => {
   const userId = await createTestUser(organizationId, 'cancel-user');
   editor = { id: userId, organizationId, role: 'editor', username: 'ada' };
   planId = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Cancel plan', userId, organizationId });
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Cancel plan', userId, organizationId });
 
   const { default: testPlanRoutes } = await import('./test-plans.routes');
   const { runWithTenant } = await import('../middleware/tenancy');
@@ -68,7 +77,10 @@ describe('POST /api/test-plan-executions/:id/cancel', () => {
     const response = await request(app).post(`/api/test-plan-executions/${id}/cancel`).expect(200);
 
     expect(response.body.status).toBe('cancelled');
-    expect(await statusOf(id)).toMatchObject({ status: 'cancelled', failureMessage: 'Cancelled by ada.' });
+    expect(await statusOf(id)).toMatchObject({
+      status: 'cancelled',
+      failureMessage: 'Cancelled by ada.',
+    });
   });
 
   it('asks a running run to stop and answers 202: its worker ends it', async () => {

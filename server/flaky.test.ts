@@ -10,7 +10,11 @@ import { describeFlakiness, summariseFlakiness, type FlakyInputRow } from './fla
 let clock = Date.parse('2026-09-01T00:00:00Z');
 const at = () => new Date((clock += 86_400_000)).toISOString();
 
-const run = (testName: string, status: string, browser: string | null = 'chromium'): FlakyInputRow => ({
+const run = (
+  testName: string,
+  status: string,
+  browser: string | null = 'chromium',
+): FlakyInputRow => ({
   testName,
   browser,
   status,
@@ -36,8 +40,20 @@ describe('summariseFlakiness', () => {
   });
 
   it('says nothing about a test that simply passes, or simply fails', () => {
-    expect(summariseFlakiness([run('Steady', 'Passed'), run('Steady', 'Passed'), run('Steady', 'Passed')])).toEqual([]);
-    expect(summariseFlakiness([run('Broken', 'Failed'), run('Broken', 'Failed'), run('Broken', 'Failed')])).toEqual([]);
+    expect(
+      summariseFlakiness([
+        run('Steady', 'Passed'),
+        run('Steady', 'Passed'),
+        run('Steady', 'Passed'),
+      ]),
+    ).toEqual([]);
+    expect(
+      summariseFlakiness([
+        run('Broken', 'Failed'),
+        run('Broken', 'Failed'),
+        run('Broken', 'Failed'),
+      ]),
+    ).toEqual([]);
   });
 
   it('does not call a test that broke and was fixed flaky', () => {
@@ -81,7 +97,10 @@ describe('summariseFlakiness', () => {
   });
 
   it('judges a mobile test per device, and names it so it can be quarantined', () => {
-    const mobile = (status: string, device: string) => ({ ...run('Checkout on Android', status, device), mobileTestId: 9 });
+    const mobile = (status: string, device: string) => ({
+      ...run('Checkout on Android', status, device),
+      mobileTestId: 9,
+    });
     const summaries = summariseFlakiness([
       mobile('Passed', 'Pixel 8'),
       mobile('Failed', 'Pixel 8'),
@@ -92,7 +111,11 @@ describe('summariseFlakiness', () => {
     ]);
 
     expect(summaries).toHaveLength(1);
-    expect(summaries[0]).toMatchObject({ browser: 'Pixel 8', flips: 2, test: { type: 'mobile', id: 9 } });
+    expect(summaries[0]).toMatchObject({
+      browser: 'Pixel 8',
+      flips: 2,
+      test: { type: 'mobile', id: 9 },
+    });
   });
 
   it('steps over runs that never reached a verdict rather than counting them as failures', () => {
@@ -111,7 +134,9 @@ describe('summariseFlakiness', () => {
 
   it('will not judge a test on too little history', () => {
     expect(summariseFlakiness([run('New', 'Passed'), run('New', 'Failed')])).toEqual([]);
-    expect(summariseFlakiness([run('New', 'Passed'), run('New', 'Failed')], { minimumRuns: 2 })).toHaveLength(1);
+    expect(
+      summariseFlakiness([run('New', 'Passed'), run('New', 'Failed')], { minimumRuns: 2 }),
+    ).toHaveLength(1);
   });
 
   it('ranks the most changeable first, and breaks ties on how much history says so', () => {
@@ -132,9 +157,15 @@ describe('summariseFlakiness', () => {
   });
 
   it('carries the window it looked at, so a reader knows what "sometimes" covers', () => {
-    const [summary] = summariseFlakiness([run('Login', 'Passed'), run('Login', 'Failed'), run('Login', 'Passed')]);
+    const [summary] = summariseFlakiness([
+      run('Login', 'Passed'),
+      run('Login', 'Failed'),
+      run('Login', 'Passed'),
+    ]);
 
-    expect(new Date(summary.firstSeen).getTime()).toBeLessThan(new Date(summary.lastSeen).getTime());
+    expect(new Date(summary.firstSeen).getTime()).toBeLessThan(
+      new Date(summary.lastSeen).getTime(),
+    );
   });
 });
 
@@ -146,7 +177,11 @@ describe('summariseFlakiness', () => {
  * people learn to ignore on the days it is right.
  */
 describe('a test that changed underneath the runs', () => {
-  const versioned = (testName: string, status: string, testVersion: number | null): FlakyInputRow => ({
+  const versioned = (
+    testName: string,
+    status: string,
+    testVersion: number | null,
+  ): FlakyInputRow => ({
     ...run(testName, status),
     testVersion,
   });
@@ -223,7 +258,11 @@ describe('a test that changed underneath the runs', () => {
 
 describe('describeFlakiness', () => {
   it('says what the test has been doing in one line', () => {
-    const [summary] = summariseFlakiness([run('Login', 'Passed'), run('Login', 'Failed'), run('Login', 'Passed')]);
+    const [summary] = summariseFlakiness([
+      run('Login', 'Passed'),
+      run('Login', 'Failed'),
+      run('Login', 'Passed'),
+    ]);
 
     expect(describeFlakiness(summary)).toBe(
       'Login (chromium): 2 passed, 1 failed over 3 runs, changing verdict 2 times.',

@@ -57,10 +57,17 @@ export default function BddTestDialog({
   const selected = profiles.find(
     (p) => p.id === draft.binding?.id && p.revision === draft.binding?.revision,
   );
-  const draftIdentity = (value: BddTest) => JSON.stringify([
-    value.source, value.language, value.uri, value.scenarioLine, value.exampleLine,
-    value.mode, value.binding?.id, value.binding?.revision,
-  ]);
+  const draftIdentity = (value: BddTest) =>
+    JSON.stringify([
+      value.source,
+      value.language,
+      value.uri,
+      value.scenarioLine,
+      value.exampleLine,
+      value.mode,
+      value.binding?.id,
+      value.binding?.revision,
+    ]);
   const dirty = draftIdentity(draft) !== draftIdentity(test.bdd);
   const patch = (next: Partial<BddTest>) => {
     if (busy) return;
@@ -206,9 +213,14 @@ export default function BddTestDialog({
           </>
         )}
         {profilesError && <p role="alert">{profilesError.message}</p>}
-        {dirty && <p className="text-sm text-muted-foreground">
-          {t('bdd.saveBeforeConvert', 'Save your changes before converting to an editable manual test.')}
-        </p>}
+        {dirty && (
+          <p className="text-sm text-muted-foreground">
+            {t(
+              'bdd.saveBeforeConvert',
+              'Save your changes before converting to an editable manual test.',
+            )}
+          </p>
+        )}
         {error && (
           <p role="alert" className="text-destructive" data-testid="bdd-editor-error">
             {error}

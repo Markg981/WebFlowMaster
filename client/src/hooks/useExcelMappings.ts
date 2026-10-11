@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Mapping {
   id?: number;
@@ -12,7 +12,7 @@ export interface Mapping {
 export function useExcelMappings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   // Fetch Mappings. No initialData: with the client's staleTime of Infinity an initial []
   // counts as fresh and the saved mappings are never fetched.
   const { data: mappings } = useQuery<Mapping[]>({
@@ -25,27 +25,27 @@ export function useExcelMappings() {
   useEffect(() => {
     if (mappings) {
       const map: Record<string, number> = {};
-      mappings.forEach(m => {
+      mappings.forEach((m) => {
         map[m.excelTestCaseId] = m.testId;
       });
-      setLocalMappings(prev => ({ ...prev, ...map }));
+      setLocalMappings((prev) => ({ ...prev, ...map }));
     }
   }, [mappings]);
 
   // Save mapping mutation
   const saveMappingMutation = useMutation({
-    mutationFn: async ({ excelId, testId }: { excelId: string, testId: number }) => {
+    mutationFn: async ({ excelId, testId }: { excelId: string; testId: number }) => {
       await apiRequest('POST', '/api/excel-mappings', { excelTestCaseId: excelId, testId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/excel-mappings'] });
-      toast({ title: "Mapping Saved" });
-    }
+      toast({ title: 'Mapping Saved' });
+    },
   });
 
   const handleMappingChange = (excelId: string, testIdStr: string) => {
     const testId = parseInt(testIdStr);
-    setLocalMappings(prev => ({ ...prev, [excelId]: testId }));
+    setLocalMappings((prev) => ({ ...prev, [excelId]: testId }));
     saveMappingMutation.mutate({ excelId, testId });
   };
 

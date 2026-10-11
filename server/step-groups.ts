@@ -105,7 +105,9 @@ export function expandStepGroups(sequence: unknown, groups: LoadedStepGroup[]): 
 
     const inner = asSteps(group.sequence);
     if (inner.some(isGroupCall)) {
-      errors.push(`The step group "${group.name}" calls another step group, which is not supported.`);
+      errors.push(
+        `The step group "${group.name}" calls another step group, which is not supported.`,
+      );
       continue;
     }
     if (inner.length === 0) {

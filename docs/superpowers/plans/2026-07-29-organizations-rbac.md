@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **RLS is silently inert under a superuser.** Verified: with `ENABLE`, `FORCE`, and a correct policy, PGlite as `postgres` returned every row to every org and allowed a cross-org `UPDATE`. `FORCE ROW LEVEL SECURITY` subjects the table *owner* to policies, not superusers. Every tenant-scoped query must run under `SET LOCAL ROLE app_user`.
+- **RLS is silently inert under a superuser.** Verified: with `ENABLE`, `FORCE`, and a correct policy, PGlite as `postgres` returned every row to every org and allowed a cross-org `UPDATE`. `FORCE ROW LEVEL SECURITY` subjects the table _owner_ to policies, not superusers. Every tenant-scoped query must run under `SET LOCAL ROLE app_user`.
 - **Never `SET` without `LOCAL`.** `server/db.ts:22` uses `new Pool()`. A non-local `SET` outlives the request; the connection returns to the pool carrying the organization and the next request — a different customer — inherits it.
 - **Never build the org setting by string interpolation.** Use `set_config('app.current_org', <bound param>, true)`. Verified: a hostile value is rejected by the integer cast rather than executed. `sql.raw` with a template literal is an injection surface.
 - `userId` is kept on every table that has it. `organizationId` is the security boundary; `userId` remains attribution.
@@ -24,6 +24,7 @@
 ## File Structure
 
 **Created**
+
 - `migrations/0003_organizations_and_rbac.sql` — hand-written migration: tables, columns, `app_user` role, grants, backfill, orphan check, `NOT NULL`, RLS policies. Hand-written rather than drizzle-kit generated because the backfill and the orphan check must sit between the column creation and the `NOT NULL`, which a generator will not produce.
 - `server/tests/factories.ts` — `createTestOrganization`, shared by every suite needing an organization.
 - `server/middleware/tenancy.ts` — `AsyncLocalStorage` tenant context + `withTenantTransaction`.
@@ -32,6 +33,7 @@
 - `server/middleware/tenancy.test.ts`, `server/middleware/require-role.test.ts`, `server/routes/organization.routes.test.ts`, `server/tests/isolation.test.ts`, `server/tests/architecture.test.ts`.
 
 **Modified**
+
 - `shared/schema.ts` — `organizations` table, `users.organizationId`/`users.role`, `organizationId` on 16 tables.
 - `server/db.ts` — export the raw handle under a name that signals its privilege.
 - `server/auth.ts` — the session user carries `organizationId` and `role`.
@@ -43,11 +45,13 @@
 ### Task 1: Schema and migration
 
 **Files:**
+
 - Modify: `shared/schema.ts`
 - Create: `migrations/0003_organizations_and_rbac.sql`
 - Test: `server/tests/schema-migration.test.ts`
 
 **Interfaces:**
+
 - Produces: `organizations` table (`id`, `name`, `createdAt`); `users.organizationId: number`, `users.role: 'owner' | 'editor' | 'viewer'`; `organizationId: number` on the 16 org-scoped tables; the Postgres role `app_user`; exported const `ORG_SCOPED_TABLES: readonly string[]` from `shared/schema.ts`, listing the 16 table names, used by later tasks' tests to enumerate what must be isolated.
 
 - [ ] **Step 1: Add the schema definitions**
@@ -55,25 +59,27 @@
 In `shared/schema.ts`, add the `organizations` table immediately above the existing `users` table:
 
 ```ts
-export const organizations = pgTable("organizations", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+export const organizations = pgTable('organizations', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 ```
 
 Modify the existing `users` table to add the two columns (keep every existing column exactly as it is):
 
 ```ts
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  username: text('username').notNull().unique(),
+  password: text('password').notNull(),
   // The tenancy boundary. One user belongs to exactly one organization.
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  organizationId: integer('organization_id')
+    .notNull()
+    .references(() => organizations.id),
   // Verbs, not rows: RLS decides which rows are visible, this decides what may be done to them.
-  role: text("role").notNull().default('editor'),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  role: text('role').notNull().default('editor'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 ```
 
@@ -102,10 +108,22 @@ At the end of the file, export the list later tasks will enumerate:
  * hand-maintained list, which would be forgotten the first time a table is added.
  */
 export const ORG_SCOPED_TABLES = [
-  'projects', 'tests', 'test_runs', 'detected_elements', 'api_tests', 'api_test_history',
-  'test_plans', 'test_plan_schedules', 'test_plan_executions', 'test_plan_selected_tests',
-  'test_plan_webhooks', 'report_test_case_results', 'execution_logs', 'environments',
-  'secrets', 'excel_sequences_map',
+  'projects',
+  'tests',
+  'test_runs',
+  'detected_elements',
+  'api_tests',
+  'api_test_history',
+  'test_plans',
+  'test_plan_schedules',
+  'test_plan_executions',
+  'test_plan_selected_tests',
+  'test_plan_webhooks',
+  'report_test_case_results',
+  'execution_logs',
+  'environments',
+  'secrets',
+  'excel_sequences_map',
 ] as const;
 ```
 
@@ -331,17 +349,19 @@ the guarantee the RLS policies rest on."
 ### Task 1b: Supply organizationId at every insert site
 
 **Files:**
+
 - Create: `server/tests/factories.ts`
 - Modify (production, ~13 typecheck errors): `server/storage.ts`, `server/routes.ts`, `server/routes/projects.routes.ts`, `server/ai-automation-service.ts`, and the client files the typecheck names.
 - Modify (tests, ~39 insert sites across 12 suites): the suites Task 1's report lists.
 
 **Scope note.** This task was originally scoped as test-fixture repair only. Task 1's
-implementation proved that too narrow: `NOT NULL` breaks *every* insert, and `npx tsc -b`
+implementation proved that too narrow: `NOT NULL` breaks _every_ insert, and `npx tsc -b`
 reports 13 errors in production code — the application does not compile. Splitting
 production and test repair across two tasks would leave the repository non-compiling in
 between, so both are done here.
 
 **Interfaces:**
+
 - Consumes: `organizations` and the `organizationId` columns from Task 1.
 - Produces: `createTestOrganization(name?: string): Promise<number>` from `server/tests/factories.ts`, returning the new organization's id. Later tasks' tests use it instead of hand-rolling an `INSERT INTO organizations`.
 
@@ -407,15 +427,15 @@ Add `organizations` to that file's import from `@shared/schema`.
 Add a test to `server/auth.test.ts`, inside its existing top-level `describe`:
 
 ```ts
-  it('gives a newly registered user their own organization, as its owner', async () => {
-    const res = await request(app)
-      .post('/api/register')
-      .send({ username: `fresh-${Date.now()}`, password: 'correct horse battery staple' });
+it('gives a newly registered user their own organization, as its owner', async () => {
+  const res = await request(app)
+    .post('/api/register')
+    .send({ username: `fresh-${Date.now()}`, password: 'correct horse battery staple' });
 
-    expect(res.status).toBe(201);
-    expect(res.body.organizationId).toEqual(expect.any(Number));
-    expect(res.body.role).toBe('owner');
-  });
+  expect(res.status).toBe(201);
+  expect(res.body.organizationId).toEqual(expect.any(Number));
+  expect(res.body.role).toBe('owner');
+});
 ```
 
 If that file's register test asserts a different status code than 201, match whatever the
@@ -510,11 +530,13 @@ not either. No assertion was changed."
 ### Task 2: Tenant context and transaction helper
 
 **Files:**
+
 - Create: `server/middleware/tenancy.ts`
 - Test: `server/middleware/tenancy.test.ts`
 - Modify: `server/db.ts`
 
 **Interfaces:**
+
 - Consumes: `organizations`, `users` from Task 1.
 - Produces: from `server/middleware/tenancy.ts` — `tenancyMiddleware(req, res, next)` (Express middleware, reads `req.user.organizationId` into an `AsyncLocalStorage`); `getTenantOrgId(): number | undefined`; `withTenantTransaction<T>(fn: (tx: TenantTx) => Promise<T>): Promise<T>`; `type TenantTx` (the Drizzle transaction handle). From `server/db.ts` — the existing `db` export is renamed to `privilegedDb`, with `db` kept as a deprecated alias so nothing breaks until Task 6 cleans up.
 
@@ -720,10 +742,12 @@ site. It bypasses RLS and is correct only for migrations, bootstrap and tests."
 ### Task 3: Enable RLS
 
 **Files:**
+
 - Create: `migrations/0004_enable_rls.sql`
 - Test: `server/tests/isolation.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ORG_SCOPED_TABLES` (Task 1), `withTenantTransaction` / `runWithTenant` (Task 2).
 - Produces: an RLS policy named `org_isolation` on each of the 16 org-scoped tables.
 
@@ -867,7 +891,7 @@ BEGIN
 END $$;
 ```
 
-The `WITH CHECK` clause matters as much as `USING`: `USING` controls which rows are visible to read, update and delete, while `WITH CHECK` prevents inserting or updating a row *into* another organization.
+The `WITH CHECK` clause matters as much as `USING`: `USING` controls which rows are visible to read, update and delete, while `WITH CHECK` prevents inserting or updating a row _into_ another organization.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
@@ -901,11 +925,13 @@ test changes behaviour instead of the regression being silent."
 ### Task 4: Role gate
 
 **Files:**
+
 - Create: `server/middleware/require-role.ts`
 - Test: `server/middleware/require-role.test.ts`
 - Modify: `server/auth.ts`
 
 **Interfaces:**
+
 - Consumes: `users.role` from Task 1.
 - Produces: `requireRole(minimum: Role): RequestHandler` and `type Role = 'viewer' | 'editor' | 'owner'` from `server/middleware/require-role.ts`. The session user object gains `organizationId: number` and `role: Role`.
 
@@ -1016,12 +1042,12 @@ Expected: PASS, 5 tests.
 Add a test to `server/auth.test.ts`, inside its existing top-level `describe`:
 
 ```ts
-  it('carries organizationId and role on the session user', async () => {
-    const user = await storage.getUser(1);
-    expect(user).toBeDefined();
-    expect(typeof user!.organizationId).toBe('number');
-    expect(['viewer', 'editor', 'owner']).toContain(user!.role);
-  });
+it('carries organizationId and role on the session user', async () => {
+  const user = await storage.getUser(1);
+  expect(user).toBeDefined();
+  expect(typeof user!.organizationId).toBe('number');
+  expect(['viewer', 'editor', 'owner']).toContain(user!.role);
+});
 ```
 
 If `server/auth.test.ts` does not already import `storage`, add `import { storage } from './storage';` at the top.
@@ -1048,11 +1074,13 @@ the tenancy middleware and this gate both read."
 ### Task 5: Organization routes
 
 **Files:**
+
 - Create: `server/routes/organization.routes.ts`
 - Test: `server/routes/organization.routes.test.ts`
 - Modify: `server/routes.ts`
 
 **Interfaces:**
+
 - Consumes: `requireRole` (Task 4), `withTenantTransaction` (Task 2), `organizations`/`users` (Task 1).
 - Produces: a default-exported Express router serving `GET /api/organization`, `POST /api/organization/members`, `PATCH /api/organization/members/:userId`, `DELETE /api/organization/members/:userId`.
 
@@ -1184,7 +1212,9 @@ describe('DELETE /api/organization/members/:userId', () => {
     const res = await request(app).delete(`/api/organization/members/${editorId}`);
 
     expect(res.status).toBe(204);
-    const rows = await privilegedDb.execute(sql`SELECT count(*) AS n FROM users WHERE id = ${editorId}`);
+    const rows = await privilegedDb.execute(
+      sql`SELECT count(*) AS n FROM users WHERE id = ${editorId}`,
+    );
     expect(Number((rows.rows[0] as { n: string }).n)).toBe(0);
   });
 
@@ -1237,7 +1267,11 @@ router.get('/api/organization', requireRole('viewer'), async (_req: Request, res
 
   const result = await withTenantTransaction(async (tx) => {
     const [organization] = await tx
-      .select({ id: organizations.id, name: organizations.name, createdAt: organizations.createdAt })
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        createdAt: organizations.createdAt,
+      })
       .from(organizations)
       .where(eq(organizations.id, organizationId));
 
@@ -1258,24 +1292,30 @@ router.get('/api/organization', requireRole('viewer'), async (_req: Request, res
   res.json(result);
 });
 
-router.post('/api/organization/members', requireRole('owner'), async (req: Request, res: Response) => {
-  const organizationId = getTenantOrgId()!;
-  const parsed = z.object({ userId: z.number().int().positive(), role: RoleSchema }).safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
-  }
+router.post(
+  '/api/organization/members',
+  requireRole('owner'),
+  async (req: Request, res: Response) => {
+    const organizationId = getTenantOrgId()!;
+    const parsed = z
+      .object({ userId: z.number().int().positive(), role: RoleSchema })
+      .safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+    }
 
-  const updated = await withTenantTransaction((tx) =>
-    tx
-      .update(users)
-      .set({ organizationId, role: parsed.data.role })
-      .where(eq(users.id, parsed.data.userId))
-      .returning({ id: users.id, username: users.username, role: users.role }),
-  );
+    const updated = await withTenantTransaction((tx) =>
+      tx
+        .update(users)
+        .set({ organizationId, role: parsed.data.role })
+        .where(eq(users.id, parsed.data.userId))
+        .returning({ id: users.id, username: users.username, role: users.role }),
+    );
 
-  if (updated.length === 0) return res.status(404).json({ error: 'User not found' });
-  res.status(201).json(updated[0]);
-});
+    if (updated.length === 0) return res.status(404).json({ error: 'User not found' });
+    res.status(201).json(updated[0]);
+  },
+);
 
 router.patch(
   '/api/organization/members/:userId',
@@ -1361,7 +1401,9 @@ router.delete(
         if (others === 0) return { status: 409 as const };
       }
 
-      await tx.delete(users).where(and(eq(users.id, userId), eq(users.organizationId, organizationId)));
+      await tx
+        .delete(users)
+        .where(and(eq(users.id, userId), eq(users.organizationId, organizationId)));
       return { status: 204 as const };
     });
 
@@ -1386,19 +1428,19 @@ Expected: PASS, 10 tests.
 In `server/routes.ts`, add the imports alongside the existing route imports:
 
 ```ts
-import organizationRoutes from "./routes/organization.routes";
-import { tenancyMiddleware } from "./middleware/tenancy";
+import organizationRoutes from './routes/organization.routes';
+import { tenancyMiddleware } from './middleware/tenancy';
 ```
 
 Mount the tenancy middleware **before** every router, so it is in scope for all of them, and register the organization router with the others (the existing block around line 82 has `app.use(authRoutes)` and siblings):
 
 ```ts
-    // Before every router: establishes the ambient organization for the request, which
-    // withTenantTransaction requires and refuses to run without.
-    app.use(tenancyMiddleware);
+// Before every router: establishes the ambient organization for the request, which
+// withTenantTransaction requires and refuses to run without.
+app.use(tenancyMiddleware);
 
-    app.use(authRoutes);
-    app.use(organizationRoutes);
+app.use(authRoutes);
+app.use(organizationRoutes);
 ```
 
 - [ ] **Step 6: Run the full suite, typecheck and lint**
@@ -1426,10 +1468,12 @@ to manage it and no way back without direct database access."
 ### Task 6: Close the unscoped query paths
 
 **Files:**
+
 - Modify: `server/routes/tests.routes.ts:18`, `server/routes/tests.routes.ts:50`
 - Test: `server/tests/architecture.test.ts`
 
 **Interfaces:**
+
 - Consumes: `withTenantTransaction` (Task 2).
 - Produces: nothing consumed by later tasks.
 
@@ -1461,7 +1505,9 @@ describe('route modules cannot query outside the tenant context', () => {
    */
   it('no route module imports the privileged database handle', () => {
     const offenders = routeFiles()
-      .filter(({ source }) => /import\s*\{[^}]*\b(db|privilegedDb)\b[^}]*\}\s*from\s*['"][^'"]*db['"]/.test(source))
+      .filter(({ source }) =>
+        /import\s*\{[^}]*\b(db|privilegedDb)\b[^}]*\}\s*from\s*['"][^'"]*db['"]/.test(source),
+      )
       .map(({ name }) => name);
 
     expect(offenders, `these route modules bypass RLS: ${offenders.join(', ')}`).toEqual([]);
@@ -1499,8 +1545,8 @@ In `server/routes/tests.routes.ts`, replace the `GET /api/tests` handler (curren
 
 ```ts
 // GET /api/tests - List UI tests
-router.get("/api/tests", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/tests', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   try {
     // No organization filter here on purpose: the RLS policy applies it. Adding one would
     // be harmless but would suggest the isolation depends on remembering it.
@@ -1509,8 +1555,8 @@ router.get("/api/tests", requireRole('viewer'), async (req, res) => {
     );
     res.json(allTests);
   } catch (error: any) {
-    logger.error({ message: "Error fetching tests", error: error.message });
-    res.status(500).json({ error: "Failed to fetch tests" });
+    logger.error({ message: 'Error fetching tests', error: error.message });
+    res.status(500).json({ error: 'Failed to fetch tests' });
   }
 });
 ```
@@ -1520,32 +1566,32 @@ Replace the `POST /api/tests/:id/run` handler (currently at line 45-58, which lo
 ```ts
 // Executing a test launches a browser, reaches external systems, writes execution_logs and
 // may run preconditions that mutate the system under test. It is a mutation, so editor.
-router.post("/api/tests/:id/run", requireRole('editor'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/tests/:id/run', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
-    const testId = parseInt(req.params.id);
-    try {
-        // Under RLS this finds nothing for another organization's test, so the 404 below
-        // is the correct answer rather than a leak.
-        const testRecord = await withTenantTransaction((tx) =>
-          tx.select().from(tests).where(eq(tests.id, testId)).limit(1),
-        );
-        if (testRecord.length === 0) return res.status(404).json({ error: "Test not found" });
+  const testId = parseInt(req.params.id);
+  try {
+    // Under RLS this finds nothing for another organization's test, so the 404 below
+    // is the correct answer rather than a leak.
+    const testRecord = await withTenantTransaction((tx) =>
+      tx.select().from(tests).where(eq(tests.id, testId)).limit(1),
+    );
+    if (testRecord.length === 0) return res.status(404).json({ error: 'Test not found' });
 
-        const result = await playwrightService.executeTestSequence(testRecord[0], (req.user as any).id);
-        res.json(result);
-    } catch (e: any) {
-        logger.error({ message: "Test execution failed", error: e.message });
-        res.status(500).json({ error: "Test execution failed" });
-    }
+    const result = await playwrightService.executeTestSequence(testRecord[0], (req.user as any).id);
+    res.json(result);
+  } catch (e: any) {
+    logger.error({ message: 'Test execution failed', error: e.message });
+    res.status(500).json({ error: 'Test execution failed' });
+  }
 });
 ```
 
 Update that file's imports: remove `db` from the `../db` import, and add:
 
 ```ts
-import { withTenantTransaction } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
+import { withTenantTransaction } from '../middleware/tenancy';
+import { requireRole } from '../middleware/require-role';
 ```
 
 Then work through the remaining handlers in the same file and in the other `*.routes.ts` modules the architecture test reports, applying the same two transformations: wrap each query in `withTenantTransaction`, and add `requireRole('editor')` to each mutating route (`requireRole('owner')` for anything writing `system_settings`). Re-run the architecture test after each file to see the offender list shrink.

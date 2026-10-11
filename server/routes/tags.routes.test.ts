@@ -2,12 +2,24 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { privilegedDb } from '../db';
-import { apiTests, projectMembers, projects, tags, testTags, tests as testsTable } from '@shared/schema';
+import {
+  apiTests,
+  projectMembers,
+  projects,
+  tags,
+  testTags,
+  tests as testsTable,
+} from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -35,7 +47,10 @@ beforeAll(async () => {
   otherOrganizationId = await createTestOrganization('Other Tags Org');
   otherUserId = await createTestUser(otherOrganizationId, 'other-tags-user');
 
-  const [project] = await privilegedDb.insert(projects).values({ name: 'Shop', userId, organizationId }).returning();
+  const [project] = await privilegedDb
+    .insert(projects)
+    .values({ name: 'Shop', userId, organizationId })
+    .returning();
   projectId = project.id;
 
   const { default: tagsRoutes } = await import('./tags.routes');
@@ -47,7 +62,10 @@ beforeAll(async () => {
     (req as any).user = currentUser;
     (req as any).isAuthenticated = () => true;
     // Bound to the user as a real request is, so the restricted-project policies apply.
-    runWithTenant(currentUser.organizationId, () => next(), { userId: currentUser.id, role: currentUser.role });
+    runWithTenant(currentUser.organizationId, () => next(), {
+      userId: currentUser.id,
+      role: currentUser.role,
+    });
   });
   app.use(tagsRoutes);
 });
@@ -63,7 +81,15 @@ beforeEach(async () => {
 async function seedTest(name = 'Checkout') {
   const [row] = await privilegedDb
     .insert(testsTable)
-    .values({ name, url: 'https://shop.test', userId, organizationId, projectId, sequence: [], elements: [] })
+    .values({
+      name,
+      url: 'https://shop.test',
+      userId,
+      organizationId,
+      projectId,
+      sequence: [],
+      elements: [],
+    })
     .returning();
   return row;
 }
@@ -71,7 +97,14 @@ async function seedTest(name = 'Checkout') {
 async function seedApiTest(name = 'Create order') {
   const [row] = await privilegedDb
     .insert(apiTests)
-    .values({ name, method: 'GET', url: 'https://shop.test/api', userId, organizationId, projectId })
+    .values({
+      name,
+      method: 'GET',
+      url: 'https://shop.test/api',
+      userId,
+      organizationId,
+      projectId,
+    })
     .returning();
   return row;
 }
@@ -118,8 +151,14 @@ describe('GET /api/tags', () => {
     await createTag('unused');
     const test = await seedTest();
     const apiTest = await seedApiTest();
-    await request(app).put(`/api/tests/${test.id}/tags`).send({ tagIds: [smoke.id] }).expect(200);
-    await request(app).put(`/api/api-tests/${apiTest.id}/tags`).send({ tagIds: [smoke.id] }).expect(200);
+    await request(app)
+      .put(`/api/tests/${test.id}/tags`)
+      .send({ tagIds: [smoke.id] })
+      .expect(200);
+    await request(app)
+      .put(`/api/api-tests/${apiTest.id}/tags`)
+      .send({ tagIds: [smoke.id] })
+      .expect(200);
 
     const response = await request(app).get('/api/tags').expect(200);
 
@@ -131,7 +170,12 @@ describe('GET /api/tags', () => {
 
   it('shows nothing of another organization’s tags', async () => {
     await createTag('smoke');
-    currentUser = { id: otherUserId, username: 'other-tags-user', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-tags-user',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
 
     const response = await request(app).get('/api/tags').expect(200);
 
@@ -145,8 +189,14 @@ describe('PUT /api/tests/:id/tags', () => {
     const slow = await createTag('slow');
     const test = await seedTest();
 
-    await request(app).put(`/api/tests/${test.id}/tags`).send({ tagIds: [smoke.id, slow.id] }).expect(200);
-    const response = await request(app).put(`/api/tests/${test.id}/tags`).send({ tagIds: [slow.id] }).expect(200);
+    await request(app)
+      .put(`/api/tests/${test.id}/tags`)
+      .send({ tagIds: [smoke.id, slow.id] })
+      .expect(200);
+    const response = await request(app)
+      .put(`/api/tests/${test.id}/tags`)
+      .send({ tagIds: [slow.id] })
+      .expect(200);
 
     expect(response.body.tags.map((tag: any) => tag.name)).toEqual(['slow']);
     expect(await privilegedDb.select().from(testTags)).toHaveLength(1);
@@ -155,9 +205,15 @@ describe('PUT /api/tests/:id/tags', () => {
   it('clears them when asked for none', async () => {
     const smoke = await createTag('smoke');
     const test = await seedTest();
-    await request(app).put(`/api/tests/${test.id}/tags`).send({ tagIds: [smoke.id] }).expect(200);
+    await request(app)
+      .put(`/api/tests/${test.id}/tags`)
+      .send({ tagIds: [smoke.id] })
+      .expect(200);
 
-    const response = await request(app).put(`/api/tests/${test.id}/tags`).send({ tagIds: [] }).expect(200);
+    const response = await request(app)
+      .put(`/api/tests/${test.id}/tags`)
+      .send({ tagIds: [] })
+      .expect(200);
 
     expect(response.body.tags).toEqual([]);
   });
@@ -180,15 +236,31 @@ describe('PUT /api/tests/:id/tags', () => {
   it('refuses a viewer on the test’s restricted project, and says why', async () => {
     const smoke = await createTag('smoke');
     const readerId = await createTestUser(organizationId, `reader-${Date.now()}`);
-    const [secret] = await privilegedDb.insert(projects).values({ name: `Secret ${Date.now()}`, userId, organizationId, restricted: true }).returning();
-    await privilegedDb.insert(projectMembers).values({ projectId: secret.id, userId: readerId, organizationId, role: 'viewer' });
+    const [secret] = await privilegedDb
+      .insert(projects)
+      .values({ name: `Secret ${Date.now()}`, userId, organizationId, restricted: true })
+      .returning();
+    await privilegedDb
+      .insert(projectMembers)
+      .values({ projectId: secret.id, userId: readerId, organizationId, role: 'viewer' });
     const [test] = await privilegedDb
       .insert(testsTable)
-      .values({ name: 'Secret checkout', url: 'https://shop.test', userId, organizationId, projectId: secret.id, sequence: [], elements: [] })
+      .values({
+        name: 'Secret checkout',
+        url: 'https://shop.test',
+        userId,
+        organizationId,
+        projectId: secret.id,
+        sequence: [],
+        elements: [],
+      })
       .returning();
 
     currentUser = { id: readerId, username: 'reader', organizationId, role: 'editor' };
-    const response = await request(app).put(`/api/tests/${test.id}/tags`).send({ tagIds: [smoke.id] }).expect(403);
+    const response = await request(app)
+      .put(`/api/tests/${test.id}/tags`)
+      .send({ tagIds: [smoke.id] })
+      .expect(403);
 
     expect(response.body.code).toBe('project_read_only');
     expect(await privilegedDb.select().from(testTags)).toHaveLength(0);
@@ -196,10 +268,18 @@ describe('PUT /api/tests/:id/tags', () => {
 
   it('cannot tag another organization’s test', async () => {
     const test = await seedTest();
-    currentUser = { id: otherUserId, username: 'other-tags-user', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-tags-user',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
     const theirTag = await createTag('theirs');
 
-    await request(app).put(`/api/tests/${test.id}/tags`).send({ tagIds: [theirTag.id] }).expect(404);
+    await request(app)
+      .put(`/api/tests/${test.id}/tags`)
+      .send({ tagIds: [theirTag.id] })
+      .expect(404);
   });
 });
 
@@ -207,7 +287,10 @@ describe('PUT /api/tags/:id', () => {
   it('renames a tag, and every test carrying it follows', async () => {
     const smoke = await createTag('smoke');
     const test = await seedTest();
-    await request(app).put(`/api/tests/${test.id}/tags`).send({ tagIds: [smoke.id] }).expect(200);
+    await request(app)
+      .put(`/api/tests/${test.id}/tags`)
+      .send({ tagIds: [smoke.id] })
+      .expect(200);
 
     await request(app).put(`/api/tags/${smoke.id}`).send({ name: 'smoke-suite' }).expect(200);
 
@@ -230,8 +313,14 @@ describe('DELETE /api/tags/:id', () => {
     const smoke = await createTag('smoke');
     const first = await seedTest('One');
     const second = await seedTest('Two');
-    await request(app).put(`/api/tests/${first.id}/tags`).send({ tagIds: [smoke.id] }).expect(200);
-    await request(app).put(`/api/tests/${second.id}/tags`).send({ tagIds: [smoke.id] }).expect(200);
+    await request(app)
+      .put(`/api/tests/${first.id}/tags`)
+      .send({ tagIds: [smoke.id] })
+      .expect(200);
+    await request(app)
+      .put(`/api/tests/${second.id}/tags`)
+      .send({ tagIds: [smoke.id] })
+      .expect(200);
 
     const response = await request(app).delete(`/api/tags/${smoke.id}`).expect(200);
 
@@ -242,7 +331,12 @@ describe('DELETE /api/tags/:id', () => {
 
   it('cannot delete another organization’s tag', async () => {
     const smoke = await createTag('smoke');
-    currentUser = { id: otherUserId, username: 'other-tags-user', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-tags-user',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
 
     await request(app).delete(`/api/tags/${smoke.id}`).expect(404);
   });

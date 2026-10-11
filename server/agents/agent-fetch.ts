@@ -45,8 +45,13 @@ function headerRecord(headers: HeadersInit | undefined): Record<string, string> 
 const NULL_BODY_STATUSES = new Set([101, 103, 204, 205, 304]);
 
 /** One request in a context that is already open, as `fetch` answers it. */
-async function requestIn(context: BrowserContext, input: RequestInfo | URL, init: RequestInit): Promise<Response> {
-  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+async function requestIn(
+  context: BrowserContext,
+  input: RequestInfo | URL,
+  init: RequestInit,
+): Promise<Response> {
+  const url =
+    typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
   const method = (init.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
   if (init.signal?.aborted) throw abortError();
   const response = await context.request.fetch(url, {
@@ -57,10 +62,15 @@ async function requestIn(context: BrowserContext, input: RequestInfo | URL, init
     ignoreHTTPSErrors: allowsSelfSignedCertificate(url),
     timeout: 0,
   });
-  const body = method === 'HEAD' || NULL_BODY_STATUSES.has(response.status()) ? null : await response.body();
+  const body =
+    method === 'HEAD' || NULL_BODY_STATUSES.has(response.status()) ? null : await response.body();
   const headers = new Headers();
   for (const { name, value } of response.headersArray()) headers.append(name, value);
-  return new Response(body, { status: response.status(), statusText: response.statusText(), headers });
+  return new Response(body, {
+    status: response.status(),
+    statusText: response.statusText(),
+    headers,
+  });
 }
 
 /** `fetch`, sent from whatever machine `browser` runs on. */
@@ -68,7 +78,8 @@ export function fetchThroughBrowser(browser: () => Promise<Browser>): typeof fet
   oneConnection: () => { fetch: typeof fetch; close: () => Promise<void> };
 } {
   const perRequest: typeof fetch = async (input, init = {}) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const url =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     const method = (init.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
     const signal = init.signal ?? undefined;
     if (signal?.aborted) throw abortError();
@@ -110,7 +121,11 @@ export function fetchThroughBrowser(browser: () => Promise<Browser>): typeof fet
           : await Promise.race([response.body(), abandoned]);
       const headers = new Headers();
       for (const { name, value } of response.headersArray()) headers.append(name, value);
-      return new Response(body, { status: response.status(), statusText: response.statusText(), headers });
+      return new Response(body, {
+        status: response.status(),
+        statusText: response.statusText(),
+        headers,
+      });
     } finally {
       signal?.removeEventListener('abort', onAbort);
       void context.close().catch(() => {});
@@ -153,56 +168,67 @@ export class AgentHttp {
   constructor(
     readonly agent: AgentTarget,
     private readonly connect: (agent: AgentTarget) => Promise<Browser> = (target) =>
-      connectToAgentBrowser({ engine: 'chromium', headless: true, agent: target, availabilityWaitMs: 6000 }),
+      connectToAgentBrowser({
+        engine: 'chromium',
+        headless: true,
+        agent: target,
+        availabilityWaitMs: 6000,
+      }),
   ) {
     const http = fetchThroughBrowser(() => this.browser());
-    this.fetch = Object.assign(((input: RequestInfo | URL, init?: RequestInit) =>
-      this.exclusive(() => http(input, init))) as typeof fetch, {
-      oneConnection: () => {
-        const connection = http.oneConnection();
-        let release = () => {};
-        let opening: Promise<void> | undefined;
-        let finished: Promise<unknown> | undefined;
-        const acquire = () => opening ??= new Promise<void>((resolve, reject) => {
-          finished = this.exclusive(async () => {
-            const held = new Promise<void>((done) => { release = done; });
-            resolve();
-            await held;
-            await connection.close();
-          });
-          void finished.catch(reject);
-        });
-        return {
-          fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
-            await acquire();
-            if (this.closed) throw abortError();
-            return connection.fetch(input, init);
-          }) as typeof fetch,
-          close: async () => {
-            if (!opening) return;
-            await opening;
-            release();
-            await finished;
-          },
-        };
+    this.fetch = Object.assign(
+      ((input: RequestInfo | URL, init?: RequestInit) =>
+        this.exclusive(() => http(input, init))) as typeof fetch,
+      {
+        oneConnection: () => {
+          const connection = http.oneConnection();
+          let release = () => {};
+          let opening: Promise<void> | undefined;
+          let finished: Promise<unknown> | undefined;
+          const acquire = () =>
+            (opening ??= new Promise<void>((resolve, reject) => {
+              finished = this.exclusive(async () => {
+                const held = new Promise<void>((done) => {
+                  release = done;
+                });
+                resolve();
+                await held;
+                await connection.close();
+              });
+              void finished.catch(reject);
+            }));
+          return {
+            fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+              await acquire();
+              if (this.closed) throw abortError();
+              return connection.fetch(input, init);
+            }) as typeof fetch,
+            close: async () => {
+              if (!opening) return;
+              await opening;
+              release();
+              await finished;
+            },
+          };
+        },
+        runProtocol: async (request: import('@shared/agent-protocol').AgentProtocolRequest) => {
+          const controller = new AbortController();
+          this.protocolRequests.add(controller);
+          try {
+            return await this.exclusive(async () => {
+              // OAuth token acquisition or an earlier HTTP test may hold the pool's only slot.
+              // Wait for HTTP (including an NTLM connection lease) before returning that browser.
+              const borrowed = this.borrowed;
+              this.borrowed = null;
+              await (await borrowed?.catch(() => null))?.close().catch(() => {});
+              return runProtocolOnAgent(this.agent, request, process.env, controller.signal);
+            });
+          } finally {
+            this.protocolRequests.delete(controller);
+          }
+        },
       },
-      runProtocol: async (request: import('@shared/agent-protocol').AgentProtocolRequest) => {
-        const controller = new AbortController();
-        this.protocolRequests.add(controller);
-        try {
-          return await this.exclusive(async () => {
-            // OAuth token acquisition or an earlier HTTP test may hold the pool's only slot.
-            // Wait for HTTP (including an NTLM connection lease) before returning that browser.
-            const borrowed = this.borrowed;
-            this.borrowed = null;
-            await (await borrowed?.catch(() => null))?.close().catch(() => {});
-            return runProtocolOnAgent(this.agent, request, process.env, controller.signal);
-          });
-        } finally {
-          this.protocolRequests.delete(controller);
-        }
-      },
-    });
+    );
   }
 
   private exclusive<T>(operation: () => Promise<T>): Promise<T> {
@@ -225,7 +251,9 @@ export class AgentHttp {
       if (this.borrowed !== existing) return this.browser();
     }
     const attempt = this.connect(this.agent).catch((error: Error) => {
-      throw new Error(`Could not send the request from agent pool "${this.agent.pool}": ${error.message}`);
+      throw new Error(
+        `Could not send the request from agent pool "${this.agent.pool}": ${error.message}`,
+      );
     });
     this.borrowed = attempt;
     return attempt;

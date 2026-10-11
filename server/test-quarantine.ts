@@ -27,7 +27,11 @@ import { recordAudit, type AuditActor } from './audit';
  */
 
 export class QuarantineError extends Error {
-  constructor(readonly code: string, message: string, readonly status: number) {
+  constructor(
+    readonly code: string,
+    message: string,
+    readonly status: number,
+  ) {
     super(message);
     this.name = 'QuarantineError';
   }
@@ -36,14 +40,18 @@ export class QuarantineError extends Error {
 export type TestRef = { type: 'ui' | 'api' | 'mobile'; id: number };
 
 /** The test a quarantine row names. */
-const refOf = (row: Pick<TestQuarantine, 'testType' | 'testId' | 'apiTestId' | 'mobileTestId'>): TestRef =>
+const refOf = (
+  row: Pick<TestQuarantine, 'testType' | 'testId' | 'apiTestId' | 'mobileTestId'>,
+): TestRef =>
   row.testType === 'mobile'
     ? { type: 'mobile', id: row.mobileTestId! }
     : row.testType === 'api'
       ? { type: 'api', id: row.apiTestId! }
       : { type: 'ui', id: row.testId! };
 
-const targetTypeOf = (type: TestRef['type']) => (type === 'ui' ? 'test' : type === 'api' ? 'api_test' : 'mobile_test') as 'test' | 'api_test' | 'mobile_test';
+const targetTypeOf = (type: TestRef['type']) =>
+  (type === 'ui' ? 'test' : type === 'api' ? 'api_test' : 'mobile_test') as
+    'test' | 'api_test' | 'mobile_test';
 
 export const refKey = (ref: TestRef) => `${ref.type}:${ref.id}`;
 
@@ -67,7 +75,11 @@ export async function openQuarantinesOf(
     .from(testQuarantines)
     .where(and(isNull(testQuarantines.releasedAt), which.length === 1 ? which[0] : or(...which)));
   for (const row of rows) {
-    found.set(refKey(refOf(row)), { id: row.id, reason: row.reason, quarantinedAt: row.quarantinedAt });
+    found.set(refKey(refOf(row)), {
+      id: row.id,
+      reason: row.reason,
+      quarantinedAt: row.quarantinedAt,
+    });
   }
   return found;
 }
@@ -110,8 +122,12 @@ export interface QuarantineEvidence {
 }
 
 /** Pure, so the rule is tested without a database: results in any order. */
-export function evidenceFrom(results: Array<{ status: string; startedAt: Date | string }>): QuarantineEvidence {
-  const ordered = [...results].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+export function evidenceFrom(
+  results: Array<{ status: string; startedAt: Date | string }>,
+): QuarantineEvidence {
+  const ordered = [...results].sort(
+    (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+  );
   // Skipped results say nothing either way: the test did not answer.
   const judged = ordered.filter((r) => r.status === 'Passed' || isFailure(r.status));
   let passingStreak = 0;
@@ -151,7 +167,10 @@ export async function listOpenQuarantines(tx: TenantTx) {
     rows.map(async ({ quarantine, uiName, apiName, mobileName, quarantinedByName }) => {
       const ref = refOf(quarantine);
       const results = await tx
-        .select({ status: reportTestCaseResults.status, startedAt: reportTestCaseResults.startedAt })
+        .select({
+          status: reportTestCaseResults.status,
+          startedAt: reportTestCaseResults.startedAt,
+        })
         .from(reportTestCaseResults)
         .where(
           and(
@@ -178,8 +197,10 @@ export async function listOpenQuarantines(tx: TenantTx) {
   );
 }
 
-const isUniqueViolation = (error: unknown) => /unique|duplicate/i.test((error as Error)?.message ?? '');
-const isPolicyViolation = (error: unknown) => /row-level security/i.test((error as Error)?.message ?? '');
+const isUniqueViolation = (error: unknown) =>
+  /unique|duplicate/i.test((error as Error)?.message ?? '');
+const isPolicyViolation = (error: unknown) =>
+  /row-level security/i.test((error as Error)?.message ?? '');
 
 /** Sets a test aside. The test must be one the caller can see; RLS decides whether they may change it. */
 export async function quarantineTest(
@@ -187,7 +208,11 @@ export async function quarantineTest(
   input: { ref: TestRef; reason: string; organizationId: number; actor: AuditActor },
 ): Promise<TestQuarantine> {
   const table = input.ref.type === 'ui' ? tests : input.ref.type === 'api' ? apiTests : mobileTests;
-  const [test] = await tx.select({ id: table.id, name: table.name }).from(table).where(eq(table.id, input.ref.id)).limit(1);
+  const [test] = await tx
+    .select({ id: table.id, name: table.name })
+    .from(table)
+    .where(eq(table.id, input.ref.id))
+    .limit(1);
   if (!test) throw new QuarantineError('test_not_found', 'Test not found.', 404);
 
   let row: TestQuarantine;
@@ -205,8 +230,14 @@ export async function quarantineTest(
       })
       .returning();
   } catch (error) {
-    if (isUniqueViolation(error)) throw new QuarantineError('already_quarantined', 'This test is already in quarantine.', 409);
-    if (isPolicyViolation(error)) throw new QuarantineError('project_read_only', "You can view this test's project but not change it.", 403);
+    if (isUniqueViolation(error))
+      throw new QuarantineError('already_quarantined', 'This test is already in quarantine.', 409);
+    if (isPolicyViolation(error))
+      throw new QuarantineError(
+        'project_read_only',
+        "You can view this test's project but not change it.",
+        403,
+      );
     throw error;
   }
 
@@ -225,9 +256,14 @@ export async function releaseQuarantine(
   tx: TenantTx,
   input: { quarantineId: number; note: string | null; actor: AuditActor },
 ): Promise<TestQuarantine> {
-  const [existing] = await tx.select().from(testQuarantines).where(eq(testQuarantines.id, input.quarantineId)).limit(1);
+  const [existing] = await tx
+    .select()
+    .from(testQuarantines)
+    .where(eq(testQuarantines.id, input.quarantineId))
+    .limit(1);
   if (!existing) throw new QuarantineError('not_found', 'Quarantine not found.', 404);
-  if (existing.releasedAt) throw new QuarantineError('already_released', 'This test has already been released.', 409);
+  if (existing.releasedAt)
+    throw new QuarantineError('already_released', 'This test has already been released.', 409);
 
   const [released] = await tx
     .update(testQuarantines)
@@ -235,7 +271,12 @@ export async function releaseQuarantine(
     .where(and(eq(testQuarantines.id, input.quarantineId), isNull(testQuarantines.releasedAt)))
     .returning();
   // Seen but not changed: a viewer on the test's restricted project.
-  if (!released) throw new QuarantineError('project_read_only', "You can view this test's project but not change it.", 403);
+  if (!released)
+    throw new QuarantineError(
+      'project_read_only',
+      "You can view this test's project but not change it.",
+      403,
+    );
 
   const { type, id: testId } = refOf(existing);
   await recordAudit(tx, {
@@ -243,7 +284,12 @@ export async function releaseQuarantine(
     actor: input.actor,
     targetType: targetTypeOf(type),
     targetId: testId,
-    metadata: { quarantineId: existing.id, reason: existing.reason, note: input.note, since: existing.quarantinedAt.toISOString() },
+    metadata: {
+      quarantineId: existing.id,
+      reason: existing.reason,
+      note: input.note,
+      since: existing.quarantinedAt.toISOString(),
+    },
   });
   return released;
 }

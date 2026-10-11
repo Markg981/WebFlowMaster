@@ -32,7 +32,13 @@ export const BROWSER_TASK_QUEUE_NAME = 'browser-tasks';
 export type BrowserTask =
   | { kind: 'adhoc-sequence'; payload: Omit<AdhocSequencePayload, 'organizationId'> }
   /** A preview that can pause, be corrected and resume — see server/debug-session.ts. */
-  | { kind: 'debug-sequence'; sessionId: string; breakpoints: string[]; datasetRow?: number; payload: Omit<AdhocSequencePayload, 'organizationId'> }
+  | {
+      kind: 'debug-sequence';
+      sessionId: string;
+      breakpoints: string[];
+      datasetRow?: number;
+      payload: Omit<AdhocSequencePayload, 'organizationId'>;
+    }
   | { kind: 'run-test'; testId: number; environmentId: number | null }
   | { kind: 'load-website'; url: string }
   | { kind: 'detect-elements'; url: string };
@@ -70,48 +76,70 @@ export class BrowserTaskError extends Error {
 export async function performBrowserTask(envelope: BrowserTaskEnvelope): Promise<unknown> {
   const { task, userId, organizationId } = envelope;
   try {
-  return await runWithTenant(organizationId, () => withExecutionUsage('browser', async () => {
-    switch (task.kind) {
-      case 'adhoc-sequence':
-        return playwrightService.executeAdhocSequence({ ...task.payload, organizationId }, userId);
-      case 'debug-sequence':
-        return runDebugSession(task, userId, organizationId);
-      case 'load-website':
-        return playwrightService.loadWebsite(task.url, userId);
-      case 'detect-elements':
-        return playwrightService.detectElements(task.url, userId);
-      case 'run-test': {
-        // Under RLS: another organization's test is not found, as it was in the route.
-        const [test] = await withTenantTransaction((tx) =>
-          tx.select().from(tests).where(eq(tests.id, task.testId)).limit(1),
-        );
-        if (!test) throw new Error(`Test ${task.testId} not found`);
-        const vars = await resolveVariables({ userId, organizationId, environmentId: task.environmentId });
-        return playwrightService.executeTestSequence(
-          test,
-          userId,
-          undefined,
-          undefined,
-          vars,
-          // The environment that supplies the variables supplies the saved login too.
-          task.environmentId ? { environmentId: task.environmentId, organizationId } : undefined,
-        );
-      }
-      default: {
-        const unknown: never = task;
-        throw new Error(`Unknown browser task ${(unknown as { kind?: string }).kind}`);
-      }
-    }
-  }, envelope.usageId));
+    return await runWithTenant(organizationId, () =>
+      withExecutionUsage(
+        'browser',
+        async () => {
+          switch (task.kind) {
+            case 'adhoc-sequence':
+              return playwrightService.executeAdhocSequence(
+                { ...task.payload, organizationId },
+                userId,
+              );
+            case 'debug-sequence':
+              return runDebugSession(task, userId, organizationId);
+            case 'load-website':
+              return playwrightService.loadWebsite(task.url, userId);
+            case 'detect-elements':
+              return playwrightService.detectElements(task.url, userId);
+            case 'run-test': {
+              // Under RLS: another organization's test is not found, as it was in the route.
+              const [test] = await withTenantTransaction((tx) =>
+                tx.select().from(tests).where(eq(tests.id, task.testId)).limit(1),
+              );
+              if (!test) throw new Error(`Test ${task.testId} not found`);
+              const vars = await resolveVariables({
+                userId,
+                organizationId,
+                environmentId: task.environmentId,
+              });
+              return playwrightService.executeTestSequence(
+                test,
+                userId,
+                undefined,
+                undefined,
+                vars,
+                // The environment that supplies the variables supplies the saved login too.
+                task.environmentId
+                  ? { environmentId: task.environmentId, organizationId }
+                  : undefined,
+              );
+            }
+            default: {
+              const unknown: never = task;
+              throw new Error(`Unknown browser task ${(unknown as { kind?: string }).kind}`);
+            }
+          }
+        },
+        envelope.usageId,
+      ),
+    );
   } catch (error) {
     // Queued debug starts have already returned to the UI; admission can still fail at take.
     if (task.kind === 'debug-sequence' && error instanceof QuotaError) {
       const { debugChannel } = await import('./debug-session');
       const channel = await debugChannel();
       const state = await channel.read(task.sessionId);
-      if (state) await channel.publish(task.sessionId, { ...state, status: 'error', paused: null,
-        outcome: { success: false, error: error.message, skipped: 0 }, updatedAt: new Date().toISOString() });
-      if (await channel.activeFor(userId) === task.sessionId) await channel.setActive(userId, null);
+      if (state)
+        await channel.publish(task.sessionId, {
+          ...state,
+          status: 'error',
+          paused: null,
+          outcome: { success: false, error: error.message, skipped: 0 },
+          updatedAt: new Date().toISOString(),
+        });
+      if ((await channel.activeFor(userId)) === task.sessionId)
+        await channel.setActive(userId, null);
     }
     throw error;
   }
@@ -128,7 +156,11 @@ async function runDebugSession(
 ): Promise<unknown> {
   const { DebugController, debugChannel } = await import('./debug-session');
   const channel = await debugChannel();
-  const environment = await resolveVariables({ userId, organizationId, environmentId: task.payload.environmentId });
+  const environment = await resolveVariables({
+    userId,
+    organizationId,
+    environmentId: task.payload.environmentId,
+  });
   const controller = new DebugController(task.sessionId, channel, {
     breakpoints: task.breakpoints,
     environmentKeys: Object.keys(environment),
@@ -136,7 +168,12 @@ async function runDebugSession(
   try {
     const result = await playwrightService.executeAdhocSequence(
       // One pass: a data-driven test is debugged with the row chosen in the builder, the first by default.
-      { ...task.payload, organizationId, dataset: null, rowVariables: task.payload.dataset?.[task.datasetRow ?? 0] ?? null },
+      {
+        ...task.payload,
+        organizationId,
+        dataset: null,
+        rowVariables: task.payload.dataset?.[task.datasetRow ?? 0] ?? null,
+      },
       userId,
       controller,
     );
@@ -164,7 +201,11 @@ export function browserTaskMode(env: NodeJS.ProcessEnv = process.env): BrowserTa
 export const BROWSER_TASK_TIMEOUT_MS = Number(process.env.BROWSER_TASK_TIMEOUT_MS) || 5 * 60_000;
 
 export interface BrowserTaskQueuePort {
-  add(name: string, data: BrowserTaskEnvelope, options: Record<string, unknown>): Promise<{ id?: string; waitUntilFinished(events: any, ttl?: number): Promise<unknown> }>;
+  add(
+    name: string,
+    data: BrowserTaskEnvelope,
+    options: Record<string, unknown>,
+  ): Promise<{ id?: string; waitUntilFinished(events: any, ttl?: number): Promise<unknown> }>;
   getWorkersCount(): Promise<number>;
 }
 
@@ -193,7 +234,11 @@ export function createBrowserTaskRunner(deps: BrowserTaskRunnerDeps) {
     try {
       count = await queue.getWorkersCount();
     } catch (error: any) {
-      throw new BrowserTaskError('queue_unavailable', `The task queue is not reachable: ${error?.message ?? error}`, 503);
+      throw new BrowserTaskError(
+        'queue_unavailable',
+        `The task queue is not reachable: ${error?.message ?? error}`,
+        503,
+      );
     }
     if (count === 0) {
       // Said now rather than after five minutes of a spinner: a task nobody will pick up is the
@@ -208,8 +253,14 @@ export function createBrowserTaskRunner(deps: BrowserTaskRunnerDeps) {
   }
 
   async function run<T = unknown>(envelope: BrowserTaskEnvelope): Promise<T> {
-    await runWithTenant(envelope.organizationId, () => withTenantTransaction(tx => checkExecutionBudget(tx, envelope.organizationId)));
-    const withCorrelation = { ...envelope, usageId: envelope.usageId ?? randomUUID(), correlationId: envelope.correlationId ?? getCorrelationId() ?? undefined };
+    await runWithTenant(envelope.organizationId, () =>
+      withTenantTransaction((tx) => checkExecutionBudget(tx, envelope.organizationId)),
+    );
+    const withCorrelation = {
+      ...envelope,
+      usageId: envelope.usageId ?? randomUUID(),
+      correlationId: envelope.correlationId ?? getCorrelationId() ?? undefined,
+    };
     if (deps.mode === 'inline') return (await perform(withCorrelation)) as T;
 
     const queue = deps.queue!();
@@ -225,7 +276,11 @@ export function createBrowserTaskRunner(deps: BrowserTaskRunnerDeps) {
       return (await job.waitUntilFinished(deps.events!(), timeoutMs)) as T;
     } catch (error: any) {
       if (/timed out/i.test(String(error?.message))) {
-        throw new BrowserTaskError('timed_out', `The browser did not finish within ${Math.round(timeoutMs / 1000)} seconds.`, 504);
+        throw new BrowserTaskError(
+          'timed_out',
+          `The browser did not finish within ${Math.round(timeoutMs / 1000)} seconds.`,
+          504,
+        );
       }
       // The task ran and threw: its own error, as the route reported it when it ran here.
       throw error;
@@ -237,8 +292,14 @@ export function createBrowserTaskRunner(deps: BrowserTaskRunnerDeps) {
    * debugging, and reports through its own channel rather than through a response.
    */
   async function start(envelope: BrowserTaskEnvelope): Promise<void> {
-    await runWithTenant(envelope.organizationId, () => withTenantTransaction(tx => checkExecutionBudget(tx, envelope.organizationId)));
-    const withCorrelation = { ...envelope, usageId: envelope.usageId ?? randomUUID(), correlationId: envelope.correlationId ?? getCorrelationId() ?? undefined };
+    await runWithTenant(envelope.organizationId, () =>
+      withTenantTransaction((tx) => checkExecutionBudget(tx, envelope.organizationId)),
+    );
+    const withCorrelation = {
+      ...envelope,
+      usageId: envelope.usageId ?? randomUUID(),
+      correlationId: envelope.correlationId ?? getCorrelationId() ?? undefined,
+    };
     if (deps.mode === 'inline') {
       void perform(withCorrelation).catch(() => {
         // The task reports its own failure through its channel.
@@ -247,7 +308,11 @@ export function createBrowserTaskRunner(deps: BrowserTaskRunnerDeps) {
     }
     const queue = deps.queue!();
     await assertWorker(queue);
-    await queue.add(envelope.task.kind, withCorrelation, { attempts: 1, removeOnComplete: { age: 60 }, removeOnFail: { age: 3600 } });
+    await queue.add(envelope.task.kind, withCorrelation, {
+      attempts: 1,
+      removeOnComplete: { age: 60 },
+      removeOnFail: { age: 3600 },
+    });
   }
 
   return { run, start };

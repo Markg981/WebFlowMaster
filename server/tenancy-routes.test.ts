@@ -179,7 +179,10 @@ describe('POST /api/test-plans', () => {
 
     await request(app)
       .post('/api/test-plans')
-      .send({ name: 'Plan with a stolen test', selectedTests: [{ id: foreignTest.id, type: 'ui' }] })
+      .send({
+        name: 'Plan with a stolen test',
+        selectedTests: [{ id: foreignTest.id, type: 'ui' }],
+      })
       .expect(400);
 
     const links = await privilegedDb
@@ -203,7 +206,10 @@ describe('POST /api/test-plans', () => {
     expect(response.body.organizationId).toBe(sessionOrganizationId);
     expect(response.body.userId).toBe(sessionUser.id);
 
-    const [stored] = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, response.body.id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(testPlans)
+      .where(eq(testPlans.id, response.body.id));
     expect(stored.organizationId).toBe(sessionOrganizationId);
     expect(stored.userId).toBe(sessionUser.id);
 
@@ -260,7 +266,10 @@ describe('PUT /api/test-plans/:id', () => {
       .send({ name: 'Hijacked', selectedTests: [{ id: ownTest.id, type: 'ui' }] })
       .expect(404);
 
-    const [stored] = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, foreignPlan.id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(testPlans)
+      .where(eq(testPlans.id, foreignPlan.id));
     expect(stored.name).toBe('Foreign plan');
 
     // The row this used to write was internally cross-tenant: stamped with the foreign
@@ -457,7 +466,10 @@ describe('DELETE /api/test-plans/:id (C2)', () => {
 
     await request(app).delete(`/api/test-plans/${foreignPlan.id}`).expect(404);
 
-    const [stored] = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, foreignPlan.id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(testPlans)
+      .where(eq(testPlans.id, foreignPlan.id));
     expect(stored).toBeDefined();
     expect(stored.name).toBe('Foreign plan');
   });
@@ -465,7 +477,12 @@ describe('DELETE /api/test-plans/:id (C2)', () => {
   it('deletes a plan owned by the session organization', async () => {
     const [ownPlan] = await privilegedDb
       .insert(testPlans)
-      .values({ id: 'c2-own-plan', name: 'Own plan', userId: sessionUser.id, organizationId: sessionOrganizationId })
+      .values({
+        id: 'c2-own-plan',
+        name: 'Own plan',
+        userId: sessionUser.id,
+        organizationId: sessionOrganizationId,
+      })
       .returning();
 
     await request(app).delete(`/api/test-plans/${ownPlan.id}`).expect(204);
@@ -490,7 +507,12 @@ describe('POST /api/run-test-plan/:id (C3)', () => {
   it('executes a plan owned by the session organization', async () => {
     const [ownPlan] = await privilegedDb
       .insert(testPlans)
-      .values({ id: 'c3-own-plan', name: 'Own plan', userId: sessionUser.id, organizationId: sessionOrganizationId })
+      .values({
+        id: 'c3-own-plan',
+        name: 'Own plan',
+        userId: sessionUser.id,
+        organizationId: sessionOrganizationId,
+      })
       .returning();
 
     await request(app).post(`/api/run-test-plan/${ownPlan.id}`).expect(200);
@@ -507,7 +529,11 @@ describe('GET /api/test-plan-executions/:executionId/logs (C4)', () => {
     const foreignPlan = await seedForeignPlan('c4-logs-foreign-plan');
     const [foreignExecution] = await privilegedDb
       .insert(testPlanExecutions)
-      .values({ id: 'c4-foreign-execution', testPlanId: foreignPlan.id, organizationId: foreignOrganizationId })
+      .values({
+        id: 'c4-foreign-execution',
+        testPlanId: foreignPlan.id,
+        organizationId: foreignOrganizationId,
+      })
       .returning();
     const [foreignLog] = await privilegedDb
       .insert(executionLogs)
@@ -525,7 +551,10 @@ describe('GET /api/test-plan-executions/:executionId/logs (C4)', () => {
       .expect(200);
     expect(response.body).toHaveLength(0);
 
-    const [stored] = await privilegedDb.select().from(executionLogs).where(eq(executionLogs.id, foreignLog.id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(executionLogs)
+      .where(eq(executionLogs.id, foreignLog.id));
     expect(stored.message).toBe('substituted secret value for foreign org');
   });
 });
@@ -535,7 +564,11 @@ describe('GET /api/test-plan-executions/:executionId/report (C4)', () => {
     const foreignPlan = await seedForeignPlan('c4-report-foreign-plan');
     const [foreignExecution] = await privilegedDb
       .insert(testPlanExecutions)
-      .values({ id: 'c4-foreign-report-execution', testPlanId: foreignPlan.id, organizationId: foreignOrganizationId })
+      .values({
+        id: 'c4-foreign-report-execution',
+        testPlanId: foreignPlan.id,
+        organizationId: foreignOrganizationId,
+      })
       .returning();
     const [foreignResult] = await privilegedDb
       .insert(reportTestCaseResults)

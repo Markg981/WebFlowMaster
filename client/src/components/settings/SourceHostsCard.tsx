@@ -20,20 +20,23 @@ export interface SourceHostSummary {
   lastDeliveryError: string | null;
 }
 
-const PROVIDERS: Array<{ id: Provider; name: string; apiPlaceholder: string; tokenHint: string }> = [
-  {
-    id: 'github',
-    name: 'GitHub',
-    apiPlaceholder: 'https://api.github.com',
-    tokenHint: 'A fine-grained token with "Commit statuses: read and write" on the repositories, or a classic one with repo:status.',
-  },
-  {
-    id: 'gitlab',
-    name: 'GitLab',
-    apiPlaceholder: 'https://gitlab.com/api/v4',
-    tokenHint: 'A project, group or personal access token with the api scope, from a member with at least the Developer role.',
-  },
-];
+const PROVIDERS: Array<{ id: Provider; name: string; apiPlaceholder: string; tokenHint: string }> =
+  [
+    {
+      id: 'github',
+      name: 'GitHub',
+      apiPlaceholder: 'https://api.github.com',
+      tokenHint:
+        'A fine-grained token with "Commit statuses: read and write" on the repositories, or a classic one with repo:status.',
+    },
+    {
+      id: 'gitlab',
+      name: 'GitLab',
+      apiPlaceholder: 'https://gitlab.com/api/v4',
+      tokenHint:
+        'A project, group or personal access token with the api scope, from a member with at least the Developer role.',
+    },
+  ];
 
 async function readError(response: Response, fallback: string): Promise<string> {
   const body = await response.json().catch(() => ({}));
@@ -76,7 +79,12 @@ const SourceHostsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
       return response.json() as Promise<SourceHostSummary & { account: string }>;
     },
     onSuccess: (saved) => {
-      setChecked((previous) => ({ ...previous, [saved.provider]: t('settings.sourceHosts.authenticatesAs', 'Connected as {{account}}', { account: saved.account }) }));
+      setChecked((previous) => ({
+        ...previous,
+        [saved.provider]: t('settings.sourceHosts.authenticatesAs', 'Connected as {{account}}', {
+          account: saved.account,
+        }),
+      }));
       setEditing(null);
       setToken('');
       queryClient.invalidateQueries({ queryKey: ['sourceHosts'] });
@@ -88,12 +96,19 @@ const SourceHostsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
     mutationFn: async (provider: Provider) => {
       const response = await fetch(`/api/source-hosts/${provider}/test`, { method: 'POST' });
       if (!response.ok) throw new Error(await readError(response, 'Could not check'));
-      return { provider, result: (await response.json()) as { ok: boolean; account?: string; error?: string } };
+      return {
+        provider,
+        result: (await response.json()) as { ok: boolean; account?: string; error?: string },
+      };
     },
     onSuccess: ({ provider, result }) =>
       setChecked((previous) => ({
         ...previous,
-        [provider]: result.ok ? t('settings.sourceHosts.authenticatesAs', 'Connected as {{account}}', { account: result.account }) : result.error,
+        [provider]: result.ok
+          ? t('settings.sourceHosts.authenticatesAs', 'Connected as {{account}}', {
+              account: result.account,
+            })
+          : result.error,
       })),
   });
 
@@ -107,7 +122,11 @@ const SourceHostsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
 
   const startEditing = (provider: Provider, current?: SourceHostSummary) => {
     setEditing(provider);
-    setApiUrl(current && current.apiUrl !== PROVIDERS.find((p) => p.id === provider)!.apiPlaceholder ? current.apiUrl : '');
+    setApiUrl(
+      current && current.apiUrl !== PROVIDERS.find((p) => p.id === provider)!.apiPlaceholder
+        ? current.apiUrl
+        : '',
+    );
     setToken('');
     setFormError('');
   };
@@ -137,32 +156,58 @@ const SourceHostsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
       </CardHeader>
       <CardContent className="space-y-3">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('settings.sourceHosts.loading', 'Loading…')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('settings.sourceHosts.loading', 'Loading…')}
+          </p>
         ) : (
           PROVIDERS.map((provider) => {
             const host = hosts.find((h) => h.provider === provider.id);
             return (
-              <div key={provider.id} className="border rounded-md p-3 space-y-2" data-testid={`source-host-${provider.id}`}>
+              <div
+                key={provider.id}
+                className="border rounded-md p-3 space-y-2"
+                data-testid={`source-host-${provider.id}`}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-sm">
                     <span className="font-medium">{provider.name}</span>
                     <Badge variant={host ? 'default' : 'secondary'} className="ml-2">
-                      {host ? t('settings.sourceHosts.connected', 'connected') : t('settings.sourceHosts.notConnected', 'not connected')}
+                      {host
+                        ? t('settings.sourceHosts.connected', 'connected')
+                        : t('settings.sourceHosts.notConnected', 'not connected')}
                     </Badge>
-                    {host && <span className="ml-2 text-xs text-muted-foreground">{host.apiUrl}</span>}
+                    {host && (
+                      <span className="ml-2 text-xs text-muted-foreground">{host.apiUrl}</span>
+                    )}
                   </div>
                   {isOwner && editing !== provider.id && (
                     <div className="flex gap-2">
                       {host && (
-                        <Button size="sm" variant="outline" onClick={() => test.mutate(provider.id)} disabled={test.isPending}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => test.mutate(provider.id)}
+                          disabled={test.isPending}
+                        >
                           {t('settings.sourceHosts.test', 'Test')}
                         </Button>
                       )}
-                      <Button size="sm" variant="outline" onClick={() => startEditing(provider.id, host)}>
-                        {host ? t('settings.sourceHosts.replace', 'Replace token') : t('settings.sourceHosts.connect', 'Connect')}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => startEditing(provider.id, host)}
+                      >
+                        {host
+                          ? t('settings.sourceHosts.replace', 'Replace token')
+                          : t('settings.sourceHosts.connect', 'Connect')}
                       </Button>
                       {host && (
-                        <Button size="sm" variant="ghost" onClick={() => remove.mutate(provider.id)} disabled={remove.isPending}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => remove.mutate(provider.id)}
+                          disabled={remove.isPending}
+                        >
                           {t('settings.sourceHosts.remove', 'Disconnect')}
                         </Button>
                       )}
@@ -171,12 +216,23 @@ const SourceHostsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
                 </div>
 
                 {host && (
-                  <p className={`text-xs ${host.lastDeliveryError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  <p
+                    className={`text-xs ${host.lastDeliveryError ? 'text-destructive' : 'text-muted-foreground'}`}
+                  >
                     {host.lastDeliveryError
-                      ? t('settings.sourceHosts.lastFailed', 'The last status was not set: {{error}}', { error: host.lastDeliveryError })
+                      ? t(
+                          'settings.sourceHosts.lastFailed',
+                          'The last status was not set: {{error}}',
+                          { error: host.lastDeliveryError },
+                        )
                       : host.lastDeliveryAt
-                        ? t('settings.sourceHosts.lastDelivered', 'Last status set {{when}}.', { when: new Date(host.lastDeliveryAt).toLocaleString() })
-                        : t('settings.sourceHosts.noneYet', 'No status sent yet: the next run started from a pipeline will send one.')}
+                        ? t('settings.sourceHosts.lastDelivered', 'Last status set {{when}}.', {
+                            when: new Date(host.lastDeliveryAt).toLocaleString(),
+                          })
+                        : t(
+                            'settings.sourceHosts.noneYet',
+                            'No status sent yet: the next run started from a pipeline will send one.',
+                          )}
                   </p>
                 )}
                 {checked[provider.id] && <p className="text-xs">{checked[provider.id]}</p>}
@@ -184,12 +240,32 @@ const SourceHostsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
                 {editing === provider.id && (
                   <div className="space-y-2">
                     <div>
-                      <Label htmlFor={`${provider.id}-api`}>{t('settings.sourceHosts.apiUrl', 'API URL (only for a self-hosted server)')}</Label>
-                      <Input id={`${provider.id}-api`} value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder={provider.apiPlaceholder} className="mt-1" />
+                      <Label htmlFor={`${provider.id}-api`}>
+                        {t(
+                          'settings.sourceHosts.apiUrl',
+                          'API URL (only for a self-hosted server)',
+                        )}
+                      </Label>
+                      <Input
+                        id={`${provider.id}-api`}
+                        value={apiUrl}
+                        onChange={(e) => setApiUrl(e.target.value)}
+                        placeholder={provider.apiPlaceholder}
+                        className="mt-1"
+                      />
                     </div>
                     <div>
-                      <Label htmlFor={`${provider.id}-token`}>{t('settings.sourceHosts.token', 'Token')}</Label>
-                      <Input id={`${provider.id}-token`} type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} className="mt-1" />
+                      <Label htmlFor={`${provider.id}-token`}>
+                        {t('settings.sourceHosts.token', 'Token')}
+                      </Label>
+                      <Input
+                        id={`${provider.id}-token`}
+                        type="password"
+                        autoComplete="off"
+                        value={token}
+                        onChange={(e) => setToken(e.target.value)}
+                        className="mt-1"
+                      />
                       <p className="text-xs text-muted-foreground mt-1">
                         {provider.id === 'github'
                           ? t('settings.sourceHosts.githubTokenHint', provider.tokenHint)
@@ -198,7 +274,11 @@ const SourceHostsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
                     </div>
                     {formError && <p className="text-sm text-destructive">{formError}</p>}
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => handleConnect(provider.id)} disabled={connect.isPending}>
+                      <Button
+                        size="sm"
+                        onClick={() => handleConnect(provider.id)}
+                        disabled={connect.isPending}
+                      >
                         {connect.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
                         {t('settings.sourceHosts.save', 'Check and save')}
                       </Button>

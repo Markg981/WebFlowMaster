@@ -1,17 +1,34 @@
-import { organizations, users, invitations, auditLog, AUDIT_ACTIONS, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
-import { privilegedDb } from "./db";
-import { and, eq, desc, isNull, sql } from "drizzle-orm";
-import { passwordResets } from "@shared/schema";
-import { hashResetToken, issuePasswordReset, type IssuedReset } from "./password-reset";
-import type { TenantTx } from "./middleware/tenancy";
-import session from "express-session";
-import { randomBytes } from "node:crypto";
+import {
+  organizations,
+  users,
+  invitations,
+  auditLog,
+  AUDIT_ACTIONS,
+  tests,
+  testRuns,
+  userSettings,
+  sessions,
+  type User,
+  type InsertUser,
+  type Test,
+  type InsertTest,
+  type TestRun,
+  type InsertTestRun,
+  type UserSettings,
+  type InsertUserSettings,
+} from '@shared/schema';
+import { privilegedDb } from './db';
+import { and, eq, desc, isNull, sql } from 'drizzle-orm';
+import { passwordResets } from '@shared/schema';
+import { hashResetToken, issuePasswordReset, type IssuedReset } from './password-reset';
+import type { TenantTx } from './middleware/tenancy';
+import session from 'express-session';
+import { randomBytes } from 'node:crypto';
 
 type PrivilegedTx = Parameters<Parameters<typeof privilegedDb.transaction>[0]>[0];
 
 /** Serializes "is this the first account?" with creating it. Any constant; this one spells WFM1. */
 const FIRST_ACCOUNT_LOCK = 0x57464d31;
-
 
 export class DatabaseSessionStore extends session.Store {
   constructor() {
@@ -19,7 +36,10 @@ export class DatabaseSessionStore extends session.Store {
   }
 
   get(sid: string, callback: (err: any, session?: session.SessionData | null) => void) {
-    privilegedDb.select().from(sessions).where(eq(sessions.sid, sid))
+    privilegedDb
+      .select()
+      .from(sessions)
+      .where(eq(sessions.sid, sid))
       .then((rows) => {
         if (rows.length === 0) return callback(null, null);
         callback(null, rows[0].sess as session.SessionData);
@@ -28,21 +48,28 @@ export class DatabaseSessionStore extends session.Store {
   }
 
   set(sid: string, sess: session.SessionData, callback?: (err?: any) => void) {
-    const expire = sess.cookie?.expires ? new Date(sess.cookie.expires) : new Date(Date.now() + 86400000);
-    privilegedDb.insert(sessions).values({
-      sid,
-      sess: sess as any, // Drizzle expects generic JSON
-      expire
-    }).onConflictDoUpdate({
-      target: sessions.sid,
-      set: { sess: sess as any, expire }
-    })
+    const expire = sess.cookie?.expires
+      ? new Date(sess.cookie.expires)
+      : new Date(Date.now() + 86400000);
+    privilegedDb
+      .insert(sessions)
+      .values({
+        sid,
+        sess: sess as any, // Drizzle expects generic JSON
+        expire,
+      })
+      .onConflictDoUpdate({
+        target: sessions.sid,
+        set: { sess: sess as any, expire },
+      })
       .then(() => callback && callback())
       .catch((err) => callback && callback(err));
   }
 
   destroy(sid: string, callback?: (err?: any) => void) {
-    privilegedDb.delete(sessions).where(eq(sessions.sid, sid))
+    privilegedDb
+      .delete(sessions)
+      .where(eq(sessions.sid, sid))
       .then(() => callback && callback())
       .catch((err) => callback && callback(err));
   }
@@ -68,12 +95,14 @@ export interface IStorage {
   updateTestRun(id: number, testRun: Partial<InsertTestRun>): Promise<TestRun | undefined>;
 
   getUserSettings(userId: number): Promise<UserSettings | undefined>;
-  upsertUserSettings(userId: number, settingsData: Partial<Omit<InsertUserSettings, 'userId'>>): Promise<UserSettings>;
+  upsertUserSettings(
+    userId: number,
+    settingsData: Partial<Omit<InsertUserSettings, 'userId'>>,
+  ): Promise<UserSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
-  constructor() {
-  }
+  constructor() {}
 
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await privilegedDb.select().from(users).where(eq(users.id, id));
@@ -87,7 +116,11 @@ export class DatabaseStorage implements IStorage {
 
   /** Whether anyone has an account yet: an installation with none may register its first. */
   async hasAnyPerson(): Promise<boolean> {
-    const [row] = await privilegedDb.select({ id: users.id }).from(users).where(eq(users.kind, 'person')).limit(1);
+    const [row] = await privilegedDb
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.kind, 'person'))
+      .limit(1);
     return row !== undefined;
   }
 
@@ -101,7 +134,11 @@ export class DatabaseStorage implements IStorage {
   async createFirstUser(insertUser: InsertUser): Promise<User | null> {
     return privilegedDb.transaction(async (tx) => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(${FIRST_ACCOUNT_LOCK})`);
-      const [existing] = await tx.select({ id: users.id }).from(users).where(eq(users.kind, 'person')).limit(1);
+      const [existing] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.kind, 'person'))
+        .limit(1);
       if (existing) return null;
       return this.insertOwnerWithOrganization(tx, insertUser);
     });
@@ -115,7 +152,10 @@ export class DatabaseStorage implements IStorage {
   // registrant its owner. Both rows are written in one transaction: a user pointing at an
   // organization that failed to insert would be unusable, and an organization with no members
   // is unreachable.
-  private async insertOwnerWithOrganization(tx: PrivilegedTx, insertUser: InsertUser): Promise<User> {
+  private async insertOwnerWithOrganization(
+    tx: PrivilegedTx,
+    insertUser: InsertUser,
+  ): Promise<User> {
     const [organization] = await tx
       .insert(organizations)
       .values({ name: `${insertUser.username}'s organization` })
@@ -161,7 +201,11 @@ export class DatabaseStorage implements IStorage {
       // Only now, with the token proven live: checked any earlier, a used invitation (whose
       // username is by then an account) would answer "Username already exists" instead of the
       // generic refusal, telling a prober the token was once valid.
-      const [taken] = await tx.select({ id: users.id }).from(users).where(eq(users.username, insertUser.username)).limit(1);
+      const [taken] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.username, insertUser.username))
+        .limit(1);
       if (taken) return { error: 'username_taken' as const };
 
       const [user] = await tx
@@ -203,7 +247,11 @@ export class DatabaseStorage implements IStorage {
    * who it is acting for (the current password, or a reset link).
    */
   async updatePassword(userId: number, passwordHash: string): Promise<User | undefined> {
-    const [user] = await privilegedDb.update(users).set({ password: passwordHash }).where(eq(users.id, userId)).returning();
+    const [user] = await privilegedDb
+      .update(users)
+      .set({ password: passwordHash })
+      .where(eq(users.id, userId))
+      .returning();
     return user;
   }
 
@@ -221,7 +269,11 @@ export class DatabaseStorage implements IStorage {
     ipAddress: string | null,
   ): Promise<User | { error: 'invalid' | 'expired' | 'used' }> {
     return privilegedDb.transaction(async (tx) => {
-      const [reset] = await tx.select().from(passwordResets).where(eq(passwordResets.tokenHash, hashResetToken(token))).limit(1);
+      const [reset] = await tx
+        .select()
+        .from(passwordResets)
+        .where(eq(passwordResets.tokenHash, hashResetToken(token)))
+        .limit(1);
       if (!reset) return { error: 'invalid' as const };
       if (reset.usedAt) return { error: 'used' as const };
       if (reset.expiresAt.getTime() <= Date.now()) return { error: 'expired' as const };
@@ -260,7 +312,9 @@ export class DatabaseStorage implements IStorage {
    * A reset link issued by the operator, for a person nobody in their organization can help —
    * typically its only owner. Privileged: the operator is not a member of any organization.
    */
-  async issuePasswordResetAsOperator(username: string): Promise<({ username: string } & IssuedReset) | null> {
+  async issuePasswordResetAsOperator(
+    username: string,
+  ): Promise<({ username: string } & IssuedReset) | null> {
     const user = await this.getUserByUsername(username);
     if (!user || user.kind !== 'person') return null;
     const issued = await privilegedDb.transaction(async (tx) => {
@@ -334,7 +388,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTestsByUser(userId: number): Promise<Test[]> {
-    return await privilegedDb.select().from(tests).where(eq(tests.userId, userId)).orderBy(desc(tests.updatedAt));
+    return await privilegedDb
+      .select()
+      .from(tests)
+      .where(eq(tests.userId, userId))
+      .orderBy(desc(tests.updatedAt));
   }
 
   async createTest(test: InsertTest, userId: number, organizationId: number): Promise<Test> {
@@ -363,15 +421,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTestRun(testRun: InsertTestRun): Promise<TestRun> {
-    const [newTestRun] = await privilegedDb
-      .insert(testRuns)
-      .values(testRun)
-      .returning();
+    const [newTestRun] = await privilegedDb.insert(testRuns).values(testRun).returning();
     return newTestRun;
   }
 
   async getTestRuns(testId: number): Promise<TestRun[]> {
-    return await privilegedDb.select().from(testRuns).where(eq(testRuns.testId, testId)).orderBy(desc(testRuns.startedAt));
+    return await privilegedDb
+      .select()
+      .from(testRuns)
+      .where(eq(testRuns.testId, testId))
+      .orderBy(desc(testRuns.startedAt));
   }
 
   async updateTestRun(id: number, testRun: Partial<InsertTestRun>): Promise<TestRun | undefined> {
@@ -384,11 +443,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {
-    const [settings] = await privilegedDb.select().from(userSettings).where(eq(userSettings.userId, userId)).limit(1);
+    const [settings] = await privilegedDb
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1);
     return settings || undefined;
   }
 
-  async upsertUserSettings(userId: number, settingsData: Partial<Omit<InsertUserSettings, 'userId'>>): Promise<UserSettings> {
+  async upsertUserSettings(
+    userId: number,
+    settingsData: Partial<Omit<InsertUserSettings, 'userId'>>,
+  ): Promise<UserSettings> {
     // Ensure that userId from the path is used, and settingsData does not accidentally override it for the row identity.
     // For the 'set' part of onConflictDoUpdate, we use settingsData which should not contain userId.
     const [result] = await privilegedDb

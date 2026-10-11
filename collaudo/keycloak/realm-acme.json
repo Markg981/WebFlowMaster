@@ -25,12 +25,8 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": [
-        "https://wfm.collaudo.test/api/sso/callback"
-      ],
-      "webOrigins": [
-        "https://wfm.collaudo.test"
-      ],
+      "redirectUris": ["https://wfm.collaudo.test/api/sso/callback"],
+      "webOrigins": ["https://wfm.collaudo.test"],
       "attributes": {
         "pkce.code.challenge.method": "S256"
       },
@@ -67,9 +63,7 @@
       "enabled": true,
       "protocol": "saml",
       "frontchannelLogout": false,
-      "redirectUris": [
-        "https://wfm.collaudo.test/api/sso/saml/1/acs"
-      ],
+      "redirectUris": ["https://wfm.collaudo.test/api/sso/saml/1/acs"],
       "attributes": {
         "saml.assertion.signature": "true",
         "saml.server.signature": "true",
@@ -120,12 +114,8 @@
           "temporary": false
         }
       ],
-      "realmRoles": [
-        "default-roles-acme"
-      ],
-      "groups": [
-        "/wfm-editor"
-      ]
+      "realmRoles": ["default-roles-acme"],
+      "groups": ["/wfm-editor"]
     },
     {
       "username": "marco",
@@ -141,9 +131,7 @@
           "temporary": false
         }
       ],
-      "realmRoles": [
-        "default-roles-acme"
-      ]
+      "realmRoles": ["default-roles-acme"]
     },
     {
       "username": "nonverificata",
@@ -159,9 +147,7 @@
           "temporary": false
         }
       ],
-      "realmRoles": [
-        "default-roles-acme"
-      ]
+      "realmRoles": ["default-roles-acme"]
     },
     {
       "username": "fuori",
@@ -177,9 +163,7 @@
           "temporary": false
         }
       ],
-      "realmRoles": [
-        "default-roles-acme"
-      ]
+      "realmRoles": ["default-roles-acme"]
     },
     {
       "username": "luca",
@@ -195,9 +179,7 @@
           "temporary": false
         }
       ],
-      "realmRoles": [
-        "default-roles-acme"
-      ]
+      "realmRoles": ["default-roles-acme"]
     },
     {
       "username": "reimposta",
@@ -213,9 +195,7 @@
           "temporary": false
         }
       ],
-      "realmRoles": [
-        "default-roles-acme"
-      ]
+      "realmRoles": ["default-roles-acme"]
     },
     {
       "username": "mfa",
@@ -224,9 +204,7 @@
       "firstName": "Mario",
       "lastName": "Mfa",
       "enabled": true,
-      "requiredActions": [
-        "CONFIGURE_TOTP"
-      ],
+      "requiredActions": ["CONFIGURE_TOTP"],
       "credentials": [
         {
           "type": "password",
@@ -234,9 +212,7 @@
           "temporary": false
         }
       ],
-      "realmRoles": [
-        "default-roles-acme"
-      ]
+      "realmRoles": ["default-roles-acme"]
     },
     {
       "username": "mfa-pronto",
@@ -258,9 +234,7 @@
           "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
         }
       ],
-      "realmRoles": [
-        "default-roles-acme"
-      ]
+      "realmRoles": ["default-roles-acme"]
     }
   ],
   "groups": [

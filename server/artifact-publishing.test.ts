@@ -56,12 +56,18 @@ beforeEach(async () => {
   setArtifactStoreForTest(createS3ArtifactStore({ client, bucket: 'evidence' }));
 
   executeTestSequence.mockReset();
-  executeTestSequence.mockImplementation(async (_test: unknown, _user: number, screenshotDir: string) => {
-    await fs.ensureDir(screenshotDir);
-    const shot = path.join(screenshotDir, 'step_Click_1.png');
-    await fs.writeFile(shot, 'png-bytes');
-    return { success: true, steps: [{ name: 'Click', type: 'click', status: 'passed', screenshot: shot }], duration: 5 };
-  });
+  executeTestSequence.mockImplementation(
+    async (_test: unknown, _user: number, screenshotDir: string) => {
+      await fs.ensureDir(screenshotDir);
+      const shot = path.join(screenshotDir, 'step_Click_1.png');
+      await fs.writeFile(shot, 'png-bytes');
+      return {
+        success: true,
+        steps: [{ name: 'Click', type: 'click', status: 'passed', screenshot: shot }],
+        duration: 5,
+      };
+    },
+  );
 });
 
 afterEach(async () => {
@@ -70,22 +76,41 @@ afterEach(async () => {
 });
 
 describe('a run with a bucket for its evidence', () => {
-  it('uploads each test\'s screenshots under the key the report asks for, and leaves nothing on the worker', async () => {
+  it("uploads each test's screenshots under the key the report asks for, and leaves nothing on the worker", async () => {
     planId = uuidv4();
-    await privilegedDb.insert(testPlans).values({ id: planId, name: 'Bucket plan', userId, organizationId } as any);
+    await privilegedDb
+      .insert(testPlans)
+      .values({ id: planId, name: 'Bucket plan', userId, organizationId } as any);
     const [test] = await privilegedDb
       .insert(testsTable)
-      .values({ userId, organizationId, name: 'Login', url: 'https://example.test', sequence: [], elements: [] })
+      .values({
+        userId,
+        organizationId,
+        name: 'Login',
+        url: 'https://example.test',
+        sequence: [],
+        elements: [],
+      })
       .returning();
-    await privilegedDb.insert(testPlanSelectedTests).values({ testPlanId: planId, testType: 'ui', testId: test.id, organizationId } as any);
+    await privilegedDb
+      .insert(testPlanSelectedTests)
+      .values({ testPlanId: planId, testType: 'ui', testId: test.id, organizationId } as any);
     const executionId = uuidv4();
-    await privilegedDb.insert(testPlanExecutions).values({ id: executionId, organizationId, testPlanId: planId, status: 'queued', triggeredBy: 'manual' } as any);
+    await privilegedDb.insert(testPlanExecutions).values({
+      id: executionId,
+      organizationId,
+      testPlanId: planId,
+      status: 'queued',
+      triggeredBy: 'manual',
+    } as any);
 
     await processTestPlanJob(planId, executionId, userId);
 
     const key = `results/${planId}/${executionId}/ui_${test.id}/step_Click_1.png`;
     expect(client.objects.get(key)?.body.toString()).toBe('png-bytes');
-    expect(await fs.pathExists(path.resolve(process.cwd(), 'results', planId, executionId))).toBe(false);
+    expect(await fs.pathExists(path.resolve(process.cwd(), 'results', planId, executionId))).toBe(
+      false,
+    );
 
     // What the report links to is the key that was uploaded.
     const [row] = await privilegedDb

@@ -61,31 +61,44 @@ function renderPage() {
 
 describe('GeneralReportsPage', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn((url: string) => {
-      if (url.startsWith('/api/test-plans')) {
-        return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
-      }
-      if (url.startsWith('/api/test-plan-executions')) {
-        return Promise.resolve(new Response(JSON.stringify({
-          items: [queuedExecution, finishedExecution],
-          totalItems: 1,
-          totalPages: 1,
-          currentPage: 1,
-          itemsPerPage: 10,
-        }), { status: 200 }));
-      }
-      if (url.startsWith('/api/quarantine')) {
-        return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
-      }
-      if (url.startsWith('/api/analytics/flaky')) {
-        return Promise.resolve(new Response(JSON.stringify({
-          window: { days: 30, since: '2026-08-18T00:00:00.000Z', resultsExamined: 0 },
-          thresholds: { minimumRuns: 3, minimumFlips: 1 },
-          items: [],
-        }), { status: 200 }));
-      }
-      return Promise.reject(new Error(`Unexpected request: ${url}`));
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.startsWith('/api/test-plans')) {
+          return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+        }
+        if (url.startsWith('/api/test-plan-executions')) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                items: [queuedExecution, finishedExecution],
+                totalItems: 1,
+                totalPages: 1,
+                currentPage: 1,
+                itemsPerPage: 10,
+              }),
+              { status: 200 },
+            ),
+          );
+        }
+        if (url.startsWith('/api/quarantine')) {
+          return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+        }
+        if (url.startsWith('/api/analytics/flaky')) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                window: { days: 30, since: '2026-08-18T00:00:00.000Z', resultsExamined: 0 },
+                thresholds: { minimumRuns: 3, minimumFlips: 1 },
+                items: [],
+              }),
+              { status: 200 },
+            ),
+          );
+        }
+        return Promise.reject(new Error(`Unexpected request: ${url}`));
+      }),
+    );
   });
 
   afterEach(() => {

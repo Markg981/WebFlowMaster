@@ -7,7 +7,9 @@ import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import MfaChallengeForm from './MfaChallengeForm';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_key: string, fallback?: any) => (typeof fallback === 'string' ? fallback : _key) }),
+  useTranslation: () => ({
+    t: (_key: string, fallback?: any) => (typeof fallback === 'string' ? fallback : _key),
+  }),
 }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
 
@@ -23,7 +25,11 @@ function Harness() {
   const { user, mfaChallenge, loginMutation } = useAuth();
   if (user) return <p>signed in as {user.username}</p>;
   if (mfaChallenge) return <MfaChallengeForm />;
-  return <button onClick={() => loginMutation.mutate({ username: 'alice', password: 'pw' })}>sign in</button>;
+  return (
+    <button onClick={() => loginMutation.mutate({ username: 'alice', password: 'pw' })}>
+      sign in
+    </button>
+  );
 }
 
 function renderHarness() {
@@ -39,7 +45,13 @@ function renderHarness() {
 }
 
 const reply = (body: unknown, status = 200) =>
-  Promise.resolve({ ok: status < 400, status, statusText: '', json: async () => body, text: async () => JSON.stringify(body) });
+  Promise.resolve({
+    ok: status < 400,
+    status,
+    statusText: '',
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  });
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -67,7 +79,9 @@ describe('signing in with a second factor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
     expect(await screen.findByText('That code is not valid.')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Code from your authenticator app'), { target: { value: '123456' } });
+    fireEvent.change(screen.getByLabelText('Code from your authenticator app'), {
+      target: { value: '123456' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
     expect(await screen.findByText('signed in as alice')).toBeInTheDocument();
   });
@@ -76,15 +90,20 @@ describe('signing in with a second factor', () => {
     fetchMock.mockImplementation((url: string) => {
       if (url === '/api/user') return reply({ message: 'Unauthorized' }, 401);
       if (url === '/api/login') return reply({ mfaRequired: true });
-      if (url === '/api/login/mfa') return reply({ message: 'Too many wrong codes.', code: 'mfa_challenge_expired' }, 401);
+      if (url === '/api/login/mfa')
+        return reply({ message: 'Too many wrong codes.', code: 'mfa_challenge_expired' }, 401);
       return reply({});
     });
     renderHarness();
 
     fireEvent.click(await screen.findByRole('button', { name: 'sign in' }));
-    fireEvent.change(await screen.findByLabelText('Code from your authenticator app'), { target: { value: '999999' } });
+    fireEvent.change(await screen.findByLabelText('Code from your authenticator app'), {
+      target: { value: '999999' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'sign in' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'sign in' })).toBeInTheDocument(),
+    );
   });
 });

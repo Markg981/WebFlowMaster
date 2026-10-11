@@ -1,5 +1,5 @@
-import { z } from "zod";
-import { ACCESSIBILITY_IMPACTS } from "./accessibility";
+import { z } from 'zod';
+import { ACCESSIBILITY_IMPACTS } from './accessibility';
 
 /**
  * Single source of truth for the record → replay pipeline.
@@ -13,30 +13,30 @@ import { ACCESSIBILITY_IMPACTS } from "./accessibility";
 
 /** Action ids understood by the replay engine (`executeAdhocSequence`). */
 export const ADHOC_ACTION_IDS = [
-  "click",
-  "input",
-  "wait",
-  "scroll",
-  "assert",
-  "hover",
-  "select",
-  "navigate",
-  "assertTextContains",
-  "assertElementCount",
+  'click',
+  'input',
+  'wait',
+  'scroll',
+  'assert',
+  'hover',
+  'select',
+  'navigate',
+  'assertTextContains',
+  'assertElementCount',
   // Conditional waits. DMO pushes UI updates over SignalR, so a fixed `wait` is a guess
   // about timing — and the AI healing pass then gets asked to cover for the guess.
-  "waitForElement",
-  "waitForText",
-  "waitForNetworkIdle",
+  'waitForElement',
+  'waitForText',
+  'waitForNetworkIdle',
   // Angular Material renders a mat-select as a div plus a CDK overlay, which selectOption
   // cannot drive. This opens the trigger and clicks the option by its text.
-  "selectByText",
+  'selectByText',
   // Asserting the STATE of a control, not its presence. Checking that a function is
   // enabled or a box is ticked had to be smuggled into the selector — matching only
   // elements that also carry aria-checked="true" — which reads as a lookup and fails
   // like one: the step says the element was not found, when what happened is that it was
   // found and was off.
-  "assertState",
+  'assertState',
   // Bringing a control TO a state, rather than performing an operation on it.
   //
   // A test's setup steps describe a starting point: "this function is enabled". `click`
@@ -47,85 +47,85 @@ export const ADHOC_ACTION_IDS = [
   //
   // `ensureState` reads the control first and clicks only when the state differs, so a
   // precondition that is already satisfied costs nothing and changes nothing.
-  "ensureState",
+  'ensureState',
   // Runs axe-core on the page as it is at this point of the flow, and fails on violations at or
   // above a severity (the value; "serious" when empty). See shared/accessibility.ts.
-  "assertAccessible",
+  'assertAccessible',
   // How fast the page is: the Core Web Vitals the browser measured, against limits; and
   // Lighthouse's scores. See shared/web-performance.ts.
-  "measurePerformance",
-  "auditLighthouse",
+  'measurePerformance',
+  'auditLighthouse',
   // Where the browser says it is (navigator.geolocation), for pages that show what is near.
-  "setGeolocation",
+  'setGeolocation',
   // Clicks the element, takes the file it downloads, and checks its name, size and content —
   // a PDF's text, a CSV's rows. See shared/downloads.ts.
-  "expectDownload",
+  'expectDownload',
   // A code sent by text message to a test number, read from the organization's SMS inbox
   // (server/sms-inbox.ts) as {{sms.otp}}.
-  "waitForSms",
+  'waitForSms',
   // Interactions a click and a typed value cannot stand in for. Without them a test could reach
   // a search box and never submit it, open a context menu only by accident, and not get past
   // an upload field, a confirm() or a link that opens in a new tab at all.
   //
   // A key, or a combination such as "Control+A", on the step's element or on whatever has focus.
-  "pressKey",
-  "doubleClick",
-  "rightClick",
+  'pressKey',
+  'doubleClick',
+  'rightClick',
   // The element is what is dragged; the value is the selector of where it is dropped.
-  "dragAndDrop",
+  'dragAndDrop',
   // The value is the file to hand the page: "name.ext", or "name.ext|content" for its contents.
-  "uploadFile",
+  'uploadFile',
   // Says how to answer the NEXT alert, confirm or prompt, so it goes before the step that opens
   // one: "accept", "dismiss", or "accept:text" to type into a prompt.
-  "handleDialog",
+  'handleDialog',
   // Moves the rest of the test to another tab: the newest one, the Nth (from 1), or the first
   // whose address or title contains the value.
-  "switchTab",
-  "closeTab",
+  'switchTab',
+  'closeTab',
   // Reads the element's text, or a field's value, into the variable the value names, so a later
   // step can use it as {{name}} — an order number read off one screen and searched for on another.
-  "storeText",
+  'storeText',
   // "name=value" for the page's current address.
-  "setCookie",
-  "clearCookies",
+  'setCookie',
+  'clearCookies',
   // "key=value" in the current origin's localStorage.
-  "setLocalStorage",
+  'setLocalStorage',
   // Runs the value as JavaScript in the page. Fails when it throws or returns exactly false,
   // so it can check what no other step can express.
-  "executeScript",
+  'executeScript',
   // Answers the page's requests to an address for the rest of the test, instead of the server:
   // "[METHOD ]pattern | status[ after <n>ms] | body". See server/network-mocks.ts.
-  "mockRequest",
+  'mockRequest',
   // Makes the page's requests to an address fail, as if the network were down: a third party
   // (analytics, chat) kept out of the run, or the screen for a backend that cannot be reached.
-  "blockRequests",
+  'blockRequests',
   // Takes back every mock and block: the page talks to the real servers again.
-  "clearMocks",
+  'clearMocks',
   // "name=value": a variable for the steps after this one. With a generator such as
   // {{$randomEmail}} it is how a test makes up a value once and uses it twice.
-  "setVariable",
+  'setVariable',
   // Waits for the email the application sent to an address — "address", "address|subject" or
   // "address|subject|pattern" — in the environment's test inbox (Mailpit), and puts what it holds
   // in {{email.otp}}, {{email.link}}, {{email.subject}}, {{email.from}} and {{email.text}}.
   // See server/email-inbox.ts.
-  "waitForEmail",
+  'waitForEmail',
   // A SQL statement against the environment's database (db.url, or db.<name>.url with
   // "@name SELECT…"), with the first row in {{db.value}} and {{db.<column>}}. See
   // server/database-step.ts.
-  "queryDatabase",
+  'queryDatabase',
   // Fails the test unless a comparison of values holds, as an `if` without an element reads
   // one: "{{db.value}} == 1", "{{total}} > 0", "{{email.subject}} contains Welcome".
-  "assertCondition",
+  'assertCondition',
   // Blocks — see shared/flow.ts, which pairs them. `if` and `repeatWhile` take a condition:
   // with an element, a state it is in now (visible, hidden, checked, contains:text…); without
   // one, a comparison of values ("{{status}} == Paid").
-  "if",
-  "else",
-  "endIf",
+  'if',
+  'else',
+  'endIf',
   // The value is how many times; {{loopIndex}} counts from 1 inside the body.
-  "repeat",
-  "repeatWhile",
-  "endLoop",
+  'repeat',
+  'repeatWhile',
+  'endLoop',
 ] as const;
 export type AdhocActionId = (typeof ADHOC_ACTION_IDS)[number];
 
@@ -137,24 +137,24 @@ export type AdhocActionId = (typeof ADHOC_ACTION_IDS)[number];
  * action existing with no implementation. This one is not done to a page at all: the runner
  * replaces it with the group’s own steps before the executor sees a thing.
  */
-export const STEP_GROUP_ACTION_ID = "callGroup";
+export const STEP_GROUP_ACTION_ID = 'callGroup';
 
 /** Action kinds the in-page recorder can emit. */
 export const RECORDED_ACTION_TYPES = [
-  "click",
+  'click',
   // Recorded only when hovering something is what revealed what happens next — see the
   // pending-hover logic in server/recorder-script.ts. DMO's navigation is a flyout that
   // opens on hover and closes when the pointer leaves, so a recording that captured only
   // clicks was missing the step that made the menu exist: replay found nothing to click and
   // timed out on the first action, whatever the selector said.
-  "hover",
-  "input",
-  "select",
-  "navigate",
-  "keypress",
-  "assert",
-  "assertTextContains",
-  "assertElementCount",
+  'hover',
+  'input',
+  'select',
+  'navigate',
+  'keypress',
+  'assert',
+  'assertTextContains',
+  'assertElementCount',
 ] as const;
 export type RecordedActionType = (typeof RECORDED_ACTION_TYPES)[number];
 
@@ -174,7 +174,7 @@ export const RecordedActionSchema = z.object({
   /** True when the recorder redacted `value` because it came from a secret field. */
   masked: z.boolean().optional(),
   /** Marks the synthetic bookkeeping actions the service itself pushes. */
-  meta: z.enum(["session-started", "session-stopped"]).optional(),
+  meta: z.enum(['session-started', 'session-stopped']).optional(),
 });
 export type RecordedAction = z.infer<typeof RecordedActionSchema>;
 
@@ -195,19 +195,16 @@ export interface RecordingSequenceResponse {
  * is not a value but a submission: a search box filled in and submitted with Enter replayed
  * as a search box filled in, and the next step waited for results that were never asked for.
  */
-export const RECORDED_TYPE_TO_ACTION_ID: Record<
-  RecordedActionType,
-  AdhocActionId | null
-> = {
-  click: "click",
-  hover: "hover",
-  input: "input",
-  select: "select",
-  navigate: "navigate",
-  keypress: "pressKey",
-  assert: "assert",
-  assertTextContains: "assertTextContains",
-  assertElementCount: "assertElementCount",
+export const RECORDED_TYPE_TO_ACTION_ID: Record<RecordedActionType, AdhocActionId | null> = {
+  click: 'click',
+  hover: 'hover',
+  input: 'input',
+  select: 'select',
+  navigate: 'navigate',
+  keypress: 'pressKey',
+  assert: 'assert',
+  assertTextContains: 'assertTextContains',
+  assertElementCount: 'assertElementCount',
 };
 
 /**
@@ -299,12 +296,12 @@ export const ACTION_REQUIREMENTS: Record<
  * builder offers these, and the runner refuses anything else by name.
  */
 export const ASSERTABLE_STATES = [
-  "checked",
-  "unchecked",
-  "enabled",
-  "disabled",
-  "editable",
-  "readonly",
+  'checked',
+  'unchecked',
+  'enabled',
+  'disabled',
+  'editable',
+  'readonly',
 ] as const;
 export type AssertableState = (typeof ASSERTABLE_STATES)[number];
 
@@ -316,7 +313,7 @@ export type AssertableState = (typeof ASSERTABLE_STATES)[number];
  * the state of the record; a test that "sets" one of those is describing something it
  * cannot do, and the runner says so by name rather than clicking and hoping.
  */
-export const SETTABLE_STATES = ["checked", "unchecked"] as const;
+export const SETTABLE_STATES = ['checked', 'unchecked'] as const;
 export type SettableState = (typeof SETTABLE_STATES)[number];
 
 /**
@@ -332,7 +329,7 @@ export const ACTION_VALUE_OPTIONS: Partial<Record<AdhocActionId, readonly string
   assertState: ASSERTABLE_STATES,
   ensureState: SETTABLE_STATES,
   // `waitForElement` has taken these two since it was added, also as free text.
-  waitForElement: ["visible", "hidden"],
+  waitForElement: ['visible', 'hidden'],
   // The least severe violation that fails the step.
   assertAccessible: ACCESSIBILITY_IMPACTS,
 };
@@ -343,244 +340,244 @@ export const ACTION_I18N: Record<
   { name: string; description: string; icon: string }
 > = {
   click: {
-    name: "dashboardPageNew.actions.click.name",
-    description: "dashboardPageNew.actions.click.description",
-    icon: "mouse-pointer",
+    name: 'dashboardPageNew.actions.click.name',
+    description: 'dashboardPageNew.actions.click.description',
+    icon: 'mouse-pointer',
   },
   input: {
-    name: "dashboardPageNew.actions.input.name",
-    description: "dashboardPageNew.actions.input.description",
-    icon: "keyboard",
+    name: 'dashboardPageNew.actions.input.name',
+    description: 'dashboardPageNew.actions.input.description',
+    icon: 'keyboard',
   },
   wait: {
-    name: "dashboardPageNew.actions.wait.name",
-    description: "dashboardPageNew.actions.wait.description",
-    icon: "clock",
+    name: 'dashboardPageNew.actions.wait.name',
+    description: 'dashboardPageNew.actions.wait.description',
+    icon: 'clock',
   },
   scroll: {
-    name: "dashboardPageNew.actions.scroll.name",
-    description: "dashboardPageNew.actions.scroll.description",
-    icon: "scroll",
+    name: 'dashboardPageNew.actions.scroll.name',
+    description: 'dashboardPageNew.actions.scroll.description',
+    icon: 'scroll',
   },
   hover: {
-    name: "dashboardPageNew.actions.hover.name",
-    description: "dashboardPageNew.actions.hover.description",
-    icon: "hand",
+    name: 'dashboardPageNew.actions.hover.name',
+    description: 'dashboardPageNew.actions.hover.description',
+    icon: 'hand',
   },
   select: {
-    name: "dashboardPageNew.actions.select.name",
-    description: "dashboardPageNew.actions.select.description",
-    icon: "chevron-down",
+    name: 'dashboardPageNew.actions.select.name',
+    description: 'dashboardPageNew.actions.select.description',
+    icon: 'chevron-down',
   },
   navigate: {
-    name: "dashboardPageNew.actions.navigate.name",
-    description: "dashboardPageNew.actions.navigate.description",
-    icon: "globe",
+    name: 'dashboardPageNew.actions.navigate.name',
+    description: 'dashboardPageNew.actions.navigate.description',
+    icon: 'globe',
   },
   assert: {
-    name: "dashboardPageNew.actions.assert.name",
-    description: "dashboardPageNew.actions.assert.description",
-    icon: "CheckSquare",
+    name: 'dashboardPageNew.actions.assert.name',
+    description: 'dashboardPageNew.actions.assert.description',
+    icon: 'CheckSquare',
   },
   assertTextContains: {
-    name: "dashboardPageNew.actions.assertTextContains.name",
-    description: "dashboardPageNew.actions.assertTextContains.description",
-    icon: "CheckSquare",
+    name: 'dashboardPageNew.actions.assertTextContains.name',
+    description: 'dashboardPageNew.actions.assertTextContains.description',
+    icon: 'CheckSquare',
   },
   assertElementCount: {
-    name: "dashboardPageNew.actions.assertElementCount.name",
-    description: "dashboardPageNew.actions.assertElementCount.description",
-    icon: "ListChecks",
+    name: 'dashboardPageNew.actions.assertElementCount.name',
+    description: 'dashboardPageNew.actions.assertElementCount.description',
+    icon: 'ListChecks',
   },
   waitForElement: {
-    name: "dashboardPageNew.actions.waitForElement.name",
-    description: "dashboardPageNew.actions.waitForElement.description",
-    icon: "Eye",
+    name: 'dashboardPageNew.actions.waitForElement.name',
+    description: 'dashboardPageNew.actions.waitForElement.description',
+    icon: 'Eye',
   },
   waitForText: {
-    name: "dashboardPageNew.actions.waitForText.name",
-    description: "dashboardPageNew.actions.waitForText.description",
-    icon: "Type",
+    name: 'dashboardPageNew.actions.waitForText.name',
+    description: 'dashboardPageNew.actions.waitForText.description',
+    icon: 'Type',
   },
   waitForNetworkIdle: {
-    name: "dashboardPageNew.actions.waitForNetworkIdle.name",
-    description: "dashboardPageNew.actions.waitForNetworkIdle.description",
-    icon: "Activity",
+    name: 'dashboardPageNew.actions.waitForNetworkIdle.name',
+    description: 'dashboardPageNew.actions.waitForNetworkIdle.description',
+    icon: 'Activity',
   },
   selectByText: {
-    name: "dashboardPageNew.actions.selectByText.name",
-    description: "dashboardPageNew.actions.selectByText.description",
-    icon: "List",
+    name: 'dashboardPageNew.actions.selectByText.name',
+    description: 'dashboardPageNew.actions.selectByText.description',
+    icon: 'List',
   },
   assertState: {
-    name: "dashboardPageNew.actions.assertState.name",
-    description: "dashboardPageNew.actions.assertState.description",
-    icon: "ToggleRight",
+    name: 'dashboardPageNew.actions.assertState.name',
+    description: 'dashboardPageNew.actions.assertState.description',
+    icon: 'ToggleRight',
   },
   ensureState: {
-    name: "dashboardPageNew.actions.ensureState.name",
-    description: "dashboardPageNew.actions.ensureState.description",
-    icon: "CheckCheck",
+    name: 'dashboardPageNew.actions.ensureState.name',
+    description: 'dashboardPageNew.actions.ensureState.description',
+    icon: 'CheckCheck',
   },
   assertAccessible: {
-    name: "dashboardPageNew.actions.assertAccessible.name",
-    description: "dashboardPageNew.actions.assertAccessible.description",
-    icon: "Accessibility",
+    name: 'dashboardPageNew.actions.assertAccessible.name',
+    description: 'dashboardPageNew.actions.assertAccessible.description',
+    icon: 'Accessibility',
   },
   measurePerformance: {
-    name: "dashboardPageNew.actions.measurePerformance.name",
-    description: "dashboardPageNew.actions.measurePerformance.description",
-    icon: "Gauge",
+    name: 'dashboardPageNew.actions.measurePerformance.name',
+    description: 'dashboardPageNew.actions.measurePerformance.description',
+    icon: 'Gauge',
   },
   setGeolocation: {
-    name: "dashboardPageNew.actions.setGeolocation.name",
-    description: "dashboardPageNew.actions.setGeolocation.description",
-    icon: "MapPin",
+    name: 'dashboardPageNew.actions.setGeolocation.name',
+    description: 'dashboardPageNew.actions.setGeolocation.description',
+    icon: 'MapPin',
   },
   expectDownload: {
-    name: "dashboardPageNew.actions.expectDownload.name",
-    description: "dashboardPageNew.actions.expectDownload.description",
-    icon: "FileDown",
+    name: 'dashboardPageNew.actions.expectDownload.name',
+    description: 'dashboardPageNew.actions.expectDownload.description',
+    icon: 'FileDown',
   },
   waitForSms: {
-    name: "dashboardPageNew.actions.waitForSms.name",
-    description: "dashboardPageNew.actions.waitForSms.description",
-    icon: "MessageSquareText",
+    name: 'dashboardPageNew.actions.waitForSms.name',
+    description: 'dashboardPageNew.actions.waitForSms.description',
+    icon: 'MessageSquareText',
   },
   auditLighthouse: {
-    name: "dashboardPageNew.actions.auditLighthouse.name",
-    description: "dashboardPageNew.actions.auditLighthouse.description",
-    icon: "Lightbulb",
+    name: 'dashboardPageNew.actions.auditLighthouse.name',
+    description: 'dashboardPageNew.actions.auditLighthouse.description',
+    icon: 'Lightbulb',
   },
   pressKey: {
-    name: "dashboardPageNew.actions.pressKey.name",
-    description: "dashboardPageNew.actions.pressKey.description",
-    icon: "CornerDownLeft",
+    name: 'dashboardPageNew.actions.pressKey.name',
+    description: 'dashboardPageNew.actions.pressKey.description',
+    icon: 'CornerDownLeft',
   },
   doubleClick: {
-    name: "dashboardPageNew.actions.doubleClick.name",
-    description: "dashboardPageNew.actions.doubleClick.description",
-    icon: "MousePointerClick",
+    name: 'dashboardPageNew.actions.doubleClick.name',
+    description: 'dashboardPageNew.actions.doubleClick.description',
+    icon: 'MousePointerClick',
   },
   rightClick: {
-    name: "dashboardPageNew.actions.rightClick.name",
-    description: "dashboardPageNew.actions.rightClick.description",
-    icon: "MousePointer2",
+    name: 'dashboardPageNew.actions.rightClick.name',
+    description: 'dashboardPageNew.actions.rightClick.description',
+    icon: 'MousePointer2',
   },
   dragAndDrop: {
-    name: "dashboardPageNew.actions.dragAndDrop.name",
-    description: "dashboardPageNew.actions.dragAndDrop.description",
-    icon: "Move",
+    name: 'dashboardPageNew.actions.dragAndDrop.name',
+    description: 'dashboardPageNew.actions.dragAndDrop.description',
+    icon: 'Move',
   },
   uploadFile: {
-    name: "dashboardPageNew.actions.uploadFile.name",
-    description: "dashboardPageNew.actions.uploadFile.description",
-    icon: "Upload",
+    name: 'dashboardPageNew.actions.uploadFile.name',
+    description: 'dashboardPageNew.actions.uploadFile.description',
+    icon: 'Upload',
   },
   handleDialog: {
-    name: "dashboardPageNew.actions.handleDialog.name",
-    description: "dashboardPageNew.actions.handleDialog.description",
-    icon: "MessageSquare",
+    name: 'dashboardPageNew.actions.handleDialog.name',
+    description: 'dashboardPageNew.actions.handleDialog.description',
+    icon: 'MessageSquare',
   },
   switchTab: {
-    name: "dashboardPageNew.actions.switchTab.name",
-    description: "dashboardPageNew.actions.switchTab.description",
-    icon: "AppWindow",
+    name: 'dashboardPageNew.actions.switchTab.name',
+    description: 'dashboardPageNew.actions.switchTab.description',
+    icon: 'AppWindow',
   },
   closeTab: {
-    name: "dashboardPageNew.actions.closeTab.name",
-    description: "dashboardPageNew.actions.closeTab.description",
-    icon: "X",
+    name: 'dashboardPageNew.actions.closeTab.name',
+    description: 'dashboardPageNew.actions.closeTab.description',
+    icon: 'X',
   },
   storeText: {
-    name: "dashboardPageNew.actions.storeText.name",
-    description: "dashboardPageNew.actions.storeText.description",
-    icon: "Variable",
+    name: 'dashboardPageNew.actions.storeText.name',
+    description: 'dashboardPageNew.actions.storeText.description',
+    icon: 'Variable',
   },
   setCookie: {
-    name: "dashboardPageNew.actions.setCookie.name",
-    description: "dashboardPageNew.actions.setCookie.description",
-    icon: "Cookie",
+    name: 'dashboardPageNew.actions.setCookie.name',
+    description: 'dashboardPageNew.actions.setCookie.description',
+    icon: 'Cookie',
   },
   clearCookies: {
-    name: "dashboardPageNew.actions.clearCookies.name",
-    description: "dashboardPageNew.actions.clearCookies.description",
-    icon: "Eraser",
+    name: 'dashboardPageNew.actions.clearCookies.name',
+    description: 'dashboardPageNew.actions.clearCookies.description',
+    icon: 'Eraser',
   },
   setLocalStorage: {
-    name: "dashboardPageNew.actions.setLocalStorage.name",
-    description: "dashboardPageNew.actions.setLocalStorage.description",
-    icon: "Database",
+    name: 'dashboardPageNew.actions.setLocalStorage.name',
+    description: 'dashboardPageNew.actions.setLocalStorage.description',
+    icon: 'Database',
   },
   executeScript: {
-    name: "dashboardPageNew.actions.executeScript.name",
-    description: "dashboardPageNew.actions.executeScript.description",
-    icon: "Code",
+    name: 'dashboardPageNew.actions.executeScript.name',
+    description: 'dashboardPageNew.actions.executeScript.description',
+    icon: 'Code',
   },
   mockRequest: {
-    name: "dashboardPageNew.actions.mockRequest.name",
-    description: "dashboardPageNew.actions.mockRequest.description",
-    icon: "Server",
+    name: 'dashboardPageNew.actions.mockRequest.name',
+    description: 'dashboardPageNew.actions.mockRequest.description',
+    icon: 'Server',
   },
   blockRequests: {
-    name: "dashboardPageNew.actions.blockRequests.name",
-    description: "dashboardPageNew.actions.blockRequests.description",
-    icon: "Ban",
+    name: 'dashboardPageNew.actions.blockRequests.name',
+    description: 'dashboardPageNew.actions.blockRequests.description',
+    icon: 'Ban',
   },
   clearMocks: {
-    name: "dashboardPageNew.actions.clearMocks.name",
-    description: "dashboardPageNew.actions.clearMocks.description",
-    icon: "Eraser",
+    name: 'dashboardPageNew.actions.clearMocks.name',
+    description: 'dashboardPageNew.actions.clearMocks.description',
+    icon: 'Eraser',
   },
   setVariable: {
-    name: "dashboardPageNew.actions.setVariable.name",
-    description: "dashboardPageNew.actions.setVariable.description",
-    icon: "Variable",
+    name: 'dashboardPageNew.actions.setVariable.name',
+    description: 'dashboardPageNew.actions.setVariable.description',
+    icon: 'Variable',
   },
   waitForEmail: {
-    name: "dashboardPageNew.actions.waitForEmail.name",
-    description: "dashboardPageNew.actions.waitForEmail.description",
-    icon: "Mail",
+    name: 'dashboardPageNew.actions.waitForEmail.name',
+    description: 'dashboardPageNew.actions.waitForEmail.description',
+    icon: 'Mail',
   },
   queryDatabase: {
-    name: "dashboardPageNew.actions.queryDatabase.name",
-    description: "dashboardPageNew.actions.queryDatabase.description",
-    icon: "Database",
+    name: 'dashboardPageNew.actions.queryDatabase.name',
+    description: 'dashboardPageNew.actions.queryDatabase.description',
+    icon: 'Database',
   },
   assertCondition: {
-    name: "dashboardPageNew.actions.assertCondition.name",
-    description: "dashboardPageNew.actions.assertCondition.description",
-    icon: "CheckCheck",
+    name: 'dashboardPageNew.actions.assertCondition.name',
+    description: 'dashboardPageNew.actions.assertCondition.description',
+    icon: 'CheckCheck',
   },
   if: {
-    name: "dashboardPageNew.actions.if.name",
-    description: "dashboardPageNew.actions.if.description",
-    icon: "GitBranch",
+    name: 'dashboardPageNew.actions.if.name',
+    description: 'dashboardPageNew.actions.if.description',
+    icon: 'GitBranch',
   },
   else: {
-    name: "dashboardPageNew.actions.else.name",
-    description: "dashboardPageNew.actions.else.description",
-    icon: "GitBranch",
+    name: 'dashboardPageNew.actions.else.name',
+    description: 'dashboardPageNew.actions.else.description',
+    icon: 'GitBranch',
   },
   endIf: {
-    name: "dashboardPageNew.actions.endIf.name",
-    description: "dashboardPageNew.actions.endIf.description",
-    icon: "GitMerge",
+    name: 'dashboardPageNew.actions.endIf.name',
+    description: 'dashboardPageNew.actions.endIf.description',
+    icon: 'GitMerge',
   },
   repeat: {
-    name: "dashboardPageNew.actions.repeat.name",
-    description: "dashboardPageNew.actions.repeat.description",
-    icon: "Repeat",
+    name: 'dashboardPageNew.actions.repeat.name',
+    description: 'dashboardPageNew.actions.repeat.description',
+    icon: 'Repeat',
   },
   repeatWhile: {
-    name: "dashboardPageNew.actions.repeatWhile.name",
-    description: "dashboardPageNew.actions.repeatWhile.description",
-    icon: "Repeat",
+    name: 'dashboardPageNew.actions.repeatWhile.name',
+    description: 'dashboardPageNew.actions.repeatWhile.description',
+    icon: 'Repeat',
   },
   endLoop: {
-    name: "dashboardPageNew.actions.endLoop.name",
-    description: "dashboardPageNew.actions.endLoop.description",
-    icon: "CornerLeftUp",
+    name: 'dashboardPageNew.actions.endLoop.name',
+    description: 'dashboardPageNew.actions.endLoop.description',
+    icon: 'CornerLeftUp',
   },
 };
 
@@ -592,29 +589,29 @@ export const ACTION_I18N: Record<
  * learn by having the step fail.
  */
 export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
-  pressKey: "dashboardPageNew.actions.pressKey.valueHint",
-  dragAndDrop: "dashboardPageNew.actions.dragAndDrop.valueHint",
-  uploadFile: "dashboardPageNew.actions.uploadFile.valueHint",
-  setGeolocation: "dashboardPageNew.actions.setGeolocation.valueHint",
-  expectDownload: "dashboardPageNew.actions.expectDownload.valueHint",
-  waitForSms: "dashboardPageNew.actions.waitForSms.valueHint",
-  handleDialog: "dashboardPageNew.actions.handleDialog.valueHint",
-  switchTab: "dashboardPageNew.actions.switchTab.valueHint",
-  storeText: "dashboardPageNew.actions.storeText.valueHint",
-  setCookie: "dashboardPageNew.actions.setCookie.valueHint",
-  setLocalStorage: "dashboardPageNew.actions.setLocalStorage.valueHint",
-  executeScript: "dashboardPageNew.actions.executeScript.valueHint",
-  mockRequest: "dashboardPageNew.actions.mockRequest.valueHint",
-  blockRequests: "dashboardPageNew.actions.blockRequests.valueHint",
-  measurePerformance: "dashboardPageNew.actions.measurePerformance.valueHint",
-  auditLighthouse: "dashboardPageNew.actions.auditLighthouse.valueHint",
-  setVariable: "dashboardPageNew.actions.setVariable.valueHint",
-  waitForEmail: "dashboardPageNew.actions.waitForEmail.valueHint",
-  queryDatabase: "dashboardPageNew.actions.queryDatabase.valueHint",
-  assertCondition: "dashboardPageNew.actions.assertCondition.valueHint",
-  if: "dashboardPageNew.actions.if.valueHint",
-  repeat: "dashboardPageNew.actions.repeat.valueHint",
-  repeatWhile: "dashboardPageNew.actions.repeatWhile.valueHint",
+  pressKey: 'dashboardPageNew.actions.pressKey.valueHint',
+  dragAndDrop: 'dashboardPageNew.actions.dragAndDrop.valueHint',
+  uploadFile: 'dashboardPageNew.actions.uploadFile.valueHint',
+  setGeolocation: 'dashboardPageNew.actions.setGeolocation.valueHint',
+  expectDownload: 'dashboardPageNew.actions.expectDownload.valueHint',
+  waitForSms: 'dashboardPageNew.actions.waitForSms.valueHint',
+  handleDialog: 'dashboardPageNew.actions.handleDialog.valueHint',
+  switchTab: 'dashboardPageNew.actions.switchTab.valueHint',
+  storeText: 'dashboardPageNew.actions.storeText.valueHint',
+  setCookie: 'dashboardPageNew.actions.setCookie.valueHint',
+  setLocalStorage: 'dashboardPageNew.actions.setLocalStorage.valueHint',
+  executeScript: 'dashboardPageNew.actions.executeScript.valueHint',
+  mockRequest: 'dashboardPageNew.actions.mockRequest.valueHint',
+  blockRequests: 'dashboardPageNew.actions.blockRequests.valueHint',
+  measurePerformance: 'dashboardPageNew.actions.measurePerformance.valueHint',
+  auditLighthouse: 'dashboardPageNew.actions.auditLighthouse.valueHint',
+  setVariable: 'dashboardPageNew.actions.setVariable.valueHint',
+  waitForEmail: 'dashboardPageNew.actions.waitForEmail.valueHint',
+  queryDatabase: 'dashboardPageNew.actions.queryDatabase.valueHint',
+  assertCondition: 'dashboardPageNew.actions.assertCondition.valueHint',
+  if: 'dashboardPageNew.actions.if.valueHint',
+  repeat: 'dashboardPageNew.actions.repeat.valueHint',
+  repeatWhile: 'dashboardPageNew.actions.repeatWhile.valueHint',
 };
 
 /** The step shape the visual builder works with (mirrors client `TestStep`). */
@@ -665,28 +662,28 @@ export function mapRecordedActionToStep(
       icon: meta.icon,
       description: meta.description,
     },
-    value: recorded.value ?? "",
+    value: recorded.value ?? '',
   };
 
   if (recorded.selector) {
     step.targetElement = {
       id: `recorded-elem-${index}`,
       selector: recorded.selector,
-      type: recorded.targetTag || "element",
+      type: recorded.targetTag || 'element',
       text: recorded.targetText || recorded.selector,
-      tag: recorded.targetTag || "unknown",
+      tag: recorded.targetTag || 'unknown',
       attributes: {},
     };
   }
 
   // A navigate step replays as `page.goto(value)`, so the URL has to live in `value`.
-  if (actionId === "navigate") {
-    step.value = recorded.url ?? recorded.value ?? "";
+  if (actionId === 'navigate') {
+    step.value = recorded.url ?? recorded.value ?? '';
   }
 
   // The key is what a pressKey step presses.
-  if (actionId === "pressKey") {
-    step.value = recorded.key ?? recorded.value ?? "Enter";
+  if (actionId === 'pressKey') {
+    step.value = recorded.key ?? recorded.value ?? 'Enter';
   }
 
   // The recorder never sends the contents of a password-like field. An empty value would
@@ -700,11 +697,8 @@ export function mapRecordedActionToStep(
 }
 
 /** Stable, per-field variable name for a redacted input, e.g. `secret_loginPassword`. */
-export function secretPlaceholderName(
-  recorded: RecordedAction,
-  index: number,
-): string {
-  const hint = (recorded.targetId || "").replace(/\W/g, "");
+export function secretPlaceholderName(recorded: RecordedAction, index: number): string {
+  const hint = (recorded.targetId || '').replace(/\W/g, '');
   return `secret_${hint || index}`;
 }
 
@@ -722,8 +716,8 @@ export function inActionOrder(sequence: RecordedAction[]): RecordedAction[] {
     const key = ordered[i];
     const value = ordered[i + 1];
     if (
-      key.type === "keypress" &&
-      (value.type === "input" || value.type === "select") &&
+      key.type === 'keypress' &&
+      (value.type === 'input' || value.type === 'select') &&
       !!key.selector &&
       key.selector === value.selector
     ) {
@@ -736,9 +730,7 @@ export function inActionOrder(sequence: RecordedAction[]): RecordedAction[] {
 }
 
 /** Map a whole recorded buffer, dropping the non-replayable entries. */
-export function mapRecordedSequence(
-  sequence: RecordedAction[],
-): MappedTestStep[] {
+export function mapRecordedSequence(sequence: RecordedAction[]): MappedTestStep[] {
   return inActionOrder(sequence)
     .map((action, index) => mapRecordedActionToStep(action, index))
     .filter((step): step is MappedTestStep => step !== null);

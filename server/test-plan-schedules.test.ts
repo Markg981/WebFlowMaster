@@ -2,7 +2,13 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vites
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
 import { privilegedDb } from './db'; // Main DB import
-import { users, testPlanSchedules, testPlans, type InsertTestPlanSchedule, type TestPlan } from '../shared/schema';
+import {
+  users,
+  testPlanSchedules,
+  testPlans,
+  type InsertTestPlanSchedule,
+  type TestPlan,
+} from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import schedulerService from './scheduler-service'; // Import the actual service
@@ -44,7 +50,6 @@ async function setupTestApp() {
   return tempApp;
 }
 
-
 let seededPlan1: TestPlan;
 let seededPlan2: TestPlan;
 let organizationId: number;
@@ -63,14 +68,34 @@ beforeEach(async () => {
   // requireRole reads role off req.user directly (this app's mock auth middleware never
   // loads it from the DB row below), so the mock object needs it set explicitly.
   (mockUser as any).role = 'editor';
-  await privilegedDb.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
+  await privilegedDb
+    .insert(users)
+    .values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
   vi.clearAllMocks(); // Clear mocks before each test
 
   // Seed Test Plans
   const planId1 = uuidv4();
   const planId2 = uuidv4();
-  [seededPlan1] = await privilegedDb.insert(testPlans).values({ id: planId1, name: 'Default Test Plan 1', description: 'For general testing', userId: mockUser.id, organizationId }).returning();
-  [seededPlan2] = await privilegedDb.insert(testPlans).values({ id: planId2, name: 'Default Test Plan 2', description: 'Another plan', userId: mockUser.id, organizationId }).returning();
+  [seededPlan1] = await privilegedDb
+    .insert(testPlans)
+    .values({
+      id: planId1,
+      name: 'Default Test Plan 1',
+      description: 'For general testing',
+      userId: mockUser.id,
+      organizationId,
+    })
+    .returning();
+  [seededPlan2] = await privilegedDb
+    .insert(testPlans)
+    .values({
+      id: planId2,
+      name: 'Default Test Plan 2',
+      description: 'Another plan',
+      userId: mockUser.id,
+      organizationId,
+    })
+    .returning();
 });
 
 afterAll(async () => {
@@ -78,7 +103,6 @@ afterAll(async () => {
   await privilegedDb.delete(testPlanSchedules);
   await privilegedDb.delete(testPlans);
 });
-
 
 describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
   describe('POST /api/test-plan-schedules', () => {
@@ -113,7 +137,10 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       expect(response.body.isActive).toBe(true);
       expect(response.body.retryOnFailure).toBe('once');
 
-      const dbSchedule = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
+      const dbSchedule = await privilegedDb
+        .select()
+        .from(testPlanSchedules)
+        .where(eq(testPlanSchedules.id, scheduleId));
       expect(dbSchedule.length).toBe(1);
       expect(dbSchedule[0].testPlanId).toBe(newSchedulePayload.testPlanId);
       expect(dbSchedule[0].environment).toBe('QA');
@@ -121,29 +148,30 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       expect(schedulerService.addScheduleJob).toHaveBeenCalledTimes(1);
       // Check if addScheduleJob was called with the schedule that has the correct id
       expect(schedulerService.addScheduleJob).toHaveBeenCalledWith(
-        expect.objectContaining({ id: scheduleId, scheduleName: newSchedulePayload.scheduleName })
+        expect.objectContaining({ id: scheduleId, scheduleName: newSchedulePayload.scheduleName }),
       );
     });
 
     it('should return 400 for invalid payload (e.g., missing required fields)', async () => {
-        const invalidPayload = { testPlanId: seededPlan1.id }; // Missing scheduleName, frequency, nextRunAt
-        await request(app)
-            .post('/api/test-plan-schedules')
-            .send(invalidPayload)
-            .expect(400);
-        expect(schedulerService.addScheduleJob).not.toHaveBeenCalled();
+      const invalidPayload = { testPlanId: seededPlan1.id }; // Missing scheduleName, frequency, nextRunAt
+      await request(app).post('/api/test-plan-schedules').send(invalidPayload).expect(400);
+      expect(schedulerService.addScheduleJob).not.toHaveBeenCalled();
     });
 
     it('should return 400 when creating a schedule with a non-existent testPlanId', async () => {
       const newSchedulePayload = {
-        scheduleName: 'Invalid Plan Run', testPlanId: uuidv4(), frequency: 'Daily',
-        nextRunAt: Math.floor(new Date().getTime() / 1000), environment: "QA", browsers: ["chromium"]
+        scheduleName: 'Invalid Plan Run',
+        testPlanId: uuidv4(),
+        frequency: 'Daily',
+        nextRunAt: Math.floor(new Date().getTime() / 1000),
+        environment: 'QA',
+        browsers: ['chromium'],
       };
       const response = await request(app)
         .post('/api/test-plan-schedules')
         .send(newSchedulePayload)
         .expect(400);
-      expect(response.body.error).toContain("Invalid Test Plan ID");
+      expect(response.body.error).toContain('Invalid Test Plan ID');
       expect(schedulerService.addScheduleJob).not.toHaveBeenCalled();
     });
   });
@@ -151,15 +179,19 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
   describe('GET /api/test-plan-schedules', () => {
     it('should return all schedules with their testPlanName joined and JSON fields parsed', async () => {
       const schedule1Data: InsertTestPlanSchedule = {
-        id: uuidv4(), scheduleName: 'Schedule A', testPlanId: seededPlan1.id, organizationId,
-        frequency: 'Daily', nextRunAt: new Date(),
-        browsers: JSON.stringify(['chromium']), isActive: true, retryOnFailure: 'none'
+        id: uuidv4(),
+        scheduleName: 'Schedule A',
+        testPlanId: seededPlan1.id,
+        organizationId,
+        frequency: 'Daily',
+        nextRunAt: new Date(),
+        browsers: JSON.stringify(['chromium']),
+        isActive: true,
+        retryOnFailure: 'none',
       };
       await privilegedDb.insert(testPlanSchedules).values(schedule1Data);
 
-      const response = await request(app)
-        .get('/api/test-plan-schedules')
-        .expect(200);
+      const response = await request(app).get('/api/test-plan-schedules').expect(200);
 
       expect(response.body.length).toBe(1);
       expect(response.body[0].scheduleName).toBe(schedule1Data.scheduleName);
@@ -174,8 +206,26 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       const s1Id = uuidv4();
       const s2Id = uuidv4();
       await privilegedDb.insert(testPlanSchedules).values([
-        { id: s1Id, scheduleName: 'Plan1 Sched1', testPlanId: seededPlan1.id, organizationId, frequency: 'once', nextRunAt: new Date(), environment: 'QA', browsers: JSON.stringify(['chrome']) },
-        { id: s2Id, scheduleName: 'Plan2 Sched1', testPlanId: seededPlan2.id, organizationId, frequency: 'daily', nextRunAt: new Date(), environment: 'Staging', browsers: JSON.stringify(['firefox']) },
+        {
+          id: s1Id,
+          scheduleName: 'Plan1 Sched1',
+          testPlanId: seededPlan1.id,
+          organizationId,
+          frequency: 'once',
+          nextRunAt: new Date(),
+          environment: 'QA',
+          browsers: JSON.stringify(['chrome']),
+        },
+        {
+          id: s2Id,
+          scheduleName: 'Plan2 Sched1',
+          testPlanId: seededPlan2.id,
+          organizationId,
+          frequency: 'daily',
+          nextRunAt: new Date(),
+          environment: 'Staging',
+          browsers: JSON.stringify(['firefox']),
+        },
       ]);
 
       const response = await request(app)
@@ -190,14 +240,20 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
     });
   });
 
-
   describe('PUT /api/test-plan-schedules/:id', () => {
     it('should update an existing schedule and call schedulerService.updateScheduleJob', async () => {
       const scheduleId = uuidv4();
       const initialSchedule: InsertTestPlanSchedule = {
-        id: scheduleId, scheduleName: 'Initial Name', testPlanId: seededPlan1.id, organizationId,
-        frequency: 'Daily', nextRunAt: new Date(),
-        environment: 'Dev', browsers: JSON.stringify(['webkit']), isActive: true, retryOnFailure: 'none'
+        id: scheduleId,
+        scheduleName: 'Initial Name',
+        testPlanId: seededPlan1.id,
+        organizationId,
+        frequency: 'Daily',
+        nextRunAt: new Date(),
+        environment: 'Dev',
+        browsers: JSON.stringify(['webkit']),
+        isActive: true,
+        retryOnFailure: 'none',
       };
       await privilegedDb.insert(testPlanSchedules).values(initialSchedule);
 
@@ -225,14 +281,17 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       expect(response.body.isActive).toBe(false);
       expect(response.body.retryOnFailure).toBe('twice');
 
-      const dbSchedule = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
+      const dbSchedule = await privilegedDb
+        .select()
+        .from(testPlanSchedules)
+        .where(eq(testPlanSchedules.id, scheduleId));
       expect(dbSchedule[0].testPlanId).toBe(updatedData.testPlanId);
       expect(dbSchedule[0].environment).toBe('Staging');
       expect(dbSchedule[0].isActive).toBe(false); // Postgres boolean column
 
       expect(schedulerService.updateScheduleJob).toHaveBeenCalledTimes(1);
       expect(schedulerService.updateScheduleJob).toHaveBeenCalledWith(
-        expect.objectContaining({ id: scheduleId, isActive: false }) // Check that the updated schedule is passed
+        expect.objectContaining({ id: scheduleId, isActive: false }), // Check that the updated schedule is passed
       );
     });
   });
@@ -241,25 +300,31 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
     it('should delete an existing schedule and call schedulerService.removeScheduleJob', async () => {
       const scheduleId = uuidv4();
       const scheduleToDelete: InsertTestPlanSchedule = {
-        id: scheduleId, scheduleName: 'To Delete', testPlanId: seededPlan1.id, organizationId,
-        frequency: 'Once', nextRunAt: new Date(),
-        environment: 'Prod', browsers: JSON.stringify(['all'])
+        id: scheduleId,
+        scheduleName: 'To Delete',
+        testPlanId: seededPlan1.id,
+        organizationId,
+        frequency: 'Once',
+        nextRunAt: new Date(),
+        environment: 'Prod',
+        browsers: JSON.stringify(['all']),
       };
       await privilegedDb.insert(testPlanSchedules).values(scheduleToDelete);
 
-      await request(app)
-        .delete(`/api/test-plan-schedules/${scheduleId}`)
-        .expect(204);
+      await request(app).delete(`/api/test-plan-schedules/${scheduleId}`).expect(204);
 
-      const dbSchedule = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
+      const dbSchedule = await privilegedDb
+        .select()
+        .from(testPlanSchedules)
+        .where(eq(testPlanSchedules.id, scheduleId));
       expect(dbSchedule.length).toBe(0);
       expect(schedulerService.removeScheduleJob).toHaveBeenCalledTimes(1);
       expect(schedulerService.removeScheduleJob).toHaveBeenCalledWith(scheduleId);
     });
 
     it('should return 404 if schedule to delete is not found', async () => {
-        await request(app).delete(`/api/test-plan-schedules/${uuidv4()}`).expect(404);
-        expect(schedulerService.removeScheduleJob).not.toHaveBeenCalled();
+      await request(app).delete(`/api/test-plan-schedules/${uuidv4()}`).expect(404);
+      expect(schedulerService.removeScheduleJob).not.toHaveBeenCalled();
     });
   });
 });

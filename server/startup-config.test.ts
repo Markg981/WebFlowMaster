@@ -33,16 +33,25 @@ describe('the startup configuration check', () => {
   });
 
   it('lets development start with the example values', () => {
-    expect(startupConfigErrors({ SESSION_SECRET: 'change-me', ENCRYPTION_KEY: '0'.repeat(64) })).toEqual([]);
+    expect(
+      startupConfigErrors({ SESSION_SECRET: 'change-me', ENCRYPTION_KEY: '0'.repeat(64) }),
+    ).toEqual([]);
   });
 
   it('accepts generated secrets in production', () => {
-    const env = { NODE_ENV: 'production', SESSION_SECRET: 'a'.repeat(64), ENCRYPTION_KEY: 'b'.repeat(64), AGENT_RELAY_SECRET: 'c'.repeat(64) };
+    const env = {
+      NODE_ENV: 'production',
+      SESSION_SECRET: 'a'.repeat(64),
+      ENCRYPTION_KEY: 'b'.repeat(64),
+      AGENT_RELAY_SECRET: 'c'.repeat(64),
+    };
     expect(startupConfigErrors(env)).toEqual([]);
   });
 
   it('reports every problem at once', () => {
-    expect(startupConfigErrors({ CONTENT_SECURITY_POLICY: 'strict', REGISTRATION: 'foo' })).toHaveLength(3);
+    expect(
+      startupConfigErrors({ CONTENT_SECURITY_POLICY: 'strict', REGISTRATION: 'foo' }),
+    ).toHaveLength(3);
   });
 });
 
@@ -51,13 +60,17 @@ describe('connecting the session store at startup', () => {
 
   it('stops a production start and names what Redis answered', async () => {
     const warn = vi.fn();
-    await expect(connectSessionStore(refused, warn, { NODE_ENV: 'production' })).rejects.toThrow(/ECONNREFUSED.*REDIS_URL/);
+    await expect(connectSessionStore(refused, warn, { NODE_ENV: 'production' })).rejects.toThrow(
+      /ECONNREFUSED.*REDIS_URL/,
+    );
     expect(warn).not.toHaveBeenCalled();
   });
 
   it('only warns in development', async () => {
     const warn = vi.fn();
-    await expect(connectSessionStore(refused, warn, { NODE_ENV: 'development' })).resolves.toBeUndefined();
+    await expect(
+      connectSessionStore(refused, warn, { NODE_ENV: 'development' }),
+    ).resolves.toBeUndefined();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('ECONNREFUSED'));
   });
 

@@ -12,7 +12,10 @@ export const requestXsd = `<x:schema xmlns:x="http://www.w3.org/2001/XMLSchema" 
  <x:element name="Details"><x:complexType><x:sequence><x:element name="Note" type="x:string"/></x:sequence></x:complexType></x:element>
 </x:schema>`;
 export const baseXsd = `<x:schema xmlns:x="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:request" elementFormDefault="qualified"><x:complexType name="Base"><x:sequence><x:element name="OrderId" type="x:string"/></x:sequence></x:complexType></x:schema>`;
-export const bundle = [{location:'types/request.xsd',content:requestXsd},{location:'types/base.xsd',content:baseXsd}];
+export const bundle = [
+  { location: 'types/request.xsd', content: requestXsd },
+  { location: 'types/base.xsd', content: baseXsd },
+];
 export const wsdl2 = `<description xmlns="http://www.w3.org/ns/wsdl" xmlns:t="urn:v2" xmlns:r="urn:request" xmlns:x="http://www.w3.org/2001/XMLSchema" xmlns:s="http://www.w3.org/ns/wsdl/soap" targetNamespace="urn:v2">
  <types><x:schema><x:import namespace="urn:request" schemaLocation="types/request.xsd"/></x:schema></types>
  <interface name="Orders"><operation name="Create" pattern="http://www.w3.org/ns/wsdl/in-out"><input element="r:Order"/><output element="r:Order"/></operation><operation name="Notify" pattern="http://www.w3.org/ns/wsdl/in-only"><input element="r:Order"/></operation></interface>

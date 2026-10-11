@@ -10,27 +10,27 @@
 /** Where the failure most probably comes from. */
 export const FAILURE_CATEGORIES = [
   /** The element is there but the test looks for it the wrong way: selector, frame, timing of a render. */
-  "locator",
+  'locator',
   /** The application did something wrong: an error page, a 500, a wrong value, a missing feature. */
-  "application",
+  'application',
   /** The test did not wait for something that was going to happen. */
-  "timing",
+  'timing',
   /** The data the test used: an account that no longer exists, a value already taken, an expired code. */
-  "test-data",
+  'test-data',
   /** Around the application: network, DNS, certificates, a service that is down. */
-  "environment",
-  "unknown",
+  'environment',
+  'unknown',
 ] as const;
 export type FailureCategory = (typeof FAILURE_CATEGORIES)[number];
 
-export const ANALYSIS_CONFIDENCE = ["high", "medium", "low"] as const;
+export const ANALYSIS_CONFIDENCE = ['high', 'medium', 'low'] as const;
 export type AnalysisConfidence = (typeof ANALYSIS_CONFIDENCE)[number];
 
 /** Results worth analysing: the ones that did not pass for a reason the runner saw. */
-export const ANALYSABLE_STATUSES = ["Failed", "Error"] as const;
+export const ANALYSABLE_STATUSES = ['Failed', 'Error'] as const;
 
 /** The languages an analysis can be written in — the interface's own. */
-export const ANALYSIS_LANGUAGES = ["en", "it", "de", "fr"] as const;
+export const ANALYSIS_LANGUAGES = ['en', 'it', 'de', 'fr'] as const;
 export type AnalysisLanguage = (typeof ANALYSIS_LANGUAGES)[number];
 
 export interface FailureAnalysis {
@@ -55,7 +55,9 @@ export interface FailureAnalysis {
 }
 
 export function readFailureAnalysis(value: unknown): FailureAnalysis | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !== 'object') return null;
   const analysis = value as FailureAnalysis;
-  return FAILURE_CATEGORIES.includes(analysis.category) && typeof analysis.summary === "string" ? analysis : null;
+  return FAILURE_CATEGORIES.includes(analysis.category) && typeof analysis.summary === 'string'
+    ? analysis
+    : null;
 }

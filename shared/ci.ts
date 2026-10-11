@@ -10,7 +10,15 @@ import { z } from 'zod';
  * exported files, so each end links to the other.
  */
 
-export const CI_PROVIDERS = ['github', 'gitlab', 'jenkins', 'azure', 'bitbucket', 'circleci', 'other'] as const;
+export const CI_PROVIDERS = [
+  'github',
+  'gitlab',
+  'jenkins',
+  'azure',
+  'bitbucket',
+  'circleci',
+  'other',
+] as const;
 export type CiProvider = (typeof CI_PROVIDERS)[number];
 
 export const CI_PROVIDER_NAMES: Record<CiProvider, string> = {
@@ -37,7 +45,11 @@ export const ciContextSchema = z
   .object({
     provider: z.enum(CI_PROVIDERS),
     repository: text(300).optional(),
-    commit: z.string().trim().regex(/^[0-9a-f]{7,64}$/i, 'A commit is a hexadecimal hash').optional(),
+    commit: z
+      .string()
+      .trim()
+      .regex(/^[0-9a-f]{7,64}$/i, 'A commit is a hexadecimal hash')
+      .optional(),
     branch: text(300).optional(),
     pullRequest: text(50).optional(),
     buildId: text(200).optional(),
@@ -53,7 +65,8 @@ export type CiContext = z.infer<typeof ciContextSchema>;
 export function describeCi(ci: CiContext): string {
   const parts: string[] = [CI_PROVIDER_NAMES[ci.provider]];
   const where = [ci.repository, ci.commit ? ci.commit.slice(0, 7) : null].filter(Boolean).join('@');
-  if (where || ci.branch) parts.push(`${where}${ci.branch ? `${where ? ' ' : ''}on ${ci.branch}` : ''}`);
+  if (where || ci.branch)
+    parts.push(`${where}${ci.branch ? `${where ? ' ' : ''}on ${ci.branch}` : ''}`);
   if (ci.pullRequest) parts.push(`PR ${ci.pullRequest}`);
   if (ci.buildId) parts.push(`build ${ci.buildId}`);
   return parts.join(' · ');

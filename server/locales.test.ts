@@ -31,14 +31,20 @@ describe('language codes', () => {
 
   it('is refused by name when a plan is saved with one that is not a code', () => {
     const base = { name: 'P', userId: 1, organizationId: 1 };
-    expect(insertTestPlanSchema.safeParse({ ...base, locales: ['it_IT', 'en'] })).toMatchObject({ success: true, data: { locales: ['it-IT', 'en'] } });
+    expect(insertTestPlanSchema.safeParse({ ...base, locales: ['it_IT', 'en'] })).toMatchObject({
+      success: true,
+      data: { locales: ['it-IT', 'en'] },
+    });
     const refused = insertTestPlanSchema.safeParse({ ...base, locales: ['english'] });
     expect(refused.success).toBe(false);
     expect(JSON.stringify(refused.error?.issues)).toContain('A language is a code');
   });
 
   it('is fixed in the run snapshot, so a plan edited while the run waits does not change it', () => {
-    const snapshot = buildExecutionSnapshot({ id: 'p', name: 'P', locales: ['it-IT', 'bad code'] } as any, []);
+    const snapshot = buildExecutionSnapshot(
+      { id: 'p', name: 'P', locales: ['it-IT', 'bad code'] } as any,
+      [],
+    );
     expect(snapshot.locales).toEqual(['it-IT']);
   });
 });
@@ -50,12 +56,14 @@ describe('a test run in a language', () => {
   beforeAll(async () => {
     // Shows what the browser told the server and what it tells the page.
     server = http.createServer((req, res) => {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(
-        `<!doctype html><title>Lang</title><span id="header">${String(req.headers['accept-language'] ?? '')}</span>` +
-          `<span id="nav"></span><span id="money"></span>` +
-          `<script>document.getElementById('nav').textContent = navigator.language;` +
-          `document.getElementById('money').textContent = (1234.5).toLocaleString();</script>`,
-      );
+      res
+        .writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+        .end(
+          `<!doctype html><title>Lang</title><span id="header">${String(req.headers['accept-language'] ?? '')}</span>` +
+            `<span id="nav"></span><span id="money"></span>` +
+            `<script>document.getElementById('nav').textContent = navigator.language;` +
+            `document.getElementById('money').textContent = (1234.5).toLocaleString();</script>`,
+        );
     });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -68,7 +76,9 @@ describe('a test run in a language', () => {
   const step = (id: string, selector: string | undefined, value: string) => ({
     id: `s-${id}-${selector ?? ''}`,
     action: { id, type: id, name: id, icon: 'x', description: id },
-    targetElement: selector ? { id: 'e', type: 'element', selector, text: '', tag: 'span', attributes: {} } : undefined,
+    targetElement: selector
+      ? { id: 'e', type: 'element', selector, text: '', tag: 'span', attributes: {} }
+      : undefined,
     value,
   });
 
@@ -76,13 +86,24 @@ describe('a test run in a language', () => {
     const { playwrightService } = await import('./playwright-service');
     return playwrightService.executeTestSequence(
       {
-        id: 1, userId: 1, organizationId: 1, projectId: null, name: 'lang', url: `${baseUrl}/`,
+        id: 1,
+        userId: 1,
+        organizationId: 1,
+        projectId: null,
+        name: 'lang',
+        url: `${baseUrl}/`,
         sequence: [
           step('assertTextContains', '#header', locale ?? 'en'),
           step('assertTextContains', '#nav', locale ?? 'en'),
-          step('executeScript', undefined, locale ? `return '{{locale}}' === '${locale}'` : 'return true'),
+          step(
+            'executeScript',
+            undefined,
+            locale ? `return '{{locale}}' === '${locale}'` : 'return true',
+          ),
         ],
-        elements: [], preconditions: null, status: 'draft',
+        elements: [],
+        preconditions: null,
+        status: 'draft',
       } as never,
       1,
       undefined,
@@ -95,7 +116,9 @@ describe('a test run in a language', () => {
 
   it('starts the browser in that language: header, navigator.language, formats and {{locale}}', async () => {
     const result = await run('it-IT');
-    const failures = (result.steps ?? []).filter((s) => s.status === 'failed').map((s) => `${s.type}: ${s.error}`);
+    const failures = (result.steps ?? [])
+      .filter((s) => s.status === 'failed')
+      .map((s) => `${s.type}: ${s.error}`);
     expect(failures).toEqual([]);
 
     const german = await run('de-DE');

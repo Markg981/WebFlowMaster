@@ -14,7 +14,14 @@ import SchedulesList from '@/components/scheduling/SchedulesList';
 import ScheduleForm from '@/components/scheduling/ScheduleForm';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
@@ -31,8 +38,11 @@ const SchedulingPage: React.FC = () => {
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [scheduleToDeleteId, setScheduleToDeleteId] = useState<string | null>(null);
 
-
-  const { data: schedules, isLoading, error } = useQuery<TestPlanScheduleEnhanced[], Error>({
+  const {
+    data: schedules,
+    isLoading,
+    error,
+  } = useQuery<TestPlanScheduleEnhanced[], Error>({
     queryKey: ['schedules'],
     queryFn: fetchAllSchedules,
   });
@@ -62,7 +72,8 @@ const SchedulingPage: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateScheduleClientPayload }) => updateSchedule(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateScheduleClientPayload }) =>
+      updateSchedule(id, data),
     ...mutationOptions,
     onSuccess: () => {
       mutationOptions.onSuccess?.();
@@ -110,11 +121,15 @@ const SchedulingPage: React.FC = () => {
     }
   };
 
-
-  const handleFormSubmit = async (data: CreateScheduleClientPayload | UpdateScheduleClientPayload) => {
+  const handleFormSubmit = async (
+    data: CreateScheduleClientPayload | UpdateScheduleClientPayload,
+  ) => {
     if (editingSchedule && editingSchedule.id) {
       // Type assertion for UpdateScheduleClientPayload
-      await updateMutation.mutateAsync({ id: editingSchedule.id, data: data as UpdateScheduleClientPayload });
+      await updateMutation.mutateAsync({
+        id: editingSchedule.id,
+        data: data as UpdateScheduleClientPayload,
+      });
     } else {
       // Type assertion for CreateScheduleClientPayload
       await createMutation.mutateAsync(data as CreateScheduleClientPayload);
@@ -130,7 +145,8 @@ const SchedulingPage: React.FC = () => {
         actions={
           canEdit ? (
             <Button variant="default" size="sm" onClick={handleOpenCreateForm}>
-              <PlusCircle className="mr-2 h-4 w-4" /> {t('schedulingPage.createSchedule.button', 'Create Schedule')}
+              <PlusCircle className="mr-2 h-4 w-4" />{' '}
+              {t('schedulingPage.createSchedule.button', 'Create Schedule')}
             </Button>
           ) : undefined
         }
@@ -139,16 +155,28 @@ const SchedulingPage: React.FC = () => {
       {/* Main content area */}
       <div>
         {/* Dialogs remain outside the scrollable content typically, or are portalled */}
-        <Dialog open={isFormOpen} onOpenChange={(open) => {
-          if (!open) {
-            setEditingSchedule(null); // Clear editing state when dialog closes
-          }
-          setIsFormOpen(open);
-        }}>
+        <Dialog
+          open={isFormOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingSchedule(null); // Clear editing state when dialog closes
+            }
+            setIsFormOpen(open);
+          }}
+        >
           <DialogContent className="sm:max-w-[600px] md:max-w-[750px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingSchedule ? t('schedulingPage.editSchedule.title', 'Edit Schedule') : t('schedulingPage.createNewSchedule.title', 'Create New Schedule')}</DialogTitle>
-              {editingSchedule && <DialogDescription>{t('schedulingPage.editingSchedule.description', 'Editing schedule:')} {editingSchedule.scheduleName}</DialogDescription>}
+              <DialogTitle>
+                {editingSchedule
+                  ? t('schedulingPage.editSchedule.title', 'Edit Schedule')
+                  : t('schedulingPage.createNewSchedule.title', 'Create New Schedule')}
+              </DialogTitle>
+              {editingSchedule && (
+                <DialogDescription>
+                  {t('schedulingPage.editingSchedule.description', 'Editing schedule:')}{' '}
+                  {editingSchedule.scheduleName}
+                </DialogDescription>
+              )}
             </DialogHeader>
             <ScheduleForm
               initialData={editingSchedule || undefined}
@@ -165,17 +193,32 @@ const SchedulingPage: React.FC = () => {
         <Dialog open={isConfirmDeleteDialogOpen} onOpenChange={setIsConfirmDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{t('schedulingPage.confirmDeletion.title', 'Confirm Deletion')}</DialogTitle>
+              <DialogTitle>
+                {t('schedulingPage.confirmDeletion.title', 'Confirm Deletion')}
+              </DialogTitle>
               <DialogDescription>
-                {t('schedulingPage.confirmDeletion.description', 'Are you sure you want to delete this schedule? This action cannot be undone.')}
+                {t(
+                  'schedulingPage.confirmDeletion.description',
+                  'Are you sure you want to delete this schedule? This action cannot be undone.',
+                )}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsConfirmDeleteDialogOpen(false)} disabled={deleteMutation.isPending}>
+              <Button
+                variant="outline"
+                onClick={() => setIsConfirmDeleteDialogOpen(false)}
+                disabled={deleteMutation.isPending}
+              >
                 {t('schedulingPage.cancel.button', 'Cancel')}
               </Button>
-              <Button variant="destructive" onClick={confirmDeleteSchedule} disabled={deleteMutation.isPending}>
-                {deleteMutation.isPending ? t('schedulingPage.deleting.button', 'Deleting...') : t('schedulingPage.delete.button', 'Delete')}
+              <Button
+                variant="destructive"
+                onClick={confirmDeleteSchedule}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending
+                  ? t('schedulingPage.deleting.button', 'Deleting...')
+                  : t('schedulingPage.delete.button', 'Delete')}
               </Button>
             </DialogFooter>
           </DialogContent>

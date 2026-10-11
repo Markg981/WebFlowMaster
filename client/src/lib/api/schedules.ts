@@ -15,7 +15,10 @@ export interface TestPlanScheduleEnhanced extends TestPlanSchedule {
 }
 
 // Payload for creating a schedule. Client uses Date for nextRunAt.
-export type CreateScheduleClientPayload = Omit<InsertTestPlanSchedule, 'id' | 'createdAt' | 'updatedAt' | 'nextRunAt' | 'testPlanId' | 'scheduleName' | 'frequency'> & {
+export type CreateScheduleClientPayload = Omit<
+  InsertTestPlanSchedule,
+  'id' | 'createdAt' | 'updatedAt' | 'nextRunAt' | 'testPlanId' | 'scheduleName' | 'frequency'
+> & {
   testPlanId: string; // Ensure these are not optional for creation
   scheduleName: string;
   frequency: string;
@@ -23,12 +26,16 @@ export type CreateScheduleClientPayload = Omit<InsertTestPlanSchedule, 'id' | 'c
 };
 
 // Payload for updating a schedule. All fields are optional. Client uses Date for nextRunAt.
-export type UpdateScheduleClientPayload = Partial<Omit<InsertTestPlanSchedule, 'id' | 'createdAt' | 'updatedAt' | 'nextRunAt'>> & {
+export type UpdateScheduleClientPayload = Partial<
+  Omit<InsertTestPlanSchedule, 'id' | 'createdAt' | 'updatedAt' | 'nextRunAt'>
+> & {
   nextRunAt?: Date;
 };
 
 // Helper to prepare payload for POST/PUT: converts Date to timestamp for nextRunAt
-const prepareSchedulePayloadForServer = (data: CreateScheduleClientPayload | UpdateScheduleClientPayload): any => {
+const prepareSchedulePayloadForServer = (
+  data: CreateScheduleClientPayload | UpdateScheduleClientPayload,
+): any => {
   const payload: any = { ...data };
   if (data.nextRunAt && data.nextRunAt instanceof Date) {
     payload.nextRunAt = data.nextRunAt;
@@ -56,10 +63,14 @@ const parseServerScheduleResponse = (schedule: TestPlanSchedule): TestPlanSchedu
   };
 };
 
-export const fetchSchedulesByPlanId = async (planId: string): Promise<TestPlanScheduleEnhanced[]> => {
+export const fetchSchedulesByPlanId = async (
+  planId: string,
+): Promise<TestPlanScheduleEnhanced[]> => {
   const response = await fetch(`${BASE_URL}/plan/${planId}`);
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Network response was not ok' }));
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: 'Network response was not ok' }));
     throw new Error(errorData.error || errorData.message || 'Failed to fetch schedules for plan');
   }
   const schedules: TestPlanSchedule[] = await response.json();
@@ -69,14 +80,18 @@ export const fetchSchedulesByPlanId = async (planId: string): Promise<TestPlanSc
 export const fetchAllSchedules = async (): Promise<TestPlanScheduleEnhanced[]> => {
   const response = await fetch(BASE_URL);
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Network response was not ok' }));
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: 'Network response was not ok' }));
     throw new Error(errorData.error || errorData.message || 'Failed to fetch all schedules');
   }
   const schedules: TestPlanSchedule[] = await response.json();
   return schedules.map(parseServerScheduleResponse);
 };
 
-export const createSchedule = async (scheduleData: CreateScheduleClientPayload): Promise<TestPlanScheduleEnhanced> => {
+export const createSchedule = async (
+  scheduleData: CreateScheduleClientPayload,
+): Promise<TestPlanScheduleEnhanced> => {
   const payload = prepareSchedulePayloadForServer(scheduleData);
   const response = await fetch(BASE_URL, {
     method: 'POST',
@@ -84,17 +99,23 @@ export const createSchedule = async (scheduleData: CreateScheduleClientPayload):
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Network response was not ok' }));
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: 'Network response was not ok' }));
     // Extract Zod error messages if available from server response
     const zodError = errorData.details?.body?._errors?.[0] || errorData.details?.fieldErrors;
-    if (zodError) throw new Error(typeof zodError === 'string' ? zodError : JSON.stringify(zodError));
+    if (zodError)
+      throw new Error(typeof zodError === 'string' ? zodError : JSON.stringify(zodError));
     throw new Error(errorData.error || errorData.message || 'Failed to create schedule');
   }
   const createdSchedule: TestPlanSchedule = await response.json();
   return parseServerScheduleResponse(createdSchedule);
 };
 
-export const updateSchedule = async (id: string, scheduleData: UpdateScheduleClientPayload): Promise<TestPlanScheduleEnhanced> => {
+export const updateSchedule = async (
+  id: string,
+  scheduleData: UpdateScheduleClientPayload,
+): Promise<TestPlanScheduleEnhanced> => {
   const payload = prepareSchedulePayloadForServer(scheduleData);
   const response = await fetch(`${BASE_URL}/${id}`, {
     method: 'PUT',
@@ -102,9 +123,12 @@ export const updateSchedule = async (id: string, scheduleData: UpdateScheduleCli
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Network response was not ok' }));
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: 'Network response was not ok' }));
     const zodError = errorData.details?.body?._errors?.[0] || errorData.details?.fieldErrors;
-    if (zodError) throw new Error(typeof zodError === 'string' ? zodError : JSON.stringify(zodError));
+    if (zodError)
+      throw new Error(typeof zodError === 'string' ? zodError : JSON.stringify(zodError));
     throw new Error(errorData.error || errorData.message || 'Failed to update schedule');
   }
   const updatedSchedule: TestPlanSchedule = await response.json();
@@ -117,7 +141,9 @@ export const deleteSchedule = async (id: string): Promise<void> => {
   });
   // response.ok is true for 204. If not ok and not 204, then it's an actual error.
   if (!response.ok && response.status !== 204) {
-    const errorData = await response.json().catch(() => ({ message: 'Network response was not ok' }));
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: 'Network response was not ok' }));
     throw new Error(errorData.error || errorData.message || 'Failed to delete schedule');
   }
 };
@@ -126,7 +152,10 @@ export const deleteSchedule = async (id: string): Promise<void> => {
 const EXECUTIONS_BASE_URL = '/api/test-plan-executions';
 
 // Enhanced type for executions, ensuring Date objects for timestamps
-export interface TestPlanExecutionEnhanced extends Omit<TestPlanExecution, 'startedAt' | 'completedAt' | 'queuedAt' | 'results' | 'browsers'> {
+export interface TestPlanExecutionEnhanced extends Omit<
+  TestPlanExecution,
+  'startedAt' | 'completedAt' | 'queuedAt' | 'results' | 'browsers'
+> {
   testPlanName?: string;
   scheduleName?: string;
   /** Null while the run waits in the queue: it has not started. */
@@ -172,7 +201,9 @@ const parseServerExecutionResponse = (execution: TestPlanExecution): TestPlanExe
   };
 };
 
-export const fetchTestPlanExecutions = async (params: FetchExecutionsParams): Promise<FetchExecutionsResponse> => {
+export const fetchTestPlanExecutions = async (
+  params: FetchExecutionsParams,
+): Promise<FetchExecutionsResponse> => {
   const queryParams = new URLSearchParams();
   if (params.planId) queryParams.append('planId', params.planId);
   if (params.scheduleId) queryParams.append('scheduleId', params.scheduleId);
@@ -183,11 +214,14 @@ export const fetchTestPlanExecutions = async (params: FetchExecutionsParams): Pr
 
   const response = await fetch(`${EXECUTIONS_BASE_URL}?${queryParams.toString()}`);
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Network response was not ok' }));
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: 'Network response was not ok' }));
     throw new Error(errorData.error || errorData.message || 'Failed to fetch test plan executions');
   }
   // Server returns { items: TestPlanExecution[], limit: number, offset: number }
-  const rawResponse: { items: TestPlanExecution[], limit: number, offset: number } = await response.json();
+  const rawResponse: { items: TestPlanExecution[]; limit: number; offset: number } =
+    await response.json();
   return {
     items: rawResponse.items.map(parseServerExecutionResponse),
     limit: rawResponse.limit,

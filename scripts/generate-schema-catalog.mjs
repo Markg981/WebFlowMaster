@@ -110,7 +110,9 @@ for (const lang of ['en', 'it']) {
   const formatOptions = (await prettier.resolveConfig(output)) ?? {};
   const content = await prettier.format(lines.join('\n'), { ...formatOptions, parser: 'markdown' });
   if (check) {
-    const current = fs.existsSync(output) ? fs.readFileSync(output, 'utf8').replace(/\r\n/g, '\n') : '';
+    const current = fs.existsSync(output)
+      ? fs.readFileSync(output, 'utf8').replace(/\r\n/g, '\n')
+      : '';
     if (current !== content) stale.push(path.relative(root, output));
     continue;
   }
@@ -121,6 +123,8 @@ for (const lang of ['en', 'it']) {
 }
 
 if (stale.length) {
-  console.error(`Out of date with shared/schema.ts: ${stale.join(', ')}. Run npm run docs:schema-catalog.`);
+  console.error(
+    `Out of date with shared/schema.ts: ${stale.join(', ')}. Run npm run docs:schema-catalog.`,
+  );
   process.exit(1);
 }

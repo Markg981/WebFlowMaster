@@ -1,6 +1,6 @@
-import { createContext, ReactNode, useContext } from "react";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { createContext, ReactNode, useContext } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 export interface DragItem {
   id: string;
@@ -27,7 +27,8 @@ export interface DetectedElement {
 
 export interface TestStep {
   id: string; // Unique ID for the step in the sequence
-  action: { // Original action data (what to do)
+  action: {
+    // Original action data (what to do)
     id: string; // e.g., 'click', 'input'
     type: string; // e.g., 'click', 'input'
     name: string; // e.g., 'Click Element', 'Input Text'
@@ -46,9 +47,7 @@ const DragDropContext = createContext<DragDropContextType | null>(null);
 export function DragDropProvider({ children }: { children: ReactNode }) {
   return (
     <DndProvider backend={HTML5Backend}>
-      <DragDropContext.Provider value={{}}>
-        {children}
-      </DragDropContext.Provider>
+      <DragDropContext.Provider value={{}}>{children}</DragDropContext.Provider>
     </DndProvider>
   );
 }
@@ -56,7 +55,7 @@ export function DragDropProvider({ children }: { children: ReactNode }) {
 export function useDragDrop() {
   const context = useContext(DragDropContext);
   if (!context) {
-    throw new Error("useDragDrop must be used within a DragDropProvider");
+    throw new Error('useDragDrop must be used within a DragDropProvider');
   }
   return context;
 }

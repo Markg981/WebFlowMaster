@@ -128,13 +128,19 @@ describe('a run delivered twice', () => {
   it('runs the plan once, and leaves the finished run as it was', async () => {
     await seedPlan();
     const executionId = await runPlan();
-    const [afterFirst] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
+    const [afterFirst] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, executionId));
 
     const second = await processTestPlanJob(planId, executionId, userId);
 
     expect(second).toMatchObject({ skipped: true });
     expect(executeTestSequence).toHaveBeenCalledTimes(1);
-    const [afterSecond] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
+    const [afterSecond] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, executionId));
     expect(afterSecond.status).toBe(afterFirst.status);
     expect(afterSecond.completedAt).toEqual(afterFirst.completedAt);
   });
@@ -160,7 +166,10 @@ describe('a run delivered twice', () => {
     await seedPlan();
     const executionId = await runPlan();
 
-    const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
+    const [row] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, executionId));
 
     expect(row.startedAt).toBeInstanceOf(Date);
     expect(row.startedAt!.getTime()).toBeGreaterThanOrEqual(row.queuedAt.getTime());
@@ -174,11 +183,17 @@ describe('a manual test in a plan', () => {
     const [manual] = await privilegedDb
       .insert(testsTable)
       .values({
-        userId, organizationId, name: 'Refund by hand', url: '',
-        sequence: toSequence([{ action: 'Press Refund', expected: 'Refunded' }]), elements: [],
+        userId,
+        organizationId,
+        name: 'Refund by hand',
+        url: '',
+        sequence: toSequence([{ action: 'Press Refund', expected: 'Refunded' }]),
+        elements: [],
       })
       .returning();
-    await privilegedDb.insert(testPlanSelectedTests).values({ testPlanId: planId, testType: 'ui', testId: manual.id, organizationId } as any);
+    await privilegedDb
+      .insert(testPlanSelectedTests)
+      .values({ testPlanId: planId, testType: 'ui', testId: manual.id, organizationId } as any);
 
     await runPlan({ browsers: ['chromium', 'firefox'] });
 
@@ -186,7 +201,9 @@ describe('a manual test in a plan', () => {
     const manualRows = rows.filter((row) => row.uiTestId === manual.id);
     expect(manualRows).toHaveLength(1);
     expect(manualRows[0]).toMatchObject({ status: 'Pending', browser: null });
-    expect(readManualLog(manualRows[0].detailedLog)?.steps).toEqual([{ action: 'Press Refund', expected: 'Refunded' }]);
+    expect(readManualLog(manualRows[0].detailedLog)?.steps).toEqual([
+      { action: 'Press Refund', expected: 'Refunded' },
+    ]);
     // The automated test still ran on every browser and language.
     expect(rows.filter((row) => row.uiTestId === uiTestId)).toHaveLength(4);
     expect(executeTestSequence.mock.calls.every((call) => call[0].id !== manual.id)).toBe(true);
@@ -201,12 +218,20 @@ describe('the languages a plan asks for', () => {
 
     const rows = await privilegedDb.select().from(reportTestCaseResults);
     expect(rows.map((r) => r.browser).sort()).toEqual([
-      'chromium · en-US', 'chromium · it-IT', 'firefox · en-US', 'firefox · it-IT',
+      'chromium · en-US',
+      'chromium · it-IT',
+      'firefox · en-US',
+      'firefox · it-IT',
     ]);
     expect(executeTestSequence).toHaveBeenCalledTimes(4);
-    const passes = executeTestSequence.mock.calls.map((call) => `${call[6]?.browser?.label}/${call[6]?.locale}/${call[4]?.locale}`);
+    const passes = executeTestSequence.mock.calls.map(
+      (call) => `${call[6]?.browser?.label}/${call[6]?.locale}/${call[4]?.locale}`,
+    );
     expect(passes.sort()).toEqual([
-      'chromium/en-US/en-US', 'chromium/it-IT/it-IT', 'firefox/en-US/en-US', 'firefox/it-IT/it-IT',
+      'chromium/en-US/en-US',
+      'chromium/it-IT/it-IT',
+      'firefox/en-US/en-US',
+      'firefox/it-IT/it-IT',
     ]);
   });
 
@@ -230,7 +255,7 @@ describe('the languages a plan asks for', () => {
 });
 
 describe('the browsers a plan asks for', () => {
-  it("runs each test once per browser the schedule named, and says which browser each result came from", async () => {
+  it('runs each test once per browser the schedule named, and says which browser each result came from', async () => {
     await seedPlan();
 
     const executionId = await runPlan({ browsers: ['chromium', 'firefox'] });
@@ -247,7 +272,13 @@ describe('the browsers a plan asks for', () => {
   it("falls back to the plan's own machine configuration when no schedule named any", async () => {
     await seedPlan({
       testMachinesConfig: [
-        { os: 'windows', osVersion: '11', browserName: 'firefox', browserVersion: 'latest', headless: true },
+        {
+          os: 'windows',
+          osVersion: '11',
+          browserName: 'firefox',
+          browserVersion: 'latest',
+          headless: true,
+        },
       ],
     });
 
@@ -271,7 +302,9 @@ describe('the browsers a plan asks for', () => {
 
   it('runs headless when the machine asked for headed and this runner has no display', async () => {
     await seedPlan({
-      testMachinesConfig: [{ os: 'linux', browserName: 'chromium', browserVersion: 'latest', headless: false }],
+      testMachinesConfig: [
+        { os: 'linux', browserName: 'chromium', browserVersion: 'latest', headless: false },
+      ],
     });
     launchBrowser.mockRejectedValueOnce(new Error('Missing X server or $DISPLAY'));
 
@@ -287,11 +320,17 @@ describe('the browsers a plan asks for', () => {
   it('runs a branded browser that is not installed on its bundled engine, and says so', async () => {
     await seedPlan();
     // Google Chrome is not in the Playwright image; its engine is.
-    launchBrowser.mockRejectedValueOnce(new Error('Could not start chrome (channel "chrome") on this runner'));
+    launchBrowser.mockRejectedValueOnce(
+      new Error('Could not start chrome (channel "chrome") on this runner'),
+    );
 
     const executionId = await runPlan({ browsers: ['chrome'] });
 
-    expect(launchBrowser.mock.calls[1][0]).toMatchObject({ label: 'chrome', engine: 'chromium', channel: undefined });
+    expect(launchBrowser.mock.calls[1][0]).toMatchObject({
+      label: 'chrome',
+      engine: 'chromium',
+      channel: undefined,
+    });
     const rows = await privilegedDb.select().from(reportTestCaseResults);
     expect(rows).toHaveLength(1);
     expect(rows[0].browser).toBe('chrome');
@@ -387,10 +426,12 @@ describe('how much of a plan runs at once', () => {
   it('gives each browser its own captured values, so one pass never reads the other’s ids', async () => {
     await seedPlan({ maxParallelTests: 2 });
     const seenVariables: Array<Record<string, string>> = [];
-    executeTestSequence.mockImplementation(async (_test: any, _userId: any, _dir: any, _id: any, vars: any) => {
-      seenVariables.push({ ...vars });
-      return { success: true, steps: [], duration: 1 };
-    });
+    executeTestSequence.mockImplementation(
+      async (_test: any, _userId: any, _dir: any, _id: any, vars: any) => {
+        seenVariables.push({ ...vars });
+        return { success: true, steps: [], duration: 1 };
+      },
+    );
 
     await runPlan({ browsers: ['chromium', 'firefox'] });
 
@@ -406,7 +447,10 @@ describe('how much of a plan runs at once', () => {
 
     const executionId = await runPlan({ browsers: ['chromium'] });
 
-    const [execution] = await privilegedDb.select().from(testPlanExecutions).where(eqId(executionId));
+    const [execution] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eqId(executionId));
     expect(['failed', 'error']).toContain(execution.status);
   });
 });
@@ -451,7 +495,11 @@ describe('keeping a recording of the run', () => {
 
     await runPlan({ browsers: ['chromium'] });
 
-    expect(executeTestSequence.mock.calls[0][6]?.evidence).toMatchObject({ video: 'never', trace: 'never', network: 'on_failure' });
+    expect(executeTestSequence.mock.calls[0][6]?.evidence).toMatchObject({
+      video: 'never',
+      trace: 'never',
+      network: 'on_failure',
+    });
   });
 
   it('asks for nothing when the plan wants neither, which is every plan by default', async () => {
@@ -482,7 +530,13 @@ describe('keeping a recording of the run', () => {
     expect(row.videoUrl).toBe('/results/plan/exec/ui_1_chromium/run.webm');
     expect(row.traceUrl).toBe('/results/plan/exec/ui_1_chromium/trace.zip');
     expect(row.harUrl).toBe('/results/plan/exec/ui_1_chromium/login_network.har');
-    expect(row.networkSummary).toEqual({ requests: 3, failed: 0, transferredBytes: 900, failures: [], slowest: [] });
+    expect(row.networkSummary).toEqual({
+      requests: 3,
+      failed: 0,
+      transferredBytes: 900,
+      failures: [],
+      slowest: [],
+    });
   });
 });
 
@@ -491,7 +545,13 @@ describe('the notification a finished run sends', () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK' });
     vi.stubGlobal('fetch', fetchSpy);
     await seedPlan({
-      notificationSettings: { passed: true, failed: true, notExecuted: true, stopped: true, webhookUrl: 'https://hooks.test/abc' },
+      notificationSettings: {
+        passed: true,
+        failed: true,
+        notExecuted: true,
+        stopped: true,
+        webhookUrl: 'https://hooks.test/abc',
+      },
     });
 
     await runPlan({ browsers: ['chromium'] });
@@ -508,24 +568,38 @@ describe('the notification a finished run sends', () => {
   it('sends nothing when the plan named no destination, and the run still finishes', async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
-    await seedPlan({ notificationSettings: { passed: true, failed: true, notExecuted: true, stopped: true } });
+    await seedPlan({
+      notificationSettings: { passed: true, failed: true, notExecuted: true, stopped: true },
+    });
 
     const executionId = await runPlan({ browsers: ['chromium'] });
 
     expect(fetchSpy).not.toHaveBeenCalled();
-    const [execution] = await privilegedDb.select().from(testPlanExecutions).where(eqId(executionId));
+    const [execution] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eqId(executionId));
     expect(execution.status).toBe('completed');
   });
 
   it('records the run even when the webhook is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ENOTFOUND hooks.test')));
     await seedPlan({
-      notificationSettings: { passed: true, failed: true, notExecuted: true, stopped: true, webhookUrl: 'https://hooks.test/abc' },
+      notificationSettings: {
+        passed: true,
+        failed: true,
+        notExecuted: true,
+        stopped: true,
+        webhookUrl: 'https://hooks.test/abc',
+      },
     });
 
     const executionId = await runPlan({ browsers: ['chromium'] });
 
-    const [execution] = await privilegedDb.select().from(testPlanExecutions).where(eqId(executionId));
+    const [execution] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eqId(executionId));
     expect(execution.status).toBe('completed');
     expect(execution.passedTests).toBe(1);
   });

@@ -12,18 +12,35 @@ const el = (over: Partial<UiElement>): UiElement => ({
 });
 
 const inventory: UiElement[] = [
-  el({ role: 'button', action: 'click', label: 'Open Sample Monitoring', selector: '[name="btnSampleMonitoring"]', name: 'btnSampleMonitoring' }),
-  el({ role: 'input', action: 'input', label: 'samples', selector: '[ng-model="data.samples"]', ngModel: 'data.samples' }),
-  el({ role: 'button', action: 'click', label: 'Save', selector: '[name="btnSave"]', name: 'btnSave', ngClick: 'save()' }),
+  el({
+    role: 'button',
+    action: 'click',
+    label: 'Open Sample Monitoring',
+    selector: '[name="btnSampleMonitoring"]',
+    name: 'btnSampleMonitoring',
+  }),
+  el({
+    role: 'input',
+    action: 'input',
+    label: 'samples',
+    selector: '[ng-model="data.samples"]',
+    ngModel: 'data.samples',
+  }),
+  el({
+    role: 'button',
+    action: 'click',
+    label: 'Save',
+    selector: '[name="btnSave"]',
+    name: 'btnSave',
+    ngClick: 'save()',
+  }),
 ];
 
 describe('splitSteps', () => {
   it('splits a numbered list into clean steps', () => {
-    expect(splitSteps('1. Open the Sample monitoring modal\n2. Enter samples\n3. Click Save')).toEqual([
-      'Open the Sample monitoring modal',
-      'Enter samples',
-      'Click Save',
-    ]);
+    expect(
+      splitSteps('1. Open the Sample monitoring modal\n2. Enter samples\n3. Click Save'),
+    ).toEqual(['Open the Sample monitoring modal', 'Enter samples', 'Click Save']);
   });
   it('splits inline numbering too', () => {
     expect(splitSteps('1. Open X 2. Click Save')).toEqual(['Open X', 'Click Save']);
@@ -59,7 +76,10 @@ describe('mapStep / mapSteps', () => {
   });
 
   it('maps the full TC_0481 sequence', () => {
-    const steps = mapSteps('1. Open the Sample monitoring modal\n2. Enter in the required amount of samples\n3. Click Save', inventory);
+    const steps = mapSteps(
+      '1. Open the Sample monitoring modal\n2. Enter in the required amount of samples\n3. Click Save',
+      inventory,
+    );
     expect(steps).toHaveLength(3);
     expect(steps[0].selector).toBe('[name="btnSampleMonitoring"]');
     expect(steps[2].selector).toBe('[name="btnSave"]');

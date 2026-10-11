@@ -167,7 +167,9 @@ export const OAuth2AuthForm: React.FC<OAuth2AuthFormProps> = ({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="header">{t('authForms.oauth2AuthForm.sendAsBasicHeader.text')}</SelectItem>
+            <SelectItem value="header">
+              {t('authForms.oauth2AuthForm.sendAsBasicHeader.text')}
+            </SelectItem>
             <SelectItem value="body">{t('authForms.oauth2AuthForm.sendInBody.text')}</SelectItem>
           </SelectContent>
         </Select>

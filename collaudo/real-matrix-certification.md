@@ -38,7 +38,8 @@ Esempio da completare con una fixture pubblica raggiungibile dalla griglia e un'
   "web": {
     "grid": { "provider": "browserstack", "username": "YOUR_USER", "key": "YOUR_KEY" },
     "url": "https://your-fixture.example/matrix",
-    "selector": "#matrix-title", "expected": "Matrix fixture",
+    "selector": "#matrix-title",
+    "expected": "Matrix fixture",
     "machines": [
       { "browserName": "firefox", "os": "Windows", "osVersion": "11", "headless": true },
       { "browserName": "webkit", "os": "OS X", "osVersion": "Sonoma", "headless": true }
@@ -47,8 +48,10 @@ Esempio da completare con una fixture pubblica raggiungibile dalla griglia e un'
   "mobile": {
     "grid": { "provider": "local_appium", "endpoint": "http://127.0.0.1:4723" },
     "test": {
-      "platform": "android", "app": "C:\\apps\\fixture.apk",
-      "deviceName": "Pixel 8", "osVersion": "14",
+      "platform": "android",
+      "app": "C:\\apps\\fixture.apk",
+      "deviceName": "Pixel 8",
+      "osVersion": "14",
       "deviceMatrix": [
         { "deviceName": "Pixel 8", "osVersion": "14" },
         { "deviceName": "Pixel 9", "osVersion": "15" }

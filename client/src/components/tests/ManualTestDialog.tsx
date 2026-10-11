@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,10 +66,13 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
     });
 
   const save = async () => {
-    if(test?.bdd)return;
-    const written = steps.map((step) => ({ ...step, action: step.action.trim(), expected: step.expected.trim() })).filter((step) => step.action !== '');
+    if (test?.bdd) return;
+    const written = steps
+      .map((step) => ({ ...step, action: step.action.trim(), expected: step.expected.trim() }))
+      .filter((step) => step.action !== '');
     if (name.trim() === '') return setError(t('manualTests.errors.name', 'Give the test a name.'));
-    if (written.length === 0) return setError(t('manualTests.errors.steps', 'Write at least one step.'));
+    if (written.length === 0)
+      return setError(t('manualTests.errors.steps', 'Write at least one step.'));
     setSaving(true);
     setError(null);
     try {
@@ -70,7 +80,15 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
         method: test ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         // No address and no elements: nothing is opened in a browser.
-        body: JSON.stringify({ name: name.trim(), url: '', sequence: toSequence(written).map((step,i)=>({...step,...(written[i].gherkin?{gherkin:written[i].gherkin}:{})})), elements: [] }),
+        body: JSON.stringify({
+          name: name.trim(),
+          url: '',
+          sequence: toSequence(written).map((step, i) => ({
+            ...step,
+            ...(written[i].gherkin ? { gherkin: written[i].gherkin } : {}),
+          })),
+          elements: [],
+        }),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
@@ -89,63 +107,140 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
     }
   };
 
-  if(test?.bdd)return <Dialog open={isOpen} onOpenChange={open=>{if(!open)onClose();}}><DialogContent><DialogHeader><DialogTitle>{test.name}</DialogTitle></DialogHeader><p role="alert">{t('bdd.editSourceRequired','Use the Gherkin source editor to change a source-derived BDD test.')}</p></DialogContent></Dialog>;
+  if (test?.bdd)
+    return (
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{test.name}</DialogTitle>
+          </DialogHeader>
+          <p role="alert">
+            {t(
+              'bdd.editSourceRequired',
+              'Use the Gherkin source editor to change a source-derived BDD test.',
+            )}
+          </p>
+        </DialogContent>
+      </Dialog>
+    );
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{test ? t('manualTests.editTitle', 'Edit manual test') : t('manualTests.newTitle', 'New manual test')}</DialogTitle>
+          <DialogTitle>
+            {test
+              ? t('manualTests.editTitle', 'Edit manual test')
+              : t('manualTests.newTitle', 'New manual test')}
+          </DialogTitle>
           <DialogDescription>
-            {t('manualTests.description', 'The steps a person performs, each with the result to expect. In a plan run it waits for a verdict in the report.')}
+            {t(
+              'manualTests.description',
+              'The steps a person performs, each with the result to expect. In a plan run it waits for a verdict in the report.',
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-1">
           <Label htmlFor="manual-test-name">{t('manualTests.name', 'Name')}</Label>
-          <Input id="manual-test-name" value={name} maxLength={200} onChange={(e) => setName(e.target.value)} />
+          <Input
+            id="manual-test-name"
+            value={name}
+            maxLength={200}
+            onChange={(e) => setName(e.target.value)}
+          />
         </div>
 
         <ol className="space-y-3">
           {steps.map((step, index) => (
             <li key={index} className="rounded-md border p-3">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium">{t('manualTests.step', 'Step {{n}}', { n: index + 1 })}</span>
+                <span className="text-sm font-medium">
+                  {t('manualTests.step', 'Step {{n}}', { n: index + 1 })}
+                </span>
                 <div className="flex gap-1">
-                  <Button type="button" variant="ghost" size="icon" disabled={index === 0} onClick={() => move(index, -1)} aria-label={t('manualTests.moveUp', 'Move up')}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={index === 0}
+                    onClick={() => move(index, -1)}
+                    aria-label={t('manualTests.moveUp', 'Move up')}
+                  >
                     <ArrowUp className="h-4 w-4" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" disabled={index === steps.length - 1} onClick={() => move(index, 1)} aria-label={t('manualTests.moveDown', 'Move down')}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={index === steps.length - 1}
+                    onClick={() => move(index, 1)}
+                    aria-label={t('manualTests.moveDown', 'Move down')}
+                  >
                     <ArrowDown className="h-4 w-4" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" disabled={steps.length === 1} onClick={() => setSteps((current) => current.filter((_, i) => i !== index))} aria-label={t('manualTests.removeStep', 'Remove step')}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={steps.length === 1}
+                    onClick={() => setSteps((current) => current.filter((_, i) => i !== index))}
+                    aria-label={t('manualTests.removeStep', 'Remove step')}
+                  >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </div>
               <div className="grid gap-2 md:grid-cols-2">
                 <div className="grid gap-1">
-                  <Label htmlFor={`manual-action-${index}`} className="text-xs">{t('manualTests.action', 'Action')}</Label>
-                  <Textarea id={`manual-action-${index}`} value={step.action} onChange={(e) => update(index, { action: e.target.value })} />
+                  <Label htmlFor={`manual-action-${index}`} className="text-xs">
+                    {t('manualTests.action', 'Action')}
+                  </Label>
+                  <Textarea
+                    id={`manual-action-${index}`}
+                    value={step.action}
+                    onChange={(e) => update(index, { action: e.target.value })}
+                  />
                 </div>
                 <div className="grid gap-1">
-                  <Label htmlFor={`manual-expected-${index}`} className="text-xs">{t('manualTests.expected', 'Expected result')}</Label>
-                  <Textarea id={`manual-expected-${index}`} value={step.expected} onChange={(e) => update(index, { expected: e.target.value })} />
+                  <Label htmlFor={`manual-expected-${index}`} className="text-xs">
+                    {t('manualTests.expected', 'Expected result')}
+                  </Label>
+                  <Textarea
+                    id={`manual-expected-${index}`}
+                    value={step.expected}
+                    onChange={(e) => update(index, { expected: e.target.value })}
+                  />
                 </div>
               </div>
-              <GherkinArguments argument={step.gherkin}/>
+              <GherkinArguments argument={step.gherkin} />
             </li>
           ))}
         </ol>
-        <Button type="button" variant="outline" onClick={() => setSteps((current) => [...current, EMPTY_STEP])}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setSteps((current) => [...current, EMPTY_STEP])}
+        >
           <Plus className="mr-2 h-4 w-4" />
           {t('manualTests.addStep', 'Add step')}
         </Button>
 
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>{t('manualTests.cancel', 'Cancel')}</Button>
+          <Button variant="outline" onClick={onClose}>
+            {t('manualTests.cancel', 'Cancel')}
+          </Button>
           <Button onClick={save} disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('manualTests.save', 'Save')}

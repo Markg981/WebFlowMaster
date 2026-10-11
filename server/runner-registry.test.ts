@@ -14,7 +14,14 @@ import { v4 as uuidv4 } from 'uuid';
  */
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -27,10 +34,23 @@ const { takeExecution } = await import('./execution-state');
 const { default: runnersRoutes } = await import('./routes/runners.routes');
 const { default: organizationRoutes } = await import('./routes/organization.routes');
 
-const description = { concurrency: 2, browserTaskConcurrency: 3, version: '9.9.9', browsers: ['chromium'] };
+const description = {
+  concurrency: 2,
+  browserTaskConcurrency: 3,
+  version: '9.9.9',
+  browsers: ['chromium'],
+};
 
 function fakeQueue() {
-  return { paused: false, pause: vi.fn(async function (this: any) { this.paused = true; }), resume: vi.fn(function (this: any) { this.paused = false; }) };
+  return {
+    paused: false,
+    pause: vi.fn(async function (this: any) {
+      this.paused = true;
+    }),
+    resume: vi.fn(function (this: any) {
+      this.paused = false;
+    }),
+  };
 }
 
 beforeEach(async () => {
@@ -43,7 +63,14 @@ describe('a runner reporting in', () => {
     const id = await registry.registerRunner(description);
 
     const [row] = await privilegedDb.select().from(runners).where(eq(runners.id, id));
-    expect(row).toMatchObject({ pid: process.pid, version: '9.9.9', concurrency: 2, browserTaskConcurrency: 3, browsers: ['chromium'], desiredState: 'active' });
+    expect(row).toMatchObject({
+      pid: process.pid,
+      version: '9.9.9',
+      concurrency: 2,
+      browserTaskConcurrency: 3,
+      browsers: ['chromium'],
+      desiredState: 'active',
+    });
     expect(id.startsWith(`${row.hostname}:${process.pid}:`)).toBe(true);
     expect(registry.currentRunnerId()).toBe(id);
   });
@@ -54,14 +81,23 @@ describe('a runner reporting in', () => {
     expect(registry.statusOf(fresh, now)).toBe('online');
     expect(registry.statusOf({ ...fresh, desiredState: 'drain' }, now)).toBe('draining');
     expect(registry.statusOf({ ...fresh, stoppedAt: new Date(now) }, now)).toBe('offline');
-    expect(registry.statusOf({ ...fresh, lastSeenAt: new Date(now - registry.RUNNER_OFFLINE_AFTER_MS - 1) }, now)).toBe('offline');
+    expect(
+      registry.statusOf(
+        { ...fresh, lastSeenAt: new Date(now - registry.RUNNER_OFFLINE_AFTER_MS - 1) },
+        now,
+      ),
+    ).toBe('offline');
   });
 
   it('drains: pauses its queues without waiting, reports its jobs, and resumes when asked', async () => {
     const plans = fakeQueue();
     const tasks = fakeQueue();
     let jobs = 2;
-    const agent = new registry.RunnerAgent({ description, queues: [plans, tasks], activeJobs: () => jobs });
+    const agent = new registry.RunnerAgent({
+      description,
+      queues: [plans, tasks],
+      activeJobs: () => jobs,
+    });
     const id = await agent.register();
 
     await agent.tick();
@@ -103,7 +139,10 @@ describe('a runner reporting in', () => {
   it('forgets a runner gone for a week, and counts only the ones that can take work', async () => {
     const id = await registry.registerRunner(description);
     await registry.registerRunner(description);
-    await privilegedDb.update(runners).set({ lastSeenAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) }).where(eq(runners.id, id));
+    await privilegedDb
+      .update(runners)
+      .set({ lastSeenAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) })
+      .where(eq(runners.id, id));
 
     expect(await registry.listRunners()).toHaveLength(1);
     expect(await registry.availableRunnerCount()).toBe(1);
@@ -113,17 +152,27 @@ describe('a runner reporting in', () => {
 describe('a run', () => {
   it('names the runner that took it', async () => {
     const org = await createTestOrganization('Runner Org');
-    const [user] = await privilegedDb.insert(users).values({ username: `r-${uuidv4()}`, password: 'x', organizationId: org }).returning();
+    const [user] = await privilegedDb
+      .insert(users)
+      .values({ username: `r-${uuidv4()}`, password: 'x', organizationId: org })
+      .returning();
     const planId = uuidv4();
-    await privilegedDb.insert(testPlans).values({ id: planId, name: 'P', userId: user.id, organizationId: org } as any);
+    await privilegedDb
+      .insert(testPlans)
+      .values({ id: planId, name: 'P', userId: user.id, organizationId: org } as any);
     const runId = uuidv4();
-    await privilegedDb.insert(testPlanExecutions).values({ id: runId, organizationId: org, testPlanId: planId, status: 'queued' } as any);
+    await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id: runId, organizationId: org, testPlanId: planId, status: 'queued' } as any);
     const runnerId = await registry.registerRunner(description);
 
     const taken = await runWithTenant(org, () => takeExecution(runId));
 
     expect(taken.outcome).toBe('taken');
-    const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, runId));
+    const [row] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, runId));
     expect(row.runnerId).toBe(runnerId);
   });
 });
@@ -135,7 +184,10 @@ describe('the runners, as an owner sees them', () => {
 
   beforeAll(async () => {
     org = await createTestOrganization('Ops Org');
-    const [owner] = await privilegedDb.insert(users).values({ username: `ops-${uuidv4()}`, password: 'x', organizationId: org, role: 'owner' }).returning();
+    const [owner] = await privilegedDb
+      .insert(users)
+      .values({ username: `ops-${uuidv4()}`, password: 'x', organizationId: org, role: 'owner' })
+      .returning();
     current = { id: owner.id, username: owner.username, organizationId: org, role: 'owner' };
     // The test database holds many organizations, so draining is for the named administrators.
     process.env.INSTALLATION_ADMINS = owner.username;
@@ -159,14 +211,23 @@ describe('the runners, as an owner sees them', () => {
     const id = await registry.registerRunner(description);
 
     const listed = await request(app).get('/api/runners').expect(200);
-    expect(listed.body).toEqual([expect.objectContaining({ id, status: 'online', browsers: ['chromium'] })]);
+    expect(listed.body).toEqual([
+      expect.objectContaining({ id, status: 'online', browsers: ['chromium'] }),
+    ]);
 
-    const drained = await request(app).post(`/api/runners/${encodeURIComponent(id)}/drain`).expect(200);
+    const drained = await request(app)
+      .post(`/api/runners/${encodeURIComponent(id)}/drain`)
+      .expect(200);
     expect(drained.body.status).toBe('draining');
-    await request(app).post(`/api/runners/${encodeURIComponent(id)}/resume`).expect(200);
+    await request(app)
+      .post(`/api/runners/${encodeURIComponent(id)}/resume`)
+      .expect(200);
     await request(app).post('/api/runners/nowhere/drain').expect(404);
 
-    const entries = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, org));
+    const entries = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.organizationId, org));
     expect(entries.map((e) => e.action).sort()).toEqual(['runner.drained', 'runner.resumed']);
   });
 
@@ -187,7 +248,9 @@ describe('the runners, as an owner sees them', () => {
     current = { ...current, username: 'another-owner' };
     try {
       await request(app).get('/api/runners').expect(200);
-      const refused = await request(app).post(`/api/runners/${encodeURIComponent(id)}/drain`).expect(403);
+      const refused = await request(app)
+        .post(`/api/runners/${encodeURIComponent(id)}/drain`)
+        .expect(403);
       expect(refused.body.code).toBe('installation_admin_required');
     } finally {
       current = saved;
@@ -195,8 +258,12 @@ describe('the runners, as an owner sees them', () => {
   });
 
   it('tells an organization when no runner can take its runs', async () => {
-    expect((await request(app).get('/api/organization/usage').expect(200)).body.runnersOnline).toBe(0);
+    expect((await request(app).get('/api/organization/usage').expect(200)).body.runnersOnline).toBe(
+      0,
+    );
     await registry.registerRunner(description);
-    expect((await request(app).get('/api/organization/usage').expect(200)).body.runnersOnline).toBe(1);
+    expect((await request(app).get('/api/organization/usage').expect(200)).body.runnersOnline).toBe(
+      1,
+    );
   });
 });

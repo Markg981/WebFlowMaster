@@ -24,7 +24,15 @@ async function send(method: string, url: string) {
   return payload;
 }
 
-export function ScimProvisioning({ baseUrl, token, onChanged }: { baseUrl: string; token: ScimTokenStatus | null; onChanged: () => void }) {
+export function ScimProvisioning({
+  baseUrl,
+  token,
+  onChanged,
+}: {
+  baseUrl: string;
+  token: ScimTokenStatus | null;
+  onChanged: () => void;
+}) {
   const { t } = useTranslation();
   const [shown, setShown] = useState('');
   const [busy, setBusy] = useState(false);
@@ -75,8 +83,19 @@ export function ScimProvisioning({ baseUrl, token, onChanged }: { baseUrl: strin
       <div className="space-y-1">
         <Label>{t('sso.scim.baseUrl', 'SCIM base URL (tenant URL)')}</Label>
         <div className="flex gap-2">
-          <Input readOnly value={baseUrl} data-testid="sso-scim-base-url" className="font-mono text-xs" />
-          <Button type="button" variant="outline" size="icon" aria-label={t('sso.copy', 'Copy')} onClick={() => navigator.clipboard?.writeText(baseUrl)}>
+          <Input
+            readOnly
+            value={baseUrl}
+            data-testid="sso-scim-base-url"
+            className="font-mono text-xs"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label={t('sso.copy', 'Copy')}
+            onClick={() => navigator.clipboard?.writeText(baseUrl)}
+          >
             <Copy className="h-4 w-4" />
           </Button>
         </div>
@@ -87,7 +106,13 @@ export function ScimProvisioning({ baseUrl, token, onChanged }: { baseUrl: strin
           <Label>{t('sso.scim.tokenShown', 'Token — copy it now, it is not shown again')}</Label>
           <div className="flex gap-2">
             <Input readOnly value={shown} className="font-mono text-xs" />
-            <Button type="button" variant="outline" size="icon" aria-label={t('sso.copy', 'Copy')} onClick={() => navigator.clipboard?.writeText(shown)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label={t('sso.copy', 'Copy')}
+              onClick={() => navigator.clipboard?.writeText(shown)}
+            >
               <Copy className="h-4 w-4" />
             </Button>
           </div>
@@ -103,16 +128,33 @@ export function ScimProvisioning({ baseUrl, token, onChanged }: { baseUrl: strin
           })}
         </p>
       ) : (
-        <p className="text-xs text-muted-foreground">{t('sso.scim.none', 'No token: provisioning is off.')}</p>
+        <p className="text-xs text-muted-foreground">
+          {t('sso.scim.none', 'No token: provisioning is off.')}
+        </p>
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={issue} data-testid="sso-scim-issue">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={issue}
+          data-testid="sso-scim-issue"
+        >
           {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {token ? t('sso.scim.replace', 'Replace the token') : t('sso.scim.issue', 'Issue a token')}
+          {token
+            ? t('sso.scim.replace', 'Replace the token')
+            : t('sso.scim.issue', 'Issue a token')}
         </Button>
         {token && !confirmRevoke && (
-          <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmRevoke(true)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => setConfirmRevoke(true)}
+          >
             {t('sso.scim.revoke', 'Revoke')}
           </Button>
         )}
@@ -129,7 +171,10 @@ export function ScimProvisioning({ baseUrl, token, onChanged }: { baseUrl: strin
       </div>
       {token && (
         <p className="text-xs text-muted-foreground">
-          {t('sso.scim.replaceHint', 'Replacing the token ends the old one at once: paste the new one at the provider.')}
+          {t(
+            'sso.scim.replaceHint',
+            'Replacing the token ends the old one at once: paste the new one at the provider.',
+          )}
         </p>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}

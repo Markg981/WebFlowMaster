@@ -1,18 +1,18 @@
-import { Router } from "express";
-import { z } from "zod";
-import { eq, inArray } from "drizzle-orm";
+import { Router } from 'express';
+import { z } from 'zod';
+import { eq, inArray } from 'drizzle-orm';
 import {
   issueLinks,
   issueTrackers,
   reportTestCaseResults,
   testPlanExecutions,
   testPlans,
-} from "@shared/schema";
-import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
-import { fileFailure } from "../issue-store";
-import { dedupeKeyFor } from "../issue-tracking";
-import loggerPromise from "../logger";
+} from '@shared/schema';
+import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import { requireRole } from '../middleware/require-role';
+import { fileFailure } from '../issue-store';
+import { dedupeKeyFor } from '../issue-tracking';
+import loggerPromise from '../logger';
 
 /**
  * Filing a failure from the report, and saying what has already been filed.
@@ -34,12 +34,12 @@ const fileSchema = z.object({
 });
 
 // POST /api/issues — file this failure, or say it again on the issue that already has it.
-router.post("/api/issues", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/issues', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   const parsed = fileSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
   }
 
   try {
@@ -62,7 +62,11 @@ router.post("/api/issues", requireRole('editor'), async (req, res) => {
 
       const [plan] = execution.testPlanId
         ? await tx
-            .select({ id: testPlans.id, name: testPlans.name, issueTrackerId: testPlans.issueTrackerId })
+            .select({
+              id: testPlans.id,
+              name: testPlans.name,
+              issueTrackerId: testPlans.issueTrackerId,
+            })
             .from(testPlans)
             .where(eq(testPlans.id, execution.testPlanId))
             .limit(1)
@@ -72,13 +76,16 @@ router.post("/api/issues", requireRole('editor'), async (req, res) => {
       return { row, execution, plan, trackers };
     });
 
-    if (!context) return res.status(404).json({ error: "That result is not part of this execution." });
+    if (!context)
+      return res.status(404).json({ error: 'That result is not part of this execution.' });
 
     const status = String(context.row.status).toLowerCase();
     if (status !== 'failed' && status !== 'error') {
       // Filing a passing test would put a bug on somebody's board that nobody can reproduce,
       // because there is nothing to reproduce.
-      return res.status(400).json({ error: "That test did not fail, so there is nothing to file." });
+      return res
+        .status(400)
+        .json({ error: 'That test did not fail, so there is nothing to file.' });
     }
 
     const wantedId = parsed.data.trackerId ?? context.plan?.issueTrackerId ?? null;
@@ -90,9 +97,10 @@ router.post("/api/issues", requireRole('editor'), async (req, res) => {
 
     if (!tracker) {
       return res.status(400).json({
-        error: context.trackers.length === 0
-          ? "No issue tracker is configured for this organization."
-          : "Name which tracker to file this in.",
+        error:
+          context.trackers.length === 0
+            ? 'No issue tracker is configured for this organization.'
+            : 'Name which tracker to file this in.',
         trackers: context.trackers.map((candidate) => ({ id: candidate.id, name: candidate.name })),
       });
     }
@@ -117,13 +125,16 @@ router.post("/api/issues", requireRole('editor'), async (req, res) => {
     if (outcome.action === 'failed') {
       // 502: this side did its part and the tracker refused. Saying 500 would send somebody
       // looking for the fault in the wrong system.
-      return res.status(502).json({ error: outcome.error ?? "The tracker refused the issue." });
+      return res.status(502).json({ error: outcome.error ?? 'The tracker refused the issue.' });
     }
 
-    res.json({ ...outcome, tracker: { id: tracker.id, name: tracker.name, provider: tracker.provider } });
+    res.json({
+      ...outcome,
+      tracker: { id: tracker.id, name: tracker.name, provider: tracker.provider },
+    });
   } catch (error: any) {
     logger.error({ message: 'Failed to file an issue', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Could not file the issue." });
+    res.status(500).json({ error: 'Could not file the issue.' });
   }
 });
 
@@ -150,7 +161,11 @@ export async function linkedIssuesFor(tx: TenantTx, executionId: string) {
   const keys = Array.from(
     new Set(
       rows.map((row) =>
-        dedupeKeyFor({ planId: execution.testPlanId, testName: row.testName, browser: row.browser }),
+        dedupeKeyFor({
+          planId: execution.testPlanId,
+          testName: row.testName,
+          browser: row.browser,
+        }),
       ),
     ),
   );
@@ -178,18 +193,27 @@ export async function linkedIssuesFor(tx: TenantTx, executionId: string) {
  * against this morning's failure of the same test. A report that only knew about issues filed
  * from itself would invite the duplicate it is trying to prevent.
  */
-router.get("/api/test-plan-executions/:executionId/issues", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get(
+  '/api/test-plan-executions/:executionId/issues',
+  requireRole('viewer'),
+  async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
-  try {
-    const links = await withTenantTransaction((tx) => linkedIssuesFor(tx, req.params.executionId));
+    try {
+      const links = await withTenantTransaction((tx) =>
+        linkedIssuesFor(tx, req.params.executionId),
+      );
 
-    if (links === null) return res.status(404).json({ error: "Execution not found." });
-    res.json(links);
-  } catch (error: any) {
-    logger.error({ message: 'Failed to list issues for an execution', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Could not load the filed issues." });
-  }
-});
+      if (links === null) return res.status(404).json({ error: 'Execution not found.' });
+      res.json(links);
+    } catch (error: any) {
+      logger.error({
+        message: 'Failed to list issues for an execution',
+        error: error?.message ?? String(error),
+      });
+      res.status(500).json({ error: 'Could not load the filed issues.' });
+    }
+  },
+);
 
 export default router;

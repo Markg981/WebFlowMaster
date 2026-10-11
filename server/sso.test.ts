@@ -6,13 +6,26 @@ import type { Server } from 'node:http';
 import { createHash, generateKeyPairSync, randomBytes, sign as rsaSign } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { privilegedDb } from './db';
-import { auditLog, invitations, organizations, ssoDomains, ssoIdentities, users } from '@shared/schema';
+import {
+  auditLog,
+  invitations,
+  organizations,
+  ssoDomains,
+  ssoIdentities,
+  users,
+} from '@shared/schema';
 import { groupsOf, roleFromGroups } from '@shared/sso-roles';
 
 // Auth runs against the real (PGlite) test database; the identity provider is a small one started
 // here, which signs its ID tokens with a key of its own. Only the logger is mocked.
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), http: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    http: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -25,7 +38,10 @@ const b64u = (value: string | Buffer) => Buffer.from(value).toString('base64url'
 
 let provider: Server;
 let issuer: string;
-const issued = new Map<string, { nonce: string; challenge: string; claims: Record<string, unknown> }>();
+const issued = new Map<
+  string,
+  { nonce: string; challenge: string; claims: Record<string, unknown> }
+>();
 
 function signToken(payload: Record<string, unknown>): string {
   const head = b64u(JSON.stringify({ alg: 'RS256', typ: 'JWT', kid: 'k1' }));
@@ -49,13 +65,21 @@ function startProvider(): Promise<void> {
       code_challenge_methods_supported: ['S256'],
     }),
   );
-  idp.get('/jwks', (_req, res) => res.json({ keys: [{ ...publicKey.export({ format: 'jwk' }), kid: 'k1', alg: 'RS256', use: 'sig' }] }));
+  idp.get('/jwks', (_req, res) =>
+    res.json({
+      keys: [{ ...publicKey.export({ format: 'jwk' }), kid: 'k1', alg: 'RS256', use: 'sig' }],
+    }),
+  );
   idp.post('/token', (req, res) => {
-    const [id, secret] = Buffer.from((req.headers.authorization ?? '').replace(/^Basic /, ''), 'base64')
+    const [id, secret] = Buffer.from(
+      (req.headers.authorization ?? '').replace(/^Basic /, ''),
+      'base64',
+    )
       .toString()
       .split(':')
       .map(decodeURIComponent);
-    if (id !== CLIENT_ID || secret !== CLIENT_SECRET) return res.status(401).json({ error: 'invalid_client' });
+    if (id !== CLIENT_ID || secret !== CLIENT_SECRET)
+      return res.status(401).json({ error: 'invalid_client' });
     const grant = issued.get(req.body.code);
     issued.delete(req.body.code);
     const verifier = String(req.body.code_verifier ?? '');
@@ -67,7 +91,14 @@ function startProvider(): Promise<void> {
       access_token: 'access',
       token_type: 'Bearer',
       expires_in: 300,
-      id_token: signToken({ iss: issuer, aud: CLIENT_ID, iat: now, exp: now + 300, nonce: grant.nonce, ...grant.claims }),
+      id_token: signToken({
+        iss: issuer,
+        aud: CLIENT_ID,
+        iat: now,
+        exp: now + 300,
+        nonce: grant.nonce,
+        ...grant.claims,
+      }),
     });
   });
   return new Promise((resolve) => {
@@ -98,7 +129,9 @@ beforeAll(async () => {
   app.use(requireMfaEnrollment);
   app.use(ssoRoutes);
   // Something a signed-in member reaches, to see whether they still are.
-  app.get('/api/probe', (req, res) => (req.isAuthenticated() ? res.json({ id: req.user!.id }) : res.sendStatus(401)));
+  app.get('/api/probe', (req, res) =>
+    req.isAuthenticated() ? res.json({ id: req.user!.id }) : res.sendStatus(401),
+  );
 });
 
 afterAll(() => {
@@ -129,7 +162,10 @@ const settings = (overrides: Record<string, unknown> = {}) => ({
 /** The installation's first account, which owns its organization, signed in. */
 async function owner(username = 'olivia@example.com') {
   const agent = request.agent(app);
-  const res = await agent.post('/api/register').send({ username, password: 'password123' }).expect(201);
+  const res = await agent
+    .post('/api/register')
+    .send({ username, password: 'password123' })
+    .expect(201);
   return { agent, organizationId: res.body.organizationId as number, id: res.body.id as number };
 }
 
@@ -143,7 +179,11 @@ async function member(organizationId: number, username: string, role = 'viewer')
 }
 
 /** Signing in through the provider, as the browser would: out to it, and back with a code. */
-async function ssoSignIn(email: string, claims: Record<string, unknown>, tamper?: (params: URLSearchParams) => void) {
+async function ssoSignIn(
+  email: string,
+  claims: Record<string, unknown>,
+  tamper?: (params: URLSearchParams) => void,
+) {
   const browser = request.agent(app);
   const start = await browser.get('/api/sso/start').query({ email }).expect(303);
   const location = new URL(start.headers.location, 'http://app.test');
@@ -152,7 +192,11 @@ async function ssoSignIn(email: string, claims: Record<string, unknown>, tamper?
   expect(location.searchParams.get('code_challenge_method')).toBe('S256');
   expect(location.searchParams.get('login_hint')).toBe(email);
   const code = b64u(randomBytes(16));
-  issued.set(code, { nonce: location.searchParams.get('nonce')!, challenge: location.searchParams.get('code_challenge')!, claims });
+  issued.set(code, {
+    nonce: location.searchParams.get('nonce')!,
+    challenge: location.searchParams.get('code_challenge')!,
+    claims,
+  });
   const params = new URLSearchParams({ code, state: location.searchParams.get('state')! });
   tamper?.(params);
   const back = await browser.get(`/api/sso/callback?${params}`).expect(303);
@@ -162,28 +206,77 @@ async function ssoSignIn(email: string, claims: Record<string, unknown>, tamper?
 describe('setting single sign-on up', () => {
   it('saves the provider for an owner, never answers the secret, and records it', async () => {
     const { agent, organizationId } = await owner();
-    const saved = await agent.put('/api/organization/sso').send(settings({ domains: ['Example.com', '@example.com'] })).expect(200);
-    expect(saved.body.settings).toMatchObject({ issuer, clientId: CLIENT_ID, domains: ['example.com'], defaultRole: 'editor', enabled: true });
+    const saved = await agent
+      .put('/api/organization/sso')
+      .send(settings({ domains: ['Example.com', '@example.com'] }))
+      .expect(200);
+    expect(saved.body.settings).toMatchObject({
+      issuer,
+      clientId: CLIENT_ID,
+      domains: ['example.com'],
+      defaultRole: 'editor',
+      enabled: true,
+    });
     expect(JSON.stringify(saved.body)).not.toContain(CLIENT_SECRET);
     expect(saved.body.callbackUrl).toMatch(/\/api\/sso\/callback$/);
 
-    const entries = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId));
+    const entries = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.organizationId, organizationId));
     const configured = entries.find((e) => e.action === 'sso.configured');
     expect(configured?.metadata).toMatchObject({ domains: ['example.com'], secretChanged: true });
     expect(JSON.stringify(configured)).not.toContain(CLIENT_SECRET);
 
     // Changed without a secret: the stored one stays.
-    await agent.put('/api/organization/sso').send(settings({ clientSecret: '', defaultRole: 'viewer' })).expect(200);
-    expect((await agent.post('/api/organization/sso/test').expect(200)).body).toEqual({ ok: true, issuer });
+    await agent
+      .put('/api/organization/sso')
+      .send(settings({ clientSecret: '', defaultRole: 'viewer' }))
+      .expect(200);
+    expect((await agent.post('/api/organization/sso/test').expect(200)).body).toEqual({
+      ok: true,
+      issuer,
+    });
   });
 
   it('refuses what cannot work: no secret, a bad issuer, a bad domain, required while off', async () => {
     const { agent } = await owner();
-    expect((await agent.put('/api/organization/sso').send(settings({ clientSecret: '' })).expect(400)).body.code).toBe('secret_required');
-    expect((await agent.put('/api/organization/sso').send(settings({ issuer: 'ftp://idp' })).expect(400)).body.code).toBe('invalid_issuer');
-    expect((await agent.put('/api/organization/sso').send(settings({ domains: ['not a domain'] })).expect(400)).body.code).toBe('invalid_domain');
-    expect((await agent.put('/api/organization/sso').send(settings({ enabled: false, required: true })).expect(400)).body.code).toBe('required_needs_enabled');
-    await agent.put('/api/organization/sso').send(settings({ defaultRole: 'owner' })).expect(400);
+    expect(
+      (
+        await agent
+          .put('/api/organization/sso')
+          .send(settings({ clientSecret: '' }))
+          .expect(400)
+      ).body.code,
+    ).toBe('secret_required');
+    expect(
+      (
+        await agent
+          .put('/api/organization/sso')
+          .send(settings({ issuer: 'ftp://idp' }))
+          .expect(400)
+      ).body.code,
+    ).toBe('invalid_issuer');
+    expect(
+      (
+        await agent
+          .put('/api/organization/sso')
+          .send(settings({ domains: ['not a domain'] }))
+          .expect(400)
+      ).body.code,
+    ).toBe('invalid_domain');
+    expect(
+      (
+        await agent
+          .put('/api/organization/sso')
+          .send(settings({ enabled: false, required: true }))
+          .expect(400)
+      ).body.code,
+    ).toBe('required_needs_enabled');
+    await agent
+      .put('/api/organization/sso')
+      .send(settings({ defaultRole: 'owner' }))
+      .expect(400);
   });
 
   it('gives a domain to one organization only', async () => {
@@ -192,10 +285,21 @@ describe('setting single sign-on up', () => {
 
     const [other] = await privilegedDb.insert(organizations).values({ name: 'Other' }).returning();
     const { hashPassword } = await import('./auth');
-    await privilegedDb.insert(users).values({ username: 'oscar', password: await hashPassword('password123'), organizationId: other.id, role: 'owner' });
+    await privilegedDb.insert(users).values({
+      username: 'oscar',
+      password: await hashPassword('password123'),
+      organizationId: other.id,
+      role: 'owner',
+    });
     const second = request.agent(app);
-    await second.post('/api/login').send({ username: 'oscar', password: 'password123' }).expect(200);
-    const refused = await second.put('/api/organization/sso').send(settings({ domains: ['example.com', 'other.example'] })).expect(409);
+    await second
+      .post('/api/login')
+      .send({ username: 'oscar', password: 'password123' })
+      .expect(200);
+    const refused = await second
+      .put('/api/organization/sso')
+      .send(settings({ domains: ['example.com', 'other.example'] }))
+      .expect(409);
     expect(refused.body.code).toBe('domain_taken');
   });
 
@@ -203,7 +307,10 @@ describe('setting single sign-on up', () => {
     const { organizationId } = await owner();
     await member(organizationId, 'vic@example.com', 'editor');
     const agent = request.agent(app);
-    await agent.post('/api/login').send({ username: 'vic@example.com', password: 'password123' }).expect(200);
+    await agent
+      .post('/api/login')
+      .send({ username: 'vic@example.com', password: 'password123' })
+      .expect(200);
     await agent.get('/api/organization/sso').expect(403);
     await agent.put('/api/organization/sso').send(settings()).expect(403);
   });
@@ -213,18 +320,34 @@ describe('signing in through the provider', () => {
   it('creates the account on the first sign-in, with the default role, and finds it after by subject', async () => {
     const { agent, organizationId } = await owner();
     await agent.put('/api/organization/sso').send(settings()).expect(200);
-    expect((await request(app).get('/api/sso/available').expect(200)).body).toEqual({ available: true });
+    expect((await request(app).get('/api/sso/available').expect(200)).body).toEqual({
+      available: true,
+    });
 
-    const { browser, back } = await ssoSignIn('Ada@Example.com', { sub: 'ada-1', email: 'Ada@Example.com', email_verified: true });
+    const { browser, back } = await ssoSignIn('Ada@Example.com', {
+      sub: 'ada-1',
+      email: 'Ada@Example.com',
+      email_verified: true,
+    });
     expect(back.headers.location).toBe('/');
     const me = await browser.get('/api/user').expect(200);
-    expect(me.body).toMatchObject({ username: 'ada@example.com', role: 'editor', organizationId, signedInWithSso: true });
+    expect(me.body).toMatchObject({
+      username: 'ada@example.com',
+      role: 'editor',
+      organizationId,
+      signedInWithSso: true,
+    });
 
     // A new address at the provider is the same person: the subject decides.
-    const again = await ssoSignIn('ada@example.com', { sub: 'ada-1', email: 'ada.lovelace@example.com' });
+    const again = await ssoSignIn('ada@example.com', {
+      sub: 'ada-1',
+      email: 'ada.lovelace@example.com',
+    });
     expect((await again.browser.get('/api/user').expect(200)).body.id).toBe(me.body.id);
 
-    const actions = (await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId))).map((e) => e.action);
+    const actions = (
+      await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId))
+    ).map((e) => e.action);
     expect(actions.filter((a) => a === 'member.provisioned')).toHaveLength(1);
     expect(actions.filter((a) => a === 'auth.login')).toHaveLength(2);
   });
@@ -234,16 +357,31 @@ describe('signing in through the provider', () => {
     await agent.put('/api/organization/sso').send(settings()).expect(200);
     const grace = await member(organizationId, 'grace@example.com');
 
-    const linked = await ssoSignIn('grace@example.com', { sub: 'grace-1', email: 'grace@example.com' });
-    expect((await linked.browser.get('/api/user').expect(200)).body).toMatchObject({ id: grace.id, role: 'viewer' });
+    const linked = await ssoSignIn('grace@example.com', {
+      sub: 'grace-1',
+      email: 'grace@example.com',
+    });
+    expect((await linked.browser.get('/api/user').expect(200)).body).toMatchObject({
+      id: grace.id,
+      role: 'viewer',
+    });
 
     // A second identity claiming the same address does not take the account over.
-    const impostor = await ssoSignIn('grace@example.com', { sub: 'someone-else', email: 'grace@example.com' });
+    const impostor = await ssoSignIn('grace@example.com', {
+      sub: 'someone-else',
+      email: 'grace@example.com',
+    });
     expect(impostor.back.headers.location).toBe('/auth?sso_error=account_linked');
 
-    const [elsewhere] = await privilegedDb.insert(organizations).values({ name: 'Elsewhere' }).returning();
+    const [elsewhere] = await privilegedDb
+      .insert(organizations)
+      .values({ name: 'Elsewhere' })
+      .returning();
     await member(elsewhere.id, 'hedy@example.com');
-    const refused = await ssoSignIn('hedy@example.com', { sub: 'hedy-1', email: 'hedy@example.com' });
+    const refused = await ssoSignIn('hedy@example.com', {
+      sub: 'hedy-1',
+      email: 'hedy@example.com',
+    });
     expect(refused.back.headers.location).toBe('/auth?sso_error=account_elsewhere');
     await refused.browser.get('/api/user').expect(401);
   });
@@ -252,7 +390,10 @@ describe('signing in through the provider', () => {
     const { agent } = await owner();
     await agent.put('/api/organization/sso').send(settings()).expect(200);
 
-    const nowhere = await request(app).get('/api/sso/start').query({ email: 'x@unknown.example' }).expect(303);
+    const nowhere = await request(app)
+      .get('/api/sso/start')
+      .query({ email: 'x@unknown.example' })
+      .expect(303);
     expect(nowhere.headers.location).toBe('/auth?sso_error=unknown_domain');
 
     const cases: Array<[Record<string, unknown>, string]> = [
@@ -268,17 +409,24 @@ describe('signing in through the provider', () => {
     expect(await privilegedDb.select().from(ssoIdentities)).toHaveLength(0);
   });
 
-  it('accepts Entra ID\'s address-shaped preferred_username when there is no email claim', async () => {
+  it("accepts Entra ID's address-shaped preferred_username when there is no email claim", async () => {
     const { agent } = await owner();
     await agent.put('/api/organization/sso').send(settings()).expect(200);
-    const { browser } = await ssoSignIn('lin@example.com', { sub: 'lin-1', preferred_username: 'Lin@example.com' });
+    const { browser } = await ssoSignIn('lin@example.com', {
+      sub: 'lin-1',
+      preferred_username: 'Lin@example.com',
+    });
     expect((await browser.get('/api/user').expect(200)).body.username).toBe('lin@example.com');
   });
 
   it('refuses a callback whose state is not the one sent, and one with nothing pending', async () => {
     const { agent } = await owner();
     await agent.put('/api/organization/sso').send(settings()).expect(200);
-    const forged = await ssoSignIn('eve@example.com', { sub: 'eve', email: 'eve@example.com' }, (p) => p.set('state', 'forged'));
+    const forged = await ssoSignIn(
+      'eve@example.com',
+      { sub: 'eve', email: 'eve@example.com' },
+      (p) => p.set('state', 'forged'),
+    );
     expect(forged.back.headers.location).toBe('/auth?sso_error=provider_error');
 
     const cold = await request(app).get('/api/sso/callback?code=x&state=y').expect(303);
@@ -287,56 +435,90 @@ describe('signing in through the provider', () => {
 
   it('sends nobody to a provider that is switched off', async () => {
     const { agent } = await owner();
-    await agent.put('/api/organization/sso').send(settings({ enabled: false })).expect(200);
-    const res = await request(app).get('/api/sso/start').query({ email: 'ada@example.com' }).expect(303);
+    await agent
+      .put('/api/organization/sso')
+      .send(settings({ enabled: false }))
+      .expect(200);
+    const res = await request(app)
+      .get('/api/sso/start')
+      .query({ email: 'ada@example.com' })
+      .expect(303);
     expect(res.headers.location).toBe('/auth?sso_error=unknown_domain');
     expect((await request(app).get('/api/sso/available')).body.available).toBe(false);
   });
 });
 
 describe('requiring single sign-on', () => {
-  it('refuses members\' passwords, keeps owners\', and ends password sessions already open', async () => {
+  it("refuses members' passwords, keeps owners', and ends password sessions already open", async () => {
     const { agent, organizationId } = await owner();
     await agent.put('/api/organization/sso').send(settings()).expect(200);
     await member(organizationId, 'max@example.com');
 
     const open = request.agent(app);
-    await open.post('/api/login').send({ username: 'max@example.com', password: 'password123' }).expect(200);
+    await open
+      .post('/api/login')
+      .send({ username: 'max@example.com', password: 'password123' })
+      .expect(200);
     await open.get('/api/probe').expect(200);
 
-    await agent.put('/api/organization/sso').send(settings({ clientSecret: '', required: true })).expect(200);
+    await agent
+      .put('/api/organization/sso')
+      .send(settings({ clientSecret: '', required: true }))
+      .expect(200);
 
     const ended = await open.get('/api/probe').expect(401);
     expect(ended.body.code).toBe('sso_required');
     await open.get('/api/user').expect(401);
 
-    const refused = await request(app).post('/api/login').send({ username: 'max@example.com', password: 'password123' }).expect(403);
+    const refused = await request(app)
+      .post('/api/login')
+      .send({ username: 'max@example.com', password: 'password123' })
+      .expect(403);
     expect(refused.body.code).toBe('sso_required');
     // A wrong password says nothing about single sign-on.
-    await request(app).post('/api/login').send({ username: 'max@example.com', password: 'wrong-password' }).expect(401);
+    await request(app)
+      .post('/api/login')
+      .send({ username: 'max@example.com', password: 'wrong-password' })
+      .expect(401);
 
-    await request(app).post('/api/login').send({ username: 'olivia@example.com', password: 'password123' }).expect(200);
-    const { browser } = await ssoSignIn('max@example.com', { sub: 'max-1', email: 'max@example.com' });
+    await request(app)
+      .post('/api/login')
+      .send({ username: 'olivia@example.com', password: 'password123' })
+      .expect(200);
+    const { browser } = await ssoSignIn('max@example.com', {
+      sub: 'max-1',
+      email: 'max@example.com',
+    });
     await browser.get('/api/probe').expect(200);
   });
 
-  it('does not ask for the organization\'s second factor on a session from the provider', async () => {
+  it("does not ask for the organization's second factor on a session from the provider", async () => {
     const { agent, organizationId } = await owner();
     await agent.put('/api/organization/sso').send(settings()).expect(200);
-    await privilegedDb.update(organizations).set({ mfaRequired: true }).where(eq(organizations.id, organizationId));
+    await privilegedDb
+      .update(organizations)
+      .set({ mfaRequired: true })
+      .where(eq(organizations.id, organizationId));
 
-    const { browser } = await ssoSignIn('nia@example.com', { sub: 'nia-1', email: 'nia@example.com' });
+    const { browser } = await ssoSignIn('nia@example.com', {
+      sub: 'nia-1',
+      email: 'nia@example.com',
+    });
     expect((await browser.get('/api/user').expect(200)).body.mfaEnrollmentRequired).toBe(false);
     await browser.get('/api/probe').expect(200);
   });
 });
 
-describe('roles from the provider\'s groups', () => {
+describe("roles from the provider's groups", () => {
   it('reads groups from a list or a single value, and takes the highest mapped role', () => {
     expect(groupsOf({ groups: ['QA', ' Leads '] }, null)).toEqual(['QA', 'Leads']);
     expect(groupsOf({ memberOf: 'Admins' }, 'memberOf')).toEqual(['Admins']);
     expect(groupsOf({}, 'groups')).toEqual([]);
-    const mappings = [{ group: 'qa', role: 'editor' as const }, { group: 'admins', role: 'owner' as const }, { group: 'all', role: 'viewer' as const }];
+    const mappings = [
+      { group: 'qa', role: 'editor' as const },
+      { group: 'admins', role: 'owner' as const },
+      { group: 'all', role: 'viewer' as const },
+    ];
     expect(roleFromGroups(['ALL', 'QA'], mappings)).toBe('editor');
     expect(roleFromGroups(['Admins', 'all'], mappings)).toBe('owner');
     expect(roleFromGroups(['sales'], mappings)).toBeNull();
@@ -346,26 +528,73 @@ describe('roles from the provider\'s groups', () => {
     const { agent, organizationId, id: ownerId } = await owner();
     await agent
       .put('/api/organization/sso')
-      .send(settings({ defaultRole: 'viewer', groupAttribute: 'roles', roleMappings: [{ group: 'wfm-editors', role: 'editor' }, { group: 'wfm-owners', role: 'owner' }] }))
+      .send(
+        settings({
+          defaultRole: 'viewer',
+          groupAttribute: 'roles',
+          roleMappings: [
+            { group: 'wfm-editors', role: 'editor' },
+            { group: 'wfm-owners', role: 'owner' },
+          ],
+        }),
+      )
       .expect(200);
 
-    const first = await ssoSignIn('ada@example.com', { sub: 'ada-1', email: 'ada@example.com', roles: ['wfm-editors'] });
+    const first = await ssoSignIn('ada@example.com', {
+      sub: 'ada-1',
+      email: 'ada@example.com',
+      roles: ['wfm-editors'],
+    });
     expect((await first.browser.get('/api/user').expect(200)).body.role).toBe('editor');
     // Out of every mapped group: the role stays as it is (no "require a group" yet).
-    const outside = await ssoSignIn('ada@example.com', { sub: 'ada-1', email: 'ada@example.com', roles: ['sales'] });
+    const outside = await ssoSignIn('ada@example.com', {
+      sub: 'ada-1',
+      email: 'ada@example.com',
+      roles: ['sales'],
+    });
     expect((await outside.browser.get('/api/user').expect(200)).body.role).toBe('editor');
-    const promoted = await ssoSignIn('ada@example.com', { sub: 'ada-1', email: 'ada@example.com', roles: ['wfm-owners'] });
+    const promoted = await ssoSignIn('ada@example.com', {
+      sub: 'ada-1',
+      email: 'ada@example.com',
+      roles: ['wfm-owners'],
+    });
     expect((await promoted.browser.get('/api/user').expect(200)).body.role).toBe('owner');
 
-    const changes = (await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId))).filter((e) => e.action === 'member.role_changed');
-    expect(changes.map((e) => e.metadata)).toEqual([expect.objectContaining({ from: 'editor', to: 'owner', bySsoGroups: true })]);
+    const changes = (
+      await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId))
+    ).filter((e) => e.action === 'member.role_changed');
+    expect(changes.map((e) => e.metadata)).toEqual([
+      expect.objectContaining({ from: 'editor', to: 'owner', bySsoGroups: true }),
+    ]);
 
     // Olivia, the first owner, signs in with a group that maps to viewer: she is not the last owner (Ada is), so she follows.
-    await privilegedDb.insert(ssoIdentities).values({ issuer, subject: 'olivia-1', userId: ownerId });
-    await agent.put('/api/organization/sso').send(settings({ clientSecret: '', roleMappings: [{ group: 'wfm-editors', role: 'editor' }, { group: 'wfm-owners', role: 'owner' }, { group: 'readers', role: 'viewer' }] })).expect(200);
-    await ssoSignIn('olivia@example.com', { sub: 'olivia-1', email: 'olivia@example.com', roles: ['readers'] });
+    await privilegedDb
+      .insert(ssoIdentities)
+      .values({ issuer, subject: 'olivia-1', userId: ownerId });
+    await agent
+      .put('/api/organization/sso')
+      .send(
+        settings({
+          clientSecret: '',
+          roleMappings: [
+            { group: 'wfm-editors', role: 'editor' },
+            { group: 'wfm-owners', role: 'owner' },
+            { group: 'readers', role: 'viewer' },
+          ],
+        }),
+      )
+      .expect(200);
+    await ssoSignIn('olivia@example.com', {
+      sub: 'olivia-1',
+      email: 'olivia@example.com',
+      roles: ['readers'],
+    });
     // Ada, now the last owner, keeps the role whatever her groups say.
-    const last = await ssoSignIn('ada@example.com', { sub: 'ada-1', email: 'ada@example.com', roles: ['readers'] });
+    const last = await ssoSignIn('ada@example.com', {
+      sub: 'ada-1',
+      email: 'ada@example.com',
+      roles: ['readers'],
+    });
     expect((await last.browser.get('/api/user').expect(200)).body.role).toBe('owner');
     const [olivia] = await privilegedDb.select().from(users).where(eq(users.id, ownerId));
     expect(olivia.role).toBe('viewer');
@@ -373,14 +602,43 @@ describe('roles from the provider\'s groups', () => {
 
   it('refuses someone in no mapped group when the organization says so', async () => {
     const { agent } = await owner();
-    expect((await agent.put('/api/organization/sso').send(settings({ requireGroup: true })).expect(400)).body.code).toBe('require_group_needs_mappings');
-    expect((await agent.put('/api/organization/sso').send(settings({ roleMappings: [{ group: 'a', role: 'admin' }] })).expect(400)).body.code).toBe('invalid_mapping');
-    await agent.put('/api/organization/sso').send(settings({ roleMappings: [{ group: 'wfm-users', role: 'viewer' }], requireGroup: true })).expect(200);
+    expect(
+      (
+        await agent
+          .put('/api/organization/sso')
+          .send(settings({ requireGroup: true }))
+          .expect(400)
+      ).body.code,
+    ).toBe('require_group_needs_mappings');
+    expect(
+      (
+        await agent
+          .put('/api/organization/sso')
+          .send(settings({ roleMappings: [{ group: 'a', role: 'admin' }] }))
+          .expect(400)
+      ).body.code,
+    ).toBe('invalid_mapping');
+    await agent
+      .put('/api/organization/sso')
+      .send(
+        settings({ roleMappings: [{ group: 'wfm-users', role: 'viewer' }], requireGroup: true }),
+      )
+      .expect(200);
 
-    const { back } = await ssoSignIn('eve@example.com', { sub: 'eve-1', email: 'eve@example.com', groups: ['contractors'] });
+    const { back } = await ssoSignIn('eve@example.com', {
+      sub: 'eve-1',
+      email: 'eve@example.com',
+      groups: ['contractors'],
+    });
     expect(back.headers.location).toBe('/auth?sso_error=no_group');
-    expect(await privilegedDb.select().from(users).where(eq(users.username, 'eve@example.com'))).toEqual([]);
-    const allowed = await ssoSignIn('eve@example.com', { sub: 'eve-1', email: 'eve@example.com', groups: ['wfm-users'] });
+    expect(
+      await privilegedDb.select().from(users).where(eq(users.username, 'eve@example.com')),
+    ).toEqual([]);
+    const allowed = await ssoSignIn('eve@example.com', {
+      sub: 'eve-1',
+      email: 'eve@example.com',
+      groups: ['wfm-users'],
+    });
     expect((await allowed.browser.get('/api/user').expect(200)).body.role).toBe('viewer');
   });
 });
@@ -402,19 +660,44 @@ describe('proving an e-mail domain with DNS', () => {
       const { agent, organizationId } = await owner();
       const saved = await agent.put('/api/organization/sso').send(settings()).expect(200);
       const status = saved.body.settings.domainStatus[0];
-      expect(status).toMatchObject({ domain: 'example.com', verified: false, record: { name: '_wfm-verification.example.com' } });
+      expect(status).toMatchObject({
+        domain: 'example.com',
+        verified: false,
+        record: { name: '_wfm-verification.example.com' },
+      });
       expect(status.record.value).toMatch(/^wfm-verification=[0-9a-f]{32}$/);
 
-      const missing = await agent.post('/api/organization/sso/domains/example.com/verify').expect(200);
-      expect(missing.body).toEqual({ verified: false, message: expect.stringContaining('No TXT record at _wfm-verification.example.com') });
-      records['_wfm-verification.example.com'] = [['v=spf1 -all'], ['wfm-verification=', status.record.value.split('=')[1]]];
-      expect((await agent.post('/api/organization/sso/domains/example.com/verify').expect(200)).body).toEqual({ verified: true });
+      const missing = await agent
+        .post('/api/organization/sso/domains/example.com/verify')
+        .expect(200);
+      expect(missing.body).toEqual({
+        verified: false,
+        message: expect.stringContaining('No TXT record at _wfm-verification.example.com'),
+      });
+      records['_wfm-verification.example.com'] = [
+        ['v=spf1 -all'],
+        ['wfm-verification=', status.record.value.split('=')[1]],
+      ];
+      expect(
+        (await agent.post('/api/organization/sso/domains/example.com/verify').expect(200)).body,
+      ).toEqual({ verified: true });
       await agent.post('/api/organization/sso/domains/other.example/verify').expect(404);
 
       // Saved again, with one more domain: the proven one stays proven.
-      const again = await agent.put('/api/organization/sso').send(settings({ clientSecret: '', domains: ['example.com', 'example.org'] })).expect(200);
-      expect(again.body.settings.domainStatus.map((d: any) => [d.domain, d.verified])).toEqual([['example.com', true], ['example.org', false]]);
-      const audited = (await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId))).filter((e) => e.action === 'sso.domain_verified');
+      const again = await agent
+        .put('/api/organization/sso')
+        .send(settings({ clientSecret: '', domains: ['example.com', 'example.org'] }))
+        .expect(200);
+      expect(again.body.settings.domainStatus.map((d: any) => [d.domain, d.verified])).toEqual([
+        ['example.com', true],
+        ['example.org', false],
+      ]);
+      const audited = (
+        await privilegedDb
+          .select()
+          .from(auditLog)
+          .where(eq(auditLog.organizationId, organizationId))
+      ).filter((e) => e.action === 'sso.domain_verified');
       expect(audited.map((e) => e.metadata)).toEqual([{ domain: 'example.com' }]);
     } finally {
       dnsDeps.resolveTxt = original;
@@ -425,26 +708,55 @@ describe('proving an e-mail domain with DNS', () => {
     process.env.SSO_REQUIRE_DOMAIN_VERIFICATION = 'true';
     const squatter = await owner('mallory@other.example');
     await squatter.agent.put('/api/organization/sso').send(settings()).expect(200);
-    expect((await squatter.agent.get('/api/organization/sso').expect(200)).body.settings.verificationRequired).toBe(true);
+    expect(
+      (await squatter.agent.get('/api/organization/sso').expect(200)).body.settings
+        .verificationRequired,
+    ).toBe(true);
     // Not proven: no sign-in is routed to it.
-    const start = await request(app).get('/api/sso/start').query({ email: 'ada@example.com' }).expect(303);
+    const start = await request(app)
+      .get('/api/sso/start')
+      .query({ email: 'ada@example.com' })
+      .expect(303);
     expect(start.headers.location).toContain('sso_error=unknown_domain');
 
     // The real owner of the domain claims it: the unproven claim is released.
-    const [real] = await privilegedDb.insert(organizations).values({ name: 'Example Inc' }).returning();
+    const [real] = await privilegedDb
+      .insert(organizations)
+      .values({ name: 'Example Inc' })
+      .returning();
     const { hashPassword } = await import('./auth');
-    await privilegedDb.insert(users).values({ username: 'rita', password: await hashPassword('password123'), organizationId: real.id, role: 'owner' });
+    await privilegedDb.insert(users).values({
+      username: 'rita',
+      password: await hashPassword('password123'),
+      organizationId: real.id,
+      role: 'owner',
+    });
     const rita = request.agent(app);
     await rita.post('/api/login').send({ username: 'rita', password: 'password123' }).expect(200);
     await rita.put('/api/organization/sso').send(settings()).expect(200);
-    const [row] = await privilegedDb.select().from(ssoDomains).where(eq(ssoDomains.domain, 'example.com'));
+    const [row] = await privilegedDb
+      .select()
+      .from(ssoDomains)
+      .where(eq(ssoDomains.domain, 'example.com'));
     expect(row.organizationId).toBe(real.id);
 
     // Proven, it routes, and nobody can take it any more.
-    await privilegedDb.update(ssoDomains).set({ verifiedAt: new Date() }).where(eq(ssoDomains.domain, 'example.com'));
-    const routed = await request(app).get('/api/sso/start').query({ email: 'ada@example.com' }).expect(303);
+    await privilegedDb
+      .update(ssoDomains)
+      .set({ verifiedAt: new Date() })
+      .where(eq(ssoDomains.domain, 'example.com'));
+    const routed = await request(app)
+      .get('/api/sso/start')
+      .query({ email: 'ada@example.com' })
+      .expect(303);
     expect(routed.headers.location.startsWith(issuer)).toBe(true);
-    expect((await squatter.agent.put('/api/organization/sso').send(settings({ clientSecret: '' })).expect(409)).body.code).toBe('domain_taken');
+    expect(
+      (
+        await squatter.agent
+          .put('/api/organization/sso')
+          .send(settings({ clientSecret: '' }))
+          .expect(409)
+      ).body.code,
+    ).toBe('domain_taken');
   });
 });
-

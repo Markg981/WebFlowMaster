@@ -134,10 +134,20 @@ const defaults = (command: Command): CliOptions => ({
   ci: true,
 });
 
-export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): CliOptions | { error: string } {
+export function parseArgs(
+  argv: string[],
+  env: NodeJS.ProcessEnv = process.env,
+): CliOptions | { error: string } {
   const [command, ...rest] = argv;
-  if (!command || command === 'help' || command === '--help' || command === '-h') return defaults('help');
-  if (command !== 'run' && command !== 'status' && command !== 'junit' && command !== 'export' && command !== 'tests') {
+  if (!command || command === 'help' || command === '--help' || command === '-h')
+    return defaults('help');
+  if (
+    command !== 'run' &&
+    command !== 'status' &&
+    command !== 'junit' &&
+    command !== 'export' &&
+    command !== 'tests'
+  ) {
     return { error: `Unknown command "${command}".` };
   }
 
@@ -153,29 +163,75 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
     const argument = rest[i];
     const value = () => rest[++i];
     switch (argument) {
-      case '--url': options.baseUrl = value(); break;
-      case '--key': options.apiKey = value(); break;
-      case '--wait': options.wait = true; break;
-      case '--update-baselines': options.updateBaselines = true; break;
-      case '--json': options.json = true; break;
-      case '--no-ci': options.ci = false; break;
-      case '--junit': options.junitPath = value(); break;
-      case '--html': options.htmlPath = value(); break;
-      case '--pdf': options.pdfPath = value(); break;
-      case '--allure': options.allurePath = value(); break;
-      case '--timeout': options.timeoutSeconds = Number(value()); break;
-      case '--poll': options.pollSeconds = Number(value()); break;
-      case '--environment': options.environmentId = Number(value()); break;
-      case '--idempotency-key': options.idempotencyKey = value(); break;
-      case '--project': options.project = value(); break;
-      case '--format': options.format = value() as CliOptions['format']; break;
-      case '--out': options.outPath = value(); break;
-      case '--dry-run': options.dryRun = true; break;
-      case '--bdd-mode': options.bddMode = value() as CliOptions['bddMode']; break;
-      case '--bdd-profile': options.bddProfile = value(); break;
-      case '--bdd-revision': options.bddRevision = value(); break;
-      case '--changed-since': options.changedSince = value(); break;
-      case '--changed-files': options.changedFilesPath = value(); break;
+      case '--url':
+        options.baseUrl = value();
+        break;
+      case '--key':
+        options.apiKey = value();
+        break;
+      case '--wait':
+        options.wait = true;
+        break;
+      case '--update-baselines':
+        options.updateBaselines = true;
+        break;
+      case '--json':
+        options.json = true;
+        break;
+      case '--no-ci':
+        options.ci = false;
+        break;
+      case '--junit':
+        options.junitPath = value();
+        break;
+      case '--html':
+        options.htmlPath = value();
+        break;
+      case '--pdf':
+        options.pdfPath = value();
+        break;
+      case '--allure':
+        options.allurePath = value();
+        break;
+      case '--timeout':
+        options.timeoutSeconds = Number(value());
+        break;
+      case '--poll':
+        options.pollSeconds = Number(value());
+        break;
+      case '--environment':
+        options.environmentId = Number(value());
+        break;
+      case '--idempotency-key':
+        options.idempotencyKey = value();
+        break;
+      case '--project':
+        options.project = value();
+        break;
+      case '--format':
+        options.format = value() as CliOptions['format'];
+        break;
+      case '--out':
+        options.outPath = value();
+        break;
+      case '--dry-run':
+        options.dryRun = true;
+        break;
+      case '--bdd-mode':
+        options.bddMode = value() as CliOptions['bddMode'];
+        break;
+      case '--bdd-profile':
+        options.bddProfile = value();
+        break;
+      case '--bdd-revision':
+        options.bddRevision = value();
+        break;
+      case '--changed-since':
+        options.changedSince = value();
+        break;
+      case '--changed-files':
+        options.changedFilesPath = value();
+        break;
       default:
         if (argument.startsWith('-')) return { error: `Unknown option "${argument}".` };
         positional.push(argument);
@@ -184,15 +240,29 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
 
   if (command === 'tests') {
     const [action, file] = positional;
-    if (action !== 'export' && action !== 'import') return { error: 'tests needs export or import. See --help.' };
+    if (action !== 'export' && action !== 'import')
+      return { error: 'tests needs export or import. See --help.' };
     if (action === 'import' && !file) return { error: 'tests import needs the file. See --help.' };
     if (options.bddMode || options.bddProfile || options.bddRevision) {
-      if (action !== 'import' || (options.bddMode !== 'manual' && options.bddMode !== 'cucumber')) return {error:'BDD options require tests import and --bdd-mode manual or cucumber.'};
-      if (options.bddMode === 'cucumber' && (!options.bddProfile || !options.bddRevision)) return {error:'Cucumber import requires --bdd-profile and --bdd-revision.'};
-      if (options.bddMode === 'manual' && (options.bddProfile || options.bddRevision)) return {error:'Manual import does not use a Cucumber profile.'};
+      if (action !== 'import' || (options.bddMode !== 'manual' && options.bddMode !== 'cucumber'))
+        return { error: 'BDD options require tests import and --bdd-mode manual or cucumber.' };
+      if (options.bddMode === 'cucumber' && (!options.bddProfile || !options.bddRevision))
+        return { error: 'Cucumber import requires --bdd-profile and --bdd-revision.' };
+      if (options.bddMode === 'manual' && (options.bddProfile || options.bddRevision))
+        return { error: 'Manual import does not use a Cucumber profile.' };
     }
-    if (options.format && options.format !== 'yaml' && options.format !== 'json' && options.format !== 'gherkin') return { error: '--format is yaml, json or gherkin.' };
-    if (options.project !== undefined && options.project !== 'none' && !/^\d+$/.test(options.project)) {
+    if (
+      options.format &&
+      options.format !== 'yaml' &&
+      options.format !== 'json' &&
+      options.format !== 'gherkin'
+    )
+      return { error: '--format is yaml, json or gherkin.' };
+    if (
+      options.project !== undefined &&
+      options.project !== 'none' &&
+      !/^\d+$/.test(options.project)
+    ) {
       return { error: '--project is a project id, or none.' };
     }
     if (action === 'import' && options.project === 'none') options.project = undefined;
@@ -214,18 +284,29 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
     return { error: '--idempotency-key needs a value.' };
   }
   if (options.changedSince !== undefined || options.changedFilesPath !== undefined) {
-    if (options.command !== 'run') return { error: '--changed-since and --changed-files go with run.' };
+    if (options.command !== 'run')
+      return { error: '--changed-since and --changed-files go with run.' };
     if (options.changedSince !== undefined && options.changedFilesPath !== undefined) {
       return { error: 'Use --changed-since or --changed-files, not both.' };
     }
-    if (options.changedSince !== undefined && !options.changedSince.trim()) return { error: '--changed-since needs a git ref.' };
-    if (options.changedFilesPath !== undefined && !options.changedFilesPath.trim()) return { error: '--changed-files needs a file.' };
+    if (options.changedSince !== undefined && !options.changedSince.trim())
+      return { error: '--changed-since needs a git ref.' };
+    if (options.changedFilesPath !== undefined && !options.changedFilesPath.trim())
+      return { error: '--changed-files needs a file.' };
   }
-  if (options.command === 'export' && !options.htmlPath && !options.pdfPath && !options.allurePath) {
+  if (
+    options.command === 'export' &&
+    !options.htmlPath &&
+    !options.pdfPath &&
+    !options.allurePath
+  ) {
     return { error: 'export needs at least one of --html, --pdf or --allure.' };
   }
   // A report means knowing how the run ended, which means waiting for it.
-  if (options.command === 'run' && (options.junitPath || options.htmlPath || options.pdfPath || options.allurePath)) {
+  if (
+    options.command === 'run' &&
+    (options.junitPath || options.htmlPath || options.pdfPath || options.allurePath)
+  ) {
     options.wait = true;
   }
   return options;
@@ -324,8 +405,12 @@ export function detectCi(env: Record<string, string | undefined>): CiContext | u
       provider: 'azure',
       repository: v('BUILD_REPOSITORY_NAME'),
       commit: v('BUILD_SOURCEVERSION'),
-      branch: (v('SYSTEM_PULLREQUEST_SOURCEBRANCH') ?? v('BUILD_SOURCEBRANCH'))?.replace(/^refs\/heads\//, ''),
-      pullRequest: v('SYSTEM_PULLREQUEST_PULLREQUESTNUMBER') ?? v('SYSTEM_PULLREQUEST_PULLREQUESTID'),
+      branch: (v('SYSTEM_PULLREQUEST_SOURCEBRANCH') ?? v('BUILD_SOURCEBRANCH'))?.replace(
+        /^refs\/heads\//,
+        '',
+      ),
+      pullRequest:
+        v('SYSTEM_PULLREQUEST_PULLREQUESTNUMBER') ?? v('SYSTEM_PULLREQUEST_PULLREQUESTID'),
       buildId: v('BUILD_BUILDNUMBER') ?? buildId,
       buildUrl:
         collection && project && buildId
@@ -343,7 +428,10 @@ export function detectCi(env: Record<string, string | undefined>): CiContext | u
       branch: v('BITBUCKET_BRANCH'),
       pullRequest: v('BITBUCKET_PR_ID'),
       buildId: number,
-      buildUrl: repository && number ? `https://bitbucket.org/${repository}/pipelines/results/${number}` : undefined,
+      buildUrl:
+        repository && number
+          ? `https://bitbucket.org/${repository}/pipelines/results/${number}`
+          : undefined,
     };
   } else if (v('CIRCLECI') === 'true') {
     const owner = v('CIRCLE_PROJECT_USERNAME');
@@ -364,7 +452,9 @@ export function detectCi(env: Record<string, string | undefined>): CiContext | u
     const number = v('BUILD_NUMBER');
     raw = {
       provider: 'jenkins',
-      repository: v('GIT_URL')?.replace(/^[a-z]+:\/\/[^@/]*@/i, 'https://').replace(/\.git$/, ''),
+      repository: v('GIT_URL')
+        ?.replace(/^[a-z]+:\/\/[^@/]*@/i, 'https://')
+        .replace(/\.git$/, ''),
       commit: v('GIT_COMMIT'),
       branch: v('CHANGE_BRANCH') ?? v('BRANCH_NAME') ?? v('GIT_BRANCH')?.replace(/^origin\//, ''),
       pullRequest: v('CHANGE_ID'),
@@ -377,7 +467,8 @@ export function detectCi(env: Record<string, string | undefined>): CiContext | u
 }
 
 function cleanCi(raw: CiContext): CiContext {
-  const clip = (value: string | undefined, max: number) => (value ? value.slice(0, max) : undefined);
+  const clip = (value: string | undefined, max: number) =>
+    value ? value.slice(0, max) : undefined;
   const ci: CiContext = {
     provider: raw.provider,
     repository: clip(raw.repository, 300),
@@ -385,11 +476,16 @@ function cleanCi(raw: CiContext): CiContext {
     branch: clip(raw.branch, 300),
     pullRequest: clip(raw.pullRequest, 50),
     buildId: clip(raw.buildId, 200),
-    buildUrl: raw.buildUrl && /^https?:\/\/\S+$/i.test(raw.buildUrl) && raw.buildUrl.length <= 2000 ? raw.buildUrl : undefined,
+    buildUrl:
+      raw.buildUrl && /^https?:\/\/\S+$/i.test(raw.buildUrl) && raw.buildUrl.length <= 2000
+        ? raw.buildUrl
+        : undefined,
     actor: clip(raw.actor, 200),
   };
   // An absent field is left out, not sent as undefined or empty.
-  return Object.fromEntries(Object.entries(ci).filter(([, value]) => value !== undefined && value !== '')) as unknown as CiContext;
+  return Object.fromEntries(
+    Object.entries(ci).filter(([, value]) => value !== undefined && value !== ''),
+  ) as unknown as CiContext;
 }
 
 type Call = (path: string, init?: RequestInit) => Promise<Response>;
@@ -421,7 +517,13 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
   try {
     if (options.command === 'tests') return await testsFile(options, io, call);
     if (options.command === 'junit') {
-      return await download(io, call, options.target!, 'junit', options.junitPath ?? `junit-${options.target}.xml`);
+      return await download(
+        io,
+        call,
+        options.target!,
+        'junit',
+        options.junitPath ?? `junit-${options.target}.xml`,
+      );
     }
     if (options.command === 'export') {
       return await writeReports(options, io, call, options.target!);
@@ -433,20 +535,39 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
       let changedFiles: string[] | undefined;
       if (options.changedSince !== undefined || options.changedFilesPath !== undefined) {
         try {
-          changedFiles = options.changedSince !== undefined
-            ? await (io.changedFilesSince ?? (async () => { throw new Error('This build cannot run git.'); }))(options.changedSince)
-            : (await (io.readFile ?? (async () => { throw new Error('This build cannot read files.'); }))(options.changedFilesPath!))
-                .split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+          changedFiles =
+            options.changedSince !== undefined
+              ? await (
+                  io.changedFilesSince ??
+                  (async () => {
+                    throw new Error('This build cannot run git.');
+                  })
+                )(options.changedSince)
+              : (
+                  await (
+                    io.readFile ??
+                    (async () => {
+                      throw new Error('This build cannot read files.');
+                    })
+                  )(options.changedFilesPath!)
+                )
+                  .split(/\r?\n/)
+                  .map((line) => line.trim())
+                  .filter(Boolean);
         } catch (error) {
           // Never a narrower run than asked for by accident: without the list, nothing runs.
           io.error(`Could not list the changed files: ${(error as Error).message}`);
           return EXIT_TOOL_ERROR;
         }
-        io.log(`${changedFiles.length} changed file(s): the run is narrowed to the tests they affect.`);
+        io.log(
+          `${changedFiles.length} changed file(s): the run is narrowed to the tests they affect.`,
+        );
       }
       const response = await call(`/api/v1/plans/${encodeURIComponent(options.target!)}/runs`, {
         method: 'POST',
-        ...(options.idempotencyKey ? { headers: { 'Idempotency-Key': options.idempotencyKey } } : {}),
+        ...(options.idempotencyKey
+          ? { headers: { 'Idempotency-Key': options.idempotencyKey } }
+          : {}),
         body: JSON.stringify({
           ...(options.environmentId !== undefined ? { environmentId: options.environmentId } : {}),
           ...(options.updateBaselines ? { updateBaselines: true } : {}),
@@ -464,7 +585,9 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
         io.error('The server started a run but did not say which one.');
         return EXIT_TOOL_ERROR;
       }
-      io.log(`Started run ${runId}${ci ? ` for ${ci.repository ?? ci.provider}${ci.commit ? `@${ci.commit.slice(0, 7)}` : ''}` : ''}.`);
+      io.log(
+        `Started run ${runId}${ci ? ` for ${ci.repository ?? ci.provider}${ci.commit ? `@${ci.commit.slice(0, 7)}` : ''}` : ''}.`,
+      );
       if (started.selection) io.log(started.selection.reason);
       await githubOutputs(io, { id: runId, status: started.status, links: started.links });
       if (!options.wait) return EXIT_PASSED;
@@ -502,14 +625,22 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
   }
 }
 
-async function waitForRun(runId: string, options: CliOptions, io: CliIo, call: Call): Promise<RunRecord | null> {
+async function waitForRun(
+  runId: string,
+  options: CliOptions,
+  io: CliIo,
+  call: Call,
+): Promise<RunRecord | null> {
   const deadline = io.now() + options.timeoutSeconds * 1000;
   let lastStatus: string | undefined;
 
   for (;;) {
     const response = await call(`/api/v1/runs/${encodeURIComponent(runId)}`);
     if (response.status === 404) throw new Error(`Run ${runId} not found.`);
-    if (!response.ok) throw new Error(`Asking about the run failed: ${response.status} ${await errorText(response)}`);
+    if (!response.ok)
+      throw new Error(
+        `Asking about the run failed: ${response.status} ${await errorText(response)}`,
+      );
     const run: RunRecord = await response.json();
 
     if (run.status !== lastStatus) {
@@ -524,21 +655,39 @@ async function waitForRun(runId: string, options: CliOptions, io: CliIo, call: C
   }
 }
 
-async function download(io: CliIo, call: Call, runId: string, what: 'junit' | 'html' | 'pdf' | 'allure', target: string): Promise<number> {
+async function download(
+  io: CliIo,
+  call: Call,
+  runId: string,
+  what: 'junit' | 'html' | 'pdf' | 'allure',
+  target: string,
+): Promise<number> {
   const path =
-    what === 'junit' ? `/api/v1/runs/${encodeURIComponent(runId)}/junit` : `/api/v1/runs/${encodeURIComponent(runId)}/export/${what}`;
+    what === 'junit'
+      ? `/api/v1/runs/${encodeURIComponent(runId)}/junit`
+      : `/api/v1/runs/${encodeURIComponent(runId)}/export/${what}`;
   const response = await call(path);
   if (!response.ok) {
-    io.error(`Could not fetch the ${what === 'junit' ? 'JUnit' : what.toUpperCase()} report: ${response.status} ${await errorText(response)}`);
+    io.error(
+      `Could not fetch the ${what === 'junit' ? 'JUnit' : what.toUpperCase()} report: ${response.status} ${await errorText(response)}`,
+    );
     return EXIT_TOOL_ERROR;
   }
-  const contents = what === 'junit' || what === 'html' ? await response.text() : new Uint8Array(await response.arrayBuffer());
+  const contents =
+    what === 'junit' || what === 'html'
+      ? await response.text()
+      : new Uint8Array(await response.arrayBuffer());
   await io.writeFile(target, contents);
   io.log(`Wrote ${target}.`);
   return EXIT_PASSED;
 }
 
-async function writeReports(options: CliOptions, io: CliIo, call: Call, runId: string): Promise<number> {
+async function writeReports(
+  options: CliOptions,
+  io: CliIo,
+  call: Call,
+  runId: string,
+): Promise<number> {
   const wanted: Array<['html' | 'pdf' | 'allure', string | undefined]> = [
     ['html', options.htmlPath],
     ['pdf', options.pdfPath],
@@ -553,10 +702,17 @@ async function writeReports(options: CliOptions, io: CliIo, call: Call, runId: s
 }
 
 /** Step outputs a later step can use: `steps.<id>.outputs.report-url`. Only on GitHub Actions. */
-async function githubOutputs(io: CliIo, run: Pick<RunRecord, 'id' | 'status' | 'links'>): Promise<void> {
+async function githubOutputs(
+  io: CliIo,
+  run: Pick<RunRecord, 'id' | 'status' | 'links'>,
+): Promise<void> {
   const file = io.env.GITHUB_OUTPUT;
   if (io.env.GITHUB_ACTIONS !== 'true' || !file) return;
-  const lines = [`run-id=${run.id}`, `status=${run.status}`, `report-url=${run.links?.report ?? ''}`];
+  const lines = [
+    `run-id=${run.id}`,
+    `status=${run.status}`,
+    `report-url=${run.links?.report ?? ''}`,
+  ];
   await io.appendFile(file, lines.join('\n') + '\n');
 }
 
@@ -580,7 +736,9 @@ export function markdownSummary(run: RunRecord): string {
     `| ${cell(t.total)} | ${cell(t.passed)} | ${cell(t.failed)}${t.quarantinedFailures ? ` (${t.quarantinedFailures} in quarantine)` : ''} | ${cell(t.skipped)} | ${typeof run.durationMs === 'number' ? `${(run.durationMs / 1000).toFixed(1)} s` : '—'} |`,
     '',
     ...(run.failure?.message ? [`> ${run.failure.message}`, ''] : []),
-    run.links?.report ? `[Open the report](${run.links.report}) · run \`${run.id}\`` : `Run \`${run.id}\``,
+    run.links?.report
+      ? `[Open the report](${run.links.report}) · run \`${run.id}\``
+      : `Run \`${run.id}\``,
     '',
   ].join('\n');
 }
@@ -594,7 +752,8 @@ export function describeRun(run: RunRecord): string {
         (t.quarantinedFailures ? ` (${t.quarantinedFailures} in quarantine)` : '') +
         (t.skipped ? `, ${t.skipped} skipped` : '')
       : 'no tests ran';
-  const duration = typeof run.durationMs === 'number' ? ` in ${(run.durationMs / 1000).toFixed(1)}s` : '';
+  const duration =
+    typeof run.durationMs === 'number' ? ` in ${(run.durationMs / 1000).toFixed(1)}s` : '';
   const name = run.planName ? `${run.planName}: ` : '';
   const link = run.links?.report ? ` — ${run.links.report}` : '';
   return `${name}${run.status} — ${counts}${duration}${link}`;
@@ -606,7 +765,8 @@ async function errorText(response: Response): Promise<string> {
     const text = await response.text();
     try {
       const parsed = JSON.parse(text);
-      if (parsed?.error?.message) return `${parsed.error.code ? `${parsed.error.code}: ` : ''}${parsed.error.message}`;
+      if (parsed?.error?.message)
+        return `${parsed.error.code ? `${parsed.error.code}: ` : ''}${parsed.error.message}`;
     } catch {
       /* not JSON */
     }
@@ -617,7 +777,8 @@ async function errorText(response: Response): Promise<string> {
 }
 
 /** How a 401 reads for `wfm tests`: the usual cause is a key with scopes, which only opens /api/v1. */
-const FULL_ACCESS_NEEDED = 'The key was refused: wfm tests needs a full-access API key (one without scopes).';
+const FULL_ACCESS_NEEDED =
+  'The key was refused: wfm tests needs a full-access API key (one without scopes).';
 
 /**
  * `wfm tests export` writes a project's tests as one file; `wfm tests import` reads one back (tests
@@ -625,33 +786,79 @@ const FULL_ACCESS_NEEDED = 'The key was refused: wfm tests needs a full-access A
  */
 async function testsFile(options: CliOptions, io: CliIo, call: Call): Promise<number> {
   if (options.testsAction === 'export') {
-    const query = new URLSearchParams({ format: options.format ?? 'yaml', ...(options.project ? { projectId: options.project } : {}) });
+    const query = new URLSearchParams({
+      format: options.format ?? 'yaml',
+      ...(options.project ? { projectId: options.project } : {}),
+    });
     const response = await call(`/api/tests/export?${query}`);
-    if (response.status === 401) { io.error(FULL_ACCESS_NEEDED); return EXIT_TOOL_ERROR; }
-    if (!response.ok) { io.error(`Could not export: ${response.status} ${await errorText(response)}`); return EXIT_TOOL_ERROR; }
+    if (response.status === 401) {
+      io.error(FULL_ACCESS_NEEDED);
+      return EXIT_TOOL_ERROR;
+    }
+    if (!response.ok) {
+      io.error(`Could not export: ${response.status} ${await errorText(response)}`);
+      return EXIT_TOOL_ERROR;
+    }
     const named = /filename="([^"]+)"/.exec(response.headers.get('content-disposition') ?? '')?.[1];
-    const target = options.outPath ?? named ?? (options.format === 'gherkin' ? 'tests.feature' : `tests.wfm.${options.format ?? 'yaml'}`);
+    const target =
+      options.outPath ??
+      named ??
+      (options.format === 'gherkin' ? 'tests.feature' : `tests.wfm.${options.format ?? 'yaml'}`);
     await io.writeFile(target, await response.text());
     const secrets = Number(response.headers.get('x-wfm-secrets-replaced') ?? 0);
     const references = Number(response.headers.get('x-wfm-tests-with-references') ?? 0);
     io.log(`Wrote ${target}.`);
     if (secrets > 0) io.log(`${secrets} secret(s) in API tests were written as variables.`);
-    if (references > 0) io.log(`${references} test(s) use step groups, custom actions or shared elements by id: they import into this organization only.`);
+    if (references > 0)
+      io.log(
+        `${references} test(s) use step groups, custom actions or shared elements by id: they import into this organization only.`,
+      );
     return EXIT_PASSED;
   }
 
-  if (!io.readFile) { io.error('This build cannot read files.'); return EXIT_TOOL_ERROR; }
+  if (!io.readFile) {
+    io.error('This build cannot read files.');
+    return EXIT_TOOL_ERROR;
+  }
   const content = await io.readFile(options.target!);
   const response = await call('/api/tests/import-bundle', {
     method: 'POST',
-    body: JSON.stringify({ content, dryRun: options.dryRun === true, ...(options.project ? { projectId: Number(options.project) } : {}), ...(options.bddMode ? {bdd:{mode:options.bddMode,...(options.bddMode === 'cucumber' ? {binding:{id:options.bddProfile,revision:options.bddRevision}} : {})}} : {}) }),
+    body: JSON.stringify({
+      content,
+      dryRun: options.dryRun === true,
+      ...(options.project ? { projectId: Number(options.project) } : {}),
+      ...(options.bddMode
+        ? {
+            bdd: {
+              mode: options.bddMode,
+              ...(options.bddMode === 'cucumber'
+                ? { binding: { id: options.bddProfile, revision: options.bddRevision } }
+                : {}),
+            },
+          }
+        : {}),
+    }),
   });
-  if (response.status === 401) { io.error(FULL_ACCESS_NEEDED); return EXIT_TOOL_ERROR; }
-  if (!response.ok) { io.error(`Could not import: ${response.status} ${await errorText(response)}`); return EXIT_TOOL_ERROR; }
-  const body = (await response.json()) as { dryRun: boolean; results: Array<{ kind: string; name: string; outcome: string; reason?: string }> };
-  for (const r of body.results) io.log(`${r.outcome.padEnd(9)} ${r.kind === 'api_test' ? 'API ' : ''}${r.name}${r.reason ? ` — ${r.reason}` : ''}`);
+  if (response.status === 401) {
+    io.error(FULL_ACCESS_NEEDED);
+    return EXIT_TOOL_ERROR;
+  }
+  if (!response.ok) {
+    io.error(`Could not import: ${response.status} ${await errorText(response)}`);
+    return EXIT_TOOL_ERROR;
+  }
+  const body = (await response.json()) as {
+    dryRun: boolean;
+    results: Array<{ kind: string; name: string; outcome: string; reason?: string }>;
+  };
+  for (const r of body.results)
+    io.log(
+      `${r.outcome.padEnd(9)} ${r.kind === 'api_test' ? 'API ' : ''}${r.name}${r.reason ? ` — ${r.reason}` : ''}`,
+    );
   const count = (o: string) => body.results.filter((r) => r.outcome === o).length;
-  io.log(`${body.dryRun ? 'Would import' : 'Imported'}: ${count('created')} new, ${count('updated')} updated, ${count('unchanged')} unchanged, ${count('invalid')} left out.`);
+  io.log(
+    `${body.dryRun ? 'Would import' : 'Imported'}: ${count('created')} new, ${count('updated')} updated, ${count('unchanged')} unchanged, ${count('invalid')} left out.`,
+  );
   return count('invalid') > 0 ? EXIT_RUN_FAILED : EXIT_PASSED;
 }
 
@@ -681,11 +888,18 @@ export async function main(argv: string[]): Promise<number> {
     changedFilesSince: async (ref) => {
       const { execFile } = await import('node:child_process');
       const out = await new Promise<string>((resolve, reject) =>
-        execFile('git', ['diff', '--name-only', '--no-renames', `${ref}...HEAD`], { maxBuffer: 16 * 1024 * 1024 }, (error, stdout, stderr) =>
-          error ? reject(new Error(stderr.trim() || error.message)) : resolve(stdout),
+        execFile(
+          'git',
+          ['diff', '--name-only', '--no-renames', `${ref}...HEAD`],
+          { maxBuffer: 16 * 1024 * 1024 },
+          (error, stdout, stderr) =>
+            error ? reject(new Error(stderr.trim() || error.message)) : resolve(stdout),
         ),
       );
-      return out.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      return out
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
     },
   });
 }

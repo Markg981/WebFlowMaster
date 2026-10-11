@@ -57,10 +57,11 @@ export function emptyAuthParamsFor(type: AuthType): AuthParams {
       };
     default:
       // Every field from the schema's defaults, so the form and the runner start from the same place.
-      return isSchemeType(type) ? ({ type, params: schemeDefaults(type) } as AuthParams) : ({ type } as AuthParams);
+      return isSchemeType(type)
+        ? ({ type, params: schemeDefaults(type) } as AuthParams)
+        : ({ type } as AuthParams);
   }
 }
-
 
 export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
   authType,
@@ -76,19 +77,17 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
         return (
           <BasicAuthForm
             params={(authParams?.type === 'basic' ? authParams.params : {}) as BasicAuthParams}
-            onChange={(newParams) =>
-              onAuthParamsChange({ type: 'basic', params: newParams })
-            }
+            onChange={(newParams) => onAuthParamsChange({ type: 'basic', params: newParams })}
             disabled={disabled}
           />
         );
       case AuthTypeSchema.enum.bearer:
         return (
           <BearerTokenAuthForm
-            params={(authParams?.type === 'bearer' ? authParams.params : {}) as BearerTokenAuthParams}
-            onChange={(newParams) =>
-              onAuthParamsChange({ type: 'bearer', params: newParams })
+            params={
+              (authParams?.type === 'bearer' ? authParams.params : {}) as BearerTokenAuthParams
             }
+            onChange={(newParams) => onAuthParamsChange({ type: 'bearer', params: newParams })}
             disabled={disabled}
           />
         );
@@ -96,9 +95,7 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
         return (
           <ApiKeyAuthForm
             params={(authParams?.type === 'apiKey' ? authParams.params : {}) as ApiKeyAuthParams}
-            onChange={(newParams) =>
-              onAuthParamsChange({ type: 'apiKey', params: newParams })
-            }
+            onChange={(newParams) => onAuthParamsChange({ type: 'apiKey', params: newParams })}
             disabled={disabled}
           />
         );
@@ -112,13 +109,19 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
         );
       case AuthTypeSchema.enum.none:
       case AuthTypeSchema.enum.inherit:
-        return <p className="text-sm text-muted-foreground mt-2">No parameters for this auth type.</p>;
+        return (
+          <p className="text-sm text-muted-foreground mt-2">No parameters for this auth type.</p>
+        );
       default:
         if (isSchemeType(authType)) {
           return (
             <SchemeAuthForm
               type={authType}
-              params={authParams?.type === authType && 'params' in authParams ? authParams.params : undefined}
+              params={
+                authParams?.type === authType && 'params' in authParams
+                  ? authParams.params
+                  : undefined
+              }
               onChange={onAuthParamsChange}
               disabled={disabled}
             />
@@ -147,16 +150,16 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="auth-type-dropdown">{t('apiTester.authorizationPanel.authorizationType.label')}</Label>
+        <Label htmlFor="auth-type-dropdown">
+          {t('apiTester.authorizationPanel.authorizationType.label')}
+        </Label>
         <AuthTypeDropdown
           authType={authType}
           onAuthTypeChange={handleTypeChange}
           disabled={disabled}
         />
       </div>
-      <div className="mt-4">
-        {renderAuthForm()}
-      </div>
+      <div className="mt-4">{renderAuthForm()}</div>
     </div>
   );
 };

@@ -9,7 +9,8 @@ vi.mock('react-i18next', () => ({
     i18n: { language: 'it-IT' },
     t: (_key: string, fallback?: any, options?: any) => {
       let text = typeof fallback === 'string' ? fallback : _key;
-      for (const [name, value] of Object.entries(options ?? {})) text = text.replace(`{{${name}}}`, String(value));
+      for (const [name, value] of Object.entries(options ?? {}))
+        text = text.replace(`{{${name}}}`, String(value));
       return text;
     },
   }),
@@ -47,7 +48,12 @@ describe('FailureAnalysisDialog', () => {
   it('asks for an analysis in the interface language when the result has none, and shows it', async () => {
     const onAnalysed = vi.fn();
     render(
-      <FailureAnalysisDialog executionId="run-1" result={{ id: 'r-1', testName: 'Login', browser: 'chromium' }} onOpenChange={vi.fn()} onAnalysed={onAnalysed} />,
+      <FailureAnalysisDialog
+        executionId="run-1"
+        result={{ id: 'r-1', testName: 'Login', browser: 'chromium' }}
+        onOpenChange={vi.fn()}
+        onAnalysed={onAnalysed}
+      />,
     );
 
     expect(await screen.findByText(analysis.summary)).toBeTruthy();
@@ -61,7 +67,12 @@ describe('FailureAnalysisDialog', () => {
 
   it('shows a kept analysis without asking, and asks again only when told', async () => {
     render(
-      <FailureAnalysisDialog executionId="run-1" result={{ id: 'r-1', testName: 'Login', browser: null, aiAnalysis: analysis }} onOpenChange={vi.fn()} onAnalysed={vi.fn()} />,
+      <FailureAnalysisDialog
+        executionId="run-1"
+        result={{ id: 'r-1', testName: 'Login', browser: null, aiAnalysis: analysis }}
+        onOpenChange={vi.fn()}
+        onAnalysed={vi.fn()}
+      />,
     );
 
     expect(screen.getByText(analysis.summary)).toBeTruthy();
@@ -73,9 +84,19 @@ describe('FailureAnalysisDialog', () => {
   });
 
   it("shows the server's reason when there is no analysis to be had", async () => {
-    fetchMock.mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'AI analysis is not configured on this server (GEMINI_API_KEY).' }) });
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({
+        error: 'AI analysis is not configured on this server (GEMINI_API_KEY).',
+      }),
+    });
     render(
-      <FailureAnalysisDialog executionId="run-1" result={{ id: 'r-2', testName: 'Checkout', browser: null }} onOpenChange={vi.fn()} onAnalysed={vi.fn()} />,
+      <FailureAnalysisDialog
+        executionId="run-1"
+        result={{ id: 'r-2', testName: 'Checkout', browser: null }}
+        onOpenChange={vi.fn()}
+        onAnalysed={vi.fn()}
+      />,
     );
 
     expect((await screen.findByRole('alert')).textContent).toContain('GEMINI_API_KEY');
@@ -87,7 +108,14 @@ describe('FailureAnalysisDialog', () => {
     render(
       <FailureAnalysisDialog
         executionId="run-1"
-        result={{ id: 'r-1', testName: 'Login', browser: null, aiAnalysis: analysis, uiTestId: 7, steps: [{}, {}, { stepId: 'sign-in' }] }}
+        result={{
+          id: 'r-1',
+          testName: 'Login',
+          browser: null,
+          aiAnalysis: analysis,
+          uiTestId: 7,
+          steps: [{}, {}, { stepId: 'sign-in' }],
+        }}
         onOpenChange={vi.fn()}
         onAnalysed={vi.fn()}
       />,
@@ -103,14 +131,38 @@ describe('FailureAnalysisDialog', () => {
 
   it('offers no fix for a step inside a group, nor for a result that did not record its steps', () => {
     const { unmount } = render(
-      <FailureAnalysisDialog executionId="run-1" result={{ id: 'r-1', testName: 'Login', browser: null, aiAnalysis: analysis, uiTestId: 7, steps: [{}, {}, { stepId: 'pay', calledFrom: 'g' }] }} onOpenChange={vi.fn()} onAnalysed={vi.fn()} />,
+      <FailureAnalysisDialog
+        executionId="run-1"
+        result={{
+          id: 'r-1',
+          testName: 'Login',
+          browser: null,
+          aiAnalysis: analysis,
+          uiTestId: 7,
+          steps: [{}, {}, { stepId: 'pay', calledFrom: 'g' }],
+        }}
+        onOpenChange={vi.fn()}
+        onAnalysed={vi.fn()}
+      />,
     );
     expect(screen.queryByText('Apply to the test')).toBeNull();
     expect(screen.getByText(/change it in the group/)).toBeTruthy();
     unmount();
 
     render(
-      <FailureAnalysisDialog executionId="run-1" result={{ id: 'r-1', testName: 'Login', browser: null, aiAnalysis: analysis, uiTestId: 7, steps: [{}, {}, {}] }} onOpenChange={vi.fn()} onAnalysed={vi.fn()} />,
+      <FailureAnalysisDialog
+        executionId="run-1"
+        result={{
+          id: 'r-1',
+          testName: 'Login',
+          browser: null,
+          aiAnalysis: analysis,
+          uiTestId: 7,
+          steps: [{}, {}, {}],
+        }}
+        onOpenChange={vi.fn()}
+        onAnalysed={vi.fn()}
+      />,
     );
     expect(screen.queryByText('Apply to the test')).toBeNull();
   });

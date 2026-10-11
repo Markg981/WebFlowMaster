@@ -1,16 +1,16 @@
-import { type Express } from "express";
-import fs from "fs";
-import path, { dirname } from "path";
-import { fileURLToPath } from "url";
-import { createServer as createViteServer, createLogger } from "vite";
-import { type Server } from "http";
+import { type Express } from 'express';
+import fs from 'fs';
+import path, { dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { createServer as createViteServer, createLogger } from 'vite';
+import { type Server } from 'http';
 // vite.config.ts lives outside the server tsconfig project, so `tsc -b` raises TS6307
 // (a project-reference error). @ts-expect-error does NOT suppress TS6307, so @ts-ignore
 // is genuinely required here.
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import viteConfig from "../vite.config";
-import { nanoid } from "nanoid";
+import viteConfig from '../vite.config';
+import { nanoid } from 'nanoid';
 import winston from 'winston';
 
 // Get the file path of the current module once at module load time.
@@ -18,7 +18,7 @@ const currentModuleFilePath = fileURLToPath(import.meta.url);
 
 const viteLogger = createLogger();
 
-export function log(loggerInstance: winston.Logger, message: string, source = "express") {
+export function log(loggerInstance: winston.Logger, message: string, source = 'express') {
   // The original function included a timestamp, but our Winston logger automatically adds one.
   // We'll include the 'source' in the message.
   loggerInstance.info(`[${source}] ${message}`);
@@ -42,11 +42,11 @@ export async function setupVite(app: Express, server: Server) {
       },
     },
     server: serverOptions,
-    appType: "custom",
+    appType: 'custom',
   });
 
   app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
+  app.use('*', async (req, res, next) => {
     const url = req.originalUrl;
 
     try {
@@ -54,19 +54,16 @@ export async function setupVite(app: Express, server: Server) {
       const __dirname_setup = dirname(currentModuleFilePath);
       const clientTemplate = path.resolve(
         __dirname_setup, // Use __dirname derived from module-level constant
-        "..",
-        "client",
-        "index.html",
+        '..',
+        'client',
+        'index.html',
       );
 
       // always reload the index.html file from disk incase it changes
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      template = template.replace(
-        `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`,
-      );
+      let template = await fs.promises.readFile(clientTemplate, 'utf-8');
+      template = template.replace(`src="/src/main.tsx"`, `src="/src/main.tsx?v=${nanoid()}"`);
       const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      res.status(200).set({ 'Content-Type': 'text/html' }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);

@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -70,19 +72,29 @@ describe('ChangePasswordCard', () => {
     fill('old-password', 'new-password', 'new-password');
     fireEvent.click(screen.getByRole('button', { name: /Change password/i }));
 
-    expect(await screen.findByText(/other session you had open has been signed out/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/other session you had open has been signed out/),
+    ).toBeInTheDocument();
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/user/password');
-    expect(JSON.parse(init.body)).toEqual({ currentPassword: 'old-password', newPassword: 'new-password' });
+    expect(JSON.parse(init.body)).toEqual({
+      currentPassword: 'old-password',
+      newPassword: 'new-password',
+    });
   });
 
   it('shows the refusal of a wrong current password', async () => {
-    fetchMock.mockResolvedValue({ ok: false, json: async () => ({ message: 'The current password is not correct.' }) });
+    fetchMock.mockResolvedValue({
+      ok: false,
+      json: async () => ({ message: 'The current password is not correct.' }),
+    });
     renderCard();
 
     fill('wrong', 'new-password', 'new-password');
     fireEvent.click(screen.getByRole('button', { name: /Change password/i }));
 
-    await waitFor(() => expect(screen.getByText('The current password is not correct.')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('The current password is not correct.')).toBeInTheDocument(),
+    );
   });
 });

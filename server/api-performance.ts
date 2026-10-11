@@ -1,5 +1,10 @@
 import { summarise, type ApiPerformance, type PerformanceSummary } from '@shared/api-performance';
-import { runApiRequest, type ApiRequestSpec, type ApiRunResult, type OneConnectionFetch } from './api-test-runner';
+import {
+  runApiRequest,
+  type ApiRequestSpec,
+  type ApiRunResult,
+  type OneConnectionFetch,
+} from './api-test-runner';
 
 /**
  * The performance check of an API test (shared/api-performance.ts): after the functional request,
@@ -28,7 +33,9 @@ export async function runPerformance(
   /** Stops the remaining requests: the run was cancelled or ran out of time. */
   shouldStop: () => boolean = () => false,
 ): Promise<PerformanceSummary> {
-  const samples: Array<{ durationMs: number; error: string | null }> = [{ durationMs: first.durationMs, error: failureOf(first) }];
+  const samples: Array<{ durationMs: number; error: string | null }> = [
+    { durationMs: first.durationMs, error: failureOf(first) },
+  ];
   let remaining = settings.iterations - 1;
   const worker = async () => {
     while (remaining > 0 && !shouldStop()) {
@@ -37,6 +44,8 @@ export async function runPerformance(
       samples.push({ durationMs: result.durationMs, error: failureOf(result) });
     }
   };
-  await Promise.all(Array.from({ length: Math.min(settings.concurrency, settings.iterations - 1) }, worker));
+  await Promise.all(
+    Array.from({ length: Math.min(settings.concurrency, settings.iterations - 1) }, worker),
+  );
   return summarise(samples, settings);
 }

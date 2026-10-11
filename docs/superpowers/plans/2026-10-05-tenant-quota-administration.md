@@ -76,15 +76,23 @@ export interface TenantQuotas {
 }
 export type QuotaOverrides = { [K in keyof TenantQuotas]: number | null };
 export interface QuotaUsage {
-  running: number; queued: number; tests: number;
-  artifactBytes: number; reservedArtifactBytes: number;
+  running: number;
+  queued: number;
+  tests: number;
+  artifactBytes: number;
+  reservedArtifactBytes: number;
   executionMs: number;
-  periodStart: string; periodEnd: string;
+  periodStart: string;
+  periodEnd: string;
   artifactsReconciledAt: string | null;
 }
 export interface OrganizationQuotaSummary {
-  organizationId: number; name: string; revision: number;
-  quotas: TenantQuotas; overrides: QuotaOverrides; usage: QuotaUsage;
+  organizationId: number;
+  name: string;
+  revision: number;
+  quotas: TenantQuotas;
+  overrides: QuotaOverrides;
+  usage: QuotaUsage;
 }
 ```
 
@@ -108,36 +116,41 @@ new `server/tenant-quota-metering.test.ts` and `server/tests/tenant-quota-isolat
 and complete database enforcement for saved test count.
 
 - [x] Write integrations that seed an organization with `maxTests: 1`, insert one UI definition,
-  and assert API/mobile insertion fails, another organization succeeds, and editing/deleting
-  remains possible. Cover BDD using `tests.bdd` without counting scenarios separately.
+      and assert API/mobile insertion fails, another organization succeeds, and editing/deleting
+      remains possible. Cover BDD using `tests.bdd` without counting scenarios separately.
 
 ```typescript
 it('applies one limit across UI, API and mobile', async () => {
   const { organizationId, userId } = await seedQuotaOrganization({ maxTests: 1 });
   await insertDefinition('ui', organizationId, userId);
-  await expect(insertDefinition('api', organizationId, userId))
-    .rejects.toMatchObject({ code: 'P0001', message: 'test_quota_exceeded' });
-  await expect(insertDefinition('mobile', organizationId, userId))
-    .rejects.toMatchObject({ code: 'P0001', message: 'test_quota_exceeded' });
+  await expect(insertDefinition('api', organizationId, userId)).rejects.toMatchObject({
+    code: 'P0001',
+    message: 'test_quota_exceeded',
+  });
+  await expect(insertDefinition('mobile', organizationId, userId)).rejects.toMatchObject({
+    code: 'P0001',
+    message: 'test_quota_exceeded',
+  });
 });
 ```
 
-  Implement `seedQuotaOrganization` in this test file using `createTestOrganization`, an
-  organization quota update, and a seeded person; implement `insertDefinition` with the existing
-  required UI/API/mobile field patterns from route integration tests and a tenant transaction.
+Implement `seedQuotaOrganization` in this test file using `createTestOrganization`, an
+organization quota update, and a seeded person; implement `insertDefinition` with the existing
+required UI/API/mobile field patterns from route integration tests and a tenant transaction.
+
 - [x] Run `npx vitest run server/tenant-quota-metering.test.ts`; confirm failure because the new
-  quota columns/constraints and aggregate behavior are missing.
+      quota columns/constraints and aggregate behavior are missing.
 - [x] Add migration and schema definitions. Serialize test insert/delete capacity decisions under
-  one organization lock. Use aggregate functions that can count definitions hidden by project
-  RLS while validating the ambient organization and exposing only counts, not rows. Pin
-  `search_path`, revoke default PUBLIC execution, and grant only required application functions.
+      one organization lock. Use aggregate functions that can count definitions hidden by project
+      RLS while validating the ambient organization and exposing only counts, not rows. Pin
+      `search_path`, revoke default PUBLIC execution, and grant only required application functions.
 - [x] Test two concurrent insertions at the final slot and a two-definition bulk insert/import
-  above capacity: exactly one concurrent writer succeeds; the bulk operation leaves no new rows.
-  Ensure relevant route catch blocks map the database quota error to structured HTTP 429.
+      above capacity: exactly one concurrent writer succeeds; the bulk operation leaves no new rows.
+      Ensure relevant route catch blocks map the database quota error to structured HTTP 429.
 - [x] Backfill execution usage from available historical plan executions without altering results;
-  leave artifact reconciliation explicitly incomplete. Register new RLS tables and migration.
+      leave artifact reconciliation explicitly incomplete. Register new RLS tables and migration.
 - [x] Verify null inheritance, zero unlimited, invalid/unsafe numbers, environment defaults,
-  hidden-project totals and cross-tenant access. Run the new suites plus `server/tenant-quotas.test.ts`.
+      hidden-project totals and cross-tenant access. Run the new suites plus `server/tenant-quotas.test.ts`.
 
 ### Task 2: Durable monthly execution occupancy and admission
 
@@ -154,31 +167,33 @@ and `finishExecutionUsage(tx, organizationId, kind, executionId, now)`, plus
 `kind` distinguishes plan, standalone browser, API and mobile execution identifiers.
 
 - [x] Write a failing interval regression using sessions spanning `2026-09-30T23:59:30Z` to
-  `2026-10-01T00:00:30Z`; assert 30,000 ms in each month and no charge for queued work.
+      `2026-10-01T00:00:30Z`; assert 30,000 ms in each month and no charge for queued work.
 
 ```typescript
-expect(overlapMs(start, end, new Date('2026-10-01T00:00:00Z'),
-  new Date('2026-11-01T00:00:00Z'))).toBe(30_000);
+expect(
+  overlapMs(start, end, new Date('2026-10-01T00:00:00Z'), new Date('2026-11-01T00:00:00Z')),
+).toBe(30_000);
 ```
 
-  `overlapMs` uses `max(0, min(end, periodEnd) - max(start, periodStart))`; persisted aggregate
-  SQL must have identical interval semantics. Cover exact-boundary and zero-length intervals.
+`overlapMs` uses `max(0, min(end, periodEnd) - max(start, periodStart))`; persisted aggregate
+SQL must have identical interval semantics. Cover exact-boundary and zero-length intervals.
+
 - [x] Run `npx vitest run server/execution-usage.test.ts`; confirm missing metering behavior.
 - [x] Persist occupancy separately from deletable reports; unique `(organization_id, kind,
-  execution_id)` makes repeated lifecycle writes idempotent. Create the plan session in the
-  transaction that actually takes the run and close it in the successful terminal transition.
+execution_id)` makes repeated lifecycle writes idempotent. Create the plan session in the
+      transaction that actually takes the run and close it in the successful terminal transition.
 - [x] Include active sessions in monthly consumption; close stale sessions through existing
-  heartbeat/recovery logic. A recovered session cannot reopen from a late worker callback.
+      heartbeat/recovery logic. A recovered session cannot reopen from a late worker callback.
 - [x] Guard enqueue, take and promotion. Idempotent enqueue replay returns the previously
-  accepted run without consuming another slot. Exhausted queued runs stay queued with an
-  explicit reason and are reconsidered by existing deferred-job retries after rollover/increase.
+      accepted run without consuming another slot. Exhausted queued runs stay queued with an
+      explicit reason and are reconsidered by existing deferred-job retries after rollover/increase.
 - [x] Inventory standalone execution entry points, including `/api/proxy-api-request`, direct API
-  execution, `/api/tests/:id/run`, browser task dispatch and `/api/mobile-tests/:id/runs`.
-  Guard actual start, finalize in success/error/finally paths, and avoid charging child tests twice
-  when already inside a metered plan. Mobile device occupancy follows its runner lifecycle.
+      execution, `/api/tests/:id/run`, browser task dispatch and `/api/mobile-tests/:id/runs`.
+      Guard actual start, finalize in success/error/finally paths, and avoid charging child tests twice
+      when already inside a metered plan. Mobile device occupancy follows its runner lifecycle.
 - [x] Verify cancelled/failed/timed-out runs, duplicate delivery, recovery, month crossover,
-  history deletion, a retry with a new identifier, other-tenant progress and running overage.
-  Run execution usage, tenant quota, orchestrator, execution-state, promotion and recovery suites.
+      history deletion, a retry with a new identifier, other-tenant progress and running overage.
+      Run execution usage, tenant quota, orchestrator, execution-state, promotion and recovery suites.
 
 ### Task 3: Artifact inventory, reservations and reconciliation
 
@@ -194,27 +209,27 @@ Extend `ArtifactStore` with paginated metadata inventory returning canonical key
 both stores must support inventory without loading file contents into memory.
 
 - [x] Write failing integrations for 10 bytes committed under a 12-byte cap: replacing with
-  11 bytes succeeds; a separate 2-byte object fails; another tenant has independent capacity.
+      11 bytes succeeds; a separate 2-byte object fails; another tenant has independent capacity.
 - [x] Run `npx vitest run server/artifact-metering.test.ts server/artifact-store.test.ts`;
-  confirm absence of quota enforcement/inventory.
+      confirm absence of quota enforcement/inventory.
 - [x] Reserve the growth delta under the organization lock, prevent concurrent operations on
-  the same key with a unique reservation token, release the database transaction before storage
-  I/O, and commit only after publication succeeds. A failed/ambiguous write keeps conservative
-  reserved capacity until inventory resolves the actual object size. No long S3 transaction.
+      the same key with a unique reservation token, release the database transaction before storage
+      I/O, and commit only after publication succeeds. A failed/ambiguous write keeps conservative
+      reserved capacity until inventory resolves the actual object size. No long S3 transaction.
 - [x] Use staging for generated evidence; local public result directories must not expose files
-  that bypass successful quota admission. Record artifact outcome separately from test verdict,
-  update report availability and artifact route checks, and clean temporary staging safely.
-  Baseline replacement preserves the previous baseline if capacity cannot be reserved.
+      that bypass successful quota admission. Record artifact outcome separately from test verdict,
+      update report availability and artifact route checks, and clean temporary staging safely.
+      Baseline replacement preserves the previous baseline if capacity cannot be reserved.
 - [x] Meter all retained execution evidence and visual baselines. Retention, baseline removal and
-  organization erasure release inventory only for physically removed objects. Inspect S3
-  `DeleteObjects` per-object errors and leave failed objects accounted for.
+      organization erasure release inventory only for physically removed objects. Inspect S3
+      `DeleteObjects` per-object errors and leave failed objects accounted for.
 - [x] Reconciliation resolves canonical keys to their real organization through execution or
-  baseline ownership, scans legacy data and resolves stale reservations. Serialize reconciliation
-  with writes/deletes per organization without holding a transaction over the scan; use a lease
-  or generation fence so a concurrent mutation cannot be overwritten by a stale scan.
+      baseline ownership, scans legacy data and resolves stale reservations. Serialize reconciliation
+      with writes/deletes per organization without holding a transaction over the scan; use a lease
+      or generation fence so a concurrent mutation cannot be overwritten by a stale scan.
 - [x] Verify local/S3 parity, partial publish/delete, duplicate retries, restart recovery, concurrent
-  reservations, unknown legacy usage and correct retention release. A failed scan never marks
-  usage complete. Run metering, store, retention, visual testing and organization lifecycle suites.
+      reservations, unknown legacy usage and correct retention release. A failed scan never marks
+      usage complete. Run metering, store, retention, visual testing and organization lifecycle suites.
 
 ### Task 4: Installation administration, tenant usage and audit
 
@@ -228,22 +243,22 @@ both stores must support inventory without loading file contents into memory.
 `POST /api/admin/organization-quotas/:id/reconcile-artifacts`, and additive tenant usage fields.
 
 - [x] Add route regressions: tenant owner gets 403 for foreign/global admin routes; named human
-  installation administrator gets the permitted overview; service account never administers quotas.
-  Respect existing single-organization owner fallback. Use explicit authentication before the
-  installation guard rather than trusting client `installationAdmin` metadata.
+      installation administrator gets the permitted overview; service account never administers quotas.
+      Respect existing single-organization owner fallback. Use explicit authentication before the
+      installation guard rather than trusting client `installationAdmin` metadata.
 - [x] Run `npx vitest run server/routes/tenant-quota-admin.routes.test.ts`; confirm routes missing.
 - [x] Paginate and validate search/IDs; return only organization ID/name, quotas, revision and usage.
-  Use the target tenant context for metering and a narrowly scoped privileged transaction for
-  organization override writes and target-organization audit entries.
+      Use the target tenant context for metering and a narrowly scoped privileged transaction for
+      organization override writes and target-organization audit entries.
 - [x] Apply optimistic revision and audit atomically. Add `organization.quotas_updated` and
-  `organization.artifacts_reconciled` audit actions. Test conflicts and ensure audit cannot record
-  a quota change that rolled back. Reconciliation status/errors expose no object credentials.
+      `organization.artifacts_reconciled` audit actions. Test conflicts and ensure audit cannot record
+      a quota change that rolled back. Reconciliation status/errors expose no object credentials.
 - [x] Reject enabling a finite storage limit until initial inventory is complete; permit lowering
-  a cap below measured usage without deleting data. Return both inherited and effective values.
+      a cap below measured usage without deleting data. Return both inherited and effective values.
 - [x] Extend `/api/organization/usage` additively, preserve existing fields, include UTC period and
-  queued quota reason. Compute organization totals independently of member project visibility.
+      queued quota reason. Compute organization totals independently of member project visibility.
 - [x] Run administration, organization routes, installation admin, audit and isolation suites;
-  run new isolation cases under real PostgreSQL with `WFM_TEST_REQUIRE_POSTGRES=1` when configured.
+      run new isolation cases under real PostgreSQL with `WFM_TEST_REQUIRE_POSTGRES=1` when configured.
 
 ### Task 5: Usage and quota administration UI
 
@@ -256,7 +271,7 @@ both stores must support inventory without loading file contents into memory.
 **Produces:** Tenant-visible consumption and administrator-only quota editor in Settings.
 
 - [x] Write component tests showing tests/bytes/monthly minutes, an unlimited limit, over-limit
-  usage and incomplete artifact measurement. Do not render unmeasured usage as zero.
+      usage and incomplete artifact measurement. Do not render unmeasured usage as zero.
 
 ```typescript
 expect(await screen.findByText('Not measured yet')).toBeInTheDocument();
@@ -264,16 +279,16 @@ expect(screen.queryByText('0 / 0')).not.toBeInTheDocument();
 ```
 
 - [x] Run `npm run test:client -- --run src/components/settings/RunUsageCard.test.tsx
-  src/components/settings/QuotaAdministrationCard.test.tsx`; confirm missing UI behavior.
+src/components/settings/QuotaAdministrationCard.test.tsx`; confirm missing UI behavior.
 - [x] Keep existing Settings cards/layout. Add labelled numeric fields for the five overrides,
-  explicit inherit controls, effective defaults, UTC month boundaries and revision handling.
-  Format storage units and fractional consumed minutes for display without losing precision
-  in payloads. Disable duplicate submits; handle 400/403/409/429 and offer refresh on stale edits.
+      explicit inherit controls, effective defaults, UTC month boundaries and revision handling.
+      Format storage units and fractional consumed minutes for display without losing precision
+      in payloads. Disable duplicate submits; handle 400/403/409/429 and offer refresh on stale edits.
 - [x] Installation administration visibility requires `user.installationAdmin === true`, avoiding
-  the existing broad fallback used by unrelated settings. Preserve server authorization as the
-  source of truth; test owner denied, administrator allowed, save/clear/inherit and reconciliation.
+      the existing broad fallback used by unrelated settings. Preserve server authorization as the
+      source of truth; test owner denied, administrator allowed, save/clear/inherit and reconciliation.
 - [x] Add EN/IT quota labels, errors, overage/admission-budget explanation and loading states.
-  Run both component suites, settings-page tests and locale tests.
+      Run both component suites, settings-page tests and locale tests.
 
 ### Task 6: Documentation, acceptance and complete verification
 
@@ -282,18 +297,18 @@ expect(screen.queryByText('0 / 0')).not.toBeInTheDocument();
 the existing repository checks require regenerated output. Update this plan's progress ledger.
 
 - [x] Document all five quotas, environment variables, override/null/zero semantics, permissions,
-  UTC resource period, already-running overage, legacy inventory, staging and recovery procedures.
+      UTC resource period, already-running overage, legacy inventory, staging and recovery procedures.
 - [x] Add repeatable acceptance cases: mixed test count/import rejection, artifact replacement
-  and retention, exhaustion on plan and direct execution, monthly rollover, cross-tenant denial,
-  admin inheritance/change, stale revision, lowering a cap, audit and failed reconciliation.
+      and retention, exhaustion on plan and direct execution, monthly rollover, cross-tenant denial,
+      admin inheritance/change, stale revision, lowering a cap, audit and failed reconciliation.
 - [x] Run `npm run check`, scoped ESLint, `npm run build`, `npm run docs:build`, `git diff --check`.
-  Run relevant complete server/client suites; rerun load-related failures in isolation before
-  attributing them to product behavior. Capture actual commands/results, not inferred success.
+      Run relevant complete server/client suites; rerun load-related failures in isolation before
+      attributing them to product behavior. Capture actual commands/results, not inferred success.
 - [x] Obtain an independent final code review through the selected execution workflow; fix
-  correctness/security findings with reproducing regressions and rerun affected checks.
+      correctness/security findings with reproducing regressions and rerun affected checks.
 - [x] Report automated results, actual PostgreSQL RLS validation, live acceptance and database
-  deployment separately. Prepare a reviewable branch/PR according to the user's delivery scope;
-  do not claim a PR exists if GitHub creation/authentication did not succeed.
+      deployment separately. Prepare a reviewable branch/PR according to the user's delivery scope;
+      do not claim a PR exists if GitHub creation/authentication did not succeed.
 
 ## Plan self-review
 

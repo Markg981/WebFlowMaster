@@ -60,7 +60,11 @@ describe('KpiPanel', () => {
   });
 
   it('reports a genuine zero rate when runs exist and all of them failed', () => {
-    render(<KpiPanel data={{ totalRuns: 4, successRate: 0, avgDuration: 1200, lastRun: { status: 'failed' } }} />);
+    render(
+      <KpiPanel
+        data={{ totalRuns: 4, successRate: 0, avgDuration: 1200, lastRun: { status: 'failed' } }}
+      />,
+    );
 
     expect(card('success-rate').textContent).toContain('0%');
     expect(card('avg-duration').textContent).toContain('1.2s');

@@ -93,23 +93,19 @@ async function planRun(kind: 'api' | 'mobile', id: number) {
   await privilegedDb
     .insert(testPlans)
     .values({ id: planId, name: 'Typed plan', userId: current.id, organizationId: org });
-  await privilegedDb
-    .insert(testPlanSelectedTests)
-    .values({
-      testPlanId: planId,
-      testType: kind,
-      organizationId: org,
-      ...(kind === 'api' ? { apiTestId: id } : { mobileTestId: id }),
-    });
-  await privilegedDb
-    .insert(testPlanExecutions)
-    .values({
-      id: executionId,
-      organizationId: org,
-      testPlanId: planId,
-      status: 'queued',
-      triggeredBy: 'manual',
-    });
+  await privilegedDb.insert(testPlanSelectedTests).values({
+    testPlanId: planId,
+    testType: kind,
+    organizationId: org,
+    ...(kind === 'api' ? { apiTestId: id } : { mobileTestId: id }),
+  });
+  await privilegedDb.insert(testPlanExecutions).values({
+    id: executionId,
+    organizationId: org,
+    testPlanId: planId,
+    status: 'queued',
+    triggeredBy: 'manual',
+  });
   await processTestPlanJob(planId, executionId, current.id);
   return (
     await privilegedDb
@@ -128,15 +124,13 @@ async function api() {
 }
 async function mobile() {
   const gridId = uuidv4();
-  await privilegedDb
-    .insert(browserGrids)
-    .values({
-      id: gridId,
-      organizationId: org,
-      name: 'Device grid',
-      provider: 'browserstack',
-      username: 'qa',
-    });
+  await privilegedDb.insert(browserGrids).values({
+    id: gridId,
+    organizationId: org,
+    name: 'Device grid',
+    provider: 'browserstack',
+    username: 'qa',
+  });
   return (
     await request(app)
       .post('/api/mobile-tests')
@@ -167,15 +161,13 @@ describe('typed versions in plans', () => {
     const test = await mobile();
     await request(app).post(`/api/mobile-tests/${test.id}/publish`).send({}).expect(200);
     const nextGrid = uuidv4();
-    await privilegedDb
-      .insert(browserGrids)
-      .values({
-        id: nextGrid,
-        organizationId: org,
-        name: 'New grid',
-        provider: 'browserstack',
-        username: 'qa',
-      });
+    await privilegedDb.insert(browserGrids).values({
+      id: nextGrid,
+      organizationId: org,
+      name: 'New grid',
+      provider: 'browserstack',
+      username: 'qa',
+    });
     await request(app)
       .put(`/api/mobile-tests/${test.id}`)
       .send({

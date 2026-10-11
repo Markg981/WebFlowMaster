@@ -8,9 +8,20 @@ import type { Endpoint } from './types';
 import { createTestOrganization } from '../../server/tests/factories';
 
 const EPS: Endpoint[] = [
-  { httpMethod: 'GET', route: 'api/NetContentTareCheck/GetX', controller: 'TareCheck', action: 'GetX',
-    params: [{ name: 'id', csType: 'int', required: true, defaultValue: null }] },
-  { httpMethod: 'POST', route: 'api/NetContentScale/SaveY', controller: 'Scale', action: 'SaveY', params: [] },
+  {
+    httpMethod: 'GET',
+    route: 'api/NetContentTareCheck/GetX',
+    controller: 'TareCheck',
+    action: 'GetX',
+    params: [{ name: 'id', csType: 'int', required: true, defaultValue: null }],
+  },
+  {
+    httpMethod: 'POST',
+    route: 'api/NetContentScale/SaveY',
+    controller: 'Scale',
+    action: 'SaveY',
+    params: [],
+  },
 ];
 
 let organizationId: number;
@@ -20,7 +31,9 @@ beforeEach(async () => {
   await privilegedDb.delete(projects);
   await privilegedDb.delete(users);
   organizationId = await createTestOrganization();
-  await privilegedDb.insert(users).values({ id: 1, username: 'owner', password: 'x', organizationId });
+  await privilegedDb
+    .insert(users)
+    .values({ id: 1, username: 'owner', password: 'x', organizationId });
 });
 
 // Clean up so leftover projects (FK -> users) don't break other suites' privilegedDb.delete(users)
@@ -56,7 +69,12 @@ describe('findOrCreateProject', () => {
 describe('importApiTests (first run)', () => {
   it('inserts one apiTest per endpoint', async () => {
     const { projectId: pid } = await findOrCreateProject(privilegedDb, 1, 'NetContent');
-    const records = mapEndpoints(EPS, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1, organizationId });
+    const records = mapEndpoints(EPS, {
+      baseUrlVar: '{{baseUrl}}',
+      projectId: pid,
+      userId: 1,
+      organizationId,
+    });
     const summary = await importApiTests(privilegedDb, records, pid);
     expect(summary.created).toBe(2);
     expect(summary.updated).toBe(0);
@@ -65,7 +83,7 @@ describe('importApiTests (first run)', () => {
     expect(rows.map((r) => r.method).sort()).toEqual(['GET', 'POST']);
     const versions = await privilegedDb.select().from(testVersions);
     expect(versions).toHaveLength(2);
-    expect(versions.every(row => row.version === 1 && row.apiTestId !== null)).toBe(true);
+    expect(versions.every((row) => row.version === 1 && row.apiTestId !== null)).toBe(true);
     await importApiTests(privilegedDb, records, pid);
     expect(await privilegedDb.select().from(testVersions)).toHaveLength(2);
   });
@@ -74,27 +92,51 @@ describe('importApiTests (first run)', () => {
 describe('importApiTests (re-run)', () => {
   it('preserves edited assertions + filled param values, adds new params, reports orphans', async () => {
     const { projectId: pid } = await findOrCreateProject(privilegedDb, 1, 'NetContent');
-    let records = mapEndpoints(EPS, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1, organizationId });
+    let records = mapEndpoints(EPS, {
+      baseUrlVar: '{{baseUrl}}',
+      projectId: pid,
+      userId: 1,
+      organizationId,
+    });
     await importApiTests(privilegedDb, records, pid);
 
     // User edits GetX: fill the "id" value, add a custom assertion.
     const getX = (await privilegedDb.select().from(apiTests).where(eq(apiTests.method, 'GET')))[0];
     const editedParams = [{ id: 'a', key: 'id', value: '42', enabled: true }];
-    const editedAssertions = [{ id: 'b', source: 'status_code', comparison: 'equals', targetValue: '200', enabled: true }];
-    await privilegedDb.update(apiTests)
+    const editedAssertions = [
+      { id: 'b', source: 'status_code', comparison: 'equals', targetValue: '200', enabled: true },
+    ];
+    await privilegedDb
+      .update(apiTests)
       .set({ queryParams: editedParams, assertions: editedAssertions })
       .where(eq(apiTests.id, getX.id));
 
     // Re-import: GetX gains a new param "mode"; SaveY is gone; NewZ appears.
     const eps2: Endpoint[] = [
-      { httpMethod: 'GET', route: 'api/NetContentTareCheck/GetX', controller: 'TareCheck', action: 'GetX',
+      {
+        httpMethod: 'GET',
+        route: 'api/NetContentTareCheck/GetX',
+        controller: 'TareCheck',
+        action: 'GetX',
         params: [
           { name: 'id', csType: 'int', required: true, defaultValue: null },
           { name: 'mode', csType: 'string', required: false, defaultValue: 'null' },
-        ] },
-      { httpMethod: 'GET', route: 'api/NetContentTareCheck/NewZ', controller: 'TareCheck', action: 'NewZ', params: [] },
+        ],
+      },
+      {
+        httpMethod: 'GET',
+        route: 'api/NetContentTareCheck/NewZ',
+        controller: 'TareCheck',
+        action: 'NewZ',
+        params: [],
+      },
     ];
-    records = mapEndpoints(eps2, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1, organizationId });
+    records = mapEndpoints(eps2, {
+      baseUrlVar: '{{baseUrl}}',
+      projectId: pid,
+      userId: 1,
+      organizationId,
+    });
     const summary = await importApiTests(privilegedDb, records, pid);
 
     expect(summary.created).toBe(1); // NewZ
@@ -106,8 +148,13 @@ describe('importApiTests (re-run)', () => {
     const params = after.queryParams as any[];
     expect(params.find((p) => p.key === 'id').value).toBe('42'); // filled value preserved
     expect(params.find((p) => p.key === 'mode')).toBeTruthy(); // new param appended
-    const history = await privilegedDb.select().from(testVersions).where(eq(testVersions.apiTestId, getX.id));
-    expect(history.map(row => row.version).sort()).toEqual([1, 2]);
-    expect(history.find(row => row.version === 2)?.snapshot?.assertions).toEqual(editedAssertions);
+    const history = await privilegedDb
+      .select()
+      .from(testVersions)
+      .where(eq(testVersions.apiTestId, getX.id));
+    expect(history.map((row) => row.version).sort()).toEqual([1, 2]);
+    expect(history.find((row) => row.version === 2)?.snapshot?.assertions).toEqual(
+      editedAssertions,
+    );
   });
 });

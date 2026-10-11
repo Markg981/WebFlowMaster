@@ -57,14 +57,23 @@ function ManualResultEditor({
     setSaving(outcome);
     setError(null);
     try {
-      const response = await fetch(`/api/test-plan-executions/${executionId}/results/${row.id}/manual-verdict`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ outcome, notes: notes.trim() || null, stepOutcomes: stepOutcomes.map((o) => ({ outcome: o })) }),
-      });
+      const response = await fetch(
+        `/api/test-plan-executions/${executionId}/results/${row.id}/manual-verdict`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            outcome,
+            notes: notes.trim() || null,
+            stepOutcomes: stepOutcomes.map((o) => ({ outcome: o })),
+          }),
+        },
+      );
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || t('manualResults.saveFailed', 'Could not record the result.'));
+        throw new Error(
+          body.error || t('manualResults.saveFailed', 'Could not record the result.'),
+        );
       }
       onRecorded();
     } catch (recordError: any) {
@@ -84,7 +93,11 @@ function ManualResultEditor({
               {step.action}
             </div>
             <div className="text-sm text-muted-foreground">{step.expected}</div>
-            <div className="flex gap-1" role="group" aria-label={t('manualResults.stepOutcome', 'Outcome of step {{n}}', { n: index + 1 })}>
+            <div
+              className="flex gap-1"
+              role="group"
+              aria-label={t('manualResults.stepOutcome', 'Outcome of step {{n}}', { n: index + 1 })}
+            >
               {STEP_OUTCOMES.map((outcome) => (
                 <Button
                   key={outcome}
@@ -93,13 +106,15 @@ function ManualResultEditor({
                   variant={stepOutcomes[index] === outcome ? 'default' : 'outline'}
                   disabled={!canRecord}
                   aria-pressed={stepOutcomes[index] === outcome}
-                  onClick={() => setStepOutcomes((current) => current.map((o, i) => (i === index ? outcome : o)))}
+                  onClick={() =>
+                    setStepOutcomes((current) => current.map((o, i) => (i === index ? outcome : o)))
+                  }
                 >
                   {t(`manualResults.step.${outcome}`, outcome)}
                 </Button>
               ))}
             </div>
-            <GherkinArguments argument={step.gherkin}/>
+            <GherkinArguments argument={step.gherkin} />
           </li>
         ))}
       </ol>
@@ -109,16 +124,25 @@ function ManualResultEditor({
           id={`manual-notes-${row.id}`}
           value={notes}
           disabled={!canRecord}
-          placeholder={t('manualResults.notesPlaceholder', 'What happened, the issue opened, the environment used')}
+          placeholder={t(
+            'manualResults.notesPlaceholder',
+            'What happened, the issue opened, the environment used',
+          )}
           onChange={(e) => setNotes(e.target.value)}
         />
       </div>
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         {(['passed', 'failed', 'blocked'] as ManualVerdict[]).map((outcome) => (
           <Button
             key={outcome}
-            variant={outcome === 'failed' ? 'destructive' : outcome === 'passed' ? 'default' : 'outline'}
+            variant={
+              outcome === 'failed' ? 'destructive' : outcome === 'passed' ? 'default' : 'outline'
+            }
             disabled={!canRecord || saving !== null}
             onClick={() => record(outcome)}
           >
@@ -161,11 +185,18 @@ export const ManualResultsCard: React.FC<{
         <CardTitle className="flex items-center gap-2">
           <ClipboardCheck className="h-5 w-5" aria-hidden />
           {t('manualResults.title', 'Manual tests')}
-          {waiting > 0 && <Badge variant="secondary">{t('manualResults.waiting', '{{count}} waiting for a result', { count: waiting })}</Badge>}
+          {waiting > 0 && (
+            <Badge variant="secondary">
+              {t('manualResults.waiting', '{{count}} waiting for a result', { count: waiting })}
+            </Badge>
+          )}
         </CardTitle>
         <CardDescription>
           {ended
-            ? t('manualResults.description', 'Perform each test, mark how every step went, and give the verdict. The run’s counts and status follow.')
+            ? t(
+                'manualResults.description',
+                'Perform each test, mark how every step went, and give the verdict. The run’s counts and status follow.',
+              )
             : t('manualResults.notYet', 'Results can be recorded once the run has finished.')}
         </CardDescription>
       </CardHeader>
@@ -179,7 +210,15 @@ export const ManualResultsCard: React.FC<{
               onClick={() => setOpenId(openId === row.id ? null : row.id)}
             >
               <span className="font-medium">{row.testName}</span>
-              <Badge variant={row.status === 'Passed' ? 'default' : row.status === 'Failed' ? 'destructive' : 'secondary'}>
+              <Badge
+                variant={
+                  row.status === 'Passed'
+                    ? 'default'
+                    : row.status === 'Failed'
+                      ? 'destructive'
+                      : 'secondary'
+                }
+              >
                 {row.status === 'Pending'
                   ? t('manualResults.status.pending', 'Waiting')
                   : row.status === 'Skipped'

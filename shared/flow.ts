@@ -8,12 +8,12 @@
  * before a browser is launched, rather than halfway through a run with an `else` it cannot place.
  */
 
-export const IF_ACTION = "if";
-export const ELSE_ACTION = "else";
-export const END_IF_ACTION = "endIf";
-export const REPEAT_ACTION = "repeat";
-export const REPEAT_WHILE_ACTION = "repeatWhile";
-export const END_LOOP_ACTION = "endLoop";
+export const IF_ACTION = 'if';
+export const ELSE_ACTION = 'else';
+export const END_IF_ACTION = 'endIf';
+export const REPEAT_ACTION = 'repeat';
+export const REPEAT_WHILE_ACTION = 'repeatWhile';
+export const END_LOOP_ACTION = 'endLoop';
 
 /** Steps that decide where the run goes next, rather than doing something to the page. */
 export const FLOW_ACTION_IDS: ReadonlySet<string> = new Set([
@@ -31,7 +31,19 @@ export const FLOW_ACTION_IDS: ReadonlySet<string> = new Set([
  * a hundred identical pictures and a minute of waiting to the report.
  */
 export function leavesPageAlone(actionId: string | undefined): boolean {
-  return !!actionId && (FLOW_ACTION_IDS.has(actionId) || ["setVariable", "waitForEmail", "queryDatabase", "assertCondition", "mockRequest", "blockRequests", "clearMocks"].includes(actionId));
+  return (
+    !!actionId &&
+    (FLOW_ACTION_IDS.has(actionId) ||
+      [
+        'setVariable',
+        'waitForEmail',
+        'queryDatabase',
+        'assertCondition',
+        'mockRequest',
+        'blockRequests',
+        'clearMocks',
+      ].includes(actionId))
+  );
 }
 
 /**
@@ -83,26 +95,29 @@ export type FlowAnalysis = { ok: true; blocks: FlowBlocks } | { ok: false; error
  *
  * Step numbers in the messages count from 1, as the builder shows them.
  */
-export function analyseFlow(steps: ReadonlyArray<{ action?: { id?: string } | null }>): FlowAnalysis {
+export function analyseFlow(
+  steps: ReadonlyArray<{ action?: { id?: string } | null }>,
+): FlowAnalysis {
   const blocks: FlowBlocks = { elseOf: new Map(), endOf: new Map(), startOf: new Map() };
   const errors: string[] = [];
-  const open: { index: number; kind: "if" | "loop"; hasElse: boolean }[] = [];
+  const open: { index: number; kind: 'if' | 'loop'; hasElse: boolean }[] = [];
 
   steps.forEach((step, index) => {
     const id = step.action?.id;
     const n = index + 1;
     switch (id) {
       case IF_ACTION:
-        open.push({ index, kind: "if", hasElse: false });
+        open.push({ index, kind: 'if', hasElse: false });
         break;
       case REPEAT_ACTION:
       case REPEAT_WHILE_ACTION:
-        open.push({ index, kind: "loop", hasElse: false });
+        open.push({ index, kind: 'loop', hasElse: false });
         break;
       case ELSE_ACTION: {
         const top = open.at(-1);
-        if (!top || top.kind !== "if") errors.push(`Step ${n}: "else" without an open "if".`);
-        else if (top.hasElse) errors.push(`Step ${n}: a second "else" for the "if" at step ${top.index + 1}.`);
+        if (!top || top.kind !== 'if') errors.push(`Step ${n}: "else" without an open "if".`);
+        else if (top.hasElse)
+          errors.push(`Step ${n}: a second "else" for the "if" at step ${top.index + 1}.`);
         else {
           top.hasElse = true;
           blocks.elseOf.set(top.index, index);
@@ -111,7 +126,7 @@ export function analyseFlow(steps: ReadonlyArray<{ action?: { id?: string } | nu
       }
       case END_IF_ACTION: {
         const top = open.at(-1);
-        if (!top || top.kind !== "if") {
+        if (!top || top.kind !== 'if') {
           errors.push(`Step ${n}: "endIf" without an open "if".`);
           break;
         }
@@ -123,7 +138,7 @@ export function analyseFlow(steps: ReadonlyArray<{ action?: { id?: string } | nu
       }
       case END_LOOP_ACTION: {
         const top = open.at(-1);
-        if (!top || top.kind !== "loop") {
+        if (!top || top.kind !== 'loop') {
           errors.push(`Step ${n}: "endLoop" without an open loop.`);
           break;
         }
@@ -137,7 +152,7 @@ export function analyseFlow(steps: ReadonlyArray<{ action?: { id?: string } | nu
 
   for (const block of open) {
     errors.push(
-      `Step ${block.index + 1}: this ${block.kind === "if" ? '"if" has no "endIf"' : 'loop has no "endLoop"'}.`,
+      `Step ${block.index + 1}: this ${block.kind === 'if' ? '"if" has no "endIf"' : 'loop has no "endLoop"'}.`,
     );
   }
   return errors.length > 0 ? { ok: false, errors } : { ok: true, blocks };

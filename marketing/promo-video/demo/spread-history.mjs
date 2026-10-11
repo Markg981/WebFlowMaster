@@ -26,7 +26,8 @@ const client = new Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 try {
   const org = await client.query('SELECT id FROM organizations WHERE name = $1', [ORGANIZATION]);
-  if (!org.rows[0]) throw new Error(`No organization called ${ORGANIZATION}: run seed-org.mjs first.`);
+  if (!org.rows[0])
+    throw new Error(`No organization called ${ORGANIZATION}: run seed-org.mjs first.`);
   const runs = await client.query(
     `SELECT id, status, started_at FROM test_plan_executions
       WHERE organization_id = $1 AND started_at IS NOT NULL ORDER BY started_at`,
@@ -51,7 +52,10 @@ try {
         WHERE test_plan_execution_id = $1`,
       [run.id, shift],
     );
-    await client.query('UPDATE execution_logs SET "timestamp" = "timestamp" + $2::interval WHERE test_plan_execution_id = $1', [run.id, shift]);
+    await client.query(
+      'UPDATE execution_logs SET "timestamp" = "timestamp" + $2::interval WHERE test_plan_execution_id = $1',
+      [run.id, shift],
+    );
   };
 
   // Evenly over the last DAYS days, oldest first, at plausible working hours.
@@ -67,7 +71,9 @@ try {
     await move(run, target.getTime());
   }
   await client.query('COMMIT');
-  console.log(`Moved ${runs.rows.length} runs over the last ${DAYS} days (${failed.length} failed, two days ago).`);
+  console.log(
+    `Moved ${runs.rows.length} runs over the last ${DAYS} days (${failed.length} failed, two days ago).`,
+  );
 } catch (error) {
   await client.query('ROLLBACK').catch(() => {});
   console.error(error.message);

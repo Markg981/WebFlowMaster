@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 
-const NO_PROJECT_SENTINEL = "_no_project_";
+const NO_PROJECT_SENTINEL = '_no_project_';
 
 interface SaveApiTestModalProps {
   isOpen: boolean;
@@ -71,9 +71,15 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? t('apiTester.saveApiTestModal.updateApiTest.title') : t('apiTester.saveApiTestModal.saveNewApiTest.title')}</DialogTitle>
+          <DialogTitle>
+            {isEditing
+              ? t('apiTester.saveApiTestModal.updateApiTest.title')
+              : t('apiTester.saveApiTestModal.saveNewApiTest.title')}
+          </DialogTitle>
           <DialogDescription>
-            {isEditing ? t('apiTester.saveApiTestModal.updateTheDetailsForThisApi.description') : t('apiTester.saveApiTestModal.enterANameForYourNewApi.description')}
+            {isEditing
+              ? t('apiTester.saveApiTestModal.updateTheDetailsForThisApi.description')
+              : t('apiTester.saveApiTestModal.enterANameForYourNewApi.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -88,9 +94,13 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
             />
           </div>
           <div>
-            <Label htmlFor="testProject">{t('apiTester.saveApiTestModal.projectOptional.label')}</Label>
+            <Label htmlFor="testProject">
+              {t('apiTester.saveApiTestModal.projectOptional.label')}
+            </Label>
             <Select
-              value={selectedProjectId !== null ? selectedProjectId.toString() : NO_PROJECT_SENTINEL}
+              value={
+                selectedProjectId !== null ? selectedProjectId.toString() : NO_PROJECT_SENTINEL
+              }
               onValueChange={(value) => {
                 if (value === NO_PROJECT_SENTINEL) {
                   setSelectedProjectId(null);
@@ -101,10 +111,14 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
               disabled={isLoading || isLoadingProjects || !projectsData}
             >
               <SelectTrigger id="testProject">
-                <SelectValue placeholder={t('apiTester.saveApiTestModal.selectAProject.placeholder')} />
+                <SelectValue
+                  placeholder={t('apiTester.saveApiTestModal.selectAProject.placeholder')}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_PROJECT_SENTINEL}>{t('apiTester.saveApiTestModal.noProject.text')}</SelectItem>
+                <SelectItem value={NO_PROJECT_SENTINEL}>
+                  {t('apiTester.saveApiTestModal.noProject.text')}
+                </SelectItem>
                 {projectsData?.map((project) => (
                   <SelectItem key={project.id} value={project.id.toString()}>
                     {project.name}
@@ -119,7 +133,13 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
             {t('saveTestModal.cancel.button')}
           </Button>
           <Button onClick={handleSubmit} disabled={!testName.trim() || isLoading}>
-            {isLoading ? (isEditing ? t('apiTester.saveApiTestModal.updating.button') : t('testsPage.saving.button')) : (isEditing ? t('apiTester.saveApiTestModal.updateTest.button') : t('apiTesterPage.saveTest.button'))}
+            {isLoading
+              ? isEditing
+                ? t('apiTester.saveApiTestModal.updating.button')
+                : t('testsPage.saving.button')
+              : isEditing
+                ? t('apiTester.saveApiTestModal.updateTest.button')
+                : t('apiTesterPage.saveTest.button')}
           </Button>
         </DialogFooter>
       </DialogContent>

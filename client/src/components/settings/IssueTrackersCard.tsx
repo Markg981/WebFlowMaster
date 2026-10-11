@@ -6,8 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Bug, Loader2, PlugZap, Trash2 } from 'lucide-react';
 
 /**
@@ -50,7 +63,11 @@ const IssueTrackersCard: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [checked, setChecked] = useState<{ id: string; ok: boolean; detail: string } | null>(null);
 
-  const { data: trackers = [], isLoading, error } = useQuery<IssueTrackerSummary[]>({
+  const {
+    data: trackers = [],
+    isLoading,
+    error,
+  } = useQuery<IssueTrackerSummary[]>({
     queryKey: ['issueTrackers'],
     queryFn: async () => {
       const response = await fetch('/api/issue-trackers');
@@ -113,12 +130,21 @@ const IssueTrackersCard: React.FC = () => {
   });
 
   const submit = () => {
-    if (name.trim() === '' || baseUrl.trim() === '' || projectKey.trim() === '' || token.trim() === '') {
-      setFormError(t('issueTrackers.allFieldsRequired', 'Name, URL, project and token are all needed.'));
+    if (
+      name.trim() === '' ||
+      baseUrl.trim() === '' ||
+      projectKey.trim() === '' ||
+      token.trim() === ''
+    ) {
+      setFormError(
+        t('issueTrackers.allFieldsRequired', 'Name, URL, project and token are all needed.'),
+      );
       return;
     }
     if (provider === 'jira' && userEmail.trim() === '') {
-      setFormError(t('issueTrackers.emailRequired', 'Jira needs the email address the API token belongs to.'));
+      setFormError(
+        t('issueTrackers.emailRequired', 'Jira needs the email address the API token belongs to.'),
+      );
       return;
     }
     setFormError('');
@@ -143,7 +169,10 @@ const IssueTrackersCard: React.FC = () => {
         <div className="grid gap-3 md:grid-cols-2">
           <div>
             <Label htmlFor="trackerProvider">{t('issueTrackers.provider', 'Provider')}</Label>
-            <Select value={provider} onValueChange={(value) => setProvider(value as 'jira' | 'azure_devops')}>
+            <Select
+              value={provider}
+              onValueChange={(value) => setProvider(value as 'jira' | 'azure_devops')}
+            >
               <SelectTrigger id="trackerProvider" className="mt-1">
                 <SelectValue />
               </SelectTrigger>
@@ -170,7 +199,9 @@ const IssueTrackersCard: React.FC = () => {
               className="mt-1"
               value={baseUrl}
               onChange={(event) => setBaseUrl(event.target.value)}
-              placeholder={provider === 'jira' ? 'https://acme.atlassian.net' : 'https://dev.azure.com/acme'}
+              placeholder={
+                provider === 'jira' ? 'https://acme.atlassian.net' : 'https://dev.azure.com/acme'
+              }
             />
           </div>
           <div>
@@ -239,7 +270,9 @@ const IssueTrackersCard: React.FC = () => {
         </Button>
 
         {checked && (
-          <p className={`text-sm ${checked.ok ? 'text-green-600' : 'text-destructive'}`}>{checked.detail}</p>
+          <p className={`text-sm ${checked.ok ? 'text-green-600' : 'text-destructive'}`}>
+            {checked.detail}
+          </p>
         )}
 
         {isLoading ? (
@@ -248,7 +281,10 @@ const IssueTrackersCard: React.FC = () => {
           <p className="text-sm text-destructive">{(error as Error).message}</p>
         ) : trackers.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {t('issueTrackers.empty', 'No tracker yet. Until there is one, failures stay in the report.')}
+            {t(
+              'issueTrackers.empty',
+              'No tracker yet. Until there is one, failures stay in the report.',
+            )}
           </p>
         ) : (
           <Table>
@@ -257,7 +293,9 @@ const IssueTrackersCard: React.FC = () => {
                 <TableHead>{t('issueTrackers.columns.name', 'Name')}</TableHead>
                 <TableHead>{t('issueTrackers.columns.project', 'Project')}</TableHead>
                 <TableHead>{t('issueTrackers.columns.account', 'Authenticates as')}</TableHead>
-                <TableHead className="text-right">{t('issueTrackers.columns.actions', 'Actions')}</TableHead>
+                <TableHead className="text-right">
+                  {t('issueTrackers.columns.actions', 'Actions')}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -272,7 +310,9 @@ const IssueTrackersCard: React.FC = () => {
                   <TableCell className="text-xs text-muted-foreground">
                     {tracker.projectKey} · {tracker.issueType}
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{tracker.authenticatesAs ?? '—'}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {tracker.authenticatesAs ?? '—'}
+                  </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <Button
                       variant="ghost"

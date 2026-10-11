@@ -27,6 +27,7 @@ in container namespaces, and a TLS reverse proxy on the host. Do not overlay thi
    An absent or empty list denies every test destination. Wildcards, IP literals and URLs
    are rejected. Every redirect destination, OAuth token endpoint, browser resource and
    WebSocket/gRPC endpoint needs its own matching entry.
+
 5. Start from the repository root:
 
    ```sh

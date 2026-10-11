@@ -1,10 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { ProtocolConfigSchema, ResolvedProtocolConfigSchema, protocolLimits } from '@shared/api-protocol-config';
+import {
+  ProtocolConfigSchema,
+  ResolvedProtocolConfigSchema,
+  protocolLimits,
+} from '@shared/api-protocol-config';
 import { ConversationPlanSchema } from '@shared/protocol-conversation';
 
 describe('protocol contracts', () => {
   it('bounds resolved secret material by UTF-8 bytes, including an encrypted-key passphrase', () => {
-    expect(ResolvedProtocolConfigSchema.safeParse({ tls: { clientCertificate: 'certificate', clientKey: 'key', keyPassphrase: 'é'.repeat(200000) } }).success).toBe(false);
+    expect(
+      ResolvedProtocolConfigSchema.safeParse({
+        tls: {
+          clientCertificate: 'certificate',
+          clientKey: 'key',
+          keyPassphrase: 'é'.repeat(200000),
+        },
+      }).success,
+    ).toBe(false);
   });
   it('accepts exact references and rejects plaintext, incomplete pairs and bounds', () => {
     expect(

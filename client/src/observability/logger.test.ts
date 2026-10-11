@@ -2,13 +2,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { clientLogger, setLogLevel, flushNow, __resetForTests } from './logger';
 
 const postedBatches = () =>
-  vi.mocked(globalThis.fetch).mock.calls
-    .filter(([url]) => String(url) === '/api/client-logs')
+  vi
+    .mocked(globalThis.fetch)
+    .mock.calls.filter(([url]) => String(url) === '/api/client-logs')
     .map(([, init]) => JSON.parse(String((init as RequestInit).body)));
 
 beforeEach(() => {
   __resetForTests();
-  vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 202 })));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('{}', { status: 202 })),
+  );
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
@@ -67,7 +71,10 @@ describe('clientLogger', () => {
 
     for (let i = 0; i < 250; i++) clientLogger.debug(`entry ${i}`);
 
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 202 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('{}', { status: 202 })),
+    );
     await flushNow();
 
     const [batch] = postedBatches();
@@ -83,7 +90,12 @@ describe('clientLogger', () => {
    * transport failures through itself is an infinite loop. Retries must be bounded.
    */
   it('never recurses when the transport keeps failing', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down'); }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network down');
+      }),
+    );
 
     clientLogger.error('first failure');
     await flushNow();

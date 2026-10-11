@@ -505,7 +505,10 @@ describe('public authoring of API and mobile tests', () => {
       .set(auth())
       .send({ url: '{{baseUrl}}/ready', authParams: read.body.authParams })
       .expect(200);
-    const [stored] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, created.body.id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(apiTests)
+      .where(eq(apiTests.id, created.body.id));
     expect(stored.url).toBe('{{baseUrl}}/ready');
     expect(stored.authParams).toEqual({ type: 'bearer', params: { token: 'literal-token-123' } });
     await request(app).patch(path).set(auth()).send({ userId: user }).expect(400);
@@ -559,7 +562,11 @@ describe('public authoring of API and mobile tests', () => {
       .expect(201);
     const projectId = project.body.id;
     const suffix = randomUUID();
-    await request(app).post('/api/v1/tests').set(auth()).send(definition(`Web-${suffix}`, projectId)).expect(201);
+    await request(app)
+      .post('/api/v1/tests')
+      .set(auth())
+      .send(definition(`Web-${suffix}`, projectId))
+      .expect(201);
     const api = await request(app)
       .post('/api/v1/api-tests')
       .set(auth())
@@ -571,7 +578,11 @@ describe('public authoring of API and mobile tests', () => {
       .send(mobileDefinition(`Mobile-${suffix}`, projectId))
       .expect(201);
 
-    const legacy = await request(app).post('/api/v1/suites/export').set(auth()).send({ projectId }).expect(200);
+    const legacy = await request(app)
+      .post('/api/v1/suites/export')
+      .set(auth())
+      .send({ projectId })
+      .expect(200);
     const legacyBundle = JSON.parse(legacy.body.content);
     expect(legacyBundle.tests).toHaveLength(1);
     expect(legacyBundle.apiTests).toEqual([]);
@@ -584,7 +595,10 @@ describe('public authoring of API and mobile tests', () => {
       .set(auth(suiteKey))
       .send({ projectId, include })
       .expect(403);
-    expect(denied.body.error).toMatchObject({ code: 'insufficient_scope', requiredScope: 'api-tests:read' });
+    expect(denied.body.error).toMatchObject({
+      code: 'insufficient_scope',
+      requiredScope: 'api-tests:read',
+    });
     await request(app)
       .post('/api/v1/suites/export')
       .set(auth())
@@ -598,7 +612,10 @@ describe('public authoring of API and mobile tests', () => {
       .expect(200);
     const bundle = JSON.parse(exported.body.content);
     expect(bundle.apiTests).toEqual([
-      expect.objectContaining({ name: `Api-${suffix}`, authParams: { type: 'bearer', params: { token: '{{bearer_token}}' } } }),
+      expect.objectContaining({
+        name: `Api-${suffix}`,
+        authParams: { type: 'bearer', params: { token: '{{bearer_token}}' } },
+      }),
     ]);
     expect(bundle.mobileTests).toEqual([expect.objectContaining({ name: `Mobile-${suffix}` })]);
     expect(exported.body.secretsReplaced).toHaveLength(1);
@@ -621,10 +638,18 @@ describe('public authoring of API and mobile tests', () => {
       expect.arrayContaining([
         expect.objectContaining({ kind: 'test', outcome: 'updated' }),
         expect.objectContaining({ kind: 'api_test', name: `Api-${suffix}`, outcome: 'updated' }),
-        expect.objectContaining({ kind: 'mobile_test', name: `Mobile-${suffix}`, outcome: 'unchanged' }),
+        expect.objectContaining({
+          kind: 'mobile_test',
+          name: `Mobile-${suffix}`,
+          outcome: 'unchanged',
+        }),
       ]),
     );
-    await request(app).post('/api/v1/suites/import').set(auth()).send({ projectId, content: changed }).expect(201);
+    await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ projectId, content: changed })
+      .expect(201);
     const [stored] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, api.body.id));
     expect(stored.url).toBe('{{baseUrl}}/v2/health');
     expect(stored.authParams).toEqual({ type: 'bearer', params: { token: 'literal-token-123' } });
@@ -637,10 +662,21 @@ describe('public authoring of API and mobile tests', () => {
       apiTests: [apiDefinition(created)],
       mobileTests: [{ ...mobileDefinition(`Broken-${suffix}`), app: 'not an app' }],
     });
-    await request(app).post('/api/v1/suites/import').set(auth()).send({ projectId, content: invalid }).expect(400);
-    expect((await privilegedDb.select().from(apiTests).where(eq(apiTests.name, created))).length).toBe(0);
+    await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ projectId, content: invalid })
+      .expect(400);
     expect(
-      (await privilegedDb.select().from(mobileTests).where(eq(mobileTests.name, `Broken-${suffix}`))).length,
+      (await privilegedDb.select().from(apiTests).where(eq(apiTests.name, created))).length,
+    ).toBe(0);
+    expect(
+      (
+        await privilegedDb
+          .select()
+          .from(mobileTests)
+          .where(eq(mobileTests.name, `Broken-${suffix}`))
+      ).length,
     ).toBe(0);
   });
 });

@@ -2,7 +2,11 @@ import { AuthParamsSchema, type ApiTest, type Assertion, type AuthParams } from 
 import { runGrpc, runWebSocket, xpathValue, type ProtocolResponse } from './api-protocols';
 import { fetchTarget, substituteInValues, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
-import { ProtocolConfigSchema, type ProtocolConfig, type ResolvedProtocolConfig } from '@shared/api-protocol-config';
+import {
+  ProtocolConfigSchema,
+  type ProtocolConfig,
+  type ResolvedProtocolConfig,
+} from '@shared/api-protocol-config';
 import { accessTokenFor } from './oauth2';
 import {
   akamaiEdgeGrid,
@@ -39,7 +43,8 @@ import {
 const REQUEST_TIMEOUT_MS = 30_000;
 
 /** Where a value comes from — the same vocabulary the assertions use. */
-export type ExtractionSource = 'status_code' | 'header' | 'body_json_path' | 'body_text' | 'body_xpath';
+export type ExtractionSource =
+  'status_code' | 'header' | 'body_json_path' | 'body_text' | 'body_xpath';
 
 /**
  * A value captured from a response, to be used by a later request as `{{name}}`.
@@ -192,20 +197,44 @@ export function getValueByPath(obj: any, path: string): any {
 function compare(comparison: string, actual: any, target: string | undefined): boolean | string {
   const text = typeof actual === 'string' ? actual : String(actual ?? '');
   switch (comparison) {
-    case 'exists': return actual !== undefined && actual !== null;
-    case 'not_exists': return actual === undefined || actual === null;
-    case 'is_empty': return actual === '' || actual === null || actual === undefined ||
-      (Array.isArray(actual) && actual.length === 0);
-    case 'is_not_empty': return !(actual === '' || actual === null || actual === undefined ||
-      (Array.isArray(actual) && actual.length === 0));
-    case 'equals': return String(actual) === String(target);
-    case 'not_equals': return String(actual) !== String(target);
-    case 'contains': return text.includes(target ?? '');
-    case 'not_contains': return !text.includes(target ?? '');
+    case 'exists':
+      return actual !== undefined && actual !== null;
+    case 'not_exists':
+      return actual === undefined || actual === null;
+    case 'is_empty':
+      return (
+        actual === '' ||
+        actual === null ||
+        actual === undefined ||
+        (Array.isArray(actual) && actual.length === 0)
+      );
+    case 'is_not_empty':
+      return !(
+        actual === '' ||
+        actual === null ||
+        actual === undefined ||
+        (Array.isArray(actual) && actual.length === 0)
+      );
+    case 'equals':
+      return String(actual) === String(target);
+    case 'not_equals':
+      return String(actual) !== String(target);
+    case 'contains':
+      return text.includes(target ?? '');
+    case 'not_contains':
+      return !text.includes(target ?? '');
     case 'matches_regex':
-      try { return new RegExp(target ?? '').test(text); } catch { return `Invalid regex: ${target}`; }
+      try {
+        return new RegExp(target ?? '').test(text);
+      } catch {
+        return `Invalid regex: ${target}`;
+      }
     case 'not_matches_regex':
-      try { return !new RegExp(target ?? '').test(text); } catch { return `Invalid regex: ${target}`; }
+      try {
+        return !new RegExp(target ?? '').test(text);
+      } catch {
+        return `Invalid regex: ${target}`;
+      }
     case 'greater_than':
     case 'less_than':
     case 'greater_than_or_equals':
@@ -227,13 +256,23 @@ function compare(comparison: string, actual: any, target: string | undefined): b
 function valueFrom(
   source: string,
   property: string | undefined,
-  response: { status: number; headers: Record<string, string>; body: unknown; text: string; durationMs: number },
+  response: {
+    status: number;
+    headers: Record<string, string>;
+    body: unknown;
+    text: string;
+    durationMs: number;
+  },
 ): unknown {
   switch (source) {
-    case 'status_code': return response.status;
-    case 'response_time': return response.durationMs;
-    case 'header': return response.headers[(property ?? '').toLowerCase()];
-    case 'body_text': return response.text;
+    case 'status_code':
+      return response.status;
+    case 'response_time':
+      return response.durationMs;
+    case 'header':
+      return response.headers[(property ?? '').toLowerCase()];
+    case 'body_text':
+      return response.text;
     case 'body_json_path':
       return typeof response.body === 'object' && response.body !== null
         ? getValueByPath(response.body, property ?? '$')
@@ -245,17 +284,25 @@ function valueFrom(
       } catch {
         return undefined;
       }
-    default: return undefined;
+    default:
+      return undefined;
   }
 }
 
 /** Answering a challenge takes a second request: these schemes are sent by `sendWithChallenge`. */
-type Challenge = { scheme: 'digest'; params: DigestParams } | { scheme: 'ntlm'; params: NtlmParams };
+type Challenge =
+  { scheme: 'digest'; params: DigestParams } | { scheme: 'ntlm'; params: NtlmParams };
 
 /** Every string parameter of a scheme with `{{name}}` substituted, as the other schemes do. */
-function substituted<T extends Record<string, unknown>>(params: T, vars: Record<string, string>): T {
+function substituted<T extends Record<string, unknown>>(
+  params: T,
+  vars: Record<string, string>,
+): T {
   return Object.fromEntries(
-    Object.entries(params).map(([key, value]) => [key, typeof value === 'string' ? substituteVariables(value, vars) : value]),
+    Object.entries(params).map(([key, value]) => [
+      key,
+      typeof value === 'string' ? substituteVariables(value, vars) : value,
+    ]),
   ) as T;
 }
 
@@ -271,7 +318,12 @@ function substituted<T extends Record<string, unknown>>(params: T, vars: Record<
  */
 async function applyAuth(
   saved: AuthParams | null | undefined,
-  request: { method: string; url: URL; headers: Record<string, string>; body: string | Buffer | undefined },
+  request: {
+    method: string;
+    url: URL;
+    headers: Record<string, string>;
+    body: string | Buffer | undefined;
+  },
   vars: Record<string, string>,
   fetchImpl: typeof fetch,
 ): Promise<string | Challenge | null> {
@@ -313,7 +365,8 @@ async function applyAuth(
       const value = substituteVariables(auth.params.value ?? '', vars);
       if (!key || !value) return null;
       if (auth.params.addTo === 'query') url.searchParams.append(key, value);
-      else if (!Object.keys(headers).some((h) => h.toLowerCase() === key.toLowerCase())) headers[key] = value;
+      else if (!Object.keys(headers).some((h) => h.toLowerCase() === key.toLowerCase()))
+        headers[key] = value;
       return null;
     }
     case 'oauth2': {
@@ -330,8 +383,12 @@ async function applyAuth(
       const params = substituted(auth.params, vars);
       const result = jwtBearer(params, clock);
       if ('error' in result) return result.error;
-      if (params.addTo === 'query') url.searchParams.set(params.queryParam || 'token', result.token);
-      else headers.Authorization = params.headerPrefix ? `${params.headerPrefix} ${result.token}` : result.token;
+      if (params.addTo === 'query')
+        url.searchParams.set(params.queryParam || 'token', result.token);
+      else
+        headers.Authorization = params.headerPrefix
+          ? `${params.headerPrefix} ${result.token}`
+          : result.token;
       return null;
     }
     case 'asap': {
@@ -366,7 +423,8 @@ async function applyAuth(
     case 'ntlm': {
       if (hasAuthorization) return null;
       const params = substituted(auth.params, vars);
-      if (!params.username) return `${auth.type === 'digest' ? 'Digest' : 'NTLM'} authentication needs a username.`;
+      if (!params.username)
+        return `${auth.type === 'digest' ? 'Digest' : 'NTLM'} authentication needs a username.`;
       return { scheme: auth.type, params } as Challenge;
     }
     case 'none':
@@ -388,7 +446,9 @@ async function applyAuth(
  */
 export type OneConnectionFetch = typeof fetch & {
   oneConnection?: () => { fetch: typeof fetch; close: () => Promise<void> };
-  runProtocol?: (request: import('@shared/agent-protocol').AgentProtocolRequest) => Promise<ProtocolResponse>;
+  runProtocol?: (
+    request: import('@shared/agent-protocol').AgentProtocolRequest,
+  ) => Promise<ProtocolResponse>;
 };
 
 /**
@@ -412,23 +472,39 @@ async function sendWithChallenge(
     const authorization = digestAuthorization(
       terms,
       challenge.params,
-      { method: String(options.method ?? 'GET').toUpperCase(), uri: `${url.pathname}${url.search}`, body: options.body as string | Buffer | undefined },
+      {
+        method: String(options.method ?? 'GET').toUpperCase(),
+        uri: `${url.pathname}${url.search}`,
+        body: options.body as string | Buffer | undefined,
+      },
       systemClock().nonce(),
     );
     if (typeof authorization !== 'string') return authorization;
-    return fetchImpl(url.toString(), { ...options, headers: { ...headers, Authorization: authorization } });
+    return fetchImpl(url.toString(), {
+      ...options,
+      headers: { ...headers, Authorization: authorization },
+    });
   }
 
   const connection = fetchImpl.oneConnection?.();
-  if (!connection) return { error: 'NTLM needs the whole handshake on one connection, which this transport cannot keep.' };
+  if (!connection)
+    return {
+      error: 'NTLM needs the whole handshake on one connection, which this transport cannot keep.',
+    };
   try {
-    const first = await connection.fetch(url.toString(), { ...options, headers: { ...headers, Authorization: ntlmNegotiate() } });
-    const offered = first.status === 401 ? first.headers.get('www-authenticate') ?? '' : '';
+    const first = await connection.fetch(url.toString(), {
+      ...options,
+      headers: { ...headers, Authorization: ntlmNegotiate() },
+    });
+    const offered = first.status === 401 ? (first.headers.get('www-authenticate') ?? '') : '';
     const terms = parseNtlmChallenge(offered);
     if (!terms) return first;
     await first.arrayBuffer().catch(() => undefined);
     const authorization = ntlmAuthenticate(challenge.params, terms, systemClock());
-    const answered = await connection.fetch(url.toString(), { ...options, headers: { ...headers, Authorization: authorization } });
+    const answered = await connection.fetch(url.toString(), {
+      ...options,
+      headers: { ...headers, Authorization: authorization },
+    });
     // Read before the connection closes: the body travels on it.
     const body = await answered.arrayBuffer();
     return new Response([204, 205, 304].includes(answered.status) ? null : body, {
@@ -476,7 +552,12 @@ export async function runApiRequest(
   try {
     targetUrl = new URL(resolvedUrl);
   } catch {
-    return { ...empty, passed: false, durationMs: Date.now() - startTime, error: `Invalid target URL: "${resolvedUrl}"` };
+    return {
+      ...empty,
+      passed: false,
+      durationMs: Date.now() - startTime,
+      error: `Invalid target URL: "${resolvedUrl}"`,
+    };
   }
 
   for (const [key, value] of Object.entries(substituteInValues(spec.queryParams, vars) ?? {})) {
@@ -486,10 +567,15 @@ export async function runApiRequest(
 
   const headers: Record<string, string> = { ...(substituteInValues(spec.headers, vars) ?? {}) };
   // Set by the transport, and wrong if carried over from a saved request.
-  for (const forbidden of ['host', 'Host', 'content-length', 'Content-Length']) delete headers[forbidden];
+  for (const forbidden of ['host', 'Host', 'content-length', 'Content-Length'])
+    delete headers[forbidden];
 
   // WebSocket and gRPC: a connection of their own rather than one request (server/api-protocols.ts).
-  if (/^(wss?|grpcs?):$/.test(targetUrl.protocol) || spec.method === 'WEBSOCKET' || spec.method === 'GRPC') {
+  if (
+    /^(wss?|grpcs?):$/.test(targetUrl.protocol) ||
+    spec.method === 'WEBSOCKET' ||
+    spec.method === 'GRPC'
+  ) {
     return runOtherProtocol(spec, vars, targetUrl, headers, fetchImpl, startTime, empty);
   }
 
@@ -524,7 +610,12 @@ export async function runApiRequest(
   // endpoint were at fault.
   const auth = await applyAuth(
     spec.auth,
-    { method: spec.method, url: targetUrl, headers, body: options.body as string | Buffer | undefined },
+    {
+      method: spec.method,
+      url: targetUrl,
+      headers,
+      body: options.body as string | Buffer | undefined,
+    },
     vars,
     fetchImpl,
   );
@@ -538,7 +629,9 @@ export async function runApiRequest(
 
   let response: Response;
   try {
-    const sent = auth ? await sendWithChallenge(auth, fetchImpl, targetUrl, options) : await fetchImpl(targetUrl.toString(), options);
+    const sent = auth
+      ? await sendWithChallenge(auth, fetchImpl, targetUrl, options)
+      : await fetchImpl(targetUrl.toString(), options);
     if (!(sent instanceof Response)) {
       return { ...empty, passed: false, durationMs: Date.now() - startTime, error: sent.error };
     }
@@ -550,7 +643,10 @@ export async function runApiRequest(
       ...empty,
       passed: false,
       durationMs: Date.now() - startTime,
-      error: e?.name === 'AbortError' ? `Request timed out after ${REQUEST_TIMEOUT_MS}ms` : String(e?.message ?? e),
+      error:
+        e?.name === 'AbortError'
+          ? `Request timed out after ${REQUEST_TIMEOUT_MS}ms`
+          : String(e?.message ?? e),
     };
   } finally {
     clearTimeout(timeout);
@@ -558,23 +654,42 @@ export async function runApiRequest(
 
   const durationMs = Date.now() - startTime;
   const responseHeaders: Record<string, string> = {};
-  response.headers.forEach((value, key) => { responseHeaders[key.toLowerCase()] = value; });
+  response.headers.forEach((value, key) => {
+    responseHeaders[key.toLowerCase()] = value;
+  });
 
   const text = await response.text();
   let body: unknown = text;
   const contentType = response.headers.get('content-type');
   if (contentType?.includes('application/json') && text) {
-    try { body = JSON.parse(text); } catch { body = text; }
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text;
+    }
   }
 
   const snapshot = { status: response.status, headers: responseHeaders, body, text, durationMs };
-  return { ...evaluate(spec, snapshot), status: response.status, statusText: response.statusText, headers: responseHeaders, body, durationMs };
+  return {
+    ...evaluate(spec, snapshot),
+    status: response.status,
+    statusText: response.statusText,
+    headers: responseHeaders,
+    body,
+    durationMs,
+  };
 }
 
 /** The assertions and captures of a request, on whatever answered it. */
 function evaluate(
   spec: ApiRequestSpec,
-  snapshot: { status: number; headers: Record<string, string>; body: unknown; text: string; durationMs: number },
+  snapshot: {
+    status: number;
+    headers: Record<string, string>;
+    body: unknown;
+    text: string;
+    durationMs: number;
+  },
 ): Pick<ApiRunResult, 'passed' | 'assertions' | 'extracted' | 'extractionErrors'> {
   const assertions: AssertionOutcome[] = [];
   for (const assertion of spec.assertions ?? []) {
@@ -602,7 +717,8 @@ function evaluate(
       });
       continue;
     }
-    extracted[extraction.name] = typeof value === 'string' ? value : JSON.stringify(value).replace(/^"|"$/g, '');
+    extracted[extraction.name] =
+      typeof value === 'string' ? value : JSON.stringify(value).replace(/^"|"$/g, '');
   }
 
   return { passed: assertions.every((a) => a.pass), assertions, extracted, extractionErrors };
@@ -617,48 +733,82 @@ async function runOtherProtocol(
   startTime: number,
   empty: Omit<ApiRunResult, 'passed' | 'durationMs'>,
 ): Promise<ApiRunResult> {
-  const fail = (error: string): ApiRunResult => ({ ...empty, passed: false, durationMs: Date.now() - startTime, error });
-  const grpc = targetUrl.protocol === 'grpc:' || targetUrl.protocol === 'grpcs:' || spec.method === 'GRPC';
+  const fail = (error: string): ApiRunResult => ({
+    ...empty,
+    passed: false,
+    durationMs: Date.now() - startTime,
+    error,
+  });
+  const grpc =
+    targetUrl.protocol === 'grpc:' || targetUrl.protocol === 'grpcs:' || spec.method === 'GRPC';
   const kind = grpc ? 'gRPC' : 'WebSocket';
-  if (fetchImpl !== fetchTarget && !fetchImpl.runProtocol) return fail(`The selected transport does not support ${kind} tests.`);
-  if (grpc && targetUrl.protocol !== 'grpc:' && targetUrl.protocol !== 'grpcs:') return fail('A gRPC address starts with grpc:// or grpcs://.');
-  if (!grpc && targetUrl.protocol !== 'ws:' && targetUrl.protocol !== 'wss:') return fail('A WebSocket address starts with ws:// or wss://.');
+  if (fetchImpl !== fetchTarget && !fetchImpl.runProtocol)
+    return fail(`The selected transport does not support ${kind} tests.`);
+  if (grpc && targetUrl.protocol !== 'grpc:' && targetUrl.protocol !== 'grpcs:')
+    return fail('A gRPC address starts with grpc:// or grpcs://.');
+  if (!grpc && targetUrl.protocol !== 'ws:' && targetUrl.protocol !== 'wss:')
+    return fail('A WebSocket address starts with ws:// or wss://.');
   // Header-based authorizations (bearer, basic, API key…) go on the handshake or the metadata.
-  const auth = await applyAuth(spec.auth, { method: 'GET', url: targetUrl, headers, body: undefined }, vars, fetchImpl);
+  const auth = await applyAuth(
+    spec.auth,
+    { method: 'GET', url: targetUrl, headers, body: undefined },
+    vars,
+    fetchImpl,
+  );
   if (typeof auth === 'string') return fail(auth);
-  if (auth) return fail(`${auth.scheme === 'ntlm' ? 'NTLM' : 'Digest'} authentication is not available for ${kind}.`);
-  const rawBody = typeof spec.body === 'string' ? spec.body : spec.body == null ? '' : JSON.stringify(spec.body);
-  const bodyVariables = Object.fromEntries(Object.entries(vars).filter(([name]) => !name.startsWith('capture.')));
+  if (auth)
+    return fail(
+      `${auth.scheme === 'ntlm' ? 'NTLM' : 'Digest'} authentication is not available for ${kind}.`,
+    );
+  const rawBody =
+    typeof spec.body === 'string' ? spec.body : spec.body == null ? '' : JSON.stringify(spec.body);
+  const bodyVariables = Object.fromEntries(
+    Object.entries(vars).filter(([name]) => !name.startsWith('capture.')),
+  );
   // Substitute string values after parsing JSON: PEM/newline/quote characters must not
   // corrupt the plan. Future capture.* references remain for the conversation executor.
   const substituteBody = (value: unknown): unknown => {
     if (typeof value === 'string') return substituteVariables(value, bodyVariables);
     if (Array.isArray(value)) return value.map(substituteBody);
-    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, substituteBody(item)]));
+    if (value && typeof value === 'object')
+      return Object.fromEntries(
+        Object.entries(value).map(([key, item]) => [key, substituteBody(item)]),
+      );
     return value;
   };
   let body: string;
-  try { body = JSON.stringify(substituteBody(JSON.parse(rawBody))); }
-  catch { body = substituteVariables(rawBody, bodyVariables); }
+  try {
+    body = JSON.stringify(substituteBody(JSON.parse(rawBody)));
+  } catch {
+    body = substituteVariables(rawBody, bodyVariables);
+  }
   let config: ResolvedProtocolConfig | undefined;
   if (spec.protocolConfig != null) {
     const checked = ProtocolConfigSchema.safeParse(spec.protocolConfig);
-    if (!checked.success) return fail('Invalid protocol configuration: check limits and TLS secret references.');
+    if (!checked.success)
+      return fail('Invalid protocol configuration: check limits and TLS secret references.');
     config = { ...checked.data };
     if (checked.data.tls && Object.keys(checked.data.tls).length) {
-      if (!grpc || targetUrl.protocol !== 'grpcs:') return fail('TLS certificate configuration requires a grpcs:// address.');
+      if (!grpc || targetUrl.protocol !== 'grpcs:')
+        return fail('TLS certificate configuration requires a grpcs:// address.');
       config.tls = {};
       for (const [key, reference] of Object.entries(checked.data.tls)) {
         if (!reference) continue;
         const name = reference.slice(2, -2);
-        if (!Object.prototype.hasOwnProperty.call(vars, name) || !vars[name]) return fail(`Missing TLS secret ${name}. Define it in the selected environment.`);
+        if (!Object.prototype.hasOwnProperty.call(vars, name) || !vars[name])
+          return fail(`Missing TLS secret ${name}. Define it in the selected environment.`);
         config.tls[key as keyof NonNullable<ResolvedProtocolConfig['tls']>] = vars[name];
       }
     }
   }
   const maskError = (value: string): string => {
     let masked = value;
-    const values = [...Object.values(config?.tls ?? {}), ...Object.values(vars).filter(v => v.length >= 4)].filter(Boolean).sort((a, b) => b.length - a.length);
+    const values = [
+      ...Object.values(config?.tls ?? {}),
+      ...Object.values(vars).filter((v) => v.length >= 4),
+    ]
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length);
     for (const secret of values) masked = masked.split(secret).join('[REDACTED]');
     return masked.replace(/-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g, '[REDACTED]');
   };
@@ -666,14 +816,42 @@ async function runOtherProtocol(
   let answer: ProtocolResponse;
   try {
     answer = fetchImpl.runProtocol
-      ? await fetchImpl.runProtocol({ protocol: grpc ? 'grpc' : 'websocket', url: targetUrl.toString(), proto: spec.protoDefinition ?? undefined, headers, body, timeoutMs, ...(config ? { config } : {}) })
+      ? await fetchImpl.runProtocol({
+          protocol: grpc ? 'grpc' : 'websocket',
+          url: targetUrl.toString(),
+          proto: spec.protoDefinition ?? undefined,
+          headers,
+          body,
+          timeoutMs,
+          ...(config ? { config } : {}),
+        })
       : grpc
-      ? await runGrpc({ url: targetUrl, proto: spec.protoDefinition ?? '', headers, body, timeoutMs, config })
-      : await runWebSocket({ url: targetUrl.toString(), headers, body, timeoutMs, config });
+        ? await runGrpc({
+            url: targetUrl,
+            proto: spec.protoDefinition ?? '',
+            headers,
+            body,
+            timeoutMs,
+            config,
+          })
+        : await runWebSocket({ url: targetUrl.toString(), headers, body, timeoutMs, config });
   } catch (error) {
     return fail(maskError((error as Error).message));
   }
   const durationMs = Date.now() - startTime;
-  const snapshot = { status: answer.status, headers: answer.headers, body: answer.body, text: answer.text, durationMs };
-  return { ...evaluate(spec, snapshot), status: answer.status, statusText: answer.statusText, headers: answer.headers, body: answer.body, durationMs };
+  const snapshot = {
+    status: answer.status,
+    headers: answer.headers,
+    body: answer.body,
+    text: answer.text,
+    durationMs,
+  };
+  return {
+    ...evaluate(spec, snapshot),
+    status: answer.status,
+    statusText: answer.statusText,
+    headers: answer.headers,
+    body: answer.body,
+    durationMs,
+  };
 }

@@ -35,8 +35,29 @@ describe('the CI integrations', () => {
 
   it('parse, as the CLI reads them, into a run that waits and writes JUnit', () => {
     // The command line each integration builds, with its placeholders filled in.
-    const parsed = parseArgs(['run', 'plan-1', '--wait', '--timeout', '1800', '--junit', 'j.xml', '--html', 'r.html', '--environment', '3'], {} as NodeJS.ProcessEnv);
-    expect(parsed).toMatchObject({ command: 'run', wait: true, junitPath: 'j.xml', htmlPath: 'r.html', environmentId: 3 });
+    const parsed = parseArgs(
+      [
+        'run',
+        'plan-1',
+        '--wait',
+        '--timeout',
+        '1800',
+        '--junit',
+        'j.xml',
+        '--html',
+        'r.html',
+        '--environment',
+        '3',
+      ],
+      {} as NodeJS.ProcessEnv,
+    );
+    expect(parsed).toMatchObject({
+      command: 'run',
+      wait: true,
+      junitPath: 'j.xml',
+      htmlPath: 'r.html',
+      environmentId: 3,
+    });
   });
 
   it('fetch the CLI from the server they talk to, instead of expecting it installed', () => {
@@ -68,7 +89,9 @@ describe('the CI integrations', () => {
     expect(bitbucket).toContain('step: &webflowmaster');
     const circleci = files.find((f) => f.file.startsWith('circleci'))!.text;
     // CircleCI skips the steps after a failed one: the verdict comes after store_test_results.
-    expect(circleci.indexOf('store_test_results')).toBeLessThan(circleci.indexOf('WebFlowMaster verdict'));
+    expect(circleci.indexOf('store_test_results')).toBeLessThan(
+      circleci.indexOf('WebFlowMaster verdict'),
+    );
     expect(circleci).toContain('node wfm.mjs "$@" || code=$?');
   });
 });

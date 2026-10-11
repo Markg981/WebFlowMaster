@@ -63,7 +63,9 @@ describe('ElementRepositoryCard', () => {
   it('asks for a project before showing anything, because a selector belongs to one application', async () => {
     renderCard();
 
-    expect(await screen.findByText('Choose a project to see the elements it owns.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Choose a project to see the elements it owns.'),
+    ).toBeInTheDocument();
   });
 
   it("lists a project's elements, what they used to be, and which have been healed", async () => {
@@ -102,11 +104,16 @@ describe('ElementRepositoryCard', () => {
     await screen.findByText('Save button');
     fetchMock.mockImplementationOnce(async () => ({
       ok: false,
-      json: async () => ({ error: 'This element is still used by 2 test(s).', tests: ['Checkout', 'Profile'] }),
+      json: async () => ({
+        error: 'This element is still used by 2 test(s).',
+        tests: ['Checkout', 'Profile'],
+      }),
     }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete element' }));
 
-    expect(await screen.findByText(/still used by 2 test\(s\).*Checkout, Profile/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/still used by 2 test\(s\).*Checkout, Profile/),
+    ).toBeInTheDocument();
   });
 });

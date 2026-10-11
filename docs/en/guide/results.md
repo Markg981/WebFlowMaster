@@ -66,11 +66,11 @@ again; the row says who recorded it and when, and every recording goes into the 
 A plan whose settings name a connection under **Publish results to** sends every finished run to
 that tool, each test's result under its case:
 
-| Tool | What a run becomes |
-|---|---|
-| **TestRail** | A test run in the project (and suite), with the run's cases only, and a result for each. |
-| **Xray Cloud**, **Xray Server/Data Center** | A Test Execution issue, added to the Xray Test Plan if the connection names one. |
-| **Zephyr Scale** (Cloud) | A test cycle, with a test execution for each case. |
+| Tool                                        | What a run becomes                                                                       |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **TestRail**                                | A test run in the project (and suite), with the run's cases only, and a result for each. |
+| **Xray Cloud**, **Xray Server/Data Center** | A Test Execution issue, added to the Xray Test Plan if the connection names one.         |
+| **Zephyr Scale** (Cloud)                    | A test cycle, with a test execution for each case.                                       |
 
 **Which case a test is.** In **Settings → Test management**, **Test cases** on a connection lists
 every test — web, API and mobile app — with a box for its key: `C123` in TestRail (or just `123`), `SHOP-45` in Xray,
@@ -147,12 +147,12 @@ each is; which passed; and which need a person to check.
 
 **Export** downloads the run as:
 
-| Format | For |
-|---|---|
-| HTML report | One file that opens anywhere, screenshots included. |
-| PDF | Attaching to a ticket or keeping for an audit. |
-| Allure results (.zip) | `allure generate` or an Allure server. |
-| JUnit XML | A CI system's test report. |
+| Format                | For                                                 |
+| --------------------- | --------------------------------------------------- |
+| HTML report           | One file that opens anywhere, screenshots included. |
+| PDF                   | Attaching to a ticket or keeping for an audit.      |
+| Allure results (.zip) | `allure generate` or an Allure server.              |
+| JUnit XML             | A CI system's test report.                          |
 
 **Requirements covered** shows the [requirements](./organizing#requirements) with exactly this run's
 results, and exports them as a traceability matrix.

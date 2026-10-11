@@ -77,7 +77,17 @@ function resolve(params: OAuth2AuthParams, vars: Record<string, string>): Resolv
 function cacheKey(r: Resolved): string {
   return crypto
     .createHash('sha256')
-    .update(JSON.stringify([r.grantType, r.tokenUrl, r.clientId, r.clientSecret, r.scope, r.username, r.password]))
+    .update(
+      JSON.stringify([
+        r.grantType,
+        r.tokenUrl,
+        r.clientId,
+        r.clientSecret,
+        r.scope,
+        r.username,
+        r.password,
+      ]),
+    )
     .digest('hex');
 }
 
@@ -198,8 +208,12 @@ export async function accessTokenFor(
   const authorization = `${scheme} ${token}`;
 
   const lifetime = Number(payload?.expires_in);
-  const validFor = Number.isFinite(lifetime) && lifetime > 0 ? lifetime * 1000 : DEFAULT_LIFETIME_MS;
-  cache.set(key, { authorization, expiresAt: Date.now() + Math.max(validFor - EXPIRY_MARGIN_MS, 0) });
+  const validFor =
+    Number.isFinite(lifetime) && lifetime > 0 ? lifetime * 1000 : DEFAULT_LIFETIME_MS;
+  cache.set(key, {
+    authorization,
+    expiresAt: Date.now() + Math.max(validFor - EXPIRY_MARGIN_MS, 0),
+  });
 
   return { authorization };
 }

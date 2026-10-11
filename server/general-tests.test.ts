@@ -12,7 +12,7 @@ import {
   type User,
   type Project,
   type InsertUser,
-  type InsertProject
+  type InsertProject,
 } from '../shared/schema';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
@@ -31,12 +31,13 @@ let currentMockUser: User = mockUser1;
 // Define the Zod schema for the POST /api/tests request body, mirroring server/routes.ts.
 // insertTestSchema already omits organizationId (like userId): it comes from the session
 // (req.user), never the client body.
-const createTestBodySchema = insertTestSchema.extend({
-  projectId: z.number().int().positive(),
-  sequence: z.array(AdhocTestStepSchema),
-  elements: z.array(AdhocDetectedElementSchema),
-}).omit({ userId: true, id: true, createdAt: true, updatedAt: true });
-
+const createTestBodySchema = insertTestSchema
+  .extend({
+    projectId: z.number().int().positive(),
+    sequence: z.array(AdhocTestStepSchema),
+    elements: z.array(AdhocDetectedElementSchema),
+  })
+  .omit({ userId: true, id: true, createdAt: true, updatedAt: true });
 
 beforeAll(async () => {
   app = express();
@@ -50,9 +51,9 @@ beforeAll(async () => {
 
   const generalTestRouter = express.Router();
 
-  generalTestRouter.post("/api/tests", async (req, res) => {
+  generalTestRouter.post('/api/tests', async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     const userId = req.user.id;
     // Use the globally mocked logger. Vitest's vi.mock should ensure that any import of './logger'
@@ -63,8 +64,14 @@ beforeAll(async () => {
     const parseResult = createTestBodySchema.safeParse(req.body);
 
     if (!parseResult.success) {
-      logger.warn({ message: "POST /api/tests - Invalid payload (test)", errors: parseResult.error.flatten(), userId });
-      return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() });
+      logger.warn({
+        message: 'POST /api/tests - Invalid payload (test)',
+        errors: parseResult.error.flatten(),
+        userId,
+      });
+      return res
+        .status(400)
+        .json({ error: 'Invalid test data', details: parseResult.error.flatten() });
     }
 
     const { name, url, sequence, elements, projectId, status } = parseResult.data;
@@ -81,23 +88,29 @@ beforeAll(async () => {
           // `sequence`/`elements` are jsonb columns — pass the objects directly.
           sequence,
           elements,
-          status: status || "draft",
+          status: status || 'draft',
         })
         .returning();
 
       if (newTestResult.length === 0) {
-        logger.error({ message: "Test creation failed, no record returned (test).", name, userId });
-        return res.status(500).json({ error: "Failed to create test." });
+        logger.error({ message: 'Test creation failed, no record returned (test).', name, userId });
+        return res.status(500).json({ error: 'Failed to create test.' });
       }
       res.status(201).json(newTestResult[0]);
     } catch (error: any) {
-      logger.error({ message: "Error creating test (test)", userId, testName: name, error: error.message, stack: error.stack });
+      logger.error({
+        message: 'Error creating test (test)',
+        userId,
+        testName: name,
+        error: error.message,
+        stack: error.stack,
+      });
       // PostgreSQL/PGlite report FK violations as "...violates foreign key constraint..."
       // (SQLite used "FOREIGN KEY constraint failed"); match both, case-insensitively.
       if (error.message && /foreign key/i.test(error.message)) {
-        return res.status(400).json({ error: "Invalid project ID or project does not exist." });
+        return res.status(400).json({ error: 'Invalid project ID or project does not exist.' });
       }
-      res.status(500).json({ error: "Failed to create test" });
+      res.status(500).json({ error: 'Failed to create test' });
     }
   });
 
@@ -115,8 +128,19 @@ beforeEach(async () => {
   const organizationId = await createTestOrganization();
   mockUser1.organizationId = organizationId;
 
-  [seededUser] = await privilegedDb.insert(users).values({ id: mockUser1.id, username: mockUser1.username, password: 'hashed_password', organizationId } as InsertUser).returning();
-  [seededProject] = await privilegedDb.insert(projects).values({ name: 'Test Project', userId: seededUser.id, organizationId } as InsertProject).returning();
+  [seededUser] = await privilegedDb
+    .insert(users)
+    .values({
+      id: mockUser1.id,
+      username: mockUser1.username,
+      password: 'hashed_password',
+      organizationId,
+    } as InsertUser)
+    .returning();
+  [seededProject] = await privilegedDb
+    .insert(projects)
+    .values({ name: 'Test Project', userId: seededUser.id, organizationId } as InsertProject)
+    .returning();
 
   currentMockUser = mockUser1; // Reset to default mock user
 });
@@ -128,8 +152,31 @@ afterAll(async () => {
 });
 
 describe('POST /api/tests', () => {
-  const validSequence: any[] = [{ id: 'step1', action: { id: 'click', type: 'click', name: 'Click', icon: '', description: '' }, targetElement: { id: 'elem1', type: 'button', selector: '#btn', text: 'Click me', tag: 'button', attributes: {} }, value: '' }];
-  const validElements: any[] = [{ id: 'elem1', type: 'button', selector: '#btn', text: 'Click me', tag: 'button', attributes: {} }];
+  const validSequence: any[] = [
+    {
+      id: 'step1',
+      action: { id: 'click', type: 'click', name: 'Click', icon: '', description: '' },
+      targetElement: {
+        id: 'elem1',
+        type: 'button',
+        selector: '#btn',
+        text: 'Click me',
+        tag: 'button',
+        attributes: {},
+      },
+      value: '',
+    },
+  ];
+  const validElements: any[] = [
+    {
+      id: 'elem1',
+      type: 'button',
+      selector: '#btn',
+      text: 'Click me',
+      tag: 'button',
+      attributes: {},
+    },
+  ];
 
   it('should create a new test with valid data', async () => {
     const testPayload = {
@@ -141,10 +188,7 @@ describe('POST /api/tests', () => {
       status: 'draft',
     };
 
-    const response = await request(app)
-      .post('/api/tests')
-      .send(testPayload)
-      .expect(201);
+    const response = await request(app).post('/api/tests').send(testPayload).expect(201);
 
     expect(response.body).toHaveProperty('id');
     expect(response.body.name).toBe(testPayload.name);
@@ -154,7 +198,11 @@ describe('POST /api/tests', () => {
     expect(response.body.status).toBe('draft');
 
     // Verify data in DB
-    const dbTest = await privilegedDb.select().from(tests).where(eq(tests.id, response.body.id)).limit(1);
+    const dbTest = await privilegedDb
+      .select()
+      .from(tests)
+      .where(eq(tests.id, response.body.id))
+      .limit(1);
     expect(dbTest.length).toBe(1);
     expect(dbTest[0].name).toBe(testPayload.name);
     // jsonb columns are returned already parsed as objects/arrays (no JSON.parse needed).
@@ -201,7 +249,7 @@ describe('POST /api/tests', () => {
     };
     await request(app).post('/api/tests').send(testPayload).expect(400);
 
-    const testPayloadInvalidSequence = { ...testPayload, sequence: "not an array" };
+    const testPayloadInvalidSequence = { ...testPayload, sequence: 'not an array' };
     await request(app).post('/api/tests').send(testPayloadInvalidSequence).expect(400);
   });
 
@@ -214,7 +262,7 @@ describe('POST /api/tests', () => {
     };
     await request(app).post('/api/tests').send(testPayload).expect(400);
 
-    const testPayloadInvalidElements = { ...testPayload, elements: "not an array" };
+    const testPayloadInvalidElements = { ...testPayload, elements: 'not an array' };
     await request(app).post('/api/tests').send(testPayloadInvalidElements).expect(400);
   });
 

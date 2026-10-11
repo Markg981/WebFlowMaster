@@ -25,11 +25,24 @@ const DOT_CLASS: Record<Tone, string> = {
 
 // Normalizes the many status strings the API uses onto the four meaningful tones + neutral.
 const STATUS_TONE: Record<string, Tone> = {
-  passed: 'pass', pass: 'pass', completed: 'pass', success: 'pass',
-  failed: 'fail', fail: 'fail', error: 'fail',
-  blocked: 'warn', warning: 'warn', flaky: 'warn',
-  running: 'run', 'in_progress': 'run', in_progress2: 'run',
-  pending: 'neutral', queued: 'neutral', skipped: 'neutral', cancelled: 'neutral', canceled: 'neutral',
+  passed: 'pass',
+  pass: 'pass',
+  completed: 'pass',
+  success: 'pass',
+  failed: 'fail',
+  fail: 'fail',
+  error: 'fail',
+  blocked: 'warn',
+  warning: 'warn',
+  flaky: 'warn',
+  running: 'run',
+  in_progress: 'run',
+  in_progress2: 'run',
+  pending: 'neutral',
+  queued: 'neutral',
+  skipped: 'neutral',
+  cancelled: 'neutral',
+  canceled: 'neutral',
 };
 
 export function statusTone(status?: string | null): Tone {

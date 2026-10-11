@@ -10,7 +10,10 @@ import { fileURLToPath } from 'node:url';
 import { startOidcProvider } from './oidc-provider.mjs';
 
 const database = new URL(process.env.DATABASE_URL || 'invalid:');
-if (!['postgres:', 'postgresql:'].includes(database.protocol) || database.pathname !== '/wfm_ci_e2e') {
+if (
+  !['postgres:', 'postgresql:'].includes(database.protocol) ||
+  database.pathname !== '/wfm_ci_e2e'
+) {
   throw new Error('DATABASE_URL must name the dedicated PostgreSQL database wfm_ci_e2e.');
 }
 // Queue names are shared across installations unless the Redis store is separate. Merely
@@ -47,7 +50,7 @@ function stop(code = 0) {
   fixture.close();
   identityProvider.close();
   for (const request of slowRequests.values()) request.release();
-  websocket.clients.forEach(socket => socket.terminate());
+  websocket.clients.forEach((socket) => socket.terminate());
   websocket.close();
   rpc.forceShutdown();
   for (const child of children) child.kill('SIGTERM');
@@ -63,17 +66,30 @@ function start(name, entry) {
   const child = spawn(process.execPath, [entry], { env, stdio: ['ignore', 'pipe', 'pipe'] });
   children.push(child);
   for (const stream of [child.stdout, child.stderr]) {
-    stream.on('data', data => { log.write(data); process.stdout.write(`[${name}] ${data}`); });
+    stream.on('data', (data) => {
+      log.write(data);
+      process.stdout.write(`[${name}] ${data}`);
+    });
   }
-  child.on('error', error => { console.error(error); stop(1); });
-  child.on('exit', code => {
+  child.on('error', (error) => {
+    console.error(error);
+    stop(1);
+  });
+  child.on('exit', (code) => {
     log.end();
-    if (!stopping) { console.error(`${name} exited unexpectedly (${code})`); stop(1); }
+    if (!stopping) {
+      console.error(`${name} exited unexpectedly (${code})`);
+      stop(1);
+    }
   });
 }
 // A real HTTP target under our control; it does not replace any product endpoint.
 const fixture = createServer((req, res) => {
-  if (req.url === '/matrix') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end('<!doctype html><h1 id="matrix-title">Matrix fixture</h1>'); return; }
+  if (req.url === '/matrix') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end('<!doctype html><h1 id="matrix-title">Matrix fixture</h1>');
+    return;
+  }
   const url = new URL(req.url, 'http://127.0.0.1:5081');
   const key = url.searchParams.get('run');
   // Observe an actual worker request; release it only after the UI has requested cancellation.
@@ -83,7 +99,10 @@ const fixture = createServer((req, res) => {
       if (released) return;
       released = true;
       clearTimeout(timer);
-      if (!res.destroyed) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ source: 'ci-slow-http' })); }
+      if (!res.destroyed) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ source: 'ci-slow-http' }));
+      }
     };
     const timer = setTimeout(release, 60_000);
     slowRequests.set(key, { release });
@@ -100,21 +119,37 @@ const fixture = createServer((req, res) => {
     res.writeHead(204).end();
     return;
   }
-  if (req.url !== '/echo') { res.writeHead(404).end(); return; }
+  if (req.url !== '/echo') {
+    res.writeHead(404).end();
+    return;
+  }
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ source: 'ci-real-http', method: req.method }));
 });
 const websocket = new WebSocketServer({ server: fixture });
-websocket.on('connection', socket => {
+websocket.on('connection', (socket) => {
   socket.send(JSON.stringify({ token: 'installation-challenge' }));
-  socket.on('message', message => socket.send(JSON.stringify({ accepted: message.toString() === 'installation-challenge' })));
+  socket.on('message', (message) =>
+    socket.send(JSON.stringify({ accepted: message.toString() === 'installation-challenge' })),
+  );
 });
 const rpc = new grpc.Server();
 rpc.addService(loader.loadSync('e2e/protocol.proto')['installation.Test'], {
-  Stream: call => { call.write({ value: 'first' }); call.write({ value: 'complete' }); call.end(); },
+  Stream: (call) => {
+    call.write({ value: 'first' });
+    call.write({ value: 'complete' });
+    call.end();
+  },
 });
-await new Promise((resolve, reject) => rpc.bindAsync('127.0.0.1:5082', grpc.ServerCredentials.createInsecure(), error => error ? reject(error) : resolve()));
-fixture.on('error', error => { console.error(error); stop(1); });
+await new Promise((resolve, reject) =>
+  rpc.bindAsync('127.0.0.1:5082', grpc.ServerCredentials.createInsecure(), (error) =>
+    error ? reject(error) : resolve(),
+  ),
+);
+fixture.on('error', (error) => {
+  console.error(error);
+  stop(1);
+});
 fixture.listen(5081, '127.0.0.1', () => {
   start('worker', 'dist/worker.js');
   start('api', 'dist/index.js');

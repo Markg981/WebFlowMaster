@@ -5,10 +5,23 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -68,13 +81,20 @@ const SuitesPage: React.FC = () => {
 
   const save = useMutation({
     mutationFn: (payload: SuitePayload) =>
-      editing && editing !== 'new' ? send('PUT', `/api/suites/${editing.id}`, payload) : send('POST', '/api/suites', payload),
+      editing && editing !== 'new'
+        ? send('PUT', `/api/suites/${editing.id}`, payload)
+        : send('POST', '/api/suites', payload),
     onSuccess: async () => {
       setEditing(null);
       await refresh();
       toast({ title: t('suites.saved', 'Suite saved') });
     },
-    onError: (error: Error) => toast({ variant: 'destructive', title: t('suites.saveFailed', 'The suite was not saved'), description: error.message }),
+    onError: (error: Error) =>
+      toast({
+        variant: 'destructive',
+        title: t('suites.saveFailed', 'The suite was not saved'),
+        description: error.message,
+      }),
   });
 
   const remove = useMutation({
@@ -85,7 +105,12 @@ const SuitesPage: React.FC = () => {
       await queryClient.invalidateQueries({ queryKey: ['planSuites'] });
       toast({ title: t('suites.deleted', 'Suite deleted') });
     },
-    onError: (error: Error) => toast({ variant: 'destructive', title: t('suites.deleteFailed', 'The suite was not deleted'), description: error.message }),
+    onError: (error: Error) =>
+      toast({
+        variant: 'destructive',
+        title: t('suites.deleteFailed', 'The suite was not deleted'),
+        description: error.message,
+      }),
   });
 
   const openSuite = async (suite: SuiteRow) => {
@@ -93,7 +118,11 @@ const SuitesPage: React.FC = () => {
     try {
       setEditing(await send('GET', `/api/suites/${suite.id}`));
     } catch (error) {
-      toast({ variant: 'destructive', title: t('suites.loadFailed', 'The suite could not be loaded'), description: (error as Error).message });
+      toast({
+        variant: 'destructive',
+        title: t('suites.loadFailed', 'The suite could not be loaded'),
+        description: (error as Error).message,
+      });
     } finally {
       setLoadingId(null);
     }
@@ -104,7 +133,10 @@ const SuitesPage: React.FC = () => {
       <PageHeader
         className="mb-6"
         title={t('suites.title', 'Suites')}
-        description={t('suites.pageDescription', 'Lists of tests kept once and shared by the plans that include them.')}
+        description={t(
+          'suites.pageDescription',
+          'Lists of tests kept once and shared by the plans that include them.',
+        )}
         actions={
           canEdit ? (
             <Button onClick={() => setEditing('new')}>
@@ -119,10 +151,15 @@ const SuitesPage: React.FC = () => {
           {isLoading ? (
             <p className="text-sm text-muted-foreground">{t('suites.loading', 'Loading…')}</p>
           ) : isError ? (
-            <p className="text-sm text-destructive">{t('suites.error', 'The suites could not be loaded.')}</p>
+            <p className="text-sm text-destructive">
+              {t('suites.error', 'The suites could not be loaded.')}
+            </p>
           ) : suites.length === 0 ? (
             <p className="text-sm text-muted-foreground" data-testid="suites-empty">
-              {t('suites.empty', 'No suites yet. A suite keeps a list of tests once, for every plan that needs it.')}
+              {t(
+                'suites.empty',
+                'No suites yet. A suite keeps a list of tests once, for every plan that needs it.',
+              )}
             </p>
           ) : (
             <Table>
@@ -132,7 +169,9 @@ const SuitesPage: React.FC = () => {
                   <TableHead>{t('suites.columns.kind', 'Kind')}</TableHead>
                   <TableHead>{t('suites.columns.tests', 'Tests')}</TableHead>
                   <TableHead>{t('suites.columns.plans', 'Plans')}</TableHead>
-                  <TableHead className="text-right">{t('suites.columns.actions', 'Actions')}</TableHead>
+                  <TableHead className="text-right">
+                    {t('suites.columns.actions', 'Actions')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -140,22 +179,41 @@ const SuitesPage: React.FC = () => {
                   <TableRow key={suite.id} data-testid={`suite-${suite.id}`}>
                     <TableCell>
                       <div className="font-medium">{suite.name}</div>
-                      {suite.description && <div className="text-xs text-muted-foreground">{suite.description}</div>}
+                      {suite.description && (
+                        <div className="text-xs text-muted-foreground">{suite.description}</div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={suite.kind === 'dynamic' ? 'secondary' : 'outline'}>
-                        {t(`suites.kind.${suite.kind}`, suite.kind === 'static' ? 'Static' : 'Dynamic')}
+                        {t(
+                          `suites.kind.${suite.kind}`,
+                          suite.kind === 'static' ? 'Static' : 'Dynamic',
+                        )}
                       </Badge>
                     </TableCell>
                     <TableCell>{suite.testCount}</TableCell>
                     <TableCell>{suite.planCount}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => openSuite(suite)} disabled={loadingId === suite.id}>
-                        {loadingId === suite.id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Pencil className="mr-1 h-4 w-4" />}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openSuite(suite)}
+                        disabled={loadingId === suite.id}
+                      >
+                        {loadingId === suite.id ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Pencil className="mr-1 h-4 w-4" />
+                        )}
                         {canEdit ? t('suites.edit', 'Edit') : t('suites.view', 'View')}
                       </Button>
                       {canEdit && (
-                        <Button variant="outline" size="sm" onClick={() => setDeleting(suite)} aria-label={t('suites.delete', 'Delete')}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeleting(suite)}
+                          aria-label={t('suites.delete', 'Delete')}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
@@ -179,16 +237,24 @@ const SuitesPage: React.FC = () => {
       <AlertDialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('suites.deleteTitle', 'Delete "{{name}}"?', { name: deleting?.name ?? '' })}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t('suites.deleteTitle', 'Delete "{{name}}"?', { name: deleting?.name ?? '' })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {deleting && deleting.planCount > 0
-                ? t('suites.deleteInPlans', '{{count}} plans include it; they will stop running its tests. Runs already made keep what they ran.', { count: deleting.planCount })
+                ? t(
+                    'suites.deleteInPlans',
+                    '{{count}} plans include it; they will stop running its tests. Runs already made keep what they ran.',
+                    { count: deleting.planCount },
+                  )
                 : t('suites.deleteUnused', 'No plan includes it.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('suites.cancel', 'Cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleting && remove.mutate(deleting)}>{t('suites.delete', 'Delete')}</AlertDialogAction>
+            <AlertDialogAction onClick={() => deleting && remove.mutate(deleting)}>
+              {t('suites.delete', 'Delete')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

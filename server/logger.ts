@@ -24,7 +24,7 @@ const SERVICE_NAME = 'webflowmaster-api';
 // Every log line is a parseable JSON object with consistent fields.
 const structuredFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ss.SSSZ' }), // ISO 8601
-  winston.format.errors({ stack: true }),                              // Capture stack traces
+  winston.format.errors({ stack: true }), // Capture stack traces
   winston.format((info) => {
     // Inject service name
     info.service = SERVICE_NAME;
@@ -36,9 +36,9 @@ const structuredFormat = winston.format.combine(
     }
     return info;
   })(),
-  redactSensitiveData(),                                               // Mask PII/secrets
-  scrubControlCharsFromMessage(),                                      // Strip CR/LF/NUL from message (see log-redactor.ts)
-  winston.format.json()                                                // Output as JSON
+  redactSensitiveData(), // Mask PII/secrets
+  scrubControlCharsFromMessage(), // Strip CR/LF/NUL from message (see log-redactor.ts)
+  winston.format.json(), // Output as JSON
 );
 
 // ─── Human-readable format (for dev console only) ─────────────────────────────
@@ -59,13 +59,13 @@ const devConsoleFormat = winston.format.combine(
     let metaString = '';
     // Filter out Symbol keys and internal Winston fields
     const cleanMeta = Object.fromEntries(
-      Object.entries(metadata).filter(([key]) => !key.startsWith('Symbol') && key !== 'splat')
+      Object.entries(metadata).filter(([key]) => !key.startsWith('Symbol') && key !== 'splat'),
     );
     if (Object.keys(cleanMeta).length > 0) {
       metaString = ` ${JSON.stringify(cleanMeta)}`;
     }
     return `${timestamp} ${level}${cid}: ${message}${metaString}`;
-  })
+  }),
 );
 
 // ─── DB setting helpers ───────────────────────────────────────────────────────
@@ -124,7 +124,9 @@ export async function flushLogs(): Promise<void> {
 }
 
 export async function initializeLogger(): Promise<winston.Logger> {
-  let maxFilesSetting = process.env.LOG_RETENTION_DAYS ? `${process.env.LOG_RETENTION_DAYS}d` : '7d';
+  let maxFilesSetting = process.env.LOG_RETENTION_DAYS
+    ? `${process.env.LOG_RETENTION_DAYS}d`
+    : '7d';
 
   const dbRetentionSetting = await getLogRetentionDaysSetting();
   if (dbRetentionSetting) {
@@ -187,7 +189,9 @@ export default loggerPromise;
 export async function updateLogLevel(newLevel: string): Promise<void> {
   if (!VALID_LOG_LEVELS.includes(newLevel)) {
     const logger = await loggerPromise;
-    logger.warn(`Attempted to set invalid log level: ${newLevel}. Valid levels are: ${VALID_LOG_LEVELS.join(', ')}.`);
+    logger.warn(
+      `Attempted to set invalid log level: ${newLevel}. Valid levels are: ${VALID_LOG_LEVELS.join(', ')}.`,
+    );
     return;
   }
 
@@ -195,7 +199,7 @@ export async function updateLogLevel(newLevel: string): Promise<void> {
   logger.level = newLevel;
 
   // Also update level on all transports
-  logger.transports.forEach(transport => {
+  logger.transports.forEach((transport) => {
     transport.level = newLevel;
   });
 

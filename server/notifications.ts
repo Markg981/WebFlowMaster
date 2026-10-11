@@ -37,7 +37,8 @@ export interface NotificationSettings {
   emails?: string[] | null;
 }
 
-export type RunStatus = 'completed' | 'failed' | 'error' | 'queued' | 'running' | 'timed_out' | string;
+export type RunStatus =
+  'completed' | 'failed' | 'error' | 'queued' | 'running' | 'timed_out' | string;
 
 export interface RunSummary {
   planId: string;
@@ -86,7 +87,9 @@ export function mergeNotificationSettings(
  * `error` is a run that could not produce results — a browser that would not start, a
  * results directory that could not be written — which is what "not executed" names.
  */
-export function switchForStatus(status: RunStatus): 'passed' | 'failed' | 'notExecuted' | 'stopped' | null {
+export function switchForStatus(
+  status: RunStatus,
+): 'passed' | 'failed' | 'notExecuted' | 'stopped' | null {
   switch (status) {
     case 'completed':
       return 'passed';
@@ -224,7 +227,10 @@ export async function sendRunNotification(
     return { delivered: false, reason: 'No notification webhook URL is configured for this plan.' };
   }
   if (!/^https?:\/\//i.test(url)) {
-    return { delivered: false, error: `Notification webhook URL must start with http:// or https:// (got "${url}").` };
+    return {
+      delivered: false,
+      error: `Notification webhook URL must start with http:// or https:// (got "${url}").`,
+    };
   }
 
   const send = deps.fetchImpl ?? fetchTarget;
@@ -238,11 +244,17 @@ export async function sendRunNotification(
       signal: controller.signal,
     });
     if (!response.ok) {
-      return { delivered: false, error: `Notification webhook answered ${response.status} ${response.statusText}.` };
+      return {
+        delivered: false,
+        error: `Notification webhook answered ${response.status} ${response.statusText}.`,
+      };
     }
     return { delivered: true };
   } catch (error: any) {
-    const reason = error?.name === 'AbortError' ? `no answer within ${WEBHOOK_TIMEOUT_MS / 1000}s` : (error?.message ?? String(error));
+    const reason =
+      error?.name === 'AbortError'
+        ? `no answer within ${WEBHOOK_TIMEOUT_MS / 1000}s`
+        : (error?.message ?? String(error));
     return { delivered: false, error: `Notification webhook could not be reached: ${reason}.` };
   } finally {
     clearTimeout(timer);

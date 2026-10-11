@@ -8,7 +8,12 @@ import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -44,7 +49,14 @@ let currentUser: { id: number; username: string; organizationId: number; role: s
 
 const detected = [
   { id: 'd1', type: 'button', selector: '#save', tag: 'button', text: 'Save', attributes: {} },
-  { id: 'd2', type: 'input', selector: '#user', tag: 'input', text: '', attributes: { placeholder: 'Username' } },
+  {
+    id: 'd2',
+    type: 'input',
+    selector: '#user',
+    tag: 'input',
+    text: '',
+    attributes: { placeholder: 'Username' },
+  },
 ];
 
 beforeAll(async () => {
@@ -53,7 +65,10 @@ beforeAll(async () => {
   otherOrganizationId = await createTestOrganization('Other Authoring Org');
   otherUserId = await createTestUser(otherOrganizationId, 'other-authoring-user');
 
-  const [project] = await privilegedDb.insert(projects).values({ name: 'App', userId, organizationId }).returning();
+  const [project] = await privilegedDb
+    .insert(projects)
+    .values({ name: 'App', userId, organizationId })
+    .returning();
   projectId = project.id;
   const [otherProject] = await privilegedDb
     .insert(projects)
@@ -108,7 +123,10 @@ describe('POST /api/authoring/steps', () => {
       .send({ text: 'Go to https://example.test\nClick the Save button', elements: detected })
       .expect(200);
 
-    expect(response.body.steps.map((item: any) => item.step.action.id)).toEqual(['navigate', 'click']);
+    expect(response.body.steps.map((item: any) => item.step.action.id)).toEqual([
+      'navigate',
+      'click',
+    ]);
     expect(response.body.steps[1].step.targetElement.selector).toBe('#save');
     expect(response.body.unresolved).toEqual([]);
   });

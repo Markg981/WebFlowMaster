@@ -6,7 +6,14 @@ import { PlaywrightService } from './playwright-service';
 import { mapRecordedSequence, type RecordedAction } from '../shared/recording';
 
 vi.mock('./logger', () => ({
-  default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn(), verbose: vi.fn() },
+  default: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+  },
   updateLogLevel: vi.fn(),
 }));
 

@@ -12,12 +12,18 @@ import { IncidentStore } from '../observability/store';
 const logged: { level: string; message: string; meta: Record<string, unknown> }[] = [];
 
 vi.mock('../logger', () => {
-  const record = (level: string) => (message: string, meta: Record<string, unknown> = {}) =>
-    logged.push({ level, message, meta });
+  const record =
+    (level: string) =>
+    (message: string, meta: Record<string, unknown> = {}) =>
+      logged.push({ level, message, meta });
   return {
     default: Promise.resolve({
-      error: record('error'), warn: record('warn'), info: record('info'),
-      http: record('http'), debug: record('debug'), verbose: record('verbose'),
+      error: record('error'),
+      warn: record('warn'),
+      info: record('info'),
+      http: record('http'),
+      debug: record('debug'),
+      verbose: record('verbose'),
       log: (level: string, message: string, meta: Record<string, unknown> = {}) =>
         logged.push({ level, message, meta }),
     }),
@@ -65,48 +71,77 @@ afterEach(() => {
 
 describe('POST /api/client-logs', () => {
   it('re-emits each entry through the server logger', async () => {
-    const response = await request(app).post('/api/client-logs').send({
-      sessionId: 's-1',
-      entries: [
-        { level: 'info', message: 'navigation', clientTs: '2026-07-26T10:00:00.000Z', correlationId: 'c-1', meta: { to: '/dashboard' } },
-        { level: 'error', message: 'mutation failed', clientTs: '2026-07-26T10:00:01.000Z', correlationId: 'c-1' },
-      ],
-    });
+    const response = await request(app)
+      .post('/api/client-logs')
+      .send({
+        sessionId: 's-1',
+        entries: [
+          {
+            level: 'info',
+            message: 'navigation',
+            clientTs: '2026-07-26T10:00:00.000Z',
+            correlationId: 'c-1',
+            meta: { to: '/dashboard' },
+          },
+          {
+            level: 'error',
+            message: 'mutation failed',
+            clientTs: '2026-07-26T10:00:01.000Z',
+            correlationId: 'c-1',
+          },
+        ],
+      });
 
     expect(response.status).toBe(202);
     expect(logged.filter((l) => l.message.startsWith('[client]'))).toHaveLength(2);
-    expect(logged[0].meta).toMatchObject({ sessionId: 's-1', correlationId: 'c-1', source: 'client' });
+    expect(logged[0].meta).toMatchObject({
+      sessionId: 's-1',
+      correlationId: 'c-1',
+      source: 'client',
+    });
   });
 
   it('reports dropped entries so loss is visible', async () => {
-    await request(app).post('/api/client-logs').send({
-      sessionId: 's-1',
-      dropped: 12,
-      entries: [{ level: 'warn', message: 'x', clientTs: '2026-07-26T10:00:00.000Z' }],
-    });
+    await request(app)
+      .post('/api/client-logs')
+      .send({
+        sessionId: 's-1',
+        dropped: 12,
+        entries: [{ level: 'warn', message: 'x', clientTs: '2026-07-26T10:00:00.000Z' }],
+      });
 
     expect(logged.some((l) => l.message.includes('dropped 12'))).toBe(true);
   });
 
   it('rejects a malformed batch', async () => {
-    const response = await request(app).post('/api/client-logs').send({ sessionId: 's-1', entries: [] });
+    const response = await request(app)
+      .post('/api/client-logs')
+      .send({ sessionId: 's-1', entries: [] });
     expect(response.status).toBe(400);
   });
 
   it('rejects an oversized batch', async () => {
     const entries = Array.from({ length: 101 }, () => ({
-      level: 'info' as const, message: 'x', clientTs: '2026-07-26T10:00:00.000Z',
+      level: 'info' as const,
+      message: 'x',
+      clientTs: '2026-07-26T10:00:00.000Z',
     }));
-    const response = await request(app).post('/api/client-logs').send({ sessionId: 's-1', entries });
+    const response = await request(app)
+      .post('/api/client-logs')
+      .send({ sessionId: 's-1', entries });
     expect(response.status).toBe(400);
   });
 
   it('accepts anonymous requests outside production so the login page is not blind', async () => {
     authenticated = false;
-    const response = await request(app).post('/api/client-logs').send({
-      sessionId: 's-1',
-      entries: [{ level: 'error', message: 'login blew up', clientTs: '2026-07-26T10:00:00.000Z' }],
-    });
+    const response = await request(app)
+      .post('/api/client-logs')
+      .send({
+        sessionId: 's-1',
+        entries: [
+          { level: 'error', message: 'login blew up', clientTs: '2026-07-26T10:00:00.000Z' },
+        ],
+      });
 
     expect(response.status).toBe(202);
   });
@@ -137,17 +172,21 @@ describe('production auth enforcement', () => {
       prodApp.use(prodRouter);
 
       authenticated = false;
-      const unauthResponse = await request(prodApp).post('/api/client-logs').send({
-        sessionId: 's-1',
-        entries: [{ level: 'info', message: 'x', clientTs: '2026-07-26T10:00:00.000Z' }],
-      });
+      const unauthResponse = await request(prodApp)
+        .post('/api/client-logs')
+        .send({
+          sessionId: 's-1',
+          entries: [{ level: 'info', message: 'x', clientTs: '2026-07-26T10:00:00.000Z' }],
+        });
       expect(unauthResponse.status).toBe(401);
 
       authenticated = true;
-      const authResponse = await request(prodApp).post('/api/client-logs').send({
-        sessionId: 's-1',
-        entries: [{ level: 'info', message: 'x', clientTs: '2026-07-26T10:00:00.000Z' }],
-      });
+      const authResponse = await request(prodApp)
+        .post('/api/client-logs')
+        .send({
+          sessionId: 's-1',
+          entries: [{ level: 'info', message: 'x', clientTs: '2026-07-26T10:00:00.000Z' }],
+        });
       expect(authResponse.status).toBe(202);
     } finally {
       // Restore the env and drop the production-evaluated module from the cache so later
@@ -160,16 +199,19 @@ describe('production auth enforcement', () => {
 
 describe('POST /api/incidents', () => {
   it('records a client-runtime incident carrying the component stack', async () => {
-    const response = await request(app).post('/api/incidents').send({
-      sessionId: 's-1',
-      correlationId: 'c-9',
-      route: '/dashboard/create-test',
-      name: 'TypeError',
-      message: 'Cannot read properties of undefined (reading \'map\')',
-      stack: 'TypeError: Cannot read properties of undefined\n    at Toaster (/src/components/ui/toaster.tsx:16:15)',
-      componentStack: '\n    at Toaster\n    at App',
-      breadcrumbs: [{ type: 'click', target: '#execute' }],
-    });
+    const response = await request(app)
+      .post('/api/incidents')
+      .send({
+        sessionId: 's-1',
+        correlationId: 'c-9',
+        route: '/dashboard/create-test',
+        name: 'TypeError',
+        message: "Cannot read properties of undefined (reading 'map')",
+        stack:
+          'TypeError: Cannot read properties of undefined\n    at Toaster (/src/components/ui/toaster.tsx:16:15)',
+        componentStack: '\n    at Toaster\n    at App',
+        breadcrumbs: [{ type: 'click', target: '#execute' }],
+      });
 
     expect(response.status).toBe(202);
     expect(response.body.incidentId).toMatch(/^inc_/);

@@ -11,7 +11,7 @@
  * what makes a report of a mixed manual and automated plan true.
  */
 
-export const MANUAL_STEP_ACTION_ID = "manualStep";
+export const MANUAL_STEP_ACTION_ID = 'manualStep';
 
 export interface ManualStep {
   /** What to do: "Open the order and press Refund". */
@@ -19,15 +19,21 @@ export interface ManualStep {
   /** What should happen: "The order shows Refunded and the amount is zero". */
   expected: string;
   gherkin?: {
-    docString?: {content:string;mediaType?:string};
-    dataTable?: {rows:Array<{cells:Array<{value:string}>}>};
+    docString?: { content: string; mediaType?: string };
+    dataTable?: { rows: Array<{ cells: Array<{ value: string }> }> };
   };
 }
 
 /** A step as the sequence stores it. */
 export interface ManualSequenceStep {
   id: string;
-  action: { id: typeof MANUAL_STEP_ACTION_ID; type: typeof MANUAL_STEP_ACTION_ID; name: string; icon: string; description: string };
+  action: {
+    id: typeof MANUAL_STEP_ACTION_ID;
+    type: typeof MANUAL_STEP_ACTION_ID;
+    name: string;
+    icon: string;
+    description: string;
+  };
   value: string;
   expected: string;
 }
@@ -35,7 +41,13 @@ export interface ManualSequenceStep {
 export function toSequence(steps: ManualStep[]): ManualSequenceStep[] {
   return steps.map((step, index) => ({
     id: `manual-${index + 1}`,
-    action: { id: MANUAL_STEP_ACTION_ID, type: MANUAL_STEP_ACTION_ID, name: "Manual step", icon: "ClipboardCheck", description: "" },
+    action: {
+      id: MANUAL_STEP_ACTION_ID,
+      type: MANUAL_STEP_ACTION_ID,
+      name: 'Manual step',
+      icon: 'ClipboardCheck',
+      description: '',
+    },
     value: step.action,
     expected: step.expected,
   }));
@@ -43,7 +55,7 @@ export function toSequence(steps: ManualStep[]): ManualSequenceStep[] {
 
 function asArray(sequence: unknown): unknown[] {
   if (Array.isArray(sequence)) return sequence;
-  if (typeof sequence === "string") {
+  if (typeof sequence === 'string') {
     try {
       const parsed = JSON.parse(sequence);
       return Array.isArray(parsed) ? parsed : [];
@@ -57,17 +69,29 @@ function asArray(sequence: unknown): unknown[] {
 /** Whether a test is manual: it has steps, and every one of them is a manual step. */
 export function isManualSequence(sequence: unknown): boolean {
   const steps = asArray(sequence);
-  return steps.length > 0 && steps.every((step) => (step as any)?.action?.id === MANUAL_STEP_ACTION_ID);
+  return (
+    steps.length > 0 && steps.every((step) => (step as any)?.action?.id === MANUAL_STEP_ACTION_ID)
+  );
 }
 
 export function manualStepsOf(sequence: unknown): ManualStep[] {
   return asArray(sequence)
     .filter((step) => (step as any)?.action?.id === MANUAL_STEP_ACTION_ID)
-    .map((step: any) => ({ action: String(step.value ?? ""), expected: String(step.expected ?? ""),
-      ...(step.gherkin && typeof step.gherkin === 'object' ? {gherkin:{
-        ...(typeof step.gherkin.docString?.content === 'string' ? {docString:step.gherkin.docString} : {}),
-        ...(Array.isArray(step.gherkin.dataTable?.rows) ? {dataTable:step.gherkin.dataTable} : {}),
-      }} : {}),
+    .map((step: any) => ({
+      action: String(step.value ?? ''),
+      expected: String(step.expected ?? ''),
+      ...(step.gherkin && typeof step.gherkin === 'object'
+        ? {
+            gherkin: {
+              ...(typeof step.gherkin.docString?.content === 'string'
+                ? { docString: step.gherkin.docString }
+                : {}),
+              ...(Array.isArray(step.gherkin.dataTable?.rows)
+                ? { dataTable: step.gherkin.dataTable }
+                : {}),
+            },
+          }
+        : {}),
     }));
 }
 
@@ -79,27 +103,29 @@ export function manualStepsOf(sequence: unknown): ManualStep[] {
  * and a tester had nothing to do in the run (collaudo LIB-13).
  */
 export function manualSequenceProblem(sequence: unknown): string | null {
-  const manual = asArray(sequence).filter((step) => (step as any)?.action?.id === MANUAL_STEP_ACTION_ID);
+  const manual = asArray(sequence).filter(
+    (step) => (step as any)?.action?.id === MANUAL_STEP_ACTION_ID,
+  );
   if (manual.length === 0) return null;
-  if (manualStepsOf(manual).some((step) => step.action.trim() === "")) {
-    return "Every step of a manual test needs its action: write at least one step, and remove the empty ones.";
+  if (manualStepsOf(manual).some((step) => step.action.trim() === '')) {
+    return 'Every step of a manual test needs its action: write at least one step, and remove the empty ones.';
   }
   return null;
 }
 
 /** The verdicts a tester can give, and the result status each one records. */
-export const MANUAL_VERDICTS = ["passed", "failed", "blocked"] as const;
+export const MANUAL_VERDICTS = ['passed', 'failed', 'blocked'] as const;
 export type ManualVerdict = (typeof MANUAL_VERDICTS)[number];
 
-export const VERDICT_STATUS: Record<ManualVerdict, "Passed" | "Failed" | "Skipped"> = {
-  passed: "Passed",
-  failed: "Failed",
+export const VERDICT_STATUS: Record<ManualVerdict, 'Passed' | 'Failed' | 'Skipped'> = {
+  passed: 'Passed',
+  failed: 'Failed',
   // Could not be carried out — an environment down, a prerequisite missing. Not a failure of
   // the thing under test, so it does not fail the run; it is counted with the skipped.
-  blocked: "Skipped",
+  blocked: 'Skipped',
 };
 
-export const MANUAL_STEP_OUTCOMES = ["passed", "failed", "skipped"] as const;
+export const MANUAL_STEP_OUTCOMES = ['passed', 'failed', 'skipped'] as const;
 export type ManualStepOutcome = (typeof MANUAL_STEP_OUTCOMES)[number];
 
 /**
@@ -121,10 +147,12 @@ export interface ManualResultLog {
 
 /** The manual log of a result, or null when the result is not a manual test's. */
 export function readManualLog(detailedLog: unknown): ManualResultLog | null {
-  if (typeof detailedLog !== "string" || !detailedLog.startsWith("{")) return null;
+  if (typeof detailedLog !== 'string' || !detailedLog.startsWith('{')) return null;
   try {
     const parsed = JSON.parse(detailedLog);
-    return parsed && parsed.manual === true && Array.isArray(parsed.steps) ? (parsed as ManualResultLog) : null;
+    return parsed && parsed.manual === true && Array.isArray(parsed.steps)
+      ? (parsed as ManualResultLog)
+      : null;
   } catch {
     return null;
   }

@@ -4,13 +4,8 @@
   // required column: the importers compiled clean because nothing was compiling them.
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
-    "types": [
-      "node"
-    ],
+    "lib": ["ESNext", "DOM"],
+    "types": ["node"],
     "composite": true,
     "tsBuildInfoFile": "../node_modules/.cache/tsbuildinfo.scripts.json"
   },
@@ -43,9 +38,5 @@
     "../server/db-errors.ts",
     "../shared/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts"
-  ]
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

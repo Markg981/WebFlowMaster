@@ -29,13 +29,13 @@ instead of closing it.
 
 ## Decisions taken
 
-| Question | Decision |
-|---|---|
-| Membership model | One user belongs to exactly one organization. No bridge table. |
-| Roles | Three: `owner`, `editor`, `viewer`. Stored on `users`. |
-| Enforcement | Postgres Row-Level Security. The database filters, not the query author. |
-| Binding | `SET LOCAL ROLE` per request; connection string unchanged. |
-| Existing data | One organization per existing user; that user becomes its owner. |
+| Question         | Decision                                                                 |
+| ---------------- | ------------------------------------------------------------------------ |
+| Membership model | One user belongs to exactly one organization. No bridge table.           |
+| Roles            | Three: `owner`, `editor`, `viewer`. Stored on `users`.                   |
+| Enforcement      | Postgres Row-Level Security. The database filters, not the query author. |
+| Binding          | `SET LOCAL ROLE` per request; connection string unchanged.               |
+| Existing data    | One organization per existing user; that user becomes its owner.         |
 
 ---
 
@@ -57,7 +57,7 @@ UPDATE targeting org 2 while org 1: 1 row affected
 ```
 
 Superusers bypass RLS unconditionally. `FORCE ROW LEVEL SECURITY` does not change this — it
-subjects the table *owner* to policies, not superusers. PGlite connects as `postgres`, a
+subjects the table _owner_ to policies, not superusers. PGlite connects as `postgres`, a
 superuser, and many development Postgres setups do the same.
 
 With a non-superuser role, the same policy binds correctly:
@@ -127,7 +127,7 @@ auditing subquery policies.
 
 `secrets` is encrypted with AES-256-GCM (`server/crypto.ts`) using a **single instance-wide
 key** from `ENCRYPTION_KEY`. `organizationId` plus RLS stops one organization reading another's
-secrets *through the application*. It does not stop anyone with database access and the
+secrets _through the application_. It does not stop anyone with database access and the
 environment variable from decrypting all of them.
 
 This is not changed here — per-organization keys are a separate project, and where those keys
@@ -160,7 +160,7 @@ nothing filters. Without this line the entire mechanism is decorative and silent
 **`LOCAL`** — `server/db.ts:22` uses `new Pool()`. With a pool, `SET` without `LOCAL` outlives
 the request: the connection returns to the pool carrying the organization, and the next
 request — belonging to a different customer — inherits it. That would be a cross-tenant leak
-*created by* the anti-leak mechanism. `LOCAL` ties the state to the transaction, which ends on
+_created by_ the anti-leak mechanism. `LOCAL` ties the state to the transaction, which ends on
 its own.
 
 **The transaction** — gives `LOCAL` a boundary. Without one there is nothing to scope to.
@@ -208,14 +208,14 @@ The current surface is 58 endpoints: 24 reads, 34 mutations.
 
 ### Permissions
 
-| | viewer | editor | owner |
-|---|---|---|---|
-| Read tests, plans, reports, logs | yes | yes | yes |
-| Create/modify/delete tests and plans | no | yes | yes |
-| Execute tests, start recordings | no | yes | yes |
-| Manage environments and secrets | no | yes | yes |
-| Invite members, change roles, remove | no | no | yes |
-| Modify `system_settings` | no | no | yes |
+|                                      | viewer | editor | owner |
+| ------------------------------------ | ------ | ------ | ----- |
+| Read tests, plans, reports, logs     | yes    | yes    | yes   |
+| Create/modify/delete tests and plans | no     | yes    | yes   |
+| Execute tests, start recordings      | no     | yes    | yes   |
+| Manage environments and secrets      | no     | yes    | yes   |
+| Invite members, change roles, remove | no     | no     | yes   |
+| Modify `system_settings`             | no     | no     | yes   |
 
 The rule that makes this implementable without 58 separate decisions: **RLS decides which
 rows, the role decides which verbs.** They do not interact. A viewer and an owner in the same
@@ -230,7 +230,7 @@ require only authentication (RLS has already restricted the rows).
 The hazard is that no route declares anything today, so forgetting the middleware leaves an
 endpoint open to everyone — the same class of error as `GET /api/tests`. Countermeasure: a test
 that enumerates registered routes and fails if a mutating route has no `requireRole` in its
-chain. Same principle as the architecture test above: verify the *shape* of the code, not only
+chain. Same principle as the architecture test above: verify the _shape_ of the code, not only
 its behaviour.
 
 ### `POST /api/tests/:id/run` requires `editor`
@@ -272,7 +272,7 @@ security foundation.
 ## Migration
 
 The existing runner (`scripts/apply-migrations.ts`) uses `db` from `server/db.ts` — the
-superuser. That is correct: migrations *must* bypass RLS, or they cannot populate the columns
+superuser. That is correct: migrations _must_ bypass RLS, or they cannot populate the columns
 the policies will later read. It makes the step order non-negotiable.
 
 1. Create `organizations`, the `app_user` role, and the new columns — all **nullable** at first.
@@ -316,14 +316,14 @@ other do not both succeed.
 
 ## Failure modes
 
-| Risk | Mitigation |
-|---|---|
-| App connects as superuser, RLS inert and silent | Test asserting the bypass; if it ever stops bypassing, the test breaks and we find out |
-| Query outside the transaction runs as superuser | Architecture test on imports; raw `db` unreachable from routes |
+| Risk                                                               | Mitigation                                                                                 |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| App connects as superuser, RLS inert and silent                    | Test asserting the bypass; if it ever stops bypassing, the test breaks and we find out     |
+| Query outside the transaction runs as superuser                    | Architecture test on imports; raw `db` unreachable from routes                             |
 | `SET` without `LOCAL` with a pool, org leaks into the next request | Only `SET LOCAL`, never `SET`; test running two different-org requests over one connection |
-| Orphan row after migration, invisible forever | Verification at step 4; the migration fails |
-| New table without a policy, not isolated | Test enumerating org-scoped tables **from the schema** and asserting each has RLS enabled |
-| Last owner removes themselves, organization unmanageable | Constraint enforced inside the transaction |
+| Orphan row after migration, invisible forever                      | Verification at step 4; the migration fails                                                |
+| New table without a policy, not isolated                           | Test enumerating org-scoped tables **from the schema** and asserting each has RLS enabled  |
+| Last owner removes themselves, organization unmanageable           | Constraint enforced inside the transaction                                                 |
 
 The last row's test reads the schema rather than a hand-written list. A hand-written list gets
 forgotten — the same class of error this whole design corrects.

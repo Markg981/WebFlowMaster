@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import { ExcelTestCase } from './useExcelImport';
 
 /** One step of a run, as POST /api/tests/:id/run reports it. */
@@ -25,8 +25,8 @@ export interface RowResult {
 }
 
 export function useTestRunner(
-    parsedTestCases: ExcelTestCase[],
-    localMappings: Record<string, number>
+  parsedTestCases: ExcelTestCase[],
+  localMappings: Record<string, number>,
 ) {
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -65,7 +65,8 @@ export function useTestRunner(
         const res = await apiRequest('POST', `/api/tests/${testId}/run`, {});
         const data = await res.json();
         const ok = Boolean(data.success);
-        if (ok) passed++; else failed++;
+        if (ok) passed++;
+        else failed++;
         setResult(excelId, {
           status: ok ? 'passed' : 'failed',
           testId,
@@ -75,15 +76,19 @@ export function useTestRunner(
         });
       } catch (e) {
         failed++;
-        setResult(excelId, { status: 'error', testId, error: e instanceof Error ? e.message : String(e) });
+        setResult(excelId, {
+          status: 'error',
+          testId,
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
     setIsRunning(false);
     if (passed + failed > 0) {
       toast({
-        title: failed === 0 ? "Run complete" : "Run complete with failures",
+        title: failed === 0 ? 'Run complete' : 'Run complete with failures',
         description: `${passed} passed, ${failed} failed.`,
-        variant: failed === 0 ? "default" : "destructive",
+        variant: failed === 0 ? 'default' : 'destructive',
       });
     }
   };

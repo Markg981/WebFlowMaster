@@ -1,14 +1,14 @@
-import { Router } from "express";
-import { z } from "zod";
-import { asc, eq } from "drizzle-orm";
+import { Router } from 'express';
+import { z } from 'zod';
+import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { ISSUE_PROVIDERS, issueTrackers } from "@shared/schema";
-import { withTenantTransaction } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
-import { encryptSecret } from "../crypto";
-import { checkConnection } from "../issue-providers";
-import { toConfig } from "../issue-store";
-import loggerPromise from "../logger";
+import { ISSUE_PROVIDERS, issueTrackers } from '@shared/schema';
+import { withTenantTransaction } from '../middleware/tenancy';
+import { requireRole } from '../middleware/require-role';
+import { encryptSecret } from '../crypto';
+import { checkConnection } from '../issue-providers';
+import { toConfig } from '../issue-store';
+import loggerPromise from '../logger';
 
 /**
  * Where an organization files its bugs.
@@ -24,13 +24,16 @@ const router = Router();
 const logger = await loggerPromise;
 
 const trackerSchema = z.object({
-  name: z.string().trim().min(1, "A name is required").max(80),
+  name: z.string().trim().min(1, 'A name is required').max(80),
   provider: z.enum(ISSUE_PROVIDERS),
-  baseUrl: z.string().trim().url("The base URL must be a full URL, e.g. https://acme.atlassian.net"),
-  projectKey: z.string().trim().min(1, "A project is required").max(100),
+  baseUrl: z
+    .string()
+    .trim()
+    .url('The base URL must be a full URL, e.g. https://acme.atlassian.net'),
+  projectKey: z.string().trim().min(1, 'A project is required').max(100),
   issueType: z.string().trim().min(1).max(60).default('Bug'),
   userEmail: z.string().trim().email().optional().nullable(),
-  token: z.string().trim().min(1, "A token is required").max(500),
+  token: z.string().trim().min(1, 'A token is required').max(500),
 });
 
 /** Everything but the token, which is why it is written out rather than spread. */
@@ -56,8 +59,8 @@ function isUniqueViolation(error: any): boolean {
 }
 
 // GET /api/issue-trackers
-router.get("/api/issue-trackers", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/issue-trackers', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
     const rows = await withTenantTransaction((tx) =>
@@ -65,23 +68,28 @@ router.get("/api/issue-trackers", requireRole('viewer'), async (req, res) => {
     );
     res.json(rows.map(toListed));
   } catch (error: any) {
-    logger.error({ message: 'Failed to list issue trackers', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Failed to load the issue trackers." });
+    logger.error({
+      message: 'Failed to list issue trackers',
+      error: error?.message ?? String(error),
+    });
+    res.status(500).json({ error: 'Failed to load the issue trackers.' });
   }
 });
 
 // POST /api/issue-trackers
-router.post("/api/issue-trackers", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/issue-trackers', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   const parsed = trackerSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
   }
   if (parsed.data.provider === 'jira' && !parsed.data.userEmail) {
     // Jira pairs an API token with an account. Storing one without the other produces a
     // tracker that authenticates as nobody and fails on the first run that needs it.
-    return res.status(400).json({ error: "Jira needs the email address the API token belongs to." });
+    return res
+      .status(400)
+      .json({ error: 'Jira needs the email address the API token belongs to.' });
   }
 
   try {
@@ -110,20 +118,25 @@ router.post("/api/issue-trackers", requireRole('editor'), async (req, res) => {
     res.status(201).json(toListed(created));
   } catch (error: any) {
     if (isUniqueViolation(error)) {
-      return res.status(409).json({ error: `This organization already has a tracker called "${parsed.data.name}".` });
+      return res
+        .status(409)
+        .json({ error: `This organization already has a tracker called "${parsed.data.name}".` });
     }
-    logger.error({ message: 'Failed to create issue tracker', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Failed to save the tracker." });
+    logger.error({
+      message: 'Failed to create issue tracker',
+      error: error?.message ?? String(error),
+    });
+    res.status(500).json({ error: 'Failed to save the tracker.' });
   }
 });
 
 // PUT /api/issue-trackers/:id — the token is replaced only when a new one is given.
-router.put("/api/issue-trackers/:id", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.put('/api/issue-trackers/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   const parsed = trackerSchema.partial().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
   }
 
   const changes: Record<string, unknown> = { updatedAt: new Date() };
@@ -144,14 +157,17 @@ router.put("/api/issue-trackers/:id", requireRole('editor'), async (req, res) =>
     const updated = await withTenantTransaction((tx) =>
       tx.update(issueTrackers).set(changes).where(eq(issueTrackers.id, req.params.id)).returning(),
     );
-    if (updated.length === 0) return res.status(404).json({ error: "Tracker not found." });
+    if (updated.length === 0) return res.status(404).json({ error: 'Tracker not found.' });
     res.json(toListed(updated[0]));
   } catch (error: any) {
     if (isUniqueViolation(error)) {
-      return res.status(409).json({ error: "Another tracker already has that name." });
+      return res.status(409).json({ error: 'Another tracker already has that name.' });
     }
-    logger.error({ message: 'Failed to update issue tracker', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Failed to update the tracker." });
+    logger.error({
+      message: 'Failed to update issue tracker',
+      error: error?.message ?? String(error),
+    });
+    res.status(500).json({ error: 'Failed to update the tracker.' });
   }
 });
 
@@ -161,20 +177,20 @@ router.put("/api/issue-trackers/:id", requireRole('editor'), async (req, res) =>
  * A read, never a write: the alternative ways to find out are creating a throwaway issue in
  * somebody's board, or discovering it from a failed run at two in the morning.
  */
-router.post("/api/issue-trackers/:id/test", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/issue-trackers/:id/test', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
     const [tracker] = await withTenantTransaction((tx) =>
       tx.select().from(issueTrackers).where(eq(issueTrackers.id, req.params.id)).limit(1),
     );
-    if (!tracker) return res.status(404).json({ error: "Tracker not found." });
+    if (!tracker) return res.status(404).json({ error: 'Tracker not found.' });
 
     const result = await checkConnection(toConfig(tracker));
     res.json(result);
   } catch (error: any) {
     logger.error({ message: 'Issue tracker check failed', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Could not check the tracker." });
+    res.status(500).json({ error: 'Could not check the tracker.' });
   }
 });
 
@@ -185,19 +201,25 @@ router.post("/api/issue-trackers/:id/test", requireRole('editor'), async (req, r
  * people working on them, and deleting a configuration here is not a statement about them.
  * What is lost is the knowledge that they were filed, which is why the answer says how many.
  */
-router.delete("/api/issue-trackers/:id", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.delete('/api/issue-trackers/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
     const outcome = await withTenantTransaction(async (tx) => {
-      const deleted = await tx.delete(issueTrackers).where(eq(issueTrackers.id, req.params.id)).returning();
+      const deleted = await tx
+        .delete(issueTrackers)
+        .where(eq(issueTrackers.id, req.params.id))
+        .returning();
       return deleted.length;
     });
-    if (outcome === 0) return res.status(404).json({ error: "Tracker not found." });
+    if (outcome === 0) return res.status(404).json({ error: 'Tracker not found.' });
     res.status(204).end();
   } catch (error: any) {
-    logger.error({ message: 'Failed to delete issue tracker', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Failed to delete the tracker." });
+    logger.error({
+      message: 'Failed to delete issue tracker',
+      error: error?.message ?? String(error),
+    });
+    res.status(500).json({ error: 'Failed to delete the tracker.' });
   }
 });
 

@@ -16,26 +16,56 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASE = process.env.WFM_URL ?? 'https://wfm.collaudo.test';
 const JENKINS = 'http://localhost:8088';
-const COMPOSE = ['compose', '-p', 'wfm-collaudo', '--env-file', 'collaudo/collaudo.env', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml', '--profile', 'jenkins'];
-const docker = (args, env = {}) => execFileSync('docker', [...COMPOSE, ...args], { stdio: 'inherit', env: { ...process.env, ...env } });
+const COMPOSE = [
+  'compose',
+  '-p',
+  'wfm-collaudo',
+  '--env-file',
+  'collaudo/collaudo.env',
+  '-f',
+  'docker-compose.yml',
+  '-f',
+  'collaudo/docker-compose.collaudo.yml',
+  '--profile',
+  'jenkins',
+];
+const docker = (args, env = {}) =>
+  execFileSync('docker', [...COMPOSE, ...args], {
+    stdio: 'inherit',
+    env: { ...process.env, ...env },
+  });
 
 if (process.argv[2] === 'stop') {
   docker(['stop', 'jenkins']);
   process.exit(0);
 }
 
-const cookie = JSON.parse(readFileSync(join(HERE, '..', '.sessions', 'owner.a.json'), 'utf8')).cookie;
+const cookie = JSON.parse(
+  readFileSync(join(HERE, '..', '.sessions', 'owner.a.json'), 'utf8'),
+).cookie;
 async function api(method, path, body) {
-  const res = await fetch(BASE + path, { method, headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const res = await fetch(BASE + path, {
+    method,
+    headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
   if (!res.ok) throw new Error(`${method} ${path}: ${res.status} ${await res.text()}`);
   return res.json();
 }
-const list = (d) => (Array.isArray(d) ? d : d?.items ?? d?.data ?? []);
+const list = (d) => (Array.isArray(d) ? d : (d?.items ?? d?.data ?? []));
 
-const plan = list(await api('GET', '/api/test-plans')).find((p) => p.name === 'Collaudo · rete e trace');
-if (!plan) throw new Error('Manca il piano «Collaudo · rete e trace»: eseguire prima npm run collaudo:prepare');
+const plan = list(await api('GET', '/api/test-plans')).find(
+  (p) => p.name === 'Collaudo · rete e trace',
+);
+if (!plan)
+  throw new Error(
+    'Manca il piano «Collaudo · rete e trace»: eseguire prima npm run collaudo:prepare',
+  );
 const staging = list(await api('GET', '/api/environments')).find((e) => e.name === 'Staging');
-const { key } = await api('POST', '/api/api-keys', { name: `Jenkins INT-08 ${new Date().toISOString().slice(0, 16)}`, scopes: ['runs:write', 'runs:read'] });
+const { key } = await api('POST', '/api/api-keys', {
+  name: `Jenkins INT-08 ${new Date().toISOString().slice(0, 16)}`,
+  scopes: ['runs:write', 'runs:read'],
+});
 
 console.log(`Avvio Jenkins (piano ${plan.id}${staging ? `, ambiente ${staging.id}` : ''})…`);
 docker(['up', '-d', '--build', '--force-recreate', 'jenkins'], {
@@ -51,19 +81,30 @@ let session = '';
 for (let i = 0; i < 90 && !crumb; i++) {
   await new Promise((r) => setTimeout(r, 2000));
   try {
-    const res = await fetch(`${JENKINS}/crumbIssuer/api/json`, { headers: { Authorization: auth } });
-    if (res.ok && (await fetch(`${JENKINS}/job/INT-08/api/json`, { headers: { Authorization: auth } })).ok) {
+    const res = await fetch(`${JENKINS}/crumbIssuer/api/json`, {
+      headers: { Authorization: auth },
+    });
+    if (
+      res.ok &&
+      (await fetch(`${JENKINS}/job/INT-08/api/json`, { headers: { Authorization: auth } })).ok
+    ) {
       crumb = await res.json();
-      session = res.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+      session = res.headers
+        .getSetCookie()
+        .map((c) => c.split(';')[0])
+        .join('; ');
     }
-  } catch { /* not up yet */ }
+  } catch {
+    /* not up yet */
+  }
 }
-if (!crumb) throw new Error('Jenkins non risponde su http://localhost:8088 (docker compose logs jenkins)');
+if (!crumb)
+  throw new Error('Jenkins non risponde su http://localhost:8088 (docker compose logs jenkins)');
 
 const headers = { Authorization: auth, Cookie: session, [crumb.crumbRequestField]: crumb.crumb };
 const queued = await fetch(`${JENKINS}/job/INT-08/build`, { method: 'POST', headers });
 if (queued.status !== 201) throw new Error(`Avvio del job: ${queued.status}`);
-console.log('Job INT-08 avviato, attendo l\'esito…');
+console.log("Job INT-08 avviato, attendo l'esito…");
 
 let build;
 for (let i = 0; i < 300; i++) {
@@ -74,5 +115,7 @@ for (let i = 0; i < 300; i++) {
 }
 const log = await (await fetch(`${JENKINS}/job/INT-08/lastBuild/consoleText`, { headers })).text();
 console.log(log.split('\n').slice(-25).join('\n'));
-console.log(`\nBuild #${build?.number}: ${build?.result} — ${JENKINS}/job/INT-08/${build?.number}/`);
+console.log(
+  `\nBuild #${build?.number}: ${build?.result} — ${JENKINS}/job/INT-08/${build?.number}/`,
+);
 process.exit(build?.result === 'SUCCESS' || build?.result === 'UNSTABLE' ? 0 : 1);

@@ -31,7 +31,12 @@ describe('runPoliciesFrom', () => {
     const policies = policiesFor({});
 
     expect(policies).toEqual({
-      step: { pageLoadTimeoutMs: 30_000, elementTimeoutMs: 30_000, screenshots: 'on_failed_steps', retryFailedStep: false },
+      step: {
+        pageLoadTimeoutMs: 30_000,
+        elementTimeoutMs: 30_000,
+        screenshots: 'on_failed_steps',
+        retryFailedStep: false,
+      },
       testReruns: 0,
       onPreconditionFailure: 'stop',
       stopOnStepFailure: false,
@@ -51,22 +56,34 @@ describe('runPoliciesFrom', () => {
       reRunOnFailure: 'thrice',
     });
 
-    expect(policies.step).toEqual({ pageLoadTimeoutMs: 60_000, elementTimeoutMs: 10_000, screenshots: 'always', retryFailedStep: true });
+    expect(policies.step).toEqual({
+      pageLoadTimeoutMs: 60_000,
+      elementTimeoutMs: 10_000,
+      screenshots: 'always',
+      retryFailedStep: true,
+    });
     expect(policies.testReruns).toBe(3);
     expect(policies.onPreconditionFailure).toBe('skip');
     expect(policies.stopOnAbortedTest).toBe(true);
     expect(policiesFor({ onMajorStepFailure: 'stop_execution' }).stopOnStepFailure).toBe(true);
-    expect(policiesFor({ onTestCasePreRequisiteFailure: 'continue_anyway' }).onPreconditionFailure).toBe('continue');
+    expect(
+      policiesFor({ onTestCasePreRequisiteFailure: 'continue_anyway' }).onPreconditionFailure,
+    ).toBe('continue');
   });
 
   it('names the settings it has nothing to apply to, only when somebody changed them', () => {
     expect(
-      policiesFor({ onTestSuitePreRequisiteFailure: 'skip_test_suite', onTestStepPreRequisiteFailure: 'skip_test_step' }).notApplied,
+      policiesFor({
+        onTestSuitePreRequisiteFailure: 'skip_test_suite',
+        onTestStepPreRequisiteFailure: 'skip_test_step',
+      }).notApplied,
     ).toHaveLength(2);
   });
 
   it('describes itself in one line for the run log', () => {
-    expect(describePolicies(policiesFor({ reRunOnFailure: 'once' }))).toContain('run up to 1 more time(s)');
+    expect(describePolicies(policiesFor({ reRunOnFailure: 'once' }))).toContain(
+      'run up to 1 more time(s)',
+    );
   });
 });
 
@@ -81,7 +98,13 @@ describe('keepsScreenshot', () => {
 
 describe('rerunsFor', () => {
   it('counts the re-runs a policy allows', () => {
-    expect([rerunsFor('none'), rerunsFor('once'), rerunsFor('twice'), rerunsFor('thrice'), rerunsFor(null)]).toEqual([0, 1, 2, 3, 0]);
+    expect([
+      rerunsFor('none'),
+      rerunsFor('once'),
+      rerunsFor('twice'),
+      rerunsFor('thrice'),
+      rerunsFor(null),
+    ]).toEqual([0, 1, 2, 3, 0]);
   });
 });
 
@@ -96,15 +119,26 @@ describe('stopReasonAfter', () => {
   });
 
   it('stops on a failing step or an aborted test when the plan says so, and says why', () => {
-    expect(stopReasonAfter(failedStep, policiesFor({ onMajorStepFailure: 'stop_execution' }))).toMatch(/major step failure/);
     expect(
-      stopReasonAfter({ testName: 'Orders API', status: 'failed', cause: 'other' }, policiesFor({ onAbortedTestCase: 'stop_execution' })),
+      stopReasonAfter(failedStep, policiesFor({ onMajorStepFailure: 'stop_execution' })),
+    ).toMatch(/major step failure/);
+    expect(
+      stopReasonAfter(
+        { testName: 'Orders API', status: 'failed', cause: 'other' },
+        policiesFor({ onAbortedTestCase: 'stop_execution' }),
+      ),
     ).toMatch(/aborted test case/);
   });
 
   it('stops on a failed precondition by default, and not when the plan skips or continues', () => {
-    const blocked = { testName: 'Checkout', status: 'error' as const, cause: 'precondition' as const };
+    const blocked = {
+      testName: 'Checkout',
+      status: 'error' as const,
+      cause: 'precondition' as const,
+    };
     expect(stopReasonAfter(blocked, policiesFor({}))).toMatch(/prerequisite failure/);
-    expect(stopReasonAfter(blocked, policiesFor({ onTestCasePreRequisiteFailure: 'continue_anyway' }))).toBeNull();
+    expect(
+      stopReasonAfter(blocked, policiesFor({ onTestCasePreRequisiteFailure: 'continue_anyway' })),
+    ).toBeNull();
   });
 });

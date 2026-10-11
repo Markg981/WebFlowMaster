@@ -49,7 +49,11 @@ const MAX_TITLE_CHARS = 200;
  * An ad-hoc run has no plan, so it files under 'adhoc' — the alternative, filing every manual
  * re-run as a fresh issue, is the duplicate storm this exists to prevent.
  */
-export function dedupeKeyFor(input: { planId?: string | null; testName: string; browser?: string | null }): string {
+export function dedupeKeyFor(input: {
+  planId?: string | null;
+  testName: string;
+  browser?: string | null;
+}): string {
   const plan = input.planId?.trim() || 'adhoc';
   const browser = input.browser?.trim() || 'default';
   return `${plan}::${input.testName.trim()}::${browser}`;

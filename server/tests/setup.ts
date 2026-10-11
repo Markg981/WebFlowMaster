@@ -36,7 +36,9 @@ const givenUrl = process.env.DATABASE_URL ?? '';
 const isPostgres = givenUrl.startsWith('postgres://') || givenUrl.startsWith('postgresql://');
 
 if (process.env.WFM_TEST_REQUIRE_POSTGRES === '1' && !isPostgres) {
-  throw new Error('test:rls requires a real PostgreSQL DATABASE_URL; refusing to substitute PGlite.');
+  throw new Error(
+    'test:rls requires a real PostgreSQL DATABASE_URL; refusing to substitute PGlite.',
+  );
 }
 
 if (!isDirectRun && !isPostgres) {
@@ -49,7 +51,10 @@ async function applyMigrations() {
   // which is the shared file database this setup exists to stop using.
   const { privilegedDb } = await import('../db');
 
-  const migrationsPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../migrations');
+  const migrationsPath = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../migrations',
+  );
 
   if (isPostgres) {
     const { migrate } = await import('drizzle-orm/node-postgres/migrator');

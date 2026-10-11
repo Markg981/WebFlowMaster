@@ -24,9 +24,16 @@ function duration(ms: number | null | undefined): string {
   return `${Math.floor(seconds / 60)} min ${Math.round(seconds % 60)} s`;
 }
 
-const when = (date: Date | null | undefined) => (date ? new Date(date).toISOString().replace('T', ' ').slice(0, 19) + ' UTC' : '—');
+const when = (date: Date | null | undefined) =>
+  date ? new Date(date).toISOString().replace('T', ' ').slice(0, 19) + ' UTC' : '—';
 
-const STATUS_CLASS: Record<string, string> = { Passed: 'pass', Failed: 'fail', Error: 'error', Skipped: 'skip', Pending: 'skip' };
+const STATUS_CLASS: Record<string, string> = {
+  Passed: 'pass',
+  Failed: 'fail',
+  Error: 'error',
+  Skipped: 'skip',
+  Pending: 'skip',
+};
 
 const RUN_VERDICT: Record<string, string> = {
   completed: 'Passed',
@@ -81,8 +88,11 @@ function resultTags(result: ReportResultModel): string {
 
 function failureSection(result: ReportResultModel, image: string | undefined): string {
   const failedStep = result.steps.find((step) => step.status === 'failed');
-  const network = result.network?.failures.filter((r) => r.status >= 500 || r.status === 0).slice(0, 5) ?? [];
-  const a11y = result.steps.flatMap((step) => step.accessibility?.violations.filter((v) => v.blocking) ?? []);
+  const network =
+    result.network?.failures.filter((r) => r.status >= 500 || r.status === 0).slice(0, 5) ?? [];
+  const a11y = result.steps.flatMap(
+    (step) => step.accessibility?.violations.filter((v) => v.blocking) ?? [],
+  );
   return `
   <div class="failure${result.quarantined ? ' quarantined' : ''}">
     <h3>${escapeHtml(result.testName)} <span class="st ${STATUS_CLASS[result.status] ?? 'skip'}">${escapeHtml(result.status)}</span>${resultTags(result)}</h3>
@@ -99,8 +109,15 @@ function failureSection(result: ReportResultModel, image: string | undefined): s
 export function renderReportHtml(model: ReportModel, options: HtmlRenderOptions = {}): string {
   const images = options.images ?? new Map<string, string>();
   const failures = model.results.filter((r) => r.status === 'Failed' || r.status === 'Error');
-  const matrices = model.results.flatMap(r => (r.matrixEvidence ?? []).map(e => `<tr><td>${escapeHtml(r.testName)}</td><td>${escapeHtml(e.route)}${e.provider ? ` / ${escapeHtml(e.provider)}` : ''}${e.sessionId ? `<br>${escapeHtml(e.sessionId)}` : ''}</td><td><pre>${escapeHtml(JSON.stringify(e.requested, null, 2))}</pre></td><td><pre>${escapeHtml(JSON.stringify(e.effective, null, 2))}</pre></td><td>${escapeHtml(e.verdict)}<br>${escapeHtml(e.differences.join('; '))}</td></tr>`));
-  const verdictClass = ['completed', 'failed', 'timed_out', 'error'].includes(model.status) ? `v-${model.status}` : 'v-other';
+  const matrices = model.results.flatMap((r) =>
+    (r.matrixEvidence ?? []).map(
+      (e) =>
+        `<tr><td>${escapeHtml(r.testName)}</td><td>${escapeHtml(e.route)}${e.provider ? ` / ${escapeHtml(e.provider)}` : ''}${e.sessionId ? `<br>${escapeHtml(e.sessionId)}` : ''}</td><td><pre>${escapeHtml(JSON.stringify(e.requested, null, 2))}</pre></td><td><pre>${escapeHtml(JSON.stringify(e.effective, null, 2))}</pre></td><td>${escapeHtml(e.verdict)}<br>${escapeHtml(e.differences.join('; '))}</td></tr>`,
+    ),
+  );
+  const verdictClass = ['completed', 'failed', 'timed_out', 'error'].includes(model.status)
+    ? `v-${model.status}`
+    : 'v-other';
   const c = model.counts;
 
   return `<!doctype html>
@@ -139,12 +156,16 @@ export function renderReportHtml(model: ReportModel, options: HtmlRenderOptions 
   ${model.evidencePurged ? '<p class="muted">Screenshots, videos and traces of this run were removed by the retention policy; its results are kept.</p>' : ''}
 
   <h2>Queued inputs and historical replay</h2>
-  ${model.reproducibility?.provenance ? `<p>Captured at enqueue: ${escapeHtml(model.reproducibility.provenance.capturedAt)}</p>
+  ${
+    model.reproducibility?.provenance
+      ? `<p>Captured at enqueue: ${escapeHtml(model.reproducibility.provenance.capturedAt)}</p>
   <p class="mono">Input SHA-256: ${escapeHtml(model.reproducibility.provenance.inputFingerprint)}<br>Datasets SHA-256: ${escapeHtml(model.reproducibility.provenance.datasetsFingerprint)}</p>
-  <table><thead><tr><th>Test</th><th>Version / source</th><th>SHA-256</th></tr></thead><tbody>${model.reproducibility.provenance.definitions.map(row => `<tr><td>${escapeHtml(row.name)} (${escapeHtml(row.type)} #${row.id})</td><td>${row.version === null ? 'Unversioned' : `v${row.version}`} / ${escapeHtml(row.source)}</td><td class="mono" style="overflow-wrap:anywhere">${escapeHtml(row.fingerprint)}</td></tr>`).join('')}</tbody></table>` : '<p>This run does not retain verified queued inputs. Historical replay is unavailable.</p>'}
+  <table><thead><tr><th>Test</th><th>Version / source</th><th>SHA-256</th></tr></thead><tbody>${model.reproducibility.provenance.definitions.map((row) => `<tr><td>${escapeHtml(row.name)} (${escapeHtml(row.type)} #${row.id})</td><td>${row.version === null ? 'Unversioned' : `v${row.version}`} / ${escapeHtml(row.source)}</td><td class="mono" style="overflow-wrap:anywhere">${escapeHtml(row.fingerprint)}</td></tr>`).join('')}</tbody></table>`
+      : '<p>This run does not retain verified queued inputs. Historical replay is unavailable.</p>'
+  }
   ${model.reproducibility?.replayOf ? `<p>Historical replay of <span class="mono">${escapeHtml(model.reproducibility.replayOf.executionId)}</span></p>` : ''}
   <p class="muted">Environment variables and secrets, grids, agents, browser binaries, BDD profiles, quarantine, review policies, integrations and the application under test are resolved live.</p>
-  ${model.reproducibility?.provenance ? `<table><thead><tr><th>Dataset / UI test</th><th>Source revision</th><th>Rows / SHA-256</th></tr></thead><tbody>${model.reproducibility.provenance.datasets.map(row => `<tr><td>UI #${row.testId}</td><td>${row.source ? `${escapeHtml(row.source.name)} (#${row.source.id}, ${escapeHtml(row.source.updatedAt)})` : 'Inline or absent'}</td><td class="mono" style="overflow-wrap:anywhere">${row.rowCount} / ${escapeHtml(row.fingerprint)}</td></tr>`).join('')}</tbody></table>` : ''}
+  ${model.reproducibility?.provenance ? `<table><thead><tr><th>Dataset / UI test</th><th>Source revision</th><th>Rows / SHA-256</th></tr></thead><tbody>${model.reproducibility.provenance.datasets.map((row) => `<tr><td>UI #${row.testId}</td><td>${row.source ? `${escapeHtml(row.source.name)} (#${row.source.id}, ${escapeHtml(row.source.updatedAt)})` : 'Inline or absent'}</td><td class="mono" style="overflow-wrap:anywhere">${row.rowCount} / ${escapeHtml(row.fingerprint)}</td></tr>`).join('')}</tbody></table>` : ''}
 
   ${failures.length ? `<h2>What failed (${failures.length})</h2>${failures.map((r) => failureSection(r, images.get(r.id))).join('')}` : ''}
 
@@ -156,7 +177,8 @@ export function renderReportHtml(model: ReportModel, options: HtmlRenderOptions 
     <tbody>
       ${model.results
         .map(
-          (r) => `<tr><td>${escapeHtml(r.testName)}${resultTags(r)}</td><td>${escapeHtml(r.browser ?? '—')}</td><td class="st ${STATUS_CLASS[r.status] ?? 'skip'}">${escapeHtml(r.status)}</td><td>${duration(r.durationMs)}</td><td>${escapeHtml([r.module, r.component].filter(Boolean).join(' / ') || '—')}</td></tr>`,
+          (r) =>
+            `<tr><td>${escapeHtml(r.testName)}${resultTags(r)}</td><td>${escapeHtml(r.browser ?? '—')}</td><td class="st ${STATUS_CLASS[r.status] ?? 'skip'}">${escapeHtml(r.status)}</td><td>${duration(r.durationMs)}</td><td>${escapeHtml([r.module, r.component].filter(Boolean).join(' / ') || '—')}</td></tr>`,
         )
         .join('')}
     </tbody>

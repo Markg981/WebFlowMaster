@@ -1,38 +1,45 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { ApiError, apiRequest, queryClient } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { ApiError, apiRequest, queryClient } from '@/lib/queryClient';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
-import { DraggableAction } from "@/components/draggable-action";
-import { DraggableElement } from "@/components/draggable-element";
-import { VisualTestBuilder } from "@/components/visual-builder/VisualTestBuilder";
+} from '@/components/ui/select';
+import { toast } from '@/hooks/use-toast';
+import { DraggableAction } from '@/components/draggable-action';
+import { DraggableElement } from '@/components/draggable-element';
+import { VisualTestBuilder } from '@/components/visual-builder/VisualTestBuilder';
 import DebugPanel, { useDebugSession } from '@/components/visual-builder/DebugPanel';
 import { DEBUG_ENDED, type DebugStepPatch } from '@shared/debug-session';
-import { DragDropProvider, type TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
-import SaveTestModal from "@/components/SaveTestModal";
-import { CleanupPanel, PreconditionsPanel } from "@/components/PreconditionsPanel";
-import { DatasetPanel, type DatasetRow, type SharedSetOption } from "@/components/DatasetPanel";
-import type { Cleanup, Precondition } from "@shared/schema";
-import { ACTION_I18N, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from "@shared/recording";
-import { argumentsHint, customActionStepId, type CustomActionParameter } from "@shared/custom-actions";
-import SaveStepGroupModal from "@/components/SaveStepGroupModal";
-import KeepElementModal from "@/components/KeepElementModal";
-import AuthorStepsModal from "@/components/AuthorStepsModal";
-import { useRecordingSession } from "@/hooks/useRecordingSession";
-import { EnvironmentSelect } from "@/components/EnvironmentSelect";
-import { NO_ENVIRONMENT, environmentIdFor } from "@/hooks/use-environments";
+import {
+  DragDropProvider,
+  type TestStep as DragDropTestStep,
+} from '@/components/drag-drop-provider';
+import SaveTestModal from '@/components/SaveTestModal';
+import { CleanupPanel, PreconditionsPanel } from '@/components/PreconditionsPanel';
+import { DatasetPanel, type DatasetRow, type SharedSetOption } from '@/components/DatasetPanel';
+import type { Cleanup, Precondition } from '@shared/schema';
+import { ACTION_I18N, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from '@shared/recording';
+import {
+  argumentsHint,
+  customActionStepId,
+  type CustomActionParameter,
+} from '@shared/custom-actions';
+import SaveStepGroupModal from '@/components/SaveStepGroupModal';
+import KeepElementModal from '@/components/KeepElementModal';
+import AuthorStepsModal from '@/components/AuthorStepsModal';
+import { useRecordingSession } from '@/hooks/useRecordingSession';
+import { EnvironmentSelect } from '@/components/EnvironmentSelect';
+import { NO_ENVIRONMENT, environmentIdFor } from '@/hooks/use-environments';
 import {
   Globe,
   Search,
@@ -42,7 +49,7 @@ import {
   StopCircle, // Add this if not present
   Info,
   XCircle,
-} from "lucide-react";
+} from 'lucide-react';
 // Client-side StepResult interface matching backend
 interface StepResult {
   name: string;
@@ -60,24 +67,23 @@ interface StepResult {
 // For this patch, we'll define a simplified version if not directly importable.
 
 interface UserSettings {
-  theme: "light" | "dark";
+  theme: 'light' | 'dark';
   defaultTestUrl: string | null;
-  playwrightBrowser: "chromium" | "firefox" | "webkit";
+  playwrightBrowser: 'chromium' | 'firefox' | 'webkit';
   playwrightHeadless: boolean;
   playwrightDefaultTimeout: number;
   playwrightWaitTime: number;
 }
 
 const fetchSettings = async (): Promise<UserSettings> => {
-  const response = await fetch("/api/settings");
+  const response = await fetch('/api/settings');
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Fetch settings error:", errorText);
-    throw new Error("Failed to fetch settings");
+    console.error('Fetch settings error:', errorText);
+    throw new Error('Failed to fetch settings');
   }
   return response.json();
 };
-
 
 interface DetectedElement {
   id: string;
@@ -128,7 +134,7 @@ export default function DashboardPage() {
 function CreateTestPage() {
   const { t } = useTranslation();
   // Initial URL state. "https://github.com" is a placeholder that can be overwritten.
-  const [currentUrl, setCurrentUrl] = useState("https://github.com");
+  const [currentUrl, setCurrentUrl] = useState('https://github.com');
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
   const [testSequence, setTestSequence] = useState<DragDropTestStep[]>([]);
   const [preconditions, setPreconditions] = useState<Precondition[]>([]);
@@ -143,9 +149,7 @@ function CreateTestPage() {
   const [isAuthorModalOpen, setIsAuthorModalOpen] = useState(false);
   /** The detected element about to be kept in a project's repository, if any. */
   const [elementBeingKept, setElementBeingKept] = useState<DetectedElement | null>(null);
-  const [creationMode, setCreationMode] = useState<"manual" | "record">(
-    "manual"
-  );
+  const [creationMode, setCreationMode] = useState<'manual' | 'record'>('manual');
   const [highlightedElement, setHighlightedElement] = useState<string | null>(null);
   // Which environment resolves {{variables}} and supplies the saved login for this run.
   // Without this the builder could only ever run against the process defaults, so a
@@ -176,10 +180,9 @@ function CreateTestPage() {
   const [currentPlaybackStepIndex, setCurrentPlaybackStepIndex] = useState<number | null>(null);
   const [playbackSteps, setPlaybackSteps] = useState<StepResult[]>([]);
   const [_currentSavedTestId, setCurrentSavedTestId] = useState<string | null>(null); // To store ID of saved/loaded test
-  const [testName, setTestName] = useState<string>(""); // To store test name
+  const [testName, setTestName] = useState<string>(''); // To store test name
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [lastTestOverallResult, setLastTestOverallResult] = useState<boolean | null>(null);
-
 
   const imageRef = useRef<HTMLImageElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null); // Ref for the div that provides dimensions for scaling
@@ -190,14 +193,13 @@ function CreateTestPage() {
     naturalHeight: number;
   } | null>(null);
 
-
   // Can this server open the visible browser window a recording needs? Undefined until the
   // check resolves, so the UI never flashes a false warning.
   const { data: recordingCapability } = useQuery<{ supported: boolean }, Error>({
-    queryKey: ["recordingCapability"],
+    queryKey: ['recordingCapability'],
     queryFn: async () => {
-      const res = await fetch("/api/recording-capability");
-      if (!res.ok) throw new Error("Failed to check recording capability");
+      const res = await fetch('/api/recording-capability');
+      if (!res.ok) throw new Error('Failed to check recording capability');
       return res.json();
     },
     staleTime: Infinity,
@@ -215,10 +217,10 @@ function CreateTestPage() {
     Array<{ id: string; name: string; description: string | null; sequence: unknown[] }>,
     Error
   >({
-    queryKey: ["stepGroups"],
+    queryKey: ['stepGroups'],
     queryFn: async () => {
-      const res = await fetch("/api/step-groups");
-      if (!res.ok) throw new Error("Failed to load step groups");
+      const res = await fetch('/api/step-groups');
+      if (!res.ok) throw new Error('Failed to load step groups');
       return res.json();
     },
   });
@@ -227,11 +229,14 @@ function CreateTestPage() {
   // request returned an error object is a worse failure than a palette with no groups in it.
   const stepGroupActions = (Array.isArray(stepGroups) ? stepGroups : []).map((group) => ({
     id: STEP_GROUP_ACTION_ID,
-    type: "group",
+    type: 'group',
     name: group.name,
-    icon: "Layers",
+    icon: 'Layers',
     description:
-      group.description || t('dashboardPageNew.stepGroups.stepCount', '{{count}} steps', { count: group.sequence?.length ?? 0 }),
+      group.description ||
+      t('dashboardPageNew.stepGroups.stepCount', '{{count}} steps', {
+        count: group.sequence?.length ?? 0,
+      }),
     // Travels with the drag and ends up in the step's `value`, which is where the runner
     // looks for the group a call names.
     groupId: group.id,
@@ -240,30 +245,35 @@ function CreateTestPage() {
   // The organization's custom actions (Settings → Custom actions). A call names the action in
   // its id; its value holds the arguments, and the parameters travel with it for the hint.
   const { data: customActions = [] } = useQuery<
-    Array<{ id: string; name: string; description: string | null; parameters: CustomActionParameter[] }>,
+    Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      parameters: CustomActionParameter[];
+    }>,
     Error
   >({
-    queryKey: ["customActions"],
+    queryKey: ['customActions'],
     queryFn: async () => {
-      const res = await fetch("/api/custom-actions");
-      if (!res.ok) throw new Error("Failed to load custom actions");
+      const res = await fetch('/api/custom-actions');
+      if (!res.ok) throw new Error('Failed to load custom actions');
       return res.json();
     },
   });
   // The organization's shared data sets, which a test can take its rows from (shared/test-data.ts).
   const { data: sharedDataSets = [] } = useQuery<SharedSetOption[], Error>({
-    queryKey: ["testData"],
+    queryKey: ['testData'],
     queryFn: async () => {
-      const res = await fetch("/api/test-data");
-      if (!res.ok) throw new Error("Failed to load the shared test data");
+      const res = await fetch('/api/test-data');
+      if (!res.ok) throw new Error('Failed to load the shared test data');
       return res.json();
     },
   });
   const customActionItems = (Array.isArray(customActions) ? customActions : []).map((action) => ({
     id: customActionStepId(action.id),
-    type: "custom",
+    type: 'custom',
     name: action.name,
-    icon: "Puzzle",
+    icon: 'Puzzle',
     description: action.description || argumentsHint(action.parameters ?? []),
     parameters: action.parameters ?? [],
   }));
@@ -278,12 +288,13 @@ function CreateTestPage() {
   const handleKeepElement = async ({ projectId, name }: { projectId: number; name: string }) => {
     if (!elementBeingKept) return;
     const response = await fetch(`/api/projects/${projectId}/elements`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name,
         selector: elementBeingKept.selector,
-        frameSelector: (elementBeingKept as { frameSelector?: string | null }).frameSelector ?? null,
+        frameSelector:
+          (elementBeingKept as { frameSelector?: string | null }).frameSelector ?? null,
         tag: elementBeingKept.tag,
         elementType: elementBeingKept.type,
         text: elementBeingKept.text,
@@ -292,7 +303,7 @@ function CreateTestPage() {
     });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      throw new Error(body.error || "Could not keep the element");
+      throw new Error(body.error || 'Could not keep the element');
     }
     toast({
       title: t('dashboardPageNew.elementRepository.kept.title', 'Element kept'),
@@ -305,15 +316,21 @@ function CreateTestPage() {
   };
 
   /** Saves what is in the builder as a group. The builder is the only place sequences exist. */
-  const handleSaveStepGroup = async ({ name, description }: { name: string; description?: string }) => {
-    const response = await fetch("/api/step-groups", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+  const handleSaveStepGroup = async ({
+    name,
+    description,
+  }: {
+    name: string;
+    description?: string;
+  }) => {
+    const response = await fetch('/api/step-groups', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, description, sequence: testSequence }),
     });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      throw new Error(body.error || "Could not save the step group");
+      throw new Error(body.error || 'Could not save the step group');
     }
     await refetchStepGroups();
     toast({
@@ -333,7 +350,7 @@ function CreateTestPage() {
     // isError: isErrorUserSettings, // Can be used for UI feedback if needed
     // error: userSettingsError // Can be used for UI feedback if needed
   } = useQuery<UserSettings, Error>({
-    queryKey: ["settings"], // Same key as in SettingsPage for caching
+    queryKey: ['settings'], // Same key as in SettingsPage for caching
     queryFn: fetchSettings,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
@@ -343,7 +360,7 @@ function CreateTestPage() {
     if (settingsData?.defaultTestUrl && !isInitialUrlPrefilled) {
       // Only pre-fill if currentUrl is the initial hardcoded one or empty,
       // and defaultTestUrl is actually set.
-      if (currentUrl === "https://github.com" || currentUrl === "") {
+      if (currentUrl === 'https://github.com' || currentUrl === '') {
         setCurrentUrl(settingsData.defaultTestUrl);
       }
       setIsInitialUrlPrefilled(true); // Ensure this runs only once after settings load
@@ -351,17 +368,26 @@ function CreateTestPage() {
     // If settingsData is not yet available, or defaultTestUrl is null,
     // we don't change currentUrl unless it's to clear the initial hardcoded value
     // if no default is provided from settings.
-    else if (settingsData && settingsData.defaultTestUrl === null && currentUrl === "https://github.com" && !isInitialUrlPrefilled) {
-      setCurrentUrl(""); // Clear initial placeholder if no default is set in settings
+    else if (
+      settingsData &&
+      settingsData.defaultTestUrl === null &&
+      currentUrl === 'https://github.com' &&
+      !isInitialUrlPrefilled
+    ) {
+      setCurrentUrl(''); // Clear initial placeholder if no default is set in settings
       setIsInitialUrlPrefilled(true);
     }
     // If settings have loaded, and there's no defaultTestUrl, and the user hasn't changed the URL,
     // then clear the placeholder. This handles the case where the initial placeholder should be removed.
-    else if (settingsData && !settingsData.defaultTestUrl && currentUrl === "https://github.com" && !isInitialUrlPrefilled) {
-      setCurrentUrl("");
+    else if (
+      settingsData &&
+      !settingsData.defaultTestUrl &&
+      currentUrl === 'https://github.com' &&
+      !isInitialUrlPrefilled
+    ) {
+      setCurrentUrl('');
       setIsInitialUrlPrefilled(true);
     }
-
   }, [settingsData, currentUrl, isInitialUrlPrefilled]);
 
   // Effect to capture image dimensions and observe container resize
@@ -416,13 +442,19 @@ function CreateTestPage() {
 
   // Calculate scaled bounding box for the highlighted element
   const scaledHighlightedBoundingBox = useMemo(() => {
-    if (!highlightedElement || !imageRenderDimensions || !detectedElements ||
-      imageRenderDimensions.naturalWidth === 0 || imageRenderDimensions.naturalHeight === 0 ||
-      imageRenderDimensions.renderedWidth === 0 || imageRenderDimensions.renderedHeight === 0) {
+    if (
+      !highlightedElement ||
+      !imageRenderDimensions ||
+      !detectedElements ||
+      imageRenderDimensions.naturalWidth === 0 ||
+      imageRenderDimensions.naturalHeight === 0 ||
+      imageRenderDimensions.renderedWidth === 0 ||
+      imageRenderDimensions.renderedHeight === 0
+    ) {
       return null;
     }
 
-    const elementToHighlight = detectedElements.find(el => el.id === highlightedElement);
+    const elementToHighlight = detectedElements.find((el) => el.id === highlightedElement);
     if (!elementToHighlight?.boundingBox) return null;
 
     const { naturalWidth, renderedWidth } = imageRenderDimensions;
@@ -469,7 +501,6 @@ function CreateTestPage() {
     });
   }, [scaledHighlightedBoundingBox]);
 
-
   const loadWebsiteMutation = useMutation({
     mutationFn: async (passedUrl: string) => {
       try {
@@ -478,17 +509,17 @@ function CreateTestPage() {
         const websiteUrl = String(passedUrl || ''); // Ensure it's a string
         if (!websiteUrl) {
           // This case should ideally be caught by UI validation before calling mutate
-          console.error("loadWebsiteMutation: Website URL is empty or invalid.");
-          throw new Error("Website URL is empty or invalid.");
+          console.error('loadWebsiteMutation: Website URL is empty or invalid.');
+          throw new Error('Website URL is empty or invalid.');
         }
 
         const payload = { url: websiteUrl };
 
-        const res = await apiRequest("POST", "/api/load-website", payload);
+        const res = await apiRequest('POST', '/api/load-website', payload);
 
         // Check if response is ok before trying to parse JSON
         if (!res.ok) {
-          let errorBody = "Unknown error";
+          let errorBody = 'Unknown error';
           try {
             errorBody = await res.text(); // Try to get text first, might not be JSON
             const parsedError = JSON.parse(errorBody); // Try to parse as JSON
@@ -497,7 +528,7 @@ function CreateTestPage() {
             }
           } catch (e) {
             // If JSON.parse fails or res.text() fails, errorBody remains as is or default
-            console.warn("Could not parse error response as JSON, using text body.", e);
+            console.warn('Could not parse error response as JSON, using text body.', e);
           }
           console.error(`Error from /api/load-website: ${res.status} ${res.statusText}`, errorBody);
           throw new Error(errorBody || `Failed to load website. Status: ${res.status}`);
@@ -505,9 +536,8 @@ function CreateTestPage() {
 
         const jsonData = await res.json();
         return jsonData;
-
       } catch (error) {
-        console.error("Critical error directly within loadWebsiteMutation mutationFn:", error);
+        console.error('Critical error directly within loadWebsiteMutation mutationFn:', error);
         // Re-throw the error so TanStack Query's onError handler can pick it up
         // and UI state (like isPending) is correctly managed.
         throw error;
@@ -518,27 +548,27 @@ function CreateTestPage() {
         setWebsiteLoaded(true);
         setWebsiteScreenshot(data.screenshot);
         toast({
-          title: "Website loaded",
-          description: "Website loaded successfully in preview",
+          title: 'Website loaded',
+          description: 'Website loaded successfully in preview',
         });
       } else {
-        throw new Error(data.error || "Failed to load website");
+        throw new Error(data.error || 'Failed to load website');
       }
     },
     onError: (error: Error) => {
       setWebsiteLoaded(false);
       setWebsiteScreenshot(null);
       toast({
-        title: "Failed to load website",
+        title: 'Failed to load website',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });
 
   const detectElementsMutation = useMutation({
     mutationFn: async (url: string) => {
-      const res = await apiRequest("POST", "/api/detect-elements", { url });
+      const res = await apiRequest('POST', '/api/detect-elements', { url });
       return res.json();
     },
     onSuccess: (data) => {
@@ -558,7 +588,7 @@ function CreateTestPage() {
       }
 
       toast({
-        title: "Elements detected",
+        title: 'Elements detected',
         description: data.summary?.truncated
           ? `Showing ${data.summary.returned} of ${data.summary.totalFound} elements found on the page`
           : `Found ${data.elements.length} elements on the page`,
@@ -566,21 +596,31 @@ function CreateTestPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to detect elements",
+        title: 'Failed to detect elements',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });
 
   const saveTestMutation = useMutation({
-    mutationFn: async (payload: { name: string; url: string; sequence: DragDropTestStep[]; elements: DetectedElement[]; status: string; projectId?: number; preconditions?: Precondition[]; cleanups?: Cleanup[]; dataset?: DatasetRow[] | null }) => {
+    mutationFn: async (payload: {
+      name: string;
+      url: string;
+      sequence: DragDropTestStep[];
+      elements: DetectedElement[];
+      status: string;
+      projectId?: number;
+      preconditions?: Precondition[];
+      cleanups?: Cleanup[];
+      dataset?: DatasetRow[] | null;
+    }) => {
       // Saving under a name that already exists used to quietly create a second test, so
       // refining a recording left a pile of rows with one name between them. The server
       // answers 409 with the id of the one already there; the choice of what to do about it
       // belongs to the person who typed the name.
       try {
-        return await apiRequest("POST", "/api/tests", payload);
+        return await apiRequest('POST', '/api/tests', payload);
       } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 409) throw error;
 
@@ -590,17 +630,18 @@ function CreateTestPage() {
         );
         if (!overwrite) return null;
 
-        return apiRequest("PUT", `/api/tests/${conflict.existingTestId}`, payload);
+        return apiRequest('PUT', `/api/tests/${conflict.existingTestId}`, payload);
       }
     },
-    onSuccess: (data: any) => { // data should be the saved test object
+    onSuccess: (data: any) => {
+      // data should be the saved test object
       // null means the overwrite prompt was declined: nothing was written, so nothing here
       // should claim otherwise or close the dialog the person is still looking at.
       if (!data) return;
 
       toast({
-        title: "Test saved",
-        description: "Your test has been saved successfully.",
+        title: 'Test saved',
+        description: 'Your test has been saved successfully.',
       });
       setCurrentSavedTestId(data.id); // Store the ID of the saved test
       setTestName(data.name); // Update test name state
@@ -608,9 +649,9 @@ function CreateTestPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to save test",
+        title: 'Failed to save test',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });
@@ -628,9 +669,9 @@ function CreateTestPage() {
   const handleSaveTest = () => {
     if (testSequence.length === 0) {
       toast({
-        title: "No test steps",
-        description: "Add some test steps before saving",
-        variant: "destructive",
+        title: 'No test steps',
+        description: 'Add some test steps before saving',
+        variant: 'destructive',
       });
       return;
     }
@@ -650,14 +691,14 @@ function CreateTestPage() {
     setTestName(newName); // Update the main page's testName state
     if (!projectId) {
       toast({
-        title: "Project Not Selected",
-        description: "Please select a project to save the test.",
-        variant: "destructive",
+        title: 'Project Not Selected',
+        description: 'Please select a project to save the test.',
+        variant: 'destructive',
       });
       // Re-open modal or indicate error. For now, just preventing save.
       // Re-opening modal might be better UX, but requires passing modal control back or more complex state.
       // For now, the modal itself prevents saving without a project. This handler expects it if called.
-      console.error("Save attempt without projectId, this should be prevented by modal");
+      console.error('Save attempt without projectId, this should be prevented by modal');
       return;
     }
     saveTestMutation.mutate({
@@ -671,7 +712,7 @@ function CreateTestPage() {
       // Null rather than an empty array: the runner reads an empty one as "no dataset"
       // anyway, and storing one would suggest a dataset exists where none does.
       dataset: dataset.length > 0 ? dataset : null,
-      status: "draft",
+      status: 'draft',
     });
     // Modal is closed by the SaveTestModal itself after its onSave is called if save is successful.
     // Or, if you want this function to control it: handleCloseSaveModal();
@@ -682,9 +723,8 @@ function CreateTestPage() {
   const recording = useRecordingSession({
     onStepsChange: (steps) => setTestSequence(steps as DragDropTestStep[]),
     onError: (titleKey, description) =>
-      toast({ title: t(titleKey), description, variant: "destructive" }),
-    onNotice: (titleKey, description) =>
-      toast({ title: t(titleKey), description, duration: 7000 }),
+      toast({ title: t(titleKey), description, variant: 'destructive' }),
+    onNotice: (titleKey, description) => toast({ title: t(titleKey), description, duration: 7000 }),
   });
   const isRecording = recording.isRecording;
 
@@ -693,7 +733,7 @@ function CreateTestPage() {
       toast({
         title: t('dashboardPageNew.toasts.cannotStartRecording.title'),
         description: t('dashboardPageNew.toasts.cannotStartRecording.description'),
-        variant: "destructive",
+        variant: 'destructive',
       });
       return;
     }
@@ -741,21 +781,36 @@ function CreateTestPage() {
       });
     },
     onError: (error: Error) => {
-      toast({ title: 'Could not save the login', description: error.message, variant: 'destructive' });
+      toast({
+        title: 'Could not save the login',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
   const executeDirectTestMutation = useMutation({
-    mutationFn: async (payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string, preconditions?: Precondition[], cleanups?: Cleanup[], environmentId?: number, dataset?: DatasetRow[] }) => {
-      const res = await apiRequest("POST", "/api/execute-test-direct", payload);
+    mutationFn: async (payload: {
+      url: string;
+      sequence: DragDropTestStep[];
+      elements: DetectedElement[];
+      name?: string;
+      preconditions?: Precondition[];
+      cleanups?: Cleanup[];
+      environmentId?: number;
+      dataset?: DatasetRow[];
+    }) => {
+      const res = await apiRequest('POST', '/api/execute-test-direct', payload);
       // The backend for /api/execute-test-direct should directly return { success: boolean; steps?: StepResult[]; error?: string; duration?: number }
       const result = await res.json();
-      if (!res.ok) { // Check if HTTP response itself is not OK
-        throw new Error(result.error || "Failed to execute direct test. HTTP error.");
+      if (!res.ok) {
+        // Check if HTTP response itself is not OK
+        throw new Error(result.error || 'Failed to execute direct test. HTTP error.');
       }
       return result; // This is the data structure: { success, steps, error, duration }
     },
-    onSuccess: (data) => { // data is { success, steps, error, duration, detection }
+    onSuccess: (data) => {
+      // data is { success, steps, error, duration, detection }
       // The list, the picture the boxes are drawn on, and how much was left out: one
       // reading of the page the run ended on, applied together.
       //
@@ -777,7 +832,6 @@ function CreateTestPage() {
         setDetectionScreenshot(null);
       }
 
-
       // A failed run is played back too: the step that failed, with its screenshot of that
       // moment, is the thing to look at. The verdict comes at the end of the playback.
       if (data.steps?.length) {
@@ -790,7 +844,7 @@ function CreateTestPage() {
         // rewinding — and it overwrote the picture the element boxes belong to.
         toast({
           title: t('dashboardPageNew.toasts.directExecutionStarted.title'),
-          description: t('dashboardPageNew.toasts.directExecutionStarted.description')
+          description: t('dashboardPageNew.toasts.directExecutionStarted.description'),
         });
       } else {
         // This block handles cases where data.success is false or data.steps is empty
@@ -799,9 +853,15 @@ function CreateTestPage() {
         setPlaybackSteps([]);
         setLastTestOverallResult(data.success !== undefined ? data.success : false); // Set overall result to failed or actual success value
         toast({
-          title: data.success ? t('dashboardPageNew.toasts.executionNote') : t('dashboardPageNew.toasts.testFailed'),
-          description: data.error || (data.success ? t('dashboardPageNew.toasts.noStepsToPlayback') : t('dashboardPageNew.toasts.executionFailed')),
-          variant: data.success ? "default" : "destructive"
+          title: data.success
+            ? t('dashboardPageNew.toasts.executionNote')
+            : t('dashboardPageNew.toasts.testFailed'),
+          description:
+            data.error ||
+            (data.success
+              ? t('dashboardPageNew.toasts.noStepsToPlayback')
+              : t('dashboardPageNew.toasts.executionFailed')),
+          variant: data.success ? 'default' : 'destructive',
         });
       }
     },
@@ -816,7 +876,11 @@ function CreateTestPage() {
       setPlaybackSteps([]);
       setDetectedElements([]); // Clear elements on error
       setLastTestOverallResult(false); // Set overall result to failed
-      toast({ title: t('dashboardPageNew.toasts.testFailed'), description: error.message, variant: "destructive" });
+      toast({
+        title: t('dashboardPageNew.toasts.testFailed'),
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -836,7 +900,7 @@ function CreateTestPage() {
       // Optionally, update other UI elements with currentStep.name, currentStep.details, etc.
 
       const timer = setTimeout(() => {
-        setCurrentPlaybackStepIndex(prevIndex => (prevIndex !== null ? prevIndex + 1 : null));
+        setCurrentPlaybackStepIndex((prevIndex) => (prevIndex !== null ? prevIndex + 1 : null));
       }, 1500); // 1.5 seconds delay
 
       return () => clearTimeout(timer);
@@ -854,14 +918,14 @@ function CreateTestPage() {
         toast({
           title: t('dashboardPageNew.toasts.testFailed'),
           description: t('dashboardPageNew.testResultFailed.text'),
-          variant: "destructive",
+          variant: 'destructive',
         });
       } else {
         // This case should ideally not be reached if lastTestOverallResult is always set before playback
         toast({
           title: t('dashboardPageNew.toasts.playbackComplete.title'),
           description: t('dashboardPageNew.toasts.playbackComplete.description'),
-          variant: "default",
+          variant: 'default',
         });
       }
       // Back to the page the run ended on, which is the one the element list describes.
@@ -875,7 +939,6 @@ function CreateTestPage() {
     // read here by design, and `t` is stable. Re-running on those would double-fire toasts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExecutingPlayback, currentPlaybackStepIndex, playbackSteps]);
-
 
   // Debugging (shared/debug-session.ts): the steps to stop before, and the session, if one is open.
   const [breakpoints, setBreakpoints] = useState<Set<string>>(() => new Set());
@@ -907,7 +970,11 @@ function CreateTestPage() {
       sequence: testSequence,
       elements: detectedElements,
       preconditions,
-      name: testName || t('dashboardPageNew.toasts.adhocTestName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') }),
+      name:
+        testName ||
+        t('dashboardPageNew.toasts.adhocTestName', {
+          url: currentUrl || t('dashboardPageNew.toasts.untitled'),
+        }),
       environmentId: environmentIdFor(selectedEnvironment),
       dataset: dataset.length > 0 ? dataset : undefined,
       datasetRow: dataset.length > 0 ? Math.min(debugRow, dataset.length - 1) : undefined,
@@ -924,7 +991,9 @@ function CreateTestPage() {
           : {
               ...step,
               ...(patch.value !== undefined ? { value: patch.value } : {}),
-              ...(patch.selector !== undefined && step.targetElement ? { targetElement: { ...step.targetElement, selector: patch.selector } } : {}),
+              ...(patch.selector !== undefined && step.targetElement
+                ? { targetElement: { ...step.targetElement, selector: patch.selector } }
+                : {}),
             },
       ),
     );
@@ -940,7 +1009,7 @@ function CreateTestPage() {
       toast({
         title: t('dashboardPageNew.toasts.emptySequence.title'),
         description: t('dashboardPageNew.toasts.emptySequence.description'),
-        variant: "destructive"
+        variant: 'destructive',
       });
       return;
     }
@@ -953,7 +1022,11 @@ function CreateTestPage() {
       // Sent so the preview runs the same setup calls as a scheduled run would.
       preconditions,
       cleanups,
-      name: testName || t('dashboardPageNew.toasts.adhocTestName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') }),
+      name:
+        testName ||
+        t('dashboardPageNew.toasts.adhocTestName', {
+          url: currentUrl || t('dashboardPageNew.toasts.untitled'),
+        }),
       // Without this the preview resolves against the process defaults only, and would
       // disagree with a scheduled run of the very same test.
       environmentId: environmentIdFor(selectedEnvironment),
@@ -1002,64 +1075,85 @@ function CreateTestPage() {
             {t('dashboardPageNew.createWebTest.title')}
           </h1>
           <div className="flex min-w-[320px] flex-1 items-center gap-2">
-              <Input
-                id="urlInput"
-                type="url"
-                className="flex-1"
-                aria-label={t('dashboardPageNew.websiteUrlToTest.label')}
-                placeholder={t('dashboardPageNew.httpsexamplecom.placeholder')}
-                value={currentUrl}
-                onChange={(e) => {
-                  setCurrentUrl(e.target.value);
-                  setLastTestOverallResult(null); // Reset on URL change
-                  setWebsiteLoaded(false); // Also reset website loaded status
-                  setWebsiteScreenshot(null);
-                  setDetectedElements([]);
-                  setPlaybackSteps([]); // Clear previous playback steps
-                  setIsExecutingPlayback(false); // Stop any ongoing playback
-                }}
-                disabled={isRecording || recording.isStarting}
-              />
+            <Input
+              id="urlInput"
+              type="url"
+              className="flex-1"
+              aria-label={t('dashboardPageNew.websiteUrlToTest.label')}
+              placeholder={t('dashboardPageNew.httpsexamplecom.placeholder')}
+              value={currentUrl}
+              onChange={(e) => {
+                setCurrentUrl(e.target.value);
+                setLastTestOverallResult(null); // Reset on URL change
+                setWebsiteLoaded(false); // Also reset website loaded status
+                setWebsiteScreenshot(null);
+                setDetectedElements([]);
+                setPlaybackSteps([]); // Clear previous playback steps
+                setIsExecutingPlayback(false); // Stop any ongoing playback
+              }}
+              disabled={isRecording || recording.isStarting}
+            />
+            <Button
+              onClick={handleLoadWebsite}
+              disabled={
+                loadWebsiteMutation.isPending ||
+                isLoadingUserSettings ||
+                isRecording ||
+                recording.isStarting
+              }
+            >
+              {loadWebsiteMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Globe className="h-4 w-4 mr-2" />
+              )}
+              {loadWebsiteMutation.isPending
+                ? t('apiTesterPage.loading.button')
+                : t('dashboardPageNew.loadWebsite.button')}
+            </Button>
+            {creationMode === 'manual' && (
               <Button
-                onClick={handleLoadWebsite}
-                disabled={loadWebsiteMutation.isPending || isLoadingUserSettings || isRecording || recording.isStarting}
+                onClick={handleDetectElements}
+                disabled={
+                  detectElementsMutation.isPending || !websiteLoaded || isLoadingUserSettings
+                }
+                variant="secondary"
               >
-                {loadWebsiteMutation.isPending ? (
+                {detectElementsMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <Globe className="h-4 w-4 mr-2" />
+                  <Search className="h-4 w-4 mr-2" />
                 )}
-                {loadWebsiteMutation.isPending ? t('apiTesterPage.loading.button') : t('dashboardPageNew.loadWebsite.button')}
+                {detectElementsMutation.isPending
+                  ? t('apiTesterPage.loading.button')
+                  : t('dashboardPageNew.detectElements.button')}
               </Button>
-              {creationMode === 'manual' && (
-                <Button
-                  onClick={handleDetectElements}
-                  disabled={detectElementsMutation.isPending || !websiteLoaded || isLoadingUserSettings}
-                  variant="secondary"
-                >
-                  {detectElementsMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4 mr-2" />
-                  )}
-                  {detectElementsMutation.isPending ? t('apiTesterPage.loading.button') : t('dashboardPageNew.detectElements.button')}
-                </Button>
-              )}
-            </div>
+            )}
           </div>
+        </div>
 
         <div className="flex flex-wrap items-start gap-4">
           <div className="w-[260px] space-y-1">
-            <Label htmlFor="creationModeSelect" className="text-sm font-medium text-card-foreground">
+            <Label
+              htmlFor="creationModeSelect"
+              className="text-sm font-medium text-card-foreground"
+            >
               {t('dashboardPageNew.modalitDiCreazioneTest.label')}
             </Label>
-            <Select value={creationMode} onValueChange={(value: "manual" | "record") => setCreationMode(value)}>
+            <Select
+              value={creationMode}
+              onValueChange={(value: 'manual' | 'record') => setCreationMode(value)}
+            >
               <SelectTrigger id="creationModeSelect">
                 <SelectValue placeholder={t('dashboardPageNew.selezionaModalit.placeholder')} />
               </SelectTrigger>
               <SelectContent className="z-50 bg-background opacity-100 shadow-2xl border-2">
-                <SelectItem value="manual">{t('dashboardPageNew.creaTestManualeDragDrop.text')}</SelectItem>
-                <SelectItem value="record">{t('dashboardPageNew.registraAzioniUtenteAutorecord.text')}</SelectItem>
+                <SelectItem value="manual">
+                  {t('dashboardPageNew.creaTestManualeDragDrop.text')}
+                </SelectItem>
+                <SelectItem value="record">
+                  {t('dashboardPageNew.registraAzioniUtenteAutorecord.text')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1073,82 +1167,87 @@ function CreateTestPage() {
           </div>
         </div>
 
-            {creationMode === 'record' && (
-              <div className="space-y-3">
-                {/* Recording drives a real browser window opened by the server process, so
+        {creationMode === 'record' && (
+          <div className="space-y-3">
+            {/* Recording drives a real browser window opened by the server process, so
                     it only works when that process runs on the user's own machine. */}
-                <div
-                  className={`flex items-start gap-2 rounded-md border p-3 text-sm ${
-                    recordingSupported === false
-                      ? 'border-destructive/40 bg-destructive/10 text-destructive'
-                      : 'border-border bg-muted/50 text-muted-foreground'
-                  }`}
-                >
-                  <Info className="h-4 w-4 mt-0.5 shrink-0" />
-                  <span>
-                    {recordingSupported === false
-                      ? t('recording.unavailableOnServer')
-                      : t('recording.opensOnServerMachine')}
-                  </span>
-                </div>
-                <div className="flex space-x-3">
-                <Button
-                  onClick={handleStartRecording}
-                  variant="outline"
-                  disabled={isRecording || recording.isStarting || !currentUrl || recordingSupported === false}
-                >
-                  {recording.isStarting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Play className="h-4 w-4 mr-2" />
-                  )}
-                  {recording.isStarting ? t('dashboardPageNew.starting.button') : t('dashboardPageNew.iniziaRegistrazione.button')}
-                </Button>
-                <Button
-                  onClick={handleStopRecording}
-                  variant="outline"
-                  disabled={!isRecording || recording.isStopping}
-                >
-                  {recording.isStopping ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <StopCircle className="h-4 w-4 mr-2" />
-                  )}
-                  {recording.isStopping ? t('dashboardPageNew.stopping.button') : t('dashboardPageNew.terminaRegistrazione.button')}
-                </Button>
-                </div>
+            <div
+              className={`flex items-start gap-2 rounded-md border p-3 text-sm ${
+                recordingSupported === false
+                  ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                  : 'border-border bg-muted/50 text-muted-foreground'
+              }`}
+            >
+              <Info className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                {recordingSupported === false
+                  ? t('recording.unavailableOnServer')
+                  : t('recording.opensOnServerMachine')}
+              </span>
+            </div>
+            <div className="flex space-x-3">
+              <Button
+                onClick={handleStartRecording}
+                variant="outline"
+                disabled={
+                  isRecording || recording.isStarting || !currentUrl || recordingSupported === false
+                }
+              >
+                {recording.isStarting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4 mr-2" />
+                )}
+                {recording.isStarting
+                  ? t('dashboardPageNew.starting.button')
+                  : t('dashboardPageNew.iniziaRegistrazione.button')}
+              </Button>
+              <Button
+                onClick={handleStopRecording}
+                variant="outline"
+                disabled={!isRecording || recording.isStopping}
+              >
+                {recording.isStopping ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <StopCircle className="h-4 w-4 mr-2" />
+                )}
+                {recording.isStopping
+                  ? t('dashboardPageNew.stopping.button')
+                  : t('dashboardPageNew.terminaRegistrazione.button')}
+              </Button>
+            </div>
 
-                {/* Only while a session is live: there is no browser to take a session from
+            {/* Only while a session is live: there is no browser to take a session from
                     otherwise, and the route answers 404 for a session that is not open. */}
-                {isRecording && (
-                  <div className="rounded-md border border-border bg-muted/50 p-3 space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Signed in inside the recorder window? Save that session against the
-                      selected environment and later runs will start already authenticated.
-                    </p>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => captureLoginStateMutation.mutate()}
-                      disabled={
-                        captureLoginStateMutation.isPending ||
-                        !environmentIdFor(selectedEnvironment)
-                      }
-                    >
-                      {captureLoginStateMutation.isPending && (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      )}
-                      Save login for this environment
-                    </Button>
-                    {!environmentIdFor(selectedEnvironment) && (
-                      <p className="text-xs text-muted-foreground">
-                        Pick an environment above first — the session is stored against one.
-                      </p>
-                    )}
-                  </div>
+            {isRecording && (
+              <div className="rounded-md border border-border bg-muted/50 p-3 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Signed in inside the recorder window? Save that session against the selected
+                  environment and later runs will start already authenticated.
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => captureLoginStateMutation.mutate()}
+                  disabled={
+                    captureLoginStateMutation.isPending || !environmentIdFor(selectedEnvironment)
+                  }
+                >
+                  {captureLoginStateMutation.isPending && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
+                  Save login for this environment
+                </Button>
+                {!environmentIdFor(selectedEnvironment) && (
+                  <p className="text-xs text-muted-foreground">
+                    Pick an environment above first — the session is stored against one.
+                  </p>
                 )}
               </div>
             )}
+          </div>
+        )}
       </div>
 
       {/* Overall Test Result Display — semantic tokens so it stays readable in dark mode */}
@@ -1180,12 +1279,19 @@ function CreateTestPage() {
           {/* Left Sidebar - Actions */}
           {creationMode === 'manual' && (
             <div className="w-80 bg-card border-r border-border p-4 relative">
-              <h3 className="text-lg font-semibold text-card-foreground mb-4">{t('dashboardPageNew.availableActions.title')}</h3>
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">
+                {t('dashboardPageNew.availableActions.title')}
+              </h3>
 
               <ScrollArea className="h-full">
                 <div className="space-y-2">
                   {availableActions.map((action) => (
-                    <DraggableAction key={action.id} action={action} stepId="library" onDropElement={() => { }} />
+                    <DraggableAction
+                      key={action.id}
+                      action={action}
+                      stepId="library"
+                      onDropElement={() => {}}
+                    />
                   ))}
 
                   {/* The sequences this organization has already written down. Dragged in like
@@ -1196,7 +1302,12 @@ function CreateTestPage() {
                         {t('dashboardPageNew.stepGroups.title', 'Step groups')}
                       </h4>
                       {stepGroupActions.map((action) => (
-                        <DraggableAction key={action.id} action={action} stepId="library" onDropElement={() => { }} />
+                        <DraggableAction
+                          key={action.id}
+                          action={action}
+                          stepId="library"
+                          onDropElement={() => {}}
+                        />
                       ))}
                     </>
                   )}
@@ -1207,7 +1318,12 @@ function CreateTestPage() {
                         {t('dashboardPageNew.customActions.title', 'Custom actions')}
                       </h4>
                       {customActionItems.map((action) => (
-                        <DraggableAction key={action.id} action={action} stepId="library" onDropElement={() => { }} />
+                        <DraggableAction
+                          key={action.id}
+                          action={action}
+                          stepId="library"
+                          onDropElement={() => {}}
+                        />
                       ))}
                     </>
                   )}
@@ -1219,10 +1335,14 @@ function CreateTestPage() {
           {/* Center - Website Preview (Prominent and well-visible) */}
           <div className="flex-1 bg-card border-r border-border p-4">
             <div className="h-full flex flex-col">
-              <div className="flex items-center justify-between mb-2"> {/* Reduced mb */}
-                <h3 className="text-lg font-semibold text-card-foreground">{t('dashboardPageNew.websitePreview.title')}</h3>
+              <div className="flex items-center justify-between mb-2">
+                {' '}
+                {/* Reduced mb */}
+                <h3 className="text-lg font-semibold text-card-foreground">
+                  {t('dashboardPageNew.websitePreview.title')}
+                </h3>
                 <div className="flex items-center space-x-2">
-                  {(executeDirectTestMutation.isPending) && (
+                  {executeDirectTestMutation.isPending && (
                     <Badge variant="outline" className="text-info border-info">
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       {t('dashboardPageNew.executing.text')}
@@ -1234,37 +1354,47 @@ function CreateTestPage() {
                       {t('dashboardPageNew.playback.text')}
                     </Badge>
                   )}
-                  {websiteLoaded && !isExecutingPlayback && !executeDirectTestMutation.isPending && (
-                    <Badge variant="secondary" className="bg-success text-success-foreground">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      {t('dashboardPageNew.loaded.text')}
-                    </Badge>
-                  )}
+                  {websiteLoaded &&
+                    !isExecutingPlayback &&
+                    !executeDirectTestMutation.isPending && (
+                      <Badge variant="secondary" className="bg-success text-success-foreground">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        {t('dashboardPageNew.loaded.text')}
+                      </Badge>
+                    )}
                 </div>
               </div>
               {/* Playback Status Text */}
-              {isExecutingPlayback && currentPlaybackStepIndex !== null && playbackSteps.length > 0 && playbackSteps[currentPlaybackStepIndex] && (
-                <div className="mb-2 text-sm text-muted-foreground text-center p-1 bg-muted rounded-md">
-                  {t('dashboardPageNew.playbackStatus', {
-                    current: currentPlaybackStepIndex + 1,
-                    total: playbackSteps.length,
-                    name: playbackSteps[currentPlaybackStepIndex].name,
-                    details: playbackSteps[currentPlaybackStepIndex].details
-                  })}
-                  {playbackSteps[currentPlaybackStepIndex].status === 'failed' && (
-                    <span className="text-destructive ml-2">
-                      {t('dashboardPageNew.playbackFailed', { error: playbackSteps[currentPlaybackStepIndex].error })}
-                    </span>
-                  )}
-                </div>
-              )}
+              {isExecutingPlayback &&
+                currentPlaybackStepIndex !== null &&
+                playbackSteps.length > 0 &&
+                playbackSteps[currentPlaybackStepIndex] && (
+                  <div className="mb-2 text-sm text-muted-foreground text-center p-1 bg-muted rounded-md">
+                    {t('dashboardPageNew.playbackStatus', {
+                      current: currentPlaybackStepIndex + 1,
+                      total: playbackSteps.length,
+                      name: playbackSteps[currentPlaybackStepIndex].name,
+                      details: playbackSteps[currentPlaybackStepIndex].details,
+                    })}
+                    {playbackSteps[currentPlaybackStepIndex].status === 'failed' && (
+                      <span className="text-destructive ml-2">
+                        {t('dashboardPageNew.playbackFailed', {
+                          error: playbackSteps[currentPlaybackStepIndex].error,
+                        })}
+                      </span>
+                    )}
+                  </div>
+                )}
 
               {/* This is the container whose dimensions are used for scaling calculations */}
               {/* Scrolls rather than shrinks: the preview is a full-page screenshot, and a
                   DMO grid is several thousand pixels tall. Fitting that into the panel would
                   scale it down to an unreadable strip, so it is scaled to the panel's width
                   and scrolled vertically instead. */}
-              <div ref={imageContainerRef} className="flex-1 border-2 border-border rounded-lg overflow-auto relative bg-muted">
+              <div
+                ref={imageContainerRef}
+                className="flex-1 border-2 border-border rounded-lg overflow-auto relative bg-muted"
+              >
                 {creationMode === 'record' && isRecording ? (
                   <div className="h-full w-full flex flex-col p-4 text-left">
                     <div className="flex items-center gap-2 mb-3">
@@ -1272,9 +1402,13 @@ function CreateTestPage() {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive" />
                       </span>
-                      <p className="font-semibold text-foreground">{t('dashboardPageNew.registrazioneInCorso.text')}</p>
+                      <p className="font-semibold text-foreground">
+                        {t('dashboardPageNew.registrazioneInCorso.text')}
+                      </p>
                       <Badge variant="secondary" className="ml-auto">
-                        {t('recording.capturedCount', { count: recording.recordedActions.filter(a => !a.meta).length })}
+                        {t('recording.capturedCount', {
+                          count: recording.recordedActions.filter((a) => !a.meta).length,
+                        })}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -1285,24 +1419,28 @@ function CreateTestPage() {
                     </p>
                     <ScrollArea className="flex-1 rounded-md border border-border bg-background/60">
                       <ol className="p-2 space-y-1">
-                        {recording.recordedActions.filter(a => !a.meta).map((action, index) => (
-                          <li
-                            key={`${action.timestamp}-${index}`}
-                            className="flex items-start gap-2 rounded px-2 py-1 text-xs"
-                          >
-                            <span className="text-muted-foreground tabular-nums w-5 shrink-0">{index + 1}.</span>
-                            <span className="font-medium shrink-0">{action.type}</span>
-                            <span className="font-mono text-[11px] text-muted-foreground truncate">
-                              {action.selector ?? action.url ?? ''}
-                            </span>
-                            {action.value ? (
-                              <span className="ml-auto shrink-0 max-w-[35%] truncate text-muted-foreground">
-                                {action.masked ? '••••••' : action.value}
+                        {recording.recordedActions
+                          .filter((a) => !a.meta)
+                          .map((action, index) => (
+                            <li
+                              key={`${action.timestamp}-${index}`}
+                              className="flex items-start gap-2 rounded px-2 py-1 text-xs"
+                            >
+                              <span className="text-muted-foreground tabular-nums w-5 shrink-0">
+                                {index + 1}.
                               </span>
-                            ) : null}
-                          </li>
-                        ))}
-                        {recording.recordedActions.filter(a => !a.meta).length === 0 && (
+                              <span className="font-medium shrink-0">{action.type}</span>
+                              <span className="font-mono text-[11px] text-muted-foreground truncate">
+                                {action.selector ?? action.url ?? ''}
+                              </span>
+                              {action.value ? (
+                                <span className="ml-auto shrink-0 max-w-[35%] truncate text-muted-foreground">
+                                  {action.masked ? '••••••' : action.value}
+                                </span>
+                              ) : null}
+                            </li>
+                          ))}
+                        {recording.recordedActions.filter((a) => !a.meta).length === 0 && (
                           <li className="px-2 py-6 text-center text-xs text-muted-foreground">
                             {t('recording.waitingForActions')}
                           </li>
@@ -1315,7 +1453,11 @@ function CreateTestPage() {
                     <img
                       ref={imageRef}
                       src={websiteScreenshot}
-                      alt={isExecutingPlayback ? t('dashboardPageNew.testStepScreenshot.text') : t('dashboardPageNew.websiteScreenshot.text')}
+                      alt={
+                        isExecutingPlayback
+                          ? t('dashboardPageNew.testStepScreenshot.text')
+                          : t('dashboardPageNew.websiteScreenshot.text')
+                      }
                       className="block w-full h-auto"
                     />
                     {/* Element highlighting overlay - shown only when NOT in playback mode to avoid confusion */}
@@ -1336,7 +1478,9 @@ function CreateTestPage() {
                     <div className="text-center">
                       <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>{t('dashboardPageNew.loadAWebsiteToSeeThe.description')}</p>
-                      <p className="text-sm mt-2">{t('dashboardPageNew.screenshotsFromWebsiteLoadingOr.description')}</p>
+                      <p className="text-sm mt-2">
+                        {t('dashboardPageNew.screenshotsFromWebsiteLoadingOr.description')}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1348,7 +1492,9 @@ function CreateTestPage() {
           {creationMode === 'manual' && (
             <div className="w-80 bg-card p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-card-foreground">{t('dashboardPageNew.detectedElements.title')}</h3>
+                <h3 className="text-lg font-semibold text-card-foreground">
+                  {t('dashboardPageNew.detectedElements.title')}
+                </h3>
                 {/* When the list is capped, say so here rather than letting a partial list
                     read as the whole page — which is how a missing element used to look. */}
                 <Badge variant={detectionSummary?.truncated ? 'destructive' : 'secondary'}>
@@ -1373,8 +1519,12 @@ function CreateTestPage() {
                     <div className="flex items-center justify-center h-32 text-muted-foreground">
                       <div className="text-center">
                         <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">{t('dashboardPageNew.noElementsDetectedYet.text')}</p>
-                        <p className="text-xs">{t('dashboardPageNew.loadAWebsiteAndClickDetect.description')}</p>
+                        <p className="text-sm">
+                          {t('dashboardPageNew.noElementsDetectedYet.text')}
+                        </p>
+                        <p className="text-xs">
+                          {t('dashboardPageNew.loadAWebsiteAndClickDetect.description')}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1387,15 +1537,26 @@ function CreateTestPage() {
         </div>
 
         {/* Bottom section: Test Sequence Builder (40% of viewport) */}
-        <div className="h-[40vh] bg-card p-6"> {/* Changed bg-card to bg-card */}
+        <div className="h-[40vh] bg-card p-6">
+          {' '}
+          {/* Changed bg-card to bg-card */}
           <VisualTestBuilder
             testSequence={testSequence}
             onUpdateSequence={handleSequenceUpdated}
             onExecuteTest={handleExecuteTest}
             onSaveTest={handleSaveTest}
             onClearSequence={handleClearSequence}
-            isExecuting={executeDirectTestMutation.isPending || isExecutingPlayback || debugActive || debugSession.busy}
-            isSaving={saveTestMutation.isPending && !executeDirectTestMutation.isPending && !isExecutingPlayback}
+            isExecuting={
+              executeDirectTestMutation.isPending ||
+              isExecutingPlayback ||
+              debugActive ||
+              debugSession.busy
+            }
+            isSaving={
+              saveTestMutation.isPending &&
+              !executeDirectTestMutation.isPending &&
+              !isExecutingPlayback
+            }
             isRecordingActive={isRecording} // Pass the isRecording state
             lastTestOutcome={lastTestOverallResult} // Pass the test outcome state
             onSaveAsGroup={() => setIsSaveGroupModalOpen(true)}
@@ -1406,7 +1567,14 @@ function CreateTestPage() {
             debugRowCount={dataset.length}
             debugRow={Math.min(debugRow, Math.max(0, dataset.length - 1))}
             onDebugRowChange={setDebugRow}
-            debugPausedAt={debugSession.state?.paused?.stepId ? { stepId: debugSession.state.paused.stepId, failed: debugSession.state.paused.reason === 'failure' } : null}
+            debugPausedAt={
+              debugSession.state?.paused?.stepId
+                ? {
+                    stepId: debugSession.state.paused.stepId,
+                    failed: debugSession.state.paused.reason === 'failure',
+                  }
+                : null
+            }
           />
         </div>
       </div>
@@ -1433,7 +1601,10 @@ function CreateTestPage() {
         />
       )}
       {!debugSession.state && debugSession.error && (
-        <div role="alert" className="fixed right-4 top-20 z-50 max-w-sm rounded-md border border-destructive/40 bg-card p-3 text-sm text-destructive shadow">
+        <div
+          role="alert"
+          className="fixed right-4 top-20 z-50 max-w-sm rounded-md border border-destructive/40 bg-card p-3 text-sm text-destructive shadow"
+        >
           {t('debugger.startFailed', 'The debugger could not start:')} {debugSession.error}
         </div>
       )}

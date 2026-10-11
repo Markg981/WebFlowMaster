@@ -23,7 +23,7 @@ export default function EnvironmentsCard() {
     queryFn: async () => {
       const res = await apiRequest('GET', '/api/environments');
       return res.json();
-    }
+    },
   });
 
   const { data: secrets = [], isLoading: isLoadingSecrets } = useQuery({
@@ -33,7 +33,7 @@ export default function EnvironmentsCard() {
       const res = await apiRequest('GET', `/api/environments/${expandedEnv}/secrets`);
       return res.json();
     },
-    enabled: expandedEnv !== null
+    enabled: expandedEnv !== null,
   });
 
   // Mutations
@@ -47,7 +47,8 @@ export default function EnvironmentsCard() {
       setNewEnvName('');
       toast({ title: t('environments.toast.created') });
     },
-    onError: (error: any) => toast({ title: t('common.error'), description: error.message, variant: 'destructive' })
+    onError: (error: any) =>
+      toast({ title: t('common.error'), description: error.message, variant: 'destructive' }),
   });
 
   const deleteEnvMutation = useMutation({
@@ -58,14 +59,14 @@ export default function EnvironmentsCard() {
       queryClient.invalidateQueries({ queryKey: ['environments'] });
       if (expandedEnv === id) setExpandedEnv(null);
       toast({ title: t('environments.toast.deleted') });
-    }
+    },
   });
 
   const createSecretMutation = useMutation({
-    mutationFn: async (data: { envId: number, key: string, val: string }) => {
+    mutationFn: async (data: { envId: number; key: string; val: string }) => {
       const res = await apiRequest('POST', `/api/environments/${data.envId}/secrets`, {
         keyName: data.key,
-        value: data.val
+        value: data.val,
       });
       return res.json();
     },
@@ -75,7 +76,8 @@ export default function EnvironmentsCard() {
       setNewSecretValue('');
       toast({ title: t('environments.toast.secretSaved') });
     },
-    onError: (error: any) => toast({ title: t('common.error'), description: error.message, variant: 'destructive' })
+    onError: (error: any) =>
+      toast({ title: t('common.error'), description: error.message, variant: 'destructive' }),
   });
 
   const deleteSecretMutation = useMutation({
@@ -85,7 +87,7 @@ export default function EnvironmentsCard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['secrets', expandedEnv] });
       toast({ title: t('environments.toast.secretDeleted') });
-    }
+    },
   });
 
   const handleAddEnv = () => {
@@ -104,23 +106,28 @@ export default function EnvironmentsCard() {
     // read as two different things stacked on each other.
     <Card>
       <CardContent className="space-y-6 pt-6">
-        
         {/* Add Environment */}
         <div className="flex space-x-2">
-          <Input 
-            placeholder={t('environments.newEnvironmentPlaceholder')} 
-            value={newEnvName} 
-            onChange={e => setNewEnvName(e.target.value)} 
+          <Input
+            placeholder={t('environments.newEnvironmentPlaceholder')}
+            value={newEnvName}
+            onChange={(e) => setNewEnvName(e.target.value)}
           />
           <Button onClick={handleAddEnv} disabled={createEnvMutation.isPending || !newEnvName}>
-            {createEnvMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />} {t('environments.add')}
+            {createEnvMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4 mr-2" />
+            )}{' '}
+            {t('environments.add')}
           </Button>
         </div>
 
         {/* Environments List */}
         {isLoadingEnvs ? (
           <div className="flex items-center space-x-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /><span>{t('environments.loading')}</span>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>{t('environments.loading')}</span>
           </div>
         ) : environments.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('environments.empty')}</p>
@@ -129,37 +136,59 @@ export default function EnvironmentsCard() {
             {environments.map((env: any) => (
               <div key={env.id} className="border rounded-md overflow-hidden">
                 {/* Env Header */}
-                <div 
+                <div
                   className={`flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors ${expandedEnv === env.id ? 'bg-muted/30 border-b' : ''}`}
                   onClick={() => setExpandedEnv(expandedEnv === env.id ? null : env.id)}
                 >
                   <div className="flex items-center space-x-2">
-                    {expandedEnv === env.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    {expandedEnv === env.id ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
                     <span className="font-semibold">{env.name}</span>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); deleteEnvMutation.mutate(env.id); }}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteEnvMutation.mutate(env.id);
+                    }}
+                  >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
-                
+
                 {/* Secrets Panel */}
                 {expandedEnv === env.id && (
                   <div className="p-4 bg-background/50 space-y-4">
                     {isLoadingSecrets ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : secrets.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-2">{t('environments.noSecrets')}</p>
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        {t('environments.noSecrets')}
+                      </p>
                     ) : (
                       <div className="space-y-2">
                         {secrets.map((sec: any) => (
-                          <div key={sec.id} className="flex justify-between items-center bg-card p-2 rounded border">
+                          <div
+                            key={sec.id}
+                            className="flex justify-between items-center bg-card p-2 rounded border"
+                          >
                             <div className="flex items-center space-x-2">
                               <Key className="h-4 w-4 text-muted-foreground" />
                               <span className="font-mono text-sm bg-muted px-1.5 rounded">{`{{${sec.keyName}}}`}</span>
                             </div>
                             <div className="flex items-center space-x-4">
-                              <span className="text-xs text-muted-foreground">{t('environments.encrypted')}</span>
-                              <Button variant="ghost" size="sm" onClick={() => deleteSecretMutation.mutate(sec.id)}>
+                              <span className="text-xs text-muted-foreground">
+                                {t('environments.encrypted')}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteSecretMutation.mutate(sec.id)}
+                              >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </div>
@@ -167,28 +196,35 @@ export default function EnvironmentsCard() {
                         ))}
                       </div>
                     )}
-                    
+
                     {/* Add Secret Form */}
                     <div className="flex items-end space-x-2 pt-2 border-t mt-4">
                       <div className="flex-1 space-y-1">
                         <Label className="text-xs">{t('environments.keyNameLabel')}</Label>
-                        <Input 
-                          placeholder={t('environments.keyNamePlaceholder')} 
-                          value={newSecretKey} 
-                          onChange={e => setNewSecretKey(e.target.value.toUpperCase().replace(/\s+/g, '_'))} 
+                        <Input
+                          placeholder={t('environments.keyNamePlaceholder')}
+                          value={newSecretKey}
+                          onChange={(e) =>
+                            setNewSecretKey(e.target.value.toUpperCase().replace(/\s+/g, '_'))
+                          }
                           className="font-mono text-sm"
                         />
                       </div>
                       <div className="flex-1 space-y-1">
                         <Label className="text-xs">{t('environments.secretValueLabel')}</Label>
-                        <Input 
-                          type="password" 
-                          placeholder={t('environments.secretValuePlaceholder')} 
-                          value={newSecretValue} 
-                          onChange={e => setNewSecretValue(e.target.value)} 
+                        <Input
+                          type="password"
+                          placeholder={t('environments.secretValuePlaceholder')}
+                          value={newSecretValue}
+                          onChange={(e) => setNewSecretValue(e.target.value)}
                         />
                       </div>
-                      <Button onClick={() => handleAddSecret(env.id)} disabled={createSecretMutation.isPending || !newSecretKey || !newSecretValue}>
+                      <Button
+                        onClick={() => handleAddSecret(env.id)}
+                        disabled={
+                          createSecretMutation.isPending || !newSecretKey || !newSecretValue
+                        }
+                      >
                         {t('environments.addSecret')}
                       </Button>
                     </div>
@@ -202,4 +238,3 @@ export default function EnvironmentsCard() {
     </Card>
   );
 }
-

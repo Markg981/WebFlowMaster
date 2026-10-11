@@ -9,7 +9,13 @@ import { privilegedDb } from './db';
 import { organizations, testPlans, testPlanExecutions, executionLogs, users } from '@shared/schema';
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), http: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    http: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -22,10 +28,14 @@ vi.mock('./logger', () => ({
  */
 vi.mock('bullmq', () => {
   class FakeQueue {
-    on() { return this; }
+    on() {
+      return this;
+    }
   }
   class FakeQueueEvents {
-    on() { return this; }
+    on() {
+      return this;
+    }
   }
   class FakeJob {
     static fromId = vi.fn().mockResolvedValue(undefined);
@@ -92,9 +102,16 @@ function waitForOpen(ws: WebSocket, timeoutMs = 3000): Promise<void> {
   });
 }
 
-function waitForMessage(ws: WebSocket, predicate: (msg: any) => boolean, timeoutMs = 3000): Promise<any> {
+function waitForMessage(
+  ws: WebSocket,
+  predicate: (msg: any) => boolean,
+  timeoutMs = 3000,
+): Promise<any> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('timed out waiting for a matching message')), timeoutMs);
+    const timer = setTimeout(
+      () => reject(new Error('timed out waiting for a matching message')),
+      timeoutMs,
+    );
     const handler = (raw: any) => {
       let msg: any;
       try {
@@ -119,11 +136,19 @@ beforeAll(async () => {
   app.post('/test/saml-session', async (req, res, next) => {
     try {
       if (!req.user) return res.sendStatus(401);
-      const identity = { organizationId: req.user.organizationId, issuer: 'https://idp.test', nameId: 'socket-user', nameIdFormat: null, sessionIndex: 'socket-session' };
+      const identity = {
+        organizationId: req.user.organizationId,
+        issuer: 'https://idp.test',
+        nameId: 'socket-user',
+        nameIdFormat: null,
+        sessionIndex: 'socket-session',
+      };
       req.session.samlIdentity = identity;
       await registerSamlSession(req.sessionID, req.user.id, identity);
-      req.session.save(error => error ? next(error) : res.json({ sessionId: req.sessionID }));
-    } catch (error) { next(error); }
+      req.session.save((error) => (error ? next(error) : res.json({ sessionId: req.sessionID })));
+    } catch (error) {
+      next(error);
+    }
   });
 
   const regA = await request(app)
@@ -164,8 +189,12 @@ afterAll(async () => {
   }
   await new Promise<void>((resolve) => httpServer.close(() => resolve()));
 
-  await privilegedDb.delete(executionLogs).where(inArray(executionLogs.testPlanExecutionId, [execAId, execBId]));
-  await privilegedDb.delete(testPlanExecutions).where(inArray(testPlanExecutions.id, [execAId, execBId]));
+  await privilegedDb
+    .delete(executionLogs)
+    .where(inArray(executionLogs.testPlanExecutionId, [execAId, execBId]));
+  await privilegedDb
+    .delete(testPlanExecutions)
+    .where(inArray(testPlanExecutions.id, [execAId, execBId]));
   await privilegedDb.delete(testPlans).where(inArray(testPlans.id, [planAId, planBId]));
   await privilegedDb.delete(users).where(inArray(users.organizationId, [orgAId, orgBId]));
   await privilegedDb.delete(organizations).where(inArray(organizations.id, [orgAId, orgBId]));
@@ -220,7 +249,10 @@ describe('execution log delivery', () => {
     ws.send(JSON.stringify({ type: 'subscribe-execution', executionId: execAId }));
     await waitForMessage(ws, (m) => m.type === 'subscribed' && m.executionId === execAId);
 
-    const received = waitForMessage(ws, (m) => m.type === 'execution-log' && m.executionId === execAId);
+    const received = waitForMessage(
+      ws,
+      (m) => m.type === 'execution-log' && m.executionId === execAId,
+    );
     emitter.emitExecutionLog(execAId, {
       level: 'info',
       source: 'system',
@@ -260,18 +292,26 @@ describe('execution log delivery', () => {
 // Last in the file: it replaces the process's emitter, as the worker does at start.
 describe('SAML logout on live sockets', () => {
   it('blocks both new upgrades and existing broadcasts after registry revocation despite a stale session store', async () => {
-    const configured = await request(app).post('/test/saml-session').set('Cookie', cookieA).expect(200);
+    const configured = await request(app)
+      .post('/test/saml-session')
+      .set('Cookie', cookieA)
+      .expect(200);
     const ws = connectWs(cookieA);
     await waitForOpen(ws);
     ws.send(JSON.stringify({ type: 'subscribe-execution', executionId: execAId }));
-    await waitForMessage(ws, message => message.type === 'subscribed');
+    await waitForMessage(ws, (message) => message.type === 'subscribed');
     await forgetSamlSession(configured.body.sessionId);
     const denied = connectWs(cookieA);
     await expect(waitForOpen(denied)).rejects.toThrow('401');
-    const closed = new Promise<number>(resolve => ws.once('close', code => resolve(code)));
+    const closed = new Promise<number>((resolve) => ws.once('close', (code) => resolve(code)));
     const messages: string[] = [];
-    ws.on('message', raw => messages.push(raw.toString()));
-    emitter.emitExecutionLog(execAId, { level: 'info', source: 'system', message: 'revoked-session-secret', timestamp: new Date().toISOString() });
+    ws.on('message', (raw) => messages.push(raw.toString()));
+    emitter.emitExecutionLog(execAId, {
+      level: 'info',
+      source: 'system',
+      message: 'revoked-session-secret',
+      timestamp: new Date().toISOString(),
+    });
     expect(await closed).toBe(1008);
     expect(messages.join('')).not.toContain('revoked-session-secret');
   });
@@ -291,8 +331,12 @@ describe('run logs from the queue worker', () => {
     let stored: Array<{ message: string; organizationId: number }> = [];
     for (let attempt = 0; attempt < 40 && stored.length === 0; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 50));
-      stored = (await privilegedDb.select().from(executionLogs).where(inArray(executionLogs.testPlanExecutionId, [execAId])))
-        .filter((row) => row.message === message);
+      stored = (
+        await privilegedDb
+          .select()
+          .from(executionLogs)
+          .where(inArray(executionLogs.testPlanExecutionId, [execAId]))
+      ).filter((row) => row.message === message);
     }
     expect(stored).toHaveLength(1);
     expect(stored[0].organizationId).toBe(orgAId);

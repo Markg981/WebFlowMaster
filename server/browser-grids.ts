@@ -2,7 +2,12 @@ import { createRequire } from 'module';
 import { eq } from 'drizzle-orm';
 import type { Page } from 'playwright';
 import { browserGrids, type BrowserGrid } from '@shared/schema';
-import { BROWSER_GRID_LABELS, HONOURS_MACHINE, RUNS_BROWSERS, type BrowserGridProvider } from '@shared/browser-grids';
+import {
+  BROWSER_GRID_LABELS,
+  HONOURS_MACHINE,
+  RUNS_BROWSERS,
+  type BrowserGridProvider,
+} from '@shared/browser-grids';
 import { withTenantTransaction } from './middleware/tenancy';
 import { decryptSecret } from './crypto';
 import type { BrowserEngine } from './browsers';
@@ -56,25 +61,35 @@ const isMac = (os?: string | null) => /mac|os ?x/i.test(os ?? '');
 /** The browser as BrowserStack names it. Branded Chrome and Edge are real; the others are Playwright's. */
 function browserStackBrowser(label: string): string {
   switch (label) {
-    case 'chrome': return 'chrome';
+    case 'chrome':
+      return 'chrome';
     case 'edge':
-    case 'msedge': return 'edge';
-    case 'firefox': return 'playwright-firefox';
+    case 'msedge':
+      return 'edge';
+    case 'firefox':
+      return 'playwright-firefox';
     case 'webkit':
-    case 'safari': return 'playwright-webkit';
-    default: return 'playwright-chromium';
+    case 'safari':
+      return 'playwright-webkit';
+    default:
+      return 'playwright-chromium';
   }
 }
 
 function lambdaTestBrowser(label: string): string {
   switch (label) {
-    case 'chrome': return 'Chrome';
+    case 'chrome':
+      return 'Chrome';
     case 'edge':
-    case 'msedge': return 'MicrosoftEdge';
-    case 'firefox': return 'pw-firefox';
+    case 'msedge':
+      return 'MicrosoftEdge';
+    case 'firefox':
+      return 'pw-firefox';
     case 'webkit':
-    case 'safari': return 'pw-webkit';
-    default: return 'pw-chromium';
+    case 'safari':
+      return 'pw-webkit';
+    default:
+      return 'pw-chromium';
   }
 }
 
@@ -101,7 +116,10 @@ export function gridConnection(grid: GridConfig, machine: GridMachine): GridConn
         'browserstack.accessKey': grid.key ?? '',
         'client.playwrightVersion': PLAYWRIGHT_VERSION,
       };
-      return { engine: machine.engine, wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(caps))}` };
+      return {
+        engine: machine.engine,
+        wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(caps))}`,
+      };
     }
     case 'lambdatest': {
       const { os, osVersion } = defaultOs(machine);
@@ -119,14 +137,20 @@ export function gridConnection(grid: GridConfig, machine: GridMachine): GridConn
           playwrightClientVersion: PLAYWRIGHT_VERSION,
         },
       };
-      return { engine: machine.engine, wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities=${encodeURIComponent(JSON.stringify(caps))}` };
+      return {
+        engine: machine.engine,
+        wsEndpoint: `wss://cdp.lambdatest.com/playwright?capabilities=${encodeURIComponent(JSON.stringify(caps))}`,
+      };
     }
     case 'playwright_server': {
       const endpoint = grid.endpoint ?? '';
       // Browserless and the like take the token in the address, where the endpoint says so;
       // anything else gets it as a bearer token.
       if (grid.key && endpoint.includes('{token}')) {
-        return { engine: machine.engine, wsEndpoint: endpoint.replace('{token}', encodeURIComponent(grid.key)) };
+        return {
+          engine: machine.engine,
+          wsEndpoint: endpoint.replace('{token}', encodeURIComponent(grid.key)),
+        };
       }
       return {
         engine: machine.engine,
@@ -135,7 +159,9 @@ export function gridConnection(grid: GridConfig, machine: GridMachine): GridConn
       };
     }
     case 'local_appium':
-      throw new Error(`"${grid.name}" is a local Appium, which runs mobile app tests only. Choose a browser grid for a plan's browsers.`);
+      throw new Error(
+        `"${grid.name}" is a local Appium, which runs mobile app tests only. Choose a browser grid for a plan's browsers.`,
+      );
   }
 }
 
@@ -143,13 +169,26 @@ export function gridConnection(grid: GridConfig, machine: GridMachine): GridConn
  * What of the plan's machine this grid cannot deliver, for the run's log — the same honesty the
  * runners owe (server/browsers.ts `unsupportedMachineFields`).
  */
-export function gridWarnings(provider: BrowserGridProvider, machine: Pick<GridMachine, 'label' | 'os' | 'osVersion' | 'browserVersion'>): string[] {
+export function gridWarnings(
+  provider: BrowserGridProvider,
+  machine: Pick<GridMachine, 'label' | 'os' | 'osVersion' | 'browserVersion'>,
+): string[] {
   if (HONOURS_MACHINE[provider]) {
     // Safari on a cloud is still Playwright's WebKit: the clouds do not drive Safari itself.
-    return machine.label === 'safari' ? ['Safari runs on Playwright\'s WebKit on the grid too, not on Safari itself.'] : [];
+    return machine.label === 'safari'
+      ? ["Safari runs on Playwright's WebKit on the grid too, not on Safari itself."]
+      : [];
   }
-  const asked = [machine.os, machine.osVersion, machine.browserVersion && machine.browserVersion !== 'latest' ? `${machine.label} ${machine.browserVersion}` : null].filter(Boolean);
-  return asked.length > 0 ? [`A Playwright server runs the browsers it has: ${asked.join(', ')} not applied.`] : [];
+  const asked = [
+    machine.os,
+    machine.osVersion,
+    machine.browserVersion && machine.browserVersion !== 'latest'
+      ? `${machine.label} ${machine.browserVersion}`
+      : null,
+  ].filter(Boolean);
+  return asked.length > 0
+    ? [`A Playwright server runs the browsers it has: ${asked.join(', ')} not applied.`]
+    : [];
 }
 
 /**
@@ -157,20 +196,34 @@ export function gridWarnings(provider: BrowserGridProvider, machine: Pick<GridMa
  * is refused, a grid this organization does not have is refused, and naming one clears the other
  * — so a plan moved from agents to a grid does not keep a pool that would win at run time.
  */
-export async function checkRunOn(changes: { agentPool?: string | null; browserGridId?: string | null }): Promise<
-  { ok: true; changes: { agentPool?: string | null; browserGridId?: string | null } } | { ok: false; error: string }
+export async function checkRunOn(changes: {
+  agentPool?: string | null;
+  browserGridId?: string | null;
+}): Promise<
+  | { ok: true; changes: { agentPool?: string | null; browserGridId?: string | null } }
+  | { ok: false; error: string }
 > {
   if (changes.agentPool && changes.browserGridId) {
-    return { ok: false, error: 'A plan runs on a pool of local agents or on a browser grid, not both.' };
+    return {
+      ok: false,
+      error: 'A plan runs on a pool of local agents or on a browser grid, not both.',
+    };
   }
   if (changes.browserGridId) {
     const [row] = await withTenantTransaction((tx) =>
-      tx.select({ id: browserGrids.id, provider: browserGrids.provider }).from(browserGrids).where(eq(browserGrids.id, changes.browserGridId!)).limit(1),
+      tx
+        .select({ id: browserGrids.id, provider: browserGrids.provider })
+        .from(browserGrids)
+        .where(eq(browserGrids.id, changes.browserGridId!))
+        .limit(1),
     );
     if (!row) return { ok: false, error: 'That browser grid does not exist.' };
     const provider = row.provider as BrowserGridProvider;
     if (RUNS_BROWSERS[provider] === false) {
-      return { ok: false, error: `A ${BROWSER_GRID_LABELS[provider]} runs mobile app tests only, not a plan's browsers.` };
+      return {
+        ok: false,
+        error: `A ${BROWSER_GRID_LABELS[provider]} runs mobile app tests only, not a plan's browsers.`,
+      };
     }
     return { ok: true, changes: { ...changes, agentPool: null } };
   }
@@ -180,7 +233,9 @@ export async function checkRunOn(changes: { agentPool?: string | null; browserGr
 
 /** A grid's configuration with its key decrypted, under the caller's organization; null if none. */
 export async function loadGridConfig(id: string): Promise<GridConfig | null> {
-  const [row] = await withTenantTransaction((tx) => tx.select().from(browserGrids).where(eq(browserGrids.id, id)).limit(1));
+  const [row] = await withTenantTransaction((tx) =>
+    tx.select().from(browserGrids).where(eq(browserGrids.id, id)).limit(1),
+  );
   return row ? toGridConfig(row) : null;
 }
 
@@ -191,7 +246,10 @@ export function toGridConfig(row: BrowserGrid): GridConfig {
     provider: row.provider as BrowserGridProvider,
     username: row.username,
     endpoint: row.endpoint,
-    key: row.encryptedKey && row.keyIv && row.keyAuthTag ? decryptSecret(row.encryptedKey, row.keyIv, row.keyAuthTag) : null,
+    key:
+      row.encryptedKey && row.keyIv && row.keyAuthTag
+        ? decryptSecret(row.encryptedKey, row.keyIv, row.keyAuthTag)
+        : null,
     agentPool: row.agentPool ?? null,
     organizationId: row.organizationId,
   };
@@ -201,7 +259,12 @@ export function toGridConfig(row: BrowserGrid): GridConfig {
  * Tells the provider how the test went, so its dashboard agrees with the report. The clouds read
  * it from a script call their browsers intercept; a Playwright server has no dashboard to tell.
  */
-export async function markGridSession(page: Page, provider: BrowserGridProvider, passed: boolean, reason: string | null): Promise<void> {
+export async function markGridSession(
+  page: Page,
+  provider: BrowserGridProvider,
+  passed: boolean,
+  reason: string | null,
+): Promise<void> {
   const status = passed ? 'passed' : 'failed';
   const text = (reason ?? (passed ? 'Passed' : 'Failed')).slice(0, 250);
   let command: string | null = null;
@@ -211,7 +274,9 @@ export async function markGridSession(page: Page, provider: BrowserGridProvider,
     command = `lambdatest_action: ${JSON.stringify({ action: 'setTestStatus', arguments: { status, remark: text } })}`;
   }
   if (!command || page.isClosed()) return;
-  await page.evaluate(() => {}, command).catch(() => {
-    // The status is the provider's dashboard's business; a run's result does not wait on it.
-  });
+  await page
+    .evaluate(() => {}, command)
+    .catch(() => {
+      // The status is the provider's dashboard's business; a run's result does not wait on it.
+    });
 }

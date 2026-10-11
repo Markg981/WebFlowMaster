@@ -1,13 +1,13 @@
 import React from 'react';
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation } from 'wouter';
 // Kept queryClient and QueryClientProvider for App structure
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider, useAuth } from "@/hooks/use-auth";
-import NotFound from "@/pages/not-found";
-import { ProtectedRoute } from "./lib/protected-route";
+import { queryClient } from './lib/queryClient';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/toaster';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import NotFound from '@/pages/not-found';
+import { ProtectedRoute } from './lib/protected-route';
 
 /**
  * Every page behind the login is loaded when it is first opened, not with the application.
@@ -19,28 +19,28 @@ import { ProtectedRoute } from "./lib/protected-route";
  * signed-in user as well: someone signing in now fetches it with the page, nobody else at all.
  * The Suspense around the whole application (main.tsx) covers it.
  */
-const AuthPage = React.lazy(() => import("@/pages/auth-page"));
-const DashboardPage = React.lazy(() => import("@/pages/dashboard-page-new")); // The "Create Test" page
-const DashboardOverviewPage = React.lazy(() => import("@/pages/DashboardOverviewPage"));
-const SettingsPage = React.lazy(() => import("@/pages/settings-page"));
-const ApiTesterPage = React.lazy(() => import("@/pages/ApiTesterPage"));
-const TestSuitesPage = React.lazy(() => import("./pages/TestSuitesPage"));
-const SuitesPage = React.lazy(() => import("./pages/SuitesPage"));
-const RequirementsPage = React.lazy(() => import("./pages/RequirementsPage"));
-const TestDataPage = React.lazy(() => import("./pages/TestDataPage"));
-const MobileTestsPage = React.lazy(() => import("./pages/MobileTestsPage"));
-const LoadTestsPage = React.lazy(() => import("./pages/LoadTestsPage"));
-const TestPlanExecutionPage = React.lazy(() => import("./pages/TestPlanExecutionPage"));
-const SchedulingPage = React.lazy(() => import("./pages/SchedulingPage"));
-const TestReportPage = React.lazy(() => import("./pages/TestReportPage"));
-const GeneralReportsPage = React.lazy(() => import("./pages/GeneralReportsPage"));
-const TestManager = React.lazy(() => import("./pages/TestManager"));
-const TestLibraryPage = React.lazy(() => import("./pages/TestLibraryPage"));
-const ReviewsPage = React.lazy(() => import("./pages/ReviewsPage"));
-import { ObservabilityErrorBoundary } from "@/observability/error-boundary";
-import { installObservability } from "@/observability/install";
-import { setCurrentRoute } from "@/observability/logger";
-import { pushBreadcrumb } from "@/observability/breadcrumbs";
+const AuthPage = React.lazy(() => import('@/pages/auth-page'));
+const DashboardPage = React.lazy(() => import('@/pages/dashboard-page-new')); // The "Create Test" page
+const DashboardOverviewPage = React.lazy(() => import('@/pages/DashboardOverviewPage'));
+const SettingsPage = React.lazy(() => import('@/pages/settings-page'));
+const ApiTesterPage = React.lazy(() => import('@/pages/ApiTesterPage'));
+const TestSuitesPage = React.lazy(() => import('./pages/TestSuitesPage'));
+const SuitesPage = React.lazy(() => import('./pages/SuitesPage'));
+const RequirementsPage = React.lazy(() => import('./pages/RequirementsPage'));
+const TestDataPage = React.lazy(() => import('./pages/TestDataPage'));
+const MobileTestsPage = React.lazy(() => import('./pages/MobileTestsPage'));
+const LoadTestsPage = React.lazy(() => import('./pages/LoadTestsPage'));
+const TestPlanExecutionPage = React.lazy(() => import('./pages/TestPlanExecutionPage'));
+const SchedulingPage = React.lazy(() => import('./pages/SchedulingPage'));
+const TestReportPage = React.lazy(() => import('./pages/TestReportPage'));
+const GeneralReportsPage = React.lazy(() => import('./pages/GeneralReportsPage'));
+const TestManager = React.lazy(() => import('./pages/TestManager'));
+const TestLibraryPage = React.lazy(() => import('./pages/TestLibraryPage'));
+const ReviewsPage = React.lazy(() => import('./pages/ReviewsPage'));
+import { ObservabilityErrorBoundary } from '@/observability/error-boundary';
+import { installObservability } from '@/observability/install';
+import { setCurrentRoute } from '@/observability/logger';
+import { pushBreadcrumb } from '@/observability/breadcrumbs';
 // Imports for ThemeLoader
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -51,7 +51,7 @@ import { applyThemeToDocument } from '@/hooks/use-theme';
 const SettingsEffectLoader = () => {
   const { user } = useAuth();
   const { data: settingsData } = useQuery<UserSettings, Error>({
-    queryKey: ["userSettingsApp", user?.id],
+    queryKey: ['userSettingsApp', user?.id],
     queryFn: fetchSettings,
     staleTime: Infinity,
     enabled: !!user,
@@ -63,14 +63,14 @@ const SettingsEffectLoader = () => {
       // lands. Every later change goes through useTheme, which writes back into this
       // query's cache — so this effect re-runs already agreeing with it rather than
       // undoing it.
-      applyThemeToDocument(settingsData.theme === "dark" ? "dark" : "light");
+      applyThemeToDocument(settingsData.theme === 'dark' ? 'dark' : 'light');
       if (settingsData.language && i18n.language !== settingsData.language) {
-        i18n.changeLanguage(settingsData.language).catch(err => {
-            console.error("Error changing language in App.tsx:", err);
+        i18n.changeLanguage(settingsData.language).catch((err) => {
+          console.error('Error changing language in App.tsx:', err);
         });
       } else if (!settingsData.language && i18n.language !== 'en') {
-        i18n.changeLanguage('en').catch(err => {
-            console.error("Error changing language to fallback 'en' in App.tsx:", err);
+        i18n.changeLanguage('en').catch((err) => {
+          console.error("Error changing language to fallback 'en' in App.tsx:", err);
         });
       }
     }
@@ -99,10 +99,10 @@ const RootRedirector = () => {
   React.useEffect(() => {
     if (!isLoading) {
       if (!user) {
-        navigate("/auth", { replace: true });
+        navigate('/auth', { replace: true });
       } else {
         // If user is logged in, redirect to the main dashboard overview.
-        navigate("/dashboard", { replace: true });
+        navigate('/dashboard', { replace: true });
       }
     }
   }, [user, isLoading, navigate]);
@@ -127,9 +127,13 @@ function Router() {
       <ProtectedRoute path="/test-manager" component={TestManager} />
       <ProtectedRoute path="/tests" component={TestLibraryPage} />
       <ProtectedRoute path="/reviews" component={ReviewsPage} />
-      <ProtectedRoute path="/reports" component={GeneralReportsPage} /> {/* New route for general reports */}
+      <ProtectedRoute path="/reports" component={GeneralReportsPage} />{' '}
+      {/* New route for general reports */}
       <ProtectedRoute path="/test-plan/:planId/run" component={TestPlanExecutionPage} />
-      <ProtectedRoute path="/test-plans/:planId/executions/:executionId/report" component={TestReportPage} />
+      <ProtectedRoute
+        path="/test-plans/:planId/executions/:executionId/report"
+        component={TestReportPage}
+      />
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} /> {/* Catch-all for 404 */}

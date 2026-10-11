@@ -43,17 +43,17 @@ relying on this behavior during a rolling deployment.
 
 **Settings** on a plan's row changes how its next run behaves:
 
-| Setting | What it does |
-|---|---|
-| **Browsers** | Every test runs once per browser listed, each on the desktop or as a phone or tablet ([devices](#mobile-devices)). None listed: the browser from your own settings. |
-| **Languages** | Language codes such as `it-IT, en-US` (at most 10). Every test runs once per language on each browser; see [Testing in several languages](#languages). Empty: the browser's own language. |
-| **Run at most (tests at once)** | 1 to 16 browser sessions at the same time. 1 runs the plan one test at a time, browser by browser. |
-| **Workers sharing a run** | 1 to 8 runners for one run, each running the number above at once; see [One run on several runners](#shards). 1 keeps the run on one runner. |
-| **Keep a recording of the run** | A **video** and a Playwright **trace** of each test — never, when the test fails, or always — and the **network** traffic as a HAR file. They answer what a screenshot cannot, and use disk on every run. |
-| **Visual testing** | Compares each step's screenshot with its baseline; see [Visual testing](./results#visual-testing). |
-| **Run on** | This server's runners, a pool of [local agents](../integrations/local-agents) inside your own network, or a [browser grid](#browser-grids). |
-| **File failures in** | An issue tracker (Jira, Azure DevOps) connected by an owner. With **Open an issue when a test fails**, each failing test and browser gets one issue; the same failure later is added to it as a comment. |
-| **Publish results to** | TestRail, Xray or Zephyr Scale, connected in **Settings → Test management**: every finished run is published there case by case; see [Publishing to TestRail, Xray or Zephyr](./results#test-management). |
+| Setting                                        | What it does                                                                                                                                                                                                                             |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Browsers**                                   | Every test runs once per browser listed, each on the desktop or as a phone or tablet ([devices](#mobile-devices)). None listed: the browser from your own settings.                                                                      |
+| **Languages**                                  | Language codes such as `it-IT, en-US` (at most 10). Every test runs once per language on each browser; see [Testing in several languages](#languages). Empty: the browser's own language.                                                |
+| **Run at most (tests at once)**                | 1 to 16 browser sessions at the same time. 1 runs the plan one test at a time, browser by browser.                                                                                                                                       |
+| **Workers sharing a run**                      | 1 to 8 runners for one run, each running the number above at once; see [One run on several runners](#shards). 1 keeps the run on one runner.                                                                                             |
+| **Keep a recording of the run**                | A **video** and a Playwright **trace** of each test — never, when the test fails, or always — and the **network** traffic as a HAR file. They answer what a screenshot cannot, and use disk on every run.                                |
+| **Visual testing**                             | Compares each step's screenshot with its baseline; see [Visual testing](./results#visual-testing).                                                                                                                                       |
+| **Run on**                                     | This server's runners, a pool of [local agents](../integrations/local-agents) inside your own network, or a [browser grid](#browser-grids).                                                                                              |
+| **File failures in**                           | An issue tracker (Jira, Azure DevOps) connected by an owner. With **Open an issue when a test fails**, each failing test and browser gets one issue; the same failure later is added to it as a comment.                                 |
+| **Publish results to**                         | TestRail, Xray or Zephyr Scale, connected in **Settings → Test management**: every finished run is published there case by case; see [Publishing to TestRail, Xray or Zephyr](./results#test-management).                                |
 | **Send notification when** and the webhook URL | A message to a Slack or Microsoft Teams incoming webhook, or any URL that accepts a POST, when a run passes, fails, is not executed or is stopped. The e-mail addresses listed there are mailed too, when the installation sends e-mail. |
 
 **Suites** on the row adds [suites](./organizing#suites): they run after the plan's own tests, in the
@@ -71,7 +71,7 @@ nobody holds, runs it, and takes another, so a slow test never holds up a fixed 
   language is one piece, run in order on one runner.
 - A runner that stops while it holds a piece (a crash, a lost machine) stops answering; after two
   minutes another runner takes that piece back and runs it.
-- A stop policy (for example *stop the run* on a failure) stops every runner: tests not started yet
+- A stop policy (for example _stop the run_ on a failure) stops every runner: tests not started yet
   are recorded as skipped, with the reason.
 - Helpers are ordinary jobs on the queue: they take free runners, and only help if there are any.
   With no free runner the first one runs every test itself, and the log says so.
@@ -82,12 +82,12 @@ The runners have Chromium, Firefox and WebKit on the system they are installed o
 and macOS, branded Chrome and Edge, or an older version, a plan can borrow its browsers from a
 **browser grid**, added in **Settings → Browser grids**:
 
-| Provider | Needs | OS and versions |
-|---|---|---|
-| **BrowserStack** | Username and access key | Honoured |
-| **LambdaTest** | Username and access key | Honoured |
-| **Playwright server** — your own `npx playwright run-server`, Browserless, Moon… | Its `ws://` or `wss://` address, and a token if it asks for one (where the address has `{token}` it goes there, otherwise as a bearer token) | Not honoured: it runs the browsers it has |
-| **Local Appium (agent)** | A pool of local agents and Appium's address | Runs [mobile app tests](./mobile-apps#local-appium) only, not a plan's browsers |
+| Provider                                                                         | Needs                                                                                                                                        | OS and versions                                                                 |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **BrowserStack**                                                                 | Username and access key                                                                                                                      | Honoured                                                                        |
+| **LambdaTest**                                                                   | Username and access key                                                                                                                      | Honoured                                                                        |
+| **Playwright server** — your own `npx playwright run-server`, Browserless, Moon… | Its `ws://` or `wss://` address, and a token if it asks for one (where the address has `{token}` it goes there, otherwise as a bearer token) | Not honoured: it runs the browsers it has                                       |
+| **Local Appium (agent)**                                                         | A pool of local agents and Appium's address                                                                                                  | Runs [mobile app tests](./mobile-apps#local-appium) only, not a plan's browsers |
 
 The key is stored encrypted and never shown again. **Test connection** opens one short Chromium
 session on the grid and says whether it worked. A Playwright server must run the same Playwright
@@ -95,8 +95,8 @@ version as the runners.
 
 With **Run on** set to a grid, each browser row of the plan also takes an **operating system**
 (Windows or macOS), its **version** (`11`, `Sonoma`) and a **browser version** (`latest` when
-empty). Each row is a pass of the run, and the report labels it with its machine — *chrome ·
-Windows 11*, *chrome · macOS Sonoma*. Without an OS, WebKit runs on macOS and everything else on
+empty). Each row is a pass of the run, and the report labels it with its machine — _chrome ·
+Windows 11_, _chrome · macOS Sonoma_. Without an OS, WebKit runs on macOS and everything else on
 Windows 11. Safari on a grid is still Playwright's WebKit.
 
 Each test is a session on the provider's dashboard, named after the test, grouped under the run,
@@ -135,13 +135,13 @@ alike.
 A check whose text changes with the language goes inside an **If** on
 <code v-pre>{{locale}}</code> (see [conditions and loops](./web-tests#conditions-and-loops)):
 
-| Step | Value |
-|---|---|
-| If (no element) | <code v-pre>{{locale}} == it-IT</code> |
-| Assert Text Contains | `Accedi` |
-| Else | |
-| Assert Text Contains | `Sign in` |
-| End if | |
+| Step                 | Value                                  |
+| -------------------- | -------------------------------------- |
+| If (no element)      | <code v-pre>{{locale}} == it-IT</code> |
+| Assert Text Contains | `Accedi`                               |
+| Else                 |                                        |
+| Assert Text Contains | `Sign in`                              |
+| End if               |                                        |
 
 The report labels every result with its browser and language (`chromium · it-IT`), and with
 visual testing each language is compared with its own baselines.
@@ -199,7 +199,7 @@ the `changed-since` input of the GitHub Action — and it runs:
 
 It errs towards running more: a changed file **no rule matches** runs the whole plan, and with no
 rules at all every test runs. The run's log, the API's `selection` field and the CLI say what was
-decided — for example *3 changed file(s) affect the tags checkout: 7 of 40 tests run* — so a test
+decided — for example _3 changed file(s) affect the tags checkout: 7 of 40 tests run_ — so a test
 that did not run is a choice, not a gap. **Try it on a change** in the same settings section shows
 which tests a list of files would run, without running them.
 

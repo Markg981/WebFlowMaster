@@ -101,7 +101,9 @@ export function verdictFor(status: string): Verdict {
  * module and component, when a test has them — rather than being left blank.
  */
 function classNameFor(row: JUnitResultRow): string {
-  const parts = [row.module, row.component].filter((part): part is string => !!part && part.trim() !== '');
+  const parts = [row.module, row.component].filter(
+    (part): part is string => !!part && part.trim() !== '',
+  );
   return parts.length > 0 ? parts.join('.') : 'webflowmaster';
 }
 
@@ -179,7 +181,14 @@ export function buildJUnitXml(input: JUnitInput): string {
       `  <testsuite name="${escapeXml(suiteName)}" tests="${rows.length}" failures="${counts.failures}" ` +
         `errors="${counts.errors}" skipped="${counts.skipped}" time="${seconds(counts.timeMs)}"` +
         `${suiteTimestamp ? ` timestamp="${escapeXml(suiteTimestamp)}"` : ''}>\n` +
-        (input.properties ? `    <properties>${Object.entries(input.properties).map(([name, value]) => `<property name="${escapeXml(name)}" value="${escapeXml(value)}"/>`).join('')}</properties>\n` : '') +
+        (input.properties
+          ? `    <properties>${Object.entries(input.properties)
+              .map(
+                ([name, value]) =>
+                  `<property name="${escapeXml(name)}" value="${escapeXml(value)}"/>`,
+              )
+              .join('')}</properties>\n`
+          : '') +
         `${cases.join('\n')}${cases.length > 0 ? '\n' : ''}` +
         `  </testsuite>`,
     );

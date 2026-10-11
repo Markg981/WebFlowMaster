@@ -45,13 +45,18 @@ export class AppiumSession {
 
   static async open(request: SessionRequest): Promise<AppiumSession> {
     const base = request.hubUrl.replace(/\/+$/, '');
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    };
     if (request.authorization) headers.Authorization = request.authorization;
     const doFetch = request.fetch ?? ((url, init) => fetch(url, init));
     const answer = await call(doFetch, `${base}/session`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ capabilities: { alwaysMatch: request.capabilities, firstMatch: [{}] } }),
+      body: JSON.stringify({
+        capabilities: { alwaysMatch: request.capabilities, firstMatch: [{}] },
+      }),
       signal: AbortSignal.timeout(request.timeoutMs ?? 300_000),
     });
     const id = answer?.sessionId ?? answer?.value?.sessionId;
@@ -63,7 +68,11 @@ export class AppiumSession {
     return call(this.doFetch, `${this.base}/session/${this.id}${path}`, {
       method,
       headers: this.headers,
-      ...(body !== undefined ? { body: JSON.stringify(body) } : method === 'POST' ? { body: '{}' } : {}),
+      ...(body !== undefined
+        ? { body: JSON.stringify(body) }
+        : method === 'POST'
+          ? { body: '{}' }
+          : {}),
       signal: AbortSignal.timeout(120_000),
     });
   }
@@ -187,7 +196,8 @@ async function call(doFetch: Fetch, url: string, init: RequestInit): Promise<any
   try {
     response = await doFetch(url, init);
   } catch (error: any) {
-    const reason = error?.name === 'TimeoutError' ? 'no answer in time' : error?.message ?? String(error);
+    const reason =
+      error?.name === 'TimeoutError' ? 'no answer in time' : (error?.message ?? String(error));
     throw new WebDriverError(`The grid could not be reached: ${reason}.`, null, 0);
   }
   const text = await response.text();

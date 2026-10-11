@@ -1,9 +1,9 @@
-import express from "express";
+import express from 'express';
 import { mailProviderBodyParser } from './routes/mail-provider.routes';
 import { configureEgressProxy } from './egress-proxy';
-import { registerRoutes } from "./routes";
-import schedulerService from "./scheduler-service";
-import { apiNotFound, serveStatic } from "./static";
+import { registerRoutes } from './routes';
+import schedulerService from './scheduler-service';
+import { apiNotFound, serveStatic } from './static';
 import 'dotenv/config';
 import loggerPromise, { flushLogs } from './logger';
 import { privilegedDb, closeDb, assertTenancyPreconditions } from './db';
@@ -28,11 +28,13 @@ const stopTracing = startTracing('api');
 configureEgressProxy();
 const app = express();
 // First: probes come every few seconds and would otherwise dominate the request metrics.
-app.use(healthRouter({
-  database: () => privilegedDb.execute(sql`SELECT 1`),
-  redis: () => redisConnection.ping(),
-  sessions: () => process.env.NODE_ENV === 'test' || sessionRedis.isReady,
-}));
+app.use(
+  healthRouter({
+    database: () => privilegedDb.execute(sql`SELECT 1`),
+    redis: () => redisConnection.ping(),
+    sessions: () => process.env.NODE_ENV === 'test' || sessionRedis.isReady,
+  }),
+);
 app.use(applicationMetrics.middleware);
 app.use(mailProviderBodyParser);
 // The API tester sends form-data files and binary bodies inside its JSON, as base64, so its
@@ -92,9 +94,9 @@ app.use(express.urlencoded({ extended: false }));
     // Masked: a webhook's token can be part of its path, and this line is written for every call.
     const requestPath = redactWebhookPath(req.path);
 
-    res.on("finish", () => {
+    res.on('finish', () => {
       const duration = Date.now() - start;
-      if (requestPath.startsWith("/api")) {
+      if (requestPath.startsWith('/api')) {
         // Structured log: each field is a discrete, queryable property
         logger.http('[express] Request completed', {
           method: req.method,
@@ -124,14 +126,17 @@ app.use(express.urlencoded({ extended: false }));
 
     for (const settingToEnsure of settingsToEnsure) {
       try {
-        const existingSetting = await privilegedDb.select()
+        const existingSetting = await privilegedDb
+          .select()
           .from(systemSettings)
           .where(eq(systemSettings.key, settingToEnsure.key))
           .limit(1);
 
         if (existingSetting.length === 0) {
           await privilegedDb.insert(systemSettings).values(settingToEnsure);
-          logger.info(`Initialized default system setting: ${settingToEnsure.key}=${settingToEnsure.value}`);
+          logger.info(
+            `Initialized default system setting: ${settingToEnsure.key}=${settingToEnsure.value}`,
+          );
         }
       } catch (error) {
         // Use the resolved logger here, or console.error if logger itself might fail
@@ -144,30 +149,33 @@ app.use(express.urlencoded({ extended: false }));
 
   // The express-session store needs its node-redis client connected before the first
   // request. Fatal in production, a warning in development (server/startup-config.ts).
-  if (process.env.NODE_ENV !== "test") {
-    await connectSessionStore(() => connectSessionRedis(), (message) => logger.warn(message));
+  if (process.env.NODE_ENV !== 'test') {
+    await connectSessionStore(
+      () => connectSessionRedis(),
+      (message) => logger.warn(message),
+    );
   }
 
   // Rate limits counted in Redis, so every web process shares one budget (server/middleware/rate-limit-store.ts).
-  if (process.env.NODE_ENV !== "test") {
-    const { useRedisForRateLimits } = await import("./middleware/rate-limit-store");
+  if (process.env.NODE_ENV !== 'test') {
+    const { useRedisForRateLimits } = await import('./middleware/rate-limit-store');
     useRedisForRateLimits(redisConnection);
   }
 
   const server = await registerRoutes(app);
-  
-  const { webhooksRouter } = await import("./webhooks");
+
+  const { webhooksRouter } = await import('./webhooks');
   // Per client address (server/middleware/rate-limits.ts).
-  const { webhookRateLimit } = await import("./middleware/rate-limits");
-  app.use("/api/webhooks", webhookRateLimit(), webhooksRouter);
+  const { webhookRateLimit } = await import('./middleware/rate-limits');
+  app.use('/api/webhooks', webhookRateLimit(), webhooksRouter);
   // Text messages the organizations' test numbers receive, posted by their SMS provider (server/sms-inbox.ts).
-  const { smsInboundRouter, SMS_INBOUND_PATH } = await import("./routes/sms-inbox.routes");
+  const { smsInboundRouter, SMS_INBOUND_PATH } = await import('./routes/sms-inbox.routes');
   app.use(SMS_INBOUND_PATH, webhookRateLimit(), smsInboundRouter);
 
   // Provisioning by the organizations' identity providers, with a bearer token of their own.
-  const { default: scimRouter, SCIM_BASE_PATH } = await import("./routes/scim.routes");
+  const { default: scimRouter, SCIM_BASE_PATH } = await import('./routes/scim.routes');
   app.use(SCIM_BASE_PATH, scimRouter);
-  
+
   // Set up WebSockets for real-time logging
   await setupWebSockets(server);
   // Local agents dial in on the same address: see server/agents/relay.ts.
@@ -196,25 +204,26 @@ app.use(express.urlencoded({ extended: false }));
   // Removes the screenshots, videos and traces of runs older than ARTIFACT_RETENTION_DAYS —
   // see server/artifact-retention.ts.
   const { startArtifactRetention } = await import('./artifact-retention');
-  const stopArtifactRetention = process.env.NODE_ENV === 'test' ? () => {} : startArtifactRetention();
+  const stopArtifactRetention =
+    process.env.NODE_ENV === 'test' ? () => {} : startArtifactRetention();
 
   // An /api path nothing above answered is not a client route: without this the catch-all
   // below handed back index.html with 200, so a removed endpoint looked alive and a caller
   // parsing JSON got HTML (collaudo SEC-17).
-  app.use("/api", apiNotFound);
+  app.use('/api', apiNotFound);
 
   // Records an incident for every unhandled error, then answers as before.
-  const { incidentErrorHandler } = await import("./observability/taps/express");
+  const { incidentErrorHandler } = await import('./observability/taps/express');
   app.use(incidentErrorHandler(logger));
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  if (app.get('env') === 'development') {
     // Imported here rather than at the top: server/vite.ts pulls in vite, a dev dependency
     // that is pruned from the production image, and a static import would be evaluated on
     // load whatever this branch decides.
-    const { setupVite } = await import("./vite");
+    const { setupVite } = await import('./vite');
     await setupVite(app, server);
   } else {
     serveStatic(app);
@@ -223,13 +232,16 @@ app.use(express.urlencoded({ extended: false }));
   // One process serves both the API and the client. PORT overrides the default of 5000,
   // which is what the Vite dev proxy and existing deployments assume.
   const port = resolvePort();
-  server.listen({
-    port,
-    host: "0.0.0.0",
-  }, () => {
-    // Use the resolved logger for consistency, though the custom `log` was used before
-    logger.info(`Server listening on port ${port}`);
-  });
+  server.listen(
+    {
+      port,
+      host: '0.0.0.0',
+    },
+    () => {
+      // Use the resolved logger for consistency, though the custom `log` was used before
+      logger.info(`Server listening on port ${port}`);
+    },
+  );
 
   // ─── Graceful shutdown ──────────────────────────────────────────────────────
   // Stop accepting new connections, stop cron jobs, then close Redis and DB so

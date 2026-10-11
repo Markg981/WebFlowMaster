@@ -150,7 +150,10 @@ describe('TestHistoryDialog', () => {
   });
 
   it('reports the runs from before versions were recorded without attributing them', async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ ...history, unversionedRuns: 34 }) });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...history, unversionedRuns: 34 }),
+    });
     renderDialog();
 
     expect(await screen.findByText(/34 earlier runs/)).toBeInTheDocument();
@@ -161,8 +164,14 @@ describe('TestHistoryDialog', () => {
       const reply = (body: unknown) => Promise.resolve({ ok: true, json: async () => body });
       if (url === '/api/tests/7/publishing') {
         return reply({
-          testId: 7, publishedVersion: 3, latestVersion: 3, runs: 'published', hasUnpublishedChanges: false,
-          reviewRequired: false, pendingReview: null, rollbackTargets: [2],
+          testId: 7,
+          publishedVersion: 3,
+          latestVersion: 3,
+          runs: 'published',
+          hasUnpublishedChanges: false,
+          reviewRequired: false,
+          pendingReview: null,
+          rollbackTargets: [2],
         });
       }
       if (init?.method === 'POST') return reply({});
@@ -193,24 +202,52 @@ describe('TestHistoryDialog', () => {
 });
 
 describe('typed version history', () => {
-  it.each(['api', 'mobile'] as const)('compares full %s snapshots through the correct route', async (testType) => {
-    fetchMock.mockImplementation(async (url: string) => ({
-      ok: true, json: async () => url.endsWith('/publishing') ? {} : url.endsWith('/versions') ? history : {
-        version: Number(url.split('/').pop()),
-        snapshot: { protocol: 'graphql', authConfig: { token: '{{TOKEN}}' }, assertions: [{ expected: url.endsWith('/2') ? 'old-verdict' : 'new-verdict' }], teardown: { url: '/cleanup' }, deviceName: 'Pixel', steps: [{ action: 'tap', locator: 'login' }] },
-      },
-    }));
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(<QueryClientProvider client={client}><TestHistoryDialog isOpen onClose={vi.fn()} test={{ id: 7, name: 'Checkout' }} testType={testType} onRestore={vi.fn()} /></QueryClientProvider>);
-    await screen.findByTestId('test-history-list');
-    expect(fetchMock.mock.calls.some(([url]) => url === `/api/${testType}-tests/7/versions`)).toBe(true);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Compare with current' })[0]);
-    expect(await screen.findByText(/old-verdict/)).toBeInTheDocument();
-    expect(screen.getByText(/new-verdict/)).toBeInTheDocument();
-    expect(screen.getAllByText(/cleanup/)).toHaveLength(2);
-    expect(screen.getAllByText(/TOKEN/)).toHaveLength(2);
-    expect(screen.getAllByText(/Pixel/)).toHaveLength(2);
-  });
+  it.each(['api', 'mobile'] as const)(
+    'compares full %s snapshots through the correct route',
+    async (testType) => {
+      fetchMock.mockImplementation(async (url: string) => ({
+        ok: true,
+        json: async () =>
+          url.endsWith('/publishing')
+            ? {}
+            : url.endsWith('/versions')
+              ? history
+              : {
+                  version: Number(url.split('/').pop()),
+                  snapshot: {
+                    protocol: 'graphql',
+                    authConfig: { token: '{{TOKEN}}' },
+                    assertions: [{ expected: url.endsWith('/2') ? 'old-verdict' : 'new-verdict' }],
+                    teardown: { url: '/cleanup' },
+                    deviceName: 'Pixel',
+                    steps: [{ action: 'tap', locator: 'login' }],
+                  },
+                },
+      }));
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      render(
+        <QueryClientProvider client={client}>
+          <TestHistoryDialog
+            isOpen
+            onClose={vi.fn()}
+            test={{ id: 7, name: 'Checkout' }}
+            testType={testType}
+            onRestore={vi.fn()}
+          />
+        </QueryClientProvider>,
+      );
+      await screen.findByTestId('test-history-list');
+      expect(
+        fetchMock.mock.calls.some(([url]) => url === `/api/${testType}-tests/7/versions`),
+      ).toBe(true);
+      fireEvent.click(screen.getAllByRole('button', { name: 'Compare with current' })[0]);
+      expect(await screen.findByText(/old-verdict/)).toBeInTheDocument();
+      expect(screen.getByText(/new-verdict/)).toBeInTheDocument();
+      expect(screen.getAllByText(/cleanup/)).toHaveLength(2);
+      expect(screen.getAllByText(/TOKEN/)).toHaveLength(2);
+      expect(screen.getAllByText(/Pixel/)).toHaveLength(2);
+    },
+  );
   it('offers a viewer history without restore actions', async () => {
     role = 'viewer';
     renderDialog();
@@ -221,10 +258,21 @@ describe('typed version history', () => {
 
 it('keeps a project viewer read-only even when their organization role is editor', async () => {
   fetchMock.mockImplementation(async (url: string) => ({
-    ok: true, json: async () => url.endsWith('/publishing') ? {
-      testId: 7, canEdit: false, publishedVersion: 2, latestVersion: 3, runs: 'published',
-      hasUnpublishedChanges: true, reviewRequired: false, pendingReview: null, rollbackTargets: [2],
-    } : history,
+    ok: true,
+    json: async () =>
+      url.endsWith('/publishing')
+        ? {
+            testId: 7,
+            canEdit: false,
+            publishedVersion: 2,
+            latestVersion: 3,
+            runs: 'published',
+            hasUnpublishedChanges: true,
+            reviewRequired: false,
+            pendingReview: null,
+            rollbackTargets: [2],
+          }
+        : history,
   }));
   renderDialog();
   await screen.findByTestId('test-history-list');

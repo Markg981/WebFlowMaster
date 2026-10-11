@@ -41,13 +41,13 @@ execution time.
 
 ## Quota semantics
 
-| Dimension | Measured usage | Admission rule |
-| --- | --- | --- |
-| Concurrent runs | Running and cancelling plan executions | Existing behavior: excess stays queued |
-| Queued runs | Waiting plan executions | Existing behavior: refuse excess with HTTP 429 |
-| Tests | Saved UI/BDD + API + mobile definitions | Refuse creation/import above the limit |
-| Artifact storage | Persisted execution evidence and visual baselines, in bytes | Reserve capacity before publishing or replacing an object |
-| Execution resources | Cumulative runner occupancy time in the UTC calendar month | Refuse new execution admission when the monthly allowance is exhausted |
+| Dimension           | Measured usage                                              | Admission rule                                                         |
+| ------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Concurrent runs     | Running and cancelling plan executions                      | Existing behavior: excess stays queued                                 |
+| Queued runs         | Waiting plan executions                                     | Existing behavior: refuse excess with HTTP 429                         |
+| Tests               | Saved UI/BDD + API + mobile definitions                     | Refuse creation/import above the limit                                 |
+| Artifact storage    | Persisted execution evidence and visual baselines, in bytes | Reserve capacity before publishing or replacing an object              |
+| Execution resources | Cumulative runner occupancy time in the UTC calendar month  | Refuse new execution admission when the monthly allowance is exhausted |
 
 New quota defaults are unlimited to preserve existing installations. Organization overrides
 inherit environment defaults when null; zero explicitly means unlimited for the new dimensions.

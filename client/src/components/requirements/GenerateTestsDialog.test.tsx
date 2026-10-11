@@ -8,7 +8,8 @@ vi.mock('react-i18next', () => ({
     i18n: { language: 'it-IT' },
     t: (_key: string, fallback?: any, options?: any) => {
       let text = typeof fallback === 'string' ? fallback : _key;
-      for (const [name, value] of Object.entries(options ?? {})) text = text.split(`{{${name}}}`).join(String(value));
+      for (const [name, value] of Object.entries(options ?? {}))
+        text = text.split(`{{${name}}}`).join(String(value));
       return text;
     },
   }),
@@ -29,10 +30,27 @@ beforeEach(() => {
         status: 200,
         json: async () => ({
           source: 'tracker',
-          story: { key: 'SHOP-2', title: 'Pay by card', description: 'As a shopper I pay by card.', acceptance: 'A valid card is charged' },
+          story: {
+            key: 'SHOP-2',
+            title: 'Pay by card',
+            description: 'As a shopper I pay by card.',
+            acceptance: 'A valid card is charged',
+          },
           proposals: [
-            { title: 'Pay with a valid card', kind: 'positive', criterion: 'A valid card is charged', preconditions: 'A cart with one item', steps: [{ action: 'Press Pay', expected: 'Paid' }] },
-            { title: 'Refuse an expired card', kind: 'negative', criterion: '', preconditions: '', steps: [{ action: 'Enter an expired card', expected: 'Card expired' }] },
+            {
+              title: 'Pay with a valid card',
+              kind: 'positive',
+              criterion: 'A valid card is charged',
+              preconditions: 'A cart with one item',
+              steps: [{ action: 'Press Pay', expected: 'Paid' }],
+            },
+            {
+              title: 'Refuse an expired card',
+              kind: 'negative',
+              criterion: '',
+              preconditions: '',
+              steps: [{ action: 'Enter an expired card', expected: 'Card expired' }],
+            },
           ],
         }),
       });
@@ -41,14 +59,25 @@ beforeEach(() => {
       ok: createStatus < 400,
       status: createStatus,
       json: async () =>
-        createStatus === 409 ? { error: 'A test with this name already exists: Pay with a valid card.', names: ['Pay with a valid card'] } : { created: [{ id: 1, name: 'x' }] },
+        createStatus === 409
+          ? {
+              error: 'A test with this name already exists: Pay with a valid card.',
+              names: ['Pay with a valid card'],
+            }
+          : { created: [{ id: 1, name: 'x' }] },
     });
   });
   vi.stubGlobal('fetch', fetchMock);
 });
 
 const renderDialog = (onCreated = vi.fn()) =>
-  render(<GenerateTestsDialog requirement={{ id: 7, key: 'SHOP-2', title: 'Pay by card' }} onClose={() => {}} onCreated={onCreated} />);
+  render(
+    <GenerateTestsDialog
+      requirement={{ id: 7, key: 'SHOP-2', title: 'Pay by card' }}
+      onClose={() => {}}
+      onCreated={onCreated}
+    />,
+  );
 
 describe('GenerateTestsDialog', () => {
   it('asks in the interface language and shows what the story said', async () => {
@@ -67,10 +96,16 @@ describe('GenerateTestsDialog', () => {
     const onCreated = vi.fn();
     renderDialog(onCreated);
     fireEvent.click(screen.getByText('Propose tests'));
-    fireEvent.change(await screen.findByLabelText('Name of test 1'), { target: { value: 'Pay by Visa' } });
-    fireEvent.change(screen.getByLabelText('Expected result 1 of test 1'), { target: { value: 'The order shows Paid' } });
+    fireEvent.change(await screen.findByLabelText('Name of test 1'), {
+      target: { value: 'Pay by Visa' },
+    });
+    fireEvent.change(screen.getByLabelText('Expected result 1 of test 1'), {
+      target: { value: 'The order shows Paid' },
+    });
     fireEvent.click(screen.getAllByText('Add step')[0]);
-    fireEvent.change(screen.getByLabelText('Action 2 of test 1'), { target: { value: 'Open My orders' } });
+    fireEvent.change(screen.getByLabelText('Action 2 of test 1'), {
+      target: { value: 'Open My orders' },
+    });
     fireEvent.click(screen.getByLabelText('Keep Refuse an expired card'));
     fireEvent.click(screen.getByText('Create 1 tests'));
 
@@ -102,6 +137,8 @@ describe('GenerateTestsDialog', () => {
 
     fireEvent.click(screen.getByLabelText('Remove step 1 of test 2'));
     fireEvent.click(screen.getByText('Create 2 tests'));
-    expect(screen.getByRole('alert').textContent).toBe('Every chosen test needs at least one step.');
+    expect(screen.getByRole('alert').textContent).toBe(
+      'Every chosen test needs at least one step.',
+    );
   });
 });

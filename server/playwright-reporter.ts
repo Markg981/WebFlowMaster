@@ -41,7 +41,9 @@ export class PlaywrightReporter {
    */
   private async persistHealedSelector(healedSelector: string): Promise<void> {
     if (this.currentElementId) {
-      const recorded = await recordHealedSelector(this.currentElementId, healedSelector).catch(() => false);
+      const recorded = await recordHealedSelector(this.currentElementId, healedSelector).catch(
+        () => false,
+      );
       if (recorded) return;
       // Fall through: an element that could not be written is no reason to lose the repair.
     }
@@ -49,9 +51,9 @@ export class PlaywrightReporter {
       await aiService.updateSelectorInDb(this.currentTestId, this.currentStepIndex, healedSelector);
     }
   }
-  
+
   resetStepState() {
-      this.lastActionHealed = false;
+    this.lastActionHealed = false;
   }
 
   async goto(url: string, name?: string): Promise<void> {
@@ -59,7 +61,7 @@ export class PlaywrightReporter {
       try {
         await this.page.goto(url);
       } catch (e: any) {
-        await this.handleFailure(e, "Navigation Failed");
+        await this.handleFailure(e, 'Navigation Failed');
         throw e;
       }
     });
@@ -74,20 +76,23 @@ export class PlaywrightReporter {
         // Attempt Self-Healing
         const healedSelector = await this.attemptHeal(selector, e.message);
         if (healedSelector) {
-           try {
-               await reportingService.step(`[Self-Healing] Retrying with ${healedSelector}`, async () => {
-                   await this.highlight(healedSelector);
-                   await this.page.click(healedSelector);
-               });
-                // If success, update DB and set state
-                await this.persistHealedSelector(healedSelector);
-                this.lastActionHealed = true;
-                return; // Success
-           } catch (retryError) {
-               // Fall through to failure
-           }
+          try {
+            await reportingService.step(
+              `[Self-Healing] Retrying with ${healedSelector}`,
+              async () => {
+                await this.highlight(healedSelector);
+                await this.page.click(healedSelector);
+              },
+            );
+            // If success, update DB and set state
+            await this.persistHealedSelector(healedSelector);
+            this.lastActionHealed = true;
+            return; // Success
+          } catch (retryError) {
+            // Fall through to failure
+          }
         }
-        await this.handleFailure(e, "Click Failed");
+        await this.handleFailure(e, 'Click Failed');
         throw e;
       }
     });
@@ -99,19 +104,24 @@ export class PlaywrightReporter {
         await this.highlight(selector);
         await this.page.fill(selector, value);
       } catch (e: any) {
-         const healedSelector = await this.attemptHeal(selector, e.message);
-         if (healedSelector) {
-            try {
-                await reportingService.step(`[Self-Healing] Retrying with ${healedSelector}`, async () => {
-                    await this.highlight(healedSelector);
-                    await this.page.fill(healedSelector, value);
-                });
-                await this.persistHealedSelector(healedSelector);
-                this.lastActionHealed = true;
-                return;
-            } catch { /* retry failed; fall through to failure handling */ }
-         }
-        await this.handleFailure(e, "Fill Failed");
+        const healedSelector = await this.attemptHeal(selector, e.message);
+        if (healedSelector) {
+          try {
+            await reportingService.step(
+              `[Self-Healing] Retrying with ${healedSelector}`,
+              async () => {
+                await this.highlight(healedSelector);
+                await this.page.fill(healedSelector, value);
+              },
+            );
+            await this.persistHealedSelector(healedSelector);
+            this.lastActionHealed = true;
+            return;
+          } catch {
+            /* retry failed; fall through to failure handling */
+          }
+        }
+        await this.handleFailure(e, 'Fill Failed');
         throw e;
       }
     });
@@ -119,25 +129,30 @@ export class PlaywrightReporter {
 
   async selectOption(selector: string, value: string, name?: string): Promise<void> {
     await reportingService.step(name || `Select "${value}" in ${selector}`, async () => {
-       try {
-         await this.highlight(selector);
-         await this.page.selectOption(selector, value);
-       } catch (e: any) {
-         const healedSelector = await this.attemptHeal(selector, e.message);
-         if (healedSelector) {
-            try {
-                await reportingService.step(`[Self-Healing] Retrying with ${healedSelector}`, async () => {
-                    await this.highlight(healedSelector);
-                    await this.page.selectOption(healedSelector, value);
-                });
-                await this.persistHealedSelector(healedSelector);
-                this.lastActionHealed = true;
-                return;
-            } catch { /* retry failed; fall through to failure handling */ }
-         }
-         await this.handleFailure(e, "Select Failed");
-         throw e;
-       }
+      try {
+        await this.highlight(selector);
+        await this.page.selectOption(selector, value);
+      } catch (e: any) {
+        const healedSelector = await this.attemptHeal(selector, e.message);
+        if (healedSelector) {
+          try {
+            await reportingService.step(
+              `[Self-Healing] Retrying with ${healedSelector}`,
+              async () => {
+                await this.highlight(healedSelector);
+                await this.page.selectOption(healedSelector, value);
+              },
+            );
+            await this.persistHealedSelector(healedSelector);
+            this.lastActionHealed = true;
+            return;
+          } catch {
+            /* retry failed; fall through to failure handling */
+          }
+        }
+        await this.handleFailure(e, 'Select Failed');
+        throw e;
+      }
     });
   }
 
@@ -148,20 +163,20 @@ export class PlaywrightReporter {
   }
 
   private async attemptHeal(originalSelector: string, error: string): Promise<string | null> {
-      try {
-          const pageContent = await this.page.content();
-          return await aiService.healSelector(originalSelector, pageContent, error);
-      } catch (e) {
-          console.error("Healing failed to run", e);
-          return null;
-      }
+    try {
+      const pageContent = await this.page.content();
+      return await aiService.healSelector(originalSelector, pageContent, error);
+    } catch (e) {
+      console.error('Healing failed to run', e);
+      return null;
+    }
   }
 
   // The AI's reading of a failure is asked for from the report, on the whole result, when somebody
   // wants it (routes/failure-analysis.routes.ts): here it cost a model call on every failed click
   // and ended up in the server's console, where nobody read it.
   private async handleFailure(_error: any, context: string) {
-      await this.captureScreenshot(`${context} - Error`);
+    await this.captureScreenshot(`${context} - Error`);
   }
 
   private async highlight(selector: string) {
@@ -178,11 +193,13 @@ export class PlaywrightReporter {
 
   private async captureScreenshot(name: string) {
     try {
-        const buffer = await this.page.screenshot();
-        await reportingService.attachScreenshot(name, buffer);
-    } catch (e) { console.error("Snapshot failed"); }
+      const buffer = await this.page.screenshot();
+      await reportingService.attachScreenshot(name, buffer);
+    } catch (e) {
+      console.error('Snapshot failed');
+    }
   }
-  
+
   getPage(): Page {
     return this.page;
   }

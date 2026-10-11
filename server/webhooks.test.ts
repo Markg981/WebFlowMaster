@@ -12,16 +12,26 @@ import { eq, sql } from 'drizzle-orm';
 
 const warn = vi.fn();
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ error: vi.fn(), warn: (...args: unknown[]) => warn(...args), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    error: vi.fn(),
+    warn: (...args: unknown[]) => warn(...args),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 const runTestPlan = vi.fn();
-vi.mock('./test-execution-service', () => ({ runTestPlan: (...args: unknown[]) => runTestPlan(...args) }));
+vi.mock('./test-execution-service', () => ({
+  runTestPlan: (...args: unknown[]) => runTestPlan(...args),
+}));
 
 const { privilegedDb } = await import('./db');
 const { auditLog, testPlans, testPlanWebhooks } = await import('@shared/schema');
 const { createTestOrganization, createTestUser } = await import('./tests/factories');
-const { hashWebhookToken, redactWebhookPath, webhookTokenFromRequest } = await import('./webhook-tokens');
+const { hashWebhookToken, redactWebhookPath, webhookTokenFromRequest } =
+  await import('./webhook-tokens');
 
 let app: express.Express;
 let organizationId: number;
@@ -40,8 +50,15 @@ beforeAll(async () => {
   editor = { id: ownerId, organizationId, role: 'editor', username: 'ada' };
   planId = uuidv4();
   otherPlanId = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Deploy checks', userId: ownerId, organizationId });
-  await privilegedDb.insert(testPlans).values({ id: otherPlanId, name: 'Theirs', userId: otherOwner, organizationId: otherOrganizationId });
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Deploy checks', userId: ownerId, organizationId });
+  await privilegedDb.insert(testPlans).values({
+    id: otherPlanId,
+    name: 'Theirs',
+    userId: otherOwner,
+    organizationId: otherOrganizationId,
+  });
 
   const { default: managementRoutes } = await import('./routes/webhooks.routes');
   const { webhooksRouter } = await import('./webhooks');
@@ -67,7 +84,10 @@ beforeEach(() => {
 });
 
 async function createWebhook(name = 'GitHub Actions') {
-  const response = await request(app).post(`/api/test-plans/${planId}/webhooks`).send({ name }).expect(201);
+  const response = await request(app)
+    .post(`/api/test-plans/${planId}/webhooks`)
+    .send({ name })
+    .expect(201);
   return response.body as { id: number; token: string; tokenPrefix: string };
 }
 
@@ -80,13 +100,17 @@ describe('webhook tokens', () => {
   });
 
   it('are masked in a logged path', () => {
-    expect(redactWebhookPath('/api/webhooks/execute/wfmwh_secret')).toBe('/api/webhooks/execute/[redacted]');
+    expect(redactWebhookPath('/api/webhooks/execute/wfmwh_secret')).toBe(
+      '/api/webhooks/execute/[redacted]',
+    );
     expect(redactWebhookPath('/api/test-plans/1')).toBe('/api/test-plans/1');
   });
 
   it('hash in the database exactly as in the application, so the migration keeps existing webhooks working', async () => {
     const token = 'legacy-token-9f2c';
-    const result = await privilegedDb.execute(sql`select encode(sha256(convert_to(${token}, 'UTF8')), 'hex') as h`);
+    const result = await privilegedDb.execute(
+      sql`select encode(sha256(convert_to(${token}, 'UTF8')), 'hex') as h`,
+    );
     const rows = (result as any).rows ?? result;
     expect(rows[0].h).toBe(hashWebhookToken(token));
   });
@@ -98,7 +122,10 @@ describe('managing webhooks', () => {
 
     expect(created.token).toMatch(/^wfmwh_/);
     expect(created.tokenPrefix).toBe(created.token.slice(0, 12));
-    const [row] = await privilegedDb.select().from(testPlanWebhooks).where(eq(testPlanWebhooks.id, created.id));
+    const [row] = await privilegedDb
+      .select()
+      .from(testPlanWebhooks)
+      .where(eq(testPlanWebhooks.id, created.id));
     expect(row.tokenHash).toBe(hashWebhookToken(created.token));
     expect(JSON.stringify(row)).not.toContain(created.token);
 
@@ -108,13 +135,19 @@ describe('managing webhooks', () => {
     expect(mine.token).toBeUndefined();
     expect(mine.tokenHash).toBeUndefined();
 
-    const audits = await privilegedDb.select().from(auditLog).where(eq(auditLog.targetId, String(created.id)));
+    const audits = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.targetId, String(created.id)));
     expect(audits.map((a) => a.action)).toContain('webhook.created');
     expect(JSON.stringify(audits)).not.toContain(created.token);
   });
 
   it("cannot create one for another organization's plan", async () => {
-    await request(app).post(`/api/test-plans/${otherPlanId}/webhooks`).send({ name: 'x' }).expect(404);
+    await request(app)
+      .post(`/api/test-plans/${otherPlanId}/webhooks`)
+      .send({ name: 'x' })
+      .expect(404);
   });
 
   it('is not for a viewer', async () => {
@@ -127,10 +160,17 @@ describe('triggering a plan', () => {
   it('starts the plan with the token in a header, on behalf of its owner', async () => {
     const { token } = await createWebhook();
 
-    const response = await request(app).post('/api/webhooks/execute').set('X-Webhook-Token', token).expect(202);
+    const response = await request(app)
+      .post('/api/webhooks/execute')
+      .set('X-Webhook-Token', token)
+      .expect(202);
 
     expect(response.body).toMatchObject({ success: true, testPlanRunId: 'run-1' });
-    expect(runTestPlan).toHaveBeenCalledWith(planId, ownerId, expect.objectContaining({ trigger: 'webhook' }));
+    expect(runTestPlan).toHaveBeenCalledWith(
+      planId,
+      ownerId,
+      expect.objectContaining({ trigger: 'webhook' }),
+    );
   });
 
   it('still accepts the URL existing pipelines were given', async () => {
@@ -140,7 +180,10 @@ describe('triggering a plan', () => {
   });
 
   it('refuses a wrong token without writing it to the log', async () => {
-    await request(app).post('/api/webhooks/execute').set('X-Webhook-Token', 'wfmwh_not-a-real-token-at-all').expect(401);
+    await request(app)
+      .post('/api/webhooks/execute')
+      .set('X-Webhook-Token', 'wfmwh_not-a-real-token-at-all')
+      .expect(401);
 
     expect(runTestPlan).not.toHaveBeenCalled();
     expect(JSON.stringify(warn.mock.calls)).not.toContain('not-a-real-token-at-all');
@@ -159,7 +202,7 @@ describe('triggering a plan', () => {
     expect(runTestPlan).not.toHaveBeenCalled();
   });
 
-  it("cannot be deleted from another organization", async () => {
+  it('cannot be deleted from another organization', async () => {
     const { id, token } = await createWebhook();
     currentUser = { ...editor, organizationId: otherOrganizationId };
 

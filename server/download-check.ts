@@ -48,14 +48,19 @@ export function parseCsv(text: string): string[][] {
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
     if (quoted) {
-      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
-      else if (c === '"') quoted = false;
+      if (c === '"' && text[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (c === '"') quoted = false;
       else field += c;
     } else if (c === '"' && field === '') quoted = true;
-    else if (c === delimiter) { row.push(field); field = ''; }
-    else if (c === '\n' || c === '\r') {
+    else if (c === delimiter) {
+      row.push(field);
+      field = '';
+    } else if (c === '\n' || c === '\r') {
       if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(field); field = '';
+      row.push(field);
+      field = '';
       if (row.some((cell) => cell !== '')) rows.push(row);
       row = [];
     } else field += c;
@@ -65,7 +70,10 @@ export function parseCsv(text: string): string[][] {
   return rows;
 }
 
-export async function inspectDownload(file: string, name: string): Promise<{ file: DownloadedFile; text: string }> {
+export async function inspectDownload(
+  file: string,
+  name: string,
+): Promise<{ file: DownloadedFile; text: string }> {
   const buffer = await fs.readFile(file);
   const type = typeOf(name, buffer.subarray(0, 8));
   const base = { name, type, size: buffer.length };
@@ -84,7 +92,17 @@ export async function inspectDownload(file: string, name: string): Promise<{ fil
     const sheet = workbook.worksheets[0];
     const rows: string[][] = [];
     sheet?.eachRow({ includeEmpty: false }, (r) => {
-      const values = (r.values as unknown[]).slice(1).map((v) => (v === null || v === undefined ? '' : typeof v === 'object' && v && 'text' in (v as object) ? String((v as { text: unknown }).text) : typeof v === 'object' && v && 'result' in (v as object) ? String((v as { result: unknown }).result) : String(v)));
+      const values = (r.values as unknown[])
+        .slice(1)
+        .map((v) =>
+          v === null || v === undefined
+            ? ''
+            : typeof v === 'object' && v && 'text' in (v as object)
+              ? String((v as { text: unknown }).text)
+              : typeof v === 'object' && v && 'result' in (v as object)
+                ? String((v as { result: unknown }).result)
+                : String(v),
+        );
       rows.push(values);
     });
     text = rows.map((r) => r.join(' ')).join('\n');
@@ -97,5 +115,8 @@ export async function inspectDownload(file: string, name: string): Promise<{ fil
       text = rows.map((r) => r.join(' ')).join('\n');
     }
   }
-  return { file: { ...base, ...extra, sample: text.replace(/\s+/g, ' ').trim().slice(0, 300) }, text: text.slice(0, MAX_TEXT) };
+  return {
+    file: { ...base, ...extra, sample: text.replace(/\s+/g, ' ').trim().slice(0, 300) },
+    text: text.slice(0, MAX_TEXT),
+  };
 }

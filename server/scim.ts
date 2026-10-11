@@ -69,11 +69,22 @@ export const SCHEMAS = {
 /** The most resources one page lists. */
 export const MAX_PAGE = 200;
 
-export type ScimType = 'invalidFilter' | 'invalidValue' | 'invalidPath' | 'invalidSyntax' | 'uniqueness' | 'mutability' | 'noTarget';
+export type ScimType =
+  | 'invalidFilter'
+  | 'invalidValue'
+  | 'invalidPath'
+  | 'invalidSyntax'
+  | 'uniqueness'
+  | 'mutability'
+  | 'noTarget';
 
 /** An answer in SCIM's own error format (RFC 7644 §3.12). */
 export class ScimError extends Error {
-  constructor(readonly status: number, readonly detail: string, readonly scimType?: ScimType) {
+  constructor(
+    readonly status: number,
+    readonly detail: string,
+    readonly scimType?: ScimType,
+  ) {
     super(detail);
   }
 }
@@ -109,7 +120,13 @@ async function audit(
   });
 }
 
-async function ownerAudit(tx: Tx, organizationId: number, actor: AuditActor, action: AuditAction, metadata?: Record<string, unknown>) {
+async function ownerAudit(
+  tx: Tx,
+  organizationId: number,
+  actor: AuditActor,
+  action: AuditAction,
+  metadata?: Record<string, unknown>,
+) {
   await tx.insert(auditLog).values({
     organizationId,
     actorUserId: actor.id,
@@ -140,18 +157,32 @@ export interface ScimTokenStatus {
  * hash is kept. Null when single sign-on is not set up: provisioning creates accounts that sign in
  * through it.
  */
-export async function issueScimToken(organizationId: number, actor: AuditActor): Promise<{ token: string; status: ScimTokenStatus } | null> {
+export async function issueScimToken(
+  organizationId: number,
+  actor: AuditActor,
+): Promise<{ token: string; status: ScimTokenStatus } | null> {
   const token = `${SCIM_TOKEN_PREFIX}_${randomBytes(32).toString('base64url')}`;
-  const status: ScimTokenStatus = { prefix: token.slice(0, VISIBLE_PREFIX_LENGTH), createdAt: new Date(), lastUsedAt: null };
+  const status: ScimTokenStatus = {
+    prefix: token.slice(0, VISIBLE_PREFIX_LENGTH),
+    createdAt: new Date(),
+    lastUsedAt: null,
+  };
   const issued = await privilegedDb.transaction(async (tx) => {
     const [row] = await tx
       .update(organizationSso)
-      .set({ scimTokenHash: hashToken(token), scimTokenPrefix: status.prefix, scimTokenCreatedAt: status.createdAt, scimTokenLastUsedAt: null })
+      .set({
+        scimTokenHash: hashToken(token),
+        scimTokenPrefix: status.prefix,
+        scimTokenCreatedAt: status.createdAt,
+        scimTokenLastUsedAt: null,
+      })
       .where(eq(organizationSso.organizationId, organizationId))
       // No argument: the builder's overloads collapse across the two drivers' union (see organization.routes.ts).
       .returning();
     if (!row) return false;
-    await ownerAudit(tx, organizationId, actor, AUDIT_ACTIONS.SCIM_TOKEN_ISSUED, { prefix: status.prefix });
+    await ownerAudit(tx, organizationId, actor, AUDIT_ACTIONS.SCIM_TOKEN_ISSUED, {
+      prefix: status.prefix,
+    });
     return true;
   });
   return issued ? { token, status } : null;
@@ -167,9 +198,16 @@ export async function revokeScimToken(organizationId: number, actor: AuditActor)
     if (!row?.prefix) return false;
     await tx
       .update(organizationSso)
-      .set({ scimTokenHash: null, scimTokenPrefix: null, scimTokenCreatedAt: null, scimTokenLastUsedAt: null })
+      .set({
+        scimTokenHash: null,
+        scimTokenPrefix: null,
+        scimTokenCreatedAt: null,
+        scimTokenLastUsedAt: null,
+      })
       .where(eq(organizationSso.organizationId, organizationId));
-    await ownerAudit(tx, organizationId, actor, AUDIT_ACTIONS.SCIM_TOKEN_REVOKED, { prefix: row.prefix });
+    await ownerAudit(tx, organizationId, actor, AUDIT_ACTIONS.SCIM_TOKEN_REVOKED, {
+      prefix: row.prefix,
+    });
     return true;
   });
 }
@@ -195,7 +233,10 @@ export async function organizationForScimToken(token: string): Promise<number | 
   const last = recentlyUsed.get(row.organizationId);
   if (last === undefined || now - last >= LAST_USED_WRITE_INTERVAL_MS) {
     recentlyUsed.set(row.organizationId, now);
-    await privilegedDb.update(organizationSso).set({ scimTokenLastUsedAt: new Date(now) }).where(eq(organizationSso.organizationId, row.organizationId));
+    await privilegedDb
+      .update(organizationSso)
+      .set({ scimTokenLastUsedAt: new Date(now) })
+      .where(eq(organizationSso.organizationId, row.organizationId));
   }
   return row.organizationId;
 }
@@ -212,17 +253,29 @@ export function resetScimUsageThrottle(): void {
  * and Okta ask `userName eq "…"`, `externalId eq "…"` and `displayName eq "…"`, and nothing more
  * elaborate; anything else is refused as an invalid filter rather than answered wrongly.
  */
-export function parseFilter(filter: string | undefined, attributes: readonly string[]): { attribute: string; value: string } | null {
+export function parseFilter(
+  filter: string | undefined,
+  attributes: readonly string[],
+): { attribute: string; value: string } | null {
   if (filter === undefined || filter.trim() === '') return null;
   const match = /^\s*([A-Za-z][\w.:-]*)\s+eq\s+"((?:[^"\\]|\\.)*)"\s*$/i.exec(filter);
-  const attribute = match ? attributes.find((a) => a.toLowerCase() === match[1].toLowerCase()) : undefined;
+  const attribute = match
+    ? attributes.find((a) => a.toLowerCase() === match[1].toLowerCase())
+    : undefined;
   if (!match || !attribute) {
-    throw new ScimError(400, `Only "<attribute> eq \\"value\\"" is supported, on ${attributes.join(', ')}.`, 'invalidFilter');
+    throw new ScimError(
+      400,
+      `Only "<attribute> eq \\"value\\"" is supported, on ${attributes.join(', ')}.`,
+      'invalidFilter',
+    );
   }
   return { attribute, value: match[2].replace(/\\(.)/g, '$1') };
 }
 
-export function paging(query: { startIndex?: unknown; count?: unknown }): { startIndex: number; count: number } {
+export function paging(query: { startIndex?: unknown; count?: unknown }): {
+  startIndex: number;
+  count: number;
+} {
   const startIndex = Math.max(1, Number.parseInt(String(query.startIndex ?? '1'), 10) || 1);
   const asked = Number.parseInt(String(query.count ?? MAX_PAGE), 10);
   const count = Math.min(MAX_PAGE, Math.max(0, Number.isNaN(asked) ? MAX_PAGE : asked));
@@ -230,19 +283,27 @@ export function paging(query: { startIndex?: unknown; count?: unknown }): { star
 }
 
 function listResponse(resources: unknown[], total: number, startIndex: number) {
-  return { schemas: [SCHEMAS.list], totalResults: total, startIndex, itemsPerPage: resources.length, Resources: resources };
+  return {
+    schemas: [SCHEMAS.list],
+    totalResults: total,
+    startIndex,
+    itemsPerPage: resources.length,
+    Resources: resources,
+  };
 }
 
 /** `true`, `"True"`: Entra ID sends booleans as strings in PATCH. */
 function asBoolean(value: unknown): boolean | undefined {
   if (typeof value === 'boolean') return value;
-  if (typeof value === 'string' && /^(true|false)$/i.test(value.trim())) return value.trim().toLowerCase() === 'true';
+  if (typeof value === 'string' && /^(true|false)$/i.test(value.trim()))
+    return value.trim().toLowerCase() === 'true';
   return undefined;
 }
 
 function asOptionalString(value: unknown, name: string): string | null {
   if (value === null || value === undefined) return null;
-  if (typeof value !== 'string') throw new ScimError(400, `${name} must be a string.`, 'invalidValue');
+  if (typeof value !== 'string')
+    throw new ScimError(400, `${name} must be a string.`, 'invalidValue');
   return value.trim() === '' ? null : value.trim().slice(0, 500);
 }
 
@@ -256,12 +317,18 @@ interface PatchOperation {
 export function patchOperations(body: unknown): PatchOperation[] {
   const operations = (body as { Operations?: unknown })?.Operations;
   if (!Array.isArray(operations) || operations.length === 0) {
-    throw new ScimError(400, 'A PATCH carries Operations: a list of add, replace or remove.', 'invalidSyntax');
+    throw new ScimError(
+      400,
+      'A PATCH carries Operations: a list of add, replace or remove.',
+      'invalidSyntax',
+    );
   }
   return operations.map((raw) => {
     const op = typeof raw?.op === 'string' ? raw.op.toLowerCase() : '';
-    if (op !== 'add' && op !== 'replace' && op !== 'remove') throw new ScimError(400, `Unknown operation "${raw?.op}".`, 'invalidSyntax');
-    const path = typeof raw.path === 'string' && raw.path.trim() !== '' ? raw.path.trim() : undefined;
+    if (op !== 'add' && op !== 'replace' && op !== 'remove')
+      throw new ScimError(400, `Unknown operation "${raw?.op}".`, 'invalidSyntax');
+    const path =
+      typeof raw.path === 'string' && raw.path.trim() !== '' ? raw.path.trim() : undefined;
     return { op, path, value: raw.value };
   });
 }
@@ -279,20 +346,37 @@ const userColumns = {
   externalId: scimUsers.externalId,
   updatedAt: scimUsers.updatedAt,
 };
-type UserRow = { id: number; username: string; role: string; disabledAt: Date | null; createdAt: Date; externalId: string | null; updatedAt: Date | null };
+type UserRow = {
+  id: number;
+  username: string;
+  role: string;
+  disabledAt: Date | null;
+  createdAt: Date;
+  externalId: string | null;
+  updatedAt: Date | null;
+};
 
 function personOf(organizationId: number): SQL {
   return and(eq(users.organizationId, organizationId), eq(users.kind, 'person'))!;
 }
 
-async function groupsOfUsers(organizationId: number, userIds: number[]): Promise<Map<number, Array<{ value: string; display: string }>>> {
+async function groupsOfUsers(
+  organizationId: number,
+  userIds: number[],
+): Promise<Map<number, Array<{ value: string; display: string }>>> {
   const map = new Map<number, Array<{ value: string; display: string }>>();
   if (userIds.length === 0) return map;
   const rows = await privilegedDb
-    .select({ userId: scimGroupMembers.userId, id: scimGroups.id, displayName: scimGroups.displayName })
+    .select({
+      userId: scimGroupMembers.userId,
+      id: scimGroups.id,
+      displayName: scimGroups.displayName,
+    })
     .from(scimGroupMembers)
     .innerJoin(scimGroups, eq(scimGroups.id, scimGroupMembers.groupId))
-    .where(and(eq(scimGroups.organizationId, organizationId), inArray(scimGroupMembers.userId, userIds)))
+    .where(
+      and(eq(scimGroups.organizationId, organizationId), inArray(scimGroupMembers.userId, userIds)),
+    )
     .orderBy(asc(scimGroups.displayName));
   for (const row of rows) {
     const list = map.get(row.userId) ?? [];
@@ -302,7 +386,11 @@ async function groupsOfUsers(organizationId: number, userIds: number[]): Promise
   return map;
 }
 
-function toScimUser(context: ScimContext, row: UserRow, groups: Array<{ value: string; display: string }>) {
+function toScimUser(
+  context: ScimContext,
+  row: UserRow,
+  groups: Array<{ value: string; display: string }>,
+) {
   return {
     schemas: [SCHEMAS.user],
     id: String(row.id),
@@ -325,7 +413,8 @@ function toScimUser(context: ScimContext, row: UserRow, groups: Array<{ value: s
 
 function userId(id: string): number {
   const n = Number(id);
-  if (!/^\d{1,10}$/.test(id) || !Number.isSafeInteger(n)) throw new ScimError(404, `No user ${id}.`);
+  if (!/^\d{1,10}$/.test(id) || !Number.isSafeInteger(n))
+    throw new ScimError(404, `No user ${id}.`);
   return n;
 }
 
@@ -336,20 +425,36 @@ async function readUser(context: ScimContext, id: number) {
     .leftJoin(scimUsers, eq(scimUsers.userId, users.id))
     .where(and(eq(users.id, id), personOf(context.organizationId)));
   if (!row) throw new ScimError(404, `No user ${id}.`);
-  return toScimUser(context, row, (await groupsOfUsers(context.organizationId, [id])).get(id) ?? []);
+  return toScimUser(
+    context,
+    row,
+    (await groupsOfUsers(context.organizationId, [id])).get(id) ?? [],
+  );
 }
 
 export async function getUser(context: ScimContext, id: string) {
   return readUser(context, userId(id));
 }
 
-export async function listUsers(context: ScimContext, query: { filter?: string; startIndex?: unknown; count?: unknown }) {
-  const filter = parseFilter(query.filter, ['userName', 'externalId', 'id', 'emails.value', 'emails']);
+export async function listUsers(
+  context: ScimContext,
+  query: { filter?: string; startIndex?: unknown; count?: unknown },
+) {
+  const filter = parseFilter(query.filter, [
+    'userName',
+    'externalId',
+    'id',
+    'emails.value',
+    'emails',
+  ]);
   const { startIndex, count } = paging(query);
   const conditions = [personOf(context.organizationId)];
   if (filter) {
     if (filter.attribute === 'externalId') conditions.push(eq(scimUsers.externalId, filter.value));
-    else if (filter.attribute === 'id') conditions.push(/^\d{1,10}$/.test(filter.value) ? eq(users.id, Number(filter.value)) : sql`false`);
+    else if (filter.attribute === 'id')
+      conditions.push(
+        /^\d{1,10}$/.test(filter.value) ? eq(users.id, Number(filter.value)) : sql`false`,
+      );
     // userName and the address are one value here, compared without case like the sign-in does.
     else conditions.push(sql`lower(${users.username}) = ${filter.value.trim().toLowerCase()}`);
   }
@@ -359,18 +464,26 @@ export async function listUsers(context: ScimContext, query: { filter?: string; 
     .from(users)
     .leftJoin(scimUsers, eq(scimUsers.userId, users.id))
     .where(where);
-  const rows = count === 0
-    ? []
-    : await privilegedDb
-        .select(userColumns)
-        .from(users)
-        .leftJoin(scimUsers, eq(scimUsers.userId, users.id))
-        .where(where)
-        .orderBy(asc(users.id))
-        .offset(startIndex - 1)
-        .limit(count);
-  const groups = await groupsOfUsers(context.organizationId, rows.map((r) => r.id));
-  return listResponse(rows.map((r) => toScimUser(context, r, groups.get(r.id) ?? [])), total, startIndex);
+  const rows =
+    count === 0
+      ? []
+      : await privilegedDb
+          .select(userColumns)
+          .from(users)
+          .leftJoin(scimUsers, eq(scimUsers.userId, users.id))
+          .where(where)
+          .orderBy(asc(users.id))
+          .offset(startIndex - 1)
+          .limit(count);
+  const groups = await groupsOfUsers(
+    context.organizationId,
+    rows.map((r) => r.id),
+  );
+  return listResponse(
+    rows.map((r) => toScimUser(context, r, groups.get(r.id) ?? [])),
+    total,
+    startIndex,
+  );
 }
 
 interface UserChanges {
@@ -386,12 +499,14 @@ function userChangesFrom(body: Record<string, unknown>): UserChanges {
   for (const [key, value] of Object.entries(body ?? {})) {
     switch (key.toLowerCase()) {
       case 'username':
-        if (typeof value !== 'string') throw new ScimError(400, 'userName must be a string.', 'invalidValue');
+        if (typeof value !== 'string')
+          throw new ScimError(400, 'userName must be a string.', 'invalidValue');
         changes.userName = value;
         break;
       case 'active': {
         const active = asBoolean(value);
-        if (active === undefined) throw new ScimError(400, 'active must be true or false.', 'invalidValue');
+        if (active === undefined)
+          throw new ScimError(400, 'active must be true or false.', 'invalidValue');
         changes.active = active;
         break;
       }
@@ -407,9 +522,16 @@ function userChangesFrom(body: Record<string, unknown>): UserChanges {
 async function checkedUserName(tx: Tx, organizationId: number, userName: string): Promise<string> {
   const address = userName.trim().toLowerCase();
   if (!EMAIL.test(address) || address.length > 320) {
-    throw new ScimError(400, 'userName must be the person\'s e-mail address: they sign in through the identity provider with it.', 'invalidValue');
+    throw new ScimError(
+      400,
+      "userName must be the person's e-mail address: they sign in through the identity provider with it.",
+      'invalidValue',
+    );
   }
-  const domains = await tx.select({ domain: ssoDomains.domain }).from(ssoDomains).where(eq(ssoDomains.organizationId, organizationId));
+  const domains = await tx
+    .select({ domain: ssoDomains.domain })
+    .from(ssoDomains)
+    .where(eq(ssoDomains.organizationId, organizationId));
   if (!domains.some((d) => d.domain === address.split('@')[1])) {
     throw new ScimError(
       400,
@@ -417,7 +539,11 @@ async function checkedUserName(tx: Tx, organizationId: number, userName: string)
       'invalidValue',
     );
   }
-  const [taken] = await tx.select({ id: users.id, organizationId: users.organizationId }).from(users).where(sql`lower(${users.username}) = ${address}`).limit(1);
+  const [taken] = await tx
+    .select({ id: users.id, organizationId: users.organizationId })
+    .from(users)
+    .where(sql`lower(${users.username}) = ${address}`)
+    .limit(1);
   if (taken) {
     throw new ScimError(
       409,
@@ -431,11 +557,22 @@ async function checkedUserName(tx: Tx, organizationId: number, userName: string)
 }
 
 /** Whether someone other than `userId` is an active owner of the organization. */
-async function anotherActiveOwner(tx: Pick<Tx, 'select'>, organizationId: number, userId: number): Promise<boolean> {
+async function anotherActiveOwner(
+  tx: Pick<Tx, 'select'>,
+  organizationId: number,
+  userId: number,
+): Promise<boolean> {
   const [{ others }] = await tx
     .select({ others: sql<number>`count(*)::int` })
     .from(users)
-    .where(and(eq(users.organizationId, organizationId), eq(users.role, 'owner'), ne(users.id, userId), isNull(users.disabledAt)));
+    .where(
+      and(
+        eq(users.organizationId, organizationId),
+        eq(users.role, 'owner'),
+        ne(users.id, userId),
+        isNull(users.disabledAt),
+      ),
+    );
   return others > 0;
 }
 
@@ -446,12 +583,21 @@ function unusablePassword(): string {
 
 export async function createUser(context: ScimContext, body: Record<string, unknown>) {
   const changes = userChangesFrom(body);
-  if (changes.userName === undefined) throw new ScimError(400, 'userName is required.', 'invalidValue');
+  if (changes.userName === undefined)
+    throw new ScimError(400, 'userName is required.', 'invalidValue');
   const { organizationId } = context;
   try {
     const id = await privilegedDb.transaction(async (tx) => {
-      const [provider] = await tx.select({ defaultRole: organizationSso.defaultRole }).from(organizationSso).where(eq(organizationSso.organizationId, organizationId));
-      if (!provider) throw new ScimError(400, 'Single sign-on is not set up for this organization.', 'invalidValue');
+      const [provider] = await tx
+        .select({ defaultRole: organizationSso.defaultRole })
+        .from(organizationSso)
+        .where(eq(organizationSso.organizationId, organizationId));
+      if (!provider)
+        throw new ScimError(
+          400,
+          'Single sign-on is not set up for this organization.',
+          'invalidValue',
+        );
       const username = await checkedUserName(tx, organizationId, changes.userName!);
       const [user] = await tx
         .insert(users)
@@ -464,7 +610,9 @@ export async function createUser(context: ScimContext, body: Record<string, unkn
           disabledAt: changes.active === false ? new Date() : null,
         })
         .returning();
-      await tx.insert(scimUsers).values({ userId: user.id, organizationId, externalId: changes.externalId ?? null });
+      await tx
+        .insert(scimUsers)
+        .values({ userId: user.id, organizationId, externalId: changes.externalId ?? null });
       await audit(tx, context, AUDIT_ACTIONS.MEMBER_PROVISIONED, 'user', user.id, {
         username,
         role: provider.defaultRole,
@@ -478,7 +626,8 @@ export async function createUser(context: ScimContext, body: Record<string, unkn
     return readUser(context, id);
   } catch (error) {
     // Two creations of one address at once: the unique username decides.
-    if (sqlState(error) === '23505') throw new ScimError(409, `${changes.userName} already has an account.`, 'uniqueness');
+    if (sqlState(error) === '23505')
+      throw new ScimError(409, `${changes.userName} already has an account.`, 'uniqueness');
     throw error;
   }
 }
@@ -488,23 +637,42 @@ async function applyUserChanges(context: ScimContext, id: number, changes: UserC
   try {
     await privilegedDb.transaction(async (tx) => {
       const [user] = await tx
-        .select({ id: users.id, username: users.username, role: users.role, disabledAt: users.disabledAt })
+        .select({
+          id: users.id,
+          username: users.username,
+          role: users.role,
+          disabledAt: users.disabledAt,
+        })
         .from(users)
         .where(and(eq(users.id, id), personOf(organizationId)));
       if (!user) throw new ScimError(404, `No user ${id}.`);
       let blockedByGroups = false;
 
-      if (changes.userName !== undefined && changes.userName.trim().toLowerCase() !== user.username.toLowerCase()) {
+      if (
+        changes.userName !== undefined &&
+        changes.userName.trim().toLowerCase() !== user.username.toLowerCase()
+      ) {
         const username = await checkedUserName(tx, organizationId, changes.userName);
         await tx.update(users).set({ username }).where(eq(users.id, id));
-        await audit(tx, context, AUDIT_ACTIONS.MEMBER_RENAMED, 'user', id, { from: user.username, to: username, byScim: true });
+        await audit(tx, context, AUDIT_ACTIONS.MEMBER_RENAMED, 'user', id, {
+          from: user.username,
+          to: username,
+          byScim: true,
+        });
       }
       if (changes.active === false && user.disabledAt === null) {
         if (user.role === 'owner' && !(await anotherActiveOwner(tx, organizationId, id))) {
-          throw new ScimError(409, 'This is the organization\'s last active owner: make someone else an owner first.', 'mutability');
+          throw new ScimError(
+            409,
+            "This is the organization's last active owner: make someone else an owner first.",
+            'mutability',
+          );
         }
         await tx.update(users).set({ disabledAt: new Date() }).where(eq(users.id, id));
-        await audit(tx, context, AUDIT_ACTIONS.MEMBER_DEACTIVATED, 'user', id, { username: user.username, byScim: true });
+        await audit(tx, context, AUDIT_ACTIONS.MEMBER_DEACTIVATED, 'user', id, {
+          username: user.username,
+          byScim: true,
+        });
       } else if (changes.active === true && user.disabledAt !== null) {
         // The provider says active; "require a group" still refuses someone in none of the mapped
         // groups, and lets them back when they join one.
@@ -513,15 +681,24 @@ async function applyUserChanges(context: ScimContext, id: number, changes: UserC
           blockedByGroups = true;
         } else {
           await tx.update(users).set({ disabledAt: null }).where(eq(users.id, id));
-          await audit(tx, context, AUDIT_ACTIONS.MEMBER_REACTIVATED, 'user', id, { username: user.username, byScim: true });
+          await audit(tx, context, AUDIT_ACTIONS.MEMBER_REACTIVATED, 'user', id, {
+            username: user.username,
+            byScim: true,
+          });
         }
       }
       // Any change from the provider makes the account one it manages (a member who was here first is
       // adopted). Its own word on `active` decides whether the groups are why the account is off.
-      const disabledByGroups = changes.active === false ? false : changes.active === true ? blockedByGroups : undefined;
+      const disabledByGroups =
+        changes.active === false ? false : changes.active === true ? blockedByGroups : undefined;
       await tx
         .insert(scimUsers)
-        .values({ userId: id, organizationId, externalId: changes.externalId ?? null, disabledByGroups: disabledByGroups ?? false })
+        .values({
+          userId: id,
+          organizationId,
+          externalId: changes.externalId ?? null,
+          disabledByGroups: disabledByGroups ?? false,
+        })
         .onConflictDoUpdate({
           target: scimUsers.userId,
           set: {
@@ -532,7 +709,8 @@ async function applyUserChanges(context: ScimContext, id: number, changes: UserC
         });
     });
   } catch (error) {
-    if (sqlState(error) === '23505') throw new ScimError(409, `${changes.userName} already has an account.`, 'uniqueness');
+    if (sqlState(error) === '23505')
+      throw new ScimError(409, `${changes.userName} already has an account.`, 'uniqueness');
     throw error;
   }
   return readUser(context, id);
@@ -548,14 +726,20 @@ export async function patchUser(context: ScimContext, id: string, body: unknown)
   for (const operation of patchOperations(body)) {
     if (!operation.path) {
       if (operation.op === 'remove') throw new ScimError(400, 'remove needs a path.', 'noTarget');
-      if (!operation.value || typeof operation.value !== 'object') throw new ScimError(400, 'Without a path the value is an object of attributes.', 'invalidValue');
+      if (!operation.value || typeof operation.value !== 'object')
+        throw new ScimError(
+          400,
+          'Without a path the value is an object of attributes.',
+          'invalidValue',
+        );
       Object.assign(changes, userChangesFrom(operation.value as Record<string, unknown>));
       continue;
     }
     const path = operation.path.toLowerCase();
     if (operation.op === 'remove') {
       if (path === 'externalid') changes.externalId = null;
-      else if (path === 'username' || path === 'active') throw new ScimError(400, `${operation.path} cannot be removed.`, 'mutability');
+      else if (path === 'username' || path === 'active')
+        throw new ScimError(400, `${operation.path} cannot be removed.`, 'mutability');
       continue;
     }
     if (path === 'username' || path === 'active' || path === 'externalid') {
@@ -583,10 +767,23 @@ export async function deleteUser(context: ScimContext, id: string) {
       const [heir] = await tx
         .select({ id: users.id, username: users.username })
         .from(users)
-        .where(and(eq(users.organizationId, organizationId), eq(users.role, 'owner'), eq(users.kind, 'person'), ne(users.id, target), isNull(users.disabledAt)))
+        .where(
+          and(
+            eq(users.organizationId, organizationId),
+            eq(users.role, 'owner'),
+            eq(users.kind, 'person'),
+            ne(users.id, target),
+            isNull(users.disabledAt),
+          ),
+        )
         .orderBy(asc(users.createdAt), asc(users.id))
         .limit(1);
-      if (!heir) throw new ScimError(409, 'This is the organization\'s last active owner: make someone else an owner first.', 'mutability');
+      if (!heir)
+        throw new ScimError(
+          409,
+          "This is the organization's last active owner: make someone else an owner first.",
+          'mutability',
+        );
       const transferred = await transferMemberContent(tx, organizationId, target, heir.id);
       // Before the delete, like the owner's removal: the entry outlives the account.
       await audit(tx, context, AUDIT_ACTIONS.MEMBER_REMOVED, 'user', target, {
@@ -596,7 +793,9 @@ export async function deleteUser(context: ScimContext, id: string) {
         transferred,
         byScim: true,
       });
-      await tx.delete(users).where(and(eq(users.id, target), eq(users.organizationId, organizationId)));
+      await tx
+        .delete(users)
+        .where(and(eq(users.id, target), eq(users.organizationId, organizationId)));
     }),
   );
 }
@@ -605,7 +804,9 @@ export async function deleteUser(context: ScimContext, id: string) {
 
 type GroupRow = typeof scimGroups.$inferSelect;
 
-async function membersOf(groupIds: string[]): Promise<Map<string, Array<{ value: string; display: string }>>> {
+async function membersOf(
+  groupIds: string[],
+): Promise<Map<string, Array<{ value: string; display: string }>>> {
   const map = new Map<string, Array<{ value: string; display: string }>>();
   if (groupIds.length === 0) return map;
   const rows = await privilegedDb
@@ -622,13 +823,19 @@ async function membersOf(groupIds: string[]): Promise<Map<string, Array<{ value:
   return map;
 }
 
-function toScimGroup(context: ScimContext, row: GroupRow, members: Array<{ value: string; display: string }> | null) {
+function toScimGroup(
+  context: ScimContext,
+  row: GroupRow,
+  members: Array<{ value: string; display: string }> | null,
+) {
   return {
     schemas: [SCHEMAS.group],
     id: row.id,
     displayName: row.displayName,
     ...(row.externalId ? { externalId: row.externalId } : {}),
-    ...(members ? { members: members.map((m) => ({ ...m, $ref: `${context.baseUrl}/Users/${m.value}` })) } : {}),
+    ...(members
+      ? { members: members.map((m) => ({ ...m, $ref: `${context.baseUrl}/Users/${m.value}` })) }
+      : {}),
     meta: {
       resourceType: 'Group',
       created: row.createdAt.toISOString(),
@@ -640,33 +847,63 @@ function toScimGroup(context: ScimContext, row: GroupRow, members: Array<{ value
 
 /** `excludedAttributes=members`: Entra ID asks for groups without their members, which can be many. */
 function withMembers(excludedAttributes: unknown): boolean {
-  return !String(excludedAttributes ?? '').split(',').some((a) => a.trim().toLowerCase() === 'members');
+  return !String(excludedAttributes ?? '')
+    .split(',')
+    .some((a) => a.trim().toLowerCase() === 'members');
 }
 
 async function readGroup(context: ScimContext, id: string, includeMembers = true) {
-  const [row] = await privilegedDb.select().from(scimGroups).where(and(eq(scimGroups.id, id), eq(scimGroups.organizationId, context.organizationId)));
+  const [row] = await privilegedDb
+    .select()
+    .from(scimGroups)
+    .where(and(eq(scimGroups.id, id), eq(scimGroups.organizationId, context.organizationId)));
   if (!row) throw new ScimError(404, `No group ${id}.`);
-  return toScimGroup(context, row, includeMembers ? (await membersOf([id])).get(id) ?? [] : null);
+  return toScimGroup(context, row, includeMembers ? ((await membersOf([id])).get(id) ?? []) : null);
 }
 
-export async function getGroup(context: ScimContext, id: string, query: { excludedAttributes?: unknown } = {}) {
+export async function getGroup(
+  context: ScimContext,
+  id: string,
+  query: { excludedAttributes?: unknown } = {},
+) {
   return readGroup(context, id, withMembers(query.excludedAttributes));
 }
 
-export async function listGroups(context: ScimContext, query: { filter?: string; startIndex?: unknown; count?: unknown; excludedAttributes?: unknown }) {
+export async function listGroups(
+  context: ScimContext,
+  query: { filter?: string; startIndex?: unknown; count?: unknown; excludedAttributes?: unknown },
+) {
   const filter = parseFilter(query.filter, ['displayName', 'externalId', 'id']);
   const { startIndex, count } = paging(query);
   const conditions = [eq(scimGroups.organizationId, context.organizationId)];
-  if (filter?.attribute === 'displayName') conditions.push(sql`lower(${scimGroups.displayName}) = ${filter.value.toLowerCase()}`);
-  else if (filter?.attribute === 'externalId') conditions.push(eq(scimGroups.externalId, filter.value));
+  if (filter?.attribute === 'displayName')
+    conditions.push(sql`lower(${scimGroups.displayName}) = ${filter.value.toLowerCase()}`);
+  else if (filter?.attribute === 'externalId')
+    conditions.push(eq(scimGroups.externalId, filter.value));
   else if (filter?.attribute === 'id') conditions.push(eq(scimGroups.id, filter.value));
   const where = and(...conditions);
-  const [{ total }] = await privilegedDb.select({ total: sql<number>`count(*)::int` }).from(scimGroups).where(where);
-  const rows = count === 0
-    ? []
-    : await privilegedDb.select().from(scimGroups).where(where).orderBy(asc(scimGroups.displayName), asc(scimGroups.id)).offset(startIndex - 1).limit(count);
-  const members = withMembers(query.excludedAttributes) ? await membersOf(rows.map((r) => r.id)) : null;
-  return listResponse(rows.map((r) => toScimGroup(context, r, members ? members.get(r.id) ?? [] : null)), total, startIndex);
+  const [{ total }] = await privilegedDb
+    .select({ total: sql<number>`count(*)::int` })
+    .from(scimGroups)
+    .where(where);
+  const rows =
+    count === 0
+      ? []
+      : await privilegedDb
+          .select()
+          .from(scimGroups)
+          .where(where)
+          .orderBy(asc(scimGroups.displayName), asc(scimGroups.id))
+          .offset(startIndex - 1)
+          .limit(count);
+  const members = withMembers(query.excludedAttributes)
+    ? await membersOf(rows.map((r) => r.id))
+    : null;
+  return listResponse(
+    rows.map((r) => toScimGroup(context, r, members ? (members.get(r.id) ?? []) : null)),
+    total,
+    startIndex,
+  );
 }
 
 /** The user ids a members value names: `[{ value: "12" }, …]`. Each must be a person of the organization. */
@@ -675,14 +912,23 @@ async function memberIds(tx: Tx, organizationId: number, value: unknown): Promis
   const ids = list.map((m) => {
     const raw = typeof m === 'object' && m !== null ? (m as { value?: unknown }).value : m;
     const id = Number(raw);
-    if (!/^\d{1,10}$/.test(String(raw)) || !Number.isSafeInteger(id)) throw new ScimError(400, `Not a member: ${JSON.stringify(m)}.`, 'invalidValue');
+    if (!/^\d{1,10}$/.test(String(raw)) || !Number.isSafeInteger(id))
+      throw new ScimError(400, `Not a member: ${JSON.stringify(m)}.`, 'invalidValue');
     return id;
   });
   const unique = [...new Set(ids)];
   if (unique.length === 0) return [];
-  const found = await tx.select({ id: users.id }).from(users).where(and(inArray(users.id, unique), personOf(organizationId)));
+  const found = await tx
+    .select({ id: users.id })
+    .from(users)
+    .where(and(inArray(users.id, unique), personOf(organizationId)));
   const missing = unique.filter((id) => !found.some((f) => f.id === id));
-  if (missing.length > 0) throw new ScimError(400, `No user ${missing.join(', ')} in this organization: provision the user first.`, 'invalidValue');
+  if (missing.length > 0)
+    throw new ScimError(
+      400,
+      `No user ${missing.join(', ')} in this organization: provision the user first.`,
+      'invalidValue',
+    );
   return unique;
 }
 
@@ -700,20 +946,35 @@ async function gateOf(tx: Pick<Tx, 'select'>, organizationId: number) {
     .from(organizationSso)
     .where(eq(organizationSso.organizationId, organizationId));
   const mappings = provider?.mappings ?? [];
-  const [pushed] = await tx.select({ id: scimGroups.id }).from(scimGroups).where(eq(scimGroups.organizationId, organizationId)).limit(1);
+  const [pushed] = await tx
+    .select({ id: scimGroups.id })
+    .from(scimGroups)
+    .where(eq(scimGroups.organizationId, organizationId))
+    .limit(1);
   // The gate needs groups to judge by: a provider that provisions people but pushes no groups would
   // otherwise have everyone it creates refused.
-  return { mappings, gate: Boolean(provider?.requireGroup) && mappings.length > 0 && pushed !== undefined };
+  return {
+    mappings,
+    gate: Boolean(provider?.requireGroup) && mappings.length > 0 && pushed !== undefined,
+  };
 }
 
 /** The role this person's pushed groups map to, or null when none of them is mapped. */
-async function mappedRoleOfPerson(tx: Pick<Tx, 'select'>, organizationId: number, userId: number, mappings: RoleMapping[]) {
+async function mappedRoleOfPerson(
+  tx: Pick<Tx, 'select'>,
+  organizationId: number,
+  userId: number,
+  mappings: RoleMapping[],
+) {
   const held = await tx
     .select({ name: scimGroups.displayName, externalId: scimGroups.externalId })
     .from(scimGroupMembers)
     .innerJoin(scimGroups, eq(scimGroups.id, scimGroupMembers.groupId))
     .where(and(eq(scimGroupMembers.userId, userId), eq(scimGroups.organizationId, organizationId)));
-  return roleFromGroups(held.flatMap((g) => (g.externalId ? [g.name, g.externalId] : [g.name])), mappings);
+  return roleFromGroups(
+    held.flatMap((g) => (g.externalId ? [g.name, g.externalId] : [g.name])),
+    mappings,
+  );
 }
 
 /**
@@ -733,7 +994,14 @@ async function followGroups(tx: Tx, context: ScimContext, userIds: number[]): Pr
   const { mappings, gate } = await gateOf(tx, context.organizationId);
   if (mappings.length === 0) return;
   const people = await tx
-    .select({ id: users.id, username: users.username, role: users.role, disabledAt: users.disabledAt, managed: scimUsers.userId, disabledByGroups: scimUsers.disabledByGroups })
+    .select({
+      id: users.id,
+      username: users.username,
+      role: users.role,
+      disabledAt: users.disabledAt,
+      managed: scimUsers.userId,
+      disabledByGroups: scimUsers.disabledByGroups,
+    })
     .from(users)
     .leftJoin(scimUsers, eq(scimUsers.userId, users.id))
     .where(and(inArray(users.id, [...new Set(userIds)]), personOf(context.organizationId)))
@@ -743,22 +1011,47 @@ async function followGroups(tx: Tx, context: ScimContext, userIds: number[]): Pr
 
     if (mapped === null) {
       if (gate && person.managed !== null && person.disabledAt === null) {
-        if (person.role === 'owner' && !(await anotherActiveOwner(tx, context.organizationId, person.id))) continue;
+        if (
+          person.role === 'owner' &&
+          !(await anotherActiveOwner(tx, context.organizationId, person.id))
+        )
+          continue;
         await tx.update(users).set({ disabledAt: new Date() }).where(eq(users.id, person.id));
-        await tx.update(scimUsers).set({ disabledByGroups: true, updatedAt: new Date() }).where(eq(scimUsers.userId, person.id));
-        await audit(tx, context, AUDIT_ACTIONS.MEMBER_DEACTIVATED, 'user', person.id, { username: person.username, byScim: true, reason: 'no_group' });
+        await tx
+          .update(scimUsers)
+          .set({ disabledByGroups: true, updatedAt: new Date() })
+          .where(eq(scimUsers.userId, person.id));
+        await audit(tx, context, AUDIT_ACTIONS.MEMBER_DEACTIVATED, 'user', person.id, {
+          username: person.username,
+          byScim: true,
+          reason: 'no_group',
+        });
       }
       continue;
     }
 
     if (person.disabledAt !== null && person.disabledByGroups) {
       await tx.update(users).set({ disabledAt: null }).where(eq(users.id, person.id));
-      await tx.update(scimUsers).set({ disabledByGroups: false, updatedAt: new Date() }).where(eq(scimUsers.userId, person.id));
-      await audit(tx, context, AUDIT_ACTIONS.MEMBER_REACTIVATED, 'user', person.id, { username: person.username, byScim: true, reason: 'group' });
+      await tx
+        .update(scimUsers)
+        .set({ disabledByGroups: false, updatedAt: new Date() })
+        .where(eq(scimUsers.userId, person.id));
+      await audit(tx, context, AUDIT_ACTIONS.MEMBER_REACTIVATED, 'user', person.id, {
+        username: person.username,
+        byScim: true,
+        reason: 'group',
+      });
     }
     if (mapped === person.role) continue;
-    if (person.role === 'owner' && !(await anotherActiveOwner(tx, context.organizationId, person.id))) continue;
-    await tx.update(users).set({ role: mapped satisfies Role }).where(eq(users.id, person.id));
+    if (
+      person.role === 'owner' &&
+      !(await anotherActiveOwner(tx, context.organizationId, person.id))
+    )
+      continue;
+    await tx
+      .update(users)
+      .set({ role: mapped satisfies Role })
+      .where(eq(users.id, person.id));
     await audit(tx, context, AUDIT_ACTIONS.MEMBER_ROLE_CHANGED, 'user', person.id, {
       username: person.username,
       from: person.role,
@@ -773,7 +1066,10 @@ async function followGroups(tx: Tx, context: ScimContext, userIds: number[]): Pr
  * Applies the role mappings to every member of a pushed group, at once: called when an owner changes
  * the mappings, so that a new mapping does not wait for the next membership change.
  */
-export async function reapplyGroupRoles(organizationId: number, ipAddress: string | null = null): Promise<void> {
+export async function reapplyGroupRoles(
+  organizationId: number,
+  ipAddress: string | null = null,
+): Promise<void> {
   await privilegedDb.transaction(async (tx) => {
     // Every account the provider manages, in a group or not: turning "require a group" on concerns
     // the people in none of them most of all.
@@ -782,13 +1078,21 @@ export async function reapplyGroupRoles(organizationId: number, ipAddress: strin
       .from(scimGroupMembers)
       .innerJoin(scimGroups, eq(scimGroups.id, scimGroupMembers.groupId))
       .where(eq(scimGroups.organizationId, organizationId));
-    const managed = await tx.select({ userId: scimUsers.userId }).from(scimUsers).where(eq(scimUsers.organizationId, organizationId));
-    await followGroups(tx, { organizationId, baseUrl: '', ipAddress }, [...members, ...managed].map((m) => m.userId));
+    const managed = await tx
+      .select({ userId: scimUsers.userId })
+      .from(scimUsers)
+      .where(eq(scimUsers.organizationId, organizationId));
+    await followGroups(
+      tx,
+      { organizationId, baseUrl: '', ipAddress },
+      [...members, ...managed].map((m) => m.userId),
+    );
   });
 }
 
 function uniqueName(error: unknown, name: string | undefined): never {
-  if (sqlState(error) === '23505') throw new ScimError(409, `A group named "${name}" already exists.`, 'uniqueness');
+  if (sqlState(error) === '23505')
+    throw new ScimError(409, `A group named "${name}" already exists.`, 'uniqueness');
   throw error;
 }
 
@@ -798,9 +1102,20 @@ export async function createGroup(context: ScimContext, body: Record<string, unk
   try {
     await privilegedDb.transaction(async (tx) => {
       const members = await memberIds(tx, context.organizationId, body.members);
-      await tx.insert(scimGroups).values({ id, organizationId: context.organizationId, displayName, externalId: asOptionalString(body.externalId, 'externalId') });
-      if (members.length > 0) await tx.insert(scimGroupMembers).values(members.map((userId) => ({ groupId: id, userId })));
-      await audit(tx, context, AUDIT_ACTIONS.SCIM_GROUP_CREATED, 'scim_group', id, { displayName, added: members.length });
+      await tx.insert(scimGroups).values({
+        id,
+        organizationId: context.organizationId,
+        displayName,
+        externalId: asOptionalString(body.externalId, 'externalId'),
+      });
+      if (members.length > 0)
+        await tx
+          .insert(scimGroupMembers)
+          .values(members.map((userId) => ({ groupId: id, userId })));
+      await audit(tx, context, AUDIT_ACTIONS.SCIM_GROUP_CREATED, 'scim_group', id, {
+        displayName,
+        added: members.length,
+      });
       await followGroups(tx, context, members);
     });
   } catch (error) {
@@ -822,31 +1137,53 @@ interface GroupChanges {
 async function applyGroupChanges(context: ScimContext, id: string, changes: GroupChanges) {
   try {
     await privilegedDb.transaction(async (tx) => {
-      const [group] = await tx.select().from(scimGroups).where(and(eq(scimGroups.id, id), eq(scimGroups.organizationId, context.organizationId)));
+      const [group] = await tx
+        .select()
+        .from(scimGroups)
+        .where(and(eq(scimGroups.id, id), eq(scimGroups.organizationId, context.organizationId)));
       if (!group) throw new ScimError(404, `No group ${id}.`);
-      const before = (await tx.select({ userId: scimGroupMembers.userId }).from(scimGroupMembers).where(eq(scimGroupMembers.groupId, id))).map((m) => m.userId);
+      const before = (
+        await tx
+          .select({ userId: scimGroupMembers.userId })
+          .from(scimGroupMembers)
+          .where(eq(scimGroupMembers.groupId, id))
+      ).map((m) => m.userId);
 
       let after = new Set(before);
       if (changes.removeAll) after = new Set();
-      if (changes.members !== undefined) after = new Set(await memberIds(tx, context.organizationId, changes.members));
-      for (const userId of await memberIds(tx, context.organizationId, changes.add ?? [])) after.add(userId);
+      if (changes.members !== undefined)
+        after = new Set(await memberIds(tx, context.organizationId, changes.members));
+      for (const userId of await memberIds(tx, context.organizationId, changes.add ?? []))
+        after.add(userId);
       // Removing someone who is not there, or who was removed here, is no error.
       for (const raw of changes.remove ?? []) {
-        const value = Number(typeof raw === 'object' && raw !== null ? (raw as { value?: unknown }).value : raw);
+        const value = Number(
+          typeof raw === 'object' && raw !== null ? (raw as { value?: unknown }).value : raw,
+        );
         after.delete(value);
       }
 
       const added = [...after].filter((u) => !before.includes(u));
       const removed = before.filter((u) => !after.has(u));
-      if (removed.length > 0) await tx.delete(scimGroupMembers).where(and(eq(scimGroupMembers.groupId, id), inArray(scimGroupMembers.userId, removed)));
-      if (added.length > 0) await tx.insert(scimGroupMembers).values(added.map((userId) => ({ groupId: id, userId })));
+      if (removed.length > 0)
+        await tx
+          .delete(scimGroupMembers)
+          .where(and(eq(scimGroupMembers.groupId, id), inArray(scimGroupMembers.userId, removed)));
+      if (added.length > 0)
+        await tx.insert(scimGroupMembers).values(added.map((userId) => ({ groupId: id, userId })));
 
-      const renamed = changes.displayName !== undefined && changes.displayName !== group.displayName;
-      const externalChanged = changes.externalId !== undefined && changes.externalId !== group.externalId;
+      const renamed =
+        changes.displayName !== undefined && changes.displayName !== group.displayName;
+      const externalChanged =
+        changes.externalId !== undefined && changes.externalId !== group.externalId;
       if (renamed || externalChanged || added.length > 0 || removed.length > 0) {
         await tx
           .update(scimGroups)
-          .set({ updatedAt: new Date(), ...(renamed ? { displayName: changes.displayName } : {}), ...(externalChanged ? { externalId: changes.externalId } : {}) })
+          .set({
+            updatedAt: new Date(),
+            ...(renamed ? { displayName: changes.displayName } : {}),
+            ...(externalChanged ? { externalId: changes.externalId } : {}),
+          })
           .where(eq(scimGroups.id, id));
         await audit(tx, context, AUDIT_ACTIONS.SCIM_GROUP_UPDATED, 'scim_group', id, {
           displayName: changes.displayName ?? group.displayName,
@@ -856,7 +1193,11 @@ async function applyGroupChanges(context: ScimContext, id: string, changes: Grou
         });
       }
       // A rename changes what the mappings see for everyone in the group.
-      await followGroups(tx, context, renamed || externalChanged ? [...after, ...removed] : [...added, ...removed]);
+      await followGroups(
+        tx,
+        context,
+        renamed || externalChanged ? [...after, ...removed] : [...added, ...removed],
+      );
     });
   } catch (error) {
     uniqueName(error, changes.displayName);
@@ -865,10 +1206,16 @@ async function applyGroupChanges(context: ScimContext, id: string, changes: Grou
 }
 
 /** PUT: name, external id and, when given, the whole membership. */
-export async function replaceGroup(context: ScimContext, id: string, body: Record<string, unknown>) {
+export async function replaceGroup(
+  context: ScimContext,
+  id: string,
+  body: Record<string, unknown>,
+) {
   return applyGroupChanges(context, id, {
     displayName: checkedDisplayName(body?.displayName),
-    ...(body && 'externalId' in body ? { externalId: asOptionalString(body.externalId, 'externalId') } : {}),
+    ...(body && 'externalId' in body
+      ? { externalId: asOptionalString(body.externalId, 'externalId') }
+      : {}),
     ...(body && 'members' in body ? { members: body.members ?? [] } : {}),
   });
 }
@@ -881,7 +1228,8 @@ function memberFilterValue(path: string): string | null {
 
 export async function patchGroup(context: ScimContext, id: string, body: unknown) {
   const changes: GroupChanges = {};
-  const listOf = (value: unknown) => (value === undefined || value === null ? [] : Array.isArray(value) ? value : [value]);
+  const listOf = (value: unknown) =>
+    value === undefined || value === null ? [] : Array.isArray(value) ? value : [value];
   for (const operation of patchOperations(body)) {
     const path = operation.path?.toLowerCase();
     if (path === undefined) {
@@ -899,18 +1247,22 @@ export async function patchGroup(context: ScimContext, id: string, body: unknown
       continue;
     }
     if (path === 'displayname') {
-      if (operation.op === 'remove') throw new ScimError(400, 'displayName cannot be removed.', 'mutability');
+      if (operation.op === 'remove')
+        throw new ScimError(400, 'displayName cannot be removed.', 'mutability');
       changes.displayName = checkedDisplayName(operation.value);
     } else if (path === 'externalid') {
-      changes.externalId = operation.op === 'remove' ? null : asOptionalString(operation.value, 'externalId');
+      changes.externalId =
+        operation.op === 'remove' ? null : asOptionalString(operation.value, 'externalId');
     } else if (path === 'members') {
-      if (operation.op === 'add') changes.add = [...(changes.add ?? []), ...listOf(operation.value)];
+      if (operation.op === 'add')
+        changes.add = [...(changes.add ?? []), ...listOf(operation.value)];
       else if (operation.op === 'replace') changes.members = operation.value ?? [];
       else if (operation.value === undefined) changes.removeAll = true;
       else changes.remove = [...(changes.remove ?? []), ...listOf(operation.value)];
     } else {
       const member = operation.path ? memberFilterValue(operation.path) : null;
-      if (member === null || operation.op !== 'remove') throw new ScimError(400, `Unsupported path "${operation.path}".`, 'invalidPath');
+      if (member === null || operation.op !== 'remove')
+        throw new ScimError(400, `Unsupported path "${operation.path}".`, 'invalidPath');
       changes.remove = [...(changes.remove ?? []), member];
     }
   }
@@ -919,11 +1271,22 @@ export async function patchGroup(context: ScimContext, id: string, body: unknown
 
 export async function deleteGroup(context: ScimContext, id: string) {
   await privilegedDb.transaction(async (tx) => {
-    const [group] = await tx.select().from(scimGroups).where(and(eq(scimGroups.id, id), eq(scimGroups.organizationId, context.organizationId)));
+    const [group] = await tx
+      .select()
+      .from(scimGroups)
+      .where(and(eq(scimGroups.id, id), eq(scimGroups.organizationId, context.organizationId)));
     if (!group) throw new ScimError(404, `No group ${id}.`);
-    const members = (await tx.select({ userId: scimGroupMembers.userId }).from(scimGroupMembers).where(eq(scimGroupMembers.groupId, id))).map((m) => m.userId);
+    const members = (
+      await tx
+        .select({ userId: scimGroupMembers.userId })
+        .from(scimGroupMembers)
+        .where(eq(scimGroupMembers.groupId, id))
+    ).map((m) => m.userId);
     await tx.delete(scimGroups).where(eq(scimGroups.id, id));
-    await audit(tx, context, AUDIT_ACTIONS.SCIM_GROUP_DELETED, 'scim_group', id, { displayName: group.displayName, members: members.length });
+    await audit(tx, context, AUDIT_ACTIONS.SCIM_GROUP_DELETED, 'scim_group', id, {
+      displayName: group.displayName,
+      members: members.length,
+    });
     await followGroups(tx, context, members);
   });
 }
@@ -940,7 +1303,12 @@ export function serviceProviderConfig(baseUrl: string) {
     sort: { supported: false },
     etag: { supported: false },
     authenticationSchemes: [
-      { type: 'oauthbearertoken', name: 'Bearer token', description: 'The token issued under Settings → Single sign-on → Provisioning (SCIM).', primary: true },
+      {
+        type: 'oauthbearertoken',
+        name: 'Bearer token',
+        description: 'The token issued under Settings → Single sign-on → Provisioning (SCIM).',
+        primary: true,
+      },
     ],
     meta: { resourceType: 'ServiceProviderConfig', location: `${baseUrl}/ServiceProviderConfig` },
   };
@@ -993,6 +1361,10 @@ export function schemas(baseUrl: string) {
         attribute('members', { type: 'complex', multiValued: true }),
       ],
     },
-  ].map((s) => ({ schemas: ['urn:ietf:params:scim:schemas:core:2.0:Schema'], ...s, meta: { resourceType: 'Schema', location: `${baseUrl}/Schemas/${s.id}` } }));
+  ].map((s) => ({
+    schemas: ['urn:ietf:params:scim:schemas:core:2.0:Schema'],
+    ...s,
+    meta: { resourceType: 'Schema', location: `${baseUrl}/Schemas/${s.id}` },
+  }));
   return listResponse(list, list.length, 1);
 }

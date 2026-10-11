@@ -10,7 +10,12 @@ import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -42,8 +47,20 @@ let planId: string;
 
 const failedLog = [
   { name: 'Open login', type: 'navigate', value: 'https://shop.test/login', status: 'passed' },
-  { name: 'Type password', type: 'input', selector: '#password', value: 'Sup3rSecret!', status: 'passed' },
-  { name: 'Press Sign in', type: 'click', selector: 'button.btn-login', status: 'failed', error: "Timeout 5000ms exceeded waiting for locator('button.btn-login')" },
+  {
+    name: 'Type password',
+    type: 'input',
+    selector: '#password',
+    value: 'Sup3rSecret!',
+    status: 'passed',
+  },
+  {
+    name: 'Press Sign in',
+    type: 'click',
+    selector: 'button.btn-login',
+    status: 'failed',
+    error: "Timeout 5000ms exceeded waiting for locator('button.btn-login')",
+  },
 ];
 
 const answer = (overrides: Record<string, unknown> = {}) =>
@@ -51,7 +68,8 @@ const answer = (overrides: Record<string, unknown> = {}) =>
     category: 'locator',
     confidence: 'high',
     summary: 'The Sign in button is no longer found by its class.',
-    explanation: 'Step 3 timed out waiting for button.btn-login; the screenshot shows a button labelled Sign in.',
+    explanation:
+      'Step 3 timed out waiting for button.btn-login; the screenshot shows a button labelled Sign in.',
     suggestion: 'Find the button by its role and name.',
     failedStep: 3,
     proposedSelector: "role=button[name='Sign in']",
@@ -84,22 +102,47 @@ beforeEach(async () => {
   ai.available = true;
   ai.explainFailure.mockReset();
   planId = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Checkout', userId, organizationId } as any);
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Checkout', userId, organizationId } as any);
 });
 
 async function seedResult(status = 'Failed', detailedLog: unknown = failedLog) {
   const executionId = uuidv4();
   await privilegedDb.insert(testPlanExecutions).values({
-    id: executionId, organizationId, testPlanId: planId, status: 'failed', triggeredBy: 'manual', totalTests: 1,
+    id: executionId,
+    organizationId,
+    testPlanId: planId,
+    status: 'failed',
+    triggeredBy: 'manual',
+    totalTests: 1,
   } as any);
   const id = uuidv4();
   await privilegedDb.insert(reportTestCaseResults).values({
-    id, organizationId, testPlanExecutionId: executionId, testType: 'ui', testName: 'Login', browser: 'chromium',
-    status, reasonForFailure: status === 'Passed' ? null : 'Press Sign in: Timeout 5000ms exceeded',
-    detailedLog: JSON.stringify(detailedLog), startedAt: new Date(),
+    id,
+    organizationId,
+    testPlanExecutionId: executionId,
+    testType: 'ui',
+    testName: 'Login',
+    browser: 'chromium',
+    status,
+    reasonForFailure: status === 'Passed' ? null : 'Press Sign in: Timeout 5000ms exceeded',
+    detailedLog: JSON.stringify(detailedLog),
+    startedAt: new Date(),
     networkSummary: {
-      requests: 12, failed: 1, transferredBytes: 1000,
-      failures: [{ method: 'POST', url: 'https://shop.test/api/session', status: 500, statusText: 'Internal Server Error', timeMs: 80, resourceType: 'fetch' }],
+      requests: 12,
+      failed: 1,
+      transferredBytes: 1000,
+      failures: [
+        {
+          method: 'POST',
+          url: 'https://shop.test/api/session',
+          status: 500,
+          statusText: 'Internal Server Error',
+          timeMs: 80,
+          resourceType: 'fetch',
+        },
+      ],
       slowest: [],
     },
   } as any);
@@ -107,23 +150,43 @@ async function seedResult(status = 'Failed', detailedLog: unknown = failedLog) {
 }
 
 const analyse = (executionId: string, resultId: string, body: unknown = {}) =>
-  request(app).post(`/api/test-plan-executions/${executionId}/results/${resultId}/ai-analysis`).send(body);
+  request(app)
+    .post(`/api/test-plan-executions/${executionId}/results/${resultId}/ai-analysis`)
+    .send(body);
 
 describe('the failure prompt', () => {
   const evidence = {
-    testName: 'Login', testType: 'ui', browser: 'firefox', status: 'Failed',
-    reason: 'Press Sign in: Timeout', detailedLog: JSON.stringify(failedLog),
+    testName: 'Login',
+    testType: 'ui',
+    browser: 'firefox',
+    status: 'Failed',
+    reason: 'Press Sign in: Timeout',
+    detailedLog: JSON.stringify(failedLog),
     network: {
-      requests: 3, failed: 1, transferredBytes: 0, slowest: [],
-      failures: [{ method: 'POST', url: 'https://shop.test/api/session', status: 500, statusText: 'Internal Server Error', timeMs: 80, resourceType: 'fetch' }],
+      requests: 3,
+      failed: 1,
+      transferredBytes: 0,
+      slowest: [],
+      failures: [
+        {
+          method: 'POST',
+          url: 'https://shop.test/api/session',
+          status: 500,
+          statusText: 'Internal Server Error',
+          timeMs: 80,
+          resourceType: 'fetch',
+        },
+      ],
     },
   };
 
   it('carries the steps, their errors and the failed requests, in the language asked for', () => {
     const prompt = buildFailurePrompt(evidence, 'it', true);
     expect(prompt).toContain('3. [failed] click "Press Sign in" | selector: button.btn-login');
-    expect(prompt).toContain("error: Timeout 5000ms exceeded");
-    expect(prompt).toContain('FAILED POST https://shop.test/api/session → 500 Internal Server Error');
+    expect(prompt).toContain('error: Timeout 5000ms exceeded');
+    expect(prompt).toContain(
+      'FAILED POST https://shop.test/api/session → 500 Internal Server Error',
+    );
     expect(prompt).toContain('in Italian');
     expect(prompt).toContain('attached image');
     expect(prompt).toContain('(ui, firefox)');
@@ -135,17 +198,35 @@ describe('the failure prompt', () => {
     expect(prompt).toContain('value: [hidden]');
     expect(prompt).toContain('value: https://shop.test/login');
     expect(prompt).toContain('No screenshot is available.');
-    expect(promptValue({ name: 'Type code', type: 'input', selector: '#otp', value: '123456', status: 'passed', error: null, healed: false })).toBe('[hidden]');
+    expect(
+      promptValue({
+        name: 'Type code',
+        type: 'input',
+        selector: '#otp',
+        value: '123456',
+        status: 'passed',
+        error: null,
+        healed: false,
+      }),
+    ).toBe('[hidden]');
   });
 
   it('keeps only the steps around the failure', () => {
     const long = [
-      ...Array.from({ length: 30 }, (_, i) => ({ name: `Step ${i + 1}`, type: 'click', status: 'passed' })),
+      ...Array.from({ length: 30 }, (_, i) => ({
+        name: `Step ${i + 1}`,
+        type: 'click',
+        status: 'passed',
+      })),
       { name: 'Broken', type: 'click', status: 'failed', error: 'boom' },
       { name: 'After', type: 'click', status: 'passed' },
       { name: 'Far after', type: 'click', status: 'passed' },
     ];
-    const prompt = buildFailurePrompt({ ...evidence, detailedLog: JSON.stringify(long) }, 'en', false);
+    const prompt = buildFailurePrompt(
+      { ...evidence, detailedLog: JSON.stringify(long) },
+      'en',
+      false,
+    );
     expect(prompt).toContain('Steps (33 in all');
     expect(prompt).toContain('23. [passed] click "Step 23"');
     expect(prompt).not.toContain('"Step 22"');
@@ -157,12 +238,25 @@ describe('the failure prompt', () => {
 describe('reading the answer', () => {
   it('takes the JSON out of prose or a code fence', () => {
     const parsed = parseFailureAnswer('Here you go:\n```json\n' + answer() + '\n```', 3);
-    expect(parsed).toMatchObject({ category: 'locator', confidence: 'high', failedStep: 3, proposedSelector: "role=button[name='Sign in']" });
+    expect(parsed).toMatchObject({
+      category: 'locator',
+      confidence: 'high',
+      failedStep: 3,
+      proposedSelector: "role=button[name='Sign in']",
+    });
   });
 
   it('believes nothing outside the shape', () => {
-    const parsed = parseFailureAnswer(answer({ category: 'cosmic-rays', confidence: 'absolute', failedStep: 9 }), 3);
-    expect(parsed).toMatchObject({ category: 'unknown', confidence: 'low', failedStep: null, proposedSelector: null });
+    const parsed = parseFailureAnswer(
+      answer({ category: 'cosmic-rays', confidence: 'absolute', failedStep: 9 }),
+      3,
+    );
+    expect(parsed).toMatchObject({
+      category: 'unknown',
+      confidence: 'low',
+      failedStep: null,
+      proposedSelector: null,
+    });
   });
 
   it('offers a selector only for a locator failure', () => {
@@ -187,21 +281,39 @@ describe('analysing a failed result', () => {
     expect(res.status).toBe(200);
     expect(res.body.cached).toBe(false);
     expect(res.body.analysis).toMatchObject({
-      category: 'locator', failedStep: 3, language: 'it', model: 'gemini-test', byUsername: 'analysis-user', sawScreenshot: false,
+      category: 'locator',
+      failedStep: 3,
+      language: 'it',
+      model: 'gemini-test',
+      byUsername: 'analysis-user',
+      sawScreenshot: false,
     });
     const [prompt, screenshot] = ai.explainFailure.mock.calls[0];
     expect(prompt).toContain('Press Sign in');
     expect(prompt).not.toContain('Sup3rSecret!');
     expect(screenshot).toBeNull();
 
-    const [row] = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.id, id));
+    const [row] = await privilegedDb
+      .select()
+      .from(reportTestCaseResults)
+      .where(eq(reportTestCaseResults.id, id));
     expect(row.aiAnalysis).toMatchObject({ category: 'locator', summary: expect.any(String) });
-    const audit = await privilegedDb.select().from(auditLog).where(eq(auditLog.targetId, executionId));
-    expect(audit.find((entry) => entry.action === 'run.failure_analysed')?.metadata).toMatchObject({ test: 'Login', category: 'locator' });
+    const audit = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.targetId, executionId));
+    expect(audit.find((entry) => entry.action === 'run.failure_analysed')?.metadata).toMatchObject({
+      test: 'Login',
+      category: 'locator',
+    });
   });
 
   it('hands back the kept analysis without asking again, unless told to refresh', async () => {
-    ai.explainFailure.mockResolvedValueOnce(answer()).mockResolvedValueOnce(answer({ category: 'application', summary: 'The session API answered 500.' }));
+    ai.explainFailure
+      .mockResolvedValueOnce(answer())
+      .mockResolvedValueOnce(
+        answer({ category: 'application', summary: 'The session API answered 500.' }),
+      );
     const { executionId, id } = await seedResult();
 
     await analyse(executionId, id);
@@ -228,7 +340,10 @@ describe('analysing a failed result', () => {
     ai.available = true;
     ai.explainFailure.mockResolvedValueOnce('Sorry.');
     expect((await analyse(executionId, id)).status).toBe(502);
-    const [row] = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.id, id));
+    const [row] = await privilegedDb
+      .select()
+      .from(reportTestCaseResults)
+      .where(eq(reportTestCaseResults.id, id));
     expect(row.aiAnalysis).toBeNull();
   });
 
@@ -237,10 +352,15 @@ describe('analysing a failed result', () => {
     expect((await analyse(executionId, id, { language: 'xx' })).status).toBe(400);
   });
 
-  it("does not let another organization analyse, or read, a result", async () => {
+  it('does not let another organization analyse, or read, a result', async () => {
     ai.explainFailure.mockResolvedValue(answer());
     const { executionId, id } = await seedResult();
-    currentUser = { id: otherUserId, username: 'other-analysis-user', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-analysis-user',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
 
     expect((await analyse(executionId, id)).status).toBe(404);
     expect(ai.explainFailure).not.toHaveBeenCalled();

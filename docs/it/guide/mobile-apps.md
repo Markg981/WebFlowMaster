@@ -43,41 +43,41 @@ mobili; i browser di un piano non possono girarci.
 
 **App mobili** nel menu → **Nuovo test mobile**:
 
-| Campo | Cos'è |
-|---|---|
-| **Nome** | Unico nell'organizzazione. |
-| **Piattaforma** | Android o iOS. |
-| **App** | Dove la trova la griglia: **Carica .apk / .ipa** invia il file alla griglia scelta accanto e ne compila l'indirizzo (`bs://…` o `lt://…`); oppure incollate uno caricato prima, o un indirizzo https:// da cui la griglia la scarica. WebFlowMaster non conserva il file. |
-| **Dispositivo** | Come lo chiama la griglia: `Google Pixel 8`, `Samsung Galaxy S24`, `iPhone 15` — vedi l'elenco dei dispositivi della griglia. |
-| **Versione del sistema** | Facoltativa: `14.0`, `17`. Vuota: quella scelta dalla griglia per quel dispositivo. |
-| **Progetto** | Come per un test web: in un [progetto riservato](./organizing) solo i suoi membri vedono il test e le sue esecuzioni, e chi ne è viewer non può né modificarlo né eseguirlo. |
-| **Nei piani di test gira su** | La griglia su cui lo esegue un [piano di test](#in-un-piano-di-test). Un test nuovo parte con la prima griglia BrowserStack o LambdaTest; **Nessuna griglia** lo tiene fuori dalle esecuzioni dei piani (un piano che lo include lo segnala come errore). |
+| Campo                         | Cos'è                                                                                                                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nome**                      | Unico nell'organizzazione.                                                                                                                                                                                                                                                |
+| **Piattaforma**               | Android o iOS.                                                                                                                                                                                                                                                            |
+| **App**                       | Dove la trova la griglia: **Carica .apk / .ipa** invia il file alla griglia scelta accanto e ne compila l'indirizzo (`bs://…` o `lt://…`); oppure incollate uno caricato prima, o un indirizzo https:// da cui la griglia la scarica. WebFlowMaster non conserva il file. |
+| **Dispositivo**               | Come lo chiama la griglia: `Google Pixel 8`, `Samsung Galaxy S24`, `iPhone 15` — vedi l'elenco dei dispositivi della griglia.                                                                                                                                             |
+| **Versione del sistema**      | Facoltativa: `14.0`, `17`. Vuota: quella scelta dalla griglia per quel dispositivo.                                                                                                                                                                                       |
+| **Progetto**                  | Come per un test web: in un [progetto riservato](./organizing) solo i suoi membri vedono il test e le sue esecuzioni, e chi ne è viewer non può né modificarlo né eseguirlo.                                                                                              |
+| **Nei piani di test gira su** | La griglia su cui lo esegue un [piano di test](#in-un-piano-di-test). Un test nuovo parte con la prima griglia BrowserStack o LambdaTest; **Nessuna griglia** lo tiene fuori dalle esecuzioni dei piani (un piano che lo include lo segnala come errore).                 |
 
 Ogni passo è un'azione e, per quasi tutte, un elemento:
 
-| Azione | Cosa fa |
-|---|---|
-| **Tocca** | Tocca l'elemento. |
-| **Digita** | Svuota il campo e digita il valore. |
-| **Svuota** | Svuota il campo. |
-| **Attendi elemento** / **Verifica visibile** | Attende che l'elemento sia sullo schermo (fino a 15 secondi). |
-| **Verifica non visibile** | Fallisce se l'elemento è ancora sullo schermo dopo al massimo 5 secondi. |
-| **Verifica che il testo contenga** | Il testo dell'elemento contiene il valore. |
-| **Scorri** | `up`, `down`, `left` o `right`: la direzione in cui il dito si muove al centro dello schermo. |
-| **Indietro** | Il tasto indietro del sistema (Android), o la navigazione indietro dell'app. |
-| **Nascondi tastiera** | Chiude la tastiera a schermo quando copre ciò che viene dopo. |
-| **Attendi (secondi)** | Fino a 60 secondi. Meglio attendere l'elemento. |
+| Azione                                       | Cosa fa                                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Tocca**                                    | Tocca l'elemento.                                                                             |
+| **Digita**                                   | Svuota il campo e digita il valore.                                                           |
+| **Svuota**                                   | Svuota il campo.                                                                              |
+| **Attendi elemento** / **Verifica visibile** | Attende che l'elemento sia sullo schermo (fino a 15 secondi).                                 |
+| **Verifica non visibile**                    | Fallisce se l'elemento è ancora sullo schermo dopo al massimo 5 secondi.                      |
+| **Verifica che il testo contenga**           | Il testo dell'elemento contiene il valore.                                                    |
+| **Scorri**                                   | `up`, `down`, `left` o `right`: la direzione in cui il dito si muove al centro dello schermo. |
+| **Indietro**                                 | Il tasto indietro del sistema (Android), o la navigazione indietro dell'app.                  |
+| **Nascondi tastiera**                        | Chiude la tastiera a schermo quando copre ciò che viene dopo.                                 |
+| **Attendi (secondi)**                        | Fino a 60 secondi. Meglio attendere l'elemento.                                               |
 
 **Indicare un elemento:**
 
-| Scrivete | Trova |
-|---|---|
-| `~login` | L'**accessibility id**: `content-desc` su Android, `accessibilityIdentifier` su iOS. È quello da chiedere agli sviluppatori: sopravvive a restyling e traduzioni. |
-| `id=com.shop:id/login` | Il resource id (Android) o il name (iOS). |
-| `text=Accedi` | Un elemento che mostra esattamente quel testo. |
-| `//android.widget.Button[@text='OK']` | XPath nell'albero delle viste dell'app. |
-| `android=new UiSelector().text("OK")` | UiAutomator di Android. |
-| `ios=label == "OK"`, `chain=**/XCUIElementTypeButton` | Predicate string e class chain di iOS. |
+| Scrivete                                              | Trova                                                                                                                                                             |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `~login`                                              | L'**accessibility id**: `content-desc` su Android, `accessibilityIdentifier` su iOS. È quello da chiedere agli sviluppatori: sopravvive a restyling e traduzioni. |
+| `id=com.shop:id/login`                                | Il resource id (Android) o il name (iOS).                                                                                                                         |
+| `text=Accedi`                                         | Un elemento che mostra esattamente quel testo.                                                                                                                    |
+| `//android.widget.Button[@text='OK']`                 | XPath nell'albero delle viste dell'app.                                                                                                                           |
+| `android=new UiSelector().text("OK")`                 | UiAutomator di Android.                                                                                                                                           |
+| `ios=label == "OK"`, `chain=**/XCUIElementTypeButton` | Predicate string e class chain di iOS.                                                                                                                            |
 
 Un passo che la piattaforma non sa leggere — un selettore CSS, `android=…` in un test iOS — è
 segnato in rosso e il test non si salva finché non è corretto. I valori possono usare le
@@ -158,7 +158,7 @@ scrivono, li eseguono e li eliminano.
 
 Un piano può includere test mobili accanto ai test web e API: nella procedura guidata del piano,
 **Aggiungi Suite di Test** li elenca con l'etichetta **mobile**, e il suo filtro per tag li
-restringe come gli altri. La pagina del piano li elenca con *(app mobile)*.
+restringe come gli altri. La pagina del piano li elenca con _(app mobile)_.
 
 In un'esecuzione del piano un test mobile:
 
@@ -169,7 +169,7 @@ In un'esecuzione del piano un test mobile:
 - segue il **Riesegui in Caso di Fallimento** del piano (i tentativi compaiono sul risultato) e la
   sua politica sui fallimenti: un test mobile fallito fa fallire l'esecuzione, e può fermarla;
 - è una riga del [report](./results#il-report-di-un-run) come le altre: il dispositivo (`Google Pixel 8 · 14.0`) nella
-  colonna *Browser*, i passi sotto il pulsante dei passi con il motivo di quello fallito, l'ultima
+  colonna _Browser_, i passi sotto il pulsante dei passi con il motivo di quello fallito, l'ultima
   schermata del dispositivo come screenshot e, su BrowserStack, **Open the session on the grid**
   per video e log.
 
@@ -200,7 +200,7 @@ In ogni elenco porta l'etichetta **Mobile**.
 
 La colonna **Tag** di **App mobili** mette i tag dell'organizzazione su un test mobile, come fa la
 libreria dei test per i test web (i viewer li vedono). Un tag vale per ogni tipo di test: una suite
-dinamica con *smoke* esegue i test web, API e mobili che lo portano.
+dinamica con _smoke_ esegue i test web, API e mobili che lo portano.
 
 ## Quarantena {#quarantena}
 

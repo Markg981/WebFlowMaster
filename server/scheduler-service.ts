@@ -75,7 +75,13 @@ export function occurrenceKey(scheduleId: string, occurrence: Date): string {
 export const DEFAULT_SCHEDULE_TIMEZONE = 'UTC';
 
 const WEEKDAY_TO_CRON: Record<string, number> = {
-  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
 };
 
 /**
@@ -118,9 +124,7 @@ function zonedParts(date: Date, timeZone: string) {
 
 /** The month number (1-12) of a moment, read in a given zone. */
 function zonedMonth(date: Date, timeZone: string): number {
-  return Number(
-    new Intl.DateTimeFormat('en-US', { timeZone, month: 'numeric' }).format(date),
-  );
+  return Number(new Intl.DateTimeFormat('en-US', { timeZone, month: 'numeric' }).format(date));
 }
 
 /**
@@ -187,7 +191,9 @@ function frequencyToCronPattern(
         if (unit === 'hours') return `0 */${value} * * *`;
         if (unit === 'days') return `0 ${hours} */${value} * *`; // At the specific hour of nextRunAt
       }
-      console.warn(`[SchedulerService] Unknown frequency format: ${frequency}. Cannot convert to cron pattern.`);
+      console.warn(
+        `[SchedulerService] Unknown frequency format: ${frequency}. Cannot convert to cron pattern.`,
+      );
       return null;
   }
 }
@@ -227,7 +233,8 @@ export function firstRunAt(
   timeZone: string = DEFAULT_SCHEDULE_TIMEZONE,
   now: Date = new Date(),
 ): Date {
-  const patternOwnsTheTime = frequency.startsWith('cron:') || /^every_\d+_(minutes|hours)$/.test(frequency);
+  const patternOwnsTheTime =
+    frequency.startsWith('cron:') || /^every_\d+_(minutes|hours)$/.test(frequency);
   if (!patternOwnsTheTime) return requested;
   const pattern = frequencyToCronPattern(frequency, requested, timeZone);
   if (!pattern) throw new Error(`Unsupported frequency "${frequency}".`);
@@ -260,7 +267,11 @@ export function calculateNextRunTimeForTest(
 }
 
 // Exported for testing purposes
-export async function executeScheduledPlanForTest(schedule: TestPlanSchedule, plan: TestPlan, occurrence?: Date) {
+export async function executeScheduledPlanForTest(
+  schedule: TestPlanSchedule,
+  plan: TestPlan,
+  occurrence?: Date,
+) {
   return executeScheduledPlan(schedule, plan, occurrence);
 }
 
@@ -274,12 +285,18 @@ export async function executeScheduledPlanForTest(schedule: TestPlanSchedule, pl
  * that matches nothing runs without an environment, as it always did, and keeps its label on the
  * run so the report still says what was asked for.
  */
-async function resolveScheduleEnvironment(value: string | null | undefined): Promise<{ environmentId: number | null; label: string | null }> {
+async function resolveScheduleEnvironment(
+  value: string | null | undefined,
+): Promise<{ environmentId: number | null; label: string | null }> {
   const label = value?.trim() || null;
   if (!label) return { environmentId: null, label: null };
   const byId = /^\d+$/.test(label)
     ? await withTenantTransaction((tx) =>
-        tx.select({ id: environments.id }).from(environments).where(eq(environments.id, Number(label))).limit(1),
+        tx
+          .select({ id: environments.id })
+          .from(environments)
+          .where(eq(environments.id, Number(label)))
+          .limit(1),
       )
     : [];
   if (byId[0]) return { environmentId: byId[0].id, label };
@@ -317,13 +334,21 @@ export async function executeScheduledPlan(
   try {
     return await runWithTenant(scheduleAsLoaded.organizationId, async () => {
       [schedule] = await withTenantTransaction((tx) =>
-        tx.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleAsLoaded.id)).limit(1),
+        tx
+          .select()
+          .from(testPlanSchedules)
+          .where(eq(testPlanSchedules.id, scheduleAsLoaded.id))
+          .limit(1),
       );
       if (!schedule || !schedule.isActive) {
-        resolvedLogger.info(`[SchedulerService] Schedule ${scheduleAsLoaded.id} is ${schedule ? 'inactive' : 'gone'}; not running it.`);
+        resolvedLogger.info(
+          `[SchedulerService] Schedule ${scheduleAsLoaded.id} is ${schedule ? 'inactive' : 'gone'}; not running it.`,
+        );
         return null;
       }
-      resolvedLogger.info(`[SchedulerService] Triggering schedule ${schedule.scheduleName} (ID: ${schedule.id}) for ${occurrence.toISOString()}, Plan: ${plan.name}`);
+      resolvedLogger.info(
+        `[SchedulerService] Triggering schedule ${schedule.scheduleName} (ID: ${schedule.id}) for ${occurrence.toISOString()}, Plan: ${plan.name}`,
+      );
 
       // On behalf of the schedule's owner; schedules from before that was recorded fall back to
       // the plan's owner.
@@ -331,10 +356,16 @@ export async function executeScheduledPlan(
       if (ownerUserId == null) {
         const planId = schedule.testPlanId;
         const [planOwner] = await withTenantTransaction((tx) =>
-          tx.select({ userId: testPlans.userId }).from(testPlans).where(eq(testPlans.id, planId)).limit(1),
+          tx
+            .select({ userId: testPlans.userId })
+            .from(testPlans)
+            .where(eq(testPlans.id, planId))
+            .limit(1),
         );
         ownerUserId = planOwner?.userId ?? null;
-        resolvedLogger.warn(`[SchedulerService] Schedule ${schedule.id} has no userId; falling back to the test plan owner (${ownerUserId}).`);
+        resolvedLogger.warn(
+          `[SchedulerService] Schedule ${schedule.id} has no userId; falling back to the test plan owner (${ownerUserId}).`,
+        );
       }
       if (ownerUserId == null) {
         throw new Error(`Cannot execute schedule ${schedule.id}: no owner user could be resolved.`);
@@ -342,7 +373,9 @@ export async function executeScheduledPlan(
 
       const environment = await resolveScheduleEnvironment(schedule.environment);
       if (environment.label && environment.environmentId == null) {
-        resolvedLogger.warn(`[SchedulerService] Schedule ${schedule.id} names environment "${environment.label}", which is not an environment of its organization; running without one.`);
+        resolvedLogger.warn(
+          `[SchedulerService] Schedule ${schedule.id} names environment "${environment.label}", which is not an environment of its organization; running without one.`,
+        );
       }
 
       const execution = await executionOrchestrator.enqueue({
@@ -356,14 +389,19 @@ export async function executeScheduledPlan(
         maxAttempts: attemptsForPolicy(schedule.retryOnFailure),
         idempotencyKey: occurrenceKey(schedule.id, occurrence),
       });
-      resolvedLogger.info(`[SchedulerService] Run ${execution.id} queued for schedule ${schedule.id} (up to ${execution.maxAttempts} attempt(s)).`);
+      resolvedLogger.info(
+        `[SchedulerService] Run ${execution.id} queued for schedule ${schedule.id} (up to ${execution.maxAttempts} attempt(s)).`,
+      );
       return execution;
     });
   } catch (error: any) {
     // A refused enqueue leaves its own record where there is a run to put it on (the queue
     // refusing a job marks that run); one refused before a run existed has only this.
     const code = error instanceof ExecutionEnqueueError ? error.code : 'schedule_trigger_failed';
-    resolvedLogger.error(`[SchedulerService] Schedule ${scheduleAsLoaded.id} could not queue its run (${code}): ${error.message}`, { stack: error.stack, scheduleId: scheduleAsLoaded.id });
+    resolvedLogger.error(
+      `[SchedulerService] Schedule ${scheduleAsLoaded.id} could not queue its run (${code}): ${error.message}`,
+      { stack: error.stack, scheduleId: scheduleAsLoaded.id },
+    );
     return null;
   } finally {
     // The schedule as it is now. One that is gone or switched off has nothing to advance.
@@ -377,18 +415,32 @@ async function advanceSchedule(schedule: TestPlanSchedule): Promise<void> {
   try {
     if (schedule.frequency !== 'once') {
       // Persisted so it survives restarts and is what the UI shows.
-      const newNextRunAt = calculateNextRunTime(schedule.frequency, new Date(), scheduleZone(schedule));
+      const newNextRunAt = calculateNextRunTime(
+        schedule.frequency,
+        new Date(),
+        scheduleZone(schedule),
+      );
       if (newNextRunAt) {
-        await privilegedDb.update(testPlanSchedules)
+        await privilegedDb
+          .update(testPlanSchedules)
           .set({ nextRunAt: newNextRunAt, updatedAt: new Date() })
           .where(eq(testPlanSchedules.id, schedule.id));
-        resolvedLogger.info(`[SchedulerService] Updated nextRunAt for recurring schedule ${schedule.id} to ${newNextRunAt.toISOString()}`);
+        resolvedLogger.info(
+          `[SchedulerService] Updated nextRunAt for recurring schedule ${schedule.id} to ${newNextRunAt.toISOString()}`,
+        );
       } else {
-        resolvedLogger.warn(`[SchedulerService] Could not compute nextRunAt for schedule ${schedule.id} (frequency: ${schedule.frequency}).`);
+        resolvedLogger.warn(
+          `[SchedulerService] Could not compute nextRunAt for schedule ${schedule.id} (frequency: ${schedule.frequency}).`,
+        );
       }
     } else {
-      await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
-      resolvedLogger.info(`[SchedulerService] Deactivated 'once' schedule ${schedule.id} after execution.`);
+      await privilegedDb
+        .update(testPlanSchedules)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(testPlanSchedules.id, schedule.id));
+      resolvedLogger.info(
+        `[SchedulerService] Deactivated 'once' schedule ${schedule.id} after execution.`,
+      );
       await removeScheduleJob(schedule.id);
     }
   } catch (e) {
@@ -399,18 +451,28 @@ async function advanceSchedule(schedule: TestPlanSchedule): Promise<void> {
 export async function addScheduleJob(schedule: TestPlanSchedule) {
   const resolvedLogger = await logger;
   if (!schedule.isActive) {
-    resolvedLogger.info(`[SchedulerService] Schedule ${schedule.id} is not active. Not adding job.`);
+    resolvedLogger.info(
+      `[SchedulerService] Schedule ${schedule.id} is not active. Not adding job.`,
+    );
     return;
   }
 
   if (activeCronJobs.has(schedule.id)) {
-    resolvedLogger.warn(`[SchedulerService] Job for schedule ${schedule.id} already exists. Removing old one before adding.`);
+    resolvedLogger.warn(
+      `[SchedulerService] Job for schedule ${schedule.id} already exists. Removing old one before adding.`,
+    );
     removeScheduleJob(schedule.id);
   }
 
-  const planResult = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, schedule.testPlanId)).limit(1);
+  const planResult = await privilegedDb
+    .select()
+    .from(testPlans)
+    .where(eq(testPlans.id, schedule.testPlanId))
+    .limit(1);
   if (!planResult.length) {
-    resolvedLogger.error(`[SchedulerService] Test Plan ${schedule.testPlanId} not found for schedule ${schedule.id}. Cannot add job.`);
+    resolvedLogger.error(
+      `[SchedulerService] Test Plan ${schedule.testPlanId} not found for schedule ${schedule.id}. Cannot add job.`,
+    );
     return;
   }
   const plan = planResult[0];
@@ -436,40 +498,68 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
       const cronTimeForOnce = `${onceParts.minutes} ${onceParts.hours} ${onceParts.dayOfMonth} ${onceMonth} *`; // Runs once on this date/time
 
       try {
-        task = cron.schedule(cronTimeForOnce, async () => {
-          resolvedLogger.info(`[SchedulerService] Executing 'once' schedule ${schedule.id} at specific time.`);
-          await executeScheduledPlan(schedule, plan);
-          // After execution, the 'once' job should ideally unschedule itself or be marked.
-          // The executeScheduledPlan already deactivates 'once' schedules.
-        }, { timezone: scheduleZone(schedule) });
-        resolvedLogger.info(`[SchedulerService] Scheduled 'once' job for schedule ${schedule.id} at ${runAtDate.toISOString()} (${scheduleZone(schedule)})`);
+        task = cron.schedule(
+          cronTimeForOnce,
+          async () => {
+            resolvedLogger.info(
+              `[SchedulerService] Executing 'once' schedule ${schedule.id} at specific time.`,
+            );
+            await executeScheduledPlan(schedule, plan);
+            // After execution, the 'once' job should ideally unschedule itself or be marked.
+            // The executeScheduledPlan already deactivates 'once' schedules.
+          },
+          { timezone: scheduleZone(schedule) },
+        );
+        resolvedLogger.info(
+          `[SchedulerService] Scheduled 'once' job for schedule ${schedule.id} at ${runAtDate.toISOString()} (${scheduleZone(schedule)})`,
+        );
       } catch (e: any) {
-        resolvedLogger.error(`[SchedulerService] Invalid cron pattern for 'once' schedule ${schedule.id} (${cronTimeForOnce}): ${e.message}`);
+        resolvedLogger.error(
+          `[SchedulerService] Invalid cron pattern for 'once' schedule ${schedule.id} (${cronTimeForOnce}): ${e.message}`,
+        );
         return;
       }
-
     } else {
-      resolvedLogger.info(`[SchedulerService] 'Once' schedule ${schedule.id} has a nextRunAt in the past. Not scheduling.`);
+      resolvedLogger.info(
+        `[SchedulerService] 'Once' schedule ${schedule.id} has a nextRunAt in the past. Not scheduling.`,
+      );
       // Optionally, deactivate it here if it wasn't already.
       if (schedule.isActive) {
-        await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+        await privilegedDb
+          .update(testPlanSchedules)
+          .set({ isActive: false, updatedAt: new Date() })
+          .where(eq(testPlanSchedules.id, schedule.id));
       }
       return;
     }
   } else {
     // For recurring tasks
-    const cronPattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt), scheduleZone(schedule));
+    const cronPattern = frequencyToCronPattern(
+      schedule.frequency,
+      new Date(schedule.nextRunAt),
+      scheduleZone(schedule),
+    );
     if (!cronPattern || !cron.validate(cronPattern)) {
-      resolvedLogger.error(`[SchedulerService] Invalid or null cron pattern '${cronPattern}' for schedule ${schedule.id} (Frequency: ${schedule.frequency}). Not adding job.`);
+      resolvedLogger.error(
+        `[SchedulerService] Invalid or null cron pattern '${cronPattern}' for schedule ${schedule.id} (Frequency: ${schedule.frequency}). Not adding job.`,
+      );
       return;
     }
     try {
-      task = cron.schedule(cronPattern, async () => {
-        await executeScheduledPlan(schedule, plan);
-      }, { timezone: scheduleZone(schedule) });
-      resolvedLogger.info(`[SchedulerService] Added cron job for schedule ${schedule.id} with pattern: ${cronPattern} (${scheduleZone(schedule)})`);
+      task = cron.schedule(
+        cronPattern,
+        async () => {
+          await executeScheduledPlan(schedule, plan);
+        },
+        { timezone: scheduleZone(schedule) },
+      );
+      resolvedLogger.info(
+        `[SchedulerService] Added cron job for schedule ${schedule.id} with pattern: ${cronPattern} (${scheduleZone(schedule)})`,
+      );
     } catch (e: any) {
-      resolvedLogger.error(`[SchedulerService] Failed to schedule job for schedule ${schedule.id} with pattern ${cronPattern}: ${e.message}`);
+      resolvedLogger.error(
+        `[SchedulerService] Failed to schedule job for schedule ${schedule.id} with pattern ${cronPattern}: ${e.message}`,
+      );
       return;
     }
   }
@@ -494,7 +584,9 @@ export async function updateScheduleJob(schedule: TestPlanSchedule) {
   if (schedule.isActive) {
     await addScheduleJob(schedule); // Add new job if active
   } else {
-    resolvedLogger.info(`[SchedulerService] Schedule ${schedule.id} is now inactive. Job not (re)added.`);
+    resolvedLogger.info(
+      `[SchedulerService] Schedule ${schedule.id} is now inactive. Job not (re)added.`,
+    );
   }
 }
 
@@ -502,35 +594,46 @@ export async function initializeScheduler() {
   const resolvedLogger = await logger;
   resolvedLogger.info('[SchedulerService] Initializing scheduler...');
   // Clear any existing jobs (e.g., if re-initializing)
-  activeCronJobs.forEach(job => job.job.stop());
+  activeCronJobs.forEach((job) => job.job.stop());
   activeCronJobs.clear();
 
   try {
     const schedulesToLoad = await privilegedDb
       .select()
       .from(testPlanSchedules)
-      .where(and(
-        eq(testPlanSchedules.isActive, true)
-        // For 'once' schedules, only load if nextRunAt is in the future.
-        // For recurring, we might always load them and let cron handle the timing.
-        // Or, more efficiently, only load those whose nextRunAt is "soon".
-        // For now, let's load all active ones and rely on cron pattern / 'once' logic in addScheduleJob.
-        // gt(testPlanSchedules.nextRunAt, now) // This might be too restrictive for recurring.
-      ));
+      .where(
+        and(
+          eq(testPlanSchedules.isActive, true),
+          // For 'once' schedules, only load if nextRunAt is in the future.
+          // For recurring, we might always load them and let cron handle the timing.
+          // Or, more efficiently, only load those whose nextRunAt is "soon".
+          // For now, let's load all active ones and rely on cron pattern / 'once' logic in addScheduleJob.
+          // gt(testPlanSchedules.nextRunAt, now) // This might be too restrictive for recurring.
+        ),
+      );
 
-    resolvedLogger.info(`[SchedulerService] Found ${schedulesToLoad.length} active schedules to load.`);
+    resolvedLogger.info(
+      `[SchedulerService] Found ${schedulesToLoad.length} active schedules to load.`,
+    );
     for (const schedule of schedulesToLoad) {
       // If it's a 'once' schedule and its time has passed, deactivate it and skip.
       if (schedule.frequency === 'once' && schedule.nextRunAt.getTime() <= Date.now()) {
-        resolvedLogger.info(`[SchedulerService] 'Once' schedule ${schedule.id} has past. Deactivating.`);
-        await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+        resolvedLogger.info(
+          `[SchedulerService] 'Once' schedule ${schedule.id} has past. Deactivating.`,
+        );
+        await privilegedDb
+          .update(testPlanSchedules)
+          .set({ isActive: false, updatedAt: new Date() })
+          .where(eq(testPlanSchedules.id, schedule.id));
         continue;
       }
       await addScheduleJob(schedule);
     }
     resolvedLogger.info('[SchedulerService] Scheduler initialized successfully.');
   } catch (error: any) {
-    resolvedLogger.error(`[SchedulerService] Error initializing scheduler: ${error.message}`, { stack: error.stack });
+    resolvedLogger.error(`[SchedulerService] Error initializing scheduler: ${error.message}`, {
+      stack: error.stack,
+    });
   }
 }
 
@@ -551,7 +654,9 @@ export async function shutdownScheduler(): Promise<void> {
 export async function bullmqAddScheduleJob(schedule: TestPlanSchedule): Promise<void> {
   const resolvedLogger = await logger;
   if (!schedule.isActive) {
-    resolvedLogger.info(`[SchedulerService/bullmq] Schedule ${schedule.id} is not active. Not adding job.`);
+    resolvedLogger.info(
+      `[SchedulerService/bullmq] Schedule ${schedule.id} is not active. Not adding job.`,
+    );
     return;
   }
 
@@ -561,18 +666,34 @@ export async function bullmqAddScheduleJob(schedule: TestPlanSchedule): Promise<
     const runAtMs = new Date(schedule.nextRunAt).getTime();
     const delayMs = runAtMs - Date.now();
     if (delayMs <= 0) {
-      resolvedLogger.info(`[SchedulerService/bullmq] 'once' schedule ${schedule.id} is in the past. Deactivating.`);
-      await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+      resolvedLogger.info(
+        `[SchedulerService/bullmq] 'once' schedule ${schedule.id} is in the past. Deactivating.`,
+      );
+      await privilegedDb
+        .update(testPlanSchedules)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(testPlanSchedules.id, schedule.id));
       return;
     }
-    await testExecutionQueue.add(TRIGGER_SCHEDULE_JOB, data, { delay: delayMs, jobId: onceJobId(schedule.id) });
-    resolvedLogger.info(`[SchedulerService/bullmq] Scheduled one-time job for schedule ${schedule.id} in ${delayMs}ms.`);
+    await testExecutionQueue.add(TRIGGER_SCHEDULE_JOB, data, {
+      delay: delayMs,
+      jobId: onceJobId(schedule.id),
+    });
+    resolvedLogger.info(
+      `[SchedulerService/bullmq] Scheduled one-time job for schedule ${schedule.id} in ${delayMs}ms.`,
+    );
     return;
   }
 
-  const pattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt), scheduleZone(schedule));
+  const pattern = frequencyToCronPattern(
+    schedule.frequency,
+    new Date(schedule.nextRunAt),
+    scheduleZone(schedule),
+  );
   if (!pattern) {
-    resolvedLogger.error(`[SchedulerService/bullmq] Could not derive a cron pattern for schedule ${schedule.id} (frequency: ${schedule.frequency}). Not adding job.`);
+    resolvedLogger.error(
+      `[SchedulerService/bullmq] Could not derive a cron pattern for schedule ${schedule.id} (frequency: ${schedule.frequency}). Not adding job.`,
+    );
     return;
   }
   // The job-scheduler id is the schedule id, so upsert is idempotent (safe re-runs).
@@ -581,7 +702,9 @@ export async function bullmqAddScheduleJob(schedule: TestPlanSchedule): Promise<
     { pattern, tz: scheduleZone(schedule) },
     { name: TRIGGER_SCHEDULE_JOB, data },
   );
-  resolvedLogger.info(`[SchedulerService/bullmq] Upserted job scheduler for ${schedule.id} with pattern: ${pattern}`);
+  resolvedLogger.info(
+    `[SchedulerService/bullmq] Upserted job scheduler for ${schedule.id} with pattern: ${pattern}`,
+  );
 }
 
 export async function bullmqRemoveScheduleJob(scheduleId: string): Promise<void> {
@@ -599,7 +722,10 @@ export async function bullmqUpdateScheduleJob(schedule: TestPlanSchedule): Promi
 export async function bullmqInitializeScheduler(): Promise<void> {
   const resolvedLogger = await logger;
   resolvedLogger.info('[SchedulerService/bullmq] Initializing BullMQ schedulers...');
-  const activeSchedules = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.isActive, true));
+  const activeSchedules = await privilegedDb
+    .select()
+    .from(testPlanSchedules)
+    .where(eq(testPlanSchedules.isActive, true));
   const activeIds = new Set(activeSchedules.map((s) => s.id));
 
   // Reconcile: drop any Redis job schedulers that no longer map to an active schedule.
@@ -611,17 +737,25 @@ export async function bullmqInitializeScheduler(): Promise<void> {
       }
     }
   } catch (e) {
-    resolvedLogger.error('[SchedulerService/bullmq] Failed to reconcile existing job schedulers', e);
+    resolvedLogger.error(
+      '[SchedulerService/bullmq] Failed to reconcile existing job schedulers',
+      e,
+    );
   }
 
   for (const schedule of activeSchedules) {
     if (schedule.frequency === 'once' && new Date(schedule.nextRunAt).getTime() <= Date.now()) {
-      await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+      await privilegedDb
+        .update(testPlanSchedules)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(testPlanSchedules.id, schedule.id));
       continue;
     }
     await bullmqAddScheduleJob(schedule);
   }
-  resolvedLogger.info(`[SchedulerService/bullmq] Initialized ${activeSchedules.length} schedule(s).`);
+  resolvedLogger.info(
+    `[SchedulerService/bullmq] Initialized ${activeSchedules.length} schedule(s).`,
+  );
 }
 
 export async function bullmqShutdownScheduler(): Promise<void> {
@@ -635,9 +769,13 @@ export default {
   addScheduleJob: (schedule: TestPlanSchedule) =>
     SCHEDULER_BACKEND === 'bullmq' ? bullmqAddScheduleJob(schedule) : addScheduleJob(schedule),
   updateScheduleJob: (schedule: TestPlanSchedule) =>
-    SCHEDULER_BACKEND === 'bullmq' ? bullmqUpdateScheduleJob(schedule) : updateScheduleJob(schedule),
+    SCHEDULER_BACKEND === 'bullmq'
+      ? bullmqUpdateScheduleJob(schedule)
+      : updateScheduleJob(schedule),
   removeScheduleJob: (scheduleId: string) =>
-    SCHEDULER_BACKEND === 'bullmq' ? bullmqRemoveScheduleJob(scheduleId) : removeScheduleJob(scheduleId),
+    SCHEDULER_BACKEND === 'bullmq'
+      ? bullmqRemoveScheduleJob(scheduleId)
+      : removeScheduleJob(scheduleId),
   shutdownScheduler: () =>
     SCHEDULER_BACKEND === 'bullmq' ? bullmqShutdownScheduler() : shutdownScheduler(),
 };

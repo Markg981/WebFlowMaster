@@ -18,7 +18,12 @@ import { runApiRequest } from './api-test-runner';
 
 let server: http.Server;
 let baseUrl: string;
-let received: Array<{ method: string; url: string; headers: http.IncomingHttpHeaders; body: string }>;
+let received: Array<{
+  method: string;
+  url: string;
+  headers: http.IncomingHttpHeaders;
+  body: string;
+}>;
 
 beforeAll(async () => {
   server = http.createServer((req, res) => {
@@ -156,7 +161,13 @@ describe('runApiRequest', () => {
         headers: { 'Content-Type': 'application/json' },
         multipart: [
           { key: 'note', type: 'text', value: 'hello {{who}}' },
-          { key: 'doc', type: 'file', fileName: 'a.txt', contentType: 'text/plain', base64: Buffer.from('file body').toString('base64') },
+          {
+            key: 'doc',
+            type: 'file',
+            fileName: 'a.txt',
+            contentType: 'text/plain',
+            base64: Buffer.from('file body').toString('base64'),
+          },
         ],
       },
       { who: 'world' },
@@ -164,7 +175,9 @@ describe('runApiRequest', () => {
 
     const contentType = String(received[0].headers['content-type']);
     expect(contentType).toMatch(/^multipart\/form-data; boundary=/);
-    const form = await new Response(received[0].body, { headers: { 'content-type': contentType } }).formData();
+    const form = await new Response(received[0].body, {
+      headers: { 'content-type': contentType },
+    }).formData();
     expect(form.get('note')).toBe('hello world');
     const file = form.get('doc') as File;
     expect(file.name).toBe('a.txt');
@@ -187,7 +200,11 @@ describe('runApiRequest', () => {
 
   it('sends no body with a GET, whatever form-data was filled in', async () => {
     await runApiRequest(
-      { method: 'GET', url: `${baseUrl}/ping`, multipart: [{ key: 'a', type: 'text', value: '1' }] },
+      {
+        method: 'GET',
+        url: `${baseUrl}/ping`,
+        multipart: [{ key: 'a', type: 'text', value: '1' }],
+      },
       {},
     );
 
@@ -227,7 +244,9 @@ describe('extracting values for the next request', () => {
       {
         method: 'GET',
         url: `${baseUrl}/ping`,
-        extractions: [{ id: 'e1', name: 'missing', source: 'body_json_path', property: 'nope.deep' }],
+        extractions: [
+          { id: 'e1', name: 'missing', source: 'body_json_path', property: 'nope.deep' },
+        ],
       },
       {},
     );
@@ -235,9 +254,7 @@ describe('extracting values for the next request', () => {
     // A silently absent variable becomes a literal `{{missing}}` in the next request, which
     // fails somewhere else entirely and takes the reader with it.
     expect(result.extracted.missing).toBeUndefined();
-    expect(result.extractionErrors).toContainEqual(
-      expect.objectContaining({ name: 'missing' }),
-    );
+    expect(result.extractionErrors).toContainEqual(expect.objectContaining({ name: 'missing' }));
   }, 30_000);
 });
 
@@ -316,10 +333,7 @@ describe('the authentication a saved test carries', () => {
   it('sends nothing extra for none or inherit', async () => {
     for (const type of ['none', 'inherit'] as const) {
       received = [];
-      await runApiRequest(
-        { method: 'GET', url: `${baseUrl}/ping`, auth: { type } as never },
-        {},
-      );
+      await runApiRequest({ method: 'GET', url: `${baseUrl}/ping`, auth: { type } as never }, {});
       expect(received[0].headers.authorization).toBeUndefined();
     }
   }, 30_000);

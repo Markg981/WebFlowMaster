@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -58,7 +60,12 @@ describe('ApiKeysCard', () => {
     await screen.findByText('GitHub Actions');
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ ...existingKey, id: 'key-2', name: 'Nightly', key: 'wfm_the-actual-secret' }),
+      json: async () => ({
+        ...existingKey,
+        id: 'key-2',
+        name: 'Nightly',
+        key: 'wfm_the-actual-secret',
+      }),
     });
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Nightly' } });
@@ -71,7 +78,10 @@ describe('ApiKeysCard', () => {
   it('sends the name, the optional lifetime, and by default only the run scopes', async () => {
     renderCard();
     await screen.findByText('GitHub Actions');
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ ...existingKey, key: 'wfm_x' }) });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ...existingKey, key: 'wfm_x' }),
+    });
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Nightly' } });
     fireEvent.change(screen.getByLabelText(/Expires in/i), { target: { value: '30' } });
@@ -79,7 +89,11 @@ describe('ApiKeysCard', () => {
 
     await waitFor(() => {
       const post = fetchMock.mock.calls.find(([, init]: any[]) => init?.method === 'POST');
-      expect(JSON.parse(post![1].body)).toEqual({ name: 'Nightly', expiresInDays: 30, scopes: ['runs:read', 'runs:write'] });
+      expect(JSON.parse(post![1].body)).toEqual({
+        name: 'Nightly',
+        expiresInDays: 30,
+        scopes: ['runs:read', 'runs:write'],
+      });
     });
   });
 
@@ -95,7 +109,10 @@ describe('ApiKeysCard', () => {
     expect(await screen.findByText(/at least one thing/i)).toBeInTheDocument();
     expect(fetchMock.mock.calls.length).toBe(callsBefore);
 
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ ...existingKey, key: 'wfm_x' }) });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ...existingKey, key: 'wfm_x' }),
+    });
     fireEvent.click(screen.getByLabelText('plans:read'));
     fireEvent.click(screen.getByRole('button', { name: /Create key/i }));
 
@@ -110,7 +127,13 @@ describe('ApiKeysCard', () => {
       ok: true,
       json: async () => [
         { ...existingKey, scopes: null },
-        { ...existingKey, id: 'k2', name: 'Scoped', scopes: ['runs:read'], holder: { username: 'svc-1-x', kind: 'service', displayName: 'CI bot' } },
+        {
+          ...existingKey,
+          id: 'k2',
+          name: 'Scoped',
+          scopes: ['runs:read'],
+          holder: { username: 'svc-1-x', kind: 'service', displayName: 'CI bot' },
+        },
       ],
     });
     renderCard();
@@ -134,7 +157,10 @@ describe('ApiKeysCard', () => {
   it('revokes a key', async () => {
     renderCard();
     await screen.findByText('GitHub Actions');
-    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ ...existingKey, revokedAt: new Date().toISOString() }) });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ...existingKey, revokedAt: new Date().toISOString() }),
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Revoke key' }));
 
@@ -145,7 +171,10 @@ describe('ApiKeysCard', () => {
   });
 
   it('offers no way to revoke a key that is already revoked', async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => [{ ...existingKey, revokedAt: '2026-09-21T00:00:00.000Z' }] });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => [{ ...existingKey, revokedAt: '2026-09-21T00:00:00.000Z' }],
+    });
     renderCard();
 
     expect(await screen.findByText('revoked')).toBeInTheDocument();

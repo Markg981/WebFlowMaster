@@ -8,9 +8,20 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Copy, KeyRound, Loader2 } from 'lucide-react';
-import { DomainVerification, RoleMappingEditor, type DomainStatus, type RoleMappingRow } from './SsoRolesAndDomains';
+import {
+  DomainVerification,
+  RoleMappingEditor,
+  type DomainStatus,
+  type RoleMappingRow,
+} from './SsoRolesAndDomains';
 import { ScimProvisioning, type ScimTokenStatus } from './ScimProvisioning';
 import SamlAdvancedSettings, { type SamlAdvancedForm } from './SamlAdvancedSettings';
 
@@ -87,11 +98,25 @@ interface Form extends SamlAdvancedForm {
 }
 
 const EMPTY: Form = {
-  protocol: 'oidc', issuer: '', clientId: '', clientSecret: '', samlSsoUrl: '', samlCertificate: '',
-  domains: '', defaultRole: 'viewer', enabled: true, required: false,
-  groupAttribute: 'groups', roleMappings: [], requireGroup: false,
-  samlAllowIdpInitiated: false, samlRequireEncryptedAssertions: false,
-  samlSloUrl: '', samlSpCertificate: '', samlSpPrivateKey: '', samlClearSpKey: false,
+  protocol: 'oidc',
+  issuer: '',
+  clientId: '',
+  clientSecret: '',
+  samlSsoUrl: '',
+  samlCertificate: '',
+  domains: '',
+  defaultRole: 'viewer',
+  enabled: true,
+  required: false,
+  groupAttribute: 'groups',
+  roleMappings: [],
+  requireGroup: false,
+  samlAllowIdpInitiated: false,
+  samlRequireEncryptedAssertions: false,
+  samlSloUrl: '',
+  samlSpCertificate: '',
+  samlSpPrivateKey: '',
+  samlClearSpKey: false,
 };
 
 function CopyField({ label, value, testId }: { label: string; value: string; testId: string }) {
@@ -101,7 +126,13 @@ function CopyField({ label, value, testId }: { label: string; value: string; tes
       <Label>{label}</Label>
       <div className="flex gap-2">
         <Input readOnly value={value} data-testid={testId} className="font-mono text-xs" />
-        <Button type="button" variant="outline" size="icon" aria-label={t('sso.copy', 'Copy')} onClick={() => navigator.clipboard?.writeText(value)}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label={t('sso.copy', 'Copy')}
+          onClick={() => navigator.clipboard?.writeText(value)}
+        >
           <Copy className="h-4 w-4" />
         </Button>
       </div>
@@ -155,7 +186,8 @@ export default function SsoCard() {
     );
   }, [data]);
 
-  const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((current) => ({ ...current, [key]: value }));
+  const set = <K extends keyof Form>(key: K, value: Form[K]) =>
+    setForm((current) => ({ ...current, [key]: value }));
 
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
@@ -181,22 +213,27 @@ export default function SsoCard() {
         enabled: form.enabled,
         required: form.enabled && form.required,
         groupAttribute: form.groupAttribute.trim() || null,
-        roleMappings: form.roleMappings.filter((m) => m.group.trim() !== '').map((m) => ({ group: m.group.trim(), role: m.role })),
+        roleMappings: form.roleMappings
+          .filter((m) => m.group.trim() !== '')
+          .map((m) => ({ group: m.group.trim(), role: m.role })),
         requireGroup: form.requireGroup && form.roleMappings.some((m) => m.group.trim() !== ''),
       };
-      const body = form.protocol === 'oidc'
-        ? { ...common, clientId: form.clientId, clientSecret: form.clientSecret }
-        : {
-          ...common, samlSsoUrl: form.samlSsoUrl, samlCertificate: form.samlCertificate,
-          samlAllowIdpInitiated: form.samlAllowIdpInitiated,
-          samlRequireEncryptedAssertions: form.samlRequireEncryptedAssertions,
-          samlSloUrl: form.samlSloUrl.trim() || null,
-          samlSpCertificate: form.samlClearSpKey ? null : form.samlSpCertificate || null,
-          samlSpPrivateKey: form.samlClearSpKey ? '' : form.samlSpPrivateKey,
-          samlClearSpKey: form.samlClearSpKey,
-        };
+      const body =
+        form.protocol === 'oidc'
+          ? { ...common, clientId: form.clientId, clientSecret: form.clientSecret }
+          : {
+              ...common,
+              samlSsoUrl: form.samlSsoUrl,
+              samlCertificate: form.samlCertificate,
+              samlAllowIdpInitiated: form.samlAllowIdpInitiated,
+              samlRequireEncryptedAssertions: form.samlRequireEncryptedAssertions,
+              samlSloUrl: form.samlSloUrl.trim() || null,
+              samlSpCertificate: form.samlClearSpKey ? null : form.samlSpCertificate || null,
+              samlSpPrivateKey: form.samlClearSpKey ? '' : form.samlSpPrivateKey,
+              samlClearSpKey: form.samlClearSpKey,
+            };
       const result = await send('PUT', '/api/organization/sso', body);
-      setForm(current => ({ ...current, samlSpPrivateKey: '', samlClearSpKey: false }));
+      setForm((current) => ({ ...current, samlSpPrivateKey: '', samlClearSpKey: false }));
       queryClient.setQueryData(['organization-sso'], result);
       setNotice(t('sso.saved', 'Saved.'));
     });
@@ -204,17 +241,33 @@ export default function SsoCard() {
 
   const readMetadata = () =>
     run(async () => {
-      const parsed = await send('POST', '/api/organization/sso/saml-metadata', { xml: metadataXml });
-      setForm((current) => ({ ...current, issuer: parsed.entityId, samlSsoUrl: parsed.ssoUrl, samlCertificate: parsed.certificate, samlSloUrl: parsed.sloUrl ?? '' }));
+      const parsed = await send('POST', '/api/organization/sso/saml-metadata', {
+        xml: metadataXml,
+      });
+      setForm((current) => ({
+        ...current,
+        issuer: parsed.entityId,
+        samlSsoUrl: parsed.ssoUrl,
+        samlCertificate: parsed.certificate,
+        samlSloUrl: parsed.sloUrl ?? '',
+      }));
       setMetadataXml('');
-      setNotice(t('sso.saml.metadataRead', 'Filled from the metadata. Check the values, then save.'));
+      setNotice(
+        t('sso.saml.metadataRead', 'Filled from the metadata. Check the values, then save.'),
+      );
     });
 
   const test = () =>
     run(async () => {
       const result = await send('POST', '/api/organization/sso/test');
-      if (result.ok) setNotice(t('sso.testOk', 'The provider answered: {{issuer}}', { issuer: result.issuer }));
-      else setError(t('sso.testFailed', 'The provider did not answer: {{message}}', { message: result.message }));
+      if (result.ok)
+        setNotice(t('sso.testOk', 'The provider answered: {{issuer}}', { issuer: result.issuer }));
+      else
+        setError(
+          t('sso.testFailed', 'The provider did not answer: {{message}}', {
+            message: result.message,
+          }),
+        );
     });
 
   const remove = () =>
@@ -224,10 +277,15 @@ export default function SsoCard() {
       queryClient.invalidateQueries({ queryKey: ['organization-sso'] });
     });
 
-  const oidcReady = form.clientId.trim() && (saved?.protocol === 'oidc' || form.clientSecret.trim());
+  const oidcReady =
+    form.clientId.trim() && (saved?.protocol === 'oidc' || form.clientSecret.trim());
   const samlReady = form.samlSsoUrl.trim() && form.samlCertificate.trim();
-  const canSave = form.issuer.trim() && form.domains.trim() && (form.protocol === 'oidc' ? oidcReady : samlReady);
-  const certInfo = saved?.protocol === 'saml' && form.samlCertificate === saved.samlCertificate ? saved.samlCertificateInfo : null;
+  const canSave =
+    form.issuer.trim() && form.domains.trim() && (form.protocol === 'oidc' ? oidcReady : samlReady);
+  const certInfo =
+    saved?.protocol === 'saml' && form.samlCertificate === saved.samlCertificate
+      ? saved.samlCertificateInfo
+      : null;
 
   return (
     <Card>
@@ -236,8 +294,14 @@ export default function SsoCard() {
           <KeyRound className="h-4 w-4 text-muted-foreground" />
           <span>{t('sso.title', 'Single sign-on')}</span>
           {saved?.enabled && <Badge variant="secondary">{t('sso.on', 'on')}</Badge>}
-          {saved?.required && <Badge variant="secondary">{t('sso.requiredBadge', 'required')}</Badge>}
-          {saved && <Badge variant="outline">{saved.protocol === 'saml' ? 'SAML 2.0' : 'OpenID Connect'}</Badge>}
+          {saved?.required && (
+            <Badge variant="secondary">{t('sso.requiredBadge', 'required')}</Badge>
+          )}
+          {saved && (
+            <Badge variant="outline">
+              {saved.protocol === 'saml' ? 'SAML 2.0' : 'OpenID Connect'}
+            </Badge>
+          )}
         </CardTitle>
         <CardDescription>
           {t(
@@ -250,7 +314,9 @@ export default function SsoCard() {
         {isError && !data ? (
           <div role="alert" className="space-y-2 text-sm text-destructive">
             <p>{t('sso.loadFailed', 'Could not load single sign-on settings.')}</p>
-            <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>{t('sso.retry', 'Retry')}</Button>
+            <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
+              {t('sso.retry', 'Retry')}
+            </Button>
           </div>
         ) : isLoading || !data ? (
           <p className="text-sm text-muted-foreground">{t('security.loading', 'Loading…')}</p>
@@ -258,7 +324,10 @@ export default function SsoCard() {
           <form onSubmit={save} className="space-y-4" data-testid="sso-form">
             <div className="space-y-1">
               <Label htmlFor="sso-protocol">{t('sso.protocol', 'Protocol')}</Label>
-              <Select value={form.protocol} onValueChange={(value) => set('protocol', value as Protocol)}>
+              <Select
+                value={form.protocol}
+                onValueChange={(value) => set('protocol', value as Protocol)}
+              >
                 <SelectTrigger id="sso-protocol" data-testid="sso-protocol" className="md:w-64">
                   <SelectValue />
                 </SelectTrigger>
@@ -271,23 +340,42 @@ export default function SsoCard() {
 
             {form.protocol === 'oidc' ? (
               <>
-                <CopyField label={t('sso.callbackUrl', 'Redirect URI to register with your provider')} value={data.callbackUrl} testId="sso-callback-url" />
+                <CopyField
+                  label={t('sso.callbackUrl', 'Redirect URI to register with your provider')}
+                  value={data.callbackUrl}
+                  testId="sso-callback-url"
+                />
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-1 md:col-span-2">
                     <Label htmlFor="sso-issuer">{t('sso.issuer', 'Issuer')}</Label>
-                    <Input id="sso-issuer" placeholder="https://login.microsoftonline.com/<tenant>/v2.0" value={form.issuer} onChange={(e) => set('issuer', e.target.value)} />
+                    <Input
+                      id="sso-issuer"
+                      placeholder="https://login.microsoftonline.com/<tenant>/v2.0"
+                      value={form.issuer}
+                      onChange={(e) => set('issuer', e.target.value)}
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="sso-client-id">{t('sso.clientId', 'Client ID')}</Label>
-                    <Input id="sso-client-id" value={form.clientId} onChange={(e) => set('clientId', e.target.value)} />
+                    <Input
+                      id="sso-client-id"
+                      value={form.clientId}
+                      onChange={(e) => set('clientId', e.target.value)}
+                    />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="sso-client-secret">{t('sso.clientSecret', 'Client secret')}</Label>
+                    <Label htmlFor="sso-client-secret">
+                      {t('sso.clientSecret', 'Client secret')}
+                    </Label>
                     <Input
                       id="sso-client-secret"
                       type="password"
                       autoComplete="off"
-                      placeholder={saved?.protocol === 'oidc' ? t('sso.secretKept', 'Stored. Leave empty to keep it.') : ''}
+                      placeholder={
+                        saved?.protocol === 'oidc'
+                          ? t('sso.secretKept', 'Stored. Leave empty to keep it.')
+                          : ''
+                      }
                       value={form.clientSecret}
                       onChange={(e) => set('clientSecret', e.target.value)}
                     />
@@ -297,56 +385,146 @@ export default function SsoCard() {
             ) : (
               <>
                 <p className="text-xs text-muted-foreground">
-                  {t('sso.saml.spHint', 'Give your identity provider these values, or the metadata URL, which carries them all.')}
+                  {t(
+                    'sso.saml.spHint',
+                    'Give your identity provider these values, or the metadata URL, which carries them all.',
+                  )}
                 </p>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <CopyField label={t('sso.saml.entityId', 'Entity ID (audience) of WebFlowMaster')} value={data.saml.entityId} testId="sso-saml-entity-id" />
-                  <CopyField label={t('sso.saml.acsUrl', 'Assertion consumer service (ACS) URL')} value={data.saml.acsUrl} testId="sso-saml-acs-url" />
-                  {data.saml.sloUrl && <CopyField label={t('sso.saml.spSloUrl', 'WebFlowMaster single logout callback URL')} value={data.saml.sloUrl} testId="sso-saml-slo-url" />}
+                  <CopyField
+                    label={t('sso.saml.entityId', 'Entity ID (audience) of WebFlowMaster')}
+                    value={data.saml.entityId}
+                    testId="sso-saml-entity-id"
+                  />
+                  <CopyField
+                    label={t('sso.saml.acsUrl', 'Assertion consumer service (ACS) URL')}
+                    value={data.saml.acsUrl}
+                    testId="sso-saml-acs-url"
+                  />
+                  {data.saml.sloUrl && (
+                    <CopyField
+                      label={t('sso.saml.spSloUrl', 'WebFlowMaster single logout callback URL')}
+                      value={data.saml.sloUrl}
+                      testId="sso-saml-slo-url"
+                    />
+                  )}
                   <div className="md:col-span-2">
-                    <CopyField label={t('sso.saml.metadataUrl', 'Service provider metadata URL (available once saved)')} value={data.saml.metadataUrl} testId="sso-saml-metadata-url" />
+                    <CopyField
+                      label={t(
+                        'sso.saml.metadataUrl',
+                        'Service provider metadata URL (available once saved)',
+                      )}
+                      value={data.saml.metadataUrl}
+                      testId="sso-saml-metadata-url"
+                    />
                   </div>
                 </div>
                 <div className="space-y-1 border-t pt-4">
-                  <Label htmlFor="sso-saml-metadata">{t('sso.saml.pasteMetadata', "Your provider's metadata (optional: fills the provider fields below)")}</Label>
-                  <Textarea id="sso-saml-metadata" rows={3} className="font-mono text-xs" placeholder="<md:EntityDescriptor …>" value={metadataXml} onChange={(e) => setMetadataXml(e.target.value)} />
-                  <Button type="button" size="sm" variant="outline" disabled={busy || !metadataXml.trim()} onClick={readMetadata}>
+                  <Label htmlFor="sso-saml-metadata">
+                    {t(
+                      'sso.saml.pasteMetadata',
+                      "Your provider's metadata (optional: fills the provider fields below)",
+                    )}
+                  </Label>
+                  <Textarea
+                    id="sso-saml-metadata"
+                    rows={3}
+                    className="font-mono text-xs"
+                    placeholder="<md:EntityDescriptor …>"
+                    value={metadataXml}
+                    onChange={(e) => setMetadataXml(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={busy || !metadataXml.trim()}
+                    onClick={readMetadata}
+                  >
                     {t('sso.saml.readMetadata', 'Read the metadata')}
                   </Button>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-1">
-                    <Label htmlFor="sso-saml-issuer">{t('sso.saml.idpEntityId', "Provider's entity ID")}</Label>
-                    <Input id="sso-saml-issuer" placeholder="https://sts.windows.net/<tenant>/" value={form.issuer} onChange={(e) => set('issuer', e.target.value)} />
+                    <Label htmlFor="sso-saml-issuer">
+                      {t('sso.saml.idpEntityId', "Provider's entity ID")}
+                    </Label>
+                    <Input
+                      id="sso-saml-issuer"
+                      placeholder="https://sts.windows.net/<tenant>/"
+                      value={form.issuer}
+                      onChange={(e) => set('issuer', e.target.value)}
+                    />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="sso-saml-sso-url">{t('sso.saml.ssoUrl', 'Sign-on URL (HTTP-Redirect)')}</Label>
-                    <Input id="sso-saml-sso-url" placeholder="https://login.microsoftonline.com/<tenant>/saml2" value={form.samlSsoUrl} onChange={(e) => set('samlSsoUrl', e.target.value)} />
+                    <Label htmlFor="sso-saml-sso-url">
+                      {t('sso.saml.ssoUrl', 'Sign-on URL (HTTP-Redirect)')}
+                    </Label>
+                    <Input
+                      id="sso-saml-sso-url"
+                      placeholder="https://login.microsoftonline.com/<tenant>/saml2"
+                      value={form.samlSsoUrl}
+                      onChange={(e) => set('samlSsoUrl', e.target.value)}
+                    />
                   </div>
                   <div className="space-y-1 md:col-span-2">
-                    <Label htmlFor="sso-saml-cert">{t('sso.saml.certificate', 'Signing certificate (X.509, PEM or base64)')}</Label>
-                    <Textarea id="sso-saml-cert" rows={4} className="font-mono text-xs" placeholder="-----BEGIN CERTIFICATE-----" value={form.samlCertificate} onChange={(e) => set('samlCertificate', e.target.value)} />
+                    <Label htmlFor="sso-saml-cert">
+                      {t('sso.saml.certificate', 'Signing certificate (X.509, PEM or base64)')}
+                    </Label>
+                    <Textarea
+                      id="sso-saml-cert"
+                      rows={4}
+                      className="font-mono text-xs"
+                      placeholder="-----BEGIN CERTIFICATE-----"
+                      value={form.samlCertificate}
+                      onChange={(e) => set('samlCertificate', e.target.value)}
+                    />
                     {certInfo && (
-                      <p className={`text-xs ${certInfo.expired ? 'text-destructive' : 'text-muted-foreground'}`} data-testid="sso-saml-cert-info">
+                      <p
+                        className={`text-xs ${certInfo.expired ? 'text-destructive' : 'text-muted-foreground'}`}
+                        data-testid="sso-saml-cert-info"
+                      >
                         {certInfo.expired
-                          ? t('sso.saml.certExpired', 'Expired on {{date}}: sign-ins are refused until you paste the new certificate.', { date: certInfo.validTo.slice(0, 10) })
-                          : t('sso.saml.certValid', '{{subject}} · valid until {{date}}', { subject: certInfo.subject, date: certInfo.validTo.slice(0, 10) })}
+                          ? t(
+                              'sso.saml.certExpired',
+                              'Expired on {{date}}: sign-ins are refused until you paste the new certificate.',
+                              { date: certInfo.validTo.slice(0, 10) },
+                            )
+                          : t('sso.saml.certValid', '{{subject}} · valid until {{date}}', {
+                              subject: certInfo.subject,
+                              date: certInfo.validTo.slice(0, 10),
+                            })}
                       </p>
                     )}
                   </div>
                 </div>
-                <SamlAdvancedSettings value={form} privateKeyConfigured={!!saved?.samlSpPrivateKeyConfigured} disabled={busy} onChange={next => setForm(current => ({ ...current, ...next }))} />
+                <SamlAdvancedSettings
+                  value={form}
+                  privateKeyConfigured={!!saved?.samlSpPrivateKeyConfigured}
+                  disabled={busy}
+                  onChange={(next) => setForm((current) => ({ ...current, ...next }))}
+                />
               </>
             )}
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="sso-domains">{t('sso.domains', 'E-mail domains')}</Label>
-                <Input id="sso-domains" placeholder="example.com, example.org" value={form.domains} onChange={(e) => set('domains', e.target.value)} />
+                <Input
+                  id="sso-domains"
+                  placeholder="example.com, example.org"
+                  value={form.domains}
+                  onChange={(e) => set('domains', e.target.value)}
+                />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="sso-default-role">{t('sso.defaultRole', 'Role of new accounts')}</Label>
-                <Select value={form.defaultRole} onValueChange={(value) => set('defaultRole', value as 'viewer' | 'editor')}>
+                <Label htmlFor="sso-default-role">
+                  {t('sso.defaultRole', 'Role of new accounts')}
+                </Label>
+                <Select
+                  value={form.defaultRole}
+                  onValueChange={(value) => set('defaultRole', value as 'viewer' | 'editor')}
+                >
                   <SelectTrigger id="sso-default-role">
                     <SelectValue />
                   </SelectTrigger>
@@ -370,7 +548,14 @@ export default function SsoCard() {
               attribute={form.groupAttribute}
               mappings={form.roleMappings}
               requireGroup={form.requireGroup}
-              onChange={(next) => setForm((current) => ({ ...current, groupAttribute: next.attribute, roleMappings: next.mappings, requireGroup: next.requireGroup }))}
+              onChange={(next) =>
+                setForm((current) => ({
+                  ...current,
+                  groupAttribute: next.attribute,
+                  roleMappings: next.mappings,
+                  requireGroup: next.requireGroup,
+                }))
+              }
             />
 
             {saved && data.scim && (
@@ -383,16 +568,27 @@ export default function SsoCard() {
 
             <div className="flex items-start justify-between gap-4 border-t pt-4">
               <div>
-                <Label htmlFor="sso-enabled" className="text-sm font-medium">{t('sso.enabled', 'Offer single sign-on')}</Label>
+                <Label htmlFor="sso-enabled" className="text-sm font-medium">
+                  {t('sso.enabled', 'Offer single sign-on')}
+                </Label>
                 <p className="text-xs text-muted-foreground">
-                  {t('sso.enabledHint', 'Off keeps the settings and signs nobody in through the provider.')}
+                  {t(
+                    'sso.enabledHint',
+                    'Off keeps the settings and signs nobody in through the provider.',
+                  )}
                 </p>
               </div>
-              <Switch id="sso-enabled" checked={form.enabled} onCheckedChange={(value) => set('enabled', value)} />
+              <Switch
+                id="sso-enabled"
+                checked={form.enabled}
+                onCheckedChange={(value) => set('enabled', value)}
+              />
             </div>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <Label htmlFor="sso-required" className="text-sm font-medium">{t('sso.required', 'Require it')}</Label>
+                <Label htmlFor="sso-required" className="text-sm font-medium">
+                  {t('sso.required', 'Require it')}
+                </Label>
                 <p className="text-xs text-muted-foreground">
                   {t(
                     'sso.requiredHint',
@@ -400,7 +596,12 @@ export default function SsoCard() {
                   )}
                 </p>
               </div>
-              <Switch id="sso-required" checked={form.enabled && form.required} disabled={!form.enabled} onCheckedChange={(value) => set('required', value)} />
+              <Switch
+                id="sso-required"
+                checked={form.enabled && form.required}
+                disabled={!form.enabled}
+                onCheckedChange={(value) => set('required', value)}
+              />
             </div>
 
             <p className="text-xs text-muted-foreground">
@@ -421,23 +622,48 @@ export default function SsoCard() {
                 </Button>
               )}
               {saved && !confirmRemove && (
-                <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmRemove(true)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => setConfirmRemove(true)}
+                >
                   {t('sso.remove', 'Remove')}
                 </Button>
               )}
               {confirmRemove && (
                 <>
-                  <Button type="button" size="sm" variant="destructive" disabled={busy} onClick={remove}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    disabled={busy}
+                    onClick={remove}
+                  >
                     {t('sso.removeConfirm', 'Remove single sign-on')}
                   </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setConfirmRemove(false)}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setConfirmRemove(false)}
+                  >
                     {t('security.cancel', 'Cancel')}
                   </Button>
                 </>
               )}
             </div>
-            {notice && <p className="text-sm text-muted-foreground" data-testid="sso-notice">{notice}</p>}
-            {error && <p className="text-sm text-destructive" data-testid="sso-error">{error}</p>}
+            {notice && (
+              <p className="text-sm text-muted-foreground" data-testid="sso-notice">
+                {notice}
+              </p>
+            )}
+            {error && (
+              <p className="text-sm text-destructive" data-testid="sso-error">
+                {error}
+              </p>
+            )}
           </form>
         )}
       </CardContent>

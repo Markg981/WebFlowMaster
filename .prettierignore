@@ -10,3 +10,13 @@ uploads
 data
 package-lock.json
 *.log
+
+# Local, untracked working folders (Prettier also honours .gitignore)
+.claude/
+.superpowers/
+client/src/__repro__/
+collaudo/mobile/apps/
+# Rewritten by npm on every install; formatting them here would only fight npm
+**/package.json
+# Case catalog edited by hand and by scripts that write JSON.stringify output
+collaudo/casi.json

@@ -1,12 +1,23 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Wand2, Image as ImageIcon } from 'lucide-react';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { DownloadFinding } from '@shared/downloads';
-import { PERFORMANCE_METRICS, formatMetric, type LighthouseFinding, type PerformanceFinding } from '@shared/web-performance';
+import {
+  PERFORMANCE_METRICS,
+  formatMetric,
+  type LighthouseFinding,
+  type PerformanceFinding,
+} from '@shared/web-performance';
 import AccessibilityPanel from './AccessibilityPanel';
 import NetworkPanel from './NetworkPanel';
 import type { NetworkSummary } from '@shared/network';
@@ -73,15 +84,21 @@ function SpeedPanel({ finding }: { finding: PerformanceFinding }) {
   const limited = new Map(finding.checks.map((c) => [c.metric, c]));
   return (
     <div className="mt-3 rounded-md border p-3 dark:border-slate-700" data-testid="speed-panel">
-      <p className="mb-2 text-sm font-medium">Page speed · <span className="font-normal text-muted-foreground break-all">{finding.url}</span></p>
+      <p className="mb-2 text-sm font-medium">
+        Page speed ·{' '}
+        <span className="font-normal text-muted-foreground break-all">{finding.url}</span>
+      </p>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
         {PERFORMANCE_METRICS.map((m) => {
           const c = limited.get(m);
           return (
             <div key={m} className="flex justify-between gap-2">
               <dt className="text-muted-foreground">{m}</dt>
-              <dd className={`tabular-nums ${c?.ok === false ? 'font-semibold text-destructive' : ''}`}>
-                {formatMetric(m, finding.metrics[m] ?? null)}{c ? ` (${c.op} ${formatMetric(m, c.value)})` : ''}
+              <dd
+                className={`tabular-nums ${c?.ok === false ? 'font-semibold text-destructive' : ''}`}
+              >
+                {formatMetric(m, finding.metrics[m] ?? null)}
+                {c ? ` (${c.op} ${formatMetric(m, c.value)})` : ''}
               </dd>
             </div>
           );
@@ -95,14 +112,31 @@ function SpeedPanel({ finding }: { finding: PerformanceFinding }) {
 function LighthousePanel({ finding }: { finding: LighthouseFinding }) {
   const broken = new Set(finding.checks.filter((c) => c.ok === false).map((c) => c.metric));
   return (
-    <div className="mt-3 rounded-md border p-3 dark:border-slate-700" data-testid="lighthouse-panel">
+    <div
+      className="mt-3 rounded-md border p-3 dark:border-slate-700"
+      data-testid="lighthouse-panel"
+    >
       <p className="mb-2 text-sm font-medium">
         Lighthouse · {finding.formFactor}
-        {finding.reportUrl && <a href={finding.reportUrl} target="_blank" rel="noreferrer" className="ml-2 text-xs font-normal text-primary underline">report</a>}
+        {finding.reportUrl && (
+          <a
+            href={finding.reportUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="ml-2 text-xs font-normal text-primary underline"
+          >
+            report
+          </a>
+        )}
       </p>
       <div className="flex flex-wrap gap-2">
         {Object.entries(finding.scores).map(([category, score]) => (
-          <Badge key={category} variant={broken.has(category as never) ? 'destructive' : 'secondary'}>{category} {score}</Badge>
+          <Badge
+            key={category}
+            variant={broken.has(category as never) ? 'destructive' : 'secondary'}
+          >
+            {category} {score}
+          </Badge>
         ))}
       </div>
     </div>
@@ -114,7 +148,19 @@ function DownloadPanel({ finding }: { finding: DownloadFinding }) {
   return (
     <div className="mt-3 rounded-md border p-3 dark:border-slate-700" data-testid="download-panel">
       <p className="mb-1 text-sm font-medium">
-        Download · {finding.fileUrl ? <a href={finding.fileUrl} target="_blank" rel="noreferrer" className="text-primary underline">{finding.name}</a> : finding.name}
+        Download ·{' '}
+        {finding.fileUrl ? (
+          <a
+            href={finding.fileUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary underline"
+          >
+            {finding.name}
+          </a>
+        ) : (
+          finding.name
+        )}
       </p>
       <p className="text-xs text-muted-foreground">
         {finding.type} · {Math.max(1, Math.round(finding.size / 1024))} KB
@@ -125,12 +171,17 @@ function DownloadPanel({ finding }: { finding: DownloadFinding }) {
         <ul className="mt-2 space-y-0.5 text-xs">
           {finding.checks.map((c) => (
             <li key={c.text} className={c.ok ? '' : 'font-semibold text-destructive'}>
-              {c.ok ? '✓' : '✗'} {c.text}{!c.ok && c.actual ? ` — ${c.actual}` : ''}
+              {c.ok ? '✓' : '✗'} {c.text}
+              {!c.ok && c.actual ? ` — ${c.actual}` : ''}
             </li>
           ))}
         </ul>
       )}
-      {finding.sample && <p className="mt-2 line-clamp-3 break-all text-xs text-muted-foreground">{finding.sample}</p>}
+      {finding.sample && (
+        <p className="mt-2 line-clamp-3 break-all text-xs text-muted-foreground">
+          {finding.sample}
+        </p>
+      )}
     </div>
   );
 }
@@ -140,8 +191,18 @@ function ImagePanel({ label, src }: { label: string; src?: string | null }) {
   return (
     <figure className="min-w-0 flex-1">
       <figcaption className="text-xs text-muted-foreground mb-1">{label}</figcaption>
-      <a href={src} target="_blank" rel="noreferrer" title={`Open ${label.toLowerCase()} full size`}>
-        <img src={src} alt={label} className="w-full rounded border dark:border-slate-700 bg-muted" loading="lazy" />
+      <a
+        href={src}
+        target="_blank"
+        rel="noreferrer"
+        title={`Open ${label.toLowerCase()} full size`}
+      >
+        <img
+          src={src}
+          alt={label}
+          className="w-full rounded border dark:border-slate-700 bg-muted"
+          loading="lazy"
+        />
       </a>
     </figure>
   );
@@ -150,7 +211,9 @@ function ImagePanel({ label, src }: { label: string; src?: string | null }) {
 function VisualPanel({ visual }: { visual: ReportStepVisual }) {
   const isDiff = visual.outcome === 'diff';
   return (
-    <div className={`mt-3 rounded-md border p-3 ${isDiff ? 'border-destructive/60' : 'dark:border-slate-700'}`}>
+    <div
+      className={`mt-3 rounded-md border p-3 ${isDiff ? 'border-destructive/60' : 'dark:border-slate-700'}`}
+    >
       <div className="flex items-center gap-2 mb-2">
         <ImageIcon className="h-4 w-4" />
         <span className="text-sm font-medium">Visual check</span>
@@ -195,7 +258,13 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
 
         {sessionUrl && (
           <p className="text-xs text-muted-foreground">
-            <a href={sessionUrl} target="_blank" rel="noreferrer" className="underline" data-testid="device-session">
+            <a
+              href={sessionUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+              data-testid="device-session"
+            >
               Open the session on the grid
             </a>{' '}
             — the device's video and logs, kept by the grid.
@@ -205,7 +274,12 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
         {(videoUrl || traceUrl) && (
           <div className="rounded-md border p-3 space-y-2 dark:border-slate-700">
             {videoUrl && (
-              <video src={videoUrl} controls className="w-full rounded max-h-72 bg-black" data-testid="run-video" />
+              <video
+                src={videoUrl}
+                controls
+                className="w-full rounded max-h-72 bg-black"
+                data-testid="run-video"
+              />
             )}
             {traceUrl && (
               <p className="text-xs text-muted-foreground">
@@ -214,7 +288,12 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
                 </a>{' '}
                 — it carries the DOM, the network and the console at every step. Open it with{' '}
                 <code>npx playwright show-trace &lt;file&gt;</code> or at{' '}
-                <a href="https://trace.playwright.dev" target="_blank" rel="noreferrer" className="underline">
+                <a
+                  href="https://trace.playwright.dev"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
                   trace.playwright.dev
                 </a>
                 .
@@ -227,8 +306,8 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
 
         {steps.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6">
-            This result has no recorded steps. API tests and tests blocked by a precondition
-            never reach the step runner.
+            This result has no recorded steps. API tests and tests blocked by a precondition never
+            reach the step runner.
           </p>
         ) : (
           <ScrollArea className="flex-1 pr-3">
@@ -258,16 +337,25 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
                           </Badge>
                         )}
                       </div>
-                      <p className={`text-xs mt-1 ${step.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      <p
+                        className={`text-xs mt-1 ${step.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}`}
+                      >
                         {step.error || step.details}
                       </p>
-                      {step.rca && <p className="text-xs mt-1 italic text-muted-foreground">{step.rca}</p>}
+                      {step.rca && (
+                        <p className="text-xs mt-1 italic text-muted-foreground">{step.rca}</p>
+                      )}
                     </div>
                   </div>
 
-                  {step.evidenceUnavailable && <p className="text-xs mt-2 text-amber-700 dark:text-amber-400">
-                    {t('quota.evidenceUnavailable', 'Evidence unavailable: not retained by the artifact store.')}
-                  </p>}
+                  {step.evidenceUnavailable && (
+                    <p className="text-xs mt-2 text-amber-700 dark:text-amber-400">
+                      {t(
+                        'quota.evidenceUnavailable',
+                        'Evidence unavailable: not retained by the artifact store.',
+                      )}
+                    </p>
+                  )}
                   {step.visual && <VisualPanel visual={step.visual} />}
                   {step.accessibility && <AccessibilityPanel finding={step.accessibility} />}
                   {step.performance && <SpeedPanel finding={step.performance} />}

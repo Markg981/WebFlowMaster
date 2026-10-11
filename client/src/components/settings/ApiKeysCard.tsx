@@ -7,8 +7,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Copy, KeySquare, Loader2, Trash2 } from 'lucide-react';
 import { API_SCOPES, API_SCOPE_NAMES, type ApiScope } from '@shared/api-scopes';
@@ -74,7 +87,11 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
   const [freshKey, setFreshKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const { data: keys = [], isLoading, error } = useQuery<ApiKeySummary[]>({
+  const {
+    data: keys = [],
+    isLoading,
+    error,
+  } = useQuery<ApiKeySummary[]>({
     queryKey: ['apiKeys'],
     queryFn: fetchApiKeys,
   });
@@ -129,15 +146,22 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
 
   const handleCreate = () => {
     if (name.trim() === '') {
-      setFormError(t('settings.apiKeys.nameRequired', 'Give the key a name, so it can be recognised later.'));
+      setFormError(
+        t('settings.apiKeys.nameRequired', 'Give the key a name, so it can be recognised later.'),
+      );
       return;
     }
-    if (expiresInDays.trim() !== '' && (!Number.isInteger(Number(expiresInDays)) || Number(expiresInDays) < 1)) {
+    if (
+      expiresInDays.trim() !== '' &&
+      (!Number.isInteger(Number(expiresInDays)) || Number(expiresInDays) < 1)
+    ) {
       setFormError(t('settings.apiKeys.expiryInvalid', 'Expiry must be a whole number of days.'));
       return;
     }
     if (access === 'scoped' && scopes.length === 0) {
-      setFormError(t('settings.apiKeys.scopesRequired', 'Choose at least one thing the key may do.'));
+      setFormError(
+        t('settings.apiKeys.scopesRequired', 'Choose at least one thing the key may do.'),
+      );
       return;
     }
     setFormError('');
@@ -173,7 +197,10 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
                 )}
               </p>
               <div className="flex items-center gap-2">
-                <code className="text-xs break-all bg-muted px-2 py-1 rounded flex-1" data-testid="fresh-api-key">
+                <code
+                  className="text-xs break-all bg-muted px-2 py-1 rounded flex-1"
+                  data-testid="fresh-api-key"
+                >
                   {freshKey}
                 </code>
                 <Button
@@ -187,7 +214,9 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
                   }}
                 >
                   <Copy className="h-4 w-4 mr-1" />
-                  {copied ? t('settings.apiKeys.copied', 'Copied') : t('settings.apiKeys.copy', 'Copy')}
+                  {copied
+                    ? t('settings.apiKeys.copied', 'Copied')
+                    : t('settings.apiKeys.copy', 'Copy')}
                 </Button>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setFreshKey(null)}>
@@ -209,7 +238,9 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
             />
           </div>
           <div className="w-full sm:w-40">
-            <Label htmlFor="apiKeyExpiry">{t('settings.apiKeys.expiryLabel', 'Expires in (days)')}</Label>
+            <Label htmlFor="apiKeyExpiry">
+              {t('settings.apiKeys.expiryLabel', 'Expires in (days)')}
+            </Label>
             <Input
               id="apiKeyExpiry"
               value={expiresInDays}
@@ -227,12 +258,19 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
         <div className="space-y-2">
           <Label>{t('settings.apiKeys.accessLabel', 'What the key may do')}</Label>
           <Select value={access} onValueChange={(value) => setAccess(value as 'scoped' | 'full')}>
-            <SelectTrigger className="w-full sm:w-80" aria-label={t('settings.apiKeys.accessLabel', 'What the key may do')}>
+            <SelectTrigger
+              className="w-full sm:w-80"
+              aria-label={t('settings.apiKeys.accessLabel', 'What the key may do')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="scoped">{t('settings.apiKeys.accessScoped', 'Only what I choose, through /api/v1')}</SelectItem>
-              <SelectItem value="full">{t('settings.apiKeys.accessFull', 'Full access, everywhere')}</SelectItem>
+              <SelectItem value="scoped">
+                {t('settings.apiKeys.accessScoped', 'Only what I choose, through /api/v1')}
+              </SelectItem>
+              <SelectItem value="full">
+                {t('settings.apiKeys.accessFull', 'Full access, everywhere')}
+              </SelectItem>
             </SelectContent>
           </Select>
           {access === 'scoped' ? (
@@ -242,14 +280,19 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
                   <Checkbox
                     checked={scopes.includes(scope)}
                     onCheckedChange={(on) =>
-                      setScopes((current) => (on ? [...current, scope] : current.filter((s) => s !== scope)))
+                      setScopes((current) =>
+                        on ? [...current, scope] : current.filter((s) => s !== scope),
+                      )
                     }
                     aria-label={scope}
                   />
                   <span>
                     <code className="text-xs">{scope}</code>
                     <span className="block text-xs text-muted-foreground">
-                      {t(`settings.apiKeys.scopes.${scope.replace(':', '_')}`, API_SCOPES[scope].description)}
+                      {t(
+                        `settings.apiKeys.scopes.${scope.replace(':', '_')}`,
+                        API_SCOPES[scope].description,
+                      )}
                     </span>
                   </span>
                 </label>
@@ -269,14 +312,18 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
           <div className="space-y-2">
             <Label>{t('settings.apiKeys.holderLabel', 'Issued to')}</Label>
             <Select value={holder} onValueChange={setHolder}>
-              <SelectTrigger className="w-full sm:w-80" aria-label={t('settings.apiKeys.holderLabel', 'Issued to')}>
+              <SelectTrigger
+                className="w-full sm:w-80"
+                aria-label={t('settings.apiKeys.holderLabel', 'Issued to')}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="me">{t('settings.apiKeys.holderMe', 'Me')}</SelectItem>
                 {activeServiceAccounts.map((account) => (
                   <SelectItem key={account.id} value={String(account.id)}>
-                    {account.name} ({t(`settings.serviceAccounts.roles.${account.role}`, account.role)})
+                    {account.name} (
+                    {t(`settings.serviceAccounts.roles.${account.role}`, account.role)})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -286,12 +333,17 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
         {formError && <p className="text-sm text-destructive">{formError}</p>}
 
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('settings.apiKeys.loading', 'Loading keys…')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('settings.apiKeys.loading', 'Loading keys…')}
+          </p>
         ) : error ? (
           <p className="text-sm text-destructive">{(error as Error).message}</p>
         ) : keys.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {t('settings.apiKeys.empty', 'No API keys yet. A pipeline needs one to start a test plan.')}
+            {t(
+              'settings.apiKeys.empty',
+              'No API keys yet. A pipeline needs one to start a test plan.',
+            )}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -318,7 +370,9 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
                       )}
                       {key.holder?.kind === 'service' && (
                         <span className="block text-xs font-normal text-muted-foreground">
-                          {t('settings.apiKeys.heldBy', 'held by {{name}}', { name: key.holder.displayName ?? key.holder.username })}
+                          {t('settings.apiKeys.heldBy', 'held by {{name}}', {
+                            name: key.holder.displayName ?? key.holder.username,
+                          })}
                         </span>
                       )}
                     </TableCell>
@@ -335,7 +389,9 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
                           ))}
                         </span>
                       ) : (
-                        <Badge variant="secondary">{t('settings.apiKeys.fullAccess', 'full access')}</Badge>
+                        <Badge variant="secondary">
+                          {t('settings.apiKeys.fullAccess', 'full access')}
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-xs">{formatDate(key.lastUsedAt)}</TableCell>

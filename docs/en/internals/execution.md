@@ -28,13 +28,13 @@ quarantine, current review policy, integrations and the application under test r
 Replay reproduces retained configuration, not external state or outcomes. HTML/PDF, Allure
 attachments and JUnit suite properties include safe metadata/fingerprints without retained values.
 
-| Trigger | Path | `triggered_by` |
-|---|---|---|
-| Run button in the application | `POST /api/test-plans/:id/run` | `manual` |
-| Schedule | `server/scheduler-service.ts` (cron in the web process, or BullMQ job schedulers fired by a worker) | `scheduled` |
-| Pipeline | `POST /api/v1/plans/:planId/runs` (the CLI uses it) | `api` |
-| CI webhook | `POST /api/webhooks/execute` with a webhook token | `webhook` |
-| Retry of a failed scheduled attempt | the worker, through the orchestrator | as the first attempt |
+| Trigger                             | Path                                                                                                | `triggered_by`       |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------- |
+| Run button in the application       | `POST /api/test-plans/:id/run`                                                                      | `manual`             |
+| Schedule                            | `server/scheduler-service.ts` (cron in the web process, or BullMQ job schedulers fired by a worker) | `scheduled`          |
+| Pipeline                            | `POST /api/v1/plans/:planId/runs` (the CLI uses it)                                                 | `api`                |
+| CI webhook                          | `POST /api/webhooks/execute` with a webhook token                                                   | `webhook`            |
+| Retry of a failed scheduled attempt | the worker, through the orchestrator                                                                | as the first attempt |
 
 All of them go through one function: the **orchestrator** (`server/execution-orchestrator.ts`).
 
@@ -196,7 +196,7 @@ With `shards = 1` none of this runs.
   Assertions wait up to 5 s for the page to settle; explicit waits up to 15 s.
 - **Healing.** When a click or a fill cannot find its element and an AI key is configured, the page's
   DOM and the error go to the model, which proposes a selector. If the retry with it succeeds, the
-  step is marked *healed* and the new selector is saved — on the shared repository element when the
+  step is marked _healed_ and the new selector is saved — on the shared repository element when the
   step names one, so every test using it is fixed at once.
 - **Evidence.** Screenshots per the plan's policy; video, Playwright trace and HAR network capture
   per the evidence settings (`never`, `on_failure`, `always`); visual comparison against per-step
@@ -223,13 +223,13 @@ With `shards = 1` none of this runs.
 When every lane is done, the evidence left in the run's directory is published to the artifact
 store and the aggregates are computed from the result rows:
 
-| Outcome | Status |
-|---|---|
-| Stopped by a cancellation | `cancelled` |
-| Past the maximum duration | `timed_out` (`run_timed_out`) |
-| Any non-quarantined failure | `failed` |
-| A browser that would not start, or a test that could not execute | `error` (`run_incomplete`) |
-| Otherwise | `completed` |
+| Outcome                                                          | Status                        |
+| ---------------------------------------------------------------- | ----------------------------- |
+| Stopped by a cancellation                                        | `cancelled`                   |
+| Past the maximum duration                                        | `timed_out` (`run_timed_out`) |
+| Any non-quarantined failure                                      | `failed`                      |
+| A browser that would not start, or a test that could not execute | `error` (`run_incomplete`)    |
+| Otherwise                                                        | `completed`                   |
 
 Failures of quarantined tests are counted (`quarantined_failures`) but do not decide the run.
 
@@ -249,14 +249,14 @@ None of these can change the verdict: each failure is logged and reported as an 
 
 ## 6. When things go wrong
 
-| Situation | What happens |
-|---|---|
-| Somebody cancels | `running → cancelling`; the worker hears it at its next heartbeat, finishes the current step and ends the run `cancelled`. |
-| A step hangs | The step's own timeout, then the run's maximum duration (`timed_out`). |
-| The worker dies | Its heartbeat stops. The recovery sweep in the web process (`server/run-recovery.ts`) ends runs silent for `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. A scheduled run with attempts left gets its next attempt. It is not silently re-run: half a run may already have created data in the application under test. |
-| The worker is alive but stuck | Past the maximum duration plus a 5-minute grace, the sweep ends it `timed_out`. |
-| BullMQ delivers a job twice | The second `takeExecution` finds the run no longer `queued` and does nothing. |
-| A late write arrives from a worker given up on | The conditional update matches nothing; the recorded ending stands. |
+| Situation                                      | What happens                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Somebody cancels                               | `running → cancelling`; the worker hears it at its next heartbeat, finishes the current step and ends the run `cancelled`.                                                                                                                                                                                                                                                 |
+| A step hangs                                   | The step's own timeout, then the run's maximum duration (`timed_out`).                                                                                                                                                                                                                                                                                                     |
+| The worker dies                                | Its heartbeat stops. The recovery sweep in the web process (`server/run-recovery.ts`) ends runs silent for `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. A scheduled run with attempts left gets its next attempt. It is not silently re-run: half a run may already have created data in the application under test. |
+| The worker is alive but stuck                  | Past the maximum duration plus a 5-minute grace, the sweep ends it `timed_out`.                                                                                                                                                                                                                                                                                            |
+| BullMQ delivers a job twice                    | The second `takeExecution` finds the run no longer `queued` and does nothing.                                                                                                                                                                                                                                                                                              |
+| A late write arrives from a worker given up on | The conditional update matches nothing; the recorded ending stands.                                                                                                                                                                                                                                                                                                        |
 
 Several web servers can sweep at the same time: every ending goes through the state machine, so each
 run is ended once.

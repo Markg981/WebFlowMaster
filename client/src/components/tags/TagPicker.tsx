@@ -34,7 +34,14 @@ interface TagPickerProps {
   readOnly?: boolean;
 }
 
-const TagPicker: React.FC<TagPickerProps> = ({ selected, available, onChange, onCreate, disabled, readOnly }) => {
+const TagPicker: React.FC<TagPickerProps> = ({
+  selected,
+  available,
+  onChange,
+  onCreate,
+  disabled,
+  readOnly,
+}) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState('');
@@ -87,68 +94,79 @@ const TagPicker: React.FC<TagPickerProps> = ({ selected, available, onChange, on
           {tag.name}
         </Badge>
       ))}
-      {readOnly && selected.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
+      {readOnly && selected.length === 0 && (
+        <span className="text-xs text-muted-foreground">—</span>
+      )}
 
       {!readOnly && (
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs text-muted-foreground"
-            disabled={disabled}
-            aria-label={t('tags.edit', 'Edit tags')}
-          >
-            <TagIcon className="h-3 w-3 mr-1" />
-            {selected.length === 0 ? t('tags.add', 'Add tags') : t('tags.edit', 'Edit tags')}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64" align="start">
-          <div className="space-y-2">
-            <div className="flex gap-1">
-              <Input
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    void create();
-                  }
-                }}
-                placeholder={t('tags.newPlaceholder', 'New tag')}
-                aria-label={t('tags.newPlaceholder', 'New tag')}
-                className="h-8"
-              />
-              <Button size="sm" variant="outline" onClick={create} disabled={isBusy || draft.trim() === ''}>
-                {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              </Button>
-            </div>
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs text-muted-foreground"
+              disabled={disabled}
+              aria-label={t('tags.edit', 'Edit tags')}
+            >
+              <TagIcon className="h-3 w-3 mr-1" />
+              {selected.length === 0 ? t('tags.add', 'Add tags') : t('tags.edit', 'Edit tags')}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64" align="start">
+            <div className="space-y-2">
+              <div className="flex gap-1">
+                <Input
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void create();
+                    }
+                  }}
+                  placeholder={t('tags.newPlaceholder', 'New tag')}
+                  aria-label={t('tags.newPlaceholder', 'New tag')}
+                  className="h-8"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={create}
+                  disabled={isBusy || draft.trim() === ''}
+                >
+                  {isBusy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
 
-            {error && <p className="text-xs text-destructive">{error}</p>}
+              {error && <p className="text-xs text-destructive">{error}</p>}
 
-            <div className="max-h-48 overflow-y-auto">
-              {available.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2">
-                  {t('tags.none', 'No tags yet. The first word you type becomes one.')}
-                </p>
-              ) : (
-                available.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => void toggle(tag)}
-                    disabled={isBusy}
-                    className="flex w-full items-center justify-between rounded px-2 py-1 text-sm hover:bg-muted"
-                  >
-                    <span>{tag.name}</span>
-                    {selectedIds.has(tag.id) && <Check className="h-4 w-4" />}
-                  </button>
-                ))
-              )}
+              <div className="max-h-48 overflow-y-auto">
+                {available.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">
+                    {t('tags.none', 'No tags yet. The first word you type becomes one.')}
+                  </p>
+                ) : (
+                  available.map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => void toggle(tag)}
+                      disabled={isBusy}
+                      className="flex w-full items-center justify-between rounded px-2 py-1 text-sm hover:bg-muted"
+                    >
+                      <span>{tag.name}</span>
+                      {selectedIds.has(tag.id) && <Check className="h-4 w-4" />}
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+          </PopoverContent>
+        </Popover>
       )}
     </div>
   );

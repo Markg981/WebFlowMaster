@@ -60,16 +60,16 @@ beforeEach(async () => {
   vi.clearAllMocks();
   await privilegedDb.delete(users);
   const organizationId = await createTestOrganization();
-  await privilegedDb.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
+  await privilegedDb
+    .insert(users)
+    .values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
 });
 
 describe('POST /api/start-recording', () => {
   it('returns the session id from the service', async () => {
     startRecordingSession.mockResolvedValue({ success: true, sessionId: 'sess-1' });
 
-    const res = await request(app)
-      .post('/api/start-recording')
-      .send({ url: 'https://app.test' });
+    const res = await request(app).post('/api/start-recording').send({ url: 'https://app.test' });
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ success: true, sessionId: 'sess-1' });
@@ -86,9 +86,7 @@ describe('POST /api/start-recording', () => {
   it('surfaces a service failure as a 500', async () => {
     startRecordingSession.mockResolvedValue({ success: false, error: 'browser launch failed' });
 
-    const res = await request(app)
-      .post('/api/start-recording')
-      .send({ url: 'https://app.test' });
+    const res = await request(app).post('/api/start-recording').send({ url: 'https://app.test' });
 
     expect(res.status).toBe(500);
     expect(res.body.error).toBe('browser launch failed');

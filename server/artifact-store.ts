@@ -148,15 +148,23 @@ export function createLocalArtifactStore(cwd: string = process.cwd()): ArtifactS
       const file = pathFor(key);
       await fs.ensureDir(path.dirname(file));
       const staging = `${file}.wfm-${randomUUID()}.tmp`;
-      try { await fs.writeFile(staging, body); await fs.rename(staging, file); }
-      finally { await fs.remove(staging); }
+      try {
+        await fs.writeFile(staging, body);
+        await fs.rename(staging, file);
+      } finally {
+        await fs.remove(staging);
+      }
     },
     async open(key) {
       const file = pathFor(key);
       try {
         const stat = await fs.stat(file);
         if (!stat.isFile()) return null;
-        return { stream: fs.createReadStream(file), contentType: contentTypeFor(key), size: stat.size };
+        return {
+          stream: fs.createReadStream(file),
+          contentType: contentTypeFor(key),
+          size: stat.size,
+        };
       } catch {
         return null;
       }
@@ -174,15 +182,24 @@ export function createLocalArtifactStore(cwd: string = process.cwd()): ArtifactS
     async list(prefix) {
       const safe = assertSafePrefix(prefix);
       const root = pathFor(safe.slice(0, -1));
-      const files = (await filesUnder(root)).filter(file => !/\.wfm-[0-9a-f-]{36}\.tmp$/.test(file));
-      return Promise.all(files.map(async file => ({ key: `${safe}${path.relative(root, file).replace(/\\/g, '/')}`, size: (await fs.stat(file)).size })));
+      const files = (await filesUnder(root)).filter(
+        (file) => !/\.wfm-[0-9a-f-]{36}\.tmp$/.test(file),
+      );
+      return Promise.all(
+        files.map(async (file) => ({
+          key: `${safe}${path.relative(root, file).replace(/\\/g, '/')}`,
+          size: (await fs.stat(file)).size,
+        })),
+      );
     },
   };
 }
 
 /** The part of the S3 client this store uses, so tests can stand in for it. */
 export interface S3Like {
-  send(command: GetObjectCommand | PutObjectCommand | ListObjectsV2Command | DeleteObjectsCommand): Promise<any>;
+  send(
+    command: GetObjectCommand | PutObjectCommand | ListObjectsV2Command | DeleteObjectsCommand,
+  ): Promise<any>;
 }
 
 export interface S3StoreOptions {
@@ -194,12 +211,17 @@ export interface S3StoreOptions {
 }
 
 function isMissing(error: any): boolean {
-  return error?.name === 'NoSuchKey' || error?.name === 'NotFound' || error?.$metadata?.httpStatusCode === 404;
+  return (
+    error?.name === 'NoSuchKey' ||
+    error?.name === 'NotFound' ||
+    error?.$metadata?.httpStatusCode === 404
+  );
 }
 
 async function toBuffer(body: any): Promise<Buffer> {
   if (!body) return Buffer.alloc(0);
-  if (typeof body.transformToByteArray === 'function') return Buffer.from(await body.transformToByteArray());
+  if (typeof body.transformToByteArray === 'function')
+    return Buffer.from(await body.transformToByteArray());
   const chunks: Buffer[] = [];
   for await (const chunk of body as AsyncIterable<Buffer>) chunks.push(Buffer.from(chunk));
   return Buffer.concat(chunks);
@@ -215,7 +237,9 @@ export function createS3ArtifactStore(options: S3StoreOptions): ArtifactStore {
     kind: 's3',
     async read(key) {
       try {
-        const answer = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey(key) }));
+        const answer = await client.send(
+          new GetObjectCommand({ Bucket: bucket, Key: objectKey(key) }),
+        );
         return toBuffer(answer.Body);
       } catch (error) {
         if (isMissing(error)) return null;
@@ -234,10 +258,19 @@ export function createS3ArtifactStore(options: S3StoreOptions): ArtifactStore {
     },
     async open(key) {
       try {
-        const answer = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey(key) }));
+        const answer = await client.send(
+          new GetObjectCommand({ Bucket: bucket, Key: objectKey(key) }),
+        );
         if (!answer.Body) return null;
-        const stream = answer.Body instanceof Readable ? answer.Body : Readable.from(answer.Body as AsyncIterable<Buffer>);
-        return { stream, contentType: answer.ContentType ?? contentTypeFor(key), size: answer.ContentLength };
+        const stream =
+          answer.Body instanceof Readable
+            ? answer.Body
+            : Readable.from(answer.Body as AsyncIterable<Buffer>);
+        return {
+          stream,
+          contentType: answer.ContentType ?? contentTypeFor(key),
+          size: answer.ContentLength,
+        };
       } catch (error) {
         if (isMissing(error)) return null;
         throw error;
@@ -265,9 +298,17 @@ export function createS3ArtifactStore(options: S3StoreOptions): ArtifactStore {
       let continuationToken: string | undefined;
       do {
         const page = await client.send(
-          new ListObjectsV2Command({ Bucket: bucket, Prefix: listPrefix, ContinuationToken: continuationToken }),
+          new ListObjectsV2Command({
+            Bucket: bucket,
+            Prefix: listPrefix,
+            ContinuationToken: continuationToken,
+          }),
         );
-        keys.push(...((page.Contents ?? []).map((object: { Key?: string }) => object.Key).filter(Boolean) as string[]));
+        keys.push(
+          ...((page.Contents ?? [])
+            .map((object: { Key?: string }) => object.Key)
+            .filter(Boolean) as string[]),
+        );
         continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
       } while (continuationToken);
 
@@ -275,9 +316,13 @@ export function createS3ArtifactStore(options: S3StoreOptions): ArtifactStore {
       for (let start = 0; start < keys.length; start += 1000) {
         const batch = keys.slice(start, start + 1000);
         const result = await client.send(
-          new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true } }),
+          new DeleteObjectsCommand({
+            Bucket: bucket,
+            Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
+          }),
         );
-        if (result.Errors?.length) throw new Error('Some artifacts could not be deleted; retained usage was not released.');
+        if (result.Errors?.length)
+          throw new Error('Some artifacts could not be deleted; retained usage was not released.');
       }
       return keys.length;
     },
@@ -286,13 +331,26 @@ export function createS3ArtifactStore(options: S3StoreOptions): ArtifactStore {
       const items: Array<{ key: string; size: number }> = [];
       let continuationToken: string | undefined;
       do {
-        const page = await client.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: objectKey(safe.slice(0, -1)) + '/', ContinuationToken: continuationToken }));
+        const page = await client.send(
+          new ListObjectsV2Command({
+            Bucket: bucket,
+            Prefix: objectKey(safe.slice(0, -1)) + '/',
+            ContinuationToken: continuationToken,
+          }),
+        );
         for (const object of page.Contents ?? []) {
-          if (object.Key && Number.isSafeInteger(object.Size) && object.Size >= 0) items.push({ key: String(object.Key).slice(options.prefix ? options.prefix.replace(/\/+$/, '').length + 1 : 0), size: object.Size });
+          if (object.Key && Number.isSafeInteger(object.Size) && object.Size >= 0)
+            items.push({
+              key: String(object.Key).slice(
+                options.prefix ? options.prefix.replace(/\/+$/, '').length + 1 : 0,
+              ),
+              size: object.Size,
+            });
           else throw new Error('Artifact inventory returned invalid metadata');
         }
         continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
-        if (page.IsTruncated && !continuationToken) throw new Error('Artifact inventory pagination is incomplete');
+        if (page.IsTruncated && !continuationToken)
+          throw new Error('Artifact inventory pagination is incomplete');
       } while (continuationToken);
       return items;
     },
@@ -315,12 +373,23 @@ export function artifactStoreFromEnv(env: NodeJS.ProcessEnv = process.env): Arti
     region: env.S3_REGION || 'us-east-1',
     ...(env.S3_ENDPOINT ? { endpoint: env.S3_ENDPOINT } : {}),
     // MinIO and most self-hosted stores address buckets by path, not by subdomain.
-    forcePathStyle: env.S3_FORCE_PATH_STYLE ? env.S3_FORCE_PATH_STYLE === 'true' : !!env.S3_ENDPOINT,
+    forcePathStyle: env.S3_FORCE_PATH_STYLE
+      ? env.S3_FORCE_PATH_STYLE === 'true'
+      : !!env.S3_ENDPOINT,
     ...(env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY
-      ? { credentials: { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY } }
+      ? {
+          credentials: {
+            accessKeyId: env.S3_ACCESS_KEY_ID,
+            secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+          },
+        }
       : {}),
   };
-  return createS3ArtifactStore({ client: new S3Client(config), bucket: env.S3_BUCKET, prefix: env.S3_PREFIX });
+  return createS3ArtifactStore({
+    client: new S3Client(config),
+    bucket: env.S3_BUCKET,
+    prefix: env.S3_PREFIX,
+  });
 }
 
 let configured: ArtifactStore | undefined;

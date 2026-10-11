@@ -2,10 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useTranslation } from 'react-i18next';
 import {
-  LayoutDashboard, Network, PlusSquare, FileSpreadsheet, ListChecks, Library,
-  CalendarClock, FileText, Settings as SettingsIcon, PanelLeftClose,
-  PanelLeftOpen, Sun, Moon, LogOut, Menu, X,
-  ClipboardCheck, Layers, Target, Smartphone, Database, Gauge,
+  LayoutDashboard,
+  Network,
+  PlusSquare,
+  FileSpreadsheet,
+  ListChecks,
+  Library,
+  CalendarClock,
+  FileText,
+  Settings as SettingsIcon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Sun,
+  Moon,
+  LogOut,
+  Menu,
+  X,
+  ClipboardCheck,
+  Layers,
+  Target,
+  Smartphone,
+  Database,
+  Gauge,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -13,11 +31,21 @@ import { useWorkspaceName } from '@/hooks/use-workspace-name';
 import { PRODUCT_NAME } from '@/lib/brand';
 import { useTheme } from '@/hooks/use-theme';
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
-type NavItem = { href: string; label: string; icon: React.ElementType; exact?: boolean; editorOnly?: boolean };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  exact?: boolean;
+  editorOnly?: boolean;
+};
 type NavSection = { heading: string; items: NavItem[] };
 
 const COLLAPSE_KEY = 'wfm.sidebar.collapsed';
@@ -33,11 +61,20 @@ function useNav(): NavSection[] {
       items: [
         { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, exact: true },
         { href: '/dashboard/api-tester', label: t('nav.apiTester', 'API Tester'), icon: Network },
-        { href: '/dashboard/create-test', label: t('nav.createTest'), icon: PlusSquare, editorOnly: true },
+        {
+          href: '/dashboard/create-test',
+          label: t('nav.createTest'),
+          icon: PlusSquare,
+          editorOnly: true,
+        },
         { href: '/tests', label: t('nav.testLibrary', 'Test Library'), icon: Library },
         { href: '/mobile-tests', label: t('nav.mobileTests', 'Mobile apps'), icon: Smartphone },
         { href: '/load-tests', label: t('nav.loadTests', 'Load tests'), icon: Gauge },
-        { href: '/test-manager', label: t('nav.testManager', 'Test Manager'), icon: FileSpreadsheet },
+        {
+          href: '/test-manager',
+          label: t('nav.testManager', 'Test Manager'),
+          icon: FileSpreadsheet,
+        },
         { href: '/suites', label: t('nav.testSuites', 'Suites'), icon: Layers },
         { href: '/requirements', label: t('nav.requirements', 'Requirements'), icon: Target },
         { href: '/test-data', label: t('nav.testData', 'Test data'), icon: Database },
@@ -60,7 +97,9 @@ function useNav(): NavSection[] {
 }
 
 function isActive(location: string, item: NavItem): boolean {
-  return item.exact ? location === item.href : location === item.href || location.startsWith(item.href + '/');
+  return item.exact
+    ? location === item.href
+    : location === item.href || location.startsWith(item.href + '/');
 }
 
 /**
@@ -78,7 +117,10 @@ function usePageTitle(location: string, sections: NavSection[]): string {
   return PRODUCT_NAME;
 }
 
-const SidebarNav: React.FC<{ collapsed: boolean; onNavigate?: () => void }> = ({ collapsed, onNavigate }) => {
+const SidebarNav: React.FC<{ collapsed: boolean; onNavigate?: () => void }> = ({
+  collapsed,
+  onNavigate,
+}) => {
   const sections = useNav();
   const [location] = useLocation();
   return (
@@ -126,15 +168,29 @@ const BrandMark: React.FC<{ className?: string }> = ({ className }) => (
       className,
     )}
   >
-    <svg viewBox="0 0 24 24" fill="none" className="h-[19px] w-[19px] text-white" aria-hidden="true">
-      <path d="M4.5 15.5a7.5 7.5 0 0 1 15 0" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.7" strokeLinecap="round" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-[19px] w-[19px] text-white"
+      aria-hidden="true"
+    >
+      <path
+        d="M4.5 15.5a7.5 7.5 0 0 1 15 0"
+        stroke="currentColor"
+        strokeOpacity="0.45"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
       <path d="M12 15.5 16.4 9.2" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
       <circle cx="12" cy="15.5" r="1.8" fill="currentColor" />
     </svg>
   </div>
 );
 
-const Brand: React.FC<{ collapsed: boolean; workspaceName: string }> = ({ collapsed, workspaceName }) => (
+const Brand: React.FC<{ collapsed: boolean; workspaceName: string }> = ({
+  collapsed,
+  workspaceName,
+}) => (
   <div className={cn('flex items-center gap-2.5 px-2 py-1', collapsed && 'justify-center px-0')}>
     <BrandMark className="h-8 w-8" />
     {!collapsed && (
@@ -152,7 +208,9 @@ const Brand: React.FC<{ collapsed: boolean; workspaceName: string }> = ({ collap
             When the setting is unset it falls back to the product name, and printing that
             twice, one line under the other, says nothing — so the line is dropped. */}
         {workspaceName !== PRODUCT_NAME && (
-          <div className="truncate text-[11px] font-medium text-muted-foreground">{workspaceName}</div>
+          <div className="truncate text-[11px] font-medium text-muted-foreground">
+            {workspaceName}
+          </div>
         )}
       </div>
     )}
@@ -167,7 +225,9 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const workspaceName = useWorkspaceName();
   const title = usePageTitle(location, sections);
 
-  const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(COLLAPSE_KEY) === '1');
+  const [collapsed, setCollapsed] = useState<boolean>(
+    () => localStorage.getItem(COLLAPSE_KEY) === '1',
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
   // One owner for the theme — see hooks/use-theme.ts. The toggle used to write the class and
   // POST without telling either settings cache, so opening Settings afterwards undid it.
@@ -177,7 +237,9 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
   }, [collapsed]);
 
-  useEffect(() => { setMobileOpen(false); }, [location]);
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location]);
 
   // Initials from first + last name, derived from the email local part
   // ("marco.oliva@…" → "MO"). Falls back to the first two letters when there's
@@ -227,7 +289,10 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-foreground/40 backdrop-blur-xs" onClick={() => setMobileOpen(false)} />
+          <div
+            className="absolute inset-0 bg-foreground/40 backdrop-blur-xs"
+            onClick={() => setMobileOpen(false)}
+          />
           <aside className="absolute inset-y-0 left-0 w-60 border-r border-border bg-card shadow-md">
             <div className="flex justify-end p-2">
               <button
@@ -257,9 +322,17 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <button
               className="hidden rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground md:inline-flex"
               onClick={() => setCollapsed((c) => !c)}
-              aria-label={collapsed ? t('common.expandSidebar', 'Expand sidebar') : t('common.collapseSidebar', 'Collapse sidebar')}
+              aria-label={
+                collapsed
+                  ? t('common.expandSidebar', 'Expand sidebar')
+                  : t('common.collapseSidebar', 'Collapse sidebar')
+              }
             >
-              {collapsed ? <PanelLeftOpen className="h-[18px] w-[18px]" /> : <PanelLeftClose className="h-[18px] w-[18px]" />}
+              {collapsed ? (
+                <PanelLeftOpen className="h-[18px] w-[18px]" />
+              ) : (
+                <PanelLeftClose className="h-[18px] w-[18px]" />
+              )}
             </button>
             <div className="min-w-0 truncate text-sm">
               <span className="text-muted-foreground">{workspaceName}</span>
@@ -272,9 +345,17 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <button
               onClick={toggleTheme}
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              aria-label={isDark ? t('common.lightMode', 'Switch to light mode') : t('common.darkMode', 'Switch to dark mode')}
+              aria-label={
+                isDark
+                  ? t('common.lightMode', 'Switch to light mode')
+                  : t('common.darkMode', 'Switch to dark mode')
+              }
             >
-              {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+              {isDark ? (
+                <Sun className="h-[18px] w-[18px]" />
+              ) : (
+                <Moon className="h-[18px] w-[18px]" />
+              )}
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -290,7 +371,9 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="flex flex-col">
                   <span className="text-sm font-semibold">{user?.username}</span>
-                  <span className="text-xs font-normal text-muted-foreground">{t('common.signedIn', 'Signed in')}</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {t('common.signedIn', 'Signed in')}
+                  </span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <Link href="/settings">

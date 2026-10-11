@@ -3,12 +3,7 @@ import http from 'http';
 import type { AddressInfo } from 'net';
 import { eq } from 'drizzle-orm';
 import { privilegedDb } from './db';
-import {
-  apiTests,
-  testPlans,
-  testPlanSelectedTests,
-  testPlanExecutions,
-} from '@shared/schema';
+import { apiTests, testPlans, testPlanSelectedTests, testPlanExecutions } from '@shared/schema';
 import { createTestOrganization, createTestUser } from './tests/factories';
 import { processTestPlanJob } from './test-execution-service';
 
@@ -151,7 +146,13 @@ describe('an API test inside a plan', () => {
       method: 'POST',
       url: `${baseUrl}/auth`,
       assertions: [
-        { id: uuid(), source: 'status_code', comparison: 'equals', targetValue: '200', enabled: true },
+        {
+          id: uuid(),
+          source: 'status_code',
+          comparison: 'equals',
+          targetValue: '200',
+          enabled: true,
+        },
       ],
     });
 
@@ -167,7 +168,13 @@ describe('an API test inside a plan', () => {
       method: 'POST',
       url: `${baseUrl}/auth`,
       assertions: [
-        { id: uuid(), source: 'status_code', comparison: 'equals', targetValue: '204', enabled: true },
+        {
+          id: uuid(),
+          source: 'status_code',
+          comparison: 'equals',
+          targetValue: '204',
+          enabled: true,
+        },
       ],
     });
     const planId = await makePlan([id]);
@@ -187,7 +194,13 @@ describe('carrying a value from one request to the next', () => {
       method: 'POST',
       url: `${baseUrl}/auth`,
       assertions: [
-        { id: uuid(), source: 'status_code', comparison: 'equals', targetValue: '200', enabled: true },
+        {
+          id: uuid(),
+          source: 'status_code',
+          comparison: 'equals',
+          targetValue: '200',
+          enabled: true,
+        },
       ],
       extractions: [{ id: uuid(), name: 'token', source: 'body_json_path', property: 'token' }],
     });
@@ -198,7 +211,13 @@ describe('carrying a value from one request to the next', () => {
       url: `${baseUrl}/orders`,
       requestHeaders: { Authorization: 'Bearer {{token}}' },
       assertions: [
-        { id: uuid(), source: 'status_code', comparison: 'equals', targetValue: '201', enabled: true },
+        {
+          id: uuid(),
+          source: 'status_code',
+          comparison: 'equals',
+          targetValue: '201',
+          enabled: true,
+        },
       ],
       extractions: [{ id: uuid(), name: 'orderId', source: 'body_json_path', property: 'id' }],
     });
@@ -210,8 +229,21 @@ describe('carrying a value from one request to the next', () => {
       url: `${baseUrl}/orders/{{orderId}}`,
       requestHeaders: { Authorization: 'Bearer {{token}}' },
       assertions: [
-        { id: uuid(), source: 'status_code', comparison: 'equals', targetValue: '200', enabled: true },
-        { id: uuid(), source: 'body_json_path', property: 'status', comparison: 'equals', targetValue: 'confirmed', enabled: true },
+        {
+          id: uuid(),
+          source: 'status_code',
+          comparison: 'equals',
+          targetValue: '200',
+          enabled: true,
+        },
+        {
+          id: uuid(),
+          source: 'body_json_path',
+          property: 'status',
+          comparison: 'equals',
+          targetValue: 'confirmed',
+          enabled: true,
+        },
       ],
     });
 
@@ -236,7 +268,13 @@ describe('carrying a value from one request to the next', () => {
       url: `${baseUrl}/orders`,
       requestHeaders: { Authorization: 'Bearer {{token}}' },
       assertions: [
-        { id: uuid(), source: 'status_code', comparison: 'equals', targetValue: '201', enabled: true },
+        {
+          id: uuid(),
+          source: 'status_code',
+          comparison: 'equals',
+          targetValue: '201',
+          enabled: true,
+        },
       ],
     });
 

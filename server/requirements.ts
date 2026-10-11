@@ -1,5 +1,11 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
-import { requirementTests, requirements, testPlanExecutions, testPlans, type Requirement } from '@shared/schema';
+import {
+  requirementTests,
+  requirements,
+  testPlanExecutions,
+  testPlans,
+  type Requirement,
+} from '@shared/schema';
 import { itemOf, visibleNames } from './test-refs';
 import {
   computeCoverage,
@@ -26,7 +32,11 @@ export type CoverageScope = { planId?: string | null; executionId?: string | nul
 
 const key = (type: CoverageTest['type'], id: number) => `${type}:${id}`;
 
-const idList = (ids: number[]) => sql.join(ids.map((id) => sql`${id}`), sql`, `);
+const idList = (ids: number[]) =>
+  sql.join(
+    ids.map((id) => sql`${id}`),
+    sql`, `,
+  );
 
 /** A timestamp as ISO, from a Date or from milliseconds since the epoch. */
 const toIso = (value: unknown): string | null => {
@@ -94,12 +104,18 @@ async function latestOutcomes(
           : key('api', Number(row.api_test_id));
     const entry: { statuses: string[]; lastRun: CoverageRun } = statuses.get(k) ?? {
       statuses: [],
-      lastRun: { executionId: String(row.execution_id), planId: String(row.test_plan_id), planName: row.plan_name ?? null, at: toIso(row.at_ms) },
+      lastRun: {
+        executionId: String(row.execution_id),
+        planId: String(row.test_plan_id),
+        planName: row.plan_name ?? null,
+        at: toIso(row.at_ms),
+      },
     };
     entry.statuses.push(String(row.status));
     statuses.set(k, entry);
   }
-  for (const [k, entry] of Array.from(statuses)) found.set(k, { outcome: outcomeOf(entry.statuses), lastRun: entry.lastRun });
+  for (const [k, entry] of Array.from(statuses))
+    found.set(k, { outcome: outcomeOf(entry.statuses), lastRun: entry.lastRun });
   return found;
 }
 
@@ -120,14 +136,21 @@ export async function loadCoverage(tx: TenantTx, scope: CoverageScope = {}) {
     const [type, id] = k.split(':');
     return { type: type as CoverageTest['type'], id: Number(id) };
   });
-  const idsOf = (type: CoverageTest['type']) => seen.filter((t) => t.type === type).map((t) => t.id);
+  const idsOf = (type: CoverageTest['type']) =>
+    seen.filter((t) => t.type === type).map((t) => t.id);
   const outcomes = await latestOutcomes(tx, idsOf('ui'), idsOf('api'), idsOf('mobile'), scope);
 
   const visible = new Map<string, CoverageTest>();
   for (const { type, id } of seen) {
     const k = key(type, id);
     const latest = outcomes.get(k);
-    visible.set(k, { type, id, name: names.get(k)!, outcome: latest?.outcome ?? 'notRun', lastRun: latest?.lastRun ?? null });
+    visible.set(k, {
+      type,
+      id,
+      name: names.get(k)!,
+      outcome: latest?.outcome ?? 'notRun',
+      lastRun: latest?.lastRun ?? null,
+    });
   }
 
   const coverage = computeCoverage(
@@ -139,9 +162,14 @@ export async function loadCoverage(tx: TenantTx, scope: CoverageScope = {}) {
     visible,
   );
   const direct = new Map<number, number>();
-  for (const link of links) direct.set(link.requirementId, (direct.get(link.requirementId) ?? 0) + 1);
+  for (const link of links)
+    direct.set(link.requirementId, (direct.get(link.requirementId) ?? 0) + 1);
 
-  const list: RequirementRow[] = rows.map((r) => ({ ...r, directTests: direct.get(r.id) ?? 0, coverage: coverage.get(r.id)! }));
+  const list: RequirementRow[] = rows.map((r) => ({
+    ...r,
+    directTests: direct.get(r.id) ?? 0,
+    coverage: coverage.get(r.id)!,
+  }));
   return { requirements: list, summary: coverageSummary(list.map((r) => r.coverage)) };
 }
 
@@ -149,7 +177,12 @@ export async function loadCoverage(tx: TenantTx, scope: CoverageScope = {}) {
 export async function describeScope(tx: TenantTx, scope: CoverageScope) {
   if (scope.executionId) {
     const [run] = await tx
-      .select({ id: testPlanExecutions.id, planId: testPlanExecutions.testPlanId, planName: testPlans.name, at: testPlanExecutions.completedAt })
+      .select({
+        id: testPlanExecutions.id,
+        planId: testPlanExecutions.testPlanId,
+        planName: testPlans.name,
+        at: testPlanExecutions.completedAt,
+      })
       .from(testPlanExecutions)
       .leftJoin(testPlans, eq(testPlans.id, testPlanExecutions.testPlanId))
       .where(eq(testPlanExecutions.id, scope.executionId))
@@ -157,7 +190,11 @@ export async function describeScope(tx: TenantTx, scope: CoverageScope) {
     return run ? { kind: 'execution' as const, ...run, at: toIso(run.at) } : undefined;
   }
   if (scope.planId) {
-    const [plan] = await tx.select({ id: testPlans.id, name: testPlans.name }).from(testPlans).where(eq(testPlans.id, scope.planId)).limit(1);
+    const [plan] = await tx
+      .select({ id: testPlans.id, name: testPlans.name })
+      .from(testPlans)
+      .where(eq(testPlans.id, scope.planId))
+      .limit(1);
     return plan ? { kind: 'plan' as const, planId: plan.id, planName: plan.name } : undefined;
   }
   return null;
@@ -165,9 +202,15 @@ export async function describeScope(tx: TenantTx, scope: CoverageScope) {
 
 /** Whether making `parentId` the parent of `id` would put a requirement under itself. */
 export async function wouldLoop(tx: TenantTx, id: number, parentId: number): Promise<boolean> {
-  const rows = await tx.select({ id: requirements.id, parentId: requirements.parentId }).from(requirements);
+  const rows = await tx
+    .select({ id: requirements.id, parentId: requirements.parentId })
+    .from(requirements);
   const parentOf = new Map(rows.map((r) => [r.id, r.parentId]));
-  for (let current: number | null | undefined = parentId, steps = 0; current != null && steps <= rows.length; steps++) {
+  for (
+    let current: number | null | undefined = parentId, steps = 0;
+    current != null && steps <= rows.length;
+    steps++
+  ) {
     if (current === id) return true;
     current = parentOf.get(current);
   }
@@ -193,7 +236,9 @@ export async function upsertTrackedItems(
 ): Promise<ImportOutcome> {
   const outcome: ImportOutcome = { created: [], updated: [] };
   const now = new Date();
-  const existing = await tx.select({ id: requirements.id, key: requirements.key }).from(requirements);
+  const existing = await tx
+    .select({ id: requirements.id, key: requirements.key })
+    .from(requirements);
   const idOf = new Map(existing.map((r) => [r.key.toLowerCase(), r.id]));
 
   for (const item of items) {
@@ -223,12 +268,15 @@ export async function upsertTrackedItems(
 
   for (const item of items) {
     const id = idOf.get(item.key.toLowerCase())!;
-    const parentId = item.parentKey ? idOf.get(item.parentKey.toLowerCase()) ?? null : null;
+    const parentId = item.parentKey ? (idOf.get(item.parentKey.toLowerCase()) ?? null) : null;
     if (parentId === id) continue;
     if (parentId != null && (await wouldLoop(tx, id, parentId))) continue;
     // A parent the tracker names but that is not here is left as it is, not cleared.
     if (parentId != null || !item.parentKey) {
-      await tx.update(requirements).set({ parentId }).where(and(eq(requirements.id, id)));
+      await tx
+        .update(requirements)
+        .set({ parentId })
+        .where(and(eq(requirements.id, id)));
     }
   }
   return outcome;
@@ -247,17 +295,47 @@ const csvCell = (value: unknown) => {
  */
 export function matrixCsv(rows: RequirementRow[]): string {
   const keyOf = new Map(rows.map((r) => [r.id, r.key]));
-  const header = ['Requirement', 'Title', 'Kind', 'Parent', 'Tracker status', 'Coverage', 'Test', 'Test type', 'Last outcome', 'Last run', 'Plan', 'Run id', 'Hidden tests'];
+  const header = [
+    'Requirement',
+    'Title',
+    'Kind',
+    'Parent',
+    'Tracker status',
+    'Coverage',
+    'Test',
+    'Test type',
+    'Last outcome',
+    'Last run',
+    'Plan',
+    'Run id',
+    'Hidden tests',
+  ];
   const lines = [header.map(csvCell).join(',')];
   for (const r of rows) {
-    const base = [r.key, r.title, r.kind, r.parentId ? keyOf.get(r.parentId) ?? '' : '', r.externalStatus ?? '', r.coverage.state];
+    const base = [
+      r.key,
+      r.title,
+      r.kind,
+      r.parentId ? (keyOf.get(r.parentId) ?? '') : '',
+      r.externalStatus ?? '',
+      r.coverage.state,
+    ];
     if (r.coverage.tests.length === 0) {
       lines.push([...base, '', '', '', '', '', '', r.coverage.hidden].map(csvCell).join(','));
       continue;
     }
     for (const test of r.coverage.tests) {
       lines.push(
-        [...base, test.name, test.type === 'ui' ? 'web' : test.type, test.outcome, test.lastRun?.at ?? '', test.lastRun?.planName ?? '', test.lastRun?.executionId ?? '', r.coverage.hidden]
+        [
+          ...base,
+          test.name,
+          test.type === 'ui' ? 'web' : test.type,
+          test.outcome,
+          test.lastRun?.at ?? '',
+          test.lastRun?.planName ?? '',
+          test.lastRun?.executionId ?? '',
+          r.coverage.hidden,
+        ]
           .map(csvCell)
           .join(','),
       );

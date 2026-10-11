@@ -1,10 +1,12 @@
-import React from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
-import { Redirect, Route } from "wouter";
-import AppShell from "@/components/layout/AppShell";
+import React from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { Loader2 } from 'lucide-react';
+import { Redirect, Route } from 'wouter';
+import AppShell from '@/components/layout/AppShell';
 
-const MfaEnrollmentRequired = React.lazy(() => import("@/components/security/MfaEnrollmentRequired"));
+const MfaEnrollmentRequired = React.lazy(
+  () => import('@/components/security/MfaEnrollmentRequired'),
+);
 
 export function ProtectedRoute({
   path,

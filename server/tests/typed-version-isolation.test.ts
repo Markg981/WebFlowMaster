@@ -15,14 +15,30 @@ import { createTestOrganization, createTestUser } from './factories';
 
 const fixtureOrgIds: number[] = [];
 
-it.skipIf(process.env.DATABASE_URL?.startsWith('memory://'))('isolates protocol references in API rows under real PostgreSQL RLS', async () => {
-  const f = await fixture('api');
-  const visible = await runWithTenant(f.organizationId, () => withTenantTransaction(tx => tx.select().from(apiTests)));
-  expect(visible.find(row => row.id === f.own.id)?.protocolConfig).toEqual({ timeoutMs: 1500, tls: { clientCertificate: '{{secret_cert}}', clientKey: '{{secret_key}}' } });
-  expect(visible.some(row => row.id === f.foreign.id)).toBe(false);
-  const changed = await runWithTenant(f.organizationId, () => withTenantTransaction(tx => tx.update(apiTests).set({ protocolConfig: { timeoutMs: 2000 } }).where(eq(apiTests.id, f.foreign.id)).returning()));
-  expect(changed).toEqual([]);
-});
+it.skipIf(process.env.DATABASE_URL?.startsWith('memory://'))(
+  'isolates protocol references in API rows under real PostgreSQL RLS',
+  async () => {
+    const f = await fixture('api');
+    const visible = await runWithTenant(f.organizationId, () =>
+      withTenantTransaction((tx) => tx.select().from(apiTests)),
+    );
+    expect(visible.find((row) => row.id === f.own.id)?.protocolConfig).toEqual({
+      timeoutMs: 1500,
+      tls: { clientCertificate: '{{secret_cert}}', clientKey: '{{secret_key}}' },
+    });
+    expect(visible.some((row) => row.id === f.foreign.id)).toBe(false);
+    const changed = await runWithTenant(f.organizationId, () =>
+      withTenantTransaction((tx) =>
+        tx
+          .update(apiTests)
+          .set({ protocolConfig: { timeoutMs: 2000 } })
+          .where(eq(apiTests.id, f.foreign.id))
+          .returning(),
+      ),
+    );
+    expect(changed).toEqual([]);
+  },
+);
 
 afterEach(async () => {
   if (fixtureOrgIds.length === 0) return;
@@ -53,7 +69,10 @@ async function fixture(kind: 'api' | 'mobile') {
               name: 'Request',
               method: 'GET',
               url: 'https://example.test',
-              protocolConfig: { timeoutMs: 1500, tls: { clientCertificate: '{{secret_cert}}', clientKey: '{{secret_key}}' } },
+              protocolConfig: {
+                timeoutMs: 1500,
+                tls: { clientCertificate: '{{secret_cert}}', clientKey: '{{secret_key}}' },
+              },
             })
             .returning()
         )[0]
@@ -96,30 +115,26 @@ for (const kind of ['api', 'mobile'] as const)
               ? { version: 1, kind: 'publish' as const }
               : { version: 1 };
         await expect(
-          privilegedDb
-            .insert(table)
-            .values({
-              ...values,
-              organizationId: f.organizationId,
-              ...f.target(f.foreign.id),
-            } as never),
+          privilegedDb.insert(table).values({
+            ...values,
+            organizationId: f.organizationId,
+            ...f.target(f.foreign.id),
+          } as never),
         ).rejects.toThrow();
       }
     });
     it('rejects missing or ambiguous targets', async () => {
       const f = await fixture(kind);
       await expect(
-        privilegedDb
-          .insert(testVersions)
-          .values({
-            organizationId: f.organizationId,
-            version: 1,
-            name: 'Missing',
-            url: '',
-            sequence: [],
-            elements: [],
-            snapshot: {},
-          }),
+        privilegedDb.insert(testVersions).values({
+          organizationId: f.organizationId,
+          version: 1,
+          name: 'Missing',
+          url: '',
+          sequence: [],
+          elements: [],
+          snapshot: {},
+        }),
       ).rejects.toThrow();
       const api = (
         await privilegedDb
@@ -154,19 +169,17 @@ for (const kind of ['api', 'mobile'] as const)
                 .returning()
             )[0];
       await expect(
-        privilegedDb
-          .insert(testVersions)
-          .values({
-            organizationId: f.organizationId,
-            apiTestId: api.id,
-            mobileTestId: mobile.id,
-            version: 1,
-            name: 'Ambiguous',
-            url: '',
-            sequence: [],
-            elements: [],
-            snapshot: {},
-          }),
+        privilegedDb.insert(testVersions).values({
+          organizationId: f.organizationId,
+          apiTestId: api.id,
+          mobileTestId: mobile.id,
+          version: 1,
+          name: 'Ambiguous',
+          url: '',
+          sequence: [],
+          elements: [],
+          snapshot: {},
+        }),
       ).rejects.toThrow();
     });
     it.runIf(/^postgres(?:ql)?:/.test(process.env.DATABASE_URL ?? ''))(

@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -42,7 +44,13 @@ const listing = {
   serverPlaywrightVersion: '1.61.1',
   agents: [
     agent({}),
-    agent({ id: 'a2', name: 'Old laptop', connected: false, activeSessions: 0, playwrightVersion: '1.58.0' }),
+    agent({
+      id: 'a2',
+      name: 'Old laptop',
+      connected: false,
+      activeSessions: 0,
+      playwrightVersion: '1.58.0',
+    }),
     agent({ id: 'a3', name: 'Gone', revokedAt: '2026-09-02T00:00:00Z' }),
   ],
 };
@@ -60,7 +68,13 @@ beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockImplementation((url: string, init?: RequestInit) => {
     if (init?.method === 'POST' && url === '/api/agents') {
-      return Promise.resolve({ ok: true, json: async () => ({ agent: agent({ id: 'a4', name: 'New box' }), token: 'wfa_secret-token' }) });
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          agent: agent({ id: 'a4', name: 'New box' }),
+          token: 'wfa_secret-token',
+        }),
+      });
     }
     return Promise.resolve({ ok: true, json: async () => listing });
   });
@@ -76,7 +90,9 @@ describe('AgentsCard', () => {
     expect(box).toHaveTextContent('2 browser(s) lent');
     expect(box).toHaveTextContent('qa-01 · Playwright 1.61.1 · chromium, firefox');
     expect(screen.getByTestId('agent-a2')).toHaveTextContent('offline');
-    expect(screen.getByTestId('agent-a2')).toHaveTextContent('Runs Playwright 1.58.0, the server 1.61.1');
+    expect(screen.getByTestId('agent-a2')).toHaveTextContent(
+      'Runs Playwright 1.58.0, the server 1.61.1',
+    );
     expect(screen.queryByText('Gone')).not.toBeInTheDocument();
     // Not an owner: nothing to create or revoke.
     expect(screen.queryByRole('button', { name: 'Create agent' })).not.toBeInTheDocument();
@@ -94,7 +110,9 @@ describe('AgentsCard', () => {
     const issued = await screen.findByTestId('agent-token');
     expect(issued).toHaveTextContent('it will not be shown again');
     expect(issued).toHaveTextContent('/cli/wfm-agent.mjs');
-    expect(issued).toHaveTextContent('npm install playwright@1.61.1 ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7');
+    expect(issued).toHaveTextContent(
+      'npm install playwright@1.61.1 ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7',
+    );
     expect(issued).toHaveTextContent('WFM_AGENT_TOKEN=wfa_secret-token node wfm-agent.mjs');
     const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST');
     expect(JSON.parse(post![1].body)).toEqual({ name: 'New box', pool: 'lab' });
@@ -113,6 +131,8 @@ describe('AgentsCard', () => {
   it('lets an owner revoke an agent', async () => {
     renderCard(true);
     fireEvent.click(await screen.findByRole('button', { name: 'Revoke Build box' }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/agents/a1/revoke', { method: 'POST' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith('/api/agents/a1/revoke', { method: 'POST' }),
+    );
   });
 });

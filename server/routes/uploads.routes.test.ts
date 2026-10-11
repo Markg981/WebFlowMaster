@@ -6,7 +6,12 @@ import fs from 'fs-extra';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -47,27 +52,31 @@ beforeAll(async () => {
 describe('POST /api/upload-excel', () => {
   it('parses an .xlsx and removes it afterwards', async () => {
     const before = await leftInUploads();
-    const res = await request(app).post('/api/upload-excel')
+    const res = await request(app)
+      .post('/api/upload-excel')
       .attach('file', await workbook(), { filename: 'tests.xlsx', contentType: XLSX });
     expect(res.status).toBe(200);
     expect(await leftInUploads()).toBe(before);
   });
 
   it('refuses another type with 415', async () => {
-    const res = await request(app).post('/api/upload-excel')
+    const res = await request(app)
+      .post('/api/upload-excel')
       .attach('file', Buffer.from('a,b\n1,2'), { filename: 'tests.csv', contentType: 'text/csv' });
     expect(res.status).toBe(415);
   });
 
   it('refuses an .xlsx name with another type', async () => {
-    const res = await request(app).post('/api/upload-excel')
+    const res = await request(app)
+      .post('/api/upload-excel')
       .attach('file', Buffer.from('<html>'), { filename: 'tests.xlsx', contentType: 'text/html' });
     expect(res.status).toBe(415);
   });
 
   it('refuses a file over the limit with 413 and keeps nothing', async () => {
     const before = await leftInUploads();
-    const res = await request(app).post('/api/upload-excel')
+    const res = await request(app)
+      .post('/api/upload-excel')
       .attach('file', Buffer.alloc(maxBytes + 1), { filename: 'big.xlsx', contentType: XLSX });
     expect(res.status).toBe(413);
     expect(await leftInUploads()).toBe(before);
@@ -75,8 +84,12 @@ describe('POST /api/upload-excel', () => {
 
   it('removes a file that does not parse', async () => {
     const before = await leftInUploads();
-    const res = await request(app).post('/api/upload-excel')
-      .attach('file', Buffer.from('not a workbook'), { filename: 'broken.xlsx', contentType: XLSX });
+    const res = await request(app)
+      .post('/api/upload-excel')
+      .attach('file', Buffer.from('not a workbook'), {
+        filename: 'broken.xlsx',
+        contentType: XLSX,
+      });
     expect(res.status).toBe(500);
     expect(await leftInUploads()).toBe(before);
   });
@@ -89,7 +102,8 @@ describe('POST /api/upload-excel', () => {
       next();
     });
     viewerApp.use((await import('./uploads.routes')).default);
-    const res = await request(viewerApp).post('/api/upload-excel')
+    const res = await request(viewerApp)
+      .post('/api/upload-excel')
       .attach('file', await workbook(), { filename: 'tests.xlsx', contentType: XLSX });
     expect(res.status).toBe(403);
   });

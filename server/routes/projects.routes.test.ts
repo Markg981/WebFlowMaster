@@ -13,11 +13,21 @@ import { eq } from 'drizzle-orm';
  */
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 vi.mock('../browser-tasks', () => ({ browserTasks: {}, BrowserTaskError: class extends Error {} }));
-vi.mock('../queue', () => ({ TEST_EXECUTION_QUEUE_NAME: 'q', testExecutionQueue: { add: vi.fn() } }));
+vi.mock('../queue', () => ({
+  TEST_EXECUTION_QUEUE_NAME: 'q',
+  testExecutionQueue: { add: vi.fn() },
+}));
 
 const { privilegedDb } = await import('../db');
 const { auditLog, projects, tests, users } = await import('@shared/schema');
@@ -38,7 +48,10 @@ let reader: Person;
 let secret: number;
 
 async function person(name: string, role: string, organizationId = org): Promise<Person> {
-  const [row] = await privilegedDb.insert(users).values({ username: `${name}-${Math.random()}`, password: 'x', organizationId, role }).returning();
+  const [row] = await privilegedDb
+    .insert(users)
+    .values({ username: `${name}-${Math.random()}`, password: 'x', organizationId, role })
+    .returning();
   return { id: row.id, username: row.username, organizationId, role };
 }
 
@@ -67,7 +80,10 @@ beforeEach(async () => {
   bob = await person('bob', 'editor');
   carol = await person('carol', 'editor');
   reader = await person('reader', 'viewer');
-  [{ id: secret }] = await privilegedDb.insert(projects).values({ name: 'Secret', userId: owner.id, organizationId: org }).returning();
+  [{ id: secret }] = await privilegedDb
+    .insert(projects)
+    .values({ name: 'Secret', userId: owner.id, organizationId: org })
+    .returning();
   await as(owner)
     .put(`/api/projects/${secret}/access`)
     .send({
@@ -107,29 +123,47 @@ describe('the project list', () => {
 
 describe('changing who is on a project', () => {
   it('is for owners', async () => {
-    await as(alice).put(`/api/projects/${secret}/access`).send({ restricted: false, members: [] }).expect(403);
+    await as(alice)
+      .put(`/api/projects/${secret}/access`)
+      .send({ restricted: false, members: [] })
+      .expect(403);
     await as(alice).get(`/api/projects/${secret}/access`).expect(403);
   });
 
   it("accepts only people of the owner's own organization", async () => {
     const elsewhere = await createTestOrganization('Elsewhere');
     const stranger = await person('stranger', 'editor', elsewhere);
-    await as(owner).put(`/api/projects/${secret}/access`).send({ restricted: true, members: [{ userId: stranger.id, role: 'editor' }] }).expect(400);
+    await as(owner)
+      .put(`/api/projects/${secret}/access`)
+      .send({ restricted: true, members: [{ userId: stranger.id, role: 'editor' }] })
+      .expect(400);
 
     await privilegedDb.update(users).set({ kind: 'service' }).where(eq(users.id, carol.id));
-    await as(owner).put(`/api/projects/${secret}/access`).send({ restricted: true, members: [{ userId: carol.id, role: 'editor' }] }).expect(400);
+    await as(owner)
+      .put(`/api/projects/${secret}/access`)
+      .send({ restricted: true, members: [{ userId: carol.id, role: 'editor' }] })
+      .expect(400);
   });
 
   it('records the change, with who is on it now', async () => {
-    const entries = await privilegedDb.select().from(auditLog).where(eq(auditLog.action, 'project.access_changed'));
+    const entries = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, 'project.access_changed'));
     const mine = entries.find((e) => e.organizationId === org)!;
     expect(mine.metadata).toMatchObject({ name: 'Secret', from: 'open', to: 'restricted' });
     expect((mine.metadata as { members: unknown[] }).members).toHaveLength(3);
   });
 
   it('opens it again, keeping the list', async () => {
-    const opened = await as(owner).put(`/api/projects/${secret}/access`).send({ restricted: false, members: [{ userId: alice.id, role: 'editor' }] }).expect(200);
-    expect(opened.body).toMatchObject({ restricted: false, members: [expect.objectContaining({ userId: alice.id })] });
+    const opened = await as(owner)
+      .put(`/api/projects/${secret}/access`)
+      .send({ restricted: false, members: [{ userId: alice.id, role: 'editor' }] })
+      .expect(200);
+    expect(opened.body).toMatchObject({
+      restricted: false,
+      members: [expect.objectContaining({ userId: alice.id })],
+    });
 
     const list = await as(carol).get('/api/projects').expect(200);
     expect(list.body.find((p: { id: number }) => p.id === secret)?.access).toBe('editor');
@@ -140,10 +174,21 @@ describe('a test in a restricted project', () => {
   it('is read-only to a viewer on it, missing to someone not on it, and editable to an editor on it', async () => {
     const [row] = await privilegedDb
       .insert(tests)
-      .values({ name: `Checkout-${Math.random()}`, url: 'https://x.test', sequence: [], elements: [], userId: owner.id, organizationId: org, projectId: secret } as any)
+      .values({
+        name: `Checkout-${Math.random()}`,
+        url: 'https://x.test',
+        sequence: [],
+        elements: [],
+        userId: owner.id,
+        organizationId: org,
+        projectId: secret,
+      } as any)
       .returning();
 
-    const readOnly = await as(bob).put(`/api/tests/${row.id}`).send({ url: 'https://y.test' }).expect(403);
+    const readOnly = await as(bob)
+      .put(`/api/tests/${row.id}`)
+      .send({ url: 'https://y.test' })
+      .expect(403);
     expect(readOnly.body.code).toBe('project_read_only');
     await as(bob).delete(`/api/tests/${row.id}`).expect(403);
 
@@ -157,11 +202,23 @@ describe('a test in a restricted project', () => {
   it('cannot be created there by someone who cannot reach it, and the answer does not say it exists', async () => {
     const hidden = await as(carol)
       .post('/api/tests')
-      .send({ name: `Sneaky-${Math.random()}`, url: 'https://x.test', sequence: [], elements: [], projectId: secret })
+      .send({
+        name: `Sneaky-${Math.random()}`,
+        url: 'https://x.test',
+        sequence: [],
+        elements: [],
+        projectId: secret,
+      })
       .expect(400);
     const missing = await as(carol)
       .post('/api/tests')
-      .send({ name: `Nowhere-${Math.random()}`, url: 'https://x.test', sequence: [], elements: [], projectId: 999999 })
+      .send({
+        name: `Nowhere-${Math.random()}`,
+        url: 'https://x.test',
+        sequence: [],
+        elements: [],
+        projectId: 999999,
+      })
       .expect(400);
     expect(hidden.body).toEqual(missing.body);
   });

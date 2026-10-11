@@ -1,13 +1,13 @@
-import { Router } from "express";
-import { and, desc, eq, gte } from "drizzle-orm";
-import { reportTestCaseResults, testPlanExecutions } from "@shared/schema";
-import { getDashboardMetrics, getDashboardSchedules } from "../analytics";
+import { Router } from 'express';
+import { and, desc, eq, gte } from 'drizzle-orm';
+import { reportTestCaseResults, testPlanExecutions } from '@shared/schema';
+import { getDashboardMetrics, getDashboardSchedules } from '../analytics';
 import { dashboardWidgetSchema, widgetConfigSchema } from '@shared/dashboard-layout';
-import { summariseFlakiness } from "../flaky";
-import { openQuarantinesOf, refKey } from "../test-quarantine";
-import { withTenantTransaction } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
-import loggerPromise from "../logger";
+import { summariseFlakiness } from '../flaky';
+import { openQuarantinesOf, refKey } from '../test-quarantine';
+import { withTenantTransaction } from '../middleware/tenancy';
+import { requireRole } from '../middleware/require-role';
+import loggerPromise from '../logger';
 
 const router = Router();
 const logger = await loggerPromise;
@@ -25,19 +25,27 @@ const MAX_WINDOW_DAYS = 365;
  * every account — not because nothing had run, but because the page was not connected to
  * anything. An empty state is only honest when a full one is reachable.
  */
-router.get("/api/analytics/dashboard", requireRole('viewer'), async (req, res) => {
+router.get('/api/analytics/dashboard', requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {
-    const parsed = widgetConfigSchema.safeParse(Object.fromEntries(Object.entries(req.query).map(([key, value]) => [key, ['projectId', 'days', 'limit'].includes(key) ? Number(value) : value])));
-    if (!parsed.success || parsed.data.environment) return res.status(400).json({ error: 'Invalid dashboard filters' });
+    const parsed = widgetConfigSchema.safeParse(
+      Object.fromEntries(
+        Object.entries(req.query).map(([key, value]) => [
+          key,
+          ['projectId', 'days', 'limit'].includes(key) ? Number(value) : value,
+        ]),
+      ),
+    );
+    if (!parsed.success || parsed.data.environment)
+      return res.status(400).json({ error: 'Invalid dashboard filters' });
     const metrics = await getDashboardMetrics((req.user as { id: number }).id, parsed.data);
     res.json(metrics);
   } catch (e: any) {
-    logger.error({ message: "Dashboard metrics failed", error: e.message });
-    res.status(500).json({ error: "Failed to load dashboard metrics" });
+    logger.error({ message: 'Dashboard metrics failed', error: e.message });
+    res.status(500).json({ error: 'Failed to load dashboard metrics' });
   }
 });
 
@@ -45,8 +53,14 @@ router.post('/api/analytics/dashboard/widget', requireRole('viewer'), async (req
   const parsed = dashboardWidgetSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid widget' });
   try {
-    res.json(parsed.data.type === 'schedules' ? await getDashboardSchedules(parsed.data.config) : await getDashboardMetrics(req.user!.id, parsed.data.config));
-  } catch { res.status(500).json({ error: 'Failed to load widget' }); }
+    res.json(
+      parsed.data.type === 'schedules'
+        ? await getDashboardSchedules(parsed.data.config)
+        : await getDashboardMetrics(req.user!.id, parsed.data.config),
+    );
+  } catch {
+    res.status(500).json({ error: 'Failed to load widget' });
+  }
 });
 
 /**
@@ -59,16 +73,17 @@ router.post('/api/analytics/dashboard/widget', requireRole('viewer'), async (req
  * Optional `planId` narrows it to one plan, `days` moves the window, and `minRuns`/`minFlips`
  * decide how much evidence counts as an opinion.
  */
-router.get("/api/analytics/flaky", requireRole('viewer'), async (req, res) => {
+router.get('/api/analytics/flaky', requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const days = clampNumber(req.query.days, DEFAULT_WINDOW_DAYS, 1, MAX_WINDOW_DAYS);
   const minimumRuns = clampNumber(req.query.minRuns, 3, 2, 100);
   const minimumFlips = clampNumber(req.query.minFlips, 1, 1, 100);
   const limit = clampNumber(req.query.limit, 20, 1, 200);
-  const planId = typeof req.query.planId === 'string' && req.query.planId !== '' ? req.query.planId : null;
+  const planId =
+    typeof req.query.planId === 'string' && req.query.planId !== '' ? req.query.planId : null;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   try {
@@ -92,7 +107,10 @@ router.get("/api/analytics/flaky", requireRole('viewer'), async (req, res) => {
           mobileTestId: reportTestCaseResults.mobileTestId,
         })
         .from(reportTestCaseResults)
-        .innerJoin(testPlanExecutions, eq(reportTestCaseResults.testPlanExecutionId, testPlanExecutions.id))
+        .innerJoin(
+          testPlanExecutions,
+          eq(reportTestCaseResults.testPlanExecutionId, testPlanExecutions.id),
+        )
         .where(and(...conditions))
         .orderBy(desc(reportTestCaseResults.startedAt));
     });
@@ -109,14 +127,18 @@ router.get("/api/analytics/flaky", requireRole('viewer'), async (req, res) => {
         return {
           ...summary,
           quarantine: quarantine
-            ? { id: quarantine.id, reason: quarantine.reason, since: quarantine.quarantinedAt.toISOString() }
+            ? {
+                id: quarantine.id,
+                reason: quarantine.reason,
+                since: quarantine.quarantinedAt.toISOString(),
+              }
             : null,
         };
       }),
     });
   } catch (e: any) {
-    logger.error({ message: "Flaky analysis failed", error: e.message });
-    res.status(500).json({ error: "Failed to analyse flaky tests" });
+    logger.error({ message: 'Flaky analysis failed', error: e.message });
+    res.status(500).json({ error: 'Failed to analyse flaky tests' });
   }
 });
 

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * Roles from the identity provider's groups, and the DNS record that proves an e-mail domain.
@@ -10,11 +10,11 @@ import { z } from "zod";
  * as soon as a membership changes).
  */
 
-export const MAPPED_ROLES = ["viewer", "editor", "owner"] as const;
+export const MAPPED_ROLES = ['viewer', 'editor', 'owner'] as const;
 export type MappedRole = (typeof MAPPED_ROLES)[number];
 const RANK: Record<MappedRole, number> = { viewer: 0, editor: 1, owner: 2 };
 
-export const DEFAULT_GROUP_ATTRIBUTE = "groups";
+export const DEFAULT_GROUP_ATTRIBUTE = 'groups';
 
 export const roleMappingSchema = z.object({
   group: z.string().trim().min(1).max(256),
@@ -23,10 +23,15 @@ export const roleMappingSchema = z.object({
 export type RoleMapping = z.infer<typeof roleMappingSchema>;
 
 /** The groups a token's claims or an assertion's attributes carry under one name: a list, or one value. */
-export function groupsOf(source: Record<string, unknown>, attribute: string | null | undefined): string[] {
+export function groupsOf(
+  source: Record<string, unknown>,
+  attribute: string | null | undefined,
+): string[] {
   const value = source[attribute?.trim() || DEFAULT_GROUP_ATTRIBUTE];
   const list = Array.isArray(value) ? value : value === undefined || value === null ? [] : [value];
-  return list.filter((g): g is string => typeof g === "string" && g.trim() !== "").map((g) => g.trim());
+  return list
+    .filter((g): g is string => typeof g === 'string' && g.trim() !== '')
+    .map((g) => g.trim());
 }
 
 /** The highest role the groups map to, or null when none of them is mapped. Groups compare without case. */
@@ -41,6 +46,9 @@ export function roleFromGroups(groups: string[], mappings: RoleMapping[]): Mappe
 }
 
 /** The TXT record an owner publishes to prove a domain: name and value. */
-export function domainVerificationRecord(domain: string, token: string): { name: string; value: string } {
+export function domainVerificationRecord(
+  domain: string,
+  token: string,
+): { name: string; value: string } {
   return { name: `_wfm-verification.${domain}`, value: `wfm-verification=${token}` };
 }

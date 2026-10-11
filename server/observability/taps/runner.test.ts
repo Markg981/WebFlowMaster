@@ -28,14 +28,17 @@ afterEach(() => {
  * round-trips and a slow machine will not finish inside any constant.
  */
 const waitForIncident = () =>
-  vi.waitFor(async () => {
-    const store = new IncidentStore(root);
-    const [entry] = await store.readIndex();
-    expect(entry).toBeDefined();
-    const incident = await store.read(entry.id);
-    expect(incident).not.toBeNull();
-    return incident!;
-  }, { timeout: 2000 });
+  vi.waitFor(
+    async () => {
+      const store = new IncidentStore(root);
+      const [entry] = await store.readIndex();
+      expect(entry).toBeDefined();
+      const incident = await store.read(entry.id);
+      expect(incident).not.toBeNull();
+      return incident!;
+    },
+    { timeout: 2000 },
+  );
 
 describe('recordRunnerFailure', () => {
   it('records the phase and context', async () => {

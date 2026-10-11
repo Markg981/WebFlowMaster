@@ -9,11 +9,15 @@ describe('failedStepReason', () => {
   ];
 
   it('gives a failed test the error of its first failed step', () => {
-    expect(failedStepReason('failed', steps)).toBe('Timeout 5000ms exceeded waiting for button.btn-vecchia');
+    expect(failedStepReason('failed', steps)).toBe(
+      'Timeout 5000ms exceeded waiting for button.btn-vecchia',
+    );
   });
 
   it('falls back to the step details when the step has no error field', () => {
-    expect(failedStepReason('error', [{ status: 'error', details: 'Browser closed' }])).toBe('Browser closed');
+    expect(failedStepReason('error', [{ status: 'error', details: 'Browser closed' }])).toBe(
+      'Browser closed',
+    );
   });
 
   it('gives nothing to a passed test, or without steps', () => {

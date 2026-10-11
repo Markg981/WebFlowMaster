@@ -1,10 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 
 /**
@@ -32,7 +45,14 @@ interface Props {
   onSync: (trackerId: string) => void;
 }
 
-export default function ImportRequirementsDialog({ isOpen, trackers, busy, onClose, onImport, onSync }: Props) {
+export default function ImportRequirementsDialog({
+  isOpen,
+  trackers,
+  busy,
+  onClose,
+  onImport,
+  onSync,
+}: Props) {
   const { t } = useTranslation();
   const [trackerId, setTrackerId] = useState('');
   const [mode, setMode] = useState<Mode>('project');
@@ -49,8 +69,15 @@ export default function ImportRequirementsDialog({ isOpen, trackers, busy, onClo
 
   const tracker = trackers.find((candidate) => candidate.id === trackerId);
   const isJira = tracker?.provider === 'jira';
-  const keyList = keys.split(/[\s,;]+/).map((k) => k.trim()).filter(Boolean);
-  const valid = !!tracker && (mode === 'project' || (mode === 'keys' && keyList.length > 0) || (mode === 'query' && query.trim() !== ''));
+  const keyList = keys
+    .split(/[\s,;]+/)
+    .map((k) => k.trim())
+    .filter(Boolean);
+  const valid =
+    !!tracker &&
+    (mode === 'project' ||
+      (mode === 'keys' && keyList.length > 0) ||
+      (mode === 'query' && query.trim() !== ''));
 
   const submit = () => {
     if (!tracker) return;
@@ -67,20 +94,29 @@ export default function ImportRequirementsDialog({ isOpen, trackers, busy, onClo
         <DialogHeader>
           <DialogTitle>{t('requirements.import.title', 'Import from a tracker')}</DialogTitle>
           <DialogDescription>
-            {t('requirements.import.description', 'Epics and stories are read from the tracker and kept up to date by Sync; nothing is written back to it. A story brings its epic along.')}
+            {t(
+              'requirements.import.description',
+              'Epics and stories are read from the tracker and kept up to date by Sync; nothing is written back to it. A story brings its epic along.',
+            )}
           </DialogDescription>
         </DialogHeader>
 
         {trackers.length === 0 ? (
           <p className="text-sm text-muted-foreground" data-testid="requirements-no-tracker">
-            {t('requirements.import.noTracker', 'No Jira or Azure DevOps is connected. Add one in Settings → Issue trackers; the same connection is used here.')}
+            {t(
+              'requirements.import.noTracker',
+              'No Jira or Azure DevOps is connected. Add one in Settings → Issue trackers; the same connection is used here.',
+            )}
           </p>
         ) : (
           <div className="space-y-4">
             <div className="space-y-1">
               <Label htmlFor="import-tracker">{t('requirements.import.tracker', 'Tracker')}</Label>
               <Select value={trackerId} onValueChange={setTrackerId}>
-                <SelectTrigger id="import-tracker" aria-label={t('requirements.import.tracker', 'Tracker')}>
+                <SelectTrigger
+                  id="import-tracker"
+                  aria-label={t('requirements.import.tracker', 'Tracker')}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -95,7 +131,14 @@ export default function ImportRequirementsDialog({ isOpen, trackers, busy, onClo
 
             <div className="flex flex-wrap gap-2">
               {(['project', 'keys', 'query'] as const).map((option) => (
-                <Button key={option} type="button" size="sm" variant={mode === option ? 'default' : 'outline'} aria-pressed={mode === option} onClick={() => setMode(option)}>
+                <Button
+                  key={option}
+                  type="button"
+                  size="sm"
+                  variant={mode === option ? 'default' : 'outline'}
+                  aria-pressed={mode === option}
+                  onClick={() => setMode(option)}
+                >
                   {option === 'project'
                     ? t('requirements.import.modeProject', "The project's epics and stories")
                     : option === 'keys'
@@ -110,7 +153,13 @@ export default function ImportRequirementsDialog({ isOpen, trackers, busy, onClo
             {mode === 'keys' && (
               <div className="space-y-1">
                 <Label htmlFor="import-keys">{t('requirements.import.keys', 'Keys')}</Label>
-                <Textarea id="import-keys" rows={3} value={keys} onChange={(e) => setKeys(e.target.value)} placeholder={isJira ? 'SHOP-142, SHOP-143' : '4711, 4712'} />
+                <Textarea
+                  id="import-keys"
+                  rows={3}
+                  value={keys}
+                  onChange={(e) => setKeys(e.target.value)}
+                  placeholder={isJira ? 'SHOP-142, SHOP-143' : '4711, 4712'}
+                />
               </div>
             )}
             {mode === 'query' && (
@@ -122,7 +171,11 @@ export default function ImportRequirementsDialog({ isOpen, trackers, busy, onClo
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="font-mono text-xs"
-                  placeholder={isJira ? 'project = SHOP AND fixVersion = "2.4"' : "SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] UNDER 'Shop\\Sprint 12'"}
+                  placeholder={
+                    isJira
+                      ? 'project = SHOP AND fixVersion = "2.4"'
+                      : "SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] UNDER 'Shop\\Sprint 12'"
+                  }
                 />
               </div>
             )}

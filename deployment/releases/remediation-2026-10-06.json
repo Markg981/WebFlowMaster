@@ -25,11 +25,7 @@
   },
   "baseImage": "mcr.microsoft.com/playwright:v1.63.0-resolute@sha256:b022639ae9197f864040f92eef7b57c6d4b47db2190f77c909d8a5d902dd4b7e",
   "opensslPackages": "3.5.5-1ubuntu3.7",
-  "removedBaseExecutables": [
-    "/usr/bin/pebble",
-    "/usr/bin/npm",
-    "/usr/bin/npx"
-  ],
+  "removedBaseExecutables": ["/usr/bin/pebble", "/usr/bin/npm", "/usr/bin/npx"],
   "source": {
     "baselineBlockedOccurrences": 36,
     "blockedOccurrences": 2,
@@ -95,11 +91,7 @@
         "gid": 1000,
         "node": "v24.20.0",
         "playwright": "1.63.0",
-        "browsers": [
-          "chromium",
-          "firefox",
-          "webkit"
-        ]
+        "browsers": ["chromium", "firefox", "webkit"]
       }
     },
     {
@@ -117,11 +109,7 @@
         "gid": 1000,
         "node": "v24.20.0",
         "playwright": "1.63.0",
-        "browsers": [
-          "chromium",
-          "firefox",
-          "webkit"
-        ]
+        "browsers": ["chromium", "firefox", "webkit"]
       }
     },
     {
@@ -139,11 +127,7 @@
         "gid": 1000,
         "node": "v24.20.0",
         "playwright": "1.63.0",
-        "browsers": [
-          "chromium",
-          "firefox",
-          "webkit"
-        ]
+        "browsers": ["chromium", "firefox", "webkit"]
       }
     }
   ],
@@ -152,10 +136,7 @@
     "lighthouse": {
       "version": "13.5.0",
       "localHttpAudit": "passed",
-      "reportFormats": [
-        "json",
-        "html"
-      ]
+      "reportFormats": ["json", "html"]
     },
     "agentMismatchFixture": {
       "playwright": "1.60.0",

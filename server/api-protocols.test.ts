@@ -11,7 +11,14 @@ import { xpathValue, readWebSocketPlan } from './api-protocols';
 import { importApiDescription } from './api-import';
 
 vi.mock('./logger', () => ({
-  default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn(), verbose: vi.fn() },
+  default: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+  },
   updateLogLevel: vi.fn(),
 }));
 
@@ -67,14 +74,23 @@ describe('SOAP over HTTP', () => {
         url: `${base}/orders`,
         headers: { 'Content-Type': 'text/xml', SOAPAction: '"GetOrder"' },
         body: '<soap:Envelope><soap:Body><GetOrder><id>{{orderId}}</id></GetOrder></soap:Body></soap:Envelope>',
-        assertions: [assertion('body_xpath', 'equals', 'Shipped', '//status'), assertion('body_xpath', 'not_exists', undefined, '//Fault'), assertion('body_xpath', 'greater_than', '10', '//total')],
-        extractions: [{ id: randomUUID(), name: 'orderStatus', source: 'body_xpath', property: '//order/@id' }],
+        assertions: [
+          assertion('body_xpath', 'equals', 'Shipped', '//status'),
+          assertion('body_xpath', 'not_exists', undefined, '//Fault'),
+          assertion('body_xpath', 'greater_than', '10', '//total'),
+        ],
+        extractions: [
+          { id: randomUUID(), name: 'orderStatus', source: 'body_xpath', property: '//order/@id' },
+        ],
       },
       { orderId: '42' },
     );
     expect(result.assertions.map((a) => a.pass)).toEqual([true, true, true]);
     expect(result.extracted).toEqual({ orderStatus: '42' });
-    expect(seen).toMatchObject({ action: '"GetOrder"', body: expect.stringContaining('<id>42</id>') });
+    expect(seen).toMatchObject({
+      action: '"GetOrder"',
+      body: expect.stringContaining('<id>42</id>'),
+    });
   });
 });
 
@@ -115,20 +131,32 @@ describe('WSDL import', () => {
 
   it('writes one SOAP 1.1 test per operation, with the request element from the schema', () => {
     const result = importApiDescription(wsdl);
-    expect(result).toMatchObject({ format: 'wsdl', title: 'Orders', variables: [{ name: 'baseUrl', value: 'https://shop.example' }] });
+    expect(result).toMatchObject({
+      format: 'wsdl',
+      title: 'Orders',
+      variables: [{ name: 'baseUrl', value: 'https://shop.example' }],
+    });
     expect(result.warnings[0]).toContain('SOAP 1.1');
     expect(result.tests.map((t) => t.name)).toEqual(['Orders — GetOrder', 'Orders — Ping']);
     const [getOrder] = result.tests;
     expect(getOrder).toMatchObject({
       method: 'POST',
       url: '{{baseUrl}}/ws/orders',
-      requestHeaders: { 'Content-Type': 'text/xml; charset=utf-8', SOAPAction: '"http://shop.example/GetOrder"' },
+      requestHeaders: {
+        'Content-Type': 'text/xml; charset=utf-8',
+        SOAPAction: '"http://shop.example/GetOrder"',
+      },
     });
     expect(getOrder.requestBody).toContain('xmlns:ns="http://shop.example/orders"');
     // XSD local elements are unqualified unless elementFormDefault/form says otherwise.
-    expect(getOrder.requestBody).toMatch(/<ns:GetOrder>\s*<id>\?<\/id>\s*<customer>\s*<email>\?<\/email>\s*<\/customer>\s*<\/ns:GetOrder>/);
+    expect(getOrder.requestBody).toMatch(
+      /<ns:GetOrder>\s*<id>\?<\/id>\s*<customer>\s*<email>\?<\/email>\s*<\/customer>\s*<\/ns:GetOrder>/,
+    );
     // This fixture has input-only operations: accept a successful one-way HTTP response.
-    expect(getOrder.assertions.map((a) => `${a.source} ${a.comparison}`)).toEqual(['status_code greater_than_or_equals', 'status_code less_than']);
+    expect(getOrder.assertions.map((a) => `${a.source} ${a.comparison}`)).toEqual([
+      'status_code greater_than_or_equals',
+      'status_code less_than',
+    ]);
     expect(() => importApiDescription('<html><body/></html>')).toThrow(/not a WSDL/);
   });
 });
@@ -145,15 +173,24 @@ describe('WebSocket', () => {
     wss.on('connection', (socket, req) => {
       lastHeaders = req.headers;
       socket.send(JSON.stringify({ type: 'welcome' }));
-      socket.on('message', (data) => socket.send(JSON.stringify({ type: 'echo', text: data.toString() })));
+      socket.on('message', (data) =>
+        socket.send(JSON.stringify({ type: 'echo', text: data.toString() })),
+      );
     });
   });
   afterAll(() => new Promise((r) => wss.close(r)));
 
   it('reads lines or a plan', () => {
     expect(readWebSocketPlan('a\n\nb')).toEqual({ send: ['a', 'b'], waitMs: 2000 });
-    expect(readWebSocketPlan('{"send": ["x", {"op": 1}], "waitMs": 50, "until": 2}')).toEqual({ send: ['x', '{"op":1}'], waitMs: 50, until: 2 });
-    expect(readWebSocketPlan('{"op": "subscribe"}')).toEqual({ send: ['{"op": "subscribe"}'], waitMs: 2000 });
+    expect(readWebSocketPlan('{"send": ["x", {"op": 1}], "waitMs": 50, "until": 2}')).toEqual({
+      send: ['x', '{"op":1}'],
+      waitMs: 50,
+      until: 2,
+    });
+    expect(readWebSocketPlan('{"op": "subscribe"}')).toEqual({
+      send: ['{"op": "subscribe"}'],
+      waitMs: 2000,
+    });
   });
 
   it('sends messages, collects the answers, and asserts on them', async () => {
@@ -163,7 +200,11 @@ describe('WebSocket', () => {
         url,
         headers: { Authorization: 'Bearer {{token}}' },
         body: JSON.stringify({ send: ['hello {{who}}'], waitMs: 3000, until: 2 }),
-        assertions: [assertion('body_json_path', 'equals', '2', 'count'), assertion('body_json_path', 'equals', 'hello world', 'last.text'), assertion('body_json_path', 'equals', 'welcome', 'messages[0].type')],
+        assertions: [
+          assertion('body_json_path', 'equals', '2', 'count'),
+          assertion('body_json_path', 'equals', 'hello world', 'last.text'),
+          assertion('body_json_path', 'equals', 'welcome', 'messages[0].type'),
+        ],
       },
       { token: 't-1', who: 'world' },
     );
@@ -174,10 +215,15 @@ describe('WebSocket', () => {
   });
 
   it('says why it could not connect, and refuses a transport without protocol support', async () => {
-    const refused = await runApiRequest({ method: 'WEBSOCKET', url: 'ws://127.0.0.1:1/x', assertions: [] }, {});
+    const refused = await runApiRequest(
+      { method: 'WEBSOCKET', url: 'ws://127.0.0.1:1/x', assertions: [] },
+      {},
+    );
     expect(refused.error).toMatch(/WebSocket error|Could not connect/);
     const viaAgent = Object.assign(async () => new Response(''), {}) as any;
-    expect((await runApiRequest({ method: 'WEBSOCKET', url, assertions: [] }, {}, viaAgent)).error).toContain('does not support WebSocket');
+    expect(
+      (await runApiRequest({ method: 'WEBSOCKET', url, assertions: [] }, {}, viaAgent)).error,
+    ).toContain('does not support WebSocket');
   });
 });
 
@@ -201,12 +247,15 @@ message Order { int32 id = 1; string status = 2; repeated string items = 3; }`;
     server.addService(pkg.shop.Orders.service, {
       Get: (call: any, callback: any) => {
         seenMetadata = call.metadata.getMap();
-        if (call.request.id === 404) return callback({ code: grpc.status.NOT_FOUND, details: 'No such order' });
+        if (call.request.id === 404)
+          return callback({ code: grpc.status.NOT_FOUND, details: 'No such order' });
         callback(null, { id: call.request.id, status: 'Shipped', items: ['book', 'pen'] });
       },
     });
     const port = await new Promise<number>((resolve, reject) =>
-      server.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (e, p) => (e ? reject(e) : resolve(p))),
+      server.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (e, p) =>
+        e ? reject(e) : resolve(p),
+      ),
     );
     address = `127.0.0.1:${port}`;
   });
@@ -220,7 +269,11 @@ message Order { int32 id = 1; string status = 2; repeated string items = 3; }`;
         headers: { 'x-tenant': '{{tenant}}' },
         body: '{"id": {{orderId}}}',
         protoDefinition: proto,
-        assertions: [assertion('status_code', 'equals', '0'), assertion('body_json_path', 'equals', 'Shipped', 'status'), assertion('body_json_path', 'equals', 'pen', 'items[1]')],
+        assertions: [
+          assertion('status_code', 'equals', '0'),
+          assertion('body_json_path', 'equals', 'Shipped', 'status'),
+          assertion('body_json_path', 'equals', 'pen', 'items[1]'),
+        ],
       },
       { orderId: '7', tenant: 'acme' },
     );
@@ -230,11 +283,72 @@ message Order { int32 id = 1; string status = 2; repeated string items = 3; }`;
   });
 
   it('reports an error status as a response, and a wrong address or .proto clearly', async () => {
-    const notFound = await runApiRequest({ method: 'GRPC', url: `grpc://${address}/shop.Orders/Get`, body: '{"id": 404}', protoDefinition: proto, assertions: [assertion('status_code', 'equals', '5')] }, {});
-    expect(notFound).toMatchObject({ passed: true, status: 5, statusText: 'NOT_FOUND: No such order' });
-    expect((await runApiRequest({ method: 'GRPC', url: `grpc://${address}/shop.Nope/Get`, protoDefinition: proto, assertions: [] }, {})).error).toContain('No service shop.Nope');
-    expect((await runApiRequest({ method: 'GRPC', url: `grpc://${address}/shop.Orders`, protoDefinition: proto, assertions: [] }, {})).error).toContain('Name the method');
-    expect((await runApiRequest({ method: 'GRPC', url: `grpc://${address}/shop.Orders/Get`, protoDefinition: '', assertions: [] }, {})).error).toContain('needs the .proto');
-    expect((await runApiRequest({ method: 'GRPC', url: `grpc://${address}/shop.Orders/Get`, protoDefinition: 'not a proto', assertions: [] }, {})).error).toContain('.proto could not be read');
+    const notFound = await runApiRequest(
+      {
+        method: 'GRPC',
+        url: `grpc://${address}/shop.Orders/Get`,
+        body: '{"id": 404}',
+        protoDefinition: proto,
+        assertions: [assertion('status_code', 'equals', '5')],
+      },
+      {},
+    );
+    expect(notFound).toMatchObject({
+      passed: true,
+      status: 5,
+      statusText: 'NOT_FOUND: No such order',
+    });
+    expect(
+      (
+        await runApiRequest(
+          {
+            method: 'GRPC',
+            url: `grpc://${address}/shop.Nope/Get`,
+            protoDefinition: proto,
+            assertions: [],
+          },
+          {},
+        )
+      ).error,
+    ).toContain('No service shop.Nope');
+    expect(
+      (
+        await runApiRequest(
+          {
+            method: 'GRPC',
+            url: `grpc://${address}/shop.Orders`,
+            protoDefinition: proto,
+            assertions: [],
+          },
+          {},
+        )
+      ).error,
+    ).toContain('Name the method');
+    expect(
+      (
+        await runApiRequest(
+          {
+            method: 'GRPC',
+            url: `grpc://${address}/shop.Orders/Get`,
+            protoDefinition: '',
+            assertions: [],
+          },
+          {},
+        )
+      ).error,
+    ).toContain('needs the .proto');
+    expect(
+      (
+        await runApiRequest(
+          {
+            method: 'GRPC',
+            url: `grpc://${address}/shop.Orders/Get`,
+            protoDefinition: 'not a proto',
+            assertions: [],
+          },
+          {},
+        )
+      ).error,
+    ).toContain('.proto could not be read');
   });
 });

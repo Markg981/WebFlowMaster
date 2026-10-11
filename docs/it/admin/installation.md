@@ -10,13 +10,13 @@ raggiungerla. Ogni variabile citata è descritta nel
 WebFlowMaster è composto da due programmi costruiti dallo stesso codice e da due archivi che
 condividono.
 
-| Parte | Comando | Cosa fa |
-|---|---|---|
-| Processo web | `node dist/index.js` | L'API, il client web, le schedulazioni, il relay degli agenti locali, i log in tempo reale, la registrazione. |
-| Worker | `node dist/worker.js` | Esegue i piani di test e i task browser che una persona aspetta (anteprime, caricamento pagine, rilevazione degli elementi). |
-| PostgreSQL 15+ | | Tutto ciò che il prodotto sa. La row-level security isola le organizzazioni. |
-| Redis 6.2+ o Valkey | | Le code dei run, le sessioni e le schedulazioni. |
-| Archivio degli artefatti (facoltativo) | | Screenshot, video, trace e baseline visive, sul disco locale o in un bucket S3. |
+| Parte                                  | Comando               | Cosa fa                                                                                                                      |
+| -------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Processo web                           | `node dist/index.js`  | L'API, il client web, le schedulazioni, il relay degli agenti locali, i log in tempo reale, la registrazione.                |
+| Worker                                 | `node dist/worker.js` | Esegue i piani di test e i task browser che una persona aspetta (anteprime, caricamento pagine, rilevazione degli elementi). |
+| PostgreSQL 15+                         |                       | Tutto ciò che il prodotto sa. La row-level security isola le organizzazioni.                                                 |
+| Redis 6.2+ o Valkey                    |                       | Le code dei run, le sessioni e le schedulazioni.                                                                             |
+| Archivio degli artefatti (facoltativo) |                       | Screenshot, video, trace e baseline visive, sul disco locale o in un bucket S3.                                              |
 
 Il processo web non avvia mai un browser per un run di un piano: lo fanno i worker, e possono
 essere quanti ne servono al carico. Come le parti comunicano è descritto nella
@@ -24,11 +24,11 @@ essere quanti ne servono al carico. Come le parti comunicano è descritto nella
 
 ## Scegliere la configurazione
 
-| Configurazione | Adatta a | Database | Artefatti | Worker |
-|---|---|---|---|---|
-| **Una macchina, dai sorgenti** | Sviluppo, valutazione | PGlite (una cartella) | Disco locale | Uno, o nessuno con `BROWSER_TASKS=inline` |
-| **Docker Compose** | Un server di team, un progetto pilota | Container PostgreSQL | Disco locale o S3 | Si scalano con `--scale worker=N` |
-| **Produzione** | Più team, continuità di servizio | PostgreSQL gestito | Bucket compatibile S3 | Più d'uno, su macchine dedicate |
+| Configurazione                 | Adatta a                              | Database              | Artefatti             | Worker                                    |
+| ------------------------------ | ------------------------------------- | --------------------- | --------------------- | ----------------------------------------- |
+| **Una macchina, dai sorgenti** | Sviluppo, valutazione                 | PGlite (una cartella) | Disco locale          | Uno, o nessuno con `BROWSER_TASKS=inline` |
+| **Docker Compose**             | Un server di team, un progetto pilota | Container PostgreSQL  | Disco locale o S3     | Si scalano con `--scale worker=N`         |
+| **Produzione**                 | Più team, continuità di servizio      | PostgreSQL gestito    | Bucket compatibile S3 | Più d'uno, su macchine dedicate           |
 
 PGlite è Postgres compilato in WebAssembly e salvato in una cartella: comodo su un portatile,
 non pensato per la produzione. La row-level security funziona come progettata solo su un vero
@@ -90,7 +90,7 @@ Serve per una prima prova su una macchina. Prima che lo stack sia raggiungibile 
 4. Con più di un worker, o con worker su altre macchine, usate `ARTIFACT_STORE=s3`: ogni
    container ha il proprio disco, e il processo web non può servire uno screenshot che un worker
    ha scritto sul suo.
-:::
+   :::
 
 ## Opzione 2: dai sorgenti
 
@@ -134,10 +134,10 @@ security. Non possono però dare al ruolo di connessione i diritti che solo un s
 concedere. All'avvio il processo web verifica tre condizioni e, se una è falsa, si rifiuta di
 partire indicando il comando da eseguire:
 
-| Condizione | Perché | Correzione |
-|---|---|---|
-| Il ruolo `app_user` esiste | Ogni query di un'organizzazione gira con quel ruolo | Eseguire le migrazioni |
-| Il ruolo di connessione è membro di `app_user` | Vi passa con `SET LOCAL ROLE` | `GRANT app_user TO <ruolo>;` |
+| Condizione                                                            | Perché                                                                                       | Correzione                                     |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Il ruolo `app_user` esiste                                            | Ogni query di un'organizzazione gira con quel ruolo                                          | Eseguire le migrazioni                         |
+| Il ruolo di connessione è membro di `app_user`                        | Vi passa con `SET LOCAL ROLE`                                                                | `GRANT app_user TO <ruolo>;`                   |
 | Il ruolo di connessione è superuser o ha `BYPASSRLS`, e `app_user` no | Le poche query a livello di installazione devono vedere tutte le righe; quelle dei tenant no | `ALTER ROLE <ruolo> BYPASSRLS;` (da superuser) |
 
 Alcuni servizi PostgreSQL gestiti non permettono ai clienti di concedere `BYPASSRLS`: verificate
@@ -167,11 +167,11 @@ Tre valori proteggono l'installazione. Generateli separatamente:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-| Variabile | Protegge | Se cambia | Se trapela |
-|---|---|---|---|
-| `SESSION_SECRET` | I cookie di sessione (e i ticket degli agenti, se `AGENT_RELAY_SECRET` non è impostata) | Tutti vengono disconnessi | Le sessioni si possono falsificare: sostituitelo |
-| `ENCRYPTION_KEY` | Segreti degli ambienti, token di tracker e source host, stati di login salvati, segreti del secondo fattore | **Tutto ciò che è cifrato con essa diventa illeggibile** | Quei segreti sono esposti: ruotateli alla fonte |
-| `AGENT_RELAY_SECRET` | I ticket con cui un runner prende in prestito il browser di un agente locale | I run sugli agenti falliscono finché ogni processo non ha il nuovo valore | Chi raggiunge il relay potrebbe usare i browser degli agenti |
+| Variabile            | Protegge                                                                                                    | Se cambia                                                                 | Se trapela                                                   |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `SESSION_SECRET`     | I cookie di sessione (e i ticket degli agenti, se `AGENT_RELAY_SECRET` non è impostata)                     | Tutti vengono disconnessi                                                 | Le sessioni si possono falsificare: sostituitelo             |
+| `ENCRYPTION_KEY`     | Segreti degli ambienti, token di tracker e source host, stati di login salvati, segreti del secondo fattore | **Tutto ciò che è cifrato con essa diventa illeggibile**                  | Quei segreti sono esposti: ruotateli alla fonte              |
+| `AGENT_RELAY_SECRET` | I ticket con cui un runner prende in prestito il browser di un agente locale                                | I run sugli agenti falliscono finché ogni processo non ha il nuovo valore | Chi raggiunge il relay potrebbe usare i browser degli agenti |
 
 `ENCRYPTION_KEY` non ha una procedura di rotazione: conservatela in un secret manager, date lo
 stesso valore al processo web, a ogni worker e al migrator, e fatene un backup separato dal
@@ -261,10 +261,10 @@ Aprite l'indirizzo web e scegliete **Registrati**. Il primo account dell'install
 prima organizzazione e ne diventa owner. Dopo di che, chi può registrarsi dipende da
 `REGISTRATION`:
 
-| `REGISTRATION` | Senza invito | Con invito |
-|---|---|---|
-| `invitation` (default) | Rifiutato, tranne il primo account dell'installazione | Entra nell'organizzazione che invita |
-| `open` | Chiunque raggiunga il server ottiene una propria organizzazione | Entra nell'organizzazione che invita |
+| `REGISTRATION`         | Senza invito                                                    | Con invito                           |
+| ---------------------- | --------------------------------------------------------------- | ------------------------------------ |
+| `invitation` (default) | Rifiutato, tranne il primo account dell'installazione           | Entra nell'organizzazione che invita |
+| `open`                 | Chiunque raggiunga il server ottiene una propria organizzazione | Entra nell'organizzazione che invita |
 
 Mantenete il default per un'installazione al servizio di una sola azienda, e invitate le persone
 da **Impostazioni → Membri** (vedi [Membri e inviti](./administration#membri-e-inviti)). Usate
@@ -278,13 +278,13 @@ possano raggiungerla.
 
 ## Verificare l'installazione
 
-| Verifica | Come |
-|---|---|
-| Il processo web è attivo | `GET /api/user` risponde `401` senza accesso (lo usa l'healthcheck del container). |
-| I worker sono attivi | **Impostazioni → Runner** li mostra *online*. |
-| Un run funziona da capo a fondo | Create un test su una pagina pubblica, aggiungetelo a un piano, eseguitelo. |
-| Le evidenze vengono servite | Il report del run mostra i suoi screenshot. |
-| I link funzionano | Una notifica o uno stato del commit rimanda al run all'indirizzo pubblico. |
+| Verifica                        | Come                                                                               |
+| ------------------------------- | ---------------------------------------------------------------------------------- |
+| Il processo web è attivo        | `GET /api/user` risponde `401` senza accesso (lo usa l'healthcheck del container). |
+| I worker sono attivi            | **Impostazioni → Runner** li mostra _online_.                                      |
+| Un run funziona da capo a fondo | Create un test su una pagina pubblica, aggiungetelo a un piano, eseguitelo.        |
+| Le evidenze vengono servite     | Il report del run mostra i suoi screenshot.                                        |
+| I link funzionano               | Una notifica o uno stato del commit rimanda al run all'indirizzo pubblico.         |
 
 Prossimo passo: [Operatività](./operations) tratta aggiornamenti, backup, log e risoluzione dei
 problemi.

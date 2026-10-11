@@ -8,7 +8,12 @@ import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 
 vi.mock('./logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -28,7 +33,10 @@ let projectId: number;
 beforeAll(async () => {
   organizationId = await createTestOrganization('Tag Query Org');
   userId = await createTestUser(organizationId, 'tag-query-user');
-  const [project] = await privilegedDb.insert(projects).values({ name: 'Shop', userId, organizationId }).returning();
+  const [project] = await privilegedDb
+    .insert(projects)
+    .values({ name: 'Shop', userId, organizationId })
+    .returning();
   projectId = project.id;
 });
 
@@ -42,14 +50,25 @@ beforeEach(async () => {
 const inTenant = <T>(work: () => Promise<T>) => runWithTenant(organizationId, work);
 
 async function seedTag(name: string) {
-  const [row] = await privilegedDb.insert(tags).values({ id: uuidv4(), organizationId, name }).returning();
+  const [row] = await privilegedDb
+    .insert(tags)
+    .values({ id: uuidv4(), organizationId, name })
+    .returning();
   return row;
 }
 
 async function seedTest(name: string) {
   const [row] = await privilegedDb
     .insert(testsTable)
-    .values({ name, url: 'https://shop.test', userId, organizationId, projectId, sequence: [], elements: [] })
+    .values({
+      name,
+      url: 'https://shop.test',
+      userId,
+      organizationId,
+      projectId,
+      sequence: [],
+      elements: [],
+    })
     .returning();
   return row;
 }
@@ -57,7 +76,14 @@ async function seedTest(name: string) {
 async function seedApiTest(name: string) {
   const [row] = await privilegedDb
     .insert(apiTests)
-    .values({ name, method: 'GET', url: 'https://shop.test/api', userId, organizationId, projectId })
+    .values({
+      name,
+      method: 'GET',
+      url: 'https://shop.test/api',
+      userId,
+      organizationId,
+      projectId,
+    })
     .returning();
   return row;
 }
@@ -79,13 +105,25 @@ describe('testIdsWithTags', () => {
 
     await inTenant(() =>
       withTenantTransaction(async (tx) => {
-        await setTagsForTest(tx, { organizationId, testType: 'ui', testId: both.id, tagIds: [smoke.id, checkout.id] });
-        await setTagsForTest(tx, { organizationId, testType: 'ui', testId: onlySmoke.id, tagIds: [smoke.id] });
+        await setTagsForTest(tx, {
+          organizationId,
+          testType: 'ui',
+          testId: both.id,
+          tagIds: [smoke.id, checkout.id],
+        });
+        await setTagsForTest(tx, {
+          organizationId,
+          testType: 'ui',
+          testId: onlySmoke.id,
+          tagIds: [smoke.id],
+        });
       }),
     );
 
     const matches = await inTenant(() =>
-      withTenantTransaction((tx) => testIdsWithTags(tx, { tagIds: [smoke.id, checkout.id], testType: 'ui' })),
+      withTenantTransaction((tx) =>
+        testIdsWithTags(tx, { tagIds: [smoke.id, checkout.id], testType: 'ui' }),
+      ),
     );
 
     expect(matches).toEqual([both.id]);
@@ -98,7 +136,12 @@ describe('testIdsWithTags', () => {
 
     await inTenant(() =>
       withTenantTransaction(async (tx) => {
-        await setTagsForTest(tx, { organizationId, testType: 'api', testId: apiTest.id, tagIds: [smoke.id] });
+        await setTagsForTest(tx, {
+          organizationId,
+          testType: 'api',
+          testId: apiTest.id,
+          tagIds: [smoke.id],
+        });
       }),
     );
 
@@ -127,13 +170,25 @@ describe('tagsOfTests', () => {
 
     await inTenant(() =>
       withTenantTransaction(async (tx) => {
-        await setTagsForTest(tx, { organizationId, testType: 'ui', testId: uiTest.id, tagIds: [slow.id, smoke.id] });
-        await setTagsForTest(tx, { organizationId, testType: 'api', testId: apiTest.id, tagIds: [smoke.id] });
+        await setTagsForTest(tx, {
+          organizationId,
+          testType: 'ui',
+          testId: uiTest.id,
+          tagIds: [slow.id, smoke.id],
+        });
+        await setTagsForTest(tx, {
+          organizationId,
+          testType: 'api',
+          testId: apiTest.id,
+          tagIds: [smoke.id],
+        });
       }),
     );
 
     const result = await inTenant(() =>
-      withTenantTransaction((tx) => tagsOfTests(tx, { testIds: [uiTest.id], apiTestIds: [apiTest.id] })),
+      withTenantTransaction((tx) =>
+        tagsOfTests(tx, { testIds: [uiTest.id], apiTestIds: [apiTest.id] }),
+      ),
     );
 
     expect(result.ui.get(uiTest.id)?.map((tag) => tag.name)).toEqual(['slow', 'smoke']);

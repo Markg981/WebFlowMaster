@@ -116,15 +116,13 @@ async function seedPlan(
     .values({ testPlanId: planId, testType: 'ui', testId: uiTestId, organizationId } as any);
 
   gridId = uuidv4();
-  await privilegedDb
-    .insert(browserGrids)
-    .values({
-      id: gridId,
-      organizationId,
-      name: 'BrowserStack',
-      provider: 'browserstack',
-      username: 'qa',
-    });
+  await privilegedDb.insert(browserGrids).values({
+    id: gridId,
+    organizationId,
+    name: 'BrowserStack',
+    provider: 'browserstack',
+    username: 'qa',
+  });
   const [mobile] = await privilegedDb
     .insert(mobileTests)
     .values({
@@ -147,16 +145,14 @@ async function seedPlan(
 
 async function runPlan(executionColumns: Record<string, unknown> = {}) {
   const executionId = uuidv4();
-  await privilegedDb
-    .insert(testPlanExecutions)
-    .values({
-      id: executionId,
-      organizationId,
-      testPlanId: planId,
-      status: 'queued',
-      triggeredBy: 'manual',
-      ...executionColumns,
-    } as any);
+  await privilegedDb.insert(testPlanExecutions).values({
+    id: executionId,
+    organizationId,
+    testPlanId: planId,
+    status: 'queued',
+    triggeredBy: 'manual',
+    ...executionColumns,
+  } as any);
   await processTestPlanJob(planId, executionId, userId);
   const [execution] = await privilegedDb
     .select()
@@ -196,11 +192,25 @@ describe('a mobile test in a plan', () => {
   it('uses shared variables frozen at enqueue after the set is deleted', async () => {
     await seedPlan();
     const { createExecutionOrchestrator } = await import('./execution-orchestrator');
-    const [set] = await privilegedDb.insert(testDataSets).values({ organizationId, name: 'mobile_input', columns: ['value'], rows: [{ value: 'queued' }] }).returning();
-    const execution = await createExecutionOrchestrator({ add: async () => {} }).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    const [set] = await privilegedDb
+      .insert(testDataSets)
+      .values({
+        organizationId,
+        name: 'mobile_input',
+        columns: ['value'],
+        rows: [{ value: 'queued' }],
+      })
+      .returning();
+    const execution = await createExecutionOrchestrator({ add: async () => {} }).enqueue({
+      planId,
+      requestedByUserId: userId,
+      trigger: 'manual',
+    });
     await privilegedDb.delete(testDataSets).where(eq(testDataSets.id, set.id));
     await processTestPlanJob(planId, execution.id, userId);
-    expect(performMobileTest.mock.calls[0][2]).toMatchObject({ 'data.mobile_input.value': 'queued' });
+    expect(performMobileTest.mock.calls[0][2]).toMatchObject({
+      'data.mobile_input.value': 'queued',
+    });
   });
   it('runs native targets when all web browser probes fail', async () => {
     await seedPlan(
@@ -346,14 +356,12 @@ describe('a mobile test in a plan', () => {
 
   it('in quarantine, still runs and records its failure, and does not fail the run', async () => {
     await seedPlan();
-    await privilegedDb
-      .insert(testQuarantines)
-      .values({
-        organizationId,
-        testType: 'mobile',
-        mobileTestId,
-        reason: 'Device farm drops the session',
-      });
+    await privilegedDb.insert(testQuarantines).values({
+      organizationId,
+      testType: 'mobile',
+      mobileTestId,
+      reason: 'Device farm drops the session',
+    });
     performMobileTest.mockResolvedValue(failed);
 
     const { execution, mobileRows } = await runPlan();

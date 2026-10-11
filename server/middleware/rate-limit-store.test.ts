@@ -19,7 +19,10 @@ function fakeRedis() {
       if (client.hang) return new Promise(() => undefined);
       const now = Date.now();
       const current = counters.get(key);
-      const entry = current && current.expiresAt > now ? current : { hits: 0, expiresAt: now + Number(windowMs) };
+      const entry =
+        current && current.expiresAt > now
+          ? current
+          : { hits: 0, expiresAt: now + Number(windowMs) };
       entry.hits += 1;
       counters.set(key, entry);
       return [entry.hits, entry.expiresAt - now];
@@ -39,7 +42,15 @@ function fakeRedis() {
 /** A "web process": its own express app and its own limiter, over the given Redis. */
 function webProcess(redis: () => any, limit = 3) {
   const app = express();
-  app.use(rateLimit({ windowMs: 60_000, limit, store: new SharedRateLimitStore('test', redis), standardHeaders: 'draft-7', legacyHeaders: false }));
+  app.use(
+    rateLimit({
+      windowMs: 60_000,
+      limit,
+      store: new SharedRateLimitStore('test', redis),
+      standardHeaders: 'draft-7',
+      legacyHeaders: false,
+    }),
+  );
   app.get('/', (_req, res) => res.send('ok'));
   return app;
 }
@@ -75,11 +86,15 @@ describe('SharedRateLimitStore', () => {
     const { client } = fakeRedis();
     client.hang = true;
     const started = Date.now();
-    await request(webProcess(() => client)).get('/').expect(200);
+    await request(webProcess(() => client))
+      .get('/')
+      .expect(200);
     expect(Date.now() - started).toBeLessThan(2_000);
   });
 
   it('works with no Redis at all', async () => {
-    await request(webProcess(() => null, 1)).get('/').expect(200);
+    await request(webProcess(() => null, 1))
+      .get('/')
+      .expect(200);
   });
 });

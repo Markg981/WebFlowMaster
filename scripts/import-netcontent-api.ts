@@ -9,15 +9,16 @@ import { parseControllersDir } from './netcontent/parse-controllers';
 import { mapEndpoints } from './netcontent/map-to-apitests';
 import { resolveUserId, findOrCreateProject, importApiTests } from './netcontent/importer';
 
-const DEFAULT_CONTROLLERS =
-  String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\_NccNew\Controllers`;
+const DEFAULT_CONTROLLERS = String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\_NccNew\Controllers`;
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
   const controllersDir = process.env.NETCONTENT_CONTROLLERS_DIR || DEFAULT_CONTROLLERS;
   const baseUrlVar = process.env.NETCONTENT_BASE_URL_VAR || '{{baseUrl}}';
   const projectName = process.env.NETCONTENT_PROJECT_NAME || 'NetContent';
-  const userOverride = process.env.WFM_IMPORT_USER_ID ? Number(process.env.WFM_IMPORT_USER_ID) : undefined;
+  const userOverride = process.env.WFM_IMPORT_USER_ID
+    ? Number(process.env.WFM_IMPORT_USER_ID)
+    : undefined;
 
   console.log(`Parsing controllers in: ${controllersDir}`);
   const { endpoints, warnings } = parseControllersDir(controllersDir);
@@ -34,7 +35,11 @@ async function main() {
   }
 
   const userId = await resolveUserId(privilegedDb, userOverride);
-  const { projectId, organizationId } = await findOrCreateProject(privilegedDb, userId, projectName);
+  const { projectId, organizationId } = await findOrCreateProject(
+    privilegedDb,
+    userId,
+    projectName,
+  );
   const records = mapEndpoints(endpoints, { baseUrlVar, projectId, userId, organizationId });
   const summary = await importApiTests(privilegedDb, records, projectId);
 

@@ -40,7 +40,10 @@ const PUBLISHED_SECRETS: Record<string, string[]> = {
 function publishedSecretErrors(env: NodeJS.ProcessEnv): string[] {
   return Object.entries(PUBLISHED_SECRETS)
     .filter(([name, published]) => published.includes(env[name]?.trim() ?? ''))
-    .map(([name]) => `${name} is a published example value; generate your own: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`);
+    .map(
+      ([name]) =>
+        `${name} is a published example value; generate your own: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`,
+    );
 }
 
 export function assertStartupConfig(env: NodeJS.ProcessEnv = process.env): void {
@@ -67,8 +70,12 @@ export async function connectSessionStore(
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     if (env.NODE_ENV === 'production') {
-      throw new Error(`Session Redis is not reachable (${reason}). Production needs the shared session store: check REDIS_URL and that Redis is up.`);
+      throw new Error(
+        `Session Redis is not reachable (${reason}). Production needs the shared session store: check REDIS_URL and that Redis is up.`,
+      );
     }
-    warn(`Session Redis is not reachable (${reason}); using an in-memory session store: logins will not survive a restart.`);
+    warn(
+      `Session Redis is not reachable (${reason}); using an in-memory session store: logins will not survive a restart.`,
+    );
   }
 }

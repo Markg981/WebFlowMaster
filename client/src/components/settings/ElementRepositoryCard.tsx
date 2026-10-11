@@ -6,8 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Crosshair, Loader2, Save, Trash2 } from 'lucide-react';
 
 /**
@@ -80,7 +93,10 @@ const ElementRepositoryCard: React.FC = () => {
       });
       setMessage({
         kind: 'info',
-        text: t('settings.elements.updated', 'Updated. Every test that uses it will run against the new selector.'),
+        text: t(
+          'settings.elements.updated',
+          'Updated. Every test that uses it will run against the new selector.',
+        ),
       });
       queryClient.invalidateQueries({ queryKey: ['projectElements', projectId] });
     },
@@ -93,7 +109,8 @@ const ElementRepositoryCard: React.FC = () => {
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         // The server refuses while tests still name it, and says which — worth repeating.
-        const used = Array.isArray(body.tests) && body.tests.length > 0 ? ` (${body.tests.join(', ')})` : '';
+        const used =
+          Array.isArray(body.tests) && body.tests.length > 0 ? ` (${body.tests.join(', ')})` : '';
         throw new Error(`${body.error || 'Could not delete the element'}${used}`);
       }
       return response.json();
@@ -124,10 +141,20 @@ const ElementRepositoryCard: React.FC = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="w-full sm:w-72">
-          <Label htmlFor="elementRepositoryProject">{t('settings.elements.projectLabel', 'Project')}</Label>
-          <Select value={projectId} onValueChange={(value) => { setProjectId(value); setMessage(null); }}>
+          <Label htmlFor="elementRepositoryProject">
+            {t('settings.elements.projectLabel', 'Project')}
+          </Label>
+          <Select
+            value={projectId}
+            onValueChange={(value) => {
+              setProjectId(value);
+              setMessage(null);
+            }}
+          >
             <SelectTrigger id="elementRepositoryProject" className="mt-1">
-              <SelectValue placeholder={t('settings.elements.projectPlaceholder', 'Choose a project')} />
+              <SelectValue
+                placeholder={t('settings.elements.projectPlaceholder', 'Choose a project')}
+              />
             </SelectTrigger>
             <SelectContent>
               {safeProjects.map((project) => (
@@ -140,7 +167,9 @@ const ElementRepositoryCard: React.FC = () => {
         </div>
 
         {message && (
-          <p className={`text-sm ${message.kind === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}>
+          <p
+            className={`text-sm ${message.kind === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}
+          >
             {message.text}
           </p>
         )}
@@ -150,7 +179,9 @@ const ElementRepositoryCard: React.FC = () => {
             {t('settings.elements.chooseProject', 'Choose a project to see the elements it owns.')}
           </p>
         ) : isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('settings.elements.loading', 'Loading elements…')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('settings.elements.loading', 'Loading elements…')}
+          </p>
         ) : safeElements.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {t(
@@ -164,7 +195,9 @@ const ElementRepositoryCard: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('settings.elements.columns.name', 'Name')}</TableHead>
-                  <TableHead className="min-w-[280px]">{t('settings.elements.columns.selector', 'Selector')}</TableHead>
+                  <TableHead className="min-w-[280px]">
+                    {t('settings.elements.columns.selector', 'Selector')}
+                  </TableHead>
                   <TableHead>{t('settings.elements.columns.state', 'State')}</TableHead>
                   <TableHead />
                 </TableRow>
@@ -186,15 +219,21 @@ const ElementRepositoryCard: React.FC = () => {
                       <TableCell className="align-top">
                         <Input
                           value={draft}
-                          onChange={(e) => setEdited((previous) => ({ ...previous, [element.id]: e.target.value }))}
+                          onChange={(e) =>
+                            setEdited((previous) => ({ ...previous, [element.id]: e.target.value }))
+                          }
                           className="font-mono text-xs"
-                          aria-label={t('settings.elements.selectorFor', 'Selector for {{name}}', { name: element.name })}
+                          aria-label={t('settings.elements.selectorFor', 'Selector for {{name}}', {
+                            name: element.name,
+                          })}
                         />
-                        {element.originalSelector && element.originalSelector !== element.selector && (
-                          <div className="text-xs text-muted-foreground mt-1 break-all">
-                            {t('settings.elements.was', 'was')}: <code>{element.originalSelector}</code>
-                          </div>
-                        )}
+                        {element.originalSelector &&
+                          element.originalSelector !== element.selector && (
+                            <div className="text-xs text-muted-foreground mt-1 break-all">
+                              {t('settings.elements.was', 'was')}:{' '}
+                              <code>{element.originalSelector}</code>
+                            </div>
+                          )}
                       </TableCell>
                       <TableCell className="align-top">
                         {element.healedAt ? (
@@ -213,7 +252,11 @@ const ElementRepositoryCard: React.FC = () => {
                           onClick={() => saveSelector.mutate({ id: element.id, selector: draft })}
                           aria-label={t('settings.elements.saveSelector', 'Save selector')}
                         >
-                          {saveSelector.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                          {saveSelector.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
                         </Button>
                         <Button
                           variant="ghost"

@@ -1,11 +1,21 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { createHmac, generateKeyPairSync, randomUUID, sign } from 'node:crypto';
-import { mailProviderDeps, normalizeProviderRequest, providerHeaders, snsSigningString, type ProviderDependencies } from './mail-providers';
+import {
+  mailProviderDeps,
+  normalizeProviderRequest,
+  providerHeaders,
+  snsSigningString,
+  type ProviderDependencies,
+} from './mail-providers';
 import type { ProviderMailConfig } from '@shared/mail-settings';
 
 const id = randomUUID();
 const timestamp = () => String(Math.floor(Date.now() / 1000));
-const config: ProviderMailConfig = { organizationId: 7, callbackId: randomUUID(), provider: 'sendgrid' };
+const config: ProviderMailConfig = {
+  organizationId: 7,
+  callbackId: randomUUID(),
+  provider: 'sendgrid',
+};
 const ec = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
 const secret = 'fixture-only-32-character-signing-secret';
 const rsaKey = `-----BEGIN PRIVATE KEY-----
@@ -57,123 +67,299 @@ sngzkOy75RSRBqogMevjNU9kzlirxwS0t2bMQY50iioMCy5taOuYDaSpVRbHgdAS
 Xw==
 -----END CERTIFICATE-----`;
 const topic = 'arn:aws:sns:eu-west-1:123456789012:mail-events';
-const deps: ProviderDependencies = { fetchCertificate: vi.fn(async () => certificate), confirmSubscription: vi.fn(async () => {}) };
+const deps: ProviderDependencies = {
+  fetchCertificate: vi.fn(async () => certificate),
+  confirmSubscription: vi.fn(async () => {}),
+};
 function sg(events: unknown[], ts = timestamp()) {
   const body = Buffer.from(JSON.stringify(events, null, 2));
-  return { body, headers: { 'x-twilio-email-event-webhook-timestamp': ts,
-    'x-twilio-email-event-webhook-signature': sign('sha256', Buffer.concat([Buffer.from(ts), body]), ec.privateKey).toString('base64') } };
+  return {
+    body,
+    headers: {
+      'x-twilio-email-event-webhook-timestamp': ts,
+      'x-twilio-email-event-webhook-signature': sign(
+        'sha256',
+        Buffer.concat([Buffer.from(ts), body]),
+        ec.privateKey,
+      ).toString('base64'),
+    },
+  };
 }
-const sgConfig = { ...config, sendgridPublicKey: ec.publicKey.export({ type: 'spki', format: 'der' }).toString('base64') };
-function sns(type = 'Notification', message = JSON.stringify({ notificationType: 'Delivery', mail: { headers: [{ name: 'X-Wfm-Delivery-Id', value: id }] }, delivery: { recipients: ['ann@shop.test'] } })) {
-  const data: Record<string, string> = { Type: type, MessageId: randomUUID(), TopicArn: topic, Timestamp: new Date().toISOString(), Message: message,
-    SignatureVersion: '2', SigningCertURL: 'https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-0123456789abcdef0123456789abcdef.pem' };
-  if (type === 'SubscriptionConfirmation') Object.assign(data, { Token: 'safe-token', SubscribeURL: 'https://attacker.test/never-follow-this' });
-  data.Signature = sign('RSA-SHA256', Buffer.from(snsSigningString(data)), rsaKey).toString('base64');
+const sgConfig = {
+  ...config,
+  sendgridPublicKey: ec.publicKey.export({ type: 'spki', format: 'der' }).toString('base64'),
+};
+function sns(
+  type = 'Notification',
+  message = JSON.stringify({
+    notificationType: 'Delivery',
+    mail: { headers: [{ name: 'X-Wfm-Delivery-Id', value: id }] },
+    delivery: { recipients: ['ann@shop.test'] },
+  }),
+) {
+  const data: Record<string, string> = {
+    Type: type,
+    MessageId: randomUUID(),
+    TopicArn: topic,
+    Timestamp: new Date().toISOString(),
+    Message: message,
+    SignatureVersion: '2',
+    SigningCertURL:
+      'https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-0123456789abcdef0123456789abcdef.pem',
+  };
+  if (type === 'SubscriptionConfirmation')
+    Object.assign(data, {
+      Token: 'safe-token',
+      SubscribeURL: 'https://attacker.test/never-follow-this',
+    });
+  data.Signature = sign('RSA-SHA256', Buffer.from(snsSigningString(data)), rsaKey).toString(
+    'base64',
+  );
   return data;
 }
 const sesConfig = { ...config, provider: 'ses' as const, sesTopicArn: topic };
 beforeEach(() => vi.clearAllMocks());
-afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 describe('native email provider protocols', () => {
   it('adds provider-native SMTP correlation arguments', () => {
-    expect(JSON.parse(providerHeaders(config, id)['X-SMTPAPI'])).toEqual({ unique_args: { wfm_delivery_id: id } });
-    expect(JSON.parse(providerHeaders({ ...config, provider: 'mailgun' }, id)['X-Mailgun-Variables'])).toEqual({ wfm_delivery_id: id });
+    expect(JSON.parse(providerHeaders(config, id)['X-SMTPAPI'])).toEqual({
+      unique_args: { wfm_delivery_id: id },
+    });
+    expect(
+      JSON.parse(providerHeaders({ ...config, provider: 'mailgun' }, id)['X-Mailgun-Variables']),
+    ).toEqual({ wfm_delivery_id: id });
     expect(providerHeaders(sesConfig, id)['X-Wfm-Delivery-Id']).toBe(id);
   });
   it('verifies ECDSA over exact raw bytes and normalizes native outcomes/event IDs', async () => {
-    const request = sg(['delivered', 'deferred', 'bounce'].map((event, i) => ({ event, sg_event_id: `native/id.${i}`, wfm_delivery_id: id, email: 'ann@shop.test', type: 'bounce' })));
+    const request = sg(
+      ['delivered', 'deferred', 'bounce'].map((event, i) => ({
+        event,
+        sg_event_id: `native/id.${i}`,
+        wfm_delivery_id: id,
+        email: 'ann@shop.test',
+        type: 'bounce',
+      })),
+    );
     const result = await normalizeProviderRequest(sgConfig, request.body, request.headers, deps);
-    expect(result.events.map(e => e.event.status)).toEqual(['delivered', 'soft_bounce', 'hard_bounce']);
-    expect(result.events[0]).toMatchObject({ recipient: 'ann@shop.test', event: { messageId: id, eventId: expect.stringMatching(/^sendgrid:[a-f0-9]{64}$/) } });
-    await expect(normalizeProviderRequest(sgConfig, Buffer.from(JSON.stringify(JSON.parse(request.body.toString()))), request.headers, deps)).rejects.toMatchObject({ status: 401 });
+    expect(result.events.map((e) => e.event.status)).toEqual([
+      'delivered',
+      'soft_bounce',
+      'hard_bounce',
+    ]);
+    expect(result.events[0]).toMatchObject({
+      recipient: 'ann@shop.test',
+      event: { messageId: id, eventId: expect.stringMatching(/^sendgrid:[a-f0-9]{64}$/) },
+    });
+    await expect(
+      normalizeProviderRequest(
+        sgConfig,
+        Buffer.from(JSON.stringify(JSON.parse(request.body.toString()))),
+        request.headers,
+        deps,
+      ),
+    ).rejects.toMatchObject({ status: 401 });
     const stale = sg([], String(Number(timestamp()) - 301));
-    await expect(normalizeProviderRequest(sgConfig, stale.body, stale.headers, deps)).rejects.toMatchObject({ status: 401 });
+    await expect(
+      normalizeProviderRequest(sgConfig, stale.body, stale.headers, deps),
+    ).rejects.toMatchObject({ status: 401 });
   });
   it('acknowledges irrelevant events but rejects malformed supported entries before partial persistence', async () => {
-    const request = sg([{ event: 'open' }, { event: 'delivered', sg_event_id: '1', wfm_delivery_id: id, email: 'ann@shop.test' }, { event: 'bounce', wfm_delivery_id: id }]);
-    await expect(normalizeProviderRequest(sgConfig, request.body, request.headers, deps)).rejects.toMatchObject({ status: 400 });
+    const request = sg([
+      { event: 'open' },
+      { event: 'delivered', sg_event_id: '1', wfm_delivery_id: id, email: 'ann@shop.test' },
+      { event: 'bounce', wfm_delivery_id: id },
+    ]);
+    await expect(
+      normalizeProviderRequest(sgConfig, request.body, request.headers, deps),
+    ).rejects.toMatchObject({ status: 400 });
     const irrelevant = sg([{ event: 'open' }]);
-    expect((await normalizeProviderRequest(sgConfig, irrelevant.body, irrelevant.headers, deps)).events).toEqual([]);
+    expect(
+      (await normalizeProviderRequest(sgConfig, irrelevant.body, irrelevant.headers, deps)).events,
+    ).toEqual([]);
     const big = sg(Array.from({ length: 101 }, () => ({ event: 'open' })));
-    await expect(normalizeProviderRequest(sgConfig, big.body, big.headers, deps)).rejects.toMatchObject({ status: 400 });
+    await expect(
+      normalizeProviderRequest(sgConfig, big.body, big.headers, deps),
+    ).rejects.toMatchObject({ status: 400 });
   });
   it('verifies Mailgun native HMAC and failure severity', async () => {
-    const ts = timestamp(), token = 'native-token';
-    const payload = { signature: { timestamp: ts, token, signature: createHmac('sha256', secret).update(ts + token).digest('hex') },
-      'event-data': { event: 'failed', severity: 'temporary', id: 'native.id', recipient: 'ann@shop.test', 'user-variables': { wfm_delivery_id: id } } };
+    const ts = timestamp(),
+      token = 'native-token';
+    const payload = {
+      signature: {
+        timestamp: ts,
+        token,
+        signature: createHmac('sha256', secret)
+          .update(ts + token)
+          .digest('hex'),
+      },
+      'event-data': {
+        event: 'failed',
+        severity: 'temporary',
+        id: 'native.id',
+        recipient: 'ann@shop.test',
+        'user-variables': { wfm_delivery_id: id },
+      },
+    };
     const cfg = { ...config, provider: 'mailgun' as const, signingSecret: secret };
-    expect((await normalizeProviderRequest(cfg, Buffer.from(JSON.stringify(payload)), {}, deps)).events[0].event.status).toBe('soft_bounce');
+    expect(
+      (await normalizeProviderRequest(cfg, Buffer.from(JSON.stringify(payload)), {}, deps))
+        .events[0].event.status,
+    ).toBe('soft_bounce');
     payload['event-data'].severity = 'permanent';
-    expect((await normalizeProviderRequest(cfg, Buffer.from(JSON.stringify(payload)), {}, deps)).events[0].event.status).toBe('hard_bounce');
+    expect(
+      (await normalizeProviderRequest(cfg, Buffer.from(JSON.stringify(payload)), {}, deps))
+        .events[0].event.status,
+    ).toBe('hard_bounce');
     payload.signature.token = 'forged';
-    await expect(normalizeProviderRequest(cfg, Buffer.from(JSON.stringify(payload)), {}, deps)).rejects.toMatchObject({ status: 401 });
+    await expect(
+      normalizeProviderRequest(cfg, Buffer.from(JSON.stringify(payload)), {}, deps),
+    ).rejects.toMatchObject({ status: 401 });
   });
   it('verifies SES topic/certificate/signature before following constructed confirmation', async () => {
     const payload = sns();
-    expect((await normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(payload)), {}, deps)).events[0]).toMatchObject({ recipient: 'ann@shop.test', event: { messageId: id, status: 'delivered' } });
+    expect(
+      (await normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(payload)), {}, deps))
+        .events[0],
+    ).toMatchObject({ recipient: 'ann@shop.test', event: { messageId: id, status: 'delivered' } });
     const confirm = sns('SubscriptionConfirmation');
-    expect((await normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(confirm)), {}, deps)).events).toEqual([]);
-    expect(deps.confirmSubscription).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/sns\.eu-west-1\.amazonaws\.com\/\?Action=ConfirmSubscription&/));
-    vi.clearAllMocks(); confirm.Signature = Buffer.from('forged').toString('base64');
-    await expect(normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(confirm)), {}, deps)).rejects.toMatchObject({ status: 401 });
+    expect(
+      (await normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(confirm)), {}, deps))
+        .events,
+    ).toEqual([]);
+    expect(deps.confirmSubscription).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^https:\/\/sns\.eu-west-1\.amazonaws\.com\/\?Action=ConfirmSubscription&/,
+      ),
+    );
+    vi.clearAllMocks();
+    confirm.Signature = Buffer.from('forged').toString('base64');
+    await expect(
+      normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(confirm)), {}, deps),
+    ).rejects.toMatchObject({ status: 401 });
     expect(deps.confirmSubscription).not.toHaveBeenCalled();
   });
-  it.each(['http://sns.eu-west-1.amazonaws.com/SimpleNotificationService-0123456789abcdef0123456789abcdef.pem',
+  it.each([
+    'http://sns.eu-west-1.amazonaws.com/SimpleNotificationService-0123456789abcdef0123456789abcdef.pem',
     'https://sns.eu-west-1.amazonaws.com.attacker.test/SimpleNotificationService-0123456789abcdef0123456789abcdef.pem',
     'https://sns.us-east-1.amazonaws.com/SimpleNotificationService-0123456789abcdef0123456789abcdef.pem',
     'https://sns.eu-west-1.amazonaws.com:8443/SimpleNotificationService-0123456789abcdef0123456789abcdef.pem',
     'https://sns.eu-west-1.amazonaws.com/evil.pem',
-    'https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-0123456789abcdef0123456789abcdef.pem?redirect=1'])('rejects unsafe SNS certificate URLs without fetching: %s', async url => {
+    'https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-0123456789abcdef0123456789abcdef.pem?redirect=1',
+  ])('rejects unsafe SNS certificate URLs without fetching: %s', async (url) => {
     const payload = { ...sns(), SigningCertURL: url };
-    await expect(normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(payload)), {}, deps)).rejects.toMatchObject({ status: 401 });
+    await expect(
+      normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(payload)), {}, deps),
+    ).rejects.toMatchObject({ status: 401 });
     expect(deps.fetchCertificate).not.toHaveBeenCalled();
   });
   it('rejects foreign topics and unknown bounce classifications', async () => {
     const foreign = { ...sns(), TopicArn: topic + '-foreign' };
-    await expect(normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(foreign)), {}, deps)).rejects.toMatchObject({ status: 401 });
-    const invalid = sns('Notification', JSON.stringify({ notificationType: 'Bounce', mail: { headers: [{ name: 'X-Wfm-Delivery-Id', value: id }] }, bounce: { bounceType: 'Undetermined', bouncedRecipients: [{ emailAddress: 'ann@shop.test' }] } }));
-    expect((await normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(invalid)), {}, deps)).events).toEqual([]);
+    await expect(
+      normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(foreign)), {}, deps),
+    ).rejects.toMatchObject({ status: 401 });
+    const invalid = sns(
+      'Notification',
+      JSON.stringify({
+        notificationType: 'Bounce',
+        mail: { headers: [{ name: 'X-Wfm-Delivery-Id', value: id }] },
+        bounce: {
+          bounceType: 'Undetermined',
+          bouncedRecipients: [{ emailAddress: 'ann@shop.test' }],
+        },
+      }),
+    );
+    expect(
+      (await normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(invalid)), {}, deps))
+        .events,
+    ).toEqual([]);
   });
   it('accepts SNS retries within its HTTP retry window and rejects stale/future signed timestamps', async () => {
     const payload = sns();
     payload.Timestamp = new Date(Date.now() - 30 * 60000).toISOString();
-    payload.Signature = sign('RSA-SHA256', Buffer.from(snsSigningString(payload)), rsaKey).toString('base64');
-    expect((await normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(payload)), {}, deps)).events).toHaveLength(1);
+    payload.Signature = sign('RSA-SHA256', Buffer.from(snsSigningString(payload)), rsaKey).toString(
+      'base64',
+    );
+    expect(
+      (await normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(payload)), {}, deps))
+        .events,
+    ).toHaveLength(1);
     for (const time of [Date.now() - 66 * 60000, Date.now() + 6 * 60000]) {
       payload.Timestamp = new Date(time).toISOString();
-      payload.Signature = sign('RSA-SHA256', Buffer.from(snsSigningString(payload)), rsaKey).toString('base64');
-      await expect(normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(payload)), {}, deps)).rejects.toMatchObject({ status: 401 });
+      payload.Signature = sign(
+        'RSA-SHA256',
+        Buffer.from(snsSigningString(payload)),
+        rsaKey,
+      ).toString('base64');
+      await expect(
+        normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(payload)), {}, deps),
+      ).rejects.toMatchObject({ status: 401 });
     }
   });
   it('uses no-redirect bounded certificate requests and caches valid certificates', async () => {
     const fetchMock = vi.fn(async () => new Response(certificate));
     vi.stubGlobal('fetch', fetchMock);
-    const url = 'https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-11111111111111111111111111111111.pem';
+    const url =
+      'https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-11111111111111111111111111111111.pem';
     await expect(mailProviderDeps.fetchCertificate(url)).resolves.toBe(certificate);
     await expect(mailProviderDeps.fetchCertificate(url)).resolves.toBe(certificate);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(url, { redirect: 'error', signal: expect.any(AbortSignal) });
+    expect(fetchMock).toHaveBeenCalledWith(url, {
+      redirect: 'error',
+      signal: expect.any(AbortSignal),
+    });
     const hugeUrl = url.replace(/1/g, '2');
     fetchMock.mockImplementationOnce(async () => new Response('x'.repeat(16385)));
-    await expect(mailProviderDeps.fetchCertificate(hugeUrl)).rejects.toThrow('SNS response too large');
-    fetchMock.mockImplementationOnce(async () => new Response('x', { headers: { 'content-length': '17000' } }));
+    await expect(mailProviderDeps.fetchCertificate(hugeUrl)).rejects.toThrow(
+      'SNS response too large',
+    );
+    fetchMock.mockImplementationOnce(
+      async () => new Response('x', { headers: { 'content-length': '17000' } }),
+    );
     await expect(mailProviderDeps.fetchCertificate(hugeUrl)).rejects.toThrow('SNS request failed');
     fetchMock.mockImplementationOnce(async () => new Response('redirect', { status: 302 }));
     await expect(mailProviderDeps.fetchCertificate(hugeUrl)).rejects.toThrow('SNS request failed');
   });
   it('times out certificate fetches and retries recoverable certificate/confirmation errors', async () => {
     vi.useFakeTimers();
-    vi.stubGlobal('fetch', vi.fn((_url: string, options: RequestInit) => new Promise((_resolve, reject) => {
-      options.signal!.addEventListener('abort', () => reject(new Error('aborted')));
-    })));
-    const fetchPromise = mailProviderDeps.fetchCertificate('https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-33333333333333333333333333333333.pem');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, options: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            options.signal!.addEventListener('abort', () => reject(new Error('aborted')));
+          }),
+      ),
+    );
+    const fetchPromise = mailProviderDeps.fetchCertificate(
+      'https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-33333333333333333333333333333333.pem',
+    );
     const assertion = expect(fetchPromise).rejects.toThrow('aborted');
-    await vi.advanceTimersByTimeAsync(5000); await assertion;
+    await vi.advanceTimersByTimeAsync(5000);
+    await assertion;
     vi.useRealTimers();
-    const unavailable: ProviderDependencies = { fetchCertificate: vi.fn(async () => { throw new Error('private upstream error'); }), confirmSubscription: vi.fn(async () => {}) };
-    await expect(normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(sns())), {}, unavailable)).rejects.toMatchObject({ status: 503, message: 'Could not retrieve SNS certificate' });
+    const unavailable: ProviderDependencies = {
+      fetchCertificate: vi.fn(async () => {
+        throw new Error('private upstream error');
+      }),
+      confirmSubscription: vi.fn(async () => {}),
+    };
+    await expect(
+      normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(sns())), {}, unavailable),
+    ).rejects.toMatchObject({ status: 503, message: 'Could not retrieve SNS certificate' });
     unavailable.fetchCertificate = async () => certificate;
-    unavailable.confirmSubscription = async () => { throw new Error('private confirmation error'); };
-    await expect(normalizeProviderRequest(sesConfig, Buffer.from(JSON.stringify(sns('SubscriptionConfirmation'))), {}, unavailable)).rejects.toMatchObject({ status: 503, message: 'Could not confirm SNS subscription' });
+    unavailable.confirmSubscription = async () => {
+      throw new Error('private confirmation error');
+    };
+    await expect(
+      normalizeProviderRequest(
+        sesConfig,
+        Buffer.from(JSON.stringify(sns('SubscriptionConfirmation'))),
+        {},
+        unavailable,
+      ),
+    ).rejects.toMatchObject({ status: 503, message: 'Could not confirm SNS subscription' });
   });
 });

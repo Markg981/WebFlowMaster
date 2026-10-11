@@ -230,8 +230,7 @@ async function doRecordIncident(input: RecordIncidentInput): Promise<Incident | 
     // they go through the string scrubber instead. See log-redactor.ts for its limits.
     const redactedMessage = redactString(input.error.message);
     const rawBreadcrumbs =
-      input.breadcrumbs ??
-      (input.correlationId ? serverBreadcrumbs.take(input.correlationId) : []);
+      input.breadcrumbs ?? (input.correlationId ? serverBreadcrumbs.take(input.correlationId) : []);
 
     const incident: Incident = {
       schemaVersion: CURRENT_INCIDENT_SCHEMA_VERSION,

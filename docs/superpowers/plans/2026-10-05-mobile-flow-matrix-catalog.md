@@ -36,17 +36,17 @@
 
 ## File Responsibilities
 
-| Unit | Files | Responsibility |
-|---|---|---|
-| Mobile contracts | `shared/mobile.ts`, `shared/mobile-groups.ts` (new) | Action vocabulary, step/group/matrix validation and normalized targets |
-| Persistence | `shared/schema.ts`, `migrations/0082_mobile_flow_matrix_groups.sql` (new), `migrations/meta/_journal.json` | Matrix column, native groups and database access policies |
-| Comparisons | `server/value-comparison.ts` (new), `server/step-executor.ts` | Existing pure comparison grammar shared without importing the web executor |
-| Native traversal | `server/mobile-flow.ts` (new), `server/mobile-runner.ts` | Condition evaluation, cursor traversal, bounded visits and result provenance |
-| Group resolution | `server/mobile-step-groups.ts` (new), `server/routes/mobile-step-groups.routes.ts` (new), `server/routes.ts` | CRUD, dependency checks and expansion under tenant access |
-| Run preparation | `server/mobile-run-preparation.ts` (new), `server/routes/mobile-tests.routes.ts` | Frozen definitions, transactional target admission, sequential batch dispatch |
-| Plan targets | `server/mobile-plan-units.ts` (new), `server/test-execution-service.ts`, `server/run-shards.ts`, `server/execution-snapshot.ts` | Matrix units, snapshots, serialized target identity and separate results |
-| Native bundles | `server/mobile-bundle.ts` (new), `server/test-bundle.ts`, `server/routes/tests.routes.ts` | Portable keys, deterministic export, import preview/save and versioning |
-| Authoring | `client/src/components/mobile/MobileStepsEditor.tsx` (new), `MobileGroupDialog.tsx` (new), existing mobile dialogs/page | Shared native step controls, group management, matrix controls and run progress |
+| Unit             | Files                                                                                                                           | Responsibility                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Mobile contracts | `shared/mobile.ts`, `shared/mobile-groups.ts` (new)                                                                             | Action vocabulary, step/group/matrix validation and normalized targets          |
+| Persistence      | `shared/schema.ts`, `migrations/0082_mobile_flow_matrix_groups.sql` (new), `migrations/meta/_journal.json`                      | Matrix column, native groups and database access policies                       |
+| Comparisons      | `server/value-comparison.ts` (new), `server/step-executor.ts`                                                                   | Existing pure comparison grammar shared without importing the web executor      |
+| Native traversal | `server/mobile-flow.ts` (new), `server/mobile-runner.ts`                                                                        | Condition evaluation, cursor traversal, bounded visits and result provenance    |
+| Group resolution | `server/mobile-step-groups.ts` (new), `server/routes/mobile-step-groups.routes.ts` (new), `server/routes.ts`                    | CRUD, dependency checks and expansion under tenant access                       |
+| Run preparation  | `server/mobile-run-preparation.ts` (new), `server/routes/mobile-tests.routes.ts`                                                | Frozen definitions, transactional target admission, sequential batch dispatch   |
+| Plan targets     | `server/mobile-plan-units.ts` (new), `server/test-execution-service.ts`, `server/run-shards.ts`, `server/execution-snapshot.ts` | Matrix units, snapshots, serialized target identity and separate results        |
+| Native bundles   | `server/mobile-bundle.ts` (new), `server/test-bundle.ts`, `server/routes/tests.routes.ts`                                       | Portable keys, deterministic export, import preview/save and versioning         |
+| Authoring        | `client/src/components/mobile/MobileStepsEditor.tsx` (new), `MobileGroupDialog.tsx` (new), existing mobile dialogs/page         | Shared native step controls, group management, matrix controls and run progress |
 
 The new helpers isolate native behavior; do not reorganize unrelated routes or web execution.
 
@@ -59,15 +59,28 @@ The new helpers isolate native behavior; do not reorganize unrelated routes or w
 - [x] Add failing schema tests with these fixtures; assert duplicate targets and unbalanced blocks fail, an empty matrix produces the legacy target, and platform-incompatible locators fail.
 
 ```ts
-const definition = { name: 'Login', platform: 'android', app: 'bs://app',
-  deviceName: 'Pixel 8', osVersion: '14', steps: [] };
+const definition = {
+  name: 'Login',
+  platform: 'android',
+  app: 'bs://app',
+  deviceName: 'Pixel 8',
+  osVersion: '14',
+  steps: [],
+};
 expect(mobileDeviceTargets(definition)).toEqual([{ deviceName: 'Pixel 8', osVersion: '14' }]);
-expect(mobileTestSchema.safeParse({ ...definition, deviceMatrix: [
-  { deviceName: ' Pixel 8 ', osVersion: '14' }, { deviceName: 'Pixel 8', osVersion: '14' }
-]}).success).toBe(false);
-expect(mobileTestSchema.safeParse({ ...definition,
-  steps: [{ id: 'i', action: 'if', value: 'true' }]
-}).success).toBe(false);
+expect(
+  mobileTestSchema.safeParse({
+    ...definition,
+    deviceMatrix: [
+      { deviceName: ' Pixel 8 ', osVersion: '14' },
+      { deviceName: 'Pixel 8', osVersion: '14' },
+    ],
+  }).success,
+).toBe(false);
+expect(
+  mobileTestSchema.safeParse({ ...definition, steps: [{ id: 'i', action: 'if', value: 'true' }] })
+    .success,
+).toBe(false);
 ```
 
 - [x] Run `npx vitest run server/mobile-definition.test.ts server/tests/mobile-groups-migration.test.ts --maxWorkers=2`; confirm the added expectations fail before implementation.
@@ -75,13 +88,16 @@ expect(mobileTestSchema.safeParse({ ...definition,
 
 ```ts
 export function mobileFlowSteps(steps: readonly MobileStep[]) {
-  return steps.map(step => ({ action: { id: step.action } }));
+  return steps.map((step) => ({ action: { id: step.action } }));
 }
 export function mobileDeviceTargets(test: {
-  deviceName: string; osVersion?: string | null; deviceMatrix?: MobileDeviceTarget[];
+  deviceName: string;
+  osVersion?: string | null;
+  deviceMatrix?: MobileDeviceTarget[];
 }): MobileDeviceTarget[] {
-  return (test.deviceMatrix?.length ? test.deviceMatrix : [test]).map(target => ({
-    deviceName: target.deviceName.trim(), osVersion: target.osVersion?.trim() || null,
+  return (test.deviceMatrix?.length ? test.deviceMatrix : [test]).map((target) => ({
+    deviceName: target.deviceName.trim(),
+    osVersion: target.osVersion?.trim() || null,
   }));
 }
 ```
@@ -99,8 +115,10 @@ export function mobileDeviceTargets(test: {
 
 ```ts
 const branch: MobileStep[] = [
-  { id: 'if', action: 'if', value: 'false' }, { id: 'no', action: 'tap', target: '~missing' },
-  { id: 'else', action: 'else' }, { id: 'yes', action: 'tap', target: '~login' },
+  { id: 'if', action: 'if', value: 'false' },
+  { id: 'no', action: 'tap', target: '~missing' },
+  { id: 'else', action: 'else' },
+  { id: 'yes', action: 'tap', target: '~login' },
   { id: 'end', action: 'endIf' },
 ];
 const looping: MobileStep[] = [
@@ -121,8 +139,11 @@ const analysis = analyseFlow(mobileFlowSteps(steps));
 if (!analysis.ok) throw new Error(analysis.errors.join(' '));
 const cursor = new FlowCursor(mobileFlowSteps(steps), analysis.blocks, vars);
 const firstStep = steps[cursor.pc];
-const firstResultIdentity = { stepId: firstStep.id, sourceIndex: cursor.pc,
-  iterationKey: cursor.iterationKey() };
+const firstResultIdentity = {
+  stepId: firstStep.id,
+  sourceIndex: cursor.pc,
+  iterationKey: cursor.iterationKey(),
+};
 ```
 
 - [x] Pin the transport-error Review Focus case, malformed block rejection before `/session`, nested `loopIndex` restoration, 200-iteration and 10,000-visit failures, assertion false, undefined variables and cleanup on failure. Run flow/route/recorder/inspector and existing web comparator/cursor tests; commit `feat: execute native mobile conditions and loops`.
@@ -137,13 +158,18 @@ const firstResultIdentity = { stepId: firstStep.id, sourceIndex: cursor.pc,
 
 ```ts
 const groupId = '00000000-0000-4000-8000-000000000001';
-const group = { id: groupId, name: 'Login', platform: 'android', steps: [
-  { id: 'tap', action: 'tap', target: '~login' },
-] };
-expect(expandMobileGroups([{ id: 'call', action: 'callGroup', value: groupId }],
-  [group], 'android')[0]).toMatchObject({ action: 'tap', groupId, groupName: 'Login' });
-expect(() => expandMobileGroups([{ id: 'call', action: 'callGroup', value: groupId }],
-  [], 'android')).toThrow();
+const group = {
+  id: groupId,
+  name: 'Login',
+  platform: 'android',
+  steps: [{ id: 'tap', action: 'tap', target: '~login' }],
+};
+expect(
+  expandMobileGroups([{ id: 'call', action: 'callGroup', value: groupId }], [group], 'android')[0],
+).toMatchObject({ action: 'tap', groupId, groupName: 'Login' });
+expect(() =>
+  expandMobileGroups([{ id: 'call', action: 'callGroup', value: groupId }], [], 'android'),
+).toThrow();
 ```
 
 - [x] Run `npx vitest run server/mobile-step-groups.test.ts server/routes/mobile-step-groups.routes.test.ts --maxWorkers=2` and confirm missing functionality.
@@ -160,19 +186,31 @@ expect(() => expandMobileGroups([{ id: 'call', action: 'callGroup', value: group
 - [x] Extend route fixtures with two targets and a group. Add failing assertions for `{ runs: [...] }`, row snapshots containing distinct targets, and legacy `/runs` returning one ordinary row.
 
 ```ts
-const targets = [{ deviceName: 'Pixel 8', osVersion: '14' },
-  { deviceName: 'Pixel 9', osVersion: '15' }];
+const targets = [
+  { deviceName: 'Pixel 8', osVersion: '14' },
+  { deviceName: 'Pixel 9', osVersion: '15' },
+];
 const gridId = browserstack;
-const created = await request(app).post('/api/mobile-tests').send({
-  name: 'Matrix login', platform: 'android', app: 'bs://app', deviceName: 'Pixel 8',
-  osVersion: '14', deviceMatrix: targets, steps: [{ id: 'tap', action: 'tap', target: '~login' }],
-});
+const created = await request(app)
+  .post('/api/mobile-tests')
+  .send({
+    name: 'Matrix login',
+    platform: 'android',
+    app: 'bs://app',
+    deviceName: 'Pixel 8',
+    osVersion: '14',
+    deviceMatrix: targets,
+    steps: [{ id: 'tap', action: 'tap', target: '~login' }],
+  });
 const testId = created.body.id;
-const response = await request(app).post(`/api/mobile-tests/${testId}/matrix-runs`)
+const response = await request(app)
+  .post(`/api/mobile-tests/${testId}/matrix-runs`)
   .send({ gridId });
 expect(response.status).toBe(202);
-expect(response.body.runs.map((run: { device: string }) => run.device))
-  .toEqual(['Pixel 8 · 14', 'Pixel 9 · 15']);
+expect(response.body.runs.map((run: { device: string }) => run.device)).toEqual([
+  'Pixel 8 · 14',
+  'Pixel 9 · 15',
+]);
 ```
 
 - [x] Run `npx vitest run server/mobile-matrix-runs.test.ts server/routes/mobile-tests.routes.test.ts --maxWorkers=2` to demonstrate red behavior.
@@ -189,14 +227,20 @@ expect(response.body.runs.map((run: { device: string }) => run.device))
 - [x] Extend existing `seedPlan` tests to demonstrate one report per device despite browser/locale multiplication, and unique screenshot paths.
 
 ```ts
-await seedPlan({ locales: ['it-IT', 'en-US'] }, { deviceMatrix: [
-  { deviceName: 'Pixel 8', osVersion: '14' }, { deviceName: 'Pixel 9', osVersion: '15' },
-] });
+await seedPlan(
+  { locales: ['it-IT', 'en-US'] },
+  {
+    deviceMatrix: [
+      { deviceName: 'Pixel 8', osVersion: '14' },
+      { deviceName: 'Pixel 9', osVersion: '15' },
+    ],
+  },
+);
 const { execution, rows, mobileRows } = await runPlan({ browsers: ['chromium', 'firefox'] });
 expect(performMobileTest).toHaveBeenCalledTimes(2);
-expect(mobileRows.map(row => row.browser).sort()).toEqual(['Pixel 8 · 14', 'Pixel 9 · 15']);
-expect(new Set(mobileRows.map(row => row.screenshotUrl)).size).toBe(2);
-expect(rows.filter(row => row.uiTestId === uiTestId)).toHaveLength(4);
+expect(mobileRows.map((row) => row.browser).sort()).toEqual(['Pixel 8 · 14', 'Pixel 9 · 15']);
+expect(new Set(mobileRows.map((row) => row.screenshotUrl)).size).toBe(2);
+expect(rows.filter((row) => row.uiTestId === uiTestId)).toHaveLength(4);
 expect(execution).toMatchObject({ status: 'completed', totalTests: 6, passedTests: 6 });
 ```
 
@@ -237,12 +281,20 @@ expect(() => parseBundle(JSON.stringify({ kind: BUNDLE_KIND, version: 3 }))).toT
 
 ```tsx
 const onChange = vi.fn();
-render(<MobileStepsEditor steps={[]} platform="android" groups={[]}
-  allowGroups onChange={onChange} />);
+render(
+  <MobileStepsEditor steps={[]} platform="android" groups={[]} allowGroups onChange={onChange} />,
+);
 fireEvent.click(screen.getByRole('button', { name: /add step/i }));
 expect(onChange).toHaveBeenCalled();
-render(<MobileStepsEditor steps={[{ id: 'i', action: 'if', value: 'true' }]}
-  platform="android" groups={[]} allowGroups onChange={onChange} />);
+render(
+  <MobileStepsEditor
+    steps={[{ id: 'i', action: 'if', value: 'true' }]}
+    platform="android"
+    groups={[]}
+    allowGroups
+    onChange={onChange}
+  />,
+);
 expect(screen.getByText(/has no.*endIf/i)).toBeInTheDocument();
 ```
 

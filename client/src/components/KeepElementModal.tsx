@@ -1,11 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 
 /**
@@ -39,12 +52,18 @@ interface KeepElementModalProps {
 /** A first guess at the name, from whatever the page called the thing. */
 export function suggestedName(element: KeepableElement | null): string {
   if (!element) return '';
-  const label = (element.text ?? '').trim() || element.attributes?.placeholder || element.attributes?.alt || '';
+  const label =
+    (element.text ?? '').trim() || element.attributes?.placeholder || element.attributes?.alt || '';
   const kind = element.type || element.tag || 'element';
   return (label ? `${label} ${kind}` : kind).slice(0, 80);
 }
 
-const KeepElementModal: React.FC<KeepElementModalProps> = ({ isOpen, onClose, element, onKept }) => {
+const KeepElementModal: React.FC<KeepElementModalProps> = ({
+  isOpen,
+  onClose,
+  element,
+  onKept,
+}) => {
   const { t } = useTranslation();
   const [projectId, setProjectId] = useState<string>('');
   const [name, setName] = useState('');
@@ -73,7 +92,9 @@ const KeepElementModal: React.FC<KeepElementModalProps> = ({ isOpen, onClose, el
       return;
     }
     if (name.trim() === '') {
-      setError(t('keepElement.nameRequired', 'Give the element a name — it is how it will be recognised.'));
+      setError(
+        t('keepElement.nameRequired', 'Give the element a name — it is how it will be recognised.'),
+      );
       return;
     }
     setError('');
@@ -91,7 +112,12 @@ const KeepElementModal: React.FC<KeepElementModalProps> = ({ isOpen, onClose, el
   const safeProjects = Array.isArray(projects) ? projects : [];
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('keepElement.title', 'Keep this element')}</DialogTitle>
@@ -108,7 +134,9 @@ const KeepElementModal: React.FC<KeepElementModalProps> = ({ isOpen, onClose, el
             <Label htmlFor="keepElementProject">{t('keepElement.projectLabel', 'Project')}</Label>
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger id="keepElementProject" className="mt-1">
-                <SelectValue placeholder={t('keepElement.projectPlaceholder', 'Choose a project')} />
+                <SelectValue
+                  placeholder={t('keepElement.projectPlaceholder', 'Choose a project')}
+                />
               </SelectTrigger>
               <SelectContent>
                 {safeProjects.map((project) => (
@@ -121,7 +149,12 @@ const KeepElementModal: React.FC<KeepElementModalProps> = ({ isOpen, onClose, el
           </div>
           <div>
             <Label htmlFor="keepElementName">{t('keepElement.nameLabel', 'Name')}</Label>
-            <Input id="keepElementName" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
+            <Input
+              id="keepElementName"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1"
+            />
           </div>
           {element && (
             <p className="text-xs text-muted-foreground break-all">

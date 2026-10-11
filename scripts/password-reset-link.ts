@@ -26,8 +26,11 @@ async function main() {
     process.exit(1);
   }
 
-  const origin = process.env.WEBFLOW_PUBLIC_URL?.trim() || `http://localhost:${process.env.PORT || 5000}`;
-  console.log(`Password reset link for ${issued.username}, valid until ${issued.expiresAt.toISOString()}:`);
+  const origin =
+    process.env.WEBFLOW_PUBLIC_URL?.trim() || `http://localhost:${process.env.PORT || 5000}`;
+  console.log(
+    `Password reset link for ${issued.username}, valid until ${issued.expiresAt.toISOString()}:`,
+  );
   console.log(passwordResetLink(origin, issued));
   if (!process.env.WEBFLOW_PUBLIC_URL) {
     console.log('(WEBFLOW_PUBLIC_URL is not set: replace the address with the one people open.)');

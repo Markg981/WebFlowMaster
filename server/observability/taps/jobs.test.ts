@@ -65,7 +65,9 @@ describe('withJobIncidents', () => {
       throw 'string failure';
     });
 
-    await expect(wrapped({ id: '3', name: 'execute-plan', data: {} })).rejects.toBe('string failure');
+    await expect(wrapped({ id: '3', name: 'execute-plan', data: {} })).rejects.toBe(
+      'string failure',
+    );
 
     const [entry] = await new IncidentStore(root).readIndex();
     expect(entry.title).toContain('string failure');
@@ -81,7 +83,9 @@ describe('withJobIncidents', () => {
       throw deferral;
     });
 
-    await expect(wrapped({ id: '4', name: 'execute-plan', data: {} }, 'lock-token')).rejects.toBe(deferral);
+    await expect(wrapped({ id: '4', name: 'execute-plan', data: {} }, 'lock-token')).rejects.toBe(
+      deferral,
+    );
 
     expect(await new IncidentStore(root).readIndex()).toHaveLength(0);
   });

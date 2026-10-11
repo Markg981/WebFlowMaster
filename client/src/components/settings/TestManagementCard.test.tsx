@@ -8,7 +8,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) => {
       let text = typeof fallback === 'string' ? fallback : _key;
-      for (const [name, value] of Object.entries(options ?? {})) text = text.split(`{{${name}}}`).join(String(value));
+      for (const [name, value] of Object.entries(options ?? {}))
+        text = text.split(`{{${name}}}`).join(String(value));
       return text;
     },
   }),
@@ -24,10 +25,20 @@ const fetchMock = vi.fn();
 beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-    if (init?.method === 'POST' && url === '/api/test-management') return Promise.resolve({ ok: true, json: async () => ({ id: 'tm2' }) });
-    if (init?.method === 'POST' && url.endsWith('/test')) return Promise.resolve({ ok: true, json: async () => ({ ok: true, detail: 'Connected to Shop.' }) });
-    if (init?.method === 'DELETE') return Promise.resolve({ ok: true, json: async () => ({ deleted: true, plansStoppedPublishing: 3 }) });
-    if (init?.method === 'PUT') return Promise.resolve({ ok: true, json: async () => ({ changed: 1 }) });
+    if (init?.method === 'POST' && url === '/api/test-management')
+      return Promise.resolve({ ok: true, json: async () => ({ id: 'tm2' }) });
+    if (init?.method === 'POST' && url.endsWith('/test'))
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ ok: true, detail: 'Connected to Shop.' }),
+      });
+    if (init?.method === 'DELETE')
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ deleted: true, plansStoppedPublishing: 3 }),
+      });
+    if (init?.method === 'PUT')
+      return Promise.resolve({ ok: true, json: async () => ({ changed: 1 }) });
     if (url.endsWith('/cases'))
       return Promise.resolve({
         ok: true,
@@ -42,7 +53,19 @@ beforeEach(() => {
       });
     return Promise.resolve({
       ok: true,
-      json: async () => [{ id: 'tm1', name: 'QA TestRail', provider: 'testrail', baseUrl: 'https://acme.testrail.io', username: 'qa@acme.test', projectKey: '3', suiteId: '5', testPlanKey: null, hasToken: true }],
+      json: async () => [
+        {
+          id: 'tm1',
+          name: 'QA TestRail',
+          provider: 'testrail',
+          baseUrl: 'https://acme.testrail.io',
+          username: 'qa@acme.test',
+          projectKey: '3',
+          suiteId: '5',
+          testPlanKey: null,
+          hasToken: true,
+        },
+      ],
     });
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -50,7 +73,9 @@ beforeEach(() => {
 
 const renderCard = () =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       <TestManagementCard />
     </QueryClientProvider>,
   );
@@ -74,7 +99,9 @@ describe('TestManagementCard', () => {
     fireEvent.click(screen.getByText('Add connection'));
     expect(screen.getByRole('alert').textContent).toMatch(/address/);
 
-    fireEvent.change(screen.getByLabelText('Address'), { target: { value: 'https://acme.testrail.io' } });
+    fireEvent.change(screen.getByLabelText('Address'), {
+      target: { value: 'https://acme.testrail.io' },
+    });
     fireEvent.click(screen.getByText('Add connection'));
     expect(screen.getByRole('alert').textContent).toMatch(/User \(e-mail\) is required/);
 
@@ -85,8 +112,16 @@ describe('TestManagementCard', () => {
 
     fireEvent.change(screen.getByLabelText('API token'), { target: { value: 'secret' } });
     fireEvent.click(screen.getByText('Add connection'));
-    await waitFor(() => expect(fetchMock.mock.calls.some(([url, init]) => url === '/api/test-management' && init?.method === 'POST')).toBe(true));
-    const [, init] = fetchMock.mock.calls.find(([url, i]) => url === '/api/test-management' && i?.method === 'POST')!;
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([url, init]) => url === '/api/test-management' && init?.method === 'POST',
+        ),
+      ).toBe(true),
+    );
+    const [, init] = fetchMock.mock.calls.find(
+      ([url, i]) => url === '/api/test-management' && i?.method === 'POST',
+    )!;
     expect(JSON.parse(init.body)).toEqual({
       name: 'TR',
       provider: 'testrail',
@@ -106,7 +141,9 @@ describe('TestManagementCard', () => {
     expect(await screen.findByText('Connected to Shop.')).toBeTruthy();
 
     fireEvent.click(screen.getByLabelText('Delete'));
-    expect(await screen.findByText('3 plan(s) that published to it no longer publish anywhere.')).toBeTruthy();
+    expect(
+      await screen.findByText('3 plan(s) that published to it no longer publish anywhere.'),
+    ).toBeTruthy();
   });
 
   it('maps tests to cases, showing the key a name carries and refusing a key of another tool', async () => {
@@ -123,10 +160,16 @@ describe('TestManagementCard', () => {
     fireEvent.change(login, { target: { value: 'C12' } });
     fireEvent.change(screen.getByLabelText('Case of Orders API'), { target: { value: '' } });
     // A mobile app test is mapped like the others.
-    expect(screen.getByLabelText('Case of Login on Android').closest('li, tr, div')).toHaveTextContent('Mobile');
-    fireEvent.change(screen.getByLabelText('Case of Login on Android'), { target: { value: 'C30' } });
+    expect(
+      screen.getByLabelText('Case of Login on Android').closest('li, tr, div'),
+    ).toHaveTextContent('Mobile');
+    fireEvent.change(screen.getByLabelText('Case of Login on Android'), {
+      target: { value: 'C30' },
+    });
     fireEvent.click(screen.getByText('Save 3 changes'));
-    await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(true));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(true),
+    );
     const [url, init] = fetchMock.mock.calls.find(([, i]) => i?.method === 'PUT')!;
     expect(url).toBe('/api/test-management/tm1/cases');
     expect(JSON.parse(init.body)).toEqual({

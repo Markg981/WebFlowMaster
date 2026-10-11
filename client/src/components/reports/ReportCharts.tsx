@@ -39,7 +39,15 @@ function useLabels() {
 const percent = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
 
 /** One bar, split into its outcomes; 2px gaps between parts, rounded at the ends. */
-function StackedBar({ counts, scale, label }: { counts: OutcomeCounts; scale: number; label: string }) {
+function StackedBar({
+  counts,
+  scale,
+  label,
+}: {
+  counts: OutcomeCounts;
+  scale: number;
+  label: string;
+}) {
   const { label: name } = useLabels();
   const total = counts.passed + counts.failed + counts.skipped;
   return (
@@ -74,7 +82,13 @@ function Legend({ counts }: { counts: OutcomeCounts }) {
   );
 }
 
-export function OutcomeChart({ title, counts }: { title: string; counts: OutcomeCounts | null | undefined }) {
+export function OutcomeChart({
+  title,
+  counts,
+}: {
+  title: string;
+  counts: OutcomeCounts | null | undefined;
+}) {
   const { t } = useLabels();
   const safe = counts ?? { passed: 0, failed: 0, skipped: 0 };
   const total = safe.passed + safe.failed + safe.skipped;
@@ -85,12 +99,16 @@ export function OutcomeChart({ title, counts }: { title: string; counts: Outcome
       </CardHeader>
       <CardContent className="space-y-3">
         {total === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('testReportPage.charts.noData', 'No results to chart.')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('testReportPage.charts.noData', 'No results to chart.')}
+          </p>
         ) : (
           <>
             <p className="text-2xl font-semibold">
               {percent(safe.passed, total)}%{' '}
-              <span className="text-sm font-normal text-muted-foreground">{t('testReportPage.charts.passedOf', 'passed of {{total}}', { total })}</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                {t('testReportPage.charts.passedOf', 'passed of {{total}}', { total })}
+              </span>
             </p>
             <StackedBar counts={safe} scale={total} label={title} />
             <Legend counts={safe} />
@@ -111,11 +129,19 @@ export function BreakdownChart({
 }) {
   const { t } = useLabels();
   const rows = Object.entries(data ?? {})
-    .map(([name, counts]) => ({ name, counts, total: counts.passed + counts.failed + counts.skipped }))
+    .map(([name, counts]) => ({
+      name,
+      counts,
+      total: counts.passed + counts.failed + counts.skipped,
+    }))
     .filter((row) => row.total > 0);
   const max = Math.max(0, ...rows.map((row) => row.total));
   const summed = rows.reduce(
-    (sum, row) => ({ passed: sum.passed + row.counts.passed, failed: sum.failed + row.counts.failed, skipped: sum.skipped + row.counts.skipped }),
+    (sum, row) => ({
+      passed: sum.passed + row.counts.passed,
+      failed: sum.failed + row.counts.failed,
+      skipped: sum.skipped + row.counts.skipped,
+    }),
     { passed: 0, failed: 0, skipped: 0 },
   );
   return (
@@ -125,13 +151,20 @@ export function BreakdownChart({
       </CardHeader>
       <CardContent className="space-y-3">
         {rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('testReportPage.charts.noData', 'No results to chart.')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('testReportPage.charts.noData', 'No results to chart.')}
+          </p>
         ) : (
           <>
             <div className="space-y-2">
               {rows.map((row) => (
-                <div key={row.name} className="grid grid-cols-[88px_1fr_32px] items-center gap-2 text-xs">
-                  <span className="truncate" title={row.name}>{row.name}</span>
+                <div
+                  key={row.name}
+                  className="grid grid-cols-[88px_1fr_32px] items-center gap-2 text-xs"
+                >
+                  <span className="truncate" title={row.name}>
+                    {row.name}
+                  </span>
                   <StackedBar counts={row.counts} scale={max} label={`${title}: ${row.name}`} />
                   <span className="text-right text-muted-foreground">{row.total}</span>
                 </div>

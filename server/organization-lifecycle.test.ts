@@ -25,7 +25,10 @@ async function seed(organizationId: number, userId: number, label: string) {
   `);
   await runWithTenant(organizationId, () =>
     withTenantTransaction((tx) =>
-      recordAudit(tx, { action: AUDIT_ACTIONS.MEMBER_REMOVED, actor: { id: userId, username: label } }),
+      recordAudit(tx, {
+        action: AUDIT_ACTIONS.MEMBER_REMOVED,
+        actor: { id: userId, username: label },
+      }),
     ),
   );
 }
@@ -61,7 +64,10 @@ describe('exportOrganization', () => {
     // The only exceptions are declared, with their reason, next to the exporter.
     for (const table of ORG_SCOPED_TABLES) {
       if (NOT_EXPORTED.has(table)) {
-        expect(exported.data[table], `${table} is a credential and must not be exported`).toBeUndefined();
+        expect(
+          exported.data[table],
+          `${table} is a credential and must not be exported`,
+        ).toBeUndefined();
         continue;
       }
       expect(exported.data[table], `${table} missing from the export`).toBeDefined();
@@ -71,7 +77,9 @@ describe('exportOrganization', () => {
   });
 
   it('carries the organization’s own rows and none of the other’s', async () => {
-    const exported = (await exportOrganization(orgA)) as { data: Record<string, { name?: string }[]> };
+    const exported = (await exportOrganization(orgA)) as {
+      data: Record<string, { name?: string }[]>;
+    };
 
     expect(exported.data.projects.map((p) => p.name)).toEqual(['a-project']);
     expect(exported.data.tests.map((t) => t.name)).toEqual(['a-test']);
@@ -100,9 +108,17 @@ describe('exportOrganization', () => {
 
 describe('eraseOrganization', () => {
   it('removes ledger-owned evidence even after its plan history was deleted', async () => {
-    await privilegedDb.execute(sql`INSERT INTO quota_artifacts(organization_id,key,bytes) VALUES (${orgA},'results/deleted-plan/deleted-run/evidence.png',10)`);
+    await privilegedDb.execute(
+      sql`INSERT INTO quota_artifacts(organization_id,key,bytes) VALUES (${orgA},'results/deleted-plan/deleted-run/evidence.png',10)`,
+    );
     const asked: string[] = [];
-    const store = { kind: 'local', deletePrefix: async (prefix: string) => { asked.push(prefix); return 1; } } as unknown as ArtifactStore;
+    const store = {
+      kind: 'local',
+      deletePrefix: async (prefix: string) => {
+        asked.push(prefix);
+        return 1;
+      },
+    } as unknown as ArtifactStore;
     await eraseOrganization(orgA, { store });
     expect(asked).toContain('results/deleted-plan/deleted-run/');
   });
@@ -156,9 +172,27 @@ describe('eraseOrganization', () => {
       { id: 'plan-b', name: 'B', userId: userB, organizationId: orgB },
     ] as any);
     await privilegedDb.insert(testPlanExecutions).values([
-      { id: 'run-a1', organizationId: orgA, testPlanId: 'plan-a', status: 'completed', triggeredBy: 'manual' },
-      { id: 'run-a2', organizationId: orgA, testPlanId: 'plan-a', status: 'completed', triggeredBy: 'manual' },
-      { id: 'run-b1', organizationId: orgB, testPlanId: 'plan-b', status: 'completed', triggeredBy: 'manual' },
+      {
+        id: 'run-a1',
+        organizationId: orgA,
+        testPlanId: 'plan-a',
+        status: 'completed',
+        triggeredBy: 'manual',
+      },
+      {
+        id: 'run-a2',
+        organizationId: orgA,
+        testPlanId: 'plan-a',
+        status: 'completed',
+        triggeredBy: 'manual',
+      },
+      {
+        id: 'run-b1',
+        organizationId: orgB,
+        testPlanId: 'plan-b',
+        status: 'completed',
+        triggeredBy: 'manual',
+      },
     ] as any);
     const asked: string[] = [];
     const store = {
@@ -172,7 +206,9 @@ describe('eraseOrganization', () => {
 
     const { files } = await eraseOrganization(orgA, { store });
 
-    expect(asked.sort()).toEqual(['results/plan-a/run-a1/', 'results/plan-a/run-a2/', `visual-baselines/org_${orgA}/`].sort());
+    expect(asked.sort()).toEqual(
+      ['results/plan-a/run-a1/', 'results/plan-a/run-a2/', `visual-baselines/org_${orgA}/`].sort(),
+    );
     expect(files).toEqual({ removed: 6, failed: ['results/plan-a/run-a2/'] });
     // The rows are gone even though a prefix could not be removed.
     expect(await countIn('test_plan_executions', orgA)).toBe(0);

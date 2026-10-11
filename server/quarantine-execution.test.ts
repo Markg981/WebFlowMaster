@@ -37,8 +37,16 @@ vi.mock('./precondition-runner', () => ({
 
 const { processTestPlanJob } = await import('./test-execution-service');
 
-const passed = { success: true, steps: [{ name: 'Click', type: 'click', status: 'passed' }], duration: 5 };
-const failed = { success: false, steps: [{ name: 'Click', type: 'click', status: 'failed', error: 'Button not found' }], duration: 5 };
+const passed = {
+  success: true,
+  steps: [{ name: 'Click', type: 'click', status: 'passed' }],
+  duration: 5,
+};
+const failed = {
+  success: false,
+  steps: [{ name: 'Click', type: 'click', status: 'failed', error: 'Button not found' }],
+  duration: 5,
+};
 
 let organizationId: number;
 let userId: number;
@@ -47,26 +55,49 @@ let testIds: number[];
 
 async function seedPlan(planColumns: Record<string, unknown> = {}, testCount = 3) {
   planId = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Nightly', userId, organizationId, ...planColumns } as any);
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Nightly', userId, organizationId, ...planColumns } as any);
   testIds = [];
   for (let i = 1; i <= testCount; i++) {
     const [test] = await privilegedDb
       .insert(testsTable)
-      .values({ userId, organizationId, name: `Test ${i}`, url: `https://example.test/${i}`, sequence: [], elements: [] })
+      .values({
+        userId,
+        organizationId,
+        name: `Test ${i}`,
+        url: `https://example.test/${i}`,
+        sequence: [],
+        elements: [],
+      })
       .returning();
     testIds.push(test.id);
-    await privilegedDb.insert(testPlanSelectedTests).values({ testPlanId: planId, testType: 'ui', testId: test.id, organizationId } as any);
+    await privilegedDb
+      .insert(testPlanSelectedTests)
+      .values({ testPlanId: planId, testType: 'ui', testId: test.id, organizationId } as any);
   }
 }
 
 const quarantine = (index: number) =>
-  privilegedDb.insert(testQuarantines).values({ organizationId, testType: 'ui', testId: testIds[index], reason: 'Flaky' }).returning();
+  privilegedDb
+    .insert(testQuarantines)
+    .values({ organizationId, testType: 'ui', testId: testIds[index], reason: 'Flaky' })
+    .returning();
 
 async function runPlan() {
   const executionId = uuidv4();
-  await privilegedDb.insert(testPlanExecutions).values({ id: executionId, organizationId, testPlanId: planId, status: 'queued', triggeredBy: 'manual' } as any);
+  await privilegedDb.insert(testPlanExecutions).values({
+    id: executionId,
+    organizationId,
+    testPlanId: planId,
+    status: 'queued',
+    triggeredBy: 'manual',
+  } as any);
   await processTestPlanJob(planId, executionId, userId);
-  const [execution] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
+  const [execution] = await privilegedDb
+    .select()
+    .from(testPlanExecutions)
+    .where(eq(testPlanExecutions.id, executionId));
   const results = await privilegedDb
     .select()
     .from(reportTestCaseResults)
@@ -102,7 +133,11 @@ describe('a run with a test in quarantine', () => {
     expect(executeTestSequence).toHaveBeenCalledTimes(3);
     expect(byTest(0)).toMatchObject({ status: 'Failed', quarantined: true });
     expect(byTest(1)).toMatchObject({ status: 'Passed', quarantined: false });
-    expect(execution).toMatchObject({ status: 'completed', failedTests: 1, quarantinedFailures: 1 });
+    expect(execution).toMatchObject({
+      status: 'completed',
+      failedTests: 1,
+      quarantinedFailures: 1,
+    });
   });
 
   it('still fails when a test outside quarantine fails', async () => {
@@ -122,14 +157,21 @@ describe('a run with a test in quarantine', () => {
 
     const { byTest, execution } = await runPlan();
 
-    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual(['Failed', 'Passed', 'Passed']);
+    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual([
+      'Failed',
+      'Passed',
+      'Passed',
+    ]);
     expect(execution.status).toBe('completed');
   });
 
   it('counts its failures again once it is released', async () => {
     await seedPlan({}, 1);
     const [row] = await quarantine(0);
-    await privilegedDb.update(testQuarantines).set({ releasedAt: new Date() }).where(eq(testQuarantines.id, row.id));
+    await privilegedDb
+      .update(testQuarantines)
+      .set({ releasedAt: new Date() })
+      .where(eq(testQuarantines.id, row.id));
     executeTestSequence.mockResolvedValueOnce(failed);
 
     const { execution, byTest } = await runPlan();
@@ -145,7 +187,12 @@ describe('what CI and the notification are told', () => {
       planName: 'Nightly',
       executionId: 'run-1',
       results: [
-        { testName: 'Checkout', status: 'Failed', reasonForFailure: 'Button not found\nat step 3', quarantined: true },
+        {
+          testName: 'Checkout',
+          status: 'Failed',
+          reasonForFailure: 'Button not found\nat step 3',
+          quarantined: true,
+        },
         { testName: 'Search', status: 'Passed', quarantined: true },
         { testName: 'Login', status: 'Failed', reasonForFailure: 'Wrong title' },
       ],
@@ -159,9 +206,17 @@ describe('what CI and the notification are told', () => {
 
   it('the summary line explains a pass that has failures in it', () => {
     const line = summaryLine({
-      planId: 'p', planName: 'Nightly', executionId: 'e', status: 'completed',
-      totalTests: 3, passedTests: 2, failedTests: 1, skippedTests: 0, quarantinedFailures: 1,
-      durationMs: 1000, triggeredBy: 'schedule',
+      planId: 'p',
+      planName: 'Nightly',
+      executionId: 'e',
+      status: 'completed',
+      totalTests: 3,
+      passedTests: 2,
+      failedTests: 1,
+      skippedTests: 0,
+      quarantinedFailures: 1,
+      durationMs: 1000,
+      triggeredBy: 'schedule',
     });
     expect(line).toMatch(/^Nightly: passed — 2\/3 passed, 1 failed \(1 in quarantine\)/);
   });

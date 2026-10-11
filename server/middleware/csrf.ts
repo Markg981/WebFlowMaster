@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from 'express';
 
 // CSRF defense via Origin/Referer validation (OWASP-recommended for cookie-auth APIs),
 // layered on top of the SameSite=Lax session cookie.
@@ -13,7 +13,7 @@ import type { Request, Response, NextFunction } from "express";
 // Behind a proxy the public host may differ from the internal Host header; set
 // CSRF_TRUSTED_ORIGINS (comma-separated origins) to allowlist it explicitly.
 
-const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 // The SAML assertion consumer service: the identity provider's page POSTs the signed response from its
 // own origin, by design. What protects it is the response's signature, the request it must answer and
@@ -32,11 +32,11 @@ function hostOf(urlOrHost: string | undefined): string | null {
 function trustedHosts(req: Request): Set<string> {
   const hosts = new Set<string>();
   if (req.headers.host) hosts.add(req.headers.host);
-  const xfHost = req.headers["x-forwarded-host"];
-  if (typeof xfHost === "string") xfHost.split(",").forEach((h) => hosts.add(h.trim()));
+  const xfHost = req.headers['x-forwarded-host'];
+  if (typeof xfHost === 'string') xfHost.split(',').forEach((h) => hosts.add(h.trim()));
   const env = process.env.CSRF_TRUSTED_ORIGINS;
   if (env) {
-    env.split(",").forEach((o) => {
+    env.split(',').forEach((o) => {
       const h = hostOf(o.trim());
       if (h) hosts.add(h);
     });
@@ -46,7 +46,7 @@ function trustedHosts(req: Request): Set<string> {
 
 export function csrfOriginCheck(req: Request, res: Response, next: NextFunction): void {
   if (SAFE_METHODS.has(req.method)) return next();
-  if (req.method === "POST" && CROSS_SITE_BY_DESIGN.test(req.path)) return next();
+  if (req.method === 'POST' && CROSS_SITE_BY_DESIGN.test(req.path)) return next();
 
   const originHost = hostOf(req.headers.origin) ?? hostOf(req.headers.referer);
   // No browser-supplied origin -> server-to-server client, not a CSRF vector.
@@ -54,5 +54,5 @@ export function csrfOriginCheck(req: Request, res: Response, next: NextFunction)
 
   if (trustedHosts(req).has(originHost)) return next();
 
-  res.status(403).json({ error: "CSRF validation failed: cross-origin request rejected." });
+  res.status(403).json({ error: 'CSRF validation failed: cross-origin request rejected.' });
 }

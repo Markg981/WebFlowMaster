@@ -12,8 +12,18 @@ import {
 import { Label } from '@/components/ui/label';
 import { TestAction } from '@/pages/dashboard-page-new';
 import { DetectedElement } from '@/components/drag-drop-provider';
-import { ACTION_REQUIREMENTS, ACTION_VALUE_HINTS, ACTION_VALUE_OPTIONS, STEP_GROUP_ACTION_ID, type AdhocActionId } from '@shared/recording';
-import { argumentsHint, customActionIdOf, type CustomActionParameter } from '@shared/custom-actions';
+import {
+  ACTION_REQUIREMENTS,
+  ACTION_VALUE_HINTS,
+  ACTION_VALUE_OPTIONS,
+  STEP_GROUP_ACTION_ID,
+  type AdhocActionId,
+} from '@shared/recording';
+import {
+  argumentsHint,
+  customActionIdOf,
+  type CustomActionParameter,
+} from '@shared/custom-actions';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import { Trash2, Link2 } from 'lucide-react';
@@ -45,7 +55,8 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   // A custom action is not in the table: it takes its arguments as the value, and an element
   // its script reads as `element` if the author gives it one.
   const isCustomAction = customActionIdOf(data.action.id) !== null;
-  const customParameters: CustomActionParameter[] = (data.action as { parameters?: CustomActionParameter[] }).parameters ?? [];
+  const customParameters: CustomActionParameter[] =
+    (data.action as { parameters?: CustomActionParameter[] }).parameters ?? [];
   const requirements = isCustomAction
     ? { target: false, value: true, valueRequired: false, optionalTarget: true }
     : ACTION_REQUIREMENTS[data.action.id as AdhocActionId];
@@ -59,7 +70,9 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   // The shape of the value, for the actions whose value has one ("name.ext|content", …).
   const hintKey = ACTION_VALUE_HINTS[data.action.id as AdhocActionId];
   const valueHint = isCustomAction
-    ? (customParameters.length > 0 ? argumentsHint(customParameters) : 'name=value; …')
+    ? customParameters.length > 0
+      ? argumentsHint(customParameters)
+      : 'name=value; …'
     : hintKey
       ? t(hintKey)
       : undefined;
@@ -67,23 +80,28 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   // Accept a detected element dropped from the "Detected Elements" panel and bind it as
   // this step's target. Without this drop target the dragged element had nowhere to land
   // and react-dnd snapped it back (it appeared to "vanish").
-  const [{ isOver, canDrop }, dropRef] = useDrop(() => ({
-    accept: "element",
-    canDrop: () => !data.isRecordingActive,
-    drop: (item: { data: DetectedElement }) => {
-      if (data.isRecordingActive) return;
-      data.onSetTarget?.(id, item.data);
-    },
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-      canDrop: !!monitor.canDrop(),
+  const [{ isOver, canDrop }, dropRef] = useDrop(
+    () => ({
+      accept: 'element',
+      canDrop: () => !data.isRecordingActive,
+      drop: (item: { data: DetectedElement }) => {
+        if (data.isRecordingActive) return;
+        data.onSetTarget?.(id, item.data);
+      },
+      collect: (monitor) => ({
+        isOver: !!monitor.isOver(),
+        canDrop: !!monitor.canDrop(),
+      }),
     }),
-  }), [id, data.isRecordingActive, data.onSetTarget]);
+    [id, data.isRecordingActive, data.onSetTarget],
+  );
 
   return (
-    <Card className={`min-w-[250px] p-4 shadow-lg border-2 ${data.targetElement ? 'border-primary' : (needsTarget ? 'border-destructive/50' : 'border-border')} ${data.debugPaused === 'failed' ? 'ring-4 ring-destructive/60' : data.debugPaused === 'before' ? 'ring-4 ring-amber-400/70' : ''} bg-card/95 backdrop-blur-sm supports-backdrop-filter:bg-card/75 transition-all`}>
+    <Card
+      className={`min-w-[250px] p-4 shadow-lg border-2 ${data.targetElement ? 'border-primary' : needsTarget ? 'border-destructive/50' : 'border-border'} ${data.debugPaused === 'failed' ? 'ring-4 ring-destructive/60' : data.debugPaused === 'before' ? 'ring-4 ring-amber-400/70' : ''} bg-card/95 backdrop-blur-sm supports-backdrop-filter:bg-card/75 transition-all`}
+    >
       <Handle type="target" position={Position.Top} className="w-3 h-3 bg-primary" />
-      
+
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center space-x-2">
           {/* The step's dot is its breakpoint, as in a code editor's gutter: filled red, a debug
@@ -94,10 +112,20 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
             onClick={() => data.onToggleBreakpoint?.(id)}
             disabled={!data.onToggleBreakpoint}
             aria-pressed={!!data.breakpoint}
-            aria-label={data.breakpoint ? t('debugger.breakpoint.remove', 'Remove breakpoint') : t('debugger.breakpoint.add', 'Stop here when debugging')}
-            title={data.breakpoint ? t('debugger.breakpoint.remove', 'Remove breakpoint') : t('debugger.breakpoint.add', 'Stop here when debugging')}
+            aria-label={
+              data.breakpoint
+                ? t('debugger.breakpoint.remove', 'Remove breakpoint')
+                : t('debugger.breakpoint.add', 'Stop here when debugging')
+            }
+            title={
+              data.breakpoint
+                ? t('debugger.breakpoint.remove', 'Remove breakpoint')
+                : t('debugger.breakpoint.add', 'Stop here when debugging')
+            }
           >
-            <div className={`w-4 h-4 rounded-full ${data.breakpoint ? 'bg-destructive ring-2 ring-destructive/30' : 'bg-primary/30 hover:bg-destructive/50'}`} />
+            <div
+              className={`w-4 h-4 rounded-full ${data.breakpoint ? 'bg-destructive ring-2 ring-destructive/30' : 'bg-primary/30 hover:bg-destructive/50'}`}
+            />
           </button>
           <span className="font-semibold text-sm">{t(data.action.name)}</span>
           {/* A call to a step group is not an action on the page: it stands for however many
@@ -109,9 +137,9 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
             </Badge>
           )}
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="h-6 w-6 text-muted-foreground hover:text-destructive"
           onClick={() => data.onDeleteNode(id)}
           disabled={data.isRecordingActive}
@@ -134,7 +162,9 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
                     : 'bg-muted/50 border-border border-dashed'
             }`}
           >
-            <Link2 className={`h-4 w-4 shrink-0 ${data.targetElement ? 'text-success' : 'text-muted-foreground'}`} />
+            <Link2
+              className={`h-4 w-4 shrink-0 ${data.targetElement ? 'text-success' : 'text-muted-foreground'}`}
+            />
             <span className="text-xs truncate max-w-[180px]">
               {data.targetElement ? data.targetElement.text : t('dashboardPage.dropActionsPrompt')}
             </span>
@@ -168,7 +198,7 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
             ) : (
               <Input
                 className="h-7 text-xs nodrag"
-                value={data.value || ""}
+                value={data.value || ''}
                 onChange={(e) => data.onUpdateValue(id, e.target.value)}
                 disabled={data.isRecordingActive}
                 placeholder={valueHint ?? t('testSequenceBuilder.value.placeholder')}
@@ -183,4 +213,3 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
     </Card>
   );
 }
-

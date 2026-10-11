@@ -44,7 +44,10 @@ beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockImplementation((url: string, init: any) => {
     if (String(url).includes('/test')) {
-      return Promise.resolve({ ok: true, json: async () => ({ ok: true, detail: 'Connected to Shop.' }) });
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ ok: true, detail: 'Connected to Shop.' }),
+      });
     }
     if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => tracker });
     return Promise.resolve({ ok: true, json: async () => [tracker] });
@@ -82,7 +85,9 @@ describe('IssueTrackersCard', () => {
     await screen.findByText('Jira — Shop');
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Jira 2' } });
-    fireEvent.change(screen.getByLabelText('Base URL'), { target: { value: 'https://acme.atlassian.net' } });
+    fireEvent.change(screen.getByLabelText('Base URL'), {
+      target: { value: 'https://acme.atlassian.net' },
+    });
     fireEvent.change(screen.getByLabelText('Project key'), { target: { value: 'SHOP' } });
     fireEvent.change(screen.getByLabelText('API token'), { target: { value: 'secret' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add tracker' }));

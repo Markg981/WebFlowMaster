@@ -7,7 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Database, Pencil, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -39,7 +46,9 @@ async function call(method: string, url: string, body?: unknown, signal?: AbortS
     method,
     signal,
     credentials: 'include',
-    ...(body !== undefined ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}),
+    ...(body !== undefined
+      ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      : {}),
   });
   const answer = res.status === 204 ? null : await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(answer?.error || `Request failed (${res.status})`);
@@ -49,7 +58,8 @@ async function call(method: string, url: string, body?: unknown, signal?: AbortS
 /** Column order from the rows, as the table editor keeps it. */
 const columnsOf = (rows: DatasetRow[]) => {
   const seen: string[] = [];
-  for (const row of rows) for (const key of Object.keys(row)) if (!seen.includes(key)) seen.push(key);
+  for (const row of rows)
+    for (const key of Object.keys(row)) if (!seen.includes(key)) seen.push(key);
   return seen;
 };
 
@@ -82,18 +92,38 @@ function DataSetDialog({ set, onClose }: { set: DataSet | 'new' | null; onClose:
     <Dialog open={!!set} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editing ? t('testData.edit', 'Edit data set') : t('testData.new', 'New data set')}</DialogTitle>
-          <DialogDescription>{t('testData.dialogHint', 'A name and a table. The first row gives the {{data.…}} values; a UI test can run over every row.')}</DialogDescription>
+          <DialogTitle>
+            {editing ? t('testData.edit', 'Edit data set') : t('testData.new', 'New data set')}
+          </DialogTitle>
+          <DialogDescription>
+            {t(
+              'testData.dialogHint',
+              'A name and a table. The first row gives the {{data.…}} values; a UI test can run over every row.',
+            )}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="data-set-name">{t('testData.name', 'Name')}</Label>
-            <Input id="data-set-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="customers" className="font-mono" />
-            <p className="text-xs text-muted-foreground">{t('testData.nameHint', 'Lowercase letters, digits and underscores.')}</p>
+            <Input
+              id="data-set-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="customers"
+              className="font-mono"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('testData.nameHint', 'Lowercase letters, digits and underscores.')}
+            </p>
           </div>
           <div className="space-y-1">
             <Label htmlFor="data-set-description">{t('testData.description', 'Description')}</Label>
-            <Textarea id="data-set-description" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Textarea
+              id="data-set-description"
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
         </div>
         <DatasetPanel dataset={rows} onChange={setRows} />
@@ -133,31 +163,49 @@ export default function TestDataPage() {
   const queryClient = useQueryClient();
   const canEdit = user?.role !== 'viewer';
   const [open, setOpen] = useState<DataSet | 'new' | null>(null);
-  const {search,setSearch,debouncedSearch,page,setPage,pageSize,setPageSize} = useCatalogControls();
-  const [detailBusyId,setDetailBusyId] = useState<number|null>(null);
-  const [detailError,setDetailError] = useState<string|null>(null);
+  const { search, setSearch, debouncedSearch, page, setPage, pageSize, setPageSize } =
+    useCatalogControls();
+  const [detailBusyId, setDetailBusyId] = useState<number | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const { data, isLoading, isFetching, error } = useQuery<CatalogPage<DataSetSummary>>({
-    queryKey:['testData','catalog',page,pageSize,debouncedSearch],
-    queryFn:({signal}) => call('GET',`/api/catalog/test-data?${new URLSearchParams({page:String(page),pageSize:String(pageSize),search:debouncedSearch})}`,undefined,signal),
+    queryKey: ['testData', 'catalog', page, pageSize, debouncedSearch],
+    queryFn: ({ signal }) =>
+      call(
+        'GET',
+        `/api/catalog/test-data?${new URLSearchParams({ page: String(page), pageSize: String(pageSize), search: debouncedSearch })}`,
+        undefined,
+        signal,
+      ),
   });
   const sets = data?.items ?? [];
   useEffect(() => {
-    if (data) setPage(current => Math.min(current,Math.max(1,Math.ceil(data.total/pageSize))));
-  },[data,pageSize,setPage]);
+    if (data)
+      setPage((current) => Math.min(current, Math.max(1, Math.ceil(data.total / pageSize))));
+  }, [data, pageSize, setPage]);
   const edit = async (set: DataSetSummary) => {
-    setDetailBusyId(set.id); setDetailError(null);
+    setDetailBusyId(set.id);
+    setDetailError(null);
     try {
-      const detail = await call('GET',`/api/test-data/${set.id}`);
-      if (detail.id !== set.id || !Array.isArray(detail.rows)) throw new Error(t('catalog.detailFailed','Could not load details'));
+      const detail = await call('GET', `/api/test-data/${set.id}`);
+      if (detail.id !== set.id || !Array.isArray(detail.rows))
+        throw new Error(t('catalog.detailFailed', 'Could not load details'));
       setOpen(detail);
-    } catch (error: any) { setDetailError(error.message); }
-    finally { setDetailBusyId(null); }
+    } catch (error: any) {
+      setDetailError(error.message);
+    } finally {
+      setDetailBusyId(null);
+    }
   };
 
   const remove = useMutation({
     mutationFn: (set: DataSetSummary) => call('DELETE', `/api/test-data/${set.id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['testData'] }),
-    onError: (e: Error) => toast({ variant: 'destructive', title: t('testData.deleteFailed', 'Not deleted'), description: e.message }),
+    onError: (e: Error) =>
+      toast({
+        variant: 'destructive',
+        title: t('testData.deleteFailed', 'Not deleted'),
+        description: e.message,
+      }),
   });
 
   return (
@@ -165,7 +213,10 @@ export default function TestDataPage() {
       <PageHeader
         className="mb-6"
         title={t('testData.title', 'Test data')}
-        description={t('testData.pageDescription', 'Data kept once and reused by every test: values as {{data.<set>.<column>}}, or the rows a UI test runs over.')}
+        description={t(
+          'testData.pageDescription',
+          'Data kept once and reused by every test: values as {{data.<set>.<column>}}, or the rows a UI test runs over.',
+        )}
         actions={
           canEdit && (
             <Button disabled={detailBusyId !== null} onClick={() => setOpen('new')}>
@@ -174,14 +225,39 @@ export default function TestDataPage() {
           )
         }
       />
-      <Input className="mb-4 max-w-sm" aria-label={t('catalog.search','Search by name')} placeholder={t('catalog.search','Search by name')} value={search} onChange={event=>setSearch(event.target.value)} />
-      {detailBusyId !== null && <p role="status" className="mb-4 text-sm text-muted-foreground">{t('catalog.loadingDetails', 'Loading details…')}</p>}
-      {detailError && <p role="alert" className="mb-4 text-sm text-destructive">{detailError}</p>}
-      {isLoading ? <p role="status">{t('catalog.loading','Loading…')}</p> : error ? <p role="alert" className="text-destructive">{error.message}</p> : sets.length === 0 ? (
+      <Input
+        className="mb-4 max-w-sm"
+        aria-label={t('catalog.search', 'Search by name')}
+        placeholder={t('catalog.search', 'Search by name')}
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+      />
+      {detailBusyId !== null && (
+        <p role="status" className="mb-4 text-sm text-muted-foreground">
+          {t('catalog.loadingDetails', 'Loading details…')}
+        </p>
+      )}
+      {detailError && (
+        <p role="alert" className="mb-4 text-sm text-destructive">
+          {detailError}
+        </p>
+      )}
+      {isLoading ? (
+        <p role="status">{t('catalog.loading', 'Loading…')}</p>
+      ) : error ? (
+        <p role="alert" className="text-destructive">
+          {error.message}
+        </p>
+      ) : sets.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground">
             <Database className="h-8 w-8" />
-            {debouncedSearch ? t('catalog.noMatches','No items match this filter.') : t('testData.empty', 'No shared data yet. Create a set for the customers, products or cards your tests keep copying.')}
+            {debouncedSearch
+              ? t('catalog.noMatches', 'No items match this filter.')
+              : t(
+                  'testData.empty',
+                  'No shared data yet. Create a set for the customers, products or cards your tests keep copying.',
+                )}
           </CardContent>
         </Card>
       ) : (
@@ -192,19 +268,33 @@ export default function TestDataPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-mono font-medium">{set.name}</p>
-                    {set.description && <p className="text-sm text-muted-foreground">{set.description}</p>}
+                    {set.description && (
+                      <p className="text-sm text-muted-foreground">{set.description}</p>
+                    )}
                   </div>
                   {canEdit && (
                     <div className="flex shrink-0">
-                      <Button variant="ghost" size="icon" disabled={detailBusyId !== null} onClick={() => void edit(set)} aria-label={t('testData.editNamed', 'Edit {{name}}', { name: set.name })}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={detailBusyId !== null}
+                        onClick={() => void edit(set)}
+                        aria-label={t('testData.editNamed', 'Edit {{name}}', { name: set.name })}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => window.confirm(t('testData.confirmDelete', 'Delete {{name}}?', { name: set.name })) && remove.mutate(set)}
+                        onClick={() =>
+                          window.confirm(
+                            t('testData.confirmDelete', 'Delete {{name}}?', { name: set.name }),
+                          ) && remove.mutate(set)
+                        }
                         disabled={remove.isPending || detailBusyId === set.id}
-                        aria-label={t('testData.deleteNamed', 'Delete {{name}}', { name: set.name })}
+                        aria-label={t('testData.deleteNamed', 'Delete {{name}}', {
+                          name: set.name,
+                        })}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -212,7 +302,10 @@ export default function TestDataPage() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {t('testData.size', '{{rows}} row(s) · {{columns}} column(s)', { rows: set.rowCount, columns: set.columns.length })}
+                  {t('testData.size', '{{rows}} row(s) · {{columns}} column(s)', {
+                    rows: set.rowCount,
+                    columns: set.columns.length,
+                  })}
                 </p>
                 <p className="truncate text-xs">
                   {set.columns.map((column, i) => (
@@ -227,8 +320,21 @@ export default function TestDataPage() {
           ))}
         </div>
       )}
-      <CatalogPagination page={page} pageSize={pageSize} total={data?.total ?? 0} busy={isFetching || !!error} onPageChange={setPage} onPageSizeChange={setPageSize} />
-      {open && <DataSetDialog key={open === 'new' ? 'new' : open.id} set={open} onClose={() => setOpen(null)} />}
+      <CatalogPagination
+        page={page}
+        pageSize={pageSize}
+        total={data?.total ?? 0}
+        busy={isFetching || !!error}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
+      {open && (
+        <DataSetDialog
+          key={open === 'new' ? 'new' : open.id}
+          set={open}
+          onClose={() => setOpen(null)}
+        />
+      )}
     </div>
   );
 }

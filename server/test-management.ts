@@ -11,13 +11,21 @@ import {
 } from '@shared/schema';
 import { outcomeOf } from '@shared/requirements';
 import { itemKey, itemOf, type TestKind } from './test-refs';
-import { caseKeyFromName, type PublishedOutcome, type TestManagementProvider } from '@shared/test-management';
+import {
+  caseKeyFromName,
+  type PublishedOutcome,
+  type TestManagementProvider,
+} from '@shared/test-management';
 import { withTenantTransaction } from './middleware/tenancy';
 import { decryptSecret } from './crypto';
 import { readExecutionSnapshot } from './execution-snapshot';
 import { reportReferenceFor } from './report-links';
 import type { ProviderDeps } from './issue-providers';
-import { publishResults, type CaseResult, type ConnectionConfig } from './test-management-providers';
+import {
+  publishResults,
+  type CaseResult,
+  type ConnectionConfig,
+} from './test-management-providers';
 
 /**
  * Publishing a finished run to the organization's TestRail, Xray or Zephyr Scale.
@@ -104,7 +112,9 @@ export function casesOf(
       lines.push(`${r.testName}${where}: ${r.status}`);
       if (r.reasonForFailure && /fail|error/i.test(r.status)) {
         const reason = r.reasonForFailure.trim();
-        lines.push(reason.length > MAX_REASON ? `${reason.slice(0, MAX_REASON)}… (truncated)` : reason);
+        lines.push(
+          reason.length > MAX_REASON ? `${reason.slice(0, MAX_REASON)}… (truncated)` : reason,
+        );
       }
     }
     lines.push(reportLine);
@@ -135,7 +145,10 @@ export interface PublishOptions {
  * Publishes one run. Null when there is nowhere to publish it: the plan names no connection and
  * none was asked for.
  */
-export async function publishExecution(executionId: string, options: PublishOptions = {}): Promise<TestManagementPublication | null> {
+export async function publishExecution(
+  executionId: string,
+  options: PublishOptions = {},
+): Promise<TestManagementPublication | null> {
   const loaded = await withTenantTransaction(async (tx) => {
     const [execution] = await tx
       .select({
@@ -158,9 +171,17 @@ export async function publishExecution(executionId: string, options: PublishOpti
     // recorded it — what its plan publishes to now.
     const snapshot = readExecutionSnapshot(execution.snapshot);
     const connectionId =
-      options.connectionId ?? (snapshot?.testManagement ? snapshot.testManagement.connectionId : execution.planConnectionId) ?? null;
+      options.connectionId ??
+      (snapshot?.testManagement
+        ? snapshot.testManagement.connectionId
+        : execution.planConnectionId) ??
+      null;
     if (!connectionId) return null;
-    const [connection] = await tx.select().from(testManagementConnections).where(eq(testManagementConnections.id, connectionId)).limit(1);
+    const [connection] = await tx
+      .select()
+      .from(testManagementConnections)
+      .where(eq(testManagementConnections.id, connectionId))
+      .limit(1);
     const rows = await tx
       .select({
         uiTestId: reportTestCaseResults.uiTestId,
@@ -177,35 +198,66 @@ export async function publishExecution(executionId: string, options: PublishOpti
       .from(reportTestCaseResults)
       .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
       .orderBy(asc(reportTestCaseResults.startedAt));
-    const links = connection ? await tx.select().from(testCaseLinks).where(eq(testCaseLinks.connectionId, connection.id)) : [];
+    const links = connection
+      ? await tx.select().from(testCaseLinks).where(eq(testCaseLinks.connectionId, connection.id))
+      : [];
     return { execution, connection: connection ?? null, rows, links };
   });
   if (!loaded) return null;
   const { execution, connection, rows, links } = loaded;
 
-  const record = (values: Omit<typeof testManagementPublications.$inferInsert, 'organizationId' | 'testPlanExecutionId' | 'requestedBy'>) =>
+  const record = (
+    values: Omit<
+      typeof testManagementPublications.$inferInsert,
+      'organizationId' | 'testPlanExecutionId' | 'requestedBy'
+    >,
+  ) =>
     withTenantTransaction(async (tx) => {
       const [row] = await tx
         .insert(testManagementPublications)
-        .values({ ...values, organizationId: execution.organizationId, testPlanExecutionId: executionId, requestedBy: options.requestedBy ?? null })
+        .values({
+          ...values,
+          organizationId: execution.organizationId,
+          testPlanExecutionId: executionId,
+          requestedBy: options.requestedBy ?? null,
+        })
         .returning();
       return row;
     });
 
   if (!connection) {
-    return record({ connectionId: null, connectionName: '(deleted)', provider: 'unknown', status: 'failed', message: 'The test management connection this plan names no longer exists.' });
+    return record({
+      connectionId: null,
+      connectionName: '(deleted)',
+      provider: 'unknown',
+      status: 'failed',
+      message: 'The test management connection this plan names no longer exists.',
+    });
   }
 
   const provider = connection.provider as TestManagementProvider;
   const linkMap = new Map(links.map((l) => [itemKey(itemOf(l).type, itemOf(l).id), l.caseKey]));
-  const { cases, unmapped } = casesOf(provider, rows, (type, id) => linkMap.get(itemKey(type, id)), reportReferenceFor(execution.planId, executionId));
-  const base = { connectionId: connection.id, connectionName: connection.name, provider, unmappedCount: unmapped.length };
+  const { cases, unmapped } = casesOf(
+    provider,
+    rows,
+    (type, id) => linkMap.get(itemKey(type, id)),
+    reportReferenceFor(execution.planId, executionId),
+  );
+  const base = {
+    connectionId: connection.id,
+    connectionName: connection.name,
+    provider,
+    unmappedCount: unmapped.length,
+  };
 
   if (cases.length === 0) {
     return record({
       ...base,
       status: 'nothing_to_publish',
-      message: rows.length === 0 ? 'The run has no results.' : `No test of this run is linked to a case: ${unmapped.slice(0, 10).join(', ')}${unmapped.length > 10 ? '…' : ''}.`,
+      message:
+        rows.length === 0
+          ? 'The run has no results.'
+          : `No test of this run is linked to a case: ${unmapped.slice(0, 10).join(', ')}${unmapped.length > 10 ? '…' : ''}.`,
     });
   }
 
@@ -222,7 +274,13 @@ export async function publishExecution(executionId: string, options: PublishOpti
   try {
     const outcome = await publishResults(
       toConnectionConfig(connection),
-      { title, description, results: cases, startedAt: execution.startedAt, finishedAt: execution.completedAt },
+      {
+        title,
+        description,
+        results: cases,
+        startedAt: execution.startedAt,
+        finishedAt: execution.completedAt,
+      },
       options.deps,
     );
     return record({
@@ -234,13 +292,21 @@ export async function publishExecution(executionId: string, options: PublishOpti
       message: outcome.problems.length ? outcome.problems.join('\n').slice(0, 4000) : null,
     });
   } catch (error: any) {
-    return record({ ...base, status: 'failed', message: String(error?.message ?? error).slice(0, 4000) });
+    return record({
+      ...base,
+      status: 'failed',
+      message: String(error?.message ?? error).slice(0, 4000),
+    });
   }
 }
 
 /** A run's publications, newest first, for its report. */
 export async function publicationsOf(executionId: string): Promise<TestManagementPublication[]> {
   return withTenantTransaction((tx) =>
-    tx.select().from(testManagementPublications).where(eq(testManagementPublications.testPlanExecutionId, executionId)).orderBy(desc(testManagementPublications.createdAt), desc(testManagementPublications.id)),
+    tx
+      .select()
+      .from(testManagementPublications)
+      .where(eq(testManagementPublications.testPlanExecutionId, executionId))
+      .orderBy(desc(testManagementPublications.createdAt), desc(testManagementPublications.id)),
   );
 }

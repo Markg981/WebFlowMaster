@@ -23,7 +23,9 @@ export function cspMode(env: NodeJS.ProcessEnv = process.env): CspMode {
   const raw = env.CONTENT_SECURITY_POLICY?.trim().toLowerCase();
   if (!raw) return env.NODE_ENV === 'production' ? 'enforce' : 'off';
   if (raw === 'enforce' || raw === 'report-only' || raw === 'off') return raw;
-  throw new Error(`CONTENT_SECURITY_POLICY must be "enforce", "report-only" or "off"; got "${env.CONTENT_SECURITY_POLICY}".`);
+  throw new Error(
+    `CONTENT_SECURITY_POLICY must be "enforce", "report-only" or "off"; got "${env.CONTENT_SECURITY_POLICY}".`,
+  );
 }
 
 export const CSP_DIRECTIVES: Record<string, string[]> = {

@@ -54,10 +54,11 @@ export function useTheme() {
     // Bail out when nothing changed: the class attribute also carries whatever else is on
     // <html>, so this fires for edits that have nothing to do with the theme, and setTheme
     // has already set the state for the ones it made itself.
-    const sync = () => setThemeState((prev) => {
-      const next = readThemeFromDocument();
-      return prev === next ? prev : next;
-    });
+    const sync = () =>
+      setThemeState((prev) => {
+        const next = readThemeFromDocument();
+        return prev === next ? prev : next;
+      });
     const observer = new MutationObserver(sync);
     observer.observe(el, { attributes: true, attributeFilter: ['class'] });
     sync();

@@ -18,7 +18,8 @@ const { createTestOrganization } = await import('./tests/factories');
 const { runWithTenant, withTenantTransaction } = await import('./middleware/tenancy');
 const { defaultQuotas, fairPriority, liveRunCounts, quotasFor } = await import('./tenant-quotas');
 const { takeExecution, transitionExecution } = await import('./execution-state');
-const { createExecutionOrchestrator, ExecutionEnqueueError } = await import('./execution-orchestrator');
+const { createExecutionOrchestrator, ExecutionEnqueueError } =
+  await import('./execution-orchestrator');
 const { processTestPlanJob } = await import('./test-execution-service');
 
 let orgA: number;
@@ -28,44 +29,81 @@ let userB: number;
 let planA: string;
 let planB: string;
 
-async function seedOrg(name: string, limits: { maxConcurrentRuns?: number; maxQueuedRuns?: number } = {}) {
+async function seedOrg(
+  name: string,
+  limits: { maxConcurrentRuns?: number; maxQueuedRuns?: number } = {},
+) {
   const org = await createTestOrganization(name);
   if (limits.maxConcurrentRuns || limits.maxQueuedRuns) {
     await privilegedDb.update(organizations).set(limits).where(eq(organizations.id, org));
   }
-  const [user] = await privilegedDb.insert(users).values({ username: `q-${uuidv4().slice(0, 8)}`, password: 'x', organizationId: org }).returning();
+  const [user] = await privilegedDb
+    .insert(users)
+    .values({ username: `q-${uuidv4().slice(0, 8)}`, password: 'x', organizationId: org })
+    .returning();
   const plan = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: plan, name: `${name} plan`, userId: user.id, organizationId: org } as any);
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: plan, name: `${name} plan`, userId: user.id, organizationId: org } as any);
   return { org, user: user.id, plan };
 }
 
 async function queuedRun(org: number, plan: string) {
   const id = uuidv4();
-  await privilegedDb.insert(testPlanExecutions).values({ id, organizationId: org, testPlanId: plan, status: 'queued', triggeredBy: 'manual' } as any);
+  await privilegedDb.insert(testPlanExecutions).values({
+    id,
+    organizationId: org,
+    testPlanId: plan,
+    status: 'queued',
+    triggeredBy: 'manual',
+  } as any);
   return id;
 }
 
-const statusOf = async (id: string) => (await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id)))[0].status;
+const statusOf = async (id: string) =>
+  (await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id)))[0]
+    .status;
 const asOrg = <T>(org: number, work: () => Promise<T>) => runWithTenant(org, work);
 
 function capturingQueue() {
   const jobs: Array<{ options: { jobId: string; priority?: number } }> = [];
-  return { jobs, async add(_name: string, _data: unknown, options: { jobId: string; priority?: number }) { jobs.push({ options }); } };
+  return {
+    jobs,
+    async add(_name: string, _data: unknown, options: { jobId: string; priority?: number }) {
+      jobs.push({ options });
+    },
+  };
 }
 
 beforeEach(async () => {
   await privilegedDb.delete(testPlanExecutions);
-  ({ org: orgA, user: userA, plan: planA } = await seedOrg('Busy Org', { maxConcurrentRuns: 1, maxQueuedRuns: 3 }));
+  ({
+    org: orgA,
+    user: userA,
+    plan: planA,
+  } = await seedOrg('Busy Org', { maxConcurrentRuns: 1, maxQueuedRuns: 3 }));
   ({ org: orgB, user: userB, plan: planB } = await seedOrg('Quiet Org'));
 });
 
 describe('the limits', () => {
   it('default from the environment, and an organization can have its own', async () => {
-    expect(defaultQuotas({} as NodeJS.ProcessEnv)).toMatchObject({ maxConcurrentRuns: 2, maxQueuedRuns: 100 });
-    expect(defaultQuotas({ ORG_MAX_CONCURRENT_RUNS: '5', ORG_MAX_QUEUED_RUNS: 'lots' } as NodeJS.ProcessEnv)).toMatchObject({ maxConcurrentRuns: 5, maxQueuedRuns: 100 });
+    expect(defaultQuotas({} as NodeJS.ProcessEnv)).toMatchObject({
+      maxConcurrentRuns: 2,
+      maxQueuedRuns: 100,
+    });
+    expect(
+      defaultQuotas({
+        ORG_MAX_CONCURRENT_RUNS: '5',
+        ORG_MAX_QUEUED_RUNS: 'lots',
+      } as NodeJS.ProcessEnv),
+    ).toMatchObject({ maxConcurrentRuns: 5, maxQueuedRuns: 100 });
 
-    expect(await asOrg(orgA, () => withTenantTransaction((tx) => quotasFor(tx, orgA)))).toMatchObject({ maxConcurrentRuns: 1, maxQueuedRuns: 3 });
-    expect(await asOrg(orgB, () => withTenantTransaction((tx) => quotasFor(tx, orgB)))).toEqual(defaultQuotas());
+    expect(
+      await asOrg(orgA, () => withTenantTransaction((tx) => quotasFor(tx, orgA))),
+    ).toMatchObject({ maxConcurrentRuns: 1, maxQueuedRuns: 3 });
+    expect(await asOrg(orgB, () => withTenantTransaction((tx) => quotasFor(tx, orgB)))).toEqual(
+      defaultQuotas(),
+    );
   });
 
   it('put an organization with runs in flight behind one with none', () => {
@@ -80,7 +118,11 @@ describe('taking a run', () => {
     const second = await queuedRun(orgA, planA);
 
     expect((await asOrg(orgA, () => takeExecution(first))).outcome).toBe('taken');
-    expect(await asOrg(orgA, () => takeExecution(second))).toEqual({ outcome: 'over_quota', running: 1, maxConcurrentRuns: 1 });
+    expect(await asOrg(orgA, () => takeExecution(second))).toEqual({
+      outcome: 'over_quota',
+      running: 1,
+      maxConcurrentRuns: 1,
+    });
     expect(await statusOf(second)).toBe('queued');
 
     await asOrg(orgA, () => transitionExecution(first, 'completed'));
@@ -98,7 +140,10 @@ describe('taking a run', () => {
   it('counts a run that is being cancelled as still holding its slot', async () => {
     const first = await queuedRun(orgA, planA);
     await asOrg(orgA, () => takeExecution(first));
-    await privilegedDb.update(testPlanExecutions).set({ status: 'cancelling' }).where(eq(testPlanExecutions.id, first));
+    await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status: 'cancelling' })
+      .where(eq(testPlanExecutions.id, first));
 
     const next = await queuedRun(orgA, planA);
     expect((await asOrg(orgA, () => takeExecution(next))).outcome).toBe('over_quota');
@@ -108,7 +153,10 @@ describe('taking a run', () => {
     const one = await queuedRun(orgA, planA);
     const two = await queuedRun(orgA, planA);
 
-    const outcomes = await Promise.all([asOrg(orgA, () => takeExecution(one)), asOrg(orgA, () => takeExecution(two))]);
+    const outcomes = await Promise.all([
+      asOrg(orgA, () => takeExecution(one)),
+      asOrg(orgA, () => takeExecution(two)),
+    ]);
 
     expect(outcomes.map((o) => o.outcome).sort()).toEqual(['over_quota', 'taken']);
   });
@@ -128,9 +176,12 @@ describe('taking a run', () => {
 describe('queueing a run', () => {
   it('refuses a run past the limit of runs waiting, with 429, and records nothing', async () => {
     const orchestrator = createExecutionOrchestrator(capturingQueue());
-    for (let i = 0; i < 3; i++) await orchestrator.enqueue({ planId: planA, requestedByUserId: userA, trigger: 'api' });
+    for (let i = 0; i < 3; i++)
+      await orchestrator.enqueue({ planId: planA, requestedByUserId: userA, trigger: 'api' });
 
-    const refused = await orchestrator.enqueue({ planId: planA, requestedByUserId: userA, trigger: 'api' }).catch((e) => e);
+    const refused = await orchestrator
+      .enqueue({ planId: planA, requestedByUserId: userA, trigger: 'api' })
+      .catch((e) => e);
 
     expect(refused).toBeInstanceOf(ExecutionEnqueueError);
     expect(refused).toMatchObject({ code: 'queue_quota_exceeded', status: 429 });
@@ -141,7 +192,8 @@ describe('queueing a run', () => {
   it("puts an organization's first run ahead of another's many", async () => {
     const queue = capturingQueue();
     const orchestrator = createExecutionOrchestrator(queue);
-    for (let i = 0; i < 3; i++) await orchestrator.enqueue({ planId: planA, requestedByUserId: userA, trigger: 'api' });
+    for (let i = 0; i < 3; i++)
+      await orchestrator.enqueue({ planId: planA, requestedByUserId: userA, trigger: 'api' });
 
     await orchestrator.enqueue({ planId: planB, requestedByUserId: userB, trigger: 'api' });
 

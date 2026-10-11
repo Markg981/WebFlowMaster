@@ -25,8 +25,8 @@ updates:
     ignore:
       - dependency-name: playwright
       - dependency-name: playwright-core
-      - dependency-name: "@playwright/test"
-      - dependency-name: "lightningcss-*"
+      - dependency-name: '@playwright/test'
+      - dependency-name: 'lightningcss-*'
       # vitepress-plugin-mermaid 2.0.17 accepts mermaid 10 and 11 only: 12 stops npm ci with
       # ERESOLVE. Lift this when the plugin supports it.
       - dependency-name: mermaid
@@ -40,12 +40,12 @@ updates:
         # its own instead, to be read and tested on its own.
         exclude-patterns:
           - monaco-editor
-          - "@electric-sql/*"
-          - "@xmldom/xmldom"
+          - '@electric-sql/*'
+          - '@xmldom/xmldom'
           - esbuild
           - drizzle-zod
           - drizzle-kit
-          - "@replit/*"
+          - '@replit/*'
 
   - package-ecosystem: npm
     directory: /deployment/lighthouse
@@ -54,7 +54,7 @@ updates:
     labels: [dependencies]
     groups:
       lighthouse:
-        patterns: ["*"]
+        patterns: ['*']
 
   - package-ecosystem: github-actions
     directory: /
@@ -63,4 +63,4 @@ updates:
     labels: [dependencies]
     groups:
       actions:
-        patterns: ["*"]
+        patterns: ['*']

@@ -13,7 +13,13 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { AlertTriangle, Check, Loader2, Wand2 } from 'lucide-react';
 import type { TestStep } from '@/components/drag-drop-provider';
 
@@ -67,7 +73,10 @@ interface AuthorStepsModalProps {
 const NO_PROJECT = 'none';
 
 /** What a proposed step did, in one line, without making the reader open anything. */
-export function describeStep(step: TestStep, translate: (key: string, fallback: string) => string): string {
+export function describeStep(
+  step: TestStep,
+  translate: (key: string, fallback: string) => string,
+): string {
   const action = translate(step.action.name, step.action.id);
   const target = step.targetElement
     ? (step.targetElement.text || '').trim() || step.targetElement.selector
@@ -76,7 +85,12 @@ export function describeStep(step: TestStep, translate: (key: string, fallback: 
   return [action, target, value].filter(Boolean).join(' · ');
 }
 
-const AuthorStepsModal: React.FC<AuthorStepsModalProps> = ({ isOpen, onClose, elements, onInsert }) => {
+const AuthorStepsModal: React.FC<AuthorStepsModalProps> = ({
+  isOpen,
+  onClose,
+  elements,
+  onInsert,
+}) => {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [projectId, setProjectId] = useState<string>(NO_PROJECT);
@@ -138,7 +152,12 @@ const AuthorStepsModal: React.FC<AuthorStepsModalProps> = ({ isOpen, onClose, el
   const unresolved = result?.unresolved ?? [];
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center">
@@ -155,7 +174,9 @@ const AuthorStepsModal: React.FC<AuthorStepsModalProps> = ({ isOpen, onClose, el
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="authorStepsText">{t('authorSteps.textLabel', 'What the test does')}</Label>
+            <Label htmlFor="authorStepsText">
+              {t('authorSteps.textLabel', 'What the test does')}
+            </Label>
             <Textarea
               id="authorStepsText"
               data-testid="author-steps-text"
@@ -202,7 +223,10 @@ const AuthorStepsModal: React.FC<AuthorStepsModalProps> = ({ isOpen, onClose, el
           {result && (
             <div className="space-y-2 max-h-72 overflow-y-auto" data-testid="author-steps-preview">
               {steps.map((item) => (
-                <div key={`step-${item.line}`} className="flex items-start gap-2 text-sm border rounded-md p-2">
+                <div
+                  key={`step-${item.line}`}
+                  className="flex items-start gap-2 text-sm border rounded-md p-2"
+                >
                   <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
                   <div className="min-w-0">
                     <p className="truncate">{item.text}</p>
@@ -245,7 +269,11 @@ const AuthorStepsModal: React.FC<AuthorStepsModalProps> = ({ isOpen, onClose, el
           <Button variant="outline" onClick={onClose}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={handleRead} disabled={isReading || text.trim() === ''} variant="secondary">
+          <Button
+            onClick={handleRead}
+            disabled={isReading || text.trim() === ''}
+            variant="secondary"
+          >
             {isReading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('authorSteps.read', 'Read the description')}
           </Button>

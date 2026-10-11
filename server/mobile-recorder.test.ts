@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { flatten, parsePageSource } from '@shared/mobile-inspector';
-import { currentText, dragDirection, isSecretField, isTextField, recordTarget } from '@shared/mobile-recorder';
+import {
+  currentText,
+  dragDirection,
+  isSecretField,
+  isTextField,
+  recordTarget,
+} from '@shared/mobile-recorder';
 
 /** What a touch on the inspector's screenshot becomes as a recorded step (shared/mobile-recorder.ts). */
 
@@ -11,16 +17,30 @@ const ANDROID = parsePageSource(`<hierarchy><android.widget.FrameLayout bounds="
   <android.view.View bounds="[0,700][400,720]"/>
   <android.view.View bounds="[0,720][400,740]"/>
 </android.widget.FrameLayout></hierarchy>`)!;
-const IOS = parsePageSource(`<AppiumAUT><XCUIElementTypeApplication x="0" y="0" width="390" height="844">
+const IOS =
+  parsePageSource(`<AppiumAUT><XCUIElementTypeApplication x="0" y="0" width="390" height="844">
   <XCUIElementTypeSecureTextField name="password" x="20" y="300" width="350" height="44"/>
   <XCUIElementTypeStaticText label="Total" value="12,00 €" x="20" y="400" width="350" height="30"/>
 </XCUIElementTypeApplication></AppiumAUT>`)!;
-const node = (root: typeof ANDROID, predicate: (n: (typeof ANDROID)) => boolean) => flatten(root).find(predicate)!;
+const node = (root: typeof ANDROID, predicate: (n: typeof ANDROID) => boolean) =>
+  flatten(root).find(predicate)!;
 
 describe('recordTarget', () => {
   it('uses the sturdiest unique locator, and flags one that only names a position', () => {
-    expect(recordTarget(ANDROID, node(ANDROID, (n) => n.attributes['content-desc'] === 'email'), 'android')).toEqual({ locator: '~email', fragile: false });
-    expect(recordTarget(ANDROID, node(ANDROID, (n) => n.attributes.text === 'Sign in'), 'android')).toEqual({ locator: 'text=Sign in', fragile: false });
+    expect(
+      recordTarget(
+        ANDROID,
+        node(ANDROID, (n) => n.attributes['content-desc'] === 'email'),
+        'android',
+      ),
+    ).toEqual({ locator: '~email', fragile: false });
+    expect(
+      recordTarget(
+        ANDROID,
+        node(ANDROID, (n) => n.attributes.text === 'Sign in'),
+        'android',
+      ),
+    ).toEqual({ locator: 'text=Sign in', fragile: false });
     const anonymous = flatten(ANDROID).filter((n) => n.type === 'android.view.View')[1];
     expect(recordTarget(ANDROID, anonymous, 'android')).toEqual({
       locator: '/hierarchy/android.widget.FrameLayout[1]/android.view.View[2]',
@@ -51,7 +71,17 @@ describe('text fields', () => {
   });
 
   it('reads the text an assertion would check, per platform', () => {
-    expect(currentText(node(ANDROID, (n) => n.attributes.text === 'Sign in'), 'android')).toBe('Sign in');
-    expect(currentText(node(IOS, (n) => n.type === 'XCUIElementTypeStaticText'), 'ios')).toBe('12,00 €');
+    expect(
+      currentText(
+        node(ANDROID, (n) => n.attributes.text === 'Sign in'),
+        'android',
+      ),
+    ).toBe('Sign in');
+    expect(
+      currentText(
+        node(IOS, (n) => n.type === 'XCUIElementTypeStaticText'),
+        'ios',
+      ),
+    ).toBe('12,00 €');
   });
 });

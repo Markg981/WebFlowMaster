@@ -34,16 +34,27 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
       <CardHeader className="flex flex-row items-center justify-between py-3 px-4 border-b">
         <CardTitle className="text-lg">{t('apiTester.historyPanel.history.title')}</CardTitle>
         {onClearHistory && (
-          <Button variant="outline" size="sm" onClick={onClearHistory} disabled={isLoading || historyItems.length === 0}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClearHistory}
+            disabled={isLoading || historyItems.length === 0}
+          >
             {t('apiTester.historyPanel.clearAll.button')}
           </Button>
         )}
       </CardHeader>
       <CardContent className="p-0 flex-1">
         <ScrollArea className="h-full p-3">
-          {isLoading && <p className="text-sm text-muted-foreground">{t('apiTester.historyPanel.loadingHistory.text')}</p>}
+          {isLoading && (
+            <p className="text-sm text-muted-foreground">
+              {t('apiTester.historyPanel.loadingHistory.text')}
+            </p>
+          )}
           {!isLoading && historyItems.length === 0 && (
-            <p className="text-sm text-muted-foreground p-4 text-center">{t('apiTester.historyPanel.noHistoryItemsYet.text')}</p>
+            <p className="text-sm text-muted-foreground p-4 text-center">
+              {t('apiTester.historyPanel.noHistoryItemsYet.text')}
+            </p>
           )}
           <div className="space-y-2">
             {historyItems.map((item) => (
@@ -57,15 +68,20 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                     <Badge variant="outline" className="font-mono text-xs py-0.5 px-1.5">
                       {item.method}
                     </Badge>
-                    <span className="text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-[200px] md:max-w-xs" title={item.url}>
+                    <span
+                      className="text-xs text-muted-foreground truncate max-w-[150px] sm:max-w-[200px] md:max-w-xs"
+                      title={item.url}
+                    >
                       {item.url}
                     </span>
                   </div>
                   {item.responseStatus !== null && item.responseStatus !== undefined && (
-                     <div className="flex items-center gap-1.5">
-                        <span className={`w-2.5 h-2.5 rounded-full ${getStatusColor(item.responseStatus)}`}></span>
-                        <span className="text-xs font-semibold">{item.responseStatus}</span>
-                     </div>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full ${getStatusColor(item.responseStatus)}`}
+                      ></span>
+                      <span className="text-xs font-semibold">{item.responseStatus}</span>
+                    </div>
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">

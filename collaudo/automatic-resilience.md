@@ -11,12 +11,12 @@ Il default `--worker-restart graceful` riavvia con SIGTERM durante lavoro osserv
 
 Conservare `resilience-artifacts/<id>/resilience.json`, `operations.log` e `containers.log`, commit, flag dirty, immagini e risorse macchina. Non archiviare credenziali o il compose temporaneo. L’exit deve essere 0, con tutte le fasi riuscite e nessuna violazione né errore di pulizia. Un report con timeout, run falliti o persi non è prova di recupero.
 
-| Caso | Verifica |
-| --- | --- |
-| OPS-32 | Due tenant, agenti reali e baseline API; scheduler una tantum scaduto durante indisponibilità del worker: esattamente un run completo per occorrenza. |
+| Caso   | Verifica                                                                                                                                                              |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OPS-32 | Due tenant, agenti reali e baseline API; scheduler una tantum scaduto durante indisponibilità del worker: esattamente un run completo per occorrenza.                 |
 | OPS-33 | Replay della richiesta accettata con medesima chiave; restart SIGTERM del worker durante sessione agente osservata; tutti gli ID presenti e completati dopo recupero. |
-| OPS-34 | Redis fermato con lavoro accodato e schedule pendenti; restart con AOF; nessun ID mancante/extra dopo la finestra di riconsegna. |
-| OPS-35 | Restart agenti tra run, riconnessione e nuove esecuzioni; screenshot non vuoti e scaricabili, checksum nei report anche a fine prova. |
+| OPS-34 | Redis fermato con lavoro accodato e schedule pendenti; restart con AOF; nessun ID mancante/extra dopo la finestra di riconsegna.                                      |
+| OPS-35 | Restart agenti tra run, riconnessione e nuove esecuzioni; screenshot non vuoti e scaricabili, checksum nei report anche a fine prova.                                 |
 
 Ogni piano sintetico contiene un solo test browser: il runner richiede esattamente un risultato riuscito per run. L’inventario è paginato. Osservazione minima 40 secondi; i duplicati oltre la finestra richiedono una prova più lunga. Il tempo di recupero comprende il restart e la conclusione del lavoro, non build/setup. Sono esclusi perdita dei dati Redis, agenti uccisi durante sessioni attive, S3, griglie remote, dispositivi e SLO produttivi.
 

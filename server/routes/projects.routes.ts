@@ -1,11 +1,17 @@
-import { Router } from "express";
-import { z } from "zod";
-import { projects, projectMembers, users, insertProjectSchema, AUDIT_ACTIONS } from "@shared/schema";
-import { auditActor, recordAudit } from "../audit";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
-import loggerPromise from "../logger";
-import { withTenantTransaction, getTenantOrgId } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
+import { Router } from 'express';
+import { z } from 'zod';
+import {
+  projects,
+  projectMembers,
+  users,
+  insertProjectSchema,
+  AUDIT_ACTIONS,
+} from '@shared/schema';
+import { auditActor, recordAudit } from '../audit';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import loggerPromise from '../logger';
+import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
+import { requireRole } from '../middleware/require-role';
 
 const router = Router();
 const logger = await loggerPromise;
@@ -19,7 +25,11 @@ const RANK: Record<Role, number> = { viewer: 0, editor: 1, owner: 2 };
  * migrations/0031_project_access.sql); this is for the interface, so it does not offer an edit
  * the database would refuse.
  */
-export function effectiveProjectRole(organizationRole: string, restricted: boolean, memberRole: string | null): Role | null {
+export function effectiveProjectRole(
+  organizationRole: string,
+  restricted: boolean,
+  memberRole: string | null,
+): Role | null {
   if (organizationRole === 'owner') return 'owner';
   const base = (organizationRole in RANK ? organizationRole : 'viewer') as Role;
   if (!restricted) return base;
@@ -29,8 +39,8 @@ export function effectiveProjectRole(organizationRole: string, restricted: boole
 }
 
 // GET /api/projects - The projects the requester can see, with what they may do in each.
-router.get("/api/projects", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/projects', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
     // No organization filter here on purpose: RLS applies it, and hides restricted projects the
@@ -44,30 +54,40 @@ router.get("/api/projects", requireRole('viewer'), async (req, res) => {
       const roleOn = new Map(mine.map((m) => [m.projectId, m.role]));
       return visible.map((project) => ({
         ...project,
-        access: effectiveProjectRole(req.user!.role, project.restricted, roleOn.get(project.id) ?? null),
+        access: effectiveProjectRole(
+          req.user!.role,
+          project.restricted,
+          roleOn.get(project.id) ?? null,
+        ),
       }));
     });
     res.json(rows);
   } catch (error: any) {
-    logger.error({ message: "Error fetching projects", error: error.message, stack: error.stack });
-    res.status(500).json({ error: "Failed to fetch projects" });
+    logger.error({ message: 'Error fetching projects', error: error.message, stack: error.stack });
+    res.status(500).json({ error: 'Failed to fetch projects' });
   }
 });
 
 // POST /api/projects - Create a new project. Always open; an owner can restrict it afterwards.
-router.post("/api/projects", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/projects', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   const parseResult = insertProjectSchema.safeParse(req.body);
   if (!parseResult.success) {
-    return res.status(400).json({ error: "Invalid project data", details: parseResult.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid project data', details: parseResult.error.flatten() });
   }
 
   try {
     const newProject = await withTenantTransaction(async (tx) => {
       const rows = await tx
         .insert(projects)
-        .values({ ...parseResult.data, userId: (req.user as any).id, organizationId: (req.user as { organizationId: number }).organizationId })
+        .values({
+          ...parseResult.data,
+          userId: (req.user as any).id,
+          organizationId: (req.user as { organizationId: number }).organizationId,
+        })
         .returning();
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.PROJECT_CREATED,
@@ -80,13 +100,16 @@ router.post("/api/projects", requireRole('editor'), async (req, res) => {
     });
     res.status(201).json(newProject[0]);
   } catch (error: any) {
-    logger.error({ message: "Error creating project", error: error.message });
-    res.status(500).json({ error: "Failed to create project" });
+    logger.error({ message: 'Error creating project', error: error.message });
+    res.status(500).json({ error: 'Failed to create project' });
   }
 });
 
 /** Who is on a project, as the owner's access dialog shows it. */
-async function accessOf(tx: Parameters<Parameters<typeof withTenantTransaction>[0]>[0], projectId: number) {
+async function accessOf(
+  tx: Parameters<Parameters<typeof withTenantTransaction>[0]>[0],
+  projectId: number,
+) {
   const [project] = await tx.select().from(projects).where(eq(projects.id, projectId)).limit(1);
   if (!project) return null;
   const members = await tx
@@ -99,11 +122,11 @@ async function accessOf(tx: Parameters<Parameters<typeof withTenantTransaction>[
 }
 
 // GET /api/projects/:id/access — owners only: who can reach a project, and as what.
-router.get("/api/projects/:id/access", requireRole('owner'), async (req, res) => {
+router.get('/api/projects/:id/access', requireRole('owner'), async (req, res) => {
   const projectId = Number(req.params.id);
-  if (!Number.isInteger(projectId)) return res.status(400).json({ error: "Invalid project id" });
+  if (!Number.isInteger(projectId)) return res.status(400).json({ error: 'Invalid project id' });
   const access = await withTenantTransaction((tx) => accessOf(tx, projectId));
-  if (!access) return res.status(404).json({ error: "Project not found" });
+  if (!access) return res.status(404).json({ error: 'Project not found' });
   res.json(access);
 });
 
@@ -112,7 +135,10 @@ const accessSchema = z.object({
   members: z
     .array(z.object({ userId: z.number().int().positive(), role: z.enum(['viewer', 'editor']) }))
     .max(500)
-    .refine((list) => new Set(list.map((m) => m.userId)).size === list.length, "A member is listed twice"),
+    .refine(
+      (list) => new Set(list.map((m) => m.userId)).size === list.length,
+      'A member is listed twice',
+    ),
 });
 
 /**
@@ -122,11 +148,12 @@ const accessSchema = z.object({
  * The list is kept when a project is opened again: opening is often temporary, and making the
  * owner retype it would be the punishment for having been careful.
  */
-router.put("/api/projects/:id/access", requireRole('owner'), async (req, res) => {
+router.put('/api/projects/:id/access', requireRole('owner'), async (req, res) => {
   const projectId = Number(req.params.id);
-  if (!Number.isInteger(projectId)) return res.status(400).json({ error: "Invalid project id" });
+  if (!Number.isInteger(projectId)) return res.status(400).json({ error: 'Invalid project id' });
   const parsed = accessSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+  if (!parsed.success)
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
   const organizationId = getTenantOrgId()!;
 
   const outcome = await withTenantTransaction(async (tx) => {
@@ -139,16 +166,30 @@ router.put("/api/projects/:id/access", requireRole('owner'), async (req, res) =>
       ? await tx
           .select({ id: users.id, username: users.username })
           .from(users)
-          .where(and(inArray(users.id, ids), eq(users.organizationId, organizationId), eq(users.kind, 'person')))
+          .where(
+            and(
+              inArray(users.id, ids),
+              eq(users.organizationId, organizationId),
+              eq(users.kind, 'person'),
+            ),
+          )
       : [];
     if (found.length !== ids.length) return { status: 400 as const };
     const nameOf = new Map(found.map((u) => [u.id, u.username]));
 
-    await tx.update(projects).set({ restricted: parsed.data.restricted }).where(eq(projects.id, projectId));
+    await tx
+      .update(projects)
+      .set({ restricted: parsed.data.restricted })
+      .where(eq(projects.id, projectId));
     await tx.delete(projectMembers).where(eq(projectMembers.projectId, projectId));
     if (parsed.data.members.length > 0) {
       await tx.insert(projectMembers).values(
-        parsed.data.members.map((m) => ({ projectId, userId: m.userId, organizationId, role: m.role })),
+        parsed.data.members.map((m) => ({
+          projectId,
+          userId: m.userId,
+          organizationId,
+          role: m.role,
+        })),
       );
     }
 
@@ -167,8 +208,9 @@ router.put("/api/projects/:id/access", requireRole('owner'), async (req, res) =>
     return { status: 200 as const, body: await accessOf(tx, projectId) };
   });
 
-  if (outcome.status === 404) return res.status(404).json({ error: "Project not found" });
-  if (outcome.status === 400) return res.status(400).json({ error: "Every member must be a person in this organization." });
+  if (outcome.status === 404) return res.status(404).json({ error: 'Project not found' });
+  if (outcome.status === 400)
+    return res.status(400).json({ error: 'Every member must be a person in this organization.' });
   res.json(outcome.body);
 });
 

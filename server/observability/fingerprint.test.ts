@@ -3,7 +3,11 @@ import { normaliseMessage, fingerprintError, incidentIdFromFingerprint } from '.
 import type { StackFrame } from '../../shared/observability';
 
 const frame = (file: string, line: number): StackFrame => ({
-  functionName: 'doThing', file, line, column: 1, app: true,
+  functionName: 'doThing',
+  file,
+  line,
+  column: 1,
+  app: true,
 });
 
 describe('normaliseMessage', () => {
@@ -20,34 +24,52 @@ describe('normaliseMessage', () => {
   });
 
   it('keeps genuinely different messages different', () => {
-    expect(normaliseMessage('Cannot read selector')).not.toBe(normaliseMessage('Cannot read value'));
+    expect(normaliseMessage('Cannot read selector')).not.toBe(
+      normaliseMessage('Cannot read value'),
+    );
   });
 
   it('keeps different URLs apart while still collapsing ids inside one URL', () => {
     // Different endpoints are different bugs and must not share a fingerprint.
-    expect(normaliseMessage('HTTP 500 from POST https://app.test/api/setup-user'))
-      .not.toBe(normaliseMessage('HTTP 404 from POST https://app.test/api/setup-order'));
+    expect(normaliseMessage('HTTP 500 from POST https://app.test/api/setup-user')).not.toBe(
+      normaliseMessage('HTTP 404 from POST https://app.test/api/setup-order'),
+    );
 
     // The same endpoint with different record ids is one bug.
-    expect(normaliseMessage('GET https://app.test/api/orders/1234 failed'))
-      .toBe(normaliseMessage('GET https://app.test/api/orders/9876 failed'));
+    expect(normaliseMessage('GET https://app.test/api/orders/1234 failed')).toBe(
+      normaliseMessage('GET https://app.test/api/orders/9876 failed'),
+    );
   });
 });
 
 describe('fingerprintError', () => {
   it('is stable for the same error', () => {
-    const input = { kind: 'server-api' as const, message: 'boom', frames: [frame('server/a.ts', 10)] };
+    const input = {
+      kind: 'server-api' as const,
+      message: 'boom',
+      frames: [frame('server/a.ts', 10)],
+    };
     expect(fingerprintError(input)).toBe(fingerprintError(input));
   });
 
   it('ignores vendor frames', () => {
-    const appOnly = { kind: 'server-api' as const, message: 'boom', frames: [frame('server/a.ts', 10)] };
+    const appOnly = {
+      kind: 'server-api' as const,
+      message: 'boom',
+      frames: [frame('server/a.ts', 10)],
+    };
     const withVendor = {
       kind: 'server-api' as const,
       message: 'boom',
       frames: [
         frame('server/a.ts', 10),
-        { functionName: 'x', file: 'node_modules/express/lib/router.js', line: 99, column: 1, app: false },
+        {
+          functionName: 'x',
+          file: 'node_modules/express/lib/router.js',
+          line: 99,
+          column: 1,
+          app: false,
+        },
       ],
     };
     expect(fingerprintError(withVendor)).toBe(fingerprintError(appOnly));
@@ -55,13 +77,17 @@ describe('fingerprintError', () => {
 
   it('separates different kinds with the same error', () => {
     const frames = [frame('server/a.ts', 10)];
-    expect(fingerprintError({ kind: 'server-api', message: 'boom', frames }))
-      .not.toBe(fingerprintError({ kind: 'job', message: 'boom', frames }));
+    expect(fingerprintError({ kind: 'server-api', message: 'boom', frames })).not.toBe(
+      fingerprintError({ kind: 'job', message: 'boom', frames }),
+    );
   });
 
   it('separates different origin lines', () => {
-    expect(fingerprintError({ kind: 'job', message: 'boom', frames: [frame('server/a.ts', 10)] }))
-      .not.toBe(fingerprintError({ kind: 'job', message: 'boom', frames: [frame('server/a.ts', 20)] }));
+    expect(
+      fingerprintError({ kind: 'job', message: 'boom', frames: [frame('server/a.ts', 10)] }),
+    ).not.toBe(
+      fingerprintError({ kind: 'job', message: 'boom', frames: [frame('server/a.ts', 20)] }),
+    );
   });
 });
 

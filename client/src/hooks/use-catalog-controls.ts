@@ -7,9 +7,22 @@ export function useCatalogControls() {
   const [pageSize, setSize] = useState(25);
   useEffect(() => {
     if (search.trim() === debouncedSearch) return;
-    const timer = setTimeout(() => { setDebouncedSearch(search.trim()); setPage(1); }, 300);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
     return () => clearTimeout(timer);
   }, [search, debouncedSearch]);
-  return { search, setSearch, debouncedSearch, page, setPage, pageSize,
-    setPageSize: (size: number) => { setSize(size); setPage(1); } };
+  return {
+    search,
+    setSearch,
+    debouncedSearch,
+    page,
+    setPage,
+    pageSize,
+    setPageSize: (size: number) => {
+      setSize(size);
+      setPage(1);
+    },
+  };
 }

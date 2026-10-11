@@ -19,10 +19,12 @@ vi.mock('@/hooks/use-environments', async (importOriginal) => {
 
 // Mock fetchTestPlansAPI
 vi.mock('@/lib/api/test-plans', () => ({
-  fetchTestPlansAPI: vi.fn(() => Promise.resolve([
-    { id: 'plan1', name: 'Test Plan 1' },
-    { id: 'plan2', name: 'Test Plan 2' },
-  ])),
+  fetchTestPlansAPI: vi.fn(() =>
+    Promise.resolve([
+      { id: 'plan1', name: 'Test Plan 1' },
+      { id: 'plan2', name: 'Test Plan 2' },
+    ]),
+  ),
 }));
 
 const queryClient = new QueryClient({
@@ -61,10 +63,9 @@ describe('ScheduleForm', () => {
   });
 
   it('renders all basic fields', async () => {
-    render(
-      <ScheduleForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isSubmitting={false} />,
-      { wrapper: Wrapper }
-    );
+    render(<ScheduleForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isSubmitting={false} />, {
+      wrapper: Wrapper,
+    });
 
     expect(screen.getByLabelText(/Schedule Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Test Plan/i)).toBeInTheDocument();
@@ -74,8 +75,8 @@ describe('ScheduleForm', () => {
     expect(screen.getByLabelText(/Timezone/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Environment/i)).toBeInTheDocument();
     expect(screen.getByText('Browsers')).toBeInTheDocument(); // group caption, not a control label
-    BROWSER_OPTIONS.forEach(opt => {
-      expect(screen.getByLabelText(new RegExp(opt.label, "i"))).toBeInTheDocument();
+    BROWSER_OPTIONS.forEach((opt) => {
+      expect(screen.getByLabelText(new RegExp(opt.label, 'i'))).toBeInTheDocument();
     });
     expect(screen.getByLabelText(/Retry on Failure/i)).toBeInTheDocument();
     expect(document.getElementById('notificationConfigOverride')).toBeInTheDocument();
@@ -96,10 +97,9 @@ describe('ScheduleForm', () => {
   });
 
   it('shows validation errors for required fields on submit', async () => {
-    render(
-      <ScheduleForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isSubmitting={false} />,
-      { wrapper: Wrapper }
-    );
+    render(<ScheduleForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isSubmitting={false} />, {
+      wrapper: Wrapper,
+    });
 
     const submitButton = screen.getByRole('button', { name: /Create Schedule/i });
     await waitFor(() => expect(submitButton).not.toBeDisabled());
@@ -115,15 +115,18 @@ describe('ScheduleForm', () => {
   });
 
   it('calls onSubmit with transformed data when form is valid', async () => {
-    render(
-      <ScheduleForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isSubmitting={false} />,
-      { wrapper: Wrapper }
-    );
+    render(<ScheduleForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isSubmitting={false} />, {
+      wrapper: Wrapper,
+    });
 
     // Wait for plans to load
-    await waitFor(() => expect(screen.queryByText('Loading test plans...')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText('Loading test plans...')).not.toBeInTheDocument(),
+    );
 
-    fireEvent.change(screen.getByLabelText(/Schedule Name/i), { target: { value: 'My Test Schedule' } });
+    fireEvent.change(screen.getByLabelText(/Schedule Name/i), {
+      target: { value: 'My Test Schedule' },
+    });
 
     // Select Test Plan
     await openSelect(screen.getByLabelText(/Test Plan/i));
@@ -150,10 +153,9 @@ describe('ScheduleForm', () => {
   });
 
   it('displays custom CRON input when frequency is "custom_cron"', async () => {
-    render(
-      <ScheduleForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isSubmitting={false} />,
-      { wrapper: Wrapper }
-    );
+    render(<ScheduleForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} isSubmitting={false} />, {
+      wrapper: Wrapper,
+    });
 
     await openSelect(screen.getByLabelText(/Frequency/i));
     fireEvent.click(await screen.findByRole('option', { name: 'Custom CRON' }));
@@ -166,8 +168,8 @@ describe('ScheduleForm', () => {
 
     fireEvent.change(cronInput, { target: { value: '0 0 * * *' } });
     // Submit and check payload
-     fireEvent.click(screen.getByRole('button', { name: /Create Schedule/i }));
-     // ... (add more assertions for valid submission with CRON)
+    fireEvent.click(screen.getByRole('button', { name: /Create Schedule/i }));
+    // ... (add more assertions for valid submission with CRON)
   });
 
   it('populates form with initialData for editing', async () => {
@@ -189,11 +191,18 @@ describe('ScheduleForm', () => {
     };
 
     render(
-      <ScheduleForm initialData={initialScheduleData} onSubmit={mockOnSubmit} onCancel={mockOnCancel} isSubmitting={false} />,
-      { wrapper: Wrapper }
+      <ScheduleForm
+        initialData={initialScheduleData}
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+        isSubmitting={false}
+      />,
+      { wrapper: Wrapper },
     );
 
-    await waitFor(() => expect(screen.queryByText('Loading test plans...')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText('Loading test plans...')).not.toBeInTheDocument(),
+    );
 
     expect(screen.getByLabelText(/Schedule Name/i)).toHaveValue('Existing Schedule');
     // Check selected value for Test Plan (requires interaction or checking selected value in DOM)
@@ -220,7 +229,6 @@ describe('ScheduleForm', () => {
 
     expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument();
   });
-
 });
 
 describe('ScheduleForm timezone', () => {
@@ -233,10 +241,9 @@ describe('ScheduleForm timezone', () => {
   });
 
   it('defaults to the browser timezone, which is what the tester means by "02:00"', async () => {
-    render(
-      <ScheduleForm onSubmit={onSubmit} onCancel={onCancel} isSubmitting={false} />,
-      { wrapper: Wrapper },
-    );
+    render(<ScheduleForm onSubmit={onSubmit} onCancel={onCancel} isSubmitting={false} />, {
+      wrapper: Wrapper,
+    });
 
     // Not UTC. Everything used to be UTC and the form said so — honest, but it pushed a
     // twice-yearly conversion onto whoever set the schedule, and they got it wrong.
@@ -250,15 +257,17 @@ describe('ScheduleForm timezone', () => {
         onSubmit={onSubmit}
         onCancel={onCancel}
         isSubmitting={false}
-        initialData={{
-          scheduleName: 'Nightly',
-          testPlanId: 'plan-1',
-          frequency: 'daily',
-          nextRunAt: new Date('2024-01-15T01:00:00Z'),
-          timezone: 'Europe/Rome',
-          isActive: true,
-          retryOnFailure: 'none',
-        } as never}
+        initialData={
+          {
+            scheduleName: 'Nightly',
+            testPlanId: 'plan-1',
+            frequency: 'daily',
+            nextRunAt: new Date('2024-01-15T01:00:00Z'),
+            timezone: 'Europe/Rome',
+            isActive: true,
+            retryOnFailure: 'none',
+          } as never
+        }
       />,
       { wrapper: Wrapper },
     );

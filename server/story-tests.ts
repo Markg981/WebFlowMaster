@@ -36,7 +36,12 @@ export interface StoryInput {
   acceptance: string;
 }
 
-export const PROPOSAL_LANGUAGES = { en: 'English', it: 'Italian', de: 'German', fr: 'French' } as const;
+export const PROPOSAL_LANGUAGES = {
+  en: 'English',
+  it: 'Italian',
+  de: 'German',
+  fr: 'French',
+} as const;
 export type ProposalLanguage = keyof typeof PROPOSAL_LANGUAGES;
 
 /** Enough for a long story with its criteria; more is a document, not a story. */
@@ -46,7 +51,11 @@ export const MAX_STEPS = 20;
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}…` : text);
 
-export function buildStoryPrompt(story: StoryInput, language: ProposalLanguage, count: number): string {
+export function buildStoryPrompt(
+  story: StoryInput,
+  language: ProposalLanguage,
+  count: number,
+): string {
   const wanted = Math.min(Math.max(count, 1), MAX_PROPOSALS);
   const body = clip(
     [
@@ -70,7 +79,8 @@ export function buildStoryPrompt(story: StoryInput, language: ProposalLanguage, 
   ].join('\n');
 }
 
-const text = (value: unknown, max: number) => (typeof value === 'string' ? clip(value.trim(), max) : '');
+const text = (value: unknown, max: number) =>
+  typeof value === 'string' ? clip(value.trim(), max) : '';
 
 /** The cases in the model's answer, or null when it holds none worth showing. */
 export function parseProposals(answer: string | null): TestProposal[] | null {
@@ -92,12 +102,23 @@ export function parseProposals(answer: string | null): TestProposal[] | null {
     const candidate = item as Record<string, unknown>;
     const title = text(candidate.title, 200);
     const steps = (Array.isArray(candidate.steps) ? candidate.steps : [])
-      .map((step) => ({ action: text((step as any)?.action, 500), expected: text((step as any)?.expected, 500) }))
+      .map((step) => ({
+        action: text((step as any)?.action, 500),
+        expected: text((step as any)?.expected, 500),
+      }))
       .filter((step) => step.action !== '')
       .slice(0, MAX_STEPS);
     if (!title || steps.length === 0) continue;
-    const kind = PROPOSAL_KINDS.includes(candidate.kind as ProposalKind) ? (candidate.kind as ProposalKind) : 'positive';
-    proposals.push({ title, kind, criterion: text(candidate.criterion, 500), preconditions: text(candidate.preconditions, 1000), steps });
+    const kind = PROPOSAL_KINDS.includes(candidate.kind as ProposalKind)
+      ? (candidate.kind as ProposalKind)
+      : 'positive';
+    proposals.push({
+      title,
+      kind,
+      criterion: text(candidate.criterion, 500),
+      preconditions: text(candidate.preconditions, 1000),
+      steps,
+    });
     if (proposals.length === MAX_PROPOSALS) break;
   }
   return proposals.length ? proposals : null;

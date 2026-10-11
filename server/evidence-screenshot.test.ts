@@ -25,7 +25,10 @@ const fakePage = (outcomes: Array<Buffer | Error>, closed = false) => {
 describe('evidenceScreenshot', () => {
   it('tries again once the page has settled, and returns the picture', async () => {
     const png = Buffer.from('png');
-    const { page, screenshot } = fakePage([new Error('Protocol error (Page.captureScreenshot): Unable to capture screenshot'), png]);
+    const { page, screenshot } = fakePage([
+      new Error('Protocol error (Page.captureScreenshot): Unable to capture screenshot'),
+      png,
+    ]);
     const missing = vi.fn();
 
     expect(await evidenceScreenshot(page as never, missing)).toBe(png);
@@ -34,7 +37,10 @@ describe('evidenceScreenshot', () => {
   });
 
   it('returns nothing, and says why, when the picture cannot be had', async () => {
-    const { page } = fakePage([new Error('Unable to capture screenshot'), new Error('Unable to capture screenshot')]);
+    const { page } = fakePage([
+      new Error('Unable to capture screenshot'),
+      new Error('Unable to capture screenshot'),
+    ]);
     const missing = vi.fn();
 
     await expect(evidenceScreenshot(page as never, missing)).resolves.toBeUndefined();

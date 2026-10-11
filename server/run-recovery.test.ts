@@ -23,12 +23,21 @@ let otherPlanId: string;
 
 async function run(columns: Record<string, unknown>, plan = planId, org = organizationId) {
   const id = uuidv4();
-  await privilegedDb.insert(testPlanExecutions).values({ id, organizationId: org, testPlanId: plan, triggeredBy: 'scheduled', ...columns } as any);
+  await privilegedDb.insert(testPlanExecutions).values({
+    id,
+    organizationId: org,
+    testPlanId: plan,
+    triggeredBy: 'scheduled',
+    ...columns,
+  } as any);
   return id;
 }
 
 async function statusOf(id: string) {
-  const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+  const [row] = await privilegedDb
+    .select()
+    .from(testPlanExecutions)
+    .where(eq(testPlanExecutions.id, id));
   return row;
 }
 
@@ -40,9 +49,14 @@ beforeEach(async () => {
     [organizationId, (id: string) => (planId = id)],
     [otherOrganizationId, (id: string) => (otherPlanId = id)],
   ] as const) {
-    const [user] = await privilegedDb.insert(users).values({ username: `rec-${uuidv4().slice(0, 8)}`, password: 'x', organizationId: org }).returning();
+    const [user] = await privilegedDb
+      .insert(users)
+      .values({ username: `rec-${uuidv4().slice(0, 8)}`, password: 'x', organizationId: org })
+      .returning();
     const id = uuidv4();
-    await privilegedDb.insert(testPlans).values({ id, name: 'Recovery', userId: user.id, organizationId: org } as any);
+    await privilegedDb
+      .insert(testPlans)
+      .values({ id, name: 'Recovery', userId: user.id, organizationId: org } as any);
     setPlan(id);
   }
 });
@@ -51,8 +65,16 @@ const options = { now, staleAfterMs: 2 * 60_000, maxDurationMs: 60 * 60_000, gra
 
 describe('recoverAbandonedRuns', () => {
   it('ends a run whose worker went quiet as an error that says so, in every organization', async () => {
-    const dead = await run({ status: 'running', startedAt: minutesAgo(10), heartbeatAt: minutesAgo(5) });
-    const deadElsewhere = await run({ status: 'running', startedAt: minutesAgo(10), heartbeatAt: minutesAgo(5) }, otherPlanId, otherOrganizationId);
+    const dead = await run({
+      status: 'running',
+      startedAt: minutesAgo(10),
+      heartbeatAt: minutesAgo(5),
+    });
+    const deadElsewhere = await run(
+      { status: 'running', startedAt: minutesAgo(10), heartbeatAt: minutesAgo(5) },
+      otherPlanId,
+      otherOrganizationId,
+    );
 
     const report = await recoverAbandonedRuns(options);
 
@@ -64,7 +86,11 @@ describe('recoverAbandonedRuns', () => {
   });
 
   it('leaves a run alone while its worker keeps beating, however long it has been going', async () => {
-    const slow = await run({ status: 'running', startedAt: minutesAgo(50), heartbeatAt: minutesAgo(0.5) });
+    const slow = await run({
+      status: 'running',
+      startedAt: minutesAgo(50),
+      heartbeatAt: minutesAgo(0.5),
+    });
     const waiting = await run({ status: 'queued' });
 
     const report = await recoverAbandonedRuns(options);
@@ -75,21 +101,36 @@ describe('recoverAbandonedRuns', () => {
   });
 
   it('finishes cancelling a run whose worker went away before it could', async () => {
-    const id = await run({ status: 'cancelling', startedAt: minutesAgo(10), heartbeatAt: minutesAgo(5), failureMessage: 'Cancelled by ada.' });
+    const id = await run({
+      status: 'cancelling',
+      startedAt: minutesAgo(10),
+      heartbeatAt: minutesAgo(5),
+      failureMessage: 'Cancelled by ada.',
+    });
 
     const report = await recoverAbandonedRuns(options);
 
     expect(report.cancelled).toEqual([id]);
-    expect(await statusOf(id)).toMatchObject({ status: 'cancelled', failureMessage: 'Cancelled by ada.' });
+    expect(await statusOf(id)).toMatchObject({
+      status: 'cancelled',
+      failureMessage: 'Cancelled by ada.',
+    });
   });
 
   it('times out a run past its limit even while its heartbeat goes on', async () => {
-    const stuck = await run({ status: 'running', startedAt: minutesAgo(70), heartbeatAt: minutesAgo(0.5) });
+    const stuck = await run({
+      status: 'running',
+      startedAt: minutesAgo(70),
+      heartbeatAt: minutesAgo(0.5),
+    });
 
     const report = await recoverAbandonedRuns(options);
 
     expect(report.timedOut).toEqual([stuck]);
-    expect(await statusOf(stuck)).toMatchObject({ status: 'timed_out', failureCode: 'run_timed_out' });
+    expect(await statusOf(stuck)).toMatchObject({
+      status: 'timed_out',
+      failureCode: 'run_timed_out',
+    });
   });
 
   it('reads a run from before heartbeats by when it started', async () => {
@@ -99,18 +140,29 @@ describe('recoverAbandonedRuns', () => {
   });
 
   it('hands each run it ended to the retry, so a scheduled run with attempts left tries again', async () => {
-    const dead = await run({ status: 'running', startedAt: minutesAgo(10), heartbeatAt: minutesAgo(5), attempt: 1, maxAttempts: 2 });
+    const dead = await run({
+      status: 'running',
+      startedAt: minutesAgo(10),
+      heartbeatAt: minutesAgo(5),
+      attempt: 1,
+      maxAttempts: 2,
+    });
     const retry = vi.fn(async () => null);
 
     await recoverAbandonedRuns({ ...options, retry });
 
-    expect(retry).toHaveBeenCalledWith(expect.objectContaining({ id: dead, status: 'error', attempt: 1, maxAttempts: 2 }));
+    expect(retry).toHaveBeenCalledWith(
+      expect.objectContaining({ id: dead, status: 'error', attempt: 1, maxAttempts: 2 }),
+    );
   });
 
   it('ends each run once, however many servers sweep at the same moment', async () => {
     await run({ status: 'running', startedAt: minutesAgo(10), heartbeatAt: minutesAgo(5) });
 
-    const [a, b] = await Promise.all([recoverAbandonedRuns(options), recoverAbandonedRuns(options)]);
+    const [a, b] = await Promise.all([
+      recoverAbandonedRuns(options),
+      recoverAbandonedRuns(options),
+    ]);
 
     expect(a.lost.length + b.lost.length).toBe(1);
   });

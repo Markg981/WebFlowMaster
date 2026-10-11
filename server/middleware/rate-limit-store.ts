@@ -1,4 +1,9 @@
-import { MemoryStore, type ClientRateLimitInfo, type Options, type Store } from 'express-rate-limit';
+import {
+  MemoryStore,
+  type ClientRateLimitInfo,
+  type Options,
+  type Store,
+} from 'express-rate-limit';
 import type Redis from 'ioredis';
 
 /**
@@ -64,7 +69,10 @@ export class SharedRateLimitStore implements Store {
       return await Promise.race([
         work,
         new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error('Redis did not answer in time')), REDIS_TIMEOUT_MS);
+          timer = setTimeout(
+            () => reject(new Error('Redis did not answer in time')),
+            REDIS_TIMEOUT_MS,
+          );
         }),
       ]);
     } finally {
@@ -76,7 +84,9 @@ export class SharedRateLimitStore implements Store {
     const client = this.ready();
     if (client) {
       try {
-        const [hits, ttl] = (await this.within(client.eval(INCREMENT, 1, this.keyFor(key), String(this.windowMs)))) as [number, number];
+        const [hits, ttl] = (await this.within(
+          client.eval(INCREMENT, 1, this.keyFor(key), String(this.windowMs)),
+        )) as [number, number];
         return { totalHits: Number(hits), resetTime: new Date(Date.now() + Number(ttl)) };
       } catch {
         // Fall through to this process's count.
@@ -126,7 +136,9 @@ export function sharedStore(name: string): SharedRateLimitStore {
  * Called once at start-up by the web process with the client it already holds. The client
  * connects lazily; nothing else may have asked it to yet, so this does, without waiting.
  */
-export function useRedisForRateLimits(client: (RedisLike & Partial<Pick<Redis, 'connect'>>) | null) {
+export function useRedisForRateLimits(
+  client: (RedisLike & Partial<Pick<Redis, 'connect'>>) | null,
+) {
   redisClient = client;
   if (client && client.status === 'wait' && client.connect) client.connect().catch(() => undefined);
 }

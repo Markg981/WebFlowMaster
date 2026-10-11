@@ -3,7 +3,13 @@ import { Extraction, ExtractionSourceSchema } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { PlusCircle, XCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -50,18 +56,15 @@ export const ExtractionEditor: React.FC<ExtractionEditorProps> = ({
   };
 
   const add = () => {
-    onChange([
-      ...extractions,
-      { id: uuidv4(), name: '', source: 'body_json_path', property: '' },
-    ]);
+    onChange([...extractions, { id: uuidv4(), name: '', source: 'body_json_path', property: '' }]);
   };
 
   return (
     <div className="space-y-4 p-1">
       {extractions.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          Nothing captured yet. Add a capture to reuse a value — a token, an id — in the
-          requests that follow this one in a test plan.
+          Nothing captured yet. Add a capture to reuse a value — a token, an id — in the requests
+          that follow this one in a test plan.
         </p>
       )}
 
@@ -144,9 +147,7 @@ export const ExtractionEditor: React.FC<ExtractionEditorProps> = ({
               {captured !== undefined && (
                 <p className="text-xs text-success mt-1 break-all">Captured: {captured}</p>
               )}
-              {failure && (
-                <p className="text-xs text-destructive mt-1">{failure.reason}</p>
-              )}
+              {failure && <p className="text-xs text-destructive mt-1">{failure.reason}</p>}
             </div>
 
             <div className="col-span-2 flex justify-end pt-5">

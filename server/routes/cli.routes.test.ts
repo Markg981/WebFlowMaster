@@ -13,7 +13,14 @@ import { promisify } from 'util';
  */
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -36,7 +43,10 @@ describe('GET /cli/wfm.mjs', () => {
       expect(help.stdout).toContain('wfm — run WebFlowMaster test plans from a pipeline');
 
       // No URL, no key: the tool's own error, with its own exit code — not a crash, not 0.
-      const failed = await run(process.execPath, [file, 'run', 'plan-1'], { cwd: dir, env: { PATH: process.env.PATH ?? '' } }).catch((error) => error);
+      const failed = await run(process.execPath, [file, 'run', 'plan-1'], {
+        cwd: dir,
+        env: { PATH: process.env.PATH ?? '' },
+      }).catch((error) => error);
       expect(failed.code).toBe(2);
       expect(failed.stderr).toContain('WFM_URL');
     } finally {
@@ -58,7 +68,10 @@ describe('GET /cli/wfm-agent.mjs', () => {
     const file = path.join(dir, 'wfm-agent.mjs');
     try {
       await fs.writeFile(file, response.text);
-      const failed = await promisify(execFile)(process.execPath, [file], { cwd: dir, env: { PATH: process.env.PATH ?? '' } }).catch((error) => error);
+      const failed = await promisify(execFile)(process.execPath, [file], {
+        cwd: dir,
+        env: { PATH: process.env.PATH ?? '' },
+      }).catch((error) => error);
       expect(failed.code).toBe(2);
       expect(failed.stderr).toContain('WFM_AGENT_TOKEN');
     } finally {

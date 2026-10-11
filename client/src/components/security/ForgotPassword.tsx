@@ -30,7 +30,11 @@ export default function ForgotPassword({ username }: { username: string }) {
 
   if (!open) {
     return (
-      <button type="button" className="text-sm text-primary hover:underline" onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className="text-sm text-primary hover:underline"
+        onClick={() => setOpen(true)}
+      >
         {t('authPage.forgot.link', 'Forgot your password?')}
       </button>
     );
@@ -48,7 +52,12 @@ export default function ForgotPassword({ username }: { username: string }) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message || `Request failed (${res.status})`);
-      setAnswer(t('authPage.forgot.sent', 'If an account with that address exists, a link to choose a new password is on its way. Check your mailbox.'));
+      setAnswer(
+        t(
+          'authPage.forgot.sent',
+          'If an account with that address exists, a link to choose a new password is on its way. Check your mailbox.',
+        ),
+      );
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -62,9 +71,17 @@ export default function ForgotPassword({ username }: { username: string }) {
     </p>
   ) : (
     <form onSubmit={submit} className="space-y-2" data-testid="forgot-form">
-      <Label htmlFor="forgot-address">{t('authPage.forgot.label', 'The address you sign in with')}</Label>
+      <Label htmlFor="forgot-address">
+        {t('authPage.forgot.label', 'The address you sign in with')}
+      </Label>
       <div className="flex gap-2">
-        <Input id="forgot-address" type="email" value={address} onChange={(e) => setAddress(e.target.value)} required />
+        <Input
+          id="forgot-address"
+          type="email"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          required
+        />
         <Button type="submit" variant="outline" disabled={pending || !address.trim()}>
           {t('authPage.forgot.submit', 'Send me a link')}
         </Button>

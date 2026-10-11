@@ -9,7 +9,12 @@ import { hashAgentToken } from '../agents/agent-credentials';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -62,18 +67,33 @@ beforeEach(async () => {
 
 describe('POST /api/agents', () => {
   it('returns the token once, stores only its hash, and the token authenticates the agent', async () => {
-    const response = await request(app).post('/api/agents').send({ name: 'Build box', pool: 'OnPrem' }).expect(201);
+    const response = await request(app)
+      .post('/api/agents')
+      .send({ name: 'Build box', pool: 'OnPrem' })
+      .expect(201);
 
     expect(response.body.token).toMatch(/^wfa_/);
-    expect(response.body.agent).toMatchObject({ name: 'Build box', pool: 'onprem', connected: true, activeSessions: 1 });
+    expect(response.body.agent).toMatchObject({
+      name: 'Build box',
+      pool: 'onprem',
+      connected: true,
+      activeSessions: 1,
+    });
     expect(response.body.agent.tokenHash).toBeUndefined();
 
-    const [stored] = await privilegedDb.select().from(agents).where(eq(agents.id, response.body.agent.id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(agents)
+      .where(eq(agents.id, response.body.agent.id));
     expect(stored.tokenHash).toBe(hashAgentToken(response.body.token));
     expect(stored.organizationId).toBe(organizationId);
     expect(JSON.stringify(stored)).not.toContain(response.body.token);
 
-    expect(await authenticateAgentToken(response.body.token)).toMatchObject({ id: stored.id, organizationId, pool: 'onprem' });
+    expect(await authenticateAgentToken(response.body.token)).toMatchObject({
+      id: stored.id,
+      organizationId,
+      pool: 'onprem',
+    });
     expect(await authenticateAgentToken('wfa_not-a-token')).toBeNull();
 
     const listing = await request(app).get('/api/agents').expect(200);
@@ -89,10 +109,17 @@ describe('POST /api/agents', () => {
   });
 
   it('records the creation with the prefix and never the token', async () => {
-    const created = await request(app).post('/api/agents').send({ name: 'Audited', pool: 'lab' }).expect(201);
+    const created = await request(app)
+      .post('/api/agents')
+      .send({ name: 'Audited', pool: 'lab' })
+      .expect(201);
     const entries = await privilegedDb.select().from(auditLog);
     expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({ action: 'agent.created', targetType: 'agent', targetId: created.body.agent.id });
+    expect(entries[0]).toMatchObject({
+      action: 'agent.created',
+      targetType: 'agent',
+      targetId: created.body.agent.id,
+    });
     expect(JSON.stringify(entries[0].metadata)).not.toContain(created.body.token);
   });
 
@@ -105,7 +132,12 @@ describe('POST /api/agents', () => {
 describe('GET /api/agents', () => {
   it("shows this organization's agents and not another's, to a viewer too", async () => {
     await request(app).post('/api/agents').send({ name: 'Ours' }).expect(201);
-    currentUser = { id: otherOwnerId, username: 'other-agents-owner', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherOwnerId,
+      username: 'other-agents-owner',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
     await request(app).post('/api/agents').send({ name: 'Theirs' }).expect(201);
 
     currentUser = { id: ownerId, username: 'agents-owner', organizationId, role: 'viewer' };
@@ -116,7 +148,10 @@ describe('GET /api/agents', () => {
 
 describe('POST /api/agents/:id/revoke', () => {
   it('revokes, drops the connection, stops the token working, and records it', async () => {
-    const created = await request(app).post('/api/agents').send({ name: 'Old', pool: 'lab' }).expect(201);
+    const created = await request(app)
+      .post('/api/agents')
+      .send({ name: 'Old', pool: 'lab' })
+      .expect(201);
     const id = created.body.agent.id;
 
     const revoked = await request(app).post(`/api/agents/${id}/revoke`).expect(200);
@@ -132,7 +167,12 @@ describe('POST /api/agents/:id/revoke', () => {
   });
 
   it("cannot reach another organization's agent", async () => {
-    currentUser = { id: otherOwnerId, username: 'other-agents-owner', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherOwnerId,
+      username: 'other-agents-owner',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
     const theirs = await request(app).post('/api/agents').send({ name: 'Theirs' }).expect(201);
 
     currentUser = { id: ownerId, username: 'agents-owner', organizationId, role: 'owner' };

@@ -14,7 +14,10 @@ import CommentsPanel from '@/components/tests/CommentsPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MessageSquare } from 'lucide-react';
 
-export type ApiTestSummary = Pick<ApiTest, 'id' | 'name' | 'method' | 'url' | 'projectId' | 'module' | 'updatedAt' | 'publishedVersion'>;
+export type ApiTestSummary = Pick<
+  ApiTest,
+  'id' | 'name' | 'method' | 'url' | 'projectId' | 'module' | 'updatedAt' | 'publishedVersion'
+>;
 
 interface SavedTestsPanelProps {
   savedTests: ApiTestSummary[];
@@ -75,7 +78,7 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
   const projectLabel = (pid: number) =>
     pid === NO_PROJECT
       ? t('apiTester.savedTestsPanel.noProject.label', 'No project')
-      : projectNameById.get(pid) ?? `Project ${pid}`;
+      : (projectNameById.get(pid) ?? `Project ${pid}`);
 
   const sortedProjectIds = Array.from(byProject.keys()).sort((a, b) =>
     projectLabel(a).localeCompare(projectLabel(b)),
@@ -119,34 +122,75 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
             {test.url}
           </p>
           <div className="text-xs text-muted-foreground mt-1">
-            {t('apiTester.savedTestsPanel.lastUpdated.label')} {new Date(test.updatedAt).toLocaleDateString()}
+            {t('apiTester.savedTestsPanel.lastUpdated.label')}{' '}
+            {new Date(test.updatedAt).toLocaleDateString()}
           </div>
         </div>
         {/* Icons sit inside the clickable card, so each stops the click from also loading it. */}
         <div className="flex items-center shrink-0">
-          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={t('testHistory.openFor', 'History of {{name}}', { name: test.name })}
-            onKeyDown={event => event.stopPropagation()}
-            onClick={event => { event.stopPropagation(); setHistoryFor(test); }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            aria-label={t('testHistory.openFor', 'History of {{name}}', { name: test.name })}
+            onKeyDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              setHistoryFor(test);
+            }}
+          >
             <History className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={t('comments.title', 'Comments')}
-            onKeyDown={event => event.stopPropagation()}
-            onClick={event => { event.stopPropagation(); setCommentsFor(test); }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            aria-label={t('comments.title', 'Comments')}
+            onKeyDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              setCommentsFor(test);
+            }}
+          >
             <MessageSquare className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7"
-            onClick={(e) => { e.stopPropagation(); onEditTest(test); }}
-            title={t('apiTester.savedTestsPanel.editTest.button')} disabled={isLoading || !!isDeletingTestId}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditTest(test);
+            }}
+            title={t('apiTester.savedTestsPanel.editTest.button')}
+            disabled={isLoading || !!isDeletingTestId}
+          >
             <Edit2 className="h-4 w-4 text-muted-foreground" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7"
-            onClick={(e) => { e.stopPropagation(); onExportTest(test); }}
-            title={t('apiTester.savedTestsPanel.exportTest.button')} disabled={isLoading || !!isDeletingTestId}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => {
+              e.stopPropagation();
+              onExportTest(test);
+            }}
+            title={t('apiTester.savedTestsPanel.exportTest.button')}
+            disabled={isLoading || !!isDeletingTestId}
+          >
             <Download className="h-4 w-4 text-sky-500" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7"
-            onClick={(e) => { e.stopPropagation(); onDeleteTest(test.id); }}
-            title={t('apiTester.savedTestsPanel.deleteTest.button')} disabled={isLoading || isDeletingTestId === test.id}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteTest(test.id);
+            }}
+            title={t('apiTester.savedTestsPanel.deleteTest.button')}
+            disabled={isLoading || isDeletingTestId === test.id}
+          >
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
@@ -156,27 +200,56 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
 
   return (
     <Card className="h-full flex flex-col">
-      {historyFor && <TestHistoryDialog key={historyFor?.id ?? 'closed'} isOpen={historyFor !== null} onClose={() => setHistoryFor(null)} test={historyFor} testType="api"
-        onRestore={async version => {
-          const response = await fetch(`/api/api-tests/${historyFor!.id}/versions/${version}/restore`, { method: 'POST', credentials: 'include' });
-          const body = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(body.error ?? t('testHistory.restoreError', 'Could not restore that version.'));
-          await queryClient.invalidateQueries({ queryKey: ['apiTests'] });
-          if (body.test?.id) {
-            setHistoryFor(body.test);
-            onLoadTest(body.test);
-          }
-        }} />}
+      {historyFor && (
+        <TestHistoryDialog
+          key={historyFor?.id ?? 'closed'}
+          isOpen={historyFor !== null}
+          onClose={() => setHistoryFor(null)}
+          test={historyFor}
+          testType="api"
+          onRestore={async (version) => {
+            const response = await fetch(
+              `/api/api-tests/${historyFor!.id}/versions/${version}/restore`,
+              { method: 'POST', credentials: 'include' },
+            );
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok)
+              throw new Error(
+                body.error ?? t('testHistory.restoreError', 'Could not restore that version.'),
+              );
+            await queryClient.invalidateQueries({ queryKey: ['apiTests'] });
+            if (body.test?.id) {
+              setHistoryFor(body.test);
+              onLoadTest(body.test);
+            }
+          }}
+        />
+      )}
       <CardHeader className="flex flex-row items-center justify-between py-3 px-4 border-b">
-        <Dialog open={commentsFor !== null} onOpenChange={open => { if (!open) setCommentsFor(null); }}>
+        <Dialog
+          open={commentsFor !== null}
+          onOpenChange={(open) => {
+            if (!open) setCommentsFor(null);
+          }}
+        >
           <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
-            <DialogHeader><DialogTitle>{commentsFor?.name}</DialogTitle></DialogHeader>
-            {commentsFor && <CommentsPanel key={commentsFor.id} kind="api" targetId={commentsFor.id} />}
+            <DialogHeader>
+              <DialogTitle>{commentsFor?.name}</DialogTitle>
+            </DialogHeader>
+            {commentsFor && (
+              <CommentsPanel key={commentsFor.id} kind="api" targetId={commentsFor.id} />
+            )}
           </DialogContent>
         </Dialog>
         <CardTitle className="text-lg">{t('apiTester.savedTestsPanel.savedTests.title')}</CardTitle>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} disabled={isLoading} data-testid="open-import">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportOpen(true)}
+            disabled={isLoading}
+            data-testid="open-import"
+          >
             <FileUp className="mr-2 h-4 w-4" /> {t('apiTester.import.button', 'Import')}
           </Button>
           <Button variant="outline" size="sm" onClick={onOpenSaveModal} disabled={isLoading}>
@@ -186,12 +259,22 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
         <ImportApiTestsDialog open={importOpen} onOpenChange={setImportOpen} />
       </CardHeader>
       {catalogControls}
-      {error && <p role="alert" className="px-4 text-sm text-destructive">{error}</p>}
+      {error && (
+        <p role="alert" className="px-4 text-sm text-destructive">
+          {error}
+        </p>
+      )}
       <CardContent className="p-0 flex-1">
         <ScrollArea className="h-full p-3">
-          {isLoading && <p className="text-sm text-muted-foreground">{t('apiTester.savedTestsPanel.loadingSavedTests.text')}</p>}
+          {isLoading && (
+            <p className="text-sm text-muted-foreground">
+              {t('apiTester.savedTestsPanel.loadingSavedTests.text')}
+            </p>
+          )}
           {!isLoading && savedTests.length === 0 && (
-            <p className="text-sm text-muted-foreground p-4 text-center">{t('apiTester.savedTestsPanel.noTestsSavedYet.text')}</p>
+            <p className="text-sm text-muted-foreground p-4 text-center">
+              {t('apiTester.savedTestsPanel.noTestsSavedYet.text')}
+            </p>
           )}
 
           <div className="space-y-2">
@@ -209,21 +292,29 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent"
                   >
                     <ChevronRight
-                      className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')}
+                      className={cn(
+                        'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+                        open && 'rotate-90',
+                      )}
                     />
-                    <span className="flex-1 truncate text-sm font-semibold">{projectLabel(pid)}</span>
-                    <Badge variant="secondary" className="font-mono text-[11px] tabular-nums">{count}</Badge>
+                    <span className="flex-1 truncate text-sm font-semibold">
+                      {projectLabel(pid)}
+                    </span>
+                    <Badge variant="secondary" className="font-mono text-[11px] tabular-nums">
+                      {count}
+                    </Badge>
                   </button>
                   {open && (
                     <div className="space-y-3 px-2 pb-3 pt-1">
                       {sortedModules.map((mod) => (
                         <div key={mod}>
                           <div className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            {mod} <span className="font-normal text-muted-foreground/70">({modules.get(mod)!.length})</span>
+                            {mod}{' '}
+                            <span className="font-normal text-muted-foreground/70">
+                              ({modules.get(mod)!.length})
+                            </span>
                           </div>
-                          <div className="space-y-2">
-                            {modules.get(mod)!.map(renderRow)}
-                          </div>
+                          <div className="space-y-2">{modules.get(mod)!.map(renderRow)}</div>
                         </div>
                       ))}
                     </div>

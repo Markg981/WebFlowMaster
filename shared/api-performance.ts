@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * A minimal performance check for an API test: the request sent N times, a few at once, and the
@@ -69,14 +69,18 @@ export function summarise(
 ): PerformanceSummary {
   const durations = samples.map((s) => s.durationMs).sort((a, b) => a - b);
   const failed = samples.filter((s) => s.error);
-  const errorRatePct = samples.length ? Math.round((failed.length / samples.length) * 1000) / 10 : 0;
+  const errorRatePct = samples.length
+    ? Math.round((failed.length / samples.length) * 1000) / 10
+    : 0;
   const summary: PerformanceSummary = {
     iterations: samples.length,
     concurrency: settings.concurrency,
     errors: failed.length,
     errorRatePct,
     minMs: durations[0] ?? 0,
-    meanMs: durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0,
+    meanMs: durations.length
+      ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+      : 0,
     p50Ms: percentile(durations, 50),
     p95Ms: percentile(durations, 95),
     maxMs: durations[durations.length - 1] ?? 0,
@@ -84,11 +88,16 @@ export function summarise(
     sampleErrors: Array.from(new Set(failed.map((s) => s.error!))).slice(0, 3),
   };
   const { p50Ms, p95Ms, maxMs, errorRatePct: maxErrors } = settings.thresholds;
-  if (p50Ms !== undefined && summary.p50Ms > p50Ms) summary.breaches.push(`p50 ${summary.p50Ms} ms > ${p50Ms} ms`);
-  if (p95Ms !== undefined && summary.p95Ms > p95Ms) summary.breaches.push(`p95 ${summary.p95Ms} ms > ${p95Ms} ms`);
-  if (maxMs !== undefined && summary.maxMs > maxMs) summary.breaches.push(`max ${summary.maxMs} ms > ${maxMs} ms`);
+  if (p50Ms !== undefined && summary.p50Ms > p50Ms)
+    summary.breaches.push(`p50 ${summary.p50Ms} ms > ${p50Ms} ms`);
+  if (p95Ms !== undefined && summary.p95Ms > p95Ms)
+    summary.breaches.push(`p95 ${summary.p95Ms} ms > ${p95Ms} ms`);
+  if (maxMs !== undefined && summary.maxMs > maxMs)
+    summary.breaches.push(`max ${summary.maxMs} ms > ${maxMs} ms`);
   if (maxErrors !== undefined && summary.errorRatePct > maxErrors) {
-    summary.breaches.push(`errors ${summary.errorRatePct}% > ${maxErrors}% (${summary.errors} of ${summary.iterations})`);
+    summary.breaches.push(
+      `errors ${summary.errorRatePct}% > ${maxErrors}% (${summary.errors} of ${summary.iterations})`,
+    );
   }
   return summary;
 }
@@ -98,7 +107,12 @@ export function readApiResultLog(detailedLog: string | null | undefined): ApiRes
   if (!detailedLog) return null;
   try {
     const parsed = JSON.parse(detailedLog);
-    return parsed && parsed.api === true && parsed.performance && typeof parsed.performance.p95Ms === "number" ? (parsed as ApiResultLog) : null;
+    return parsed &&
+      parsed.api === true &&
+      parsed.performance &&
+      typeof parsed.performance.p95Ms === 'number'
+      ? (parsed as ApiResultLog)
+      : null;
   } catch {
     return null;
   }

@@ -20,12 +20,17 @@ import { privilegedDb } from './db';
 export function installationAdmins(env: NodeJS.ProcessEnv = process.env): string[] | null {
   const raw = env.INSTALLATION_ADMINS?.trim();
   if (!raw) return null;
-  return raw.split(',').map((name) => name.trim()).filter((name) => name !== '');
+  return raw
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name !== '');
 }
 
 async function organizationCount(): Promise<number> {
   // Installation-wide by nature, and organizations has no row policy: privileged on purpose.
-  const [row] = await privilegedDb.select({ count: sql<number>`count(*)::int` }).from(organizations);
+  const [row] = await privilegedDb
+    .select({ count: sql<number>`count(*)::int` })
+    .from(organizations);
   return Number(row?.count ?? 0);
 }
 
@@ -42,7 +47,8 @@ export async function canManageInstallation(
 /** For routes that change installation-wide state. Mounted after requireRole('owner'). */
 export async function requireInstallationAdmin(req: Request, res: Response, next: NextFunction) {
   try {
-    if (await canManageInstallation(req.user as { username: string; role: string; kind?: string })) return next();
+    if (await canManageInstallation(req.user as { username: string; role: string; kind?: string }))
+      return next();
     res.status(403).json({
       error:
         'This setting applies to the whole installation. It is changed by the people named in INSTALLATION_ADMINS, ' +

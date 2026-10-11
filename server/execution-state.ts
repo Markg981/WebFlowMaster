@@ -8,7 +8,12 @@ import {
 import { withTenantTransaction, type TenantTx } from './middleware/tenancy';
 import { liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
 import { currentRunnerId } from './runner-registry';
-import { beginExecutionUsage, checkExecutionBudget, finishExecutionUsage, heartbeatUsage } from './execution-usage';
+import {
+  beginExecutionUsage,
+  checkExecutionBudget,
+  finishExecutionUsage,
+  heartbeatUsage,
+} from './execution-usage';
 import { QuotaError } from './tenant-quotas';
 
 /**
@@ -40,7 +45,13 @@ const ALLOWED_FROM: Record<ExecutionStatus, readonly ExecutionStatus[]> = {
   timed_out: ['running'],
 };
 
-const TERMINAL: readonly ExecutionStatus[] = ['completed', 'failed', 'error', 'cancelled', 'timed_out'];
+const TERMINAL: readonly ExecutionStatus[] = [
+  'completed',
+  'failed',
+  'error',
+  'cancelled',
+  'timed_out',
+];
 
 /** Fields a transition may carry. The lifecycle columns are set here, never by the caller. */
 export type ExecutionTransitionPatch = Omit<
@@ -118,17 +129,27 @@ export async function transitionExecution(
   };
 
   const moved = await withTenantTransaction(async (tx) => {
-    const [current] = await tx.select({ organizationId: testPlanExecutions.organizationId }).from(testPlanExecutions)
-      .where(eq(testPlanExecutions.id, executionId)).limit(1);
+    const [current] = await tx
+      .select({ organizationId: testPlanExecutions.organizationId })
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, executionId))
+      .limit(1);
     if (!current) return undefined;
     await lockOrganizationRuns(tx, current.organizationId);
     const [row] = await tx
       .update(testPlanExecutions)
       .set({ ...patch, ...lifecycleTimestamps, status: to })
-      .where(and(eq(testPlanExecutions.id, executionId), inArray(testPlanExecutions.status, [...sources])))
+      .where(
+        and(
+          eq(testPlanExecutions.id, executionId),
+          inArray(testPlanExecutions.status, [...sources]),
+        ),
+      )
       .returning();
-    if (row && TERMINAL.includes(to)) await finishExecutionUsage(tx, row.organizationId, 'plan', row.id, now);
-    if (row && to === 'running') await beginExecutionUsage(tx, row.organizationId, 'plan', row.id, now);
+    if (row && TERMINAL.includes(to))
+      await finishExecutionUsage(tx, row.organizationId, 'plan', row.id, now);
+    if (row && to === 'running')
+      await beginExecutionUsage(tx, row.organizationId, 'plan', row.id, now);
     return row;
   });
 
@@ -138,7 +159,13 @@ export async function transitionExecution(
 
 export type TakeOutcome =
   | { outcome: 'taken'; execution: TestPlanExecution }
-  | { outcome: 'over_quota'; running: number; maxConcurrentRuns: number; reason?: string; periodEnd?: string }
+  | {
+      outcome: 'over_quota';
+      running: number;
+      maxConcurrentRuns: number;
+      reason?: string;
+      periodEnd?: string;
+    }
   | { outcome: 'not_queued'; status: string | null };
 
 /**
@@ -153,36 +180,74 @@ export type TakeOutcome =
 export async function takeExecution(executionId: string): Promise<TakeOutcome> {
   const outcome = await withTenantTransaction(async (tx): Promise<TakeOutcome> => {
     const [row] = await tx
-      .select({ organizationId: testPlanExecutions.organizationId, status: testPlanExecutions.status })
+      .select({
+        organizationId: testPlanExecutions.organizationId,
+        status: testPlanExecutions.status,
+      })
       .from(testPlanExecutions)
       .where(eq(testPlanExecutions.id, executionId))
       .limit(1);
-    if (!row || row.status !== 'queued') return { outcome: 'not_queued', status: row?.status ?? null } as const;
+    if (!row || row.status !== 'queued')
+      return { outcome: 'not_queued', status: row?.status ?? null } as const;
 
     await lockOrganizationRuns(tx, row.organizationId);
-    const [quotas, counts] = await Promise.all([quotasFor(tx, row.organizationId), liveRunCounts(tx, row.organizationId)]);
+    const [quotas, counts] = await Promise.all([
+      quotasFor(tx, row.organizationId),
+      liveRunCounts(tx, row.organizationId),
+    ]);
     if (quotas.mode === 'enforce' && counts.running >= quotas.maxConcurrentRuns) {
-      await tx.update(testPlanExecutions).set({ quotaDeferReason: 'concurrent_run_quota', quotaDeferUntil: null })
-        .where(and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, 'queued')));
-      return { outcome: 'over_quota', running: counts.running, maxConcurrentRuns: quotas.maxConcurrentRuns } as const;
+      await tx
+        .update(testPlanExecutions)
+        .set({ quotaDeferReason: 'concurrent_run_quota', quotaDeferUntil: null })
+        .where(
+          and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, 'queued')),
+        );
+      return {
+        outcome: 'over_quota',
+        running: counts.running,
+        maxConcurrentRuns: quotas.maxConcurrentRuns,
+      } as const;
     }
-    try { await checkExecutionBudget(tx, row.organizationId); }
-    catch (error) {
+    try {
+      await checkExecutionBudget(tx, row.organizationId);
+    } catch (error) {
       if (!(error instanceof QuotaError)) throw error;
-      await tx.update(testPlanExecutions).set({ quotaDeferReason: 'execution_quota_exceeded', quotaDeferUntil: error.periodEnd ? new Date(error.periodEnd) : null })
-        .where(and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, 'queued')));
-      return { outcome: 'over_quota', running: counts.running, maxConcurrentRuns: quotas.maxConcurrentRuns, reason: error.code, periodEnd: error.periodEnd } as const;
+      await tx
+        .update(testPlanExecutions)
+        .set({
+          quotaDeferReason: 'execution_quota_exceeded',
+          quotaDeferUntil: error.periodEnd ? new Date(error.periodEnd) : null,
+        })
+        .where(
+          and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, 'queued')),
+        );
+      return {
+        outcome: 'over_quota',
+        running: counts.running,
+        maxConcurrentRuns: quotas.maxConcurrentRuns,
+        reason: error.code,
+        periodEnd: error.periodEnd,
+      } as const;
     }
 
     const now = new Date();
     const [taken] = await tx
       .update(testPlanExecutions)
       // Which runner took it: the answer to "where did this run?" when a machine misbehaves.
-      .set({ status: 'running', startedAt: now, heartbeatAt: now, runnerId: currentRunnerId(), quotaDeferReason: null, quotaDeferUntil: null })
+      .set({
+        status: 'running',
+        startedAt: now,
+        heartbeatAt: now,
+        runnerId: currentRunnerId(),
+        quotaDeferReason: null,
+        quotaDeferUntil: null,
+      })
       .where(and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, 'queued')))
       .returning();
     if (taken) await beginExecutionUsage(tx, taken.organizationId, 'plan', taken.id, now);
-    return taken ? ({ outcome: 'taken', execution: taken } as const) : ({ outcome: 'not_queued', status: 'unknown' } as const);
+    return taken
+      ? ({ outcome: 'taken', execution: taken } as const)
+      : ({ outcome: 'not_queued', status: 'unknown' } as const);
   });
   // Once committed: a listener reading the run must find it running.
   if (outcome.outcome === 'taken') announceExecution(outcome.execution);
@@ -228,7 +293,9 @@ export async function requestCancellation(
 
   const [fromQueue] = await move('queued');
   if (fromQueue) {
-    const cancelled = await transitionExecution(executionId, 'cancelled', { failureMessage: reason });
+    const cancelled = await transitionExecution(executionId, 'cancelled', {
+      failureMessage: reason,
+    });
     if (cancelled) return { outcome: 'cancelled', execution: cancelled };
   }
 
@@ -253,12 +320,19 @@ export const LIVE_EXECUTION_STATUSES = ['running', 'cancelling'] as const;
  * or null when the run is no longer live: it ended, or was given up on by the recovery sweep,
  * and whatever this worker does next is not recorded.
  */
-export async function recordHeartbeat(executionId: string): Promise<'running' | 'cancelling' | null> {
+export async function recordHeartbeat(
+  executionId: string,
+): Promise<'running' | 'cancelling' | null> {
   const row = await withTenantTransaction(async (tx) => {
     const [updated] = await tx
       .update(testPlanExecutions)
       .set({ heartbeatAt: new Date() })
-      .where(and(eq(testPlanExecutions.id, executionId), inArray(testPlanExecutions.status, [...LIVE_EXECUTION_STATUSES])))
+      .where(
+        and(
+          eq(testPlanExecutions.id, executionId),
+          inArray(testPlanExecutions.status, [...LIVE_EXECUTION_STATUSES]),
+        ),
+      )
       .returning();
     if (updated) await heartbeatUsage(tx, updated.organizationId, 'plan', updated.id);
     return updated;

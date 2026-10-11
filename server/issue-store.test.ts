@@ -10,7 +10,12 @@ import { runWithTenant } from './middleware/tenancy';
 
 vi.mock('./logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -114,7 +119,10 @@ describe('fileFailure', () => {
     await inTenant(() => fileFailure({ organizationId, tracker, failure }, jira));
 
     const outcome = await inTenant(() =>
-      fileFailure({ organizationId, tracker, failure: { ...failure, executionId: 'exec-2' } }, jira),
+      fileFailure(
+        { organizationId, tracker, failure: { ...failure, executionId: 'exec-2' } },
+        jira,
+      ),
     );
 
     expect(outcome).toMatchObject({ action: 'commented', issueKey: 'SHOP-412', occurrences: 2 });
@@ -125,8 +133,18 @@ describe('fileFailure', () => {
   it('counts the occurrences and remembers the latest run', async () => {
     const jira = fakeJira();
     await inTenant(() => fileFailure({ organizationId, tracker, failure }, jira));
-    await inTenant(() => fileFailure({ organizationId, tracker, failure: { ...failure, executionId: 'exec-2' } }, jira));
-    await inTenant(() => fileFailure({ organizationId, tracker, failure: { ...failure, executionId: 'exec-3' } }, jira));
+    await inTenant(() =>
+      fileFailure(
+        { organizationId, tracker, failure: { ...failure, executionId: 'exec-2' } },
+        jira,
+      ),
+    );
+    await inTenant(() =>
+      fileFailure(
+        { organizationId, tracker, failure: { ...failure, executionId: 'exec-3' } },
+        jira,
+      ),
+    );
 
     const [link] = await privilegedDb.select().from(issueLinks);
     expect(link.occurrences).toBe(3);
@@ -136,7 +154,9 @@ describe('fileFailure', () => {
     const jira = fakeJira();
     await inTenant(() => fileFailure({ organizationId, tracker, failure }, jira));
 
-    await inTenant(() => fileFailure({ organizationId, tracker, failure: { ...failure, browser: 'webkit' } }, jira));
+    await inTenant(() =>
+      fileFailure({ organizationId, tracker, failure: { ...failure, browser: 'webkit' } }, jira),
+    );
 
     expect(await privilegedDb.select().from(issueLinks)).toHaveLength(2);
   });
@@ -156,7 +176,9 @@ describe('fileFailure', () => {
     // recorded result into a crashed job.
     const fetchImpl = vi.fn().mockRejectedValue(new Error('socket hang up'));
 
-    const outcome = await inTenant(() => fileFailure({ organizationId, tracker, failure }, { fetchImpl }));
+    const outcome = await inTenant(() =>
+      fileFailure({ organizationId, tracker, failure }, { fetchImpl }),
+    );
 
     expect(outcome.action).toBe('failed');
   });
@@ -168,7 +190,10 @@ describe('markResolved', () => {
     await inTenant(() => fileFailure({ organizationId, tracker, failure }, jira));
 
     const outcome = await inTenant(() =>
-      markResolved({ tracker, failure: { ...failure, status: 'Passed', executionId: 'exec-2' } }, jira),
+      markResolved(
+        { tracker, failure: { ...failure, status: 'Passed', executionId: 'exec-2' } },
+        jira,
+      ),
     );
 
     expect(outcome.action).toBe('commented');
@@ -200,7 +225,12 @@ describe('markResolved', () => {
     await inTenant(() => fileFailure({ organizationId, tracker, failure }, jira));
     await inTenant(() => markResolved({ tracker, failure }, jira));
 
-    await inTenant(() => fileFailure({ organizationId, tracker, failure: { ...failure, executionId: 'exec-3' } }, jira));
+    await inTenant(() =>
+      fileFailure(
+        { organizationId, tracker, failure: { ...failure, executionId: 'exec-3' } },
+        jira,
+      ),
+    );
 
     const [link] = await privilegedDb.select().from(issueLinks);
     expect(link.resolvedAt).toBeNull();

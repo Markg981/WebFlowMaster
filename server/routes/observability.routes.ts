@@ -76,7 +76,10 @@ router.post(
     }
 
     if (dropped && dropped > 0) {
-      logger.warn(`[client] buffer overflow, dropped ${dropped} entries`, { source: 'client', sessionId });
+      logger.warn(`[client] buffer overflow, dropped ${dropped} entries`, {
+        source: 'client',
+        sessionId,
+      });
     }
 
     res.status(202).json({ accepted: entries.length });
@@ -90,7 +93,9 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = ClientIncidentReportSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid incident report', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid incident report', details: parsed.error.flatten() });
     }
 
     const report = parsed.data;

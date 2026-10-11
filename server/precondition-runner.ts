@@ -48,7 +48,9 @@ function readPath(body: unknown, path: string): unknown {
     .filter(Boolean)
     .reduce<unknown>(
       (node, key) =>
-        node !== null && typeof node === 'object' ? (node as Record<string, unknown>)[key] : undefined,
+        node !== null && typeof node === 'object'
+          ? (node as Record<string, unknown>)[key]
+          : undefined,
       body,
     );
 }
@@ -183,7 +185,8 @@ export async function runPreconditions(
     const method = (pc.method || 'GET').toUpperCase();
     if (pc.requestBody != null && method !== 'GET' && method !== 'HEAD') {
       body = typeof pc.requestBody === 'string' ? pc.requestBody : JSON.stringify(pc.requestBody);
-      if (!headers['Content-Type'] && !headers['content-type']) headers['Content-Type'] = 'application/json';
+      if (!headers['Content-Type'] && !headers['content-type'])
+        headers['Content-Type'] = 'application/json';
     }
 
     ran++;

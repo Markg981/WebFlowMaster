@@ -93,7 +93,9 @@ const AgentsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
 
   const handleCreate = () => {
     if (name.trim() === '') {
-      setFormError(t('settings.agents.nameRequired', 'Give the agent a name, such as the machine it runs on.'));
+      setFormError(
+        t('settings.agents.nameRequired', 'Give the agent a name, such as the machine it runs on.'),
+      );
       return;
     }
     setFormError('');
@@ -131,11 +133,22 @@ const AgentsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
             <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
               <div className="flex-1">
                 <Label htmlFor="agentName">{t('settings.agents.nameLabel', 'Name')}</Label>
-                <Input id="agentName" value={name} onChange={(e) => setName(e.target.value)} placeholder="QA build box" className="mt-1" />
+                <Input
+                  id="agentName"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="QA build box"
+                  className="mt-1"
+                />
               </div>
               <div className="w-full sm:w-40">
                 <Label htmlFor="agentPool">{t('settings.agents.poolLabel', 'Pool')}</Label>
-                <Input id="agentPool" value={pool} onChange={(e) => setPool(e.target.value)} className="mt-1" />
+                <Input
+                  id="agentPool"
+                  value={pool}
+                  onChange={(e) => setPool(e.target.value)}
+                  className="mt-1"
+                />
               </div>
               <Button onClick={handleCreate} disabled={create.isPending}>
                 {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -147,16 +160,29 @@ const AgentsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
         )}
 
         {issued && (
-          <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2" data-testid="agent-token">
+          <div
+            className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2"
+            data-testid="agent-token"
+          >
             <p className="text-sm font-medium">
-              {t('settings.agents.tokenOnce', 'The token for {{name}}. Copy it now: it will not be shown again.', { name: issued.name })}
+              {t(
+                'settings.agents.tokenOnce',
+                'The token for {{name}}. Copy it now: it will not be shown again.',
+                { name: issued.name },
+              )}
             </p>
             <p className="text-sm text-muted-foreground">
               {t('settings.agents.setupHint', 'On the machine, with Node 20 or later:')}
             </p>
-            <pre className="text-xs bg-background border rounded p-2 overflow-x-auto whitespace-pre">{setup}</pre>
+            <pre className="text-xs bg-background border rounded p-2 overflow-x-auto whitespace-pre">
+              {setup}
+            </pre>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => navigator.clipboard?.writeText(setup)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigator.clipboard?.writeText(setup)}
+              >
                 <Copy className="h-3 w-3 mr-1" />
                 {t('settings.agents.copy', 'Copy')}
               </Button>
@@ -168,18 +194,29 @@ const AgentsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
         )}
 
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('settings.agents.loading', 'Loading agents…')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('settings.agents.loading', 'Loading agents…')}
+          </p>
         ) : error ? (
           <p className="text-sm text-destructive">{(error as Error).message}</p>
         ) : agents.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('settings.agents.empty', 'No agents yet.')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('settings.agents.empty', 'No agents yet.')}
+          </p>
         ) : (
           <ul className="space-y-2">
             {agents.map((agent) => {
               const mismatch =
-                agent.playwrightVersion && data && agent.playwrightVersion.split('.').slice(0, 2).join('.') !== data.serverPlaywrightVersion.split('.').slice(0, 2).join('.');
+                agent.playwrightVersion &&
+                data &&
+                agent.playwrightVersion.split('.').slice(0, 2).join('.') !==
+                  data.serverPlaywrightVersion.split('.').slice(0, 2).join('.');
               return (
-                <li key={agent.id} className="flex items-center justify-between p-2 border rounded-md" data-testid={`agent-${agent.id}`}>
+                <li
+                  key={agent.id}
+                  className="flex items-center justify-between p-2 border rounded-md"
+                  data-testid={`agent-${agent.id}`}
+                >
                   <div className="text-sm space-y-1">
                     <div>
                       <span className="font-medium">{agent.name}</span>
@@ -187,11 +224,15 @@ const AgentsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
                         {t('settings.agents.pool', 'pool {{pool}}', { pool: agent.pool })}
                       </Badge>
                       <Badge variant={agent.connected ? 'default' : 'secondary'} className="ml-2">
-                        {agent.connected ? t('settings.agents.connected', 'connected') : t('settings.agents.offline', 'offline')}
+                        {agent.connected
+                          ? t('settings.agents.connected', 'connected')
+                          : t('settings.agents.offline', 'offline')}
                       </Badge>
                       {agent.connected && agent.activeSessions > 0 && (
                         <span className="ml-2 text-muted-foreground">
-                          {t('settings.agents.sessions', '{{count}} browser(s) lent', { count: agent.activeSessions })}
+                          {t('settings.agents.sessions', '{{count}} browser(s) lent', {
+                            count: agent.activeSessions,
+                          })}
                         </span>
                       )}
                     </div>
@@ -204,14 +245,19 @@ const AgentsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
                       ]
                         .filter(Boolean)
                         .join(' · ')}
-                      {!agent.lastSeenAt && ` · ${t('settings.agents.neverSeen', 'never connected')}`}
+                      {!agent.lastSeenAt &&
+                        ` · ${t('settings.agents.neverSeen', 'never connected')}`}
                     </div>
                     {mismatch && (
                       <p className="text-xs text-destructive">
-                        {t('settings.agents.versionMismatch', 'Runs Playwright {{agent}}, the server {{server}}: it will not be lent browsers until they match.', {
-                          agent: agent.playwrightVersion,
-                          server: data!.serverPlaywrightVersion,
-                        })}
+                        {t(
+                          'settings.agents.versionMismatch',
+                          'Runs Playwright {{agent}}, the server {{server}}: it will not be lent browsers until they match.',
+                          {
+                            agent: agent.playwrightVersion,
+                            server: data!.serverPlaywrightVersion,
+                          },
+                        )}
                       </p>
                     )}
                   </div>
@@ -221,7 +267,9 @@ const AgentsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
                       size="sm"
                       onClick={() => revoke.mutate(agent.id)}
                       disabled={revoke.isPending}
-                      aria-label={t('settings.agents.revokeAction', 'Revoke {{name}}', { name: agent.name })}
+                      aria-label={t('settings.agents.revokeAction', 'Revoke {{name}}', {
+                        name: agent.name,
+                      })}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>

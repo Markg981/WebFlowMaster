@@ -96,20 +96,20 @@ DMO.NetContent/_NccNew/Controllers/*.cs
 
 ## Data mapping (action → `apiTests` row)
 
-| Column | Value |
-|---|---|
-| `method` | `GET` / `POST` from `[HttpX]` |
-| `url` | `{{baseUrl}}` + route, e.g. `{{baseUrl}}/api/NetContentTareCheck/GetLastOpenTareCheck`. `baseUrl` is an API-tester environment variable (the local DMO host), so the port lives in one place. |
-| `queryParams` | one entry per signature parameter: `{ key: name, value, enabled }`. Optional params (have a C# default) → pre-filled with the default, `enabled: false`. Required params (no default) → `value: ""`, `enabled: true` — the values the user fills in. |
-| `requestBody` | empty; `bodyType: 'none'` (scalars are sent as query params for both GET and POST) |
-| `assertions` | one default: **`status_code less_than 500`** — a smoke assertion ("endpoint reachable and handled, did not throw an unhandled exception"). Real assertions are refined later by the user. |
-| `name` | the action name, e.g. `GetLastOpenTareCheck` |
-| `module` | controller domain (`TareCheck`, `Scale`, `Filler`, `Checkweigher`, `Reports`, …) → the folder-style grouping |
-| `featureArea` | the route prefix (`NetContentTareCheck`) |
-| `priority` / `severity` | defaults (`Medium` / `Major`) |
-| `authType` / `authParams` | `null` for now — auth is set at the environment level after the first run |
-| `projectId` | the "NetContent" project (auto-created if missing) |
-| `userId` | resolved via `WFM_IMPORT_USER_ID`, default = the primary (lowest-id / single) user in the local DB — i.e. the user's own account |
+| Column                    | Value                                                                                                                                                                                                                                                |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `method`                  | `GET` / `POST` from `[HttpX]`                                                                                                                                                                                                                        |
+| `url`                     | `{{baseUrl}}` + route, e.g. `{{baseUrl}}/api/NetContentTareCheck/GetLastOpenTareCheck`. `baseUrl` is an API-tester environment variable (the local DMO host), so the port lives in one place.                                                        |
+| `queryParams`             | one entry per signature parameter: `{ key: name, value, enabled }`. Optional params (have a C# default) → pre-filled with the default, `enabled: false`. Required params (no default) → `value: ""`, `enabled: true` — the values the user fills in. |
+| `requestBody`             | empty; `bodyType: 'none'` (scalars are sent as query params for both GET and POST)                                                                                                                                                                   |
+| `assertions`              | one default: **`status_code less_than 500`** — a smoke assertion ("endpoint reachable and handled, did not throw an unhandled exception"). Real assertions are refined later by the user.                                                            |
+| `name`                    | the action name, e.g. `GetLastOpenTareCheck`                                                                                                                                                                                                         |
+| `module`                  | controller domain (`TareCheck`, `Scale`, `Filler`, `Checkweigher`, `Reports`, …) → the folder-style grouping                                                                                                                                         |
+| `featureArea`             | the route prefix (`NetContentTareCheck`)                                                                                                                                                                                                             |
+| `priority` / `severity`   | defaults (`Medium` / `Major`)                                                                                                                                                                                                                        |
+| `authType` / `authParams` | `null` for now — auth is set at the environment level after the first run                                                                                                                                                                            |
+| `projectId`               | the "NetContent" project (auto-created if missing)                                                                                                                                                                                                   |
+| `userId`                  | resolved via `WFM_IMPORT_USER_ID`, default = the primary (lowest-id / single) user in the local DB — i.e. the user's own account                                                                                                                     |
 
 **Why `status_code < 500` as the default assertion:** many endpoints, run before their
 required params are filled, will return 4xx — that is handled behaviour, not a crash. The

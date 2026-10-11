@@ -1,12 +1,12 @@
-import { Router } from "express";
-import { z } from "zod";
-import { asc, eq } from "drizzle-orm";
+import { Router } from 'express';
+import { z } from 'zod';
+import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { projectElements, projects, tests } from "@shared/schema";
-import { withTenantTransaction } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
-import { referencedElementIds } from "../step-elements";
-import loggerPromise from "../logger";
+import { projectElements, projects, tests } from '@shared/schema';
+import { withTenantTransaction } from '../middleware/tenancy';
+import { requireRole } from '../middleware/require-role';
+import { referencedElementIds } from '../step-elements';
+import loggerPromise from '../logger';
 
 /**
  * The elements of an application, kept once instead of once per test.
@@ -20,8 +20,8 @@ const router = Router();
 const logger = await loggerPromise;
 
 const elementBodySchema = z.object({
-  name: z.string().trim().min(1, "A name is required").max(120),
-  selector: z.string().trim().min(1, "A selector is required").max(2000),
+  name: z.string().trim().min(1, 'A name is required').max(120),
+  selector: z.string().trim().min(1, 'A selector is required').max(2000),
   frameSelector: z.string().trim().max(2000).optional().nullable(),
   tag: z.string().trim().max(50).optional().nullable(),
   elementType: z.string().trim().max(50).optional().nullable(),
@@ -37,37 +37,45 @@ function isUniqueViolation(error: any): boolean {
 }
 
 // GET /api/projects/:projectId/elements
-router.get("/api/projects/:projectId/elements", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/projects/:projectId/elements', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   const projectId = Number(req.params.projectId);
-  if (!Number.isInteger(projectId)) return res.status(400).json({ error: "Invalid project id." });
+  if (!Number.isInteger(projectId)) return res.status(400).json({ error: 'Invalid project id.' });
 
   // No organization predicate: RLS supplies it, so another tenant's project has no elements
   // here rather than someone else's.
   const elements = await withTenantTransaction((tx) =>
-    tx.select().from(projectElements).where(eq(projectElements.projectId, projectId)).orderBy(asc(projectElements.name)),
+    tx
+      .select()
+      .from(projectElements)
+      .where(eq(projectElements.projectId, projectId))
+      .orderBy(asc(projectElements.name)),
   );
   res.json(elements);
 });
 
 // POST /api/projects/:projectId/elements — usually a detected element being kept.
-router.post("/api/projects/:projectId/elements", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/projects/:projectId/elements', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   const projectId = Number(req.params.projectId);
-  if (!Number.isInteger(projectId)) return res.status(400).json({ error: "Invalid project id." });
+  if (!Number.isInteger(projectId)) return res.status(400).json({ error: 'Invalid project id.' });
 
   const parsed = elementBodySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
   }
 
   try {
     const created = await withTenantTransaction(async (tx) => {
       // The project has to be one of ours, and RLS is what decides that: naming another
       // tenant's project id finds nothing rather than writing into it.
-      const [project] = await tx.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).limit(1);
+      const [project] = await tx
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.id, projectId))
+        .limit(1);
       if (!project) return null;
 
       const [row] = await tx
@@ -91,32 +99,39 @@ router.post("/api/projects/:projectId/elements", requireRole('editor'), async (r
       return row;
     });
 
-    if (!created) return res.status(404).json({ error: "Project not found." });
+    if (!created) return res.status(404).json({ error: 'Project not found.' });
     res.status(201).json(created);
   } catch (error: any) {
     if (isUniqueViolation(error)) {
-      return res.status(409).json({ error: `This project already has an element called "${parsed.data.name}".` });
+      return res
+        .status(409)
+        .json({ error: `This project already has an element called "${parsed.data.name}".` });
     }
     // The project was found above, so it is visible: row-level security refused the write because
     // the requester is a viewer on this restricted project (migration 0031).
     if (/row-level security/i.test(error?.message ?? '')) {
-      return res.status(403).json({ error: "You can view this project but not change it.", code: "project_read_only" });
+      return res
+        .status(403)
+        .json({ error: 'You can view this project but not change it.', code: 'project_read_only' });
     }
-    logger.error({ message: 'Failed to create project element', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Failed to save the element." });
+    logger.error({
+      message: 'Failed to create project element',
+      error: error?.message ?? String(error),
+    });
+    res.status(500).json({ error: 'Failed to save the element.' });
   }
 });
 
 // PUT /api/project-elements/:id — a rename, or a selector corrected by hand.
-router.put("/api/project-elements/:id", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.put('/api/project-elements/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   const parsed = updateElementBodySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
   }
   if (Object.keys(parsed.data).length === 0) {
-    return res.status(400).json({ error: "No update data provided." });
+    return res.status(400).json({ error: 'No update data provided.' });
   }
 
   try {
@@ -128,20 +143,23 @@ router.put("/api/project-elements/:id", requireRole('editor'), async (req, res) 
         .returning();
       return row;
     });
-    if (!updated) return res.status(404).json({ error: "Element not found." });
+    if (!updated) return res.status(404).json({ error: 'Element not found.' });
     res.json(updated);
   } catch (error: any) {
     if (isUniqueViolation(error)) {
-      return res.status(409).json({ error: "This project already has an element with that name." });
+      return res.status(409).json({ error: 'This project already has an element with that name.' });
     }
-    logger.error({ message: 'Failed to update project element', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Failed to update the element." });
+    logger.error({
+      message: 'Failed to update project element',
+      error: error?.message ?? String(error),
+    });
+    res.status(500).json({ error: 'Failed to update the element.' });
   }
 });
 
 // GET /api/project-elements/:id/usage — which tests name this element.
-router.get("/api/project-elements/:id/usage", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/project-elements/:id/usage', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   const callers = await withTenantTransaction((tx) =>
     tx.select({ id: tests.id, name: tests.name, sequence: tests.sequence }).from(tests),
@@ -154,14 +172,16 @@ router.get("/api/project-elements/:id/usage", requireRole('viewer'), async (req,
 });
 
 // DELETE /api/project-elements/:id
-router.delete("/api/project-elements/:id", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.delete('/api/project-elements/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { id } = req.params;
   try {
     const outcome = await withTenantTransaction(async (tx) => {
       const callers = await tx.select({ name: tests.name, sequence: tests.sequence }).from(tests);
-      const using = callers.filter((test) => referencedElementIds(test.sequence).includes(id)).map((t) => t.name);
+      const using = callers
+        .filter((test) => referencedElementIds(test.sequence).includes(id))
+        .map((t) => t.name);
       if (using.length > 0) return { blockedBy: using };
 
       const [row] = await tx.delete(projectElements).where(eq(projectElements.id, id)).returning();
@@ -174,11 +194,15 @@ router.delete("/api/project-elements/:id", requireRole('editor'), async (req, re
         tests: outcome.blockedBy,
       });
     }
-    if (!('deleted' in outcome) || !outcome.deleted) return res.status(404).json({ error: "Element not found." });
+    if (!('deleted' in outcome) || !outcome.deleted)
+      return res.status(404).json({ error: 'Element not found.' });
     res.json({ success: true });
   } catch (error: any) {
-    logger.error({ message: 'Failed to delete project element', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Failed to delete the element." });
+    logger.error({
+      message: 'Failed to delete project element',
+      error: error?.message ?? String(error),
+    });
+    res.status(500).json({ error: 'Failed to delete the element.' });
   }
 });
 

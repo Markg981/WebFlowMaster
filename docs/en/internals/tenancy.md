@@ -9,11 +9,11 @@ An **organization** owns everything a team creates: projects, tests, plans, runs
 credentials. Every organization-scoped table carries an `organization_id`, and every user belongs to
 exactly one organization with one **role**:
 
-| Role | May |
-|---|---|
-| `viewer` | Read everything the organization can see; run nothing, change nothing. |
-| `editor` | Create and change tests, plans, schedules, suites, environments; start and cancel runs. |
-| `owner` | Everything an editor may, plus members and invitations, API keys of others, service accounts, local agents, GitHub/GitLab connections, security policy, runners, the audit log. |
+| Role     | May                                                                                                                                                                             |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `viewer` | Read everything the organization can see; run nothing, change nothing.                                                                                                          |
+| `editor` | Create and change tests, plans, schedules, suites, environments; start and cancel runs.                                                                                         |
+| `owner`  | Everything an editor may, plus members and invitations, API keys of others, service accounts, local agents, GitHub/GitLab connections, security policy, runners, the audit log. |
 
 Roles are checked by `requireRole(minimum)` (`server/middleware/require-role.ts`) on each route. They
 decide which **verbs** a user may use. Which **rows** exist for them is decided by the database.
@@ -145,13 +145,13 @@ interface, so it does not offer an edit the database would refuse.
 
 ### Machines
 
-| Credential | For | Stored as | Details |
-|---|---|---|---|
-| **API key** (`wfm_…`) | Pipelines and scripts | SHA-256 hash + prefix | Acts as its user or service account. Optional **scopes** restrict it to `/api/v1` and to named permissions (`plans:read`, `runs:read`, `runs:write`); the owner's role still applies on top. Optional expiry; last use recorded. |
-| **Service account** | Keys that must outlive a person | A user row that cannot sign in | Has a role (never `owner`) and holds keys; disabling it revokes them all. |
-| **Webhook token** | CI systems that trigger a plan by URL | SHA-256 hash + prefix | Sent in `X-Webhook-Token` or `Authorization: Bearer`; masked in logs. |
-| **Agent token** (`wfa_…`) | Local agents | SHA-256 hash + prefix | Names one agent of one organization; revoking disconnects it. |
-| **Relay ticket** | A runner borrowing an agent browser | Not stored | HMAC-signed, names organization, pool and browser, valid 60 seconds. |
+| Credential                | For                                   | Stored as                      | Details                                                                                                                                                                                                                          |
+| ------------------------- | ------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **API key** (`wfm_…`)     | Pipelines and scripts                 | SHA-256 hash + prefix          | Acts as its user or service account. Optional **scopes** restrict it to `/api/v1` and to named permissions (`plans:read`, `runs:read`, `runs:write`); the owner's role still applies on top. Optional expiry; last use recorded. |
+| **Service account**       | Keys that must outlive a person       | A user row that cannot sign in | Has a role (never `owner`) and holds keys; disabling it revokes them all.                                                                                                                                                        |
+| **Webhook token**         | CI systems that trigger a plan by URL | SHA-256 hash + prefix          | Sent in `X-Webhook-Token` or `Authorization: Bearer`; masked in logs.                                                                                                                                                            |
+| **Agent token** (`wfa_…`) | Local agents                          | SHA-256 hash + prefix          | Names one agent of one organization; revoking disconnects it.                                                                                                                                                                    |
+| **Relay ticket**          | A runner borrowing an agent browser   | Not stored                     | HMAC-signed, names organization, pool and browser, valid 60 seconds.                                                                                                                                                             |
 
 A high-entropy token needs no stretching: a single SHA-256 makes the lookup one indexed query and
 leaves nothing to guess. Every one of them is shown once, when it is created.

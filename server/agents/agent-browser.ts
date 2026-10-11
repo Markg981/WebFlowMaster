@@ -26,7 +26,13 @@ export function relayBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
 }
 
 async function connectToAgentBrowserImpl(
-  choice: { engine: 'chromium' | 'firefox' | 'webkit'; channel?: string; headless: boolean; agent: AgentTarget; availabilityWaitMs?: number },
+  choice: {
+    engine: 'chromium' | 'firefox' | 'webkit';
+    channel?: string;
+    headless: boolean;
+    agent: AgentTarget;
+    availabilityWaitMs?: number;
+  },
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<Browser> {
   const ticket = signTicket(
@@ -48,20 +54,35 @@ async function connectToAgentBrowserImpl(
     const deadline = Date.now() + (choice.availabilityWaitMs ?? 0);
     const signal = AbortSignal.timeout(10_000);
     do {
-      const response = await fetch(`${base}/api/agent/v1/availability?ticket=${encodeURIComponent(ticket)}`, { signal });
+      const response = await fetch(
+        `${base}/api/agent/v1/availability?ticket=${encodeURIComponent(ticket)}`,
+        { signal },
+      );
       availability = await response.json();
-      if (availability.available || !availability.reason?.includes('busy or draining') || Date.now() >= deadline) break;
+      if (
+        availability.available ||
+        !availability.reason?.includes('busy or draining') ||
+        Date.now() >= deadline
+      )
+        break;
       await delay(100, undefined, { signal });
     } while (true);
   } catch (error) {
-    throw new Error(`The agent relay at ${base} could not be reached: ${(error as Error).message}. Set AGENT_RELAY_URL on the runners.`);
+    throw new Error(
+      `The agent relay at ${base} could not be reached: ${(error as Error).message}. Set AGENT_RELAY_URL on the runners.`,
+    );
   }
-  if (!availability.available) throw new Error(availability.reason ?? 'No agent could lend a browser.');
+  if (!availability.available)
+    throw new Error(availability.reason ?? 'No agent could lend a browser.');
 
   const endpoint = `${base.replace(/^http/i, 'ws')}${AGENT_PATHS.browser}?ticket=${encodeURIComponent(ticket)}`;
   return playwright[choice.engine].connect(endpoint, { timeout: 60_000 });
 }
 
-export function connectToAgentBrowser(...args: Parameters<typeof connectToAgentBrowserImpl>): ReturnType<typeof connectToAgentBrowserImpl> {
-  return withSpan('agent.connectToAgentBrowser', SpanKind.CLIENT, undefined, () => connectToAgentBrowserImpl(...args));
+export function connectToAgentBrowser(
+  ...args: Parameters<typeof connectToAgentBrowserImpl>
+): ReturnType<typeof connectToAgentBrowserImpl> {
+  return withSpan('agent.connectToAgentBrowser', SpanKind.CLIENT, undefined, () =>
+    connectToAgentBrowserImpl(...args),
+  );
 }

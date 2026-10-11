@@ -1,11 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2, Trash2 } from 'lucide-react';
 
 /**
@@ -86,7 +99,8 @@ export default function ProjectAccessDialog({
 
   const add = (value: string) => {
     const person = candidates.find((m) => String(m.id) === value);
-    if (person) setMembers([...members, { userId: person.id, username: person.username, role: 'viewer' }]);
+    if (person)
+      setMembers([...members, { userId: person.id, username: person.username, role: 'viewer' }]);
     setAdding('');
   };
 
@@ -98,7 +112,10 @@ export default function ProjectAccessDialog({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ restricted, members: members.map(({ userId, role }) => ({ userId, role })) }),
+        body: JSON.stringify({
+          restricted,
+          members: members.map(({ userId, role }) => ({ userId, role })),
+        }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? 'Could not save');
@@ -117,7 +134,9 @@ export default function ProjectAccessDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t('projectAccess.title', 'Who can reach {{name}}', { name: access?.name ?? '' })}</DialogTitle>
+          <DialogTitle>
+            {t('projectAccess.title', 'Who can reach {{name}}', { name: access?.name ?? '' })}
+          </DialogTitle>
           <DialogDescription>
             {t(
               'projectAccess.description',
@@ -131,8 +150,14 @@ export default function ProjectAccessDialog({
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="project-restricted">{t('projectAccess.restricted', 'Restricted')}</Label>
-              <Switch id="project-restricted" checked={restricted} onCheckedChange={setRestricted} />
+              <Label htmlFor="project-restricted">
+                {t('projectAccess.restricted', 'Restricted')}
+              </Label>
+              <Switch
+                id="project-restricted"
+                checked={restricted}
+                onCheckedChange={setRestricted}
+              />
             </div>
 
             <ul className="space-y-2" data-testid="project-members">
@@ -143,21 +168,36 @@ export default function ProjectAccessDialog({
                     <Select
                       value={member.role}
                       onValueChange={(role) =>
-                        setMembers(members.map((m) => (m.userId === member.userId ? { ...m, role: role as Member['role'] } : m)))
+                        setMembers(
+                          members.map((m) =>
+                            m.userId === member.userId ? { ...m, role: role as Member['role'] } : m,
+                          ),
+                        )
                       }
                     >
-                      <SelectTrigger className="w-28" aria-label={t('projectAccess.roleFor', 'Role of {{name}}', { name: member.username })}>
+                      <SelectTrigger
+                        className="w-28"
+                        aria-label={t('projectAccess.roleFor', 'Role of {{name}}', {
+                          name: member.username,
+                        })}
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="viewer">{t('projectAccess.roles.viewer', 'viewer')}</SelectItem>
-                        <SelectItem value="editor">{t('projectAccess.roles.editor', 'editor')}</SelectItem>
+                        <SelectItem value="viewer">
+                          {t('projectAccess.roles.viewer', 'viewer')}
+                        </SelectItem>
+                        <SelectItem value="editor">
+                          {t('projectAccess.roles.editor', 'editor')}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <Button
                       variant="ghost"
                       size="sm"
-                      aria-label={t('projectAccess.remove', 'Remove {{name}}', { name: member.username })}
+                      aria-label={t('projectAccess.remove', 'Remove {{name}}', {
+                        name: member.username,
+                      })}
                       onClick={() => setMembers(members.filter((m) => m.userId !== member.userId))}
                     >
                       <Trash2 className="h-4 w-4" />

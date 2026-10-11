@@ -58,7 +58,8 @@ export interface PublishOutcome {
 
 const json = { 'Content-Type': 'application/json', Accept: 'application/json' };
 const iso = (date: Date | null) => (date ? date.toISOString() : undefined);
-const basic = (user: string, secret: string) => `Basic ${Buffer.from(`${user}:${secret}`, 'utf8').toString('base64')}`;
+const basic = (user: string, secret: string) =>
+  `Basic ${Buffer.from(`${user}:${secret}`, 'utf8').toString('base64')}`;
 
 // ─── TestRail ────────────────────────────────────────────────────────────────
 
@@ -76,9 +77,15 @@ export function testRailElapsed(ms: number | null): string | undefined {
   return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
 }
 
-async function publishToTestRail(config: ConnectionConfig, request: PublishRequest, deps: ProviderDeps): Promise<PublishOutcome> {
+async function publishToTestRail(
+  config: ConnectionConfig,
+  request: PublishRequest,
+  deps: ProviderDeps,
+): Promise<PublishOutcome> {
   const api = testRailApi(config);
-  const caseIds = Array.from(new Set(request.results.map((r) => Number(r.caseKey.replace(/^C/i, '')))));
+  const caseIds = Array.from(
+    new Set(request.results.map((r) => Number(r.caseKey.replace(/^C/i, '')))),
+  );
   const run = await call(
     api.url(`add_run/${encodeURIComponent(config.projectKey)}`),
     {
@@ -108,10 +115,25 @@ async function publishToTestRail(config: ConnectionConfig, request: PublishReque
       ...(testRailElapsed(r.durationMs) ? { elapsed: testRailElapsed(r.durationMs) } : {}),
     }));
   if (results.length) {
-    const posted = await call(api.url(`add_results_for_cases/${runId}`), { method: 'POST', headers: api.headers, body: JSON.stringify({ results }) }, deps);
-    if (!posted.ok) throw describeFailure(`Adding the results to TestRail run R${runId}`, posted.status, posted.body, posted.text);
+    const posted = await call(
+      api.url(`add_results_for_cases/${runId}`),
+      { method: 'POST', headers: api.headers, body: JSON.stringify({ results }) },
+      deps,
+    );
+    if (!posted.ok)
+      throw describeFailure(
+        `Adding the results to TestRail run R${runId}`,
+        posted.status,
+        posted.body,
+        posted.text,
+      );
   }
-  return { externalKey: `R${runId}`, externalUrl: run.body?.url ?? `${api.base}/index.php?/runs/view/${runId}`, published: results.length, problems: [] };
+  return {
+    externalKey: `R${runId}`,
+    externalUrl: run.body?.url ?? `${api.base}/index.php?/runs/view/${runId}`,
+    published: results.length,
+    problems: [],
+  };
 }
 
 // ─── Xray ────────────────────────────────────────────────────────────────────
@@ -121,13 +143,25 @@ async function xrayCloudToken(config: ConnectionConfig, deps: ProviderDeps): Pro
   const base = normaliseBaseUrl(config.baseUrl);
   const result = await call(
     `${base}/api/v2/authenticate`,
-    { method: 'POST', headers: json, body: JSON.stringify({ client_id: config.username ?? '', client_secret: config.token }) },
+    {
+      method: 'POST',
+      headers: json,
+      body: JSON.stringify({ client_id: config.username ?? '', client_secret: config.token }),
+    },
     deps,
   );
   if (result.status === 401 || result.status === 403 || result.status === 400) {
-    throw new Error('Xray Cloud refused the client id and client secret. Create an API key in Jira → Apps → Xray → API Keys.');
+    throw new Error(
+      'Xray Cloud refused the client id and client secret. Create an API key in Jira → Apps → Xray → API Keys.',
+    );
   }
-  if (!result.ok) throw describeFailure('Authenticating with Xray Cloud', result.status, result.body, result.text);
+  if (!result.ok)
+    throw describeFailure(
+      'Authenticating with Xray Cloud',
+      result.status,
+      result.body,
+      result.text,
+    );
   const token = typeof result.body === 'string' ? result.body : result.text.replace(/^"|"$/g, '');
   if (!token) throw new Error('Xray Cloud answered without a token.');
   return token;
@@ -169,27 +203,68 @@ function browseUrl(self: unknown, key: string, fallbackBase: string | null): str
   return fallbackBase ? `${fallbackBase}/browse/${key}` : null;
 }
 
-async function publishToXray(config: ConnectionConfig, request: PublishRequest, deps: ProviderDeps): Promise<PublishOutcome> {
+async function publishToXray(
+  config: ConnectionConfig,
+  request: PublishRequest,
+  deps: ProviderDeps,
+): Promise<PublishOutcome> {
   const base = normaliseBaseUrl(config.baseUrl);
   const body = JSON.stringify(xrayExecution(config, request));
   if (config.provider === 'xray_cloud') {
     const token = await xrayCloudToken(config, deps);
-    const result = await call(`${base}/api/v2/import/execution`, { method: 'POST', headers: { ...json, Authorization: `Bearer ${token}` }, body }, deps);
-    if (!result.ok) throw describeFailure('Importing the results into Xray', result.status, result.body, result.text);
+    const result = await call(
+      `${base}/api/v2/import/execution`,
+      { method: 'POST', headers: { ...json, Authorization: `Bearer ${token}` }, body },
+      deps,
+    );
+    if (!result.ok)
+      throw describeFailure(
+        'Importing the results into Xray',
+        result.status,
+        result.body,
+        result.text,
+      );
     const key = result.body?.key;
-    if (!key) throw new Error('Xray took the results but did not say which Test Execution holds them.');
-    return { externalKey: key, externalUrl: browseUrl(result.body?.self, key, null), published: request.results.length, problems: [] };
+    if (!key)
+      throw new Error('Xray took the results but did not say which Test Execution holds them.');
+    return {
+      externalKey: key,
+      externalUrl: browseUrl(result.body?.self, key, null),
+      published: request.results.length,
+      problems: [],
+    };
   }
 
   // Server and Data Center: the 2.0 endpoint, and 1.0 on versions before it existed.
   const headers = { ...json, Authorization: xrayServerAuth(config) };
-  let result = await call(`${base}/rest/raven/2.0/import/execution`, { method: 'POST', headers, body }, deps);
-  if (result.status === 404) result = await call(`${base}/rest/raven/1.0/import/execution`, { method: 'POST', headers, body }, deps);
-  if (!result.ok) throw describeFailure('Importing the results into Xray', result.status, result.body, result.text);
+  let result = await call(
+    `${base}/rest/raven/2.0/import/execution`,
+    { method: 'POST', headers, body },
+    deps,
+  );
+  if (result.status === 404)
+    result = await call(
+      `${base}/rest/raven/1.0/import/execution`,
+      { method: 'POST', headers, body },
+      deps,
+    );
+  if (!result.ok)
+    throw describeFailure(
+      'Importing the results into Xray',
+      result.status,
+      result.body,
+      result.text,
+    );
   const issue = result.body?.testExecIssue ?? result.body;
   const key = issue?.key;
-  if (!key) throw new Error('Xray took the results but did not say which Test Execution holds them.');
-  return { externalKey: key, externalUrl: `${base}/browse/${key}`, published: request.results.length, problems: [] };
+  if (!key)
+    throw new Error('Xray took the results but did not say which Test Execution holds them.');
+  return {
+    externalKey: key,
+    externalUrl: `${base}/browse/${key}`,
+    published: request.results.length,
+    problems: [],
+  };
 }
 
 // ─── Zephyr Scale ────────────────────────────────────────────────────────────
@@ -208,26 +283,58 @@ export function zephyrStatusName(outcome: PublishedOutcome, available: string[])
   const wanted = ZEPHYR_STATUS[outcome];
   const exact = available.find((name) => name.toLowerCase() === wanted.toLowerCase());
   if (exact) return exact;
-  const pattern = { passed: /pass/i, failed: /fail/i, skipped: /block/i, pending: /not ?exec|to ?do|untested/i, notRun: /not ?exec|to ?do|untested/i }[outcome];
+  const pattern = {
+    passed: /pass/i,
+    failed: /fail/i,
+    skipped: /block/i,
+    pending: /not ?exec|to ?do|untested/i,
+    notRun: /not ?exec|to ?do|untested/i,
+  }[outcome];
   return available.find((name) => pattern.test(name)) ?? null;
 }
 
-async function publishToZephyr(config: ConnectionConfig, request: PublishRequest, deps: ProviderDeps): Promise<PublishOutcome> {
+async function publishToZephyr(
+  config: ConnectionConfig,
+  request: PublishRequest,
+  deps: ProviderDeps,
+): Promise<PublishOutcome> {
   const api = zephyrApi(config);
   const statusesAnswer = await call(
     `${api.base}/statuses?projectKey=${encodeURIComponent(config.projectKey)}&statusType=TEST_EXECUTION&maxResults=100`,
     { method: 'GET', headers: api.headers },
     deps,
   );
-  if (!statusesAnswer.ok) throw describeFailure('Reading the Zephyr Scale statuses', statusesAnswer.status, statusesAnswer.body, statusesAnswer.text);
-  const available: string[] = (statusesAnswer.body?.values ?? []).filter((s: any) => !s.archived).map((s: any) => String(s.name));
+  if (!statusesAnswer.ok)
+    throw describeFailure(
+      'Reading the Zephyr Scale statuses',
+      statusesAnswer.status,
+      statusesAnswer.body,
+      statusesAnswer.text,
+    );
+  const available: string[] = (statusesAnswer.body?.values ?? [])
+    .filter((s: any) => !s.archived)
+    .map((s: any) => String(s.name));
 
   const cycle = await call(
     `${api.base}/testcycles`,
-    { method: 'POST', headers: api.headers, body: JSON.stringify({ projectKey: config.projectKey, name: request.title, description: request.description }) },
+    {
+      method: 'POST',
+      headers: api.headers,
+      body: JSON.stringify({
+        projectKey: config.projectKey,
+        name: request.title,
+        description: request.description,
+      }),
+    },
     deps,
   );
-  if (!cycle.ok) throw describeFailure('Creating the Zephyr Scale test cycle', cycle.status, cycle.body, cycle.text);
+  if (!cycle.ok)
+    throw describeFailure(
+      'Creating the Zephyr Scale test cycle',
+      cycle.status,
+      cycle.body,
+      cycle.text,
+    );
   const cycleKey = cycle.body?.key;
   if (!cycleKey) throw new Error('Zephyr Scale created the test cycle but did not say its key.');
 
@@ -237,7 +344,9 @@ async function publishToZephyr(config: ConnectionConfig, request: PublishRequest
   for (const result of request.results) {
     const statusName = zephyrStatusName(result.outcome, available);
     if (!statusName) {
-      problems.push(`${result.caseKey}: the project has no status for "${ZEPHYR_STATUS[result.outcome]}" (it has ${available.join(', ') || 'none'}).`);
+      problems.push(
+        `${result.caseKey}: the project has no status for "${ZEPHYR_STATUS[result.outcome]}" (it has ${available.join(', ') || 'none'}).`,
+      );
       continue;
     }
     const answer = await call(
@@ -258,14 +367,21 @@ async function publishToZephyr(config: ConnectionConfig, request: PublishRequest
       deps,
     );
     if (answer.ok) published++;
-    else problems.push(`${result.caseKey}: ${describeFailure('Zephyr Scale', answer.status, answer.body, answer.text).message}`);
+    else
+      problems.push(
+        `${result.caseKey}: ${describeFailure('Zephyr Scale', answer.status, answer.body, answer.text).message}`,
+      );
   }
   return { externalKey: cycleKey, externalUrl: null, published, problems };
 }
 
 // ─── Both ────────────────────────────────────────────────────────────────────
 
-export async function publishResults(config: ConnectionConfig, request: PublishRequest, deps: ProviderDeps = {}): Promise<PublishOutcome> {
+export async function publishResults(
+  config: ConnectionConfig,
+  request: PublishRequest,
+  deps: ProviderDeps = {},
+): Promise<PublishOutcome> {
   switch (config.provider) {
     case 'testrail':
       return publishToTestRail(config, request, deps);
@@ -281,7 +397,10 @@ export async function publishResults(config: ConnectionConfig, request: PublishR
  * Whether these credentials reach that project, asked before a run depends on it. A read only:
  * the other way to find out would be creating an empty run in somebody's TestRail.
  */
-export async function checkTestManagement(config: ConnectionConfig, deps: ProviderDeps = {}): Promise<{ ok: boolean; detail: string }> {
+export async function checkTestManagement(
+  config: ConnectionConfig,
+  deps: ProviderDeps = {},
+): Promise<{ ok: boolean; detail: string }> {
   const label = PROVIDER_LABELS[config.provider];
   try {
     if (config.provider === 'xray_cloud') {
@@ -303,11 +422,24 @@ export async function checkTestManagement(config: ConnectionConfig, deps: Provid
       headers = api.headers;
     }
     const result = await call(url, { method: 'GET', headers }, deps);
-    if (result.status === 401 || result.status === 403) return { ok: false, detail: `${label} refused those credentials.` };
+    if (result.status === 401 || result.status === 403)
+      return { ok: false, detail: `${label} refused those credentials.` };
     if (result.status === 404 || (config.provider === 'testrail' && result.status === 400)) {
-      return { ok: false, detail: `${label} has no project "${config.projectKey}", or this account cannot see it.` };
+      return {
+        ok: false,
+        detail: `${label} has no project "${config.projectKey}", or this account cannot see it.`,
+      };
     }
-    if (!result.ok) return { ok: false, detail: describeFailure(`Reading the ${label} project`, result.status, result.body, result.text).message };
+    if (!result.ok)
+      return {
+        ok: false,
+        detail: describeFailure(
+          `Reading the ${label} project`,
+          result.status,
+          result.body,
+          result.text,
+        ).message,
+      };
     const name = result.body?.name ?? result.body?.key ?? config.projectKey;
     return { ok: true, detail: `Connected to ${name}.` };
   } catch (error: any) {

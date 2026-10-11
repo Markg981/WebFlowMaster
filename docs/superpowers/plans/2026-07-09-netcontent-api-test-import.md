@@ -38,40 +38,44 @@
 ## Task 1: Shared types + vitest discovery
 
 **Files:**
+
 - Create: `scripts/netcontent/types.ts`
 - Modify: `vitest.config.ts`
 
 **Interfaces:**
+
 - Produces: `EndpointParam`, `Endpoint`, `ParseResult` used by every later task.
 
 - [ ] **Step 1: Create the types file**
 
 `scripts/netcontent/types.ts`:
+
 ```ts
 export interface EndpointParam {
   name: string;
-  csType: string;        // raw C# type, e.g. "int", "double", "bool", "int?", "string"
-  required: boolean;     // true when the signature has no default value
+  csType: string; // raw C# type, e.g. "int", "double", "bool", "int?", "string"
+  required: boolean; // true when the signature has no default value
   defaultValue: string | null; // literal default text, e.g. "false", "null", "0"
 }
 
 export interface Endpoint {
-  httpMethod: "GET" | "POST";
-  route: string;         // verbatim from [Route("...")], e.g. "api/NetContentTareCheck/GetLastOpenTareCheck"
-  controller: string;    // module/domain, e.g. "TareCheck"
-  action: string;        // method name, e.g. "GetLastOpenTareCheck"
+  httpMethod: 'GET' | 'POST';
+  route: string; // verbatim from [Route("...")], e.g. "api/NetContentTareCheck/GetLastOpenTareCheck"
+  controller: string; // module/domain, e.g. "TareCheck"
+  action: string; // method name, e.g. "GetLastOpenTareCheck"
   params: EndpointParam[];
 }
 
 export interface ParseResult {
   endpoints: Endpoint[];
-  warnings: string[];    // human-readable notes about skipped/odd actions
+  warnings: string[]; // human-readable notes about skipped/odd actions
 }
 ```
 
 - [ ] **Step 2: Add scripts tests to vitest include**
 
 In `vitest.config.ts`, change the `include` line:
+
 ```ts
 include: ['server/**/*.test.ts', 'scripts/**/*.test.ts'],
 ```
@@ -93,10 +97,12 @@ git commit -m "chore(netcontent): shared types + vitest discovery for scripts te
 ## Task 2: Parser — single controller source
 
 **Files:**
+
 - Create: `scripts/netcontent/parse-controllers.ts`
 - Test: `scripts/netcontent/parse-controllers.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Endpoint`, `EndpointParam` from Task 1.
 - Produces:
   - `parseControllerSource(source: string, controller: string): { endpoints: Endpoint[]; warnings: string[] }`
@@ -105,6 +111,7 @@ git commit -m "chore(netcontent): shared types + vitest discovery for scripts te
 - [ ] **Step 1: Write the failing test**
 
 `scripts/netcontent/parse-controllers.test.ts`:
+
 ```ts
 import { describe, it, expect } from 'vitest';
 import { parseControllerSource, parseParams } from './parse-controllers';
@@ -165,7 +172,12 @@ describe('parseControllerSource', () => {
 
     expect(endpoints[2].httpMethod).toBe('POST');
     expect(endpoints[2].action).toBe('UpdateMeasurement');
-    expect(endpoints[2].params.map(p => p.name)).toEqual(['valueRowId', 'value', 'comment', 'isManual']);
+    expect(endpoints[2].params.map((p) => p.name)).toEqual([
+      'valueRowId',
+      'value',
+      'comment',
+      'isManual',
+    ]);
   });
 });
 ```
@@ -178,6 +190,7 @@ Expected: FAIL ("Failed to resolve import './parse-controllers'").
 - [ ] **Step 3: Write the implementation**
 
 `scripts/netcontent/parse-controllers.ts`:
+
 ```ts
 import type { Endpoint, EndpointParam } from './types';
 
@@ -270,10 +283,12 @@ git commit -m "feat(netcontent): parse a controller source into routed endpoints
 ## Task 3: Parser — directory scan + module derivation
 
 **Files:**
+
 - Modify: `scripts/netcontent/parse-controllers.ts`
 - Modify: `scripts/netcontent/parse-controllers.test.ts`
 
 **Interfaces:**
+
 - Consumes: `parseControllerSource` (Task 2), `ParseResult` (Task 1).
 - Produces:
   - `moduleFromPath(filePath: string, controllersRoot: string): string`
@@ -282,6 +297,7 @@ git commit -m "feat(netcontent): parse a controller source into routed endpoints
 - [ ] **Step 1: Write the failing test**
 
 Append to `scripts/netcontent/parse-controllers.test.ts`:
+
 ```ts
 import { moduleFromPath } from './parse-controllers';
 import path from 'path';
@@ -289,7 +305,9 @@ import path from 'path';
 describe('moduleFromPath', () => {
   const root = path.join('repo', '_NccNew', 'Controllers');
   it('uses the subfolder name when the controller sits in one', () => {
-    expect(moduleFromPath(path.join(root, 'TareCheck', 'NccTareCheckController.cs'), root)).toBe('TareCheck');
+    expect(moduleFromPath(path.join(root, 'TareCheck', 'NccTareCheckController.cs'), root)).toBe(
+      'TareCheck',
+    );
   });
   it('derives from the class filename when directly under Controllers', () => {
     expect(moduleFromPath(path.join(root, 'CommonNccController.cs'), root)).toBe('Common');
@@ -305,6 +323,7 @@ Expected: FAIL ("moduleFromPath is not a function").
 - [ ] **Step 3: Add the implementation**
 
 Append to `scripts/netcontent/parse-controllers.ts`:
+
 ```ts
 import fs from 'fs';
 import path from 'path';
@@ -359,9 +378,11 @@ Expected: PASS.
 - [ ] **Step 5: Smoke-run the parser against the real controllers**
 
 Run:
+
 ```bash
 npx tsx -e "import('./scripts/netcontent/parse-controllers.ts').then(m => { const r = m.parseControllersDir(String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\_NccNew\Controllers`); console.log('endpoints:', r.endpoints.length, 'warnings:', r.warnings.length); })"
 ```
+
 Expected: prints roughly `endpoints: ~168` and a small warnings count. (Informational — not an assertion. If endpoints is 0, the regex needs revisiting before continuing.)
 
 - [ ] **Step 6: Commit**
@@ -376,10 +397,12 @@ git commit -m "feat(netcontent): recursively parse the controllers directory"
 ## Task 4: Mapper — endpoints → InsertApiTest[]
 
 **Files:**
+
 - Create: `scripts/netcontent/map-to-apitests.ts`
 - Test: `scripts/netcontent/map-to-apitests.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Endpoint` (Task 1), `InsertApiTest` (`@shared/schema`).
 - Produces:
   - `interface MapperConfig { baseUrlVar: string; projectId: number; userId: number }`
@@ -390,6 +413,7 @@ git commit -m "feat(netcontent): recursively parse the controllers directory"
 - [ ] **Step 1: Write the failing test**
 
 `scripts/netcontent/map-to-apitests.test.ts`:
+
 ```ts
 import { describe, it, expect } from 'vitest';
 import { mapEndpoint } from './map-to-apitests';
@@ -433,7 +457,12 @@ describe('mapEndpoint', () => {
   it('adds the default status_code < 500 smoke assertion', () => {
     const t = mapEndpoint(ep, cfg);
     const a = (t.assertions as Array<any>)[0];
-    expect(a).toMatchObject({ source: 'status_code', comparison: 'less_than', targetValue: '500', enabled: true });
+    expect(a).toMatchObject({
+      source: 'status_code',
+      comparison: 'less_than',
+      targetValue: '500',
+      enabled: true,
+    });
     expect(a.id).toMatch(/[0-9a-f-]{36}/);
   });
 });
@@ -447,6 +476,7 @@ Expected: FAIL ("Failed to resolve import './map-to-apitests'").
 - [ ] **Step 3: Write the implementation**
 
 `scripts/netcontent/map-to-apitests.ts`:
+
 ```ts
 import { v4 as uuidv4 } from 'uuid';
 import type { InsertApiTest } from '@shared/schema';
@@ -531,10 +561,12 @@ git commit -m "feat(netcontent): map endpoints to apiTests insert records"
 ## Task 5: Importer — resolve user/project + first insert
 
 **Files:**
+
 - Create: `scripts/netcontent/importer.ts`
 - Test: `scripts/netcontent/importer.test.ts`
 
 **Interfaces:**
+
 - Consumes: `db` (`server/db`), `apiTests`/`projects`/`users` (`@shared/schema`), `InsertApiTest`.
 - Produces:
   - `resolveUserId(database, override?: number): Promise<number>`
@@ -545,6 +577,7 @@ git commit -m "feat(netcontent): map endpoints to apiTests insert records"
 - [ ] **Step 1: Write the failing test (resolve + insert)**
 
 `scripts/netcontent/importer.test.ts`:
+
 ```ts
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../../server/db';
@@ -555,9 +588,20 @@ import { mapEndpoints } from './map-to-apitests';
 import type { Endpoint } from './types';
 
 const EPS: Endpoint[] = [
-  { httpMethod: 'GET', route: 'api/NetContentTareCheck/GetX', controller: 'TareCheck', action: 'GetX',
-    params: [{ name: 'id', csType: 'int', required: true, defaultValue: null }] },
-  { httpMethod: 'POST', route: 'api/NetContentScale/SaveY', controller: 'Scale', action: 'SaveY', params: [] },
+  {
+    httpMethod: 'GET',
+    route: 'api/NetContentTareCheck/GetX',
+    controller: 'TareCheck',
+    action: 'GetX',
+    params: [{ name: 'id', csType: 'int', required: true, defaultValue: null }],
+  },
+  {
+    httpMethod: 'POST',
+    route: 'api/NetContentScale/SaveY',
+    controller: 'Scale',
+    action: 'SaveY',
+    params: [],
+  },
 ];
 
 beforeEach(async () => {
@@ -595,7 +639,7 @@ describe('importApiTests (first run)', () => {
     expect(summary.updated).toBe(0);
     const rows = await db.select().from(apiTests).where(eq(apiTests.projectId, pid));
     expect(rows).toHaveLength(2);
-    expect(rows.map(r => r.method).sort()).toEqual(['GET', 'POST']);
+    expect(rows.map((r) => r.method).sort()).toEqual(['GET', 'POST']);
   });
 });
 ```
@@ -608,6 +652,7 @@ Expected: FAIL ("Failed to resolve import './importer'").
 - [ ] **Step 3: Write the implementation**
 
 `scripts/netcontent/importer.ts`:
+
 ```ts
 import { asc, eq } from 'drizzle-orm';
 import type { db as DbType } from '../../server/db';
@@ -624,14 +669,26 @@ export interface ImportSummary {
 export async function resolveUserId(database: Database, override?: number): Promise<number> {
   if (override !== undefined) return override;
   const rows = await database.select({ id: users.id }).from(users).orderBy(asc(users.id)).limit(1);
-  if (rows.length === 0) throw new Error('No users found in the database; cannot own imported tests.');
+  if (rows.length === 0)
+    throw new Error('No users found in the database; cannot own imported tests.');
   return rows[0].id;
 }
 
-export async function findOrCreateProject(database: Database, userId: number, name: string): Promise<number> {
-  const existing = await database.select({ id: projects.id }).from(projects).where(eq(projects.name, name)).limit(1);
+export async function findOrCreateProject(
+  database: Database,
+  userId: number,
+  name: string,
+): Promise<number> {
+  const existing = await database
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.name, name))
+    .limit(1);
   if (existing.length > 0) return existing[0].id;
-  const created = await database.insert(projects).values({ name, userId }).returning({ id: projects.id });
+  const created = await database
+    .insert(projects)
+    .values({ name, userId })
+    .returning({ id: projects.id });
   return created[0].id;
 }
 
@@ -706,14 +763,17 @@ git commit -m "feat(netcontent): importer resolves user/project and inserts test
 ## Task 6: Importer — idempotent re-run preserves user edits
 
 **Files:**
+
 - Modify: `scripts/netcontent/importer.test.ts`
 
 **Interfaces:**
+
 - Consumes: `importApiTests`, `mergeQueryParams` (Task 5).
 
 - [ ] **Step 1: Write the failing test**
 
 Append to `scripts/netcontent/importer.test.ts`:
+
 ```ts
 describe('importApiTests (re-run)', () => {
   it('preserves edited assertions + filled param values, adds new params, reports orphans', async () => {
@@ -725,25 +785,39 @@ describe('importApiTests (re-run)', () => {
     // Simulate the user editing GetX: fill the "id" value, add a custom assertion.
     const getX = (await db.select().from(apiTests).where(eq(apiTests.method, 'GET')))[0];
     const editedParams = [{ id: 'a', key: 'id', value: '42', enabled: true }];
-    const editedAssertions = [{ id: 'b', source: 'status_code', comparison: 'equals', targetValue: '200', enabled: true }];
-    await db.update(apiTests)
+    const editedAssertions = [
+      { id: 'b', source: 'status_code', comparison: 'equals', targetValue: '200', enabled: true },
+    ];
+    await db
+      .update(apiTests)
       .set({ queryParams: editedParams, assertions: editedAssertions })
       .where(eq(apiTests.id, getX.id));
 
     // Re-import: GetX now also has a new param "mode"; SaveY is gone; NewZ appears.
     const eps2: Endpoint[] = [
-      { httpMethod: 'GET', route: 'api/NetContentTareCheck/GetX', controller: 'TareCheck', action: 'GetX',
+      {
+        httpMethod: 'GET',
+        route: 'api/NetContentTareCheck/GetX',
+        controller: 'TareCheck',
+        action: 'GetX',
         params: [
           { name: 'id', csType: 'int', required: true, defaultValue: null },
           { name: 'mode', csType: 'string', required: false, defaultValue: 'null' },
-        ] },
-      { httpMethod: 'GET', route: 'api/NetContentTareCheck/NewZ', controller: 'TareCheck', action: 'NewZ', params: [] },
+        ],
+      },
+      {
+        httpMethod: 'GET',
+        route: 'api/NetContentTareCheck/NewZ',
+        controller: 'TareCheck',
+        action: 'NewZ',
+        params: [],
+      },
     ];
     records = mapEndpoints(eps2, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1 });
     const summary = await importApiTests(db, records, pid);
 
-    expect(summary.created).toBe(1);           // NewZ
-    expect(summary.updated).toBe(1);           // GetX
+    expect(summary.created).toBe(1); // NewZ
+    expect(summary.updated).toBe(1); // GetX
     expect(summary.orphans).toContain('POST {{baseUrl}}/api/NetContentScale/SaveY');
 
     const after = (await db.select().from(apiTests).where(eq(apiTests.id, getX.id)))[0];
@@ -751,8 +825,8 @@ describe('importApiTests (re-run)', () => {
     expect((after.assertions as any[])[0].targetValue).toBe('200');
     // Existing param value preserved, new param appended.
     const params = after.queryParams as any[];
-    expect(params.find(p => p.key === 'id').value).toBe('42');
-    expect(params.find(p => p.key === 'mode')).toBeTruthy();
+    expect(params.find((p) => p.key === 'id').value).toBe('42');
+    expect(params.find((p) => p.key === 'mode')).toBeTruthy();
   });
 });
 ```
@@ -774,16 +848,19 @@ git commit -m "test(netcontent): idempotent re-run preserves edits and reports o
 ## Task 7: CLI orchestrator + manifest + npm script
 
 **Files:**
+
 - Create: `scripts/import-netcontent-api.ts`
 - Modify: `package.json`
 - Modify: `.gitignore`
 
 **Interfaces:**
+
 - Consumes: `parseControllersDir` (Task 3), `mapEndpoints` (Task 4), `resolveUserId`/`findOrCreateProject`/`importApiTests` (Task 5).
 
 - [ ] **Step 1: Write the orchestrator**
 
 `scripts/import-netcontent-api.ts`:
+
 ```ts
 import 'dotenv/config';
 import fs from 'fs';
@@ -793,15 +870,16 @@ import { parseControllersDir } from './netcontent/parse-controllers';
 import { mapEndpoints } from './netcontent/map-to-apitests';
 import { resolveUserId, findOrCreateProject, importApiTests } from './netcontent/importer';
 
-const DEFAULT_CONTROLLERS =
-  String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\_NccNew\Controllers`;
+const DEFAULT_CONTROLLERS = String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\_NccNew\Controllers`;
 
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
   const controllersDir = process.env.NETCONTENT_CONTROLLERS_DIR || DEFAULT_CONTROLLERS;
   const baseUrlVar = process.env.NETCONTENT_BASE_URL_VAR || '{{baseUrl}}';
   const projectName = process.env.NETCONTENT_PROJECT_NAME || 'NetContent';
-  const userOverride = process.env.WFM_IMPORT_USER_ID ? Number(process.env.WFM_IMPORT_USER_ID) : undefined;
+  const userOverride = process.env.WFM_IMPORT_USER_ID
+    ? Number(process.env.WFM_IMPORT_USER_ID)
+    : undefined;
 
   console.log(`Parsing controllers in: ${controllersDir}`);
   const { endpoints, warnings } = parseControllersDir(controllersDir);
@@ -839,6 +917,7 @@ main().catch((err) => {
 - [ ] **Step 2: Add the npm script**
 
 In `package.json` `scripts`, add:
+
 ```json
 "import:netcontent": "cross-env tsx --require dotenv/config scripts/import-netcontent-api.ts",
 ```
@@ -846,6 +925,7 @@ In `package.json` `scripts`, add:
 - [ ] **Step 3: Ignore the generated manifest**
 
 Append to `.gitignore`:
+
 ```
 # NetContent import manifest (regenerated by scripts/import-netcontent-api.ts)
 scripts/netcontent/endpoints.manifest.json
