@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { test, expect, openPage } from './fixtures';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { distributedWsdl, requestXsd, baseXsd } from '../server/tests/soap-bundle-fixtures';
@@ -138,7 +139,7 @@ test('organization email settings and edited templates persist and stay isolated
   await expect(page.getByLabel('Subject', { exact: true })).toHaveValue('Organization-specific reset');
   const context = await browser.newContext({ baseURL: 'http://127.0.0.1:5080' });
   try {
-    const other = await context.newPage(); await register(other);
+    const other = await openPage(context); await register(other);
     await other.goto('/settings#security'); await other.getByRole('button', { name: 'Security', exact: true }).click();
     await expect(other.getByRole('combobox', { name: 'Email sending', exact: true })).toHaveValue('inherit');
     await expect(other.getByRole('combobox', { name: 'Tracking provider', exact: true })).toHaveValue('none');
@@ -254,7 +255,7 @@ test('multiple configured dashboards persist and are shared read-only with anoth
   const { token } = await invitation.json();
   const readerContext = await browser.newContext();
   try {
-    const reader = await readerContext.newPage();
+    const reader = await openPage(readerContext);
     await reader.goto(`http://127.0.0.1:5080/auth?invitation=${token}&username=${username}`);
     await reader.getByRole('tab', { name: 'Register', exact: true }).click();
     await reader.locator('#register-password').fill(password);

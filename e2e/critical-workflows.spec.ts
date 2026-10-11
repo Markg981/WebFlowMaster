@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { test, expect, openPage } from './fixtures';
 import { history, member, password, register, saveApiTest, unique } from './helpers';
 
 test('an author requests review and a different member approves and publishes through the interface', async ({
@@ -178,7 +179,7 @@ test('quota administrator saves an enforced test limit and the interface refuses
   const tenant = await member(page, browser, 'editor');
   const outsider = await browser.newContext({ baseURL: 'http://127.0.0.1:5080' });
   try {
-    const other = await outsider.newPage();
+    const other = await openPage(outsider);
     await register(other);
     await other.goto('/settings#runUsage');
     await other.getByRole('button', { name: 'Run usage', exact: true }).click();

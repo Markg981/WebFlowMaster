@@ -1,12 +1,14 @@
 import { expect, type Browser, type Page } from '@playwright/test';
+import { openPage } from './fixtures';
 import { createHmac, randomUUID } from 'node:crypto';
 
 export const password = 'E2e-Installation!2026';
 export const unique = (prefix: string) => `${prefix}_${randomUUID().replaceAll('-', '')}`;
 
 export async function register(page: Page, username = unique('critical'), invitation?: string) {
-  // Firefox CI can leave lifecycle events pending after the auth form is rendered.
-  // Wait for the document commit, then let the form locators establish readiness.
+  // Wait for the document commit only: Firefox CI can leave later lifecycle events pending after
+  // the auth form is rendered, so the form locators establish readiness. Pages come from openPage
+  // (fixtures.ts), which has already replaced any page that lost its first navigation.
   await page.goto(invitation ? `/auth?invitation=${invitation}&username=${username}` : '/auth', {
     waitUntil: 'commit',
     timeout: 30_000,
@@ -41,7 +43,7 @@ export async function member(owner: Page, browser: Browser, role: 'editor' | 'vi
   expect(response.status()).toBe(201);
   const context = await browser.newContext({ baseURL: 'http://127.0.0.1:5080', locale: 'en-US' });
   try {
-    const page = await context.newPage();
+    const page = await openPage(context);
     await register(page, username, (await response.json()).token);
     return { page, context };
   } catch (error) {

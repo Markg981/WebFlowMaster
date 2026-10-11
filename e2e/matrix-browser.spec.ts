@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { register } from './helpers';
 import { createMatrixWebTest, runMatrixPlan } from './matrix-helpers';
 
