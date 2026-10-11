@@ -24,8 +24,10 @@ not a generated Drizzle listing, remain authoritative for policies, grants and l
 - [Presentation video](./promo-video/README.md): 60-second Full HD MP4 in each language, original
   instrumental bed, matching silent masters, SRT captions and editable Remotion source.
 
-The commercial contact supplied for these materials is Marco Oliva: `marco.oliva@aveva.com`,
-`www.aveva.com`, `+39 3473495072`. No corporate endorsement or product ownership is implied.
+The commercial contact lives in [`contact.json`](./contact.json), read by both the brochure and the
+video. It holds placeholders (`contact@webflowmaster.example`, `www.webflowmaster.example`, no phone)
+until the product has its own domain and mailbox: replace them there, update the two caption files
+in `promo-video/video/captions/`, and regenerate the PDFs and MP4s before distributing anything.
 
 Generated PDFs, MP4 files and demo video inputs are local outputs, ignored by Git. The brochure
 contains its own two demonstration screenshots in `brochure/assets/`. The video README explains
