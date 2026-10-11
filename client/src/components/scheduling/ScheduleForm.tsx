@@ -278,7 +278,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
                     newDate.setSeconds(currentTime.getSeconds());
                     field.onChange(newDate);
                   }}
-                  initialFocus
+                  autoFocus
                 />
                 <div className="p-3 border-t border-border">
                   <Label htmlFor="time">Time</Label>
