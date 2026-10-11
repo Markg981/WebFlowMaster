@@ -29,6 +29,7 @@ import { registrationMode, registrationPolicy } from './registration';
 import { securityHeaders } from './security-headers';
 import { canManageInstallation } from './installation-admin';
 import { ssoRequiredFor } from './sso';
+import { membershipsOf } from './organization-memberships';
 import { requireActiveSamlSession } from './middleware/saml-session';
 import {
   forgetSamlSession,
@@ -69,6 +70,9 @@ export async function publicUser(user: SelectUser, signedInWithSso = false) {
   const status = await mfaStatus(user.id, user.organizationId);
   return {
     ...safeUser,
+    // Every organization they belong to, the current one marked: the client offers a switch
+    // when there is more than one (server/organization-memberships.ts).
+    organizations: await membershipsOf(user),
     mfaEnabled: status.enabled,
     // The organization's requirement is for password sign-ins; the identity provider has its own.
     mfaEnrollmentRequired: status.required && !status.enabled && !signedInWithSso,

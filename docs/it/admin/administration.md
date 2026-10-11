@@ -44,17 +44,35 @@ volta sola. Quando l'installazione invia e-mail ([E-mail](#e-mail)) e lo usernam
 link viene anche spedito lì, e la pagina dice se è partito; altrimenti mandatelo con un canale di
 cui vi fidate. Il link apre il modulo di registrazione con invito e username già compilati; la
 persona sceglie una password (come chiede la [politica delle password](#password-policy)) ed è dentro. Un invito vale sette giorni e si
-può revocare finché è in attesa. Un account esistente non può essere spostato tra
-organizzazioni: un invito crea sempre un account nuovo.
+può revocare finché è in attesa.
 
-**Cambiare un ruolo** con il menu accanto a un membro. L'ultimo owner non può essere declassato.
+**Invitare chi ha già un account** si fa allo stesso modo, con lo username che ha già: la pagina lo
+dice quando mostra il link. La persona accede con il suo account e apre il link, che le chiede di
+entrare nella vostra organizzazione con il ruolo scelto. Il suo account appartiene allora a
+entrambe le organizzazioni, e passa dall'una all'altra dall'intestazione. Un account non viene mai
+spostato: entra in un'organizzazione accettando, e la lascia quando ne viene rimosso.
 
-**Rimuovere un membro** con l'icona del cestino. Il suo account viene cancellato, con le chiavi
-API, il secondo fattore e le preferenze. Ciò che ha creato (progetti, test, test API, piani,
-schedulazioni, gruppi di step, ambienti e i loro segreti) resta nell'organizzazione e passa a un
-altro membro: a voi, a meno che nella finestra non ne scegliate un altro. Un owner che rimuove
-se stesso lo passa a un altro owner. Il registro di audit ne conserva il nome e registra chi è
-subentrato.
+**Più organizzazioni.** Chi è membro di più di una vede un menu delle organizzazioni
+nell'intestazione, accanto alla ricerca. Il cambio apre una nuova sessione nell'organizzazione
+scelta con il ruolo che vi si ha, e tutto ciò che è sullo schermo — test, piani, run, impostazioni
+— è di quell'organizzazione. Nulla di un'organizzazione è visibile mentre si agisce in un'altra. Il
+registro di audit dell'organizzazione in cui si entra registra il cambio. Una sessione con password
+non può passare a un'organizzazione che richiede il single sign-on: accedetevi con **Accedi con
+SSO**. Con il single sign-on, una persona di un'altra organizzazione che accede tramite il vostro
+provider entra automaticamente nella vostra quando il dominio del suo indirizzo è
+[verificato](#single-sign-on) per la vostra organizzazione.
+
+**Cambiare un ruolo** con il menu accanto a un membro. Il ruolo è quello che ha qui; il ruolo che
+ha in un'altra organizzazione è di quell'organizzazione. L'ultimo owner non può essere declassato.
+
+**Rimuovere un membro** con l'icona del cestino. Lascia questa organizzazione: le chiavi API, i
+posti nei progetti e le preferenze qui se ne vanno con lui, e se questa era l'organizzazione in cui
+stava agendo, alla richiesta successiva si ritrova in un'altra delle sue. L'account in sé — con il
+secondo fattore — viene cancellato solo se questa era la sua ultima organizzazione. Ciò che ha
+creato (progetti, test, test API, piani, schedulazioni, gruppi di step, ambienti e i loro segreti)
+resta nell'organizzazione e passa a un altro membro: a voi, a meno che nella finestra non ne
+scegliate un altro. Un owner che rimuove se stesso lo passa a un altro owner. Il registro di audit
+ne conserva il nome e registra chi è subentrato.
 
 **Emettere un link di reset della password** con l'icona del link, per un membro che ha
 dimenticato la password. La pagina mostra il link una volta sola, e lo spedisce come
@@ -76,17 +94,19 @@ Ognuna di queste operazioni viene registrata nel [registro di audit](#registro-d
 ::: details Le stesse operazioni tramite l'API
 Con la chiave API ad accesso completo di un owner (`Authorization: Bearer wfm_…`):
 
-| Operazione                      | Richiesta                                                                                                                           |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Elencare i membri               | `GET /api/organization`                                                                                                             |
-| Invitare                        | `POST /api/organization/invitations` con `{"username":"maria.rossi","role":"editor"}`; la risposta contiene il token, una volta     |
-| Inviti in attesa, revocarne uno | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                                    |
-| Registrarsi con un invito       | `POST /api/register` con `{"username","password","invitationToken"}`                                                                |
-| Cambiare un ruolo               | `PATCH /api/organization/members/<userId>` con `{"role":"owner"}`                                                                   |
-| Rimuovere                       | `DELETE /api/organization/members/<userId>`, facoltativamente con `{"transferTo":<userId>}`                                         |
-| Link di reset della password    | `POST /api/organization/members/<userId>/password-reset`; la risposta contiene il token, una volta. Il link è `/auth?reset=<token>` |
-| Azzerare il secondo fattore     | `DELETE /api/organization/members/<userId>/mfa`                                                                                     |
-| :::                             |
+| Operazione                        | Richiesta                                                                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Elencare i membri                 | `GET /api/organization`                                                                                                             |
+| Invitare                          | `POST /api/organization/invitations` con `{"username":"maria.rossi","role":"editor"}`; la risposta contiene il token, una volta     |
+| Inviti in attesa, revocarne uno   | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                                    |
+| Registrarsi con un invito         | `POST /api/register` con `{"username","password","invitationToken"}`                                                                |
+| Entrare con un account esistente  | Da sessione: `GET /api/invitations/preview?token=…`, poi `POST /api/invitations/accept` con `{"token"}` (solo sessioni)             |
+| Le proprie organizzazioni, cambio | `GET /api/organizations/mine`; `POST /api/organizations/switch` con `{"organizationId"}` (solo sessioni; una chiave non cambia)     |
+| Cambiare un ruolo                 | `PATCH /api/organization/members/<userId>` con `{"role":"owner"}`                                                                   |
+| Rimuovere                         | `DELETE /api/organization/members/<userId>`, facoltativamente con `{"transferTo":<userId>}`                                         |
+| Link di reset della password      | `POST /api/organization/members/<userId>/password-reset`; la risposta contiene il token, una volta. Il link è `/auth?reset=<token>` |
+| Azzerare il secondo fattore       | `DELETE /api/organization/members/<userId>/mfa`                                                                                     |
+| :::                               |
 
 ## Progetti riservati
 

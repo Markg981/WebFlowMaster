@@ -17,6 +17,11 @@ import { hashesMatch } from './api-keys';
 import { sqlState } from './db-errors';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { transferMemberContent } from './member-removal';
+import {
+  hasOtherMembership,
+  moveToAnotherMembership,
+  removeMembership,
+} from './organization-memberships';
 import type { AuditActor } from './audit';
 
 /**
@@ -757,6 +762,9 @@ export async function patchUser(context: ScimContext, id: string, body: unknown)
 export async function deleteUser(context: ScimContext, id: string) {
   const target = userId(id);
   const { organizationId } = context;
+  // The provider manages this organization's membership of the account, not the account's other
+  // organizations (migration 0086): one that belongs elsewhere too leaves here and lives on there.
+  const belongsElsewhere = await hasOtherMembership(target, organizationId);
   await runWithTenant(organizationId, () =>
     withTenantTransaction(async (tx) => {
       const [user] = await tx
@@ -792,12 +800,19 @@ export async function deleteUser(context: ScimContext, id: string) {
         transferredTo: heir.username,
         transferred,
         byScim: true,
+        accountDeleted: !belongsElsewhere,
       });
+      if (belongsElsewhere) {
+        await removeMembership(tx, organizationId, target);
+        return;
+      }
       await tx
         .delete(users)
         .where(and(eq(users.id, target), eq(users.organizationId, organizationId)));
     }),
   );
+  // Seen by SCIM only while acting here (personOf), so this was their current organization.
+  if (belongsElsewhere) await moveToAnotherMembership(target, organizationId);
 }
 
 // ─── Groups ─────────────────────────────────────────────────────────────────────

@@ -88,6 +88,7 @@ import observabilityRoutes from './routes/observability.routes';
 import environmentRoutes from './routes/environments.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import organizationRoutes from './routes/organization.routes';
+import organizationMembershipsRoutes from './routes/organization-memberships.routes';
 import tenantQuotaAdminRoutes from './routes/tenant-quota-admin.routes';
 import { tenancyMiddleware, withTenantTransaction } from './middleware/tenancy';
 import { SharedDataError, expandSharedDataset } from './test-data';
@@ -216,6 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(apiV1Routes);
   app.use(authRoutes);
   app.use(organizationRoutes);
+  app.use(organizationMembershipsRoutes);
   app.use(tenantQuotaAdminRoutes);
   app.use(projectsRoutes);
   app.use(testsRoutes);

@@ -345,7 +345,7 @@ function signIn(
   req: Request,
   res: Response,
   next: NextFunction,
-  { user, created, linked, samlSession }: SignedIn,
+  { user, created, linked, joined, samlSession }: SignedIn,
   protocol: 'oidc' | 'saml',
 ) {
   // req.login starts a new session: the one that carried the state does not become the signed-in one.
@@ -367,6 +367,7 @@ function signIn(
         protocol,
         ...(created ? { created } : {}),
         ...(linked ? { linked } : {}),
+        ...(joined ? { joined } : {}),
       });
       res.redirect(303, '/');
     });

@@ -96,4 +96,7 @@ export const ORG_SCOPED_TABLES = [
   // The organization's data keys, wrapped by the master key (migration 0084). Policed like the
   // rest; app_user holds SELECT and INSERT only, and the export leaves it out.
   'organization_keys',
+  // Which organizations a person belongs to (migration 0086). Inside an organization its own
+  // members are visible; a person's other memberships are a bootstrap read, like a session.
+  'organization_memberships',
 ] as const;

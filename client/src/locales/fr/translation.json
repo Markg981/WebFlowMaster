@@ -416,7 +416,7 @@
       "pending": "en attente jusqu'au {{date}}",
       "revoke": "Révoquer l'invitation de {{username}}",
       "removeTitle": "Retirer {{username}} ?",
-      "removeDescription": "Son compte est supprimé, avec ses clés API et ses préférences. Les projets, tests, plans, planifications et environnements qu'il a créés restent dans l'organisation et sont confiés au membre que vous choisissez. Le journal d'audit conserve son nom.",
+      "removeDescription": "Il quitte cette organisation, avec ses clés API et ses préférences ici ; le compte lui-même n'est supprimé que si c'était sa dernière organisation. Les projets, tests, plans, planifications et environnements qu'il a créés restent dans l'organisation et sont confiés au membre que vous choisissez. Le journal d'audit conserve son nom.",
       "heirLabel": "Confier ce qu’il a créé à",
       "heirMe": "moi",
       "heirOtherOwner": "un autre propriétaire",
@@ -436,7 +436,8 @@
       "revokeDialog": {
         "title": "Révoquer l'invitation de {{username}} ?",
         "description": "Le lien d'invitation cesse de fonctionner. Vous pourrez inviter cette personne à nouveau plus tard."
-      }
+      },
+      "linkExistingAccount": "{{username}} a déjà un compte : il s'y connecte et ouvre le lien pour rejoindre cette organisation en plus des siennes."
     },
     "customActions": {
       "title": "Actions personnalisées",
@@ -1180,6 +1181,9 @@
       "label": "L'adresse avec laquelle vous vous connectez",
       "submit": "Envoyez-moi un lien",
       "sent": "Si un compte existe avec cette adresse, un lien pour choisir un nouveau mot de passe est en route. Consultez votre boîte de réception."
+    },
+    "invitationExistingAccount": {
+      "description": "Vous avez déjà un compte avec ce nom ? Connectez-vous d'abord, puis rouvrez ce lien pour rejoindre l'organisation."
     }
   },
   "dashboardPageNew": {
@@ -4998,5 +5002,19 @@
   "errorBoundary": {
     "title": "Une erreur s'est produite sur cette page.",
     "description": "L'erreur a été enregistrée. Rechargez la page pour continuer."
+  },
+  "organizationSwitcher": {
+    "label": "Changer d'organisation",
+    "yourOrganizations": "Vos organisations",
+    "failed": "Impossible de changer d'organisation"
+  },
+  "joinOrganization": {
+    "loading": "Lecture de l'invitation…",
+    "title": "Rejoindre {{organization}}",
+    "description": "Vous êtes invité à rejoindre {{organization}} en tant que {{role}}. Votre compte conserve ses autres organisations ; vous pouvez passer de l'une à l'autre depuis l'en-tête.",
+    "join": "Rejoindre en tant que {{role}}",
+    "cancel": "Pas maintenant",
+    "invalid": "Cette invitation n'est pas valable pour votre compte : elle a peut-être expiré, déjà été utilisée, ou est destinée à un autre nom d'utilisateur.",
+    "back": "Retour à l'application"
   }
 }

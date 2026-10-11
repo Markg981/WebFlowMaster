@@ -24,6 +24,13 @@ invitation link. Depending on how your organization is set up:
 
 Forgot your password? Ask an owner of your organization for a reset link.
 
+**More than one organization?** An owner of another organization can invite your existing
+username; open the invitation link while signed in and accept, and that organization is added to
+your account. An organization menu then appears in the header, next to the search: pick one and the
+whole application shows that organization — its tests, plans, runs and settings, with the role you
+hold there — and nothing of the others. Where single sign-on is set up on a verified domain,
+signing in through that organization's provider joins you to it as well.
+
 ## Finding your way around
 
 The sidebar has everything:

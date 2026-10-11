@@ -117,7 +117,12 @@ export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   username: text('username').notNull().unique(),
   password: text('password').notNull(),
-  // The tenancy boundary. One user belongs to exactly one organization.
+  /**
+   * The tenancy boundary: the organization this account is acting in right now. A person may be
+   * a member of several (organization_memberships, migration 0086) and switches between them;
+   * this column and `role` always mirror the membership of the current one, so every query,
+   * policy and role check that reads them keeps working unchanged.
+   */
   organizationId: integer('organization_id')
     .notNull()
     .references(() => organizations.id),
@@ -135,6 +140,40 @@ export const users = pgTable('users', {
   disabledAt: timestamp('disabled_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+/**
+ * Which organizations a person belongs to, and as what (migration 0086).
+ *
+ * `users.organization_id` and `users.role` name the organization the account is acting in and its
+ * role there; this table names every organization it may act in. Switching
+ * (`POST /api/organizations/switch`) copies one of these rows onto the user row. The row of the
+ * current organization is kept in step by a trigger on `users` (`users_sync_current_membership`),
+ * so every path that creates an account or changes its role — registration, invitations, single
+ * sign-on, SCIM — keeps its membership right without knowing about this table.
+ *
+ * Org-scoped and policed by RLS like the rest: inside an organization, its members are visible;
+ * what else a person belongs to is read on the privileged handle (server/organization-memberships.ts).
+ */
+export const organizationMemberships = pgTable(
+  'organization_memberships',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    role: text('role').notNull().default('editor'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('organization_memberships_user_org_unique').on(table.userId, table.organizationId),
+    index('organization_memberships_organization_id_idx').on(table.organizationId),
+  ],
+);
+
+export type OrganizationMembership = typeof organizationMemberships.$inferSelect;
 
 /**
  * A user's second factor. Its own table so no secret rides along on the user row, which goes
@@ -642,6 +681,11 @@ export const AUDIT_ACTIONS = {
   MAIL_TEMPLATE_CHANGED: 'mail_template.changed',
   MEMBER_ROLE_CHANGED: 'member.role_changed',
   MEMBER_REMOVED: 'member.removed',
+  // An existing account joining this organization as one more of its organizations (migration
+  // 0086): by accepting an invitation, or through single sign-on on a verified domain.
+  MEMBER_JOINED: 'member.joined',
+  // Recorded in the organization switched to: the session started acting in it.
+  ORGANIZATION_SWITCHED: 'organization.switched',
   INVITATION_CREATED: 'invitation.created',
   INVITATION_REVOKED: 'invitation.revoked',
   INVITATION_ACCEPTED: 'invitation.accepted',

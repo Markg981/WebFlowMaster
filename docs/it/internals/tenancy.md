@@ -6,8 +6,8 @@ i loro dati, chi può fare cosa dentro un'organizzazione, e come si autenticano 
 ## Organizzazioni e membri
 
 Un'**organizzazione** possiede tutto ciò che un team crea: progetti, test, piani, run, ambienti,
-credenziali. Ogni tabella per organizzazione ha un `organization_id`, e ogni utente appartiene a una
-sola organizzazione con un solo **ruolo**:
+credenziali. Ogni tabella per organizzazione ha un `organization_id`, e ogni utente agisce in una
+sola organizzazione alla volta — la sua organizzazione **corrente** — con un solo **ruolo** lì:
 
 | Ruolo    | Può                                                                                                                                                                      |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -19,16 +19,57 @@ I ruoli sono controllati da `requireRole(minimo)` (`server/middleware/require-ro
 Decidono quali **operazioni** un utente può fare. Quali **righe** esistono per lui lo decide il
 database.
 
-I nuovi membri entrano per **invito** (tabella `invitations`): un owner invita con un ruolo, e la
-registrazione che usa il token crea l'account dentro l'organizzazione che ha invitato. La
-registrazione è un'operazione privilegiata perché l'utente non esiste ancora (`server/storage.ts`).
-Senza invito si registra solo il primo account dell'installazione, a meno che `REGISTRATION=open`
-(`server/registration.ts`); il controllo "è il primo?" e la creazione condividono un advisory lock.
+### Appartenenze e organizzazione corrente
 
-Rimuovere un membro non cancella ciò che ha creato: `server/member-removal.ts` passa progetti,
-test, piani, schedulazioni, gruppi di step, ambienti e segreti a un altro membro prima di cancellare
-l'account, e i vincoli su quelle tabelle sono `NO ACTION`, così una tabella dimenticata fa fallire
-la rimozione invece di perdere righe. Un test controlla ogni vincolo che punta a `users`.
+Una persona può appartenere a più organizzazioni (migrazione 0086). Lo reggono due cose:
+
+- `organization_memberships` (`user_id`, `organization_id`, `role`) è l'insieme delle organizzazioni
+  in cui l'account può agire, con il ruolo che ha in ciascuna. È una tabella per organizzazione
+  protetta da RLS come tutte le altre: dentro un'organizzazione si vedono i suoi membri e nient'altro.
+- `users.organization_id` e `users.role` sono l'organizzazione in cui l'account agisce **adesso** e
+  il suo ruolo lì. La sessione, `tenancyMiddleware`, il binding `app.current_org` di ogni policy e
+  `requireRole` leggono queste due colonne e nient'altro, esattamente come quando un account aveva
+  una sola organizzazione. Il cambio (`POST /api/organizations/switch`, in
+  `server/organization-memberships.ts`) copia l'appartenenza scelta sulla riga dell'utente, apre una
+  nuova sessione (`req.login`) e registra `organization.switched` nell'organizzazione in cui si
+  entra. Una richiesta è quindi sempre legata a una sola organizzazione, e nulla di ciò che
+  un'appartenenza altrove concede è visibile da lì.
+
+L'appartenenza dell'organizzazione corrente è tenuta allineata da un trigger su `users`
+(`users_sync_current_membership`): creare un account, o cambiare `users.role`, fa l'upsert della
+riga di appartenenza corrispondente. Così ogni percorso nato prima della tabella — registrazione,
+inviti, single sign-on, SCIM, il menu dei ruoli degli owner — mantiene corretta l'appartenenza senza
+conoscerla. Cambiare il ruolo che qualcuno ha in un'organizzazione in cui non sta agendo tocca solo
+l'appartenenza (`setMemberRole`).
+
+A cos'altro appartiene una persona è l'unica domanda a cui un'organizzazione non può rispondere sui
+propri membri: le altre appartenenze sono righe di altre organizzazioni. Elencarle per il selettore,
+cambiare, spostare chi è stato appena rimosso dalla sua organizzazione corrente e ammettere un
+account in un'organizzazione in più sono letture e scritture privilegiate della stessa forma di una
+lettura di sessione, con un budget in `server/tests/architecture.test.ts`.
+
+I nuovi membri entrano per **invito** (tabella `invitations`): un owner invita uno username con un
+ruolo. Uno username che non esiste ancora si registra con il token e l'account viene creato dentro
+l'organizzazione che ha invitato — un'operazione privilegiata, perché l'utente non esiste ancora
+(`server/storage.ts`). Uno username che esiste accede e accetta il link
+(`POST /api/invitations/accept`), che aggiunge un'appartenenza e rende corrente la nuova
+organizzazione. Senza invito si registra solo il primo account dell'installazione, a meno che
+`REGISTRATION=open` (`server/registration.ts`); il controllo "è il primo?" e la creazione
+condividono un advisory lock. Il single sign-on ammette allo stesso modo un account di un'altra
+organizzazione, ma solo su un dominio che l'organizzazione ha **verificato**
+(`sso_domains.verified_at`), qualunque cosa dica `SSO_REQUIRE_DOMAIN_VERIFICATION`: la prova del
+dominio è la prova della casella di posta, la stessa fiducia su cui già poggia la mail di reset
+della password. SCIM gestisce solo l'appartenenza dell'organizzazione che provisiona, per gli
+account che agiscono in essa.
+
+Rimuovere un membro toglie l'organizzazione all'account: la sua appartenenza, le chiavi, i posti nei
+progetti e le altre righe personali di quell'organizzazione se ne vanno, e se era la sua
+organizzazione corrente passa a un'altra a cui appartiene. L'account viene cancellato solo se era la
+sua ultima organizzazione. In entrambi i casi ciò che ha creato resta: `server/member-removal.ts`
+passa prima progetti, test, piani, schedulazioni, gruppi di step, ambienti e segreti a un altro
+membro, e i vincoli su quelle tabelle sono `NO ACTION`, così una tabella dimenticata fa fallire la
+rimozione invece di perdere righe. Un test controlla ogni vincolo che punta a `users`.
+Un'organizzazione deve conservare almeno un owner, contato per appartenenza.
 
 ## Row-level security: è il database a separare le organizzazioni
 

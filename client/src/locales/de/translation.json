@@ -416,7 +416,7 @@
       "pending": "offen bis {{date}}",
       "revoke": "Einladung für {{username}} widerrufen",
       "removeTitle": "{{username}} entfernen?",
-      "removeDescription": "Das Konto wird gelöscht, mit seinen API-Schlüsseln und Einstellungen. Projekte, Tests, Pläne, Zeitpläne und Umgebungen, die es erstellt hat, bleiben in der Organisation und gehen an das Mitglied Ihrer Wahl über. Das Audit-Protokoll behält den Namen.",
+      "removeDescription": "Die Person verlässt diese Organisation, mit ihren API-Schlüsseln und Einstellungen hier; das Konto selbst wird nur gelöscht, wenn dies ihre letzte Organisation war. Projekte, Tests, Pläne, Zeitpläne und Umgebungen, die sie erstellt hat, bleiben in der Organisation und gehen an das Mitglied Ihrer Wahl über. Das Audit-Protokoll behält den Namen.",
       "heirLabel": "Erstelltes übergeben an",
       "heirMe": "mich",
       "heirOtherOwner": "einen anderen Eigentümer",
@@ -436,7 +436,8 @@
       "revokeDialog": {
         "title": "Einladung für {{username}} widerrufen?",
         "description": "Der Einladungslink funktioniert nicht mehr. Sie können die Person später erneut einladen."
-      }
+      },
+      "linkExistingAccount": "{{username}} hat bereits ein Konto: die Person meldet sich damit an und öffnet den Link, um dieser Organisation zusätzlich beizutreten."
     },
     "customActions": {
       "title": "Eigene Aktionen",
@@ -1180,6 +1181,9 @@
       "label": "Die Adresse, mit der Sie sich anmelden",
       "submit": "Link senden",
       "sent": "Falls ein Konto mit dieser Adresse existiert, ist ein Link zum Wählen eines neuen Passworts unterwegs. Prüfen Sie Ihr Postfach."
+    },
+    "invitationExistingAccount": {
+      "description": "Sie haben bereits ein Konto mit diesem Namen? Melden Sie sich zuerst an und öffnen Sie diesen Link dann erneut, um beizutreten."
     }
   },
   "dashboardPageNew": {
@@ -4998,5 +5002,19 @@
   "errorBoundary": {
     "title": "Auf dieser Seite ist etwas schiefgelaufen.",
     "description": "Der Fehler wurde aufgezeichnet. Laden Sie die Seite neu, um fortzufahren."
+  },
+  "organizationSwitcher": {
+    "label": "Organisation wechseln",
+    "yourOrganizations": "Ihre Organisationen",
+    "failed": "Organisation konnte nicht gewechselt werden"
+  },
+  "joinOrganization": {
+    "loading": "Einladung wird gelesen…",
+    "title": "{{organization}} beitreten",
+    "description": "Sie wurden eingeladen, {{organization}} als {{role}} beizutreten. Ihr Konto behält seine anderen Organisationen; Sie können in der Kopfzeile zwischen ihnen wechseln.",
+    "join": "Als {{role}} beitreten",
+    "cancel": "Nicht jetzt",
+    "invalid": "Diese Einladung gilt nicht für Ihr Konto: Sie ist möglicherweise abgelaufen, bereits verwendet oder für einen anderen Benutzernamen bestimmt.",
+    "back": "Zurück zur Anwendung"
   }
 }

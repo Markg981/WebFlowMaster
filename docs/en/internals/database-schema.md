@@ -111,6 +111,8 @@ Organizations, people, sign-in (password, second factor, single sign-on), invita
 ```mermaid
 erDiagram
   organizations ||--o{ users : "organization_id"
+  organizations ||--o{ organization_memberships : "organization_id"
+  users ||--o{ organization_memberships : "user_id"
   users ||--o{ user_mfa : "user_id"
   users ||--o{ user_settings : "user_id"
   organizations ||--o{ invitations : "organization_id"
@@ -182,6 +184,13 @@ erDiagram
     bool notify_run_completed
     bool notify_run_failed
     timestamp updated_at
+  }
+  organization_memberships {
+    int id PK
+    int user_id FK
+    int organization_id FK
+    text role
+    timestamp created_at
   }
   invitations {
     int id PK

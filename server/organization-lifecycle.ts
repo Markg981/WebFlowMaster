@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from './db';
+import { relocateMembersBeforeErasure } from './organization-memberships';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
 import {
   BASELINES_PREFIX,
@@ -164,6 +165,10 @@ export async function eraseOrganization(
   return privilegedDb
     .transaction(async (tx) => {
       const deleted: Record<string, number> = {};
+
+      // Members who also belong elsewhere are moved there first (migration 0086): erasing an
+      // organization takes its accounts with it, not the seats those people hold in others.
+      deleted.members_relocated = await relocateMembersBeforeErasure(tx, organizationId);
 
       for (const table of order) {
         const result = await tx.execute(

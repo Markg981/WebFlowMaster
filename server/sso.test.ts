@@ -9,6 +9,7 @@ import { privilegedDb } from './db';
 import {
   auditLog,
   invitations,
+  organizationMemberships,
   organizations,
   ssoDomains,
   ssoIdentities,
@@ -377,12 +378,51 @@ describe('signing in through the provider', () => {
       .insert(organizations)
       .values({ name: 'Elsewhere' })
       .returning();
-    await member(elsewhere.id, 'hedy@example.com');
+    const hedy = await member(elsewhere.id, 'hedy@example.com');
     const refused = await ssoSignIn('hedy@example.com', {
       sub: 'hedy-1',
       email: 'hedy@example.com',
     });
     expect(refused.back.headers.location).toBe('/auth?sso_error=account_elsewhere');
+
+    // On a domain this organization has proven it owns, the account joins instead (migration
+    // 0086): one more organization for it, with the default role, and the one it now acts in.
+    await privilegedDb
+      .update(ssoDomains)
+      .set({ verifiedAt: new Date() })
+      .where(eq(ssoDomains.organizationId, organizationId));
+    const joined = await ssoSignIn('hedy@example.com', {
+      sub: 'hedy-1',
+      email: 'hedy@example.com',
+    });
+    expect(joined.back.headers.location).toBe('/');
+    expect((await joined.browser.get('/api/user').expect(200)).body).toMatchObject({
+      id: hedy.id,
+      organizationId,
+      role: 'editor',
+    });
+    const memberships = await privilegedDb
+      .select({ organizationId: organizationMemberships.organizationId })
+      .from(organizationMemberships)
+      .where(eq(organizationMemberships.userId, hedy.id));
+    expect(memberships.map((m) => m.organizationId).sort()).toEqual(
+      [elsewhere.id, organizationId].sort(),
+    );
+    const trail = (
+      await privilegedDb
+        .select({
+          action: auditLog.action,
+          targetId: auditLog.targetId,
+          metadata: auditLog.metadata,
+        })
+        .from(auditLog)
+        .where(eq(auditLog.organizationId, organizationId))
+    ).filter((e) => e.targetId === String(hedy.id));
+    expect(trail.find((e) => e.action === 'member.joined')?.metadata).toMatchObject({
+      role: 'editor',
+      bySso: true,
+    });
+    expect(trail.find((e) => e.action === 'auth.login')?.metadata).toMatchObject({ joined: true });
     await refused.browser.get('/api/user').expect(401);
   });
 

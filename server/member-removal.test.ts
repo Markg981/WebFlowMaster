@@ -17,6 +17,7 @@ import { TRANSFERRED_ON_REMOVAL } from './member-removal';
 /** Rows that are the person's and go with the account. */
 const PERSONAL = [
   'api_keys.user_id',
+  'organization_memberships.user_id',
   'api_test_history.user_id',
   'password_resets.user_id',
   'project_members.user_id',

@@ -416,7 +416,7 @@
       "pending": "in attesa fino al {{date}}",
       "revoke": "Revoca l'invito per {{username}}",
       "removeTitle": "Rimuovere {{username}}?",
-      "removeDescription": "Il suo account viene cancellato, con le sue chiavi API e le preferenze. Progetti, test, piani, schedulazioni e ambienti che ha creato restano nell'organizzazione e passano al membro che scegli. Il registro di audit ne conserva il nome.",
+      "removeDescription": "Lascia questa organizzazione, con le sue chiavi API e preferenze qui; l'account viene cancellato solo se questa era la sua ultima organizzazione. Progetti, test, piani, schedulazioni e ambienti che ha creato restano nell'organizzazione e passano al membro che scegli. Il registro di audit ne conserva il nome.",
       "heirLabel": "Passa ciò che ha creato a",
       "heirMe": "me",
       "heirOtherOwner": "un altro owner",
@@ -436,7 +436,8 @@
       "revokeDialog": {
         "title": "Revocare l'invito per {{username}}?",
         "description": "Il link di invito smette di funzionare. Potrai invitarli di nuovo in seguito."
-      }
+      },
+      "linkExistingAccount": "{{username}} ha già un account: accede con quello e apre il link per entrare in questa organizzazione, in aggiunta alle sue."
     },
     "customActions": {
       "title": "Azioni personalizzate",
@@ -1180,6 +1181,9 @@
       "label": "L'indirizzo con cui accedete",
       "submit": "Inviatemi un link",
       "sent": "Se esiste un account con quell'indirizzo, è in arrivo un link per scegliere una nuova password. Controllate la casella di posta."
+    },
+    "invitationExistingAccount": {
+      "description": "Hai già un account con questo username? Accedi prima, poi riapri questo link per entrare."
     }
   },
   "dashboardPageNew": {
@@ -4998,5 +5002,19 @@
   "errorBoundary": {
     "title": "Qualcosa è andato storto in questa pagina.",
     "description": "L'errore è stato registrato. Ricarica la pagina per continuare."
+  },
+  "organizationSwitcher": {
+    "label": "Cambia organizzazione",
+    "yourOrganizations": "Le tue organizzazioni",
+    "failed": "Impossibile cambiare organizzazione"
+  },
+  "joinOrganization": {
+    "loading": "Lettura dell'invito…",
+    "title": "Entra in {{organization}}",
+    "description": "Sei stato invitato a entrare in {{organization}} come {{role}}. Il tuo account conserva le altre organizzazioni; puoi passare dall'una all'altra dall'intestazione.",
+    "join": "Entra come {{role}}",
+    "cancel": "Non ora",
+    "invalid": "Questo invito non è valido per il tuo account: potrebbe essere scaduto, già usato, o destinato a un altro username.",
+    "back": "Torna all'applicazione"
   }
 }

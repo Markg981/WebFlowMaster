@@ -53,6 +53,8 @@ interface MailOutcome {
 
 interface CreatedInvitation extends Invitation, MailOutcome {
   token: string;
+  /** An account that exists already: it joins by signing in and opening the link, not by registering. */
+  existingAccount?: boolean;
 }
 
 /** "Sent to …", or why not; nothing when there was no mail to try. */
@@ -506,6 +508,15 @@ const MembersCard: React.FC = () => {
                 )}
               </p>
               <MailNote outcome={created} username={created.username} />
+              {created.existingAccount && (
+                <p className="text-sm text-muted-foreground" data-testid="invitation-existing">
+                  {t(
+                    'settings.members.linkExistingAccount',
+                    '{{username}} already has an account: they sign in with it and open the link to join this organization as one more of theirs.',
+                    { username: created.username },
+                  )}
+                </p>
+              )}
               <div className="flex gap-2">
                 <Input
                   readOnly
@@ -577,7 +588,7 @@ const MembersCard: React.FC = () => {
             <DialogDescription>
               {t(
                 'settings.members.removeDescription',
-                'Their account is deleted, with their API keys and preferences. The projects, tests, plans, schedules and environments they made stay in the organization and are handed to the member you choose. The audit log keeps their name.',
+                'They leave this organization, with their API keys and preferences here; the account itself is deleted only when this was their last organization. The projects, tests, plans, schedules and environments they made stay in the organization and are handed to the member you choose. The audit log keeps their name.',
               )}
             </DialogDescription>
           </DialogHeader>

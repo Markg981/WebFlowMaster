@@ -39,6 +39,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { CommandPalette } from './CommandPalette';
+import { OrganizationSwitcher } from './OrganizationSwitcher';
 
 type NavItem = {
   href: string;
@@ -350,6 +351,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
 
           <div className="flex items-center gap-1.5">
+            <OrganizationSwitcher />
             <CommandPalette
               sections={sections}
               canRun={user?.role !== 'viewer'}

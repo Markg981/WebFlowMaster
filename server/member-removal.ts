@@ -1,7 +1,12 @@
 import { sql } from 'drizzle-orm';
 import {
+  apiKeys,
+  apiTestHistory,
   apiTests,
+  dashboards,
   environments,
+  passwordResets,
+  projectMembers,
   projects,
   secrets,
   stepGroups,
@@ -9,6 +14,8 @@ import {
   testPlanSchedules,
   testPlans,
   tests,
+  userDashboardLayouts,
+  userDashboardPreferences,
 } from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
 
@@ -72,4 +79,43 @@ export async function transferMemberContent(
     counts[name] = moved.rows.length;
   }
   return counts;
+}
+
+/**
+ * What is the person's *in this organization* and goes when they leave it while their account
+ * stays (a member of several organizations, migration 0086): the rows the constraints above would
+ * cascade on the account, restricted to the organization being left. API keys of another
+ * organization, or their second factor, are not this organization's to touch. Every table here is
+ * org-scoped, so the policy restricts the delete as well as the predicate does.
+ */
+export const PERSONAL_IN_ORGANIZATION = [
+  { table: apiKeys, column: apiKeys.userId, name: 'api_keys' },
+  { table: projectMembers, column: projectMembers.userId, name: 'project_members' },
+  { table: passwordResets, column: passwordResets.userId, name: 'password_resets' },
+  { table: apiTestHistory, column: apiTestHistory.userId, name: 'api_test_history' },
+  {
+    table: userDashboardLayouts,
+    column: userDashboardLayouts.userId,
+    name: 'user_dashboard_layouts',
+  },
+  {
+    table: userDashboardPreferences,
+    column: userDashboardPreferences.userId,
+    name: 'user_dashboard_preferences',
+  },
+  { table: dashboards, column: dashboards.creatorId, name: 'dashboards' },
+] as const;
+
+/** Deletes the person's own rows of one organization, inside the caller's tenant transaction. */
+export async function removePersonalRowsInOrganization(
+  tx: TenantTx,
+  organizationId: number,
+  userId: number,
+): Promise<void> {
+  for (const { table, column } of PERSONAL_IN_ORGANIZATION) {
+    await tx.execute(sql`
+      DELETE FROM ${table}
+      WHERE ${column} = ${userId} AND ${table.organizationId} = ${organizationId}
+    `);
+  }
 }

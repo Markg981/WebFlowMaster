@@ -4,7 +4,7 @@ import { invitationMail, passwordResetMail } from '../mail-messages';
 import { publicBase } from './sso.routes';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import { and, asc, desc, eq, gte, like, lte, ne, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, like, lte, type SQL } from 'drizzle-orm';
 import { organizations, users, invitations, auditLog, AUDIT_ACTIONS } from '@shared/schema';
 import { storage } from '../storage';
 import { requireRole } from '../middleware/require-role';
@@ -12,6 +12,16 @@ import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
 import { exportOrganization, eraseOrganization } from '../organization-lifecycle';
 import { transferMemberContent } from '../member-removal';
+import {
+  eldestOtherOwner,
+  hasOtherMembership,
+  listMembers,
+  memberOf,
+  moveToAnotherMembership,
+  otherOwnerCount,
+  removeMembership,
+  setMemberRole,
+} from '../organization-memberships';
 import { issuePasswordReset } from '../password-reset';
 import loggerPromise from '../logger';
 import { liveRunCounts, quotaUsage, quotasFor } from '../tenant-quotas';
@@ -48,8 +58,9 @@ router.get(
 );
 
 /**
- * users is not an org-scoped RLS table (it holds the organization pointer itself), so these
- * handlers filter by organizationId explicitly. Every query below carries that filter.
+ * Who is in the organization is organization_memberships (migration 0086), an org-scoped table
+ * the policy filters; users itself is not one (it holds the current-organization pointer), so
+ * wherever a handler below reads it alone, it names the organization explicitly.
  */
 router.get('/api/organization', requireRole('viewer'), async (_req: Request, res: Response) => {
   const organizationId = getTenantOrgId()!;
@@ -64,19 +75,21 @@ router.get('/api/organization', requireRole('viewer'), async (_req: Request, res
       .from(organizations)
       .where(eq(organizations.id, organizationId));
 
-    // An explicit column list, never select(): the password hash must not leave the database.
-    const members = await tx
-      .select({
-        id: users.id,
-        username: users.username,
-        role: users.role,
-        createdAt: users.createdAt,
+    // People, with the role each holds here. Service accounts are listed, and managed, under
+    // /api/service-accounts. An explicit column list, never the user row: the password hash must
+    // not leave the database.
+    const members = (await listMembers(tx, organizationId)).map(
+      ({ id, username, role, createdAt, disabledAt, current }) => ({
+        id,
+        username,
+        role,
+        createdAt,
         // Set when the identity provider deactivated them through SCIM (server/scim.ts).
-        disabledAt: users.disabledAt,
-      })
-      .from(users)
-      // People. Service accounts are listed, and managed, under /api/service-accounts.
-      .where(and(eq(users.organizationId, organizationId), eq(users.kind, 'person')));
+        disabledAt,
+        // Whether this organization is the one they are acting in; a member of several may not be.
+        current,
+      }),
+    );
 
     return { organization, members };
   });
@@ -281,10 +294,12 @@ router.delete('/api/organization', requireRole('owner'), async (req: Request, re
 /**
  * How someone actually joins an organization they did not create.
  *
- * POST /api/organization/members cannot do it: a user belongs to exactly one organization, so
- * moving an existing account would take that person's own data away from them. An invitation
- * names a username that does not exist yet, and registration with the token puts the new
- * account here instead of in an organization of its own.
+ * POST /api/organization/members cannot do it: an account is never moved into an organization
+ * by an owner of it, since ownership of an organization is authority over its membership, not
+ * over other people's accounts. An invitation names a username: one that does not exist yet
+ * registers with the token and the new account is created here; one that exists signs in and
+ * accepts the link (POST /api/invitations/accept), which adds this organization to the ones the
+ * account belongs to (migration 0086).
  */
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -348,14 +363,21 @@ router.post(
     }
 
     // Privileged and outside the tenant transaction: this asks a question about the global
-    // username namespace, which is not org-scoped and which app_user cannot read anyway.
+    // username namespace, which is not org-scoped. An existing account may be invited — it joins
+    // by accepting, signed in — unless it is a service account or already a member here.
     const existing = await storage.getUserByUsername(parsed.data.username);
+    if (existing && existing.kind !== 'person') {
+      return res.status(409).json({ error: 'That username belongs to a service account.' });
+    }
     if (existing) {
-      return res.status(409).json({
-        error:
-          'That username already exists. An invitation can only create a new account; an ' +
-          'existing user cannot be moved between organizations.',
-      });
+      const alreadyMember = await withTenantTransaction((tx) =>
+        memberOf(tx, organizationId, existing.id),
+      );
+      if (alreadyMember) {
+        return res
+          .status(409)
+          .json({ error: 'That user is already a member of this organization.' });
+      }
     }
 
     const token = randomBytes(32).toString('hex');
@@ -419,6 +441,9 @@ router.post(
         role: created.role,
         token: created.token,
         expiresAt: created.expiresAt,
+        // The owner is told which: an existing account joins by signing in and opening the link,
+        // not by registering.
+        existingAccount: existing !== undefined,
         ...mail,
       });
     } catch (e: unknown) {
@@ -475,59 +500,37 @@ router.post(
     }
 
     const outcome = await withTenantTransaction(async (tx) => {
-      const [target] = await tx
-        .select({
-          id: users.id,
-          role: users.role,
-          organizationId: users.organizationId,
-          kind: users.kind,
-        })
-        .from(users)
-        .where(eq(users.id, parsed.data.userId));
-
-      // A service account's role is set where it was created; this is for people.
-      if (!target || target.kind !== 'person') return { status: 404 as const };
-
-      // A user who already belongs to another organization cannot be pulled into this one.
+      // Members of this organization only: the lookup is through organization_memberships, which
+      // the policy scopes, so an id of anyone else in the system is simply not found here.
       //
-      // Without this the endpoint is a cross-tenant member-theft vector: the lookup above is by
-      // id alone, so an owner could enumerate ids and re-parent anyone in the system into their
-      // own organization — stripping that person of access to their own organization's data and
-      // handing them this one's. Ownership of an organization is authority over its membership,
-      // not authority over other people's accounts.
-      //
-      // Which leaves this endpoint able only to set the role of someone already here — growing
-      // an organization is what POST /api/organization/invitations is for. An invitation names
-      // a username that does not exist yet, so the new account is created inside this
-      // organization rather than moved into it, and nobody loses their own.
-      if (target.organizationId !== organizationId) {
-        return {
-          status: 409 as const,
-          error:
-            'That user already belongs to another organization. Invite a new user instead: ' +
-            'moving an existing member between organizations would take away their access to ' +
-            "their own organization's data.",
-        };
-      }
+      // Which is what keeps this endpoint from being a cross-tenant member-theft vector: an owner
+      // could otherwise enumerate ids and re-parent anyone into their own organization. Ownership
+      // of an organization is authority over its membership, not over other people's accounts.
+      // Growing an organization is what POST /api/organization/invitations is for. A service
+      // account's role is set where it was created; this is for people.
+      const target = await memberOf(tx, organizationId, parsed.data.userId);
+      if (!target) return { status: 404 as const };
 
-      // .returning() takes no column-list argument here: TenantTx is typed as a union across
-      // the node-postgres and PGlite drivers (server/db.ts's DbType), and TypeScript collapses
-      // an update-builder method that differs across a union's members down to the narrowest
-      // common overload — the zero-argument one. Select the safe fields back out afterward
-      // instead, so the password hash picked up by the full-row returning never leaves this
-      // function.
-      const [updatedRow] = await tx
-        .update(users)
-        .set({ organizationId, role: parsed.data.role })
-        .where(eq(users.id, parsed.data.userId))
-        .returning();
-      const updated = { id: updatedRow.id, username: updatedRow.username, role: updatedRow.role };
-
-      return { status: 201 as const, body: updated };
+      await setMemberRole(tx, organizationId, target.id, parsed.data.role);
+      return {
+        status: 201 as const,
+        body: { id: target.id, username: target.username, role: parsed.data.role },
+      };
     });
 
-    if (outcome.status === 404) return res.status(404).json({ error: 'User not found' });
-    if (outcome.status === 409) return res.status(409).json({ error: outcome.error });
+    if (outcome.status === 404) {
+      // Not here. Said apart from "nobody" when it is somebody of another organization, as it
+      // always was: the refusal, and the reason, are the point of this handler.
+      const elsewhere = await storage.getUser(parsed.data.userId);
+      if (elsewhere && elsewhere.kind === 'person') {
+        return res.status(409).json({
+          error:
+            'That user is not a member of this organization. Invite them instead: an account ' +
+            'joins an organization by accepting an invitation, never by being moved.',
+        });
+      }
+      return res.status(404).json({ error: 'User not found' });
+    }
     res.status(201).json(outcome.body);
   },
 );
@@ -620,43 +623,19 @@ router.patch(
     }
 
     const outcome = await withTenantTransaction(async (tx) => {
-      const [target] = await tx
-        .select({ id: users.id, role: users.role })
-        .from(users)
-        .where(
-          and(
-            eq(users.id, userId),
-            eq(users.organizationId, organizationId),
-            eq(users.kind, 'person'),
-          ),
-        );
-
+      const target = await memberOf(tx, organizationId, userId);
       if (!target) return { status: 404 as const };
 
       // Counted inside the transaction, not before it: a read-then-write check would let two
       // concurrent demotions both observe a second owner and both succeed.
       if (target.role === 'owner' && parsed.data.role !== 'owner') {
-        const [{ others }] = await tx
-          .select({ others: sql<number>`count(*)::int` })
-          .from(users)
-          .where(
-            and(
-              eq(users.organizationId, organizationId),
-              eq(users.role, 'owner'),
-              ne(users.id, userId),
-            ),
-          );
-        if (others === 0) return { status: 409 as const };
+        if ((await otherOwnerCount(tx, organizationId, userId)) === 0)
+          return { status: 409 as const };
       }
 
-      // See the comment on the POST handler's update above: .returning() takes no argument
-      // here because of how TenantTx's union type collapses the update builder's overloads.
-      const [updatedRow] = await tx
-        .update(users)
-        .set({ role: parsed.data.role })
-        .where(and(eq(users.id, userId), eq(users.organizationId, organizationId)))
-        .returning();
-      const updated = { id: updatedRow.id, username: updatedRow.username, role: updatedRow.role };
+      // The role they hold here; the user row follows only when here is where they are acting.
+      await setMemberRole(tx, organizationId, userId, parsed.data.role);
+      const updated = { id: target.id, username: target.username, role: parsed.data.role };
 
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.MEMBER_ROLE_CHANGED,
@@ -664,7 +643,7 @@ router.patch(
         targetType: 'user',
         targetId: userId,
         // Both sides: "changed to editor" is not answerable without knowing what it was.
-        metadata: { username: updatedRow.username, from: target.role, to: parsed.data.role },
+        metadata: { username: target.username, from: target.role, to: parsed.data.role },
       });
 
       return { status: 200 as const, body: updated };
@@ -693,32 +672,18 @@ router.delete(
       return res.status(400).json({ error: 'Invalid payload', details: body.error.flatten() });
     }
 
-    const outcome = await withTenantTransaction(async (tx) => {
-      const [target] = await tx
-        .select({ id: users.id, role: users.role, username: users.username })
-        .from(users)
-        .where(
-          and(
-            eq(users.id, userId),
-            eq(users.organizationId, organizationId),
-            eq(users.kind, 'person'),
-          ),
-        );
+    // Whether the person belongs anywhere else decides what "remove" means: taking this
+    // organization away from an account that lives on, or deleting the account as before. Asked
+    // before the tenant transaction, because from inside it the other memberships are not visible.
+    const belongsElsewhere = await hasOtherMembership(userId, organizationId);
 
+    const outcome = await withTenantTransaction(async (tx) => {
+      const target = await memberOf(tx, organizationId, userId);
       if (!target) return { status: 404 as const };
 
       if (target.role === 'owner') {
-        const [{ others }] = await tx
-          .select({ others: sql<number>`count(*)::int` })
-          .from(users)
-          .where(
-            and(
-              eq(users.organizationId, organizationId),
-              eq(users.role, 'owner'),
-              ne(users.id, userId),
-            ),
-          );
-        if (others === 0) return { status: 409 as const };
+        if ((await otherOwnerCount(tx, organizationId, userId)) === 0)
+          return { status: 409 as const };
       }
 
       // Who takes over what the member made (server/member-removal.ts): the member the request
@@ -729,32 +694,11 @@ router.delete(
       if (named !== undefined) {
         if (named === userId)
           return { status: 400 as const, error: 'transferTo must be another member' };
-        [heir] = await tx
-          .select({ id: users.id, username: users.username })
-          .from(users)
-          .where(
-            and(
-              eq(users.id, named),
-              eq(users.organizationId, organizationId),
-              eq(users.kind, 'person'),
-            ),
-          );
+        heir = await memberOf(tx, organizationId, named);
         if (!heir)
           return { status: 400 as const, error: 'transferTo is not a member of this organization' };
       } else {
-        [heir] = await tx
-          .select({ id: users.id, username: users.username })
-          .from(users)
-          .where(
-            and(
-              eq(users.organizationId, organizationId),
-              eq(users.role, 'owner'),
-              eq(users.kind, 'person'),
-              ne(users.id, userId),
-            ),
-          )
-          .orderBy(asc(users.createdAt), asc(users.id))
-          .limit(1);
+        heir = await eldestOtherOwner(tx, organizationId, userId);
       }
 
       const transferred = await transferMemberContent(tx, organizationId, userId, heir!.id);
@@ -773,16 +717,24 @@ router.delete(
           role: target.role,
           transferredTo: heir!.username,
           transferred,
+          accountDeleted: !belongsElsewhere,
         },
       });
 
-      await tx
-        .delete(users)
-        .where(and(eq(users.id, userId), eq(users.organizationId, organizationId)));
+      if (belongsElsewhere) {
+        // The account stays: its membership here goes, with what was theirs here.
+        await removeMembership(tx, organizationId, userId);
+      } else {
+        await tx
+          .delete(users)
+          .where(and(eq(users.id, userId), eq(users.organizationId, organizationId)));
+      }
       return {
         status: 200 as const,
+        wasCurrent: target.current,
         body: {
           removed: userId,
+          accountDeleted: !belongsElsewhere,
           transferredTo: { id: heir!.id, username: heir!.username },
           transferred,
         },
@@ -794,6 +746,11 @@ router.delete(
     if (outcome.status === 409) {
       return res.status(409).json({ error: 'An organization must keep at least one owner' });
     }
+    // They were acting here and still have somewhere to be: their session moves there on its next
+    // request (passport re-reads the user row). After the transaction, where the other membership
+    // is visible.
+    if (belongsElsewhere && outcome.wasCurrent)
+      await moveToAnotherMembership(userId, organizationId);
     res.json(outcome.body);
   },
 );

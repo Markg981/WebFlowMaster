@@ -416,7 +416,7 @@
       "pending": "waiting until {{date}}",
       "revoke": "Revoke the invitation for {{username}}",
       "removeTitle": "Remove {{username}}?",
-      "removeDescription": "Their account is deleted, with their API keys and preferences. The projects, tests, plans, schedules and environments they made stay in the organization and are handed to the member you choose. The audit log keeps their name.",
+      "removeDescription": "They leave this organization, with their API keys and preferences here; the account itself is deleted only when this was their last organization. The projects, tests, plans, schedules and environments they made stay in the organization and are handed to the member you choose. The audit log keeps their name.",
       "heirLabel": "Hand what they made to",
       "heirMe": "me",
       "heirOtherOwner": "another owner",
@@ -436,7 +436,8 @@
       "revokeDialog": {
         "title": "Revoke the invitation for {{username}}?",
         "description": "The invitation link stops working. You can invite them again later."
-      }
+      },
+      "linkExistingAccount": "{{username}} already has an account: they sign in with it and open the link to join this organization as one more of theirs."
     },
     "customActions": {
       "title": "Custom actions",
@@ -1180,6 +1181,9 @@
       "label": "The address you sign in with",
       "submit": "Send me a link",
       "sent": "If an account with that address exists, a link to choose a new password is on its way. Check your mailbox."
+    },
+    "invitationExistingAccount": {
+      "description": "Already have an account with it? Sign in first, then open this link again to join."
     }
   },
   "dashboardPageNew": {
@@ -4998,5 +5002,19 @@
   "errorBoundary": {
     "title": "Something went wrong on this page.",
     "description": "The error has been recorded. Reload the page to continue."
+  },
+  "organizationSwitcher": {
+    "label": "Switch organization",
+    "yourOrganizations": "Your organizations",
+    "failed": "Could not switch organization"
+  },
+  "joinOrganization": {
+    "loading": "Reading the invitation…",
+    "title": "Join {{organization}}",
+    "description": "You were invited to join {{organization}} as {{role}}. Your account keeps its other organizations; you can switch between them from the header.",
+    "join": "Join as {{role}}",
+    "cancel": "Not now",
+    "invalid": "This invitation is not valid for your account: it may have expired, been used, or be meant for another username.",
+    "back": "Back to the app"
   }
 }

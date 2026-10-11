@@ -41,16 +41,34 @@ once. When the installation sends e-mail ([E-mail](#e-mail)) and the username is
 link is also mailed to it, and the page says whether it left; otherwise send it by a channel you
 trust. The link opens the registration form with the invitation and the username already filled
 in; the person chooses a password (as the [password policy](#password-policy) asks) and is in. An invitation is valid for seven
-days and can be revoked while it waits. An existing account cannot be moved between
-organizations: an invitation always creates a new one.
+days and can be revoked while it waits.
 
-**Change a role** with the role menu next to a member. The last owner cannot be demoted.
+**Invite someone who already has an account** the same way, with their existing username: the
+page says so when it shows the link. They sign in with their account and open the link, which asks
+them to join your organization with the role you chose. Their account then belongs to both
+organizations, and they switch between them from the header. An account is never moved: it is
+added to an organization by accepting, and leaves one by being removed from it.
 
-**Remove a member** with the bin icon. Their account is deleted, with their API keys, second
-factor and preferences. What they made (projects, tests, API tests, plans, schedules, step
-groups, environments and their secrets) stays in the organization and is handed to another
-member: you, unless you choose someone else in the dialog. An owner removing themselves hands
-it to another owner. The audit log keeps their name and records who took over.
+**Several organizations.** A member of more than one sees an organization menu in the header,
+next to the search. Switching starts a fresh session in the chosen organization with the role held
+there, and everything on screen — tests, plans, runs, settings — is that organization's. Nothing of
+one organization is visible while acting in another. The audit log of the organization entered
+records the switch. A password session cannot switch into an organization that requires single
+sign-on: sign in to it with **Sign in with SSO** instead. With single sign-on, a person of another
+organization signing in through your provider joins yours automatically when the domain of their
+address is [verified](#single-sign-on) for your organization.
+
+**Change a role** with the role menu next to a member. The role is the one they hold here; a role
+they hold in another organization is that organization's. The last owner cannot be demoted.
+
+**Remove a member** with the bin icon. They leave this organization: their API keys, project
+seats and preferences here go with them, and if this was the organization they were acting in,
+they find themselves in another of theirs at their next request. The account itself — with its
+second factor — is deleted only when this was their last organization. What they made (projects,
+tests, API tests, plans, schedules, step groups, environments and their secrets) stays in the
+organization and is handed to another member: you, unless you choose someone else in the dialog.
+An owner removing themselves hands it to another owner. The audit log keeps their name and records
+who took over.
 
 **Issue a password reset link** with the link icon, for a member who forgot their password.
 The page shows the link once, and mails it as an invitation is mailed. It opens a form to choose a
@@ -71,16 +89,18 @@ Each of these is recorded in the [audit log](#audit-log).
 ::: details The same through the API
 With an owner's API key with full access (`Authorization: Bearer wfm_…`):
 
-| Action                          | Request                                                                                                                       |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| List members                    | `GET /api/organization`                                                                                                       |
-| Invite                          | `POST /api/organization/invitations` with `{"username":"maria.rossi","role":"editor"}`; the answer holds the token, once      |
-| Pending invitations, revoke one | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                              |
-| Register with an invitation     | `POST /api/register` with `{"username","password","invitationToken"}`                                                         |
-| Change a role                   | `PATCH /api/organization/members/<userId>` with `{"role":"owner"}`                                                            |
-| Remove                          | `DELETE /api/organization/members/<userId>`, optionally with `{"transferTo":<userId>}`                                        |
-| Password reset link             | `POST /api/organization/members/<userId>/password-reset`; the answer holds the token, once. The link is `/auth?reset=<token>` |
-| Reset the second factor         | `DELETE /api/organization/members/<userId>/mfa`                                                                               |
+| Action                          | Request                                                                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| List members                    | `GET /api/organization`                                                                                                        |
+| Invite                          | `POST /api/organization/invitations` with `{"username":"maria.rossi","role":"editor"}`; the answer holds the token, once       |
+| Pending invitations, revoke one | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                               |
+| Register with an invitation     | `POST /api/register` with `{"username","password","invitationToken"}`                                                          |
+| Join with an existing account   | Signed in: `GET /api/invitations/preview?token=…`, then `POST /api/invitations/accept` with `{"token"}` (sessions only)        |
+| One's organizations, switching  | `GET /api/organizations/mine`; `POST /api/organizations/switch` with `{"organizationId"}` (sessions only; a key cannot switch) |
+| Change a role                   | `PATCH /api/organization/members/<userId>` with `{"role":"owner"}`                                                             |
+| Remove                          | `DELETE /api/organization/members/<userId>`, optionally with `{"transferTo":<userId>}`                                         |
+| Password reset link             | `POST /api/organization/members/<userId>/password-reset`; the answer holds the token, once. The link is `/auth?reset=<token>`  |
+| Reset the second factor         | `DELETE /api/organization/members/<userId>/mfa`                                                                                |
 | :::                             |
 
 ## Restricted projects

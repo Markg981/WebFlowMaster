@@ -26,6 +26,14 @@ di solito tramite un link di invito. A seconda di come è configurata l'organizz
 
 Password dimenticata? Chiedete un link di reset a un owner della vostra organizzazione.
 
+**Più di un'organizzazione?** Un owner di un'altra organizzazione può invitare lo username che già
+avete; aprite il link di invito mentre siete connessi e accettate, e quell'organizzazione viene
+aggiunta al vostro account. Nell'intestazione compare allora un menu delle organizzazioni, accanto
+alla ricerca: sceglietene una e l'intera applicazione mostra quell'organizzazione — i suoi test,
+piani, run e impostazioni, con il ruolo che vi avete — e nulla delle altre. Dove il single sign-on è
+configurato su un dominio verificato, anche accedere tramite il provider di quell'organizzazione vi
+fa entrare.
+
 ## Orientarsi
 
 La barra laterale contiene tutto:

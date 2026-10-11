@@ -6,8 +6,8 @@ do what inside an organization, and how people and machines authenticate.
 ## Organizations and members
 
 An **organization** owns everything a team creates: projects, tests, plans, runs, environments,
-credentials. Every organization-scoped table carries an `organization_id`, and every user belongs to
-exactly one organization with one **role**:
+credentials. Every organization-scoped table carries an `organization_id`, and every user acts in
+exactly one organization at a time — their **current** organization — with one **role** there:
 
 | Role     | May                                                                                                                                                                             |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -18,17 +18,56 @@ exactly one organization with one **role**:
 Roles are checked by `requireRole(minimum)` (`server/middleware/require-role.ts`) on each route. They
 decide which **verbs** a user may use. Which **rows** exist for them is decided by the database.
 
-New members join by **invitation** (`invitations` table): an owner invites with a role, and the
-registration that uses the token creates the account inside the inviting organization. Registration
-is a privileged operation because the user does not exist yet (`server/storage.ts`). Without an
-invitation only the installation's first account may register, unless `REGISTRATION=open`
-(`server/registration.ts`); "is it the first?" and the insert share an advisory lock.
+### Memberships and the current organization
 
-Removing a member does not delete what they made: `server/member-removal.ts` hands projects,
-tests, plans, schedules, step groups, environments and secrets to another member before the
-account is deleted, and the constraints on those tables are `NO ACTION`, so a table the transfer
-forgets fails the removal instead of losing rows. A test checks every constraint that references
-`users`.
+A person may belong to several organizations (migration 0086). Two things carry that:
+
+- `organization_memberships` (`user_id`, `organization_id`, `role`) is the set of organizations
+  the account may act in, with the role it holds in each. It is org-scoped and policed by RLS like
+  every other table: inside an organization, its own members are visible and nothing else.
+- `users.organization_id` and `users.role` are the organization the account is acting in **now**
+  and its role there. The session, `tenancyMiddleware`, every policy's `app.current_org` binding
+  and `requireRole` read these two columns and nothing else, exactly as they did when an account
+  had one organization. Switching (`POST /api/organizations/switch`, owner of the switch is
+  `server/organization-memberships.ts`) copies the chosen membership onto the user row, starts a
+  new session (`req.login`) and records `organization.switched` in the organization entered. A
+  request is therefore always bound to one organization, and nothing a membership elsewhere grants
+  is visible from it.
+
+The membership of the current organization is kept in step by a trigger on `users`
+(`users_sync_current_membership`): creating an account, or changing `users.role`, upserts the
+matching membership row. So every path that predates the table — registration, invitations,
+single sign-on, SCIM, the owners' role menu — keeps its membership right without knowing about it.
+Changing the role someone holds in an organization they are not acting in touches the membership
+only (`setMemberRole`).
+
+What else a person belongs to is the one question an organization cannot answer about its members:
+the other memberships are other organizations' rows. Listing them for the switcher, switching,
+moving someone whose current organization just removed them, and admitting an account to one more
+organization are privileged reads and writes of the same shape as a session lookup, budgeted in
+`server/tests/architecture.test.ts`.
+
+New members join by **invitation** (`invitations` table): an owner invites a username with a role.
+A username that does not exist yet registers with the token and the account is created inside the
+inviting organization — a privileged operation, because the user does not exist yet
+(`server/storage.ts`). A username that exists signs in and accepts the link
+(`POST /api/invitations/accept`), which adds a membership and makes the new organization the
+current one. Without an invitation only the installation's first account may register, unless
+`REGISTRATION=open` (`server/registration.ts`); "is it the first?" and the insert share an advisory
+lock. Single sign-on admits an account of another organization the same way, but only on a domain
+the organization has **verified** (`sso_domains.verified_at`), whatever
+`SSO_REQUIRE_DOMAIN_VERIFICATION` says: proof of the domain is proof of the mailbox, which is the
+trust password reset mail already rests on. SCIM manages the provisioning organization's
+membership only, for accounts acting in it.
+
+Removing a member takes the organization away from the account: their membership, keys, project
+seats and other personal rows of that organization go, and if it was their current organization
+they move to another one they belong to. The account itself is deleted only when it was their last
+organization. In both cases what they made stays: `server/member-removal.ts` hands projects,
+tests, plans, schedules, step groups, environments and secrets to another member first, and the
+constraints on those tables are `NO ACTION`, so a table the transfer forgets fails the removal
+instead of losing rows. A test checks every constraint that references `users`. An organization
+must keep at least one owner, counted by membership.
 
 ## Row-level security: the database keeps organizations apart
 

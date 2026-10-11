@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MfaChallengeForm from '@/components/security/MfaChallengeForm';
 import SsoSignIn from '@/components/security/SsoSignIn';
 import ForgotPassword from '@/components/security/ForgotPassword';
+import JoinOrganization from '@/components/security/JoinOrganization';
 import { ApiError, errorMessage } from '@/lib/queryClient';
 
 interface RegistrationPolicy {
@@ -68,11 +69,14 @@ export default function AuthPage() {
   const invitationRequired = policy ? !policy.selfRegistration : false;
   const showInvitationField = invited.token !== '' || invitationRequired;
 
+  // Signed in and holding an invitation: the link is for joining one more organization, not for
+  // registering, so the page stays to ask (JoinOrganization) instead of going to the dashboard.
+  const joining = Boolean(user && invited.token);
   useEffect(() => {
-    if (user) {
+    if (user && !joining) {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [user, joining, navigate]);
 
   // Choosing a new password with a reset link (server/auth.ts, POST /api/password-reset). Then the
   // person signs in as usual, with their second factor if they have one.
@@ -185,7 +189,9 @@ export default function AuthPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {mfaChallenge ? (
+                {joining ? (
+                  <JoinOrganization token={invited.token} />
+                ) : mfaChallenge ? (
                   <MfaChallengeForm />
                 ) : reset.token && !resetDone ? (
                   <form onSubmit={handleReset} className="space-y-4" data-testid="reset-form">
@@ -421,6 +427,10 @@ export default function AuthPage() {
                                     {t(
                                       'authPage.invitationUsername.description',
                                       'Use the username you were invited with.',
+                                    )}{' '}
+                                    {t(
+                                      'authPage.invitationExistingAccount.description',
+                                      'Already have an account with it? Sign in first, then open this link again to join.',
                                     )}
                                   </p>
                                 )}
