@@ -88,5 +88,13 @@ module.exports = {
         'react-hooks/rules-of-hooks': 'off',
       },
     },
+    {
+      // Playwright code, not React: a fixture receives `use` as its continuation, and from
+      // eslint-plugin-react-hooks 5 on the rule reads any call named `use` as React's hook.
+      files: ['e2e/**/*.ts'],
+      rules: {
+        'react-hooks/rules-of-hooks': 'off',
+      },
+    },
   ],
 };
