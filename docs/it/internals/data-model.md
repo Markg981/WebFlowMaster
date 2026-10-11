@@ -1,9 +1,10 @@
 # Modello dati
 
-Lo schema è dichiarato una sola volta, con Drizzle, in `shared/schema.ts`, e creato dalle migrazioni SQL
+Lo schema è dichiarato una sola volta, con Drizzle, in `shared/schema/` (un file per dominio,
+riesportati da `shared/schema.ts`), e creato dalle migrazioni SQL
 scritte a mano in `migrations/` (vedi la [guida sviluppatore](./developer-guide#migrazioni-del-database)).
 Questa pagina raggruppa le tabelle per dominio e spiega a cosa serve ciascuna. Il dettaglio delle colonne
-è in `shared/schema.ts`, dove la maggior parte delle colonne ha un commento.
+è in `shared/schema/`, dove la maggior parte delle colonne ha un commento.
 
 Salvo indicazione contraria, una tabella ha un `organization_id` ed è protetta dalla row-level security
 ([Tenancy e accessi](./tenancy)).

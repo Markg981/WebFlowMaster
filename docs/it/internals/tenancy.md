@@ -44,7 +44,7 @@ CREATE POLICY org_isolation ON "x"
 GRANT SELECT, INSERT, UPDATE[, DELETE] ON TABLE "x" TO app_user;
 ```
 
-L'elenco di queste tabelle è `ORG_SCOPED_TABLES` in `shared/schema.ts`, e un test di isolamento
+L'elenco di queste tabelle è `ORG_SCOPED_TABLES` in `shared/schema/tenancy.ts`, e un test di isolamento
 (`server/tests/isolation.test.ts`, eseguito con `npm run test:rls`) dimostra per ognuna che le righe di
 un'altra organizzazione sono invisibili e non scrivibili.
 
@@ -171,7 +171,7 @@ prima di essere salvate.
 ## Audit trail
 
 `audit_log` registra chi ha fatto cosa: l'autore (utente, chiave API o sistema), l'azione
-(`AUDIT_ACTIONS` in `shared/schema.ts`), il bersaglio, i campi modificati e la provenienza della
+(`AUDIT_ACTIONS` in `shared/schema/identity.ts`), il bersaglio, i campi modificati e la provenienza della
 richiesta: la chiave API con cui si è autenticata (null per una sessione) e l'indirizzo IP del client
 (dietro un proxy, quello indicato dal proxy). `app_user` ha solo `SELECT` e `INSERT`: l'applicazione non
 può riscrivere la propria storia. Le voci si scrivono nella stessa transazione della modifica che

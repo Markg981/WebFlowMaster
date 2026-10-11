@@ -1,6 +1,6 @@
 # Schema del database
 
-Questa pagina disegna le principali tabelle e relazioni di dominio. `shared/schema.ts`, migrazioni
+Questa pagina disegna le principali tabelle e relazioni di dominio. `shared/schema/`, migrazioni
 SQL e `ORG_SCOPED_TABLES` sono l’autorità per colonne, vincoli e copertura tenant correnti.
 I diagrammi sono mantenuti a mano; le aggiunte successive sono riepilogate in fondo e non
 costituiscono un dump generato esaustivo. Per lo scopo leggere [Modello dati](./data-model);

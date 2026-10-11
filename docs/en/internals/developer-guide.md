@@ -182,11 +182,12 @@ A new **organization-scoped table** needs, in the same migration:
 1. `organization_id integer NOT NULL REFERENCES organizations(id)` and an index on it;
 2. `ENABLE` and `FORCE ROW LEVEL SECURITY`, the `org_isolation` policy, and the grants `app_user`
    needs (leave out `DELETE` when rows are evidence);
-3. the table added to `ORG_SCOPED_TABLES` in `shared/schema.ts`;
+3. the table added to `ORG_SCOPED_TABLES` in `shared/schema/tenancy.ts`;
 4. any foreign key to another organization table either guarded as same-organization or listed as
    authorship in the drift test.
 
-Mirror the table in `shared/schema.ts` (Drizzle) with a comment explaining it. Apply with
+Mirror the table in the domain file under `shared/schema/` (Drizzle) with a comment explaining it;
+`shared/schema.ts` re-exports every domain, so code keeps importing `@shared/schema`. Apply with
 `npm run db:migrate`; the tests apply all migrations to every test database.
 
 ### API

@@ -1,6 +1,6 @@
 # Database schema
 
-This page draws the main domain tables and relationships. `shared/schema.ts`, the SQL migrations
+This page draws the main domain tables and relationships. `shared/schema/`, the SQL migrations
 and `ORG_SCOPED_TABLES` are the authority for current columns, constraints and tenant coverage.
 The diagrams are manually maintained; later additions are summarized at the end and should not
 be treated as a generated exhaustive schema dump. For purpose read [Data model](./data-model);
