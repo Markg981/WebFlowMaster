@@ -290,9 +290,10 @@ macchina che esegue il processo web, quindi funziona solo dove quella macchina h
 Una schedulazione (`test_plan_schedules`) indica un piano, una frequenza (o un'espressione cron) e un
 fuso orario, i browser, un ambiente, una sovrascrittura delle notifiche e una policy di retry. Ogni
 occorrenza ha una chiave di idempotenza stabile (`occurrenceKey`), quindi due repliche dello scheduler
-che scattano nello stesso minuto producono un solo run. Il backend predefinito è node-cron nel processo
-web (un solo server web). `SCHEDULER_BACKEND=bullmq` usa invece i job scheduler di Redis, che
-sopravvivono ai riavvii e non si duplicano fra istanze; il trigger lo gestisce un worker.
+che scattano nello stesso minuto producono un solo run. Il backend predefinito, `bullmq`, usa i job
+scheduler di Redis, che sopravvivono ai riavvii e non si duplicano fra istanze; il trigger lo gestisce
+un worker. `SCHEDULER_BACKEND=cron` le avvia invece da node-cron nel processo web, una volta per
+processo web: per un unico processo senza worker.
 
 ## Evidenza delle matrici reali
 

@@ -1,8 +1,16 @@
 import { Page } from 'playwright';
-import { reportingService } from './reporting-service';
 import { aiService } from './ai-automation-service';
 import { recordHealedSelector } from './step-elements';
 
+/**
+ * Drives a page on behalf of a step, with AI self-healing of the selector when the step fails.
+ *
+ * Its name is from a time it also reported: every action was wrapped in a "step" of a reporting
+ * service, and a failure attached a screenshot to it. That service was a stub — the step ran its
+ * body and the screenshot went nowhere — so the wrapping is gone. Evidence is the runner's
+ * (server/playwright-service.ts takes the error screenshots) and the Allure report is built from
+ * the stored run (server/allure-export.ts).
+ */
 export class PlaywrightReporter {
   // Context for DB updates
   private currentTestId?: number;
@@ -56,110 +64,49 @@ export class PlaywrightReporter {
     this.lastActionHealed = false;
   }
 
-  async goto(url: string, name?: string): Promise<void> {
-    await reportingService.step(name || `Navigate to ${url}`, async () => {
-      try {
-        await this.page.goto(url);
-      } catch (e: any) {
-        await this.handleFailure(e, 'Navigation Failed');
-        throw e;
-      }
-    });
+  /** The `name` arguments are the step names callers still pass; nothing reads them here now. */
+  async goto(url: string, _name?: string): Promise<void> {
+    await this.page.goto(url);
   }
 
-  async click(selector: string, name?: string): Promise<void> {
-    await reportingService.step(name || `Click on ${selector}`, async () => {
-      try {
-        await this.highlight(selector);
-        await this.page.click(selector);
-      } catch (e: any) {
-        // Attempt Self-Healing
-        const healedSelector = await this.attemptHeal(selector, e.message);
-        if (healedSelector) {
-          try {
-            await reportingService.step(
-              `[Self-Healing] Retrying with ${healedSelector}`,
-              async () => {
-                await this.highlight(healedSelector);
-                await this.page.click(healedSelector);
-              },
-            );
-            // If success, update DB and set state
-            await this.persistHealedSelector(healedSelector);
-            this.lastActionHealed = true;
-            return; // Success
-          } catch (retryError) {
-            // Fall through to failure
-          }
+  async click(selector: string, _name?: string): Promise<void> {
+    await this.act(selector, (sel) => this.page.click(sel));
+  }
+
+  async fill(selector: string, value: string, _name?: string): Promise<void> {
+    await this.act(selector, (sel) => this.page.fill(sel, value));
+  }
+
+  async selectOption(selector: string, value: string, _name?: string): Promise<void> {
+    await this.act(selector, (sel) => this.page.selectOption(sel, value));
+  }
+
+  /**
+   * Runs an action on a selector, and once more on a healed one when it fails.
+   *
+   * A repaired selector that works is written where the tests will read it and marks this
+   * action healed; one that does not, or none at all, lets the original error through — the
+   * step fails with the reason it first failed for, not with the retry's.
+   */
+  private async act(selector: string, action: (selector: string) => Promise<unknown>) {
+    try {
+      await this.highlight(selector);
+      await action(selector);
+    } catch (e: any) {
+      const healedSelector = await this.attemptHeal(selector, e.message);
+      if (healedSelector) {
+        try {
+          await this.highlight(healedSelector);
+          await action(healedSelector);
+          await this.persistHealedSelector(healedSelector);
+        } catch {
+          throw e;
         }
-        await this.handleFailure(e, 'Click Failed');
-        throw e;
+        this.lastActionHealed = true;
+        return;
       }
-    });
-  }
-
-  async fill(selector: string, value: string, name?: string): Promise<void> {
-    await reportingService.step(name || `Fill ${selector} with "${value}"`, async () => {
-      try {
-        await this.highlight(selector);
-        await this.page.fill(selector, value);
-      } catch (e: any) {
-        const healedSelector = await this.attemptHeal(selector, e.message);
-        if (healedSelector) {
-          try {
-            await reportingService.step(
-              `[Self-Healing] Retrying with ${healedSelector}`,
-              async () => {
-                await this.highlight(healedSelector);
-                await this.page.fill(healedSelector, value);
-              },
-            );
-            await this.persistHealedSelector(healedSelector);
-            this.lastActionHealed = true;
-            return;
-          } catch {
-            /* retry failed; fall through to failure handling */
-          }
-        }
-        await this.handleFailure(e, 'Fill Failed');
-        throw e;
-      }
-    });
-  }
-
-  async selectOption(selector: string, value: string, name?: string): Promise<void> {
-    await reportingService.step(name || `Select "${value}" in ${selector}`, async () => {
-      try {
-        await this.highlight(selector);
-        await this.page.selectOption(selector, value);
-      } catch (e: any) {
-        const healedSelector = await this.attemptHeal(selector, e.message);
-        if (healedSelector) {
-          try {
-            await reportingService.step(
-              `[Self-Healing] Retrying with ${healedSelector}`,
-              async () => {
-                await this.highlight(healedSelector);
-                await this.page.selectOption(healedSelector, value);
-              },
-            );
-            await this.persistHealedSelector(healedSelector);
-            this.lastActionHealed = true;
-            return;
-          } catch {
-            /* retry failed; fall through to failure handling */
-          }
-        }
-        await this.handleFailure(e, 'Select Failed');
-        throw e;
-      }
-    });
-  }
-
-  async screenshot(name: string): Promise<void> {
-    await reportingService.step(`Screenshot: ${name}`, async () => {
-      await this.captureScreenshot(name);
-    });
+      throw e;
+    }
   }
 
   private async attemptHeal(originalSelector: string, error: string): Promise<string | null> {
@@ -172,13 +119,6 @@ export class PlaywrightReporter {
     }
   }
 
-  // The AI's reading of a failure is asked for from the report, on the whole result, when somebody
-  // wants it (routes/failure-analysis.routes.ts): here it cost a model call on every failed click
-  // and ended up in the server's console, where nobody read it.
-  private async handleFailure(_error: any, context: string) {
-    await this.captureScreenshot(`${context} - Error`);
-  }
-
   private async highlight(selector: string) {
     try {
       const locator = this.page.locator(selector).first();
@@ -188,15 +128,6 @@ export class PlaywrightReporter {
       });
     } catch (e) {
       // Ignore highlighting errors
-    }
-  }
-
-  private async captureScreenshot(name: string) {
-    try {
-      const buffer = await this.page.screenshot();
-      await reportingService.attachScreenshot(name, buffer);
-    } catch (e) {
-      console.error('Snapshot failed');
     }
   }
 

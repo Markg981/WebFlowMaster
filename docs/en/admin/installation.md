@@ -224,8 +224,10 @@ in the `http` block.)
 
 One web process is enough for most installations. To run several behind a load balancer:
 
-- Set `SCHEDULER_BACKEND=bullmq` on all of them. With the default `cron`, each web process runs
-  every schedule itself and a schedule starts once per process.
+- Leave `SCHEDULER_BACKEND` at its default, `bullmq`, on all of them: schedules live in Redis and
+  a worker fires each once. With `SCHEDULER_BACKEND=cron`, each web process runs every schedule
+  itself and a schedule starts once per process, so set `cron` only on a single web process with
+  no worker (PGlite local development).
 - Give every one the same `SESSION_SECRET`, `ENCRYPTION_KEY` and Redis: sessions and rate-limit
   counts are in Redis, so no sticky routing is needed and the limits hold across processes.
 - If organizations use local agents, set `AGENT_RELAY_ADVERTISE_URL` on each to an address the

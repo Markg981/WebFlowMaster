@@ -25,7 +25,13 @@ import { createTestOrganization } from './tests/factories';
  * Under PGlite (this suite's driver), the real addScheduleJob call deadlocks the shared
  * single-writer connection, and every later test's hooks time out — so this file also
  * proves the fix by not wedging the process for the rest of the run.
+ *
+ * The query in question belongs to the in-process cron backend, which is no longer the default
+ * (the default BullMQ backend keeps its schedules in Redis and reads no plan here), so this file
+ * opts into it explicitly — before ./routes pulls in scheduler-service, which reads the variable
+ * once at import.
  */
+process.env.SCHEDULER_BACKEND = 'cron';
 
 vi.mock('./playwright-service', () => ({
   playwrightService: {

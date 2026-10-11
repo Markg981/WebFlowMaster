@@ -161,7 +161,7 @@ configureEgressProxy();
                 }),
             );
           } else if (job.name === TRIGGER_SCHEDULE_JOB) {
-            // Fired by a BullMQ job scheduler (SCHEDULER_BACKEND=bullmq). Load the latest
+            // Fired by a BullMQ job scheduler (the default SCHEDULER_BACKEND). Load the latest
             // schedule + plan from the DB and run it via the shared execution logic.
             const { scheduleId } = readJob(TriggerScheduleJobSchema, job);
             const cid = `sched-${scheduleId.slice(0, 8)}`;

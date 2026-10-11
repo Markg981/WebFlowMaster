@@ -232,8 +232,10 @@ nel blocco `http`.)
 Un processo web basta alla maggior parte delle installazioni. Per averne più d'uno dietro un
 load balancer:
 
-- Impostate `SCHEDULER_BACKEND=bullmq` su tutti. Con il default `cron` ogni processo web esegue
-  ogni schedulazione per conto suo, e una schedulazione parte una volta per processo.
+- Lasciate `SCHEDULER_BACKEND` al suo default, `bullmq`, su tutti: le schedulazioni stanno in
+  Redis e un worker avvia ciascuna una volta sola. Con `SCHEDULER_BACKEND=cron` ogni processo web
+  esegue ogni schedulazione per conto suo, e una schedulazione parte una volta per processo:
+  impostate `cron` solo su un unico processo web senza worker (sviluppo locale con PGlite).
 - Date a tutti gli stessi `SESSION_SECRET`, `ENCRYPTION_KEY` e Redis: sessioni e conteggi dei
   limiti di frequenza stanno in Redis, quindi non serve il routing sticky e i limiti valgono fra i processi.
 - Se le organizzazioni usano agenti locali, impostate su ciascuno `AGENT_RELAY_ADVERTISE_URL` con

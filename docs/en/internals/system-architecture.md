@@ -235,7 +235,7 @@ What scaling needs (details in [Installation](../admin/installation) and [Operat
 - Workers on other hosts need `ARTIFACT_STORE=s3`: with local disks, screenshots would exist only on
   the worker that took them.
 - `ORG_MAX_CONCURRENT_RUNS` and `WORKER_CONCURRENCY` bound how much one organization and one worker
-  can run at once; `SCHEDULER_BACKEND=bullmq` moves schedule firing to the workers.
+  can run at once; the default `SCHEDULER_BACKEND=bullmq` fires schedules from the workers.
 
 ### 4.3 Beside the installation
 

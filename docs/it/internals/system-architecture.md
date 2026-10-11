@@ -236,7 +236,7 @@ Cosa serve per scalare (dettagli in [Installazione](../admin/installation) e [Op
 - I worker su altri host richiedono `ARTIFACT_STORE=s3`: con dischi locali, gli screenshot esisterebbero solo
   sul worker che li ha fatti.
 - `ORG_MAX_CONCURRENT_RUNS` e `WORKER_CONCURRENCY` limitano quanto può eseguire insieme un'organizzazione e un
-  worker; `SCHEDULER_BACKEND=bullmq` sposta l'avvio delle pianificazioni sui worker.
+  worker; il default `SCHEDULER_BACKEND=bullmq` avvia le pianificazioni dai worker.
 
 ### 4.3 Accanto all'installazione
 
