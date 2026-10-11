@@ -30,6 +30,12 @@ import 'dotenv/config';
 import { startTracing } from '../shared/telemetry';
 import { applicationMetrics, instrumentJob, startMetricsServer } from './observability/metrics';
 import { Queue } from 'bullmq';
+import {
+  ExecutePlanJobSchema,
+  ShardJobSchema,
+  TriggerScheduleJobSchema,
+  readJob,
+} from './job-payloads';
 
 const stopTracing = startTracing('worker');
 configureEgressProxy();
@@ -110,9 +116,9 @@ configureEgressProxy();
           logger.info(`Worker processing job ${job.id} of type ${job.name}`);
 
           if (job.name === 'execute-plan') {
-            // `executionId` from the orchestrator; `testPlanRunId` from jobs queued before it.
-            const { planId, userId, correlationId, updateBaselines } = job.data;
-            const testPlanRunId: string = job.data.executionId ?? job.data.testPlanRunId;
+            const data = readJob(ExecutePlanJobSchema, job);
+            const { planId, userId, correlationId, updateBaselines } = data;
+            const testPlanRunId = (data.executionId ?? data.testPlanRunId)!;
 
             // Restore the correlation context from the original HTTP request
             // so all logs emitted during job processing share the same trace ID.
@@ -123,7 +129,7 @@ configureEgressProxy();
                 return await processTestPlanJob(planId, testPlanRunId, userId, {
                   updateBaselines: updateBaselines === true,
                 });
-              } catch (error: any) {
+              } catch (error) {
                 logger.error(`Job ${job.id} failed:`, error);
                 throw error; // Let BullMQ handle the failure
               }
@@ -132,26 +138,29 @@ configureEgressProxy();
             // back for a while, so this worker can serve somebody else's run in the meantime.
             if (outcome?.deferred) {
               // Marked, so that a run of the organization ending promotes it at once (server/run-promotion.ts).
-              if (job.data.deferredForQuota !== true)
-                await job.updateData({ ...job.data, deferredForQuota: true });
+              if (data.deferredForQuota !== true)
+                await job.updateData({ ...data, deferredForQuota: true });
               await job.moveToDelayed(Date.now() + (outcome.retryInMs ?? 10_000), token);
               throw new DelayedError();
             }
           } else if (job.name === SHARD_JOB) {
             // A share of a run another worker took: tests from its work list until none are left.
-            const { executionId, planId, userId, shard, updateBaselines } = job.data;
+            const { executionId, planId, userId, shard, updateBaselines } = readJob(
+              ShardJobSchema,
+              job,
+            );
             await correlationStore.run(
-              { correlationId: `shard-${String(executionId).slice(0, 8)}-${shard}` },
+              { correlationId: `shard-${executionId.slice(0, 8)}-${shard}` },
               () =>
-                processShardJob(planId, executionId, userId, Number(shard), {
+                processShardJob(planId, executionId, userId, shard, {
                   updateBaselines: updateBaselines === true,
                 }),
             );
           } else if (job.name === TRIGGER_SCHEDULE_JOB) {
             // Fired by a BullMQ job scheduler (SCHEDULER_BACKEND=bullmq). Load the latest
             // schedule + plan from the DB and run it via the shared execution logic.
-            const { scheduleId } = job.data;
-            const cid = `sched-${String(scheduleId).slice(0, 8)}`;
+            const { scheduleId } = readJob(TriggerScheduleJobSchema, job);
+            const cid = `sched-${scheduleId.slice(0, 8)}`;
             await correlationStore.run({ correlationId: cid }, async () => {
               const [schedule] = await privilegedDb
                 .select()

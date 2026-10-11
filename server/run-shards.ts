@@ -216,7 +216,7 @@ export async function sharedStopReason(executionId: string): Promise<string | nu
 export type ShardDispatcher = (job: {
   executionId: string;
   planId: string;
-  userId: number;
+  userId: number | null;
   shard: number;
   updateBaselines: boolean;
 }) => Promise<void>;

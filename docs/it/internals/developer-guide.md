@@ -168,6 +168,11 @@ sull'orologio che includono l'avvio di un browser.
   creato.
 - Usa i tipi condivisi in `shared/` per tutto ciò che leggono entrambe le parti (stati, schemi, id delle
   azioni).
+- **Niente `any` nuovi.** `npm run any-budget` conta gli `any` espliciti nel codice di produzione per
+  area e li confronta con `scripts/any-budget.json`: la CI fallisce se il numero sale, e anche se
+  scende senza aggiornare il budget (`node scripts/any-budget.mjs --update`), così il tetto segue ogni
+  rimozione. Ai confini (body delle richieste, payload dei job, messaggi WebSocket) leggi il valore
+  con uno schema zod, come `server/job-payloads.ts` e `shared/live-socket.ts`, invece di castarlo.
 
 ### Migrazioni del database
 

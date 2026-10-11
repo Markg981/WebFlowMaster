@@ -2529,7 +2529,8 @@ export class PlaywrightService {
 
   async executeTestSequence(
     test: Test,
-    userId: number,
+    /** Null for a run nobody started (a schedule): the defaults stand in for user settings. */
+    userId: number | null,
     screenshotBaseDir?: string, // Optional base directory for screenshots
     executionId?: string, // Optional execution ID for real-time logging
     // Resolved `{{name}}` values. Supplied by the caller that knows which environment
@@ -2704,7 +2705,7 @@ export class PlaywrightService {
     };
 
     try {
-      const userSettings = await storage.getUserSettings(userId);
+      const userSettings = userId === null ? undefined : await storage.getUserSettings(userId);
       const headlessMode =
         userSettings?.playwrightHeadless !== undefined
           ? userSettings.playwrightHeadless
