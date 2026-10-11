@@ -4,12 +4,17 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Nightly on main, so flakiness in the installation jobs surfaces without waiting for a pull
+  # request to hit it. The `changes` job treats every event but pull_request as a code change, so
+  # a scheduled run executes every job.
+  schedule:
+    - cron: '17 3 * * *'
 
 jobs:
   # A PR that touches only documentation or marketing material cannot change what the
   # installation jobs prove (restore drill, network policy, E2E on the real installation, RLS
   # on real Postgres, the resilience tool), and each of them costs minutes of setup. They run
-  # when anything else changed, and always on main.
+  # when anything else changed, always on main, and on the nightly schedule.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -42,7 +47,8 @@ jobs:
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
-          # A branch's first push has no previous commit: compare with the default branch instead.
+          # A branch's first push has no previous commit, and a scheduled run has no event
+          # commit at all: compare with the default branch instead.
           if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then BASE=origin/main; fi
           node scripts/check-large-files.mjs "$BASE"
 

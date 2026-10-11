@@ -46,6 +46,47 @@ Scoprire e interrogare **ogni replica worker separatamente**: un unico indirizzo
 
 La profondità delle code è duplicata sulle repliche worker: usare `max by (queue, state) (wfm_queue_jobs)`, **non la somma**. Utilizzo worker: `sum by (queue) (wfm_worker_active_jobs) / sum by (queue) (wfm_worker_capacity)`. Attesa p95: `histogram_quantile(0.95, sum by (le, queue) (rate(wfm_job_wait_seconds_bucket[5m])))`. I contatori misurano i tentativi worker e gli errori infrastrutturali; un'asserzione fallita restituita come normale risultato del test resta un job elaborato con successo.
 
+## Allarmi
+
+`observability/prometheus-alerts.yml` è un gruppo di regole Prometheus costruito solo sulle metriche
+sopra e su `up`, la serie che Prometheus mantiene per ogni target. Copre un arretrato che cresce
+(`wfm_queue_jobs`, stati waiting e prioritized, massimo fra le repliche), tentativi worker terminati
+in errore (`wfm_jobs_total{outcome="error"}`), un target worker che smette di rispondere
+(`up{job="wfm-worker"}`, la condizione che fa terminare i suoi run come `worker_lost`), nessun worker
+raggiungibile, la quota di risposte 5xx (`wfm_http_duration_seconds_count`) e il target API non
+raggiungibile. Un run che termina `worker_lost` è uno stato nel database, non un contatore, e
+`GET /readyz` non è una metrica: il file lo spiega e mostra la regola da aggiungere con il blackbox
+exporter per la readiness. I nomi dei job sono `wfm-api` e `wfm-worker`, come nella configurazione
+di scrape sopra; se i vostri sono diversi, rinominateli nel file.
+
+Caricatelo in Prometheus con `rule_files` e instradate gli allarmi al vostro Alertmanager:
+
+```yaml
+rule_files:
+  - /etc/prometheus/wfm-alerts.yml # montare lì observability/prometheus-alerts.yml
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+```
+
+`promtool check rules observability/prometheus-alerts.yml` valida il file prima di ricaricarlo. Le
+soglie (20 job in attesa, 5% di 5xx, cinque minuti senza scrape) e le label `severity` sono punti di
+partenza, non valori misurati: impostatele in base alla dimensione dei piani, al numero di worker e al
+traffico, e rivedetele dopo le prime settimane di allarmi. `docker-compose.telemetry.yml` espone le
+porte metriche sulla rete Compose e non installa Prometheus; il file è per quello che gestite voi.
+
+## Log in Loki e Grafana
+
+`docker-compose.observability.yml` avvia Loki e una Grafana con Loki già configurato come sorgente
+dati (`observability/`), per i log che i processi inviano quando `LOKI_URL` è impostata
+([Configurazione](./configuration)). Richiede `GRAFANA_ADMIN_PASSWORD` in `.env` e senza non parte,
+come fa `docker-compose.yml` per i suoi segreti; l'utente Grafana è `admin`. Entrambe le immagini
+sono fissate: Grafana 11.6 e Loki 2.9. Loki resta sulla 2.9 perché `observability/loki-config.yml`
+attiva la retention nel compactor, che Loki 3.x rifiuta senza un `delete_request_store`; passare
+alla 3.x significa modificare quel file nello stesso passaggio, dopo le note di aggiornamento della
+3.0. Cambiate una versione deliberatamente, con le note di rilascio della versione scelta.
+
 ## Attivare il tracing
 
 Configurare API, ogni worker e gli agenti locali aggiornati:

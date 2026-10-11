@@ -121,9 +121,14 @@ Un backup notturno con la sua prova, conservando quattordici giorni, da cron sul
 
 ```bash
 0 2 * * *  cd /opt/webflowmaster && npm run -s backup:create && \
-           npm run -s backup:verify -- "$(ls -d .local/backups/wfm-backup-* | tail -n 1)" && \
-           find backups -maxdepth 1 -name 'wfm-backup-*' -mtime +14 -exec rm -rf {} +
+           latest=$(ls -d .local/backups/wfm-backup-* 2>/dev/null | tail -n 1) && \
+           [ -n "$latest" ] && npm run -s backup:verify -- "$latest" && \
+           find .local/backups -maxdepth 1 -name 'wfm-backup-*' -mtime +14 -exec rm -rf {} +
 ```
+
+I nomi delle cartelle contengono l'ora UTC, quindi l'ultima nell'ordine di `ls` è la più recente; se non
+ce n'è nessuna (la prima notte, o una cartella svuotata a mano) la catena si ferma prima di `verify`
+invece di invocarlo con un argomento vuoto. La pulizia guarda in `.local/backups`, dove scrive `create`.
 
 Copiate la cartella fuori dall'host (object storage, un'altra sede): un backup sullo stesso disco del
 database non sopravvive al disco.

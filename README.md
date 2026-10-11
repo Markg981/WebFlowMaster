@@ -27,7 +27,7 @@ Connect or SAML.
 - **Results**: a report per run with evidence for each step, history and trends, and exports to
   HTML, PDF, JUnit and Allure.
 - **CI**: the `wfm` command-line tool, and ready-made integrations for GitHub Actions, GitLab CI,
-  Jenkins and Azure Pipelines.
+  Jenkins, Azure Pipelines, Bitbucket Pipelines and CircleCI.
 - **Local agents**: test applications the server cannot reach (an intranet, a staging
   environment behind a VPN) through an agent that runs inside that network and connects out.
 - **Issue trackers and source hosts**: open issues in Jira or Azure DevOps from a failure, and
@@ -133,13 +133,27 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ## Checks
 
+What CI runs on every push and pull request (`.github/workflows/ci.yml`), and nightly:
+
 ```bash
-npx tsc -b                               # types: server, client, shared code, scripts
-npm run lint
-npm test                                 # server tests (Vitest)
-npm run test:client -- --run             # client tests
+npm run check                            # types: server, client, shared code, scripts, collaudo, e2e
+npm run lint                             # ESLint, no warnings allowed
+npm run format:check                     # Prettier; `npm run format` fixes what it reports
+npm run any-budget                       # explicit `any` per area may only go down (scripts/any-budget.json)
+npm test                                 # server tests (Vitest, one PGlite per file) and the BDD runtime;
+                                         # needs Redis on REDIS_URL and Chromium (npx playwright install chromium).
+                                         # CI runs test:coverage, which also enforces the coverage thresholds
+npm run test:client -- --run             # client tests (CI runs them with coverage)
+npm run test:release                     # release packaging and publication guards
+npm run test:security                    # security guards, including real email composition
+npm run test:collaudo                    # the acceptance-catalog application (CI also checks it in Chromium)
+npm run test:e2e                         # Playwright journeys against the built bundles: needs `npm run build`,
+                                         # PostgreSQL 16, Redis and the three browsers (see the workflow)
 npm run docs:build                       # the documentation site, including dead links
 ```
+
+CI also runs the restore drill, the SaaS network checks and the isolation suites on a real
+PostgreSQL, when a change touches more than documentation.
 
 ## Running a plan from CI
 
@@ -158,7 +172,9 @@ node wfm.mjs run <planId> --wait --junit junit.xml --html report.html
 The exit code is the interface: `0` the run passed, `1` it failed, `2` the command could not run
 (credentials, network, usage). Inside a CI the CLI also sends the repository, commit, branch and
 build link, which appear in the report and in notifications. Ready-made integrations are in
-[`integrations/`](./integrations); for GitHub Actions:
+[`integrations/`](./integrations): a GitHub Action, a GitLab CI template, a Jenkins shared library
+step, an Azure Pipelines template, a Bitbucket Pipelines step and a CircleCI orb. For GitHub
+Actions (pin `@main` to a tag or a full commit SHA for reproducible builds):
 
 ```yaml
 - uses: Markg981/WebFlowMaster/integrations/github-action@main

@@ -3,14 +3,19 @@
 # Grafana Loki for log aggregation + Grafana for dashboards and querying.
 #
 # Usage:
-#   docker-compose -f docker-compose.observability.yml up -d
+#   docker compose -f docker-compose.observability.yml up -d
 #
 # Then:
-#   - Grafana UI:  http://localhost:3001  (admin / admin)
+#   - Grafana UI:  http://localhost:3001  (user admin, password GRAFANA_ADMIN_PASSWORD)
 #   - Loki API:    http://localhost:3100
 #
 # In your .env file, set:
+#   GRAFANA_ADMIN_PASSWORD=<a strong password>   # required: the stack refuses to start without it
 #   LOKI_URL=http://localhost:3100
+#
+# Images are pinned. Loki stays on the 2.9 line: observability/loki-config.yml enables retention in
+# the compactor, and Loki 3.x refuses that without a `delete_request_store`, which 2.9 does not
+# need. Moving to 3.x means adding it (and reading the 3.0 upgrade notes) in the same change.
 #
 # ───────────────────────────────────────────────────────────────────────────────
 
@@ -19,7 +24,7 @@ services:
   # Lightweight log aggregation system. Unlike Elasticsearch, Loki only
   # indexes labels (not full-text), making it very memory-efficient (~256MB).
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:2.9.17
     container_name: wfm-loki
     ports:
       - '3100:3100'
@@ -38,13 +43,13 @@ services:
   # ─── Grafana ──────────────────────────────────────────────────────────────
   # Visualization and dashboards. Pre-configured with Loki as a datasource.
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.6.16
     container_name: wfm-grafana
     ports:
       - '3001:3000'
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env (see the top of docker-compose.observability.yml)}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana

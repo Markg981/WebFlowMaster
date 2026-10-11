@@ -119,9 +119,14 @@ A nightly backup with its drill, keeping fourteen days, from cron on the Docker 
 
 ```bash
 0 2 * * *  cd /opt/webflowmaster && npm run -s backup:create && \
-           npm run -s backup:verify -- "$(ls -d .local/backups/wfm-backup-* | tail -n 1)" && \
-           find backups -maxdepth 1 -name 'wfm-backup-*' -mtime +14 -exec rm -rf {} +
+           latest=$(ls -d .local/backups/wfm-backup-* 2>/dev/null | tail -n 1) && \
+           [ -n "$latest" ] && npm run -s backup:verify -- "$latest" && \
+           find .local/backups -maxdepth 1 -name 'wfm-backup-*' -mtime +14 -exec rm -rf {} +
 ```
+
+The folder names carry the UTC time, so the last one in `ls` order is the newest; when there is none
+(the first night, or a folder emptied by hand) the chain stops before `verify` instead of calling it
+with an empty argument. Pruning looks in `.local/backups`, where `create` writes.
 
 Copy the folder off the host (object storage, another site): a backup on the same disk as the database
 does not survive the disk.

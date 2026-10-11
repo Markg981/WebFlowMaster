@@ -46,6 +46,46 @@ Discover and scrape **each worker replica separately**. A single load-balanced t
 
 Queue depths are duplicated across worker replicas: use `max by (queue, state) (wfm_queue_jobs)`, **not a sum**. Worker utilization is `sum by (queue) (wfm_worker_active_jobs) / sum by (queue) (wfm_worker_capacity)`. Example wait p95: `histogram_quantile(0.95, sum by (le, queue) (rate(wfm_job_wait_seconds_bucket[5m])))`. Counters describe worker attempts and infrastructure errors; a test assertion failure returned as a normal result is still a successfully processed job.
 
+## Alerting
+
+`observability/prometheus-alerts.yml` is a Prometheus rule group built only on the metrics above and
+on `up`, the series Prometheus keeps per scrape target. It covers a growing backlog
+(`wfm_queue_jobs`, waiting and prioritized, max across replicas), worker attempts ending in error
+(`wfm_jobs_total{outcome="error"}`), a worker target that stops answering (`up{job="wfm-worker"}`,
+the condition that ends its runs as `worker_lost`), no worker reachable at all, the 5xx share of
+requests (`wfm_http_duration_seconds_count`) and the API target down. A run ending as `worker_lost`
+is a state in the database, not a counter, and `GET /readyz` is not a metric: the file explains
+both, and shows the blackbox-exporter rule to add for readiness. The job names are `wfm-api` and
+`wfm-worker`, as in the scrape configuration above; rename them in the file if yours differ.
+
+Load it into Prometheus with `rule_files` and route the alerts to your Alertmanager:
+
+```yaml
+rule_files:
+  - /etc/prometheus/wfm-alerts.yml # mount observability/prometheus-alerts.yml there
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+```
+
+`promtool check rules observability/prometheus-alerts.yml` validates the file before a reload. The
+thresholds (20 waiting jobs, 5% of 5xx, five minutes without a scrape) and the `severity` labels are
+starting points, not measured values: set them from your plan sizes, worker count and traffic, and
+review them after the first weeks of alerts. `docker-compose.telemetry.yml` exposes the metric
+ports on the Compose network and installs no Prometheus; the file is for the one you run.
+
+## Logs in Loki and Grafana
+
+`docker-compose.observability.yml` starts Loki and a Grafana with Loki provisioned as a data source
+(`observability/`), for the logs the processes push when `LOKI_URL` is set
+([Configuration](./configuration)). It needs `GRAFANA_ADMIN_PASSWORD` in `.env` and refuses to start
+without it, the same way `docker-compose.yml` does for its secrets; the Grafana user is `admin`.
+Both images are pinned: Grafana 11.6 and Loki 2.9. Loki stays on 2.9 because
+`observability/loki-config.yml` enables retention in the compactor, which Loki 3.x refuses without
+a `delete_request_store`; moving to 3.x means changing that file in the same step, after the 3.0
+upgrade notes. Change a pin deliberately, with the upgrade notes of the release.
+
 ## Enable tracing
 
 Set these on the API, every worker and updated local agents:

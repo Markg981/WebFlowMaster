@@ -78,6 +78,14 @@ jobs:
           path: webflowmaster-report.html
 ```
 
+`@main` follows the repository's main branch, so a later change to the action changes your
+pipeline without a commit on your side. For reproducible builds pin a release tag or a full commit
+SHA, and move it deliberately:
+
+```yaml
+- uses: Markg981/WebFlowMaster/integrations/github-action@0123456789abcdef0123456789abcdef01234567 # or @v1.2.3
+```
+
 The step fails when the plan fails. It writes the run to the job's summary page, annotates a
 failure on the run, and sets the outputs `run-id`, `status` and `report-url`, for example to comment
 on a pull request. Its inputs are `url`, `api-key`, `plan`, `environment`, `wait`, `timeout`,
