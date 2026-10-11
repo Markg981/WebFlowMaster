@@ -15,7 +15,7 @@ import ScheduleForm from '@/components/scheduling/ScheduleForm';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react'; // Changed from @radix-ui/react-icons
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'; // DialogClose might be needed
-import { useToast } from '@/components/ui/use-toast';  // Corrected import path
+import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { ExcelTestCase } from './useExcelImport';
 
 /** One step of a run, as POST /api/tests/:id/run reports it. */

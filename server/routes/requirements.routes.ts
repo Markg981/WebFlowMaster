@@ -3,7 +3,7 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { and, eq, inArray } from "drizzle-orm";
 import { TEST_KINDS, firstMissingKind, itemOf, linkColumns, linkWhere, missingMessage, namedItems } from "../test-refs";
-import { AUDIT_ACTIONS, apiTests, issueTrackers, requirementTests, requirements, tests } from "@shared/schema";
+import { AUDIT_ACTIONS, issueTrackers, requirementTests, requirements, tests } from "@shared/schema";
 import { REQUIREMENT_KEY_PATTERN, REQUIREMENT_KINDS } from "@shared/requirements";
 import { requireRole } from "../middleware/require-role";
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from "../middleware/tenancy";

@@ -40,6 +40,8 @@ function RunsDialog({ test, canEdit, onClose, onChanged }: { test: ListedLoadTes
   React.useEffect(() => {
     setSelected(test?.lastRun?.id ?? null);
     setEnvironmentId(NO_ENVIRONMENT);
+    // Only for another test: a new last run must not replace the run the person selected.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [test?.id]);
 
   const { data: detail, refetch } = useQuery<LoadTestRow & { runs: LoadRun[] }>({

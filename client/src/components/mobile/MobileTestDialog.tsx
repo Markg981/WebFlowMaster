@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Plus, ScanSearch, Trash2, Upload } from 'lucide-react';
+import { Loader2, ScanSearch, Trash2, Upload } from 'lucide-react';
 import MobileInspectorDialog, { type InspectorRequest } from './MobileInspectorDialog';
 import MobileStepsEditor from './MobileStepsEditor';
 import type { MobileGroupDefinition } from '@shared/mobile-groups';
@@ -136,6 +136,8 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
     setSteps(test?.steps.length ? test.steps : [newStep()]);
     setUploadGrid(uploadGrids[0]?.id ?? '');
     setError(null);
+    // Not on uploadGrids: a refetch of the upload grids must not clear a form being filled in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, test, grids]);
 
   const upload = async (file: File) => {

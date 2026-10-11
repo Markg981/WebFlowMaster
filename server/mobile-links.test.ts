@@ -8,7 +8,6 @@ import {
   mobileTests,
   reportTestCaseResults,
   requirementTests,
-  requirements,
   testCaseLinks,
   testManagementConnections,
   testPlanExecutions,

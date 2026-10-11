@@ -41,6 +41,9 @@ export default function BddTestDialog({
     setBusy(false);
     generation.current++;
     return () => {
+      // A counter, not a DOM node: reading its value at cleanup is the point. Every answer that
+      // arrives for an older generation is dropped.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       generation.current++;
     };
   }, [test.id, test.bdd]);
