@@ -4,6 +4,7 @@ import { asc, eq } from 'drizzle-orm';
 import { projectElements, projects } from '@shared/schema';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
+import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { aiService } from '../ai-automation-service';
 import { authorSteps } from '../nl-authoring';
 import loggerPromise from '../logger';
@@ -46,51 +47,59 @@ const bodySchema = z.object({
 });
 
 // POST /api/authoring/steps — sentences in, proposed steps out. Nothing is saved.
-router.post('/api/authoring/steps', requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+router.post(
+  '/api/authoring/steps',
+  requireRole('editor'),
+  sharedHeavyRateLimit(),
+  async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const parsed = bodySchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
-  }
-
-  try {
-    let repository: RepositoryRow[] = [];
-    if (parsed.data.projectId) {
-      const loaded = await loadRepository(parsed.data.projectId);
-      if (loaded === null) return res.status(404).json({ error: 'Project not found.' });
-      repository = loaded;
+    const parsed = bodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
     }
 
-    const result = await authorSteps(
-      {
-        text: parsed.data.text,
-        repository,
-        detected: parsed.data.elements ?? [],
-      },
-      // Absent when no key is configured, and `authorSteps` then says so per line instead of
-      // failing: the phrasings it understands on its own keep working.
-      {
-        propose: aiService.isAvailable()
-          ? (prompt) => aiService.proposeTestSteps(prompt)
-          : undefined,
-      },
-    );
+    try {
+      let repository: RepositoryRow[] = [];
+      if (parsed.data.projectId) {
+        const loaded = await loadRepository(parsed.data.projectId);
+        if (loaded === null) return res.status(404).json({ error: 'Project not found.' });
+        repository = loaded;
+      }
 
-    res.json({
-      steps: result.steps,
-      unresolved: result.unresolved,
-      usedModel: result.usedModel,
-      modelAvailable: aiService.isAvailable(),
-      // Names only. What the author needs when a line failed is the list of things they could
-      // have named, and a selector is not that.
-      catalogue: buildCatalogueListing(repository, parsed.data.elements ?? []),
-    });
-  } catch (error: any) {
-    logger.error({ message: 'Authoring from text failed', error: error?.message ?? String(error) });
-    res.status(500).json({ error: 'Could not read those instructions.' });
-  }
-});
+      const result = await authorSteps(
+        {
+          text: parsed.data.text,
+          repository,
+          detected: parsed.data.elements ?? [],
+        },
+        // Absent when no key is configured, and `authorSteps` then says so per line instead of
+        // failing: the phrasings it understands on its own keep working.
+        {
+          propose: aiService.isAvailable()
+            ? (prompt) => aiService.proposeTestSteps(prompt)
+            : undefined,
+        },
+      );
+
+      res.json({
+        steps: result.steps,
+        unresolved: result.unresolved,
+        usedModel: result.usedModel,
+        modelAvailable: aiService.isAvailable(),
+        // Names only. What the author needs when a line failed is the list of things they could
+        // have named, and a selector is not that.
+        catalogue: buildCatalogueListing(repository, parsed.data.elements ?? []),
+      });
+    } catch (error: any) {
+      logger.error({
+        message: 'Authoring from text failed',
+        error: error?.message ?? String(error),
+      });
+      res.status(500).json({ error: 'Could not read those instructions.' });
+    }
+  },
+);
 
 interface RepositoryRow {
   id: string;

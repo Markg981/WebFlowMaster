@@ -105,6 +105,60 @@ router.post('/api/projects', requireRole('editor'), async (req, res) => {
   }
 });
 
+router.delete('/api/projects/:projectId', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const userId = req.user.id;
+  const projectIdString = req.params.projectId;
+  const parsedProjectId = parseInt(projectIdString, 10);
+
+  if (isNaN(parsedProjectId)) {
+    return res.status(400).json({ error: 'Invalid project ID format.' });
+  }
+
+  try {
+    // Inside the tenant transaction, so RLS bounds both statements to the caller's
+    // organization. The userId predicate stays as the ownership rule it always was —
+    // organizationId is the security boundary, userId is attribution, and this handler
+    // previously relied on the latter for both.
+    const deleted = await withTenantTransaction(async (tx) => {
+      const projectToDelete = await tx
+        .select({ id: projects.id, name: projects.name })
+        .from(projects)
+        .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)))
+        .limit(1);
+
+      if (projectToDelete.length === 0) return false;
+
+      await tx
+        .delete(projects)
+        .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)));
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.PROJECT_DELETED,
+        actor: auditActor(req),
+        targetType: 'project',
+        targetId: parsedProjectId,
+        metadata: { name: projectToDelete[0].name },
+      });
+      return true;
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Project not found or not owned by user.' });
+    }
+
+    res.status(204).send();
+  } catch (error: any) {
+    logger.error({
+      message: `Error deleting project ${parsedProjectId} for user ${userId}`,
+      error: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({ error: 'Failed to delete project due to a server error.' });
+  }
+});
+
 /** Who is on a project, as the owner's access dialog shows it. */
 async function accessOf(
   tx: Parameters<Parameters<typeof withTenantTransaction>[0]>[0],

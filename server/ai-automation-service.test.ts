@@ -8,8 +8,8 @@ import { createTestOrganization } from './tests/factories';
 //  - Google Gemini (a real network API we must not call in tests)
 //  - the logger (to keep test output clean)
 // The database is NOT mocked: these tests run against the real PGlite test DB.
-const { mockGenerateContent } = vi.hoisted(() => {
-  return { mockGenerateContent: vi.fn() };
+const { mockGenerateContent, mockGetGenerativeModel, mockWarn } = vi.hoisted(() => {
+  return { mockGenerateContent: vi.fn(), mockGetGenerativeModel: vi.fn(), mockWarn: vi.fn() };
 });
 
 // A function, not an arrow: the service calls `new GoogleGenerativeAI(...)`, and Vitest 4 keeps a
@@ -17,7 +17,7 @@ const { mockGenerateContent } = vi.hoisted(() => {
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: vi.fn(function GoogleGenerativeAI() {
     return {
-      getGenerativeModel: vi.fn(() => ({
+      getGenerativeModel: mockGetGenerativeModel.mockImplementation(() => ({
         generateContent: mockGenerateContent,
       })),
     };
@@ -25,11 +25,12 @@ vi.mock('@google/generative-ai', () => ({
 }));
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  default: Promise.resolve({ info: vi.fn(), warn: mockWarn, error: vi.fn() }),
 }));
 
 // Import after the mocks are registered.
-const { AIAutomationService } = await import('./ai-automation-service');
+const { AIAutomationService, geminiModel } = await import('./ai-automation-service');
+const { GoogleGenerativeAI } = await import('@google/generative-ai');
 
 describe('AIAutomationService', () => {
   let service: InstanceType<typeof AIAutomationService>;
@@ -52,6 +53,46 @@ describe('AIAutomationService', () => {
     await privilegedDb.delete(tests);
     await privilegedDb.delete(users);
     delete process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_MODEL;
+  });
+
+  describe('the model', () => {
+    it('is GEMINI_MODEL, or gemini-2.0-flash, for healing as for everything else', async () => {
+      expect(geminiModel({})).toBe('gemini-2.0-flash');
+      expect(geminiModel({ GEMINI_MODEL: 'gemini-2.5-pro' })).toBe('gemini-2.5-pro');
+
+      process.env.GEMINI_MODEL = 'gemini-2.5-pro';
+      mockGenerateContent.mockResolvedValue({ response: { text: () => 'ok' } });
+      await service.healSelector('div.old', '<html></html>', 'error');
+      await service.proposeTestSteps('prompt');
+      await service.explainFailure('why?');
+      delete process.env.GEMINI_MODEL;
+
+      expect(mockGetGenerativeModel).toHaveBeenCalledTimes(3);
+      for (const [options] of mockGetGenerativeModel.mock.calls) {
+        expect(options).toEqual({ model: 'gemini-2.5-pro' });
+      }
+    });
+
+    it('is never built without a key: the service is off, and says so once', async () => {
+      delete process.env.GEMINI_API_KEY;
+      vi.mocked(GoogleGenerativeAI).mockClear();
+      mockWarn.mockClear();
+
+      const disabled = new AIAutomationService();
+      expect(disabled.isAvailable()).toBe(false);
+      expect(await disabled.healSelector('div.old', 'html', 'error')).toBeNull();
+      expect(await disabled.proposeTestSteps('prompt')).toBeNull();
+      expect(await disabled.explainFailure('why?')).toBeNull();
+
+      // No client with a placeholder key, and so no call to Google that could only fail.
+      expect(GoogleGenerativeAI).not.toHaveBeenCalled();
+      expect(mockGetGenerativeModel).not.toHaveBeenCalled();
+      expect(mockGenerateContent).not.toHaveBeenCalled();
+      await Promise.resolve();
+      expect(mockWarn).toHaveBeenCalledTimes(1);
+      expect(mockWarn.mock.calls[0][0]).toBe('GEMINI_API_KEY not set. AI features disabled.');
+    });
   });
 
   describe('healSelector', () => {

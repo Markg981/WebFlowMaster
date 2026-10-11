@@ -55,3 +55,29 @@ export function sessionCookieSecure(env: NodeJS.ProcessEnv = process.env): boole
   if (configured === 'false') return false;
   return env.NODE_ENV === 'production';
 }
+
+/** How long a worker waits for its runs after SIGTERM when WORKER_SHUTDOWN_GRACE_MS is unset. */
+export const DEFAULT_WORKER_SHUTDOWN_GRACE_MS = 30_000;
+
+/**
+ * How long a worker told to stop waits for the runs it has before exiting anyway.
+ *
+ * Thirty seconds was written into the worker while a run was a few minutes long; a nightly
+ * plan can take hours, and a redeploy in its middle ended it as "worker lost" every time.
+ * Whoever sets this also sets the container's stop_grace_period to at least as much, or
+ * Docker kills the worker first and the setting changes nothing — the configuration page
+ * says so. Malformed values stop the worker from starting, as PORT does the web process.
+ */
+export function resolveWorkerShutdownGraceMs(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.WORKER_SHUTDOWN_GRACE_MS?.trim();
+  if (!raw) return DEFAULT_WORKER_SHUTDOWN_GRACE_MS;
+
+  const ms = Number(raw);
+  if (!Number.isInteger(ms) || ms < 1000) {
+    throw new Error(
+      `WORKER_SHUTDOWN_GRACE_MS must be a whole number of milliseconds, at least 1000; got ` +
+        `"${env.WORKER_SHUTDOWN_GRACE_MS}". Leave it unset for ${DEFAULT_WORKER_SHUTDOWN_GRACE_MS}.`,
+    );
+  }
+  return ms;
+}

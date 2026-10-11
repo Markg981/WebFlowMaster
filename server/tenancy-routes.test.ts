@@ -15,6 +15,7 @@ import {
   reportTestCaseResults,
   executionLogs,
   excelSequencesMap,
+  systemSettings,
   type User,
 } from '../shared/schema';
 import { eq } from 'drizzle-orm';
@@ -595,5 +596,33 @@ describe('GET /api/test-plan-executions/:executionId/report (C4)', () => {
       .from(reportTestCaseResults)
       .where(eq(reportTestCaseResults.id, foreignResult.id));
     expect(stored.testName).toBe('Foreign confidential test case');
+  });
+});
+
+describe('GET /api/system-settings', () => {
+  beforeEach(async () => {
+    await privilegedDb
+      .insert(systemSettings)
+      .values({ key: 'workspaceName', value: 'Acme QA' })
+      .onConflictDoNothing();
+  });
+
+  it('lists the installation settings to an owner only', async () => {
+    currentUser = { ...sessionUser, role: 'owner' };
+    const listed = await request(app).get('/api/system-settings').expect(200);
+    expect(listed.body).toEqual(
+      expect.arrayContaining([expect.objectContaining({ key: 'workspaceName' })]),
+    );
+
+    currentUser = { ...sessionUser, role: 'editor' };
+    await request(app).get('/api/system-settings').expect(403);
+    currentUser = { ...sessionUser, role: 'viewer' };
+    await request(app).get('/api/system-settings').expect(403);
+  });
+
+  it('still answers one setting by key to anyone signed in: the sidebar reads it', async () => {
+    currentUser = { ...sessionUser, role: 'viewer' };
+    const one = await request(app).get('/api/system-settings/workspaceName').expect(200);
+    expect(one.body).toMatchObject({ key: 'workspaceName', value: 'Acme QA' });
   });
 });

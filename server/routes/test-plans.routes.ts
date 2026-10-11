@@ -10,12 +10,16 @@ import {
   tests,
   apiTests,
   mobileTests,
+  executionLogs,
+  reportTestCaseResults,
   insertTestPlanScheduleSchema,
   updateTestPlanScheduleSchema,
   testPlanApiPayloadSchema,
+  updateTestPlanApiPayloadSchema,
+  type ReportTestCaseResult,
   type TestPlanSchedule,
 } from '@shared/schema';
-import { eq, desc, asc, and, inArray, getTableColumns, sql, type SQL } from 'drizzle-orm';
+import { eq, desc, asc, and, or, inArray, getTableColumns, sql, type SQL } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from '../logger';
 import schedulerService, {
@@ -30,7 +34,12 @@ import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from './selecte
 import { requestCancellation } from '../execution-state';
 import { AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, changedFields, recordAudit } from '../audit';
-import { publicExecution } from '../execution-provenance';
+import { publicExecution, reproducibilitySummary } from '../execution-provenance';
+import { executionArtifactAvailability } from '../artifact-metering';
+import { readExecutionSnapshot } from '../execution-snapshot';
+import { dedupeKeyFor } from '../issue-tracking';
+import { artifactUrl, stepsWithArtifactUrls } from './artifacts.routes';
+import { linkedIssuesFor } from './issues.routes';
 
 const router = Router();
 const logger = await loggerPromise;
@@ -286,6 +295,314 @@ router.get('/api/test-plans/:id/contents', requireRole('viewer'), async (req, re
     res.status(500).json({ error: 'Failed to load the plan.' });
   }
 });
+
+// PUT /api/test-plans/:id - Update an existing test plan
+router.put('/api/test-plans/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const testPlanId = req.params.id;
+
+  const parseResult = updateTestPlanApiPayloadSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    logger.warn({
+      message: `PUT /api/test-plans/${testPlanId} - Invalid payload`,
+      errors: parseResult.error.flatten(),
+      userId: (req.user as any)?.id,
+    });
+    return res
+      .status(400)
+      .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
+  }
+
+  // Agents or a grid, never both, and only a grid of this organization (server/browser-grids.ts).
+  const runOn = await checkRunOn(parseResult.data);
+  if (!runOn.ok) return res.status(400).json({ error: runOn.error });
+
+  try {
+    const { selectedTests, ...planUpdates } = { ...parseResult.data, ...runOn.changes };
+
+    // Check if there's anything to update for the main plan or selected tests
+    if (Object.keys(planUpdates).length === 0 && selectedTests === undefined) {
+      // Check if the plan exists first to return 404 if not, otherwise 400 for no data
+      const existingPlanCheck = await withTenantTransaction((tx) =>
+        tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId)),
+      );
+      if (existingPlanCheck.length === 0) {
+        return res.status(404).json({ error: 'Test plan not found.' });
+      }
+      return res.status(400).json({ error: 'No update data provided.' });
+    }
+
+    // withTenantTransaction, not privilegedDb.transaction: RLS is silently inert under a
+    // superuser, so the explicit organizationId predicates below were the only thing scoping
+    // this handler. They stay, but they are now belt as well as braces.
+    const updatedPlanResult = await withTenantTransaction(async (tx) => {
+      let mainPlanUpdated;
+      if (Object.keys(planUpdates).length > 0) {
+        // Stringify JSON fields before updating: both columns are typed as their parsed
+        // object shape while the DB stores them as text.
+        const updatesToApply = { ...planUpdates } as Record<string, unknown>;
+        if (planUpdates.testMachinesConfig !== undefined) {
+          updatesToApply.testMachinesConfig = planUpdates.testMachinesConfig
+            ? JSON.stringify(planUpdates.testMachinesConfig)
+            : null;
+        }
+        if (planUpdates.notificationSettings !== undefined) {
+          updatesToApply.notificationSettings = planUpdates.notificationSettings
+            ? JSON.stringify(planUpdates.notificationSettings)
+            : null;
+        }
+
+        mainPlanUpdated = await tx
+          .update(testPlans)
+          .set({
+            ...updatesToApply,
+            // A Date, not unix seconds: updatedAt is a `timestamp` column, and drizzle
+            // calls .toISOString() on whatever it is given. The previous number made every
+            // PUT that touched a plan field fail with "value.toISOString is not a function".
+            updatedAt: new Date(),
+          })
+          // Scoped to the caller's organization, so another tenant's plan is simply not
+          // there. Without this the handler would happily update any plan by id, and the
+          // join rows below would then be stamped with the foreign plan's organization
+          // while naming tests from the caller's — a row that is internally cross-tenant.
+          .where(
+            and(
+              eq(testPlans.id, testPlanId),
+              eq(testPlans.organizationId, req.user.organizationId),
+            ),
+          )
+          .returning();
+
+        if (mainPlanUpdated.length === 0) {
+          // The id goes in the metadata, not the message: it comes from the URL.
+          logger.warn('PUT /api/test-plans/:id - Test plan not found during main record update.', {
+            testPlanId,
+          });
+          throw new Error('Test plan not found or no changes to main record.'); // Will be caught and result in 404 like
+        }
+      } else {
+        // If only selectedTests are being updated, fetch the current plan to return.
+        // Same organization scope as the update branch above.
+        const currentPlan = await tx
+          .select()
+          .from(testPlans)
+          .where(
+            and(
+              eq(testPlans.id, testPlanId),
+              eq(testPlans.organizationId, req.user.organizationId),
+            ),
+          );
+        if (currentPlan.length === 0) {
+          throw new Error('Test plan not found.');
+        }
+        mainPlanUpdated = currentPlan;
+      }
+
+      if (selectedTests !== undefined) {
+        // If selectedTests is provided (even an empty array)
+        await tx
+          .delete(testPlanSelectedTests)
+          .where(eq(testPlanSelectedTests.testPlanId, testPlanId));
+
+        if (selectedTests.length > 0) {
+          await assertSelectedTestsBelongTo(tx, req.user.organizationId, selectedTests);
+          const selectedTestValues = selectedTests.map((st) => ({
+            testPlanId: testPlanId,
+            // Taken from the plan these rows hang off, not from the session: a join row must
+            // belong to the same organization as its parent, and those can differ whenever
+            // the caller reaches a plan that isn't theirs.
+            organizationId: mainPlanUpdated[0].organizationId,
+            testId: st.type === 'ui' ? st.id : null,
+            apiTestId: st.type === 'api' ? st.id : null,
+            mobileTestId: st.type === 'mobile' ? st.id : null,
+            testType: st.type,
+          }));
+          await tx.insert(testPlanSelectedTests).values(selectedTestValues);
+        }
+      }
+
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.PLAN_UPDATED,
+        actor: auditActor(req),
+        targetType: 'test_plan',
+        targetId: testPlanId,
+        metadata: {
+          name: mainPlanUpdated[0].name,
+          fields: changedFields(parseResult.data as Record<string, unknown>),
+          ...(selectedTests !== undefined ? { tests: selectedTests.length } : {}),
+        },
+      });
+      return mainPlanUpdated[0]; // Return the first element of the (potentially) updated plan
+    });
+
+    if (!updatedPlanResult) {
+      // Should be caught by transaction error handling but as a safeguard
+      return res.status(404).json({ error: 'Test plan not found or no effective changes made.' });
+    }
+    res.json(updatedPlanResult);
+  } catch (error: any) {
+    logger.error({
+      message: `Error updating test plan ${testPlanId}`,
+      error: error.message,
+      stack: error.stack,
+      requestBody: req.body,
+      userId: (req.user as any)?.id,
+    });
+    if (error.message.toLowerCase().includes('test plan not found')) {
+      // Custom error from transaction
+      return res.status(404).json({ error: 'Test plan not found.' });
+    }
+    // Either the DB rejected an id that doesn't exist at all, or assertSelectedTestsBelongTo
+    // rejected one that exists in another organization. Both are the caller naming a test
+    // that is not theirs to name, and both answer the same way — a distinct message for the
+    // second would tell them which ids exist in other tenants.
+    if (
+      /foreign key/i.test(error.message || '') ||
+      SELECTED_TESTS_NOT_FOUND.test(error.message || '')
+    ) {
+      return res.status(400).json({ error: 'One or more selected tests do not exist.' });
+    }
+    res.status(500).json({ error: 'Failed to update test plan' });
+  }
+});
+
+// DELETE /api/test-plans/:id - Delete a test plan
+router.delete('/api/test-plans/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const testPlanId = req.params.id;
+
+  try {
+    // onDelete: 'cascade' is defined in the schedules.testPlanId FK.
+    // This means deleting a test plan will automatically delete associated schedules.
+    // Also, test_plan_selected_tests and test_plan_runs have onDelete: 'cascade' for testPlanId.
+    //
+    // Scoped to the caller's organization (matching the PUT handler above) and run inside
+    // the tenant transaction, so another tenant's plan is simply not there rather than
+    // being destroyed along with its schedules and execution history.
+    const result = await withTenantTransaction(async (tx) => {
+      const rows = await tx
+        .delete(testPlans)
+        .where(
+          and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user!.organizationId)),
+        )
+        .returning();
+      if (rows.length > 0) {
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.PLAN_DELETED,
+          actor: auditActor(req),
+          targetType: 'test_plan',
+          targetId: testPlanId,
+          // Its schedules and run history went with it (cascade), which is worth saying.
+          metadata: { name: rows[0].name },
+        });
+      }
+      return rows;
+    });
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Test plan not found' });
+    }
+    res.status(204).send();
+  } catch (error: any) {
+    logger.error({
+      message: `Error deleting test plan ${testPlanId}`,
+      error: error.message,
+      stack: error.stack,
+      userId: (req.user as any)?.id,
+    });
+    res.status(500).json({ error: 'Failed to delete test plan' });
+  }
+});
+
+// POST /api/run-test-plan/:id - Execute a test plan
+router.post('/api/run-test-plan/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const testPlanId = req.params.id;
+  const userId = req.user.id;
+
+  logger.http({
+    message: `POST /api/run-test-plan/${testPlanId} - Handler reached`,
+    testPlanId,
+    userId,
+  });
+
+  try {
+    // Ownership gate, through RLS: another organization's plan is simply not here. The
+    // orchestrator checks the requester's organization again, and the job itself runs under
+    // runWithTenant for the execution's organization (test-execution-service.ts), but a 404
+    // from here is the answer a caller should get before anything is written.
+    const owned = await withTenantTransaction((tx) =>
+      tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId)).limit(1),
+    );
+    if (owned.length === 0) {
+      return res.status(404).json({ error: 'Test plan not found' });
+    }
+
+    // A pipeline that retries this request after a timeout sends the same key and gets the
+    // run it already started, instead of a second one.
+    const idempotencyKey = req.get('Idempotency-Key')?.trim() || undefined;
+    if (idempotencyKey && idempotencyKey.length > 255) {
+      return res
+        .status(400)
+        .json({ success: false, error: 'Idempotency-Key must be at most 255 characters.' });
+    }
+
+    // Dynamically import runTestPlan to avoid circular dependencies if test-execution-service grows
+    const { runTestPlan } = await import('../test-execution-service');
+    // `updateBaselines` is how a legitimate redesign gets a visually-tested plan out of red:
+    // this run's screenshots become the baselines the next one is measured against.
+    const executionResult = await runTestPlan(testPlanId, userId, {
+      environmentId:
+        typeof req.body?.environmentId === 'number' ? req.body.environmentId : undefined,
+      updateBaselines: req.body?.updateBaselines === true,
+      ...(idempotencyKey ? { idempotencyKey } : {}),
+    });
+
+    if ('error' in executionResult) {
+      const errorResult = executionResult as {
+        error: string;
+        status?: number;
+        testPlanRunId?: string;
+      };
+      // Check if a specific status code was suggested by runTestPlan
+      const statusCode =
+        errorResult.status && typeof errorResult.status === 'number' ? errorResult.status : 500;
+      logger.error({
+        message: `Test plan execution failed for plan ${testPlanId}`,
+        error: errorResult.error,
+        testPlanRunId: errorResult.testPlanRunId,
+      });
+      return res
+        .status(statusCode)
+        .json({ success: false, error: errorResult.error, data: executionResult });
+    }
+
+    logger.info({
+      message: `Test plan ${testPlanId} executed successfully. Run ID: ${executionResult.id}`,
+    });
+    // executionResult should be the full TestPlanRun object
+    res.status(200).json({ success: true, data: publicExecution(executionResult) });
+  } catch (error: any) {
+    logger.error({
+      message: `Critical error in /api/run-test-plan/${testPlanId} route handler`,
+      testPlanId,
+      userId,
+      error: error.message,
+      stack: error.stack,
+    });
+    res
+      .status(500)
+      .json({ success: false, error: 'Internal server error during test plan execution.' });
+  }
+});
+
+// GET /api/selectable-tests - List UI, API and mobile app tests for selection in Test Plans
 
 // --- Schedules ---
 
@@ -630,6 +947,493 @@ router.get('/api/test-plan-executions/:id', requireRole('viewer'), async (req, r
       typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : execution.browsers,
   });
 });
+
+// --- Test Execution Logs API Endpoint ---
+router.get(
+  '/api/test-plan-executions/:executionId/logs',
+  requireRole('viewer'),
+  async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { executionId } = req.params;
+
+    try {
+      // Scoped to the tenant transaction: execution_logs carries test steps and substituted
+      // values, so an unscoped privilegedDb query here handed a foreign execution's full log
+      // body to any authenticated caller who guessed its id.
+      const logs = await withTenantTransaction((tx) =>
+        tx
+          .select()
+          .from(executionLogs)
+          .where(eq(executionLogs.testPlanExecutionId, executionId))
+          .orderBy(asc(executionLogs.timestamp)),
+      );
+
+      res.json(logs);
+    } catch (error: any) {
+      logger.error({
+        message: 'Error fetching execution logs',
+        error: error.message,
+        executionId,
+      });
+      res.status(500).json({ error: 'Failed to fetch execution logs' });
+    }
+  },
+);
+
+// --- Test Report Page API Endpoint ---
+router.get(
+  '/api/test-plan-executions/:executionId/report',
+  requireRole('viewer'),
+  async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { executionId } = req.params;
+    const userId = req.user.id; // Assuming reports might be user-scoped in the future or for auth checks
+
+    logger.http({
+      message: `GET /api/test-plan-executions/${executionId}/report - Handler reached`,
+      executionId,
+      userId,
+    });
+
+    if (!executionId) {
+      return res.status(400).json({ error: 'Execution ID is required.' });
+    }
+
+    try {
+      // Both queries run inside the same tenant transaction: unscoped privilegedDb queries
+      // here returned a foreign execution's full report — including plan and test-case names
+      // — to any authenticated caller who guessed its id.
+      const reportSource = await withTenantTransaction(async (tx) => {
+        // 1. Fetch the main TestPlanExecution record and its associated TestPlan
+        const executionDetailsResult = await tx
+          .select({
+            execution: getTableColumns(testPlanExecutions),
+            plan: getTableColumns(testPlans),
+          })
+          .from(testPlanExecutions)
+          .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
+          .where(eq(testPlanExecutions.id, executionId))
+          .limit(1);
+
+        if (executionDetailsResult.length === 0) {
+          return null;
+        }
+
+        // 2. Fetch all reportTestCaseResults for this execution
+        // Ensure reportTestCaseResults is imported from @shared/schema
+        const testCaseResults: ReportTestCaseResult[] = await tx
+          .select()
+          .from(reportTestCaseResults)
+          .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
+          .orderBy(desc(reportTestCaseResults.status), asc(reportTestCaseResults.testName)); // Example ordering
+
+        // The attempt that followed this one, when a schedule's retry policy queued one — so a
+        // failed attempt's report can point at the run that decided the verdict.
+        const thisRun = executionDetailsResult[0].execution;
+        const [nextAttempt] = await tx
+          .select({
+            id: testPlanExecutions.id,
+            status: testPlanExecutions.status,
+            attempt: testPlanExecutions.attempt,
+          })
+          .from(testPlanExecutions)
+          .where(
+            and(
+              eq(testPlanExecutions.retryOfExecutionId, thisRun.retryOfExecutionId ?? thisRun.id),
+              eq(testPlanExecutions.attempt, thisRun.attempt + 1),
+            ),
+          )
+          .limit(1);
+
+        // Every attempt of the same occurrence, in order: "attempt 1 of 3 failed, 2 of 3 failed,
+        // 3 of 3 passed" is the history a retry policy produces, and each report shows all of it.
+        const firstAttemptId = thisRun.retryOfExecutionId ?? thisRun.id;
+        const attemptHistory =
+          thisRun.maxAttempts > 1
+            ? await tx
+                .select({
+                  id: testPlanExecutions.id,
+                  attempt: testPlanExecutions.attempt,
+                  status: testPlanExecutions.status,
+                  startedAt: testPlanExecutions.startedAt,
+                  completedAt: testPlanExecutions.completedAt,
+                })
+                .from(testPlanExecutions)
+                .where(
+                  or(
+                    eq(testPlanExecutions.id, firstAttemptId),
+                    eq(testPlanExecutions.retryOfExecutionId, firstAttemptId),
+                  ),
+                )
+                .orderBy(asc(testPlanExecutions.attempt))
+            : [];
+
+        // What the run warned about — a browser that ran on another engine, an OS or a browser
+        // version it could not apply — for the report's header, not only its console.
+        const warnings = await tx
+          .select({ message: executionLogs.message })
+          .from(executionLogs)
+          .where(
+            and(
+              eq(executionLogs.testPlanExecutionId, executionId),
+              eq(executionLogs.level, 'warn'),
+              eq(executionLogs.source, 'system'),
+            ),
+          )
+          .orderBy(asc(executionLogs.timestamp));
+
+        // The issues already filed for these tests, so a failure offers "Open in tracker".
+        const issues = (await linkedIssuesFor(tx, executionId)) ?? [];
+
+        return {
+          ...executionDetailsResult[0],
+          testCaseResults,
+          nextAttempt: nextAttempt ?? null,
+          attemptHistory,
+          warnings: Array.from(new Set(warnings.map((w) => w.message))),
+          issues,
+        };
+      });
+
+      if (!reportSource) {
+        logger.warn({ message: `Execution ID ${executionId} not found.`, userId });
+        return res.status(404).json({ error: 'Test plan execution not found.' });
+      }
+
+      const { execution, plan, testCaseResults, nextAttempt, attemptHistory, warnings, issues } =
+        reportSource;
+      const issueFor = (r: { testName: string; browser: string | null }) => {
+        const key = dedupeKeyFor({
+          planId: execution.testPlanId,
+          testName: r.testName,
+          browser: r.browser,
+        });
+        const link = issues.find((issue) => issue.dedupeKey === key);
+        return link
+          ? {
+              key: link.issueKey,
+              url: link.issueUrl,
+              occurrences: link.occurrences,
+              resolvedAt: link.resolvedAt,
+            }
+          : null;
+      };
+
+      // A run whose evidence retention has removed links to nothing: its images would all be
+      // broken, and the header says why they are not there instead.
+      const purged = !!execution.artifactsPurgedAt;
+      const retained = await executionArtifactAvailability(
+        execution.organizationId,
+        execution.testPlanId,
+        executionId,
+      );
+      const openable = (storedPath: string | null | undefined) =>
+        purged ? null : artifactUrl(executionId, storedPath, retained);
+      const stepsOf = (detailedLog: string | null | undefined) => {
+        const steps = stepsWithArtifactUrls(executionId, detailedLog, retained);
+        if (!purged) return steps;
+        return steps.map((step) => ({
+          ...step,
+          screenshot: null,
+          visual: step.visual
+            ? { ...step.visual, baselineImage: null, actualImage: null, diffImage: null }
+            : undefined,
+        }));
+      };
+
+      // 3. Calculate Key Metrics
+      const totalTests = testCaseResults.length;
+      const passedTests = testCaseResults.filter((r) => r.status === 'Passed').length;
+      const failedTests = testCaseResults.filter((r) => r.status === 'Failed').length;
+      const skippedTests = testCaseResults.filter((r) => r.status === 'Skipped').length;
+      // Add other statuses if needed (e.g., 'Error', 'Pending')
+
+      let totalDurationMs = 0;
+      testCaseResults.forEach((r) => {
+        if (r.durationMs !== null && r.durationMs !== undefined) {
+          totalDurationMs += r.durationMs;
+        }
+      });
+      const averageTimePerTest = totalTests > 0 ? Math.round(totalDurationMs / totalTests) : 0;
+
+      // 4. Prepare data for charts
+      const passFailSkippedDistribution = {
+        passed: passedTests,
+        failed: failedTests,
+        skipped: skippedTests,
+      };
+
+      const priorityDistribution: Record<
+        string,
+        { passed: number; failed: number; skipped: number; total: number }
+      > = {};
+      testCaseResults.forEach((r) => {
+        const prio = r.priority || 'N/A';
+        if (!priorityDistribution[prio]) {
+          priorityDistribution[prio] = { passed: 0, failed: 0, skipped: 0, total: 0 };
+        }
+        priorityDistribution[prio].total++;
+        if (r.status === 'Passed') priorityDistribution[prio].passed++;
+        else if (r.status === 'Failed') priorityDistribution[prio].failed++;
+        else if (r.status === 'Skipped') priorityDistribution[prio].skipped++;
+      });
+
+      const detailedSeverityDistribution: Record<
+        string,
+        { passed: number; failed: number; skipped: number; total: number }
+      > = {};
+      testCaseResults.forEach((r) => {
+        const sev = r.severity || 'N/A';
+        if (!detailedSeverityDistribution[sev]) {
+          detailedSeverityDistribution[sev] = { passed: 0, failed: 0, skipped: 0, total: 0 };
+        }
+        detailedSeverityDistribution[sev].total++;
+        if (r.status === 'Passed') detailedSeverityDistribution[sev].passed++;
+        else if (r.status === 'Failed') detailedSeverityDistribution[sev].failed++;
+        else if (r.status === 'Skipped') detailedSeverityDistribution[sev].skipped++;
+      });
+
+      // 5. Detailed View of Failed Tests
+      const failedTestDetails = testCaseResults
+        .filter((r) => r.status === 'Failed')
+        .map((r) => ({
+          id: r.id,
+          testName: r.testName,
+          // Which browser this failure came from. A plan covering two browsers fails a test on
+          // one and passes it on the other, and the two rows are otherwise identical.
+          browser: r.browser,
+          // Which version of the test this was. Null for a result recorded before versions were,
+          // and for API tests, which have no history to point at.
+          testVersion: r.testVersion,
+          reasonForFailure: r.reasonForFailure,
+          // In quarantine when it ran: shown, and not held against the run.
+          quarantined: r.quarantined,
+          // How many times the plan ran it before this result stood.
+          attempts: r.attempts,
+          // The issue this failure is already filed as, with the link to open it in the tracker.
+          issue: issueFor(r),
+          screenshotUrl: openable(r.screenshotUrl),
+          // A recording of the run, and a trace of it, when the plan kept them. The trace is the
+          // one that answers what a screenshot cannot: the DOM, the network and the console at
+          // every step.
+          videoUrl: openable(r.videoUrl),
+          traceUrl: openable(r.traceUrl),
+          // The page's requests: the file, and the failed and slow ones read out of it.
+          harUrl: openable(r.harUrl),
+          networkSummary: r.networkSummary,
+          // What the AI made of this failure, when somebody asked (routes/failure-analysis.routes.ts).
+          aiAnalysis: r.aiAnalysis ?? null,
+          detailedLog: r.detailedLog,
+          // The step list the runner already recorded, with its images made openable. The
+          // report had no way to show which step failed; the row's reason string was all of it.
+          steps: stepsOf(r.detailedLog),
+          component: r.component,
+          priority: r.priority,
+          severity: r.severity,
+          durationMs: r.durationMs,
+          uiTestId: r.uiTestId,
+          apiTestId: r.apiTestId,
+          testType: r.testType,
+        }));
+
+      // 6. Expandable Test Groupings (by module, then by component as an example)
+      const groupedByModule: Record<
+        string,
+        {
+          passed: number;
+          failed: number;
+          skipped: number;
+          total: number;
+          components: Record<
+            string,
+            {
+              passed: number;
+              failed: number;
+              skipped: number;
+              total: number;
+              tests: Array<(typeof testCaseResults)[0]>; // Using the inferred type of elements in testCaseResults
+            }
+          >;
+        }
+      > = {};
+
+      testCaseResults.forEach((r) => {
+        const moduleName = r.module || 'Uncategorized Module';
+        const componentName = r.component || 'Uncategorized Component';
+
+        if (!groupedByModule[moduleName]) {
+          groupedByModule[moduleName] = {
+            passed: 0,
+            failed: 0,
+            skipped: 0,
+            total: 0,
+            components: {},
+          };
+        }
+        if (!groupedByModule[moduleName].components[componentName]) {
+          groupedByModule[moduleName].components[componentName] = {
+            passed: 0,
+            failed: 0,
+            skipped: 0,
+            total: 0,
+            tests: [],
+          };
+        }
+
+        groupedByModule[moduleName].total++;
+        groupedByModule[moduleName].components[componentName].total++;
+        // The row as stored, plus its steps and an openable screenshot: the grouped table is
+        // where a passing test's visual baselines are looked at, not only a failing one's.
+        groupedByModule[moduleName].components[componentName].tests.push({
+          ...r,
+          screenshotUrl: openable(r.screenshotUrl),
+          videoUrl: openable(r.videoUrl),
+          traceUrl: openable(r.traceUrl),
+          harUrl: openable(r.harUrl),
+          steps: stepsOf(r.detailedLog),
+        } as typeof r);
+
+        if (r.status === 'Passed') {
+          groupedByModule[moduleName].passed++;
+          groupedByModule[moduleName].components[componentName].passed++;
+        } else if (r.status === 'Failed') {
+          groupedByModule[moduleName].failed++;
+          groupedByModule[moduleName].components[componentName].failed++;
+        } else if (r.status === 'Skipped') {
+          groupedByModule[moduleName].skipped++;
+          groupedByModule[moduleName].components[componentName].skipped++;
+        }
+      });
+
+      const reportData = {
+        header: {
+          testSuiteName:
+            readExecutionSnapshot(execution.configurationSnapshot)?.plan.name ||
+            plan?.name ||
+            'N/A',
+          reproducibility: reproducibilitySummary(execution.configurationSnapshot),
+          environment: execution.environment || 'N/A',
+          // What the schedule asked for, else the browsers the results actually came from: a plan
+          // run by hand records its browsers on each result, and the header said none.
+          browsers: (() => {
+            const requested =
+              typeof execution.browsers === 'string'
+                ? JSON.parse(execution.browsers)
+                : (execution.browsers ?? []);
+            if (Array.isArray(requested) && requested.length > 0) return requested;
+            return Array.from(
+              new Set(testCaseResults.map((r) => r.browser).filter((b): b is string => !!b)),
+            );
+          })(),
+          // What the run could not do as asked, said where the verdict is read.
+          warnings,
+          dateTime: execution.startedAt ? execution.startedAt.toISOString() : 'N/A',
+          completedAt: execution.completedAt ? execution.completedAt.toISOString() : null,
+          status: execution.status,
+          triggeredBy: execution.triggeredBy,
+          // Which runner took it: where to look when one machine is the one that fails.
+          runnerId: execution.runnerId ?? null,
+          // The build, commit and branch that asked for it, when a pipeline did.
+          ci: execution.ciContext ?? null,
+          executionId: execution.id,
+          testPlanId: execution.testPlanId,
+          // Which attempt of its scheduled occurrence this run is, and where the others are.
+          attempt: execution.attempt,
+          maxAttempts: execution.maxAttempts,
+          firstAttemptId: execution.retryOfExecutionId,
+          nextAttempt,
+          attempts: attemptHistory.map((a) => ({
+            id: a.id,
+            attempt: a.attempt,
+            status: a.status,
+            startedAt: a.startedAt ? a.startedAt.toISOString() : null,
+            completedAt: a.completedAt ? a.completedAt.toISOString() : null,
+          })),
+          // Why a run ended the way it did when that was not its tests: cancelled, out of time,
+          // its worker lost.
+          failureCode: execution.failureCode,
+          failureMessage: execution.failureMessage,
+          // When retention removed this run's screenshots, videos and traces.
+          artifactsPurgedAt: execution.artifactsPurgedAt
+            ? execution.artifactsPurgedAt.toISOString()
+            : null,
+          artifactStorageStatus: execution.artifactStorageStatus,
+          quotaDeferReason: execution.quotaDeferReason,
+          quotaDeferUntil: execution.quotaDeferUntil,
+          // Tests that passed only after being run again: a pass, and a finding of its own.
+          flakyTests: testCaseResults.filter((r) => r.status === 'Passed' && (r.attempts ?? 1) > 1)
+            .length,
+          // Failures of tests in quarantine: counted in the failed figure, not in the verdict.
+          quarantinedFailures: testCaseResults.filter(
+            (r) => r.quarantined && (r.status === 'Failed' || r.status === 'Error'),
+          ).length,
+        },
+        keyMetrics: {
+          totalTests: execution.totalTests ?? totalTests, // Prefer pre-calculated, fallback to fresh calculation
+          passedTests: execution.passedTests ?? passedTests,
+          failedTests: execution.failedTests ?? failedTests,
+          skippedTests: execution.skippedTests ?? skippedTests,
+          passRate:
+            (execution.totalTests ?? totalTests) > 0
+              ? parseFloat(
+                  (
+                    ((execution.passedTests ?? passedTests) /
+                      (execution.totalTests ?? totalTests)) *
+                    100
+                  ).toFixed(2),
+                )
+              : 0,
+          averageTimePerTestMs: averageTimePerTest, // This needs fresh calculation from reportTestCaseResults
+          totalTestCasesDurationMs: totalDurationMs, // Sum of individual test case durations
+          executionDurationMs:
+            execution.executionDurationMs ??
+            (execution.completedAt && execution.startedAt
+              ? new Date(execution.completedAt).getTime() - new Date(execution.startedAt).getTime()
+              : null),
+        },
+        charts: {
+          passFailSkippedDistribution,
+          priorityDistribution,
+          severityDistribution: detailedSeverityDistribution,
+        },
+        failedTestDetails,
+        testGroupings: groupedByModule,
+        // Every row, with the same openable links as the rest of the report: the stored `/results/…`
+        // paths are served by nothing and opened the application's own page instead of the file.
+        allTests: testCaseResults.map((r) => ({
+          ...r,
+          screenshotUrl: openable(r.screenshotUrl),
+          videoUrl: openable(r.videoUrl),
+          traceUrl: openable(r.traceUrl),
+          harUrl: openable(r.harUrl),
+          issue: issueFor(r),
+        })),
+        issues: issues.map((issue) => ({
+          key: issue.issueKey,
+          url: issue.issueUrl,
+          testName: issue.testName,
+          browser: issue.browser,
+          occurrences: issue.occurrences,
+          resolvedAt: issue.resolvedAt,
+        })),
+      };
+
+      res.json(reportData);
+    } catch (error: any) {
+      logger.error({
+        message: `Error fetching report for execution ${executionId}`,
+        error: error.message,
+        stack: error.stack,
+        userId,
+      });
+      res.status(500).json({ error: 'Failed to fetch test execution report.' });
+    }
+  },
+);
 
 /**
  * Stops a run.

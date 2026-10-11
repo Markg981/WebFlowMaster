@@ -20,6 +20,7 @@ import {
 } from '@shared/schema';
 import { REQUIREMENT_KEY_PATTERN, REQUIREMENT_KINDS } from '@shared/requirements';
 import { requireRole } from '../middleware/require-role';
+import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
 import {
@@ -467,87 +468,92 @@ const proposalSchema = z.object({
  * for the story, from its text in the tracker (read now, so an edited story gives new
  * proposals) or, for one typed in here, its description. Nothing is saved.
  */
-router.post('/api/requirements/:id/test-proposals', requireRole('editor'), async (req, res) => {
-  const id = Number(req.params.id);
-  const parsed = proposalSchema.safeParse(req.body ?? {});
-  if (!Number.isInteger(id) || !parsed.success)
-    return res.status(400).json({ error: 'Invalid payload' });
-  if (!aiService.isAvailable()) {
-    return res
-      .status(503)
-      .json({ error: 'No AI model is configured on this server (GEMINI_API_KEY).' });
-  }
-  try {
-    const loaded = await withTenantTransaction(async (tx) => {
-      const [requirement] = await tx
-        .select()
-        .from(requirements)
-        .where(eq(requirements.id, id))
-        .limit(1);
-      if (!requirement) throw new RequirementError(404, 'Requirement not found');
-      const [tracker] = requirement.trackerId
-        ? await tx
-            .select()
-            .from(issueTrackers)
-            .where(eq(issueTrackers.id, requirement.trackerId))
-            .limit(1)
-        : [];
-      return { requirement, tracker: tracker ?? null };
-    });
-    const { requirement, tracker } = loaded;
+router.post(
+  '/api/requirements/:id/test-proposals',
+  requireRole('editor'),
+  sharedHeavyRateLimit(),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    const parsed = proposalSchema.safeParse(req.body ?? {});
+    if (!Number.isInteger(id) || !parsed.success)
+      return res.status(400).json({ error: 'Invalid payload' });
+    if (!aiService.isAvailable()) {
+      return res
+        .status(503)
+        .json({ error: 'No AI model is configured on this server (GEMINI_API_KEY).' });
+    }
+    try {
+      const loaded = await withTenantTransaction(async (tx) => {
+        const [requirement] = await tx
+          .select()
+          .from(requirements)
+          .where(eq(requirements.id, id))
+          .limit(1);
+        if (!requirement) throw new RequirementError(404, 'Requirement not found');
+        const [tracker] = requirement.trackerId
+          ? await tx
+              .select()
+              .from(issueTrackers)
+              .where(eq(issueTrackers.id, requirement.trackerId))
+              .limit(1)
+          : [];
+        return { requirement, tracker: tracker ?? null };
+      });
+      const { requirement, tracker } = loaded;
 
-    // The tracker is read outside the transaction, like an import: a slow Jira must not hold a
-    // connection open.
-    let story = {
-      key: requirement.key,
-      title: requirement.title,
-      description: requirement.description ?? '',
-      acceptance: '',
-    };
-    let source: 'tracker' | 'requirement' = 'requirement';
-    if (tracker) {
-      try {
-        const text = await fetchItemText(toConfig(tracker), requirement.key, htmlToText);
-        if (text) {
-          story = { key: requirement.key, ...text };
-          source = 'tracker';
+      // The tracker is read outside the transaction, like an import: a slow Jira must not hold a
+      // connection open.
+      let story = {
+        key: requirement.key,
+        title: requirement.title,
+        description: requirement.description ?? '',
+        acceptance: '',
+      };
+      let source: 'tracker' | 'requirement' = 'requirement';
+      if (tracker) {
+        try {
+          const text = await fetchItemText(toConfig(tracker), requirement.key, htmlToText);
+          if (text) {
+            story = { key: requirement.key, ...text };
+            source = 'tracker';
+          }
+        } catch (error: any) {
+          throw new RequirementError(502, `${tracker.name}: ${error?.message ?? error}`);
         }
-      } catch (error: any) {
-        throw new RequirementError(502, `${tracker.name}: ${error?.message ?? error}`);
       }
-    }
-    if (!story.description.trim() && !story.acceptance.trim()) {
-      throw new RequirementError(
-        422,
-        source === 'tracker'
-          ? `${requirement.key} has no description or acceptance criteria in ${tracker!.name} to write tests from.`
-          : `${requirement.key} has no description to write tests from. Add one, with its acceptance criteria.`,
-      );
-    }
+      if (!story.description.trim() && !story.acceptance.trim()) {
+        throw new RequirementError(
+          422,
+          source === 'tracker'
+            ? `${requirement.key} has no description or acceptance criteria in ${tracker!.name} to write tests from.`
+            : `${requirement.key} has no description to write tests from. Add one, with its acceptance criteria.`,
+        );
+      }
 
-    const answer = await aiService.proposeTestCases(
-      buildStoryPrompt(story, parsed.data.language, parsed.data.count),
-    );
-    const proposals = parseProposals(answer);
-    if (!proposals)
-      throw new RequirementError(
-        502,
-        'The model gave no usable test cases. Try again, or add detail to the story.',
+      const answer = await aiService.proposeTestCases(
+        buildStoryPrompt(story, parsed.data.language, parsed.data.count),
       );
-    res.json({
-      proposals,
-      source,
-      story: {
-        key: story.key,
-        title: story.title,
-        description: story.description,
-        acceptance: story.acceptance,
-      },
-    });
-  } catch (error) {
-    fail(res, error, 'propose tests');
-  }
-});
+      const proposals = parseProposals(answer);
+      if (!proposals)
+        throw new RequirementError(
+          502,
+          'The model gave no usable test cases. Try again, or add detail to the story.',
+        );
+      res.json({
+        proposals,
+        source,
+        story: {
+          key: story.key,
+          title: story.title,
+          description: story.description,
+          acceptance: story.acceptance,
+        },
+      });
+    } catch (error) {
+      fail(res, error, 'propose tests');
+    }
+  },
+);
 
 const generatedSchema = z.object({
   tests: z

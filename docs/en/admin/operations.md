@@ -16,7 +16,9 @@ A release can change the database schema, so the order matters.
 1. **Drain the runners.** In **Settings → Runners**, drain each runner. A draining runner
    finishes what it has and takes nothing new; wait until its running count is zero. Runs
    requested meanwhile wait in the queue and start after the upgrade.
-2. **Stop the web processes and workers.**
+2. **Stop the web processes and workers.** A worker told to stop waits up to
+   `WORKER_SHUTDOWN_GRACE_MS` (30 seconds by default) for the runs it still has; with Compose,
+   set the worker's `stop_grace_period` to at least as long, or Docker kills it first.
 3. **Back up the database**: `npm run backup:create` (see [Backups](#backups)).
 4. **Apply the migrations** with the new version: `node dist/apply-migrations.js`, or the
    `migrate` service in Compose (`docker compose up migrate`). `npm run db:doctor` reports the

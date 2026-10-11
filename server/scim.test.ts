@@ -23,9 +23,10 @@ beforeAll(async () => {
   const { setupAuth } = await import('./auth');
   const { tenancyMiddleware } = await import('./middleware/tenancy');
   const ssoRoutes = (await import('./routes/sso.routes')).default;
-  const { default: scimRoutes, SCIM_BASE_PATH } = await import('./routes/scim.routes');
+  const { default: scimRoutes, exceptScim, SCIM_BASE_PATH } = await import('./routes/scim.routes');
   app = express();
-  app.use(express.json());
+  // As server/index.ts mounts it: the general parser, stepping aside for SCIM.
+  app.use(exceptScim(express.json()));
   setupAuth(app);
   app.use(tenancyMiddleware);
   app.use(ssoRoutes);
@@ -203,6 +204,21 @@ describe('users', () => {
     const again = await call('post', '/Users').send({ userName: 'ada@example.com' }).expect(409);
     expect(again.body.scimType).toBe('uniqueness');
     expect(await actions(organizationId)).toContain('member.provisioned');
+  });
+
+  it('reads a body larger than the 100 KB the rest of the application accepts', async () => {
+    const { call } = await provisioned();
+    // Entra ID sends every attribute it holds; a user with a long free-text field, or a group
+    // with its members, is more than the general parser's default. Unknown attributes are
+    // ignored, so only the size of this one matters.
+    const body = {
+      schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+      userName: 'large@example.com',
+      'urn:example:padding': 'x'.repeat(150 * 1024),
+    };
+    expect(JSON.stringify(body).length).toBeGreaterThan(100 * 1024);
+    const created = await call('post', '/Users').send(body).expect(201);
+    expect(created.body.userName).toBe('large@example.com');
   });
 
   it('refuses an address outside the single sign-on domains', async () => {

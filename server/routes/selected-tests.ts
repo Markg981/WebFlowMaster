@@ -13,9 +13,8 @@ export const SELECTED_TESTS_NOT_FOUND = /selected tests do not exist/i;
  * organization filter, so an unvalidated foreign id means the runner executes and reports on
  * another tenant's test.
  *
- * Shared between the create and update paths for test plans, which live in two different
- * files: the create handler in server/routes/test-plans.routes.ts and the update handler
- * still among the legacy inline handlers in server/routes.ts. Two copies of a security check
+ * Shared between the create and update handlers in server/routes/test-plans.routes.ts and
+ * the /api/v1 authoring routes (server/api-v1/authoring.ts). Two copies of a security check
  * is one copy too many.
  */
 export async function assertSelectedTestsBelongTo(
