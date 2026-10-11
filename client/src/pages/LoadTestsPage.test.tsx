@@ -221,6 +221,23 @@ describe('LoadTestsPage', () => {
     await waitFor(() => expect(sent('POST', '/api/load-test-runs/run-2/cancel')).toBeDefined());
   });
 
+  it('keeps the start button off while a run is queued, as while one runs', async () => {
+    const queuedRun = { ...passedRun, status: 'queued', summary: null, finishedAt: null };
+    answer({
+      ...routes,
+      'GET /api/load-tests/7': { ...checkout, runs: [queuedRun] },
+      'GET /api/load-test-runs/run-1': queuedRun,
+    });
+    renderPage();
+    await screen.findByTestId('load-test-7');
+    fireEvent.click(screen.getByRole('button', { name: 'Runs of Checkout' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(await screen.findByTestId('load-run-run-1')).toBeInTheDocument();
+    // Once in the list of runs, once on the run itself.
+    expect(within(dialog).getAllByText('Queued')).toHaveLength(2);
+    expect(within(dialog).getByRole('button', { name: 'Start a run' })).toBeDisabled();
+  });
+
   it('starts a run with no environment when none is chosen', async () => {
     answer({
       ...routes,

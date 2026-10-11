@@ -4821,11 +4821,13 @@
   "loadTests": {
     "profileChart": "Profilo di carico: fino a {{peak}} utenti virtuali in {{total}} s",
     "status": {
+      "queued": "In coda",
       "running": "In corso",
       "passed": "Superato",
       "failed": "Fallito",
       "cancelled": "Annullato",
-      "error": "Non eseguito"
+      "error": "Non eseguito",
+      "worker_lost": "Worker perso"
     },
     "runLoadFailed": "Impossibile caricare l'esecuzione.",
     "loading": "Caricamento…",
@@ -4900,7 +4902,7 @@
     "environment": "Ambiente",
     "noEnvironment": "Nessun ambiente",
     "start": "Avvia un'esecuzione",
-    "startHelp": "L'esecuzione parte dal server, separata dai piani. Un test di carico alla volta per organizzazione.",
+    "startHelp": "L'esecuzione viene messa in coda per un worker di carico, separata dai piani, e sopravvive a un riavvio del server web. Un test di carico alla volta per organizzazione.",
     "noRuns": "Nessuna esecuzione.",
     "deleteFailed": "Il test di carico non è stato eliminato.",
     "title": "Test di carico",
@@ -4915,7 +4917,8 @@
     "saved": "Test di carico salvato",
     "deleteTitle": "Eliminare {{name}}?",
     "deleteBody": "Le sue esecuzioni vengono eliminate con lui. Gli API test restano.",
-    "delete": "Elimina"
+    "delete": "Elimina",
+    "queuedHelp": "In attesa che un worker di carico la prenda in carico."
   },
   "matrixEvidence": {
     "title": "Matrice richiesta ed effettiva",

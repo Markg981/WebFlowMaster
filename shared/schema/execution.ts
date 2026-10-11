@@ -605,13 +605,22 @@ export const loadTestRuns = pgTable(
     summary: jsonb('summary').$type<LoadSummary>(),
     error: text('error'),
     cancelRequested: boolean('cancel_requested').notNull().default(false),
-    /** Written with every progress: a running run whose heartbeat stopped was interrupted. */
+    /** Written with every progress and heartbeat: a running run whose heartbeat stopped is lost. */
     heartbeatAt: timestamp('heartbeat_at'),
+    /** The BullMQ job on the load queue that executes it (server/queue.ts, loadQueue). */
+    jobId: text('job_id'),
+    /** The worker process that took it: host and pid. */
+    workerId: text('worker_id'),
+    /** When it was asked for; startedAt is when a worker took it. */
+    queuedAt: timestamp('queued_at'),
     requestedBy: integer('requested_by').references(() => users.id, { onDelete: 'set null' }),
     startedAt: timestamp('started_at').defaultNow().notNull(),
     finishedAt: timestamp('finished_at'),
   },
-  (table) => [index('load_test_runs_test_idx').on(table.loadTestId, table.startedAt)],
+  (table) => [
+    index('load_test_runs_test_idx').on(table.loadTestId, table.startedAt),
+    index('load_test_runs_status_idx').on(table.organizationId, table.status),
+  ],
 );
 
 export type LoadTestRun = typeof loadTestRuns.$inferSelect;

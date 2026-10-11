@@ -4821,11 +4821,13 @@
   "loadTests": {
     "profileChart": "Lastprofil: bis zu {{peak}} virtuelle Benutzer über {{total}} s",
     "status": {
+      "queued": "In der Warteschlange",
       "running": "Läuft",
       "passed": "Bestanden",
       "failed": "Fehlgeschlagen",
       "cancelled": "Abgebrochen",
-      "error": "Konnte nicht laufen"
+      "error": "Konnte nicht laufen",
+      "worker_lost": "Worker verloren"
     },
     "runLoadFailed": "Der Lauf konnte nicht geladen werden.",
     "loading": "Wird geladen…",
@@ -4900,7 +4902,7 @@
     "environment": "Umgebung",
     "noEnvironment": "Keine Umgebung",
     "start": "Lauf starten",
-    "startHelp": "Der Lauf wird vom Server gesendet, getrennt von Plänen. Ein Lasttest gleichzeitig pro Organisation.",
+    "startHelp": "Der Lauf wird für einen Last-Worker eingereiht, getrennt von Plänen, und übersteht einen Neustart des Webservers. Ein Lasttest gleichzeitig pro Organisation.",
     "noRuns": "Noch kein Lauf.",
     "deleteFailed": "Der Lasttest wurde nicht gelöscht.",
     "title": "Lasttests",
@@ -4915,7 +4917,8 @@
     "saved": "Lasttest gespeichert",
     "deleteTitle": "{{name}} löschen?",
     "deleteBody": "Seine Läufe werden mit gelöscht. Die API-Tests bleiben.",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "queuedHelp": "Wartet darauf, dass ein Last-Worker ihn übernimmt."
   },
   "matrixEvidence": {
     "title": "Angeforderte und tatsächliche Matrix",

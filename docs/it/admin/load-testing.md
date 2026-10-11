@@ -26,6 +26,51 @@ Reader e concorrenza devono essere interi positivi; i run devono essere un inter
 
 Codici di uscita: `0` soglie rispettate, `1` violazioni, `2` errore di strumento/configurazione. `npx vitest run scripts/wfm-load.test.ts` verifica il comportamento con un orologio virtuale. Le simulazioni non dimostrano endurance reale della piattaforma. Prima di dichiararla verificata, conservare report di un'esecuzione reale, ambiente/versione, limiti delle organizzazioni e log di runner/worker.
 
+## Dimensionare un worker di carico
+
+I [test di carico](../guide/load-tests) che gli utenti avviano dalla pagina **Test di carico** non
+sono lo script qui sopra: ogni esecuzione è un job `load-run` sulla coda `load-queue`, e un worker
+lo esegue con il motore di `server/load-runner.ts`. Il processo web si limita a metterla in coda
+(`queued`); il worker che la prende la segna `running` con il proprio nome, scrive il riepilogo
+ogni due secondi e batte ogni `WORK_ITEM_HEARTBEAT_MS`; un'esecuzione il cui worker tace per
+`STALE_CLAIM_MS` termina come `worker_lost`. Un riavvio del web non cambia nulla per
+un'esecuzione; un riavvio del worker con un `WORKER_SHUTDOWN_GRACE_MS` sufficiente la lascia
+finire prima.
+
+Un'esecuzione di carico è traffico HTTP, non un browser: un worker che manda 200 utenti virtuali
+lungo uno scenario di poche richieste usa parte di un core e qualche centinaio di megabyte, molto
+meno di un run di un piano. A limitarlo sono la rete fra il worker e il sistema sotto test, e la
+capacità del sistema stesso — un worker che satura il proprio collegamento misura il collegamento.
+Tenetelo sulla stessa rete del sistema sotto test, o almeno su una con latenza nota e stabile, e
+non sull'host che serve il processo web.
+
+- `LOAD_WORKER_CONCURRENCY` (default `1`) è quante esecuzioni di carico un worker esegue insieme.
+  Uno è il valore onesto: due esecuzioni sullo stesso worker si dividono CPU e collegamento e si
+  misurano a vicenda. `0` fa sì che un worker non ne prenda nessuna, per i worker riservati ai
+  piani.
+- `LOAD_MAX_VIRTUAL_USERS` e `LOAD_MAX_DURATION_S` (default `200` e `3600`) limitano ciò che
+  un'esecuzione può chiedere; il processo web rifiuta un test o un'esecuzione oltre il limite,
+  indicandolo, e il worker limita l'esecuzione al proprio valore. Alzateli quando i worker e la
+  rete hanno dimostrato di reggerli. I campi dell'editor si fermano ai default di fabbrica: valori
+  più alti passano dall'API.
+- `LOAD_MAX_RUNS_PER_ORGANIZATION` (default `1`) è quante esecuzioni di un'organizzazione possono
+  essere in coda o in corso insieme. Più organizzazioni hanno ciascuna le proprie.
+
+Un'esecuzione viene eseguita da un solo worker, per intero: i suoi utenti virtuali non vengono
+divisi fra più worker. Oltre quanto un worker riesce a inviare, la strada è più worker che
+eseguono più esecuzioni — di più organizzazioni, o di una sola con il limite alzato — ciascuna
+che misura il proprio scenario. Ogni worker ascolta la coda di carico, quindi scalare i worker
+scala le esecuzioni di carico insieme ai run dei piani:
+
+```sh
+docker compose up -d --scale worker=3
+```
+
+Con `LOAD_WORKER_CONCURRENCY=1` quello stack esegue tre esecuzioni di carico insieme, una per
+worker, e una quarta aspetta `queued` finché una non finisce. La profondità della coda e la
+capacità dei worker sono sull'endpoint delle metriche del worker come `load-queue` (vedere
+[Telemetria](./telemetry)).
+
 ## Scenari automatici di resilienza
 
 ```sh

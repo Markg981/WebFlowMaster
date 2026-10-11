@@ -1,14 +1,16 @@
 import { DelayedError, Worker, type Job } from 'bullmq';
 import { configureEgressProxy } from './egress-proxy';
 import { connection } from './redis';
-import { TEST_EXECUTION_QUEUE_NAME, testExecutionQueue } from './queue';
+import { LOAD_QUEUE_NAME, TEST_EXECUTION_QUEUE_NAME, loadQueue, testExecutionQueue } from './queue';
 import { processShardJob, processTestPlanJob } from './test-execution-service';
 import { SHARD_JOB, registerShardDispatcher } from './run-shards';
+import { LoadRunJobSchema, loadLimits, processLoadRunJob } from './load-runner';
 import loggerPromise from './logger';
 import { installProcessErrorHandlers } from './process-errors';
 import { resolveWorkerShutdownGraceMs } from './config';
 import { correlationStore } from './middleware/correlation';
 import { closeDb, privilegedDb } from './db';
+import { assertOrganizationKeysReadable } from './organization-keys';
 import {
   TRIGGER_SCHEDULE_JOB,
   executeScheduledPlan,
@@ -46,6 +48,11 @@ configureEgressProxy();
   const logger = await loggerPromise;
   // Read first, so a malformed value is reported by name instead of at the first SIGTERM.
   const shutdownGraceMs = resolveWorkerShutdownGraceMs();
+  // Likewise the load limits: a malformed LOAD_WORKER_CONCURRENCY stops the worker here, by name.
+  const loadConcurrency = loadLimits().runsPerWorker;
+  // Every secret a run needs is under an organization key: refuse to start if one of them cannot
+  // be opened with the configured master keys, rather than failing each run that reaches it.
+  await assertOrganizationKeysReadable();
   const { initializeQuotaDefaults } = await import('./tenant-quotas');
   await initializeQuotaDefaults();
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.
@@ -92,16 +99,19 @@ configureEgressProxy();
   const browserTaskConcurrency = Math.max(1, Number(process.env.BROWSER_TASK_CONCURRENCY) || 2);
   applicationMetrics.capacity.set({ queue: TEST_EXECUTION_QUEUE_NAME }, planConcurrency);
   applicationMetrics.capacity.set({ queue: BROWSER_TASK_QUEUE_NAME }, browserTaskConcurrency);
+  applicationMetrics.capacity.set({ queue: LOAD_QUEUE_NAME }, loadConcurrency);
   const browserMetricsQueue =
     process.env.WFM_METRICS_ENABLED === 'true'
       ? new Queue(BROWSER_TASK_QUEUE_NAME, { connection })
       : undefined;
   const metricsListener = await startMetricsServer('worker', applicationMetrics, [
     testExecutionQueue,
+    loadQueue,
     ...(browserMetricsQueue ? [browserMetricsQueue] : []),
   ]);
   applicationMetrics.active.set({ queue: TEST_EXECUTION_QUEUE_NAME }, 0);
   applicationMetrics.active.set({ queue: BROWSER_TASK_QUEUE_NAME }, 0);
+  applicationMetrics.active.set({ queue: LOAD_QUEUE_NAME }, 0);
   // The queues it pauses when drained, filled in as the workers are created below.
   const drainable: PausableQueue[] = [];
   const runner = new RunnerAgent({
@@ -228,6 +238,47 @@ configureEgressProxy();
     `Worker listening to queue: ${BROWSER_TASK_QUEUE_NAME} (concurrency ${browserTaskConcurrency})`,
   );
 
+  /**
+   * Load runs (server/load-runner.ts), on their own queue: each one sends from this process for up
+   * to an hour, so LOAD_WORKER_CONCURRENCY says how many this worker takes at once, and 0 says it
+   * takes none — a worker kept for plans. The run is claimed and heart-beaten in
+   * processLoadRunJob; an organization at its limit gets its run back on the queue for a while.
+   */
+  const loadWorker =
+    loadConcurrency > 0
+      ? new Worker(
+          LOAD_QUEUE_NAME,
+          withJobIncidents(
+            counted((job: Job, token?: string) =>
+              instrumentJob(LOAD_QUEUE_NAME, job, async () => {
+                const data = readJob(LoadRunJobSchema, job);
+                const outcome = await correlationStore.run(
+                  { correlationId: `load-${data.runId.slice(0, 8)}` },
+                  () => processLoadRunJob(data),
+                );
+                if (outcome.outcome === 'skipped')
+                  logger.info(`Load run ${data.runId} not executed: ${outcome.reason}`);
+                if (outcome.outcome === 'deferred') {
+                  await job.moveToDelayed(Date.now() + outcome.retryInMs, token);
+                  throw new DelayedError();
+                }
+              }),
+            ),
+          ),
+          { connection, concurrency: loadConcurrency },
+        )
+      : null;
+  if (loadWorker) {
+    loadWorker.on('failed', (job: Job | undefined, err: Error) => {
+      logger.error(`Load run job ${job?.id} failed with error:`, err);
+    });
+    logger.info(`Worker listening to queue: ${LOAD_QUEUE_NAME} (concurrency ${loadConcurrency})`);
+  } else {
+    logger.info(
+      `Worker takes no load runs (LOAD_WORKER_CONCURRENCY=0): ${LOAD_QUEUE_NAME} not listened to`,
+    );
+  }
+
   worker.on('completed', (job: Job) => {
     logger.info(`Job ${job.id} completed successfully`);
   });
@@ -241,7 +292,7 @@ configureEgressProxy();
   // ─── The runner registry ────────────────────────────────────────────────────
   // Reports in on a timer with how many jobs it has, and hears back whether to take new ones.
   // Drained, it pauses both queues without stopping the jobs in hand (see RunnerAgent).
-  drainable.push(worker, browserTaskWorker);
+  drainable.push(worker, browserTaskWorker, ...(loadWorker ? [loadWorker] : []));
   runner.start();
 
   // ─── Graceful shutdown ──────────────────────────────────────────────────────
@@ -265,6 +316,7 @@ configureEgressProxy();
     try {
       await worker.close(); // waits for the active job to complete
       await browserTaskWorker.close();
+      await loadWorker?.close();
       // Offline at once, rather than after three missed heartbeats.
       await runner.stop();
       await metricsListener?.close();

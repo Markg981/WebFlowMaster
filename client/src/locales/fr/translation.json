@@ -4821,11 +4821,13 @@
   "loadTests": {
     "profileChart": "Profil de charge : jusqu'à {{peak}} utilisateurs virtuels sur {{total}} s",
     "status": {
+      "queued": "En file d’attente",
       "running": "En cours",
       "passed": "Réussi",
       "failed": "Échoué",
       "cancelled": "Annulé",
-      "error": "N'a pas pu s'exécuter"
+      "error": "N'a pas pu s'exécuter",
+      "worker_lost": "Worker perdu"
     },
     "runLoadFailed": "Impossible de charger l'exécution.",
     "loading": "Chargement…",
@@ -4900,7 +4902,7 @@
     "environment": "Environnement",
     "noEnvironment": "Aucun environnement",
     "start": "Lancer une exécution",
-    "startHelp": "L'exécution part du serveur, à part des plans. Un test de charge à la fois par organisation.",
+    "startHelp": "L'exécution est mise en file d'attente pour un worker de charge, à part des plans, et survit à un redémarrage du serveur web. Un test de charge à la fois par organisation.",
     "noRuns": "Aucune exécution.",
     "deleteFailed": "Le test de charge n'a pas été supprimé.",
     "title": "Tests de charge",
@@ -4915,7 +4917,8 @@
     "saved": "Test de charge enregistré",
     "deleteTitle": "Supprimer {{name}} ?",
     "deleteBody": "Ses exécutions sont supprimées avec lui. Les tests d'API restent.",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "queuedHelp": "En attente qu’un worker de charge la prenne."
   },
   "matrixEvidence": {
     "title": "Matrice demandée et effective",

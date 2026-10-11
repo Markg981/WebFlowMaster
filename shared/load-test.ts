@@ -19,21 +19,54 @@ import { percentile } from './api-performance';
  *   rows as users at the peak, so no two users share one) or the next row on each iteration.
  */
 
+/**
+ * The limits as shipped. Virtual users and duration are configuration on the server
+ * (LOAD_MAX_VIRTUAL_USERS, LOAD_MAX_DURATION_S: server/load-runner.ts, loadLimits), and these are
+ * their defaults; stages, steps and think time are fixed, and the database checks the first two.
+ */
 export const LOAD_LIMITS = {
   virtualUsers: 200,
   durationSec: 3600,
   stages: 10,
   steps: 20,
   thinkTimeMs: 60_000,
-  /** Load runs one server process may hold at once, all organizations included. */
-  runsPerProcess: 2,
+  /** Load runs of one organization queued or running at once (LOAD_MAX_RUNS_PER_ORGANIZATION). */
+  runsPerOrganization: 1,
+  /** Load runs one worker process executes at once (LOAD_WORKER_CONCURRENCY). */
+  runsPerWorker: 1,
 } as const;
+
+/** What an installation may raise or lower; the rest of LOAD_LIMITS is fixed. */
+export interface LoadLimits {
+  virtualUsers: number;
+  durationSec: number;
+}
 
 export const LOAD_DATA_MODES = ['vu', 'iteration'] as const;
 export type LoadDataMode = (typeof LOAD_DATA_MODES)[number];
 
-export const LOAD_RUN_STATUSES = ['running', 'passed', 'failed', 'cancelled', 'error'] as const;
+/**
+ * A run is `queued` from the moment it is asked for until a load worker takes it, `running` from
+ * then on, and ends as `passed`, `failed` (a threshold), `cancelled` (somebody stopped it, queued
+ * or running), `error` (it could not run: a reference gone, a crash) or `worker_lost` (the worker
+ * executing it stopped answering).
+ */
+export const LOAD_RUN_STATUSES = [
+  'queued',
+  'running',
+  'passed',
+  'failed',
+  'cancelled',
+  'error',
+  'worker_lost',
+] as const;
 export type LoadRunStatus = (typeof LOAD_RUN_STATUSES)[number];
+
+/** The statuses of a run that is not over: the page keeps polling it. */
+export const LOAD_LIVE_RUN_STATUSES = ['queued', 'running'] as const satisfies LoadRunStatus[];
+export function isLiveLoadRun(status: LoadRunStatus): boolean {
+  return status === 'queued' || status === 'running';
+}
 
 const ms = z.number().int().positive().max(600_000);
 
@@ -45,12 +78,27 @@ export const loadStepSchema = z
   })
   .strict();
 
-export const loadStageSchema = z
-  .object({
-    durationSec: z.number().int().min(1).max(LOAD_LIMITS.durationSec),
-    targetVus: z.number().int().min(0).max(LOAD_LIMITS.virtualUsers),
-  })
-  .strict();
+/** The stage schema under `limits`; its messages name the limit and the variable that sets it. */
+export const loadStageSchemaFor = (limits: LoadLimits) =>
+  z
+    .object({
+      durationSec: z
+        .number()
+        .int()
+        .min(1)
+        .max(limits.durationSec, {
+          message: `A stage may last ${limits.durationSec} s at most (LOAD_MAX_DURATION_S).`,
+        }),
+      targetVus: z
+        .number()
+        .int()
+        .min(0)
+        .max(limits.virtualUsers, {
+          message: `A stage may ask for ${limits.virtualUsers} virtual users at most (LOAD_MAX_VIRTUAL_USERS).`,
+        }),
+    })
+    .strict();
+export const loadStageSchema = loadStageSchemaFor(LOAD_LIMITS);
 
 export const loadThresholdsSchema = z
   .object({
@@ -68,43 +116,62 @@ export type LoadStep = z.infer<typeof loadStepSchema>;
 export type LoadStage = z.infer<typeof loadStageSchema>;
 export type LoadThresholds = z.infer<typeof loadThresholdsSchema>;
 
-export const loadTestSchema = z
-  .object({
-    name: z.string().trim().min(1, 'A name is required.').max(200),
-    description: z.string().max(2000).optional().nullable(),
-    projectId: z.number().int().positive().optional().nullable(),
-    steps: z.array(loadStepSchema).min(1, 'Add at least one API test.').max(LOAD_LIMITS.steps),
-    stages: z.array(loadStageSchema).min(1, 'Add at least one stage.').max(LOAD_LIMITS.stages),
-    warmUpSec: z.number().int().min(0).max(LOAD_LIMITS.durationSec).default(0),
-    dataSetId: z.number().int().positive().optional().nullable(),
-    dataMode: z.enum(LOAD_DATA_MODES).default('vu'),
-    thresholds: loadThresholdsSchema.default({}),
-  })
-  .strict()
-  .superRefine((value, ctx) => {
-    const total = totalDurationSec(value.stages);
-    if (total > LOAD_LIMITS.durationSec) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['stages'],
-        message: `The stages last ${total} s; the limit is ${LOAD_LIMITS.durationSec} s.`,
-      });
-    }
-    if (peakVus(value.stages) === 0) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['stages'],
-        message: 'At least one stage needs virtual users.',
-      });
-    }
-    if (value.warmUpSec >= total) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['warmUpSec'],
-        message: 'The warm-up must end before the last stage does.',
-      });
-    }
-  });
+/**
+ * The definition schema under `limits`: the client checks with the shipped LOAD_LIMITS, the
+ * server with the installation's (server/load-runner.ts, loadLimits).
+ */
+export const loadTestSchemaFor = (limits: LoadLimits) =>
+  z
+    .object({
+      name: z.string().trim().min(1, 'A name is required.').max(200),
+      description: z.string().max(2000).optional().nullable(),
+      projectId: z.number().int().positive().optional().nullable(),
+      steps: z.array(loadStepSchema).min(1, 'Add at least one API test.').max(LOAD_LIMITS.steps),
+      stages: z
+        .array(loadStageSchemaFor(limits))
+        .min(1, 'Add at least one stage.')
+        .max(LOAD_LIMITS.stages),
+      warmUpSec: z.number().int().min(0).max(limits.durationSec).default(0),
+      dataSetId: z.number().int().positive().optional().nullable(),
+      dataMode: z.enum(LOAD_DATA_MODES).default('vu'),
+      thresholds: loadThresholdsSchema.default({}),
+    })
+    .strict()
+    .superRefine((value, ctx) => {
+      const problem = profileProblem(value.stages, limits);
+      if (problem) ctx.addIssue({ code: 'custom', path: ['stages'], message: problem });
+      if (peakVus(value.stages) === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['stages'],
+          message: 'At least one stage needs virtual users.',
+        });
+      }
+      if (value.warmUpSec >= totalDurationSec(value.stages)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['warmUpSec'],
+          message: 'The warm-up must end before the last stage does.',
+        });
+      }
+    });
+export const loadTestSchema = loadTestSchemaFor(LOAD_LIMITS);
+
+/**
+ * Why a profile is beyond `limits`, naming the limit and the variable that sets it, or null. Asked
+ * again when a run starts: a test saved under one limit may be run under a lower one.
+ */
+export function profileProblem(stages: readonly LoadStage[], limits: LoadLimits): string | null {
+  const total = totalDurationSec(stages);
+  if (total > limits.durationSec) {
+    return `The stages last ${total} s; the limit is ${limits.durationSec} s (LOAD_MAX_DURATION_S).`;
+  }
+  const peak = peakVus(stages);
+  if (peak > limits.virtualUsers) {
+    return `The profile reaches ${peak} virtual users; the limit is ${limits.virtualUsers} (LOAD_MAX_VIRTUAL_USERS).`;
+  }
+  return null;
+}
 
 export type LoadTestDefinition = z.infer<typeof loadTestSchema>;
 

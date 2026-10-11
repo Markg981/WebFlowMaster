@@ -35,7 +35,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useEnvironments } from '@/hooks/use-environments';
-import { peakVus, totalDurationSec, type LoadRunStatus } from '@shared/load-test';
+import { isLiveLoadRun, peakVus, totalDurationSec, type LoadRunStatus } from '@shared/load-test';
 import LoadTestDialog, { type LoadTestRow } from '@/components/load-tests/LoadTestDialog';
 import LoadRunView, {
   statusVariant,
@@ -117,7 +117,7 @@ function RunsDialog({
   };
 
   const runs = detail?.runs ?? [];
-  const running = runs.some((run) => run.status === 'running');
+  const running = runs.some((run) => isLiveLoadRun(run.status));
   return (
     <Dialog open={test !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
@@ -155,7 +155,7 @@ function RunsDialog({
             <span className="text-xs text-muted-foreground">
               {t(
                 'loadTests.startHelp',
-                'The run is sent from the server, apart from plans. One load test at a time per organization.',
+                'The run is queued for a load worker, apart from plans, and survives a restart of the web server. One load test at a time per organization.',
               )}
             </span>
           </div>

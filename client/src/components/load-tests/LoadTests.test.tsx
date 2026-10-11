@@ -162,6 +162,63 @@ describe('LoadRunView', () => {
     await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
   });
 
+  it('follows a queued run until a worker takes it, and lets it be cancelled meanwhile', async () => {
+    const run = {
+      id: 'r3',
+      loadTestId: 7,
+      status: 'queued',
+      cancelRequested: false,
+      queuedAt: '2026-10-07T10:00:00Z',
+      startedAt: '2026-10-07T10:00:00Z',
+      finishedAt: null,
+      error: null,
+      summary: null,
+    };
+    // Queued until the cancel is asked for; cancelled from then on, as the server answers.
+    let cancelled = false;
+    fetchMock.mockImplementation((_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') cancelled = true;
+      return json(cancelled ? { ...run, status: 'cancelled', cancelRequested: true } : run);
+    });
+    const onFinished = vi.fn();
+    wrap(<LoadRunView runId="r3" canEdit onFinished={onFinished} />);
+    expect(await screen.findByText('Queued')).toBeInTheDocument();
+    expect(screen.getByText('Waiting for a load worker to take it.')).toBeInTheDocument();
+    // Not over: the page keeps asking, and nothing says it finished.
+    expect(onFinished).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Stop the run'));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/load-test-runs/r3/cancel',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    );
+    expect(await screen.findByText('Cancelled')).toBeInTheDocument();
+    await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
+  });
+
+  it('shows a run whose worker was lost as over, with the reason', async () => {
+    fetchMock.mockImplementation(() =>
+      json({
+        id: 'r4',
+        loadTestId: 7,
+        status: 'worker_lost',
+        cancelRequested: false,
+        startedAt: '2026-10-07T10:00:00Z',
+        finishedAt: '2026-10-07T10:05:00Z',
+        error:
+          'The worker running this stopped answering (last heard from at 2026-10-07T10:03:00Z).',
+        summary: null,
+      }),
+    );
+    const onFinished = vi.fn();
+    wrap(<LoadRunView runId="r4" canEdit onFinished={onFinished} />);
+    expect(await screen.findByText('Worker lost')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('stopped answering');
+    expect(screen.queryByText('Stop the run')).not.toBeInTheDocument();
+    await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
+  });
+
   it('offers to stop a running run, and asks the server to', async () => {
     fetchMock.mockImplementation((_url: string, init?: RequestInit) =>
       json({

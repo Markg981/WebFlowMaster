@@ -4821,11 +4821,13 @@
   "loadTests": {
     "profileChart": "Load profile: up to {{peak}} virtual users over {{total}} s",
     "status": {
+      "queued": "Queued",
       "running": "Running",
       "passed": "Passed",
       "failed": "Failed",
       "cancelled": "Cancelled",
-      "error": "Could not run"
+      "error": "Could not run",
+      "worker_lost": "Worker lost"
     },
     "runLoadFailed": "Could not load the run.",
     "loading": "Loading…",
@@ -4900,7 +4902,7 @@
     "environment": "Environment",
     "noEnvironment": "No environment",
     "start": "Start a run",
-    "startHelp": "The run is sent from the server, apart from plans. One load test at a time per organization.",
+    "startHelp": "The run is queued for a load worker, apart from plans, and survives a restart of the web server. One load test at a time per organization.",
     "noRuns": "No run yet.",
     "deleteFailed": "The load test was not deleted.",
     "title": "Load tests",
@@ -4915,7 +4917,8 @@
     "saved": "Load test saved",
     "deleteTitle": "Delete {{name}}?",
     "deleteBody": "Its runs go with it. The API tests stay.",
-    "delete": "Delete"
+    "delete": "Delete",
+    "queuedHelp": "Waiting for a load worker to take it."
   },
   "matrixEvidence": {
     "title": "Requested and effective matrix",

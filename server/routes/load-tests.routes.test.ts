@@ -9,6 +9,35 @@ import { privilegedDb } from '../db';
 import { apiTests, auditLog, loadTestRuns, loadTests, testDataSets } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
+/**
+ * The load queue stood in: the route queues a job and the test executes it, the way the worker
+ * does (server/load-runner.ts, processLoadRunJob), so what is checked is the contract between
+ * the two, without Redis.
+ */
+const queued = new Map<string, { id: string; state: string; remove: () => Promise<void> }>();
+const queueAdd = vi.fn(async (_name: string, data: { runId: string }, opts: { jobId: string }) => {
+  const job = {
+    id: opts.jobId,
+    state: 'waiting',
+    remove: vi.fn(async () => {
+      queued.delete(opts.jobId);
+    }),
+  };
+  queued.set(opts.jobId, job);
+  return { id: opts.jobId, data };
+});
+vi.mock('../queue', () => ({
+  LOAD_QUEUE_NAME: 'load-queue',
+  LOAD_RUN_JOB: 'load-run',
+  loadQueue: {
+    add: (...args: unknown[]) => queueAdd(...(args as Parameters<typeof queueAdd>)),
+    getJob: async (id: string) => {
+      const job = queued.get(id);
+      return job ? { ...job, getState: async () => job.state } : null;
+    },
+  },
+}));
+
 vi.mock('../logger', () => ({
   default: Promise.resolve({
     error: vi.fn(),
@@ -23,7 +52,8 @@ vi.mock('../logger', () => ({
 
 /**
  * Load tests through the API, against a stand-in shop: sign in with an e-mail, then read the cart
- * with the token the sign-in answered. The runs are real, a few seconds long.
+ * with the token the sign-in answered. The runs are real, a few seconds long, executed here as
+ * the load worker would execute them.
  */
 
 type User = { id: number; username: string; organizationId: number; role: string };
@@ -135,14 +165,9 @@ beforeAll(async () => {
     })
     .returning();
 
-  const { default: routes, loadRunner } = await import('./load-tests.routes');
-  const { loadRunnerDeps, executeLoadRun } = await import('../load-runner');
+  const { default: routes } = await import('./load-tests.routes');
+  const { loadRunnerDeps } = await import('../load-runner');
   Object.assign(loadRunnerDeps, { tickMs: 50, progressMs: 200 });
-  loadRunner.start = (runId, org, userId) => {
-    const run = executeLoadRun(runId, org, userId);
-    runs.set(runId, run);
-    return run;
-  };
   const { runWithTenant } = await import('../middleware/tenancy');
   app = express();
   app.use(express.json());
@@ -168,7 +193,43 @@ beforeEach(async () => {
   currentUser = editor;
   shop.logins = [];
   shop.carts = [];
+  queued.clear();
+  queueAdd.mockClear();
+  delete process.env.LOAD_MAX_VIRTUAL_USERS;
+  delete process.env.LOAD_MAX_DURATION_S;
+  delete process.env.LOAD_MAX_RUNS_PER_ORGANIZATION;
 });
+
+/** What the load worker does with the job the route queued: claims the run and executes it. */
+function work(runId: string) {
+  const run = (async () => {
+    const { processLoadRunJob } = await import('../load-runner');
+    const job = queueAdd.mock.calls.find(([, data]) => data.runId === runId);
+    expect(job, `job of run ${runId}`).toBeDefined();
+    const [, data] = job!;
+    return processLoadRunJob(data as { runId: string; organizationId: number; userId: number }, {
+      heartbeatMs: 100,
+      workerId: 'test-worker:1',
+    });
+  })();
+  // Registered before anything awaits, so `finished` always finds the run it must wait for.
+  runs.set(
+    runId,
+    run.then(() => undefined),
+  );
+  return run;
+}
+
+/** Starts a run through the API and has the stand-in worker take it. */
+async function startAndWork(testId: number) {
+  const { body: started } = await request(app)
+    .post(`/api/load-tests/${testId}/runs`)
+    .send({})
+    .expect(202);
+  expect(started).toMatchObject({ status: 'queued', loadTestId: testId });
+  const worked = work(started.id);
+  return { started, worked };
+}
 
 const checkout = () => ({
   name: `Checkout ${uuidv4().slice(0, 6)}`,
@@ -189,14 +250,47 @@ async function finished(runId: string) {
 }
 
 describe('load tests', () => {
-  it('runs a scenario along its stages, each virtual user with its own row, and passes it', async () => {
+  it('queues a run for a load worker instead of running it in the web process', async () => {
     const { body: test } = await request(app).post('/api/load-tests').send(checkout()).expect(201);
     const { body: started } = await request(app)
       .post(`/api/load-tests/${test.id}/runs`)
       .send({})
       .expect(202);
-    expect(started).toMatchObject({ status: 'running', loadTestId: test.id });
+    expect(started).toMatchObject({ status: 'queued', loadTestId: test.id, summary: null });
     expect(started.definition).toBeUndefined();
+    expect(started.jobId).toBeUndefined();
+    expect(queueAdd).toHaveBeenCalledWith(
+      'load-run',
+      { runId: started.id, organizationId, userId: editor.id },
+      { jobId: `load-${started.id}` },
+    );
+    const [row] = await privilegedDb
+      .select()
+      .from(loadTestRuns)
+      .where(eq(loadTestRuns.id, started.id));
+    expect(row).toMatchObject({ status: 'queued', jobId: `load-${started.id}`, workerId: null });
+    expect(row.queuedAt).not.toBeNull();
+    // Nothing ran: the shop heard nothing, and the page sees a queued run.
+    expect(shop.logins).toEqual([]);
+    const { body: polled } = await request(app)
+      .get(`/api/load-test-runs/${started.id}`)
+      .expect(200);
+    expect(polled.status).toBe('queued');
+
+    // The worker takes it: running, with its name, then the verdict.
+    const outcome = await work(started.id);
+    expect(outcome).toEqual({ outcome: 'done' });
+    const [done] = await privilegedDb
+      .select()
+      .from(loadTestRuns)
+      .where(eq(loadTestRuns.id, started.id));
+    expect(done).toMatchObject({ status: 'passed', workerId: 'test-worker:1' });
+    expect(done.heartbeatAt).not.toBeNull();
+  });
+
+  it('runs a scenario along its stages, each virtual user with its own row, and passes it', async () => {
+    const { body: test } = await request(app).post('/api/load-tests').send(checkout()).expect(201);
+    const { started } = await startAndWork(test.id);
 
     const run = await finished(started.id);
     expect(run.status).toBe('passed');
@@ -242,34 +336,114 @@ describe('load tests', () => {
       .post('/api/load-tests')
       .send({ ...checkout(), thresholds: { minRps: 100_000 } })
       .expect(201);
-    const { body: started } = await request(app)
-      .post(`/api/load-tests/${test.id}/runs`)
-      .send({})
-      .expect(202);
+    const { started } = await startAndWork(test.id);
     const run = await finished(started.id);
     expect(run.status).toBe('failed');
     expect(run.error).toMatch(/^throughput [\d.]+ req\/s < 100000 req\/s$/);
   });
 
-  it('runs one load test at a time per organization, and cancels on request', async () => {
+  it('runs one load test at a time per organization, and cancels a running one on request', async () => {
     const long = { ...checkout(), stages: [{ durationSec: 60, targetVus: 2 }], warmUpSec: 0 };
     const { body: test } = await request(app).post('/api/load-tests').send(long).expect(201);
-    const { body: started } = await request(app)
-      .post(`/api/load-tests/${test.id}/runs`)
-      .send({})
-      .expect(202);
+    const { started, worked } = await startAndWork(test.id);
+    // A queued run holds the organization's slot as a running one does.
     const second = await request(app).post(`/api/load-tests/${test.id}/runs`).send({}).expect(409);
-    expect(second.body.error).toMatch(/Another load test/);
+    expect(second.body.error).toMatch(/Another load test .* \(LOAD_MAX_RUNS_PER_ORGANIZATION\)/);
     await request(app).delete(`/api/load-tests/${test.id}`).expect(409);
+    // Running, once the worker has it.
+    await vi.waitFor(async () => {
+      const { body } = await request(app).get(`/api/load-test-runs/${started.id}`).expect(200);
+      expect(body.status).toBe('running');
+    });
 
     currentUser = viewer;
     await request(app).post(`/api/load-test-runs/${started.id}/cancel`).expect(403);
     currentUser = editor;
-    await request(app).post(`/api/load-test-runs/${started.id}/cancel`).expect(202);
+    const { body: flagged } = await request(app)
+      .post(`/api/load-test-runs/${started.id}/cancel`)
+      .expect(202);
+    // Still running: the worker stops it at its next progress, not the web process.
+    expect(flagged).toMatchObject({ status: 'running', cancelRequested: true });
+    await worked;
     const run = await finished(started.id);
     expect(run.status).toBe('cancelled');
     expect(run.summary.elapsedSec).toBeLessThan(30);
     await request(app).post(`/api/load-test-runs/${started.id}/cancel`).expect(409);
+  });
+
+  it('cancels a queued run by taking its job off the queue, and the worker skips it', async () => {
+    const { body: test } = await request(app).post('/api/load-tests').send(checkout()).expect(201);
+    const { body: started } = await request(app)
+      .post(`/api/load-tests/${test.id}/runs`)
+      .send({})
+      .expect(202);
+    const { body: cancelled } = await request(app)
+      .post(`/api/load-test-runs/${started.id}/cancel`)
+      .expect(202);
+    expect(cancelled).toMatchObject({ status: 'cancelled', cancelRequested: true });
+    expect(cancelled.finishedAt).not.toBeNull();
+    expect(queued.has(`load-${started.id}`)).toBe(false);
+    // A worker that still gets the job (removed a moment too late) finds nothing to do.
+    expect(await work(started.id)).toEqual({ outcome: 'skipped', reason: 'the run is cancelled' });
+    expect(shop.logins).toEqual([]);
+    // And the organization's slot is free again.
+    const { started: next } = await startAndWork(test.id);
+    expect((await finished(next.id)).status).toBe('passed');
+  });
+
+  it("refuses a profile beyond the installation's limits, naming the limit", async () => {
+    process.env.LOAD_MAX_VIRTUAL_USERS = '2';
+    const crowded = await request(app)
+      .post('/api/load-tests')
+      .send({ ...checkout(), dataMode: 'iteration' })
+      .expect(400);
+    expect(crowded.body.error).toBe(
+      'A stage may ask for 2 virtual users at most (LOAD_MAX_VIRTUAL_USERS).',
+    );
+    const { body: limits } = await request(app).get('/api/load-tests/limits').expect(200);
+    expect(limits).toMatchObject({ virtualUsers: 2, durationSec: 3600, runsPerOrganization: 1 });
+    delete process.env.LOAD_MAX_VIRTUAL_USERS;
+
+    process.env.LOAD_MAX_DURATION_S = '5';
+    const long = await request(app)
+      .post('/api/load-tests')
+      .send({
+        ...checkout(),
+        stages: [
+          { durationSec: 4, targetVus: 1 },
+          { durationSec: 4, targetVus: 1 },
+        ],
+      })
+      .expect(400);
+    expect(long.body.error).toBe('The stages last 8 s; the limit is 5 s (LOAD_MAX_DURATION_S).');
+    delete process.env.LOAD_MAX_DURATION_S;
+
+    // A test saved under a higher limit than today's cannot be run either.
+    const { body: test } = await request(app).post('/api/load-tests').send(checkout()).expect(201);
+    process.env.LOAD_MAX_VIRTUAL_USERS = '2';
+    const refused = await request(app).post(`/api/load-tests/${test.id}/runs`).send({}).expect(400);
+    expect(refused.body.error).toBe(
+      'The profile reaches 3 virtual users; the limit is 2 (LOAD_MAX_VIRTUAL_USERS).',
+    );
+  });
+
+  it('lets an organization queue as many runs as LOAD_MAX_RUNS_PER_ORGANIZATION allows', async () => {
+    process.env.LOAD_MAX_RUNS_PER_ORGANIZATION = '2';
+    const { body: test } = await request(app).post('/api/load-tests').send(checkout()).expect(201);
+    const { body: first } = await request(app)
+      .post(`/api/load-tests/${test.id}/runs`)
+      .send({})
+      .expect(202);
+    const { body: second } = await request(app)
+      .post(`/api/load-tests/${test.id}/runs`)
+      .send({})
+      .expect(202);
+    const third = await request(app).post(`/api/load-tests/${test.id}/runs`).send({}).expect(409);
+    expect(third.body.error).toBe(
+      'The organization already has 2 load runs queued or running; the limit is 2 (LOAD_MAX_RUNS_PER_ORGANIZATION).',
+    );
+    for (const run of [first, second])
+      await request(app).post(`/api/load-test-runs/${run.id}/cancel`).expect(202);
   });
 
   it('says why a run could not run when an API test it names is gone', async () => {
@@ -333,28 +507,55 @@ describe('load tests', () => {
     ).toEqual([]);
   });
 
-  it('closes a run whose server stopped heart-beating', async () => {
+  it('ends a run whose worker stopped heart-beating as worker lost, keeping its summary', async () => {
     const { body: test } = await request(app).post('/api/load-tests').send(checkout()).expect(201);
     const id = uuidv4();
+    const lastBeat = new Date(Date.now() - 5 * 60_000);
     await privilegedDb.insert(loadTestRuns).values({
       id,
       organizationId,
       loadTestId: test.id,
       status: 'running',
       definition: {},
+      workerId: 'dead-worker:7',
+      summary: { elapsedSec: 12 } as never,
       startedAt: new Date(Date.now() - 10 * 60_000),
-      heartbeatAt: new Date(Date.now() - 5 * 60_000),
+      heartbeatAt: lastBeat,
+    });
+    // A run still beating, and one queued for hours, are left alone.
+    const alive = uuidv4();
+    await privilegedDb.insert(loadTestRuns).values({
+      id: alive,
+      organizationId,
+      loadTestId: test.id,
+      status: 'running',
+      definition: {},
+      startedAt: new Date(Date.now() - 10 * 60_000),
+      heartbeatAt: new Date(),
+    });
+    const waiting = uuidv4();
+    await privilegedDb.insert(loadTestRuns).values({
+      id: waiting,
+      organizationId,
+      loadTestId: test.id,
+      status: 'queued',
+      definition: {},
+      queuedAt: new Date(Date.now() - 3 * 3600_000),
+      startedAt: new Date(Date.now() - 3 * 3600_000),
     });
     const { body: run } = await request(app).get(`/api/load-test-runs/${id}`).expect(200);
-    expect(run).toMatchObject({
-      status: 'error',
-      error: 'Interrupted: the server running it stopped.',
-    });
-    // And it no longer holds the organization's slot.
-    const { body: started } = await request(app)
-      .post(`/api/load-tests/${test.id}/runs`)
-      .send({})
-      .expect(202);
-    await finished(started.id);
+    expect(run.status).toBe('worker_lost');
+    expect(run.error).toMatch(
+      /^The worker running this stopped answering \(last heard from at \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ\)\. Its results up to then are kept; the run did not finish\.$/,
+    );
+    expect(run.summary).toEqual({ elapsedSec: 12 });
+    expect(run.finishedAt).not.toBeNull();
+    expect((await request(app).get(`/api/load-test-runs/${alive}`)).body.status).toBe('running');
+    expect((await request(app).get(`/api/load-test-runs/${waiting}`)).body.status).toBe('queued');
+    await privilegedDb.delete(loadTestRuns).where(eq(loadTestRuns.id, alive));
+    await privilegedDb.delete(loadTestRuns).where(eq(loadTestRuns.id, waiting));
+    // And the lost run no longer holds the organization's slot.
+    const { started } = await startAndWork(test.id);
+    expect((await finished(started.id)).status).toBe('passed');
   });
 });

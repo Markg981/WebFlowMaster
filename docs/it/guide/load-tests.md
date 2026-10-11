@@ -38,9 +38,12 @@ finito lo stage precedente (0 all'inizio) al suo obiettivo di **utenti virtuali*
 | 2     | 600 s  | 50              | 50 utenti mantenuti per 10 minuti |
 | 3     | 60 s   | 0               | discesa a 0                       |
 
-Fino a 10 stage, 200 utenti virtuali e 3.600 s in tutto. Un utente oltre l'obiettivo del momento
-si ferma alla fine della sua iterazione, così una discesa non interrompe mai uno scenario a metà.
-L'editor disegna il profilo mentre lo modificate.
+Fino a 10 stage; 200 utenti virtuali e 3.600 s in tutto, salvo che l'installazione disponga
+diversamente (`LOAD_MAX_VIRTUAL_USERS`, `LOAD_MAX_DURATION_S`:
+[configurazione](../admin/configuration#test-di-carico)). Un test oltre il limite viene rifiutato
+indicandolo. Un utente oltre l'obiettivo del momento si ferma alla fine della sua iterazione, così
+una discesa non interrompe mai uno scenario a metà. L'editor disegna il profilo mentre lo
+modificate.
 
 **Warm-up (s)** è l'inizio del run che viene eseguito ma non valutato: lì si riempiono cache,
 compilatori JIT e pool di connessioni. Le sue richieste sono contate a parte e ombreggiate nella
@@ -73,36 +76,50 @@ Ogni soglia è facoltativa e viene valutata sulle richieste inviate dopo il warm
 
 Un run è **superato** quando arriva alla fine entro tutte le soglie ed è **fallito** indicando ogni
 soglia superata ("p95 412 ms > 300 ms", "throughput 38 req/s < 50 req/s"). Fallisce anche un run
-che non ha valutato nessuna richiesta. **Annullato** significa che qualcuno lo ha fermato; **Non
-eseguito** significa che non è mai partito — un test API o il data set sono stati eliminati, il
-data set ha troppe poche righe — oppure che il server che lo eseguiva si è fermato.
+che non ha valutato nessuna richiesta. **Annullato** significa che qualcuno lo ha fermato, in coda
+o in corso; **Non eseguito** significa che non è mai partito — un test API o il data set sono stati
+eliminati, il data set ha troppe poche righe, il profilo supera i limiti dell'installazione;
+**Worker perso** significa che il worker che lo eseguiva ha smesso di rispondere (un crash, un
+redeploy che non ha aspettato): il riepilogo fino a quel momento resta, e il run non è arrivato
+alla fine.
 
 ## Avviare e seguire un run
 
 Aprite le **esecuzioni** di un test di carico, scegliete un ambiente (le sue variabili e i suoi
-segreti risolvono i `{{segnaposto}}` come in un piano) e **Avvia un'esecuzione**. La pagina la
-segue mentre gira, ogni 2 secondi:
+segreti risolvono i `{{segnaposto}}` come in un piano) e **Avvia un'esecuzione**. L'esecuzione è
+**In coda** finché un worker di carico la prende — subito, se uno è libero — e **In corso** da
+quel momento. La pagina la segue, ogni 2 secondi:
 
 - avanzamento, utenti virtuali ora e al picco;
 - la timeline: utenti virtuali, richieste al secondo e p95 nel tempo, con il warm-up ombreggiato;
 - per ogni test API e per tutte le richieste: richieste, errori, p50, p90, p95, p99 e la più lenta;
 - iterazioni completate e fallite, e i primi errori distinti.
 
-**Ferma l'esecuzione** la conclude entro 2 secondi; le richieste già in volo terminano. Ogni test
-di carico mostra le sue ultime 10 esecuzioni, con riepilogo ed esito.
+**Ferma l'esecuzione** conclude subito un'esecuzione in coda ed entro 2 secondi una in corso; le
+richieste già in volo terminano. Ogni test di carico mostra le sue ultime 10 esecuzioni, con
+riepilogo ed esito.
 
 ### Dove gira un run
 
-Un run di carico viene inviato **dal server WebFlowMaster**, separato da piani, runner e agenti:
-non occupa uno slot dei runner, e un piano non lo rallenta. Poiché il carico parte dalla rete del
-server, provate da dove il server raggiunge il sistema sotto test.
+Un run di carico è un job su una coda propria, eseguito da **uno dei worker dell'installazione**,
+separato da piani, runner e agenti: non occupa uno slot dei runner, un piano non lo rallenta, e
+sopravvive a un riavvio del server web — un run in corso prosegue, un run in coda resta in coda.
+Poiché il carico parte dalla rete dei worker, provate da dove i worker raggiungono il sistema sotto
+test.
 
-- Un run di carico alla volta per organizzazione: due si misurerebbero a vicenda.
-- Al massimo due run di carico per processo server, tutte le organizzazioni insieme; un terzo
-  riceve la risposta "riprovate quando uno finisce".
+- Un run di carico alla volta per organizzazione, in coda o in corso: due si misurerebbero a
+  vicenda. L'installazione può consentirne di più (`LOAD_MAX_RUNS_PER_ORGANIZATION`); oltre il
+  limite un avvio viene rifiutato e lo dice.
+- Un worker esegue un run di carico alla volta, salvo configurazione diversa
+  (`LOAD_WORKER_CONCURRENCY`); con tutti i worker occupati, un run aspetta **In coda** e parte
+  quando uno si libera. L'[amministratore](../admin/load-testing#dimensionare-un-worker-di-carico)
+  dimensiona e scala i worker.
+- Un run viene eseguito da un solo worker, per intero: i suoi utenti virtuali non vengono divisi
+  fra più worker. Oltre quanto un worker riesce a inviare, la strada per più carico è più worker
+  che eseguono più run — di più organizzazioni, o di una sola con il limite alzato.
 - Un run conta nei [minuti di esecuzione](../admin/administration#quotas) dell'organizzazione come un test API.
-- Se il server si ferma durante un run, il run viene chiuso come **Non eseguito** circa un minuto
-  dopo.
+- Se il worker che esegue un run muore, il run termina come **Worker perso** circa due minuti dopo,
+  e l'organizzazione può avviarne un altro.
 
 I percentili derivano da un campione uniforme di al massimo 10.000 durate per test, quindi oltre
 quella soglia sono stime; conteggi, errori, minimo, media e massimo sono esatti. La timeline ha al
