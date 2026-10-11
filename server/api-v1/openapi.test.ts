@@ -19,7 +19,9 @@ vi.mock('../queue', () => ({
 const { default: router } = await import('../routes/api-v1.routes');
 const { openApiDocument } = await import('./openapi');
 const { API_SCOPE_NAMES } = await import('@shared/api-scopes');
-const { authoringSchemas: runtimeSchemas } = await import('./authoring');
+const { authoringSchemas } = await import('./authoring');
+const { managementSchemas } = await import('./management');
+const runtimeSchemas = { ...authoringSchemas, ...managementSchemas };
 
 /**
  * The document and the router say the same thing.
@@ -42,7 +44,8 @@ function served() {
   for (const layer of (router as unknown as { stack: Layer[] }).stack) {
     const route = layer.route;
     if (!route || typeof route.path !== 'string') continue; // the catch-all for unknown paths
-    const path = route.path.replace(/:(\w+)/g, '{$1}');
+    // `:path(*)` takes the rest of the URL; the document names it like any other parameter.
+    const path = route.path.replace(/:(\w+)(\(\*\))?/g, '{$1}');
     for (const method of Object.keys(route.methods)) {
       if (method === '_all') continue;
       const scope = route.stack.map((s) => s.handle.scope).find(Boolean);
@@ -93,6 +96,14 @@ describe('the OpenAPI document', () => {
       ['PlanPatch', 'planUpdateSchema'],
       ['SuiteExportInput', 'suiteExportSchema'],
       ['SuiteImportInput', 'suiteImportSchema'],
+      ['ScheduleInput', 'scheduleCreateSchema'],
+      ['SchedulePatch', 'scheduleUpdateSchema'],
+      ['EnvironmentInput', 'environmentCreateSchema'],
+      ['SecretValue', 'secretValueSchema'],
+      ['TagInput', 'tagNameSchema'],
+      ['QuarantineInput', 'quarantineCreateSchema'],
+      ['QuarantineRelease', 'quarantineReleaseSchema'],
+      ['WebhookInput', 'webhookCreateSchema'],
     ] as const;
     for (const [documentedName, runtimeName] of pairs) {
       let schema: any = runtimeSchemas[runtimeName];

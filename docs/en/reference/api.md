@@ -41,15 +41,21 @@ works only on `/api/v1`, and on each endpoint only if it holds the scope the end
 | Scope                                      | Minimum role    | Allows                                                                                                        |
 | ------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------- |
 | `plans:read`                               | viewer          | Listing test plans.                                                                                           |
-| `projects:read` / `projects:write`         | viewer / editor | Read / create and update accessible projects.                                                                 |
-| `tests:read` / `tests:write`               | viewer / editor | Read / create and update UI, manual and BDD tests.                                                            |
-| `api-tests:read` / `api-tests:write`       | viewer / editor | Read (literal secrets replaced by variables) / create and update API tests.                                   |
-| `mobile-tests:read` / `mobile-tests:write` | viewer / editor | Read / create and update native mobile tests.                                                                 |
+| `projects:read` / `projects:write`         | viewer / editor | Read / create, update and delete accessible projects.                                                         |
+| `tests:read` / `tests:write`               | viewer / editor | Read / create, update and delete UI, manual and BDD tests.                                                    |
+| `api-tests:read` / `api-tests:write`       | viewer / editor | Read (literal secrets replaced by variables) / create, update and delete API tests.                           |
+| `mobile-tests:read` / `mobile-tests:write` | viewer / editor | Read / create, update and delete native mobile tests.                                                         |
 | `datasets:read` / `datasets:write`         | viewer / editor | Read / create, replace and delete datasets.                                                                   |
-| `plans:write`                              | editor          | Create and update test plans.                                                                                 |
+| `plans:write`                              | editor          | Create, update and delete test plans.                                                                         |
 | `suites:read` / `suites:write`             | viewer / editor | Export / import portable test suites; API and mobile tests in a suite also need their own read / write scope. |
-| `runs:read`                                | viewer          | Reading runs, their status, JUnit and exported reports.                                                       |
+| `runs:read`                                | viewer          | Reading runs, their status, JUnit and exported reports, and their evidence files.                             |
 | `runs:write`                               | editor          | Starting runs and cancelling them.                                                                            |
+| `schedules:read` / `schedules:write`       | viewer / editor | Read / create, update, pause, resume and delete plan schedules.                                               |
+| `environments:read` / `environments:write` | viewer / editor | Read environments and the names of their secrets / create and delete environments.                            |
+| `secrets:write`                            | editor          | Set, rotate and delete environment secrets; values are never read back.                                       |
+| `tags:read` / `tags:write`                 | viewer / editor | Read tags and their counts / create, rename and delete tags.                                                  |
+| `quarantine:read` / `quarantine:write`     | viewer / editor | List quarantined tests / quarantine and release tests.                                                        |
+| `webhooks:read` / `webhooks:write`         | editor / editor | List a plan's webhooks (token prefixes only) / create and delete them.                                        |
 
 Provisioning needs the write scopes for the resources it creates; add the corresponding read
 scopes to inspect them, and `suites:read` / `suites:write` for export / import. Scopes never bypass
@@ -80,6 +86,8 @@ A pipeline needs `runs:write` and `runs:read`; add `plans:read` if it looks plan
 | `run_not_found`                   | 404    | No such run in this organization.                        |
 | `not_found`                       | 404    | No such endpoint under `/api/v1`.                        |
 | `run_already_ended`               | 409    | Cancelling a run that has already finished.              |
+| `artifact_not_found`              | 404    | No such evidence file in the run's directory.            |
+| `artifact_store_unavailable`      | 502    | The artifact store could not be reached.                 |
 | `queue_quota_exceeded`            | 429    | The organization's queue of waiting runs is full.        |
 | `rate_limited`                    | 429    | Too many requests from this key in the last minute.      |
 | `export_failed`, `internal_error` | 500    | Something went wrong on the server; the log has it.      |
@@ -90,22 +98,34 @@ These routes use the same API-key authentication, rate limits and error envelope
 Create endpoints return `201`; reads and updates return `200`. List endpoints use the pagination
 conventions above. Use the installed OpenAPI document for the complete request and response schemas.
 
-| Resource     | Routes under `/api/v1`                                                        | Required scope       |
-| ------------ | ----------------------------------------------------------------------------- | -------------------- |
-| Projects     | `GET /projects`, `GET /projects/{projectId}`                                  | `projects:read`      |
-| Projects     | `POST /projects`, `PATCH /projects/{projectId}`                               | `projects:write`     |
-| Tests        | `GET /tests`, `GET /tests/{testId}`                                           | `tests:read`         |
-| Tests        | `POST /tests`, `PATCH /tests/{testId}`                                        | `tests:write`        |
-| API tests    | `GET /api-tests`, `GET /api-tests/{apiTestId}`                                | `api-tests:read`     |
-| API tests    | `POST /api-tests`, `PATCH /api-tests/{apiTestId}`                             | `api-tests:write`    |
-| Mobile tests | `GET /mobile-tests`, `GET /mobile-tests/{mobileTestId}`                       | `mobile-tests:read`  |
-| Mobile tests | `POST /mobile-tests`, `PATCH /mobile-tests/{mobileTestId}`                    | `mobile-tests:write` |
-| Datasets     | `GET /datasets`, `GET /datasets/{datasetId}`                                  | `datasets:read`      |
-| Datasets     | `POST /datasets`, `PUT /datasets/{datasetId}`, `DELETE /datasets/{datasetId}` | `datasets:write`     |
-| Plans        | `GET /plans`, `GET /plans/{planId}`                                           | `plans:read`         |
-| Plans        | `POST /plans`, `PATCH /plans/{planId}`                                        | `plans:write`        |
-| Suite export | `POST /suites/export`                                                         | `suites:read`        |
-| Suite import | `POST /suites/import`                                                         | `suites:write`       |
+| Resource     | Routes under `/api/v1`                                                                                                                                            | Required scope       |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| Projects     | `GET /projects`, `GET /projects/{projectId}`                                                                                                                      | `projects:read`      |
+| Projects     | `POST /projects`, `PATCH /projects/{projectId}`, `DELETE /projects/{projectId}`                                                                                   | `projects:write`     |
+| Tests        | `GET /tests`, `GET /tests/{testId}`                                                                                                                               | `tests:read`         |
+| Tests        | `POST /tests`, `PATCH /tests/{testId}`, `DELETE /tests/{testId}`                                                                                                  | `tests:write`        |
+| API tests    | `GET /api-tests`, `GET /api-tests/{apiTestId}`                                                                                                                    | `api-tests:read`     |
+| API tests    | `POST /api-tests`, `PATCH /api-tests/{apiTestId}`, `DELETE /api-tests/{apiTestId}`                                                                                | `api-tests:write`    |
+| Mobile tests | `GET /mobile-tests`, `GET /mobile-tests/{mobileTestId}`                                                                                                           | `mobile-tests:read`  |
+| Mobile tests | `POST /mobile-tests`, `PATCH /mobile-tests/{mobileTestId}`, `DELETE /mobile-tests/{mobileTestId}`                                                                 | `mobile-tests:write` |
+| Datasets     | `GET /datasets`, `GET /datasets/{datasetId}`                                                                                                                      | `datasets:read`      |
+| Datasets     | `POST /datasets`, `PUT /datasets/{datasetId}`, `DELETE /datasets/{datasetId}`                                                                                     | `datasets:write`     |
+| Plans        | `GET /plans`, `GET /plans/{planId}`                                                                                                                               | `plans:read`         |
+| Plans        | `POST /plans`, `PATCH /plans/{planId}`, `DELETE /plans/{planId}`                                                                                                  | `plans:write`        |
+| Suite export | `POST /suites/export`                                                                                                                                             | `suites:read`        |
+| Suite import | `POST /suites/import`                                                                                                                                             | `suites:write`       |
+| Schedules    | `GET /schedules`, `GET /schedules/{scheduleId}`                                                                                                                   | `schedules:read`     |
+| Schedules    | `POST /schedules`, `PATCH /schedules/{scheduleId}`, `DELETE /schedules/{scheduleId}`, `POST /schedules/{scheduleId}/pause`, `POST /schedules/{scheduleId}/resume` | `schedules:write`    |
+| Environments | `GET /environments`, `GET /environments/{environmentId}`, `GET /environments/{environmentId}/secrets`                                                             | `environments:read`  |
+| Environments | `POST /environments`, `DELETE /environments/{environmentId}`                                                                                                      | `environments:write` |
+| Secrets      | `PUT /environments/{environmentId}/secrets/{keyName}`, `DELETE /environments/{environmentId}/secrets/{keyName}`                                                   | `secrets:write`      |
+| Run evidence | `GET /runs/{runId}/evidence`, `GET /runs/{runId}/artifacts/{path}`                                                                                                | `runs:read`          |
+| Tags         | `GET /tags`, `GET /tags/{tagId}`                                                                                                                                  | `tags:read`          |
+| Tags         | `POST /tags`, `PATCH /tags/{tagId}`, `DELETE /tags/{tagId}`                                                                                                       | `tags:write`         |
+| Quarantine   | `GET /quarantine`                                                                                                                                                 | `quarantine:read`    |
+| Quarantine   | `POST /quarantine`, `POST /quarantine/{quarantineId}/release`                                                                                                     | `quarantine:write`   |
+| Webhooks     | `GET /plans/{planId}/webhooks`                                                                                                                                    | `webhooks:read`      |
+| Webhooks     | `POST /plans/{planId}/webhooks`, `DELETE /webhooks/{webhookId}`                                                                                                   | `webhooks:write`     |
 
 Only accessible resources are returned. The organization and author are derived from the key;
 clients cannot assign ownership to another organization. Restricted-project access is checked
@@ -138,6 +158,13 @@ Each test create/update, of any kind, records a version and audit event in the s
 test does not publish it or change `publishedVersion`; publication and review policies still
 apply. Unknown properties, including `organizationId`, `userId` and `publishedVersion`, are
 rejected. Patching a plan's `selectedTests` replaces membership; omitting it retains membership.
+
+`DELETE` answers `204` and records an audit event. Deleting a test of any kind takes its versions,
+tags, quarantine and plan membership with it, and needs edit access to its project
+(`project_read_only` otherwise). Deleting a plan takes its schedules, webhooks and run history with
+it, and is refused with `409 plan_running` while a run of it is queued, running or cancelling:
+cancel the run first. A project is deleted only by the account that created it
+(`403 project_not_owned`); its tests stay, detached from any project.
 
 Datasets are organization-wide named tables, not project-owned resources. Create and `PUT`
 require the full `{ "name", "description"?, "columns", "rows" }` body: 1–50 unique columns and
@@ -221,16 +248,20 @@ all of it back. It records versions and audit events and accepts at most 500 tes
 together), 500 mobile step groups and 2,000,000 content characters. Imported mobile tests have no
 grid; set `gridId` afterwards with `PATCH /mobile-tests/{mobileTestId}`.
 
-| Authoring error                                                                                                             | Status | Meaning                                                                                       |
-| --------------------------------------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------- |
-| `project_not_found`, `test_not_found`, `api_test_not_found`, `mobile_test_not_found`, `dataset_not_found`, `plan_not_found` | 404    | Resource absent or inaccessible.                                                              |
-| `project_read_only`                                                                                                         | 403    | Restricted-project access does not allow editing.                                             |
-| `manual_step_empty`                                                                                                         | 400    | An empty manual step is invalid.                                                              |
-| `name_conflict`                                                                                                             | 409    | A name is already used.                                                                       |
-| `dataset_in_use`                                                                                                            | 409    | Tests still reference the dataset.                                                            |
-| `insufficient_scope`                                                                                                        | 403    | A suite includes API or mobile tests and the key lacks their scope; `requiredScope` names it. |
-| `suite_too_large`                                                                                                           | 400    | Export exceeds 500 tests.                                                                     |
-| `invalid_request`                                                                                                           | 400    | Invalid body, references, bundle or import size.                                              |
+| Authoring error                                                                                                                 | Status | Meaning                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------- |
+| `project_not_found`, `test_not_found`, `api_test_not_found`, `mobile_test_not_found`, `dataset_not_found`, `plan_not_found`     | 404    | Resource absent or inaccessible.                                                              |
+| `schedule_not_found`, `environment_not_found`, `secret_not_found`, `tag_not_found`, `quarantine_not_found`, `webhook_not_found` | 404    | Resource absent or inaccessible.                                                              |
+| `project_read_only`                                                                                                             | 403    | Restricted-project access does not allow editing.                                             |
+| `project_not_owned`                                                                                                             | 403    | Only the account that created a project can delete it.                                        |
+| `plan_running`                                                                                                                  | 409    | A run of the plan has not ended; `runId` names it.                                            |
+| `already_quarantined`, `already_released`                                                                                       | 409    | The test is already in quarantine / already back.                                             |
+| `manual_step_empty`                                                                                                             | 400    | An empty manual step is invalid.                                                              |
+| `name_conflict`                                                                                                                 | 409    | A name is already used.                                                                       |
+| `dataset_in_use`                                                                                                                | 409    | Tests still reference the dataset.                                                            |
+| `insufficient_scope`                                                                                                            | 403    | A suite includes API or mobile tests and the key lacks their scope; `requiredScope` names it. |
+| `suite_too_large`                                                                                                               | 400    | Export exceeds 500 tests.                                                                     |
+| `invalid_request`                                                                                                               | 400    | Invalid body, references, bundle or import size.                                              |
 
 ## Runs
 
@@ -349,10 +380,83 @@ it does not turn the build red.
 `format` is `html` (one self-contained file), `pdf`, or `allure` (a zip of Allure results). A PDF
 needs a browser on the server; without one the answer is `503` — the HTML has the same content.
 
+### Evidence
+
+`GET /api/v1/runs/{runId}/evidence` · scope `runs:read`
+
+The files the run left behind, by path below the run's own directory, each with its `kind`
+(`screenshot`, `video`, `trace`, `log`, `report`, `data` or `other`), `contentType`, `size` and the
+`url` it is served from; paginated, with `total`. A run whose evidence retention has removed answers
+an empty page with `purged: true`. `GET /api/v1/runs/{runId}/artifacts/{path}` streams one file with
+its content type; a path outside the run's directory is `400`, a missing file `404
+artifact_not_found`, an unreachable store `502 artifact_store_unavailable`. The run object links to
+the list as `links.evidence`.
+
+## Schedules
+
+`GET|POST /api/v1/schedules`, `GET|PATCH|DELETE /api/v1/schedules/{scheduleId}`,
+`POST /api/v1/schedules/{scheduleId}/pause|resume` · scopes `schedules:read` / `schedules:write`
+
+The same payload as the web application's schedule form: `testPlanId`, `scheduleName`, `frequency`
+(`once`, `daily`, `weekly`, `every_N_minutes`, `every_N_hours` or `cron:<expression>`), `nextRunAt`
+(an ISO 8601 date-time or Unix seconds), `timezone` (IANA, `UTC` by default), `environment`,
+`browsers`, `notificationConfigOverride`, `executionParameters`, `isActive` and `retryOnFailure`
+(`none`, `once`, `twice`). For a CRON or `every_N` frequency, `nextRunAt` becomes the pattern's
+first occurrence at or after the moment sent, in the schedule's zone; a `PATCH` that changes
+`frequency`, `timezone` or `nextRunAt` recomputes it. An unknown zone or CRON expression is `400`.
+Scheduled runs are made on behalf of the account that created the schedule. `pause` and `resume`
+set `isActive`; the list filters with `testPlanId`.
+
+## Environments and secrets
+
+`GET|POST /api/v1/environments`, `GET|DELETE /api/v1/environments/{environmentId}` · scopes
+`environments:read` / `environments:write`
+
+An environment is `{ "name", "description"? }`; names are unique in the organization, ignoring
+case (`409 name_conflict`). Deleting one deletes its secrets. Environments have no `PATCH`, as in
+the web application: create another and delete the old one.
+
+`GET /api/v1/environments/{environmentId}/secrets` · scope `environments:read` — the names of its
+secrets (`keyName`, timestamps), never a value.
+
+`PUT /api/v1/environments/{environmentId}/secrets/{keyName}` with `{ "value": "…" }` · scope
+`secrets:write` — sets the secret (`201`) or rotates one that exists (`200`), replacing the stored
+value. `keyName` matches `[\w.]+`, so it resolves as `{{keyName}}` in tests. The value is encrypted
+with the organization's key and is never returned by any endpoint, nor written to the audit log.
+`DELETE` on the same path answers `204`.
+
+## Tags
+
+`GET|POST /api/v1/tags`, `GET|PATCH|DELETE /api/v1/tags/{tagId}` · scopes `tags:read` /
+`tags:write`
+
+A tag is `{ "name" }` (up to 60 characters; whitespace collapsed). Each one carries `uiCount`,
+`apiCount` and `mobileCount`. `POST` answers `201` for a new tag and `200` with the existing one
+when the name is already in use, ignoring case, so two pipelines asking for `smoke` get the same
+tag. A rename (`PATCH`) is followed by every test carrying the tag; a rename onto an existing name
+is `409 name_conflict`. `DELETE` removes the tag from every test and answers `200` with
+`removedFrom`, how many carried it.
+
+## Quarantine
+
+`GET|POST /api/v1/quarantine`, `POST /api/v1/quarantine/{quarantineId}/release` · scopes
+`quarantine:read` / `quarantine:write`
+
+`POST` with `{ "testType": "ui" | "api" | "mobile", "testId", "reason" }` sets a test aside: its
+failures are still reported but no longer decide a run's status (see the run's
+`tests.quarantinedFailures`). Answers `201` with the quarantine, `409 already_quarantined` if it
+already is, `403 project_read_only` for a restricted project. The list shows each quarantined test
+with its name, who set it aside, and how it has done since. `release` with an optional `{ "note" }`
+brings it back (`200`); again, `409 already_released`.
+
 ## Plan webhooks
 
 A plan can also be started with a **webhook**: a URL and a token created on the plan (**Test plans
-→ Webhooks** on the plan's row), for systems that can make an HTTP call but cannot hold an API key.
+→ Webhooks** on the plan's row, or `POST /api/v1/plans/{planId}/webhooks` with `{ "name" }`, scope
+`webhooks:write`), for systems that can make an HTTP call but cannot hold an API key. The API
+answers `201` with the webhook and, once only, its `token`; `GET /api/v1/plans/{planId}/webhooks`
+(scope `webhooks:read`, editor role, like the web page) lists them with token prefixes only, and
+`DELETE /api/v1/webhooks/{webhookId}` revokes one (`204`).
 
 ```bash
 curl -s -X POST "$WFM_URL/api/webhooks/execute" -H "X-Webhook-Token: $WFM_WEBHOOK_TOKEN"
