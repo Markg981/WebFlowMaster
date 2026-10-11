@@ -1,0 +1,49 @@
+# Dependency update pull requests. Security updates are separate (repository settings) and are
+# not limited by the schedules below.
+#
+# Minor and patch versions arrive grouped, once a week, in one PR per ecosystem; each major
+# version arrives in a PR of its own, to be read and tested on its own (at most five open at a
+# time). Express, React and BullMQ majors touch the runtime: plan them for a quarter, not a sprint.
+#
+# Left out on purpose, upgraded by hand:
+#   - Playwright: pinned three times (package-lock.json, the FROM line of every Dockerfile and the
+#     agent's compatibility, see the developer guide); a PR that moves only the npm package
+#     breaks the images.
+#   - lightningcss-*: listed in client/package.json to keep npm 11 from dropping them; they
+#     follow the lightningcss Tailwind brings (server/tests/dependency-locks.test.ts).
+#   - Docker base images: pinned by digest to the Playwright release above.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    ignore:
+      - dependency-name: playwright
+      - dependency-name: playwright-core
+      - dependency-name: "@playwright/test"
+      - dependency-name: "lightningcss-*"
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /deployment/lighthouse
+    schedule:
+      interval: monthly
+    labels: [dependencies]
+    groups:
+      lighthouse:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [dependencies]
+    groups:
+      actions:
+        patterns: ["*"]

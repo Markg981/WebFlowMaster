@@ -218,6 +218,11 @@ La stessa trappola vale per i binari `lightningcss-*` richiesti da Tailwind 4: `
 elenca in `optionalDependencies` perché il lock li conservi. Quando Tailwind porta una nuova versione di
 lightningcss, aggiorna la stessa versione lì; `server/tests/dependency-locks.test.ts` segnala ogni differenza.
 
+Dependabot (`.github/dependabot.yml`) apre ogni settimana una PR con gli aggiornamenti minor e patch,
+e una PR per ogni nuova versione major. La PR settimanale si unisce quando la CI passa; per una major
+si legge il changelog e si prova l'area interessata prima dell'unione. Playwright, i binari
+`lightningcss-*` e le immagini Docker di base sono esclusi: si aggiornano a mano, come descritto sopra.
+
 ### File di grandi dimensioni
 
 La CI rifiuta ogni file oltre 5 MB introdotto da una PR, anche se un commit successivo della stessa PR lo

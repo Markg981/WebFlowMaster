@@ -218,6 +218,11 @@ The same trap applies to the `lightningcss-*` binaries Tailwind 4 needs: `client
 them under `optionalDependencies` so the lock keeps them. When Tailwind brings a new lightningcss,
 set the same version there; `server/tests/dependency-locks.test.ts` names any mismatch.
 
+Dependabot (`.github/dependabot.yml`) opens one PR a week with the minor and patch updates, and
+one PR for each new major version. Merge the weekly one when CI passes; read the changelog of a
+major and test the affected area before merging it. Playwright, the `lightningcss-*` binaries and
+the Docker base images are left out: upgrade them by hand, as described above.
+
 ### Large files
 
 CI refuses any file over 5 MB introduced by a PR, including one that a later commit of the same
