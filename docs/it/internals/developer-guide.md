@@ -47,6 +47,7 @@ esegue il processo web.
 | `npm run lint` | ESLint su `.ts` e `.tsx`. |
 | `npx vitest run --config vitest.config.ts` | Test del server e degli script. |
 | `npm run test:client -- --run` | Test del client. |
+| `npm run test:coverage` / `npm run test:coverage --prefix client` | Le stesse suite con la copertura, come le esegue la CI: il passo fallisce sotto le soglie di `vitest.config.ts` e `client/vitest.config.ts`. Report HTML in `coverage/` e `client/coverage/`; la CI li allega all'esecuzione. |
 | `npm run test:collaudo` | Test di storage, storico e import/export dell'applicazione di Collaudo. |
 | `npm run test:e2e` | Accettazione UI sui bundle applicativi e store reali dedicati. |
 | `npm run test:rls` | Test di tenancy e isolamento; richiede un `DATABASE_URL` PostgreSQL reale e rifiuta PGlite. |

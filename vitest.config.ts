@@ -46,10 +46,13 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text-summary', 'json-summary', 'html'],
       reportsDirectory: './coverage',
       include: ['server/**/*.ts'],
       exclude: ['server/**/*.test.ts', 'server/tests/**'],
+      // A few points under what the suite measured when they were set (October 2026: lines 83.4,
+      // statements 79.8, functions 83.3, branches 71.3). They stop a slide, not a single refactor.
+      thresholds: { lines: 80, statements: 77, functions: 80, branches: 68 },
     },
   },
   resolve: {
