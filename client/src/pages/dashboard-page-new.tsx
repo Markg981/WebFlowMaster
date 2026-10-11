@@ -20,7 +20,7 @@ import { DraggableElement } from "@/components/draggable-element";
 import { VisualTestBuilder } from "@/components/visual-builder/VisualTestBuilder";
 import DebugPanel, { useDebugSession } from '@/components/visual-builder/DebugPanel';
 import { DEBUG_ENDED, type DebugStepPatch } from '@shared/debug-session';
-import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
+import { DragDropProvider, type TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
 import { CleanupPanel, PreconditionsPanel } from "@/components/PreconditionsPanel";
 import { DatasetPanel, type DatasetRow, type SharedSetOption } from "@/components/DatasetPanel";
@@ -115,7 +115,17 @@ export const availableActions: TestAction[] = ADHOC_ACTION_IDS.map((id) => ({
   description: ACTION_I18N[id].description,
 }));
 
+// The drag-and-drop provider lives here, not in App, so react-dnd loads with this lazy page
+// instead of in the entry chunk: this is the only page that drags anything.
 export default function DashboardPage() {
+  return (
+    <DragDropProvider>
+      <CreateTestPage />
+    </DragDropProvider>
+  );
+}
+
+function CreateTestPage() {
   const { t } = useTranslation();
   // Initial URL state. "https://github.com" is a placeholder that can be overwritten.
   const [currentUrl, setCurrentUrl] = useState("https://github.com");

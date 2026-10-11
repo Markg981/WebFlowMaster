@@ -6,7 +6,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth"; // useAuth already imported here, good
-import { DragDropProvider } from "@/components/drag-drop-provider";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -150,14 +149,12 @@ function App() {
         <SettingsEffectLoader />
         <RouteTracker />
         <TooltipProvider>
-          <DragDropProvider>
-            <Toaster />
-            {/* Inside the providers so the fallback can still render styled, but around the
-                routes so any page crash is caught rather than blanking the app. */}
-            <ObservabilityErrorBoundary>
-              <Router />
-            </ObservabilityErrorBoundary>
-          </DragDropProvider>
+          <Toaster />
+          {/* Inside the providers so the fallback can still render styled, but around the
+              routes so any page crash is caught rather than blanking the app. */}
+          <ObservabilityErrorBoundary>
+            <Router />
+          </ObservabilityErrorBoundary>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
