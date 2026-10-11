@@ -21,7 +21,7 @@ import { VisualTestBuilder } from "@/components/visual-builder/VisualTestBuilder
 import DebugPanel, { useDebugSession } from '@/components/visual-builder/DebugPanel';
 import { DEBUG_ENDED, type DebugStepPatch } from '@shared/debug-session';
 import { DragDropProvider, type TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
-import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
+import SaveTestModal from "@/components/SaveTestModal";
 import { CleanupPanel, PreconditionsPanel } from "@/components/PreconditionsPanel";
 import { DatasetPanel, type DatasetRow, type SharedSetOption } from "@/components/DatasetPanel";
 import type { Cleanup, Precondition } from "@shared/schema";
@@ -41,7 +41,7 @@ import {
   Play,
   StopCircle, // Add this if not present
   Info,
-  XCircle, // Added this icon
+  XCircle,
 } from "lucide-react";
 // Client-side StepResult interface matching backend
 interface StepResult {
@@ -362,7 +362,7 @@ function CreateTestPage() {
       setIsInitialUrlPrefilled(true);
     }
 
-  }, [settingsData, currentUrl, isInitialUrlPrefilled]); // Removed setCurrentUrl and setIsInitialUrlPrefilled from deps as they are setters
+  }, [settingsData, currentUrl, isInitialUrlPrefilled]);
 
   // Effect to capture image dimensions and observe container resize
   useEffect(() => {
@@ -471,7 +471,7 @@ function CreateTestPage() {
 
 
   const loadWebsiteMutation = useMutation({
-    mutationFn: async (passedUrl: string) => { // Renamed 'url' to 'passedUrl'
+    mutationFn: async (passedUrl: string) => {
       try {
         setImageRenderDimensions(null); // Reset dimensions when new site is loaded
 
@@ -646,7 +646,6 @@ function CreateTestPage() {
     setIsSaveModalOpen(false);
   };
 
-  // Updated to accept projectId
   const handleConfirmSaveTest = (newName: string, projectId?: number) => {
     setTestName(newName); // Update the main page's testName state
     if (!projectId) {

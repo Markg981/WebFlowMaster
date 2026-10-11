@@ -13,8 +13,8 @@ import {
 import SchedulesList from '@/components/scheduling/SchedulesList';
 import ScheduleForm from '@/components/scheduling/ScheduleForm';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react'; // Changed from @radix-ui/react-icons
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'; // DialogClose might be needed
+import { PlusCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
@@ -24,7 +24,7 @@ const SchedulingPage: React.FC = () => {
   const { user } = useAuth();
   const canEdit = user?.role !== 'viewer';
   const { toast } = useToast();
-  const { t } = useTranslation(); // Added translation hook
+  const { t } = useTranslation();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<TestPlanScheduleEnhanced | null>(null);

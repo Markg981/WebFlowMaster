@@ -13,7 +13,7 @@ import { ListFilter, CheckCircle2, XCircle, SkipForward, AlertCircle, Clock,
   Sparkles,
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
-import { useTranslation } from 'react-i18next'; // For potential future use in header
+import { useTranslation } from 'react-i18next';
 import StepDetailsDialog, { type ReportStep } from '@/components/reports/StepDetailsDialog';
 import IssueCell, { type IssueLinkSummary } from '@/components/reports/IssueCell';
 import AttemptsBadge from '@/components/reports/AttemptsBadge';

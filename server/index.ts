@@ -2,13 +2,13 @@ import express from "express";
 import { mailProviderBodyParser } from './routes/mail-provider.routes';
 import { configureEgressProxy } from './egress-proxy';
 import { registerRoutes } from "./routes";
-import schedulerService from "./scheduler-service"; // Import the scheduler service
+import schedulerService from "./scheduler-service";
 import { apiNotFound, serveStatic } from "./static";
 import 'dotenv/config';
-import loggerPromise, { flushLogs } from './logger'; // Import Winston logger promise
+import loggerPromise, { flushLogs } from './logger';
 import { privilegedDb, closeDb, assertTenancyPreconditions } from './db';
-import { systemSettings } from '@shared/schema'; // Import systemSettings table
-import { eq, sql } from 'drizzle-orm'; // Import eq operator
+import { systemSettings } from '@shared/schema';
+import { eq, sql } from 'drizzle-orm';
 import { setupWebSockets } from './websocket';
 import { setupAgentRelay } from './agents/setup';
 import { registerCommitStatus } from './commit-status';

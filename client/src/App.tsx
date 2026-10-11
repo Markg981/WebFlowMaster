@@ -1,11 +1,11 @@
-import React from 'react'; // Added React import
-import { Switch, Route, useLocation } from "wouter"; // Added useLocation
+import React from 'react';
+import { Switch, Route, useLocation } from "wouter";
 // Kept queryClient and QueryClientProvider for App structure
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider, useAuth } from "@/hooks/use-auth"; // useAuth already imported here, good
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -42,10 +42,9 @@ import { installObservability } from "@/observability/install";
 import { setCurrentRoute } from "@/observability/logger";
 import { pushBreadcrumb } from "@/observability/breadcrumbs";
 // Imports for ThemeLoader
-import { useEffect } from 'react'; // useEffect already imported
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { UserSettings, fetchSettings } from './lib/settings';
-// useAuth is already imported via AuthProvider line above
 import i18n from './i18n';
 import { applyThemeToDocument } from '@/hooks/use-theme';
 

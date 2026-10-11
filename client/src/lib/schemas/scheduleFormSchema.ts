@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { TestPlanSchedule, InsertTestPlanSchedule } from '@shared/schema';
-import type { TestPlanScheduleEnhanced } from '@/lib/api/schedules'; // For transformApiDataToFormValues
+import type { TestPlanScheduleEnhanced } from '@/lib/api/schedules';
 
 export const FREQUENCY_OPTIONS = [
   { value: 'once', label: 'Once' },
@@ -38,8 +38,8 @@ export const BROWSER_OPTIONS = [
   { value: 'chromium', label: 'Chromium' },
   { value: 'firefox', label: 'Firefox' },
   { value: 'webkit', label: 'WebKit' },
-  { value: 'edge', label: 'Edge' }, // Added from previous version seen
-  { value: 'safari', label: 'Safari' }, // Added from previous version seen
+  { value: 'edge', label: 'Edge' },
+  { value: 'safari', label: 'Safari' },
 ] as const;
 
 export const BROWSER_VALUES = BROWSER_OPTIONS.map(o => o.value);

@@ -1,7 +1,7 @@
-import { useDrag, useDrop } from "react-dnd"; // Added useDrop
+import { useDrag, useDrop } from "react-dnd";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
-import type { DetectedElement } from "./drag-drop-provider"; // Corrected path
+import type { DetectedElement } from "./drag-drop-provider";
 import { ActionIcon } from "@/lib/action-icons";
 
 interface TestAction {
@@ -51,7 +51,7 @@ export function DraggableAction({
       isOver: !!monitor.isOver(),
       canDrop: !!monitor.canDrop(),
     }),
-  }), [action, stepId, onDropElement]); // Added stepId to dependencies
+  }), [action, stepId, onDropElement]);
 
   // In the palette there is no step to drop an element onto, so nothing accepts a drop here
   // and the dashed border would be promising something that cannot happen.
