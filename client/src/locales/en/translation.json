@@ -2604,7 +2604,10 @@
     "darkMode": "Switch to dark mode",
     "account": "Account",
     "signedIn": "Signed in",
-    "logout": "Log out"
+    "logout": "Log out",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "clearSearch": "Clear search"
   },
   "environments": {
     "newEnvironmentPlaceholder": "New environment (e.g. Staging)",

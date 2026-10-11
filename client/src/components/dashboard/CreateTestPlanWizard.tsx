@@ -1023,7 +1023,7 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
             <React.Fragment key={i}>
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center border-2
-                    ${i + 1 < currentStep ? 'bg-success border-success text-white' : ''}
+                    ${i + 1 < currentStep ? 'bg-success border-success text-success-foreground' : ''}
                     ${i + 1 === currentStep ? 'border-primary text-primary font-semibold scale-110' : 'border-border'}
                     ${i + 1 > currentStep ? 'border-border text-muted-foreground' : ''}
                   `}
@@ -1069,7 +1069,7 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
               {currentStep === totalSteps && (
                 <Button
                   onClick={handleCreatePlan}
-                  className="bg-success hover:bg-success/90"
+                  className="bg-success hover:bg-success/90 text-success-foreground"
                   disabled={isSubmitting}
                 >
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

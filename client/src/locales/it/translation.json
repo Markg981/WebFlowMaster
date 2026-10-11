@@ -2604,7 +2604,10 @@
     "darkMode": "Passa al tema scuro",
     "account": "Account",
     "signedIn": "Accesso effettuato",
-    "logout": "Esci"
+    "logout": "Esci",
+    "previousPage": "Pagina precedente",
+    "nextPage": "Pagina successiva",
+    "clearSearch": "Azzera la ricerca"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Nuovo ambiente (es. Staging)",

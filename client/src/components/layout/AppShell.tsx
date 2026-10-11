@@ -129,7 +129,7 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate?: () => void }> = ({
       {sections.map((section) => (
         <div key={section.heading} className="flex flex-col gap-0.5">
           {!collapsed && (
-            <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               {section.heading}
             </div>
           )}
@@ -371,9 +371,15 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   className="flex items-center gap-2 rounded-full py-1 pl-1 pr-1 transition-colors hover:bg-accent"
                   aria-label={t('common.account', 'Account')}
                 >
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 font-mono text-xs font-bold text-primary">
-                    {initials}
-                  </span>
+                  {/* The initials are the avatar, a picture of the user rather than the button's
+                      label, so they are drawn by CSS: as text they would be "visible label" that
+                      the accessible name ("Account") leaves out (WCAG 2.5.3, axe
+                      label-content-name-mismatch). */}
+                  <span
+                    aria-hidden="true"
+                    data-initials={initials}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 font-mono text-xs font-bold text-primary after:content-[attr(data-initials)]"
+                  />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">

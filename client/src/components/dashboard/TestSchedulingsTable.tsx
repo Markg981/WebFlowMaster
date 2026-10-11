@@ -145,7 +145,11 @@ const TestSchedulingsTable: React.FC<{
                   <TableCell>
                     <Badge
                       variant={schedule.isActive ? 'default' : 'secondary'}
-                      className={schedule.isActive ? 'bg-success hover:bg-success/90' : ''}
+                      className={
+                        schedule.isActive
+                          ? 'bg-success hover:bg-success/90 text-success-foreground'
+                          : ''
+                      }
                     >
                       {schedule.isActive
                         ? t('dashboard.testSchedulingsTable.status.active')

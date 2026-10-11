@@ -74,7 +74,7 @@ export function PreferencesCards({ form, disabled }: Props) {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">
+              <Label htmlFor="settings-dark-mode" className="text-sm font-medium">
                 {t('settings.appearance.darkModeLabel')}
               </Label>
               <p className="text-sm text-muted-foreground">
@@ -82,13 +82,14 @@ export function PreferencesCards({ form, disabled }: Props) {
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              <Sun className="h-4 w-4" />
+              <Sun className="h-4 w-4" aria-hidden="true" />
               <Switch
+                id="settings-dark-mode"
                 checked={form.isDark}
                 onCheckedChange={(on) => form.setTheme(on ? 'dark' : 'light')}
                 disabled={disabled}
               />
-              <Moon className="h-4 w-4" />
+              <Moon className="h-4 w-4" aria-hidden="true" />
             </div>
           </div>
         </CardContent>
@@ -204,7 +205,7 @@ export function TestDefaultsCards({ form, disabled }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center justify-between pt-2">
               <div>
-                <Label className="text-sm font-medium">
+                <Label htmlFor="settings-headless" className="text-sm font-medium">
                   {t('settings.playwright.headlessLabel')}
                 </Label>
                 <p className="text-sm text-muted-foreground">
@@ -212,6 +213,7 @@ export function TestDefaultsCards({ form, disabled }: Props) {
                 </p>
               </div>
               <Switch
+                id="settings-headless"
                 checked={form.headless}
                 onCheckedChange={form.setHeadless}
                 disabled={disabled}
@@ -283,7 +285,7 @@ export function NotificationsCard({ form, disabled }: Props) {
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <Label className="text-sm font-medium">
+            <Label htmlFor="settings-email-notifications" className="text-sm font-medium">
               {t('settings.notifications.emailLabel', 'Email Notifications')}
             </Label>
             <p className="text-sm text-muted-foreground">
@@ -291,6 +293,7 @@ export function NotificationsCard({ form, disabled }: Props) {
             </p>
           </div>
           <Switch
+            id="settings-email-notifications"
             checked={form.emailNotifications}
             onCheckedChange={form.setEmailNotifications}
             disabled={disabled}

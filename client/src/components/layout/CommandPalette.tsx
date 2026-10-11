@@ -67,13 +67,18 @@ export function CommandPalette({ sections, canRun, isDark, onToggleTheme, onLogo
       <button
         onClick={() => setOpen(true)}
         className="hidden items-center gap-2 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:inline-flex"
-        aria-label={t('commandPalette.open')}
+        // Named by its visible word, so "click Search" works for speech control; the shortcut
+        // hint is drawn by CSS and announced through aria-keyshortcuts instead.
+        title={t('commandPalette.open')}
+        aria-keyshortcuts="Control+K Meta+K"
       >
-        <Search className="h-3.5 w-3.5" />
+        <Search className="h-3.5 w-3.5" aria-hidden="true" />
         <span>{t('commandPalette.search')}</span>
-        <kbd className="rounded bg-muted px-1.5 font-mono text-[10px]">
-          {isMac ? '⌘K' : 'Ctrl K'}
-        </kbd>
+        <kbd
+          aria-hidden="true"
+          data-keys={isMac ? '⌘K' : 'Ctrl K'}
+          className="rounded bg-muted px-1.5 font-mono text-[10px] after:content-[attr(data-keys)]"
+        />
       </button>
       <CommandDialog open={open} onOpenChange={setOpen} title={t('commandPalette.title')}>
         <CommandInput placeholder={t('commandPalette.placeholder')} />

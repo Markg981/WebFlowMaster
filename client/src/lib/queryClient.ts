@@ -21,6 +21,20 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * What to show a person for a failed request: the server's own sentence when it sent one.
+ * ApiError.message is "400: {\"message\":...}", meant for logs; pages that put it on screen
+ * showed the JSON to whoever mistyped a password.
+ */
+export function errorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.body && typeof error.body === 'object') {
+    const { message, error: text } = error.body as { message?: unknown; error?: unknown };
+    if (typeof message === 'string' && message) return message;
+    if (typeof text === 'string' && text) return text;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;

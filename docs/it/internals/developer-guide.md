@@ -65,14 +65,19 @@ Redis e un PostgreSQL appena migrato, con ruolo applicativo non superuser.
 ### Accettazione dell'interfaccia su un'installazione reale
 
 `npm run test:e2e` usa `e2e/playwright.config.ts`, indipendente dalla configurazione radice per i
-test esportati. La suite contiene 19 percorsi Chromium: nove scenari d'installazione e quello
-con agente BDD reale, più nove percorsi UI critici. I nuovi scenari verificano attivazione MFA e
-codice di recupero monouso, login OIDC con provider HTTPS, dominio SSO sconosciuto, approvazione
-da un altro membro, pubblicazione diretta, editor mobile e storico in sola lettura, eliminazione
-con conferma, limite sui test salvati e annullamento dal report dell'esecuzione.
+test esportati, ed esegue ogni percorso su Chromium, Firefox e WebKit. Comprende gli scenari
+d'installazione, uno con agente BDD reale e i percorsi UI critici: approvazione da un altro membro,
+pubblicazione diretta, editor mobile e storico in sola lettura, eliminazione con conferma, limite
+sui test salvati e annullamento dal report dell'esecuzione. `security.spec.ts` copre attivazione
+MFA e codice di recupero monouso, login OIDC con provider HTTPS e dominio SSO sconosciuto.
+`team.spec.ts` copre gli inviti creati, usati e revocati dall'interfaccia e l'MFA obbligatoria che
+blocca un membro finché non la attiva. `accessibility.spec.ts` esegue axe-core (WCAG 2.1 A e AA,
+solo violazioni serie o critiche) sulla pagina di accesso e sulle pagine principali, il contrasto
+nel tema scuro e l'uso da tastiera della sidebar e di un dialog; se fallisce, elenca per pagina
+ogni elemento con il motivo e l'inizio del suo HTML.
 Sessioni separate owner/editor/viewer verificano i permessi dall'interfaccia e con navigazione
-diretta alle pagine protette. Inviti e preparazione del piano da annullare usano le API reali;
-le azioni sotto verifica passano dalla UI. Le richieste del prodotto non sono intercettate.
+diretta alle pagine protette. La preparazione del piano da annullare usa le API reali; le azioni
+sotto verifica passano dalla UI. Le richieste del prodotto non sono intercettate.
 HTTP, gRPC, WebSocket e OIDC sono servizi esterni di prova; applicazione e worker restano reali.
 
 Avvia gli store locali dedicati e crea il database **una sola volta**, senza modificare il Collaudo:
@@ -90,7 +95,7 @@ bash: `export NOME='valore'`):
 | `DATABASE_URL`   | `postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5438/wfm_ci_e2e` |
 | `REDIS_URL`      | `redis://127.0.0.1:6388`                                 |
 | `SESSION_SECRET` | `ci-e2e-disposable-session-secret`                       |
-| `ENCRYPTION_KEY` | 64 zeri esadecimali                                      |
+| `ENCRYPTION_KEY` | `c1` ripetuto 32 volte (64 cifre esadecimali)            |
 
 ```sh
 npm run build

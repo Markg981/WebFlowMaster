@@ -45,7 +45,7 @@ export async function member(owner: Page, browser: Browser, role: 'editor' | 'vi
   try {
     const page = await openPage(context);
     await register(page, username, (await response.json()).token);
-    return { page, context };
+    return { page, context, username };
   } catch (error) {
     await context.close();
     throw error;
@@ -75,6 +75,18 @@ export async function history(page: Page, name: string) {
   await page.getByRole('button', { name: `History of ${name}`, exact: true }).click();
   await expect(page.getByTestId('publishing-panel')).toBeVisible();
   return page.getByRole('dialog');
+}
+
+/**
+ * A code from the next 30-second window once `used` has been spent: the server refuses a code
+ * already accepted, so signing in right after enrolling needs a fresh one.
+ */
+export async function nextAuthenticatorCode(secret: string, used: string) {
+  for (;;) {
+    const code = authenticatorCode(secret);
+    if (code !== used) return code;
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
 }
 
 // Independent authenticator implementation: the test does not import server/mfa or its database.
