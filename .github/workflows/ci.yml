@@ -6,6 +6,23 @@ on:
   pull_request:
 
 jobs:
+  # A file over 5 MB stays in every clone once committed, even if a later commit deletes it:
+  # check every blob the new commits introduce, not only the final tree (scripts/check-large-files.mjs).
+  large-files:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Refuse files over 5 MB in the new commits
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          # A branch's first push has no previous commit: compare with the default branch instead.
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then BASE=origin/main; fi
+          node scripts/check-large-files.mjs "$BASE"
+
   resilience-tool:
     runs-on: ubuntu-latest
     timeout-minutes: 10

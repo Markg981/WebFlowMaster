@@ -214,6 +214,24 @@ restore those entries from the committed lockfile before committing.
 The Playwright version is pinned three times: `package-lock.json`, the `FROM` line of every
 Dockerfile, and the agent's compatibility (major.minor). Upgrade them together.
 
+The same trap applies to the `lightningcss-*` binaries Tailwind 4 needs: `client/package.json` lists
+them under `optionalDependencies` so the lock keeps them. When Tailwind brings a new lightningcss,
+set the same version there; `server/tests/dependency-locks.test.ts` names any mismatch.
+
+### Large files
+
+CI refuses any file over 5 MB introduced by a PR, including one that a later commit of the same
+PR deletes: the blob would stay in every clone of the history. Generated output (kits, archives,
+scan reports) belongs in `outputs/` or `tmp/`, which Git ignores. To get the same check before each
+commit, add it to your own hook:
+
+```bash
+# a new hook; with an existing one, append only the second line
+echo '#!/bin/sh' > .git/hooks/pre-commit
+echo 'node scripts/check-large-files.mjs --staged' >> .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
 ## Adding a feature: checklist
 
 1. Schema and migration (with RLS if organization-scoped), and the snapshot test's decision if you

@@ -214,6 +214,24 @@ Windows, ripristina quelle voci dal lockfile committato prima del commit.
 La versione di Playwright è fissata in tre punti: `package-lock.json`, la riga `FROM` di ogni Dockerfile
 e la compatibilità dell'agente (major.minor). Si aggiornano insieme.
 
+La stessa trappola vale per i binari `lightningcss-*` richiesti da Tailwind 4: `client/package.json` li
+elenca in `optionalDependencies` perché il lock li conservi. Quando Tailwind porta una nuova versione di
+lightningcss, aggiorna la stessa versione lì; `server/tests/dependency-locks.test.ts` segnala ogni differenza.
+
+### File di grandi dimensioni
+
+La CI rifiuta ogni file oltre 5 MB introdotto da una PR, anche se un commit successivo della stessa PR lo
+cancella: il blob resterebbe in ogni clone della history. L'output generato (kit, archivi, rapporti di
+scansione) va in `outputs/` o `tmp/`, che Git ignora. Per avere lo stesso controllo prima di ogni commit,
+aggiungilo al tuo hook:
+
+```bash
+# hook nuovo; se ne hai già uno, aggiungi solo la seconda riga
+echo '#!/bin/sh' > .git/hooks/pre-commit
+echo 'node scripts/check-large-files.mjs --staged' >> .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
 ## Aggiungere una funzionalità: checklist
 
 1. Schema e migrazione (con RLS se per organizzazione), e la decisione nel test dello snapshot se hai
