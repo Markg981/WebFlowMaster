@@ -80,7 +80,13 @@ dropdowns, selects, tooltips), styled with Tailwind CSS and CSS variables for li
 ## Internationalization
 
 `i18n.ts` loads the four bundles in `locales/{en,it,fr,de}/translation.json`; the language comes from
-the user's settings, English is the fallback. Every string is written as
+the user's settings, English is the fallback. English is part of the first bundle; the others are
+fetched when chosen, while the `Suspense` in `main.tsx` holds the screen. A new language is a folder
+here plus one line in `otherLanguages` in `i18n.ts`.
+
+The first bundle holds only what every visit needs. Every page, the login page included, is loaded
+when first opened (`App.tsx`), and the Monaco editor when the first editor is shown
+(`components/CodeEditor.tsx`): import Monaco only through `CodeEditor`, never from a page. Every string is written as
 `t('area.key', 'English text')`. Three tests in `locales/locales.test.ts` keep this honest:
 
 - every key English has exists in the other three languages, with the same `{{placeholders}}`;

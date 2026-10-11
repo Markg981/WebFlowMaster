@@ -8,7 +8,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth"; // useAuth already imported here, good
 import { DragDropProvider } from "@/components/drag-drop-provider";
 import NotFound from "@/pages/not-found";
-import AuthPage from "@/pages/auth-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 /**
@@ -16,9 +15,12 @@ import { ProtectedRoute } from "./lib/protected-route";
  *
  * All of them were in one 1.9 MB bundle — the Monaco editor, the flow canvas, the chart library
  * — so the login page and the dashboard waited for the test builder's code editor to download
- * before they could draw anything. The login and 404 pages stay in the first bundle: they are
- * what someone who is not signed in sees first.
+ * before they could draw anything. The 404 page stays in the first bundle. The login page did too,
+ * as the first thing someone not signed in sees, but it brought framer-motion (340 KB) to every
+ * signed-in user as well: someone signing in now fetches it with the page, nobody else at all.
+ * The Suspense around the whole application (main.tsx) covers it.
  */
+const AuthPage = React.lazy(() => import("@/pages/auth-page"));
 const DashboardPage = React.lazy(() => import("@/pages/dashboard-page-new")); // The "Create Test" page
 const DashboardOverviewPage = React.lazy(() => import("@/pages/DashboardOverviewPage"));
 const SettingsPage = React.lazy(() => import("@/pages/settings-page"));
