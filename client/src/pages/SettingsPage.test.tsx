@@ -212,7 +212,8 @@ describe('SettingsPage - System', () => {
     renderSettingsPage();
     await openSection('System');
 
-    expect(await screen.findByLabelText(/retention/i)).not.toBeDisabled();
+    // The card loads its own settings when the section opens, disabled until they arrive.
+    await waitFor(() => expect(screen.getByLabelText(/retention/i)).not.toBeDisabled());
     expect(screen.queryByTestId('system-read-only')).not.toBeInTheDocument();
   });
 
