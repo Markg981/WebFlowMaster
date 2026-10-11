@@ -435,7 +435,7 @@ function collectCandidatesInFrame(volatileIdPatterns: readonly string[]) {
     for (const attr of ['data-testid', 'data-test', 'name', 'aria-label', 'placeholder']) {
       const v = el.getAttribute(attr);
       if (v) {
-        const s = `${tag}[${attr}="${v.replace(/"/g, '\\"')}"]`;
+        const s = `${tag}[${attr}="${v.replace(/[\\"]/g, '\\$&')}"]`;
         if (isUnique(s)) return s;
       }
     }
