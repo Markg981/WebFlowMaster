@@ -188,6 +188,11 @@ Linux build with `Cannot find module ../lightningcss.linux-x64-gnu.node`. `clien
 therefore lists them under `optionalDependencies` at the locked lightningcss version; the same
 test checks that both agree whenever Tailwind is updated.
 
+The separate `client/package-lock.json` is gone as well. It existed so the release could install
+the client on its own and verify the patched braces copies there; the client is a workspace, so
+the root lock already holds every package it uses, and that is the lock Docker, CI and the source
+scan read. A second lock that Dependabot does not update failed every dependency PR on `npm ci`.
+
 ### Base hardening and image evidence
 
 Every build/runtime stage applies `deployment/releases/harden-base.sh`. It installs

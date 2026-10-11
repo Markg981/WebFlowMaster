@@ -188,6 +188,12 @@ npm 11 lo elimina dal lock del workspace quando lo riscrive, e la build Linux fa
 elenca in `optionalDependencies` alla versione di lightningcss bloccata; lo stesso test verifica
 che coincidano a ogni aggiornamento di Tailwind.
 
+Anche il `client/package-lock.json` separato è stato rimosso. Serviva alla release per installare il
+client da solo e verificare lì le copie di braces corrette; il client è un workspace, quindi il lock
+principale contiene già ogni pacchetto che usa, ed è il lock che leggono Docker, la CI e la scansione
+dei sorgenti. Un secondo lock che Dependabot non aggiorna faceva fallire `npm ci` in ogni PR di
+dipendenze.
+
 ### Correzioni della base ed evidenze delle immagini
 
 Ogni stage di build/runtime applica `deployment/releases/harden-base.sh`. Installa

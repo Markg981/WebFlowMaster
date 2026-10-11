@@ -18,7 +18,7 @@ import path from 'node:path';
  */
 const repoRoot = path.resolve(__dirname, '..', '..');
 const readJson = (file: string) => JSON.parse(fs.readFileSync(path.join(repoRoot, file), 'utf8'));
-const LOCKS = ['package-lock.json', 'client/package-lock.json'];
+const LOCKS = ['package-lock.json'];
 
 describe('the dependency lockfiles', () => {
   it.each(LOCKS)('%s holds no copy of braces or micromatch', (file) => {
