@@ -154,7 +154,8 @@ const RequirementsPage: React.FC = () => {
     queryKey: ['testPlans'],
     queryFn: () => send('GET', '/api/test-plans'),
   });
-  const rows = data?.requirements ?? [];
+  // Memoised: a new empty array at every render made the tree below recompute every time.
+  const rows = useMemo(() => data?.requirements ?? [], [data]);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['requirements'] });
   const onError = (title: string) => (err: Error) => toast({ variant: 'destructive', title, description: err.message });
 

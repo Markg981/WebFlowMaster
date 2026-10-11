@@ -66,6 +66,9 @@ export default function MobileRunDialog({ test, grids, onClose, onFinished }: Pr
     setRunId(null);
     setRunIds([]);
     setError(null);
+    // Reset for another test or another set of grids, not for a refetch that returns the same grids
+    // as a new array: that would clear what the person was choosing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [test?.id, gridChoices]);
 
   const { data: environments = [] } = useQuery<Array<{ id: number; name: string }>>({
@@ -112,6 +115,8 @@ export default function MobileRunDialog({ test, grids, onClose, onFinished }: Pr
     matrixResults.every((result) => result.data && FINISHED.includes(result.data.status));
   useEffect(() => {
     if (matrixFinished) onFinished();
+    // Once, when the matrix finishes: onFinished is a new function at every render of the parent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matrixFinished]);
   const start = async (matrix = false) => {
     setStarting(true);
