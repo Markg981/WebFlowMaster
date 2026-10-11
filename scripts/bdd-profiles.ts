@@ -108,7 +108,7 @@ export async function resolveProfileSupport(
     }
     return canonical;
   };
-  if (profile.loader) projectRequire.resolve('tsx/esm/api');
+  if (profile.loader) projectRequire.resolve('tsx/esm');
   return {
     apiPath,
     requirePaths: await expand(profile.requirePaths),

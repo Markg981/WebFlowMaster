@@ -96,7 +96,11 @@ async function main(): Promise<void> {
     throw new Error('Cucumber source plan must select exactly the authorized scenario');
   if (profile.loader === 'tsx') {
     const projectRequire = createRequire(path.join(profile.projectDirectory, 'package.json'));
-    (await import(pathToFileURL(projectRequire.resolve('tsx/esm/api')).href)).register();
+    // tsx/esm registers its hooks when imported, as `node --import tsx/esm` does. Not
+    // tsx/esm/api: require.resolve picks that export's CommonJS build, which registers the
+    // hooks relative to its own folder (dist/esm/api/esm/index.mjs, a file that does not
+    // exist) and failed every TypeScript profile on Windows.
+    await import(pathToFileURL(projectRequire.resolve('tsx/esm')).href);
     projectRequire('tsx/cjs/api').register();
   }
   const cases = new Map<string, TestCase>(),
