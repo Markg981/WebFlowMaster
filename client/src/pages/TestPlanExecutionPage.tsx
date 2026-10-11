@@ -151,7 +151,7 @@ const TestPlanExecutionPage: React.FC = () => {
               <Button
                 onClick={executePlan}
                 disabled={isStarting}
-                className="bg-success hover:bg-success/90 text-white px-6 py-2 rounded-md flex items-center space-x-2"
+                className="bg-success hover:bg-success/90 text-success-foreground px-6 py-2 rounded-md flex items-center space-x-2"
               >
                 {isStarting ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

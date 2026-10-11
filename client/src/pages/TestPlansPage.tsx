@@ -136,6 +136,8 @@ const TestPlansPage: React.FC = () => {
               variant="outline"
               size="icon"
               className="h-10 w-10"
+              aria-label={t('common.clearSearch', 'Clear search')}
+              title={t('common.clearSearch', 'Clear search')}
               onClick={() => {
                 setSearchTerm('');
                 setCurrentPage(1);
@@ -151,6 +153,7 @@ const TestPlansPage: React.FC = () => {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
+                aria-label={t('common.previousPage', 'Previous page')}
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1 || isLoadingTestPlans}
               >
@@ -165,6 +168,7 @@ const TestPlansPage: React.FC = () => {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
+                aria-label={t('common.nextPage', 'Next page')}
                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={
                   currentPage === totalPages || filteredTestPlans.length === 0 || isLoadingTestPlans
@@ -175,7 +179,7 @@ const TestPlansPage: React.FC = () => {
             </div>
             {canEdit && (
               <Button
-                className="bg-success hover:bg-success/90 text-white"
+                className="bg-success hover:bg-success/90 text-success-foreground"
                 onClick={() => setIsCreatePlanWizardOpen(true)}
               >
                 {t('testSuitesPage.testPlan.button')}

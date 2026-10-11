@@ -73,7 +73,7 @@ export function DraggableElement({ element, onHover, onKeep }: DraggableElementP
       case 'textarea':
         return 'bg-primary text-primary-foreground';
       case 'button':
-        return 'bg-success text-primary-foreground';
+        return 'bg-success text-success-foreground';
       case 'link':
         return 'bg-accent text-accent-foreground';
       case 'heading':

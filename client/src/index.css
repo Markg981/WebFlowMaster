@@ -189,13 +189,15 @@
     --border: 216 24% 91%;
     --input: 217 22% 86%;
 
-    /* Brand — Signal (calibration blue) */
-    --primary: 226 100% 59%;
+    /* Brand — Signal (calibration blue). 54% lightness, not 59%: primary text on the 10–15%
+       tints used for active items fell to 4.1–4.4:1, under WCAG AA (e2e/accessibility.spec.ts). */
+    --primary: 226 100% 54%;
     --primary-foreground: 0 0% 100%;
-    --ring: 226 100% 59%;
+    --ring: 226 100% 54%;
 
     /* Status ramp (semantic — not the accent) */
-    --success: 142 71% 36%;
+    /* 30%: white on the 36% green read 3.5:1. */
+    --success: 142 71% 30%;
     --success-foreground: 0 0% 100%;
     --success-weak: 145 55% 93%;
     --warning: 32 94% 44%;
@@ -215,12 +217,12 @@
     /* Sidebar (only referenced by the unused shadcn sidebar primitive; defined for safety) */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 226 100% 59%;
+    --sidebar-primary: 226 100% 54%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 226 100% 96%;
-    --sidebar-accent-foreground: 226 100% 59%;
+    --sidebar-accent-foreground: 226 100% 54%;
     --sidebar-border: 216 24% 91%;
-    --sidebar-ring: 226 100% 59%;
+    --sidebar-ring: 226 100% 54%;
 
     --radius: 0.625rem;
 
@@ -246,7 +248,8 @@
     --input: 218 24% 23%;
 
     --primary: 224 100% 68%;
-    --primary-foreground: 0 0% 100%;
+    /* Dark text on the light blue: white on it read 3.3:1. */
+    --primary-foreground: 222 47% 11%;
     --ring: 224 100% 68%;
 
     --success: 152 62% 50%;

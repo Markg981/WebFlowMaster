@@ -65,14 +65,19 @@ Redis and a freshly migrated PostgreSQL database with a non-superuser applicatio
 ### Interface acceptance on a real installation
 
 `npm run test:e2e` uses `e2e/playwright.config.ts`, independently of the root configuration for
-exported tests. The suite has 19 Chromium journeys: nine installation journeys and one real
-BDD-agent journey, plus nine critical UI journeys. The additions cover MFA enrollment and a
-single-use recovery code, OIDC login through an HTTPS identity provider, unknown SSO domains,
-review approval by another member, direct publication, mobile editing and read-only history,
-confirmed deletion, enforced saved-test quotas, and cancellation from the execution report.
+exported tests, and runs every journey on Chromium, Firefox and WebKit. It has installation
+journeys, one with a real BDD agent, and critical UI journeys: review approval by another member,
+direct publication, mobile editing and read-only history, confirmed deletion, enforced saved-test
+quotas and cancellation from the execution report. `security.spec.ts` covers MFA enrollment and a
+single-use recovery code, OIDC login through an HTTPS identity provider and unknown SSO domains.
+`team.spec.ts` covers invitations created, used and revoked through the interface, and a
+two-factor requirement holding a member until they enroll. `accessibility.spec.ts` runs axe-core
+(WCAG 2.1 A and AA, serious and critical violations only) on the sign-in page and the main pages,
+contrast in the dark theme, and keyboard use of the sidebar and of a dialog; a failure lists, per
+page, every element with the reason and the start of its HTML.
 Separate owner/editor/viewer sessions check permissions through the interface, including direct
-navigation to protected pages. Invitations and cancellation-plan preparation use the real API;
-the actions under test use the UI. Product requests are not intercepted. HTTP, gRPC, WebSocket
+navigation to protected pages. Cancellation-plan preparation uses the real API; the actions under
+test use the UI. Product requests are not intercepted. HTTP, gRPC, WebSocket
 and OIDC fixtures are external services; the application and queue worker remain real.
 
 Start dedicated local stores and create their database **once**, without touching Collaudo:
@@ -90,7 +95,7 @@ Set these disposable fixture values in your shell (PowerShell: `$env:NAME='value
 | `DATABASE_URL`   | `postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5438/wfm_ci_e2e` |
 | `REDIS_URL`      | `redis://127.0.0.1:6388`                                 |
 | `SESSION_SECRET` | `ci-e2e-disposable-session-secret`                       |
-| `ENCRYPTION_KEY` | 64 hexadecimal zeros                                     |
+| `ENCRYPTION_KEY` | `c1` repeated 32 times (64 hex digits)                   |
 
 ```sh
 npm run build

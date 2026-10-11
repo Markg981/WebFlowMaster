@@ -2604,7 +2604,10 @@
     "darkMode": "Zum dunklen Modus wechseln",
     "account": "Konto",
     "signedIn": "Angemeldet",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "previousPage": "Vorherige Seite",
+    "nextPage": "Nächste Seite",
+    "clearSearch": "Suche zurücksetzen"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Neue Umgebung (z. B. Staging)",

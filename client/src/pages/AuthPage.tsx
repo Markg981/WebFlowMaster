@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MfaChallengeForm from '@/components/security/MfaChallengeForm';
 import SsoSignIn from '@/components/security/SsoSignIn';
 import ForgotPassword from '@/components/security/ForgotPassword';
-import { ApiError } from '@/lib/queryClient';
+import { ApiError, errorMessage } from '@/lib/queryClient';
 
 interface RegistrationPolicy {
   mode: 'open' | 'invitation';
@@ -343,7 +343,7 @@ export default function AuthPage() {
                                         'sso.requiredAtLogin',
                                         'Your organization signs in with single sign-on. Use "Sign in with SSO" below.',
                                       )
-                                    : loginMutation.error.message}
+                                    : errorMessage(loginMutation.error)}
                                 </AlertDescription>
                               </Alert>
                             )}
@@ -496,7 +496,7 @@ export default function AuthPage() {
                               >
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>
-                                  {registerMutation.error.message}
+                                  {errorMessage(registerMutation.error)}
                                 </AlertDescription>
                               </Alert>
                             )}
