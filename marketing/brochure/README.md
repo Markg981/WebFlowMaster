@@ -30,8 +30,8 @@ adapt `fonts()` to an available family. The build does not fetch anything from t
 Before distributing a changed brochure, render every PDF page and inspect both languages. Recheck
 capabilities after product changes. Keep sample metrics labeled as demonstration values.
 
-The call to action includes the contacts supplied by Marco Oliva: `marco.oliva@aveva.com`,
-`www.aveva.com` and `+39 3473495072`, with clickable email/web/phone links in the PDF. These
-identify the contact person; the brochure makes no statement about AVEVA ownership or endorsement.
+The call to action shows the contact in [`../contact.json`](../contact.json), with a clickable link for
+each value; a value left empty (the phone, today) is omitted. The values there are placeholders
+until the product has its own domain and mailbox.
 The brochure is for digital distribution or ordinary A4 printing; it has no print-shop bleed or
 CMYK output profile. Request a printer-specific export if those are needed.

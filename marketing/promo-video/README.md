@@ -99,9 +99,9 @@ For an owner-supplied **licensed replacement**, place the track at `video/public
 and render with `--props='{"music":true,"musicFile":"music.mp3"}'`.
 That override is distinct from the included original procedural music.
 
-The closing contact card uses the user-supplied details: **Marco Oliva**,
-`marco.oliva@aveva.com`, `www.aveva.com`, `+39 3473495072`. The contact card does not
-assert corporate ownership of, or endorsement for, WebFlowMaster.
+The closing contact card shows [`../contact.json`](../contact.json), the file the brochure reads too;
+an empty phone is omitted. The captions repeat the same lines and are edited by hand. The values
+are placeholders until the product has its own domain and mailbox.
 
 ## Filming the screens again
 

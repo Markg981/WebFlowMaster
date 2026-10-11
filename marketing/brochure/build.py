@@ -19,6 +19,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "out"
 ASSETS = ROOT / "assets"
+CONTACT = json.loads((ROOT.parent / "contact.json").read_text(encoding="utf-8"))
 W, H = A4
 M = 43
 CW = W - M * 2
@@ -193,12 +194,21 @@ def build(lang, t):
     rect(c, M, end + 24, CW, 49, BLUE, 8)
     para(c, t["cta"], M + 19, end + 36, CW - 38, 17, WHITE, True)
     end = para(c, t["cta_note"], M, end + 88, CW, 11, "#C2CDDF")
-    end = para(c, "Marco Oliva", M, end + 18, CW, 12, WHITE, True)
+    end = para(c, CONTACT["name"], M, end + 18, CW, 12, WHITE, True)
     contact_top = end + 7
-    end = para(c, "marco.oliva@aveva.com  /  www.aveva.com  /  +39 3473495072", M, contact_top, CW, 10.2, SKY)
-    c.linkURL("mailto:marco.oliva@aveva.com", (M, H-end, M+150, H-contact_top), relative=0)
-    c.linkURL("https://www.aveva.com", (M+155, H-end, M+262, H-contact_top), relative=0)
-    c.linkURL("tel:+393473495072", (M+268, H-end, W-M, H-contact_top), relative=0)
+    items = [(value, url) for value, url in [
+        (CONTACT["email"], "mailto:" + CONTACT["email"]),
+        (CONTACT["website"], "https://" + CONTACT["website"]),
+        (CONTACT["phone"], "tel:" + CONTACT["phone"].replace(" ", "")),
+    ] if value]
+    separator = "  /  "
+    end = para(c, separator.join(value for value, _ in items), M, contact_top, CW, 10.2, SKY)
+    # One link area per item, as wide as its text: the contact values are not fixed any more.
+    x = M
+    for value, url in items:
+        width = pdfmetrics.stringWidth(value, "Body", 10.2)
+        c.linkURL(url, (x, H-end, x + width, H-contact_top), relative=0)
+        x += width + pdfmetrics.stringWidth(separator, "Body", 10.2)
     para(c, t["footer_note"] + "\n" + t["capture_note"], M, end + 24, CW, 8, "#A2B1CE")
     c.showPage()
     c.save()

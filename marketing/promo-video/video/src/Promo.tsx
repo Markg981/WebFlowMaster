@@ -21,6 +21,8 @@ import {
   type Camera,
 } from './components';
 import { colors, fontFamily, s } from './theme';
+// The brochure reads the same file: one place to change the commercial contact.
+import contact from '../../../contact.json';
 import { LanguageContext, useCopy, type Language } from './copy';
 
 export type PromoProps = {
@@ -481,9 +483,9 @@ const Cta: React.FC<{ cta: string }> = ({ cta }) => {
         }}
       >
         <div style={{ color: colors.white }}>
-          Marco Oliva · marco.oliva@aveva.com · www.aveva.com
+          {[contact.name, contact.email, contact.website].join(' · ')}
         </div>
-        <div>+39 3473495072</div>
+        {contact.phone ? <div>{contact.phone}</div> : null}
       </div>
     </AbsoluteFill>
   );
