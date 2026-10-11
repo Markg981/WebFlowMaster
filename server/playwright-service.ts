@@ -1,10 +1,10 @@
 import playwright, { Browser, Page, BrowserContext, Frame } from 'playwright';
 import { browserEgressOptions } from './egress-proxy';
-import { v4 as uuidv4 } from 'uuid'; // For generating session IDs
+import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from './logger';
 import type { Logger as WinstonLogger } from 'winston';
-import { storage } from './storage'; // To fetch user settings
-import type { Test, Precondition, Cleanup } from '@shared/schema'; // Import Test and UserSettings type
+import { storage } from './storage';
+import type { Test, Precondition, Cleanup } from '@shared/schema';
 import { type RecordedAction, RecordedActionSchema } from '@shared/recording';
 import { RECORDER_SCRIPT } from './recorder-script';
 import { VOLATILE_ID_PATTERNS } from '@shared/selectors';
@@ -697,7 +697,6 @@ export class PlaywrightService {
       page.setDefaultTimeout(pageTimeout);
 
       await page.setViewportSize({ width: 1280, height: 720 });
-      // Removed page.setUserAgent, as it's set on context
 
       await page.goto(targetUrl, {
         waitUntil: 'domcontentloaded',
@@ -2373,16 +2372,6 @@ export class PlaywrightService {
   }
 }
 
-// Removed shared browser instance, so global close might not be needed or needs rethink
-// async close() {
-// No shared browser or context to close here anymore.
-// }
-
 
 export const playwrightService = new PlaywrightService();
-
-// Cleanup on process exit - this might not be effective for browsers launched per-function
-// Consider if this is still needed or how to manage orphaned browser processes if any.
-// process.on('SIGINT', () => playwrightService.close());
-// process.on('SIGTERM', () => playwrightService.close());
 

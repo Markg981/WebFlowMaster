@@ -12,7 +12,6 @@ type PrivilegedTx = Parameters<Parameters<typeof privilegedDb.transaction>[0]>[0
 /** Serializes "is this the first account?" with creating it. Any constant; this one spells WFM1. */
 const FIRST_ACCOUNT_LOCK = 0x57464d31;
 // import connectPg from "connect-pg-simple";
-// import { pool } from "./db"; // Removed as pool is not available with SQLite
 
 
 export class DatabaseSessionStore extends session.Store {

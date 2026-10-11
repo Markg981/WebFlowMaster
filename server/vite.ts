@@ -11,7 +11,7 @@ import { type Server } from "http";
 // @ts-ignore
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
-import winston from 'winston'; // Import winston type
+import winston from 'winston';
 
 // Get the file path of the current module once at module load time.
 const currentModuleFilePath = fileURLToPath(import.meta.url);

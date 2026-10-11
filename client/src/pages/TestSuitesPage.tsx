@@ -1,7 +1,7 @@
 import { PageHeader } from '@/components/layout/PageHeader';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation } from 'wouter'; // Corrected import
+import { Link, useLocation } from 'wouter';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -15,7 +15,7 @@ import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import WebhooksModal from '@/components/dashboard/WebhooksModal';
 import EditTestPlanSettingsModal from '@/components/dashboard/EditTestPlanSettingsModal';
 import PlanSuitesDialog from '@/components/suites/PlanSuitesDialog';
-import { fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
+import { fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans';
 import { useAuth } from '@/hooks/use-auth';
 
 
@@ -69,7 +69,6 @@ const TestSuitesPage: React.FC = () => {
     else if (filteredTestPlans.length === 0 && currentPage !== 1) setCurrentPage(1);
   }, [filteredTestPlans.length, totalPages, currentPage]);
 
-  // Updated handleRunPlan to navigate to the execution page
   const handleRunPlan = (planId: string, _planName?: string) => {
     // No longer setting runningPlanId here as the page will change
     // Toast notifications will be handled by the execution page or via WebSocket updates

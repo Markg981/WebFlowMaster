@@ -7,18 +7,18 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose, // Import DialogClose for the nested modal
-} from '@/components/ui/dialog'; // Assuming this is the correct path for ShadCN Dialog
+  DialogClose,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react'; // For loading state in dropdown
+import { Loader2 } from 'lucide-react';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query'; // Added imports
-import { apiRequest } from '@/lib/queryClient'; // Added import
-import { toast } from '@/hooks/use-toast'; // Added import
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { toast } from '@/hooks/use-toast';
 
 // Define Project type locally
 interface Project {
@@ -56,7 +56,7 @@ const fetchProjects = async (): Promise<Project[]> => {
 interface SaveTestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (testName: string, projectId?: number) => void; // Updated onSave signature
+  onSave: (testName: string, projectId?: number) => void;
   initialTestName?: string;
 }
 
@@ -156,7 +156,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
       setSelectedProjectId(undefined); // Reset project selection
       refetchProjects(); // Explicitly refetch projects when modal opens
     }
-  }, [isOpen, initialTestName, refetchProjects]); // Added refetchProjects to dependency array
+  }, [isOpen, initialTestName, refetchProjects]);
 
   const handleSave = () => {
     if (internalTestName.trim()) {

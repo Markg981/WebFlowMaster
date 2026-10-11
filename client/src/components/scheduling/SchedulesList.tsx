@@ -3,7 +3,7 @@ import type { TestPlanScheduleEnhanced } from '@/lib/api/schedules';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { FileEdit, Trash2 } from 'lucide-react'; // Changed from @radix-ui/react-icons
+import { FileEdit, Trash2 } from 'lucide-react';
 
 interface SchedulesListProps {
   schedules: TestPlanScheduleEnhanced[];

@@ -21,7 +21,6 @@ import {
   testPlanSelectedTests,
   systemSettings,
   insertSystemSettingSchema,
-  // Updated schema imports for schedules and executions
   testPlanSchedules,
   testPlanExecutions,
   reportTestCaseResults,
@@ -37,7 +36,7 @@ import { z } from "zod";
 // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { privilegedDb } from "./db";
-import { eq, and, or, desc, sql, getTableColumns, asc, ilike, inArray, type SQL } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { eq, and, or, desc, sql, getTableColumns, asc, ilike, inArray, type SQL } from "drizzle-orm";
 import { playwrightService } from "./playwright-service";
 import { BrowserTaskError, browserTasks } from "./browser-tasks";
 // Import schedulerService
@@ -628,7 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logData.overallSuccess = false;
         // logData.error already indicates resultFromService was undefined if it's not set by error block
       }
-      resolvedLogger.http(logData); // Changed to http for summary log
+      resolvedLogger.http(logData);
 
       resolvedLogger.debug({
         message: "POST /api/execute-test-direct - Full response that was/would be sent:",

@@ -1,5 +1,5 @@
 // client/src/lib/api/reports.ts
-import type { TestPlanExecutionReport } from '@/pages/TestReportPage'; // Import the type from the page itself or a shared types file
+import type { TestPlanExecutionReport } from '@/pages/TestReportPage';
 
 export async function fetchTestExecutionReport(executionId: string): Promise<TestPlanExecutionReport> {
   const response = await fetch(`/api/test-plan-executions/${executionId}/report`);

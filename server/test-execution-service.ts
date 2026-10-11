@@ -1,9 +1,9 @@
 import { failedStepReason } from './failed-step-reason';
 import { playwrightService } from './playwright-service';
-import type { Test, ApiTest, TestPlan, TestPlanExecution, InsertReportTestCaseResult, Precondition, Cleanup, ExecutionTrigger } from '@shared/schema'; // Assuming ApiTest will be defined or Test is generic enough
+import type { Test, ApiTest, TestPlan, TestPlanExecution, InsertReportTestCaseResult, Precondition, Cleanup, ExecutionTrigger } from '@shared/schema';
 import { runPreconditions } from './precondition-runner';
 import { cleanupReportStep, runCleanups } from './cleanup-runner';
-import type { StepResult } from './playwright-service'; // Import StepResult type
+import type { StepResult } from './playwright-service';
 import loggerPromise from './logger';
 import { privilegedDb } from './db';
 import { getTenantOrgId, runWithTenant, withTenantTransaction } from './middleware/tenancy';
@@ -13,7 +13,7 @@ import {
   testPlanSelectedTests,
   testPlans,
   testPlanExecutions as testPlanExecutionsTable,
-  reportTestCaseResults as reportTestCaseResultsTable, // Added
+  reportTestCaseResults as reportTestCaseResultsTable,
   mobileTests as mobileTestsTable,
   type MobileTest,
   type BrowserGrid,
@@ -21,7 +21,7 @@ import {
 import { mobileDeviceLabel, performMobileTest, type MobileOutcome } from './mobile-runner';
 import { freezeMobilePlanDefinitions, mobilePlanTargets, type MobilePlanTarget } from './mobile-plan-units';
 import { toGridConfig } from './browser-grids';
-import { and, asc, eq, inArray } from 'drizzle-orm'; // Added sql
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
 import path from 'path';
