@@ -52,6 +52,10 @@ trace, HAR and assertion-error modal, excluding the old report's background char
 
 ## Render
 
+`video/` has its own `package.json` and lockfile and is not one of the root npm workspaces, so the
+root `npm ci`, `npm audit` and Dependabot do not cover it. It is a local authoring tool that never
+ships in the product images; run `npm audit` inside `video/` before rendering a release cut.
+
 ```bash
 cd marketing/promo-video/video
 npm install
