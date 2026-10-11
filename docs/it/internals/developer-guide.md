@@ -188,6 +188,28 @@ Una nuova **tabella per organizzazione** richiede, nella stessa migrazione:
 Riporta la tabella in `shared/schema.ts` (Drizzle) con un commento che la spiega. Applica con
 `npm run db:migrate`; i test applicano tutte le migrazioni a ogni database di test.
 
+#### Payload jsonb
+
+Ogni colonna `jsonb` è elencata in `shared/jsonb-payloads.ts` insieme al modo in cui il suo
+contenuto cambia forma; un test fallisce se una colonna nuova non compare lì. Le strategie sono
+quattro:
+
+- **versioned**: un payload oggetto che porta `schemaVersion`, letto e scritto tramite un
+  `versionedPayload` (`shared/payload-version.ts`). Per cambiarne la forma si alza `version` e si
+  aggiunge l'upgrade dalla versione precedente; le righe salvate vengono aggiornate in lettura e non
+  vengono mai riscritte. Una riga senza `schemaVersion` vale versione 1. Un payload scritto da una
+  build più recente solleva `NewerPayloadError` invece di essere letto con la forma vecchia. Il
+  riferimento è `report_test_case_results.ai_analysis` (`shared/failure-analysis.ts`).
+- **migration**: array e payload più vecchi, senza versione. La forma si cambia con una migrazione
+  dati che riscrive le righe esistenti, nella stessa PR del codice che legge la forma nuova.
+- **snapshot**: registrazioni storiche, come le versioni dei test e ciò con cui è stato accodato un
+  run. Non vengono mai riscritte: gli snapshot dei run portano un'impronta per la riproducibilità. Il
+  codice che ne ripristina o riesegue uno deve accettare ogni forma mai scritta.
+- **opaque**: salvati e restituiti così come sono, come i metadati di audit, gli header registrati e
+  le buste cifrate.
+
+Per un nuovo payload oggetto conviene **versioned**.
+
 ### API
 
 - Le rotte stanno in `server/routes/<area>.routes.ts` e si montano in `server/routes.ts`.

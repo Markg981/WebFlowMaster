@@ -6,6 +6,7 @@
  * not trusted to say anything outside this shape: server/failure-analysis.ts reads its answer
  * into it and throws away the rest.
  */
+import { NewerPayloadError, versionedPayload } from './payload-version';
 
 /** Where the failure most probably comes from. */
 export const FAILURE_CATEGORIES = [
@@ -54,10 +55,27 @@ export interface FailureAnalysis {
   at: string;
 }
 
+/** report_test_case_results.ai_analysis as stored: write through it, read through readFailureAnalysis. */
+export const failureAnalysisPayload = versionedPayload<FailureAnalysis>({
+  name: 'report_test_case_results.ai_analysis',
+  version: 1,
+  validate(payload) {
+    const analysis = payload as unknown as FailureAnalysis;
+    return FAILURE_CATEGORIES.includes(analysis.category) && typeof analysis.summary === 'string'
+      ? analysis
+      : null;
+  },
+});
+
+/**
+ * The stored analysis, or null when there is none worth showing. One written by a newer
+ * instance during a rolling upgrade counts as none: asking again replaces it.
+ */
 export function readFailureAnalysis(value: unknown): FailureAnalysis | null {
-  if (!value || typeof value !== 'object') return null;
-  const analysis = value as FailureAnalysis;
-  return FAILURE_CATEGORIES.includes(analysis.category) && typeof analysis.summary === 'string'
-    ? analysis
-    : null;
+  try {
+    return failureAnalysisPayload.read(value);
+  } catch (error) {
+    if (error instanceof NewerPayloadError) return null;
+    throw error;
+  }
 }

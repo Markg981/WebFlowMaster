@@ -189,6 +189,27 @@ A new **organization-scoped table** needs, in the same migration:
 Mirror the table in `shared/schema.ts` (Drizzle) with a comment explaining it. Apply with
 `npm run db:migrate`; the tests apply all migrations to every test database.
 
+#### jsonb payloads
+
+Every `jsonb` column is listed in `shared/jsonb-payloads.ts` with the way its content changes
+shape; a test fails when a new column is missing there. Four strategies:
+
+- **versioned**: an object payload that carries `schemaVersion`, read and written through a
+  `versionedPayload` (`shared/payload-version.ts`). To change its shape, raise `version` and add the
+  upgrade from the previous one; stored rows are upgraded when read and never rewritten. A row
+  without `schemaVersion` counts as version 1. A payload written by a newer build raises
+  `NewerPayloadError` rather than being read as the old shape. `report_test_case_results.ai_analysis`
+  (`shared/failure-analysis.ts`) is the reference.
+- **migration**: arrays and older payloads with no version. Change the shape with a data migration
+  that rewrites the existing rows, in the same PR as the code that reads the new shape.
+- **snapshot**: historical records, such as test versions and what a run was queued with. They
+  are never rewritten: run snapshots carry a fingerprint for reproducibility. Code that restores or
+  reruns one has to accept every shape ever written.
+- **opaque**: stored and returned as written, such as audit metadata, recorded headers and
+  encrypted envelopes.
+
+Prefer **versioned** for a new object payload.
+
 ### API
 
 - Routes live in `server/routes/<area>.routes.ts` and are mounted in `server/routes.ts`.
