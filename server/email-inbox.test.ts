@@ -94,6 +94,11 @@ describe('what the step reads out of an email', () => {
       htmlToText('<style>p{}</style><p>Code&nbsp;<b>123456</b></p><p>Bye &amp; thanks</p>'),
     ).toBe('Code 123456\nBye & thanks');
   });
+
+  it('decodes an escaped entity once, not twice', () => {
+    // The email shows the literal text "&lt;": decoding &amp; first would turn it into "<".
+    expect(htmlToText('<p>a &amp;lt; b</p>')).toBe('a &lt; b');
+  });
 });
 
 // ─── A Mailpit and an application ────────────────────────────────────────────

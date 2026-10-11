@@ -27,9 +27,18 @@ const required = <T>(value: T | undefined | null, description: string): T => {
 };
 
 export function looksLikeWsdl(text: string): boolean {
-  return /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<([\w-]+:)?(definitions|description)[\s>]/.test(
-    text,
-  );
+  // Skips the XML declaration and leading comments with indexOf rather than one regex: a
+  // repeated `(<!--[\s\S]*?-->\s*)*` backtracks exponentially on many unclosed `<!--`, and this
+  // runs on uploaded text.
+  let rest = text.trimStart();
+  const declaration = /^<\?xml[^>]*>/.exec(rest);
+  if (declaration) rest = rest.slice(declaration[0].length).trimStart();
+  while (rest.startsWith('<!--')) {
+    const end = rest.indexOf('-->', 4);
+    if (end === -1) return false;
+    rest = rest.slice(end + 3).trimStart();
+  }
+  return /^<([\w-]+:)?(definitions|description)[\s>]/.test(rest);
 }
 
 /** A bounded document/literal skeleton, preserving each element's schema namespace. */

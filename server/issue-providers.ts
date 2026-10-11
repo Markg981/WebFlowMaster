@@ -306,7 +306,7 @@ export const MAX_IMPORTED_ITEMS = 500;
 /** The query used when neither keys nor a query are given: the project's epics and stories. */
 export function defaultItemQuery(config: TrackerConfig): string {
   return config.provider === 'jira'
-    ? `project = "${config.projectKey.replace(/"/g, '\\"')}" AND issuetype in (Epic, Story) ORDER BY key`
+    ? `project = "${config.projectKey.replace(/[\\"]/g, '\\$&')}" AND issuetype in (Epic, Story) ORDER BY key`
     : "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project AND [System.WorkItemType] IN ('Epic', 'Feature', 'User Story', 'Product Backlog Item', 'Requirement') ORDER BY [System.Id]";
 }
 

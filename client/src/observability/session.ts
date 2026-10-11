@@ -1,6 +1,11 @@
 const SESSION_KEY = 'wfm:sessionId';
 
-const randomId = (prefix: string): string => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+// Tracing ids, not credentials, but drawn from the platform CSPRNG anyway: getRandomValues works
+// outside secure contexts too (plain-HTTP installations), unlike crypto.randomUUID.
+const randomId = (prefix: string): string => {
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  return `${prefix}-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+};
 
 /**
  * One id per browser tab, surviving reloads within the tab. Used to stitch a whole user

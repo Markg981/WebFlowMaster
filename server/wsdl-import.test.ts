@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { importApiDescription } from './api-import';
+import { looksLikeWsdl } from './wsdl-import';
 import { baseXsd, bundle, distributedWsdl, requestXsd, wsdl2 } from './tests/soap-bundle-fixtures';
 
 describe('offline SOAP document bundles', () => {
@@ -277,5 +278,25 @@ describe('offline SOAP document bundles', () => {
     expect(importApiDescription(content, { documents: bundle }).warnings.join(' ')).toMatch(
       /SOAP module.*not carried over/i,
     );
+  });
+});
+
+describe('recognising a WSDL document', () => {
+  it('skips the XML declaration and leading comments', () => {
+    expect(looksLikeWsdl('<?xml version="1.0"?>\n<!-- a -->\n<!-- b -->\n<wsdl:definitions>')).toBe(
+      true,
+    );
+    expect(looksLikeWsdl('<description xmlns="http://www.w3.org/ns/wsdl">')).toBe(true);
+    expect(looksLikeWsdl('<!-- unclosed <definitions>')).toBe(false);
+    expect(looksLikeWsdl('<html>')).toBe(false);
+  });
+
+  it('answers quickly on many unclosed comments', () => {
+    // The previous single regex backtracked exponentially on this input: time tripled with every
+    // two more repetitions, so 40 would have taken minutes.
+    const started = Date.now();
+    expect(looksLikeWsdl('<!--' + '--><!--'.repeat(40) + 'x')).toBe(false);
+    expect(looksLikeWsdl('<!--'.repeat(50_000))).toBe(false);
+    expect(Date.now() - started).toBeLessThan(500);
   });
 });

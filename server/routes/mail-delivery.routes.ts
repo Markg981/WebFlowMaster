@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireRole } from '../middleware/require-role';
+import { webhookRateLimit } from '../middleware/rate-limits';
 import { organizationMailConfigured } from '../mailer';
 import { getTenantOrgId } from '../middleware/tenancy';
 import { getOrganizationTrackingStatus } from '../mail-settings';
@@ -13,29 +14,34 @@ import {
 } from '../mail-delivery';
 
 /** The public router is mounted before session authorization. Its credential is the HMAC,
- * checked before lookup; no browser session authorizes a delivery event. */
+ * checked before lookup; no browser session authorizes a delivery event. Limited per client
+ * address like the other public webhooks, so signatures cannot be tried at any speed. */
 export const mailDeliveryWebhookRouter = Router();
-mailDeliveryWebhookRouter.post('/api/mail-deliveries/events', async (req, res) => {
-  if (!trackingConfigured())
-    return res.status(503).json({ error: 'Delivery tracking is not configured' });
-  const parsed = deliveryEventSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'Invalid delivery event' });
-  if (
-    !verifyDeliverySignature(
-      req.get('X-Wfm-Mail-Timestamp'),
-      req.get('X-Wfm-Mail-Signature'),
-      parsed.data,
+mailDeliveryWebhookRouter.post(
+  '/api/mail-deliveries/events',
+  webhookRateLimit(),
+  async (req, res) => {
+    if (!trackingConfigured())
+      return res.status(503).json({ error: 'Delivery tracking is not configured' });
+    const parsed = deliveryEventSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid delivery event' });
+    if (
+      !verifyDeliverySignature(
+        req.get('X-Wfm-Mail-Timestamp'),
+        req.get('X-Wfm-Mail-Signature'),
+        parsed.data,
+      )
     )
-  )
-    return res.status(401).json({ error: 'Invalid delivery event signature' });
-  try {
-    const result = await receiveDeliveryEvent(parsed.data);
-    if (!result) return res.status(404).json({ error: 'Message not found' });
-    res.json(result);
-  } catch {
-    res.status(500).json({ error: 'Could not record delivery event' });
-  }
-});
+      return res.status(401).json({ error: 'Invalid delivery event signature' });
+    try {
+      const result = await receiveDeliveryEvent(parsed.data);
+      if (!result) return res.status(404).json({ error: 'Message not found' });
+      res.json(result);
+    } catch {
+      res.status(500).json({ error: 'Could not record delivery event' });
+    }
+  },
+);
 const router = Router();
 router.get('/api/mail-deliveries', requireRole('owner'), async (req, res) => {
   const limit = z.coerce
