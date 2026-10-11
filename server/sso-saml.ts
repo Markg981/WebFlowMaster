@@ -687,16 +687,16 @@ export async function finishSamlLogout(
 ): Promise<{ redirectUrl?: string; response: boolean; revoked: number }> {
   if (!row.samlSloUrl || !spPrivateKey(row)) throw new Error('Single logout is not configured.');
   const params = req.method === 'GET' ? req.query : req.body;
-  const messageType =
-    typeof params.SAMLRequest === 'string'
-      ? 'SAMLRequest'
-      : typeof params.SAMLResponse === 'string'
-        ? 'SAMLResponse'
-        : null;
+  // A query or form field may arrive as an array (`?SAMLRequest=a&SAMLRequest=b`); read each one
+  // once, as a string or not at all, and use only that value below.
+  const request = typeof params.SAMLRequest === 'string' ? params.SAMLRequest : undefined;
+  const response = typeof params.SAMLResponse === 'string' ? params.SAMLResponse : undefined;
+  const message = request ?? response;
+  const messageType = request !== undefined ? 'SAMLRequest' : 'SAMLResponse';
   if (
-    !messageType ||
+    message === undefined ||
     (params.SAMLRequest && params.SAMLResponse) ||
-    params[messageType].length > 2_000_000
+    message.length > 2_000_000
   )
     throw new Error('Supply one bounded SLO message.');
   const rootName = messageType === 'SAMLRequest' ? 'LogoutRequest' : 'LogoutResponse';
@@ -723,7 +723,7 @@ export async function finishSamlLogout(
     )
       throw new Error('Duplicate or unsupported SLO query parameters.');
     root = readXml(
-      inflateRawSync(Buffer.from(params[messageType], 'base64'), {
+      inflateRawSync(Buffer.from(message, 'base64'), {
         maxOutputLength: 1_000_000,
       }).toString('utf8'),
       rootName,
@@ -731,11 +731,7 @@ export async function finishSamlLogout(
     );
     await saml.validateRedirectAsync(params, query);
   } else {
-    root = signedPostLogoutRoot(
-      Buffer.from(params[messageType], 'base64').toString('utf8'),
-      row,
-      rootName,
-    );
+    root = signedPostLogoutRoot(Buffer.from(message, 'base64').toString('utf8'), row, rootName);
   }
   const destination = spUrls(publicBase, row.organizationId).sloUrl;
   const issuedAt = Date.parse(root.getAttribute('IssueInstant') || '');
