@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { login, register } from './helpers';
 
 test('registration proceeds when a nonessential image has not finished loading', async ({

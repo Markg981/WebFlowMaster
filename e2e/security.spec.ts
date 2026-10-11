@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, openPage } from './fixtures';
 import { authenticatorCode, login, logout, register, unique } from './helpers';
 
 test('MFA enrollment gates login, rejects a wrong code and consumes a recovery code once', async ({
@@ -68,7 +68,7 @@ test('OIDC login returns from a real HTTPS provider and preserves the viewer per
     ignoreHTTPSErrors: true,
   });
   try {
-    const reader = await context.newPage();
+    const reader = await openPage(context);
     await reader.goto('/auth');
     await reader.getByRole('button', { name: 'Sign in with SSO', exact: true }).click();
     await reader.getByLabel('Work e-mail address', { exact: true }).fill(`viewer@${domain}`);

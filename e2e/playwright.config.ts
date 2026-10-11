@@ -20,12 +20,12 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
       // In CI Firefox sometimes stops answering Playwright on the first navigation of a new
       // page: the server answers in milliseconds and the app renders (traces of the failing
-      // runs), yet goto never sees the commit and no locator after it gets an answer. Zero to
-      // three tests a run, a different set each time, Firefox only. Waiting longer in the test
-      // does not help, and turning off site isolation (fission prefs, October 2026) did not
-      // change the rate: the cause is still open. A retry runs in a new worker with a new
-      // browser and passes; the report lists the test as flaky, and a failure that repeats
-      // fails the run as before.
+      // runs), yet goto never sees the commit and no locator after it gets an answer. Firefox
+      // only, a different set of tests each run; turning off site isolation (fission prefs,
+      // October 2026) did not change the rate and the cause is still open. Every page therefore
+      // comes from openPage (fixtures.ts), which spends that first navigation on /healthz and
+      // replaces a page that loses it. The retry stays as a second line of defence; a failure
+      // that repeats fails the run as before.
       retries: process.env.CI ? 1 : 0,
     },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
