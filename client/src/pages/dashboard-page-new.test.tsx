@@ -2,8 +2,6 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import DashboardPageNew from './dashboard-page-new';
 // The real class, reached through the mock below, which spreads the original module: the
 // save path checks `instanceof`, so a stand-in would make the overwrite prompt unreachable.
@@ -127,9 +125,7 @@ const renderPage = () => {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <DndProvider backend={HTML5Backend}>
-        <DashboardPageNew />
-      </DndProvider>
+      <DashboardPageNew />
     </QueryClientProvider>,
   );
 };
