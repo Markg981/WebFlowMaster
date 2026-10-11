@@ -3,7 +3,7 @@
 `wfm` runs test plans from a pipeline: it starts a run, waits for it, writes its reports, and
 exits with a code the pipeline acts on. It talks only to the [REST API](./api), so a key with the
 scopes `runs:write` and `runs:read` is enough. The recipes for each CI system are in
-[CI integration](../CI_INTEGRATION).
+[CI integration](../integrations/ci).
 
 ## Getting it
 
@@ -71,7 +71,7 @@ WebFlowMaster metadata restores original actions or BDD source. For real Cucumbe
 `--bdd-mode cucumber --bdd-profile DESTINATION_UUID --bdd-revision SUPPORT_REVISION`.
 The organization owner configures the authorized destination profile on a dedicated agent;
 the operator installs JavaScript/TypeScript definitions. Portable executable imports require this
-explicit binding. See [Gherkin/Cucumber details](../../gherkin-files).
+explicit binding. See [Gherkin/Cucumber details](../guide/gherkin-files).
 
 ## What it reads from the CI system
 

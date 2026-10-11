@@ -155,7 +155,7 @@ The full story, with the state machine, is in [Run lifecycle](./execution).
 The CLI (`wfm run <plan> --wait`) calls `/api/v1` with a scoped API key, sends the CI context it
 reads from the CI system's environment (repository, commit, branch, build URL), polls until the run
 ends, writes the requested reports, and exits `0` (passed), `1` (failed) or `2` (could not run).
-See the [CI integration guide](../CI_INTEGRATION).
+See the [CI integration guide](../integrations/ci).
 
 ## Cross-cutting principles
 

@@ -89,7 +89,7 @@ the captured-variable contract. Read this construction before changing sharding 
 The agent initiates outbound connections. It is an execution boundary with organization/pool
 credentials and signed, short-lived tickets, not a general remote shell. Browser slots, native API
 sessions and BDD profiles have capability and lifecycle rules. Agent absence, a stale revision or an
-incompatible browser version must yield an actionable error. See [local agents](../LOCAL_AGENT)
+incompatible browser version must yield an actionable error. See [local agents](../integrations/local-agents)
 and [agent internals](./agents).
 
 ## From request to durable report
@@ -122,7 +122,7 @@ Delivery follows execution: notifications, issue tracking, commit statuses and t
 publication expose their own outcomes. An integration failure must be visible without rewriting
 the test verdict. Export formats serve different consumers: JUnit for CI, HTML/PDF for readers and
 Allure for report tooling. See [run lifecycle](./execution), [results](../guide/results) and
-[CI integration](../CI_INTEGRATION).
+[CI integration](../integrations/ci).
 
 ## Security boundaries to preserve
 

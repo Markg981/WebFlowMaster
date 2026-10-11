@@ -70,7 +70,7 @@ Due cose conviene prepararle prima del primo test, in **Impostazioni**:
 4. **Piani di test → + Piano di test**: date un nome al piano e aggiungetegli il test.
 5. **Esegui** il piano, e aprite il report quando finisce.
 6. Quando passa in modo affidabile, **Schedulazione → Crea pianificazione** per eseguirlo ogni
-   notte, oppure eseguitelo dalla vostra pipeline ([Integrazione CI](../CI_INTEGRATION)).
+   notte, oppure eseguitelo dalla vostra pipeline ([Integrazione CI](../integrations/ci)).
 
 ## Impostazioni personali
 

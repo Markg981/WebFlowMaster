@@ -74,7 +74,7 @@ their existing behavior when this setting is absent.
   a separate network namespace for each individual test.
 - Direct TCP protocols such as database tests and SMTP, external browser grids and SDKs
   that do not support the proxy fail closed. Use a customer
-  [local agent](../LOCAL_AGENT) for private applications; restrict that agent's network
+  [local agent](../integrations/local-agents) for private applications; restrict that agent's network
   separately. Allowlisting a private name does not grant a private route.
 - DNS goes through Docker's embedded resolver. DNS queries themselves are not filtered by
   the HTTP allowlist. This profile is destination isolation, not protection against every

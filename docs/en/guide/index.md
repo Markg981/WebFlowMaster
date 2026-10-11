@@ -69,7 +69,7 @@ Two things are worth setting up before the first test, in **Settings**:
 4. **Test plans → + Test Plan**: name the plan and add the test to it.
 5. **Run** the plan, and open the report when it finishes.
 6. When it passes reliably, **Scheduling → Create Schedule** to run it every night, or run it from
-   your pipeline ([CI integration](../CI_INTEGRATION)).
+   your pipeline ([CI integration](../integrations/ci)).
 
 ## Personal settings
 

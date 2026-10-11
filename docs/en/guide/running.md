@@ -51,7 +51,7 @@ relying on this behavior during a rolling deployment.
 | **Workers sharing a run** | 1 to 8 runners for one run, each running the number above at once; see [One run on several runners](#shards). 1 keeps the run on one runner. |
 | **Keep a recording of the run** | A **video** and a Playwright **trace** of each test — never, when the test fails, or always — and the **network** traffic as a HAR file. They answer what a screenshot cannot, and use disk on every run. |
 | **Visual testing** | Compares each step's screenshot with its baseline; see [Visual testing](./results#visual-testing). |
-| **Run on** | This server's runners, a pool of [local agents](../LOCAL_AGENT) inside your own network, or a [browser grid](#browser-grids). |
+| **Run on** | This server's runners, a pool of [local agents](../integrations/local-agents) inside your own network, or a [browser grid](#browser-grids). |
 | **File failures in** | An issue tracker (Jira, Azure DevOps) connected by an owner. With **Open an issue when a test fails**, each failing test and browser gets one issue; the same failure later is added to it as a comment. |
 | **Publish results to** | TestRail, Xray or Zephyr Scale, connected in **Settings → Test management**: every finished run is published there case by case; see [Publishing to TestRail, Xray or Zephyr](./results#test-management). |
 | **Send notification when** and the webhook URL | A message to a Slack or Microsoft Teams incoming webhook, or any URL that accepts a POST, when a run passes, fails, is not executed or is stopped. The e-mail addresses listed there are mailed too, when the installation sends e-mail. |
@@ -117,7 +117,7 @@ desktop and Chromium as a Pixel 7 are two results per test, and the report says 
 Choose the engine the device's own browser is built on — **WebKit** for an iPhone or an iPad,
 **Chromium** or **Chrome** for Android — for the closest result. **Firefox** cannot emulate a device;
 the choice is not offered for it. Devices are set in the plan's settings (not in the plan wizard),
-and work on the server's runners, on [local agents](../LOCAL_AGENT) and on a [browser grid](#browser-grids),
+and work on the server's runners, on [local agents](../integrations/local-agents) and on a [browser grid](#browser-grids),
 whose desktop browser then shows the device.
 
 This is emulation, not a real phone: what depends on the device itself — iOS Safari's own
@@ -179,7 +179,7 @@ The dashboard lists the next scheduled runs.
 ## From a pipeline
 
 A plan can be started by your CI system and its result can fail the build: with an API key and the
-`wfm` command line, or with the plan's webhook. See [CI integration](../CI_INTEGRATION).
+`wfm` command line, or with the plan's webhook. See [CI integration](../integrations/ci).
 
 ### Running only what a change affects {#impact}
 

@@ -144,7 +144,7 @@ person waits for.
 
 ## CLI (`wfm`)
 
-Set in the pipeline, not on the server. See [CI integration](../CI_INTEGRATION).
+Set in the pipeline, not on the server. See [CI integration](../integrations/ci).
 
 | Variable | Description |
 |---|---|
@@ -154,7 +154,7 @@ Set in the pipeline, not on the server. See [CI integration](../CI_INTEGRATION).
 
 ## Local agent (`wfm-agent`)
 
-Set on the agent's machine. See [Local agents](../LOCAL_AGENT).
+Set on the agent's machine. See [Local agents](../integrations/local-agents).
 
 | Variable | Default | Description |
 |---|---|---|

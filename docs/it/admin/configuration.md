@@ -144,7 +144,7 @@ elementi: i browser che una persona aspetta.
 
 ## CLI (`wfm`)
 
-Si impostano nella pipeline, non sul server. Vedi [Integrazione CI](../CI_INTEGRATION).
+Si impostano nella pipeline, non sul server. Vedi [Integrazione CI](../integrations/ci).
 
 | Variabile | Descrizione |
 |---|---|
@@ -154,7 +154,7 @@ Si impostano nella pipeline, non sul server. Vedi [Integrazione CI](../CI_INTEGR
 
 ## Agente locale (`wfm-agent`)
 
-Si impostano sulla macchina dell'agente. Vedi [Agenti locali](../LOCAL_AGENT).
+Si impostano sulla macchina dell'agente. Vedi [Agenti locali](../integrations/local-agents).
 
 | Variabile | Default | Descrizione |
 |---|---|---|

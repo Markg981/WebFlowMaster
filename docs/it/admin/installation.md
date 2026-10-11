@@ -42,7 +42,7 @@ server PostgreSQL (vedi [Tenancy](../internals/tenancy)).
 - **PostgreSQL 15 o successivo** per tutto ciò che va oltre la valutazione.
 - **Redis 6.2 o successivo, oppure Valkey**, raggiungibile dal processo web e da ogni worker.
 - Accesso di rete in uscita dai worker verso le applicazioni da testare, oppure un
-  [agente locale](../LOCAL_AGENT) dentro la rete in cui si trovano.
+  [agente locale](../integrations/local-agents) dentro la rete in cui si trovano.
 - Memoria, come ordine di grandezza: circa 1 GB per il processo web, e 1–2 GB su un worker per
   ogni browser che esegue contemporaneamente (`WORKER_CONCURRENCY` × il parallelismo del piano).
   Misuratelo con le vostre suite.

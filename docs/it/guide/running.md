@@ -53,7 +53,7 @@ su questo comportamento durante un rilascio graduale.
 | **Worker che si dividono un'esecuzione** | Da 1 a 8 runner per un'esecuzione, ciascuno con il numero indicato sopra di test contemporanei; vedi [Un'esecuzione su più runner](#shard). Con 1 l'esecuzione resta su un solo runner. |
 | **Conserva una registrazione del run** | Un **video** e una **trace** di Playwright di ogni test — mai, quando il test fallisce o sempre — e il traffico di **rete** come file HAR. Rispondono a ciò che uno screenshot non dice, e occupano disco a ogni run. |
 | **Test visivi** | Confronta lo screenshot di ogni step con la sua baseline; vedi [Test visivi](./results#test-visivi). |
-| **Esegui su** | I runner di questo server, un pool di [agenti locali](../LOCAL_AGENT) dentro la vostra rete, o una [griglia di browser](#griglie-di-browser). |
+| **Esegui su** | I runner di questo server, un pool di [agenti locali](../integrations/local-agents) dentro la vostra rete, o una [griglia di browser](#griglie-di-browser). |
 | **Registra i fallimenti in** | Un issue tracker (Jira, Azure DevOps) collegato da un owner. Con **Apri una issue quando un test fallisce**, ogni test e browser che fallisce ottiene una issue; lo stesso fallimento in seguito viene aggiunto come commento. |
 | **Pubblica i risultati su** | TestRail, Xray o Zephyr Scale, collegati in **Impostazioni → Test management**: ogni run concluso vi viene pubblicato caso per caso; vedi [Pubblicare su TestRail, Xray o Zephyr](./results#test-management). |
 | **Invia una notifica quando** e l'URL del webhook | Un messaggio a un incoming webhook di Slack o Microsoft Teams, o a qualsiasi URL che accetti un POST, quando un run passa, fallisce, non viene eseguito o viene fermato. Anche gli indirizzi e-mail elencati lì ricevono una mail, quando l'installazione invia e-mail. |
@@ -121,7 +121,7 @@ Scegliete il motore su cui è costruito il browser del dispositivo — **WebKit*
 iPad, **Chromium** o **Chrome** per Android — per il risultato più vicino. **Firefox** non può
 emulare un dispositivo: per lui la scelta non viene offerta. I dispositivi si impostano nelle
 impostazioni del piano (non nella procedura guidata di creazione) e funzionano sui runner del
-server, sugli [agenti locali](../LOCAL_AGENT) e su una [griglia di browser](#griglie-di-browser), il cui
+server, sugli [agenti locali](../integrations/local-agents) e su una [griglia di browser](#griglie-di-browser), il cui
 browser desktop mostra allora il dispositivo.
 
 È un'emulazione, non un telefono vero: ciò che dipende dal dispositivo stesso — il comportamento
@@ -189,7 +189,7 @@ La dashboard elenca i prossimi run pianificati.
 
 Un piano può essere avviato dal vostro sistema di CI e il suo esito può far fallire la build: con
 una chiave API e la riga di comando `wfm`, oppure con il webhook del piano. Vedi
-[Integrazione CI](../CI_INTEGRATION).
+[Integrazione CI](../integrations/ci).
 
 ### Eseguire solo ciò che una modifica tocca {#impatto}
 

@@ -27,7 +27,7 @@ Per una porta diversa impostare `COLLAUDO_PORT` prima del comando.
   LIB-27…LIB-34, SEC-37…SEC-44), più AGT-06…AGT-10 per gRPC/WebSocket sugli agenti:
   Il catalogo attuale contiene 583 casi, 25 aree, protocollo versione 42.
   MOB-33…MOB-40 coprono flussi nativi, gruppi, matrici dispositivi e catalogo mobile.
-  La procedura e i limiti delle evidenze sono in `docs/mobile-flow-matrix-acceptance.md`.
+  La procedura e i limiti delle evidenze sono in `docs/acceptance/mobile-flow-matrix-acceptance.md`.
   QUO-01…QUO-14 coprono quote per organizzazione, inventario artifact e minuti di esecuzione;
   TEL-01…TEL-12 coprono metriche Prometheus, tracing OpenTelemetry e operatività delle repliche.
   Prerequisiti, copertura e verifiche sono in `collaudo/allineamento-2026-10-05.md`.
@@ -324,7 +324,7 @@ registrato nel client. Utenti Keycloak, tutti con password `Collaudo.2026!`:
 | `reimposta` | reimposta@acme.test | WEB-45: la sua password viene reimpostata via email a ogni esecuzione |
 
 Per SAML avanzato (avvio IdP, cifratura, logout) ed email HTML con rimbalzi, usare anche i
-[casi di collaudo amministrazione](../docs/administration-acceptance.md), con chiavi e relay di test.
+[casi di collaudo amministrazione](../docs/acceptance/administration-acceptance.md), con chiavi e relay di test.
 La fatturazione è sospesa per decisione del 2026-10-02; non configurare pagamenti per questi casi.
 
 **Single sign-on SAML (SSO-13…SSO-17, SEC-31).** Il realm `acme` ha anche un client SAML con

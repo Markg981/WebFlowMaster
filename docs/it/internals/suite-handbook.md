@@ -93,7 +93,7 @@ L'agente avvia connessioni in uscita. È un confine di esecuzione con credenzial
 e ticket firmati a breve durata, non una shell remota generale. Slot browser, sessioni API native e
 profili BDD hanno regole proprie di capacità e ciclo di vita. Agente assente, revisione obsoleta o
 browser incompatibile devono produrre un errore comprensibile. Vedere
-[agenti locali](../LOCAL_AGENT) e [internals agenti](./agents).
+[agenti locali](../integrations/local-agents) e [internals agenti](./agents).
 
 ## Dalla richiesta al report durevole
 
@@ -124,7 +124,7 @@ dei verdetti coinvolge più della scheda del report.
 La consegna segue l'esecuzione: notifiche, issue, commit status e pubblicazione ai sistemi di test
 management espongono esiti propri. Un errore di integrazione deve essere visibile senza riscrivere il
 verdetto del test. JUnit serve alla CI, HTML/PDF ai lettori, Allure al reporting dedicato. Vedere
-[ciclo di vita](./execution), [risultati](../guide/results) e [CI](../CI_INTEGRATION).
+[ciclo di vita](./execution), [risultati](../guide/results) e [CI](../integrations/ci).
 
 ## Confini di sicurezza da conservare
 

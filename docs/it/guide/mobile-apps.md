@@ -20,7 +20,7 @@ Per un **sito** responsive su un telefono non serve: emulate il dispositivo tra 
 ### Sui vostri dispositivi (Appium locale) {#appium-locale}
 
 Emulatori, simulatori e i telefoni sulla scrivania girano tramite un server **Appium** su una
-macchina con un [agente locale](../LOCAL_AGENT). L'agente porta le richieste, quindi il server non
+macchina con un [agente locale](../integrations/local-agents). L'agente porta le richieste, quindi il server non
 ha bisogno di accedere a quella rete, e non si installa nulla oltre ad Appium.
 
 1. Sulla macchina dell'agente: installate Appium e i driver (`npm i -g appium`,

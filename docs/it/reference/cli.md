@@ -3,7 +3,7 @@
 `wfm` esegue i piani di test da una pipeline: avvia un run, lo attende, ne scrive i report ed
 esce con un codice su cui la pipeline decide. Parla solo con l'[API REST](./api), quindi basta una
 chiave con gli scope `runs:write` e `runs:read`. Le ricette per ogni sistema di CI sono in
-[Integrazione CI](../CI_INTEGRATION).
+[Integrazione CI](../integrations/ci).
 
 ## Ottenerla
 
@@ -71,7 +71,7 @@ produce passi manuali; i metadati dell'esportazione WebFlowMaster ripristinano l
 Per eseguire Cucumber aggiungere `--bdd-mode cucumber --bdd-profile UUID_DESTINAZIONE --bdd-revision REVISIONE`.
 Il proprietario configura il profilo autorizzato sull'agente dedicato e l'operatore installa
 le definizioni JavaScript/TypeScript. Gli import portabili eseguibili richiedono questo binding
-esplicito. Vedi [Dettagli Gherkin/Cucumber](../../gherkin-files).
+esplicito. Vedi [Dettagli Gherkin/Cucumber](../guide/gherkin-files).
 
 ## Cosa legge dal sistema di CI
 

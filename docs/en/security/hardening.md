@@ -43,7 +43,7 @@ checks also apply to other deployments where the operator provides equivalent co
     token-based metadata access (for example IMDSv2 on AWS);
   - do not let workers reach administration interfaces of your own infrastructure;
   - let applications inside a customer's network be reached through a
-    [local agent](../LOCAL_AGENT), not by opening routes from the workers.
+    [local agent](../integrations/local-agents), not by opening routes from the workers.
 - Workers on other machines use `ARTIFACT_STORE=s3`, and the bucket is private.
 
 ## Access
