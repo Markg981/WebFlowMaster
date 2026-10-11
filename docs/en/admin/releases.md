@@ -39,8 +39,9 @@ publication only when all of these checks pass:
 
 - The tag equals `package.json` and `package-lock.json` version.
 - The tagged commit belongs to `origin/main`.
-- The latest GitHub Actions runs named `build-and-test`, `network-on-guarded-installation`,
-  `ui-on-real-installation` and `rls-on-real-postgres` succeeded on that exact commit.
+- The latest GitHub Actions runs named `static-checks`, `server-tests`, `client-tests`, `collaudo`,
+  `build`, `network-on-guarded-installation`, `ui-on-real-installation` and `rls-on-real-postgres`
+  succeeded on that exact commit.
 - All three image scans have no HIGH or CRITICAL finding, including findings without a fix.
   Source-lockfile findings must be resolved or meet the exact approved source exception below.
   Missing/malformed reports, missing source coverage or scanner failures fail closed.

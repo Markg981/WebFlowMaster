@@ -6,6 +6,29 @@ on:
   pull_request:
 
 jobs:
+  # A PR that touches only documentation or marketing material cannot change what the
+  # installation jobs prove (restore drill, network policy, E2E on the real installation, RLS
+  # on real Postgres, the resilience tool), and each of them costs minutes of setup. They run
+  # when anything else changed, and always on main.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != pull_request ]; then echo "code=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          code=$(git diff --name-only "$BASE"...HEAD | grep -v -E '^(docs|marketing)/|\.md$' || true)
+          echo "Changed outside docs: ${code:-none}"
+          if [ -n "$code" ]; then echo "code=true"; else echo "code=false"; fi >> "$GITHUB_OUTPUT"
+
   # A file over 5 MB stays in every clone once committed, even if a later commit deletes it:
   # check every blob the new commits introduce, not only the final tree (scripts/check-large-files.mjs).
   large-files:
@@ -24,6 +47,8 @@ jobs:
           node scripts/check-large-files.mjs "$BASE"
 
   resilience-tool:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -36,6 +61,8 @@ jobs:
       - run: npm run test:resilience
 
   application-restore-drill:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -62,8 +89,38 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  build-and-test:
+  # Static checks, unit suites, the acceptance catalog and the build used to run one after the
+  # other in a single job, so a PR waited for all of them in sequence. They share nothing but
+  # `npm ci`, so each now runs in its own job and the slowest one sets the feedback time.
+  static-checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies (root + client workspace)
+        run: npm ci
+
+      - name: Release packaging and publication guards
+        run: npm run test:release && npm run test:security
+
+      - name: Type check
+        run: npm run check
+
+      - name: Lint
+        run: npm run lint
+
+      # Formatting is available via `npm run format` but not yet enforced as a gate,
+      # since the pre-existing codebase has not been Prettier-formatted in bulk.
+      # - name: Format check
+      #   run: npm run format:check
+
+  server-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     services:
       redis:
@@ -90,12 +147,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
-
       - name: Install dependencies (root + client workspace)
         run: npm ci
 
@@ -130,20 +185,6 @@ jobs:
       - name: Install the browser the tests drive
         run: npx playwright install --with-deps chromium
 
-      - name: Release packaging and publication guards
-        run: npm run test:release && npm run test:security
-
-      - name: Type check
-        run: npm run check
-
-      - name: Lint
-        run: npm run lint
-
-      # Formatting is available via `npm run format` but not yet enforced as a gate,
-      # since the pre-existing codebase has not been Prettier-formatted in bulk.
-      # - name: Format check
-      #   run: npm run format:check
-
       # Under a virtual display, because one suite drives a HEADED browser and a runner has
       # no X server: `startRecordingSession` sets `headless: false` on purpose — a recording
       # session is a window the tester watches and clicks in — so it died with "Missing X
@@ -153,38 +194,79 @@ jobs:
       # The wrapper is harmless to everything else: a headless launch ignores DISPLAY. xvfb
       # itself arrives with `playwright install --with-deps`, which lists it among the tools
       # it installs on Ubuntu.
-      # With coverage: below the thresholds in vitest.config.ts and client/vitest.config.ts the
-      # step fails, so coverage cannot slide unnoticed.
+      # With coverage: below the thresholds in vitest.config.ts the step fails, so coverage
+      # cannot slide unnoticed.
       - name: Server tests
         run: xvfb-run -a npm run test:coverage
 
-      # Was missing: the client suite existed and CI never ran it.
+      - name: Coverage summary
+        if: always()
+        run: node scripts/ci/coverage-summary.mjs Server coverage/coverage-summary.json
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-server
+          path: coverage/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # Was missing: the client suite existed and CI never ran it.
+  client-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies (root + client workspace)
+        run: npm ci
+
+      # With coverage: below the thresholds in client/vitest.config.ts the step fails.
       - name: Client tests
         run: npm run test:coverage --prefix client
 
       - name: Coverage summary
         if: always()
-        run: |
-          node -e "
-            const fs = require('fs');
-            const rows = [['Server', 'coverage/coverage-summary.json'], ['Client', 'client/coverage/coverage-summary.json']]
-              .filter(([, file]) => fs.existsSync(file))
-              .map(([name, file]) => { const t = JSON.parse(fs.readFileSync(file, 'utf8')).total;
-                return '| ' + name + ' | ' + ['lines', 'statements', 'functions', 'branches'].map(k => t[k].pct + '%').join(' | ') + ' |'; });
-            const table = ['| Suite | Lines | Statements | Functions | Branches |', '|---|---|---|---|---|', ...rows].join('\n');
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '### Coverage\n\n' + table + '\n');
-          "
+        run: node scripts/ci/coverage-summary.mjs Client client/coverage/coverage-summary.json
 
-      - name: Upload coverage reports
+      - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: coverage
-          path: |
-            coverage/
-            client/coverage/
+          name: coverage-client
+          path: client/coverage/
           retention-days: 14
           if-no-files-found: ignore
+
+  collaudo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies (root + client workspace)
+        run: npm ci
+      - name: Resolve the Playwright version the lockfile pins
+        id: playwright
+        run: |
+          version=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Collaudo application tests
         run: npm run test:collaudo
@@ -192,13 +274,27 @@ jobs:
       - name: Verify acceptance catalog in Chromium
         run: npm run test:collaudo:browser
 
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies (root + client workspace)
+        run: npm ci
+
       - name: Build all application deliverables
         run: npm run build
 
       - name: Build documentation (including link checks)
         run: npm run docs:build
 
-      - name: Pass the verified application bundles to the installation tests
+      # The installation tests start from these bundles as soon as the build is done, in
+      # parallel with the unit suites; a failure in either still fails the workflow.
+      - name: Pass the application bundles to the installation tests
         uses: actions/upload-artifact@v7
         with:
           name: application-bundles
@@ -207,6 +303,8 @@ jobs:
           retention-days: 7
 
   network-on-guarded-installation:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -229,7 +327,8 @@ jobs:
         run: npm run test:network:production
 
   ui-on-real-installation:
-    needs: build-and-test
+    needs: [changes, build]
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     # Installing all three engines took 14 minutes in run 37676375604;
     # reserve enough time for the complete UI matrix and evidence upload.
@@ -294,16 +393,18 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  # The suite above runs on PGlite, which connects as `postgres` — a superuser. Row-level
+  # The server-tests job runs on PGlite, which connects as `postgres` — a superuser. Row-level
   # security is SILENTLY INERT under a superuser: with ENABLE, FORCE and a correct policy in
   # place, a superuser still sees every organization's rows and can UPDATE across them, with no
   # error and no warning. And `SET LOCAL ROLE app_user`, which the whole tenancy design rests
   # on, trivially succeeds for a superuser whether or not the membership grant exists.
   #
-  # So the job above cannot tell a working isolation boundary from an absent one. This job can:
+  # So that job cannot tell a working isolation boundary from an absent one. This job can:
   # a real Postgres, reached as a role that is not a superuser, which is what production looks
   # like. It is the only place the feature is actually proved.
   rls-on-real-postgres:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
 
     services:
