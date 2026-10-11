@@ -221,7 +221,8 @@ persona con un canale che ne confermi l'identità.
 
 | Cosa | Segnale |
 |---|---|
-| Processo web attivo | `GET /api/user` risponde `401` a una richiesta anonima. `5xx` o nessuna risposta significa che è giù. |
+| Processo web attivo | `GET /healthz` risponde `200` senza toccare alcuna dipendenza: usatelo come liveness probe, così un'interruzione del database non fa riavviare il processo. |
+| Processo web pronto | `GET /readyz` risponde `200` quando PostgreSQL, il Redis di code e rate limit e lo store delle sessioni rispondono entro 2 secondi; altrimenti `503` con il controllo fallito, ad esempio `{"status":"not ready","checks":{"database":"failed","redis":"ok","sessions":"ok"}}`. L'`HEALTHCHECK` dell'immagine e un load balancer usano questo. Nessuno dei due richiede sessione o token. |
 | Worker | **Impostazioni → Runner**: online, in svuotamento o offline, con i job in corso e la versione. Un runner non sentito da `RUNNER_OFFLINE_AFTER_MS` è offline. |
 | Pressione sulla coda | **Impostazioni → Utilizzo dei run**: run in corso e in attesa dell'organizzazione rispetto ai suoi limiti, e quanti runner sono online. |
 | Run persi | Run che terminano in *errore* con motivo `worker_lost`: un worker è morto o è stato riavviato durante il run. |

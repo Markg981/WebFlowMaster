@@ -35,7 +35,7 @@ implementate e non devono essere riproposte come sviluppo mancante.
 - [Release](../admin/releases): basi per digest, runtime non-root, build riproducibili,
   SBOM e gate di sicurezza già implementati. Pubblicazione e upgrade restano prove distinte.
 
-Il catalogo corrente è `collaudo/casi.json`: protocollo 41, 582 casi. Lo storico locale del
+Il catalogo corrente è `collaudo/casi.json`: protocollo 42, 583 casi. Lo storico locale del
 27 settembre contiene 299 esiti (290 pass, 8 bloccati, 1 N/A) e conserva il proprio catalogo.
 L'allineamento locale applica il catalogo corrente e crea un nuovo ciclo Da eseguire;
 non assegna esiti manuali dai risultati automatici.

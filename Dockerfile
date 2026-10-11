@@ -59,9 +59,11 @@ USER pwuser
 # Matches the default in server/config.ts. The compose file publishes it; PORT overrides it.
 EXPOSE 5000
 
-# Reports unhealthy until the server is actually accepting requests, so a dependent service
-# waiting on this one waits for a working API rather than for a started container.
+# Reports unhealthy until the server can serve requests (server/health.ts): PostgreSQL, Redis and
+# the session store answer. A dependent service waits for a working API rather than for a started
+# container. It used to fetch /api/user and accept any status under 500, a 401 with the database
+# down included.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||5000)+'/api/user').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||5000)+'/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "dist/index.js"]
