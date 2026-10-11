@@ -33,7 +33,7 @@ import { ProtocolConfigSchema, type ProtocolConfig } from '@shared/api-protocol-
 import type { ApiPerformance } from '@shared/api-performance';
 import { EnvironmentSelect } from '@/components/EnvironmentSelect';
 import { NO_ENVIRONMENT, environmentIdFor } from '@/hooks/use-environments';
-import { AuthorizationPanel, emptyAuthParamsFor } from '@/components/api-tester/AuthorizationPanel';
+import { AuthorizationPanel } from '@/components/api-tester/AuthorizationPanel';
 import {
   ApiTestHistoryEntry,
   InsertApiTestHistoryPayload,
@@ -58,8 +58,14 @@ import {
   type KeyValuePair,
   type MultipartPart,
   type ProxyResponse,
-  fileToBase64,
 } from '@/components/api-tester/request-model';
+import {
+  buildRequest,
+  emptyFormDataRow,
+  emptyUrlEncodedRow,
+  parseKeyValueRows,
+  requestFromTest,
+} from '@/components/api-tester/request-state';
 const ApiTesterForm: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -401,168 +407,45 @@ const ApiTesterForm: React.FC = () => {
       return;
     }
 
-    const processedHeaders = requestHeaders
-      .filter((h) => h.enabled && h.key.trim())
-      .reduce(
-        (acc, h) => {
-          acc[h.key] = h.value;
-          return acc;
-        },
-        {} as Record<string, string>,
-      );
-
-    const processedQueryParams = queryParams
-      .filter((p) => p.enabled && p.key.trim())
-      .reduce(
-        (acc, p) => {
-          if (acc[p.key]) {
-            if (Array.isArray(acc[p.key])) {
-              (acc[p.key] as string[]).push(p.value);
-            } else {
-              acc[p.key] = [acc[p.key] as string, p.value];
-            }
-          } else {
-            acc[p.key] = p.value;
-          }
-          return acc;
-        },
-        {} as Record<string, string | string[]>,
-      );
-
-    // Authentication is applied by the server, not here.
-    //
-    // This used to build the Authorization header in the browser and send only the result,
-    // which had three consequences. `{{name}}` in a token or a password was sent to the
-    // target literally, because the environment's values live on the server and this page
-    // has never had them. The same test authenticated one way from this page and another
-    // way from a plan, since a scheduled run goes through the runner's own implementation.
-    // And OAuth 2.0 could not be added at all: the token endpoint is a different origin,
-    // and the client secret would be handed to anyone with the developer tools open.
-    //
-    // So the settings go to the server as settings, and one implementation applies them.
-
-    let finalBody: any = undefined;
-    let finalContentType: string | undefined = undefined;
-    // Form-data and files go to the proxy as JSON like everything else, where a FormData or a
-    // File would arrive as `{}`: the parts travel described, files as base64.
-    let multipart: MultipartPart[] | undefined = undefined;
-    let binary: { contentType: string; base64: string; fileName: string } | undefined = undefined;
-
-    if (method !== 'GET' && method !== 'HEAD') {
-      switch (selectedBodyType) {
-        case 'none':
-          finalBody = undefined;
-          finalContentType = undefined;
-          break;
-        case 'form-data': {
-          const parts: MultipartPart[] = [];
-          for (const field of formDataBody) {
-            if (!field.enabled || !field.key) continue;
-            if (field.type === 'file' && field.value instanceof File) {
-              parts.push({
-                key: field.key,
-                type: 'file',
-                fileName: field.value.name,
-                contentType: field.value.type || 'application/octet-stream',
-                base64: await fileToBase64(field.value),
-              });
-            } else if (field.type === 'text') {
-              parts.push({ key: field.key, type: 'text', value: (field.value as string) ?? '' });
-            }
-          }
-          multipart = parts;
-          finalContentType = undefined; // The server sets it, with the boundary
-          break;
-        }
-        case 'x-www-form-urlencoded': {
-          const urlSearchParams = new URLSearchParams();
-          urlEncodedBody.forEach((pair) => {
-            if (pair.enabled && pair.key) {
-              urlSearchParams.append(pair.key, pair.value);
-            }
-          });
-          finalBody = urlSearchParams.toString();
-          finalContentType = 'application/x-www-form-urlencoded;charset=UTF-8';
-          break;
-        }
-        case 'raw':
-          if (requestBodyValue.trim()) {
-            if (rawContentType === 'application/json') {
-              try {
-                finalBody = JSON.parse(requestBodyValue);
-              } catch (e) {
-                finalBody = requestBodyValue; // Send as text if JSON is invalid
-                toast({
-                  title: 'Invalid JSON',
-                  description: 'Request body is not valid JSON. Sending as plain text.',
-                  variant: 'destructive',
-                  duration: 3000,
-                });
-              }
-            } else {
-              finalBody = requestBodyValue;
-            }
-          }
-          finalContentType = rawContentType;
-          break;
-        case 'binary':
-          if (binaryBodyFile) {
-            binary = {
-              contentType: binaryBodyFile.type || 'application/octet-stream',
-              base64: await fileToBase64(binaryBodyFile),
-              fileName: binaryBodyFile.name,
-            };
-          }
-          finalContentType = binaryBodyFile?.type || 'application/octet-stream';
-          break;
-        case 'GraphQL': {
-          const gqlPayload: { query: string; variables?: object } = { query: graphqlQuery };
-          if (graphqlVariables.trim()) {
-            try {
-              gqlPayload.variables = JSON.parse(graphqlVariables);
-            } catch (e) {
-              toast({
-                title: 'Invalid GraphQL Variables',
-                description: 'Variables are not valid JSON. Sending query without variables.',
-                variant: 'destructive',
-                duration: 3000,
-              });
-            }
-          }
-          finalBody = JSON.stringify(gqlPayload);
-          finalContentType = 'application/json';
-          break;
-        }
-      }
+    const request = await buildRequest({
+      method,
+      queryParams,
+      requestHeaders,
+      bodyType: selectedBodyType,
+      rawBody: requestBodyValue,
+      rawContentType,
+      binaryFile: binaryBodyFile,
+      graphqlQuery,
+      graphqlVariables,
+      formData: formDataBody,
+      urlEncoded: urlEncodedBody,
+    });
+    if (request.warnings.includes('invalid-json-body')) {
+      toast({
+        title: 'Invalid JSON',
+        description: 'Request body is not valid JSON. Sending as plain text.',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    }
+    if (request.warnings.includes('invalid-graphql-variables')) {
+      toast({
+        title: 'Invalid GraphQL Variables',
+        description: 'Variables are not valid JSON. Sending query without variables.',
+        variant: 'destructive',
+        duration: 3000,
+      });
     }
 
-    // Update Content-Type header
-    if (finalContentType) {
-      processedHeaders['Content-Type'] = finalContentType;
-    } else {
-      // For FormData, browser sets it, so remove any existing one.
-      // For 'none' or GET/HEAD, also ensure it's not set.
-      delete processedHeaders['Content-Type'];
-      delete processedHeaders['content-type']; // Just in case
-    }
-
-    // Ensure body is undefined for GET/HEAD requests regardless of selectedBodyType
-    if (method === 'GET' || method === 'HEAD') {
-      finalBody = undefined;
-      multipart = undefined;
-      binary = undefined;
-      delete processedHeaders['Content-Type'];
-      delete processedHeaders['content-type'];
-    }
-
+    // Authentication goes as settings (auth), applied by the server: see buildRequest.
     apiProxyMutation.mutate({
       method,
       url, // Base URL, query params are handled separately
-      queryParams: processedQueryParams,
-      headers: processedHeaders,
-      body: finalBody,
-      multipart,
-      binary,
+      queryParams: request.queryParams,
+      headers: request.headers,
+      body: request.body,
+      multipart: request.multipart,
+      binary: request.binary,
       assertions: assertions.filter((a) => a.enabled),
       extractions: extractions.filter((e) => e.name.trim() !== ''),
       environmentId: environmentIdFor(selectedEnvironment),
@@ -713,74 +596,8 @@ const ApiTesterForm: React.FC = () => {
     setMethod(item.method);
     setUrl(item.url);
 
-    // Properly parse queryParams from history item which might be an object or array
-    let parsedQueryParams: KeyValuePair[];
-    if (item.queryParams) {
-      const paramsToParse =
-        typeof item.queryParams === 'string' ? JSON.parse(item.queryParams) : item.queryParams;
-
-      if (Array.isArray(paramsToParse)) {
-        parsedQueryParams = paramsToParse.map((p: any, index: number) => ({
-          id: p.id || `qp-${Date.now()}-${index}`,
-          key: p.key || '',
-          value: p.value || '',
-          enabled: typeof p.enabled === 'boolean' ? p.enabled : true,
-        }));
-      } else if (typeof paramsToParse === 'object' && paramsToParse !== null) {
-        parsedQueryParams = Object.entries(paramsToParse).map(([key, value], index) => ({
-          id: `qp-${Date.now()}-${index}`,
-          key,
-          value: Array.isArray(value) ? value.join(',') : String(value),
-          enabled: true,
-        }));
-      } else {
-        parsedQueryParams = [{ id: `qp-${Date.now()}`, key: '', value: '', enabled: true }];
-      }
-    } else {
-      parsedQueryParams = [{ id: `qp-${Date.now()}`, key: '', value: '', enabled: true }];
-    }
-    if (parsedQueryParams.length === 0) {
-      parsedQueryParams.push({ id: `qp-${Date.now()}-empty`, key: '', value: '', enabled: true });
-    }
-    setQueryParams(parsedQueryParams);
-
-    // Properly parse requestHeaders
-    let parsedRequestHeaders: KeyValuePair[];
-    if (item.requestHeaders) {
-      const headersToParse =
-        typeof item.requestHeaders === 'string'
-          ? JSON.parse(item.requestHeaders)
-          : item.requestHeaders;
-
-      if (Array.isArray(headersToParse)) {
-        parsedRequestHeaders = headersToParse.map((h: any, index: number) => ({
-          id: h.id || `rh-${Date.now()}-${index}`,
-          key: h.key || '',
-          value: h.value || '',
-          enabled: typeof h.enabled === 'boolean' ? h.enabled : true,
-        }));
-      } else if (typeof headersToParse === 'object' && headersToParse !== null) {
-        parsedRequestHeaders = Object.entries(headersToParse).map(([key, value], index) => ({
-          id: `rh-${Date.now()}-${index}`,
-          key,
-          value: String(value),
-          enabled: true,
-        }));
-      } else {
-        parsedRequestHeaders = [{ id: `rh-${Date.now()}`, key: '', value: '', enabled: true }];
-      }
-    } else {
-      parsedRequestHeaders = [{ id: `rh-${Date.now()}`, key: '', value: '', enabled: true }];
-    }
-    if (parsedRequestHeaders.length === 0) {
-      parsedRequestHeaders.push({
-        id: `rh-${Date.now()}-empty`,
-        key: '',
-        value: '',
-        enabled: true,
-      });
-    }
-    setRequestHeaders(parsedRequestHeaders);
+    setQueryParams(parseKeyValueRows(item.queryParams, 'qp'));
+    setRequestHeaders(parseKeyValueRows(item.requestHeaders, 'rh'));
 
     setRequestBodyValue(item.requestBody || '');
     setResponseStatus(item.responseStatus ?? null);
@@ -810,8 +627,8 @@ const ApiTesterForm: React.FC = () => {
     setAuthParams(undefined);
     setSelectedBodyType('raw'); // Or 'none' if preferred, 'raw' is a common default
     setRawContentType('application/json');
-    setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
-    setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
+    setFormDataBody([emptyFormDataRow()]);
+    setUrlEncodedBody([emptyUrlEncodedRow()]);
     setGraphqlQuery('');
     setGraphqlVariables('');
     setBinaryBodyFile(null);
@@ -826,189 +643,33 @@ const ApiTesterForm: React.FC = () => {
   // Memoized so the "load test from ?testId=" effect below doesn't re-run (and re-fetch)
   // on every render. Body only calls stable setters plus toast.
   const loadTestState = useCallback((test: ApiTest) => {
-    setProtocolConfig(
-      (test as ApiTest & { protocolConfig?: ProtocolConfig | null }).protocolConfig ?? null,
-    );
-    setMethod(test.method);
-    setUrl(test.url);
-    if (test.bodyType) setSelectedBodyType(test.bodyType as BodyType);
-
-    const parseKeyValuePairs = (
-      jsonStringOrArray: string | KeyValuePair[] | null | undefined,
-      prefix: 'qp' | 'rh',
-    ): KeyValuePair[] => {
-      if (!jsonStringOrArray)
-        return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-      try {
-        const parsed =
-          typeof jsonStringOrArray === 'string' ? JSON.parse(jsonStringOrArray) : jsonStringOrArray;
-        if (Array.isArray(parsed)) {
-          if (parsed.length === 0)
-            return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-          // Ensure structure matches KeyValuePair (e.g. after loading from DB which might store plain objects)
-          return parsed.map((p: any, i: number) => ({
-            id: p.id || `${prefix}-${Date.now()}-${i}`,
-            key: p.key || '',
-            value: p.value || '',
-            enabled: p.enabled !== undefined ? p.enabled : true,
-          }));
-        } else if (typeof parsed === 'object' && parsed !== null) {
-          // Handle old object format for queryParams
-          return Object.entries(parsed).map(([k, v], i) => ({
-            id: `${prefix}-${Date.now()}-${i}`,
-            key: k,
-            value: Array.isArray(v) ? v.join(',') : String(v),
-            enabled: true,
-          }));
-        }
-      } catch (e) {
-        console.error(`Error parsing ${prefix} from saved test:`, e);
-      }
-      return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-    };
-
-    setQueryParams(parseKeyValuePairs(test.queryParams as any, 'qp'));
-    setRequestHeaders(parseKeyValuePairs(test.requestHeaders as any, 'rh'));
-
-    // Old requestBody is for raw text, primarily.
-    // If selectedBodyType becomes 'raw', this will be its value.
-    setRequestBodyValue(typeof test.requestBody === 'string' ? test.requestBody : '');
-
-    try {
-      setAssertions(
-        test.assertions
-          ? typeof test.assertions === 'string'
-            ? JSON.parse(test.assertions)
-            : test.assertions
-          : [],
-      );
-      setExtractions(
-        (test as any).extractions
-          ? typeof (test as any).extractions === 'string'
-            ? JSON.parse((test as any).extractions)
-            : (test as any).extractions
-          : [],
-      );
-      setPerformance((test as any).performance ?? null);
-    } catch (e) {
-      console.error('Error parsing assertions from saved test:', e);
-      setAssertions([]);
-    }
-
-    // The scheme and its parameters are set together, always. Setting only the ones the
-    // saved test happens to carry left the previous test's credentials in place behind the
-    // new test's scheme — and it is the parameters that are sent.
-    const loadedType = (test.authType as AuthType) || 'none';
-    setAuthType(loadedType);
-    try {
-      const saved = test.authParams
-        ? typeof test.authParams === 'string'
-          ? JSON.parse(test.authParams)
-          : test.authParams
-        : null;
-      setAuthParams(saved ?? emptyAuthParamsFor(loadedType));
-    } catch (e) {
-      console.error('Error parsing authParams from saved test:', e);
-      setAuthParams(emptyAuthParamsFor(loadedType));
-    }
-    setSelectedBodyType((test.bodyType as BodyType) || 'raw');
-    setSelectedBodyType((test.bodyType as BodyType) || 'raw');
-    setRawContentType(test.bodyRawContentType || 'application/json');
-    setGraphqlQuery(test.bodyGraphqlQuery || '');
-    setProtoDefinition((test as { protoDefinition?: string | null }).protoDefinition || '');
-    setGraphqlVariables(test.bodyGraphqlVariables || '');
-    setBinaryBodyFile(null); // Files cannot be re-loaded from DB, user must re-select
-
-    if (test.bodyFormData) {
-      try {
-        const loadedFormData = (
-          typeof test.bodyFormData === 'string' ? JSON.parse(test.bodyFormData) : test.bodyFormData
-        ) as Array<any>;
-        setFormDataBody(
-          loadedFormData.map((item) => ({
-            id: item.id || uuidv4(),
-            key: item.key || '',
-            value: item.type === 'file' ? null : item.value || '', // File objects can't be stored, set to null
-            enabled: item.enabled !== undefined ? item.enabled : true,
-            type: item.type || 'text',
-            // Add fileName and fileType if they exist for file type, to inform the user
-            ...(item.type === 'file' &&
-              item.fileName && {
-                fileNamePlaceholder: item.fileName,
-                fileTypePlaceholder: item.fileType,
-              }),
-          })),
-        );
-        if (loadedFormData.some((item) => item.type === 'file')) {
-          toast({
-            title: 'Form Data Files',
-            description: 'File entries need to be re-selected.',
-            variant: 'default',
-            duration: 4000,
-          });
-        }
-      } catch (e) {
-        console.error('Error parsing bodyFormData from saved test:', e);
-        setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
-      }
-    } else {
-      setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
-    }
-
-    if (test.bodyUrlEncoded) {
-      const loadedUrlEncoded = (
-        typeof test.bodyUrlEncoded === 'string'
-          ? JSON.parse(test.bodyUrlEncoded)
-          : test.bodyUrlEncoded
-      ) as Array<any>;
-      setUrlEncodedBody(
-        loadedUrlEncoded.map((item) => ({
-          id: item.id || uuidv4(),
-          key: item.key || '',
-          value: item.type === 'file' ? null : item.value || '', // File objects can't be stored, set to null
-          enabled: item.enabled !== undefined ? item.enabled : true,
-          type: item.type || 'text',
-          // Add fileName and fileType if they exist for file type, to inform the user
-          ...(item.type === 'file' &&
-            item.fileName && {
-              fileNamePlaceholder: item.fileName,
-              fileTypePlaceholder: item.fileType,
-            }),
-        })),
-      );
-      if (loadedUrlEncoded.some((item) => item.type === 'file')) {
-        toast({
-          title: 'URL Encoded Files',
-          description: 'File entries need to be re-selected.',
-          variant: 'default',
-          duration: 4000,
-        });
-      }
-    } else {
-      setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
-    }
-
-    if (test.bodyUrlEncoded) {
-      try {
-        const loadedUrlEncoded = (
-          typeof test.bodyUrlEncoded === 'string'
-            ? JSON.parse(test.bodyUrlEncoded)
-            : test.bodyUrlEncoded
-        ) as Array<any>;
-        setUrlEncodedBody(
-          loadedUrlEncoded.map((item) => ({
-            id: item.id || uuidv4(),
-            key: item.key || '',
-            value: item.value || '',
-            enabled: item.enabled !== undefined ? item.enabled : true,
-          })),
-        );
-      } catch (e) {
-        console.error('Error parsing bodyUrlEncoded from saved test:', e);
-        setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
-      }
-    } else {
-      setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
+    const loaded = requestFromTest(test);
+    setProtocolConfig(loaded.protocolConfig);
+    setMethod(loaded.method);
+    setUrl(loaded.url);
+    setQueryParams(loaded.queryParams);
+    setRequestHeaders(loaded.requestHeaders);
+    setRequestBodyValue(loaded.rawBody);
+    setAssertions(loaded.assertions);
+    setExtractions(loaded.extractions);
+    setPerformance(loaded.performance);
+    setAuthType(loaded.authType);
+    setAuthParams(loaded.authParams);
+    setSelectedBodyType(loaded.bodyType);
+    setRawContentType(loaded.rawContentType);
+    setGraphqlQuery(loaded.graphqlQuery);
+    setGraphqlVariables(loaded.graphqlVariables);
+    setProtoDefinition(loaded.protoDefinition);
+    setBinaryBodyFile(null); // A file's bytes are not saved: the user picks it again
+    setFormDataBody(loaded.formData);
+    setUrlEncodedBody(loaded.urlEncoded);
+    if (loaded.hasFileFields) {
+      toast({
+        title: 'Form Data Files',
+        description: 'File entries need to be re-selected.',
+        variant: 'default',
+        duration: 4000,
+      });
     }
   }, []);
 
