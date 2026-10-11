@@ -40,21 +40,22 @@ esegue il processo web.
 
 ## Comandi di tutti i giorni
 
-| Comando | Cosa fa |
-|---|---|
-| `npm run dev` / `npm run dev:worker` | Processo web / worker, con `tsx` e `.env`. |
-| `npm run check` | Controllo dei tipi di server, client, codice condiviso, script, Collaudo e test E2E. |
-| `npm run lint` | ESLint su `.ts` e `.tsx`. |
-| `npx vitest run --config vitest.config.ts` | Test del server e degli script. |
-| `npm run test:client -- --run` | Test del client. |
+| Comando                                                           | Cosa fa                                                                                                                                                                                                                       |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev` / `npm run dev:worker`                              | Processo web / worker, con `tsx` e `.env`.                                                                                                                                                                                    |
+| `npm run check`                                                   | Controllo dei tipi di server, client, codice condiviso, script, Collaudo e test E2E.                                                                                                                                          |
+| `npm run lint`                                                    | ESLint su `.ts` e `.tsx`.                                                                                                                                                                                                     |
+| `npm run format:check`                                            | Prettier su tutto l'albero, controllato in CI; `npm run format` riscrive.                                                                                                                                                     |
+| `npx vitest run --config vitest.config.ts`                        | Test del server e degli script.                                                                                                                                                                                               |
+| `npm run test:client -- --run`                                    | Test del client.                                                                                                                                                                                                              |
 | `npm run test:coverage` / `npm run test:coverage --prefix client` | Le stesse suite con la copertura, come le esegue la CI: il passo fallisce sotto le soglie di `vitest.config.ts` e `client/vitest.config.ts`. Report HTML in `coverage/` e `client/coverage/`; la CI li allega all'esecuzione. |
-| `npm run test:collaudo` | Test di storage, storico e import/export dell'applicazione di Collaudo. |
-| `npm run test:e2e` | Accettazione UI sui bundle applicativi e store reali dedicati. |
-| `npm run test:rls` | Test di tenancy e isolamento; richiede un `DATABASE_URL` PostgreSQL reale e rifiuta PGlite. |
-| `npm run build` | Bundle di client, server, worker, migrator, CLI e agente in `dist/`. |
-| `npm run docs:dev` / `npm run docs:build` | Questo sito di documentazione: in diretta / build verificata. |
-| `npm run cli -- run <planId> --wait` | La CLI per pipeline contro il server locale. |
-| `npm run agent` | Un agente locale contro il server locale (`WFM_URL`, `WFM_AGENT_TOKEN`). |
+| `npm run test:collaudo`                                           | Test di storage, storico e import/export dell'applicazione di Collaudo.                                                                                                                                                       |
+| `npm run test:e2e`                                                | Accettazione UI sui bundle applicativi e store reali dedicati.                                                                                                                                                                |
+| `npm run test:rls`                                                | Test di tenancy e isolamento; richiede un `DATABASE_URL` PostgreSQL reale e rifiuta PGlite.                                                                                                                                   |
+| `npm run build`                                                   | Bundle di client, server, worker, migrator, CLI e agente in `dist/`.                                                                                                                                                          |
+| `npm run docs:dev` / `npm run docs:build`                         | Questo sito di documentazione: in diretta / build verificata.                                                                                                                                                                 |
+| `npm run cli -- run <planId> --wait`                              | La CLI per pipeline contro il server locale.                                                                                                                                                                                  |
+| `npm run agent`                                                   | Un agente locale contro il server locale (`WFM_URL`, `WFM_AGENT_TOKEN`).                                                                                                                                                      |
 
 La CI richiede `check`, `lint`, test server e client, `test:collaudo`, `build` e `docs:build`.
 L'isolamento PostgreSQL resta un controllo separato. Il job `ui-on-real-installation` scarica gli
@@ -84,12 +85,12 @@ docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml exec -T postgres psql -U 
 Imposta questi valori per le fixture temporanee nella shell (PowerShell: `$env:NOME='valore'`;
 bash: `export NOME='valore'`):
 
-| Variabile | Valore |
-|---|---|
-| `DATABASE_URL` | `postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5438/wfm_ci_e2e` |
-| `REDIS_URL` | `redis://127.0.0.1:6388` |
-| `SESSION_SECRET` | `ci-e2e-disposable-session-secret` |
-| `ENCRYPTION_KEY` | 64 zeri esadecimali |
+| Variabile        | Valore                                                   |
+| ---------------- | -------------------------------------------------------- |
+| `DATABASE_URL`   | `postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5438/wfm_ci_e2e` |
+| `REDIS_URL`      | `redis://127.0.0.1:6388`                                 |
+| `SESSION_SECRET` | `ci-e2e-disposable-session-secret`                       |
+| `ENCRYPTION_KEY` | 64 zeri esadecimali                                      |
 
 ```sh
 npm run build
@@ -99,8 +100,7 @@ npm run test:e2e
 docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml down -v
 ```
 
-Il runner rifiuta database diversi da `wfm_ci_e2e` e Redis diversi dalla porta loopback dedicata
-6388. Avvia l'API produttiva su 5080, i servizi di prova su 5081/5082 e il provider OIDC HTTPS
+Il runner rifiuta database diversi da `wfm_ci_e2e` e Redis diversi dalla porta loopback dedicata 6388. Avvia l'API produttiva su 5080, i servizi di prova su 5081/5082 e il provider OIDC HTTPS
 su localhost:5083; li arresta dopo la suite. API e worker si fidano del certificato della fixture
 tramite `NODE_EXTRA_CA_CERTS`; la chiave privata versionata è materiale pubblico di test.
 `INSTALLATION_ADMINS=e2e_operator` vale solo in questa installazione sacrificabile e la verifica
@@ -138,15 +138,15 @@ non esegue ogni caso del catalogo di accettazione manuale.
 Alcuni test proteggono proprietà che nessun test di funzionalità noterebbe. Quando uno fallisce ti sta
 chiedendo di rendere esplicita una decisione, non di aggirarlo:
 
-| Test | Protegge |
-|---|---|
-| `server/tests/architecture.test.ts` | Le rotte non importano l'handle privilegiato; ogni file che lo fa resta nel suo `PRIVILEGED_BOOTSTRAP_BUDGET`; l'immagine Playwright di ogni Dockerfile coincide con la versione bloccata di Playwright; il lockfile descrive ogni piattaforma; i servizi compose indicano Dockerfile esistenti. |
-| `server/tests/isolation.test.ts` | Ogni tabella in `ORG_SCOPED_TABLES` ha la RLS e nasconde le righe delle altre organizzazioni. |
-| `server/test-suites.test.ts` (deriva) | Ogni foreign key fra tabelle per organizzazione è protetta come stessa organizzazione o dichiarata come paternità. |
-| `server/execution-snapshot.test.ts` | Ogni colonna di `test_plans` è catturata nello snapshot del run o dichiarata irrilevante per un run. |
-| `server/api-v1/openapi.test.ts` | Il documento OpenAPI e il router `/api/v1` coincidono, rotta per rotta e scope per scope. |
-| `server/audit-trail.test.ts` | Ogni azione e categoria di audit ha un'etichetta in tutte e quattro le lingue. |
-| `client/src/locales/locales.test.ts` | Le traduzioni sono complete e coerenti, e ogni chiave usata dal codice esiste. |
+| Test                                  | Protegge                                                                                                                                                                                                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `server/tests/architecture.test.ts`   | Le rotte non importano l'handle privilegiato; ogni file che lo fa resta nel suo `PRIVILEGED_BOOTSTRAP_BUDGET`; l'immagine Playwright di ogni Dockerfile coincide con la versione bloccata di Playwright; il lockfile descrive ogni piattaforma; i servizi compose indicano Dockerfile esistenti. |
+| `server/tests/isolation.test.ts`      | Ogni tabella in `ORG_SCOPED_TABLES` ha la RLS e nasconde le righe delle altre organizzazioni.                                                                                                                                                                                                    |
+| `server/test-suites.test.ts` (deriva) | Ogni foreign key fra tabelle per organizzazione è protetta come stessa organizzazione o dichiarata come paternità.                                                                                                                                                                               |
+| `server/execution-snapshot.test.ts`   | Ogni colonna di `test_plans` è catturata nello snapshot del run o dichiarata irrilevante per un run.                                                                                                                                                                                             |
+| `server/api-v1/openapi.test.ts`       | Il documento OpenAPI e il router `/api/v1` coincidono, rotta per rotta e scope per scope.                                                                                                                                                                                                        |
+| `server/audit-trail.test.ts`          | Ogni azione e categoria di audit ha un'etichetta in tutte e quattro le lingue.                                                                                                                                                                                                                   |
+| `client/src/locales/locales.test.ts`  | Le traduzioni sono complete e coerenti, e ogni chiave usata dal codice esiste.                                                                                                                                                                                                                   |
 
 ### Test lenti o sensibili
 

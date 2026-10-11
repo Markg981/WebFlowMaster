@@ -24,6 +24,32 @@ const routeFiles = () =>
     .filter((f) => f.endsWith('.routes.ts'))
     .map((f) => ({ name: f, source: fs.readFileSync(path.join(routesDir, f), 'utf8') }));
 
+/**
+ * Every `<receiver>.<method>(` call in a source, with its paths and the middleware chain before
+ * the handler. Read from the whole source rather than line by line: once formatted, a call wraps
+ * its path, middleware and handler onto separate lines, and a path may be single- or
+ * double-quoted or an array of paths. A line-based check missed all of that silently — the
+ * routes.ts rule matched only double-quoted paths and, after the code was formatted with single
+ * quotes, matched no route at all and still passed.
+ */
+function routeCalls(source: string, receiver: string, methods: string[]) {
+  const call = new RegExp(`\\b${receiver}\\.(${methods.join('|')})\\s*\\(`, 'g');
+  const calls: Array<{ method: string; paths: string[]; line: number; chain: string }> = [];
+  for (const match of source.matchAll(call)) {
+    const start = match.index! + match[0].length;
+    // The chain ends where the handler begins: `async (req`, `(req`, `function`. Capped, so a
+    // call with no recognisable handler cannot swallow the rest of the file.
+    const rest = source.slice(start, start + 1500);
+    const handler = rest.search(/\basync\b|\(\s*req\b|\bfunction\b/);
+    const chain = handler === -1 ? rest : rest.slice(0, handler);
+    const paths = [...chain.matchAll(/(['"`])(\/api\/[^'"`]*)\1/g)].map((m) => m[2]);
+    if (!paths.length) continue; // not a route registration (e.g. a variable named app)
+    const line = source.slice(0, match.index).split('\n').length;
+    calls.push({ method: match[1], paths, line, chain });
+  }
+  return calls;
+}
+
 describe('route modules cannot query outside the tenant context', () => {
   /**
    * privilegedDb bypasses RLS. A route importing it — or the deprecated `db` alias — runs as
@@ -89,7 +115,7 @@ describe('route modules cannot query outside the tenant context', () => {
     'websocket.ts': {
       max: 2,
       why:
-        'emitExecutionLog resolves the parent execution\'s organization and then writes the log ' +
+        "emitExecutionLog resolves the parent execution's organization and then writes the log " +
         'row. It is called from the runner, not from a socket message, so there is no ambient ' +
         'tenant to inherit. Subscription authorisation, which IS reachable from the wire, goes ' +
         'through runWithTenant + withTenantTransaction instead.',
@@ -135,7 +161,7 @@ describe('route modules cannot query outside the tenant context', () => {
     'sso.ts': {
       max: 0,
       why:
-        'Single sign-on finds an organization\'s identity provider from an e-mail domain before anyone ' +
+        "Single sign-on finds an organization's identity provider from an e-mail domain before anyone " +
         'is signed in, so it holds the privileged handle, but only for its own tables (organization_sso, ' +
         'sso_domains, sso_identities) and users. Its audit entries are written through the transaction ' +
         'of the change they describe, never through the handle directly.',
@@ -143,10 +169,10 @@ describe('route modules cannot query outside the tenant context', () => {
     'scim.ts': {
       max: 0,
       why:
-        'SCIM finds the organization from the provider\'s bearer token before any tenant exists, so it holds ' +
+        "SCIM finds the organization from the provider's bearer token before any tenant exists, so it holds " +
         'the privileged handle, but only for its own tables (scim_users, scim_groups, scim_group_members), ' +
         'organization_sso, sso_domains and users. Its audit entries are written through the transaction of ' +
-        'the change they describe; removing a member runs as the organization, like the owner\'s removal.',
+        "the change they describe; removing a member runs as the organization, like the owner's removal.",
     },
     'sms-inbox.ts': {
       max: 0,
@@ -158,7 +184,7 @@ describe('route modules cannot query outside the tenant context', () => {
     'execution-orchestrator.ts': {
       max: 1,
       why:
-        'Creating a run starts from nothing but a plan id, so reading that plan\'s organization ' +
+        "Creating a run starts from nothing but a plan id, so reading that plan's organization " +
         'is the query that establishes the tenant context — it cannot run inside one. The ' +
         'requester, environment, idempotency lookup and insert all run under RLS after it.',
     },
@@ -210,18 +236,13 @@ describe('route modules cannot query outside the tenant context', () => {
    */
   it('every route in server/routes.ts declares a required role', () => {
     const source = fs.readFileSync(path.join(serverDir, 'routes.ts'), 'utf8');
-    const lines = source.split('\n');
-    const offenders: string[] = [];
+    const calls = routeCalls(source, 'app', ['get', 'post', 'put', 'patch', 'delete']);
+    // Guards the guard: if the parser stops recognising routes, the rule below passes vacuously.
+    expect(calls.length).toBeGreaterThanOrEqual(20);
 
-    lines.forEach((line, index) => {
-      const match = /app\.(get|post|put|patch|delete)\("(\/api\/[^"]*)"/.exec(line);
-      if (!match) return;
-      // The handler chain can wrap onto following lines; look at a small window.
-      const window = lines.slice(index, index + 4).join(' ');
-      if (!window.includes('requireRole')) {
-        offenders.push(`${match[1].toUpperCase()} ${match[2]} (line ${index + 1})`);
-      }
-    });
+    const offenders = calls
+      .filter(({ chain }) => !chain.includes('requireRole'))
+      .map(({ method, paths, line }) => `${method.toUpperCase()} ${paths[0]} (line ${line})`);
 
     expect(offenders, `routes with no requireRole: ${offenders.join(', ')}`).toEqual([]);
   });
@@ -262,30 +283,37 @@ describe('route modules cannot query outside the tenant context', () => {
    */
   it('every mutating route in a route file that reaches the database declares a required role', () => {
     const offenders: string[] = [];
+    let checked = 0;
 
     for (const { name, source } of routeFiles()) {
       const reachesDatabase = /from\s*['"]@shared\/schema['"]/.test(source);
       if (!reachesDatabase) continue;
 
-      const lines = source.split('\n');
-      lines.forEach((line, index) => {
-        const isMutating = /router\.(post|put|patch|delete)\s*\(/.test(line);
-        if (!isMutating) return;
-        // The handler chain may wrap onto following lines; look at a small window.
-        const window = lines.slice(index, index + 4).join(' ');
+      for (const { paths, line, chain } of routeCalls(source, 'router', [
+        'post',
+        'put',
+        'patch',
+        'delete',
+      ])) {
+        checked++;
         // The SAML assertion consumer is where a person who is not signed in yet arrives: the
         // identity provider's signed response is the credential, checked in server/sso-saml.ts.
-        if (name === 'sso.routes.ts' && line.includes('"/api/sso/saml/:organizationId/acs"')) return;
         // SLO is authenticated by the IdP signature, including POSTs without a browser cookie.
-        if (name === 'sso.routes.ts' && line.includes('"/api/sso/saml/:organizationId/slo"')) return;
+        if (
+          name === 'sso.routes.ts' &&
+          paths.every((p) => /^\/api\/sso\/saml\/:organizationId\/(acs|slo)$/.test(p))
+        )
+          continue;
         // requireScope (server/middleware/require-scope.ts) is the /api/v1 form of the same check:
         // it applies the minimum role its scope names before looking at the key's scopes.
-        if (!window.includes('requireRole') && !window.includes('requireScope')) {
-          offenders.push(`${name}:${index + 1}`);
+        if (!chain.includes('requireRole') && !chain.includes('requireScope')) {
+          offenders.push(`${name}:${line}`);
         }
-      });
+      }
     }
 
+    // Guards the guard, as above.
+    expect(checked).toBeGreaterThanOrEqual(50);
     expect(offenders, `mutating routes with no requireRole: ${offenders.join(', ')}`).toEqual([]);
   });
 });
@@ -310,9 +338,7 @@ describe('docker-compose references files that exist', () => {
     const buildBlocks = compose.match(/build:/g)?.length ?? 0;
     const implicit = buildBlocks > named.length ? ['Dockerfile'] : [];
 
-    const missing = [...named, ...implicit].filter(
-      (f) => !fs.existsSync(path.join(repoRoot, f)),
-    );
+    const missing = [...named, ...implicit].filter((f) => !fs.existsSync(path.join(repoRoot, f)));
 
     expect(missing).toEqual([]);
   });
@@ -338,7 +364,9 @@ describe('the client does not depend on third-party asset hosts', () => {
       for (const match of source.matchAll(/url\(\s*['"]?(https?:\/\/[^'")\s]+)/g)) {
         offenders.push(`${path.relative(repoRoot, file)}: ${match[1]}`);
       }
-      for (const match of source.matchAll(/<(?:img|link)[^>]+(?:src|href)=["'](https?:\/\/[^"']+)/g)) {
+      for (const match of source.matchAll(
+        /<(?:img|link)[^>]+(?:src|href)=["'](https?:\/\/[^"']+)/g,
+      )) {
         offenders.push(`${path.relative(repoRoot, file)}: ${match[1]}`);
       }
     }
@@ -411,7 +439,6 @@ describe('the browser image matches the browser library', () => {
   });
 });
 
-
 describe('the lockfile can be installed somewhere other than the machine that wrote it', () => {
   it('defines every dependency it names, for every platform', () => {
     const lock = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package-lock.json'), 'utf8'));
@@ -482,7 +509,9 @@ describe('the lockfile can be installed somewhere other than the machine that wr
 describe('the suite that needs a browser can get one', () => {
   it('CI installs the browsers before running the tests that launch them', () => {
     const workflowDir = path.join(repoRoot, '.github', 'workflows');
-    const workflows = fs.readdirSync(workflowDir).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
+    const workflows = fs
+      .readdirSync(workflowDir)
+      .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
     expect(workflows.length).toBeGreaterThan(0);
 
     // `npm ci` does not bring the browsers down — the `playwright` package carries no

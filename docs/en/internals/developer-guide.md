@@ -40,21 +40,22 @@ web process.
 
 ## Everyday commands
 
-| Command | What it does |
-|---|---|
-| `npm run dev` / `npm run dev:worker` | Web process / worker, with `tsx` and `.env`. |
-| `npm run check` | Type-checks server, client, shared, scripts, Collaudo and E2E tests. |
-| `npm run lint` | ESLint over `.ts` and `.tsx`. |
-| `npx vitest run --config vitest.config.ts` | Server and scripts tests. |
-| `npm run test:client -- --run` | Client tests. |
+| Command                                                           | What it does                                                                                                                                                                                                             |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run dev` / `npm run dev:worker`                              | Web process / worker, with `tsx` and `.env`.                                                                                                                                                                             |
+| `npm run check`                                                   | Type-checks server, client, shared, scripts, Collaudo and E2E tests.                                                                                                                                                     |
+| `npm run lint`                                                    | ESLint over `.ts` and `.tsx`.                                                                                                                                                                                            |
+| `npm run format:check`                                            | Prettier over the whole tree, enforced in CI; `npm run format` rewrites.                                                                                                                                                 |
+| `npx vitest run --config vitest.config.ts`                        | Server and scripts tests.                                                                                                                                                                                                |
+| `npm run test:client -- --run`                                    | Client tests.                                                                                                                                                                                                            |
 | `npm run test:coverage` / `npm run test:coverage --prefix client` | The same suites with coverage, as CI runs them: the step fails below the thresholds in `vitest.config.ts` and `client/vitest.config.ts`. HTML report in `coverage/` and `client/coverage/`; CI attaches both to the run. |
-| `npm run test:collaudo` | Collaudo application storage, history and import/export tests. |
-| `npm run test:e2e` | Interface acceptance against the built application and dedicated real stores. |
-| `npm run test:rls` | Tenancy and isolation tests; requires a real PostgreSQL `DATABASE_URL` and refuses PGlite. |
-| `npm run build` | Client, server, worker, migrator, CLI and agent bundles into `dist/`. |
-| `npm run docs:dev` / `npm run docs:build` | This documentation site: live / checked build. |
-| `npm run cli -- run <planId> --wait` | The pipeline CLI against your local server. |
-| `npm run agent` | A local agent against your local server (`WFM_URL`, `WFM_AGENT_TOKEN`). |
+| `npm run test:collaudo`                                           | Collaudo application storage, history and import/export tests.                                                                                                                                                           |
+| `npm run test:e2e`                                                | Interface acceptance against the built application and dedicated real stores.                                                                                                                                            |
+| `npm run test:rls`                                                | Tenancy and isolation tests; requires a real PostgreSQL `DATABASE_URL` and refuses PGlite.                                                                                                                               |
+| `npm run build`                                                   | Client, server, worker, migrator, CLI and agent bundles into `dist/`.                                                                                                                                                    |
+| `npm run docs:dev` / `npm run docs:build`                         | This documentation site: live / checked build.                                                                                                                                                                           |
+| `npm run cli -- run <planId> --wait`                              | The pipeline CLI against your local server.                                                                                                                                                                              |
+| `npm run agent`                                                   | A local agent against your local server (`WFM_URL`, `WFM_AGENT_TOKEN`).                                                                                                                                                  |
 
 CI requires `check`, `lint`, server and client tests, `test:collaudo`, `build` and `docs:build`.
 PostgreSQL isolation remains a separate gate. The `ui-on-real-installation` job downloads the
@@ -84,12 +85,12 @@ docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml exec -T postgres psql -U 
 Set these disposable fixture values in your shell (PowerShell: `$env:NAME='value'`; bash:
 `export NAME='value'`):
 
-| Variable | Value |
-|---|---|
-| `DATABASE_URL` | `postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5438/wfm_ci_e2e` |
-| `REDIS_URL` | `redis://127.0.0.1:6388` |
-| `SESSION_SECRET` | `ci-e2e-disposable-session-secret` |
-| `ENCRYPTION_KEY` | 64 hexadecimal zeros |
+| Variable         | Value                                                    |
+| ---------------- | -------------------------------------------------------- |
+| `DATABASE_URL`   | `postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5438/wfm_ci_e2e` |
+| `REDIS_URL`      | `redis://127.0.0.1:6388`                                 |
+| `SESSION_SECRET` | `ci-e2e-disposable-session-secret`                       |
+| `ENCRYPTION_KEY` | 64 hexadecimal zeros                                     |
 
 ```sh
 npm run build
@@ -139,15 +140,15 @@ execute every case in the manual acceptance catalogue.
 A few tests guard properties no single feature test would notice. When one fails, it is telling you
 to make a decision explicit, not to work around it:
 
-| Test | Guards |
-|---|---|
-| `server/tests/architecture.test.ts` | Routes do not import the privileged handle; each file that does stays within its `PRIVILEGED_BOOTSTRAP_BUDGET`; every Dockerfile's Playwright image matches the locked Playwright version; the lockfile describes every platform; compose services name existing Dockerfiles. |
-| `server/tests/isolation.test.ts` | Every table in `ORG_SCOPED_TABLES` has RLS and hides other organizations' rows. |
-| `server/test-suites.test.ts` (drift) | Every foreign key between organization tables is same-organization guarded or declared as authorship. |
-| `server/execution-snapshot.test.ts` | Every column of `test_plans` is either captured in the run snapshot or declared irrelevant to a run. |
-| `server/api-v1/openapi.test.ts` | The OpenAPI document and the `/api/v1` router agree, route by route and scope by scope. |
-| `server/audit-trail.test.ts` | Every audit action and category has a label in all four languages. |
-| `client/src/locales/locales.test.ts` | Translation bundles are complete and consistent, and every key the code uses exists. |
+| Test                                 | Guards                                                                                                                                                                                                                                                                        |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server/tests/architecture.test.ts`  | Routes do not import the privileged handle; each file that does stays within its `PRIVILEGED_BOOTSTRAP_BUDGET`; every Dockerfile's Playwright image matches the locked Playwright version; the lockfile describes every platform; compose services name existing Dockerfiles. |
+| `server/tests/isolation.test.ts`     | Every table in `ORG_SCOPED_TABLES` has RLS and hides other organizations' rows.                                                                                                                                                                                               |
+| `server/test-suites.test.ts` (drift) | Every foreign key between organization tables is same-organization guarded or declared as authorship.                                                                                                                                                                         |
+| `server/execution-snapshot.test.ts`  | Every column of `test_plans` is either captured in the run snapshot or declared irrelevant to a run.                                                                                                                                                                          |
+| `server/api-v1/openapi.test.ts`      | The OpenAPI document and the `/api/v1` router agree, route by route and scope by scope.                                                                                                                                                                                       |
+| `server/audit-trail.test.ts`         | Every audit action and category has a label in all four languages.                                                                                                                                                                                                            |
+| `client/src/locales/locales.test.ts` | Translation bundles are complete and consistent, and every key the code uses exists.                                                                                                                                                                                          |
 
 ### Known slow or sensitive tests
 

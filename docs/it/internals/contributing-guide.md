@@ -101,18 +101,19 @@ Preparare `.env`, segreti, Redis e Playwright secondo la [guida sviluppatore](./
 Usare `db:migrate`, mai `db:push`, per questo flusso. Non azzerare database condivisi o volumi di
 accettazione dei colleghi per ottenere un test positivo.
 
-| Comando                                                                     | Evidenza ottenuta                                                     |
-| --------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `npx vitest run server/routes/tags.routes.test.ts server/test-tags.test.ts` | Comportamento mirato dell'esempio sul database dei test configurato   |
-| `npm run test:client -- --run`                                              | Test client, inclusa coerenza delle traduzioni                        |
-| `npm run check`                                                             | Progetti TypeScript, tipi Collaudo/E2E e runtime BDD                  |
-| `npm run lint`                                                              | Regole lint del repository                                            |
-| `npm test`                                                                  | Suite Vitest root e suite separata runtime BDD                        |
-| `npm run test:rls`                                                          | Gate di isolamento PostgreSQL reale; richiede `DATABASE_URL` adeguato |
-| `npm run test:collaudo`                                                     | Test dell'app Collaudo, non intero catalogo di accettazione           |
-| `npm run build`                                                             | Bundle client/server/worker/migrator/CLI/agente e child BDD           |
-| `npm run docs:build`                                                        | Generazione VitePress e validazione link                              |
-| `npm run test:e2e`                                                          | Smoke dell'interfaccia sull'installazione reale dedicata              |
+| Comando                                                                     | Evidenza ottenuta                                                       |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `npx vitest run server/routes/tags.routes.test.ts server/test-tags.test.ts` | Comportamento mirato dell'esempio sul database dei test configurato     |
+| `npm run test:client -- --run`                                              | Test client, inclusa coerenza delle traduzioni                          |
+| `npm run check`                                                             | Progetti TypeScript, tipi Collaudo/E2E e runtime BDD                    |
+| `npm run lint`                                                              | Regole lint del repository                                              |
+| `npm run format:check`                                                      | Formattazione Prettier, controllata in CI; `npm run format` la corregge |
+| `npm test`                                                                  | Suite Vitest root e suite separata runtime BDD                          |
+| `npm run test:rls`                                                          | Gate di isolamento PostgreSQL reale; richiede `DATABASE_URL` adeguato   |
+| `npm run test:collaudo`                                                     | Test dell'app Collaudo, non intero catalogo di accettazione             |
+| `npm run build`                                                             | Bundle client/server/worker/migrator/CLI/agente e child BDD             |
+| `npm run docs:build`                                                        | Generazione VitePress e validazione link                                |
+| `npm run test:e2e`                                                          | Smoke dell'interfaccia sull'installazione reale dedicata                |
 
 Per E2E usare database/porte Redis dedicati e prerequisiti di build della guida sviluppatore.
 Per accettazione seguire il [laboratorio](../admin/test-lab), preparando provider/agenti/dispositivi.
