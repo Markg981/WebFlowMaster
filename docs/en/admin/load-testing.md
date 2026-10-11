@@ -33,7 +33,7 @@ npm run test:resilience
 npm run load:resilience -- --cycles 3 --recovery-timeout 180 --observation-seconds 40
 ```
 
-Requires Node.js 22.19+ and Docker Compose with resources to build the production API/worker images and run PostgreSQL, Redis and two real Chromium agents. The command builds a fresh, randomly named local stack and two organizations. It accepts no existing project, URL or credentials; only its own containers and volumes are removed. Reports remain in `resilience-artifacts/<id>/`. Generated credentials and artifacts are excluded from Git and Docker build contexts.
+Requires Node.js 22.19+ and Docker Compose with resources to build the production API/worker images and run PostgreSQL, Redis and two real Chromium agents. The command builds a fresh, randomly named local stack and two organizations. It accepts no existing project, URL or credentials; only its own containers and volumes are removed. Reports remain in `.local/resilience/<id>/`. Generated credentials and artifacts are excluded from Git and Docker build contexts.
 
 The baseline reuses the endurance runner for public API reads and concurrent plan bursts. Every cycle then exercises one-off BullMQ schedules due while the worker is stopped, queued runs, a graceful worker restart (SIGTERM) during an observed agent browser session, and a Redis stop/start with durable AOF queue storage. Agent processes are restarted between runs and must reconnect and complete fresh work. Redis restart tests retained data, not loss of Redis persistence. Agent termination during active work is outside this scenario.
 

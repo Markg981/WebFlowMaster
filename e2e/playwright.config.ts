@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
+import { localDir } from '../scripts/local-dir.mjs';
 
 export default defineConfig({
   testDir: '.',
@@ -11,8 +12,8 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  outputDir: '../e2e-artifacts/results',
-  reporter: [['list'], ['html', { outputFolder: '../e2e-artifacts/report', open: 'never' }]],
+  outputDir: localDir('e2e', 'results'),
+  reporter: [['list'], ['html', { outputFolder: localDir('e2e', 'report'), open: 'never' }]],
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     {

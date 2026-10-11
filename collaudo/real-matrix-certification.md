@@ -23,7 +23,7 @@ npx playwright install chromium firefox webkit
 npm run test:e2e
 ```
 
-Queste credenziali sono esclusivamente per la fixture sacrificabile. I processi E2E usano UTC per allineare i timestamp PostgreSQL e il recovery anche su Windows. Il report Playwright e gli allegati sono in `e2e-artifacts/report`; i log dei servizi in `e2e-artifacts/services`. Per arrestare gli store conservando i dati: `docker compose -p wfm-matrix-e2e -f e2e/docker-compose.yml stop`.
+Queste credenziali sono esclusivamente per la fixture sacrificabile. I processi E2E usano UTC per allineare i timestamp PostgreSQL e il recovery anche su Windows. Il report Playwright e gli allegati sono in `.local/e2e/report`; i log dei servizi in `.local/e2e/services`. Per arrestare gli store conservando i dati: `docker compose -p wfm-matrix-e2e -f e2e/docker-compose.yml stop`.
 
 Il report distingue esito funzionale e corrispondenza della configurazione: `matched`, `mismatch`, `unverified`. OS/versioni locali descrivono l'host del runner; OS release è la versione del kernel, non un nome commerciale. Safari richiesto ed eseguito con WebKit è una sostituzione dichiarata. Un telefono emulato nel browser non certifica un dispositivo nativo.
 

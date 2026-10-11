@@ -106,7 +106,7 @@ tramite `NODE_EXTRA_CA_CERTS`; la chiave privata versionata è materiale pubblic
 `INSTALLATION_ADMINS=e2e_operator` vale solo in questa installazione sacrificabile e la verifica
 DNS dei domini SSO è disattivata qui. Registrazione
 aperta e cookie HTTP valgono solo per questa installazione temporanea. Report HTML, log dei
-servizi e screenshot/video/trace dei fallimenti sono salvati in `e2e-artifacts/`, esclusa da Git,
+servizi e screenshot/video/trace dei fallimenti sono salvati in `.local/e2e/`, esclusa da Git,
 e caricati dalla CI anche in caso di errore, con conservazione di sette giorni.
 
 I percorsi mobile verificano editor, storico e permessi: non eseguono un dispositivo o Appium.
@@ -224,11 +224,22 @@ e una PR per ogni nuova versione major. La PR settimanale si unisce quando la CI
 si legge il changelog e si prova l'area interessata prima dell'unione. Playwright, i binari
 `lightningcss-*` e le immagini Docker di base sono esclusi: si aggiornano a mano, come descritto sopra.
 
+### Output locale
+
+Gli strumenti scrivono ciò che producono in un'unica cartella ignorata, `.local/`, invece che in una
+cartella ciascuno nella radice: `e2e/` (report Playwright, log dei servizi), `test-results/`,
+`restore-drill/<id>/`, `resilience/<id>/`, `backups/` e `tmp/` (bundle e file temporanei). Per
+spostarla, per esempio su un disco più capiente, imposta `WFM_LOCAL_DIR`. `data/`, `results/`,
+`uploads/`, `logs/` e `allure-results/` non sono output degli strumenti ma lo stato
+dell'applicazione, le stesse cartelle che l'immagine monta sotto `/app`, e restano dove sono. Le
+cartelle lasciate nella radice da un checkout precedente (`e2e-artifacts/`, `backups/`, `outputs/`,
+`tmp/` e quelle dei drill) restano ignorate e si possono spostare o cancellare a mano.
+
 ### File di grandi dimensioni
 
 La CI rifiuta ogni file oltre 5 MB introdotto da una PR, anche se un commit successivo della stessa PR lo
 cancella: il blob resterebbe in ogni clone della history. L'output generato (kit, archivi, rapporti di
-scansione) va in `outputs/` o `tmp/`, che Git ignora. Per avere lo stesso controllo prima di ogni commit,
+scansione) va in `.local/`, che Git ignora. Per avere lo stesso controllo prima di ogni commit,
 aggiungilo al tuo hook:
 
 ```bash

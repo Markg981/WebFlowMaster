@@ -72,9 +72,9 @@ servono a un operatore, dalla cartella del repository sull'host Docker. Richiede
 `pg_dump` e `pg_restore` girano nel container `postgres`, `tar` nel container `api`.
 
 ```bash
-npm run backup:create                              # in ./backups/wfm-backup-<ora UTC>/
-npm run backup:verify  -- backups/wfm-backup-20261001-020000
-npm run backup:restore -- backups/wfm-backup-20261001-020000 --yes
+npm run backup:create                              # in ./.local/backups/wfm-backup-<ora UTC>/
+npm run backup:verify  -- .local/backups/wfm-backup-20261001-020000
+npm run backup:restore -- .local/backups/wfm-backup-20261001-020000 --yes
 ```
 
 Con un altro progetto Compose o file aggiuntivi, si passano come a `docker compose`:
@@ -121,7 +121,7 @@ Un backup notturno con la sua prova, conservando quattordici giorni, da cron sul
 
 ```bash
 0 2 * * *  cd /opt/webflowmaster && npm run -s backup:create && \
-           npm run -s backup:verify -- "$(ls -d backups/wfm-backup-* | tail -n 1)" && \
+           npm run -s backup:verify -- "$(ls -d .local/backups/wfm-backup-* | tail -n 1)" && \
            find backups -maxdepth 1 -name 'wfm-backup-*' -mtime +14 -exec rm -rf {} +
 ```
 
@@ -143,7 +143,7 @@ vedere i test e riceve 404 su report/artefatti. Un nuovo run avviato da UI deve 
 ripristinato, terminare con successo sul worker e produrre nuove evidenze. La connessione applicativa
 usa un ruolo non superuser e `app_user` per le query tenant.
 
-`restore-drill-artifacts/<id>/` contiene `recovery.json`, log operativi/servizi, screenshot dei report,
+`.local/restore-drill/<id>/` contiene `recovery.json`, log operativi/servizi, screenshot dei report,
 dimensioni e hash. Ogni fase è misurata in millisecondi; `recoveryDurationMs` va dall'avvio della
 destinazione al nuovo report riuscito, `backupAgeAtRecoveryMs` registra l'età del backup.
 Build, preparazione fixture e backup hanno tempi separati. L'età non è un RPO produttivo e la fixture

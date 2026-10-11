@@ -3,6 +3,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { localDir } from './local-dir.mjs';
 import { request } from 'playwright';
 import { runLoad } from './wfm-load.ts';
 import {
@@ -47,7 +48,7 @@ if (settings['--cycles'] > 100 || settings['--observation-seconds'] < 40)
 
 const id = randomUUID().replaceAll('-', '').slice(0, 12);
 const project = `wfm-resilience-${id}`;
-const directory = path.resolve('resilience-artifacts', id);
+const directory = localDir('resilience', id);
 fs.mkdirSync(directory, { recursive: true });
 const composeFile = path.join(directory, 'compose.json');
 fs.writeFileSync(

@@ -26,6 +26,7 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { localDir } from './local-dir.mjs';
 
 export const EXIT_OK = 0;
 export const EXIT_CHECK_FAILED = 1;
@@ -96,7 +97,7 @@ export function parseArgs(argv: string[]): Options | { error: string } {
   const [command, ...rest] = argv;
   const options: Options = {
     command: 'help',
-    out: 'backups',
+    out: path.relative(process.cwd(), localDir('backups')) || '.',
     composeFiles: [],
     dbName: 'webflowmaster',
     dbUser: 'postgres',
@@ -636,7 +637,7 @@ async function restore(options: Options, log: (s: string) => void): Promise<numb
 
 const HELP = `wfm-backup — back up, verify and restore a WebFlowMaster Docker Compose installation
 
-  npm run backup:create  -- [--out backups]
+  npm run backup:create  -- [--out .local/backups]
   npm run backup:verify  -- <backup-dir>
   npm run backup:restore -- <backup-dir> --yes [--ignore-key]
 
