@@ -193,7 +193,7 @@ export default function LoadTestDialog({ isOpen, test, onClose, onSaved }: Props
             {draft.steps.map((step, index) => (
               <div key={index} className="flex flex-wrap items-center gap-2" data-testid={`load-step-${index}`}>
                 <span className="w-6 text-right text-sm text-muted-foreground">{index + 1}.</span>
-                <span className="min-w-[12rem] flex-1 truncate text-sm font-medium">{nameOf(step.apiTestId)}</span>
+                <span className="min-w-48 flex-1 truncate text-sm font-medium">{nameOf(step.apiTestId)}</span>
                 <Label htmlFor={`load-think-${index}`} className="text-xs text-muted-foreground">
                   {t('loadTests.thinkTime', 'Pause after (ms)')}
                 </Label>

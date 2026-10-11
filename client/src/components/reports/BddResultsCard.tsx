@@ -48,7 +48,7 @@ export default function BddResultsCard({ rows }: { rows: Row[] }) {
                   {t('bdd.attempt', 'Attempt')} {i + 1} · {run.status} · {run.durationMs} ms
                 </summary>
                 {run.error && (
-                  <pre className="whitespace-pre-wrap break-words text-xs text-destructive">
+                  <pre className="whitespace-pre-wrap wrap-break-word text-xs text-destructive">
                     {run.error}
                   </pre>
                 )}
@@ -66,7 +66,7 @@ export default function BddResultsCard({ rows }: { rows: Row[] }) {
                           : t('bdd.step', 'Step')} · {step.durationMs} ms
                       </span>
                       {step.error && (
-                        <pre className="whitespace-pre-wrap break-words text-xs text-destructive">
+                        <pre className="whitespace-pre-wrap wrap-break-word text-xs text-destructive">
                           {step.error}
                         </pre>
                       )}
@@ -87,7 +87,7 @@ export default function BddResultsCard({ rows }: { rows: Row[] }) {
                       {t('bdd.attachment', 'Text attachment')} {j + 1}
                     </summary>
                     <pre
-                      className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs"
+                      className="max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word text-xs"
                       data-testid="bdd-attachment"
                     >
                       {attachment.text}

@@ -94,6 +94,6 @@ export default function DashboardOverviewPage() {
         <Button variant="ghost" onClick={() => setDraft(null)}>{t('dashboardOverviewPage.customize.cancel', 'Cancel')}</Button>
       </div>
     </fieldset>}
-    <div className="grid grid-cols-1 gap-x-5 gap-y-6 lg:grid-cols-2 [&>*]:min-w-0">{selected?.widgets.filter(w => w.visible).map(w => <div key={`${selected.id}:${w.id}`} data-testid="dashboard-widget" data-widget-id={w.id} className={w.width === 'full' ? 'lg:col-span-2' : ''}><ConfiguredDashboardWidget widget={w} /></div>)}</div>
+    <div className="grid grid-cols-1 gap-x-5 gap-y-6 lg:grid-cols-2 *:min-w-0">{selected?.widgets.filter(w => w.visible).map(w => <div key={`${selected.id}:${w.id}`} data-testid="dashboard-widget" data-widget-id={w.id} className={w.width === 'full' ? 'lg:col-span-2' : ''}><ConfiguredDashboardWidget widget={w} /></div>)}</div>
   </div>;
 }

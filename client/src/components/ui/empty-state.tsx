@@ -37,7 +37,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex h-full min-w-0 max-w-full flex-col items-center justify-center text-center [overflow-wrap:anywhere]',
+        'flex h-full min-w-0 max-w-full flex-col items-center justify-center text-center wrap-anywhere',
         compact ? 'gap-2 px-4 py-6' : 'gap-3 px-6 py-16',
         className,
       )}

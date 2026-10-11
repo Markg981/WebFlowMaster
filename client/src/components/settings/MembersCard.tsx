@@ -244,7 +244,7 @@ const MembersCard: React.FC = () => {
               const isMe = member.id === user?.id;
               return (
                 <li key={member.id} className="flex flex-wrap items-center gap-2 p-2 border rounded-md" data-testid={`member-${member.id}`}>
-                  <span className="text-sm font-medium flex-1 min-w-[8rem]">
+                  <span className="text-sm font-medium flex-1 min-w-32">
                     {member.username}
                     {isMe && (
                       <Badge variant="secondary" className="ml-2">

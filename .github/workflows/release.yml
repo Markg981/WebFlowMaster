@@ -267,9 +267,6 @@ jobs:
             gh release create "v$VERSION" --draft --verify-tag --title "WebFlowMaster $VERSION" --notes-file release-artifacts/notes.md
           fi
           gh release upload "v$VERSION" --clobber release-artifacts/release-manifest.json release-artifacts/release.env release-artifacts/source-scan.json release-artifacts/source-scanner.json
-          if test -f release-artifacts/source-exceptions.json; then
-            gh release upload "v$VERSION" --clobber release-artifacts/source-exceptions.json
-          fi
           for role in api worker agent; do
             for file in sbom.cdx.json scan.json scanner.json; do
               cp "release-artifacts/$role/$file" "release-artifacts/$role-$file"

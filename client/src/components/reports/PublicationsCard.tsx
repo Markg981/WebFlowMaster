@@ -124,7 +124,7 @@ export default function PublicationsCard({ executionId, runStatus }: { execution
                     {t('publications.counts', '{{published}} case(s) published, {{unmapped}} test(s) with no case left out.', { published: row.publishedCount, unmapped: row.unmappedCount })}
                   </p>
                 )}
-                {row.message && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap break-words">{row.message}</p>}
+                {row.message && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap wrap-break-word">{row.message}</p>}
               </li>
             ))}
           </ul>

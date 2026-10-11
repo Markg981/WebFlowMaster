@@ -38,9 +38,8 @@ export interface TestStep {
   value?: string; // For input actions, the text to type, etc.
 }
 
-type DragDropContextType = {
-  // Context methods can be added here if needed
-};
+// Context methods can be added here if needed.
+type DragDropContextType = Record<string, never>;
 
 const DragDropContext = createContext<DragDropContextType | null>(null);
 

@@ -225,7 +225,7 @@ const TestManager: React.FC = () => {
                           : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />}
                         <div className="min-w-0">
                           <p className="text-sm font-medium">{index + 1}. {step.name}</p>
-                          <p className="break-words text-sm text-muted-foreground">{step.error || step.details}</p>
+                          <p className="wrap-break-word text-sm text-muted-foreground">{step.error || step.details}</p>
                         </div>
                       </div>
                       {step.screenshot && (

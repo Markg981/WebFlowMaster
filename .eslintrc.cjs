@@ -24,6 +24,9 @@ module.exports = {
     'client/dist/',
     'migrations/',
     'allure-results/',
+    // Local scratch output, ignored by git as well.
+    'tmp/',
+    'outputs/',
     'results/',
     'coverage/',
     '*.config.js',
@@ -40,8 +43,11 @@ module.exports = {
     'unused-imports/no-unused-imports': 'warn',
     'unused-imports/no-unused-vars': [
       'warn',
-      { args: 'after-used', argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true },
+      // caughtErrors: 'none' keeps the behaviour of @typescript-eslint 7; version 8 changed the default to 'all'.
+      { args: 'after-used', argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none', ignoreRestSiblings: true },
     ],
+    // `interface User extends SelectUser {}` augments a library type; @typescript-eslint 8 flags it by default.
+    '@typescript-eslint/no-empty-object-type': ['error', { allowInterfaces: 'with-single-extends' }],
     '@typescript-eslint/no-empty-function': 'off',
     // Global type augmentation (e.g. Express.User) legitimately needs `declare global { namespace ... }`.
     '@typescript-eslint/no-namespace': 'off',

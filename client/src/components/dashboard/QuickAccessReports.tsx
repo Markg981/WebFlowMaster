@@ -49,7 +49,7 @@ const QuickAccessReports: React.FC<QuickAccessReportsProps> = ({ data, isLoading
   return (
     <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="min-w-0 break-words text-base font-semibold">
+        <h3 className="min-w-0 wrap-break-word text-base font-semibold">
           {t('dashboard.quickAccessReports.recentTestReports.title')}
         </h3>
         {executions.length > 0 && (

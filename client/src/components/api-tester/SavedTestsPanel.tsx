@@ -103,7 +103,7 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
         }
       }}
       title={t('apiTester.savedTestsPanel.loadTest.button')}
-      className="w-full p-3 border rounded-md hover:bg-muted/50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
+      className="w-full p-3 border rounded-md hover:bg-muted/50 transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-ring"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">

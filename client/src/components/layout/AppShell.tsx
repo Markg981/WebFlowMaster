@@ -122,7 +122,7 @@ const BrandMark: React.FC<{ className?: string }> = ({ className }) => (
   // A dial/gauge with a needle — a measurement motif for a QA platform that weighs and checks.
   <div
     className={cn(
-      'grid shrink-0 place-items-center rounded-[10px] bg-gradient-to-br from-primary to-primary/70 shadow-sm ring-1 ring-inset ring-white/20',
+      'grid shrink-0 place-items-center rounded-[10px] bg-linear-to-br from-primary to-primary/70 shadow-sm ring-1 ring-inset ring-white/20',
       className,
     )}
   >
@@ -227,7 +227,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <div className="absolute inset-0 bg-foreground/40 backdrop-blur-xs" onClick={() => setMobileOpen(false)} />
           <aside className="absolute inset-y-0 left-0 w-60 border-r border-border bg-card shadow-md">
             <div className="flex justify-end p-2">
               <button

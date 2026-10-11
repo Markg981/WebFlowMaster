@@ -28,7 +28,6 @@ ENV NODE_ENV=production
 # `esbuild: not found`. Like the missing Dockerfile beside it, this had evidently never been
 # built.
 COPY package*.json ./
-COPY scripts/security/apply-braces-patch.cjs ./scripts/security/
 COPY client/package*.json ./client/
 RUN npm ci --include=dev --no-audit --no-fund && rm -rf /root/.npm /tmp/node-compile-cache
 

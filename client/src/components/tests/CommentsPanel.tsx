@@ -67,7 +67,7 @@ export default function CommentsPanel({ kind, targetId }: { kind: CommentKind; t
         <Button disabled={busy || !editedBody.trim()} onClick={() => void mutate('PATCH', `/api/comments/${comment.id}`, { body: editedBody.trim(), ...(JSON.stringify(editedMentions) !== JSON.stringify(comment.mentionedUserIds ?? []) ? { mentionedUserIds: editedMentions } : {}) }, () => setEditing(null))}>{t('comments.save', 'Save comment')}</Button>
         <Button variant="ghost" disabled={busy} onClick={() => setEditing(null)}>{t('comments.cancel', 'Cancel')}</Button>
       </> : <>
-        <p className="whitespace-pre-wrap break-words text-sm">{comment.body}</p>
+        <p className="whitespace-pre-wrap wrap-break-word text-sm">{comment.body}</p>
         {!!comment.mentionedUserIds?.length && <p className="text-sm text-muted-foreground">{comment.mentionedUserIds.map(id => `@${members.find(m => m.id === id)?.username || t('comments.formerMember', 'Former member')}`).join(' ')}</p>}
       </>}
       {!comment.deletedAt && manageable && editing !== comment.id && <div className="flex flex-wrap gap-2">
