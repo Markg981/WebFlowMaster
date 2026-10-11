@@ -79,7 +79,7 @@ function useNav(): NavSection[] {
         { href: '/suites', label: t('nav.testSuites', 'Suites'), icon: Layers },
         { href: '/requirements', label: t('nav.requirements', 'Requirements'), icon: Target },
         { href: '/test-data', label: t('nav.testData', 'Test data'), icon: Database },
-        { href: '/test-suites', label: t('nav.suites'), icon: ListChecks },
+        { href: '/test-plans', label: t('nav.suites'), icon: ListChecks },
         { href: '/reviews', label: t('nav.reviews', 'Reviews'), icon: ClipboardCheck },
       ],
     },

@@ -56,7 +56,7 @@ const TestSchedulingsTable: React.FC<{
           {t('dashboard.testSchedulingsTable.upcomingActiveSchedules.title')}
         </h3>
         <Link
-          href="/test-suites"
+          href="/test-plans"
           className="shrink-0 whitespace-nowrap text-sm text-primary hover:underline flex items-center"
         >
           {t('dashboard.testSchedulingsTable.viewAll.link')}{' '}
@@ -117,7 +117,7 @@ const TestSchedulingsTable: React.FC<{
                 <TableRow key={schedule.id}>
                   <TableCell className="font-medium max-w-[16rem]">
                     <Link
-                      href={`/test-suites?planId=${schedule.testPlanId}&tab=schedules`}
+                      href={`/test-plans?planId=${schedule.testPlanId}&tab=schedules`}
                       className="block truncate hover:underline text-primary"
                       title={schedule.testPlanName || schedule.testPlanId}
                     >

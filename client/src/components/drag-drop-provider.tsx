@@ -9,7 +9,7 @@ export interface DragItem {
 }
 
 // Define DetectedElement here (or import from a shared types file if available)
-// This definition should match the one in dashboard-page-new.tsx
+// This definition should match the one in CreateTestPage.tsx
 export interface DetectedElement {
   id: string;
   type: string;

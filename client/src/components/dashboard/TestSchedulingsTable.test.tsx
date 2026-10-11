@@ -122,12 +122,12 @@ describe('TestSchedulingsTable', () => {
     expect(screen.queryByText('Nightly Inactive')).not.toBeInTheDocument();
 
     const viewAllLink = screen.getByText('View All');
-    expect(viewAllLink.closest('a')).toHaveAttribute('href', '/test-suites');
+    expect(viewAllLink.closest('a')).toHaveAttribute('href', '/test-plans');
 
     const planLink = screen.getByText('Alpha Plan');
     expect(planLink.closest('a')).toHaveAttribute(
       'href',
-      `/test-suites?planId=${mockSchedules[0].testPlanId}&tab=schedules`,
+      `/test-plans?planId=${mockSchedules[0].testPlanId}&tab=schedules`,
     );
   });
 

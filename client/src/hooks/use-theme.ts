@@ -9,7 +9,7 @@ export type Theme = 'light' | 'dark';
  * The one owner of the light/dark choice.
  *
  * Three places used to write the `dark` class onto <html>: the boot effect in App.tsx, the
- * topbar toggle in AppShell.tsx, and an effect on a `darkMode` state in settings-page.tsx.
+ * topbar toggle in AppShell.tsx, and an effect on a `darkMode` state in SettingsPage.tsx.
  * The same server value was cached twice, under `["settings"]` and
  * `["userSettingsApp", userId]`, and the query client sets `staleTime: Infinity`, so neither
  * copy is ever refetched.

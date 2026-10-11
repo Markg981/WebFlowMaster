@@ -1,5 +1,5 @@
 import React from 'react';
-import { Switch, Route, useLocation } from 'wouter';
+import { Switch, Route, useLocation, useSearch } from 'wouter';
 // Kept queryClient and QueryClientProvider for App structure
 import { queryClient } from './lib/queryClient';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -19,12 +19,12 @@ import { ProtectedRoute } from './lib/protected-route';
  * signed-in user as well: someone signing in now fetches it with the page, nobody else at all.
  * The Suspense around the whole application (main.tsx) covers it.
  */
-const AuthPage = React.lazy(() => import('@/pages/auth-page'));
-const DashboardPage = React.lazy(() => import('@/pages/dashboard-page-new')); // The "Create Test" page
+const AuthPage = React.lazy(() => import('@/pages/AuthPage'));
+const CreateTestPage = React.lazy(() => import('@/pages/CreateTestPage'));
 const DashboardOverviewPage = React.lazy(() => import('@/pages/DashboardOverviewPage'));
-const SettingsPage = React.lazy(() => import('@/pages/settings-page'));
+const SettingsPage = React.lazy(() => import('@/pages/SettingsPage'));
 const ApiTesterPage = React.lazy(() => import('@/pages/ApiTesterPage'));
-const TestSuitesPage = React.lazy(() => import('./pages/TestSuitesPage'));
+const TestPlansPage = React.lazy(() => import('./pages/TestPlansPage'));
 const SuitesPage = React.lazy(() => import('./pages/SuitesPage'));
 const RequirementsPage = React.lazy(() => import('./pages/RequirementsPage'));
 const TestDataPage = React.lazy(() => import('./pages/TestDataPage'));
@@ -110,15 +110,27 @@ const RootRedirector = () => {
   return null; // This component doesn't render anything itself, it just redirects
 };
 
+/** /test-suites was the test plans page's address; keeps its query (?planId=…&tab=…). */
+export const LegacyTestPlansRedirect = () => {
+  const [, navigate] = useLocation();
+  const search = useSearch();
+  React.useEffect(() => {
+    navigate(`/test-plans${search ? `?${search}` : ''}`, { replace: true });
+  }, [navigate, search]);
+  return null;
+};
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={RootRedirector} /> {/* Handles root path redirection */}
-      <ProtectedRoute path="/dashboard/create-test" component={DashboardPage} />
+      <ProtectedRoute path="/dashboard/create-test" component={CreateTestPage} />
       <ProtectedRoute path="/dashboard/api-tester" component={ApiTesterPage} />
       <ProtectedRoute path="/dashboard" component={DashboardOverviewPage} />
       <ProtectedRoute path="/scheduling" component={SchedulingPage} />
-      <ProtectedRoute path="/test-suites" component={TestSuitesPage} />
+      <ProtectedRoute path="/test-plans" component={TestPlansPage} />
+      {/* The plans page used to live here; old links and bookmarks keep working. */}
+      <Route path="/test-suites" component={LegacyTestPlansRedirect} />
       <ProtectedRoute path="/suites" component={SuitesPage} />
       <ProtectedRoute path="/requirements" component={RequirementsPage} />
       <ProtectedRoute path="/test-data" component={TestDataPage} />

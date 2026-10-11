@@ -29,19 +29,19 @@ Routes are declared in `client/src/App.tsx` with **wouter**; pages are loaded la
 | Path                                                 | Page                    | What it is                                                                                                                                        |
 | ---------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/` , `/dashboard`                                   | `DashboardOverviewPage` | Overview of recent activity and results.                                                                                                          |
-| `/dashboard/create-test`                             | `dashboard-page-new`    | The test builder: page loading, detected elements, drag-and-drop steps, recording, describing in sentences, preview.                              |
+| `/dashboard/create-test`                             | `CreateTestPage`        | The test builder: page loading, detected elements, drag-and-drop steps, recording, describing in sentences, preview.                              |
 | `/dashboard/api-tester`                              | `ApiTesterPage`         | Building and sending API requests, assertions, extractions, saved API tests.                                                                      |
 | `/tests`                                             | `TestLibraryPage`       | Every saved test, tags, history and versions.                                                                                                     |
 | `/reviews`                                           | `ReviewsPage`           | Test reviews, when the organization requires them.                                                                                                |
-| `/test-suites`                                       | `TestSuitesPage`        | Test plans: create, configure, run.                                                                                                               |
+| `/test-plans`                                        | `TestPlansPage`         | Test plans: create, configure, run.                                                                                                               |
 | `/suites`                                            | `SuitesPage`            | Suites, static and dynamic.                                                                                                                       |
 | `/scheduling`                                        | `SchedulingPage`        | Schedules.                                                                                                                                        |
 | `/test-manager`                                      | `TestManager`           | Excel import mapped to saved sequences.                                                                                                           |
 | `/reports`                                           | `GeneralReportsPage`    | The list of runs with filters, flaky tests and the quarantine.                                                                                    |
 | `/test-plan/:planId/run`                             | `TestPlanExecutionPage` | A run as it happens, with the live console.                                                                                                       |
 | `/test-plans/:planId/executions/:executionId/report` | `TestReportPage`        | The report of one run.                                                                                                                            |
-| `/settings`                                          | `settings-page`         | Settings, as sections (account, environments, projects, members, API keys, security, runners, agents, GitHub/GitLab, issue trackers, audit log…). |
-| `/auth`                                              | `auth-page`             | Sign in and registration by invitation.                                                                                                           |
+| `/settings`                                          | `SettingsPage`          | Settings, as sections (account, environments, projects, members, API keys, security, runners, agents, GitHub/GitLab, issue trackers, audit log…). |
+| `/auth`                                              | `AuthPage`              | Sign in and registration by invitation.                                                                                                           |
 
 ## Data fetching
 

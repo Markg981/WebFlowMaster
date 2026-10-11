@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import DashboardPageNew from './dashboard-page-new';
+import CreateTestPage from './CreateTestPage';
 // The real class, reached through the mock below, which spreads the original module: the
 // save path checks `instanceof`, so a stand-in would make the overwrite prompt unreachable.
 import { ApiError } from '@/lib/queryClient';
@@ -124,7 +124,7 @@ const renderPage = () => {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <DashboardPageNew />
+      <CreateTestPage />
     </QueryClientProvider>,
   );
 };

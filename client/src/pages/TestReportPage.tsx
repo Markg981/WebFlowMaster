@@ -495,7 +495,7 @@ const TestReportPage: React.FC = () => {
               {/* Added mt-1 for spacing from title which is now in page header */}
               Execution ID: {header.executionId} (Plan:{' '}
               <Link
-                href={`/test-suites?planId=${header.testPlanId}`}
+                href={`/test-plans?planId=${header.testPlanId}`}
                 className="underline hover:text-primary"
               >
                 {header.testPlanId}

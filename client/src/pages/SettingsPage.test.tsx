@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import SettingsPage from './settings-page';
+import SettingsPage from './SettingsPage';
 import { TestRouter } from '@/test-utils/router';
 
 /**
