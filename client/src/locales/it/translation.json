@@ -4883,6 +4883,7 @@
     "addStage": "Aggiungi uno stage",
     "warmUp": "Warm-up (s), non valutato",
     "profileTotal": "{{total}} s in tutto, {{peak}} utenti virtuali al picco",
+    "profileLimits": "Limiti: {{durationSec}} s in totale, {{virtualUsers}} utenti virtuali.",
     "data": "Dati per utente virtuale",
     "dataSet": "Data set",
     "noData": "Nessun data set: gli stessi valori per tutti",

@@ -4883,6 +4883,7 @@
     "addStage": "Ajouter un palier",
     "warmUp": "Préchauffage (s), non évalué",
     "profileTotal": "{{total}} s au total, {{peak}} utilisateurs virtuels au pic",
+    "profileLimits": "Limites : {{durationSec}} s au total, {{virtualUsers}} utilisateurs virtuels.",
     "data": "Données par utilisateur virtuel",
     "dataSet": "Jeu de données",
     "noData": "Aucun jeu de données : les mêmes valeurs pour tous",

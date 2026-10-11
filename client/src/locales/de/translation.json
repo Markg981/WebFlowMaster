@@ -4883,6 +4883,7 @@
     "addStage": "Stufe hinzufügen",
     "warmUp": "Aufwärmphase (s), nicht bewertet",
     "profileTotal": "{{total}} s insgesamt, {{peak}} virtuelle Benutzer in der Spitze",
+    "profileLimits": "Grenzen: {{durationSec}} s insgesamt, {{virtualUsers}} virtuelle Nutzer.",
     "data": "Daten pro virtuellem Benutzer",
     "dataSet": "Datensatz",
     "noData": "Kein Datensatz: dieselben Werte für alle",
