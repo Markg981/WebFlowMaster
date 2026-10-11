@@ -168,7 +168,7 @@ build link, which appear in the report and in notifications. Ready-made integrat
     plan: ${{ vars.WFM_PLAN_ID }}
 ```
 
-See the [CI integration guide](./docs/en/CI_INTEGRATION.md) and the
+See the [CI integration guide](./docs/en/integrations/ci.md) and the
 [CLI reference](./docs/en/reference/cli.md).
 
 ## Documentation
@@ -186,7 +186,7 @@ section to `docs/pdf/`.
 - [Reference](./docs/en/reference/api.md): the `/api/v1` REST API and the `wfm` CLI.
 - [Architecture and internals](./docs/en/internals/index.md): processes, tenancy, the run
   lifecycle, the data model, the developer guide and design decisions.
-- [Local agents](./docs/en/LOCAL_AGENT.md): testing applications inside a private network.
+- [Local agents](./docs/en/integrations/local-agents.md): testing applications inside a private network.
 
 **New to the project?** Start with [WebFlowMaster at a glance](./docs/en/overview.md). For the architecture in
 diagrams: [system architecture](./docs/en/internals/system-architecture.md),

@@ -75,7 +75,7 @@ clienti mantengono il comportamento esistente quando la variabile non è imposta
   separato per ogni singolo test.
 - Protocolli TCP diretti, come test database e SMTP, grid browser esterne e SDK senza
   supporto proxy falliscono. Per applicazioni private usare un
-  [agente locale](../LOCAL_AGENT), con restrizioni di rete dedicate. Autorizzare un nome
+  [agente locale](../integrations/local-agents), con restrizioni di rete dedicate. Autorizzare un nome
   privato non concede una rotta privata.
 - Il DNS passa dal resolver Docker; le query DNS non sono filtrate dall'allowlist HTTP.
   Questo profilo isola le destinazioni e non impedisce ogni possibile canale di esfiltrazione

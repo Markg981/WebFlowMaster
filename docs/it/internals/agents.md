@@ -2,7 +2,7 @@
 
 Un agente locale presta browser che girano dentro la rete di un cliente ai run eseguiti sui worker del
 server. Questa pagina spiega come funziona all'interno. Come installarne e gestirne uno è nella
-[guida agli agenti locali](../LOCAL_AGENT).
+[guida agli agenti locali](../integrations/local-agents).
 
 ## L'idea: prestare il browser, tenere il runner
 

@@ -30,7 +30,7 @@ backgrounds, doc strings, step tables and tagged Examples. Choose manual executi
 Cucumber profile on your organization's dedicated agent. Executable portable imports require an
 explicit destination binding; support definitions are operator-installed JavaScript/TypeScript.
 WebFlowMaster metadata restores original browser actions or versioned BDD definitions. See
-[Gherkin file details](../../gherkin-files).
+[Gherkin file details](./gherkin-files).
 
 ## Comments
 

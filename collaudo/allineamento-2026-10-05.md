@@ -11,8 +11,8 @@ Protocollo 25: **517 casi, 24 aree**. Nuovi casi tutti da eseguire in un nuovo c
 | Provider email e template | ADM-21…ADM-28 | `email-provider-templates-2026-10-04.md` |
 | Streaming gRPC, mTLS e conversazioni | API-37…API-48 | `protocolli/esito-streaming-mtls-2026-10-04.md` |
 | Gherkin/Cucumber su agenti dedicati | BDD-01…BDD-11 | `bdd-cucumber-2026-10-05.md` |
-| Flussi, gruppi, matrici e catalogo mobile | MOB-33…MOB-40 | `../docs/mobile-flow-matrix-acceptance.md` |
-| Quote configurabili e consumi | QUO-01…QUO-14 | `../docs/administration-acceptance.md` |
+| Flussi, gruppi, matrici e catalogo mobile | MOB-33…MOB-40 | `../docs/acceptance/mobile-flow-matrix-acceptance.md` |
+| Quote configurabili e consumi | QUO-01…QUO-14 | `../docs/acceptance/administration-acceptance.md` |
 | Prometheus e OpenTelemetry | TEL-01…TEL-12 | `../docs/it/admin/telemetry.md`, equivalente EN |
 
 La preparazione nella pagina include migrazioni fino a 0082, pool e profilo BDD,

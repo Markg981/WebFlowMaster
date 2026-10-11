@@ -30,7 +30,7 @@ ridurli a selettori browser. Mantenere coerenti sorgente e selezione durante le 
 4. L'editor sceglie profilo autorizzato e revisione quando importa o modifica il test BDD.
    Pubblicare con il normale flusso di review/versioni se il piano usa test pubblicati.
 
-Vedere [configurazione agente](../LOCAL_AGENT). Preparare il codice degli step cliente è compito
+Vedere [configurazione agente](../integrations/local-agents). Preparare il codice degli step cliente è compito
 dell'operatore: l'import feature trasferisce il sorgente, non un eseguibile di supporto arbitrario.
 
 ## Importare, modificare e condividere

@@ -336,12 +336,12 @@ Owners see and can revoke every key in the organization.
 
 | What | Where | Who |
 |---|---|---|
-| Starting plans from CI | API keys and the `wfm` CLI; see [CI integration](../CI_INTEGRATION) | Editors |
+| Starting plans from CI | API keys and the `wfm` CLI; see [CI integration](../integrations/ci) | Editors |
 | Webhooks that start a plan | The plan's settings; each has its own token | Editors |
 | Issue trackers (Jira, Azure DevOps) | **Settings → Issue trackers** | Editors |
 | Test management (TestRail, Xray, Zephyr Scale) | **Settings → Test management**; see [Publishing to TestRail, Xray or Zephyr](../guide/results#test-management) | Editors |
 | Commit statuses on GitHub and GitLab | **Settings → GitHub & GitLab**; shows the last delivery error | Owners |
-| Local agents | **Settings → Local agents**; see [Local agents](../LOCAL_AGENT) | Owners |
+| Local agents | **Settings → Local agents**; see [Local agents](../integrations/local-agents) | Owners |
 
 Tokens for trackers, test management tools and GitHub/GitLab are encrypted when saved and are never shown again; to
 change one, enter the new value.
@@ -487,7 +487,7 @@ Owners inspect the latest 100 messages in **Email delivery**. **Accepted by SMTP
 
 In **Email templates**, choose invitation, password reset or run notification and edit the subject, complete HTML source and plain-text alternative. The editor lists each purpose's supported `{{variable}}` names. Unknown variables and invalid subjects are rejected; invitation/reset templates must retain their action URL in both HTML and text. Dynamic values are escaped and HTML is sanitized with an explicit allowlist.
 
-**Preview** uses synthetic data and links in a sandboxed iframe with scripts and external resource loading disabled; it sends no message. Save to persist an organization override, or reset to the built-in template. Stale revisions preserve the draft and require an explicit reload. Switching message purpose or organization clears drafts and previews. Overrides apply consistently to account emails and worker notifications; other messages retain their built-in behavior. See [Administration acceptance](../../administration-acceptance.md).
+**Preview** uses synthetic data and links in a sandboxed iframe with scripts and external resource loading disabled; it sends no message. Save to persist an organization override, or reset to the built-in template. Stale revisions preserve the draft and require an explicit reload. Switching message purpose or organization clears drafts and previews. Overrides apply consistently to account emails and worker notifications; other messages retain their built-in behavior. See [Administration acceptance](https://github.com/Markg981/WebFlowMaster/blob/main/docs/acceptance/administration-acceptance.md).
 
 ## Password policy {#password-policy}
 
@@ -543,7 +543,7 @@ API: `GET /api/admin/organization-quotas`, `PATCH /api/admin/organization-quotas
 `{ "revision": 1, "overrides": { "mode": "off", "maxTests": null } }`, and
 `POST /api/admin/organization-quotas/:id/reconcile-artifacts`. Tenant usage:
 `GET /api/organization/usage`. Quota refusals return HTTP 429 with `test_quota_exceeded` or
-`execution_quota_exceeded`. See [acceptance procedures](../../administration-acceptance.md).
+`execution_quota_exceeded`. See [acceptance procedures](https://github.com/Markg981/WebFlowMaster/blob/main/docs/acceptance/administration-acceptance.md).
 
 ## Known limitations
 

@@ -65,6 +65,7 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
         { text: t.apiTests, link: p('guide/api-tests') },
         { text: lang === 'it' ? 'Test di carico' : 'Load tests', link: p('guide/load-tests') },
         { text: 'BDD / Cucumber', link: p('guide/bdd-tests') },
+        { text: lang === 'it' ? 'File Gherkin' : 'Gherkin files', link: p('guide/gherkin-files') },
         { text: t.mobileApps, link: p('guide/mobile-apps') },
         { text: t.organizing, link: p('guide/organizing') },
         {
@@ -107,8 +108,8 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
     {
       text: t.integrations,
       items: [
-        { text: t.ci, link: p('CI_INTEGRATION') },
-        { text: t.localAgents, link: p('LOCAL_AGENT') },
+        { text: t.ci, link: p('integrations/ci') },
+        { text: t.localAgents, link: p('integrations/local-agents') },
       ],
     },
     {
@@ -264,9 +265,10 @@ export default withMermaid(
           render(...args).replace('<code', '<code v-pre');
       },
     },
-    // Not documentation for readers: design notes, generated PDFs, and the record of dependency
-    // reviews, which lives in the repository and is linked from the security pages.
-    srcExclude: ['superpowers/**', 'pdf/**', 'SECURITY-AUDIT.md'],
+    // Not documentation for readers: design notes, generated PDFs, the record of dependency
+    // reviews (linked from the security pages), the acceptance procedures the collaudo app
+    // follows, and archived plans. They live in the repository, not on the site.
+    srcExclude: ['superpowers/**', 'pdf/**', 'SECURITY-AUDIT.md', 'acceptance/**', 'archive/**'],
     themeConfig: {
       search: {
         provider: 'local',

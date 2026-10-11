@@ -40,7 +40,7 @@ server (see [Tenancy](../internals/tenancy)).
 - **PostgreSQL 15 or later** for anything beyond evaluation.
 - **Redis 6.2 or later, or Valkey**, reachable from the web process and every worker.
 - Outbound network access from the workers to the applications under test, or a
-  [local agent](../LOCAL_AGENT) inside the network where they live.
+  [local agent](../integrations/local-agents) inside the network where they live.
 - Memory, as a rough guide: about 1 GB for the web process, and 1–2 GB on a worker for each browser it runs at once (`WORKER_CONCURRENCY` × the plan's parallelism). Measure with your own suites.
 
 ## Option 1: Docker Compose

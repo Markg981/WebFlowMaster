@@ -20,7 +20,7 @@ browsers instead ([phones and tablets](./running#mobile-devices)).
 ### On your own devices (local Appium) {#local-appium}
 
 Emulators, simulators and the phones on your desk run through an **Appium** server on a machine
-with a [local agent](../LOCAL_AGENT). The agent carries the requests, so the server needs no way
+with a [local agent](../integrations/local-agents). The agent carries the requests, so the server needs no way
 into that network, and nothing new is installed beyond Appium itself.
 
 1. On the agent's machine: install Appium and its drivers (`npm i -g appium`,

@@ -2,7 +2,7 @@
 
 A local agent lends browsers that run inside a customer's network to runs that execute on the
 server's workers. This page explains how it works inside. How to install and operate one is in the
-[Local agents guide](../LOCAL_AGENT).
+[Local agents guide](../integrations/local-agents).
 
 ## The idea: lend the browser, keep the runner
 

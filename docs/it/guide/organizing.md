@@ -31,7 +31,7 @@ Rule, Background, doc string, tabelle nei passi ed Examples con tag. Scegliete e
 o un profilo Cucumber autorizzato sull'agente dedicato dell'organizzazione. Gli import portabili
 eseguibili richiedono un binding di destinazione esplicito; l'operatore installa le definizioni
 JavaScript/TypeScript. I metadati ripristinano azioni browser o definizioni BDD versionate.
-Vedi [Dettagli dei file Gherkin](../../gherkin-files).
+Vedi [Dettagli dei file Gherkin](./gherkin-files).
 
 ## Commenti
 

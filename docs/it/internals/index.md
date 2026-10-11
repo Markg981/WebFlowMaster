@@ -159,7 +159,7 @@ La storia completa, con la macchina a stati, è in [Ciclo di vita di un run](./e
 La CLI (`wfm run <piano> --wait`) chiama `/api/v1` con una chiave API con scope, invia il contesto CI
 che legge dalle variabili d'ambiente del sistema di CI (repository, commit, branch, URL della build),
 interroga il run finché termina, scrive i report richiesti ed esce con `0` (passato), `1` (fallito) o
-`2` (non eseguibile). Vedi la [guida all'integrazione CI](../CI_INTEGRATION).
+`2` (non eseguibile). Vedi la [guida all'integrazione CI](../integrations/ci).
 
 ## Principi trasversali
 

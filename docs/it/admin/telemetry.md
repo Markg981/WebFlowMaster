@@ -60,7 +60,7 @@ Usare un collector esistente con receiver OTLP HTTP: il formato dell'exporter è
 
 La catena è richiesta HTTP → invio alla coda → tentativo worker → operazione client agente → sessione agente. `traceparent` e `tracestate` W3C viaggiano nei job e nei ticket firmati del relay. I job schedulati senza richiesta iniziano un trace nuovo; gli shard ereditano quello del worker che li invia. Lo span di connessione browser misura l'acquisizione; quello della sessione agente termina al rilascio. Gli span client API/BDD includono attesa slot ed esecuzione. La sessione BDD copre l'esecuzione senza strumentare gli step cliente nel processo figlio.
 
-Attraversano i confini solo i campi del trace: niente baggage, payload, URL del sistema testato, messaggi di eccezione o label utente/tenant. Gli agenti precedenti ignorano il campo opzionale e continuano a funzionare, ma non esportano span locali. Ricostruire/reinstallare l'agente aggiornato con le dipendenze indicate in [Agenti locali](../LOCAL_AGENT.md), configurando il suo collector separatamente. La telemetria non apre listener in ingresso sull'agente.
+Attraversano i confini solo i campi del trace: niente baggage, payload, URL del sistema testato, messaggi di eccezione o label utente/tenant. Gli agenti precedenti ignorano il campo opzionale e continuano a funzionare, ma non esportano span locali. Ricostruire/reinstallare l'agente aggiornato con le dipendenze indicate in [Agenti locali](../integrations/local-agents.md), configurando il suo collector separatamente. La telemetria non apre listener in ingresso sull'agente.
 
 ## Verifica operativa
 

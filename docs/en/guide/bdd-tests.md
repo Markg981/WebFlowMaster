@@ -30,7 +30,7 @@ into browser selectors. Keep source and selection consistent when editing.
 4. The editor selects an authorized profile and its revision when importing or editing the BDD test.
    Publish through the normal review/version workflow if the plan uses published tests.
 
-See [local agent setup](../LOCAL_AGENT). Provisioning customer step code is an operator task;
+See [local agent setup](../integrations/local-agents). Provisioning customer step code is an operator task;
 feature import transfers source, not an arbitrary support executable.
 
 ## Import, edit and share

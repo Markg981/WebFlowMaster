@@ -47,7 +47,7 @@ dall'operatore.
   - non lasciate che i worker raggiungano le interfacce di amministrazione della vostra
     infrastruttura;
   - raggiungete le applicazioni dentro la rete di un cliente con un
-    [agente locale](../LOCAL_AGENT), non aprendo rotte dai worker.
+    [agente locale](../integrations/local-agents), non aprendo rotte dai worker.
 - I worker su altre macchine usano `ARTIFACT_STORE=s3`, e il bucket è privato.
 
 ## Accessi

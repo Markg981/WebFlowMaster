@@ -41,9 +41,9 @@ Per chi gestisce un'installazione e per gli owner di un'organizzazione:
 
 ## Integrazioni
 
-- [Integrazione CI](./CI_INTEGRATION) — GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, la CLI e
+- [Integrazione CI](./integrations/ci) — GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, la CLI e
   lo stato dei commit.
-- [Agenti locali](./LOCAL_AGENT) — testare applicazioni dentro una rete privata.
+- [Agenti locali](./integrations/local-agents) — testare applicazioni dentro una rete privata.
 
 ## Riferimento
 

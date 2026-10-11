@@ -60,7 +60,7 @@ Use an existing collector with an OTLP HTTP receiver; exporter format is **JSON*
 
 The span chain is HTTP request → queue submission → worker attempt → agent client operation → agent session. W3C `traceparent`/`tracestate` travel in job data and signed relay tickets. Scheduled jobs without a request start a new trace; shards inherit their submitting worker's trace. Browser connection spans measure acquisition, while the agent session span lasts until release. API/BDD client spans include slot wait and request execution. An agent session covers BDD execution without instrumenting customer step code in its child process.
 
-Only trace fields cross boundaries: no baggage, payloads, target URLs, exception messages, user or tenant labels are exported. Older agents ignore the optional trace field and continue working, but export no agent-side spans. Rebuild/reinstall the updated standalone agent with the dependency command under [Local agents](../LOCAL_AGENT.md), and configure its collector independently. Agents still open no inbound listener for telemetry.
+Only trace fields cross boundaries: no baggage, payloads, target URLs, exception messages, user or tenant labels are exported. Older agents ignore the optional trace field and continue working, but export no agent-side spans. Rebuild/reinstall the updated standalone agent with the dependency command under [Local agents](../integrations/local-agents.md), and configure its collector independently. Agents still open no inbound listener for telemetry.
 
 ## Verify
 

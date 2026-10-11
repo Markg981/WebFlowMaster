@@ -352,12 +352,12 @@ Gli owner vedono e possono revocare ogni chiave dell'organizzazione.
 
 | Cosa | Dove | Chi |
 |---|---|---|
-| Avviare piani dalla CI | Chiavi API e la CLI `wfm`; vedi [Integrazione CI](../CI_INTEGRATION) | Editor |
+| Avviare piani dalla CI | Chiavi API e la CLI `wfm`; vedi [Integrazione CI](../integrations/ci) | Editor |
 | Webhook che avviano un piano | Le impostazioni del piano; ognuno ha il proprio token | Editor |
 | Issue tracker (Jira, Azure DevOps) | **Impostazioni → Issue tracker** | Editor |
 | Test management (TestRail, Xray, Zephyr Scale) | **Impostazioni → Test management**; vedi [Pubblicare su TestRail, Xray o Zephyr](../guide/results#test-management) | Editor |
 | Stati dei commit su GitHub e GitLab | **Impostazioni → GitHub e GitLab**; mostra l'ultimo errore di invio | Owner |
-| Agenti locali | **Impostazioni → Agenti locali**; vedi [Agenti locali](../LOCAL_AGENT) | Owner |
+| Agenti locali | **Impostazioni → Agenti locali**; vedi [Agenti locali](../integrations/local-agents) | Owner |
 
 I token dei tracker, degli strumenti di test management e di GitHub/GitLab vengono cifrati al salvataggio e non vengono più
 mostrati; per cambiarne uno, inserite il nuovo valore.
@@ -510,7 +510,7 @@ Gli owner consultano gli ultimi 100 messaggi in **Consegna email**. **Accettato 
 
 In **Modelli email**, scegliere invito, reset password o notifica run e modificare oggetto, sorgente HTML completo e alternativa in testo. L’editor elenca i nomi `{{variable}}` supportati per lo scopo. Variabili sconosciute e oggetti invalidi sono rifiutati; invito/reset devono conservare l’URL di azione sia nell’HTML sia nel testo. I valori dinamici sono escapati e l’HTML è sanitizzato con una allowlist esplicita.
 
-**Anteprima** usa dati e link sintetici in un iframe sandbox, senza script o caricamento di risorse esterne; non invia messaggi. Salvare per persistere l’override dell’organizzazione, oppure ripristinare il modello integrato. Le revisioni obsolete conservano la bozza e richiedono una ricarica esplicita. Cambiare scopo o organizzazione cancella bozze e anteprime. Gli override si applicano alle email account e alle notifiche worker; gli altri messaggi mantengono il comportamento integrato. Vedere [Collaudo amministrazione](../../administration-acceptance.md).
+**Anteprima** usa dati e link sintetici in un iframe sandbox, senza script o caricamento di risorse esterne; non invia messaggi. Salvare per persistere l’override dell’organizzazione, oppure ripristinare il modello integrato. Le revisioni obsolete conservano la bozza e richiedono una ricarica esplicita. Cambiare scopo o organizzazione cancella bozze e anteprime. Gli override si applicano alle email account e alle notifiche worker; gli altri messaggi mantengono il comportamento integrato. Vedere [Collaudo amministrazione](https://github.com/Markg981/WebFlowMaster/blob/main/docs/acceptance/administration-acceptance.md).
 
 ## Politica delle password {#password-policy}
 
@@ -568,7 +568,7 @@ API: `GET /api/admin/organization-quotas`, `PATCH /api/admin/organization-quotas
 `{ "revision": 1, "overrides": { "mode": "off", "maxTests": null } }`,
 `POST /api/admin/organization-quotas/:id/reconcile-artifacts`. Consumi del tenant:
 `GET /api/organization/usage`. Rifiuti: HTTP 429 con `test_quota_exceeded` oppure
-`execution_quota_exceeded`. Vedere le [procedure di accettazione](../../administration-acceptance.md).
+`execution_quota_exceeded`. Vedere le [procedure di accettazione](https://github.com/Markg981/WebFlowMaster/blob/main/docs/acceptance/administration-acceptance.md).
 
 ## Limiti noti
 
