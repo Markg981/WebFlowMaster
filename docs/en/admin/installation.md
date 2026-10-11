@@ -37,7 +37,10 @@ server (see [Tenancy](../internals/tenancy)).
 - **Node.js 22 or later** and npm 10, for installations from source. 24 is the version CI and the images use (`.nvmrc`); the SQL Server driver does not install on 20.
 - **Docker** with Compose v2, for the container layouts. The images are based on
   `mcr.microsoft.com/playwright:v1.63.0-resolute`, which already contains the browsers.
-- **PostgreSQL 15 or later** for anything beyond evaluation.
+- **PostgreSQL 15 or later** for anything beyond evaluation. The supported range is 15 and 16, both
+  exercised: `docker-compose.yml` ships `postgres:15-alpine`, CI runs the installation and isolation
+  jobs on 16. Moving the database to a new major version is a dump and restore, not an in-place
+  upgrade: take a verified backup first ([Operations](./operations#backups)).
 - **Redis 6.2 or later, or Valkey**, reachable from the web process and every worker.
 - Outbound network access from the workers to the applications under test, or a
   [local agent](../integrations/local-agents) inside the network where they live.

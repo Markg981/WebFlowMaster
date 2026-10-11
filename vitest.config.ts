@@ -25,15 +25,6 @@ export default defineConfig({
     // full run, each with "Test timed out in 5000ms" while doing its work slowly, and passed
     // alone. A test that hangs still fails, after 30s.
     testTimeout: 30_000,
-    // setupFiles: ['./server/tests/setup.ts'], // Optional: for global test setup
-    // reporters: ['default', 'html'], // Optional: for UI reporting via @vitest/ui
-    // coverage: { // Optional: configure coverage
-    //   provider: 'v8', // or 'istanbul'
-    // reporters: ['default', 'html'], // Optional: for UI reporting via @vitest/ui
-    // coverage: { // Optional: configure coverage
-    //   provider: 'v8', // or 'istanbul'
-    //   reporter: ['text', 'json', 'html'],
-    // },
     setupFiles: ['./server/tests/setup.ts'], // Per-file database + migrations
     env: {
       // Overridden per file by the setup file above (to memory://) unless it names a real

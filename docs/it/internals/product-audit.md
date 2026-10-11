@@ -1,6 +1,6 @@
 # Audit del prodotto e chiusura della v1
 
-Aggiornato l'8 ottobre 2026 sul codice di main al commit `c24cbea` (PR #311 integrata).
+Aggiornato l'11 ottobre 2026 sul codice di main al commit `448c95b` (PR #375 integrata).
 Il prodotto copre il perimetro funzionale della suite. La chiusura della v1 richiede ancora
 accettazione corrente, una release installata e prove sugli ambienti dichiarati ai clienti.
 Leggere il [manuale completo](./suite-handbook) per ruoli e flussi.
@@ -65,7 +65,14 @@ implementate. Il lavoro utile è migliorarne riproducibilità, prova operativa e
 | Alta se S3 è nel perimetro     | Recupero S3 reale                   | Bucket sacrificabile, inventario key/version/checksum al checkpoint, versioning/replica recuperabile e verifica report/baseline/tenant. OPS-31.                                                   |
 | Alta                           | Capacità e recupero rappresentativi | Carico/dataset/risorse dichiarati, durata e soglie concordate, nessun run perso/duplicato, evidenze e tempi per fase. OPS-27…OPS-30, OPS-32…OPS-35.                                               |
 | Secondo il supporto dichiarato | Griglie e Appium reali              | Sessioni/capabilities effettive corrispondenti ai target, risultato funzionale, report ed export. AUT-11…AUT-12.                                                                                  |
-| Entro il 6 novembre 2026       | Dipendenza braces                   | Verifica upstream, mitigazione effettiva e scansioni nuove; rimuovere l'eccezione solo dopo un fix equivalente verificato. La scadenza non viene estesa automaticamente. OPS-26.                  |
+
+Chiusa l'11 ottobre 2026: l'eccezione sulla dipendenza `braces`, con scadenza 6 novembre 2026, non è più
+una condizione. Tailwind 3 → 4 e `@typescript-eslint` 7 → 8 hanno eliminato `braces` da entrambi i lockfile;
+la patch postinstall e l'eccezione di release sui soli sorgenti sono state rimosse e
+`server/tests/dependency-locks.test.ts` fallisce se `braces` o `micromatch` ricompaiono. OPS-26 verifica ora
+le correzioni delle dipendenze e l'assenza di `braces` sul candidato (`npm audit --omit=dev`,
+`npm ls braces micromatch`, il test dei lock, il gate di scansione della release senza eccezioni e
+l'interfaccia dopo Tailwind 4). Le decisioni sono registrate in `docs/SECURITY-AUDIT.md`.
 
 La prova locale di restore verifica DB e artefatti locali. Il recupero degli oggetti S3 è esterno.
 Il restart SIGTERM è verificato come recupero controllato; dopo SIGKILL, il run identificato

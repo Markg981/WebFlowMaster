@@ -1,6 +1,6 @@
 # Product audit and v1 acceptance
 
-Updated on 8 October 2026 against main commit `c24cbea` (merged PR #311).
+Updated on 11 October 2026 against main commit `448c95b` (merged PR #375).
 The suite covers its functional scope. Closing v1 still requires current acceptance, an installed
 release and evidence from the environments included in customer support commitments.
 Read the [complete handbook](./suite-handbook) for roles and workflows.
@@ -64,7 +64,14 @@ extends their reproducibility, operational verification and usability.
 | High when S3 is in scope      | Real S3 recovery                     | Disposable bucket, checkpoint key/version/checksum inventory, recoverable versioning/replication, report/baseline/tenant checks. OPS-31.                                                     |
 | High                          | Representative capacity and recovery | Declared workload/data/resources, agreed duration/thresholds, no lost/duplicate runs, retained evidence and phase timings. OPS-27…OPS-30, OPS-32…OPS-35.                                     |
 | According to declared support | Real grids and Appium                | Observed session/capabilities matching requested targets, functional result, report and exports. AUT-11…AUT-12.                                                                              |
-| By 6 November 2026            | braces dependency                    | Upstream verification, effective mitigation and fresh scans; remove the exception only after verifying an equivalent fix. Expiry is not extended automatically. OPS-26.                      |
+
+Closed on 11 October 2026: the `braces` dependency exception, due to expire on 6 November 2026, is no
+longer a condition. Tailwind 3 → 4 and `@typescript-eslint` 7 → 8 removed `braces` from both lockfiles; the
+postinstall patch and the source-only release exception are gone, and `server/tests/dependency-locks.test.ts`
+fails if `braces` or `micromatch` return. OPS-26 now verifies the dependency fixes and the absence of
+`braces` on the candidate (`npm audit --omit=dev`, `npm ls braces micromatch`, the lock test, the release
+scan gate without exceptions and the interface after Tailwind 4). Decisions are recorded in
+`docs/SECURITY-AUDIT.md`.
 
 The local recovery drill covers the database and local artifacts. S3 object recovery is external.
 SIGTERM is tested as controlled recovery; after SIGKILL, the identified run ends as

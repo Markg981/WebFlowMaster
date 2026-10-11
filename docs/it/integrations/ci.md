@@ -101,6 +101,14 @@ jobs:
           path: webflowmaster-report.html
 ```
 
+`@main` segue il ramo principale del repository: una modifica successiva all'action cambia la
+vostra pipeline senza alcun commit da parte vostra. Per build riproducibili fissate un tag di
+release o lo SHA completo di un commit, e spostatelo deliberatamente:
+
+```yaml
+- uses: Markg981/WebFlowMaster/integrations/github-action@0123456789abcdef0123456789abcdef01234567 # oppure @v1.2.3
+```
+
 Lo step fallisce se il piano fallisce. Inoltre:
 
 - scrive l'esecuzione nella pagina di riepilogo del job;

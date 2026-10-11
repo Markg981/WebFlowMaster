@@ -39,7 +39,11 @@ server PostgreSQL (vedi [Tenancy](../internals/tenancy)).
 - **Node.js 22 o successivo** e npm 10, per le installazioni dai sorgenti. La 24 è la versione usata da CI e immagini (`.nvmrc`); il driver di SQL Server non si installa sulla 20.
 - **Docker** con Compose v2, per le configurazioni a container. Le immagini partono da
   `mcr.microsoft.com/playwright:v1.63.0-resolute`, che contiene già i browser.
-- **PostgreSQL 15 o successivo** per tutto ciò che va oltre la valutazione.
+- **PostgreSQL 15 o successivo** per tutto ciò che va oltre la valutazione. L'intervallo supportato è
+  15 e 16, entrambi provati: `docker-compose.yml` usa `postgres:15-alpine`, la CI esegue i job di
+  installazione e isolamento sulla 16. Il passaggio del database a una versione maggiore nuova è un
+  dump e restore, non un aggiornamento sul posto: fate prima un backup verificato
+  ([Esercizio](./operations#backup)).
 - **Redis 6.2 o successivo, oppure Valkey**, raggiungibile dal processo web e da ogni worker.
 - Accesso di rete in uscita dai worker verso le applicazioni da testare, oppure un
   [agente locale](../integrations/local-agents) dentro la rete in cui si trovano.

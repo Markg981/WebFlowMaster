@@ -1,0 +1,93 @@
+# Prometheus alerting rules for WebFlowMaster. How to load them: docs/en/admin/telemetry.md,
+# section "Alerting".
+#
+# Every expression uses a metric the processes export (server/observability/metrics.ts) or one
+# Prometheus produces itself (`up`, one series per scrape target). Job names follow the scrape
+# configuration shown in the documentation: `wfm-api` and `wfm-worker`. Thresholds and windows are
+# starting points: set them from the installation's plan sizes, worker count and traffic.
+#
+# Not covered by a metric: a run that ends as `worker_lost` is a state in the database, written by
+# the recovery sweep when a run's heartbeat goes quiet (server/run-recovery.ts).
+# No counter is incremented for it. The rules below alert on the cause instead: a worker whose
+# metrics listener stops answering (WfmWorkerTargetDown), no worker reachable at all
+# (WfmNoWorkerReachable) and attempts that end in an infrastructure error (WfmJobErrors).
+groups:
+  - name: webflowmaster
+    rules:
+      # wfm_queue_jobs{queue,state}: global queue depth, exported by every worker replica, so take
+      # the max across replicas and never the sum. Waiting and prioritized jobs are the backlog.
+      - alert: WfmQueueBacklogGrowing
+        expr: >
+          max by (queue) (sum by (queue, instance) (wfm_queue_jobs{state=~"waiting|prioritized"})) > 20
+          and
+          max by (queue) (sum by (queue, instance) (wfm_queue_jobs{state=~"waiting|prioritized"}))
+          - max by (queue) (sum by (queue, instance) (wfm_queue_jobs{state=~"waiting|prioritized"}) offset 15m) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Queue {{ $labels.queue }} backlog is growing'
+          description: '{{ $value }} jobs waiting on {{ $labels.queue }} and more than fifteen minutes ago. Workers are too few, stuck or draining.'
+
+      # wfm_jobs_total{queue,job,outcome}: worker attempt outcomes success, error, deferred. An
+      # error is an infrastructure failure of the attempt (not a failed test assertion, which is a
+      # successfully processed job). The attempts a lost worker was holding are not counted here.
+      - alert: WfmJobErrors
+        expr: sum by (queue) (increase(wfm_jobs_total{outcome="error"}[15m])) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Worker attempts failed on {{ $labels.queue }}'
+          description: '{{ $value }} attempts on {{ $labels.queue }} ended in error in the last fifteen minutes. Read the worker logs for the job ids.'
+
+      # up{job="wfm-worker"}: Prometheus sets it to 0 when a worker's metrics listener does not
+      # answer. A worker that dies while holding a run is what ends that run as worker_lost.
+      - alert: WfmWorkerTargetDown
+        expr: up{job="wfm-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Worker {{ $labels.instance }} is not answering'
+          description: 'No successful scrape of {{ $labels.instance }} for five minutes. Runs it was executing end as worker_lost; check the process and its logs.'
+
+      # No worker reachable: absent() fires when not one wfm-worker target is up. Also fires when
+      # the scrape job is missing from the Prometheus configuration, which deserves the same page.
+      - alert: WfmNoWorkerReachable
+        expr: absent(up{job="wfm-worker"} == 1)
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'No WebFlowMaster worker is reachable'
+          description: 'No wfm-worker target answered for five minutes: nothing dequeues plans. Check the worker processes and the scrape configuration.'
+
+      # wfm_http_duration_seconds_count{method,route,status}: one increment per request, so the
+      # ratio of 5xx to all requests over five minutes is the server error rate. Routes that do
+      # not exist count under route="unmatched" with a 404, not here.
+      - alert: WfmHttpServerErrors
+        expr: >
+          sum(rate(wfm_http_duration_seconds_count{status=~"5.."}[5m]))
+          / sum(rate(wfm_http_duration_seconds_count[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'More than 5% of API requests fail with 5xx'
+          description: '{{ $value | humanizePercentage }} of requests returned a server error over the last five minutes. Correlate with the API logs and GET /readyz.'
+
+      # up{job="wfm-api"}: the API's metrics listener. It answers only when the process is up;
+      # GET /readyz (database and Redis) is not a metric. Probe it with the blackbox exporter and
+      # add, in the same group:
+      #   - alert: WfmApiNotReady
+      #     expr: probe_success{job="wfm-readyz"} == 0
+      #     for: 2m
+      - alert: WfmApiTargetDown
+        expr: up{job="wfm-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'API {{ $labels.instance }} is not answering'
+          description: 'No successful scrape of {{ $labels.instance }} for two minutes. Check the process, then GET /readyz for its dependencies.'
