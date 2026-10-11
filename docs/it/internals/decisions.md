@@ -94,8 +94,10 @@ come SHA-256 e mostrati una volta. Le credenziali che il prodotto deve presentar
 (segreti degli ambienti, token di tracker e source host, stati di login) sono cifrate con AES-256-GCM e
 mai restituite dall'API.
 
-**Conseguenze.** Una chiave persa si sostituisce, non si recupera. `ENCRYPTION_KEY` va custodita e
-tenuta stabile; perderla significa perdere quei segreti.
+**Conseguenze.** Una chiave persa si sostituisce, non si recupera. Dalla migrazione 0084 ogni
+organizzazione ha una chiave dati propria, avvolta dalla chiave master derivata da `ENCRYPTION_KEY`: la
+chiave master si ruota riavvolgendo (`ENCRYPTION_KEY_PREVIOUS`, `npm run key:rotate`) e la chiave di
+un'organizzazione da sola, ma perdere ogni chiave master significa ancora perdere ogni segreto.
 
 ## 10. Gli effetti collaterali non decidono mai un verdetto
 

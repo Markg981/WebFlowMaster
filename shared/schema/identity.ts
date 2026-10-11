@@ -43,6 +43,36 @@ export const organizations = pgTable('organizations', {
   smsInboundTokenCreatedAt: timestamp('sms_inbound_token_created_at'),
 });
 
+/**
+ * An organization's data keys (migration 0084). Every secret the organization stores is encrypted
+ * with its active key; the key itself is stored wrapped by the master key ENCRYPTION_KEY derives,
+ * so the database alone reveals nothing. One active version per organization; a retired version
+ * stays until nothing it encrypted is left (scripts/wfm-rotate-key.ts). Read by
+ * server/organization-keys.ts, outside any tenant transaction when there is none: the worker and
+ * single sign-on decrypt before a request's organization is known. app_user may read and create
+ * its own organization's keys and nothing else; retiring and deleting are the operator's.
+ */
+export const organizationKeys = pgTable(
+  'organization_keys',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    keyVersion: integer('key_version').notNull(),
+    /** Hex: 16-byte IV, 16-byte authentication tag, then the key encrypted under the master key. */
+    wrappedKey: text('wrapped_key').notNull(),
+    /** The fingerprint of the master key that wrapped it: sha256 of the key, first 16 hex characters. */
+    masterKeyId: text('master_key_id').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    retiredAt: timestamp('retired_at'),
+  },
+  (table) => [
+    uniqueIndex('organization_keys_version_unique').on(table.organizationId, table.keyVersion),
+    index('organization_keys_organization_id_idx').on(table.organizationId),
+  ],
+);
+
 export const quotaExecutionSessions = pgTable(
   'quota_execution_sessions',
   {

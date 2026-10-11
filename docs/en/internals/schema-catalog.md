@@ -4,13 +4,14 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**72 tables / 808 declared columns.**
+**73 tables / 818 declared columns.**
 
 ## Index
 
 | SQL                                                           | TypeScript                   | Columns |
 | ------------------------------------------------------------- | ---------------------------- | ------- |
 | [organizations](#organizations)                               | `organizations`              | 16      |
+| [organization_keys](#organization-keys)                       | `organizationKeys`           | 7       |
 | [quota_execution_sessions](#quota-execution-sessions)         | `quotaExecutionSessions`     | 6       |
 | [quota_artifacts](#quota-artifacts)                           | `quotaArtifacts`             | 6       |
 | [quota_installation_defaults](#quota-installation-defaults)   | `quotaInstallationDefaults`  | 4       |
@@ -66,7 +67,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [test_plan_suites](#test-plan-suites)                         | `testPlanSuites`             | 4       |
 | [test_quarantines](#test-quarantines)                         | `testQuarantines`            | 12      |
 | [mobile_test_runs](#mobile-test-runs)                         | `mobileTestRuns`             | 18      |
-| [load_test_runs](#load-test-runs)                             | `loadTestRuns`               | 14      |
+| [load_test_runs](#load-test-runs)                             | `loadTestRuns`               | 17      |
 | [runners](#runners)                                           | `runners`                    | 12      |
 | [environments](#environments)                                 | `environments`               | 10      |
 | [secrets](#secrets)                                           | `secrets`                    | 10      |
@@ -106,9 +107,23 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `smsInboundTokenPrefix`      | `sms_inbound_token_prefix`      | `text('sms_inbound_token_prefix')`                                 |
 | `smsInboundTokenCreatedAt`   | `sms_inbound_token_created_at`  | `timestamp('sms_inbound_token_created_at')`                        |
 
+## organization_keys {#organization-keys}
+
+`organizationKeys` — `shared/schema/identity.ts:55`
+
+| TS property      | SQL column        | Declaration                                                                                          |
+| ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                                          |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
+| `keyVersion`     | `key_version`     | `integer('key_version').notNull()`                                                                   |
+| `wrappedKey`     | `wrapped_key`     | `text('wrapped_key').notNull()`                                                                      |
+| `masterKeyId`    | `master_key_id`   | `text('master_key_id').notNull()`                                                                    |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                                     |
+| `retiredAt`      | `retired_at`      | `timestamp('retired_at')`                                                                            |
+
 ## quota_execution_sessions {#quota-execution-sessions}
 
-`quotaExecutionSessions` — `shared/schema/identity.ts:46`
+`quotaExecutionSessions` — `shared/schema/identity.ts:76`
 
 | TS property      | SQL column        | Declaration                                                                                          |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -121,7 +136,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## quota_artifacts {#quota-artifacts}
 
-`quotaArtifacts` — `shared/schema/identity.ts:64`
+`quotaArtifacts` — `shared/schema/identity.ts:94`
 
 | TS property      | SQL column        | Declaration                                                                                          |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -134,7 +149,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## quota_installation_defaults {#quota-installation-defaults}
 
-`quotaInstallationDefaults` — `shared/schema/identity.ts:79`
+`quotaInstallationDefaults` — `shared/schema/identity.ts:109`
 
 | TS property        | SQL column           | Declaration                                                             |
 | ------------------ | -------------------- | ----------------------------------------------------------------------- |
@@ -145,7 +160,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## users {#users}
 
-`users` — `shared/schema/identity.ts:86`
+`users` — `shared/schema/identity.ts:116`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -161,7 +176,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## user_mfa {#user-mfa}
 
-`userMfa` — `shared/schema/identity.ts:114`
+`userMfa` — `shared/schema/identity.ts:144`
 
 | TS property              | SQL column                 | Declaration                                                                             |
 | ------------------------ | -------------------------- | --------------------------------------------------------------------------------------- |
@@ -179,7 +194,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## user_settings {#user-settings}
 
-`userSettings` — `shared/schema/identity.ts:131`
+`userSettings` — `shared/schema/identity.ts:161`
 
 | TS property                | SQL column                   | Declaration                                                                             |
 | -------------------------- | ---------------------------- | --------------------------------------------------------------------------------------- |
@@ -198,7 +213,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## projects {#projects}
 
-`projects` — `shared/schema/identity.ts:153`
+`projects` — `shared/schema/identity.ts:183`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -211,7 +226,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## project_members {#project-members}
 
-`projectMembers` — `shared/schema/identity.ts:181`
+`projectMembers` — `shared/schema/identity.ts:211`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -223,7 +238,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## system_settings {#system-settings}
 
-`systemSettings` — `shared/schema/identity.ts:206`
+`systemSettings` — `shared/schema/identity.ts:236`
 
 | TS property | SQL column | Declaration                |
 | ----------- | ---------- | -------------------------- |
@@ -232,7 +247,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## invitations {#invitations}
 
-`invitations` — `shared/schema/identity.ts:224`
+`invitations` — `shared/schema/identity.ts:254`
 
 | TS property       | SQL column           | Declaration                                                                           |
 | ----------------- | -------------------- | ------------------------------------------------------------------------------------- |
@@ -248,7 +263,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## password_resets {#password-resets}
 
-`passwordResets` — `shared/schema/identity.ts:268`
+`passwordResets` — `shared/schema/identity.ts:298`
 
 | TS property      | SQL column        | Declaration                                                                          |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
@@ -263,7 +278,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## organization_sso {#organization-sso}
 
-`organizationSso` — `shared/schema/identity.ts:300`
+`organizationSso` — `shared/schema/identity.ts:330`
 
 | TS property                      | SQL column                          | Declaration                                                                                                                        |
 | -------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -297,7 +312,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## scim_users {#scim-users}
 
-`scimUsers` — `shared/schema/identity.ts:363`
+`scimUsers` — `shared/schema/identity.ts:393`
 
 | TS property        | SQL column           | Declaration                                                                                          |
 | ------------------ | -------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -310,7 +325,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## scim_groups {#scim-groups}
 
-`scimGroups` — `shared/schema/identity.ts:382`
+`scimGroups` — `shared/schema/identity.ts:412`
 
 | TS property      | SQL column        | Declaration                                                                                          |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -323,7 +338,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## scim_group_members {#scim-group-members}
 
-`scimGroupMembers` — `shared/schema/identity.ts:397`
+`scimGroupMembers` — `shared/schema/identity.ts:427`
 
 | TS property | SQL column | Declaration                                                                             |
 | ----------- | ---------- | --------------------------------------------------------------------------------------- |
@@ -332,7 +347,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sso_saml_requests {#sso-saml-requests}
 
-`ssoSamlRequests` — `shared/schema/identity.ts:418`
+`ssoSamlRequests` — `shared/schema/identity.ts:448`
 
 | TS property      | SQL column        | Declaration                                                                                          |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -344,7 +359,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sso_saml_replay {#sso-saml-replay}
 
-`ssoSamlReplay` — `shared/schema/identity.ts:433`
+`ssoSamlReplay` — `shared/schema/identity.ts:463`
 
 | TS property      | SQL column        | Declaration                                                                                          |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -354,7 +369,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sso_saml_sessions {#sso-saml-sessions}
 
-`ssoSamlSessions` — `shared/schema/identity.ts:446`
+`ssoSamlSessions` — `shared/schema/identity.ts:476`
 
 | TS property      | SQL column        | Declaration                                                                                          |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -369,7 +384,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sso_domains {#sso-domains}
 
-`ssoDomains` — `shared/schema/identity.ts:472`
+`ssoDomains` — `shared/schema/identity.ts:502`
 
 | TS property         | SQL column           | Declaration                                                                                          |
 | ------------------- | -------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -380,7 +395,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sso_identities {#sso-identities}
 
-`ssoIdentities` — `shared/schema/identity.ts:488`
+`ssoIdentities` — `shared/schema/identity.ts:518`
 
 | TS property    | SQL column        | Declaration                                                                                    |
 | -------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
@@ -392,7 +407,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## audit_log {#audit-log}
 
-`auditLog` — `shared/schema/identity.ts:520`
+`auditLog` — `shared/schema/identity.ts:550`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -410,7 +425,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## api_keys {#api-keys}
 
-`apiKeys` — `shared/schema/identity.ts:565`
+`apiKeys` — `shared/schema/identity.ts:595`
 
 | TS property      | SQL column        | Declaration                                                                          |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
@@ -428,7 +443,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:756`
+`sessions` — `shared/schema/identity.ts:786`
 
 | TS property | SQL column | Declaration                     |
 | ----------- | ---------- | ------------------------------- |
@@ -1104,6 +1119,9 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `error`           | `error`            | `text('error')`                                                                               |
 | `cancelRequested` | `cancel_requested` | `boolean('cancel_requested').notNull().default(false)`                                        |
 | `heartbeatAt`     | `heartbeat_at`     | `timestamp('heartbeat_at')`                                                                   |
+| `jobId`           | `job_id`           | `text('job_id')`                                                                              |
+| `workerId`        | `worker_id`        | `text('worker_id')`                                                                           |
+| `queuedAt`        | `queued_at`        | `timestamp('queued_at')`                                                                      |
 | `requestedBy`     | `requested_by`     | `integer('requested_by').references(() => users.id, { onDelete: 'set null' })`                |
 | `startedAt`       | `started_at`       | `timestamp('started_at').defaultNow().notNull()`                                              |
 | `finishedAt`      | `finished_at`      | `timestamp('finished_at')`                                                                    |

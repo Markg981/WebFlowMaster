@@ -178,7 +178,7 @@ router.post('/api/test-management', requireRole('editor'), async (req, res) => {
   const settled = settle(parsed.data, !!parsed.data.token);
   if (settled.error) return res.status(400).json({ error: settled.error });
   try {
-    const encrypted = encryptSecret(parsed.data.token!);
+    const encrypted = await encryptSecret(parsed.data.token!, getTenantOrgId()!);
     const created = await withTenantTransaction(async (tx) => {
       const [row] = await tx
         .insert(testManagementConnections)
@@ -222,7 +222,9 @@ router.put('/api/test-management/:id', requireRole('editor'), async (req, res) =
       if (!current) throw new ConnectionError(404, 'Connection not found.');
       const settled = settle(parsed.data, !!parsed.data.token || !!current.encryptedToken);
       if (settled.error) throw new ConnectionError(400, settled.error);
-      const token = parsed.data.token ? encryptSecret(parsed.data.token) : null;
+      const token = parsed.data.token
+        ? await encryptSecret(parsed.data.token, current.organizationId)
+        : null;
       const [row] = await tx
         .update(testManagementConnections)
         .set({
@@ -258,7 +260,7 @@ router.put('/api/test-management/:id', requireRole('editor'), async (req, res) =
 router.post('/api/test-management/:id/test', requireRole('editor'), async (req, res) => {
   try {
     const row = await loadConnection(req.params.id);
-    res.json(await checkTestManagement(toConnectionConfig(row)));
+    res.json(await checkTestManagement(await toConnectionConfig(row)));
   } catch (error) {
     fail(res, error, 'check the connection');
   }

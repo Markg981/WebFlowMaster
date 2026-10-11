@@ -242,14 +242,14 @@ export async function pruneRequests(now = Date.now()): Promise<void> {
 
 // ─── Talking to the provider ────────────────────────────────────────────────────
 
-function samlFor(
+async function samlFor(
   row: SamlRow,
   publicBase: string,
   purpose: 'authn' | 'logout' = 'authn',
   sessionId?: string,
-): SAML {
+): Promise<SAML> {
   const { entityId, acsUrl, sloUrl } = spUrls(publicBase, row.organizationId);
-  const privateKey = spPrivateKey(row);
+  const privateKey = await spPrivateKey(row);
   return new SAML({
     entryPoint: row.samlSsoUrl!,
     issuer: entityId,
@@ -290,7 +290,7 @@ export async function startSamlSignIn(
   publicBase: string,
 ): Promise<{ url: string; requestId: string }> {
   await pruneRequests();
-  const url = await samlFor(row, publicBase).getAuthorizeUrlAsync('', undefined, {});
+  const url = await (await samlFor(row, publicBase)).getAuthorizeUrlAsync('', undefined, {});
   const encoded = new URL(url).searchParams.get('SAMLRequest');
   const requestId = encoded ? requestIdOf(encoded) : null;
   if (!requestId) throw new Error('Could not read back the AuthnRequest id.');
@@ -404,7 +404,9 @@ export async function finishSamlSignIn(
         assertionChildren.some((node) => node.localName === 'Assertion'))
     )
       throw new Error('This provider requires one encrypted assertion and no plaintext assertion.');
-    ({ profile } = await samlFor(row, publicBase).validatePostResponseAsync({
+    ({ profile } = await (
+      await samlFor(row, publicBase)
+    ).validatePostResponseAsync({
       SAMLResponse: samlResponse,
     }));
   } catch (error) {
@@ -506,8 +508,8 @@ export async function finishSamlSignIn(
 }
 
 /** The service provider's metadata, for the owner to give the identity provider. */
-export function serviceProviderMetadata(row: SamlRow, publicBase: string): string {
-  const xml = samlFor(row, publicBase).generateServiceProviderMetadata(
+export async function serviceProviderMetadata(row: SamlRow, publicBase: string): Promise<string> {
+  const xml = (await samlFor(row, publicBase)).generateServiceProviderMetadata(
     row.samlSpCertificate ?? null,
     row.samlSpCertificate ?? null,
   );
@@ -558,12 +560,13 @@ export function validSpKeyPair(privateKey: string, certificate: string): boolean
   }
 }
 
-function spPrivateKey(row: SamlRow): string | undefined {
+async function spPrivateKey(row: SamlRow): Promise<string | undefined> {
   return row.samlSpPrivateKeyEncrypted && row.samlSpPrivateKeyIv && row.samlSpPrivateKeyAuthTag
     ? decryptSecret(
         row.samlSpPrivateKeyEncrypted,
         row.samlSpPrivateKeyIv,
         row.samlSpPrivateKeyAuthTag,
+        row.organizationId,
       )
     : undefined;
 }
@@ -637,9 +640,11 @@ export async function startSessionSamlLogout(
     .select()
     .from(organizationSso)
     .where(eq(organizationSso.organizationId, identity.organizationId));
-  if (!row?.enabled || row.protocol !== 'saml' || !row.samlSloUrl || !spPrivateKey(row))
+  if (!row?.enabled || row.protocol !== 'saml' || !row.samlSloUrl || !(await spPrivateKey(row)))
     return null;
-  const url = await samlFor(row, publicBase, 'logout', req.sessionID).getLogoutUrlAsync(
+  const url = await (
+    await samlFor(row, publicBase, 'logout', req.sessionID)
+  ).getLogoutUrlAsync(
     {
       issuer: identity.issuer,
       nameID: identity.nameId,
@@ -685,7 +690,8 @@ export async function finishSamlLogout(
   publicBase: string,
   req: Request,
 ): Promise<{ redirectUrl?: string; response: boolean; revoked: number }> {
-  if (!row.samlSloUrl || !spPrivateKey(row)) throw new Error('Single logout is not configured.');
+  if (!row.samlSloUrl || !(await spPrivateKey(row)))
+    throw new Error('Single logout is not configured.');
   const params = req.method === 'GET' ? req.query : req.body;
   // A query or form field may arrive as an array (`?SAMLRequest=a&SAMLRequest=b`); read each one
   // once, as a string or not at all, and use only that value below.
@@ -700,7 +706,7 @@ export async function finishSamlLogout(
   )
     throw new Error('Supply one bounded SLO message.');
   const rootName = messageType === 'SAMLRequest' ? 'LogoutRequest' : 'LogoutResponse';
-  const saml = samlFor(row, publicBase, 'logout');
+  const saml = await samlFor(row, publicBase, 'logout');
   let root: Element;
   if (req.method === 'GET') {
     if (

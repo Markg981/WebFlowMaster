@@ -243,7 +243,7 @@ describe('a grid in the database', () => {
     organizationId = await createTestOrganization('Grid Org');
     otherOrganizationId = await createTestOrganization('Other Grid Org');
     gridId = uuidv4();
-    const token = encryptSecret('unused-token');
+    const token = await encryptSecret('unused-token', organizationId);
     await privilegedDb.insert(browserGrids).values({
       id: gridId,
       organizationId,

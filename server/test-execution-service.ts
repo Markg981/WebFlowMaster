@@ -1104,10 +1104,11 @@ async function runTestPlanJobInTenant(
         );
         for (const secret of environmentSecrets) {
           try {
-            secretsMap[secret.keyName] = decryptSecret(
+            secretsMap[secret.keyName] = await decryptSecret(
               secret.encryptedValue,
               secret.iv,
               secret.authTag,
+              executionRecord[0].organizationId,
             );
           } catch (e) {
             resolvedLogger.warn(
@@ -1672,7 +1673,7 @@ async function runTestPlanJobInTenant(
             reportStatus = 'Error';
             failureReason = `${mobile.test.name} names no grid to run on. Choose a BrowserStack or LambdaTest grid in the test's settings.`;
           } else {
-            const grid = toGridConfig(mobile.grid);
+            const grid = await toGridConfig(mobile.grid);
             const attemptOnce = () =>
               performMobileTest(
                 mobile.test,

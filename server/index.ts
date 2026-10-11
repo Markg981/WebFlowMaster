@@ -7,6 +7,7 @@ import { apiNotFound, serveStatic } from './static';
 import 'dotenv/config';
 import loggerPromise, { flushLogs } from './logger';
 import { privilegedDb, closeDb, assertTenancyPreconditions } from './db';
+import { assertOrganizationKeysReadable } from './organization-keys';
 import { systemSettings } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { setupWebSockets } from './websocket';
@@ -73,6 +74,12 @@ app.use(express.urlencoded({ extended: false }));
   if (schemaState.kind === 'unmanaged' || schemaState.kind === 'behind') {
     throw new Error(describeSchemaState(schemaState));
   }
+
+  // And that every organization's stored encryption key opens with ENCRYPTION_KEY or one of
+  // ENCRYPTION_KEY_PREVIOUS. A master key changed without the old one listed would otherwise be
+  // found by the first run that needs a secret, as a failed step (server/organization-keys.ts).
+  // After the schema check: on an unmigrated database that one explains what to do.
+  await assertOrganizationKeysReadable();
 
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.
   const { initializeQuotaDefaults } = await import('./tenant-quotas');

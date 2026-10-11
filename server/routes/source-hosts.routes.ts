@@ -79,7 +79,7 @@ router.put('/api/source-hosts/:provider', requireRole('owner'), async (req, res)
   });
   if (!check.ok) return res.status(400).json({ error: check.error });
 
-  const encrypted = encryptSecret(parsed.data.token);
+  const encrypted = await encryptSecret(parsed.data.token, getTenantOrgId()!);
   const values = {
     apiUrl,
     encryptedToken: encrypted.encryptedValue,
@@ -129,7 +129,7 @@ router.post('/api/source-hosts/:provider/test', requireRole('owner'), async (req
       .limit(1),
   );
   if (!row) return res.status(404).json({ error: 'Not connected.' });
-  res.json(await checkSourceHost(hostConfig(row)));
+  res.json(await checkSourceHost(await hostConfig(row)));
 });
 
 router.delete('/api/source-hosts/:provider', requireRole('owner'), async (req, res) => {

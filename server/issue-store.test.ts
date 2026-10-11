@@ -63,7 +63,7 @@ beforeEach(async () => {
           VALUES (${executionId}, 'plan-1', ${organizationId}, 'completed', ${new Date()})`,
     );
   }
-  const encrypted = encryptSecret('token-123');
+  const encrypted = await encryptSecret('token-123', organizationId);
   const [row] = await privilegedDb
     .insert(issueTrackers)
     .values({
@@ -239,7 +239,7 @@ describe('markResolved', () => {
 });
 
 describe('toConfig', () => {
-  it('hands the provider the token in the clear, and nothing else does', () => {
-    expect(toConfig(tracker).token).toBe('token-123');
+  it('hands the provider the token in the clear, and nothing else does', async () => {
+    expect((await toConfig(tracker)).token).toBe('token-123');
   });
 });

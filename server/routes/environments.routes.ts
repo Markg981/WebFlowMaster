@@ -200,7 +200,10 @@ router.post('/api/environments/:id/secrets', requireRole('editor'), async (req, 
         .limit(1);
       if (!environment) return null;
 
-      const { encryptedValue, iv, authTag } = encryptSecret(parsed.data.value);
+      const { encryptedValue, iv, authTag } = await encryptSecret(
+        parsed.data.value,
+        req.user!.organizationId,
+      );
 
       // Replace rather than accumulate: two rows with one name make `{{name}}` resolve to
       // whichever the query happens to return first, which changes for no visible reason.

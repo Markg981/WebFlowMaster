@@ -100,7 +100,9 @@ router.post('/api/browser-grids', requireRole('editor'), async (req, res) => {
   if (missing) return res.status(400).json({ error: missing });
 
   try {
-    const encrypted = parsed.data.key ? encryptSecret(parsed.data.key) : null;
+    const encrypted = parsed.data.key
+      ? await encryptSecret(parsed.data.key, req.user!.organizationId)
+      : null;
     const [created] = await withTenantTransaction((tx) =>
       tx
         .insert(browserGrids)
@@ -178,7 +180,7 @@ router.put('/api/browser-grids/:id', requireRole('editor'), async (req, res) => 
         changes.keyIv = null;
         changes.keyAuthTag = null;
       } else if (parsed.data.key) {
-        const encrypted = encryptSecret(parsed.data.key);
+        const encrypted = await encryptSecret(parsed.data.key, current.organizationId);
         changes.encryptedKey = encrypted.encryptedValue;
         changes.keyIv = encrypted.iv;
         changes.keyAuthTag = encrypted.authTag;
@@ -215,8 +217,9 @@ router.post('/api/browser-grids/:id/test', requireRole('editor'), async (req, re
       tx.select().from(browserGrids).where(eq(browserGrids.id, req.params.id)).limit(1),
     );
     if (!row) return res.status(404).json({ error: 'Grid not found.' });
-    if (row.provider === 'local_appium') return res.json(await checkLocalAppium(toGridConfig(row)));
-    const connection = gridConnection(toGridConfig(row), {
+    if (row.provider === 'local_appium')
+      return res.json(await checkLocalAppium(await toGridConfig(row)));
+    const connection = gridConnection(await toGridConfig(row), {
       label: 'chromium',
       engine: 'chromium',
       sessionName: 'WebFlowMaster connection check',
@@ -248,7 +251,7 @@ router.post('/api/browser-grids/:id/test', requireRole('editor'), async (req, re
  * agent is connected and that Appium answers where the grid says, without opening a device.
  */
 async function checkLocalAppium(
-  grid: ReturnType<typeof toGridConfig>,
+  grid: Awaited<ReturnType<typeof toGridConfig>>,
 ): Promise<{ ok: boolean; message: string }> {
   const started = Date.now();
   let transport: ReturnType<typeof appiumTransport> | null = null;

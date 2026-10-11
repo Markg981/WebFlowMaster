@@ -36,7 +36,10 @@ export interface EnvironmentScope {
 }
 
 export async function saveLoginState(scope: EnvironmentScope, state: LoginState): Promise<void> {
-  const { encryptedValue, iv, authTag } = encryptSecret(JSON.stringify(state));
+  const { encryptedValue, iv, authTag } = await encryptSecret(
+    JSON.stringify(state),
+    scope.organizationId,
+  );
 
   await privilegedDb
     .update(environments)
@@ -72,7 +75,14 @@ export async function loadLoginState(scope: EnvironmentScope): Promise<LoginStat
   if (!row?.loginState || !row.loginStateIv || !row.loginStateAuthTag) return undefined;
 
   try {
-    return JSON.parse(decryptSecret(row.loginState, row.loginStateIv, row.loginStateAuthTag));
+    return JSON.parse(
+      await decryptSecret(
+        row.loginState,
+        row.loginStateIv,
+        row.loginStateAuthTag,
+        scope.organizationId,
+      ),
+    );
   } catch {
     // A state encrypted under a previous ENCRYPTION_KEY, or a truncated row. Running
     // unauthenticated is the honest outcome: the test then fails on its first

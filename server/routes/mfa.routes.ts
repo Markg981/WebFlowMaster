@@ -48,7 +48,11 @@ router.get('/api/mfa', requireRole('viewer'), sessionOnly, async (req, res) => {
 
 // POST /api/mfa/enrollment — a new secret, as a QR code and as text for typing in by hand.
 router.post('/api/mfa/enrollment', requireRole('viewer'), sessionOnly, async (req, res) => {
-  const enrollment = await beginEnrollment(req.user!.id, req.user!.username);
+  const enrollment = await beginEnrollment(
+    req.user!.id,
+    req.user!.organizationId,
+    req.user!.username,
+  );
   if (!enrollment) {
     return res.status(409).json({
       error:

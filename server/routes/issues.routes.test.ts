@@ -54,7 +54,7 @@ const PLAN_ID = 'plan-issues';
 const EXECUTION_ID = 'exec-issues';
 
 async function seedTracker(name = 'Jira', org = organizationId) {
-  const encrypted = encryptSecret('token-123');
+  const encrypted = await encryptSecret('token-123', org);
   const [row] = await privilegedDb
     .insert(issueTrackers)
     .values({

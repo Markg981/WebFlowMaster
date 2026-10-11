@@ -159,7 +159,9 @@ describe('secrets', () => {
     // But it is genuinely recoverable by the runner, which is what it is for.
     const [row] = await privilegedDb.select().from(secrets);
     expect(row.encryptedValue).not.toContain('hunter2');
-    expect(decryptSecret(row.encryptedValue, row.iv, row.authTag)).toBe('hunter2');
+    expect(await decryptSecret(row.encryptedValue, row.iv, row.authTag, organizationId)).toBe(
+      'hunter2',
+    );
   });
 
   it('replaces a secret of the same name instead of storing two', async () => {
@@ -174,7 +176,9 @@ describe('secrets', () => {
     // Two rows with one name means `{{token}}` resolves to whichever the query returns
     // first — a value that changes for no visible reason.
     expect(rows).toHaveLength(1);
-    expect(decryptSecret(rows[0].encryptedValue, rows[0].iv, rows[0].authTag)).toBe('second');
+    expect(
+      await decryptSecret(rows[0].encryptedValue, rows[0].iv, rows[0].authTag, organizationId),
+    ).toBe('second');
   });
 
   it('deletes a secret', async () => {

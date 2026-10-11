@@ -288,11 +288,16 @@ export async function checkSourceHost(
   }
 }
 
-export function hostConfig(row: SourceHost): HostConfig {
+export async function hostConfig(row: SourceHost): Promise<HostConfig> {
   return {
     provider: row.provider,
     apiUrl: row.apiUrl,
-    token: decryptSecret(row.encryptedToken, row.tokenIv, row.tokenAuthTag),
+    token: await decryptSecret(
+      row.encryptedToken,
+      row.tokenIv,
+      row.tokenAuthTag,
+      row.organizationId,
+    ),
   };
 }
 
@@ -329,7 +334,7 @@ export function reportCommitStatus(
         tx.select().from(sourceHosts).where(eq(sourceHosts.provider, target.provider)).limit(1),
       );
       if (!host) return;
-      const error = await postCommitStatus(hostConfig(host), target, status, deps.fetchImpl);
+      const error = await postCommitStatus(await hostConfig(host), target, status, deps.fetchImpl);
       await withTenantTransaction(async (tx) => {
         await tx
           .update(sourceHosts)

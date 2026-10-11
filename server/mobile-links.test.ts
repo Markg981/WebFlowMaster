@@ -251,7 +251,7 @@ describe('a requirement', () => {
 describe('a test management case', () => {
   it('is linked to a mobile test, and its results are published to that case', async () => {
     const id = uuidv4();
-    const token = encryptSecret('tr-key');
+    const token = await encryptSecret('tr-key', organizationId);
     await privilegedDb.insert(testManagementConnections).values({
       id,
       organizationId,

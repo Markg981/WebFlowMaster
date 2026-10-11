@@ -304,7 +304,9 @@ router.get('/api/sso/saml/:organizationId/metadata', async (req, res) => {
   const organizationId = Number(req.params.organizationId);
   const row = Number.isInteger(organizationId) ? await samlProviderOf(organizationId) : null;
   if (!row) return res.status(404).json({ error: 'This organization does not sign in with SAML.' });
-  res.type('application/samlmetadata+xml').send(serviceProviderMetadata(row, publicBase(req)));
+  res
+    .type('application/samlmetadata+xml')
+    .send(await serviceProviderMetadata(row, publicBase(req)));
 });
 
 // POST /api/sso/saml/:organizationId/acs — the provider POSTs the signed response here (cross-site:

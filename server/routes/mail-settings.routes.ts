@@ -39,7 +39,7 @@ router.put('/api/mail-settings', requireRole('owner'), async (req, res) => {
         .limit(1);
       if ((current?.version ?? 0) !== parsed.data.version)
         throw new MailSettingsError(409, 'Email configuration changed. Reload before saving.');
-      const values = buildMailSettings(parsed.data, organizationId, current);
+      const values = await buildMailSettings(parsed.data, organizationId, current);
       const [saved] = current
         ? await tx
             .update(mailSettings)

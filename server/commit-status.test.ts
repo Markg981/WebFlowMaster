@@ -262,7 +262,7 @@ describe('a run reporting on its commit as it goes', () => {
   afterEach(() => unregister());
 
   async function connect(org: number, provider: 'github' | 'gitlab', token = 'ghp_ok') {
-    const secret = encryptSecret(token);
+    const secret = await encryptSecret(token, org);
     await privilegedDb.insert(sourceHosts).values({
       id: randomUUID(),
       organizationId: org,

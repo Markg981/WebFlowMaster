@@ -12,7 +12,7 @@ import {
   type User,
 } from '@shared/schema';
 import { privilegedDb } from './db';
-import { decryptSecret, encryptSecret } from './crypto';
+import { decryptSecret, encryptSecret, type CryptoOptions } from './crypto';
 import { sqlState } from './db-errors';
 import {
   DEFAULT_GROUP_ATTRIBUTE,
@@ -418,10 +418,12 @@ export async function saveSsoSettings(
         existing?.samlSpPrivateKeyEncrypted &&
         existing.samlSpPrivateKeyIv &&
         existing.samlSpPrivateKeyAuthTag
-          ? decryptSecret(
+          ? await decryptSecret(
               existing.samlSpPrivateKeyEncrypted,
               existing.samlSpPrivateKeyIv,
               existing.samlSpPrivateKeyAuthTag,
+              organizationId,
+              { tx },
             )
           : '';
       const spKey = input.samlClearSpKey ? '' : keyGiven || storedKey;
@@ -446,7 +448,10 @@ export async function saveSsoSettings(
             'Supply a matching RSA private key (at least 2048 bits) and current SP X.509 certificate; signing logout and requiring encryption need this pair.',
           );
       }
-      const encryptedSpKey = keyGiven && !input.samlClearSpKey ? encryptSecret(keyGiven) : null;
+      const encryptedSpKey =
+        keyGiven && !input.samlClearSpKey
+          ? await encryptSecret(keyGiven, organizationId, { tx })
+          : null;
       const advancedSaml =
         protocol === 'saml'
           ? {
@@ -496,7 +501,7 @@ export async function saveSsoSettings(
               clientId: input.clientId!.trim(),
               samlSsoUrl: null,
               samlCertificate: null,
-              ...(secret ? secretColumns(secret) : {}),
+              ...(secret ? await secretColumns(secret, organizationId, tx) : {}),
             }
           : {
               samlSsoUrl,
@@ -596,8 +601,9 @@ export async function saveSsoSettings(
   return (await getSsoSettings(organizationId))!;
 }
 
-function secretColumns(secret: string) {
-  const { encryptedValue, iv, authTag } = encryptSecret(secret);
+/** Inside the save's privileged transaction, so the key lookup rides on it (server/organization-keys.ts). */
+async function secretColumns(secret: string, organizationId: number, tx: CryptoOptions['tx']) {
+  const { encryptedValue, iv, authTag } = await encryptSecret(secret, organizationId, { tx });
   return {
     clientSecretEncrypted: encryptedValue,
     clientSecretIv: iv,
@@ -697,17 +703,18 @@ async function providerRow(organizationId: number) {
   return row;
 }
 
-function clientFor(row: typeof organizationSso.$inferSelect): Promise<oidc.Configuration> {
+async function clientFor(row: typeof organizationSso.$inferSelect): Promise<oidc.Configuration> {
   const key = `${row.issuer}|${row.clientId}|${row.updatedAt.getTime()}`;
   const cached = discoveries.get(row.organizationId);
   if (cached && cached.key === key && Date.now() - cached.at < DISCOVERY_TTL_MS)
     return cached.config;
 
   const issuer = new URL(row.issuer);
-  const secret = decryptSecret(
+  const secret = await decryptSecret(
     row.clientSecretEncrypted!,
     row.clientSecretIv!,
     row.clientSecretAuthTag!,
+    row.organizationId,
   );
   const config = oidc.discovery(issuer, row.clientId!, undefined, oidc.ClientSecretBasic(secret), {
     timeout: 10,

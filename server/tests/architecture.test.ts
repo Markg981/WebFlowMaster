@@ -174,6 +174,16 @@ describe('route modules cannot query outside the tenant context', () => {
         'organization_sso, sso_domains and users. Its audit entries are written through the transaction of ' +
         "the change they describe; removing a member runs as the organization, like the owner's removal.",
     },
+    'organization-keys.ts': {
+      max: 7,
+      why:
+        'The per-organization data keys are what every decrypt starts from, and a decrypt happens ' +
+        'before any tenant is bound: the worker resolving secrets, single sign-on reading its client ' +
+        'secret, the second factor at sign-in. The store reads and creates keys through the handle, ' +
+        'always with an explicit organization_id, and the rotation script retires, re-wraps and ' +
+        'deletes versions through it; nothing else touches organization_keys. Inside a tenant ' +
+        'transaction the lookup goes through that transaction instead.',
+    },
     'sms-inbox.ts': {
       max: 0,
       why:

@@ -71,7 +71,12 @@ export async function resolveVariables(scope: VariableScope): Promise<Record<str
 
   for (const row of rows) {
     try {
-      vars[row.keyName] = decryptSecret(row.encryptedValue, row.iv, row.authTag);
+      vars[row.keyName] = await decryptSecret(
+        row.encryptedValue,
+        row.iv,
+        row.authTag,
+        scope.organizationId,
+      );
     } catch {
       // A secret encrypted under a previous ENCRYPTION_KEY cannot be recovered. Leave it
       // unresolved so the step reports a named missing variable rather than sending a

@@ -221,6 +221,41 @@ It prints a link, valid for a day and usable once, built on `WEBFLOW_PUBLIC_URL`
 organization's audit log records that the operator issued it. Hand it to the person through a
 channel that confirms who they are.
 
+## Rotating the encryption key {#rotating-the-encryption-key}
+
+Stored secrets are encrypted with a key per organization, and those keys with the master key
+`ENCRYPTION_KEY` derives ([how stored secrets are encrypted](../security/data-protection#how-stored-secrets-are-encrypted)).
+Either can be replaced without losing a secret. The command runs from the source checkout, on a
+machine with the installation's environment (`DATABASE_URL`, `ENCRYPTION_KEY` and, during a
+master key change, `ENCRYPTION_KEY_PREVIOUS`):
+
+```bash
+npm run key:rotate                                 # after changing ENCRYPTION_KEY
+npm run key:rotate -- --organization 7 --prune     # a new key for organization 7
+npm run key:rotate -- --dry-run                    # what either would change; writes nothing
+```
+
+**The master key.** Generate a new value, set it as `ENCRYPTION_KEY` and put the one it replaces
+in `ENCRYPTION_KEY_PREVIOUS` (comma-separated if there are several), on the web process, the
+workers and the machine running the command, then restart them: a process that lacks the
+previous key refuses to start and names the organization keys it cannot open. Run
+`npm run key:rotate`. It re-wraps every organization key under the new master key, moves any
+value still encrypted directly with a master key (from before migration 0084) to its
+organization's key, and prints the counts; a second run reports zero changes. Then remove
+`ENCRYPTION_KEY_PREVIOUS` and restart once more. A value no configured key opens is listed and
+left as it is, with exit code 1: add the key it was written under to `ENCRYPTION_KEY_PREVIOUS` and
+run again, or replace the value.
+
+**One organization's key.** `--organization <id>` gives that organization a new key version,
+re-encrypts its secrets with it and retires the previous version, which stays until nothing names
+it; `--prune` deletes retired versions no value names any more. Running processes use the new
+version within a minute. Other organizations are not touched.
+
+Keep `ENCRYPTION_KEY` out of the database backup, as the [backups](#backups) table says: a
+database restored under a different master key, without the old one in `ENCRYPTION_KEY_PREVIOUS`,
+cannot open its organization keys, and the web process says so at startup instead of failing the
+first run that needs a secret.
+
 ## Monitoring
 
 | What              | Signal                                                                                                                                                                                                                                                                                                                                                                          |

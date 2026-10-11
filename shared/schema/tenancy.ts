@@ -93,4 +93,7 @@ export const ORG_SCOPED_TABLES = [
   'organization_mail_settings',
   'organization_mail_templates',
   'mail_provider_requests',
+  // The organization's data keys, wrapped by the master key (migration 0084). Policed like the
+  // rest; app_user holds SELECT and INSERT only, and the export leaves it out.
+  'organization_keys',
 ] as const;

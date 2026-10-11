@@ -323,7 +323,7 @@ describe('the grids page', () => {
         steps: [],
       });
     expect(test.status).toBe(201);
-    expect(toGridConfig(row)).toMatchObject({
+    expect(await toGridConfig(row)).toMatchObject({
       provider: 'local_appium',
       agentPool: 'lab',
       organizationId,

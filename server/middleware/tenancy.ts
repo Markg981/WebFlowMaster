@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { sql } from 'drizzle-orm';
 import type { Request, Response, NextFunction } from 'express';
 import { privilegedDb } from '../db';
+import type { User as SelectUser } from '@shared/schema';
 
 /** The Drizzle transaction handle, already scoped to one organization. */
 export type TenantTx = Parameters<Parameters<typeof privilegedDb.transaction>[0]>[0];
@@ -99,6 +100,14 @@ export function getTenantOrgId(): number | undefined {
 }
 
 /**
+ * The tenant transaction currently open, if one is: for server/organization-keys.ts, which must
+ * send its lookup through it rather than beside it (one connection under PGlite).
+ */
+export function tenantTransactionInScope(): TenantTx | undefined {
+  return tenantStore.getStore()?.tx;
+}
+
+/**
  * Runs `fn` with the given organization as the ambient tenant. Used by tests and jobs.
  *
  * With no principal, `fn` runs as the system. Inside a request for the same organization, the
@@ -125,15 +134,23 @@ export async function runWithTenant<T>(
   return tenantStore.run(nextStore, fn);
 }
 
+/**
+ * The signed-in account, as server/auth.ts declares it on Express.User. Named here as well so
+ * this file type-checks in a project that compiles it without auth.ts (collaudo's protocol
+ * check reaches it through crypto.ts).
+ */
+type RequestUser = Pick<SelectUser, 'id' | 'role' | 'organizationId'>;
+
 export function tenancyMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const organizationId = req.user?.organizationId;
+  const user = (req as Request & { user?: RequestUser }).user;
+  const organizationId = user?.organizationId;
   if (organizationId === undefined) {
     // Unauthenticated or pre-org routes (login, health) simply have no tenant; the
     // request proceeds and any tenant query inside it will refuse to run.
     return next();
   }
   // The requester goes with the organization: RLS narrows what they see to their projects.
-  const principal = req.user ? { userId: req.user.id, role: req.user.role } : undefined;
+  const principal = user ? { userId: user.id, role: user.role } : undefined;
   tenantStore.run({ organizationId, ...(principal ? { principal } : {}) }, () => next());
 }
 

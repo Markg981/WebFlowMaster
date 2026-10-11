@@ -88,8 +88,10 @@ concern, and every database reaches the same state.
 and shown once. Credentials the product must present to other systems (environment secrets, tracker
 and source-host tokens, login states) are encrypted with AES-256-GCM and never returned by the API.
 
-**Consequences.** A lost key is replaced, never recovered. `ENCRYPTION_KEY` must be kept safe and
-stable; losing it loses those secrets.
+**Consequences.** A lost key is replaced, never recovered. Since migration 0084 each organization
+has a data key of its own, wrapped by the master key `ENCRYPTION_KEY` derives: the master key is
+rotated by re-wrapping (`ENCRYPTION_KEY_PREVIOUS`, `npm run key:rotate`) and an organization's key
+on its own, but losing every master key still loses every secret.
 
 ## 10. Side effects never decide a verdict
 
