@@ -77,6 +77,22 @@ describe.each(BUNDLES.map(([lang]) => lang))('%s translation bundle', (lang) => 
     expect(missing).toEqual([]);
   });
 
+  it('has no key English lacks', () => {
+    // The reverse of the check above. A key only a translation has is never looked up: it is
+    // either left over from a renamed English key or a misspelling of one, and in both cases
+    // the translation that was meant to show is not showing. Italian carried 71 such keys.
+    // Plural forms differ per language (Italian and French add `_many`), so a plural suffix
+    // counts as known when English has the same key in any plural form.
+    const plural = /_(zero|one|two|few|many|other)$/;
+    const englishPlurals = new Set(
+      [...english.keys()].filter((key) => plural.test(key)).map((key) => key.replace(plural, '')),
+    );
+    const orphans = [...bundle.keys()].filter(
+      (key) => !english.has(key) && !(plural.test(key) && englishPlurals.has(key.replace(plural, ''))),
+    );
+    expect(orphans).toEqual([]);
+  });
+
   it('keeps the interpolation placeholders English uses', () => {
     const placeholders = (value: string) =>
       [...value.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((m) => m[1]).sort();

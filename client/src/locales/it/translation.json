@@ -176,7 +176,7 @@
       "customActionsDescription": "Step vostri, in JavaScript eseguito nella pagina sotto test, offerti nel costruttore accanto a quelli predefiniti.",
       "browserGrids": "Griglie di browser",
       "browserGridsDescription": "BrowserStack, LambdaTest o un vostro server Playwright, per browser e sistemi che i runner non hanno.",
-      "testManagement": "Test management",
+      "testManagement": "Gestione test",
       "testManagementDescription": "TestRail, Xray o Zephyr Scale, dove ogni esecuzione conclusa viene pubblicata caso per caso.",
       "organizationData": "Esportazione e cancellazione",
       "organizationDataDescription": "Portate via i dati dell'organizzazione, o cancellateli definitivamente.",
@@ -410,7 +410,6 @@
     }
   },
   "dashboard": {
-    "title": "Cruscotto",
     "kpiPanel": {
       "totalTests": {
         "title": "Test totali"
@@ -481,9 +480,7 @@
       "status": {
         "active": "Attivo",
         "inactive": "Inattivo"
-      },
-      "upcomingRecentSchedulings": "Schedulazioni recenti e in arrivo",
-      "schedulingDataWillBeAvailable": "I dati delle schedulazioni saranno disponibili a breve."
+      }
     },
     "testStatusPieChart": {
       "testStatusOverview": {
@@ -548,45 +545,7 @@
     "loadTests": "Test di carico"
   },
   "dashboardPage": {
-    "headerTitle": "Piattaforma WebTest",
-    "navCreateTest": "Crea Test",
-    "navMyTests": "I Miei Test",
-    "navReports": "Rapporti",
-    "signOutButton": "Esci",
-    "urlInputLabel": "URL del sito web da testare",
-    "loadWebsiteButton": "Carica Sito Web",
-    "loadingWebsiteButton": "Caricamento...",
-    "detectElementsButton": "Rileva Elementi",
-    "detectingElementsButton": "Rilevamento...",
-    "availableActionsTitle": "Azioni Disponibili",
-    "websitePreviewTitle": "Anteprima Sito Web",
-    "previewLoadedBadge": "Caricato",
-    "previewLoadPrompt": "Carica un sito web per vedere l'anteprima",
-    "previewScreenshotHint": "Le schermate reali del sito web appariranno qui",
-    "detectedElementsTitle": "Elementi Rilevati",
-    "elementsFoundBadge": "{{count}} trovati",
-    "noElementsDetected": "Nessun elemento rilevato ancora",
-    "detectElementsPrompt": "Clicca su \"Rileva Elementi\" per scansionare il sito web caricato",
-    "testSequenceTitle": "Sequenza di Test",
-    "executeTestButton": "Esegui Test",
-    "executingTestButton": "Esecuzione...",
-    "saveTestButton": "Salva Test",
-    "savingTestButton": "Salvataggio...",
-    "clearSequenceButton": "Pulisci",
     "dropActionsPrompt": "Trascina le azioni qui per costruire il tuo test",
-    "dropActionsHint": "Trascina le azioni dalla barra laterale sinistra, quindi aggiungi elementi per completare ogni passaggio",
-    "toast": {
-      "websiteLoadedTitle": "Sito Web Caricato",
-      "websiteLoadedDesc": "Il sito web è stato caricato con successo.",
-      "websiteLoadErrorTitle": "Errore nel Caricamento del Sito Web",
-      "elementsDetectedTitle": "Elementi Rilevati",
-      "elementsDetectedDesc": "{{count}} elementi trovati sulla pagina.",
-      "elementsDetectErrorTitle": "Errore nel Rilevamento degli Elementi",
-      "defaultTestName": "Test per {{url}}",
-      "testSavedTitle": "Test Salvato",
-      "testSavedDesc": "La tua sequenza di test è stata salvata.",
-      "testSaveErrorTitle": "Errore nel Salvataggio del Test"
-    },
     "user": {
       "text": "Utente"
     }
@@ -860,7 +819,7 @@
       "label": "Tipo Test"
     },
     "crossBrowserTesting": {
-      "text": "Cross Browser Testing"
+      "text": "Test cross-browser"
     },
     "settings": {
       "button": "Impostazioni"
@@ -875,32 +834,6 @@
   "testsPage": {
     "testManagement": {
       "title": "Gestione dei test"
-    },
-    "tests": {
-      "label": "Tests"
-    },
-    "searchTests": {
-      "placeholder": "Cerca tests..."
-    },
-    "uiTestTable": {
-      "name": "Nome",
-      "url": "URL",
-      "status": "Stato",
-      "project": "Progetto",
-      "lastUpdated": "Ultimo Aggiornamento",
-      "actions": "Azioni"
-    },
-    "loadingUiTests": {
-      "text": "Caricamento tests..."
-    },
-    "errorLoadingUiTests": {
-      "text": "Errore durante il caricamento dei tests:"
-    },
-    "noUiTestsFound": {
-      "text": "Nessun test trovato."
-    },
-    "viewEdit": {
-      "button": "Visualizza/Modifica"
     },
     "testPlans": {
       "label": "Piani di test"
@@ -1240,16 +1173,16 @@
       "description": "Gli screenshot del caricamento o della riproduzione appariranno qui."
     },
     "detectedElements": {
-      "title": "Detected Elements"
+      "title": "Elementi rilevati"
     },
     "found": {
-      "text": "found"
+      "text": "trovati"
     },
     "noElementsDetectedYet": {
-      "text": "No elements detected yet"
+      "text": "Nessun elemento rilevato"
     },
     "loadAWebsiteAndClickDetect": {
-      "description": "Load a website and click \"Detect Elements\""
+      "description": "Carica un sito e fai clic su \"Rileva Elementi\""
     },
     "actions": {
       "click": {
@@ -1466,64 +1399,6 @@
         "name": "Attendi SMS",
         "description": "Attende un SMS a un numero di test nella casella SMS dell'organizzazione (Impostazioni → Casella SMS), arrivato dopo l'inizio del test, e ne legge il codice come {{sms.otp}}.",
         "valueHint": "+39 333 1234567 oppure +39 333 1234567|codice (\\d{6})"
-      }
-    },
-    "testSequenceBuilder": {
-      "flowErrors": "Blocchi non chiusi",
-      "testSequence": {
-        "title": "Sequenza di Test"
-      },
-      "steps": {
-        "text": "passaggi"
-      },
-      "clear": {
-        "button": "Pulisci"
-      },
-      "recordingInProgress": {
-        "text": "Registrazione in corso..."
-      },
-      "recordedActionsWillAppearHere": {
-        "description": "Le azioni registrate appariranno qui."
-      },
-      "dropActionsHereToBuildYour": {
-        "description": "Trascina le azioni qui per costruire il tuo test"
-      },
-      "dragActionsFromTheLeftSidebar": {
-        "description": "Trascina le azioni dalla barra laterale sinistra, quindi aggiungi elementi per completare ogni passaggio"
-      },
-      "changeAction": {
-        "placeholder": "Cambia azione"
-      },
-      "changeElement": {
-        "button": "Cambia Elemento"
-      },
-      "setElement": {
-        "button": "Imposta Elemento"
-      },
-      "textToInput": {
-        "label": "Testo da inserire"
-      },
-      "optionValue": {
-        "label": "Valore opzione"
-      },
-      "timeMs": {
-        "label": "Tempo (ms)"
-      },
-      "expectedText": {
-        "label": "Testo atteso"
-      },
-      "countEg1": {
-        "label": "Conteggio (es. ==1)"
-      },
-      "expectedValue": {
-        "label": "Valore atteso"
-      },
-      "value": {
-        "label": "Valore / Testo",
-        "placeholder": "Valore..."
-      },
-      "enterText": {
-        "placeholder": "Inserisci testo..."
       }
     },
     "playbackStatus": "Passaggio {{current}}/{{total}}: {{name}} - {{details}}",
@@ -3576,7 +3451,7 @@
     "issuer": "Issuer",
     "clientId": "Client ID",
     "clientSecret": "Client secret",
-    "secretKept": "Stored. Leave empty to keep it.",
+    "secretKept": "Salvato. Lascia vuoto per mantenerlo.",
     "domains": "Domini e-mail",
     "defaultRole": "Ruolo dei nuovi account",
     "roleViewer": "Viewer",
@@ -3994,7 +3869,7 @@
     "addressRequired": "L'indirizzo dello strumento è obbligatorio.",
     "usernameRequired": "{{field}}: campo obbligatorio.",
     "projectRequired": "Il progetto è obbligatorio.",
-    "title": "Test management",
+    "title": "Gestione test",
     "description": "TestRail, Xray o Zephyr Scale. Un piano che ne indica uno vi pubblica ogni esecuzione conclusa — una run di TestRail, una Test Execution di Xray, un test cycle di Zephyr — con il risultato di ogni test sotto il suo caso.",
     "provider": "Strumento",
     "name": "Nome",
@@ -4036,7 +3911,7 @@
       "failed": "Fallita",
       "nothing": "Niente da pubblicare"
     },
-    "title": "Test management",
+    "title": "Gestione test",
     "description": "Dove questa esecuzione è stata pubblicata, caso per caso. Pubblicare di nuovo crea una nuova run nello strumento, con gli esiti come sono ora.",
     "none": "Non ancora pubblicata.",
     "counts": "{{published}} caso/i pubblicati, {{unmapped}} test senza caso esclusi.",
