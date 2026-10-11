@@ -68,28 +68,29 @@ router.post("/api/upload-excel", requireRole('editor'), uploadExcelFile, async (
       return res.status(400).json({ error: "No file uploaded" });
     }
 
+    let parsedData: Awaited<ReturnType<typeof excelService.parseExcel>> | undefined;
     try {
       const detectedColumns = await excelService.detectColumns(req.file.path);
       const mappings = excelService.getDefaultMappings(detectedColumns);
-      
+
       // Basic validation looking for 'Test Case ID' or similar
       const testIdCol = mappings.testCaseId;
       if (!testIdCol) {
-          // If auto-map fails, we might still parse but maybe warn? 
+          // If auto-map fails, we might still parse but maybe warn?
           // For now proceeded with best effort parsing using default assumption if logic permits
       }
 
-      const parsedData = await excelService.parseExcel(req.file.path, mappings);
-
-      res.json(parsedData);
-
+      parsedData = await excelService.parseExcel(req.file.path, mappings);
     } catch (error: any) {
       logger.error({ message: "Error parsing Excel", error: error.message });
-      res.status(500).json({ error: "Failed to parse Excel file" });
     } finally {
-      // Also when parsing fails: a file that is not a workbook used to stay in uploads/.
+      // Also when parsing fails: a file that is not a workbook used to stay in uploads/. Removed
+      // before the response, so a client that has its answer never finds the file still there.
       await fs.unlink(req.file.path).catch(err => logger.warn("Failed to delete uploaded file", err));
     }
+
+    if (parsedData === undefined) return res.status(500).json({ error: "Failed to parse Excel file" });
+    res.json(parsedData);
 });
 
 // POST /api/excel-mappings - Save sequence mappings
