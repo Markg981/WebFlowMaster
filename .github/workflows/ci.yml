@@ -153,12 +153,38 @@ jobs:
       # The wrapper is harmless to everything else: a headless launch ignores DISPLAY. xvfb
       # itself arrives with `playwright install --with-deps`, which lists it among the tools
       # it installs on Ubuntu.
+      # With coverage: below the thresholds in vitest.config.ts and client/vitest.config.ts the
+      # step fails, so coverage cannot slide unnoticed.
       - name: Server tests
-        run: xvfb-run -a npm test
+        run: xvfb-run -a npm run test:coverage
 
       # Was missing: the client suite existed and CI never ran it.
       - name: Client tests
-        run: npm test --prefix client
+        run: npm run test:coverage --prefix client
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          node -e "
+            const fs = require('fs');
+            const rows = [['Server', 'coverage/coverage-summary.json'], ['Client', 'client/coverage/coverage-summary.json']]
+              .filter(([, file]) => fs.existsSync(file))
+              .map(([name, file]) => { const t = JSON.parse(fs.readFileSync(file, 'utf8')).total;
+                return '| ' + name + ' | ' + ['lines', 'statements', 'functions', 'branches'].map(k => t[k].pct + '%').join(' | ') + ' |'; });
+            const table = ['| Suite | Lines | Statements | Functions | Branches |', '|---|---|---|---|---|', ...rows].join('\n');
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '### Coverage\n\n' + table + '\n');
+          "
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            coverage/
+            client/coverage/
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Collaudo application tests
         run: npm run test:collaudo
