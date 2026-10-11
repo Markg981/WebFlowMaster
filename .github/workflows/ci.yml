@@ -113,6 +113,10 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Explicit `any` per area may only go down: scripts/any-budget.json is the ceiling.
+      - name: any budget
+        run: npm run any-budget
+
       # `npm run format` fixes what this reports. The whole tree was formatted in one commit,
       # listed in .git-blame-ignore-revs so `git blame` skips it.
       - name: Format check

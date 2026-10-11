@@ -218,7 +218,7 @@ export interface RunTestOptions {
 
 export async function runTest(
   test: Test | ApiTest, // Test is from shared/schema, ApiTest would also be from there
-  userId: number,
+  userId: number | null,
   planId: string,
   runId: string, // This is the testPlanRun.id
   testType: 'ui' | 'api',
@@ -661,7 +661,7 @@ async function organizationOfExecution(
 export async function processTestPlanJob(
   planId: string,
   testPlanRunId: string,
-  userId: number,
+  userId: number | null,
   jobOptions: { updateBaselines?: boolean } = {},
 ): Promise<any> {
   const bootstrapLogger = await loggerPromise;
@@ -685,7 +685,7 @@ export async function processTestPlanJob(
 export async function processShardJob(
   planId: string,
   executionId: string,
-  userId: number,
+  userId: number | null,
   shard: number,
   jobOptions: { updateBaselines?: boolean } = {},
 ): Promise<any> {
@@ -704,7 +704,7 @@ export async function processShardJob(
 async function runTestPlanJobInTenant(
   planId: string,
   testPlanRunId: string,
-  userId: number,
+  userId: number | null,
   jobOptions: { updateBaselines?: boolean } = {},
   /** Set for a helper sharing a run another worker took (server/run-shards.ts). */
   helper?: { shard: number },

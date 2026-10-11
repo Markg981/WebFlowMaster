@@ -58,6 +58,7 @@
     "docs:schema-catalog": "node scripts/generate-schema-catalog.mjs",
     "docs:preview": "vitepress preview docs",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "any-budget": "node scripts/any-budget.mjs",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

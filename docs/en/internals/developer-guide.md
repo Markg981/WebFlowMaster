@@ -169,6 +169,11 @@ browser.
 - **Never return a secret** from the API, and show a generated token only in the response that
   created it.
 - Use the shared types in `shared/` for anything both sides read (statuses, schemas, action ids).
+- **No new `any`.** `npm run any-budget` counts explicit `any` in production code per area against
+  `scripts/any-budget.json`: CI fails when a count goes up, and also when it goes down without the
+  budget being updated (`node scripts/any-budget.mjs --update`), so the ceiling follows every
+  removal. At a boundary (request body, job payload, WebSocket message) read the value through a zod
+  schema, as `server/job-payloads.ts` and `shared/live-socket.ts` do, instead of casting it.
 
 ### Database migrations
 

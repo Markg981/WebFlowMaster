@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server, IncomingMessage } from 'http';
-import type { RequestHandler } from 'express';
+import type { Request, RequestHandler, Response } from 'express';
 import passport from 'passport';
 import { QueueEvents, Job } from 'bullmq';
 import { connection } from './redis';
@@ -13,19 +13,13 @@ import { getCorrelationId } from './middleware/correlation';
 import { getSessionMiddleware } from './auth';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { isSamlSessionActive } from './sso-saml';
+import {
+  ClientSocketMessageSchema,
+  type ExecutionLogEntry,
+  type ServerSocketMessage,
+} from '@shared/live-socket';
 
-/**
- * Execution Log Entry — the structure sent to WebSocket subscribers
- * and persisted to the execution_logs table.
- */
-export interface ExecutionLogEntry {
-  level: 'info' | 'warn' | 'error' | 'step' | 'debug';
-  source: string;
-  message: string;
-  timestamp: string;
-  metadata?: Record<string, any>;
-  testCaseResultId?: string;
-}
+export type { ExecutionLogEntry };
 
 /**
  * WebSocket Emitter — returned from setupWebSockets so services
@@ -34,6 +28,13 @@ export interface ExecutionLogEntry {
 export interface WsEmitter {
   emitExecutionLog(executionId: string, logEntry: ExecutionLogEntry): void;
 }
+
+/** The upgrade request once the session and passport middleware have run on it. */
+type UpgradeRequest = IncomingMessage & {
+  user?: SelectUser;
+  session?: { samlIdentity?: unknown };
+  sessionID?: string;
+};
 
 /** A socket that has completed the authenticated upgrade handshake. */
 type AuthenticatedWebSocket = WebSocket & {
@@ -58,9 +59,9 @@ export function getWsEmitter(): WsEmitter {
 }
 
 /** Runs one Express-style middleware against a raw (req, res) pair and awaits its `next()`. */
-function runMiddleware(mw: RequestHandler, req: any, res: any): Promise<void> {
+function runMiddleware(mw: RequestHandler, req: IncomingMessage, res: object): Promise<void> {
   return new Promise((resolve, reject) => {
-    mw(req, res, (err?: any) => (err ? reject(err) : resolve()));
+    mw(req as Request, res as Response, (err?: unknown) => (err ? reject(err) : resolve()));
   });
 }
 
@@ -76,16 +77,16 @@ function runMiddleware(mw: RequestHandler, req: any, res: any): Promise<void> {
  * `res.writeHead`, which are never invoked on an upgrade request — the socket is handed off
  * to `wss.handleUpgrade` instead of ever completing an HTTP response.
  */
-async function authenticateUpgrade(req: IncomingMessage): Promise<SelectUser | undefined> {
-  const res = {} as any;
+async function authenticateUpgrade(req: UpgradeRequest): Promise<SelectUser | undefined> {
+  const res = {};
   await runMiddleware(getSessionMiddleware(), req, res);
   await runMiddleware(passport.initialize(), req, res);
   await runMiddleware(passport.session(), req, res);
-  const user = (req as any).user as SelectUser | undefined;
+  const user = req.user;
   if (
     user &&
-    (req as any).session?.samlIdentity &&
-    !(await isSamlSessionActive((req as any).sessionID, user.id, user.organizationId))
+    req.session?.samlIdentity &&
+    !(await isSamlSessionActive(req.sessionID!, user.id, user.organizationId))
   )
     return undefined;
   return user;
@@ -234,7 +235,7 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
   const subscriptions = new Map<string, Set<WebSocket>>();
 
   /** Sends a message only to sockets subscribed to this execution's room. */
-  function broadcastToExecution(executionId: string, message: any) {
+  function broadcastToExecution(executionId: string, message: ServerSocketMessage) {
     const clients = subscriptions.get(executionId);
     if (!clients || clients.size === 0) return;
     const payload = JSON.stringify(message);
@@ -285,11 +286,11 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
       });
   });
 
-  wss.on('connection', (ws: WebSocket, req: IncomingMessage, user: SelectUser) => {
+  wss.on('connection', (ws: WebSocket, req: UpgradeRequest, user: SelectUser) => {
     const authedWs = ws as AuthenticatedWebSocket;
     authedWs.organizationId = user.organizationId;
     authedWs.userId = user.id;
-    if ((req as any).session?.samlIdentity) authedWs.samlSessionId = (req as any).sessionID;
+    if (req.session?.samlIdentity) authedWs.samlSessionId = req.sessionID;
 
     logger.info('WebSocket client connected', {
       userId: user.id,
@@ -300,12 +301,14 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
       void (async () => {
         try {
           if (!(await socketSamlSessionActive(authedWs))) return;
-          const msg = JSON.parse(raw.toString());
+          const parsed = ClientSocketMessageSchema.safeParse(JSON.parse(raw.toString()));
+          if (!parsed.success) return;
+          const msg = parsed.data;
 
           // Client subscribes to a specific execution's logs. Refused (not added to the room)
           // unless the execution belongs to this socket's organization.
-          if (msg.type === 'subscribe-execution' && msg.executionId) {
-            const execId = String(msg.executionId);
+          if (msg.type === 'subscribe-execution') {
+            const execId = msg.executionId;
             const authorized = await isExecutionInOrganization(execId, authedWs.organizationId);
             if (!authorized) {
               // Same response for "no such execution" and "exists, but not yours" — see
@@ -331,8 +334,8 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
             logger.debug(`Client subscribed to execution: ${execId}`);
           }
 
-          if (msg.type === 'unsubscribe-execution' && msg.executionId) {
-            subscriptions.get(String(msg.executionId))?.delete(authedWs);
+          if (msg.type === 'unsubscribe-execution') {
+            subscriptions.get(msg.executionId)?.delete(authedWs);
             logger.debug(`Client unsubscribed from execution: ${msg.executionId}`);
           }
         } catch (e) {
@@ -412,9 +415,10 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
     },
   );
 
-  queueEvents.on('progress', ({ jobId, data }: { jobId: string; data: any }) => {
+  queueEvents.on('progress', ({ jobId, data }: { jobId: string; data: unknown }) => {
     void (async () => {
       if (!(typeof data === 'object' && data !== null && 'log' in data)) return;
+      if (typeof data.log !== 'string') return;
       const executionId = await resolveExecutionIdForJob(jobId);
       if (!executionId) return;
       broadcastToExecution(executionId, { type: 'job-progress', jobId, log: data.log });

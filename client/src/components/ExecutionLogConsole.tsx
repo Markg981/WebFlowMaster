@@ -12,15 +12,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
+import type {
+  ClientSocketMessage,
+  ExecutionLogEntry,
+  ServerSocketMessage,
+} from '@shared/live-socket';
 
-interface LogEntry {
-  id?: number;
-  timestamp: string;
-  level: 'info' | 'warn' | 'error' | 'step' | 'debug';
-  source: string;
-  message: string;
-  metadata?: any;
-}
+type LogEntry = ExecutionLogEntry & { id?: number };
 
 interface ExecutionLogConsoleProps {
   executionId: string;
@@ -80,17 +78,13 @@ export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
     ws.onopen = () => {
-      ws.send(
-        JSON.stringify({
-          type: 'subscribe-execution',
-          executionId,
-        }),
-      );
+      const subscribe: ClientSocketMessage = { type: 'subscribe-execution', executionId };
+      ws.send(JSON.stringify(subscribe));
     };
 
     ws.onmessage = (event) => {
       try {
-        const msg = JSON.parse(event.data);
+        const msg = JSON.parse(event.data) as ServerSocketMessage;
         if (msg.type === 'execution-log' && msg.executionId === executionId) {
           setLogs((prev) => [...prev, msg]);
         }
