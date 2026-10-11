@@ -98,7 +98,7 @@ The five rules that explain most of the code:
 
 ## Technology
 
-TypeScript throughout. Node.js 20, Express, `ws`, Passport; Drizzle ORM on PostgreSQL 15+ with hand-written
+TypeScript throughout. Node.js 24, Express, `ws`, Passport; Drizzle ORM on PostgreSQL 15+ with hand-written
 SQL migrations (83 journal entries through `0082` at this revision); BullMQ on Redis/Valkey; Playwright for browsers and axe-core for accessibility;
 Appium for mobile apps; React 18, Vite, TanStack Query, Radix/shadcn, Tailwind, React Flow; optional Google
 Gemini for AI features; Vitest, Testing Library and supertest for tests; Docker for packaging.

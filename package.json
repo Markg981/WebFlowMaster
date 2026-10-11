@@ -1,6 +1,9 @@
 {
-  "name": "rest-express-monorepo",
+  "name": "webflowmaster",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
   "scripts": {

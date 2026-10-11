@@ -36,7 +36,7 @@ server PostgreSQL (vedi [Tenancy](../internals/tenancy)).
 
 ## Requisiti
 
-- **Node.js 20 o successivo** e npm 10, per le installazioni dai sorgenti.
+- **Node.js 22 o successivo** e npm 10, per le installazioni dai sorgenti. La 24 è la versione usata da CI e immagini (`.nvmrc`); il driver di SQL Server non si installa sulla 20.
 - **Docker** con Compose v2, per le configurazioni a container. Le immagini partono da
   `mcr.microsoft.com/playwright:v1.63.0-resolute`, che contiene già i browser.
 - **PostgreSQL 15 o successivo** per tutto ciò che va oltre la valutazione.

@@ -5,7 +5,7 @@ the guarantees the rest of this documentation describes.
 
 ## Prerequisites
 
-- **Node.js 20 or later** and npm.
+- **Node.js 22 or later** and npm; 24, in `.nvmrc`, is what CI and the images run (`nvm use` picks it).
 - **Redis or Valkey** on `localhost:6379` for the queues (`docker compose up -d redis` is enough).
 - **PostgreSQL 15+** only if you want to develop against it; otherwise PGlite (Postgres in
   WebAssembly, in a local directory) is used automatically.

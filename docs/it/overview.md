@@ -98,7 +98,7 @@ Le cinque regole che spiegano la maggior parte del codice:
 
 ## Tecnologie
 
-TypeScript ovunque. Node.js 20, Express, `ws`, Passport; Drizzle ORM su PostgreSQL 15+ con migrazioni SQL scritte
+TypeScript ovunque. Node.js 24, Express, `ws`, Passport; Drizzle ORM su PostgreSQL 15+ con migrazioni SQL scritte
 a mano (83 voci nel journal fino a `0082` a questa revisione); BullMQ su Redis/Valkey; Playwright per i browser e axe-core per l'accessibilità; Appium per le
 app mobili; React 18, Vite, TanStack Query, Radix/shadcn, Tailwind, React Flow; Google Gemini facoltativo per le
 funzioni AI; Vitest, Testing Library e supertest per i test; Docker per il confezionamento.

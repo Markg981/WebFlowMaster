@@ -34,7 +34,7 @@ server (see [Tenancy](../internals/tenancy)).
 
 ## Requirements
 
-- **Node.js 20 or later** and npm 10, for installations from source.
+- **Node.js 22 or later** and npm 10, for installations from source. 24 is the version CI and the images use (`.nvmrc`); the SQL Server driver does not install on 20.
 - **Docker** with Compose v2, for the container layouts. The images are based on
   `mcr.microsoft.com/playwright:v1.63.0-resolute`, which already contains the browsers.
 - **PostgreSQL 15 or later** for anything beyond evaluation.
