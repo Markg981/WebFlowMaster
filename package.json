@@ -170,7 +170,7 @@
     "cross-env": "^7.0.3",
     "dotenv-cli": "^8.0.0",
     "drizzle-kit": "^0.31.11",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-unused-imports": "^4.4.1",
