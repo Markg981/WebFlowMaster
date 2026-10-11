@@ -19,9 +19,8 @@ import { Loader2, PlusCircle, XCircle, History, Save, ListChecks, CheckCircle, X
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
-import Editor from '@monaco-editor/react';
+import { CodeEditor as Editor } from '@/components/CodeEditor';
 // Bundled Monaco and its workers, instead of the CDN copy the package would load.
-import '@/lib/monaco-setup';
 import { Checkbox } from "@/components/ui/checkbox";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { HistoryPanel } from '@/components/api-tester/HistoryPanel';
