@@ -135,9 +135,9 @@ function correlated(
   return { event: { eventId, messageId: messageId as string, status }, recipient: recipientText };
 }
 function safeJson(raw: unknown): unknown {
-  // `instanceof`, not Buffer.isBuffer: the body comes from the request, and only a check the
-  // analysis recognises proves `.length` below is a byte count rather than an array length.
-  if (!(raw instanceof Buffer) || raw.length > 256 * 1024) invalid();
+  // The body comes from the request. `byteLength` exists only on a Buffer, so the size check
+  // cannot be read off an array or a string that slipped through as the parsed body.
+  if (!Buffer.isBuffer(raw) || raw.byteLength > 256 * 1024) invalid();
   try {
     return JSON.parse(raw.toString('utf8'));
   } catch {
