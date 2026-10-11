@@ -38,6 +38,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { CommandPalette } from './CommandPalette';
 
 type NavItem = {
   href: string;
@@ -342,6 +343,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
 
           <div className="flex items-center gap-1.5">
+            <CommandPalette
+              sections={sections}
+              canRun={user?.role !== 'viewer'}
+              isDark={isDark}
+              onToggleTheme={toggleTheme}
+              onLogout={() => logoutMutation.mutate()}
+            />
             <button
               onClick={toggleTheme}
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

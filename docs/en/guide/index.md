@@ -43,6 +43,10 @@ The sidebar has everything:
 | **Reports**      | Every finished run, flaky tests and the quarantine. See [Results](./results).                                   |
 | **Settings**     | Your preferences and password, and, depending on your role, environments, projects, members, keys and the rest. |
 
+**Ctrl+K** (**⌘K** on a Mac), or **Search** in the top bar, opens the command palette from any page:
+type part of a name to go to a page, run a test plan, switch between light and dark theme or sign out.
+Plans are offered only to editors and owners, who can start a run.
+
 What you can do depends on your **role**: viewers read tests and results; editors also create,
 change and run them; owners also manage the organization. The buttons you cannot use are hidden or
 disabled.

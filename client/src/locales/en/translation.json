@@ -4579,5 +4579,16 @@
     "matched": "Matched",
     "mismatch": "Mismatch",
     "unverified": "Unverified"
+  },
+  "commandPalette": {
+    "open": "Open the command palette",
+    "search": "Search",
+    "title": "Command palette",
+    "placeholder": "Go to a page, run a plan…",
+    "empty": "Nothing matches.",
+    "plans": "Test plans",
+    "runPlan": "Run plan",
+    "runPlanNamed": "Run {{name}}",
+    "actions": "Actions"
   }
 }
