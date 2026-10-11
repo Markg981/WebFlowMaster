@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -57,7 +63,9 @@ function MailNote({ outcome, username }: { outcome: MailOutcome; username: strin
     </p>
   ) : (
     <p className="text-sm text-destructive" data-testid="mail-failed">
-      {t('settings.members.emailFailed', 'Not e-mailed: {{error}} Send the link yourself.', { error: outcome.emailError ?? '' })}
+      {t('settings.members.emailFailed', 'Not e-mailed: {{error}} Send the link yourself.', {
+        error: outcome.emailError ?? '',
+      })}
     </p>
   );
 }
@@ -75,13 +83,22 @@ async function send(method: string, url: string, body?: unknown) {
 
 /** The address an invitee opens: the sign-in page, with the form already filled in. */
 /** The address a member opens to choose a new password: the sign-in page's reset form. */
-export function passwordResetLink(origin: string, reset: { token: string; username: string }): string {
+export function passwordResetLink(
+  origin: string,
+  reset: { token: string; username: string },
+): string {
   const query = new URLSearchParams({ reset: reset.token, username: reset.username });
   return `${origin}/auth?${query.toString()}`;
 }
 
-export function invitationLink(origin: string, invitation: { token: string; username: string }): string {
-  const query = new URLSearchParams({ invitation: invitation.token, username: invitation.username });
+export function invitationLink(
+  origin: string,
+  invitation: { token: string; username: string },
+): string {
+  const query = new URLSearchParams({
+    invitation: invitation.token,
+    username: invitation.username,
+  });
   return `${origin}/auth?${query.toString()}`;
 }
 
@@ -105,7 +122,9 @@ const MembersCard: React.FC = () => {
   const [inviteError, setInviteError] = useState('');
   const [created, setCreated] = useState<CreatedInvitation | null>(null);
   const [copied, setCopied] = useState(false);
-  const [resetShown, setResetShown] = useState<({ username: string; link: string } & MailOutcome) | null>(null);
+  const [resetShown, setResetShown] = useState<
+    ({ username: string; link: string } & MailOutcome) | null
+  >(null);
   const [resetCopied, setResetCopied] = useState(false);
   const [removing, setRemoving] = useState<Member | null>(null);
   const [heir, setHeir] = useState<string>('');
@@ -128,7 +147,10 @@ const MembersCard: React.FC = () => {
 
   const invite = useMutation({
     mutationFn: () =>
-      send('POST', '/api/organization/invitations', { username: inviteUsername.trim(), role: inviteRole }) as Promise<CreatedInvitation>,
+      send('POST', '/api/organization/invitations', {
+        username: inviteUsername.trim(),
+        role: inviteRole,
+      }) as Promise<CreatedInvitation>,
     onSuccess: (invitation) => {
       setCreated(invitation);
       setCopied(false);
@@ -144,42 +166,61 @@ const MembersCard: React.FC = () => {
   });
 
   const changeRole = useMutation({
-    mutationFn: ({ id, role }: { id: number; role: Role }) => send('PATCH', `/api/organization/members/${id}`, { role }),
+    mutationFn: ({ id, role }: { id: number; role: Role }) =>
+      send('PATCH', `/api/organization/members/${id}`, { role }),
     onSuccess: refresh,
     onError: (error: Error) => setNotice(error.message),
   });
 
   const resetMfa = useMutation({
-    mutationFn: (member: Member) => send('DELETE', `/api/organization/members/${member.id}/mfa`).then(() => member),
+    mutationFn: (member: Member) =>
+      send('DELETE', `/api/organization/members/${member.id}/mfa`).then(() => member),
     onSuccess: (member) =>
       setNotice(
-        t('settings.members.mfaReset', 'Two-factor authentication was reset for {{username}}.', { username: member.username }),
+        t('settings.members.mfaReset', 'Two-factor authentication was reset for {{username}}.', {
+          username: member.username,
+        }),
       ),
     onError: (error: Error) => setNotice(error.message),
   });
 
   const issueReset = useMutation({
     mutationFn: (member: Member) =>
-      send('POST', `/api/organization/members/${member.id}/password-reset`) as Promise<{ username: string; token: string } & MailOutcome>,
+      send('POST', `/api/organization/members/${member.id}/password-reset`) as Promise<
+        { username: string; token: string } & MailOutcome
+      >,
     onSuccess: (reset) => {
       setResetCopied(false);
-      setResetShown({ username: reset.username, link: passwordResetLink(window.location.origin, reset), emailed: reset.emailed, emailError: reset.emailError });
+      setResetShown({
+        username: reset.username,
+        link: passwordResetLink(window.location.origin, reset),
+        emailed: reset.emailed,
+        emailError: reset.emailError,
+      });
     },
     onError: (error: Error) => setNotice(error.message),
   });
 
   const remove = useMutation({
     mutationFn: (member: Member) =>
-      send('DELETE', `/api/organization/members/${member.id}`, heir ? { transferTo: Number(heir) } : {}) as Promise<{
+      send(
+        'DELETE',
+        `/api/organization/members/${member.id}`,
+        heir ? { transferTo: Number(heir) } : {},
+      ) as Promise<{
         transferredTo: { username: string };
       }>,
     onSuccess: (result, member) => {
       setRemoving(null);
       setNotice(
-        t('settings.members.removed', '{{username}} was removed. What they made now belongs to {{heir}}.', {
-          username: member.username,
-          heir: result.transferredTo.username,
-        }),
+        t(
+          'settings.members.removed',
+          '{{username}} was removed. What they made now belongs to {{heir}}.',
+          {
+            username: member.username,
+            heir: result.transferredTo.username,
+          },
+        ),
       );
       refresh();
     },
@@ -188,7 +229,12 @@ const MembersCard: React.FC = () => {
 
   const handleInvite = () => {
     if (inviteUsername.trim().length < 3) {
-      setInviteError(t('settings.members.usernameRequired', 'Enter the username the new account will have, at least 3 characters.'));
+      setInviteError(
+        t(
+          'settings.members.usernameRequired',
+          'Enter the username the new account will have, at least 3 characters.',
+        ),
+      );
       return;
     }
     setInviteError('');
@@ -235,7 +281,9 @@ const MembersCard: React.FC = () => {
         )}
 
         {organization.isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('settings.members.loading', 'Loading members…')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('settings.members.loading', 'Loading members…')}
+          </p>
         ) : organization.error ? (
           <p className="text-sm text-destructive">{(organization.error as Error).message}</p>
         ) : (
@@ -243,7 +291,11 @@ const MembersCard: React.FC = () => {
             {members.map((member) => {
               const isMe = member.id === user?.id;
               return (
-                <li key={member.id} className="flex flex-wrap items-center gap-2 p-2 border rounded-md" data-testid={`member-${member.id}`}>
+                <li
+                  key={member.id}
+                  className="flex flex-wrap items-center gap-2 p-2 border rounded-md"
+                  data-testid={`member-${member.id}`}
+                >
                   <span className="text-sm font-medium flex-1 min-w-32">
                     {member.username}
                     {isMe && (
@@ -252,23 +304,43 @@ const MembersCard: React.FC = () => {
                       </Badge>
                     )}
                     {member.disabledAt && (
-                      <Badge variant="outline" className="ml-2" title={t('settings.members.deactivatedHint', 'Deactivated by your identity provider: they cannot sign in until it reactivates them.')}>
+                      <Badge
+                        variant="outline"
+                        className="ml-2"
+                        title={t(
+                          'settings.members.deactivatedHint',
+                          'Deactivated by your identity provider: they cannot sign in until it reactivates them.',
+                        )}
+                      >
                         {t('settings.members.deactivated', 'deactivated')}
                       </Badge>
                     )}
                   </span>
                   <Select
                     value={member.role}
-                    onValueChange={(role) => changeRole.mutate({ id: member.id, role: role as Role })}
+                    onValueChange={(role) =>
+                      changeRole.mutate({ id: member.id, role: role as Role })
+                    }
                     disabled={changeRole.isPending}
                   >
-                    <SelectTrigger className="w-32" aria-label={t('settings.members.roleOf', 'Role of {{username}}', { username: member.username })}>
+                    <SelectTrigger
+                      className="w-32"
+                      aria-label={t('settings.members.roleOf', 'Role of {{username}}', {
+                        username: member.username,
+                      })}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="viewer">{t('settings.members.roles.viewer', 'viewer')}</SelectItem>
-                      <SelectItem value="editor">{t('settings.members.roles.editor', 'editor')}</SelectItem>
-                      <SelectItem value="owner">{t('settings.members.roles.owner', 'owner')}</SelectItem>
+                      <SelectItem value="viewer">
+                        {t('settings.members.roles.viewer', 'viewer')}
+                      </SelectItem>
+                      <SelectItem value="editor">
+                        {t('settings.members.roles.editor', 'editor')}
+                      </SelectItem>
+                      <SelectItem value="owner">
+                        {t('settings.members.roles.owner', 'owner')}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   {!isMe && (
@@ -277,8 +349,16 @@ const MembersCard: React.FC = () => {
                       size="sm"
                       onClick={() => issueReset.mutate(member)}
                       disabled={issueReset.isPending}
-                      aria-label={t('settings.members.resetPassword', 'Password reset link for {{username}}', { username: member.username })}
-                      title={t('settings.members.resetPassword', 'Password reset link for {{username}}', { username: member.username })}
+                      aria-label={t(
+                        'settings.members.resetPassword',
+                        'Password reset link for {{username}}',
+                        { username: member.username },
+                      )}
+                      title={t(
+                        'settings.members.resetPassword',
+                        'Password reset link for {{username}}',
+                        { username: member.username },
+                      )}
                     >
                       <Link2 className="h-4 w-4" />
                     </Button>
@@ -289,8 +369,14 @@ const MembersCard: React.FC = () => {
                       size="sm"
                       onClick={() => resetMfa.mutate(member)}
                       disabled={resetMfa.isPending}
-                      aria-label={t('settings.members.resetMfa', 'Reset two-factor for {{username}}', { username: member.username })}
-                      title={t('settings.members.resetMfa', 'Reset two-factor for {{username}}', { username: member.username })}
+                      aria-label={t(
+                        'settings.members.resetMfa',
+                        'Reset two-factor for {{username}}',
+                        { username: member.username },
+                      )}
+                      title={t('settings.members.resetMfa', 'Reset two-factor for {{username}}', {
+                        username: member.username,
+                      })}
                     >
                       <KeyRound className="h-4 w-4" />
                     </Button>
@@ -299,7 +385,9 @@ const MembersCard: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => openRemove(member)}
-                    aria-label={t('settings.members.remove', 'Remove {{username}}', { username: member.username })}
+                    aria-label={t('settings.members.remove', 'Remove {{username}}', {
+                      username: member.username,
+                    })}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
@@ -310,7 +398,10 @@ const MembersCard: React.FC = () => {
         )}
 
         {resetShown && (
-          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2" data-testid="reset-link">
+          <div
+            className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2"
+            data-testid="reset-link"
+          >
             <p className="text-sm">
               {t(
                 'settings.members.resetIntro',
@@ -320,7 +411,12 @@ const MembersCard: React.FC = () => {
             </p>
             <MailNote outcome={resetShown} username={resetShown.username} />
             <div className="flex gap-2">
-              <Input readOnly value={resetShown.link} className="font-mono text-xs" aria-label={t('settings.members.resetLinkLabel', 'Password reset link')} />
+              <Input
+                readOnly
+                value={resetShown.link}
+                className="font-mono text-xs"
+                aria-label={t('settings.members.resetLinkLabel', 'Password reset link')}
+              />
               <Button
                 variant="outline"
                 onClick={async () => {
@@ -333,7 +429,11 @@ const MembersCard: React.FC = () => {
                 }}
               >
                 {resetCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                <span className="ml-2">{resetCopied ? t('settings.members.copied', 'Copied') : t('settings.members.copy', 'Copy')}</span>
+                <span className="ml-2">
+                  {resetCopied
+                    ? t('settings.members.copied', 'Copied')
+                    : t('settings.members.copy', 'Copy')}
+                </span>
               </Button>
             </div>
           </div>
@@ -346,7 +446,9 @@ const MembersCard: React.FC = () => {
           </h4>
           <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
             <div className="flex-1">
-              <Label htmlFor="inviteUsername">{t('settings.members.usernameLabel', 'Username for the new account')}</Label>
+              <Label htmlFor="inviteUsername">
+                {t('settings.members.usernameLabel', 'Username for the new account')}
+              </Label>
               <Input
                 id="inviteUsername"
                 value={inviteUsername}
@@ -357,13 +459,23 @@ const MembersCard: React.FC = () => {
             </div>
             <div className="w-full sm:w-36">
               <Label>{t('settings.members.roleLabel', 'Role')}</Label>
-              <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as 'viewer' | 'editor')}>
-                <SelectTrigger className="mt-1" aria-label={t('settings.members.roleLabel', 'Role')}>
+              <Select
+                value={inviteRole}
+                onValueChange={(value) => setInviteRole(value as 'viewer' | 'editor')}
+              >
+                <SelectTrigger
+                  className="mt-1"
+                  aria-label={t('settings.members.roleLabel', 'Role')}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="viewer">{t('settings.members.roles.viewer', 'viewer')}</SelectItem>
-                  <SelectItem value="editor">{t('settings.members.roles.editor', 'editor')}</SelectItem>
+                  <SelectItem value="viewer">
+                    {t('settings.members.roles.viewer', 'viewer')}
+                  </SelectItem>
+                  <SelectItem value="editor">
+                    {t('settings.members.roles.editor', 'editor')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -375,7 +487,10 @@ const MembersCard: React.FC = () => {
           {inviteError && <p className="text-sm text-destructive">{inviteError}</p>}
 
           {created && (
-            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2" data-testid="invitation-link">
+            <div
+              className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2"
+              data-testid="invitation-link"
+            >
               <p className="text-sm">
                 {t(
                   'settings.members.linkIntro',
@@ -385,10 +500,19 @@ const MembersCard: React.FC = () => {
               </p>
               <MailNote outcome={created} username={created.username} />
               <div className="flex gap-2">
-                <Input readOnly value={link} className="font-mono text-xs" aria-label={t('settings.members.linkLabel', 'Invitation link')} />
+                <Input
+                  readOnly
+                  value={link}
+                  className="font-mono text-xs"
+                  aria-label={t('settings.members.linkLabel', 'Invitation link')}
+                />
                 <Button variant="outline" onClick={copyLink}>
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  <span className="ml-2">{copied ? t('settings.members.copied', 'Copied') : t('settings.members.copy', 'Copy')}</span>
+                  <span className="ml-2">
+                    {copied
+                      ? t('settings.members.copied', 'Copied')
+                      : t('settings.members.copy', 'Copy')}
+                  </span>
                 </Button>
               </div>
             </div>
@@ -397,7 +521,11 @@ const MembersCard: React.FC = () => {
           {pending.length > 0 && (
             <ul className="space-y-2">
               {pending.map((invitation) => (
-                <li key={invitation.id} className="flex items-center justify-between p-2 border rounded-md text-sm" data-testid={`invitation-${invitation.id}`}>
+                <li
+                  key={invitation.id}
+                  className="flex items-center justify-between p-2 border rounded-md text-sm"
+                  data-testid={`invitation-${invitation.id}`}
+                >
                   <span>
                     <span className="font-medium">{invitation.username}</span>
                     <Badge variant="outline" className="ml-2">
@@ -416,7 +544,11 @@ const MembersCard: React.FC = () => {
                     size="sm"
                     onClick={() => revoke.mutate(invitation.id)}
                     disabled={revoke.isPending}
-                    aria-label={t('settings.members.revoke', 'Revoke the invitation for {{username}}', { username: invitation.username })}
+                    aria-label={t(
+                      'settings.members.revoke',
+                      'Revoke the invitation for {{username}}',
+                      { username: invitation.username },
+                    )}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
@@ -431,7 +563,9 @@ const MembersCard: React.FC = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {t('settings.members.removeTitle', 'Remove {{username}}?', { username: removing?.username ?? '' })}
+              {t('settings.members.removeTitle', 'Remove {{username}}?', {
+                username: removing?.username ?? '',
+              })}
             </DialogTitle>
             <DialogDescription>
               {t(
@@ -442,7 +576,10 @@ const MembersCard: React.FC = () => {
           </DialogHeader>
           <div className="space-y-2">
             <Label>{t('settings.members.heirLabel', 'Hand what they made to')}</Label>
-            <Select value={heir || 'default'} onValueChange={(value) => setHeir(value === 'default' ? '' : value)}>
+            <Select
+              value={heir || 'default'}
+              onValueChange={(value) => setHeir(value === 'default' ? '' : value)}
+            >
               <SelectTrigger aria-label={t('settings.members.heirLabel', 'Hand what they made to')}>
                 <SelectValue />
               </SelectTrigger>
@@ -466,7 +603,11 @@ const MembersCard: React.FC = () => {
             <Button variant="outline" onClick={() => setRemoving(null)}>
               {t('settings.members.cancel', 'Cancel')}
             </Button>
-            <Button variant="destructive" onClick={() => removing && remove.mutate(removing)} disabled={remove.isPending}>
+            <Button
+              variant="destructive"
+              onClick={() => removing && remove.mutate(removing)}
+              disabled={remove.isPending}
+            >
               {remove.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {t('settings.members.removeConfirm', 'Remove member')}
             </Button>

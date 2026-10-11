@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Give WebFlowMaster a memory of its own failures — one correlated log stream covering server *and* browser, plus structured incident files an agent can read to reproduce and fix a bug without being told what it was.
+**Goal:** Give WebFlowMaster a memory of its own failures — one correlated log stream covering server _and_ browser, plus structured incident files an agent can read to reproduce and fix a bug without being told what it was.
 
 **Architecture:** A pure core (`fingerprint` → `stack` → `store`) with no I/O beyond the filesystem, wrapped by `recordIncident()`, fed by four thin taps (Express, client, BullMQ job, Playwright runner). The browser gets a buffered logger that batches into an ingest endpoint, so client lines land in the same winston file as server lines, joined by a client-generated correlation id.
 
@@ -26,9 +26,11 @@
 ## File Structure
 
 **Created — shared**
+
 - `shared/observability.ts` — wire types and zod schemas shared by client and server (client log entries, client incident reports, incident file shape).
 
 **Created — server**
+
 - `server/observability/fingerprint.ts` — message normalisation and stable hashing.
 - `server/observability/stack.ts` — V8 stack parsing, app-vs-vendor classification, source snippet extraction.
 - `server/observability/store.ts` — incident file read/merge/write, index maintenance, pruning.
@@ -41,6 +43,7 @@
 - `server/routes/observability.routes.ts` — `POST /api/client-logs`, `POST /api/incidents`.
 
 **Created — client**
+
 - `client/src/observability/session.ts` — `sessionId` (per tab) and `newCorrelationId()`.
 - `client/src/observability/logger.ts` — levels, buffer, batched flush, transport.
 - `client/src/observability/breadcrumbs.ts` — bounded ring of user actions.
@@ -48,6 +51,7 @@
 - `client/src/observability/install.ts` — global handlers + route hook wiring.
 
 **Modified**
+
 - `.gitignore` — add `.observability/`.
 - `server/index.ts:110-121` — error handler also records an incident.
 - `server/routes.ts` — mount the observability router.
@@ -61,11 +65,13 @@
 ### Task 1: Wire types and fingerprinting
 
 **Files:**
+
 - Create: `shared/observability.ts`
 - Create: `server/observability/fingerprint.ts`
 - Test: `server/observability/fingerprint.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `IncidentKind`, `IncidentStatus`, `StackFrame`, `IncidentOrigin`, `Incident`, `IncidentIndexEntry`, `ClientLogEntrySchema`, `ClientLogBatchSchema`, `ClientIncidentReportSchema` (all from `@shared/observability`); `normaliseMessage(message: string): string`, `fingerprintError(input: { kind: IncidentKind; message: string; frames: StackFrame[] }): string`, `incidentIdFromFingerprint(fingerprint: string): string` (from `server/observability/fingerprint`).
 
@@ -74,16 +80,16 @@
 Create `shared/observability.ts`:
 
 ```ts
-import { z } from "zod";
+import { z } from 'zod';
 
 /** Which layer produced the failure. Drives the trigger shape and the repro strategy. */
-export const INCIDENT_KINDS = ["server-api", "client-runtime", "job", "runner"] as const;
+export const INCIDENT_KINDS = ['server-api', 'client-runtime', 'job', 'runner'] as const;
 export type IncidentKind = (typeof INCIDENT_KINDS)[number];
 
-export const INCIDENT_STATUSES = ["open", "fixed", "ignored"] as const;
+export const INCIDENT_STATUSES = ['open', 'fixed', 'ignored'] as const;
 export type IncidentStatus = (typeof INCIDENT_STATUSES)[number];
 
-export type ReproConfidence = "high" | "medium" | "best-effort" | "none";
+export type ReproConfidence = 'high' | 'medium' | 'best-effort' | 'none';
 
 /** One parsed stack frame. `app` marks frames belonging to this repository. */
 export interface StackFrame {
@@ -151,7 +157,7 @@ export interface IncidentIndexEntry {
   reproConfidence?: ReproConfidence;
 }
 
-export const CLIENT_LOG_LEVELS = ["error", "warn", "info", "http", "debug"] as const;
+export const CLIENT_LOG_LEVELS = ['error', 'warn', 'info', 'http', 'debug'] as const;
 export type ClientLogLevel = (typeof CLIENT_LOG_LEVELS)[number];
 
 export const ClientLogEntrySchema = z.object({
@@ -198,7 +204,11 @@ import { normaliseMessage, fingerprintError, incidentIdFromFingerprint } from '.
 import type { StackFrame } from '../../shared/observability';
 
 const frame = (file: string, line: number): StackFrame => ({
-  functionName: 'doThing', file, line, column: 1, app: true,
+  functionName: 'doThing',
+  file,
+  line,
+  column: 1,
+  app: true,
 });
 
 describe('normaliseMessage', () => {
@@ -215,24 +225,40 @@ describe('normaliseMessage', () => {
   });
 
   it('keeps genuinely different messages different', () => {
-    expect(normaliseMessage('Cannot read selector')).not.toBe(normaliseMessage('Cannot read value'));
+    expect(normaliseMessage('Cannot read selector')).not.toBe(
+      normaliseMessage('Cannot read value'),
+    );
   });
 });
 
 describe('fingerprintError', () => {
   it('is stable for the same error', () => {
-    const input = { kind: 'server-api' as const, message: 'boom', frames: [frame('server/a.ts', 10)] };
+    const input = {
+      kind: 'server-api' as const,
+      message: 'boom',
+      frames: [frame('server/a.ts', 10)],
+    };
     expect(fingerprintError(input)).toBe(fingerprintError(input));
   });
 
   it('ignores vendor frames', () => {
-    const appOnly = { kind: 'server-api' as const, message: 'boom', frames: [frame('server/a.ts', 10)] };
+    const appOnly = {
+      kind: 'server-api' as const,
+      message: 'boom',
+      frames: [frame('server/a.ts', 10)],
+    };
     const withVendor = {
       kind: 'server-api' as const,
       message: 'boom',
       frames: [
         frame('server/a.ts', 10),
-        { functionName: 'x', file: 'node_modules/express/lib/router.js', line: 99, column: 1, app: false },
+        {
+          functionName: 'x',
+          file: 'node_modules/express/lib/router.js',
+          line: 99,
+          column: 1,
+          app: false,
+        },
       ],
     };
     expect(fingerprintError(withVendor)).toBe(fingerprintError(appOnly));
@@ -240,13 +266,17 @@ describe('fingerprintError', () => {
 
   it('separates different kinds with the same error', () => {
     const frames = [frame('server/a.ts', 10)];
-    expect(fingerprintError({ kind: 'server-api', message: 'boom', frames }))
-      .not.toBe(fingerprintError({ kind: 'job', message: 'boom', frames }));
+    expect(fingerprintError({ kind: 'server-api', message: 'boom', frames })).not.toBe(
+      fingerprintError({ kind: 'job', message: 'boom', frames }),
+    );
   });
 
   it('separates different origin lines', () => {
-    expect(fingerprintError({ kind: 'job', message: 'boom', frames: [frame('server/a.ts', 10)] }))
-      .not.toBe(fingerprintError({ kind: 'job', message: 'boom', frames: [frame('server/a.ts', 20)] }));
+    expect(
+      fingerprintError({ kind: 'job', message: 'boom', frames: [frame('server/a.ts', 10)] }),
+    ).not.toBe(
+      fingerprintError({ kind: 'job', message: 'boom', frames: [frame('server/a.ts', 20)] }),
+    );
   });
 });
 
@@ -341,10 +371,12 @@ git commit -m "feat(observability): shared incident types and error fingerprinti
 ### Task 2: Stack parsing and source snippets
 
 **Files:**
+
 - Create: `server/observability/stack.ts`
 - Test: `server/observability/stack.test.ts`
 
 **Interfaces:**
+
 - Consumes: `StackFrame`, `IncidentOrigin` from `@shared/observability`.
 - Produces: `parseStack(stack: string | undefined, repoRoot: string): StackFrame[]`, `resolveOrigin(frames: StackFrame[], repoRoot: string): IncidentOrigin | null`.
 
@@ -411,7 +443,9 @@ describe('parseStack', () => {
   });
 
   it('parses file:// URLs', () => {
-    const fileUrl = new URL(`file:///${path.join(repoRoot, 'server', 'sample.ts').replace(/\\/g, '/')}`).href;
+    const fileUrl = new URL(
+      `file:///${path.join(repoRoot, 'server', 'sample.ts').replace(/\\/g, '/')}`,
+    ).href;
     const frames = parseStack(`Error: boom\n    at run (${fileUrl}:7:3)`, repoRoot);
 
     expect(frames[0].file).toBe('server/sample.ts');
@@ -442,14 +476,20 @@ describe('resolveOrigin', () => {
   });
 
   it('clamps the window at the start of the file', () => {
-    const frames = parseStack(`Error: boom\n    at run (${path.join(repoRoot, 'server', 'sample.ts')}:2:1)`, repoRoot);
+    const frames = parseStack(
+      `Error: boom\n    at run (${path.join(repoRoot, 'server', 'sample.ts')}:2:1)`,
+      repoRoot,
+    );
     const origin = resolveOrigin(frames, repoRoot);
 
     expect(origin?.source[0]).toBe('   1 | const line1 = 1;');
   });
 
   it('marks the origin unresolved when the file no longer exists', () => {
-    const frames = parseStack(`Error: boom\n    at run (${path.join(repoRoot, 'server', 'gone.ts')}:5:1)`, repoRoot);
+    const frames = parseStack(
+      `Error: boom\n    at run (${path.join(repoRoot, 'server', 'gone.ts')}:5:1)`,
+      repoRoot,
+    );
     const origin = resolveOrigin(frames, repoRoot);
 
     expect(origin?.unresolved).toBeTruthy();
@@ -457,7 +497,10 @@ describe('resolveOrigin', () => {
   });
 
   it('returns null when there is no app frame at all', () => {
-    const frames = parseStack(`Error: boom\n    at x (${path.join(repoRoot, 'node_modules', 'y', 'z.js')}:1:1)`, repoRoot);
+    const frames = parseStack(
+      `Error: boom\n    at x (${path.join(repoRoot, 'node_modules', 'y', 'z.js')}:1:1)`,
+      repoRoot,
+    );
     expect(resolveOrigin(frames, repoRoot)).toBeNull();
   });
 });
@@ -559,7 +602,10 @@ export function resolveOrigin(frames: StackFrame[], repoRoot: string): IncidentO
 
   const lines = content.split('\n');
   if (frame.line < 1 || frame.line > lines.length) {
-    return { ...base, unresolved: `line ${frame.line} is outside ${frame.file} (${lines.length} lines)` };
+    return {
+      ...base,
+      unresolved: `line ${frame.line} is outside ${frame.file} (${lines.length} lines)`,
+    };
   }
 
   const from = Math.max(1, frame.line - CONTEXT_LINES);
@@ -597,11 +643,13 @@ git commit -m "feat(observability): stack parsing with app-frame detection and s
 ### Task 3: Incident store
 
 **Files:**
+
 - Create: `server/observability/store.ts`
 - Test: `server/observability/store.test.ts`
 - Modify: `.gitignore`
 
 **Interfaces:**
+
 - Consumes: `Incident`, `IncidentIndexEntry` from `@shared/observability`.
 - Produces: `IncidentStore` class with `constructor(rootDir: string)`, `upsert(incident: Incident): Promise<Incident>`, `read(id: string): Promise<Incident | null>`, `readIndex(): Promise<IncidentIndexEntry[]>`, `prune(options?: { maxFiles?: number; maxAgeDays?: number }): Promise<number>`; constants `MAX_INCIDENT_FILES = 200`, `MAX_INCIDENT_AGE_DAYS = 30`, `MAX_OCCURRENCES = 10`.
 
@@ -678,7 +726,9 @@ describe('IncidentStore.upsert', () => {
   it('caps retained occurrences', async () => {
     await store.upsert(incident());
     for (let i = 0; i < MAX_OCCURRENCES + 5; i++) {
-      await store.upsert(incident({ occurrences: [{ ts: new Date().toISOString(), correlationId: `c-${i}` }] }));
+      await store.upsert(
+        incident({ occurrences: [{ ts: new Date().toISOString(), correlationId: `c-${i}` }] }),
+      );
     }
 
     const onDisk = await store.read('inc_aaaaaa');
@@ -698,9 +748,20 @@ describe('IncidentStore.upsert', () => {
 
 describe('IncidentStore.prune', () => {
   it('drops the oldest beyond the file cap, fixed ones first', async () => {
-    await store.upsert(incident({ id: 'inc_old001', fingerprint: 'old001', lastSeen: '2026-07-01T00:00:00.000Z' }));
-    await store.upsert(incident({ id: 'inc_fix001', fingerprint: 'fix001', status: 'fixed', lastSeen: '2026-07-25T00:00:00.000Z' }));
-    await store.upsert(incident({ id: 'inc_new001', fingerprint: 'new001', lastSeen: '2026-07-26T00:00:00.000Z' }));
+    await store.upsert(
+      incident({ id: 'inc_old001', fingerprint: 'old001', lastSeen: '2026-07-01T00:00:00.000Z' }),
+    );
+    await store.upsert(
+      incident({
+        id: 'inc_fix001',
+        fingerprint: 'fix001',
+        status: 'fixed',
+        lastSeen: '2026-07-25T00:00:00.000Z',
+      }),
+    );
+    await store.upsert(
+      incident({ id: 'inc_new001', fingerprint: 'new001', lastSeen: '2026-07-26T00:00:00.000Z' }),
+    );
 
     const removed = await store.prune({ maxFiles: 2, maxAgeDays: 3650 });
 
@@ -712,7 +773,9 @@ describe('IncidentStore.prune', () => {
   it('drops incidents older than the age cap', async () => {
     const old = new Date(Date.now() - 40 * 24 * 3600_000).toISOString();
     await store.upsert(incident({ id: 'inc_old002', fingerprint: 'old002', lastSeen: old }));
-    await store.upsert(incident({ id: 'inc_new002', fingerprint: 'new002', lastSeen: new Date().toISOString() }));
+    await store.upsert(
+      incident({ id: 'inc_new002', fingerprint: 'new002', lastSeen: new Date().toISOString() }),
+    );
 
     const removed = await store.prune({ maxFiles: 500, maxAgeDays: 30 });
 
@@ -840,9 +903,7 @@ export class IncidentStore {
       const index = await this.readIndex();
       const cutoff = Date.now() - maxAgeDays * 24 * 3600_000;
 
-      const tooOld = new Set(
-        index.filter((e) => Date.parse(e.lastSeen) < cutoff).map((e) => e.id),
-      );
+      const tooOld = new Set(index.filter((e) => Date.parse(e.lastSeen) < cutoff).map((e) => e.id));
 
       // Over the cap: fixed incidents go first, then the least recently seen.
       const survivors = index.filter((e) => !tooOld.has(e.id));
@@ -852,7 +913,9 @@ export class IncidentStore {
         if (aFixed !== bFixed) return bFixed - aFixed;
         return Date.parse(a.lastSeen) - Date.parse(b.lastSeen);
       });
-      const overflow = new Set(ranked.slice(0, Math.max(0, survivors.length - maxFiles)).map((e) => e.id));
+      const overflow = new Set(
+        ranked.slice(0, Math.max(0, survivors.length - maxFiles)).map((e) => e.id),
+      );
 
       const doomed = [...tooOld, ...overflow];
       for (const id of doomed) {
@@ -860,7 +923,10 @@ export class IncidentStore {
       }
 
       if (doomed.length > 0) {
-        await this.writeJson(this.indexPath, index.filter((e) => !doomed.includes(e.id)));
+        await this.writeJson(
+          this.indexPath,
+          index.filter((e) => !doomed.includes(e.id)),
+        );
       }
       return doomed.length;
     });
@@ -893,12 +959,14 @@ git commit -m "feat(observability): incident store with dedupe, index and prunin
 ### Task 4: Breadcrumbs and the recordIncident orchestrator
 
 **Files:**
+
 - Create: `server/observability/breadcrumbs.ts`
 - Create: `server/observability/incident.ts`
 - Test: `server/observability/breadcrumbs.test.ts`
 - Test: `server/observability/incident.test.ts`
 
 **Interfaces:**
+
 - Consumes: `fingerprintError`, `incidentIdFromFingerprint`, `parseStack`, `resolveOrigin`, `IncidentStore`.
 - Produces: `BreadcrumbRing` class with `constructor(options?: { maxCorrelations?: number; maxPerCorrelation?: number; ttlMs?: number })`, `push(correlationId: string, crumb: Record<string, unknown>): void`, `take(correlationId: string): Record<string, unknown>[]`, `size(): number`; `serverBreadcrumbs` singleton. From `incident.ts`: `recordIncident(input: RecordIncidentInput): Promise<Incident | null>`, `configureIncidents(options: { rootDir?: string; repoRoot?: string; logger?: IncidentLogger }): void`, `type RecordIncidentInput`, `type IncidentLogger`.
 
@@ -993,7 +1061,9 @@ export class BreadcrumbRing {
   private readonly maxPerCorrelation: number;
   private readonly ttlMs: number;
 
-  constructor(options: { maxCorrelations?: number; maxPerCorrelation?: number; ttlMs?: number } = {}) {
+  constructor(
+    options: { maxCorrelations?: number; maxPerCorrelation?: number; ttlMs?: number } = {},
+  ) {
     this.maxCorrelations = options.maxCorrelations ?? DEFAULT_MAX_CORRELATIONS;
     this.maxPerCorrelation = options.maxPerCorrelation ?? DEFAULT_MAX_PER_CORRELATION;
     this.ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
@@ -1088,7 +1158,7 @@ afterEach(() => {
 });
 
 const errorFrom = (file: string, line: number) => {
-  const error = new Error('Cannot read properties of undefined (reading \'selector\')');
+  const error = new Error("Cannot read properties of undefined (reading 'selector')");
   error.stack = `TypeError: ${error.message}\n    at run (${path.join(repoRoot, file)}:${line}:5)`;
   return error;
 };
@@ -1149,8 +1219,16 @@ describe('recordIncident', () => {
   });
 
   it('rate-limits repeats of the same fingerprint within a second', async () => {
-    const first = await recordIncident({ kind: 'job', error: errorFrom('server/thing.ts', 3), trigger: {} });
-    const second = await recordIncident({ kind: 'job', error: errorFrom('server/thing.ts', 3), trigger: {} });
+    const first = await recordIncident({
+      kind: 'job',
+      error: errorFrom('server/thing.ts', 3),
+      trigger: {},
+    });
+    const second = await recordIncident({
+      kind: 'job',
+      error: errorFrom('server/thing.ts', 3),
+      trigger: {},
+    });
 
     expect(first).not.toBeNull();
     expect(second).toBeNull();
@@ -1238,7 +1316,11 @@ export function configureIncidents(options: {
 function gitInfo(): Record<string, unknown> {
   const run = (args: string[]): string | null => {
     try {
-      return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+      return execFileSync('git', args, {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
     } catch {
       return null;
     }
@@ -1361,11 +1443,13 @@ git commit -m "feat(observability): bounded breadcrumbs and the recordIncident o
 ### Task 5: Express tap
 
 **Files:**
+
 - Create: `server/observability/taps/express.ts`
 - Test: `server/observability/taps/express.test.ts`
 - Modify: `server/index.ts:110-121`
 
 **Interfaces:**
+
 - Consumes: `recordIncident` from `server/observability/incident`.
 - Produces: `incidentErrorHandler(logger: IncidentLogger): ErrorRequestHandler`, `buildServerApiTrigger(req: Request): Record<string, unknown>`.
 
@@ -1404,7 +1488,7 @@ const appThatThrows = () => {
     next();
   });
   app.post('/api/boom', () => {
-    throw new TypeError('Cannot read properties of undefined (reading \'selector\')');
+    throw new TypeError("Cannot read properties of undefined (reading 'selector')");
   });
   app.use(incidentErrorHandler({ error: () => {} }));
   return app;
@@ -1412,18 +1496,23 @@ const appThatThrows = () => {
 
 describe('incidentErrorHandler', () => {
   it('records an incident and still answers the request', async () => {
-    const response = await request(appThatThrows()).post('/api/boom').send({ url: 'https://x.test' });
+    const response = await request(appThatThrows())
+      .post('/api/boom')
+      .send({ url: 'https://x.test' });
 
     // Asserted before the poll below: the handler must answer without waiting on disk I/O.
     expect(response.status).toBe(500);
 
     // The tap records fire-and-forget by design, so poll for the artifact rather than
     // assuming the write has already landed — on a real filesystem it usually has not.
-    await vi.waitFor(async () => {
-      const index = await new IncidentStore(root).readIndex();
-      expect(index).toHaveLength(1);
-      expect(index[0].kind).toBe('server-api');
-    }, { timeout: 2000 });
+    await vi.waitFor(
+      async () => {
+        const index = await new IncidentStore(root).readIndex();
+        expect(index).toHaveLength(1);
+        expect(index[0].kind).toBe('server-api');
+      },
+      { timeout: 2000 },
+    );
   });
 
   it('captures the request as the trigger', async () => {
@@ -1431,13 +1520,16 @@ describe('incidentErrorHandler', () => {
 
     const store = new IncidentStore(root);
     // Same race as above: the recording is asynchronous, so wait for it to appear.
-    const incident = await vi.waitFor(async () => {
-      const [entry] = await store.readIndex();
-      expect(entry).toBeDefined();
-      const found = await store.read(entry.id);
-      expect(found).not.toBeNull();
-      return found;
-    }, { timeout: 2000 });
+    const incident = await vi.waitFor(
+      async () => {
+        const [entry] = await store.readIndex();
+        expect(entry).toBeDefined();
+        const found = await store.read(entry.id);
+        expect(found).not.toBeNull();
+        return found;
+      },
+      { timeout: 2000 },
+    );
 
     expect(incident!.trigger).toMatchObject({
       method: 'POST',
@@ -1464,12 +1556,19 @@ describe('buildServerApiTrigger', () => {
       path: '/api/x',
       query: {},
       body: undefined,
-      headers: { 'content-type': 'application/json', cookie: 'session=abc', 'x-correlation-id': 'c-1' },
+      headers: {
+        'content-type': 'application/json',
+        cookie: 'session=abc',
+        'x-correlation-id': 'c-1',
+      },
     } as unknown as Request;
 
     const trigger = buildServerApiTrigger(req);
 
-    expect(trigger.headers).toEqual({ 'content-type': 'application/json', 'x-correlation-id': 'c-1' });
+    expect(trigger.headers).toEqual({
+      'content-type': 'application/json',
+      'x-correlation-id': 'c-1',
+    });
   });
 });
 ```
@@ -1492,7 +1591,13 @@ import { recordIncident, type IncidentLogger } from '../incident';
 // Deliberately NOT 'x-session-id': that conventional name could carry a real session
 // credential from a proxy or another client, and the redactor does not match it.
 // Our own per-tab correlation id travels under an unmistakably ours name instead.
-const HEADER_ALLOWLIST = ['content-type', 'accept', 'user-agent', 'x-correlation-id', 'x-wfm-session-id'];
+const HEADER_ALLOWLIST = [
+  'content-type',
+  'accept',
+  'user-agent',
+  'x-correlation-id',
+  'x-wfm-session-id',
+];
 
 export function buildServerApiTrigger(req: Request): Record<string, unknown> {
   const headers: Record<string, unknown> = {};
@@ -1549,9 +1654,9 @@ Replace lines 110-121 of `server/index.ts` (the existing `app.use((err: any, ...
 with:
 
 ```ts
-  // Records an incident for every unhandled error, then answers as before.
-  const { incidentErrorHandler } = await import('./observability/taps/express');
-  app.use(incidentErrorHandler(logger));
+// Records an incident for every unhandled error, then answers as before.
+const { incidentErrorHandler } = await import('./observability/taps/express');
+app.use(incidentErrorHandler(logger));
 ```
 
 - [ ] **Step 6: Verify the server still boots and the suite is green**
@@ -1571,12 +1676,14 @@ git commit -m "feat(observability): record an incident for every unhandled Expre
 ### Task 6: Client log ingest endpoint
 
 **Files:**
+
 - Create: `server/routes/observability.routes.ts`
 - Test: `server/routes/observability.routes.test.ts`
 - Modify: `server/routes.ts`
 - Modify: `server/index.ts` (default `clientLogLevel` system setting)
 
 **Interfaces:**
+
 - Consumes: `ClientLogBatchSchema`, `ClientIncidentReportSchema` from `@shared/observability`; `recordIncident`.
 - Produces: default-exported `router` mounted at the app root, serving `POST /api/client-logs` and `POST /api/incidents`.
 
@@ -1597,12 +1704,18 @@ import { IncidentStore } from '../observability/store';
 const logged: { level: string; message: string; meta: Record<string, unknown> }[] = [];
 
 vi.mock('../logger', () => {
-  const record = (level: string) => (message: string, meta: Record<string, unknown> = {}) =>
-    logged.push({ level, message, meta });
+  const record =
+    (level: string) =>
+    (message: string, meta: Record<string, unknown> = {}) =>
+      logged.push({ level, message, meta });
   return {
     default: Promise.resolve({
-      error: record('error'), warn: record('warn'), info: record('info'),
-      http: record('http'), debug: record('debug'), verbose: record('verbose'),
+      error: record('error'),
+      warn: record('warn'),
+      info: record('info'),
+      http: record('http'),
+      debug: record('debug'),
+      verbose: record('verbose'),
       log: (level: string, message: string, meta: Record<string, unknown> = {}) =>
         logged.push({ level, message, meta }),
     }),
@@ -1637,48 +1750,77 @@ afterEach(() => {
 
 describe('POST /api/client-logs', () => {
   it('re-emits each entry through the server logger', async () => {
-    const response = await request(app).post('/api/client-logs').send({
-      sessionId: 's-1',
-      entries: [
-        { level: 'info', message: 'navigation', clientTs: '2026-07-26T10:00:00.000Z', correlationId: 'c-1', meta: { to: '/dashboard' } },
-        { level: 'error', message: 'mutation failed', clientTs: '2026-07-26T10:00:01.000Z', correlationId: 'c-1' },
-      ],
-    });
+    const response = await request(app)
+      .post('/api/client-logs')
+      .send({
+        sessionId: 's-1',
+        entries: [
+          {
+            level: 'info',
+            message: 'navigation',
+            clientTs: '2026-07-26T10:00:00.000Z',
+            correlationId: 'c-1',
+            meta: { to: '/dashboard' },
+          },
+          {
+            level: 'error',
+            message: 'mutation failed',
+            clientTs: '2026-07-26T10:00:01.000Z',
+            correlationId: 'c-1',
+          },
+        ],
+      });
 
     expect(response.status).toBe(202);
     expect(logged.filter((l) => l.message.startsWith('[client]'))).toHaveLength(2);
-    expect(logged[0].meta).toMatchObject({ sessionId: 's-1', correlationId: 'c-1', source: 'client' });
+    expect(logged[0].meta).toMatchObject({
+      sessionId: 's-1',
+      correlationId: 'c-1',
+      source: 'client',
+    });
   });
 
   it('reports dropped entries so loss is visible', async () => {
-    await request(app).post('/api/client-logs').send({
-      sessionId: 's-1',
-      dropped: 12,
-      entries: [{ level: 'warn', message: 'x', clientTs: '2026-07-26T10:00:00.000Z' }],
-    });
+    await request(app)
+      .post('/api/client-logs')
+      .send({
+        sessionId: 's-1',
+        dropped: 12,
+        entries: [{ level: 'warn', message: 'x', clientTs: '2026-07-26T10:00:00.000Z' }],
+      });
 
     expect(logged.some((l) => l.message.includes('dropped 12'))).toBe(true);
   });
 
   it('rejects a malformed batch', async () => {
-    const response = await request(app).post('/api/client-logs').send({ sessionId: 's-1', entries: [] });
+    const response = await request(app)
+      .post('/api/client-logs')
+      .send({ sessionId: 's-1', entries: [] });
     expect(response.status).toBe(400);
   });
 
   it('rejects an oversized batch', async () => {
     const entries = Array.from({ length: 101 }, () => ({
-      level: 'info' as const, message: 'x', clientTs: '2026-07-26T10:00:00.000Z',
+      level: 'info' as const,
+      message: 'x',
+      clientTs: '2026-07-26T10:00:00.000Z',
     }));
-    const response = await request(app).post('/api/client-logs').send({ sessionId: 's-1', entries });
+    const response = await request(app)
+      .post('/api/client-logs')
+      .send({ sessionId: 's-1', entries });
     expect(response.status).toBe(400);
   });
 
   it('accepts anonymous requests outside production so the login page is not blind', async () => {
     authenticated = false;
-    const response = await request(app).post('/api/client-logs').send({
-      sessionId: 's-1',
-      entries: [{ level: 'error', message: 'login blew up', clientTs: '2026-07-26T10:00:00.000Z' }],
-    });
+    const response = await request(app)
+      .post('/api/client-logs')
+      .send({
+        sessionId: 's-1',
+        entries: [
+          { level: 'error', message: 'login blew up', clientTs: '2026-07-26T10:00:00.000Z' },
+        ],
+      });
 
     expect(response.status).toBe(202);
   });
@@ -1686,16 +1828,19 @@ describe('POST /api/client-logs', () => {
 
 describe('POST /api/incidents', () => {
   it('records a client-runtime incident carrying the component stack', async () => {
-    const response = await request(app).post('/api/incidents').send({
-      sessionId: 's-1',
-      correlationId: 'c-9',
-      route: '/dashboard/create-test',
-      name: 'TypeError',
-      message: 'Cannot read properties of undefined (reading \'map\')',
-      stack: 'TypeError: Cannot read properties of undefined\n    at Toaster (/src/components/ui/toaster.tsx:16:15)',
-      componentStack: '\n    at Toaster\n    at App',
-      breadcrumbs: [{ type: 'click', target: '#execute' }],
-    });
+    const response = await request(app)
+      .post('/api/incidents')
+      .send({
+        sessionId: 's-1',
+        correlationId: 'c-9',
+        route: '/dashboard/create-test',
+        name: 'TypeError',
+        message: "Cannot read properties of undefined (reading 'map')",
+        stack:
+          'TypeError: Cannot read properties of undefined\n    at Toaster (/src/components/ui/toaster.tsx:16:15)',
+        componentStack: '\n    at Toaster\n    at App',
+        breadcrumbs: [{ type: 'click', target: '#execute' }],
+      });
 
     expect(response.status).toBe(202);
     expect(response.body.incidentId).toMatch(/^inc_/);
@@ -1782,7 +1927,10 @@ router.post(
     }
 
     if (dropped && dropped > 0) {
-      logger.warn(`[client] buffer overflow, dropped ${dropped} entries`, { source: 'client', sessionId });
+      logger.warn(`[client] buffer overflow, dropped ${dropped} entries`, {
+        source: 'client',
+        sessionId,
+      });
     }
 
     res.status(202).json({ accepted: entries.length });
@@ -1796,7 +1944,9 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = ClientIncidentReportSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid incident report', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid incident report', details: parsed.error.flatten() });
     }
 
     const report = parsed.data;
@@ -1836,13 +1986,13 @@ In `server/routes.ts`, next to the other `app.use(...)` router registrations (ar
 77, after `app.use(authRoutes)`), add the import at the top with the other route imports:
 
 ```ts
-import observabilityRoutes from "./routes/observability.routes";
+import observabilityRoutes from './routes/observability.routes';
 ```
 
 and the registration alongside the others:
 
 ```ts
-    app.use(observabilityRoutes);
+app.use(observabilityRoutes);
 ```
 
 - [ ] **Step 6: Add the `clientLogLevel` default setting**
@@ -1850,13 +2000,13 @@ and the registration alongside the others:
 In `server/index.ts`, inside `ensureDefaultSystemSettings`, extend `settingsToEnsure`:
 
 ```ts
-    const settingsToEnsure = [
-      { key: 'logRetentionDays', value: process.env.LOG_RETENTION_DAYS || '7' },
-      { key: 'logLevel', value: process.env.LOG_LEVEL || 'info' },
-      // Separate from logLevel on purpose: turning the server up to debug should not also
-      // flood the ingest endpoint with browser traffic.
-      { key: 'clientLogLevel', value: process.env.CLIENT_LOG_LEVEL || 'info' },
-    ];
+const settingsToEnsure = [
+  { key: 'logRetentionDays', value: process.env.LOG_RETENTION_DAYS || '7' },
+  { key: 'logLevel', value: process.env.LOG_LEVEL || 'info' },
+  // Separate from logLevel on purpose: turning the server up to debug should not also
+  // flood the ingest endpoint with browser traffic.
+  { key: 'clientLogLevel', value: process.env.CLIENT_LOG_LEVEL || 'info' },
+];
 ```
 
 - [ ] **Step 7: Verify**
@@ -1877,12 +2027,14 @@ git commit -m "feat(observability): client log and incident ingest endpoints"
 ### Task 7: Client logger and correlation headers
 
 **Files:**
+
 - Create: `client/src/observability/session.ts`
 - Create: `client/src/observability/logger.ts`
 - Test: `client/src/observability/logger.test.ts`
 - Modify: `client/src/lib/queryClient.ts`
 
 **Interfaces:**
+
 - Consumes: `ClientLogEntry`, `ClientLogLevel` from `@shared/observability`.
 - Produces: from `session.ts` — `getSessionId(): string`, `newCorrelationId(): string`; from `logger.ts` — `clientLogger` object with `error/warn/info/http/debug(message: string, meta?: Record<string, unknown>): void`, plus `setLogLevel(level: ClientLogLevel): void`, `setCurrentRoute(route: string): void`, `setCurrentCorrelationId(correlationId: string | undefined): void`, `flushNow(): Promise<void>`, `__resetForTests(): void`.
 
@@ -1893,8 +2045,7 @@ Create `client/src/observability/session.ts`:
 ```ts
 const SESSION_KEY = 'wfm:sessionId';
 
-const randomId = (prefix: string): string =>
-  `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+const randomId = (prefix: string): string => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 
 /**
  * One id per browser tab, surviving reloads within the tab. Used to stitch a whole user
@@ -1928,13 +2079,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { clientLogger, setLogLevel, flushNow, __resetForTests } from './logger';
 
 const postedBatches = () =>
-  vi.mocked(globalThis.fetch).mock.calls
-    .filter(([url]) => String(url) === '/api/client-logs')
+  vi
+    .mocked(globalThis.fetch)
+    .mock.calls.filter(([url]) => String(url) === '/api/client-logs')
     .map(([, init]) => JSON.parse(String((init as RequestInit).body)));
 
 beforeEach(() => {
   __resetForTests();
-  vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 202 })));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('{}', { status: 202 })),
+  );
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
   vi.spyOn(console, 'info').mockImplementation(() => {});
@@ -1996,7 +2151,12 @@ describe('clientLogger', () => {
   });
 
   it('never recurses when the transport keeps failing', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down'); }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network down');
+      }),
+    );
 
     clientLogger.error('first failure');
     await flushNow();
@@ -2039,7 +2199,11 @@ import type { ClientLogEntry, ClientLogLevel } from '@shared/observability';
 import { getSessionId } from './session';
 
 const LEVEL_ORDER: Record<ClientLogLevel, number> = {
-  error: 0, warn: 1, info: 2, http: 3, debug: 4,
+  error: 0,
+  warn: 1,
+  info: 2,
+  http: 3,
+  debug: 4,
 };
 
 const INGEST_URL = '/api/client-logs';
@@ -2076,7 +2240,9 @@ function payload(): string {
 
 function ensureTimer(): void {
   if (timer !== null) return;
-  timer = setInterval(() => { void flushNow(); }, FLUSH_INTERVAL_MS);
+  timer = setInterval(() => {
+    void flushNow();
+  }, FLUSH_INTERVAL_MS);
   // Do not hold a Node test process open.
   (timer as unknown as { unref?: () => void }).unref?.();
 }
@@ -2117,7 +2283,11 @@ export async function flushNow(): Promise<void> {
   }
 }
 
-function enqueue(entryLevel: ClientLogLevel, message: string, meta?: Record<string, unknown>): void {
+function enqueue(
+  entryLevel: ClientLogLevel,
+  message: string,
+  meta?: Record<string, unknown>,
+): void {
   try {
     if (LEVEL_ORDER[entryLevel] > LEVEL_ORDER[level]) return;
 
@@ -2178,7 +2348,10 @@ export function __resetForTests(): void {
   level = 'info';
   currentRoute = '';
   currentCorrelationId = undefined;
-  if (timer !== null) { clearInterval(timer); timer = null; }
+  if (timer !== null) {
+    clearInterval(timer);
+    timer = null;
+  }
 }
 ```
 
@@ -2192,9 +2365,9 @@ Expected: PASS, 8 tests.
 Replace the body of `apiRequest` and `getQueryFn` in `client/src/lib/queryClient.ts` with:
 
 ```ts
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { clientLogger, setCurrentCorrelationId } from "@/observability/logger";
-import { getSessionId, newCorrelationId } from "@/observability/session";
+import { QueryClient, QueryFunction } from '@tanstack/react-query';
+import { clientLogger, setCurrentCorrelationId } from '@/observability/logger';
+import { getSessionId, newCorrelationId } from '@/observability/session';
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -2207,7 +2380,7 @@ async function throwIfResNotOk(res: Response) {
 function tracingHeaders(correlationId: string): Record<string, string> {
   // X-Wfm-Session-Id, not X-Session-Id: the tap refuses to capture the conventional
   // name because it could hold a real credential. Ours is a random per-tab id.
-  return { "X-Correlation-Id": correlationId, "X-Wfm-Session-Id": getSessionId() };
+  return { 'X-Correlation-Id': correlationId, 'X-Wfm-Session-Id': getSessionId() };
 }
 
 export async function apiRequest(
@@ -2223,11 +2396,11 @@ export async function apiRequest(
     const res = await fetch(url, {
       method,
       headers: {
-        ...(data ? { "Content-Type": "application/json" } : {}),
+        ...(data ? { 'Content-Type': 'application/json' } : {}),
         ...tracingHeaders(correlationId),
       },
       body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
+      credentials: 'include',
     });
 
     clientLogger.http(`${method} ${url}`, {
@@ -2248,10 +2421,8 @@ export async function apiRequest(
   }
 }
 
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
+type UnauthorizedBehavior = 'returnNull' | 'throw';
+export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
@@ -2261,13 +2432,13 @@ export const getQueryFn: <T>(options: {
 
     try {
       const res = await fetch(url, {
-        credentials: "include",
+        credentials: 'include',
         headers: tracingHeaders(correlationId),
       });
 
       clientLogger.http(`GET ${url}`, { status: res.status, durationMs: Date.now() - startedAt });
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      if (unauthorizedBehavior === 'returnNull' && res.status === 401) {
         return null;
       }
 
@@ -2288,7 +2459,7 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: 'throw' }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
@@ -2321,6 +2492,7 @@ git commit -m "feat(observability): buffered client logger and correlation heade
 ### Task 8: Error boundary, global handlers and client breadcrumbs
 
 **Files:**
+
 - Create: `client/src/observability/breadcrumbs.ts`
 - Create: `client/src/observability/error-boundary.tsx`
 - Create: `client/src/observability/install.ts`
@@ -2329,6 +2501,7 @@ git commit -m "feat(observability): buffered client logger and correlation heade
 - Modify: `client/src/App.tsx`
 
 **Interfaces:**
+
 - Consumes: `clientLogger`, `setCurrentRoute`, `getSessionId`, `newCorrelationId`.
 - Produces: from `breadcrumbs.ts` — `pushBreadcrumb(crumb: Record<string, unknown>): void`, `takeBreadcrumbs(): Record<string, unknown>[]`, `__resetBreadcrumbs(): void`; from `error-boundary.tsx` — `ObservabilityErrorBoundary` React component with props `{ children: React.ReactNode }`; from `install.ts` — `installObservability(): void`, `reportClientIncident(input: { name: string; message: string; stack?: string; componentStack?: string; props?: Record<string, unknown> }): void`.
 
@@ -2462,12 +2635,15 @@ export class ObservabilityErrorBoundary extends React.Component<Props, State> {
     if (!this.state.error) return this.props.children;
 
     return (
-      <div role="alert" className="m-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-destructive">
+      <div
+        role="alert"
+        className="m-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-destructive"
+      >
         <p className="font-semibold">Something went wrong on this page.</p>
-        <p className="mt-1 text-sm">
-          The error has been recorded. Reload the page to continue.
-        </p>
-        <pre className="mt-3 max-h-40 overflow-auto text-xs opacity-80">{this.state.error.message}</pre>
+        <p className="mt-1 text-sm">The error has been recorded. Reload the page to continue.</p>
+        <pre className="mt-3 max-h-40 overflow-auto text-xs opacity-80">
+          {this.state.error.message}
+        </pre>
       </div>
     );
   }
@@ -2489,13 +2665,17 @@ import { installObservability, reportClientIncident } from './install';
 import { pushBreadcrumb, takeBreadcrumbs, __resetBreadcrumbs } from './breadcrumbs';
 
 const posted = () =>
-  vi.mocked(globalThis.fetch).mock.calls
-    .filter(([url]) => String(url) === '/api/incidents')
+  vi
+    .mocked(globalThis.fetch)
+    .mock.calls.filter(([url]) => String(url) === '/api/incidents')
     .map(([, init]) => JSON.parse(String((init as RequestInit).body)));
 
 beforeEach(() => {
   __resetBreadcrumbs();
-  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ incidentId: 'inc_abc123' }), { status: 202 })));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(JSON.stringify({ incidentId: 'inc_abc123' }), { status: 202 })),
+  );
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
@@ -2508,13 +2688,19 @@ describe('reportClientIncident', () => {
   it('posts the report with session, breadcrumbs and route', async () => {
     pushBreadcrumb({ type: 'click', target: '#execute' });
 
-    reportClientIncident({ name: 'TypeError', message: 'boom', stack: 'TypeError: boom\n    at x' });
+    reportClientIncident({
+      name: 'TypeError',
+      message: 'boom',
+      stack: 'TypeError: boom\n    at x',
+    });
     await vi.waitFor(() => expect(posted()).toHaveLength(1));
 
     const [report] = posted();
     expect(report).toMatchObject({ name: 'TypeError', message: 'boom' });
     expect(report.sessionId).toBeTruthy();
-    expect(report.breadcrumbs).toEqual([expect.objectContaining({ type: 'click', target: '#execute' })]);
+    expect(report.breadcrumbs).toEqual([
+      expect.objectContaining({ type: 'click', target: '#execute' }),
+    ]);
   });
 
   it('never throws when the transport is unavailable', () => {
@@ -2543,7 +2729,9 @@ describe('installObservability', () => {
 
     button.click();
 
-    expect(takeBreadcrumbs()).toContainEqual(expect.objectContaining({ type: 'click', target: '#execute' }));
+    expect(takeBreadcrumbs()).toContainEqual(
+      expect.objectContaining({ type: 'click', target: '#execute' }),
+    );
     button.remove();
   });
 
@@ -2704,10 +2892,10 @@ Expected: PASS, 5 tests.
 In `client/src/App.tsx`, add the imports:
 
 ```tsx
-import { ObservabilityErrorBoundary } from "@/observability/error-boundary";
-import { installObservability } from "@/observability/install";
-import { setCurrentRoute } from "@/observability/logger";
-import { pushBreadcrumb } from "@/observability/breadcrumbs";
+import { ObservabilityErrorBoundary } from '@/observability/error-boundary';
+import { installObservability } from '@/observability/install';
+import { setCurrentRoute } from '@/observability/logger';
+import { pushBreadcrumb } from '@/observability/breadcrumbs';
 ```
 
 Add a route-tracking component next to `SettingsEffectLoader`:
@@ -2770,6 +2958,7 @@ git commit -m "feat(observability): error boundary, global handlers and client b
 ### Task 9: Job and runner taps
 
 **Files:**
+
 - Create: `server/observability/taps/jobs.ts`
 - Create: `server/observability/taps/runner.ts`
 - Test: `server/observability/taps/jobs.test.ts`
@@ -2778,6 +2967,7 @@ git commit -m "feat(observability): error boundary, global handlers and client b
 - Modify: `server/playwright-service.ts` (recording-session and ad-hoc catch blocks)
 
 **Interfaces:**
+
 - Consumes: `recordIncident`.
 - Produces: `withJobIncidents<T>(handler: (job: T) => Promise<void>): (job: T) => Promise<void>` where `T` is structurally `{ id?: string | number; name: string; data: unknown; attemptsMade?: number }`; `recordRunnerFailure(input: { phase: string; error: unknown; context: Record<string, unknown>; correlationId?: string; userId?: number }): void`.
 
@@ -2830,7 +3020,11 @@ describe('withJobIncidents', () => {
     const incident = await store.read(entry.id);
 
     expect(incident!.kind).toBe('job');
-    expect(incident!.trigger).toMatchObject({ jobName: 'execute-plan', jobData: { planId: 'p1' }, attemptsMade: 2 });
+    expect(incident!.trigger).toMatchObject({
+      jobName: 'execute-plan',
+      jobData: { planId: 'p1' },
+      attemptsMade: 2,
+    });
   });
 });
 ```
@@ -2861,14 +3055,17 @@ afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
  * filesystem round-trips and a slow machine will not finish inside any constant you pick.
  */
 const waitForIncident = async (root: string) =>
-  vi.waitFor(async () => {
-    const store = new IncidentStore(root);
-    const [entry] = await store.readIndex();
-    expect(entry).toBeDefined();
-    const incident = await store.read(entry.id);
-    expect(incident).not.toBeNull();
-    return incident!;
-  }, { timeout: 2000 });
+  vi.waitFor(
+    async () => {
+      const store = new IncidentStore(root);
+      const [entry] = await store.readIndex();
+      expect(entry).toBeDefined();
+      const incident = await store.read(entry.id);
+      expect(incident).not.toBeNull();
+      return incident!;
+    },
+    { timeout: 2000 },
+  );
 
 describe('recordRunnerFailure', () => {
   it('records the phase and context', async () => {
@@ -3014,12 +3211,12 @@ In the `catch` block of `startRecordingSession`, immediately after the existing
 call, add:
 
 ```ts
-      recordRunnerFailure({
-        phase: `recording:${stage}`,
-        error,
-        context: { sessionId, url, browserType },
-        userId,
-      });
+recordRunnerFailure({
+  phase: `recording:${stage}`,
+  error,
+  context: { sessionId, url, browserType },
+  userId,
+});
 ```
 
 In the outer `catch` block of `executeAdhocSequence`, immediately after the existing
@@ -3027,12 +3224,12 @@ In the outer `catch` block of `executeAdhocSequence`, immediately after the exis
 call, add:
 
 ```ts
-      recordRunnerFailure({
-        phase: 'adhoc-execution',
-        error,
-        context: { testName, url: payload.url, stepCount: payload.sequence?.length ?? 0 },
-        userId,
-      });
+recordRunnerFailure({
+  phase: 'adhoc-execution',
+  error,
+  context: { testName, url: payload.url, stepCount: payload.sequence?.length ?? 0 },
+  userId,
+});
 ```
 
 - [ ] **Step 7: Verify**
@@ -3054,11 +3251,13 @@ git commit -m "feat(observability): job and runner infrastructure taps"
 ### Task 10: Reproduction generator
 
 **Files:**
+
 - Create: `server/observability/repro.ts`
 - Test: `server/observability/repro.test.ts`
 - Modify: `server/observability/incident.ts`
 
 **Interfaces:**
+
 - Consumes: `Incident`, `IncidentRepro` from `@shared/observability`.
 - Produces: `generateRepro(incident: Incident, repoRoot: string): Promise<IncidentRepro>`; `REPRO_COMMAND = "npx vitest run --include '**/*.repro.ts'"`.
 
@@ -3087,7 +3286,12 @@ const incident = (overrides: Partial<Incident> = {}): Incident => ({
   title: 'TypeError: boom',
   origin: { file: 'server/x.ts', line: 10, column: 1, functionName: 'run', source: [] },
   error: { name: 'TypeError', message: 'boom', frames: [] },
-  trigger: { method: 'POST', path: '/api/execute-test-direct', body: { url: 'https://x.test' }, userId: 7 },
+  trigger: {
+    method: 'POST',
+    path: '/api/execute-test-direct',
+    body: { url: 'https://x.test' },
+    userId: 7,
+  },
   state: {},
   breadcrumbs: [],
   occurrences: [],
@@ -3129,7 +3333,10 @@ describe('generateRepro', () => {
 
   it('marks a client-runtime reproduction as best-effort and puts it under client/', async () => {
     const repro = await generateRepro(
-      incident({ kind: 'client-runtime', trigger: { route: '/dashboard', componentStack: '\n    at Toaster' } }),
+      incident({
+        kind: 'client-runtime',
+        trigger: { route: '/dashboard', componentStack: '\n    at Toaster' },
+      }),
       repoRoot,
     );
 
@@ -3180,9 +3387,7 @@ export const REPRO_COMMAND = "npx vitest run --include '**/*.repro.ts'";
 const json = (value: unknown): string => JSON.stringify(value ?? null, null, 2);
 
 function header(incident: Incident): string {
-  const origin = incident.origin
-    ? `${incident.origin.file}:${incident.origin.line}`
-    : 'unresolved';
+  const origin = incident.origin ? `${incident.origin.file}:${incident.origin.line}` : 'unresolved';
   return `/**
  * Reproduction for ${incident.id} — ${incident.title}
  *
@@ -3198,7 +3403,11 @@ function header(incident: Incident): string {
 
 function serverApiRepro(incident: Incident): string {
   const trigger = incident.trigger as {
-    method?: string; path?: string; body?: unknown; query?: unknown; userId?: number;
+    method?: string;
+    path?: string;
+    body?: unknown;
+    query?: unknown;
+    userId?: number;
   };
   const method = (trigger.method ?? 'GET').toLowerCase();
 
@@ -3289,9 +3498,7 @@ describe('${incident.id}: ${incident.title}', () => {
 
 function clientRuntimeRepro(incident: Incident): string {
   const trigger = incident.trigger as { route?: string; componentStack?: string; props?: unknown };
-  const crumbs = incident.breadcrumbs
-    .map((crumb) => ` *   ${JSON.stringify(crumb)}`)
-    .join('\n');
+  const crumbs = incident.breadcrumbs.map((crumb) => ` *   ${JSON.stringify(crumb)}`).join('\n');
 
   return `${header(incident)}
 /**
@@ -3300,7 +3507,10 @@ function clientRuntimeRepro(incident: Incident): string {
  *
  * Route: ${trigger.route ?? 'unknown'}
  *
- * Component stack:${(trigger.componentStack ?? '').split('\n').map((l) => `\n *   ${l}`).join('')}
+ * Component stack:${(trigger.componentStack ?? '')
+   .split('\n')
+   .map((l) => `\n *   ${l}`)
+   .join('')}
  *
  * Breadcrumbs before the crash:
 ${crumbs || ' *   (none captured)'}
@@ -3332,15 +3542,20 @@ export async function generateRepro(incident: Incident, repoRoot: string): Promi
     : `server/__repro__/${incident.id}.repro.ts`;
 
   const confidence: ReproConfidence =
-    incident.kind === 'client-runtime' ? 'best-effort'
-    : incident.kind === 'runner' ? 'medium'
-    : 'high';
+    incident.kind === 'client-runtime'
+      ? 'best-effort'
+      : incident.kind === 'runner'
+        ? 'medium'
+        : 'high';
 
   const content =
-    incident.kind === 'server-api' ? serverApiRepro(incident)
-    : incident.kind === 'job' ? jobRepro(incident)
-    : incident.kind === 'runner' ? runnerRepro(incident)
-    : clientRuntimeRepro(incident);
+    incident.kind === 'server-api'
+      ? serverApiRepro(incident)
+      : incident.kind === 'job'
+        ? jobRepro(incident)
+        : incident.kind === 'runner'
+          ? runnerRepro(incident)
+          : clientRuntimeRepro(incident);
 
   const absolute = path.join(repoRoot, relativePath);
   await fs.mkdir(path.dirname(absolute), { recursive: true });
@@ -3372,8 +3587,8 @@ import { generateRepro } from './repro';
 and inside `recordIncident`, replace `const persisted = await store.upsert(incident);` with:
 
 ```ts
-    incident.repro = await generateRepro(incident, repoRoot);
-    const persisted = await store.upsert(incident);
+incident.repro = await generateRepro(incident, repoRoot);
+const persisted = await store.upsert(incident);
 ```
 
 - [ ] **Step 6: Assert the wiring in the incident test**
@@ -3382,16 +3597,16 @@ Append to `server/observability/incident.test.ts`, inside the existing
 `describe('recordIncident', ...)`:
 
 ```ts
-  it('generates a reproduction alongside the incident', async () => {
-    const incident = await recordIncident({
-      kind: 'server-api',
-      error: errorFrom('server/thing.ts', 3),
-      trigger: { method: 'POST', path: '/api/x', body: {} },
-    });
-
-    expect(incident!.repro?.confidence).toBe('high');
-    expect(fs.existsSync(path.join(repoRoot, incident!.repro!.path))).toBe(true);
+it('generates a reproduction alongside the incident', async () => {
+  const incident = await recordIncident({
+    kind: 'server-api',
+    error: errorFrom('server/thing.ts', 3),
+    trigger: { method: 'POST', path: '/api/x', body: {} },
   });
+
+  expect(incident!.repro?.confidence).toBe('high');
+  expect(fs.existsSync(path.join(repoRoot, incident!.repro!.path))).toBe(true);
+});
 ```
 
 - [ ] **Step 7: Verify**
@@ -3412,9 +3627,11 @@ git commit -m "feat(observability): generate .repro.ts reproductions per inciden
 ### Task 11: End-to-end proof of the loop
 
 **Files:**
+
 - Test: `server/observability/loop.test.ts`
 
 **Interfaces:**
+
 - Consumes: everything built so far.
 - Produces: nothing consumed by later tasks — this is the acceptance test.
 
@@ -3487,14 +3704,17 @@ describe('the incident loop', () => {
     // The index alone must be enough to know what happened. The tap records
     // fire-and-forget, so poll rather than assume the write has landed.
     const store = new IncidentStore(root);
-    const incident = await vi.waitFor(async () => {
-      const index = await store.readIndex();
-      expect(index).toHaveLength(1);
-      expect(index[0].title).toContain('selector');
-      const found = await store.read(index[0].id);
-      expect(found).not.toBeNull();
-      return found!;
-    }, { timeout: 2000 });
+    const incident = await vi.waitFor(
+      async () => {
+        const index = await store.readIndex();
+        expect(index).toHaveLength(1);
+        expect(index[0].title).toContain('selector');
+        const found = await store.read(index[0].id);
+        expect(found).not.toBeNull();
+        return found!;
+      },
+      { timeout: 2000 },
+    );
 
     // 1. Where it broke, with the code in hand.
     expect(incident.origin?.file).toBe('server/broken.ts');
@@ -3563,12 +3783,14 @@ git commit -m "test(observability): end-to-end proof that an error becomes an ac
 ### Task 12: Document how to use it
 
 **Files:**
+
 - Modify: `docs/ARCHITECTURE.md`
 
 The documentation goes here rather than into `.observability/README.md`, because that
 directory is gitignored and the note would never reach anyone else.
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: nothing.
 
@@ -3581,7 +3803,7 @@ Add at the end of the file:
 
 Two outputs from one pipeline, both development-only.
 
-**Logs.** `logs/app-YYYY-MM-DD.log` carries server *and* browser lines in one stream.
+**Logs.** `logs/app-YYYY-MM-DD.log` carries server _and_ browser lines in one stream.
 Client lines are prefixed `[client]` and carry `sessionId`. Every line has a
 `correlationId`, generated by the browser and adopted by the server, so
 `grep c-9f3a logs/app-*.log` returns the whole chain from click to failure.

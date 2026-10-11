@@ -36,7 +36,7 @@ commands:
         type: string
       environment:
         type: string
-        default: ""
+        default: ''
       timeout:
         type: integer
         default: 1800
@@ -80,7 +80,7 @@ jobs:
         type: string
       environment:
         type: string
-        default: ""
+        default: ''
       timeout:
         type: integer
         default: 1800

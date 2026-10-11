@@ -110,14 +110,28 @@ describe('acting on an element inside an iframe', () => {
 
     const result = await playwrightService.executeTestSequence(
       {
-        id: 1, userId: 1, organizationId: 1, projectId: null,
-        name: 'frame-click', url: baseUrl,
+        id: 1,
+        userId: 1,
+        organizationId: 1,
+        projectId: null,
+        name: 'frame-click',
+        url: baseUrl,
         sequence: [
           {
             id: 's1',
-            action: { id: 'assertTextContains', type: 'assertTextContains', name: 'Assert inner', icon: 'c', description: 'x' },
+            action: {
+              id: 'assertTextContains',
+              type: 'assertTextContains',
+              name: 'Assert inner',
+              icon: 'c',
+              description: 'x',
+            },
             targetElement: {
-              id: 'e1', type: 'heading', selector: '#inner-title', text: '', tag: 'h1',
+              id: 'e1',
+              type: 'heading',
+              selector: '#inner-title',
+              text: '',
+              tag: 'h1',
               attributes: {},
               // The frame the selector is relative to.
               frameSelector: 'iframe#report',
@@ -125,10 +139,17 @@ describe('acting on an element inside an iframe', () => {
             value: 'Inner document',
           },
         ],
-        elements: [], preconditions: null, status: 'draft',
-        createdAt: new Date(), updatedAt: new Date(),
-        module: null, featureArea: null, scenario: null, component: null,
-        priority: 'Medium', severity: 'Major',
+        elements: [],
+        preconditions: null,
+        status: 'draft',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        module: null,
+        featureArea: null,
+        scenario: null,
+        component: null,
+        priority: 'Medium',
+        severity: 'Major',
       } as never,
       1,
     );
@@ -215,8 +236,12 @@ describe('a frame from a different origin', () => {
 
     const result = await playwrightService.executeTestSequence(
       {
-        id: 1, userId: 1, organizationId: 1, projectId: null,
-        name: 'cross-origin-frame-click', url: hostUrl,
+        id: 1,
+        userId: 1,
+        organizationId: 1,
+        projectId: null,
+        name: 'cross-origin-frame-click',
+        url: hostUrl,
         sequence: [
           {
             id: 's1',
@@ -227,10 +252,17 @@ describe('a frame from a different origin', () => {
             value: undefined,
           },
         ],
-        elements: [], preconditions: null, status: 'draft',
-        createdAt: new Date(), updatedAt: new Date(),
-        module: null, featureArea: null, scenario: null, component: null,
-        priority: 'Medium', severity: 'Major',
+        elements: [],
+        preconditions: null,
+        status: 'draft',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        module: null,
+        featureArea: null,
+        scenario: null,
+        component: null,
+        priority: 'Medium',
+        severity: 'Major',
       } as never,
       1,
     );

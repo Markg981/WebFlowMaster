@@ -6,7 +6,13 @@ import { ArrowLeft, XCircle, Loader2, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ExecutionLogConsole } from '@/components/ExecutionLogConsole';
 import { apiRequest, ApiError } from '@/lib/queryClient';
 import { fetchTestPlanByIdAPI } from '@/lib/api/test-plans';
@@ -43,7 +49,11 @@ const TestPlanExecutionPage: React.FC = () => {
     },
   });
 
-  const { data: plan, isLoading: isLoadingPlan, error: planError } = useQuery({
+  const {
+    data: plan,
+    isLoading: isLoadingPlan,
+    error: planError,
+  } = useQuery({
     queryKey: ['testPlan', planId],
     queryFn: () => fetchTestPlanByIdAPI(planId!),
     enabled: !!planId,
@@ -116,7 +126,9 @@ const TestPlanExecutionPage: React.FC = () => {
             <div>
               <h1 className="text-xl font-semibold text-foreground">{plan.name}</h1>
               <p className="text-sm text-muted-foreground">
-                {canRun ? t('testPlanExecutionPage.runningTestPlan.text') : t('testPlanExecutionPage.viewingTestPlan', 'Test plan')}
+                {canRun
+                  ? t('testPlanExecutionPage.runningTestPlan.text')
+                  : t('testPlanExecutionPage.viewingTestPlan', 'Test plan')}
               </p>
             </div>
           </div>
@@ -129,7 +141,9 @@ const TestPlanExecutionPage: React.FC = () => {
                 <SelectContent>
                   <SelectItem value="none">No Environment</SelectItem>
                   {environments.map((env: { id: number; name: string }) => (
-                    <SelectItem key={env.id} value={env.id.toString()}>{env.name}</SelectItem>
+                    <SelectItem key={env.id} value={env.id.toString()}>
+                      {env.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -139,7 +153,11 @@ const TestPlanExecutionPage: React.FC = () => {
                 disabled={isStarting}
                 className="bg-success hover:bg-success/90 text-white px-6 py-2 rounded-md flex items-center space-x-2"
               >
-                {isStarting ? <Loader2 className="h-5 w-5 animate-spin" /> : <PlayCircle className="h-5 w-5" />}
+                {isStarting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <PlayCircle className="h-5 w-5" />
+                )}
                 <span>
                   {isStarting
                     ? t('testPlanExecutionPage.running.button')
@@ -174,33 +192,51 @@ const TestPlanExecutionPage: React.FC = () => {
                 </Button>
               )}
               {!currentRunId && contents?.latestRun && (
-                <Button asChild variant="outline" className="w-full" data-testid="latest-report-link">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full"
+                  data-testid="latest-report-link"
+                >
                   <Link href={`/test-plans/${planId}/executions/${contents.latestRun.id}/report`}>
-                    {t('testPlanExecutionPage.latestReport', 'Latest report ({{status}})', { status: contents.latestRun.status })}
+                    {t('testPlanExecutionPage.latestReport', 'Latest report ({{status}})', {
+                      status: contents.latestRun.status,
+                    })}
                   </Link>
                 </Button>
               )}
               {contents && (
                 <div className="space-y-2" data-testid="plan-contents">
                   <p className="text-sm font-medium">
-                    {t('testPlanExecutionPage.contents.title', 'Runs {{count}} tests', { count: contents.tests.length })}
+                    {t('testPlanExecutionPage.contents.title', 'Runs {{count}} tests', {
+                      count: contents.tests.length,
+                    })}
                   </p>
                   {contents.tests.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{t('testPlanExecutionPage.contents.empty', 'This plan has no tests yet.')}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t('testPlanExecutionPage.contents.empty', 'This plan has no tests yet.')}
+                    </p>
                   ) : (
                     <ul className="text-sm text-muted-foreground list-disc pl-5 max-h-64 overflow-y-auto">
                       {contents.tests.map((test) => (
                         <li key={`${test.type}:${test.id}`}>
-                          {test.name ?? t('suites.hiddenTest', 'A test in a project you cannot see')}
+                          {test.name ??
+                            t('suites.hiddenTest', 'A test in a project you cannot see')}
                           {test.type === 'api' && <span className="ml-1 text-xs">(API)</span>}
-                          {test.type === 'mobile' && <span className="ml-1 text-xs">({t('testPlanExecutionPage.contents.mobile', 'mobile app')})</span>}
+                          {test.type === 'mobile' && (
+                            <span className="ml-1 text-xs">
+                              ({t('testPlanExecutionPage.contents.mobile', 'mobile app')})
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>
                   )}
                   {contents.suites.length > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      {t('testPlanExecutionPage.contents.suites', 'Suites: {{suites}}', { suites: contents.suites.map((suite) => suite.name).join(', ') })}
+                      {t('testPlanExecutionPage.contents.suites', 'Suites: {{suites}}', {
+                        suites: contents.suites.map((suite) => suite.name).join(', '),
+                      })}
                     </p>
                   )}
                 </div>

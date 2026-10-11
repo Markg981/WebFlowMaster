@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 import { Trash2, Copy, Plus, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -42,7 +55,7 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
   const { data: webhooks = [] } = useQuery<WebhookSummary[]>({
     queryKey: ['webhooks', planId],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/test-plans/${planId}/webhooks`);
+      const res = await apiRequest('GET', `/api/test-plans/${planId}/webhooks`);
       const data = await res.json();
       return Array.isArray(data) ? data : [];
     },
@@ -51,7 +64,7 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
 
   const createWebhookMutation = useMutation({
     mutationFn: async (name: string) => {
-      const res = await apiRequest("POST", `/api/test-plans/${planId}/webhooks`, { name });
+      const res = await apiRequest('POST', `/api/test-plans/${planId}/webhooks`, { name });
       return res.json() as Promise<WebhookSummary & { token: string }>;
     },
     onSuccess: (created) => {
@@ -61,17 +74,17 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
     },
     onError: () => {
       toast({ title: 'Errore nella creazione del Webhook', variant: 'destructive' });
-    }
+    },
   });
 
   const deleteWebhookMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/webhooks/${id}`);
+      await apiRequest('DELETE', `/api/webhooks/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks', planId] });
       toast({ title: 'Webhook eliminato' });
-    }
+    },
   });
 
   const endpoint = `${window.location.origin}/api/webhooks/execute`;
@@ -79,7 +92,9 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
     navigator.clipboard.writeText(text);
     setCopied(what);
     setTimeout(() => setCopied(null), 2000);
-    toast({ title: what === 'token' ? 'Token copiato negli appunti' : 'Comando copiato negli appunti' });
+    toast({
+      title: what === 'token' ? 'Token copiato negli appunti' : 'Comando copiato negli appunti',
+    });
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -96,17 +111,18 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
         <DialogHeader>
           <DialogTitle>Webhook CI/CD - {planName}</DialogTitle>
           <DialogDescription>
-            Gestisci i webhook per lanciare questo Test Plan da GitHub Actions o altri sistemi CI/CD.
+            Gestisci i webhook per lanciare questo Test Plan da GitHub Actions o altri sistemi
+            CI/CD.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-2 items-center mt-4">
-          <Input 
-            placeholder="Nome Webhook (es. GitHub Actions Prod)" 
+          <Input
+            placeholder="Nome Webhook (es. GitHub Actions Prod)"
             value={newWebhookName}
             onChange={(e) => setNewWebhookName(e.target.value)}
           />
-          <Button 
+          <Button
             onClick={() => createWebhookMutation.mutate(newWebhookName)}
             disabled={!newWebhookName || createWebhookMutation.isPending}
           >
@@ -116,14 +132,23 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
         </div>
 
         {justCreated && (
-          <div className="mt-4 rounded-md border border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2" data-testid="new-webhook-token">
+          <div
+            className="mt-4 rounded-md border border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2"
+            data-testid="new-webhook-token"
+          >
             <p className="text-sm font-medium">
               Token del webhook «{justCreated.name}»: copialo ora, non sarà più visibile.
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 truncate text-xs bg-muted p-2 rounded">{justCreated.token}</code>
+              <code className="flex-1 truncate text-xs bg-muted p-2 rounded">
+                {justCreated.token}
+              </code>
               <Button variant="outline" size="sm" onClick={() => copy('token', justCreated.token)}>
-                {copied === 'token' ? <Check className="h-3 w-3 mr-1 text-success" /> : <Copy className="h-3 w-3 mr-1" />}
+                {copied === 'token' ? (
+                  <Check className="h-3 w-3 mr-1 text-success" />
+                ) : (
+                  <Copy className="h-3 w-3 mr-1" />
+                )}
                 Token
               </Button>
             </div>
@@ -134,14 +159,24 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => copy('curl', `curl -X POST -H "X-Webhook-Token: ${justCreated.token}" ${endpoint}`)}
+                onClick={() =>
+                  copy(
+                    'curl',
+                    `curl -X POST -H "X-Webhook-Token: ${justCreated.token}" ${endpoint}`,
+                  )
+                }
               >
-                {copied === 'curl' ? <Check className="h-3 w-3 mr-1 text-success" /> : <Copy className="h-3 w-3 mr-1" />}
+                {copied === 'curl' ? (
+                  <Check className="h-3 w-3 mr-1 text-success" />
+                ) : (
+                  <Copy className="h-3 w-3 mr-1" />
+                )}
                 curl
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Mettilo tra i segreti della pipeline e invialo nell'header <code>X-Webhook-Token</code>: nell'URL finirebbe nei log dei proxy.
+              Mettilo tra i segreti della pipeline e invialo nell'header{' '}
+              <code>X-Webhook-Token</code>: nell'URL finirebbe nei log dei proxy.
             </p>
           </div>
         )}
@@ -168,7 +203,10 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
                 <TableRow key={wh.id}>
                   <TableCell className="font-medium">{wh.name}</TableCell>
                   <TableCell>
-                    <code className="text-xs bg-muted p-1 rounded" title="Il token completo è visibile solo alla creazione">
+                    <code
+                      className="text-xs bg-muted p-1 rounded"
+                      title="Il token completo è visibile solo alla creazione"
+                    >
                       {wh.tokenPrefix}…
                     </code>
                   </TableCell>
@@ -176,9 +214,9 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
                     {wh.lastUsedAt ? format(new Date(wh.lastUsedAt), 'PPp') : 'Mai usato'}
                   </TableCell>
                   <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8 text-destructive"
                       onClick={() => deleteWebhookMutation.mutate(wh.id)}
                     >

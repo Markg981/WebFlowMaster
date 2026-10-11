@@ -48,13 +48,25 @@ describe('buildJUnitXml', () => {
       executionId: 'exec-1',
       results: [
         row({ testName: 'A', browser: 'chromium', status: 'Passed' }),
-        row({ testName: 'B', browser: 'chromium', status: 'Failed', reasonForFailure: 'Element not found' }),
+        row({
+          testName: 'B',
+          browser: 'chromium',
+          status: 'Failed',
+          reasonForFailure: 'Element not found',
+        }),
         row({ testName: 'A', browser: 'firefox', status: 'Passed' }),
-        row({ testName: 'B', browser: 'firefox', status: 'Error', reasonForFailure: 'Precondition failed' }),
+        row({
+          testName: 'B',
+          browser: 'firefox',
+          status: 'Error',
+          reasonForFailure: 'Precondition failed',
+        }),
       ],
     });
 
-    expect(xml).toContain('<testsuites name="Nightly" tests="4" failures="1" errors="1" skipped="0"');
+    expect(xml).toContain(
+      '<testsuites name="Nightly" tests="4" failures="1" errors="1" skipped="0"',
+    );
     expect(xml).toContain('<testsuite name="chromium" tests="2" failures="1" errors="0"');
     expect(xml).toContain('<testsuite name="firefox" tests="2" failures="0" errors="1"');
     expect(xml).toContain('<failure message="Element not found"');
@@ -62,7 +74,11 @@ describe('buildJUnitXml', () => {
   });
 
   it('reports durations in seconds, as JUnit counts them', () => {
-    const xml = buildJUnitXml({ planName: 'P', executionId: 'e', results: [row({ durationMs: 1500 })] });
+    const xml = buildJUnitXml({
+      planName: 'P',
+      executionId: 'e',
+      results: [row({ durationMs: 1500 })],
+    });
 
     expect(xml).toContain('time="1.500"');
   });
@@ -84,7 +100,11 @@ describe('buildJUnitXml', () => {
   });
 
   it('puts a run with no browser recorded in one suite, rather than inventing a name', () => {
-    const xml = buildJUnitXml({ planName: 'P', executionId: 'e', results: [row({ browser: null })] });
+    const xml = buildJUnitXml({
+      planName: 'P',
+      executionId: 'e',
+      results: [row({ browser: null })],
+    });
 
     expect(xml).toContain('<testsuite name="default"');
   });
@@ -108,7 +128,11 @@ describe('buildJUnitXml', () => {
   });
 
   it('marks a skipped test as skipped rather than as a pass', () => {
-    const xml = buildJUnitXml({ planName: 'P', executionId: 'e', results: [row({ status: 'Skipped' })] });
+    const xml = buildJUnitXml({
+      planName: 'P',
+      executionId: 'e',
+      results: [row({ status: 'Skipped' })],
+    });
 
     expect(xml).toContain('<skipped />');
     expect(xml).toContain('skipped="1"');
@@ -139,7 +163,9 @@ describe('buildJUnitXml', () => {
       results: [row({ status: 'Failed', reasonForFailure: 'boom' }), row({ status: 'Passed' })],
     });
 
-    expect((xml.match(/<testsuite /g) ?? []).length).toBe((xml.match(/<\/testsuite>/g) ?? []).length);
+    expect((xml.match(/<testsuite /g) ?? []).length).toBe(
+      (xml.match(/<\/testsuite>/g) ?? []).length,
+    );
     expect((xml.match(/<testcase /g) ?? []).length).toBe(
       (xml.match(/<\/testcase>/g) ?? []).length + (xml.match(/\/>/g) ?? []).length,
     );

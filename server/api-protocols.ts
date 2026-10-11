@@ -29,7 +29,9 @@ export { runGrpc, runWebSocket, readWebSocketPlan, parseGrpcTarget } from './api
  */
 export function xpathValue(xmlText: string, expression: string): string | undefined {
   if (!xmlText.trim().startsWith('<')) return undefined;
-  const prefixed = /[A-Za-z_][\w.-]*:[A-Za-z_]/.test(expression.replace(/::/g, '').replace(/['"][^'"]*['"]/g, ''));
+  const prefixed = /[A-Za-z_][\w.-]*:[A-Za-z_]/.test(
+    expression.replace(/::/g, '').replace(/['"][^'"]*['"]/g, ''),
+  );
   const source = prefixed
     ? xmlText
     : xmlText
@@ -39,7 +41,13 @@ export function xpathValue(xmlText: string, expression: string): string | undefi
         .replace(/\s[\w.-]+:([\w.-]+=)/g, ' $1');
   let doc: Document;
   try {
-    doc = new DOMParser({ errorHandler: { warning: () => undefined, error: () => undefined, fatalError: () => undefined } }).parseFromString(source, 'text/xml') as unknown as Document;
+    doc = new DOMParser({
+      errorHandler: {
+        warning: () => undefined,
+        error: () => undefined,
+        fatalError: () => undefined,
+      },
+    }).parseFromString(source, 'text/xml') as unknown as Document;
   } catch {
     return undefined;
   }

@@ -7,7 +7,12 @@ import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 
 vi.mock('./logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -27,7 +32,10 @@ let projectId: number;
 beforeAll(async () => {
   organizationId = await createTestOrganization('Version Lookup Org');
   userId = await createTestUser(organizationId, 'version-lookup-user');
-  const [project] = await privilegedDb.insert(projects).values({ name: 'Shop', userId, organizationId }).returning();
+  const [project] = await privilegedDb
+    .insert(projects)
+    .values({ name: 'Shop', userId, organizationId })
+    .returning();
   projectId = project.id;
 });
 
@@ -39,7 +47,15 @@ beforeEach(async () => {
 async function seedTest(name: string) {
   const [row] = await privilegedDb
     .insert(testsTable)
-    .values({ name, url: 'https://shop.test', userId, organizationId, projectId, sequence: [], elements: [] })
+    .values({
+      name,
+      url: 'https://shop.test',
+      userId,
+      organizationId,
+      projectId,
+      sequence: [],
+      elements: [],
+    })
     .returning();
   return row;
 }

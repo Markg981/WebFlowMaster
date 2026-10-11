@@ -1,5 +1,11 @@
 import { and, desc, eq, inArray, isNotNull, or } from 'drizzle-orm';
-import { impactRules, reportTestCaseResults, tags, testPlanExecutions, testTags } from '@shared/schema';
+import {
+  impactRules,
+  reportTestCaseResults,
+  tags,
+  testPlanExecutions,
+  testTags,
+} from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
 import type { TestReference } from './test-suites';
 
@@ -67,7 +73,11 @@ export function globToRegExp(pattern: string): RegExp {
       const end = p.indexOf('}', i);
       if (end === -1) out += '\\{';
       else {
-        out += `(?:${p.slice(i + 1, end).split(',').map((part) => part.replace(/[.+^$()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*')).join('|')})`;
+        out += `(?:${p
+          .slice(i + 1, end)
+          .split(',')
+          .map((part) => part.replace(/[.+^$()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*'))
+          .join('|')})`;
         i = end;
       }
     } else out += c.replace(/[.+^$()|[\]\\]/g, '\\$&');
@@ -94,7 +104,11 @@ export function validatePattern(pattern: string): string | null {
 }
 
 const refKey = (ref: TestReference) =>
-  ref.testType === 'ui' ? `ui:${ref.testId}` : ref.testType === 'api' ? `api:${ref.apiTestId}` : `mobile:${ref.mobileTestId}`;
+  ref.testType === 'ui'
+    ? `ui:${ref.testId}`
+    : ref.testType === 'api'
+      ? `api:${ref.apiTestId}`
+      : `mobile:${ref.mobileTestId}`;
 
 /** Narrows a run's tests to those the changed files affect. Returns them in plan order, with what was decided. */
 export async function selectForChanges(
@@ -104,17 +118,33 @@ export async function selectForChanges(
   changedFiles: string[],
 ): Promise<{ refs: TestReference[]; selection: RunSelection }> {
   const files = [...new Set(changedFiles.map(normalizePath).filter(Boolean))];
-  const base = { changedFiles: files.length, files: files.slice(0, LISTED), total: refs.length, previouslyFailed: 0 };
+  const base = {
+    changedFiles: files.length,
+    files: files.slice(0, LISTED),
+    total: refs.length,
+    previouslyFailed: 0,
+  };
   const all = (reason: string, extra: Partial<RunSelection> = {}) => ({
     refs,
-    selection: { mode: 'all' as const, reason, affectedTags: [], unmappedFiles: [], selected: refs.length, ...base, ...extra },
+    selection: {
+      mode: 'all' as const,
+      reason,
+      affectedTags: [],
+      unmappedFiles: [],
+      selected: refs.length,
+      ...base,
+      ...extra,
+    },
   });
 
   const rules = await tx
     .select({ pattern: impactRules.pattern, tagId: impactRules.tagId, tagName: tags.name })
     .from(impactRules)
     .leftJoin(tags, eq(tags.id, impactRules.tagId));
-  if (rules.length === 0) return all('No impact map: every test runs. Map file patterns to tags in Settings → Impact map.');
+  if (rules.length === 0)
+    return all(
+      'No impact map: every test runs. Map file patterns to tags in Settings → Impact map.',
+    );
 
   const compiled = rules.map((rule) => ({ ...rule, re: globToRegExp(rule.pattern) }));
   const affectedTagIds = new Set<string>();
@@ -139,8 +169,12 @@ export async function selectForChanges(
 
   const mappedTagIds = new Set(rules.map((rule) => rule.tagId).filter((id): id is string => !!id));
   const uiIds = refs.filter((r) => r.testType === 'ui' && r.testId).map((r) => r.testId as number);
-  const apiIds = refs.filter((r) => r.testType === 'api' && r.apiTestId).map((r) => r.apiTestId as number);
-  const mobileIds = refs.filter((r) => r.testType === 'mobile' && r.mobileTestId).map((r) => r.mobileTestId as number);
+  const apiIds = refs
+    .filter((r) => r.testType === 'api' && r.apiTestId)
+    .map((r) => r.apiTestId as number);
+  const mobileIds = refs
+    .filter((r) => r.testType === 'mobile' && r.mobileTestId)
+    .map((r) => r.mobileTestId as number);
   const byType = [
     uiIds.length ? inArray(testTags.testId, uiIds) : undefined,
     apiIds.length ? inArray(testTags.apiTestId, apiIds) : undefined,
@@ -148,13 +182,24 @@ export async function selectForChanges(
   ].filter((c): c is NonNullable<typeof c> => !!c);
   const tagRows = byType.length
     ? await tx
-        .select({ tagId: testTags.tagId, testId: testTags.testId, apiTestId: testTags.apiTestId, mobileTestId: testTags.mobileTestId, testType: testTags.testType })
+        .select({
+          tagId: testTags.tagId,
+          testId: testTags.testId,
+          apiTestId: testTags.apiTestId,
+          mobileTestId: testTags.mobileTestId,
+          testType: testTags.testType,
+        })
         .from(testTags)
         .where(or(...byType))
     : [];
   const tagsOf = new Map<string, string[]>();
   for (const row of tagRows) {
-    const key = row.testType === 'ui' ? `ui:${row.testId}` : row.testType === 'api' ? `api:${row.apiTestId}` : `mobile:${row.mobileTestId}`;
+    const key =
+      row.testType === 'ui'
+        ? `ui:${row.testId}`
+        : row.testType === 'api'
+          ? `api:${row.apiTestId}`
+          : `mobile:${row.mobileTestId}`;
     tagsOf.set(key, [...(tagsOf.get(key) ?? []), row.tagId]);
   }
 
@@ -168,7 +213,11 @@ export async function selectForChanges(
   });
   const previouslyFailed = kept.filter((ref) => {
     const own = tagsOf.get(refKey(ref)) ?? [];
-    return failedLastTime.has(refKey(ref)) && !own.some((tag) => affectedTagIds.has(tag)) && own.some((tag) => mappedTagIds.has(tag));
+    return (
+      failedLastTime.has(refKey(ref)) &&
+      !own.some((tag) => affectedTagIds.has(tag)) &&
+      own.some((tag) => mappedTagIds.has(tag))
+    );
   }).length;
   const names = [...affectedTags].sort();
   return {
@@ -194,13 +243,37 @@ async function failedInLastRun(tx: TenantTx, planId: string): Promise<Set<string
   const [last] = await tx
     .select({ id: testPlanExecutions.id })
     .from(testPlanExecutions)
-    .where(and(eq(testPlanExecutions.testPlanId, planId), inArray(testPlanExecutions.status, ['completed', 'failed', 'error']), isNotNull(testPlanExecutions.completedAt)))
+    .where(
+      and(
+        eq(testPlanExecutions.testPlanId, planId),
+        inArray(testPlanExecutions.status, ['completed', 'failed', 'error']),
+        isNotNull(testPlanExecutions.completedAt),
+      ),
+    )
     .orderBy(desc(testPlanExecutions.completedAt))
     .limit(1);
   if (!last) return new Set();
   const rows = await tx
-    .select({ uiTestId: reportTestCaseResults.uiTestId, apiTestId: reportTestCaseResults.apiTestId, mobileTestId: reportTestCaseResults.mobileTestId, testType: reportTestCaseResults.testType })
+    .select({
+      uiTestId: reportTestCaseResults.uiTestId,
+      apiTestId: reportTestCaseResults.apiTestId,
+      mobileTestId: reportTestCaseResults.mobileTestId,
+      testType: reportTestCaseResults.testType,
+    })
     .from(reportTestCaseResults)
-    .where(and(eq(reportTestCaseResults.testPlanExecutionId, last.id), inArray(reportTestCaseResults.status, ['Failed', 'Error'])));
-  return new Set(rows.map((r) => (r.testType === 'ui' ? `ui:${r.uiTestId}` : r.testType === 'api' ? `api:${r.apiTestId}` : `mobile:${r.mobileTestId}`)));
+    .where(
+      and(
+        eq(reportTestCaseResults.testPlanExecutionId, last.id),
+        inArray(reportTestCaseResults.status, ['Failed', 'Error']),
+      ),
+    );
+  return new Set(
+    rows.map((r) =>
+      r.testType === 'ui'
+        ? `ui:${r.uiTestId}`
+        : r.testType === 'api'
+          ? `api:${r.apiTestId}`
+          : `mobile:${r.mobileTestId}`,
+    ),
+  );
 }

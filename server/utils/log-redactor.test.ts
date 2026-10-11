@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { redactObject, redactString, redactSensitiveData, scrubControlCharsFromMessage } from './log-redactor';
+import {
+  redactObject,
+  redactString,
+  redactSensitiveData,
+  scrubControlCharsFromMessage,
+} from './log-redactor';
 
 /**
  * Runs the real winston format the logger installs, so these assertions exercise the
@@ -76,7 +81,9 @@ describe('redactString', () => {
 
   it('does not mask a sensitive word used as prose rather than as a key', () => {
     // No separator, so there is no value to hide and the sentence stays readable.
-    expect(redactString('authorization header was missing')).toBe('authorization header was missing');
+    expect(redactString('authorization header was missing')).toBe(
+      'authorization header was missing',
+    );
   });
 
   it('handles an empty string without throwing', () => {
@@ -98,7 +105,9 @@ describe('redactString', () => {
     expect(redactString(message)).toBe(message);
     // Note: deliberately avoids the word "bearer" here — that's a separate, pre-existing
     // pattern (BEARER_TOKEN_PATTERN) with its own dedicated tests above, not part of this change.
-    expect(redactString('authType is oauth2 for this request')).toBe('authType is oauth2 for this request');
+    expect(redactString('authType is oauth2 for this request')).toBe(
+      'authType is oauth2 for this request',
+    );
   });
 });
 

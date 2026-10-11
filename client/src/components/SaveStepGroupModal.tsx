@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,7 +30,12 @@ interface SaveStepGroupModalProps {
   onSave: (input: { name: string; description?: string }) => Promise<void>;
 }
 
-const SaveStepGroupModal: React.FC<SaveStepGroupModalProps> = ({ isOpen, onClose, stepCount, onSave }) => {
+const SaveStepGroupModal: React.FC<SaveStepGroupModalProps> = ({
+  isOpen,
+  onClose,
+  stepCount,
+  onSave,
+}) => {
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -39,7 +51,9 @@ const SaveStepGroupModal: React.FC<SaveStepGroupModalProps> = ({ isOpen, onClose
 
   const handleSave = async () => {
     if (name.trim() === '') {
-      setError(t('saveStepGroup.nameRequired', 'Give the group a name — it is how tests will call it.'));
+      setError(
+        t('saveStepGroup.nameRequired', 'Give the group a name — it is how tests will call it.'),
+      );
       return;
     }
     setError('');
@@ -55,7 +69,12 @@ const SaveStepGroupModal: React.FC<SaveStepGroupModalProps> = ({ isOpen, onClose
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('saveStepGroup.title', 'Save as step group')}</DialogTitle>
@@ -80,7 +99,9 @@ const SaveStepGroupModal: React.FC<SaveStepGroupModalProps> = ({ isOpen, onClose
             />
           </div>
           <div>
-            <Label htmlFor="stepGroupDescription">{t('saveStepGroup.descriptionLabel', 'Description')}</Label>
+            <Label htmlFor="stepGroupDescription">
+              {t('saveStepGroup.descriptionLabel', 'Description')}
+            </Label>
             <Textarea
               id="stepGroupDescription"
               value={description}

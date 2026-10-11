@@ -4,14 +4,14 @@ Il catalogo passa da 520 a 526 casi con OPS-20…OPS-25. I cicli storici restano
 i nuovi casi partono **Da eseguire**. Il percorso E2E/dispositivi reali resta rinviato secondo
 la decisione del 6 ottobre: questa modifica non lo riprende.
 
-| Caso | Evidenza richiesta |
-|---|---|
+| Caso   | Evidenza richiesta                                                                               |
+| ------ | ------------------------------------------------------------------------------------------------ |
 | OPS-20 | Due build pulite per ruolo, stesso digest di configurazione/layer, candidato senza pubblicazione |
-| OPS-21 | Rapporto HIGH senza fix e rapporto malformato rifiutati dal gate |
-| OPS-22 | Release staging, hash SBOM/rapporti e digest dei tre ruoli coerenti |
-| OPS-23 | Versione/tag/check/archivio incompatibili rifiutati; tag differenti non sovrascritti |
-| OPS-24 | Container pwuser, Chromium reale, Lighthouse e volumi operativi scrivibili |
-| OPS-25 | Backup verificato, upgrade/installazione per digest, rollback con compatibilità schema |
+| OPS-21 | Rapporto HIGH senza fix e rapporto malformato rifiutati dal gate                                 |
+| OPS-22 | Release staging, hash SBOM/rapporti e digest dei tre ruoli coerenti                              |
+| OPS-23 | Versione/tag/check/archivio incompatibili rifiutati; tag differenti non sovrascritti             |
+| OPS-24 | Container pwuser, Chromium reale, Lighthouse e volumi operativi scrivibili                       |
+| OPS-25 | Backup verificato, upgrade/installazione per digest, rollback con compatibilità schema           |
 
 Per eseguire utilizzare [la procedura IT](../docs/it/admin/releases.md) o
 [EN](../docs/en/admin/releases.md). Registrare commit, piattaforma, digest, workflow e allegati.
@@ -28,11 +28,11 @@ Compose sono stati verificati separatamente.
 Le tre immagini linux/amd64 sono state costruite due volte senza cache con
 BuildKit v0.33.1 fissato per digest. Configurazione e layer non compressi coincidono:
 
-| Ruolo | Digest della configurazione | Componenti SBOM | Occorrenze HIGH/CRITICAL |
-|---|---|---:|---:|
-| API | `sha256:3f1ef33b5e7505c22710bab632e4215a7c985920f109a51bcd00178ec48b2620` | 1799 | 31 |
-| Worker | `sha256:a8a6b628710c95d2827ed7d982866450f5fcfe2a03076869a15519d74b524143` | 1799 | 31 |
-| Agente | `sha256:2e5b5a985a92a0370daa0874c85e86dd053e63648fca371966394ee88ba9bd4f` | 1591 | 28 |
+| Ruolo  | Digest della configurazione                                               | Componenti SBOM | Occorrenze HIGH/CRITICAL |
+| ------ | ------------------------------------------------------------------------- | --------------: | -----------------------: |
+| API    | `sha256:3f1ef33b5e7505c22710bab632e4215a7c985920f109a51bcd00178ec48b2620` |            1799 |                       31 |
+| Worker | `sha256:a8a6b628710c95d2827ed7d982866450f5fcfe2a03076869a15519d74b524143` |            1799 |                       31 |
+| Agente | `sha256:2e5b5a985a92a0370daa0874c85e86dd053e63648fca371966394ee88ba9bd4f` |            1591 |                       28 |
 
 La prova usa snapshot locali del candidato, `SOURCE_DATE_EPOCH=1700000000` e
 label di sviluppo, non un tag di release. Buildx locale è v0.37.1; il workflow

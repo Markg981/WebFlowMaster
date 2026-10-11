@@ -1,5 +1,5 @@
-import { z } from "zod";
-import { percentile } from "./api-performance";
+import { z } from 'zod';
+import { percentile } from './api-performance';
 
 /**
  * A load test: API tests run in sequence by virtual users, for a duration, with the number of users
@@ -29,10 +29,10 @@ export const LOAD_LIMITS = {
   runsPerProcess: 2,
 } as const;
 
-export const LOAD_DATA_MODES = ["vu", "iteration"] as const;
+export const LOAD_DATA_MODES = ['vu', 'iteration'] as const;
 export type LoadDataMode = (typeof LOAD_DATA_MODES)[number];
 
-export const LOAD_RUN_STATUSES = ["running", "passed", "failed", "cancelled", "error"] as const;
+export const LOAD_RUN_STATUSES = ['running', 'passed', 'failed', 'cancelled', 'error'] as const;
 export type LoadRunStatus = (typeof LOAD_RUN_STATUSES)[number];
 
 const ms = z.number().int().positive().max(600_000);
@@ -70,27 +70,39 @@ export type LoadThresholds = z.infer<typeof loadThresholdsSchema>;
 
 export const loadTestSchema = z
   .object({
-    name: z.string().trim().min(1, "A name is required.").max(200),
+    name: z.string().trim().min(1, 'A name is required.').max(200),
     description: z.string().max(2000).optional().nullable(),
     projectId: z.number().int().positive().optional().nullable(),
-    steps: z.array(loadStepSchema).min(1, "Add at least one API test.").max(LOAD_LIMITS.steps),
-    stages: z.array(loadStageSchema).min(1, "Add at least one stage.").max(LOAD_LIMITS.stages),
+    steps: z.array(loadStepSchema).min(1, 'Add at least one API test.').max(LOAD_LIMITS.steps),
+    stages: z.array(loadStageSchema).min(1, 'Add at least one stage.').max(LOAD_LIMITS.stages),
     warmUpSec: z.number().int().min(0).max(LOAD_LIMITS.durationSec).default(0),
     dataSetId: z.number().int().positive().optional().nullable(),
-    dataMode: z.enum(LOAD_DATA_MODES).default("vu"),
+    dataMode: z.enum(LOAD_DATA_MODES).default('vu'),
     thresholds: loadThresholdsSchema.default({}),
   })
   .strict()
   .superRefine((value, ctx) => {
     const total = totalDurationSec(value.stages);
     if (total > LOAD_LIMITS.durationSec) {
-      ctx.addIssue({ code: "custom", path: ["stages"], message: `The stages last ${total} s; the limit is ${LOAD_LIMITS.durationSec} s.` });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['stages'],
+        message: `The stages last ${total} s; the limit is ${LOAD_LIMITS.durationSec} s.`,
+      });
     }
     if (peakVus(value.stages) === 0) {
-      ctx.addIssue({ code: "custom", path: ["stages"], message: "At least one stage needs virtual users." });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['stages'],
+        message: 'At least one stage needs virtual users.',
+      });
     }
     if (value.warmUpSec >= total) {
-      ctx.addIssue({ code: "custom", path: ["warmUpSec"], message: "The warm-up must end before the last stage does." });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['warmUpSec'],
+        message: 'The warm-up must end before the last stage does.',
+      });
     }
   });
 
@@ -121,10 +133,13 @@ export function vusAt(stages: readonly LoadStage[], elapsedSec: number): number 
 }
 
 /** Why the data set cannot give each virtual user a row of its own, or null when it can. */
-export function dataSetProblem(definition: Pick<LoadTestDefinition, "dataMode" | "stages">, rows: number): string | null {
-  if (rows === 0) return "The data set has no rows.";
+export function dataSetProblem(
+  definition: Pick<LoadTestDefinition, 'dataMode' | 'stages'>,
+  rows: number,
+): string | null {
+  if (rows === 0) return 'The data set has no rows.';
   const peak = peakVus(definition.stages);
-  if (definition.dataMode === "vu" && rows < peak) {
+  if (definition.dataMode === 'vu' && rows < peak) {
     return `The data set has ${rows} rows for ${peak} virtual users: each one needs a row of its own.`;
   }
   return null;
@@ -172,11 +187,29 @@ export interface LoadSummary {
 }
 
 export function emptyStats(): LoadStats {
-  return { requests: 0, errors: 0, errorRatePct: 0, minMs: 0, meanMs: 0, p50Ms: 0, p90Ms: 0, p95Ms: 0, p99Ms: 0, maxMs: 0 };
+  return {
+    requests: 0,
+    errors: 0,
+    errorRatePct: 0,
+    minMs: 0,
+    meanMs: 0,
+    p50Ms: 0,
+    p90Ms: 0,
+    p95Ms: 0,
+    p99Ms: 0,
+    maxMs: 0,
+  };
 }
 
 /** The statistics of `requests`, of which `errors` failed, with `sample` their (sampled) durations. */
-export function statsOf(requests: number, errors: number, sum: number, min: number, max: number, sample: number[]): LoadStats {
+export function statsOf(
+  requests: number,
+  errors: number,
+  sum: number,
+  min: number,
+  max: number,
+  sample: number[],
+): LoadStats {
   if (requests === 0) return emptyStats();
   const sorted = [...sample].sort((a, b) => a - b);
   return {
@@ -194,17 +227,27 @@ export function statsOf(requests: number, errors: number, sum: number, min: numb
 }
 
 /** One line per threshold exceeded, as the API performance check writes them. */
-export function loadBreaches(overall: LoadStats & { rps: number }, thresholds: LoadThresholds): string[] {
-  if (overall.requests === 0) return ["no request was measured after the warm-up"];
+export function loadBreaches(
+  overall: LoadStats & { rps: number },
+  thresholds: LoadThresholds,
+): string[] {
+  if (overall.requests === 0) return ['no request was measured after the warm-up'];
   const breaches: string[] = [];
   const { p50Ms, p95Ms, p99Ms, maxMs, errorRatePct, minRps } = thresholds;
-  if (p50Ms !== undefined && overall.p50Ms > p50Ms) breaches.push(`p50 ${overall.p50Ms} ms > ${p50Ms} ms`);
-  if (p95Ms !== undefined && overall.p95Ms > p95Ms) breaches.push(`p95 ${overall.p95Ms} ms > ${p95Ms} ms`);
-  if (p99Ms !== undefined && overall.p99Ms > p99Ms) breaches.push(`p99 ${overall.p99Ms} ms > ${p99Ms} ms`);
-  if (maxMs !== undefined && overall.maxMs > maxMs) breaches.push(`max ${overall.maxMs} ms > ${maxMs} ms`);
+  if (p50Ms !== undefined && overall.p50Ms > p50Ms)
+    breaches.push(`p50 ${overall.p50Ms} ms > ${p50Ms} ms`);
+  if (p95Ms !== undefined && overall.p95Ms > p95Ms)
+    breaches.push(`p95 ${overall.p95Ms} ms > ${p95Ms} ms`);
+  if (p99Ms !== undefined && overall.p99Ms > p99Ms)
+    breaches.push(`p99 ${overall.p99Ms} ms > ${p99Ms} ms`);
+  if (maxMs !== undefined && overall.maxMs > maxMs)
+    breaches.push(`max ${overall.maxMs} ms > ${maxMs} ms`);
   if (errorRatePct !== undefined && overall.errorRatePct > errorRatePct) {
-    breaches.push(`errors ${overall.errorRatePct}% > ${errorRatePct}% (${overall.errors} of ${overall.requests})`);
+    breaches.push(
+      `errors ${overall.errorRatePct}% > ${errorRatePct}% (${overall.errors} of ${overall.requests})`,
+    );
   }
-  if (minRps !== undefined && overall.rps < minRps) breaches.push(`throughput ${overall.rps} req/s < ${minRps} req/s`);
+  if (minRps !== undefined && overall.rps < minRps)
+    breaches.push(`throughput ${overall.rps} req/s < ${minRps} req/s`);
   return breaches;
 }

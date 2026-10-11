@@ -1,6 +1,6 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { clientLogger, setCurrentCorrelationId } from "@/observability/logger";
-import { getSessionId, newCorrelationId } from "@/observability/session";
+import { QueryClient, QueryFunction } from '@tanstack/react-query';
+import { clientLogger, setCurrentCorrelationId } from '@/observability/logger';
+import { getSessionId, newCorrelationId } from '@/observability/session';
 
 /**
  * An error a caller can act on, not just display.
@@ -43,7 +43,7 @@ async function throwIfResNotOk(res: Response) {
  * is a random per-tab id and safe to record.
  */
 function tracingHeaders(correlationId: string): Record<string, string> {
-  return { "X-Correlation-Id": correlationId, "X-Wfm-Session-Id": getSessionId() };
+  return { 'X-Correlation-Id': correlationId, 'X-Wfm-Session-Id': getSessionId() };
 }
 
 export async function apiRequest(
@@ -59,11 +59,11 @@ export async function apiRequest(
     const res = await fetch(url, {
       method,
       headers: {
-        ...(data ? { "Content-Type": "application/json" } : {}),
+        ...(data ? { 'Content-Type': 'application/json' } : {}),
         ...tracingHeaders(correlationId),
       },
       body: data ? JSON.stringify(data) : undefined,
-      credentials: "include",
+      credentials: 'include',
     });
 
     clientLogger.http(`${method} ${url}`, {
@@ -84,10 +84,8 @@ export async function apiRequest(
   }
 }
 
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
+type UnauthorizedBehavior = 'returnNull' | 'throw';
+export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
@@ -97,13 +95,13 @@ export const getQueryFn: <T>(options: {
 
     try {
       const res = await fetch(url, {
-        credentials: "include",
+        credentials: 'include',
         headers: tracingHeaders(correlationId),
       });
 
       clientLogger.http(`GET ${url}`, { status: res.status, durationMs: Date.now() - startedAt });
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      if (unauthorizedBehavior === 'returnNull' && res.status === 401) {
         return null;
       }
 
@@ -124,7 +122,7 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: 'throw' }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,

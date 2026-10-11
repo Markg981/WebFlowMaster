@@ -6,7 +6,13 @@ import { users, organizations, invitations, auditLog } from '@shared/schema';
 import { registrationMode } from './registration';
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), http: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    http: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -35,7 +41,9 @@ afterEach(() => {
 });
 
 const register = (username: string, extra: Record<string, unknown> = {}) =>
-  request(app).post('/api/register').send({ username, password: 'password123', ...extra });
+  request(app)
+    .post('/api/register')
+    .send({ username, password: 'password123', ...extra });
 
 describe('registration by invitation, the default', () => {
   it('lets the first account set the installation up', async () => {
@@ -59,7 +67,10 @@ describe('registration by invitation, the default', () => {
     expect(res.status).toBe(403);
     expect(res.body.code).toBe('invitation_required');
     expect(await privilegedDb.select().from(organizations)).toHaveLength(1);
-    expect((await request(app).get('/api/registration')).body).toMatchObject({ selfRegistration: false, firstAccount: false });
+    expect((await request(app).get('/api/registration')).body).toMatchObject({
+      selfRegistration: false,
+      firstAccount: false,
+    });
   });
 
   it('still accepts an invitation', async () => {

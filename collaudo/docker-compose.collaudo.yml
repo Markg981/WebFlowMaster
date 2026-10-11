@@ -49,7 +49,7 @@ services:
   postgres:
     # A DBA reaches it on 55432 for the backup and audit-log cases, without clashing with a
     # development database on 5432.
-    ports: !override ["55432:5432"]
+    ports: !override ['55432:5432']
 
   redis:
     ports: !reset []
@@ -58,7 +58,7 @@ services:
     ports: !reset []
     environment:
       <<: *collaudo-app-env
-      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_SECURE: 'true'
       SESSION_SECRET: collaudo-session-secret-not-for-production-0001
       REGISTRATION: ${REGISTRATION:-invitation}
       INSTALLATION_ADMINS: ${INSTALLATION_ADMINS:-}
@@ -84,9 +84,9 @@ services:
     # The browsers of a run trust the collaudo CA too (WEB-48 signs in on Keycloak): collaudo/worker.
     build:
       args:
-        INSTALL_COLLAUDO_CA_TOOLS: "1"
-    entrypoint: ["sh", "/collaudo-worker/trust-ca.sh"]
-    command: ["node", "dist/worker.js"]
+        INSTALL_COLLAUDO_CA_TOOLS: '1'
+    entrypoint: ['sh', '/collaudo-worker/trust-ca.sh']
+    command: ['node', 'dist/worker.js']
     environment:
       <<: *collaudo-app-env
       # Where runs borrowing an agent's browser reach the relay in the web process.
@@ -102,8 +102,8 @@ services:
   caddy:
     image: caddy:2-alpine
     ports:
-      - "443:443"
-      - "80:80"
+      - '443:443'
+      - '80:80'
     volumes:
       - ./collaudo/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -114,31 +114,36 @@ services:
           - wfm.collaudo.test
           - keycloak.collaudo.test
     healthcheck:
-      test: ["CMD", "test", "-f", "/data/caddy/pki/authorities/local/root.crt"]
+      test: ['CMD', 'test', '-f', '/data/caddy/pki/authorities/local/root.crt']
       interval: 2s
       timeout: 2s
       retries: 30
 
   ca-export:
     image: alpine:3.20
-    command: ["sh", "-c", "cp /caddy-data/caddy/pki/authorities/local/root.crt /collaudo-ca/root.crt && chmod 644 /collaudo-ca/root.crt"]
+    command:
+      [
+        'sh',
+        '-c',
+        'cp /caddy-data/caddy/pki/authorities/local/root.crt /collaudo-ca/root.crt && chmod 644 /collaudo-ca/root.crt',
+      ]
     volumes:
       - caddy_data:/caddy-data:ro
       - collaudo_ca:/collaudo-ca
     depends_on:
       caddy:
         condition: service_healthy
-    restart: "no"
+    restart: 'no'
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
-    command: ["start-dev", "--import-realm"]
+    command: ['start-dev', '--import-realm']
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_HOSTNAME: https://keycloak.collaudo.test
       KC_PROXY_HEADERS: xforwarded
-      KC_HTTP_ENABLED: "true"
+      KC_HTTP_ENABLED: 'true'
     volumes:
       - ./collaudo/keycloak:/opt/keycloak/data/import:ro
 
@@ -154,15 +159,15 @@ services:
   ricevitore:
     image: mendhak/http-https-echo:35
     environment:
-      HTTP_PORT: "8080"
-      HTTPS_PORT: "8443"
+      HTTP_PORT: '8080'
+      HTTPS_PORT: '8443'
 
   display:
     build:
       context: ./collaudo/display
     ports:
       # The loopback only: the screen has no password.
-      - "127.0.0.1:6080:6080"
+      - '127.0.0.1:6080:6080'
     # start-display exits when Xvfb does not come up; this brings it back.
     restart: unless-stopped
 
@@ -171,15 +176,15 @@ services:
   # http://localhost:8090; inside the stack the services are http://simulatori:8080/<name>.
   simulatori:
     image: node:22-alpine
-    command: ["node", "/simulatori/server.mjs"]
+    command: ['node', '/simulatori/server.mjs']
     environment:
       SIMULATORI_PUBLIC_URL: http://localhost:8090
     volumes:
       - ./collaudo/simulatori:/simulatori:ro
     ports:
-      - "127.0.0.1:8090:8080"
+      - '127.0.0.1:8090:8080'
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/_admin/health"]
+      test: ['CMD', 'wget', '-q', '-O', '-', 'http://localhost:8080/_admin/health']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -188,7 +193,7 @@ services:
   # started by npm run collaudo:jenkins, which also makes its API key). http://localhost:8088,
   # admin / Collaudo.2026!.
   jenkins:
-    profiles: ["jenkins"]
+    profiles: ['jenkins']
     build:
       context: ./collaudo/jenkins
     environment:
@@ -201,7 +206,7 @@ services:
       - collaudo_ca:/collaudo-ca:ro
       - .:/wfm-repo:ro
     ports:
-      - "127.0.0.1:8088:8080"
+      - '127.0.0.1:8088:8080'
     depends_on:
       ca-export:
         condition: service_completed_successfully
@@ -214,9 +219,9 @@ services:
       - ./observability/loki-config.yml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
     ports:
-      - "127.0.0.1:13100:3100"
+      - '127.0.0.1:13100:3100'
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:3100/ready || exit 1']
       interval: 10s
       timeout: 5s
       retries: 12
@@ -226,17 +231,17 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_ALLOW_SIGN_UP: 'false'
     volumes:
       - ./observability/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     ports:
-      - "127.0.0.1:13001:3000"
+      - '127.0.0.1:13001:3000'
     depends_on:
       loki:
         condition: service_healthy
 
   agente:
-    profiles: ["agente"]
+    profiles: ['agente']
     build:
       context: .
       dockerfile: Dockerfile.agent
@@ -256,14 +261,14 @@ services:
 
   # Keep the private API pool independent of the mobile agent in pool lab.
   agente-interno:
-    profiles: ["protocolli"]
+    profiles: ['protocolli']
     build:
       context: .
       dockerfile: Dockerfile.agent
     environment:
       WFM_URL: https://wfm.collaudo.test
       WFM_AGENT_TOKEN: ${WFM_AGENT_TOKEN_INTERNO:-}
-      WFM_AGENT_MAX_SESSIONS: "1"
+      WFM_AGENT_MAX_SESSIONS: '1'
       NODE_EXTRA_CA_CERTS: /collaudo-ca/root.crt
     volumes:
       - collaudo_ca:/collaudo-ca:ro
@@ -274,16 +279,22 @@ services:
     restart: unless-stopped
 
   protocolli:
-    profiles: ["protocolli"]
+    profiles: ['protocolli']
     build:
       context: .
       dockerfile: Dockerfile.agent
-    command: ["node", "/agent/fixtures/server.mjs"]
+    command: ['node', '/agent/fixtures/server.mjs']
     volumes:
       - ./collaudo/protocolli:/agent/fixtures:ro
     networks: [privata]
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -291,7 +302,7 @@ services:
   # AGT-05: an agent on another Playwright minor, which the server must refuse to use. Created in
   # Settings → Local agents like the other, in a pool of its own, with its own token.
   agente-diverso:
-    profiles: ["agente-diverso"]
+    profiles: ['agente-diverso']
     build:
       context: .
       dockerfile: Dockerfile.agent

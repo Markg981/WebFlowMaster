@@ -8,7 +8,12 @@ import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -84,9 +89,9 @@ describe('environments', () => {
     const deleted = await request(app).delete(`/api/environments/${created.body.id}`);
     expect(deleted.status).toBe(204);
 
-    expect((await privilegedDb.select().from(environments))).toHaveLength(0);
+    expect(await privilegedDb.select().from(environments)).toHaveLength(0);
     // Orphaned secrets would be undeletable through the interface and still decryptable.
-    expect((await privilegedDb.select().from(secrets))).toHaveLength(0);
+    expect(await privilegedDb.select().from(secrets)).toHaveLength(0);
   });
 
   it('does not list another organization environments', async () => {
@@ -124,7 +129,7 @@ describe('environments', () => {
     const res = await request(app).delete(`/api/environments/${created.body.id}`);
 
     expect(res.status).toBe(404);
-    expect((await privilegedDb.select().from(environments))).toHaveLength(1);
+    expect(await privilegedDb.select().from(environments)).toHaveLength(1);
   });
 });
 
@@ -180,7 +185,7 @@ describe('secrets', () => {
     const res = await request(app).delete(`/api/secrets/${created.body.id}`);
 
     expect(res.status).toBe(204);
-    expect((await privilegedDb.select().from(secrets))).toHaveLength(0);
+    expect(await privilegedDb.select().from(secrets)).toHaveLength(0);
   });
 
   it('refuses to write into another organization environment', async () => {
@@ -191,7 +196,7 @@ describe('secrets', () => {
       .send({ keyName: 'token', value: 'stolen' });
 
     expect(res.status).toBe(404);
-    expect((await privilegedDb.select().from(secrets))).toHaveLength(0);
+    expect(await privilegedDb.select().from(secrets)).toHaveLength(0);
   });
 
   it('rejects a name that could never be used as a variable', async () => {

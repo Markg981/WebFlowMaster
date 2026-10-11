@@ -76,7 +76,10 @@ export class LokiTransport extends Transport {
       byLevel.get(level)!.push([ts, line]);
     }
     const body = JSON.stringify({
-      streams: [...byLevel].map(([level, values]) => ({ stream: { ...this.labels, level }, values })),
+      streams: [...byLevel].map(([level, values]) => ({
+        stream: { ...this.labels, level },
+        values,
+      })),
     });
 
     try {
@@ -110,7 +113,8 @@ export class LokiTransport extends Transport {
   }
 
   private fail(reason: string): void {
-    if (!this.failing) this.report(`[Loki] Push to ${this.url} failed, logs are not reaching Loki: ${reason}`);
+    if (!this.failing)
+      this.report(`[Loki] Push to ${this.url} failed, logs are not reaching Loki: ${reason}`);
     this.failing = true;
   }
 }

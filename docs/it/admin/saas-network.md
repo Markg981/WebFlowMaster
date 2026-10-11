@@ -28,6 +28,7 @@ a `docker-compose.yml`: la configurazione di rete è autonoma.
    Una lista assente o vuota vieta tutte le destinazioni dei test. Wildcard, indirizzi IP
    e URL vengono rifiutati. Ogni destinazione di redirect, endpoint OAuth, risorsa del
    browser ed endpoint WebSocket/gRPC richiede una voce corrispondente.
+
 5. Avviare dalla radice del repository:
 
    ```sh

@@ -28,21 +28,57 @@
 ## Contracts
 
 `shared/bdd.ts` owns schema/types (Task 1):
+
 ```ts
 type BddBinding = { id: string; revision: string };
-type BddTest = { language: string; source: string; uri: string;
-  scenarioLine: number; exampleLine?: number; mode: 'manual' | 'cucumber'; binding?: BddBinding };
+type BddTest = {
+  language: string;
+  source: string;
+  uri: string;
+  scenarioLine: number;
+  exampleLine?: number;
+  mode: 'manual' | 'cucumber';
+  binding?: BddBinding;
+};
 type GherkinImportOptions = { mode?: 'manual' | 'cucumber'; binding?: BddBinding };
 ```
+
 `parseGherkin(content, options?)` retains its existing return shape and adds `bdd` on imported tests; metadata restores existing web actions. `validateBddTest(bdd)` verifies selector against compiled source.
 Root owns `shared/bdd-agent.ts`:
+
 ```ts
-type BddAgentProfile = { id: string; label: string; revision: string; provider: 'cucumber-js'; maxDurationMs: number };
-type BddAgentRequest = { source: string; uri: string; scenarioLine: number; exampleLine?: number;
-  profile: { id: string; revision: string }; variables: Record<string,string>; timeoutMs: number };
-type BddStepResult = { name: string; keyword?: string; status: string; durationMs: number; error?: string; kind: 'step'|'hook' };
-type BddAgentResult = { status: 'passed'|'failed'|'cancelled'; durationMs: number; steps: BddStepResult[]; error?: string };
+type BddAgentProfile = {
+  id: string;
+  label: string;
+  revision: string;
+  provider: 'cucumber-js';
+  maxDurationMs: number;
+};
+type BddAgentRequest = {
+  source: string;
+  uri: string;
+  scenarioLine: number;
+  exampleLine?: number;
+  profile: { id: string; revision: string };
+  variables: Record<string, string>;
+  timeoutMs: number;
+};
+type BddStepResult = {
+  name: string;
+  keyword?: string;
+  status: string;
+  durationMs: number;
+  error?: string;
+  kind: 'step' | 'hook';
+};
+type BddAgentResult = {
+  status: 'passed' | 'failed' | 'cancelled';
+  durationMs: number;
+  steps: BddStepResult[];
+  error?: string;
+};
 ```
+
 Agent runtime exposes `loadBddProfiles(manifestPath): Promise<OperatorBddProfile[]>`, `publicBddProfiles(profiles)`, `runBddOnDedicatedHost(request, profiles, signal?)`, and `serveBddSession(socket, authorizedProfile, profiles, done)`.
 Profiles persisted as `bdd_execution_profiles`: UUID id, organization/project scope, name, pool, operatorProfileId, revision, timeoutMs. Tests bind UUID/revision; dispatch resolves to operator profile ID after tenant/project checks. API paths `/api/bdd/profiles`, `/api/bdd/profiles/available`, CRUD/delete. Only administrator/owner writes; project access and RLS apply.
 
@@ -51,11 +87,13 @@ Profiles persisted as `bdd_execution_profiles`: UUID id, organization/project sc
 **Own:** `shared/bdd.ts`, `server/gherkin.ts`, new parser helper modules, `server/gherkin.test.ts`, parser-only fixtures; root package/lock dependency changes for Gherkin/messages/Cucumber 12.9.0. Do not touch schema/routes/UI/runtime.
 
 - [x] Write failing fixtures for Italian Rule, backgrounds and doc strings, escaped DataTables, tagged multiple Examples and location selectors.
+
 ```ts
 const imported = parseGherkin(source);
-expect(imported.tests[0].bdd).toMatchObject({ language:'it', mode:'manual' });
+expect(imported.tests[0].bdd).toMatchObject({ language: 'it', mode: 'manual' });
 expect(imported.tests[0].sequence[0].gherkin.docString.content).toBe('payload');
 ```
+
 - [x] Run `npx vitest run server/gherkin.test.ts`; inspect expected old-parser rejections.
 - [x] Install compatible official dependencies; implement AST/pickle compilation, keyword semantics and argument preservation. Validate bounded output and source selectors through shared schema plus parser helper.
 - [x] Preserve existing metadata round-trip, reject changed readable semantics/arguments, support BDD selected export without running/reintroducing other rows. Detect dialect errors precisely.
@@ -64,11 +102,17 @@ expect(imported.tests[0].sequence[0].gherkin.docString.content).toBe('payload');
 ## Task 2: Configurable profiles, persistence and authorization (root)
 
 **Own:** shared schema, next migration/journal, shared versioning, test bundle, routes BDD profiles/import/save, profile service and tests, agent contracts.
+
 - [x] Add failing save/version/export and scoped profile-route tests; API payload carries `bdd` and import options, rejects invalid selector or unauthorized profile even in dry run.
+
 ```ts
-await request(otherTenant).post('/api/tests/import-bundle').send({content,format:'gherkin',bdd:{mode:'cucumber',binding}}).expect(400);
+await request(otherTenant)
+  .post('/api/tests/import-bundle')
+  .send({ content, format: 'gherkin', bdd: { mode: 'cucumber', binding } })
+  .expect(400);
 expect(snapshotOf(test).bdd).toEqual(test.bdd);
 ```
+
 - [x] Create migration with `tests.bdd` and profile table, RLS policy/grants using existing migration conventions; register table in tenant schema checks. Add API CRUD/list advertised public profiles and audit actions.
 - [x] Validate profile project scope and revision on save/import/run, preserving original agent pool restrictions. Portable import requires explicit profile mapping.
 - [x] Include BDD in snapshots/bundles, route update transaction, localized auto-detection and result validation. Run profile/bundle/publishing tests and real PostgreSQL isolation.
@@ -76,12 +120,15 @@ expect(snapshotOf(test).bdd).toEqual(test.bdd);
 ## Task 3: Dedicated Cucumber runtime (runtime implementer)
 
 **Own:** `scripts/bdd-profiles.ts`, `scripts/bdd-child.ts`, `scripts/agent-bdd-session.ts`, runtime tests/fixtures and dedicated deployment example/sample support projects. No relay/shared schema/UI/agent entrypoint changes.
+
 - [x] Write failing real-run tests for selected Outline row, doc string/DataTable/World/hooks, undefined and ambiguous steps, deadline/abort and incomplete results.
+
 ```ts
 const result = await runBddOnDedicatedHost(request, profiles);
 expect(result.status).toBe('passed');
-expect(result.steps.filter(s => s.kind==='step')).toHaveLength(3);
+expect(result.steps.filter((s) => s.kind === 'step')).toHaveLength(3);
 ```
+
 - [x] Validate operator manifest, safe profile paths/globs/loaders and sanitized public projection. Spawn fresh Node child with argument array and no shell; pass bounded request through stdin, do not inherit agent tokens or shared worker environment.
 - [x] Use actual Cucumber.js API/messages, strict exactly-one selector, bounded step/hook evidence and no publishing. Validate complete terminal events and exit. Prevent project configs overriding controlled source/filter/output.
 - [x] Enforce 300s maximum duration, 8 MiB total child output, 1 MiB attachment budget, bounded step count and profile concurrency. Abort/timeout/disconnect kill owned process tree and remove run directories.
@@ -90,11 +137,14 @@ expect(result.steps.filter(s => s.kind==='step')).toHaveLength(3);
 ## Task 4: Relay, plan dispatch and normalized reporting (root)
 
 **Own:** shared agents/tickets, relay/directory, server agent BDD client, scripts/wfm-agent entrypoint/version/build/Docker dependencies, execution service/report rendering integration and tests.
+
 - [x] Add failing signed profile capability, old agent rejection and clustered selection tests before relay changes.
+
 ```ts
-expect(verifyTicket(ticket, secret).bddProfile).toEqual({id:operatorId,revision});
-expect(await availableOnOldAgent(ticket)).toMatchObject({available:false});
+expect(verifyTicket(ticket, secret).bddProfile).toEqual({ id: operatorId, revision });
+expect(await availableOnOldAgent(ticket)).toMatchObject({ available: false });
 ```
+
 - [x] Publish public BDD profiles in hello/directory; signed tickets and open messages bind exact profile revision and organization. Register profile sessions in same concurrency/drain/revoke semantics as existing agents.
 - [x] Agent loads manifest only at startup, advertises validated public profiles and dispatches BDD sessions. Upgrade distribution with Cucumber/TS loader dependencies; make unsupported profiles fail before module loading.
 - [x] Dispatch BDD before manual/browser branch, once per saved scenario/dataset row (not browser matrix); use approved snapshot binding and normalized strict verdict. Include setup/cleanup/retry semantics and abort signals.
@@ -103,10 +153,16 @@ expect(await availableOnOldAgent(ticket)).toMatchObject({available:false});
 ## Task 5: UI import/edit/profiles/results (UI implementer)
 
 **Own:** TestFilesDialog and tests, new BDD editor/profile configuration components and tests, test editor wiring, report BDD evidence component. Root owns locales/docs/E2E.
+
 - [x] Add failing explicit manual/Cucumber import choice, authorized profile selection and localized preview tests.
+
 ```ts
-expect(JSON.parse(fetchMock.mock.calls[0][1].body).bdd).toMatchObject({mode:'cucumber',binding:{id:profileId,revision}});
+expect(JSON.parse(fetchMock.mock.calls[0][1].body).bdd).toMatchObject({
+  mode: 'cucumber',
+  binding: { id: profileId, revision },
+});
 ```
+
 - [x] Implement profile CRUD interface with only advertised choices; source editor/revalidation and mode conversion. Preserve source-selector consistency and immutable metadata when selecting other test identities.
 - [x] Display manual doc strings/tables and normalized Cucumber steps/hooks/failures with escaped text; bounded safe attachment handling. Disable browser step editing when Cucumber-bound.
 - [x] Run client focused tests/typecheck; provide locale key list and required root wiring.

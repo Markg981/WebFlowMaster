@@ -67,8 +67,21 @@ const testWithDataset = (dataset: unknown) =>
       },
       {
         id: 's2',
-        action: { id: 'assertTextContains', type: 'assertTextContains', name: 'Echo', icon: 'c', description: 'x' },
-        targetElement: { id: 'e1', type: 'heading', selector: '#echo', text: '', tag: 'h1', attributes: {} },
+        action: {
+          id: 'assertTextContains',
+          type: 'assertTextContains',
+          name: 'Echo',
+          icon: 'c',
+          description: 'x',
+        },
+        targetElement: {
+          id: 'e1',
+          type: 'heading',
+          selector: '#echo',
+          text: '',
+          tag: 'h1',
+          attributes: {},
+        },
         value: '{{sku}}',
       },
     ],
@@ -203,7 +216,13 @@ describe('the builder preview, before it opens anything', () => {
         sequence: [
           {
             id: 's1',
-            action: { id: 'customAction:00000000-0000-0000-0000-000000000000', type: 'custom', name: 'Gone', icon: 'g', description: 'x' },
+            action: {
+              id: 'customAction:00000000-0000-0000-0000-000000000000',
+              type: 'custom',
+              name: 'Gone',
+              icon: 'g',
+              description: 'x',
+            },
             targetElement: undefined,
             value: 'cognome=Smith',
           },

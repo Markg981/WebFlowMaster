@@ -84,7 +84,9 @@ export function auditActor(req: Request): AuditActor {
  * holds the values, under the test's own access rules.
  */
 export function changedFields(body: Record<string, unknown>): string[] {
-  return Object.keys(body).filter((key) => body[key] !== undefined).sort();
+  return Object.keys(body)
+    .filter((key) => body[key] !== undefined)
+    .sort();
 }
 
 /**

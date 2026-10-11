@@ -47,9 +47,14 @@ export default function CancelRunButton({
   const cancel = async () => {
     setBusy(true);
     try {
-      const response = await fetch(`/api/test-plan-executions/${executionId}/cancel`, { method: 'POST' });
+      const response = await fetch(`/api/test-plan-executions/${executionId}/cancel`, {
+        method: 'POST',
+      });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || t('testReportPage.cancel.failed', 'The run could not be cancelled.'));
+      if (!response.ok)
+        throw new Error(
+          body.error || t('testReportPage.cancel.failed', 'The run could not be cancelled.'),
+        );
       toast({
         title:
           body.status === 'cancelled'
@@ -58,11 +63,18 @@ export default function CancelRunButton({
         description:
           body.status === 'cancelled'
             ? undefined
-            : t('testReportPage.cancel.requestedDetail', 'The test in progress finishes its current step; no further test starts.'),
+            : t(
+                'testReportPage.cancel.requestedDetail',
+                'The test in progress finishes its current step; no further test starts.',
+              ),
       });
       onChanged();
     } catch (error: any) {
-      toast({ title: t('testReportPage.cancel.failed', 'The run could not be cancelled.'), description: error?.message, variant: 'destructive' });
+      toast({
+        title: t('testReportPage.cancel.failed', 'The run could not be cancelled.'),
+        description: error?.message,
+        variant: 'destructive',
+      });
     } finally {
       setBusy(false);
     }
@@ -78,7 +90,9 @@ export default function CancelRunButton({
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t('testReportPage.cancel.confirmTitle', 'Cancel this run?')}</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t('testReportPage.cancel.confirmTitle', 'Cancel this run?')}
+          </AlertDialogTitle>
           <AlertDialogDescription>
             {t(
               'testReportPage.cancel.confirmBody',
@@ -88,7 +102,9 @@ export default function CancelRunButton({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{t('testReportPage.cancel.keep', 'Keep running')}</AlertDialogCancel>
-          <AlertDialogAction onClick={cancel}>{t('testReportPage.cancel.confirm', 'Cancel run')}</AlertDialogAction>
+          <AlertDialogAction onClick={cancel}>
+            {t('testReportPage.cancel.confirm', 'Cancel run')}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

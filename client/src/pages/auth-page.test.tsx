@@ -61,11 +61,19 @@ describe('AuthPage and invitations', () => {
     expect(code.value).toBe(token);
     expect((document.getElementById('register-username') as HTMLInputElement).value).toBe('maria');
 
-    fireEvent.change(document.getElementById('register-password')!, { target: { value: 'password123' } });
-    fireEvent.change(document.getElementById('confirm-password')!, { target: { value: 'password123' } });
+    fireEvent.change(document.getElementById('register-password')!, {
+      target: { value: 'password123' },
+    });
+    fireEvent.change(document.getElementById('confirm-password')!, {
+      target: { value: 'password123' },
+    });
     fireEvent.submit(code.closest('form')!);
 
-    expect(registerMutate).toHaveBeenCalledWith({ username: 'maria', password: 'password123', invitationToken: token });
+    expect(registerMutate).toHaveBeenCalledWith({
+      username: 'maria',
+      password: 'password123',
+      invitationToken: token,
+    });
   });
 
   it('says accounts need an invitation, and asks for the code', async () => {
@@ -90,7 +98,14 @@ describe('AuthPage and invitations', () => {
     fetchMock.mockImplementation(async (url: string) =>
       url === '/api/password-reset'
         ? { ok: true, json: async () => ({ reset: true, username: 'maria' }) }
-        : { ok: true, json: async () => ({ mode: 'invitation', selfRegistration: false, firstAccount: false }) },
+        : {
+            ok: true,
+            json: async () => ({
+              mode: 'invitation',
+              selfRegistration: false,
+              firstAccount: false,
+            }),
+          },
     );
     vi.stubGlobal('fetch', fetchMock);
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -101,7 +116,9 @@ describe('AuthPage and invitations', () => {
     );
 
     fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'chosen-again' } });
-    fireEvent.change(screen.getByLabelText('Repeat the new password'), { target: { value: 'chosen-again' } });
+    fireEvent.change(screen.getByLabelText('Repeat the new password'), {
+      target: { value: 'chosen-again' },
+    });
     fireEvent.submit(screen.getByTestId('reset-form'));
 
     expect(await screen.findByTestId('reset-done')).toBeInTheDocument();
@@ -122,7 +139,10 @@ describe('AuthPage and invitations', () => {
 
 describe('AuthPage after too many wrong codes', () => {
   it('says why it is back on the password form', async () => {
-    mfaError = { message: 'Too many wrong codes. Sign in with your password again.', code: 'mfa_challenge_expired' };
+    mfaError = {
+      message: 'Too many wrong codes. Sign in with your password again.',
+      code: 'mfa_challenge_expired',
+    };
     renderPage({ mode: 'open', selfRegistration: true, firstAccount: false });
 
     expect(screen.getByTestId('mfa-challenge-expired')).toHaveTextContent(

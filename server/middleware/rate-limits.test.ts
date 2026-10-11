@@ -56,7 +56,9 @@ describe('apiRateLimit', () => {
 describe('webhookRateLimit', () => {
   it('stops an address past its limit', async () => {
     const app = express();
-    app.use('/api/webhooks', webhookRateLimit({ WEBHOOK_RATE_LIMIT: '1' }), (_req, res) => res.json({ ok: true }));
+    app.use('/api/webhooks', webhookRateLimit({ WEBHOOK_RATE_LIMIT: '1' }), (_req, res) =>
+      res.json({ ok: true }),
+    );
     await request(app).post('/api/webhooks/github').expect(200);
     const res = await request(app).post('/api/webhooks/github').expect(429);
     expect(res.body.error).toMatch(/Too many requests/);

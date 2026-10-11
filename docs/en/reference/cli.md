@@ -17,44 +17,44 @@ node wfm.mjs run 12 --wait --junit junit.xml
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `wfm run PLAN_ID` | Starts a run of the plan. Without `--wait` or a report option, prints the run and exits. |
-| `wfm status RUN_ID` | Prints a run's state. |
-| `wfm junit RUN_ID --junit FILE` | Writes a finished run's JUnit XML. |
-| `wfm export RUN_ID --html FILE` | Writes a finished run's reports (`--html`, `--pdf`, `--allure`). |
-| `wfm tests export [--project ID\|none] [--format yaml\|json\|gherkin] [--out FILE]` | Writes a project's web and API tests as YAML/JSON, or web tests only as a Gherkin `.feature` file — see [Tests as files](../guide/organizing#tests-as-files). |
-| `wfm tests import FILE [--project ID] [--dry-run]` | Reads such a file back: tests of the same name are updated, the others created in `--project`. `--dry-run` only says what would change. Exits `1` when tests were left out. |
-| `wfm help` | Prints the usage. |
+| Command                                                                             | What it does                                                                                                                                                                |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wfm run PLAN_ID`                                                                   | Starts a run of the plan. Without `--wait` or a report option, prints the run and exits.                                                                                    |
+| `wfm status RUN_ID`                                                                 | Prints a run's state.                                                                                                                                                       |
+| `wfm junit RUN_ID --junit FILE`                                                     | Writes a finished run's JUnit XML.                                                                                                                                          |
+| `wfm export RUN_ID --html FILE`                                                     | Writes a finished run's reports (`--html`, `--pdf`, `--allure`).                                                                                                            |
+| `wfm tests export [--project ID\|none] [--format yaml\|json\|gherkin] [--out FILE]` | Writes a project's web and API tests as YAML/JSON, or web tests only as a Gherkin `.feature` file — see [Tests as files](../guide/organizing#tests-as-files).               |
+| `wfm tests import FILE [--project ID] [--dry-run]`                                  | Reads such a file back: tests of the same name are updated, the others created in `--project`. `--dry-run` only says what would change. Exits `1` when tests were left out. |
+| `wfm help`                                                                          | Prints the usage.                                                                                                                                                           |
 
 ## Options
 
-| Option | Default | Meaning |
-|---|---|---|
-| `--url URL` | `$WFM_URL` | The server's address. |
-| `--key KEY` | `$WFM_API_KEY` | The API key. |
-| `--wait` | off | Wait for the run to finish and exit with its verdict. Implied by any report option. |
-| `--timeout SECONDS` | 1800 | How long to wait before giving up. |
-| `--poll SECONDS` | 5 | How often to ask whether the run has finished. |
-| `--junit FILE` | — | Write the run's JUnit XML once it has finished. |
-| `--html FILE` | — | Write the self-contained HTML report. |
-| `--pdf FILE` | — | Write the PDF report. |
-| `--allure FILE` | — | Write a zip of Allure results. |
-| `--environment ID` | — | Run against this environment. |
-| `--update-baselines` | off | Accept this run's screenshots as the new visual baselines. |
-| `--idempotency-key KEY` | `$WFM_IDEMPOTENCY_KEY` | Start at most one run for this key: pass the build id, and a retried step follows the run it already started. |
-| `--changed-since REF` | — | Run only the tests the files changed since this git ref affect (`git diff --name-only REF...HEAD`), by the [impact map](../guide/running#impact). Exits `2`, starting nothing, when git cannot list them. |
-| `--changed-files FILE` | — | The same, from a file listing the changed files one per line. |
-| `--no-ci` | — | Do not send the build, commit and branch read from the CI system. |
-| `--json` | off | Print the final run as JSON, as the API returns it. |
+| Option                  | Default                | Meaning                                                                                                                                                                                                   |
+| ----------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--url URL`             | `$WFM_URL`             | The server's address.                                                                                                                                                                                     |
+| `--key KEY`             | `$WFM_API_KEY`         | The API key.                                                                                                                                                                                              |
+| `--wait`                | off                    | Wait for the run to finish and exit with its verdict. Implied by any report option.                                                                                                                       |
+| `--timeout SECONDS`     | 1800                   | How long to wait before giving up.                                                                                                                                                                        |
+| `--poll SECONDS`        | 5                      | How often to ask whether the run has finished.                                                                                                                                                            |
+| `--junit FILE`          | —                      | Write the run's JUnit XML once it has finished.                                                                                                                                                           |
+| `--html FILE`           | —                      | Write the self-contained HTML report.                                                                                                                                                                     |
+| `--pdf FILE`            | —                      | Write the PDF report.                                                                                                                                                                                     |
+| `--allure FILE`         | —                      | Write a zip of Allure results.                                                                                                                                                                            |
+| `--environment ID`      | —                      | Run against this environment.                                                                                                                                                                             |
+| `--update-baselines`    | off                    | Accept this run's screenshots as the new visual baselines.                                                                                                                                                |
+| `--idempotency-key KEY` | `$WFM_IDEMPOTENCY_KEY` | Start at most one run for this key: pass the build id, and a retried step follows the run it already started.                                                                                             |
+| `--changed-since REF`   | —                      | Run only the tests the files changed since this git ref affect (`git diff --name-only REF...HEAD`), by the [impact map](../guide/running#impact). Exits `2`, starting nothing, when git cannot list them. |
+| `--changed-files FILE`  | —                      | The same, from a file listing the changed files one per line.                                                                                                                                             |
+| `--no-ci`               | —                      | Do not send the build, commit and branch read from the CI system.                                                                                                                                         |
+| `--json`                | off                    | Print the final run as JSON, as the API returns it.                                                                                                                                                       |
 
 ## Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | The run passed. Failures of tests in quarantine do not count. |
-| `1` | The run finished and did not pass: failed, error, cancelled or timed out. |
-| `2` | The command could not be carried out: bad usage, no key, the server unreachable or refusing, or the wait timed out. |
+| Code | Meaning                                                                                                             |
+| ---- | ------------------------------------------------------------------------------------------------------------------- |
+| `0`  | The run passed. Failures of tests in quarantine do not count.                                                       |
+| `1`  | The run finished and did not pass: failed, error, cancelled or timed out.                                           |
+| `2`  | The command could not be carried out: bad usage, no key, the server unreachable or refusing, or the wait timed out. |
 
 A pipeline step that runs `wfm run … --wait` therefore fails exactly when it should.
 
@@ -78,14 +78,14 @@ explicit binding. See [Gherkin/Cucumber details](../guide/gherkin-files).
 Unless `--no-ci`, the CLI recognizes the CI system from its environment and sends the build with
 the run, so the report, the notifications and the exports show and link it:
 
-| CI system | Recognized by | Sends |
-|---|---|---|
-| GitHub Actions | `GITHUB_ACTIONS=true` | repository, commit, branch, pull request, run id and link, actor |
-| GitLab CI | `GITLAB_CI` | project path, commit, branch, merge request, pipeline id and link, user |
-| Azure Pipelines | `TF_BUILD=true` | repository, commit, branch, pull request, build number and link, requester |
-| Bitbucket Pipelines | `BITBUCKET_BUILD_NUMBER` | repository, commit, branch, pull request, build number and link |
-| CircleCI | `CIRCLECI=true` | repository, commit, branch, pull request, build number and link, user |
-| Jenkins | `JENKINS_URL` | repository (credentials stripped), commit, branch, change id, job and build, user |
+| CI system           | Recognized by            | Sends                                                                             |
+| ------------------- | ------------------------ | --------------------------------------------------------------------------------- |
+| GitHub Actions      | `GITHUB_ACTIONS=true`    | repository, commit, branch, pull request, run id and link, actor                  |
+| GitLab CI           | `GITLAB_CI`              | project path, commit, branch, merge request, pipeline id and link, user           |
+| Azure Pipelines     | `TF_BUILD=true`          | repository, commit, branch, pull request, build number and link, requester        |
+| Bitbucket Pipelines | `BITBUCKET_BUILD_NUMBER` | repository, commit, branch, pull request, build number and link                   |
+| CircleCI            | `CIRCLECI=true`          | repository, commit, branch, pull request, build number and link, user             |
+| Jenkins             | `JENKINS_URL`            | repository (credentials stripped), commit, branch, change id, job and build, user |
 
 A value the server would refuse is dropped rather than sent, so this can never stop a run from
 starting.

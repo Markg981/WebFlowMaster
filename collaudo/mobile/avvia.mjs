@@ -20,11 +20,18 @@ const APK = 'WikipediaSample.apk';
 const APK_URL = 'https://www.browserstack.com/app-automate/sample-apps/android/WikipediaSample.apk';
 
 const wsl = (script, options = {}) =>
-  spawnSync('wsl', ['-d', DISTRO, '-u', 'root', '--', 'bash', '-c', script], { encoding: 'utf8', ...options });
+  spawnSync('wsl', ['-d', DISTRO, '-u', 'root', '--', 'bash', '-c', script], {
+    encoding: 'utf8',
+    ...options,
+  });
 
 // C:\a\b -> /mnt/c/a/b
-const toWsl = (p) => resolve(p).replace(/^([A-Za-z]):/, (_, d) => `/mnt/${d.toLowerCase()}`).replaceAll('\\', '/');
-const compose = (args) => `cd '${toWsl(HERE)}' && docker compose -f docker-compose.mobile.yml ${args}`;
+const toWsl = (p) =>
+  resolve(p)
+    .replace(/^([A-Za-z]):/, (_, d) => `/mnt/${d.toLowerCase()}`)
+    .replaceAll('\\', '/');
+const compose = (args) =>
+  `cd '${toWsl(HERE)}' && docker compose -f docker-compose.mobile.yml ${args}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const KEEPALIVE = join(HERE, '.keepalive.pid');
@@ -41,7 +48,11 @@ function keepAlive() {
   } catch {
     // Non c'è: se ne avvia uno.
   }
-  const child = spawn('wsl', ['-d', DISTRO, '--exec', 'sleep', 'infinity'], { detached: true, stdio: 'ignore', windowsHide: true });
+  const child = spawn('wsl', ['-d', DISTRO, '--exec', 'sleep', 'infinity'], {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: true,
+  });
   child.unref();
   writeFileSync(KEEPALIVE, String(child.pid));
 }
@@ -61,7 +72,9 @@ keepAlive();
 
 const kvm = wsl('test -c /dev/kvm && echo ok');
 if (!kvm.stdout.includes('ok')) {
-  console.error(`/dev/kvm non c'è nella distro ${DISTRO}: senza virtualizzazione l'emulatore non parte.`);
+  console.error(
+    `/dev/kvm non c'è nella distro ${DISTRO}: senza virtualizzazione l'emulatore non parte.`,
+  );
   process.exit(1);
 }
 if (wsl('docker info >/dev/null 2>&1 && echo ok').stdout.trim() !== 'ok') {
@@ -78,17 +91,22 @@ if (!existsSync(join(HERE, 'apps', APK))) {
 }
 
 // Un container rimasto da un avvio interrotto non riparte (vedi docker-compose.mobile.yml): da capo.
-const bootedNow = () => wsl('docker exec -u androidusr wfm-android adb shell getprop sys.boot_completed 2>/dev/null').stdout?.trim() === '1';
-if (wsl("docker ps -aq --filter name=wfm-android").stdout.trim() && !bootedNow()) {
+const bootedNow = () =>
+  wsl(
+    'docker exec -u androidusr wfm-android adb shell getprop sys.boot_completed 2>/dev/null',
+  ).stdout?.trim() === '1';
+if (wsl('docker ps -aq --filter name=wfm-android').stdout.trim() && !bootedNow()) {
   console.log("Il container dell'emulatore c'è ma Android non è avviato: lo ricreo.");
   wsl(compose('down -v'));
 }
 
 console.log("Avvio il container dell'emulatore (il primo avvio scarica l'immagine)…");
-const up = spawnSync('wsl', ['-d', DISTRO, '-u', 'root', '--', 'bash', '-c', compose('up -d -V')], { stdio: 'inherit' });
+const up = spawnSync('wsl', ['-d', DISTRO, '-u', 'root', '--', 'bash', '-c', compose('up -d -V')], {
+  stdio: 'inherit',
+});
 if (up.status !== 0) process.exit(up.status ?? 1);
 
-console.log("Aspetto che Android sia avviato e che Appium risponda (3-6 minuti)…");
+console.log('Aspetto che Android sia avviato e che Appium risponda (3-6 minuti)…');
 const deadline = Date.now() + 15 * 60_000;
 let booted = false;
 let appium = false;
@@ -107,8 +125,14 @@ while (Date.now() < deadline && !(booted && appium)) {
   if (!(booted && appium)) await sleep(10_000);
 }
 if (!(booted && appium)) {
-  console.error(`Non pronto: Android ${booted ? 'avviato' : 'non avviato'}, Appium ${appium ? 'risponde' : 'non risponde'}. wsl -d ${DISTRO} -- docker logs wfm-android`);
+  console.error(
+    `Non pronto: Android ${booted ? 'avviato' : 'non avviato'}, Appium ${appium ? 'risponde' : 'non risponde'}. wsl -d ${DISTRO} -- docker logs wfm-android`,
+  );
   process.exit(1);
 }
-console.log(`Pronto. Appium ${APPIUM}, schermo http://localhost:6081, app /apps/${APK} (percorso nel container).`);
-console.log("Nel prodotto: griglia «Local Appium (agent)» con indirizzo http://host.docker.internal:4723 e il pool dell'agente.");
+console.log(
+  `Pronto. Appium ${APPIUM}, schermo http://localhost:6081, app /apps/${APK} (percorso nel container).`,
+);
+console.log(
+  "Nel prodotto: griglia «Local Appium (agent)» con indirizzo http://host.docker.internal:4723 e il pool dell'agente.",
+);

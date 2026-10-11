@@ -6,7 +6,12 @@ import { debugChannel } from '../debug-session';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -31,7 +36,13 @@ const body = {
   url: 'https://shop.test',
   elements: [],
   breakpoints: ['s2'],
-  sequence: [{ id: 's1', action: { id: 'navigate', type: 'navigate', name: 'Open', icon: 'x', description: 'x' }, value: 'https://shop.test/cart' }],
+  sequence: [
+    {
+      id: 's1',
+      action: { id: 'navigate', type: 'navigate', name: 'Open', icon: 'x', description: 'x' },
+      value: 'https://shop.test/cart',
+    },
+  ],
 };
 
 beforeAll(async () => {
@@ -61,24 +72,35 @@ async function setState(id: string, patch: Partial<DebugState>) {
 describe('debug sessions', () => {
   it('ends an initialized session when execution admission is refused', async () => {
     const { QuotaError } = await import('../tenant-quotas');
-    tasks.start.mockRejectedValue(new QuotaError('execution_quota_exceeded', 'execution_minutes', 1, 1));
+    tasks.start.mockRejectedValue(
+      new QuotaError('execution_quota_exceeded', 'execution_minutes', 1, 1),
+    );
     const res = await request(app).post('/api/debug-sessions').send(body);
     expect(res.status).toBe(429);
     const channel = await debugChannel();
     expect(await channel.activeFor(currentUser.id)).toBeNull();
     const id = tasks.start.mock.calls[0][0].task.sessionId;
-    expect(await channel.read(id)).toMatchObject({ status: 'finished', outcome: { success: false } });
+    expect(await channel.read(id)).toMatchObject({
+      status: 'finished',
+      outcome: { success: false },
+    });
   });
   it('start the run in the background with its breakpoints, and answer at once', async () => {
     const res = await request(app).post('/api/debug-sessions').send(body);
 
     expect(res.status).toBe(201);
     expect(res.body.state).toMatchObject({ status: 'starting', breakpoints: ['s2'] });
-    expect(tasks.start).toHaveBeenCalledWith(expect.objectContaining({
-      userId: 101,
-      organizationId: 7,
-      task: expect.objectContaining({ kind: 'debug-sequence', sessionId: res.body.id, breakpoints: ['s2'] }),
-    }));
+    expect(tasks.start).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 101,
+        organizationId: 7,
+        task: expect.objectContaining({
+          kind: 'debug-sequence',
+          sessionId: res.body.id,
+          breakpoints: ['s2'],
+        }),
+      }),
+    );
     // The organization is the session's, never the body's.
     expect(tasks.start.mock.calls[0][0].task.payload).not.toHaveProperty('organizationId');
   });
@@ -93,7 +115,8 @@ describe('debug sessions', () => {
 
   it('accept only the commands that fit the moment', async () => {
     const { body: started } = await request(app).post('/api/debug-sessions').send(body);
-    const command = (payload: unknown) => request(app).post(`/api/debug-sessions/${started.id}/commands`).send(payload);
+    const command = (payload: unknown) =>
+      request(app).post(`/api/debug-sessions/${started.id}/commands`).send(payload);
 
     await setState(started.id, { status: 'running' });
     expect((await command({ type: 'continue' })).status).toBe(409);
@@ -101,7 +124,20 @@ describe('debug sessions', () => {
 
     await setState(started.id, {
       status: 'paused',
-      paused: { pc: 0, stepId: 's1', calledFrom: null, name: 'Buy', actionId: 'click', reason: 'failure', error: 'x', selector: '#a', value: null, canSkip: true, screenshot: null, url: null },
+      paused: {
+        pc: 0,
+        stepId: 's1',
+        calledFrom: null,
+        name: 'Buy',
+        actionId: 'click',
+        reason: 'failure',
+        error: 'x',
+        selector: '#a',
+        value: null,
+        canSkip: true,
+        screenshot: null,
+        url: null,
+      },
     });
     const refused = await command({ type: 'continue' });
     expect(refused.status).toBe(409);
@@ -121,7 +157,10 @@ describe('debug sessions', () => {
 
     currentUser = { id: 102, username: 'colleague', organizationId: 7, role: 'owner' };
     expect((await request(app).get(`/api/debug-sessions/${started.id}`)).status).toBe(404);
-    expect((await request(app).post(`/api/debug-sessions/${started.id}/commands`).send({ type: 'stop' })).status).toBe(404);
+    expect(
+      (await request(app).post(`/api/debug-sessions/${started.id}/commands`).send({ type: 'stop' }))
+        .status,
+    ).toBe(404);
 
     currentUser = { id: 101, username: 'dev', organizationId: 8, role: 'owner' };
     expect((await request(app).get(`/api/debug-sessions/${started.id}`)).status).toBe(404);
@@ -138,16 +177,26 @@ describe('debug sessions', () => {
 
   it('debug the dataset row asked for, and refuse one the dataset does not have', async () => {
     const dataset = [{ sku: 'A' }, { sku: 'B' }];
-    const started = await request(app).post('/api/debug-sessions').send({ ...body, dataset, datasetRow: 1 });
+    const started = await request(app)
+      .post('/api/debug-sessions')
+      .send({ ...body, dataset, datasetRow: 1 });
     expect(started.status).toBe(201);
     expect(tasks.start.mock.calls[0][0].task).toMatchObject({ datasetRow: 1 });
 
-    const refused = await request(app).post('/api/debug-sessions').send({ ...body, dataset, datasetRow: 2 });
+    const refused = await request(app)
+      .post('/api/debug-sessions')
+      .send({ ...body, dataset, datasetRow: 2 });
     expect(refused.status).toBe(400);
     expect(refused.body.error).toMatch(/2 row/);
   });
 
   it('refuse a test with no steps', async () => {
-    expect((await request(app).post('/api/debug-sessions').send({ ...body, sequence: [] })).status).toBe(400);
+    expect(
+      (
+        await request(app)
+          .post('/api/debug-sessions')
+          .send({ ...body, sequence: [] })
+      ).status,
+    ).toBe(400);
   });
 });

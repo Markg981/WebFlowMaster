@@ -17,44 +17,44 @@ node wfm.mjs run 12 --wait --junit junit.xml
 
 ## Comandi
 
-| Comando | Cosa fa |
-|---|---|
-| `wfm run PLAN_ID` | Avvia un run del piano. Senza `--wait` né un'opzione di report, stampa il run ed esce. |
-| `wfm status RUN_ID` | Stampa lo stato di un run. |
-| `wfm junit RUN_ID --junit FILE` | Scrive il JUnit XML di un run concluso. |
-| `wfm export RUN_ID --html FILE` | Scrive i report di un run concluso (`--html`, `--pdf`, `--allure`). |
-| `wfm tests export [--project ID\|none] [--format yaml\|json\|gherkin] [--out FILE]` | Scrive i test web e API di un progetto in YAML/JSON, oppure solo i test web in un file Gherkin `.feature` — vedi [Test come file](../guide/organizing#test-come-file). |
-| `wfm tests import FILE [--project ID] [--dry-run]` | Rilegge quel file: i test con lo stesso nome vengono aggiornati, gli altri creati in `--project`. `--dry-run` dice solo cosa cambierebbe. Esce con `1` se qualche test è stato escluso. |
-| `wfm help` | Stampa l'uso. |
+| Comando                                                                             | Cosa fa                                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wfm run PLAN_ID`                                                                   | Avvia un run del piano. Senza `--wait` né un'opzione di report, stampa il run ed esce.                                                                                                  |
+| `wfm status RUN_ID`                                                                 | Stampa lo stato di un run.                                                                                                                                                              |
+| `wfm junit RUN_ID --junit FILE`                                                     | Scrive il JUnit XML di un run concluso.                                                                                                                                                 |
+| `wfm export RUN_ID --html FILE`                                                     | Scrive i report di un run concluso (`--html`, `--pdf`, `--allure`).                                                                                                                     |
+| `wfm tests export [--project ID\|none] [--format yaml\|json\|gherkin] [--out FILE]` | Scrive i test web e API di un progetto in YAML/JSON, oppure solo i test web in un file Gherkin `.feature` — vedi [Test come file](../guide/organizing#test-come-file).                  |
+| `wfm tests import FILE [--project ID] [--dry-run]`                                  | Rilegge quel file: i test con lo stesso nome vengono aggiornati, gli altri creati in `--project`. `--dry-run` dice solo cosa cambierebbe. Esce con `1` se qualche test è stato escluso. |
+| `wfm help`                                                                          | Stampa l'uso.                                                                                                                                                                           |
 
 ## Opzioni
 
-| Opzione | Default | Significato |
-|---|---|---|
-| `--url URL` | `$WFM_URL` | L'indirizzo del server. |
-| `--key KEY` | `$WFM_API_KEY` | La chiave API. |
-| `--wait` | no | Attende la fine del run ed esce con il suo esito. Implicita con qualsiasi opzione di report. |
-| `--timeout SECONDS` | 1800 | Quanto attendere prima di rinunciare. |
-| `--poll SECONDS` | 5 | Ogni quanto chiedere se il run è finito. |
-| `--junit FILE` | — | Scrive il JUnit XML del run quando è concluso. |
-| `--html FILE` | — | Scrive il report HTML autonomo. |
-| `--pdf FILE` | — | Scrive il report PDF. |
-| `--allure FILE` | — | Scrive uno zip di risultati Allure. |
-| `--environment ID` | — | Esegue su questo ambiente. |
-| `--update-baselines` | no | Accetta gli screenshot di questo run come nuove baseline visive. |
-| `--idempotency-key KEY` | `$WFM_IDEMPOTENCY_KEY` | Avvia al massimo un run per questa chiave: passate l'id della build, e uno step ripetuto segue il run già avviato. |
-| `--changed-since REF` | — | Esegue solo i test che i file cambiati da questo ref git toccano (`git diff --name-only REF...HEAD`), secondo la [mappa dell'impatto](../guide/running#impatto). Esce con `2`, senza avviare nulla, se git non riesce a elencarli. |
-| `--changed-files FILE` | — | Lo stesso, da un file con i file cambiati, uno per riga. |
-| `--no-ci` | — | Non invia build, commit e branch letti dal sistema di CI. |
-| `--json` | no | Stampa il run finale in JSON, come lo restituisce l'API. |
+| Opzione                 | Default                | Significato                                                                                                                                                                                                                        |
+| ----------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--url URL`             | `$WFM_URL`             | L'indirizzo del server.                                                                                                                                                                                                            |
+| `--key KEY`             | `$WFM_API_KEY`         | La chiave API.                                                                                                                                                                                                                     |
+| `--wait`                | no                     | Attende la fine del run ed esce con il suo esito. Implicita con qualsiasi opzione di report.                                                                                                                                       |
+| `--timeout SECONDS`     | 1800                   | Quanto attendere prima di rinunciare.                                                                                                                                                                                              |
+| `--poll SECONDS`        | 5                      | Ogni quanto chiedere se il run è finito.                                                                                                                                                                                           |
+| `--junit FILE`          | —                      | Scrive il JUnit XML del run quando è concluso.                                                                                                                                                                                     |
+| `--html FILE`           | —                      | Scrive il report HTML autonomo.                                                                                                                                                                                                    |
+| `--pdf FILE`            | —                      | Scrive il report PDF.                                                                                                                                                                                                              |
+| `--allure FILE`         | —                      | Scrive uno zip di risultati Allure.                                                                                                                                                                                                |
+| `--environment ID`      | —                      | Esegue su questo ambiente.                                                                                                                                                                                                         |
+| `--update-baselines`    | no                     | Accetta gli screenshot di questo run come nuove baseline visive.                                                                                                                                                                   |
+| `--idempotency-key KEY` | `$WFM_IDEMPOTENCY_KEY` | Avvia al massimo un run per questa chiave: passate l'id della build, e uno step ripetuto segue il run già avviato.                                                                                                                 |
+| `--changed-since REF`   | —                      | Esegue solo i test che i file cambiati da questo ref git toccano (`git diff --name-only REF...HEAD`), secondo la [mappa dell'impatto](../guide/running#impatto). Esce con `2`, senza avviare nulla, se git non riesce a elencarli. |
+| `--changed-files FILE`  | —                      | Lo stesso, da un file con i file cambiati, uno per riga.                                                                                                                                                                           |
+| `--no-ci`               | —                      | Non invia build, commit e branch letti dal sistema di CI.                                                                                                                                                                          |
+| `--json`                | no                     | Stampa il run finale in JSON, come lo restituisce l'API.                                                                                                                                                                           |
 
 ## Codici di uscita
 
-| Codice | Significato |
-|---|---|
-| `0` | Il run è passato. I fallimenti dei test in quarantena non contano. |
-| `1` | Il run è terminato e non è passato: fallito, in errore, annullato o scaduto. |
-| `2` | Il comando non è stato eseguito: uso errato, nessuna chiave, server irraggiungibile o che rifiuta, o attesa scaduta. |
+| Codice | Significato                                                                                                          |
+| ------ | -------------------------------------------------------------------------------------------------------------------- |
+| `0`    | Il run è passato. I fallimenti dei test in quarantena non contano.                                                   |
+| `1`    | Il run è terminato e non è passato: fallito, in errore, annullato o scaduto.                                         |
+| `2`    | Il comando non è stato eseguito: uso errato, nessuna chiave, server irraggiungibile o che rifiuta, o attesa scaduta. |
 
 Uno step di pipeline che esegue `wfm run … --wait` fallisce quindi esattamente quando deve.
 
@@ -78,14 +78,14 @@ esplicito. Vedi [Dettagli Gherkin/Cucumber](../guide/gherkin-files).
 Salvo `--no-ci`, la CLI riconosce il sistema di CI dal suo ambiente e invia la build insieme al
 run, così report, notifiche ed esportazioni la mostrano e la collegano:
 
-| Sistema di CI | Riconosciuto da | Invia |
-|---|---|---|
-| GitHub Actions | `GITHUB_ACTIONS=true` | repository, commit, branch, pull request, id e link del run, autore |
-| GitLab CI | `GITLAB_CI` | percorso del progetto, commit, branch, merge request, id e link della pipeline, utente |
-| Azure Pipelines | `TF_BUILD=true` | repository, commit, branch, pull request, numero e link della build, richiedente |
-| Bitbucket Pipelines | `BITBUCKET_BUILD_NUMBER` | repository, commit, branch, pull request, numero e link della build |
-| CircleCI | `CIRCLECI=true` | repository, commit, branch, pull request, numero e link della build, utente |
-| Jenkins | `JENKINS_URL` | repository (senza credenziali), commit, branch, change id, job e build, utente |
+| Sistema di CI       | Riconosciuto da          | Invia                                                                                  |
+| ------------------- | ------------------------ | -------------------------------------------------------------------------------------- |
+| GitHub Actions      | `GITHUB_ACTIONS=true`    | repository, commit, branch, pull request, id e link del run, autore                    |
+| GitLab CI           | `GITLAB_CI`              | percorso del progetto, commit, branch, merge request, id e link della pipeline, utente |
+| Azure Pipelines     | `TF_BUILD=true`          | repository, commit, branch, pull request, numero e link della build, richiedente       |
+| Bitbucket Pipelines | `BITBUCKET_BUILD_NUMBER` | repository, commit, branch, pull request, numero e link della build                    |
+| CircleCI            | `CIRCLECI=true`          | repository, commit, branch, pull request, numero e link della build, utente            |
+| Jenkins             | `JENKINS_URL`            | repository (senza credenziali), commit, branch, change id, job e build, utente         |
 
 Un valore che il server rifiuterebbe viene scartato invece che inviato, quindi questo non può mai
 impedire l'avvio di un run.

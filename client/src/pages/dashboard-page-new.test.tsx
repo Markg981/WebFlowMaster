@@ -37,8 +37,7 @@ vi.mock('@/lib/queryClient', async (importOriginal) => {
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     // Return the key (or the provided default) so assertions do not depend on translations.
-    t: (key: string, fallback?: unknown) =>
-      typeof fallback === 'string' ? fallback : key,
+    t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key),
   }),
 }));
 
@@ -137,11 +136,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () =>
-      new Response(JSON.stringify({ defaultTestUrl: null, theme: 'light' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+    vi.fn(
+      async () =>
+        new Response(JSON.stringify({ defaultTestUrl: null, theme: 'light' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
     ),
   );
 });
@@ -157,9 +157,7 @@ describe('DashboardPageNew — saving a test', () => {
     fireEvent.click(screen.getByTestId('save-test'));
 
     expect(screen.queryByTestId('save-modal')).not.toBeInTheDocument();
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: 'destructive' }),
-    );
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
   });
 
   it('posts the current URL, sequence and project id', async () => {
@@ -305,9 +303,7 @@ describe('DashboardPageNew — overwriting a test', () => {
 
     await saveOnce();
 
-    await waitFor(() =>
-      expect(mockApiRequest.mock.calls.some((c) => c[0] === 'PUT')).toBe(true),
-    );
+    await waitFor(() => expect(mockApiRequest.mock.calls.some((c) => c[0] === 'PUT')).toBe(true));
 
     expect(confirm).toHaveBeenCalled();
     const put = mockApiRequest.mock.calls.find((c) => c[0] === 'PUT')!;
@@ -328,7 +324,9 @@ describe('DashboardPageNew — overwriting a test', () => {
 
     // No second request, and — the part that would be worst — no "Test saved" telling
     // someone their work is stored when it is not.
-    expect(mockApiRequest.mock.calls.filter((c) => c[1]?.toString().startsWith('/api/tests'))).toHaveLength(1);
+    expect(
+      mockApiRequest.mock.calls.filter((c) => c[1]?.toString().startsWith('/api/tests')),
+    ).toHaveLength(1);
     expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'Test saved' }));
 
     confirm.mockRestore();
@@ -347,7 +345,12 @@ describe('DashboardPageNew — playing back a run (collaudo WEB-02)', () => {
               success,
               steps: [
                 { name: 'Navigate', status: 'passed', details: '', screenshot: frame('STEP1') },
-                { name: 'Verify', status: success ? 'passed' : 'failed', details: '', screenshot: frame('STEP2') },
+                {
+                  name: 'Verify',
+                  status: success ? 'passed' : 'failed',
+                  details: '',
+                  screenshot: frame('STEP2'),
+                },
               ],
               // The page the run ended on: what the element list describes, shown again at the end.
               detection: { elements: [], screenshot: frame('FINAL') },
@@ -356,7 +359,9 @@ describe('DashboardPageNew — playing back a run (collaudo WEB-02)', () => {
     }));
 
   const previewSource = () =>
-    (screen.queryByAltText('dashboardPageNew.testStepScreenshot.text') as HTMLImageElement | null)?.getAttribute('src');
+    (
+      screen.queryByAltText('dashboardPageNew.testStepScreenshot.text') as HTMLImageElement | null
+    )?.getAttribute('src');
 
   it('shows each step’s screenshot in turn, not only the last frame', async () => {
     answerRun(true);

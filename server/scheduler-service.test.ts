@@ -12,13 +12,27 @@ vi.mock('node-cron', () => ({
   validate: validateSpy,
   default: { schedule: scheduleSpy, validate: validateSpy },
 }));
-vi.mock('./test-execution-service', () => ({ runTestPlan: vi.fn().mockResolvedValue({ status: 'passed' }) }));
+vi.mock('./test-execution-service', () => ({
+  runTestPlan: vi.fn().mockResolvedValue({ status: 'passed' }),
+}));
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() }),
+  default: Promise.resolve({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    http: vi.fn(),
+  }),
 }));
 
 import { privilegedDb } from './db';
-import { users, testPlans, testPlanSchedules, testPlanExecutions, type TestPlanSchedule } from '@shared/schema';
+import {
+  users,
+  testPlans,
+  testPlanSchedules,
+  testPlanExecutions,
+  type TestPlanSchedule,
+} from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import {
   addScheduleJob,
@@ -38,15 +52,29 @@ function rnd() {
 
 async function seedPlan() {
   const organizationId = await createTestOrganization();
-  const [user] = await privilegedDb.insert(users).values({ username: `u_${rnd()}`, password: 'x', organizationId }).returning();
+  const [user] = await privilegedDb
+    .insert(users)
+    .values({ username: `u_${rnd()}`, password: 'x', organizationId })
+    .returning();
   const planId = `plan_${rnd()}`;
-  await privilegedDb.insert(testPlans).values({ id: planId, userId: user.id, organizationId, name: 'Plan' }).returning();
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, userId: user.id, organizationId, name: 'Plan' })
+    .returning();
   return { userId: user.id, planId, organizationId };
 }
 
-async function seedSchedule(planId: number | string, userId: number, overrides: Partial<typeof testPlanSchedules.$inferInsert> = {}) {
+async function seedSchedule(
+  planId: number | string,
+  userId: number,
+  overrides: Partial<typeof testPlanSchedules.$inferInsert> = {},
+) {
   // A schedule belongs to the same organization as the test plan it schedules.
-  const [plan] = await privilegedDb.select({ organizationId: testPlans.organizationId }).from(testPlans).where(eq(testPlans.id, planId as string)).limit(1);
+  const [plan] = await privilegedDb
+    .select({ organizationId: testPlans.organizationId })
+    .from(testPlans)
+    .where(eq(testPlans.id, planId as string))
+    .limit(1);
   const [s] = await privilegedDb
     .insert(testPlanSchedules)
     .values({
@@ -88,7 +116,9 @@ describe('Scheduler Service', () => {
       expect(frequencyToCronPattern('daily', new Date('2023-01-01T10:30:00Z'))).toBe('30 10 * * *');
     });
     it('converts "weekly" to a cron pattern', () => {
-      expect(frequencyToCronPattern('weekly', new Date('2023-01-01T10:30:00Z'))).toBe('30 10 * * 0');
+      expect(frequencyToCronPattern('weekly', new Date('2023-01-01T10:30:00Z'))).toBe(
+        '30 10 * * 0',
+      );
     });
     it('returns null for "once"', () => {
       expect(frequencyToCronPattern('once', new Date())).toBeNull();
@@ -99,15 +129,18 @@ describe('Scheduler Service', () => {
     it('handles "every_X_minutes/hours/days"', () => {
       expect(frequencyToCronPattern('every_30_minutes', new Date())).toBe('*/30 * * * *');
       expect(frequencyToCronPattern('every_2_hours', new Date())).toBe('0 */2 * * *');
-      expect(frequencyToCronPattern('every_3_days', new Date('2023-01-01T08:15:00Z'))).toBe('0 8 */3 * *');
+      expect(frequencyToCronPattern('every_3_days', new Date('2023-01-01T08:15:00Z'))).toBe(
+        '0 8 */3 * *',
+      );
     });
 
     it('reads the wall-clock time in the schedule timezone, not in UTC', () => {
       // 01:30 UTC in January is 02:30 in Rome. A schedule the tester set to run at 02:30
       // has to produce 30 2, not 30 1 — otherwise the interface says one time and the
       // scheduler means another.
-      expect(frequencyToCronPattern('daily', new Date('2024-01-15T01:30:00Z'), 'Europe/Rome'))
-        .toBe('30 2 * * *');
+      expect(frequencyToCronPattern('daily', new Date('2024-01-15T01:30:00Z'), 'Europe/Rome')).toBe(
+        '30 2 * * *',
+      );
     });
 
     it('still reads UTC when no timezone is given, so existing schedules do not move', () => {
@@ -117,8 +150,9 @@ describe('Scheduler Service', () => {
     it('takes the weekday in the schedule timezone too', () => {
       // 23:00 UTC on Monday is already Tuesday in Rome. Deriving the weekday in UTC would
       // schedule a "weekly on Tuesday" run for Monday.
-      expect(frequencyToCronPattern('weekly', new Date('2024-01-15T23:00:00Z'), 'Europe/Rome'))
-        .toBe('0 0 * * 2');
+      expect(
+        frequencyToCronPattern('weekly', new Date('2024-01-15T23:00:00Z'), 'Europe/Rome'),
+      ).toBe('0 0 * * 2');
     });
   });
 
@@ -126,8 +160,7 @@ describe('Scheduler Service', () => {
     /** The wall-clock hour a moment falls on, as read in a given zone. */
     const hourIn = (date: Date, timeZone: string) =>
       Number(
-        new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hour12: false })
-          .format(date),
+        new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hour12: false }).format(date),
       );
 
     it('keeps a daily run at the same local hour on both sides of the change', () => {
@@ -162,7 +195,9 @@ describe('Scheduler Service', () => {
       await addScheduleJob(schedule);
 
       expect(scheduleSpy).toHaveBeenCalledTimes(1);
-      expect(scheduleSpy.mock.calls[0][0]).toBe(frequencyToCronPattern('daily', new Date(schedule.nextRunAt)));
+      expect(scheduleSpy.mock.calls[0][0]).toBe(
+        frequencyToCronPattern('daily', new Date(schedule.nextRunAt)),
+      );
     });
 
     it('does not schedule an inactive schedule', async () => {
@@ -211,7 +246,9 @@ describe('Scheduler Service', () => {
 
       expect(oldJob.stop).toHaveBeenCalledTimes(1);
       expect(scheduleSpy).toHaveBeenCalledTimes(2); // original add + re-add
-      expect(scheduleSpy.mock.calls[1][0]).toBe(frequencyToCronPattern('weekly', new Date(schedule.nextRunAt)));
+      expect(scheduleSpy.mock.calls[1][0]).toBe(
+        frequencyToCronPattern('weekly', new Date(schedule.nextRunAt)),
+      );
     });
 
     it('removes the job when updated to inactive', async () => {
@@ -248,7 +285,10 @@ describe('Scheduler Service', () => {
       await initializeScheduler();
 
       expect(scheduleSpy).not.toHaveBeenCalled();
-      const [row] = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, past.id));
+      const [row] = await privilegedDb
+        .select()
+        .from(testPlanSchedules)
+        .where(eq(testPlanSchedules.id, past.id));
       expect(row.isActive).toBe(false);
     });
   });
@@ -258,19 +298,25 @@ describe('the first run of a schedule being saved', () => {
   it("is the next weekday 09:00 in the schedule's zone for a CRON expression, not the moment it was sent", () => {
     // Monday 28/09/2026, 15:26 in Rome: today's 09:00 has passed, so Tuesday 09:00 CEST.
     const sent = new Date('2026-09-28T13:26:28Z');
-    expect(firstRunAt('cron:0 9 * * 1-5', sent, 'Europe/Rome', sent).toISOString()).toBe('2026-09-29T07:00:00.000Z');
+    expect(firstRunAt('cron:0 9 * * 1-5', sent, 'Europe/Rome', sent).toISOString()).toBe(
+      '2026-09-29T07:00:00.000Z',
+    );
   });
 
   it('skips the weekend', () => {
     // Friday 02/10/2026 after 09:00 in Rome: the next weekday is Monday 05/10.
     const sent = new Date('2026-10-02T10:00:00Z');
-    expect(firstRunAt('cron:0 9 * * 1-5', sent, 'Europe/Rome', sent).toISOString()).toBe('2026-10-05T07:00:00.000Z');
+    expect(firstRunAt('cron:0 9 * * 1-5', sent, 'Europe/Rome', sent).toISOString()).toBe(
+      '2026-10-05T07:00:00.000Z',
+    );
   });
 
   it('starts from a requested moment in the future rather than from now', () => {
     const now = new Date('2026-09-28T13:26:28Z');
     const requested = new Date('2026-10-05T00:00:00Z');
-    expect(firstRunAt('cron:0 9 * * 1-5', requested, 'Europe/Rome', now).toISOString()).toBe('2026-10-05T07:00:00.000Z');
+    expect(firstRunAt('cron:0 9 * * 1-5', requested, 'Europe/Rome', now).toISOString()).toBe(
+      '2026-10-05T07:00:00.000Z',
+    );
   });
 
   it('keeps the requested time for daily, weekly and monthly, which is where their time of day comes from', () => {
@@ -280,6 +326,8 @@ describe('the first run of a schedule being saved', () => {
   });
 
   it('refuses a CRON expression that cannot be parsed', () => {
-    expect(() => firstRunAt('cron:not a cron', new Date(), 'Europe/Rome')).toThrow(/Invalid CRON expression/);
+    expect(() => firstRunAt('cron:not a cron', new Date(), 'Europe/Rome')).toThrow(
+      /Invalid CRON expression/,
+    );
   });
 });

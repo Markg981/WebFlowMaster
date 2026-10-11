@@ -36,7 +36,11 @@ export interface WsEmitter {
 }
 
 /** A socket that has completed the authenticated upgrade handshake. */
-type AuthenticatedWebSocket = WebSocket & { organizationId: number; userId: number; samlSessionId?: string };
+type AuthenticatedWebSocket = WebSocket & {
+  organizationId: number;
+  userId: number;
+  samlSessionId?: string;
+};
 
 // Global emitter reference, set after setupWebSockets is called
 let globalWsEmitter: WsEmitter | null = null;
@@ -46,9 +50,11 @@ let globalWsEmitter: WsEmitter | null = null;
  * hasn't been initialized yet (safe to call during startup).
  */
 export function getWsEmitter(): WsEmitter {
-  return globalWsEmitter || {
-    emitExecutionLog: () => {} // no-op fallback
-  };
+  return (
+    globalWsEmitter || {
+      emitExecutionLog: () => {}, // no-op fallback
+    }
+  );
 }
 
 /** Runs one Express-style middleware against a raw (req, res) pair and awaits its `next()`. */
@@ -76,15 +82,23 @@ async function authenticateUpgrade(req: IncomingMessage): Promise<SelectUser | u
   await runMiddleware(passport.initialize(), req, res);
   await runMiddleware(passport.session(), req, res);
   const user = (req as any).user as SelectUser | undefined;
-  if (user && (req as any).session?.samlIdentity && !await isSamlSessionActive((req as any).sessionID, user.id, user.organizationId)) return undefined;
+  if (
+    user &&
+    (req as any).session?.samlIdentity &&
+    !(await isSamlSessionActive((req as any).sessionID, user.id, user.organizationId))
+  )
+    return undefined;
   return user;
 }
 
 async function socketSamlSessionActive(client: AuthenticatedWebSocket): Promise<boolean> {
   if (!client.samlSessionId) return true;
   try {
-    if (await isSamlSessionActive(client.samlSessionId, client.userId, client.organizationId)) return true;
-  } catch { /* A failed registry check never authorizes live data. */ }
+    if (await isSamlSessionActive(client.samlSessionId, client.userId, client.organizationId))
+      return true;
+  } catch {
+    /* A failed registry check never authorizes live data. */
+  }
   client.close(1008, 'Session ended');
   return false;
 }
@@ -99,7 +113,10 @@ async function socketSamlSessionActive(client: AuthenticatedWebSocket): Promise<
  * Both "no such execution" and "exists, but someone else's" therefore produce the same
  * `false`, which is what keeps the subscribe response from being an existence oracle.
  */
-async function isExecutionInOrganization(executionId: string, organizationId: number): Promise<boolean> {
+async function isExecutionInOrganization(
+  executionId: string,
+  organizationId: number,
+): Promise<boolean> {
   return runWithTenant(organizationId, () =>
     withTenantTransaction(async (tx) => {
       const [row] = await tx
@@ -175,7 +192,10 @@ export function persistExecutionLog(executionId: string, logEntry: ExecutionLogE
     });
   })().catch(async (err) => {
     // Don't let DB errors break log streaming
-    (await loggerPromise).error('Failed to persist execution log', { executionId, error: (err as Error).message });
+    (await loggerPromise).error('Failed to persist execution log', {
+      executionId,
+      error: (err as Error).message,
+    });
   });
 }
 
@@ -194,9 +214,11 @@ export function installWorkerLogEmitter(): WsEmitter {
   const emitter: WsEmitter = {
     emitExecutionLog(executionId, logEntry) {
       persistExecutionLog(executionId, logEntry);
-      connection.publish(EXECUTION_LOG_CHANNEL, JSON.stringify({ executionId, logEntry })).catch(() => {
-        // Live streaming is a convenience; the stored log is the record.
-      });
+      connection
+        .publish(EXECUTION_LOG_CHANNEL, JSON.stringify({ executionId, logEntry }))
+        .catch(() => {
+          // Live streaming is a convenience; the stored log is the record.
+        });
     },
   };
   globalWsEmitter = emitter;
@@ -220,9 +242,10 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
       if (client.readyState === WebSocket.OPEN) {
         const authenticated = client as AuthenticatedWebSocket;
         if (!authenticated.samlSessionId) client.send(payload);
-        else void socketSamlSessionActive(authenticated).then(active => {
-          if (active && client.readyState === WebSocket.OPEN) client.send(payload);
-        });
+        else
+          void socketSamlSessionActive(authenticated).then((active) => {
+            if (active && client.readyState === WebSocket.OPEN) client.send(payload);
+          });
       }
     }
   }
@@ -268,12 +291,15 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
     authedWs.userId = user.id;
     if ((req as any).session?.samlIdentity) authedWs.samlSessionId = (req as any).sessionID;
 
-    logger.info('WebSocket client connected', { userId: user.id, organizationId: user.organizationId });
+    logger.info('WebSocket client connected', {
+      userId: user.id,
+      organizationId: user.organizationId,
+    });
 
     authedWs.on('message', (raw) => {
       void (async () => {
         try {
-          if (!await socketSamlSessionActive(authedWs)) return;
+          if (!(await socketSamlSessionActive(authedWs))) return;
           const msg = JSON.parse(raw.toString());
 
           // Client subscribes to a specific execution's logs. Refused (not added to the room)
@@ -284,8 +310,16 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
             if (!authorized) {
               // Same response for "no such execution" and "exists, but not yours" — see
               // isExecutionInOrganization's doc comment.
-              authedWs.send(JSON.stringify({ type: 'subscribe-error', executionId: execId, error: 'Not found' }));
-              logger.debug(`Subscribe refused for execution ${execId}: not visible to this organization`);
+              authedWs.send(
+                JSON.stringify({
+                  type: 'subscribe-error',
+                  executionId: execId,
+                  error: 'Not found',
+                }),
+              );
+              logger.debug(
+                `Subscribe refused for execution ${execId}: not visible to this organization`,
+              );
               return;
             }
 
@@ -331,7 +365,10 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
       const job = await Job.fromId(testExecutionQueue, jobId);
       return (job?.data as { testPlanRunId?: string } | undefined)?.testPlanRunId;
     } catch (err) {
-      logger.error('Failed to resolve execution id for queue job', { jobId, error: (err as Error).message });
+      logger.error('Failed to resolve execution id for queue job', {
+        jobId,
+        error: (err as Error).message,
+      });
       return undefined;
     }
   }
@@ -340,7 +377,11 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
     void (async () => {
       const executionId = await resolveExecutionIdForJob(jobId);
       if (!executionId) return;
-      broadcastToExecution(executionId, { type: 'job-active', jobId, log: `[SYSTEM] Job ${jobId} is active and running.` });
+      broadcastToExecution(executionId, {
+        type: 'job-active',
+        jobId,
+        log: `[SYSTEM] Job ${jobId} is active and running.`,
+      });
     })();
   });
 
@@ -348,17 +389,28 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
     void (async () => {
       const executionId = await resolveExecutionIdForJob(jobId);
       if (!executionId) return;
-      broadcastToExecution(executionId, { type: 'job-completed', jobId, log: `[SYSTEM] Job ${jobId} PASSED successfully.` });
+      broadcastToExecution(executionId, {
+        type: 'job-completed',
+        jobId,
+        log: `[SYSTEM] Job ${jobId} PASSED successfully.`,
+      });
     })();
   });
 
-  queueEvents.on('failed', ({ jobId, failedReason }: { jobId: string | undefined; failedReason: string }) => {
-    void (async () => {
-      const executionId = await resolveExecutionIdForJob(jobId);
-      if (!executionId) return;
-      broadcastToExecution(executionId, { type: 'job-failed', jobId, log: `[SYSTEM] Job ${jobId} FAILED: ${failedReason}` });
-    })();
-  });
+  queueEvents.on(
+    'failed',
+    ({ jobId, failedReason }: { jobId: string | undefined; failedReason: string }) => {
+      void (async () => {
+        const executionId = await resolveExecutionIdForJob(jobId);
+        if (!executionId) return;
+        broadcastToExecution(executionId, {
+          type: 'job-failed',
+          jobId,
+          log: `[SYSTEM] Job ${jobId} FAILED: ${failedReason}`,
+        });
+      })();
+    },
+  );
 
   queueEvents.on('progress', ({ jobId, data }: { jobId: string; data: any }) => {
     void (async () => {
@@ -375,7 +427,10 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
   logSubscriber.on('message', (channel: string, raw: string) => {
     if (channel !== EXECUTION_LOG_CHANNEL) return;
     try {
-      const { executionId, logEntry } = JSON.parse(raw) as { executionId: string; logEntry: ExecutionLogEntry };
+      const { executionId, logEntry } = JSON.parse(raw) as {
+        executionId: string;
+        logEntry: ExecutionLogEntry;
+      };
       if (!executionId || !logEntry) return;
       broadcastLog(executionId, logEntry);
     } catch {
@@ -409,7 +464,7 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
 
       // 2. Send to subscribed WebSocket clients
       broadcastLog(executionId, logEntry);
-    }
+    },
   };
 
   // Set global reference

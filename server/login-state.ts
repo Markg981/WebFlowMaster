@@ -35,10 +35,7 @@ export interface EnvironmentScope {
   organizationId: number;
 }
 
-export async function saveLoginState(
-  scope: EnvironmentScope,
-  state: LoginState,
-): Promise<void> {
+export async function saveLoginState(scope: EnvironmentScope, state: LoginState): Promise<void> {
   const { encryptedValue, iv, authTag } = encryptSecret(JSON.stringify(state));
 
   await privilegedDb
@@ -60,9 +57,7 @@ export async function saveLoginState(
 }
 
 /** The saved session for this environment, or undefined when there is none to reuse. */
-export async function loadLoginState(
-  scope: EnvironmentScope,
-): Promise<LoginState | undefined> {
+export async function loadLoginState(scope: EnvironmentScope): Promise<LoginState | undefined> {
   const [row] = await privilegedDb
     .select()
     .from(environments)

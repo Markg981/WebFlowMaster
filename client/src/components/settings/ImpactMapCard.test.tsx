@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ImpactMapCard from './ImpactMapCard';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_key: string, fallback?: any) => (typeof fallback === 'string' ? fallback : _key) }),
+  useTranslation: () => ({
+    t: (_key: string, fallback?: any) => (typeof fallback === 'string' ? fallback : _key),
+  }),
 }));
 let role = 'editor';
 vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { role } }) }));
@@ -28,12 +30,17 @@ beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
     if (url === '/api/impact-rules' && !init?.method) {
-      return { ok: true, status: 200, json: async () => [
-        { id: 'r1', pattern: 'src/checkout/**', tagId: 't1', tagName: 'checkout' },
-        { id: 'r2', pattern: 'docs/**', tagId: null, tagName: null },
-      ] };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => [
+          { id: 'r1', pattern: 'src/checkout/**', tagId: 't1', tagName: 'checkout' },
+          { id: 'r2', pattern: 'docs/**', tagId: null, tagName: null },
+        ],
+      };
     }
-    if (url === '/api/tags') return { ok: true, status: 200, json: async () => [{ id: 't1', name: 'checkout' }] };
+    if (url === '/api/tags')
+      return { ok: true, status: 200, json: async () => [{ id: 't1', name: 'checkout' }] };
     if (url === '/api/test-plans') return { ok: true, status: 200, json: async () => [] };
     if (url === '/api/impact-rules/r1') return { ok: true, status: 204, json: async () => ({}) };
     return { ok: true, status: 200, json: async () => ({}) };
@@ -48,7 +55,12 @@ describe('ImpactMapCard', () => {
     expect(screen.getByText('checkout')).toBeTruthy();
     expect(screen.getByText('no test')).toBeTruthy();
     fireEvent.click(screen.getAllByLabelText('Remove rule')[0]);
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/impact-rules/r1', expect.objectContaining({ method: 'DELETE' })));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/impact-rules/r1',
+        expect.objectContaining({ method: 'DELETE' }),
+      ),
+    );
   });
 
   it('lets a viewer read and try the map, not change it', async () => {

@@ -113,10 +113,10 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Formatting is available via `npm run format` but not yet enforced as a gate,
-      # since the pre-existing codebase has not been Prettier-formatted in bulk.
-      # - name: Format check
-      #   run: npm run format:check
+      # `npm run format` fixes what this reports. The whole tree was formatted in one commit,
+      # listed in .git-blame-ignore-revs so `git blame` skips it.
+      - name: Format check
+        run: npm run format:check
 
   server-tests:
     runs-on: ubuntu-latest

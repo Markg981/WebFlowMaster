@@ -8,13 +8,13 @@ named here is described in the [configuration reference](./configuration).
 
 WebFlowMaster is two programs built from one codebase, and two stores they share.
 
-| Part | Command | What it does |
-|---|---|---|
-| Web process | `node dist/index.js` | The API, the web client, schedules, the local-agent relay, live logs, recording. |
-| Worker | `node dist/worker.js` | Runs test plans and the browser tasks people wait for (previews, page loads, element detection). |
-| PostgreSQL 15+ | | Everything the product knows. Row-level security isolates organizations. |
-| Redis 6.2+ or Valkey | | The run queues, sessions and schedules. |
-| Artifact store (optional) | | Screenshots, videos, traces and visual baselines, on the local disk or in an S3 bucket. |
+| Part                      | Command               | What it does                                                                                     |
+| ------------------------- | --------------------- | ------------------------------------------------------------------------------------------------ |
+| Web process               | `node dist/index.js`  | The API, the web client, schedules, the local-agent relay, live logs, recording.                 |
+| Worker                    | `node dist/worker.js` | Runs test plans and the browser tasks people wait for (previews, page loads, element detection). |
+| PostgreSQL 15+            |                       | Everything the product knows. Row-level security isolates organizations.                         |
+| Redis 6.2+ or Valkey      |                       | The run queues, sessions and schedules.                                                          |
+| Artifact store (optional) |                       | Screenshots, videos, traces and visual baselines, on the local disk or in an S3 bucket.          |
 
 The web process never starts a browser for a plan run; the workers do, and there can be as many
 as the load needs. How the parts talk to each other is in the
@@ -22,11 +22,11 @@ as the load needs. How the parts talk to each other is in the
 
 ## Choose a layout
 
-| Layout | Use it for | Database | Artifacts | Workers |
-|---|---|---|---|---|
-| **Single machine, from source** | Development, evaluation | PGlite (a directory) | Local disk | One, or none with `BROWSER_TASKS=inline` |
-| **Docker Compose** | A team server, a pilot | PostgreSQL container | Local disk or S3 | Scale with `--scale worker=N` |
-| **Production** | Several teams, uptime | Managed PostgreSQL | S3-compatible bucket | Several, on their own machines |
+| Layout                          | Use it for              | Database             | Artifacts            | Workers                                  |
+| ------------------------------- | ----------------------- | -------------------- | -------------------- | ---------------------------------------- |
+| **Single machine, from source** | Development, evaluation | PGlite (a directory) | Local disk           | One, or none with `BROWSER_TASKS=inline` |
+| **Docker Compose**              | A team server, a pilot  | PostgreSQL container | Local disk or S3     | Scale with `--scale worker=N`            |
+| **Production**                  | Several teams, uptime   | Managed PostgreSQL   | S3-compatible bucket | Several, on their own machines           |
 
 PGlite is Postgres compiled to WebAssembly and stored in a directory: convenient on a laptop, not
 meant for production. Row-level security is only enforced as designed on a real PostgreSQL
@@ -86,7 +86,7 @@ It is meant for a first look on one machine. Before the stack is reachable by an
 4. With more than one worker, or workers on other machines, use `ARTIFACT_STORE=s3`: each
    container has its own disk, and the web process cannot serve a screenshot a worker wrote
    into its own.
-:::
+   :::
 
 ## Option 2: from source
 
@@ -130,10 +130,10 @@ applies to. What they cannot do is give the connecting role the rights that only
 can grant. At startup the web process checks three conditions and refuses to boot, naming the
 command to run, if one is false:
 
-| Condition | Why | Fix |
-|---|---|---|
-| The `app_user` role exists | Every query of an organization runs as it | Run the migrations |
-| The connecting role is a member of `app_user` | It switches to it with `SET LOCAL ROLE` | `GRANT app_user TO <role>;` |
+| Condition                                                                      | Why                                                                           | Fix                                             |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | ----------------------------------------------- |
+| The `app_user` role exists                                                     | Every query of an organization runs as it                                     | Run the migrations                              |
+| The connecting role is a member of `app_user`                                  | It switches to it with `SET LOCAL ROLE`                                       | `GRANT app_user TO <role>;`                     |
 | The connecting role is a superuser or has `BYPASSRLS`, and `app_user` does not | The few installation-wide queries must see every row; tenant queries must not | `ALTER ROLE <role> BYPASSRLS;` (as a superuser) |
 
 Some managed PostgreSQL services do not let customers grant `BYPASSRLS`; check that yours does
@@ -163,11 +163,11 @@ Three values protect the installation. Generate each one separately:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-| Variable | Protects | If it changes | If it leaks |
-|---|---|---|---|
-| `SESSION_SECRET` | Session cookies (and agent tickets, unless `AGENT_RELAY_SECRET` is set) | Everyone is signed out | Sessions can be forged: replace it |
-| `ENCRYPTION_KEY` | Environment secrets, tracker and source-host tokens, saved login states, second-factor secrets | **Everything encrypted with it becomes unreadable** | Those secrets are exposed: rotate them at their source |
-| `AGENT_RELAY_SECRET` | Tickets that let a runner borrow a local agent's browser | Runs on agents fail until every process has the new value | Anyone who can reach the relay could borrow agents' browsers |
+| Variable             | Protects                                                                                       | If it changes                                             | If it leaks                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------ |
+| `SESSION_SECRET`     | Session cookies (and agent tickets, unless `AGENT_RELAY_SECRET` is set)                        | Everyone is signed out                                    | Sessions can be forged: replace it                           |
+| `ENCRYPTION_KEY`     | Environment secrets, tracker and source-host tokens, saved login states, second-factor secrets | **Everything encrypted with it becomes unreadable**       | Those secrets are exposed: rotate them at their source       |
+| `AGENT_RELAY_SECRET` | Tickets that let a runner borrow a local agent's browser                                       | Runs on agents fail until every process has the new value | Anyone who can reach the relay could borrow agents' browsers |
 
 `ENCRYPTION_KEY` has no rotation procedure: keep it in a secret manager, give the same value to
 the web process, every worker and the migrator, and back it up separately from the database.
@@ -251,10 +251,10 @@ Open the web address and choose **Register**. The first account on the installat
 first organization and becomes its owner. After that, who may register depends on
 `REGISTRATION`:
 
-| `REGISTRATION` | Without an invitation | With an invitation |
-|---|---|---|
-| `invitation` (default) | Refused, except for the installation's first account | Joins the inviting organization |
-| `open` | Anyone who reaches the server gets an organization of their own | Joins the inviting organization |
+| `REGISTRATION`         | Without an invitation                                           | With an invitation              |
+| ---------------------- | --------------------------------------------------------------- | ------------------------------- |
+| `invitation` (default) | Refused, except for the installation's first account            | Joins the inviting organization |
+| `open`                 | Anyone who reaches the server gets an organization of their own | Joins the inviting organization |
 
 Keep the default for an installation that serves one company, and invite people from
 **Settings → Members** (see [Members and invitations](./administration#members-and-invitations)).
@@ -268,13 +268,13 @@ reachable by others.
 
 ## Check the installation
 
-| Check | How |
-|---|---|
-| The web process is up | `GET /api/user` answers `401` when signed out (the container healthcheck uses it). |
-| Workers are running | **Settings → Runners** lists them as *online*. |
-| A run works end to end | Create a test against a public page, add it to a plan, run it. |
-| Evidence is served | The run's report shows its screenshots. |
-| Links work | A notification or commit status links to the run at the public address. |
+| Check                  | How                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| The web process is up  | `GET /api/user` answers `401` when signed out (the container healthcheck uses it). |
+| Workers are running    | **Settings → Runners** lists them as _online_.                                     |
+| A run works end to end | Create a test against a public page, add it to a plan, run it.                     |
+| Evidence is served     | The run's report shows its screenshots.                                            |
+| Links work             | A notification or commit status links to the run at the public address.            |
 
 Next: [Operations](./operations) covers upgrades, backups, logs and troubleshooting.
 

@@ -10,7 +10,12 @@ import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -59,7 +64,9 @@ beforeEach(async () => {
 
   planId = uuidv4();
   executionId = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Artifacts Plan', userId, organizationId });
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Artifacts Plan', userId, organizationId });
   await privilegedDb.insert(testPlanExecutions).values({
     id: executionId,
     organizationId,
@@ -71,7 +78,10 @@ beforeEach(async () => {
 
   runDir = path.resolve(process.cwd(), 'results', planId, executionId, 'ui_1_chromium');
   await fs.ensureDir(runDir);
-  await fs.writeFile(path.join(runDir, 'visual_chromium_step_000_diff.png'), Buffer.from('diff-image-bytes'));
+  await fs.writeFile(
+    path.join(runDir, 'visual_chromium_step_000_diff.png'),
+    Buffer.from('diff-image-bytes'),
+  );
 });
 
 afterEach(async () => {
@@ -81,9 +91,11 @@ afterEach(async () => {
 });
 
 describe('GET /api/test-plan-executions/:executionId/artifacts/*', () => {
-  it("serves a file the run wrote", async () => {
+  it('serves a file the run wrote', async () => {
     const response = await request(app)
-      .get(`/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/visual_chromium_step_000_diff.png`)
+      .get(
+        `/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/visual_chromium_step_000_diff.png`,
+      )
       .expect(200);
 
     expect(response.body.toString()).toBe('diff-image-bytes');
@@ -93,13 +105,17 @@ describe('GET /api/test-plan-executions/:executionId/artifacts/*', () => {
     currentUser = { id: otherUserId, organizationId: otherOrganizationId, role: 'editor' };
 
     await request(app)
-      .get(`/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/visual_chromium_step_000_diff.png`)
+      .get(
+        `/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/visual_chromium_step_000_diff.png`,
+      )
       .expect(404);
   });
 
   it('refuses a path that climbs out of the run directory', async () => {
     await request(app)
-      .get(`/api/test-plan-executions/${executionId}/artifacts/${encodeURIComponent('../../../package.json')}`)
+      .get(
+        `/api/test-plan-executions/${executionId}/artifacts/${encodeURIComponent('../../../package.json')}`,
+      )
       .expect(400);
   });
 
@@ -122,7 +138,10 @@ describe('serving from a bucket', () => {
     const client = fakeS3();
     const store = createS3ArtifactStore({ client, bucket: 'evidence' });
     setArtifactStoreForTest(store);
-    await store.write(`results/${planId}/${executionId}/ui_1_chromium/row_1/video.webm`, Buffer.from('webm-bytes'));
+    await store.write(
+      `results/${planId}/${executionId}/ui_1_chromium/row_1/video.webm`,
+      Buffer.from('webm-bytes'),
+    );
 
     const response = await request(app)
       .get(`/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/row_1/video.webm`)
@@ -137,7 +156,9 @@ describe('serving from a bucket', () => {
     expect(response.headers['content-type']).toBe('video/webm');
     expect((response.body as Buffer).toString()).toBe('webm-bytes');
     // The file on this machine's disk is not what answered.
-    expect(client.commands).toContain(`get evidence/results/${planId}/${executionId}/ui_1_chromium/row_1/video.webm`);
+    expect(client.commands).toContain(
+      `get evidence/results/${planId}/${executionId}/ui_1_chromium/row_1/video.webm`,
+    );
   });
 
   it('404s on an object the bucket does not have, and still refuses a climbing path', async () => {
@@ -146,9 +167,13 @@ describe('serving from a bucket', () => {
     const client = fakeS3();
     setArtifactStoreForTest(createS3ArtifactStore({ client, bucket: 'evidence' }));
 
-    await request(app).get(`/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/nothing.png`).expect(404);
     await request(app)
-      .get(`/api/test-plan-executions/${executionId}/artifacts/${encodeURIComponent('../other-exec/secret.png')}`)
+      .get(`/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/nothing.png`)
+      .expect(404);
+    await request(app)
+      .get(
+        `/api/test-plan-executions/${executionId}/artifacts/${encodeURIComponent('../other-exec/secret.png')}`,
+      )
       .expect(400);
     expect(client.commands.filter((c) => c.includes('other-exec'))).toEqual([]);
   });
@@ -157,12 +182,18 @@ describe('serving from a bucket', () => {
     const { createS3ArtifactStore, setArtifactStoreForTest } = await import('../artifact-store');
     setArtifactStoreForTest(
       createS3ArtifactStore({
-        client: { send: async () => { throw Object.assign(new Error('connect ETIMEDOUT'), { name: 'TimeoutError' }); } },
+        client: {
+          send: async () => {
+            throw Object.assign(new Error('connect ETIMEDOUT'), { name: 'TimeoutError' });
+          },
+        },
         bucket: 'evidence',
       }),
     );
 
-    await request(app).get(`/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/a.png`).expect(502);
+    await request(app)
+      .get(`/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/a.png`)
+      .expect(502);
   });
 });
 
@@ -215,8 +246,12 @@ describe('stepsWithArtifactUrls', () => {
 
     expect(steps).toHaveLength(1);
     expect(steps[0].status).toBe('failed');
-    expect(steps[0].screenshot).toBe('/api/test-plan-executions/exec-1/artifacts/ui_5/step_click.png');
-    expect(steps[0].visual?.diffImage).toBe('/api/test-plan-executions/exec-1/artifacts/ui_5/visual_step_000_diff.png');
+    expect(steps[0].screenshot).toBe(
+      '/api/test-plan-executions/exec-1/artifacts/ui_5/step_click.png',
+    );
+    expect(steps[0].visual?.diffImage).toBe(
+      '/api/test-plan-executions/exec-1/artifacts/ui_5/visual_step_000_diff.png',
+    );
     expect(steps[0].visual?.diffRatio).toBeCloseTo(0.042);
   });
 

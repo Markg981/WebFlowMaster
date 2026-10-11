@@ -21,12 +21,23 @@ vi.mock('./playwright-service', () => ({
 }));
 
 const { privilegedDb } = await import('./db');
-const { reportTestCaseResults, testPlanExecutions, testPlanSelectedTests, testPlans, tests: testsTable, users } = await import('@shared/schema');
+const {
+  reportTestCaseResults,
+  testPlanExecutions,
+  testPlanSelectedTests,
+  testPlans,
+  tests: testsTable,
+  users,
+} = await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
 const { processTestPlanJob } = await import('./test-execution-service');
 const { requestCancellation } = await import('./execution-state');
 
-const passed = { success: true, steps: [{ name: 'Click', type: 'click', status: 'passed' }], duration: 5 };
+const passed = {
+  success: true,
+  steps: [{ name: 'Click', type: 'click', status: 'passed' }],
+  duration: 5,
+};
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let organizationId: number;
@@ -37,23 +48,46 @@ let executionId: string;
 
 async function seed(testCount = 3) {
   planId = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Control', userId, organizationId } as any);
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Control', userId, organizationId } as any);
   testIds = [];
   for (let i = 1; i <= testCount; i++) {
     const [test] = await privilegedDb
       .insert(testsTable)
-      .values({ userId, organizationId, name: `Test ${i}`, url: `https://example.test/${i}`, sequence: [], elements: [] })
+      .values({
+        userId,
+        organizationId,
+        name: `Test ${i}`,
+        url: `https://example.test/${i}`,
+        sequence: [],
+        elements: [],
+      })
       .returning();
     testIds.push(test.id);
-    await privilegedDb.insert(testPlanSelectedTests).values({ testPlanId: planId, testType: 'ui', testId: test.id, organizationId } as any);
+    await privilegedDb
+      .insert(testPlanSelectedTests)
+      .values({ testPlanId: planId, testType: 'ui', testId: test.id, organizationId } as any);
   }
   executionId = uuidv4();
-  await privilegedDb.insert(testPlanExecutions).values({ id: executionId, organizationId, testPlanId: planId, status: 'queued', triggeredBy: 'manual' } as any);
+  await privilegedDb.insert(testPlanExecutions).values({
+    id: executionId,
+    organizationId,
+    testPlanId: planId,
+    status: 'queued',
+    triggeredBy: 'manual',
+  } as any);
 }
 
 async function outcome() {
-  const [execution] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
-  const results = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.testPlanExecutionId, executionId));
+  const [execution] = await privilegedDb
+    .select()
+    .from(testPlanExecutions)
+    .where(eq(testPlanExecutions.id, executionId));
+  const results = await privilegedDb
+    .select()
+    .from(reportTestCaseResults)
+    .where(eq(reportTestCaseResults.testPlanExecutionId, executionId));
   const byTest = (index: number) => results.find((row) => row.uiTestId === testIds[index]);
   return { execution, results, byTest };
 }
@@ -94,9 +128,17 @@ describe('cancelling a run while it runs', () => {
 
     const { execution, byTest } = await outcome();
     expect(executeTestSequence).toHaveBeenCalledTimes(1);
-    expect(execution).toMatchObject({ status: 'cancelled', failureMessage: 'Cancelled by ada.', skippedTests: 2 });
+    expect(execution).toMatchObject({
+      status: 'cancelled',
+      failureMessage: 'Cancelled by ada.',
+      skippedTests: 2,
+    });
     expect(execution.completedAt).not.toBeNull();
-    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual(['Passed', 'Skipped', 'Skipped']);
+    expect([byTest(0)?.status, byTest(1)?.status, byTest(2)?.status]).toEqual([
+      'Passed',
+      'Skipped',
+      'Skipped',
+    ]);
     expect(byTest(1)?.reasonForFailure).toMatch(/cancelled/);
   });
 
@@ -141,7 +183,10 @@ describe('the heartbeat', () => {
     let heartbeatDuringRun: Date | null = null;
     executeTestSequence.mockImplementationOnce(async () => {
       await wait(150);
-      const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
+      const [row] = await privilegedDb
+        .select()
+        .from(testPlanExecutions)
+        .where(eq(testPlanExecutions.id, executionId));
       heartbeatDuringRun = row.heartbeatAt;
       return passed;
     });

@@ -4,7 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,18 +32,24 @@ import {
   TIMEZONE_SUGGESTIONS,
 } from '@/lib/schemas/scheduleFormSchema';
 import type { CreateScheduleClientPayload, TestPlanScheduleEnhanced } from '@/lib/api/schedules';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import ScheduleEnvironmentSelect from './ScheduleEnvironmentSelect';
-
 
 interface ScheduleFormProps {
   initialData?: Partial<TestPlanScheduleEnhanced>; // For editing
-  onSubmit: (data: CreateScheduleClientPayload | Partial<CreateScheduleClientPayload>) => Promise<void>;
+  onSubmit: (
+    data: CreateScheduleClientPayload | Partial<CreateScheduleClientPayload>,
+  ) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
 }
 
-const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
+const ScheduleForm: React.FC<ScheduleFormProps> = ({
+  initialData,
+  onSubmit,
+  onCancel,
+  isSubmitting,
+}) => {
   const isEditMode = Boolean(initialData && initialData.id);
 
   const transformedInitialData = useMemo(() => {
@@ -107,7 +119,9 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
       <div>
         <Label htmlFor="scheduleName">Schedule Name</Label>
         <Input id="scheduleName" {...register('scheduleName')} />
-        {errors.scheduleName && <p className="text-sm text-destructive mt-1">{errors.scheduleName.message}</p>}
+        {errors.scheduleName && (
+          <p className="text-sm text-destructive mt-1">{errors.scheduleName.message}</p>
+        )}
       </div>
 
       <div>
@@ -116,13 +130,19 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
           name="testPlanId"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingTestPlans}>
+            <Select
+              onValueChange={field.onChange}
+              value={field.value}
+              disabled={isLoadingTestPlans}
+            >
               <SelectTrigger id="testPlanId">
                 <SelectValue placeholder="Select a test plan..." />
               </SelectTrigger>
               <SelectContent>
                 {isLoadingTestPlans ? (
-                  <SelectItem value="loading" disabled>Loading test plans...</SelectItem>
+                  <SelectItem value="loading" disabled>
+                    Loading test plans...
+                  </SelectItem>
                 ) : (
                   testPlans?.map((plan) => (
                     <SelectItem key={plan.id} value={plan.id}>
@@ -134,7 +154,9 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
             </Select>
           )}
         />
-        {errors.testPlanId && <p className="text-sm text-destructive mt-1">{errors.testPlanId.message}</p>}
+        {errors.testPlanId && (
+          <p className="text-sm text-destructive mt-1">{errors.testPlanId.message}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -158,31 +180,39 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
               </Select>
             )}
           />
-          {errors.frequency && <p className="text-sm text-destructive mt-1">{errors.frequency.message}</p>}
+          {errors.frequency && (
+            <p className="text-sm text-destructive mt-1">{errors.frequency.message}</p>
+          )}
         </div>
 
         {watchedFrequency === 'custom_cron' && (
           <div>
-            <Label htmlFor="customCronExpression">CRON Expression
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" type="button" className="ml-1 h-5 w-5">
-                                <InfoCircledIcon className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="w-60">
-                            <p className="text-xs">
-                                Uses standard CRON format (minute, hour, day of month, month, day of week).
-                                Example: "0 2 * * *" for 2 AM daily.
-                                Evaluated in the timezone selected below.
-                            </p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+            <Label htmlFor="customCronExpression">
+              CRON Expression
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" type="button" className="ml-1 h-5 w-5">
+                      <InfoCircledIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="w-60">
+                    <p className="text-xs">
+                      Uses standard CRON format (minute, hour, day of month, month, day of week).
+                      Example: "0 2 * * *" for 2 AM daily. Evaluated in the timezone selected below.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </Label>
-            <Input id="customCronExpression" {...register('customCronExpression')} placeholder="e.g., 0 0 * * *" />
-            {errors.customCronExpression && <p className="text-sm text-destructive mt-1">{errors.customCronExpression.message}</p>}
+            <Input
+              id="customCronExpression"
+              {...register('customCronExpression')}
+              placeholder="e.g., 0 0 * * *"
+            />
+            {errors.customCronExpression && (
+              <p className="text-sm text-destructive mt-1">{errors.customCronExpression.message}</p>
+            )}
           </div>
         )}
       </div>
@@ -205,7 +235,9 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
         <p className="text-xs text-muted-foreground mt-1">
           The schedule runs at this local time all year — daylight saving included.
         </p>
-        {errors.timezone && <p className="text-sm text-destructive mt-1">{errors.timezone.message}</p>}
+        {errors.timezone && (
+          <p className="text-sm text-destructive mt-1">{errors.timezone.message}</p>
+        )}
       </div>
 
       <div>
@@ -222,11 +254,15 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
                   variant="outline"
                   className={cn(
                     'w-full justify-start text-left font-normal',
-                    !field.value && 'text-muted-foreground'
+                    !field.value && 'text-muted-foreground',
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {field.value ? format(field.value, 'PPP HH:mm') : <span>Pick a date and time</span>}
+                  {field.value ? (
+                    format(field.value, 'PPP HH:mm')
+                  ) : (
+                    <span>Pick a date and time</span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
@@ -245,29 +281,31 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
                   initialFocus
                 />
                 <div className="p-3 border-t border-border">
-                    <Label htmlFor="time">Time</Label>
-                    <Input
-                        type="time"
-                        id="time"
-                        value={field.value ? format(field.value, 'HH:mm') : ''}
-                        onChange={(e) => {
-                            const newTime = e.target.value;
-                            const [hours, minutes] = newTime.split(':').map(Number);
-                            const newDate = field.value ? new Date(field.value) : new Date();
-                            // Local, matching the calendar above and the Timezone field.
-                            // This used to set UTC hours while the calendar set local ones,
-                            // so picking a date and then a time moved the date.
-                            newDate.setHours(hours);
-                            newDate.setMinutes(minutes);
-                            field.onChange(newDate);
-                        }}
-                    />
+                  <Label htmlFor="time">Time</Label>
+                  <Input
+                    type="time"
+                    id="time"
+                    value={field.value ? format(field.value, 'HH:mm') : ''}
+                    onChange={(e) => {
+                      const newTime = e.target.value;
+                      const [hours, minutes] = newTime.split(':').map(Number);
+                      const newDate = field.value ? new Date(field.value) : new Date();
+                      // Local, matching the calendar above and the Timezone field.
+                      // This used to set UTC hours while the calendar set local ones,
+                      // so picking a date and then a time moved the date.
+                      newDate.setHours(hours);
+                      newDate.setMinutes(minutes);
+                      field.onChange(newDate);
+                    }}
+                  />
                 </div>
               </PopoverContent>
             </Popover>
           )}
         />
-        {errors.nextRunAt && <p className="text-sm text-destructive mt-1">{errors.nextRunAt.message}</p>}
+        {errors.nextRunAt && (
+          <p className="text-sm text-destructive mt-1">{errors.nextRunAt.message}</p>
+        )}
       </div>
 
       <div>
@@ -275,39 +313,47 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
         <Controller
           name="environment"
           control={control}
-          render={({ field }) => <ScheduleEnvironmentSelect value={field.value} onChange={field.onChange} />}
+          render={({ field }) => (
+            <ScheduleEnvironmentSelect value={field.value} onChange={field.onChange} />
+          )}
         />
-        {errors.environment && <p className="text-sm text-destructive mt-1">{errors.environment.message}</p>}
+        {errors.environment && (
+          <p className="text-sm text-destructive mt-1">{errors.environment.message}</p>
+        )}
       </div>
 
       <div>
         <Label>Browsers</Label>
         <Controller
-            name="browsers"
-            control={control}
-            render={({ field }) => (
-                <div className="space-y-2 mt-1">
-                    {BROWSER_OPTIONS.map((option) => (
-                        <div key={option.value} className="flex items-center space-x-2">
-                            <Checkbox
-                                id={`browser-${option.value}`}
-                                checked={field.value?.includes(option.value) || false}
-                                onCheckedChange={(checked) => {
-                                    const currentBrowsers = field.value || [];
-                                    if (checked) {
-                                        field.onChange([...currentBrowsers, option.value]);
-                                    } else {
-                                        field.onChange(currentBrowsers.filter(b => b !== option.value));
-                                    }
-                                }}
-                            />
-                            <Label htmlFor={`browser-${option.value}`} className="font-normal">{option.label}</Label>
-                        </div>
-                    ))}
+          name="browsers"
+          control={control}
+          render={({ field }) => (
+            <div className="space-y-2 mt-1">
+              {BROWSER_OPTIONS.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`browser-${option.value}`}
+                    checked={field.value?.includes(option.value) || false}
+                    onCheckedChange={(checked) => {
+                      const currentBrowsers = field.value || [];
+                      if (checked) {
+                        field.onChange([...currentBrowsers, option.value]);
+                      } else {
+                        field.onChange(currentBrowsers.filter((b) => b !== option.value));
+                      }
+                    }}
+                  />
+                  <Label htmlFor={`browser-${option.value}`} className="font-normal">
+                    {option.label}
+                  </Label>
                 </div>
-            )}
+              ))}
+            </div>
+          )}
         />
-        {errors.browsers && <p className="text-sm text-destructive mt-1">{errors.browsers.message}</p>}
+        {errors.browsers && (
+          <p className="text-sm text-destructive mt-1">{errors.browsers.message}</p>
+        )}
       </div>
 
       <div>
@@ -330,26 +376,29 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
             </Select>
           )}
         />
-        {errors.retryOnFailure && <p className="text-sm text-destructive mt-1">{errors.retryOnFailure.message}</p>}
+        {errors.retryOnFailure && (
+          <p className="text-sm text-destructive mt-1">{errors.retryOnFailure.message}</p>
+        )}
       </div>
 
       <div>
-        <Label htmlFor="notificationConfigOverride">Notification Overrides (JSON)
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" type="button" className="ml-1 h-5 w-5">
-                            <InfoCircledIcon className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="w-80">
-                        <p className="text-xs">
-                            Optional. Override plan-level notifications. Example:
-                            <pre>{`{\n  "emails": ["user@example.com"],\n  "onSuccess": true,\n  "onFailure": true\n}`}</pre>
-                        </p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+        <Label htmlFor="notificationConfigOverride">
+          Notification Overrides (JSON)
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" type="button" className="ml-1 h-5 w-5">
+                  <InfoCircledIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="w-80">
+                <p className="text-xs">
+                  Optional. Override plan-level notifications. Example:
+                  <pre>{`{\n  "emails": ["user@example.com"],\n  "onSuccess": true,\n  "onFailure": true\n}`}</pre>
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </Label>
         <Textarea
           id="notificationConfigOverride"
@@ -357,26 +406,31 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
           rows={3}
           placeholder='e.g., { "emails": ["test@example.com"], "onSuccess": true }'
         />
-        {errors.notificationConfigOverride && <p className="text-sm text-destructive mt-1">{errors.notificationConfigOverride.message}</p>}
+        {errors.notificationConfigOverride && (
+          <p className="text-sm text-destructive mt-1">
+            {errors.notificationConfigOverride.message}
+          </p>
+        )}
       </div>
 
       <div>
-        <Label htmlFor="executionParameters">Execution Parameters (JSON)
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" type="button" className="ml-1 h-5 w-5">
-                            <InfoCircledIcon className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="w-80">
-                        <p className="text-xs">
-                            Optional. JSON object of parameters to inject into the execution. Example:
-                            <pre>{`{\n  "customVar": "value",\n  "anotherVar": 123\n}`}</pre>
-                        </p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+        <Label htmlFor="executionParameters">
+          Execution Parameters (JSON)
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" type="button" className="ml-1 h-5 w-5">
+                  <InfoCircledIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="w-80">
+                <p className="text-xs">
+                  Optional. JSON object of parameters to inject into the execution. Example:
+                  <pre>{`{\n  "customVar": "value",\n  "anotherVar": 123\n}`}</pre>
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </Label>
         <Textarea
           id="executionParameters"
@@ -384,23 +438,25 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
           rows={3}
           placeholder='e.g., { "param1": "value1", "param2": true }'
         />
-        {errors.executionParameters && <p className="text-sm text-destructive mt-1">{errors.executionParameters.message}</p>}
+        {errors.executionParameters && (
+          <p className="text-sm text-destructive mt-1">{errors.executionParameters.message}</p>
+        )}
       </div>
 
       <div className="flex items-center space-x-2">
         <Controller
-            name="isActive"
-            control={control}
-            render={({ field }) => (
-                <Checkbox
-                    id="isActive"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                />
-            )}
+          name="isActive"
+          control={control}
+          render={({ field }) => (
+            <Checkbox id="isActive" checked={field.value} onCheckedChange={field.onChange} />
+          )}
         />
-        <Label htmlFor="isActive" className="font-normal">Schedule Active</Label>
-        {errors.isActive && <p className="text-sm text-destructive mt-1">{errors.isActive.message}</p>}
+        <Label htmlFor="isActive" className="font-normal">
+          Schedule Active
+        </Label>
+        {errors.isActive && (
+          <p className="text-sm text-destructive mt-1">{errors.isActive.message}</p>
+        )}
       </div>
 
       <div className="flex justify-end space-x-3">
@@ -408,7 +464,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting || isLoadingTestPlans}>
-          {isSubmitting ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Create Schedule')}
+          {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Schedule'}
         </Button>
       </div>
     </form>

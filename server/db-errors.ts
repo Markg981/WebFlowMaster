@@ -33,7 +33,10 @@ export function unwrapDrizzleQueryErrors(): void {
         'keep SQL and parameters out of error messages. Update server/db-errors.ts for this drizzle-orm version.',
     );
   }
-  prototype.queryWithCache = async function queryWithCacheUnwrapped(this: unknown, ...args: unknown[]) {
+  prototype.queryWithCache = async function queryWithCacheUnwrapped(
+    this: unknown,
+    ...args: unknown[]
+  ) {
     try {
       return await original.apply(this, args);
     } catch (error) {

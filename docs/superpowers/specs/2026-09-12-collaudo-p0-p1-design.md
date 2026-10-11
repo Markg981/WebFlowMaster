@@ -16,7 +16,7 @@ selettori.
 ## Principio guida
 
 Ogni difetto in scopo è conseguenza di una duplicazione o di un'astrazione mancante, non di una
-scelta architetturale sbagliata. Il lavoro è quindi in gran parte *unificazione*: un esecutore
+scelta architetturale sbagliata. Il lavoro è quindi in gran parte _unificazione_: un esecutore
 invece di due, una sorgente di variabili invece di due, un caricamento di pagina invece di due.
 Le capacità nuove (attese condizionali, dropdown, riuso login) diventano facili proprio perché
 si aggiungono in un punto solo.
@@ -31,12 +31,12 @@ si aggiungono in un punto solo.
 
 `server/playwright-service.ts` contiene due copie dello `switch` che esegue un passo:
 
-| | `executeAdhocSequence` (righe ~766-860) | `executeTestSequence` (righe ~1136-1204) |
-|---|---|---|
-| Chiamato da | `POST /api/execute-test-direct` | `POST /api/tests/:id/run`, test plan, scheduler |
-| `navigate` | presente | **assente** → `default` solleva |
-| Sostituzione variabili | sì, su `input`/`navigate`/`select` | no |
-| Auto-riparazione AI | no | sì, via `reporter.*` |
+|                        | `executeAdhocSequence` (righe ~766-860) | `executeTestSequence` (righe ~1136-1204)        |
+| ---------------------- | --------------------------------------- | ----------------------------------------------- |
+| Chiamato da            | `POST /api/execute-test-direct`         | `POST /api/tests/:id/run`, test plan, scheduler |
+| `navigate`             | presente                                | **assente** → `default` solleva                 |
+| Sostituzione variabili | sì, su `input`/`navigate`/`select`      | no                                              |
+| Auto-riparazione AI    | no                                      | sì, via `reporter.*`                            |
 
 ### Disegno
 
@@ -45,7 +45,7 @@ Estrarre una funzione unica:
 ```ts
 interface StepContext {
   page: Page;
-  reporter?: PlaywrightReporter;   // presente solo sul percorso persistito
+  reporter?: PlaywrightReporter; // presente solo sul percorso persistito
   vars: Record<string, string>;
   screenshotBaseDir?: string;
 }
@@ -221,7 +221,7 @@ caricamento**:
 - Passaggio del mouse su una riga di "Detected Elements" → disegna un contorno assoluto sopra
   l'immagine alle coordinate scalate, con etichetta del selettore.
 - Passaggio del mouse su un riquadro → evidenzia la riga corrispondente nella lista
-  (evidenziazione bidirezionale, che è la richiesta esplicita: capire *quale* elemento è quale).
+  (evidenziazione bidirezionale, che è la richiesta esplicita: capire _quale_ elemento è quale).
 - Un comando per riga aggiunge l'elemento al pool di elementi del test.
 - Quando `truncated` è vero, l'interfaccia lo dice: "mostrati 300 di N".
 
@@ -259,11 +259,11 @@ tenta poi di rattoppare a valle.
 Tre azioni nuove, aggiunte nell'esecutore unificato (punto 1) e quindi disponibili su entrambi i
 percorsi:
 
-| id | semantica | parametri |
-|---|---|---|
-| `waitForElement` | attende che il selettore sia visibile o nascosto | selettore, stato, timeout |
-| `waitForText` | attende che il selettore contenga un testo | selettore, testo, timeout |
-| `waitForNetworkIdle` | attende `networkidle`, con fallback al timeout | timeout |
+| id                   | semantica                                        | parametri                 |
+| -------------------- | ------------------------------------------------ | ------------------------- |
+| `waitForElement`     | attende che il selettore sia visibile o nascosto | selettore, stato, timeout |
+| `waitForText`        | attende che il selettore contenga un testo       | selettore, testo, timeout |
+| `waitForNetworkIdle` | attende `networkidle`, con fallback al timeout   | timeout                   |
 
 Il timeout ha un default dalle impostazioni utente (`playwrightDefaultTimeout`), com'è già per il
 resto.
@@ -423,16 +423,16 @@ Tutto lo scope P0/P1 è stato implementato. Nove commit, 29 file, `npm run check
 `npm run lint` senza warning, **438 test verdi su 51 file** (erano 393 su 46) più 93 test
 client.
 
-| Punto | Difetti | Esito |
-| :--- | :--- | :--- |
-| 1. Un solo esecutore | F-01, F-05 | Fatto. `server/step-executor.ts`, mappa di handler tipizzata |
-| 2. Avvio senza Redis | F-02, F-03 | Fatto |
-| 3. Una sola sorgente di variabili | F-04 | Fatto. `server/variables.ts` |
-| 4. Preview con evidenziazione | F-06, F-08 | Fatto |
-| 5. Attese condizionali | F-07 | Fatto. Tre azioni nuove |
-| 6. Riuso dello stato di login | — | Fatto. Migrazione 0010, cifrato |
-| 7. Dropdown Angular Material | — | Fatto. Azione `selectByText` |
-| 8. Selettori per ruolo e testo | — | Fatto |
+| Punto                             | Difetti    | Esito                                                        |
+| :-------------------------------- | :--------- | :----------------------------------------------------------- |
+| 1. Un solo esecutore              | F-01, F-05 | Fatto. `server/step-executor.ts`, mappa di handler tipizzata |
+| 2. Avvio senza Redis              | F-02, F-03 | Fatto                                                        |
+| 3. Una sola sorgente di variabili | F-04       | Fatto. `server/variables.ts`                                 |
+| 4. Preview con evidenziazione     | F-06, F-08 | Fatto                                                        |
+| 5. Attese condizionali            | F-07       | Fatto. Tre azioni nuove                                      |
+| 6. Riuso dello stato di login     | —          | Fatto. Migrazione 0010, cifrato                              |
+| 7. Dropdown Angular Material      | —          | Fatto. Azione `selectByText`                                 |
+| 8. Selettori per ruolo e testo    | —          | Fatto                                                        |
 
 ### Scoperto durante il lavoro, non nel collaudo
 
@@ -448,7 +448,7 @@ client.
 - **La suite era instabile sotto carico.** `hookTimeout` era il default di 10 s, mentre ogni
   file applica dieci migrazioni alla propria istanza PGlite (Postgres in WASM). Con un fork
   per file e qualche test che guida un browser reale, il timeout scattava e vitest riportava
-  il *file* come fallito con tutti i test skipped — leggibile come suite rotta invece che
+  il _file_ come fallito con tutti i test skipped — leggibile come suite rotta invece che
   come macchina occupata.
 - **I file del working tree sono CRLF** mentre l'indice git è LF. Tre modifiche multilinea
   applicate via script sono fallite in silenzio per questo motivo, ed erano state date per

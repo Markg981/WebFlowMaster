@@ -28,11 +28,13 @@ let userId: number;
 beforeAll(async () => {
   server = http.createServer((req, res) => {
     const authenticated = (req.headers.cookie ?? '').includes('wfm_session=valid-token');
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(
-      `<!doctype html><title>DMO</title><h1 id="state">${
-        authenticated ? 'Signed in as svc-tester' : 'Please sign in'
-      }</h1>`,
-    );
+    res
+      .writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+      .end(
+        `<!doctype html><title>DMO</title><h1 id="state">${
+          authenticated ? 'Signed in as svc-tester' : 'Please sign in'
+        }</h1>`,
+      );
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

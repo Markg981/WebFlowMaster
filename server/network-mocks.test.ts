@@ -31,7 +31,8 @@ const PAGE = `<!doctype html><body><p id="out">loading</p><script>
 beforeAll(async () => {
   server = http.createServer((req, res) => {
     served.push(`${req.method} ${req.url}`);
-    if (req.url?.startsWith('/api/orders')) return void res.writeHead(200, { 'content-type': 'application/json' }).end('["real"]');
+    if (req.url?.startsWith('/api/orders'))
+      return void res.writeHead(200, { 'content-type': 'application/json' }).end('["real"]');
     res.writeHead(200, { 'content-type': 'text/html' }).end(PAGE);
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -54,7 +55,11 @@ afterEach(async () => {
 });
 
 const step = (id: AdhocActionId, value?: string) =>
-  executeStep({ page, vars: { api: `${base}/api` } }, { id: `s-${id}`, action: { id, type: id, name: id, icon: 'x', description: id }, value } as never);
+  executeStep({ page, vars: { api: `${base}/api` } }, {
+    id: `s-${id}`,
+    action: { id, type: id, name: id, icon: 'x', description: id },
+    value,
+  } as never);
 
 const shown = async (query = '') => {
   await page.goto(`${base}/${query}`);
@@ -65,10 +70,23 @@ const shown = async (query = '') => {
 describe('reading a mock', () => {
   it('takes a method, a pattern, a status with a delay, and a body that may hold |', () => {
     expect(parseMockSpec('POST **/api/orders | 201 after 2s | {"id": "a|b"}')).toEqual({
-      method: 'POST', pattern: '**/api/orders', status: 201, delayMs: 2000, body: '{"id": "a|b"}', contentType: 'application/json',
+      method: 'POST',
+      pattern: '**/api/orders',
+      status: 201,
+      delayMs: 2000,
+      body: '{"id": "a|b"}',
+      contentType: 'application/json',
     });
-    expect(parseMockSpec('**/api/orders')).toMatchObject({ method: null, status: 200, body: '', delayMs: 0 });
-    expect(parseMockSpec('**/x | 503 | Down for maintenance')).toMatchObject({ status: 503, contentType: 'text/plain; charset=utf-8' });
+    expect(parseMockSpec('**/api/orders')).toMatchObject({
+      method: null,
+      status: 200,
+      body: '',
+      delayMs: 0,
+    });
+    expect(parseMockSpec('**/x | 503 | Down for maintenance')).toMatchObject({
+      status: 503,
+      contentType: 'text/plain; charset=utf-8',
+    });
   });
 
   it('refuses what it cannot answer', () => {

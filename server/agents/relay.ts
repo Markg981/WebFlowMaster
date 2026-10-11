@@ -97,7 +97,13 @@ const SESSION_OWNER_SEPARATOR = '~';
 /** WebSocket close reasons are limited to 123 bytes. */
 const reasonOf = (text: string) => Buffer.from(text).subarray(0, 120).toString();
 
-const STATUS_TEXT: Record<number, string> = { 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 502: 'Bad Gateway', 503: 'Service Unavailable' };
+const STATUS_TEXT: Record<number, string> = {
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  502: 'Bad Gateway',
+  503: 'Service Unavailable',
+};
 
 function bearer(req: IncomingMessage): string | null {
   const header = req.headers.authorization;
@@ -106,13 +112,19 @@ function bearer(req: IncomingMessage): string | null {
 }
 
 function refuse(socket: Duplex, status: number, message: string) {
-  socket.write(`HTTP/1.1 ${status} ${STATUS_TEXT[status] ?? 'Error'}\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n${message}\n`);
+  socket.write(
+    `HTTP/1.1 ${status} ${STATUS_TEXT[status] ?? 'Error'}\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n${message}\n`,
+  );
   socket.destroy();
 }
 
 /** A close code another WebSocket may be closed with; the ones only a library may set are not. */
 function passableCode(code: number): number {
-  return code === 1000 || (code >= 1001 && code <= 1014 && code !== 1005 && code !== 1006) || (code >= 3000 && code <= 4999) ? code : 1011;
+  return code === 1000 ||
+    (code >= 1001 && code <= 1014 && code !== 1005 && code !== 1006) ||
+    (code >= 3000 && code <= 4999)
+    ? code
+    : 1011;
 }
 
 /** Copies messages both ways until either side ends, and ends the other with it. */
@@ -124,7 +136,8 @@ function pipe(a: WebSocket, b: WebSocket, onEnd?: () => void) {
     if (a.readyState === WebSocket.OPEN) a.send(data, { binary: isBinary });
   });
   const end = (other: WebSocket) => (code: number, reason: Buffer) => {
-    if (other.readyState === WebSocket.OPEN || other.readyState === WebSocket.CONNECTING) other.close(passableCode(code), reason);
+    if (other.readyState === WebSocket.OPEN || other.readyState === WebSocket.CONNECTING)
+      other.close(passableCode(code), reason);
     onEnd?.();
   };
   a.on('close', end(b));
@@ -145,7 +158,8 @@ export class AgentRelay {
 
   /** Local-only aggregates: safe metric dimensions and additive across relay replicas. */
   telemetrySnapshot() {
-    let capacity = 0, active = 0;
+    let capacity = 0,
+      active = 0;
     for (const agent of this.connected.values()) {
       if (!agent.draining) capacity += agent.hello.maxSessions;
       active += agent.sessions.size;
@@ -168,14 +182,17 @@ export class AgentRelay {
     server.on('upgrade', (req, socket, head) => {
       const pathname = new URL(req.url ?? '', 'http://relay').pathname;
       if (pathname === AGENT_PATHS.connect) void this.acceptAgent(req, socket, head);
-      else if (pathname.startsWith(AGENT_PATHS.session)) void this.acceptSession(req, socket, head, pathname.slice(AGENT_PATHS.session.length));
+      else if (pathname.startsWith(AGENT_PATHS.session))
+        void this.acceptSession(req, socket, head, pathname.slice(AGENT_PATHS.session.length));
       else if (pathname === AGENT_PATHS.browser) this.acceptRunner(req, socket, head);
     });
   }
 
   /** Whether an agent is connected to this relay, or to another instance of it, right now. */
   isConnected(agentId: string): boolean {
-    return this.connected.has(agentId) || this.others.some((i) => i.agents.some((a) => a.id === agentId));
+    return (
+      this.connected.has(agentId) || this.others.some((i) => i.agents.some((a) => a.id === agentId))
+    );
   }
 
   /** How many browsers an agent is lending right now, wherever it is connected. */
@@ -192,9 +209,12 @@ export class AgentRelay {
   /** Why a ticket would get no browser, or null when it would get one. Read before connecting, for a clear error. */
   availability(ticketValue: string): { available: true } | { available: false; reason: string } {
     const ticket = verifyTicket(ticketValue, this.options.secret());
-    if ('error' in ticket) return { available: false, reason: `The relay refused the ticket (${ticket.error}).` };
+    if ('error' in ticket)
+      return { available: false, reason: `The relay refused the ticket (${ticket.error}).` };
     const chosen = this.choose(ticket, false);
-    return 'candidate' in chosen ? { available: true } : { available: false, reason: chosen.reason };
+    return 'candidate' in chosen
+      ? { available: true }
+      : { available: false, reason: chosen.reason };
   }
 
   /**
@@ -220,10 +240,19 @@ export class AgentRelay {
     // crashed one is forwarded to at most this long, with a refusal that names it.
     const ttlMs = Math.max((cluster.syncMs ?? 5_000) * 3, 15_000);
     try {
-      await cluster.directory.publish({ id: cluster.instanceId, url: cluster.url, agents: this.published() }, ttlMs);
-      this.others = (await cluster.directory.instances()).filter((i) => i.id !== cluster.instanceId);
+      await cluster.directory.publish(
+        { id: cluster.instanceId, url: cluster.url, agents: this.published() },
+        ttlMs,
+      );
+      this.others = (await cluster.directory.instances()).filter(
+        (i) => i.id !== cluster.instanceId,
+      );
     } catch (error) {
-      this.log('warn', 'The agent relay could not reach its directory; other instances will not see its agents', { error: (error as Error).message });
+      this.log(
+        'warn',
+        'The agent relay could not reach its directory; other instances will not see its agents',
+        { error: (error as Error).message },
+      );
     }
   }
 
@@ -236,7 +265,8 @@ export class AgentRelay {
     this.connected.clear();
     this.pending.clear();
     this.wss.close();
-    if (this.options.cluster) void this.options.cluster.directory.withdraw(this.options.cluster.instanceId).catch(() => {});
+    if (this.options.cluster)
+      void this.options.cluster.directory.withdraw(this.options.cluster.instanceId).catch(() => {});
   }
 
   private log(level: 'info' | 'warn', message: string, meta?: Record<string, unknown>) {
@@ -285,7 +315,8 @@ export class AgentRelay {
       void this.options.onSeen?.(id);
       // Revoked since it connected, perhaps through another instance.
       const still = await this.options.authenticate(connected.token).catch(() => connected.agent);
-      if (!still && this.connected.get(id) === connected) this.disconnect(id, 'This agent was revoked.');
+      if (!still && this.connected.get(id) === connected)
+        this.disconnect(id, 'This agent was revoked.');
     }
   }
 
@@ -313,16 +344,25 @@ export class AgentRelay {
         // One connection per agent: a reconnect replaces a connection the network already lost.
         const previous = this.connected.get(agent.id);
         if (previous) previous.ws.terminate();
-        const bddProfiles = Array.isArray(hello.bddProfiles) ? hello.bddProfiles.slice(0,100).flatMap(profile => {
-          const parsed = BddAgentProfileSchema.safeParse(profile);
-          return parsed.success ? [parsed.data] : [];
-        }) : [];
+        const bddProfiles = Array.isArray(hello.bddProfiles)
+          ? hello.bddProfiles.slice(0, 100).flatMap((profile) => {
+              const parsed = BddAgentProfileSchema.safeParse(profile);
+              return parsed.success ? [parsed.data] : [];
+            })
+          : [];
 
         const connected: ConnectedAgent = {
           agent,
           token,
           ws,
-          hello: { ...hello, bddProfiles, apiProtocolFeatures: Array.isArray(hello.apiProtocolFeatures) ? hello.apiProtocolFeatures.filter(feature => feature === 'native-protocol-v2') : [], maxSessions: Math.max(1, Math.min(Number(hello.maxSessions) || 1, 16)) },
+          hello: {
+            ...hello,
+            bddProfiles,
+            apiProtocolFeatures: Array.isArray(hello.apiProtocolFeatures)
+              ? hello.apiProtocolFeatures.filter((feature) => feature === 'native-protocol-v2')
+              : [],
+            maxSessions: Math.max(1, Math.min(Number(hello.maxSessions) || 1, 16)),
+          },
           sessions: new Set(),
           draining: false,
           alive: true,
@@ -331,7 +371,12 @@ export class AgentRelay {
         this.send(ws, { type: 'welcome', agentId: agent.id, name: agent.name, pool: agent.pool });
         void this.options.onSeen?.(agent.id, connected.hello);
         this.syncSoon();
-        this.log('info', 'Local agent connected', { agentId: agent.id, pool: agent.pool, hostname: hello.hostname, playwright: hello.playwrightVersion });
+        this.log('info', 'Local agent connected', {
+          agentId: agent.id,
+          pool: agent.pool,
+          hostname: hello.hostname,
+          playwright: hello.playwrightVersion,
+        });
 
         ws.on('pong', () => {
           connected.alive = true;
@@ -349,13 +394,15 @@ export class AgentRelay {
           }
           if (message.type === 'open_failed') {
             const session = this.pending.get(message.sessionId);
-            if (session && session.agentId === agent.id) this.failSession(session, `The agent could not start the browser: ${message.error}`);
+            if (session && session.agentId === agent.id)
+              this.failSession(session, `The agent could not start the browser: ${message.error}`);
           }
         });
         ws.on('close', () => {
           if (this.connected.get(agent.id)?.ws === ws) this.connected.delete(agent.id);
           for (const session of this.pending.values()) {
-            if (session.agentId === agent.id) this.failSession(session, 'The agent disconnected before opening the browser.');
+            if (session.agentId === agent.id)
+              this.failSession(session, 'The agent disconnected before opening the browser.');
           }
           this.syncSoon();
           this.log('info', 'Local agent disconnected', { agentId: agent.id });
@@ -368,7 +415,10 @@ export class AgentRelay {
    * The least busy agent that can serve the ticket, here or on another instance, or why there is
    * none. A forwarded request looks only here: the instance that forwarded it already chose this one.
    */
-  private choose(ticket: BrowserTicket, localOnly: boolean): { candidate: Candidate } | { reason: string } {
+  private choose(
+    ticket: BrowserTicket,
+    localOnly: boolean,
+  ): { candidate: Candidate } | { reason: string } {
     const local: Candidate[] = [...this.connected.values()].map((c) => ({
       id: c.agent.id,
       organizationId: c.agent.organizationId,
@@ -389,9 +439,17 @@ export class AgentRelay {
           instance.agents.filter((a) => !this.connected.has(a.id)).map((a) => ({ ...a, instance })),
         );
 
-    const inPool = [...local, ...remote].filter((c) => c.organizationId === ticket.organizationId && c.pool === ticket.pool);
-    if (inPool.length === 0) return { reason: `No agent of pool "${ticket.pool}" is connected. Start one, or run the plan on the server's runners.` };
-    const compatible = ticket.apiProtocol || ticket.bddProfile ? inPool : inPool.filter((c) => playwrightCompatible(c.playwrightVersion, ticket.playwrightVersion));
+    const inPool = [...local, ...remote].filter(
+      (c) => c.organizationId === ticket.organizationId && c.pool === ticket.pool,
+    );
+    if (inPool.length === 0)
+      return {
+        reason: `No agent of pool "${ticket.pool}" is connected. Start one, or run the plan on the server's runners.`,
+      };
+    const compatible =
+      ticket.apiProtocol || ticket.bddProfile
+        ? inPool
+        : inPool.filter((c) => playwrightCompatible(c.playwrightVersion, ticket.playwrightVersion));
     if (compatible.length === 0) {
       return {
         reason:
@@ -400,17 +458,33 @@ export class AgentRelay {
       };
     }
     const withBrowser = ticket.bddProfile
-      ? compatible.filter(c => c.bddProfiles?.some(profile => profile.id === ticket.bddProfile!.id && profile.revision === ticket.bddProfile!.revision))
+      ? compatible.filter((c) =>
+          c.bddProfiles?.some(
+            (profile) =>
+              profile.id === ticket.bddProfile!.id &&
+              profile.revision === ticket.bddProfile!.revision,
+          ),
+        )
       : ticket.apiProtocol
-      ? compatible.filter((c) => c.apiProtocols?.includes(ticket.apiProtocol!) && (ticket.apiFeatures ?? []).every(feature => c.apiProtocolFeatures?.includes(feature)))
-      : compatible.filter((c) => c.browsers.includes(ticket.engine));
-    if (withBrowser.length === 0) return { reason: ticket.bddProfile
-      ? `No agent of pool "${ticket.pool}" supports BDD profile "${ticket.bddProfile.id}" at revision "${ticket.bddProfile.revision}". Configure or update the dedicated agents.`
-      : ticket.apiProtocol
-      ? `No agent of pool "${ticket.pool}" supports ${ticket.apiProtocol}${ticket.apiFeatures?.length ? ' with streaming, mTLS or conversation features' : ''}. Update the agents by downloading /cli/wfm-agent.mjs again or rebuilding their Docker image.`
-      : `No agent of pool "${ticket.pool}" has ${ticket.engine} installed.` };
+        ? compatible.filter(
+            (c) =>
+              c.apiProtocols?.includes(ticket.apiProtocol!) &&
+              (ticket.apiFeatures ?? []).every((feature) =>
+                c.apiProtocolFeatures?.includes(feature),
+              ),
+          )
+        : compatible.filter((c) => c.browsers.includes(ticket.engine));
+    if (withBrowser.length === 0)
+      return {
+        reason: ticket.bddProfile
+          ? `No agent of pool "${ticket.pool}" supports BDD profile "${ticket.bddProfile.id}" at revision "${ticket.bddProfile.revision}". Configure or update the dedicated agents.`
+          : ticket.apiProtocol
+            ? `No agent of pool "${ticket.pool}" supports ${ticket.apiProtocol}${ticket.apiFeatures?.length ? ' with streaming, mTLS or conversation features' : ''}. Update the agents by downloading /cli/wfm-agent.mjs again or rebuilding their Docker image.`
+            : `No agent of pool "${ticket.pool}" has ${ticket.engine} installed.`,
+      };
     const free = withBrowser.filter((c) => !c.draining && c.activeSessions < c.maxSessions);
-    if (free.length === 0) return { reason: `Every agent of pool "${ticket.pool}" is busy or draining.` };
+    if (free.length === 0)
+      return { reason: `Every agent of pool "${ticket.pool}" is busy or draining.` };
     // Least busy first; between equals, one held here saves a hop.
     free.sort((a, b) => a.activeSessions - b.activeSessions || Number(!a.local) - Number(!b.local));
     return { candidate: free[0] };
@@ -427,19 +501,25 @@ export class AgentRelay {
     if ('error' in ticket) return refuse(socket, 401, `Ticket refused: ${ticket.error}.`);
     const chosen = this.choose(ticket, Boolean(req.headers[RELAY_HOP_HEADER]));
     if (!('candidate' in chosen)) return refuse(socket, 503, chosen.reason);
-    if (chosen.candidate.instance) return this.forward(req, socket, head, chosen.candidate.instance);
+    if (chosen.candidate.instance)
+      return this.forward(req, socket, head, chosen.candidate.instance);
     const agent = chosen.candidate.local!;
     const verified = ticket;
 
     this.wss.handleUpgrade(req, socket, head, (runner) => {
       const cluster = this.options.cluster;
-      const id = cluster ? `${cluster.instanceId}${SESSION_OWNER_SEPARATOR}${randomUUID()}` : randomUUID();
+      const id = cluster
+        ? `${cluster.instanceId}${SESSION_OWNER_SEPARATOR}${randomUUID()}`
+        : randomUUID();
       const session: PendingSession = {
         id,
         agentId: agent.agent.id,
         runner,
         buffered: [],
-        timer: setTimeout(() => this.failSession(session, 'The agent did not open a browser in time.'), this.options.openTimeoutMs ?? 30_000),
+        timer: setTimeout(
+          () => this.failSession(session, 'The agent did not open a browser in time.'),
+          this.options.openTimeoutMs ?? 30_000,
+        ),
       };
       this.pending.set(id, session);
       agent.sessions.add(id);
@@ -451,7 +531,18 @@ export class AgentRelay {
         if (this.pending.delete(id)) clearTimeout(session.timer);
         agent.sessions.delete(id);
       });
-      this.send(agent.ws, { type: 'open', traceContext: verified.traceContext, sessionId: id, engine: verified.engine, channel: verified.channel, headless: verified.headless, ...(verified.bddProfile ? { bddProfile: verified.bddProfile } : {}), ...(verified.apiProtocol ? { apiProtocol: verified.apiProtocol, apiFeatures: verified.apiFeatures } : {}) });
+      this.send(agent.ws, {
+        type: 'open',
+        traceContext: verified.traceContext,
+        sessionId: id,
+        engine: verified.engine,
+        channel: verified.channel,
+        headless: verified.headless,
+        ...(verified.bddProfile ? { bddProfile: verified.bddProfile } : {}),
+        ...(verified.apiProtocol
+          ? { apiProtocol: verified.apiProtocol, apiFeatures: verified.apiFeatures }
+          : {}),
+      });
     });
   }
 
@@ -463,7 +554,12 @@ export class AgentRelay {
     session.runner.close(1011, reasonOf(reason));
   }
 
-  private async acceptSession(req: IncomingMessage, socket: Duplex, head: Buffer, sessionId: string) {
+  private async acceptSession(
+    req: IncomingMessage,
+    socket: Duplex,
+    head: Buffer,
+    sessionId: string,
+  ) {
     const agent = await this.options.authenticate(bearer(req)).catch(() => null);
     if (!agent) return refuse(socket, 401, 'Unknown or revoked agent token.');
     const session = this.pending.get(sessionId);
@@ -471,7 +567,9 @@ export class AgentRelay {
     if (!session && !req.headers[RELAY_HOP_HEADER]) {
       // The load balancer sent the agent's connection to an instance that is not holding the
       // runner; the session id says which one is.
-      const owner = sessionId.includes(SESSION_OWNER_SEPARATOR) ? sessionId.split(SESSION_OWNER_SEPARATOR)[0] : null;
+      const owner = sessionId.includes(SESSION_OWNER_SEPARATOR)
+        ? sessionId.split(SESSION_OWNER_SEPARATOR)[0]
+        : null;
       let instance = owner ? this.others.find((i) => i.id === owner) : undefined;
       if (!instance && owner && owner !== this.options.cluster?.instanceId) {
         // Not in what this instance last read; the directory may know it by now.
@@ -481,7 +579,8 @@ export class AgentRelay {
       if (instance) return this.forward(req, socket, head, instance);
     }
     // Only the agent that was asked may answer: another agent, even of the same organization, is refused.
-    if (!session || session.agentId !== agent.id) return refuse(socket, 403, 'No such session for this agent.');
+    if (!session || session.agentId !== agent.id)
+      return refuse(socket, 403, 'No such session for this agent.');
 
     this.wss.handleUpgrade(req, socket, head, (lent) => {
       this.pending.delete(sessionId);
@@ -515,13 +614,27 @@ export class AgentRelay {
       answered = true;
       let body = '';
       response.on('data', (chunk) => (body += chunk));
-      response.on('end', () => refuse(socket, response.statusCode ?? 502, body.trim() || 'The relay instance holding the agent refused.'));
+      response.on('end', () =>
+        refuse(
+          socket,
+          response.statusCode ?? 502,
+          body.trim() || 'The relay instance holding the agent refused.',
+        ),
+      );
     });
     upstream.on('error', (error) => {
       if (answered) return;
       answered = true;
-      this.log('warn', 'Could not reach another relay instance', { instance: instance.id, url: instance.url, error: error.message });
-      refuse(socket, 502, `The relay instance holding the agent (${instance.id}) could not be reached. Check AGENT_RELAY_ADVERTISE_URL.`);
+      this.log('warn', 'Could not reach another relay instance', {
+        instance: instance.id,
+        url: instance.url,
+        error: error.message,
+      });
+      refuse(
+        socket,
+        502,
+        `The relay instance holding the agent (${instance.id}) could not be reached. Check AGENT_RELAY_ADVERTISE_URL.`,
+      );
     });
     upstream.on('open', () => {
       answered = true;

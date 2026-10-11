@@ -103,7 +103,10 @@ describe('reentrancy', () => {
       ),
     ).rejects.toThrow('outer fails after the inner wrote');
 
-    const rows = await privilegedDb.select().from(projects).where(eq(projects.name, 'inner-project'));
+    const rows = await privilegedDb
+      .select()
+      .from(projects)
+      .where(eq(projects.name, 'inner-project'));
     expect(rows).toHaveLength(0);
   });
 

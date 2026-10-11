@@ -14,7 +14,13 @@ import { eq } from 'drizzle-orm';
  */
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), http: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    http: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -69,7 +75,11 @@ async function enrol(agent: ReturnType<typeof request.agent>) {
     .post('/api/mfa/enrollment/confirm')
     .send({ code: totpAt(enrollment.body.secret, step) })
     .expect(200);
-  return { secret: enrollment.body.secret as string, recoveryCodes: confirmed.body.recoveryCodes as string[], step };
+  return {
+    secret: enrollment.body.secret as string,
+    recoveryCodes: confirmed.body.recoveryCodes as string[],
+    step,
+  };
 }
 
 describe('TOTP', () => {
@@ -142,17 +152,29 @@ describe('signing in with a second factor', () => {
     await agent.get('/api/user').expect(401);
 
     // The code that confirmed enrolment is spent.
-    await agent.post('/api/login/mfa').send({ code: totpAt(secret, step) }).expect(401);
-    const signedInNow = await agent.post('/api/login/mfa').send({ code: totpAt(secret, step + 1) }).expect(200);
+    await agent
+      .post('/api/login/mfa')
+      .send({ code: totpAt(secret, step) })
+      .expect(401);
+    const signedInNow = await agent
+      .post('/api/login/mfa')
+      .send({ code: totpAt(secret, step + 1) })
+      .expect(200);
     expect(signedInNow.body.username).toBe('alice');
     await agent.get('/api/user').expect(200);
 
     // And so is that one, on any later attempt.
     const again = request.agent(app);
     await again.post('/api/login').send(alice).expect(200);
-    await again.post('/api/login/mfa').send({ code: totpAt(secret, step + 1) }).expect(401);
+    await again
+      .post('/api/login/mfa')
+      .send({ code: totpAt(secret, step + 1) })
+      .expect(401);
 
-    const [success] = await privilegedDb.select().from(auditLog).where(eq(auditLog.action, 'auth.login'));
+    const [success] = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, 'auth.login'));
     expect(success.metadata).toEqual({ mfa: 'totp' });
   });
 
@@ -168,7 +190,10 @@ describe('signing in with a second factor', () => {
     await again.post('/api/login').send(alice).expect(200);
     await again.post('/api/login/mfa').send({ code: recoveryCodes[0] }).expect(401);
 
-    const [used] = await privilegedDb.select().from(auditLog).where(eq(auditLog.action, 'mfa.recovery_code_used'));
+    const [used] = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, 'mfa.recovery_code_used'));
     expect(used.metadata).toEqual({ recoveryCodesLeft: 9 });
   });
 
@@ -197,8 +222,14 @@ describe('signing in with a second factor', () => {
 describe("an organization's policy", () => {
   async function member(organizationId: number) {
     const agent = request.agent(app);
-    await agent.post('/api/register').send({ username: 'bob', password: 'password123' }).expect(201);
-    await privilegedDb.update(users).set({ organizationId, role: 'editor' }).where(eq(users.username, 'bob'));
+    await agent
+      .post('/api/register')
+      .send({ username: 'bob', password: 'password123' })
+      .expect(201);
+    await privilegedDb
+      .update(users)
+      .set({ organizationId, role: 'editor' })
+      .where(eq(users.username, 'bob'));
     // Sign in again, so the session's user carries the organization.
     await agent.post('/api/logout').expect(200);
     await agent.post('/api/login').send({ username: 'bob', password: 'password123' }).expect(200);
@@ -211,7 +242,10 @@ describe("an organization's policy", () => {
     await enrol(owner);
     await owner.put('/api/organization/mfa-policy').send({ required: true }).expect(200);
 
-    const [entry] = await privilegedDb.select().from(auditLog).where(eq(auditLog.action, 'mfa.policy_changed'));
+    const [entry] = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, 'mfa.policy_changed'));
     expect(entry.metadata).toEqual({ required: true });
   });
 
@@ -243,11 +277,19 @@ describe("an organization's policy", () => {
     const [bobRow] = await privilegedDb.select().from(users).where(eq(users.username, 'bob'));
 
     await owner.delete(`/api/organization/members/${bobRow.id}/mfa`).expect(204);
-    expect(await privilegedDb.select().from(userMfa).where(eq(userMfa.userId, bobRow.id))).toHaveLength(0);
+    expect(
+      await privilegedDb.select().from(userMfa).where(eq(userMfa.userId, bobRow.id)),
+    ).toHaveLength(0);
     await owner.delete(`/api/organization/members/${aliceRow.id}/mfa`).expect(400);
 
-    const [entry] = await privilegedDb.select().from(auditLog).where(eq(auditLog.action, 'mfa.disabled'));
-    expect(entry).toMatchObject({ actorUserId: aliceRow.id, metadata: { by: 'owner', userId: bobRow.id } });
+    const [entry] = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, 'mfa.disabled'));
+    expect(entry).toMatchObject({
+      actorUserId: aliceRow.id,
+      metadata: { by: 'owner', userId: bobRow.id },
+    });
   });
 });
 
@@ -256,9 +298,15 @@ describe('turning it off', () => {
     const agent = await signedIn();
     const { recoveryCodes } = await enrol(agent);
 
-    await agent.delete('/api/mfa').send({ password: 'wrong-password', code: recoveryCodes[0] }).expect(400);
+    await agent
+      .delete('/api/mfa')
+      .send({ password: 'wrong-password', code: recoveryCodes[0] })
+      .expect(400);
     await agent.delete('/api/mfa').send({ password: 'password123', code: '000000' }).expect(400);
-    await agent.delete('/api/mfa').send({ password: 'password123', code: recoveryCodes[1] }).expect(204);
+    await agent
+      .delete('/api/mfa')
+      .send({ password: 'password123', code: recoveryCodes[1] })
+      .expect(204);
 
     expect((await agent.get('/api/user').expect(200)).body.mfaEnabled).toBe(false);
     const signIn = await request.agent(app).post('/api/login').send(alice).expect(200);

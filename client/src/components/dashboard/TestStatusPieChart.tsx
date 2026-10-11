@@ -87,7 +87,14 @@ const TestStatusPieChart: React.FC<TestStatusPieChartProps> = ({ data, isLoading
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ borderRadius: '10px', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--shadow-md)', fontSize: '12px' }}
+                contentStyle={{
+                  borderRadius: '10px',
+                  backgroundColor: 'hsl(var(--popover))',
+                  color: 'hsl(var(--popover-foreground))',
+                  border: '1px solid hsl(var(--border))',
+                  boxShadow: 'var(--shadow-md)',
+                  fontSize: '12px',
+                }}
                 itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
               />
               <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '12px' }} />

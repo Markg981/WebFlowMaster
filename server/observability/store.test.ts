@@ -68,7 +68,9 @@ describe('IncidentStore.upsert', () => {
   it('caps retained occurrences', async () => {
     await store.upsert(incident());
     for (let i = 0; i < MAX_OCCURRENCES + 5; i++) {
-      await store.upsert(incident({ occurrences: [{ ts: new Date().toISOString(), correlationId: `c-${i}` }] }));
+      await store.upsert(
+        incident({ occurrences: [{ ts: new Date().toISOString(), correlationId: `c-${i}` }] }),
+      );
     }
 
     const onDisk = await store.read('inc_aaaaaa');
@@ -87,7 +89,9 @@ describe('IncidentStore.upsert', () => {
 
   it('does not let a recurrence without a repro erase the stored one', async () => {
     await store.upsert(
-      incident({ repro: { path: 'repro/inc_aaaaaa.spec.ts', command: 'npx vitest run', confidence: 'high' } }),
+      incident({
+        repro: { path: 'repro/inc_aaaaaa.spec.ts', command: 'npx vitest run', confidence: 'high' },
+      }),
     );
 
     const reoccurred = await store.upsert(incident({ repro: undefined }));
@@ -170,9 +174,20 @@ describe('IncidentStore.readIndex', () => {
 
 describe('IncidentStore.prune', () => {
   it('drops the oldest beyond the file cap, fixed ones first', async () => {
-    await store.upsert(incident({ id: 'inc_old001', fingerprint: 'old001', lastSeen: '2026-07-01T00:00:00.000Z' }));
-    await store.upsert(incident({ id: 'inc_fix001', fingerprint: 'fix001', status: 'fixed', lastSeen: '2026-07-25T00:00:00.000Z' }));
-    await store.upsert(incident({ id: 'inc_new001', fingerprint: 'new001', lastSeen: '2026-07-26T00:00:00.000Z' }));
+    await store.upsert(
+      incident({ id: 'inc_old001', fingerprint: 'old001', lastSeen: '2026-07-01T00:00:00.000Z' }),
+    );
+    await store.upsert(
+      incident({
+        id: 'inc_fix001',
+        fingerprint: 'fix001',
+        status: 'fixed',
+        lastSeen: '2026-07-25T00:00:00.000Z',
+      }),
+    );
+    await store.upsert(
+      incident({ id: 'inc_new001', fingerprint: 'new001', lastSeen: '2026-07-26T00:00:00.000Z' }),
+    );
 
     const removed = await store.prune({ maxFiles: 2, maxAgeDays: 3650 });
 
@@ -184,7 +199,9 @@ describe('IncidentStore.prune', () => {
   it('drops incidents older than the age cap', async () => {
     const old = new Date(Date.now() - 40 * 24 * 3600_000).toISOString();
     await store.upsert(incident({ id: 'inc_old002', fingerprint: 'old002', lastSeen: old }));
-    await store.upsert(incident({ id: 'inc_new002', fingerprint: 'new002', lastSeen: new Date().toISOString() }));
+    await store.upsert(
+      incident({ id: 'inc_new002', fingerprint: 'new002', lastSeen: new Date().toISOString() }),
+    );
 
     const removed = await store.prune({ maxFiles: 500, maxAgeDays: 30 });
 
@@ -199,14 +216,16 @@ describe('IncidentStore.prune', () => {
 
     const stuckPath = path.join(root, 'incidents', 'inc_old004.json');
     const realRm = fsPromises.rm.bind(fsPromises);
-    vi.spyOn(fsPromises, 'rm').mockImplementation(async (...args: Parameters<typeof fsPromises.rm>) => {
-      if (args[0] === stuckPath) {
-        const err = new Error('EBUSY: resource busy or locked') as NodeJS.ErrnoException;
-        err.code = 'EBUSY';
-        throw err;
-      }
-      return realRm(...args);
-    });
+    vi.spyOn(fsPromises, 'rm').mockImplementation(
+      async (...args: Parameters<typeof fsPromises.rm>) => {
+        if (args[0] === stuckPath) {
+          const err = new Error('EBUSY: resource busy or locked') as NodeJS.ErrnoException;
+          err.code = 'EBUSY';
+          throw err;
+        }
+        return realRm(...args);
+      },
+    );
 
     const removed = await store.prune({ maxFiles: 500, maxAgeDays: 30 });
 
@@ -230,17 +249,19 @@ describe('IncidentStore writeJson rename retry', () => {
     const realRename = fsPromises.rename.bind(fsPromises);
     const target = targetPath(root);
     let attempts = 0;
-    vi.spyOn(fsPromises, 'rename').mockImplementation(async (...args: Parameters<typeof fsPromises.rename>) => {
-      if (args[1] === target) {
-        attempts++;
-        if (attempts <= 2) {
-          const err = new Error('EPERM: operation not permitted') as NodeJS.ErrnoException;
-          err.code = 'EPERM';
-          throw err;
+    vi.spyOn(fsPromises, 'rename').mockImplementation(
+      async (...args: Parameters<typeof fsPromises.rename>) => {
+        if (args[1] === target) {
+          attempts++;
+          if (attempts <= 2) {
+            const err = new Error('EPERM: operation not permitted') as NodeJS.ErrnoException;
+            err.code = 'EPERM';
+            throw err;
+          }
         }
-      }
-      return realRename(...args);
-    });
+        return realRename(...args);
+      },
+    );
 
     await store.upsert(incident());
 
@@ -253,21 +274,25 @@ describe('IncidentStore writeJson rename retry', () => {
   it('propagates a persistent EPERM after exactly the bounded number of attempts, cleaning up the temp file', async () => {
     const target = targetPath(root);
     let attempts = 0;
-    vi.spyOn(fsPromises, 'rename').mockImplementation(async (...args: Parameters<typeof fsPromises.rename>) => {
-      if (args[1] === target) {
-        attempts++;
-        const err = new Error('EPERM: operation not permitted') as NodeJS.ErrnoException;
-        err.code = 'EPERM';
-        throw err;
-      }
-      throw new Error(`unexpected rename call for ${String(args[1])}`);
-    });
+    vi.spyOn(fsPromises, 'rename').mockImplementation(
+      async (...args: Parameters<typeof fsPromises.rename>) => {
+        if (args[1] === target) {
+          attempts++;
+          const err = new Error('EPERM: operation not permitted') as NodeJS.ErrnoException;
+          err.code = 'EPERM';
+          throw err;
+        }
+        throw new Error(`unexpected rename call for ${String(args[1])}`);
+      },
+    );
 
     await expect(store.upsert(incident())).rejects.toMatchObject({ code: 'EPERM' });
 
     // Bounded: neither one-shot nor unbounded — exactly the retry cap.
     expect(attempts).toBe(5);
-    const leftoverTemps = fs.readdirSync(path.join(root, 'incidents')).filter((f) => f.endsWith('.tmp'));
+    const leftoverTemps = fs
+      .readdirSync(path.join(root, 'incidents'))
+      .filter((f) => f.endsWith('.tmp'));
     expect(leftoverTemps).toEqual([]);
   });
 
@@ -275,15 +300,17 @@ describe('IncidentStore writeJson rename retry', () => {
     const realRename = fsPromises.rename.bind(fsPromises);
     const target = targetPath(root);
     let attempts = 0;
-    vi.spyOn(fsPromises, 'rename').mockImplementation(async (...args: Parameters<typeof fsPromises.rename>) => {
-      if (args[1] === target) {
-        attempts++;
-        const err = new Error('EACCES: permission denied') as NodeJS.ErrnoException;
-        err.code = 'EACCES';
-        throw err;
-      }
-      return realRename(...args);
-    });
+    vi.spyOn(fsPromises, 'rename').mockImplementation(
+      async (...args: Parameters<typeof fsPromises.rename>) => {
+        if (args[1] === target) {
+          attempts++;
+          const err = new Error('EACCES: permission denied') as NodeJS.ErrnoException;
+          err.code = 'EACCES';
+          throw err;
+        }
+        return realRename(...args);
+      },
+    );
 
     await expect(store.upsert(incident())).rejects.toMatchObject({ code: 'EACCES' });
     expect(attempts).toBe(1);

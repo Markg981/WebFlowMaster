@@ -4,7 +4,12 @@ import crypto from 'crypto';
 import type { AddressInfo } from 'net';
 import { runApiRequest } from './api-test-runner';
 import { clearTokenCache } from './oauth2';
-import { IMPLEMENTED_AUTH_TYPES, AuthTypeSchema, AuthParamsSchema, type AuthType } from '@shared/schema';
+import {
+  IMPLEMENTED_AUTH_TYPES,
+  AuthTypeSchema,
+  AuthParamsSchema,
+  type AuthType,
+} from '@shared/schema';
 
 /**
  * Authentication, as the runner performs it.
@@ -63,7 +68,14 @@ afterAll(async () => {
 beforeEach(() => {
   reachedTarget = [];
   tokenRequests = [];
-  tokenReply = { status: 200, body: JSON.stringify({ access_token: 'issued-token-1', token_type: 'Bearer', expires_in: 3600 }) };
+  tokenReply = {
+    status: 200,
+    body: JSON.stringify({
+      access_token: 'issued-token-1',
+      token_type: 'Bearer',
+      expires_in: 3600,
+    }),
+  };
   // The cache is module state shared by every test in this file.
   clearTokenCache();
 });
@@ -86,7 +98,10 @@ const oauth2 = (over: Record<string, unknown> = {}) =>
 
 describe('OAuth 2.0, client credentials', () => {
   it('obtains a token and sends it to the target', async () => {
-    const result = await runApiRequest({ method: 'GET', url: `${targetUrl}/private`, auth: oauth2() }, {});
+    const result = await runApiRequest(
+      { method: 'GET', url: `${targetUrl}/private`, auth: oauth2() },
+      {},
+    );
 
     expect(result.error).toBeUndefined();
     expect(result.status).toBe(200);
@@ -96,7 +111,10 @@ describe('OAuth 2.0, client credentials', () => {
   });
 
   it('asks for the grant the way the spec describes it', async () => {
-    await runApiRequest({ method: 'GET', url: `${targetUrl}/private`, auth: oauth2({ scope: 'orders.read' }) }, {});
+    await runApiRequest(
+      { method: 'GET', url: `${targetUrl}/private`, auth: oauth2({ scope: 'orders.read' }) },
+      {},
+    );
 
     const asked = new URLSearchParams(tokenRequests[0].body);
     expect(asked.get('grant_type')).toBe('client_credentials');
@@ -156,7 +174,10 @@ describe('OAuth 2.0, client credentials', () => {
   });
 
   it('sends the token type the server chose', async () => {
-    tokenReply = { status: 200, body: JSON.stringify({ access_token: 'abc', token_type: 'DPoP', expires_in: 60 }) };
+    tokenReply = {
+      status: 200,
+      body: JSON.stringify({ access_token: 'abc', token_type: 'DPoP', expires_in: 60 }),
+    };
 
     await runApiRequest({ method: 'GET', url: `${targetUrl}/public`, auth: oauth2() }, {});
 
@@ -164,7 +185,10 @@ describe('OAuth 2.0, client credentials', () => {
   });
 
   it('normalises the casing of bearer, which providers spell either way', async () => {
-    tokenReply = { status: 200, body: JSON.stringify({ access_token: 'abc', token_type: 'bearer', expires_in: 60 }) };
+    tokenReply = {
+      status: 200,
+      body: JSON.stringify({ access_token: 'abc', token_type: 'bearer', expires_in: 60 }),
+    };
 
     await runApiRequest({ method: 'GET', url: `${targetUrl}/public`, auth: oauth2() }, {});
 
@@ -207,7 +231,10 @@ describe('when the token cannot be obtained', () => {
       body: JSON.stringify({ error: 'invalid_client', error_description: 'client secret expired' }),
     };
 
-    const result = await runApiRequest({ method: 'GET', url: `${targetUrl}/private`, auth: oauth2() }, {});
+    const result = await runApiRequest(
+      { method: 'GET', url: `${targetUrl}/private`, auth: oauth2() },
+      {},
+    );
 
     expect(result.passed).toBe(false);
     expect(result.error).toContain('invalid_client');
@@ -220,7 +247,10 @@ describe('when the token cannot be obtained', () => {
   it('says so when a 200 carries no access_token', async () => {
     tokenReply = { status: 200, body: JSON.stringify({ token_type: 'Bearer', expires_in: 60 }) };
 
-    const result = await runApiRequest({ method: 'GET', url: `${targetUrl}/private`, auth: oauth2() }, {});
+    const result = await runApiRequest(
+      { method: 'GET', url: `${targetUrl}/private`, auth: oauth2() },
+      {},
+    );
 
     // The failure that looks most like success: an empty Authorization header would be sent
     // and the whole thing would read as a target problem.
@@ -321,7 +351,10 @@ describe('a scheme saved without its settings', () => {
     };
     const accepted: AuthType[] = [];
     for (const type of AuthTypeSchema.options) {
-      const auth = type === 'oauth2' ? oauth2() : (AuthParamsSchema.parse({ type, params: filled[type] ?? {} }) as never);
+      const auth =
+        type === 'oauth2'
+          ? oauth2()
+          : (AuthParamsSchema.parse({ type, params: filled[type] ?? {} }) as never);
 
       const result = await runApiRequest({ method: 'GET', url: `${targetUrl}/public`, auth }, {});
       if (!result.error) accepted.push(type);

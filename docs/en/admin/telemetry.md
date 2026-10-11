@@ -33,16 +33,16 @@ scrape_configs:
 
 Discover and scrape **each worker replica separately**. A single load-balanced target would hide unsampled workers.
 
-| Metric | Meaning |
-| --- | --- |
-| `wfm_http_duration_seconds` | Request duration by method, route template and status; histogram count provides request/error rates. Unmatched routes use a fixed label. |
-| `wfm_job_wait_seconds` | Job age when a worker starts an attempt; includes deliberate delays, quota deferrals and retries, not just Redis scheduling latency. |
-| `wfm_job_duration_seconds` | Duration of each processing attempt on either execution or browser-task queue. |
-| `wfm_jobs_total` | Attempts ending in `success`, `error` or `deferred`; deferral is not a completed run. |
-| `wfm_worker_active_jobs`, `wfm_worker_capacity` | In-flight attempts and configured concurrency per queue and worker process. Capacity remains configured capacity while a worker is drained. |
-| `wfm_queue_jobs` | Global queue depth by queue/state, exported by workers. Redis scrape errors return HTTP 503 rather than a stale success. |
-| `wfm_agent_connected`, `wfm_agent_capacity`, `wfm_agent_active_sessions` | Local relay aggregates: connected agents, slots offered by non-draining agents, and active sessions. Sum these over API replicas. |
-| Other `wfm_*` process metrics | Node CPU, memory, event-loop lag and garbage collection from the Prometheus client. |
+| Metric                                                                   | Meaning                                                                                                                                     |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wfm_http_duration_seconds`                                              | Request duration by method, route template and status; histogram count provides request/error rates. Unmatched routes use a fixed label.    |
+| `wfm_job_wait_seconds`                                                   | Job age when a worker starts an attempt; includes deliberate delays, quota deferrals and retries, not just Redis scheduling latency.        |
+| `wfm_job_duration_seconds`                                               | Duration of each processing attempt on either execution or browser-task queue.                                                              |
+| `wfm_jobs_total`                                                         | Attempts ending in `success`, `error` or `deferred`; deferral is not a completed run.                                                       |
+| `wfm_worker_active_jobs`, `wfm_worker_capacity`                          | In-flight attempts and configured concurrency per queue and worker process. Capacity remains configured capacity while a worker is drained. |
+| `wfm_queue_jobs`                                                         | Global queue depth by queue/state, exported by workers. Redis scrape errors return HTTP 503 rather than a stale success.                    |
+| `wfm_agent_connected`, `wfm_agent_capacity`, `wfm_agent_active_sessions` | Local relay aggregates: connected agents, slots offered by non-draining agents, and active sessions. Sum these over API replicas.           |
+| Other `wfm_*` process metrics                                            | Node CPU, memory, event-loop lag and garbage collection from the Prometheus client.                                                         |
 
 Queue depths are duplicated across worker replicas: use `max by (queue, state) (wfm_queue_jobs)`, **not a sum**. Worker utilization is `sum by (queue) (wfm_worker_active_jobs) / sum by (queue) (wfm_worker_capacity)`. Example wait p95: `histogram_quantile(0.95, sum by (le, queue) (rate(wfm_job_wait_seconds_bucket[5m])))`. Counters describe worker attempts and infrastructure errors; a test assertion failure returned as a normal result is still a successfully processed job.
 

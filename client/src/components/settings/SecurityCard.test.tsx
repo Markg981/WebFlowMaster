@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -42,12 +44,20 @@ beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockImplementation((url: string, init?: any) => {
     if (url === '/api/mfa' && !init?.method) return json(status);
-    if (url === '/api/mfa/enrollment') return json({ secret: 'ABCDEFGHABCDEFGH', otpauthUri: 'otpauth://x', qrDataUrl: 'data:image/png;base64,AAA' });
+    if (url === '/api/mfa/enrollment')
+      return json({
+        secret: 'ABCDEFGHABCDEFGH',
+        otpauthUri: 'otpauth://x',
+        qrDataUrl: 'data:image/png;base64,AAA',
+      });
     if (url === '/api/mfa/enrollment/confirm') {
       const { code } = JSON.parse(init.body);
-      return code === '123456' ? json({ recoveryCodes: ['aaaaa-bbbbb', 'ccccc-ddddd'] }) : json({ error: 'That code does not match.' }, false);
+      return code === '123456'
+        ? json({ recoveryCodes: ['aaaaa-bbbbb', 'ccccc-ddddd'] })
+        : json({ error: 'That code does not match.' }, false);
     }
-    if (url === '/api/mfa' && init?.method === 'DELETE') return Promise.resolve({ ok: true, status: 204, json: async () => ({}) });
+    if (url === '/api/mfa' && init?.method === 'DELETE')
+      return Promise.resolve({ ok: true, status: 204, json: async () => ({}) });
     return json({});
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -58,7 +68,10 @@ describe('SecurityCard', () => {
     renderCard();
     fireEvent.click(await screen.findByRole('button', { name: /Set up two-factor/ }));
 
-    expect(await screen.findByAltText(/QR code/)).toHaveAttribute('src', 'data:image/png;base64,AAA');
+    expect(await screen.findByAltText(/QR code/)).toHaveAttribute(
+      'src',
+      'data:image/png;base64,AAA',
+    );
     expect(screen.getByTestId('mfa-secret')).toHaveTextContent('ABCD EFGH ABCD EFGH');
 
     fireEvent.change(screen.getByLabelText('Code from the app'), { target: { value: '000000' } });
@@ -71,23 +84,37 @@ describe('SecurityCard', () => {
   });
 
   it('turns it off with the password and a code', async () => {
-    status = { enabled: true, enabledAt: '2026-09-01T00:00:00.000Z', recoveryCodesLeft: 8, required: false };
+    status = {
+      enabled: true,
+      enabledAt: '2026-09-01T00:00:00.000Z',
+      recoveryCodesLeft: 8,
+      required: false,
+    };
     renderCard();
 
     expect(await screen.findByTestId('mfa-status')).toHaveTextContent('8 recovery codes left.');
     fireEvent.click(screen.getByRole('button', { name: 'Turn off' }));
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'secret' } });
-    fireEvent.change(screen.getByLabelText(/Code from the app, or a recovery code/), { target: { value: '654321' } });
+    fireEvent.change(screen.getByLabelText(/Code from the app, or a recovery code/), {
+      target: { value: '654321' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Turn off' }));
 
     await waitFor(() => {
-      const call = fetchMock.mock.calls.find(([url, init]: any[]) => url === '/api/mfa' && init?.method === 'DELETE');
+      const call = fetchMock.mock.calls.find(
+        ([url, init]: any[]) => url === '/api/mfa' && init?.method === 'DELETE',
+      );
       expect(JSON.parse(call![1].body)).toEqual({ password: 'secret', code: '654321' });
     });
   });
 
   it('offers no way to turn it off while the organization requires it', async () => {
-    status = { enabled: true, enabledAt: '2026-09-01T00:00:00.000Z', recoveryCodesLeft: 10, required: true };
+    status = {
+      enabled: true,
+      enabledAt: '2026-09-01T00:00:00.000Z',
+      recoveryCodesLeft: 10,
+      required: true,
+    };
     renderCard();
 
     await screen.findByTestId('mfa-status');

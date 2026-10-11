@@ -4,7 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ClipboardList, ExternalLink, Loader2, Upload } from 'lucide-react';
 import { isExecutionInFlight } from '@shared/execution-status';
 
@@ -36,7 +42,13 @@ interface ConnectionOption {
 /** The plan's own connection, since a Select item cannot have an empty value. */
 const PLAN_CONNECTION = '__plan__';
 
-export default function PublicationsCard({ executionId, runStatus }: { executionId: string; runStatus: string }) {
+export default function PublicationsCard({
+  executionId,
+  runStatus,
+}: {
+  executionId: string;
+  runStatus: string;
+}) {
   const { t } = useTranslation();
   const [target, setTarget] = useState(PLAN_CONNECTION);
   const [publishing, setPublishing] = useState(false);
@@ -73,7 +85,8 @@ export default function PublicationsCard({ executionId, runStatus }: { execution
       });
       const body = await response.json().catch(() => ({}));
       // A 502 is a publication that was recorded as failed: the list shows why.
-      if (!response.ok && response.status !== 502) setError(body.error || t('publications.failed', 'The run was not published.'));
+      if (!response.ok && response.status !== 502)
+        setError(body.error || t('publications.failed', 'The run was not published.'));
       await refetch();
     } finally {
       setPublishing(false);
@@ -95,36 +108,66 @@ export default function PublicationsCard({ executionId, runStatus }: { execution
           {t('publications.title', 'Test management')}
         </CardTitle>
         <CardDescription>
-          {t('publications.description', 'Where this run was published, case by case. Publishing again makes a new run in the tool, with the verdicts as they are now.')}
+          {t(
+            'publications.description',
+            'Where this run was published, case by case. Publishing again makes a new run in the tool, with the verdicts as they are now.',
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {publications.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('publications.none', 'Not published yet.')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('publications.none', 'Not published yet.')}
+          </p>
         ) : (
           <ul className="space-y-2">
             {publications.map((row) => (
               <li key={row.id} className="text-sm border rounded-md p-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={row.status === 'published' ? 'default' : row.status === 'failed' ? 'destructive' : 'secondary'}>{statusLabel(row)}</Badge>
+                  <Badge
+                    variant={
+                      row.status === 'published'
+                        ? 'default'
+                        : row.status === 'failed'
+                          ? 'destructive'
+                          : 'secondary'
+                    }
+                  >
+                    {statusLabel(row)}
+                  </Badge>
                   <span className="font-medium">{row.connectionName}</span>
                   {row.externalKey &&
                     (row.externalUrl ? (
-                      <a href={row.externalUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline">
+                      <a
+                        href={row.externalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 underline"
+                      >
                         {row.externalKey}
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : (
                       <span className="font-mono">{row.externalKey}</span>
                     ))}
-                  <span className="text-xs text-muted-foreground">{new Date(row.createdAt).toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(row.createdAt).toLocaleString()}
+                  </span>
                 </div>
                 {row.status === 'published' && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    {t('publications.counts', '{{published}} case(s) published, {{unmapped}} test(s) with no case left out.', { published: row.publishedCount, unmapped: row.unmappedCount })}
+                    {t(
+                      'publications.counts',
+                      '{{published}} case(s) published, {{unmapped}} test(s) with no case left out.',
+                      { published: row.publishedCount, unmapped: row.unmappedCount },
+                    )}
                   </p>
                 )}
-                {row.message && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap wrap-break-word">{row.message}</p>}
+                {row.message && (
+                  <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap wrap-break-word">
+                    {row.message}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
@@ -136,7 +179,9 @@ export default function PublicationsCard({ executionId, runStatus }: { execution
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={PLAN_CONNECTION}>{t('publications.planConnection', 'The plan’s connection')}</SelectItem>
+                <SelectItem value={PLAN_CONNECTION}>
+                  {t('publications.planConnection', 'The plan’s connection')}
+                </SelectItem>
                 {connections.map((connection) => (
                   <SelectItem key={connection.id} value={connection.id}>
                     {connection.name}
@@ -145,12 +190,22 @@ export default function PublicationsCard({ executionId, runStatus }: { execution
               </SelectContent>
             </Select>
             <Button onClick={publish} disabled={publishing} size="sm">
-              {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-              {publications.length ? t('publications.again', 'Publish again') : t('publications.publish', 'Publish')}
+              {publishing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="mr-2 h-4 w-4" />
+              )}
+              {publications.length
+                ? t('publications.again', 'Publish again')
+                : t('publications.publish', 'Publish')}
             </Button>
           </div>
         )}
-        {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+        {error && (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

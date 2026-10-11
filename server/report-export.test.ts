@@ -14,12 +14,20 @@ import { v4 as uuidv4 } from 'uuid';
  */
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
 const { privilegedDb } = await import('./db');
-const { reportTestCaseResults, testPlanExecutions, testPlans, users } = await import('@shared/schema');
+const { reportTestCaseResults, testPlanExecutions, testPlans, users } =
+  await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
 const { tenancyMiddleware, runAsOrganization } = await import('./middleware/tenancy');
 const { default: reportsRoutes } = await import('./routes/reports.routes');
@@ -42,7 +50,8 @@ function readZip(buffer: Buffer): Map<string, Buffer> {
     const local = buffer.readUInt32LE(offset + 42);
     const name = buffer.subarray(offset + 46, offset + 46 + nameLength).toString('utf8');
     expect(buffer.readUInt32LE(local)).toBe(0x04034b50);
-    const dataStart = local + 30 + buffer.readUInt16LE(local + 26) + buffer.readUInt16LE(local + 28);
+    const dataStart =
+      local + 30 + buffer.readUInt16LE(local + 26) + buffer.readUInt16LE(local + 28);
     const data = buffer.subarray(dataStart, dataStart + size);
     expect(crc32(data)).toBe(crc);
     files.set(name, data);
@@ -70,7 +79,10 @@ describe('the zip', () => {
 });
 
 describe('exporting a run', () => {
-  const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4a00000000049454e44ae426082', 'hex');
+  const PNG = Buffer.from(
+    '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4a00000000049454e44ae426082',
+    'hex',
+  );
   let app: express.Express;
   let current: { id: number; username: string; organizationId: number; role: string };
   let org: number;
@@ -100,63 +112,173 @@ describe('exporting a run', () => {
 
   beforeEach(async () => {
     org = await createTestOrganization('Export Org');
-    const [user] = await privilegedDb.insert(users).values({ username: `exporter-${uuidv4().slice(0, 8)}`, password: 'x', organizationId: org, role: 'viewer' }).returning();
+    const [user] = await privilegedDb
+      .insert(users)
+      .values({
+        username: `exporter-${uuidv4().slice(0, 8)}`,
+        password: 'x',
+        organizationId: org,
+        role: 'viewer',
+      })
+      .returning();
     current = { id: user.id, username: user.username, organizationId: org, role: 'viewer' };
     planId = uuidv4();
     executionId = uuidv4();
-    await privilegedDb.insert(testPlans).values({ id: planId, name: 'Nightly checkout', userId: user.id, organizationId: org } as any);
-    await privilegedDb.insert(testPlanExecutions).values({
-      id: executionId, organizationId: org, testPlanId: planId, status: 'failed', triggeredBy: 'scheduled',
-      startedAt: new Date('2026-09-24T02:00:00Z'), completedAt: new Date('2026-09-24T02:03:00Z'), executionDurationMs: 180_000,
+    await privilegedDb.insert(testPlans).values({
+      id: planId,
+      name: 'Nightly checkout',
+      userId: user.id,
+      organizationId: org,
     } as any);
-    const base = { organizationId: org, testPlanExecutionId: executionId, testType: 'ui', browser: 'chromium', startedAt: new Date('2026-09-24T02:00:10Z'), completedAt: new Date('2026-09-24T02:00:20Z'), durationMs: 10_000 };
+    await privilegedDb.insert(testPlanExecutions).values({
+      id: executionId,
+      organizationId: org,
+      testPlanId: planId,
+      status: 'failed',
+      triggeredBy: 'scheduled',
+      startedAt: new Date('2026-09-24T02:00:00Z'),
+      completedAt: new Date('2026-09-24T02:03:00Z'),
+      executionDurationMs: 180_000,
+    } as any);
+    const base = {
+      organizationId: org,
+      testPlanExecutionId: executionId,
+      testType: 'ui',
+      browser: 'chromium',
+      startedAt: new Date('2026-09-24T02:00:10Z'),
+      completedAt: new Date('2026-09-24T02:00:20Z'),
+      durationMs: 10_000,
+    };
     await privilegedDb.insert(reportTestCaseResults).values([
       { ...base, id: uuidv4(), testName: 'Login', status: 'Passed', attempts: 2, module: 'Auth' },
       {
-        ...base, id: uuidv4(), testName: 'Pay <script>alert(1)</script>', status: 'Failed', module: 'Checkout', severity: 'Critical',
+        ...base,
+        id: uuidv4(),
+        testName: 'Pay <script>alert(1)</script>',
+        status: 'Failed',
+        module: 'Checkout',
+        severity: 'Critical',
         reasonForFailure: 'Expected "Thank you" & got "Error"',
         screenshotUrl: `/results/${planId}/${executionId}/ui_2/step_fail.png`,
         detailedLog: JSON.stringify([
           { name: 'Open cart', type: 'navigate', status: 'passed', details: 'ok' },
           {
-            name: 'Check accessibility', type: 'assertAccessible', status: 'failed', error: '1 accessibility violation',
-            accessibility: { url: 'x', threshold: 'serious', blocking: 1, passes: 3, incomplete: 0, violations: [{ id: 'button-name', impact: 'critical', help: 'Buttons must have discernible text', helpUrl: 'u', tags: [], count: 2, targets: ['#pay'], blocking: true }] },
+            name: 'Check accessibility',
+            type: 'assertAccessible',
+            status: 'failed',
+            error: '1 accessibility violation',
+            accessibility: {
+              url: 'x',
+              threshold: 'serious',
+              blocking: 1,
+              passes: 3,
+              incomplete: 0,
+              violations: [
+                {
+                  id: 'button-name',
+                  impact: 'critical',
+                  help: 'Buttons must have discernible text',
+                  helpUrl: 'u',
+                  tags: [],
+                  count: 2,
+                  targets: ['#pay'],
+                  blocking: true,
+                },
+              ],
+            },
           },
           { name: 'Confirm', type: 'click', status: 'passed', details: 'never reached' },
         ]),
-        networkSummary: { requests: 5, failed: 1, transferredBytes: 100, failures: [{ method: 'POST', url: 'https://shop.test/api/orders', status: 500, statusText: 'Internal Server Error', timeMs: 900, resourceType: 'fetch' }], slowest: [] },
+        networkSummary: {
+          requests: 5,
+          failed: 1,
+          transferredBytes: 100,
+          failures: [
+            {
+              method: 'POST',
+              url: 'https://shop.test/api/orders',
+              status: 500,
+              statusText: 'Internal Server Error',
+              timeMs: 900,
+              resourceType: 'fetch',
+            },
+          ],
+          slowest: [],
+        },
       },
-      { ...base, id: uuidv4(), testName: 'Search', status: 'Failed', quarantined: true, reasonForFailure: 'Timeout' },
+      {
+        ...base,
+        id: uuidv4(),
+        testName: 'Search',
+        status: 'Failed',
+        quarantined: true,
+        reasonForFailure: 'Timeout',
+      },
     ] as any);
   });
 
   it('preserves requested and observed configuration in HTML, Allure and JUnit', async () => {
     const { matrixEvidence } = await import('@shared/matrix-evidence');
     const { eq } = await import('drizzle-orm');
-    const matrix = matrixEvidence({ route: 'appium', provider: 'local_appium', source: 'capabilities',
+    const matrix = matrixEvidence({
+      route: 'appium',
+      provider: 'local_appium',
+      source: 'capabilities',
       requested: { os: 'Android', device: 'Pixel 8', osVersion: '14' },
-      effective: { os: 'Android', device: 'Pixel 9', osVersion: '15' } });
-    await privilegedDb.update(reportTestCaseResults).set({ detailedLog: JSON.stringify({ mobile: true, platform: 'android', device: 'Pixel 8', sessionUrl: null, steps: [], matrixEvidence: matrix }) }).where(eq(reportTestCaseResults.testPlanExecutionId, executionId));
-    const html = await request(app).get(`/api/test-plan-executions/${executionId}/export/html`).expect(200);
-    expect(html.text).toContain('Pixel 8'); expect(html.text).toContain('Pixel 9'); expect(html.text).toContain('mismatch');
-    const allure = await request(app).get(`/api/test-plan-executions/${executionId}/export/allure`).buffer(true).parse((res, callback) => {
-      const chunks: Buffer[] = []; res.on('data', chunk => chunks.push(chunk)); res.on('end', () => callback(null, Buffer.concat(chunks)));
-    }).expect(200);
+      effective: { os: 'Android', device: 'Pixel 9', osVersion: '15' },
+    });
+    await privilegedDb
+      .update(reportTestCaseResults)
+      .set({
+        detailedLog: JSON.stringify({
+          mobile: true,
+          platform: 'android',
+          device: 'Pixel 8',
+          sessionUrl: null,
+          steps: [],
+          matrixEvidence: matrix,
+        }),
+      })
+      .where(eq(reportTestCaseResults.testPlanExecutionId, executionId));
+    const html = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/export/html`)
+      .expect(200);
+    expect(html.text).toContain('Pixel 8');
+    expect(html.text).toContain('Pixel 9');
+    expect(html.text).toContain('mismatch');
+    const allure = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/export/allure`)
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
     const files = readZip(allure.body);
     const matrices = [...files].filter(([name]) => name.endsWith('-matrix.json'));
     expect(matrices).toHaveLength(3);
     expect(JSON.parse(matrices[0][1].toString())).toEqual([matrix]);
-    const junit = await request(app).get(`/api/test-plan-executions/${executionId}/junit`).expect(200);
-    expect(junit.text).toContain('wfm.matrix'); expect(junit.text).toContain('Pixel 9');
+    const junit = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/junit`)
+      .expect(200);
+    expect(junit.text).toContain('wfm.matrix');
+    expect(junit.text).toContain('Pixel 9');
   });
 
   it('as HTML: self-contained, escaped, with what failed first and its screenshot embedded', async () => {
-    const response = await request(app).get(`/api/test-plan-executions/${executionId}/export/html`).expect(200);
+    const response = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/export/html`)
+      .expect(200);
 
     expect(response.headers['content-type']).toMatch(/text\/html/);
-    expect(response.headers['content-disposition']).toMatch(/^attachment; filename="nightly-checkout-[0-9a-f]{8}\.html"$/);
+    expect(response.headers['content-disposition']).toMatch(
+      /^attachment; filename="nightly-checkout-[0-9a-f]{8}\.html"$/,
+    );
     const html = response.text;
-    expect(html).toContain('<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'">');
+    expect(html).toContain(
+      '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'">',
+    );
     expect(html).not.toMatch(/<script/i);
     expect(html).not.toMatch(/(src|href)="https?:/);
     expect(html).toContain('Pay &lt;script&gt;alert(1)&lt;/script&gt;');
@@ -169,7 +291,7 @@ describe('exporting a run', () => {
     expect(html).toContain('2 attempts');
   });
 
-  it('as Allure results: one per test, in Allure\'s own words for quarantine and retries', async () => {
+  it("as Allure results: one per test, in Allure's own words for quarantine and retries", async () => {
     const response = await request(app)
       .get(`/api/test-plan-executions/${executionId}/export/allure`)
       .buffer(true)
@@ -182,21 +304,40 @@ describe('exporting a run', () => {
     expect(response.headers['content-type']).toBe('application/zip');
 
     const files = readZip(response.body as Buffer);
-    const results = [...files.entries()].filter(([name]) => name.endsWith('-result.json')).map(([, data]) => JSON.parse(data.toString()));
+    const results = [...files.entries()]
+      .filter(([name]) => name.endsWith('-result.json'))
+      .map(([, data]) => JSON.parse(data.toString()));
     expect(results).toHaveLength(3);
     const byName = (name: string) => results.find((r) => r.name === name);
 
     expect(byName('Login')).toMatchObject({ status: 'passed', statusDetails: { flaky: true } });
-    expect(byName('Search')).toMatchObject({ status: 'failed', statusDetails: { muted: true, message: 'Timeout' } });
+    expect(byName('Search')).toMatchObject({
+      status: 'failed',
+      statusDetails: { muted: true, message: 'Timeout' },
+    });
     const pay = byName('Pay <script>alert(1)</script>');
-    expect(pay.historyId).toBe(historyIdFor(planId, { testName: 'Pay <script>alert(1)</script>', browser: 'chromium' }));
-    expect(pay.labels).toEqual(expect.arrayContaining([{ name: 'severity', value: 'critical' }, { name: 'feature', value: 'Checkout' }, { name: 'parentSuite', value: 'Nightly checkout' }]));
+    expect(pay.historyId).toBe(
+      historyIdFor(planId, { testName: 'Pay <script>alert(1)</script>', browser: 'chromium' }),
+    );
+    expect(pay.labels).toEqual(
+      expect.arrayContaining([
+        { name: 'severity', value: 'critical' },
+        { name: 'feature', value: 'Checkout' },
+        { name: 'parentSuite', value: 'Nightly checkout' },
+      ]),
+    );
     expect(pay.parameters).toContainEqual({ name: 'browser', value: 'chromium' });
     // The step after the one that failed never ran.
-    expect(pay.steps.map((s: { status: string }) => s.status)).toEqual(['passed', 'failed', 'skipped']);
+    expect(pay.steps.map((s: { status: string }) => s.status)).toEqual([
+      'passed',
+      'failed',
+      'skipped',
+    ]);
     expect(files.get(pay.attachments[0].source)).toEqual(PNG);
     expect(files.get('environment.properties')!.toString()).toContain('Plan=Nightly checkout');
-    expect(JSON.parse(files.get('categories.json')!.toString()).map((c: { name: string }) => c.name)).toContain('Accessibility violations');
+    expect(
+      JSON.parse(files.get('categories.json')!.toString()).map((c: { name: string }) => c.name),
+    ).toContain('Accessibility violations');
   });
 
   it('as PDF, rendered by a real browser', async () => {
@@ -207,14 +348,18 @@ describe('exporting a run', () => {
   }, 60_000);
 
   it('as JUnit XML, under /export like the others', async () => {
-    const response = await request(app).get(`/api/test-plan-executions/${executionId}/export/junit`).expect(200);
+    const response = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/export/junit`)
+      .expect(200);
     expect(response.headers['content-type']).toMatch(/application\/xml/);
-    expect(response.headers['content-disposition']).toBe(`attachment; filename="junit-${executionId}.xml"`);
+    expect(response.headers['content-disposition']).toBe(
+      `attachment; filename="junit-${executionId}.xml"`,
+    );
     expect(response.text).toContain('<testsuite');
     expect(response.text).toContain('<failure');
   });
 
-  it('refuses a format it does not know, and does not find another organization\'s run', async () => {
+  it("refuses a format it does not know, and does not find another organization's run", async () => {
     await request(app).get(`/api/test-plan-executions/${executionId}/export/docx`).expect(400);
     const other = await createTestOrganization('Other Export Org');
     current = { ...current, organizationId: other };

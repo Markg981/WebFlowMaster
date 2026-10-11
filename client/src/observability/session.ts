@@ -1,7 +1,6 @@
 const SESSION_KEY = 'wfm:sessionId';
 
-const randomId = (prefix: string): string =>
-  `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+const randomId = (prefix: string): string => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 
 /**
  * One id per browser tab, surviving reloads within the tab. Used to stitch a whole user

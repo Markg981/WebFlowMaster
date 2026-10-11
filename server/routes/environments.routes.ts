@@ -1,12 +1,12 @@
-import { Router } from "express";
-import { environments, secrets, AUDIT_ACTIONS } from "@shared/schema";
-import { auditActor, recordAudit } from "../audit";
-import { and, asc, eq } from "drizzle-orm";
-import { z } from "zod";
-import loggerPromise from "../logger";
-import { withTenantTransaction } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
-import { encryptSecret } from "../crypto";
+import { Router } from 'express';
+import { environments, secrets, AUDIT_ACTIONS } from '@shared/schema';
+import { auditActor, recordAudit } from '../audit';
+import { and, asc, eq } from 'drizzle-orm';
+import { z } from 'zod';
+import loggerPromise from '../logger';
+import { withTenantTransaction } from '../middleware/tenancy';
+import { requireRole } from '../middleware/require-role';
+import { encryptSecret } from '../crypto';
 
 /**
  * Environments and their secrets.
@@ -23,7 +23,7 @@ const router = Router();
 const logger = await loggerPromise;
 
 const environmentNameSchema = z.object({
-  name: z.string().trim().min(1, "Environment name is required").max(120),
+  name: z.string().trim().min(1, 'Environment name is required').max(120),
 });
 
 const secretSchema = z.object({
@@ -34,8 +34,8 @@ const secretSchema = z.object({
     .trim()
     .min(1)
     .max(120)
-    .regex(/^[\w.]+$/, "Use letters, digits, underscores and dots — no spaces"),
-  value: z.string().min(1, "A secret needs a value"),
+    .regex(/^[\w.]+$/, 'Use letters, digits, underscores and dots — no spaces'),
+  value: z.string().min(1, 'A secret needs a value'),
 });
 
 /** The columns that may leave the server. Never the ciphertext, the iv or the auth tag. */
@@ -47,13 +47,19 @@ const publicSecretColumns = {
   updatedAt: secrets.updatedAt,
 };
 
-function toPublicSecret(row: { id: number; environmentId: number; keyName: string; createdAt: Date; updatedAt: Date }) {
+function toPublicSecret(row: {
+  id: number;
+  environmentId: number;
+  keyName: string;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
   const { id, environmentId, keyName, createdAt, updatedAt } = row;
   return { id, environmentId, keyName, createdAt, updatedAt };
 }
 
-router.get("/api/environments", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/environments', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   try {
     // No organization filter: the RLS policy applies it.
     const rows = await withTenantTransaction((tx) =>
@@ -72,17 +78,17 @@ router.get("/api/environments", requireRole('viewer'), async (req, res) => {
     );
     res.json(rows);
   } catch (error: any) {
-    logger.error({ message: "Error fetching environments", error: error.message });
-    res.status(500).json({ error: "Failed to fetch environments" });
+    logger.error({ message: 'Error fetching environments', error: error.message });
+    res.status(500).json({ error: 'Failed to fetch environments' });
   }
 });
 
-router.post("/api/environments", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/environments', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   const parsed = environmentNameSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid environment", details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid environment', details: parsed.error.flatten() });
   }
 
   try {
@@ -111,17 +117,19 @@ router.post("/api/environments", requireRole('editor'), async (req, res) => {
     // Names are unique within the organization, without case (migration 0041): a clash is always
     // one of this organization's own environments.
     if (/unique|duplicate/i.test(error.message ?? '')) {
-      return res.status(409).json({ error: "This organization already has an environment with that name" });
+      return res
+        .status(409)
+        .json({ error: 'This organization already has an environment with that name' });
     }
-    logger.error({ message: "Error creating environment", error: error.message });
-    res.status(500).json({ error: "Failed to create environment" });
+    logger.error({ message: 'Error creating environment', error: error.message });
+    res.status(500).json({ error: 'Failed to create environment' });
   }
 });
 
-router.delete("/api/environments/:id", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.delete('/api/environments/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   const id = Number(req.params.id);
-  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid environment id" });
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid environment id' });
 
   try {
     const deleted = await withTenantTransaction(async (tx) => {
@@ -141,18 +149,19 @@ router.delete("/api/environments/:id", requireRole('editor'), async (req, res) =
     });
     // Under RLS another organization's row is simply not there, so 404 is the correct
     // answer rather than a leak.
-    if (deleted.length === 0) return res.status(404).json({ error: "Environment not found" });
+    if (deleted.length === 0) return res.status(404).json({ error: 'Environment not found' });
     res.status(204).end();
   } catch (error: any) {
-    logger.error({ message: "Error deleting environment", error: error.message });
-    res.status(500).json({ error: "Failed to delete environment" });
+    logger.error({ message: 'Error deleting environment', error: error.message });
+    res.status(500).json({ error: 'Failed to delete environment' });
   }
 });
 
-router.get("/api/environments/:id/secrets", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/environments/:id/secrets', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   const environmentId = Number(req.params.id);
-  if (!Number.isInteger(environmentId)) return res.status(400).json({ error: "Invalid environment id" });
+  if (!Number.isInteger(environmentId))
+    return res.status(400).json({ error: 'Invalid environment id' });
 
   try {
     const rows = await withTenantTransaction((tx) =>
@@ -164,19 +173,20 @@ router.get("/api/environments/:id/secrets", requireRole('viewer'), async (req, r
     );
     res.json(rows);
   } catch (error: any) {
-    logger.error({ message: "Error fetching secrets", error: error.message });
-    res.status(500).json({ error: "Failed to fetch secrets" });
+    logger.error({ message: 'Error fetching secrets', error: error.message });
+    res.status(500).json({ error: 'Failed to fetch secrets' });
   }
 });
 
-router.post("/api/environments/:id/secrets", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/environments/:id/secrets', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   const environmentId = Number(req.params.id);
-  if (!Number.isInteger(environmentId)) return res.status(400).json({ error: "Invalid environment id" });
+  if (!Number.isInteger(environmentId))
+    return res.status(400).json({ error: 'Invalid environment id' });
 
   const parsed = secretSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid secret", details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid secret', details: parsed.error.flatten() });
   }
 
   try {
@@ -196,7 +206,9 @@ router.post("/api/environments/:id/secrets", requireRole('editor'), async (req, 
       // whichever the query happens to return first, which changes for no visible reason.
       await tx
         .delete(secrets)
-        .where(and(eq(secrets.environmentId, environmentId), eq(secrets.keyName, parsed.data.keyName)));
+        .where(
+          and(eq(secrets.environmentId, environmentId), eq(secrets.keyName, parsed.data.keyName)),
+        );
 
       const rows = await tx
         .insert(secrets)
@@ -225,20 +237,20 @@ router.post("/api/environments/:id/secrets", requireRole('editor'), async (req, 
       return toPublicSecret(rows[0]);
     });
 
-    if (!created) return res.status(404).json({ error: "Environment not found" });
+    if (!created) return res.status(404).json({ error: 'Environment not found' });
     // Deliberately the public columns only: a response is rendered in a browser and passes
     // through proxies, and encrypting the column buys nothing if the value comes back out.
     res.status(201).json(created);
   } catch (error: any) {
-    logger.error({ message: "Error saving secret", error: error.message });
-    res.status(500).json({ error: "Failed to save secret" });
+    logger.error({ message: 'Error saving secret', error: error.message });
+    res.status(500).json({ error: 'Failed to save secret' });
   }
 });
 
-router.delete("/api/secrets/:id", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.delete('/api/secrets/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   const id = Number(req.params.id);
-  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid secret id" });
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid secret id' });
 
   try {
     const deleted = await withTenantTransaction(async (tx) => {
@@ -254,11 +266,11 @@ router.delete("/api/secrets/:id", requireRole('editor'), async (req, res) => {
       }
       return rows;
     });
-    if (deleted.length === 0) return res.status(404).json({ error: "Secret not found" });
+    if (deleted.length === 0) return res.status(404).json({ error: 'Secret not found' });
     res.status(204).end();
   } catch (error: any) {
-    logger.error({ message: "Error deleting secret", error: error.message });
-    res.status(500).json({ error: "Failed to delete secret" });
+    logger.error({ message: 'Error deleting secret', error: error.message });
+    res.status(500).json({ error: 'Failed to delete secret' });
   }
 });
 

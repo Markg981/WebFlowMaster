@@ -58,14 +58,14 @@ implementate. Il lavoro utile è migliorarne riproducibilità, prova operativa e
 
 ## Condizioni per chiudere la v1
 
-| Priorità | Lavoro residuo | Evidenza richiesta |
-| --- | --- | --- |
-| Alta | Accettazione corrente e regressione | Nuovo ciclo sul commit realmente installato; tutti i P1 superati o N/A motivati, nessun P2 fallito senza decisione e almeno il 95% dei P2 eseguiti. Storico congelato. |
-| Alta | Release installabile e upgrade | Candidato verificato, manifest/SBOM/digest coerenti, staging dalla baseline precedente, backup verificato, login/report/nuovo run e rollback provato secondo compatibilità schema. OPS-20…OPS-25. |
-| Alta se S3 è nel perimetro | Recupero S3 reale | Bucket sacrificabile, inventario key/version/checksum al checkpoint, versioning/replica recuperabile e verifica report/baseline/tenant. OPS-31. |
-| Alta | Capacità e recupero rappresentativi | Carico/dataset/risorse dichiarati, durata e soglie concordate, nessun run perso/duplicato, evidenze e tempi per fase. OPS-27…OPS-30, OPS-32…OPS-35. |
-| Secondo il supporto dichiarato | Griglie e Appium reali | Sessioni/capabilities effettive corrispondenti ai target, risultato funzionale, report ed export. AUT-11…AUT-12. |
-| Entro il 6 novembre 2026 | Dipendenza braces | Verifica upstream, mitigazione effettiva e scansioni nuove; rimuovere l'eccezione solo dopo un fix equivalente verificato. La scadenza non viene estesa automaticamente. OPS-26. |
+| Priorità                       | Lavoro residuo                      | Evidenza richiesta                                                                                                                                                                                |
+| ------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Alta                           | Accettazione corrente e regressione | Nuovo ciclo sul commit realmente installato; tutti i P1 superati o N/A motivati, nessun P2 fallito senza decisione e almeno il 95% dei P2 eseguiti. Storico congelato.                            |
+| Alta                           | Release installabile e upgrade      | Candidato verificato, manifest/SBOM/digest coerenti, staging dalla baseline precedente, backup verificato, login/report/nuovo run e rollback provato secondo compatibilità schema. OPS-20…OPS-25. |
+| Alta se S3 è nel perimetro     | Recupero S3 reale                   | Bucket sacrificabile, inventario key/version/checksum al checkpoint, versioning/replica recuperabile e verifica report/baseline/tenant. OPS-31.                                                   |
+| Alta                           | Capacità e recupero rappresentativi | Carico/dataset/risorse dichiarati, durata e soglie concordate, nessun run perso/duplicato, evidenze e tempi per fase. OPS-27…OPS-30, OPS-32…OPS-35.                                               |
+| Secondo il supporto dichiarato | Griglie e Appium reali              | Sessioni/capabilities effettive corrispondenti ai target, risultato funzionale, report ed export. AUT-11…AUT-12.                                                                                  |
+| Entro il 6 novembre 2026       | Dipendenza braces                   | Verifica upstream, mitigazione effettiva e scansioni nuove; rimuovere l'eccezione solo dopo un fix equivalente verificato. La scadenza non viene estesa automaticamente. OPS-26.                  |
 
 La prova locale di restore verifica DB e artefatti locali. Il recupero degli oggetti S3 è esterno.
 Il restart SIGTERM è verificato come recupero controllato; dopo SIGKILL, il run identificato

@@ -9,7 +9,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -36,8 +38,13 @@ function answer(routes: Record<string, unknown>) {
   fetchMock.mockImplementation((url: string, init?: any) => {
     const method = init?.method ?? 'GET';
     const body = routes[`${method} ${url}`];
-    if (body === undefined) return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
-    return Promise.resolve({ ok: true, status: method === 'POST' ? 201 : 200, json: async () => body });
+    if (body === undefined)
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({}) });
+    return Promise.resolve({
+      ok: true,
+      status: method === 'POST' ? 201 : 200,
+      json: async () => body,
+    });
   });
 }
 
@@ -47,7 +54,9 @@ function withClient(ui: React.ReactElement) {
 }
 
 const sent = (method: string, url: string) => {
-  const call = fetchMock.mock.calls.find(([u, init]: any[]) => u === url && init?.method === method);
+  const call = fetchMock.mock.calls.find(
+    ([u, init]: any[]) => u === url && init?.method === method,
+  );
   return call ? JSON.parse(call[1].body) : undefined;
 };
 
@@ -71,7 +80,10 @@ describe('SuitesPage', () => {
   it('sends a static suite with its tests in the order they were ticked, mobile app tests included', async () => {
     answer({
       'GET /api/suites': [],
-      'GET /api/tests': [{ id: 10, name: 'Pay by card' }, { id: 11, name: 'Pay by transfer' }],
+      'GET /api/tests': [
+        { id: 10, name: 'Pay by card' },
+        { id: 11, name: 'Pay by transfer' },
+      ],
       'GET /api/api-tests': [{ id: 20, name: 'Orders API' }],
       'GET /api/mobile-tests': [{ id: 30, name: 'Pay on Android' }],
       'GET /api/tags': [],
@@ -92,7 +104,11 @@ describe('SuitesPage', () => {
       name: 'Checkout',
       kind: 'static',
       tagIds: [],
-      items: [{ type: 'api', id: 20 }, { type: 'ui', id: 10 }, { type: 'mobile', id: 30 }],
+      items: [
+        { type: 'api', id: 20 },
+        { type: 'ui', id: 10 },
+        { type: 'mobile', id: 30 },
+      ],
     });
   });
 
@@ -101,12 +117,17 @@ describe('SuitesPage', () => {
       'GET /api/suites': [],
       'GET /api/tests': [],
       'GET /api/api-tests': [],
-      'GET /api/tags': [{ id: 'tag-a', name: 'checkout' }, { id: 'tag-b', name: 'smoke' }],
+      'GET /api/tags': [
+        { id: 'tag-a', name: 'checkout' },
+        { id: 'tag-b', name: 'smoke' },
+      ],
       'POST /api/suites': { id: 4 },
     });
     withClient(<SuitesPage />);
     fireEvent.click(await screen.findByRole('button', { name: /New suite/ }));
-    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'Everything checkout' } });
+    fireEvent.change(await screen.findByLabelText('Name'), {
+      target: { value: 'Everything checkout' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Dynamic' }));
 
     const save = screen.getByRole('button', { name: 'Save' });
@@ -115,7 +136,13 @@ describe('SuitesPage', () => {
     expect(save).toBeEnabled();
     fireEvent.click(save);
 
-    await waitFor(() => expect(sent('POST', '/api/suites')).toMatchObject({ kind: 'dynamic', tagIds: ['tag-a'], items: [] }));
+    await waitFor(() =>
+      expect(sent('POST', '/api/suites')).toMatchObject({
+        kind: 'dynamic',
+        tagIds: ['tag-a'],
+        items: [],
+      }),
+    );
   });
 
   it('offers a viewer no changes', async () => {
@@ -132,7 +159,10 @@ describe('SuitesPage', () => {
 describe('PlanSuitesDialog', () => {
   it("starts from the plan's suites and sends them in the order they were ticked", async () => {
     answer({
-      'GET /api/suites': [...suiteRows, { id: 5, name: 'Search', kind: 'static', testCount: 1, planCount: 0 }],
+      'GET /api/suites': [
+        ...suiteRows,
+        { id: 5, name: 'Search', kind: 'static', testCount: 1, planCount: 0 },
+      ],
       'GET /api/test-plans/plan-1/suites': [{ id: 2, name: 'Smoke', kind: 'dynamic', position: 0 }],
       'PUT /api/test-plans/plan-1/suites': [],
     });
@@ -145,7 +175,9 @@ describe('PlanSuitesDialog', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Checkout' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(sent('PUT', '/api/test-plans/plan-1/suites')).toEqual({ suiteIds: [2, 5, 1] }));
+    await waitFor(() =>
+      expect(sent('PUT', '/api/test-plans/plan-1/suites')).toEqual({ suiteIds: [2, 5, 1] }),
+    );
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 });

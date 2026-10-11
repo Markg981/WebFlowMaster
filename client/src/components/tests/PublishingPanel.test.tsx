@@ -7,7 +7,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -42,7 +44,9 @@ describe('PublishingPanel', () => {
     render(<PublishingPanel state={base} currentUserId={1} canEdit onChanged={onChanged} />);
 
     expect(screen.getByText('Plans run version 3.')).toBeInTheDocument();
-    expect(screen.getByText('Version 5 has changes that are not published yet.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Version 5 has changes that are not published yet.'),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Publish version 5/ }));
 
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
@@ -50,10 +54,19 @@ describe('PublishingPanel', () => {
   });
 
   it('asks for a review where one is required, with a note', async () => {
-    render(<PublishingPanel state={{ ...base, reviewRequired: true }} currentUserId={1} canEdit onChanged={vi.fn()} />);
+    render(
+      <PublishingPanel
+        state={{ ...base, reviewRequired: true }}
+        currentUserId={1}
+        canEdit
+        onChanged={vi.fn()}
+      />,
+    );
 
     expect(screen.queryByRole('button', { name: /Publish version/ })).toBeNull();
-    fireEvent.change(screen.getByLabelText('Note for the reviewer'), { target: { value: 'New payment step' } });
+    fireEvent.change(screen.getByLabelText('Note for the reviewer'), {
+      target: { value: 'New payment step' },
+    });
     fireEvent.click(screen.getByRole('button', { name: /Ask for review of version 5/ }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
@@ -62,8 +75,14 @@ describe('PublishingPanel', () => {
   });
 
   it('shows a pending review, withdrawable only by whoever asked', () => {
-    const pending = { ...base, reviewRequired: true, pendingReview: { id: 4, version: 5, requestedBy: 1, note: null } };
-    const { rerender } = render(<PublishingPanel state={pending} currentUserId={1} canEdit onChanged={vi.fn()} />);
+    const pending = {
+      ...base,
+      reviewRequired: true,
+      pendingReview: { id: 4, version: 5, requestedBy: 1, note: null },
+    };
+    const { rerender } = render(
+      <PublishingPanel state={pending} currentUserId={1} canEdit onChanged={vi.fn()} />,
+    );
     expect(screen.getByText('Version 5 is waiting for review.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Withdraw' })).toBeInTheDocument();
 
@@ -88,7 +107,15 @@ describe('PublishingPanel', () => {
 describe('typed publishing routes', () => {
   it.each(['api', 'mobile'] as const)('publishes %s versions', async (testType) => {
     const onChanged = vi.fn();
-    render(<PublishingPanel state={base} testType={testType} currentUserId={1} canEdit onChanged={onChanged} />);
+    render(
+      <PublishingPanel
+        state={base}
+        testType={testType}
+        currentUserId={1}
+        canEdit
+        onChanged={onChanged}
+      />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Publish version 5' }));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     expect(fetchMock.mock.calls[0][0]).toBe(`/api/${testType}-tests/9/publish`);

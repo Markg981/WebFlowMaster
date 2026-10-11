@@ -46,11 +46,21 @@ export function readInbound(payload: Record<string, unknown>): InboundSms | null
     }
     return null;
   };
-  const provider = 'MessageSid' in payload || 'SmsSid' in payload ? 'twilio' : 'msisdn' in payload ? 'vonage' : 'generic';
+  const provider =
+    'MessageSid' in payload || 'SmsSid' in payload
+      ? 'twilio'
+      : 'msisdn' in payload
+        ? 'vonage'
+        : 'generic';
   const to = get('To', 'to', 'recipient');
   const body = get('Body', 'text', 'body', 'message');
   if (!to || body === null) return null;
-  return { to: normalizePhone(to), from: get('From', 'msisdn', 'from', 'sender'), body: body.slice(0, 5000), provider };
+  return {
+    to: normalizePhone(to),
+    from: get('From', 'msisdn', 'from', 'sender'),
+    body: body.slice(0, 5000),
+    provider,
+  };
 }
 
 export interface SmsInboxStatus {
@@ -60,7 +70,10 @@ export interface SmsInboxStatus {
 
 export async function smsInboxStatus(organizationId: number): Promise<SmsInboxStatus> {
   const [row] = await privilegedDb
-    .select({ prefix: organizations.smsInboundTokenPrefix, createdAt: organizations.smsInboundTokenCreatedAt })
+    .select({
+      prefix: organizations.smsInboundTokenPrefix,
+      createdAt: organizations.smsInboundTokenCreatedAt,
+    })
     .from(organizations)
     .where(eq(organizations.id, organizationId))
     .limit(1);
@@ -68,12 +81,18 @@ export async function smsInboxStatus(organizationId: number): Promise<SmsInboxSt
 }
 
 /** A new inbound token for the organization; the previous one stops working at once. Shown once. */
-export async function issueSmsToken(organizationId: number): Promise<{ token: string; status: SmsInboxStatus }> {
+export async function issueSmsToken(
+  organizationId: number,
+): Promise<{ token: string; status: SmsInboxStatus }> {
   const token = `${TOKEN_PREFIX}${randomBytes(24).toString('base64url')}`;
   const status = { prefix: token.slice(0, TOKEN_PREFIX.length + 4), createdAt: new Date() };
   await privilegedDb
     .update(organizations)
-    .set({ smsInboundTokenHash: hashToken(token), smsInboundTokenPrefix: status.prefix, smsInboundTokenCreatedAt: status.createdAt })
+    .set({
+      smsInboundTokenHash: hashToken(token),
+      smsInboundTokenPrefix: status.prefix,
+      smsInboundTokenCreatedAt: status.createdAt,
+    })
     .where(eq(organizations.id, organizationId));
   return { token, status };
 }
@@ -100,8 +119,16 @@ export async function receiveSms(token: string, sms: InboundSms): Promise<boolea
   if (!org) return false;
   await runWithTenant(org.id, () =>
     withTenantTransaction(async (tx) => {
-      await tx.insert(smsMessages).values({ organizationId: org.id, toNumber: sms.to, fromNumber: sms.from, body: sms.body, provider: sms.provider });
-      await tx.delete(smsMessages).where(lt(smsMessages.receivedAt, new Date(Date.now() - SMS_RETENTION_DAYS * 86_400_000)));
+      await tx.insert(smsMessages).values({
+        organizationId: org.id,
+        toNumber: sms.to,
+        fromNumber: sms.from,
+        body: sms.body,
+        provider: sms.provider,
+      });
+      await tx
+        .delete(smsMessages)
+        .where(lt(smsMessages.receivedAt, new Date(Date.now() - SMS_RETENTION_DAYS * 86_400_000)));
     }),
   );
   return true;
@@ -109,7 +136,9 @@ export async function receiveSms(token: string, sms: InboundSms): Promise<boolea
 
 /** The most recent messages, for the settings page. */
 export async function recentSms(limit = 20): Promise<SmsMessage[]> {
-  return withTenantTransaction((tx) => tx.select().from(smsMessages).orderBy(desc(smsMessages.receivedAt)).limit(limit));
+  return withTenantTransaction((tx) =>
+    tx.select().from(smsMessages).orderBy(desc(smsMessages.receivedAt)).limit(limit),
+  );
 }
 
 export interface SmsQuery {
@@ -121,13 +150,18 @@ export interface SmsQuery {
 export function parseSmsQuery(value: string): SmsQuery | { error: string } {
   const [rawNumber = '', ...rest] = value.split('|');
   const number = normalizePhone(rawNumber);
-  if (number.length < 6) return { error: `"${rawNumber.trim()}" is not a phone number. The value is number, or number|pattern.` };
+  if (number.length < 6)
+    return {
+      error: `"${rawNumber.trim()}" is not a phone number. The value is number, or number|pattern.`,
+    };
   const source = rest.join('|').trim();
   if (!source) return { number, pattern: null };
   try {
     return { number, pattern: new RegExp(source, 'i') };
   } catch (error) {
-    return { error: `The pattern "${source}" is not a valid regular expression: ${(error as Error).message}.` };
+    return {
+      error: `The pattern "${source}" is not a valid regular expression: ${(error as Error).message}.`,
+    };
   }
 }
 
@@ -135,19 +169,31 @@ export function parseSmsQuery(value: string): SmsQuery | { error: string } {
 const CLOCK_SLACK_MS = 5_000;
 
 /** Waits for a message to the number that arrived after `since`. Null when none did in time. */
-export async function waitForSms(query: SmsQuery, since: number, timeoutMs: number, pollMs = 1000): Promise<SmsMessage | null> {
+export async function waitForSms(
+  query: SmsQuery,
+  since: number,
+  timeoutMs: number,
+  pollMs = 1000,
+): Promise<SmsMessage | null> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const [found] = await withTenantTransaction((tx) =>
       tx
         .select()
         .from(smsMessages)
-        .where(and(eq(smsMessages.toNumber, query.number), gte(smsMessages.receivedAt, new Date(since - CLOCK_SLACK_MS))))
+        .where(
+          and(
+            eq(smsMessages.toNumber, query.number),
+            gte(smsMessages.receivedAt, new Date(since - CLOCK_SLACK_MS)),
+          ),
+        )
         .orderBy(asc(smsMessages.receivedAt))
         .limit(1),
     );
     if (found) return found;
     if (Date.now() >= deadline) return null;
-    await new Promise((resolve) => setTimeout(resolve, Math.min(pollMs, Math.max(0, deadline - Date.now()))));
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.min(pollMs, Math.max(0, deadline - Date.now()))),
+    );
   }
 }

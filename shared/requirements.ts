@@ -11,7 +11,7 @@
  * test that covers it, every time it is asked, so it can never disagree with the reports.
  */
 
-export const REQUIREMENT_KINDS = ["epic", "story", "requirement"] as const;
+export const REQUIREMENT_KINDS = ['epic', 'story', 'requirement'] as const;
 export type RequirementKind = (typeof REQUIREMENT_KINDS)[number];
 
 /**
@@ -19,14 +19,14 @@ export type RequirementKind = (typeof REQUIREMENT_KINDS)[number];
  * they are grouping items like epics, and the parent chain keeps the levels apart anyway.
  */
 export function kindFromTrackerType(type: string | null | undefined): RequirementKind {
-  const name = (type ?? "").trim().toLowerCase();
-  if (/^(epic|feature|initiative)$/.test(name)) return "epic";
-  if (/story|product backlog item|backlog item/.test(name)) return "story";
-  return "requirement";
+  const name = (type ?? '').trim().toLowerCase();
+  if (/^(epic|feature|initiative)$/.test(name)) return 'epic';
+  if (/story|product backlog item|backlog item/.test(name)) return 'story';
+  return 'requirement';
 }
 
 /** How one test did the last time it ran, all browsers of that run together. */
-export type TestOutcome = "passed" | "failed" | "pending" | "skipped" | "notRun";
+export type TestOutcome = 'passed' | 'failed' | 'pending' | 'skipped' | 'notRun';
 
 /**
  * One run's result rows for a test (one per browser) as one outcome.
@@ -35,15 +35,15 @@ export type TestOutcome = "passed" | "failed" | "pending" | "skipped" | "notRun"
  * waiting for its verdict is pending, not passed. Skipped only when nothing else happened.
  */
 export function outcomeOf(statuses: string[]): TestOutcome {
-  if (statuses.length === 0) return "notRun";
+  if (statuses.length === 0) return 'notRun';
   const lower = statuses.map((s) => s.toLowerCase());
-  if (lower.some((s) => s === "failed" || s === "error")) return "failed";
-  if (lower.some((s) => s === "pending")) return "pending";
-  if (lower.some((s) => s === "passed")) return "passed";
-  return "skipped";
+  if (lower.some((s) => s === 'failed' || s === 'error')) return 'failed';
+  if (lower.some((s) => s === 'pending')) return 'pending';
+  if (lower.some((s) => s === 'passed')) return 'passed';
+  return 'skipped';
 }
 
-export const COVERAGE_STATES = ["passing", "failing", "notRun", "uncovered"] as const;
+export const COVERAGE_STATES = ['passing', 'failing', 'notRun', 'uncovered'] as const;
 export type CoverageState = (typeof COVERAGE_STATES)[number];
 
 /**
@@ -55,10 +55,10 @@ export type CoverageState = (typeof COVERAGE_STATES)[number];
  * - notRun: none failed, but some have not run, are skipped, or wait for a manual verdict.
  */
 export function coverageState(outcomes: TestOutcome[]): CoverageState {
-  if (outcomes.length === 0) return "uncovered";
-  if (outcomes.includes("failed")) return "failing";
-  if (outcomes.every((o) => o === "passed")) return "passing";
-  return "notRun";
+  if (outcomes.length === 0) return 'uncovered';
+  if (outcomes.includes('failed')) return 'failing';
+  if (outcomes.every((o) => o === 'passed')) return 'passing';
+  return 'notRun';
 }
 
 export interface CoverageRun {
@@ -69,7 +69,7 @@ export interface CoverageRun {
 }
 
 /** A web test, an API test or a mobile app test. */
-export type CoverageTestType = "ui" | "api" | "mobile";
+export type CoverageTestType = 'ui' | 'api' | 'mobile';
 
 export interface CoverageTest {
   type: CoverageTestType;
@@ -128,7 +128,10 @@ export function computeCoverage(
   }
   const direct = new Map<number, string[]>();
   for (const link of links) {
-    direct.set(link.requirementId, [...(direct.get(link.requirementId) ?? []), testKey(link.type, link.testId)]);
+    direct.set(link.requirementId, [
+      ...(direct.get(link.requirementId) ?? []),
+      testKey(link.type, link.testId),
+    ]);
   }
 
   const result = new Map<number, RequirementCoverage>();
@@ -155,9 +158,9 @@ export function computeCoverage(
     result.set(node.id, {
       state: coverageState(outcomes),
       tests,
-      passed: outcomes.filter((o) => o === "passed").length,
-      failed: outcomes.filter((o) => o === "failed").length,
-      notRun: outcomes.filter((o) => o !== "passed" && o !== "failed").length,
+      passed: outcomes.filter((o) => o === 'passed').length,
+      failed: outcomes.filter((o) => o === 'failed').length,
+      notRun: outcomes.filter((o) => o !== 'passed' && o !== 'failed').length,
       hidden,
     });
   }
@@ -168,13 +171,13 @@ export function computeCoverage(
 export function coverageSummary(coverages: RequirementCoverage[]) {
   const count = (state: CoverageState) => coverages.filter((c) => c.state === state).length;
   const total = coverages.length;
-  const covered = total - count("uncovered");
+  const covered = total - count('uncovered');
   return {
     total,
-    passing: count("passing"),
-    failing: count("failing"),
-    notRun: count("notRun"),
-    uncovered: count("uncovered"),
+    passing: count('passing'),
+    failing: count('failing'),
+    notRun: count('notRun'),
+    uncovered: count('uncovered'),
     /** Share of requirements with at least one test, as a whole percentage. */
     coveredPercent: total === 0 ? 0 : Math.round((covered / total) * 100),
   };

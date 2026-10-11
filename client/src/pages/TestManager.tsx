@@ -3,22 +3,51 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { FilePicker } from '@/components/ui/file-picker';
 import { Card } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 import { useTestSequences } from '@/hooks/useTestSequences';
 import { useExcelImport } from '@/hooks/useExcelImport';
 import { useExcelMappings } from '@/hooks/useExcelMappings';
 import { useTestRunner, type RowResult } from '@/hooks/useTestRunner';
 
-import { FileTextIcon as ReportsIcon, Upload, Play, FileSpreadsheet, CheckCircle2, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import {
+  FileTextIcon as ReportsIcon,
+  Upload,
+  Play,
+  FileSpreadsheet,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Loader2,
+} from 'lucide-react';
 
 /** What happened to a row's last run: an icon and a word, coloured by outcome. */
 const RowStatusLabel: React.FC<{ result?: RowResult }> = ({ result }) => {
   const { t } = useTranslation();
-  if (!result) return <span className="text-sm text-muted-foreground">{t('testManager.status.notRun')}</span>;
+  if (!result)
+    return <span className="text-sm text-muted-foreground">{t('testManager.status.notRun')}</span>;
   const label = t(`testManager.status.${result.status}`);
   if (result.status === 'running') {
     return (
@@ -27,7 +56,8 @@ const RowStatusLabel: React.FC<{ result?: RowResult }> = ({ result }) => {
       </span>
     );
   }
-  if (result.status === 'notMapped') return <span className="text-sm text-muted-foreground">{label}</span>;
+  if (result.status === 'notMapped')
+    return <span className="text-sm text-muted-foreground">{label}</span>;
   const passed = result.status === 'passed';
   const Icon = passed ? CheckCircle2 : result.status === 'failed' ? XCircle : AlertTriangle;
   return (
@@ -42,7 +72,8 @@ const RowStatusLabel: React.FC<{ result?: RowResult }> = ({ result }) => {
 
 /** Whether a row's run has finished, so there is a report to open. */
 const hasReport = (result?: RowResult) =>
-  !!result && (result.status === 'passed' || result.status === 'failed' || result.status === 'error');
+  !!result &&
+  (result.status === 'passed' || result.status === 'failed' || result.status === 'error');
 
 const TestManager: React.FC = () => {
   const { t } = useTranslation();
@@ -51,13 +82,17 @@ const TestManager: React.FC = () => {
   const { sequences } = useTestSequences();
   const { file, parsedTestCases, isUploading, handleFileChange, handleUpload } = useExcelImport();
   const { localMappings, handleMappingChange } = useExcelMappings();
-  const { selectedIds, results, isRunning, toggleSelection, runSelected } = useTestRunner(parsedTestCases, localMappings);
+  const { selectedIds, results, isRunning, toggleSelection, runSelected } = useTestRunner(
+    parsedTestCases,
+    localMappings,
+  );
   const [reportFor, setReportFor] = React.useState<string | null>(null);
 
   const hasRows = parsedTestCases.length > 0;
   const report = reportFor ? results[reportFor] : undefined;
   const reportSteps = report?.steps ?? [];
-  const sequenceName = (testId?: number) => sequences.find((seq) => seq.id === testId)?.name ?? `#${testId}`;
+  const sequenceName = (testId?: number) =>
+    sequences.find((seq) => seq.id === testId)?.name ?? `#${testId}`;
 
   return (
     <div className="mx-auto max-w-[1400px] p-6">
@@ -86,7 +121,11 @@ const TestManager: React.FC = () => {
               {t('testManager.rowCount', { count: parsedTestCases.length })}
             </p>
             <Button size="sm" onClick={runSelected} disabled={selectedIds.size === 0 || isRunning}>
-              {isRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+              {isRunning ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="mr-2 h-4 w-4" />
+              )}
               {t('testManager.runSelected', { n: selectedIds.size })}
             </Button>
           </div>
@@ -116,10 +155,12 @@ const TestManager: React.FC = () => {
                   </TableCell>
                   <TableCell className="font-medium tabular-nums">{tc.testCaseId}</TableCell>
                   <TableCell>{tc.priority}</TableCell>
-                  <TableCell className="max-w-md truncate" title={tc.functionalObjective}>{tc.functionalObjective}</TableCell>
+                  <TableCell className="max-w-md truncate" title={tc.functionalObjective}>
+                    {tc.functionalObjective}
+                  </TableCell>
                   <TableCell>
                     <Select
-                      value={localMappings[tc.testCaseId]?.toString() || ""}
+                      value={localMappings[tc.testCaseId]?.toString() || ''}
                       onValueChange={(val) => handleMappingChange(tc.testCaseId, val)}
                     >
                       <SelectTrigger className="w-[250px]">
@@ -133,7 +174,7 @@ const TestManager: React.FC = () => {
                             {t('testManager.noSequences')}
                           </p>
                         ) : (
-                          sequences.map(seq => (
+                          sequences.map((seq) => (
                             <SelectItem key={seq.id} value={seq.id.toString()}>
                               {seq.name}
                             </SelectItem>
@@ -146,8 +187,14 @@ const TestManager: React.FC = () => {
                     <span className="inline-flex items-center gap-3">
                       <RowStatusLabel result={results[tc.testCaseId]} />
                       {hasReport(results[tc.testCaseId]) && (
-                        <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setReportFor(tc.testCaseId)}>
-                          <ReportsIcon className="mr-1 h-4 w-4" aria-hidden /> {t('testManager.viewReport')}
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0"
+                          onClick={() => setReportFor(tc.testCaseId)}
+                        >
+                          <ReportsIcon className="mr-1 h-4 w-4" aria-hidden />{' '}
+                          {t('testManager.viewReport')}
                         </Button>
                       )}
                     </span>
@@ -170,12 +217,7 @@ const TestManager: React.FC = () => {
               </p>
             </div>
             <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
-              <FilePicker
-                accept=".xlsx"
-                file={file}
-                onChange={handleFileChange}
-                className="w-80"
-              />
+              <FilePicker accept=".xlsx" file={file} onChange={handleFileChange} className="w-80" />
               {file && (
                 <Button onClick={handleUpload} disabled={isUploading}>
                   <Upload className="mr-2 h-4 w-4" />
@@ -187,13 +229,21 @@ const TestManager: React.FC = () => {
         )}
       </Card>
 
-      <Dialog open={!!report} onOpenChange={(open) => { if (!open) setReportFor(null); }}>
+      <Dialog
+        open={!!report}
+        onOpenChange={(open) => {
+          if (!open) setReportFor(null);
+        }}
+      >
         <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
           {report && reportFor && (
             <>
               <DialogHeader>
                 <DialogTitle>
-                  {t('testManager.report.title', { id: reportFor, sequence: sequenceName(report.testId) })}
+                  {t('testManager.report.title', {
+                    id: reportFor,
+                    sequence: sequenceName(report.testId),
+                  })}
                 </DialogTitle>
                 <DialogDescription asChild>
                   <div className="flex flex-wrap items-center gap-2">
@@ -220,12 +270,24 @@ const TestManager: React.FC = () => {
                   {reportSteps.map((step, index) => (
                     <li key={index} className="rounded-md border p-3">
                       <div className="flex items-start gap-2">
-                        {step.status === 'passed'
-                          ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
-                          : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />}
+                        {step.status === 'passed' ? (
+                          <CheckCircle2
+                            className="mt-0.5 h-4 w-4 shrink-0 text-success"
+                            aria-hidden
+                          />
+                        ) : (
+                          <XCircle
+                            className="mt-0.5 h-4 w-4 shrink-0 text-destructive"
+                            aria-hidden
+                          />
+                        )}
                         <div className="min-w-0">
-                          <p className="text-sm font-medium">{index + 1}. {step.name}</p>
-                          <p className="wrap-break-word text-sm text-muted-foreground">{step.error || step.details}</p>
+                          <p className="text-sm font-medium">
+                            {index + 1}. {step.name}
+                          </p>
+                          <p className="wrap-break-word text-sm text-muted-foreground">
+                            {step.error || step.details}
+                          </p>
                         </div>
                       </div>
                       {step.screenshot && (

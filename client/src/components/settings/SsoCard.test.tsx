@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -48,16 +50,54 @@ function renderCard(settings: SsoSettings | null) {
   fetchMock.mockImplementation(async (url: string, init?: any) => {
     const method = init?.method ?? 'GET';
     const body = init?.body ? JSON.parse(init.body) : undefined;
-    if (url === '/api/organization/sso' && method === 'GET') return { ok: true, status: 200, json: async () => ({ settings, callbackUrl: CALLBACK, saml: SAML }) };
+    if (url === '/api/organization/sso' && method === 'GET')
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ settings, callbackUrl: CALLBACK, saml: SAML }),
+      };
     if (url === '/api/organization/sso' && method === 'PUT') {
       const { samlSpPrivateKey, samlClearSpKey, ...publicBody } = body;
-      return { ok: true, status: 200, json: async () => ({ settings: { ...stored, ...publicBody, samlSpPrivateKeyConfigured: samlClearSpKey ? false : !!samlSpPrivateKey || (settings as any)?.samlSpPrivateKeyConfigured, updatedAt: stored.updatedAt }, callbackUrl: CALLBACK, saml: SAML }) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          settings: {
+            ...stored,
+            ...publicBody,
+            samlSpPrivateKeyConfigured: samlClearSpKey
+              ? false
+              : !!samlSpPrivateKey || (settings as any)?.samlSpPrivateKeyConfigured,
+            updatedAt: stored.updatedAt,
+          },
+          callbackUrl: CALLBACK,
+          saml: SAML,
+        }),
+      };
     }
     if (url === '/api/organization/sso/saml-metadata') {
-      return { ok: true, status: 200, json: async () => ({ entityId: 'https://idp.example.com/saml', ssoUrl: 'https://idp.example.com/saml/sso', certificate: CERT, sloUrl: 'https://idp.example.com/saml/logout' }) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          entityId: 'https://idp.example.com/saml',
+          ssoUrl: 'https://idp.example.com/saml/sso',
+          certificate: CERT,
+          sloUrl: 'https://idp.example.com/saml/logout',
+        }),
+      };
     }
-    if (url === '/api/organization/sso/domains/example.com/verify') return { ok: true, status: 200, json: async () => ({ verified: false, message: 'No TXT record at _wfm-verification.example.com yet.' }) };
-    if (url === '/api/organization/sso/test') return { ok: true, status: 200, json: async () => ({ ok: false, message: 'fetch failed' }) };
+    if (url === '/api/organization/sso/domains/example.com/verify')
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          verified: false,
+          message: 'No TXT record at _wfm-verification.example.com yet.',
+        }),
+      };
+    if (url === '/api/organization/sso/test')
+      return { ok: true, status: 200, json: async () => ({ ok: false, message: 'fetch failed' }) };
     return { ok: false, status: 404, json: async () => ({}) };
   });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -69,7 +109,8 @@ function renderCard(settings: SsoSettings | null) {
   return client;
 }
 
-const calls = (method: string) => fetchMock.mock.calls.filter(([, init]: any[]) => (init?.method ?? 'GET') === method);
+const calls = (method: string) =>
+  fetchMock.mock.calls.filter(([, init]: any[]) => (init?.method ?? 'GET') === method);
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -83,9 +124,13 @@ describe('SsoCard', () => {
 
     const save = screen.getByRole('button', { name: 'Save' });
     expect(save).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Issuer'), { target: { value: 'https://idp.example.com' } });
+    fireEvent.change(screen.getByLabelText('Issuer'), {
+      target: { value: 'https://idp.example.com' },
+    });
     fireEvent.change(screen.getByLabelText('Client ID'), { target: { value: 'wfm' } });
-    fireEvent.change(screen.getByLabelText('E-mail domains'), { target: { value: 'example.com, example.org' } });
+    fireEvent.change(screen.getByLabelText('E-mail domains'), {
+      target: { value: 'example.com, example.org' },
+    });
     // A new provider needs its secret.
     expect(save).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Client secret'), { target: { value: 's3cret' } });
@@ -111,7 +156,10 @@ describe('SsoCard', () => {
   it('keeps the stored secret when the field is left empty, and requires it only while on', async () => {
     renderCard(stored);
     expect(await screen.findByDisplayValue('https://idp.example.com')).toBeInTheDocument();
-    expect(screen.getByLabelText('Client secret')).toHaveAttribute('placeholder', 'Stored. Leave empty to keep it.');
+    expect(screen.getByLabelText('Client secret')).toHaveAttribute(
+      'placeholder',
+      'Stored. Leave empty to keep it.',
+    );
 
     fireEvent.click(screen.getByRole('switch', { name: 'Offer single sign-on' }));
     expect(screen.getByRole('switch', { name: 'Require it' })).toBeDisabled();
@@ -120,7 +168,11 @@ describe('SsoCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(calls('PUT')).toHaveLength(1));
-    expect(JSON.parse(calls('PUT')[0][1].body)).toMatchObject({ clientSecret: '', required: true, enabled: true });
+    expect(JSON.parse(calls('PUT')[0][1].body)).toMatchObject({
+      clientSecret: '',
+      required: true,
+      enabled: true,
+    });
   });
 
   it('for SAML, shows what to give the provider, fills from pasted metadata, and sends no client secret', async () => {
@@ -131,56 +183,93 @@ describe('SsoCard', () => {
       clientId: null,
       samlSsoUrl: 'https://old.example.com/sso',
       samlCertificate: CERT,
-      samlCertificateInfo: { subject: 'CN=old-idp', validTo: '2030-01-01T00:00:00.000Z', expired: false },
+      samlCertificateInfo: {
+        subject: 'CN=old-idp',
+        validTo: '2030-01-01T00:00:00.000Z',
+        expired: false,
+      },
     });
     expect(await screen.findByTestId('sso-saml-entity-id')).toHaveValue(SAML.entityId);
     expect(screen.getByTestId('sso-saml-acs-url')).toHaveValue(SAML.acsUrl);
     expect(screen.getByTestId('sso-saml-metadata-url')).toHaveValue(SAML.metadataUrl);
     expect(screen.getByTestId('sso-saml-slo-url')).toHaveValue(SAML.sloUrl);
-    expect(screen.getByTestId('sso-saml-cert-info')).toHaveTextContent('CN=old-idp · valid until 2030-01-01');
+    expect(screen.getByTestId('sso-saml-cert-info')).toHaveTextContent(
+      'CN=old-idp · valid until 2030-01-01',
+    );
     expect(screen.queryByLabelText('Client secret')).toBeNull();
 
-    fireEvent.change(screen.getByLabelText(/Your provider's metadata/), { target: { value: '<md:EntityDescriptor/>' } });
+    fireEvent.change(screen.getByLabelText(/Your provider's metadata/), {
+      target: { value: '<md:EntityDescriptor/>' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Read the metadata' }));
     expect(await screen.findByDisplayValue('https://idp.example.com/saml')).toBeInTheDocument();
     expect(screen.getByDisplayValue('https://idp.example.com/saml/sso')).toBeInTheDocument();
-    expect(screen.getByLabelText('Provider single logout URL (optional)')).toHaveValue('https://idp.example.com/saml/logout');
+    expect(screen.getByLabelText('Provider single logout URL (optional)')).toHaveValue(
+      'https://idp.example.com/saml/logout',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(calls('PUT')).toHaveLength(1));
     const body = JSON.parse(calls('PUT')[0][1].body);
-    expect(body).toMatchObject({ protocol: 'saml', issuer: 'https://idp.example.com/saml', samlSsoUrl: 'https://idp.example.com/saml/sso', samlCertificate: CERT });
+    expect(body).toMatchObject({
+      protocol: 'saml',
+      issuer: 'https://idp.example.com/saml',
+      samlSsoUrl: 'https://idp.example.com/saml/sso',
+      samlCertificate: CERT,
+    });
     expect(body).not.toHaveProperty('clientSecret');
   });
 
-  it('shows each domain\'s TXT record, and says what the check found', async () => {
+  it("shows each domain's TXT record, and says what the check found", async () => {
     renderCard({
       ...stored,
       domains: ['example.com', 'example.org'],
       verificationRequired: true,
       domainStatus: [
-        { domain: 'example.com', verified: false, verifiedAt: null, record: { name: '_wfm-verification.example.com', value: 'wfm-verification=abc123' } },
-        { domain: 'example.org', verified: true, verifiedAt: '2026-09-30T10:00:00.000Z', record: null },
+        {
+          domain: 'example.com',
+          verified: false,
+          verifiedAt: null,
+          record: { name: '_wfm-verification.example.com', value: 'wfm-verification=abc123' },
+        },
+        {
+          domain: 'example.org',
+          verified: true,
+          verifiedAt: '2026-09-30T10:00:00.000Z',
+          record: null,
+        },
       ],
     });
     const rows = await screen.findAllByTestId('sso-domain-row');
     expect(rows[0]).toHaveTextContent('_wfm-verification.example.com = wfm-verification=abc123');
     expect(rows[1]).toHaveTextContent('proven');
-    expect(screen.getByTestId('sso-domain-verification')).toHaveTextContent('signs nobody in until it is proven');
+    expect(screen.getByTestId('sso-domain-verification')).toHaveTextContent(
+      'signs nobody in until it is proven',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
-    expect(await screen.findByText('No TXT record at _wfm-verification.example.com yet.')).toBeInTheDocument();
-    expect(calls('POST').map(([url]: any[]) => url)).toEqual(['/api/organization/sso/domains/example.com/verify']);
+    expect(
+      await screen.findByText('No TXT record at _wfm-verification.example.com yet.'),
+    ).toBeInTheDocument();
+    expect(calls('POST').map(([url]: any[]) => url)).toEqual([
+      '/api/organization/sso/domains/example.com/verify',
+    ]);
   });
 
   it('sends the group mappings, and refuses whoever is in none only once a group is mapped', async () => {
     renderCard(stored);
-    const requireGroup = await screen.findByRole('switch', { name: 'Refuse whoever is in none of these groups' });
+    const requireGroup = await screen.findByRole('switch', {
+      name: 'Refuse whoever is in none of these groups',
+    });
     expect(requireGroup).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText('Claim or attribute with the groups'), { target: { value: 'roles' } });
+    fireEvent.change(screen.getByLabelText('Claim or attribute with the groups'), {
+      target: { value: 'roles' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Map a group' }));
-    fireEvent.change(screen.getByLabelText('Group of mapping 1'), { target: { value: ' wfm-users ' } });
+    fireEvent.change(screen.getByLabelText('Group of mapping 1'), {
+      target: { value: ' wfm-users ' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Map a group' }));
     fireEvent.click(screen.getByRole('button', { name: 'Remove mapping 2' }));
     fireEvent.click(requireGroup);
@@ -197,47 +286,94 @@ describe('SsoCard', () => {
   it('says when the provider does not answer', async () => {
     renderCard(stored);
     fireEvent.click(await screen.findByRole('button', { name: 'Test the provider' }));
-    expect(await screen.findByTestId('sso-error')).toHaveTextContent('The provider did not answer: fetch failed');
+    expect(await screen.findByTestId('sso-error')).toHaveTextContent(
+      'The provider did not answer: fetch failed',
+    );
   });
   it('reports a failed settings load and allows retry', async () => {
-    fetchMock.mockImplementationOnce(async () => { throw new Error('Offline'); });
+    fetchMock.mockImplementationOnce(async () => {
+      throw new Error('Offline');
+    });
     renderCard(stored);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load single sign-on settings.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not load single sign-on settings.',
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     // The field can render before the reloaded settings fill it: wait for the value, not the field.
     await waitFor(() => expect(screen.getByLabelText('Issuer')).toHaveValue(stored.issuer));
   });
   it('sends advanced SAML settings and clears the typed private key after saving', async () => {
-    const client = renderCard({ ...stored, protocol: 'saml', samlSsoUrl: 'https://idp.example.com/sso', samlCertificate: CERT });
+    const client = renderCard({
+      ...stored,
+      protocol: 'saml',
+      samlSsoUrl: 'https://idp.example.com/sso',
+      samlCertificate: CERT,
+    });
     await screen.findByTestId('sso-saml-entity-id');
-    expect(screen.getByRole('switch', { name: 'Allow identity provider initiated sign-in' })).not.toBeChecked();
+    expect(
+      screen.getByRole('switch', { name: 'Allow identity provider initiated sign-in' }),
+    ).not.toBeChecked();
     expect(screen.getByText(/can sign this browser into another account/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('switch', { name: 'Allow identity provider initiated sign-in' }));
+    fireEvent.click(
+      screen.getByRole('switch', { name: 'Allow identity provider initiated sign-in' }),
+    );
     fireEvent.click(screen.getByRole('switch', { name: 'Require encrypted assertions' }));
-    fireEvent.change(screen.getByLabelText('Service provider certificate'), { target: { value: CERT } });
-    fireEvent.change(screen.getByLabelText('Service provider private key'), { target: { value: 'PRIVATE-KEY-FOR-TEST' } });
-    fireEvent.change(screen.getByLabelText('Provider single logout URL (optional)'), { target: { value: 'https://idp.example.com/logout' } });
+    fireEvent.change(screen.getByLabelText('Service provider certificate'), {
+      target: { value: CERT },
+    });
+    fireEvent.change(screen.getByLabelText('Service provider private key'), {
+      target: { value: 'PRIVATE-KEY-FOR-TEST' },
+    });
+    fireEvent.change(screen.getByLabelText('Provider single logout URL (optional)'), {
+      target: { value: 'https://idp.example.com/logout' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(calls('PUT')).toHaveLength(1));
     expect(JSON.parse(calls('PUT')[0][1].body)).toMatchObject({
-      samlAllowIdpInitiated: true, samlRequireEncryptedAssertions: true, samlSpCertificate: CERT,
-      samlSpPrivateKey: 'PRIVATE-KEY-FOR-TEST', samlSloUrl: 'https://idp.example.com/logout', samlClearSpKey: false,
+      samlAllowIdpInitiated: true,
+      samlRequireEncryptedAssertions: true,
+      samlSpCertificate: CERT,
+      samlSpPrivateKey: 'PRIVATE-KEY-FOR-TEST',
+      samlSloUrl: 'https://idp.example.com/logout',
+      samlClearSpKey: false,
     });
-    await waitFor(() => expect(screen.getByLabelText('Service provider private key')).toHaveValue(''));
-    expect(JSON.stringify(client.getQueryData(['organization-sso']))).not.toContain('PRIVATE-KEY-FOR-TEST');
-    expect(screen.getByLabelText('Service provider private key')).toHaveAttribute('placeholder', 'Stored. Leave empty to keep it.');
+    await waitFor(() =>
+      expect(screen.getByLabelText('Service provider private key')).toHaveValue(''),
+    );
+    expect(JSON.stringify(client.getQueryData(['organization-sso']))).not.toContain(
+      'PRIVATE-KEY-FOR-TEST',
+    );
+    expect(screen.getByLabelText('Service provider private key')).toHaveAttribute(
+      'placeholder',
+      'Stored. Leave empty to keep it.',
+    );
   });
   it('retains the stored private key with a blank field and removes it only explicitly', async () => {
-    renderCard({ ...stored, protocol: 'saml', samlSsoUrl: 'https://idp.example.com/sso', samlCertificate: CERT,
-      samlSpCertificate: CERT, samlSpPrivateKeyConfigured: true, samlAllowIdpInitiated: false,
-      samlRequireEncryptedAssertions: false, samlSloUrl: null } as SsoSettings);
+    renderCard({
+      ...stored,
+      protocol: 'saml',
+      samlSsoUrl: 'https://idp.example.com/sso',
+      samlCertificate: CERT,
+      samlSpCertificate: CERT,
+      samlSpPrivateKeyConfigured: true,
+      samlAllowIdpInitiated: false,
+      samlRequireEncryptedAssertions: false,
+      samlSloUrl: null,
+    } as SsoSettings);
     await screen.findByTestId('sso-saml-entity-id');
     expect(screen.getByLabelText('Service provider private key')).toHaveValue('');
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(calls('PUT')).toHaveLength(1));
-    expect(JSON.parse(calls('PUT')[0][1].body)).toMatchObject({ samlSpPrivateKey: '', samlClearSpKey: false });
+    expect(JSON.parse(calls('PUT')[0][1].body)).toMatchObject({
+      samlSpPrivateKey: '',
+      samlClearSpKey: false,
+    });
     await screen.findByTestId('sso-notice');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Remove the stored service provider key and certificate' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'Remove the stored service provider key and certificate',
+      }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(calls('PUT')).toHaveLength(2));
     expect(JSON.parse(calls('PUT')[1][1].body)).toMatchObject({ samlClearSpKey: true });

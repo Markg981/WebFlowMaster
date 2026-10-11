@@ -17,22 +17,22 @@ organization testing against production-like data should assume it does.
 
 ## Data inventory
 
-| Data | Examples | Where it is kept | How long |
-|---|---|---|---|
-| Accounts | Username (may be an e-mail address), role, creation date | Database | Until the member is removed or the organization is erased |
-| Single sign-on identities | The provider's issuer and its identifier for the person (not their e-mail address), first and last sign-in | Database | Until the account is removed |
-| Credentials | Password hash (scrypt), second-factor secret (encrypted), recovery codes (hashed) | Database | As accounts |
-| Sessions | Session id, user id | Redis | 7 days, or until sign-out |
-| Audit trail | Actor's name, action, target, client IP address, key used, time | Database | Until the organization is erased; not deletable by the application |
-| Application logs | User ids, request paths, correlation ids, errors | Log files, standard output, Loki if configured | 7 days by default (configurable) |
-| Tests and plans | Steps, addresses, element descriptions, schedules, notification addresses, comments on reviews | Database | Until deleted, or the organization is erased |
-| Stored secrets | Test account passwords, tokens | Database, encrypted | Until deleted |
-| Run results | Verdicts, step outcomes, error messages, who started the run, CI context (repository, commit, branch, build) | Database | Until the organization is erased |
-| Run evidence | Screenshots, videos, Playwright traces, network captures without bodies or credentials | Artifact store (disk or S3) | `ARTIFACT_RETENTION_DAYS`, 90 days by default |
-| Visual baselines | Reference screenshots | Artifact store | Until replaced or removed |
-| Password reset links | Whose, who issued it, a hash of the token | Database | One day, or until used; not included in exports |
-| Invitations | Invited username, role, who invited | Database | Until revoked; the invitation token expires after 7 days |
-| Uploaded spreadsheets | Imported test cases | Local disk while being read | Deleted once parsed |
+| Data                      | Examples                                                                                                     | Where it is kept                               | How long                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------ |
+| Accounts                  | Username (may be an e-mail address), role, creation date                                                     | Database                                       | Until the member is removed or the organization is erased          |
+| Single sign-on identities | The provider's issuer and its identifier for the person (not their e-mail address), first and last sign-in   | Database                                       | Until the account is removed                                       |
+| Credentials               | Password hash (scrypt), second-factor secret (encrypted), recovery codes (hashed)                            | Database                                       | As accounts                                                        |
+| Sessions                  | Session id, user id                                                                                          | Redis                                          | 7 days, or until sign-out                                          |
+| Audit trail               | Actor's name, action, target, client IP address, key used, time                                              | Database                                       | Until the organization is erased; not deletable by the application |
+| Application logs          | User ids, request paths, correlation ids, errors                                                             | Log files, standard output, Loki if configured | 7 days by default (configurable)                                   |
+| Tests and plans           | Steps, addresses, element descriptions, schedules, notification addresses, comments on reviews               | Database                                       | Until deleted, or the organization is erased                       |
+| Stored secrets            | Test account passwords, tokens                                                                               | Database, encrypted                            | Until deleted                                                      |
+| Run results               | Verdicts, step outcomes, error messages, who started the run, CI context (repository, commit, branch, build) | Database                                       | Until the organization is erased                                   |
+| Run evidence              | Screenshots, videos, Playwright traces, network captures without bodies or credentials                       | Artifact store (disk or S3)                    | `ARTIFACT_RETENTION_DAYS`, 90 days by default                      |
+| Visual baselines          | Reference screenshots                                                                                        | Artifact store                                 | Until replaced or removed                                          |
+| Password reset links      | Whose, who issued it, a hash of the token                                                                    | Database                                       | One day, or until used; not included in exports                    |
+| Invitations               | Invited username, role, who invited                                                                          | Database                                       | Until revoked; the invitation token expires after 7 days           |
+| Uploaded spreadsheets     | Imported test cases                                                                                          | Local disk while being read                    | Deleted once parsed                                                |
 
 Backups made by the operator hold copies of the database and of the artifact store for as long
 as the operator keeps them.
@@ -51,18 +51,18 @@ as the operator keeps them.
 The product itself sends data to third parties only where an organization or the operator
 configures it:
 
-| Recipient | When | What |
-|---|---|---|
-| Google (Gemini API) | Only if the operator sets `GEMINI_API_KEY` | Sentences describing tests; the text of a story tests are proposed from; on a failing step, the error and up to 30,000 characters of the page's HTML; for a failure analysis asked for from a report, the failed test's steps, errors, requests and screenshot. See [AI features](./#ai-features). |
-| S3-compatible storage provider | If the operator chooses `ARTIFACT_STORE=s3` | Run evidence and baselines. |
-| Grafana Loki | If the operator sets `LOKI_URL` | Application logs. |
-| TestRail, Xray, Zephyr Scale | If a plan publishes its results there | For each published run: its plan's name, when it ended, the environment, the names of its tests with their outcome per browser, the reason for each failure (up to 1000 characters) and the address of the report. No screenshot, video, trace, step value or secret. |
-| Jira, Azure DevOps | If an organization connects an issue tracker | Failure details of the runs that open an issue. A requirements import sends only the keys or the query; the titles, types and states it reads are kept with the requirements. |
-| BrowserStack, LambdaTest (apps) | If a mobile app test runs on the grid, or an app is uploaded to it | The app file uploaded (not kept by WebFlowMaster), and everything the test does on the device: the values typed, variables and secrets included, the screens shown, recorded by the grid on video. |
-| BrowserStack, LambdaTest | If an organization adds a browser grid and a plan runs on it | Everything the tests do in the browser: the pages of the application under test, the values typed into them (secrets used in steps included), and the provider's own screenshots, videos and logs of each session, kept under its terms. |
-| GitHub, GitLab | If an organization connects them | Run status, verdict and a link, on the tested commit. |
-| Slack or Microsoft Teams | If a plan's notifications name a webhook | Run summaries. |
-| The installation's SMTP server | If `SMTP_URL` is set | Invitation and reset links (to the person concerned), run summaries (to the plan's addresses and to the person who started the run, if they asked). |
+| Recipient                       | When                                                               | What                                                                                                                                                                                                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Google (Gemini API)             | Only if the operator sets `GEMINI_API_KEY`                         | Sentences describing tests; the text of a story tests are proposed from; on a failing step, the error and up to 30,000 characters of the page's HTML; for a failure analysis asked for from a report, the failed test's steps, errors, requests and screenshot. See [AI features](./#ai-features). |
+| S3-compatible storage provider  | If the operator chooses `ARTIFACT_STORE=s3`                        | Run evidence and baselines.                                                                                                                                                                                                                                                                        |
+| Grafana Loki                    | If the operator sets `LOKI_URL`                                    | Application logs.                                                                                                                                                                                                                                                                                  |
+| TestRail, Xray, Zephyr Scale    | If a plan publishes its results there                              | For each published run: its plan's name, when it ended, the environment, the names of its tests with their outcome per browser, the reason for each failure (up to 1000 characters) and the address of the report. No screenshot, video, trace, step value or secret.                              |
+| Jira, Azure DevOps              | If an organization connects an issue tracker                       | Failure details of the runs that open an issue. A requirements import sends only the keys or the query; the titles, types and states it reads are kept with the requirements.                                                                                                                      |
+| BrowserStack, LambdaTest (apps) | If a mobile app test runs on the grid, or an app is uploaded to it | The app file uploaded (not kept by WebFlowMaster), and everything the test does on the device: the values typed, variables and secrets included, the screens shown, recorded by the grid on video.                                                                                                 |
+| BrowserStack, LambdaTest        | If an organization adds a browser grid and a plan runs on it       | Everything the tests do in the browser: the pages of the application under test, the values typed into them (secrets used in steps included), and the provider's own screenshots, videos and logs of each session, kept under its terms.                                                           |
+| GitHub, GitLab                  | If an organization connects them                                   | Run status, verdict and a link, on the tested commit.                                                                                                                                                                                                                                              |
+| Slack or Microsoft Teams        | If a plan's notifications name a webhook                           | Run summaries.                                                                                                                                                                                                                                                                                     |
+| The installation's SMTP server  | If `SMTP_URL` is set                                               | Invitation and reset links (to the person concerned), run summaries (to the plan's addresses and to the person who started the run, if they asked).                                                                                                                                                |
 
 The applications under test receive whatever the tests send them: that is the purpose of a test.
 
@@ -71,13 +71,13 @@ database, storage and logging.
 
 ## Rights of the people concerned
 
-| Request | How |
-|---|---|
-| Access, portability | An owner exports the whole organization as JSON (`GET /api/organization/export`); see [Export and erasure](../admin/administration#export-and-erasure-owners). A person's own entries can be found in the export and in the audit log by username. |
-| Erasure of one person | An owner removes the member in **Settings → Members**. The account, its API keys, second factor and preferences are deleted; what the person made for the organization (tests, plans, environments…) is handed to another member. The audit trail keeps the name the person acted under, as the record of what happened. See [Members and invitations](../admin/administration#members-and-invitations). |
-| Erasure of an organization | An owner erases it: every row, including every member account and the audit trail, in one transaction. |
-| Rectification | Usernames cannot be changed; a person with a wrong username is invited again under the right one. |
-| Restriction | An owner can lower a member to viewer, or restrict projects. |
+| Request                    | How                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Access, portability        | An owner exports the whole organization as JSON (`GET /api/organization/export`); see [Export and erasure](../admin/administration#export-and-erasure-owners). A person's own entries can be found in the export and in the audit log by username.                                                                                                                                                       |
+| Erasure of one person      | An owner removes the member in **Settings → Members**. The account, its API keys, second factor and preferences are deleted; what the person made for the organization (tests, plans, environments…) is handed to another member. The audit trail keeps the name the person acted under, as the record of what happened. See [Members and invitations](../admin/administration#members-and-invitations). |
+| Erasure of an organization | An owner erases it: every row, including every member account and the audit trail, in one transaction.                                                                                                                                                                                                                                                                                                   |
+| Rectification              | Usernames cannot be changed; a person with a wrong username is invited again under the right one.                                                                                                                                                                                                                                                                                                        |
+| Restriction                | An owner can lower a member to viewer, or restrict projects.                                                                                                                                                                                                                                                                                                                                             |
 
 ## What erasure does and does not reach
 
@@ -95,14 +95,14 @@ before erasing.
 
 ## Retention at a glance
 
-| What | Default | Setting |
-|---|---|---|
-| Run evidence | 90 days | `ARTIFACT_RETENTION_DAYS` |
-| Application logs | 7 days | **Settings → System**, first value from `LOG_RETENTION_DAYS` |
-| Sessions | 7 days | Fixed |
-| Invitation tokens | 7 days | Fixed |
-| Runners that stopped reporting | 7 days | Fixed |
-| Results, tests, audit trail | Kept | Removed with the organization |
+| What                           | Default | Setting                                                      |
+| ------------------------------ | ------- | ------------------------------------------------------------ |
+| Run evidence                   | 90 days | `ARTIFACT_RETENTION_DAYS`                                    |
+| Application logs               | 7 days  | **Settings → System**, first value from `LOG_RETENTION_DAYS` |
+| Sessions                       | 7 days  | Fixed                                                        |
+| Invitation tokens              | 7 days  | Fixed                                                        |
+| Runners that stopped reporting | 7 days  | Fixed                                                        |
+| Results, tests, audit trail    | Kept    | Removed with the organization                                |
 
 ## Recommendations for organizations
 

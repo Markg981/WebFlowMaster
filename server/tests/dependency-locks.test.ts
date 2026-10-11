@@ -26,16 +26,20 @@ describe('the dependency lockfiles', () => {
     expect(packages.filter((p) => /(^|\/)node_modules\/(braces|micromatch)$/.test(p))).toEqual([]);
   });
 
-  it.each(LOCKS)('%s keeps the lightningcss binaries the client lists, at the locked version', (file) => {
-    const { packages } = readJson(file);
-    const locked = packages['node_modules/lightningcss']?.version;
-    const listed: Record<string, string> = readJson('client/package.json').optionalDependencies ?? {};
-    const platforms = Object.entries(listed).filter(([name]) => name.startsWith('lightningcss-'));
-    expect(locked).toBeTruthy();
-    expect(platforms.map(([name]) => name)).toContain('lightningcss-linux-x64-gnu');
-    for (const [name, version] of platforms) {
-      expect(version, `${name} in client/package.json`).toBe(locked);
-      expect(packages[`node_modules/${name}`]?.version, `${name} in ${file}`).toBe(locked);
-    }
-  });
+  it.each(LOCKS)(
+    '%s keeps the lightningcss binaries the client lists, at the locked version',
+    (file) => {
+      const { packages } = readJson(file);
+      const locked = packages['node_modules/lightningcss']?.version;
+      const listed: Record<string, string> =
+        readJson('client/package.json').optionalDependencies ?? {};
+      const platforms = Object.entries(listed).filter(([name]) => name.startsWith('lightningcss-'));
+      expect(locked).toBeTruthy();
+      expect(platforms.map(([name]) => name)).toContain('lightningcss-linux-x64-gnu');
+      for (const [name, version] of platforms) {
+        expect(version, `${name} in client/package.json`).toBe(locked);
+        expect(packages[`node_modules/${name}`]?.version, `${name} in ${file}`).toBe(locked);
+      }
+    },
+  );
 });

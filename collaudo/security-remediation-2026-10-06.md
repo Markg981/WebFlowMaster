@@ -39,11 +39,11 @@ fixture agente prima del relativo npm install.
 
 ## Immagini e runtime reali
 
-| Ruolo | HIGH/CRITICAL prima | Dopo | Componenti SBOM | Configurazione SHA-256 |
-| --- | ---: | ---: | ---: | --- |
-| API | 31 | 0 | 1375 | `ddfb81a5fd9a466f4af12e7a678e49341e5165446e6ddb05a5153ffb8a581299` |
-| Worker | 31 | 0 | 1375 | `1747a423af777b674e94d27ba4d0f251066bfdf462a74e603f9bc128e12a33dd` |
-| Agent | 28 | 0 | 1257 | `4c8ae404751abd8ddea353402d61fce0835626842a7f1ecf5dfbe681efa8f3ba` |
+| Ruolo  | HIGH/CRITICAL prima | Dopo | Componenti SBOM | Configurazione SHA-256                                             |
+| ------ | ------------------: | ---: | --------------: | ------------------------------------------------------------------ |
+| API    |                  31 |    0 |            1375 | `ddfb81a5fd9a466f4af12e7a678e49341e5165446e6ddb05a5153ffb8a581299` |
+| Worker |                  31 |    0 |            1375 | `1747a423af777b674e94d27ba4d0f251066bfdf462a74e603f9bc128e12a33dd` |
+| Agent  |                  28 |    0 |            1257 | `4c8ae404751abd8ddea353402d61fce0835626842a7f1ecf5dfbe681efa8f3ba` |
 
 Per ogni ruolo le due build senza cache producono configurazioni e layer
 decompressi identici. Gli smoke test eseguono Chromium, Firefox e WebKit reali,

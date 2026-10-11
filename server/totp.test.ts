@@ -22,7 +22,11 @@ describe('TOTP', () => {
   it('reads a seed as authenticator apps show it', () => {
     expect(decodeBase32('gezd gnbv-gy3t qojq')).toEqual(Buffer.from('1234567890'));
     expect(parseTotpSeed(RFC_SEED)).toMatchObject({ digits: 6, period: 30, algorithm: 'sha1' });
-    expect(parseTotpSeed('otpauth://totp/Shop:ann?secret=JBSWY3DPEHPK3PXP&issuer=Shop&algorithm=SHA256&period=60')).toMatchObject({ digits: 6, period: 60, algorithm: 'sha256' });
+    expect(
+      parseTotpSeed(
+        'otpauth://totp/Shop:ann?secret=JBSWY3DPEHPK3PXP&issuer=Shop&algorithm=SHA256&period=60',
+      ),
+    ).toMatchObject({ digits: 6, period: 60, algorithm: 'sha256' });
     expect(parseTotpSeed('not base32!')).toBeNull();
     expect(parseTotpSeed('otpauth://hotp/x?secret=JBSWY3DPEHPK3PXP')).toBeNull();
     expect(parseTotpSeed('otpauth://totp/x?secret=JBSWY3DPEHPK3PXP&digits=4')).toBeNull();
@@ -35,6 +39,8 @@ describe('TOTP', () => {
     // Six digits of the same code: 94287082 → 287082.
     expect(substituteVariables('code {{$totp(secret_mfa)}}', vars)).toBe('code 287082');
     expect(findUnresolvedVariables('{{$totp(secret_mfa)}}', vars)).toEqual([]);
-    expect(findUnresolvedVariables('{{$totp(missing)}} {{$totp(broken)}} {{$totp}}', vars)).toEqual(['$totp(missing)', '$totp(broken)', '$totp']);
+    expect(findUnresolvedVariables('{{$totp(missing)}} {{$totp(broken)}} {{$totp}}', vars)).toEqual(
+      ['$totp(missing)', '$totp(broken)', '$totp'],
+    );
   });
 });

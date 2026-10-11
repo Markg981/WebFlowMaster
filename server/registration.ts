@@ -35,7 +35,9 @@ export interface RegistrationPolicy {
 }
 
 /** What the sign-in page needs to know to offer, or not offer, a registration form. */
-export async function registrationPolicy(env: NodeJS.ProcessEnv = process.env): Promise<RegistrationPolicy> {
+export async function registrationPolicy(
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<RegistrationPolicy> {
   const mode = registrationMode(env);
   const firstAccount = !(await storage.hasAnyPerson());
   return { mode, selfRegistration: mode === 'open' || firstAccount, firstAccount };

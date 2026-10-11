@@ -1,12 +1,12 @@
-import { Router } from "express";
-import { z } from "zod";
-import { asc, eq } from "drizzle-orm";
-import { projectElements, projects } from "@shared/schema";
-import { withTenantTransaction } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
-import { aiService } from "../ai-automation-service";
-import { authorSteps } from "../nl-authoring";
-import loggerPromise from "../logger";
+import { Router } from 'express';
+import { z } from 'zod';
+import { asc, eq } from 'drizzle-orm';
+import { projectElements, projects } from '@shared/schema';
+import { withTenantTransaction } from '../middleware/tenancy';
+import { requireRole } from '../middleware/require-role';
+import { aiService } from '../ai-automation-service';
+import { authorSteps } from '../nl-authoring';
+import loggerPromise from '../logger';
 
 /**
  * Turning what a test is supposed to do into the steps that do it.
@@ -39,26 +39,26 @@ const detectedElementSchema = z.object({
 });
 
 const bodySchema = z.object({
-  text: z.string().min(1, "Write at least one instruction.").max(8000),
+  text: z.string().min(1, 'Write at least one instruction.').max(8000),
   /** Brings the project's element repository into the catalogue. Optional: the page may be enough. */
   projectId: z.number().int().positive().optional().nullable(),
   elements: z.array(detectedElementSchema).max(500).optional(),
 });
 
 // POST /api/authoring/steps — sentences in, proposed steps out. Nothing is saved.
-router.post("/api/authoring/steps", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/authoring/steps', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   const parsed = bodySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
   }
 
   try {
     let repository: RepositoryRow[] = [];
     if (parsed.data.projectId) {
       const loaded = await loadRepository(parsed.data.projectId);
-      if (loaded === null) return res.status(404).json({ error: "Project not found." });
+      if (loaded === null) return res.status(404).json({ error: 'Project not found.' });
       repository = loaded;
     }
 
@@ -70,7 +70,11 @@ router.post("/api/authoring/steps", requireRole('editor'), async (req, res) => {
       },
       // Absent when no key is configured, and `authorSteps` then says so per line instead of
       // failing: the phrasings it understands on its own keep working.
-      { propose: aiService.isAvailable() ? (prompt) => aiService.proposeTestSteps(prompt) : undefined },
+      {
+        propose: aiService.isAvailable()
+          ? (prompt) => aiService.proposeTestSteps(prompt)
+          : undefined,
+      },
     );
 
     res.json({
@@ -84,7 +88,7 @@ router.post("/api/authoring/steps", requireRole('editor'), async (req, res) => {
     });
   } catch (error: any) {
     logger.error({ message: 'Authoring from text failed', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Could not read those instructions." });
+    res.status(500).json({ error: 'Could not read those instructions.' });
   }
 });
 
@@ -104,7 +108,11 @@ async function loadRepository(projectId: number): Promise<RepositoryRow[] | null
   return withTenantTransaction(async (tx) => {
     // No organization predicate: RLS supplies it, so another tenant's project is not found
     // here rather than read.
-    const [project] = await tx.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).limit(1);
+    const [project] = await tx
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
     if (!project) return null;
 
     return tx

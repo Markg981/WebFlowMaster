@@ -52,7 +52,11 @@ export interface ExecutionSnapshot {
   selectedTests: SnapshotTestReference[];
   visualTesting: { enabled: boolean; updateBaselines: boolean };
   /** `network` is absent on snapshots taken before it existed, and read as 'never'. */
-  evidence: { video: EvidenceCaptureMode; trace: EvidenceCaptureMode; network?: EvidenceCaptureMode };
+  evidence: {
+    video: EvidenceCaptureMode;
+    trace: EvidenceCaptureMode;
+    network?: EvidenceCaptureMode;
+  };
   maxParallelTests: number;
   /** Workers sharing the run (server/run-shards.ts); absent on snapshots from before it existed, read as 1. */
   shards?: number;
@@ -154,17 +158,24 @@ export function buildExecutionSnapshot(
     maxParallelTests: plan.maxParallelTests ?? 1,
     shards: plan.shards ?? 1,
     captureScreenshots: plan.captureScreenshots ?? 'on_failed_steps',
-    timeouts: { pageLoadMs: plan.pageLoadTimeout ?? 30_000, elementMs: plan.elementTimeout ?? 30_000 },
+    timeouts: {
+      pageLoadMs: plan.pageLoadTimeout ?? 30_000,
+      elementMs: plan.elementTimeout ?? 30_000,
+    },
     failurePolicies: {
       onMajorStepFailure: plan.onMajorStepFailure ?? 'abort_and_run_next_test_case',
       onAbortedTestCase: plan.onAbortedTestCase ?? 'delete_cookies_and_reuse_session',
       onTestSuitePreRequisiteFailure: plan.onTestSuitePreRequisiteFailure ?? 'stop_execution',
       onTestCasePreRequisiteFailure: plan.onTestCasePreRequisiteFailure ?? 'stop_execution',
-      onTestStepPreRequisiteFailure: plan.onTestStepPreRequisiteFailure ?? 'abort_and_run_next_test_case',
+      onTestStepPreRequisiteFailure:
+        plan.onTestStepPreRequisiteFailure ?? 'abort_and_run_next_test_case',
     },
     rerunPolicy: plan.reRunOnFailure ?? 'none',
     notificationSettings: parsedJson(plan.notificationSettings),
-    issues: { trackerId: plan.issueTrackerId ?? null, createOnFailure: plan.createIssuesOnFailure === true },
+    issues: {
+      trackerId: plan.issueTrackerId ?? null,
+      createOnFailure: plan.createIssuesOnFailure === true,
+    },
     runOn: { agentPool: plan.agentPool ?? null, browserGridId: plan.browserGridId ?? null },
     locales: normalizeLocales(parsedJson(plan.locales)),
     testManagement: { connectionId: plan.testManagementId ?? null },

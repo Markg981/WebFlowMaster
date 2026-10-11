@@ -122,7 +122,12 @@ describe('buildExecutionSnapshot', () => {
   });
 
   it('keeps only the id that belongs to each test type', () => {
-    const snapshot = buildExecutionSnapshot(plan, [{ testType: 'ui', testId: 11, apiTestId: 99 }], {}, now);
+    const snapshot = buildExecutionSnapshot(
+      plan,
+      [{ testType: 'ui', testId: 11, apiTestId: 99 }],
+      {},
+      now,
+    );
     expect(snapshot.selectedTests).toEqual([{ testType: 'ui', testId: 11, apiTestId: null }]);
   });
 
@@ -170,13 +175,21 @@ describe('buildExecutionSnapshot', () => {
     const undecided = Object.keys(getTableColumns(testPlans)).filter(
       (column) => !captured.has(column) && !(column in notForTheRunner),
     );
-    expect(undecided, 'plan columns neither in the snapshot nor declared irrelevant to a run').toEqual([]);
+    expect(
+      undecided,
+      'plan columns neither in the snapshot nor declared irrelevant to a run',
+    ).toEqual([]);
   });
 });
 
 describe('readExecutionSnapshot', () => {
   it('reads back what was written, whether it arrives as an object or as text', () => {
-    const snapshot = buildExecutionSnapshot(plan, [{ testType: 'ui', testId: 11, apiTestId: null }], {}, now);
+    const snapshot = buildExecutionSnapshot(
+      plan,
+      [{ testType: 'ui', testId: 11, apiTestId: null }],
+      {},
+      now,
+    );
     expect(readExecutionSnapshot(snapshot)).toEqual(snapshot);
     expect(readExecutionSnapshot(JSON.stringify(snapshot))).toEqual(snapshot);
   });

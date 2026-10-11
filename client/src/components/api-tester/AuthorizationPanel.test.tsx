@@ -135,7 +135,10 @@ describe('changing the scheme', () => {
       type: 'ntlm',
       params: { username: '', password: '', domain: '', workstation: '' },
     });
-    expect(emptyAuthParamsFor('akamai')).toMatchObject({ type: 'akamai', params: { maxBody: 131072 } });
+    expect(emptyAuthParamsFor('akamai')).toMatchObject({
+      type: 'akamai',
+      params: { maxBody: 131072 },
+    });
     expect(emptyAuthParamsFor('none')).toEqual({ type: 'none' });
     expect(emptyAuthParamsFor('oauth2')).toMatchObject({
       type: 'oauth2',
@@ -150,7 +153,16 @@ describe('the schemes that used to be names only', () => {
 
     await openSelect(screen.getByRole('combobox'));
 
-    for (const name of [/JWT Bearer/, /Digest/, /OAuth 1\.0/, /Hawk/, /AWS Signature/, /NTLM/, /Akamai/, /ASAP/]) {
+    for (const name of [
+      /JWT Bearer/,
+      /Digest/,
+      /OAuth 1\.0/,
+      /Hawk/,
+      /AWS Signature/,
+      /NTLM/,
+      /Akamai/,
+      /ASAP/,
+    ]) {
       const option = await screen.findByRole('option', { name });
       expect(option).not.toHaveAttribute('aria-disabled', 'true');
       expect(option).not.toHaveTextContent('(not available)');
@@ -172,14 +184,26 @@ describe('the schemes that used to be names only', () => {
   it('keeps what was entered when another field changes', () => {
     const { onAuthParamsChange } = renderPanel('aws', {
       type: 'aws',
-      params: { accessKey: 'AKID', secretKey: 's', sessionToken: '', region: 'eu-west-1', service: '' },
+      params: {
+        accessKey: 'AKID',
+        secretKey: 's',
+        sessionToken: '',
+        region: 'eu-west-1',
+        service: '',
+      },
     } as AuthParams);
 
     fireEvent.change(screen.getByLabelText('Service'), { target: { value: 'execute-api' } });
 
     expect(onAuthParamsChange).toHaveBeenCalledWith({
       type: 'aws',
-      params: { accessKey: 'AKID', secretKey: 's', sessionToken: '', region: 'eu-west-1', service: 'execute-api' },
+      params: {
+        accessKey: 'AKID',
+        secretKey: 's',
+        sessionToken: '',
+        region: 'eu-west-1',
+        service: 'execute-api',
+      },
     });
     expect(screen.getByLabelText('Secret key')).toHaveAttribute('type', 'password');
   });
@@ -203,9 +227,23 @@ describe('the schemes that used to be names only', () => {
   });
 
   it('has a label for every field of every scheme', () => {
-    for (const type of ['jwtBearer', 'digest', 'oauth1', 'hawk', 'aws', 'ntlm', 'akamai', 'asap'] as const) {
+    for (const type of [
+      'jwtBearer',
+      'digest',
+      'oauth1',
+      'hawk',
+      'aws',
+      'ntlm',
+      'akamai',
+      'asap',
+    ] as const) {
       const { unmount, container } = render(
-        <AuthorizationPanel authType={type} authParams={emptyAuthParamsFor(type)} onAuthTypeChange={vi.fn()} onAuthParamsChange={vi.fn()} />,
+        <AuthorizationPanel
+          authType={type}
+          authParams={emptyAuthParamsFor(type)}
+          onAuthTypeChange={vi.fn()}
+          onAuthParamsChange={vi.fn()}
+        />,
       );
       // An untranslated key shows as its path.
       expect(container.textContent).not.toMatch(/authForms\./);

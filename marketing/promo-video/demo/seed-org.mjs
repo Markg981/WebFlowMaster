@@ -22,7 +22,9 @@ const USERNAME = 'maya';
 const PASSWORD = 'Demo.Video.2026!';
 
 if (process.env.WEBFLOW_PUBLIC_URL !== COLLAUDO_URL) {
-  console.error(`Refusing to run: WEBFLOW_PUBLIC_URL is not ${COLLAUDO_URL}. This script is only for the collaudo stack.`);
+  console.error(
+    `Refusing to run: WEBFLOW_PUBLIC_URL is not ${COLLAUDO_URL}. This script is only for the collaudo stack.`,
+  );
   process.exit(2);
 }
 
@@ -43,7 +45,9 @@ try {
   if (existing.rows[0]) {
     console.log(`${USERNAME} already exists.`);
   } else {
-    const org = await client.query('INSERT INTO organizations (name) VALUES ($1) RETURNING id', [ORGANIZATION]);
+    const org = await client.query('INSERT INTO organizations (name) VALUES ($1) RETURNING id', [
+      ORGANIZATION,
+    ]);
     await client.query(
       "INSERT INTO users (username, password, organization_id, role, kind) VALUES ($1, $2, $3, 'owner', 'person')",
       [USERNAME, await hashPassword(PASSWORD), org.rows[0].id],

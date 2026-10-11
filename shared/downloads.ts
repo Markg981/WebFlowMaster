@@ -46,7 +46,10 @@ const NUMBER = /^(size|rows|columns|pages)\s*(<=|>=|==|=|<|>)\s*([0-9]*\.?[0-9]+
 
 export function parseDownloadChecks(text: string): DownloadCheck[] | { error: string } {
   const checks: DownloadCheck[] = [];
-  for (const part of text.split(/[;\n]/).map((p) => p.trim()).filter(Boolean)) {
+  for (const part of text
+    .split(/[;\n]/)
+    .map((p) => p.trim())
+    .filter(Boolean)) {
     const named = /^(name|type|contains)\s*:\s*(.+)$/i.exec(part);
     if (named) {
       const key = named[1].toLowerCase();
@@ -55,13 +58,17 @@ export function parseDownloadChecks(text: string): DownloadCheck[] | { error: st
       else if (key === 'contains') checks.push({ kind: 'contains', value, text: part });
       else {
         const type = value.toLowerCase().replace(/^\./, '') as DownloadType;
-        if (!DOWNLOAD_TYPES.includes(type) || type === 'other') return { error: `Unknown type "${value}". Use one of: pdf, csv, xlsx, json, txt.` };
+        if (!DOWNLOAD_TYPES.includes(type) || type === 'other')
+          return { error: `Unknown type "${value}". Use one of: pdf, csv, xlsx, json, txt.` };
         checks.push({ kind: 'type', type, text: part });
       }
       continue;
     }
     const m = NUMBER.exec(part);
-    if (!m) return { error: `"${part}" is not a check. Write name: *.pdf, contains: text, rows >= 3, size < 2MB…` };
+    if (!m)
+      return {
+        error: `"${part}" is not a check. Write name: *.pdf, contains: text, rows >= 3, size < 2MB…`,
+      };
     const field = m[1].toLowerCase() as NumberField;
     let value = Number(m[3]);
     const unit = m[4].toLowerCase();
@@ -70,19 +77,32 @@ export function parseDownloadChecks(text: string): DownloadCheck[] | { error: st
       else if (unit === 'mb') value *= 1024 * 1024;
       else if (unit !== '' && unit !== 'b') return { error: `${part}: use KB or MB for a size.` };
     } else if (unit) return { error: `${part}: ${field} is a plain number.` };
-    checks.push({ kind: 'number', field, op: (m[2] === '==' ? '=' : m[2]) as Op, value, text: part });
+    checks.push({
+      kind: 'number',
+      field,
+      op: (m[2] === '==' ? '=' : m[2]) as Op,
+      value,
+      text: part,
+    });
   }
   return checks;
 }
 
 function globMatches(pattern: string, name: string): boolean {
-  const re = pattern.replace(/[.+^$()|[\]\\{}]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
+  const re = pattern
+    .replace(/[.+^$()|[\]\\{}]/g, '\\$&')
+    .replace(/\*/g, '.*')
+    .replace(/\?/g, '.');
   return new RegExp(`^${re}$`, 'i').test(name);
 }
 
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 
-export function runDownloadChecks(file: DownloadedFile, fullText: string, checks: DownloadCheck[]): DownloadFinding['checks'] {
+export function runDownloadChecks(
+  file: DownloadedFile,
+  fullText: string,
+  checks: DownloadCheck[],
+): DownloadFinding['checks'] {
   const text = squash(fullText);
   return checks.map((c) => {
     switch (c.kind) {
@@ -94,8 +114,22 @@ export function runDownloadChecks(file: DownloadedFile, fullText: string, checks
         return { text: c.text, ok: text.includes(squash(c.value)) };
       case 'number': {
         const actual = file[c.field];
-        if (actual === undefined) return { text: c.text, ok: false, actual: `not a ${c.field === 'pages' ? 'PDF' : 'table'}` };
-        const ok = c.op === '<' ? actual < c.value : c.op === '<=' ? actual <= c.value : c.op === '>' ? actual > c.value : c.op === '>=' ? actual >= c.value : actual === c.value;
+        if (actual === undefined)
+          return {
+            text: c.text,
+            ok: false,
+            actual: `not a ${c.field === 'pages' ? 'PDF' : 'table'}`,
+          };
+        const ok =
+          c.op === '<'
+            ? actual < c.value
+            : c.op === '<='
+              ? actual <= c.value
+              : c.op === '>'
+                ? actual > c.value
+                : c.op === '>='
+                  ? actual >= c.value
+                  : actual === c.value;
         return { text: c.text, ok, actual: String(actual) };
       }
     }
@@ -103,14 +137,26 @@ export function runDownloadChecks(file: DownloadedFile, fullText: string, checks
 }
 
 /** The point of a `setGeolocation` step: "45.4642, 9.19" or with an accuracy in metres. */
-export function parseGeolocation(value: string): { latitude: number; longitude: number; accuracy: number } | { error: string } {
-  const parts = value.split(',').map((p) => p.trim()).filter(Boolean);
+export function parseGeolocation(
+  value: string,
+): { latitude: number; longitude: number; accuracy: number } | { error: string } {
+  const parts = value
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
   const [latitude, longitude, accuracy = 10] = parts.map(Number);
-  if (parts.length < 2 || parts.length > 3 || [latitude, longitude, accuracy].some((n) => !Number.isFinite(n))) {
-    return { error: `"${value}" is not a position. Write latitude, longitude[, accuracy in metres], e.g. 45.4642, 9.19.` };
+  if (
+    parts.length < 2 ||
+    parts.length > 3 ||
+    [latitude, longitude, accuracy].some((n) => !Number.isFinite(n))
+  ) {
+    return {
+      error: `"${value}" is not a position. Write latitude, longitude[, accuracy in metres], e.g. 45.4642, 9.19.`,
+    };
   }
   if (latitude < -90 || latitude > 90) return { error: `Latitude ${latitude} is outside -90…90.` };
-  if (longitude < -180 || longitude > 180) return { error: `Longitude ${longitude} is outside -180…180.` };
+  if (longitude < -180 || longitude > 180)
+    return { error: `Longitude ${longitude} is outside -180…180.` };
   if (accuracy < 0) return { error: 'The accuracy is a number of metres, 0 or more.' };
   return { latitude, longitude, accuracy };
 }

@@ -23,10 +23,7 @@ export const ApiKeyAuthForm: React.FC<ApiKeyAuthFormProps> = ({
   disabled = false,
 }) => {
   const { t } = useTranslation();
-  const handleInputChange = (
-    field: keyof Omit<ApiKeyAuthParams, 'addTo'>,
-    value: string
-  ) => {
+  const handleInputChange = (field: keyof Omit<ApiKeyAuthParams, 'addTo'>, value: string) => {
     onChange({
       key: params.key || '',
       value: params.value || '',
@@ -73,13 +70,13 @@ export const ApiKeyAuthForm: React.FC<ApiKeyAuthFormProps> = ({
         <Label htmlFor="apiKey-addTo">{t('authForms.apiKeyAuthForm.addTo.label')}</Label>
         <Select
           value={params.addTo || 'header'}
-          onValueChange={(value: ApiKeyAuthParams['addTo']) =>
-            handleSelectChange(value)
-          }
+          onValueChange={(value: ApiKeyAuthParams['addTo']) => handleSelectChange(value)}
           disabled={disabled}
         >
           <SelectTrigger id="apiKey-addTo" className="w-full mt-1">
-            <SelectValue placeholder={t('authForms.apiKeyAuthForm.selectWhereToAddApiKey.placeholder')} />
+            <SelectValue
+              placeholder={t('authForms.apiKeyAuthForm.selectWhereToAddApiKey.placeholder')}
+            />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="header">{t('authForms.apiKeyAuthForm.header.text')}</SelectItem>

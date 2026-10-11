@@ -1,5 +1,10 @@
 import { Readable } from 'stream';
-import { DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3';
 import type { S3Like } from '../artifact-store';
 
 /**
@@ -12,7 +17,9 @@ export function fakeS3(options: { failPutsAfter?: number } = {}) {
   const client: S3Like & { objects: typeof objects; commands: string[] } = {
     objects,
     commands: [],
-    async send(command: GetObjectCommand | PutObjectCommand | ListObjectsV2Command | DeleteObjectsCommand) {
+    async send(
+      command: GetObjectCommand | PutObjectCommand | ListObjectsV2Command | DeleteObjectsCommand,
+    ) {
       if (command instanceof ListObjectsV2Command) {
         const { Bucket, Prefix, ContinuationToken } = command.input;
         client.commands.push(`list ${Bucket}/${Prefix}`);
@@ -21,7 +28,11 @@ export function fakeS3(options: { failPutsAfter?: number } = {}) {
         const start = ContinuationToken ? Number(ContinuationToken) : 0;
         const page = all.slice(start, start + 2);
         const more = start + 2 < all.length;
-        return { Contents: page.map((Key) => ({ Key })), IsTruncated: more, NextContinuationToken: more ? String(start + 2) : undefined };
+        return {
+          Contents: page.map((Key) => ({ Key })),
+          IsTruncated: more,
+          NextContinuationToken: more ? String(start + 2) : undefined,
+        };
       }
       if (command instanceof DeleteObjectsCommand) {
         const { Bucket, Delete } = command.input;
@@ -34,7 +45,9 @@ export function fakeS3(options: { failPutsAfter?: number } = {}) {
         client.commands.push(`put ${Bucket}/${Key}`);
         puts += 1;
         if (options.failPutsAfter !== undefined && puts > options.failPutsAfter) {
-          throw Object.assign(new Error('SlowDown: please reduce your request rate'), { name: 'SlowDown' });
+          throw Object.assign(new Error('SlowDown: please reduce your request rate'), {
+            name: 'SlowDown',
+          });
         }
         objects.set(Key!, { body: Buffer.from(Body as Buffer), contentType: ContentType });
         return {};
@@ -42,8 +55,13 @@ export function fakeS3(options: { failPutsAfter?: number } = {}) {
       const { Bucket, Key } = command.input;
       client.commands.push(`get ${Bucket}/${Key}`);
       const found = objects.get(Key!);
-      if (!found) throw Object.assign(new Error('The specified key does not exist.'), { name: 'NoSuchKey' });
-      return { Body: Readable.from([found.body]), ContentType: found.contentType, ContentLength: found.body.length };
+      if (!found)
+        throw Object.assign(new Error('The specified key does not exist.'), { name: 'NoSuchKey' });
+      return {
+        Body: Readable.from([found.body]),
+        ContentType: found.contentType,
+        ContentLength: found.body.length,
+      };
     },
   };
   return client;

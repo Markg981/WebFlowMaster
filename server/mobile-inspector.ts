@@ -4,7 +4,12 @@ import type { MobileTest } from '@shared/schema';
 import { parsePageSource, type InspectorNode } from '@shared/mobile-inspector';
 import type { GridConfig } from './browser-grids';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
-import { appiumTransport, mobileSessionRequest, redactGridSecret, runMobileStep } from './mobile-runner';
+import {
+  appiumTransport,
+  mobileSessionRequest,
+  redactGridSecret,
+  runMobileStep,
+} from './mobile-runner';
 
 /**
  * The inspector: a device of a cloud grid, held open while somebody looks at the app's screens and
@@ -19,7 +24,10 @@ import { appiumTransport, mobileSessionRequest, redactGridSecret, runMobileStep 
 export const INSPECTOR_IDLE_MS = Number(process.env.MOBILE_INSPECTOR_IDLE_MS) || 5 * 60_000;
 
 export class InspectorError extends Error {
-  constructor(readonly status: number, message: string) {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
     super(message);
   }
 }
@@ -56,9 +64,17 @@ const held = new Map<string, Held>();
 /** How the tests reach a stand-in hub, and how long a step looks for its element (a person is waiting). */
 export const inspectorDeps: { fetch?: Fetch; elementTimeoutMs?: number } = {};
 
-function describeDevice(test: Pick<MobileTest, 'deviceName' | 'osVersion' | 'platform'>, capabilities: Record<string, unknown>) {
-  const version = String(capabilities.platformVersion ?? capabilities['appium:platformVersion'] ?? test.osVersion ?? '').trim();
-  return [test.deviceName, `${test.platform === 'ios' ? 'iOS' : 'Android'}${version ? ` ${version}` : ''}`].join(' · ');
+function describeDevice(
+  test: Pick<MobileTest, 'deviceName' | 'osVersion' | 'platform'>,
+  capabilities: Record<string, unknown>,
+) {
+  const version = String(
+    capabilities.platformVersion ?? capabilities['appium:platformVersion'] ?? test.osVersion ?? '',
+  ).trim();
+  return [
+    test.deviceName,
+    `${test.platform === 'ios' ? 'iOS' : 'Android'}${version ? ` ${version}` : ''}`,
+  ].join(' · ');
 }
 
 function touch(entry: Held) {
@@ -77,13 +93,27 @@ async function close(id: string) {
 }
 
 async function snapshotOf(entry: Held): Promise<InspectorSnapshot> {
-  const [screenshot, source, window] = await Promise.all([entry.session.screenshot(), entry.session.source(), entry.session.windowSize()]);
-  return { id: entry.id, platform: entry.platform, screenshot, window, tree: parsePageSource(source), device: entry.device };
+  const [screenshot, source, window] = await Promise.all([
+    entry.session.screenshot(),
+    entry.session.source(),
+    entry.session.windowSize(),
+  ]);
+  return {
+    id: entry.id,
+    platform: entry.platform,
+    screenshot,
+    window,
+    tree: parsePageSource(source),
+    device: entry.device,
+  };
 }
 
 function explain(error: unknown, grid: GridConfig): InspectorError {
   if (error instanceof InspectorError) return error;
-  const message = error instanceof WebDriverError ? `${grid.name}: ${error.message}` : String((error as Error)?.message ?? error);
+  const message =
+    error instanceof WebDriverError
+      ? `${grid.name}: ${error.message}`
+      : String((error as Error)?.message ?? error);
   return new InspectorError(502, redactGridSecret(message, grid));
 }
 
@@ -94,7 +124,8 @@ export async function openInspector(
   test: Pick<MobileTest, 'platform' | 'app' | 'deviceName' | 'osVersion' | 'name'>,
 ): Promise<InspectorSnapshot> {
   for (const entry of Array.from(held.values())) {
-    if (entry.userId === owner.userId && entry.organizationId === owner.organizationId) await close(entry.id);
+    if (entry.userId === owner.userId && entry.organizationId === owner.organizationId)
+      await close(entry.id);
   }
   let session: AppiumSession | null = null;
   let transport: ReturnType<typeof appiumTransport> | null = null;
@@ -138,7 +169,10 @@ function serialized<T>(entry: Held, work: () => Promise<T>): Promise<T> {
   return next;
 }
 
-export async function inspectorSnapshot(id: string, owner: { organizationId: number; userId: number }): Promise<InspectorSnapshot> {
+export async function inspectorSnapshot(
+  id: string,
+  owner: { organizationId: number; userId: number },
+): Promise<InspectorSnapshot> {
   const entry = own(id, owner);
   touch(entry);
   try {
@@ -148,7 +182,8 @@ export async function inspectorSnapshot(id: string, owner: { organizationId: num
   }
 }
 
-export type InspectorAction = { kind: 'step'; step: MobileStep } | { kind: 'tapAt'; x: number; y: number };
+export type InspectorAction =
+  { kind: 'step'; step: MobileStep } | { kind: 'tapAt'; x: number; y: number };
 
 /**
  * Does something on the device — a step as a test would, or a tap on a point of the screenshot —
@@ -166,7 +201,16 @@ export async function inspectorAct(
     try {
       if (action.kind === 'tapAt') await entry.session.tapAt(action);
       // No environment here: a value with a {{variable}} is refused with the name, as in a run.
-      else await runMobileStep({ session: entry.session, platform: entry.platform, vars: {}, elementTimeoutMs: inspectorDeps.elementTimeoutMs ?? 5_000 }, action.step);
+      else
+        await runMobileStep(
+          {
+            session: entry.session,
+            platform: entry.platform,
+            vars: {},
+            elementTimeoutMs: inspectorDeps.elementTimeoutMs ?? 5_000,
+          },
+          action.step,
+        );
     } catch (error) {
       failure = explain(error, entry.grid).message;
     }
@@ -178,7 +222,10 @@ export async function inspectorAct(
   });
 }
 
-export async function closeInspector(id: string, owner: { organizationId: number; userId: number }): Promise<void> {
+export async function closeInspector(
+  id: string,
+  owner: { organizationId: number; userId: number },
+): Promise<void> {
   own(id, owner);
   await close(id);
 }

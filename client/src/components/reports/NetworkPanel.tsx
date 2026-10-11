@@ -36,7 +36,13 @@ function RequestRow({ request }: { request: NetworkRequestSummary }) {
   );
 }
 
-export default function NetworkPanel({ summary, harUrl }: { summary: NetworkSummary; harUrl?: string | null }) {
+export default function NetworkPanel({
+  summary,
+  harUrl,
+}: {
+  summary: NetworkSummary;
+  harUrl?: string | null;
+}) {
   const { t } = useTranslation();
   return (
     <div className="rounded-md border p-3 dark:border-slate-700" data-testid="network-panel">
@@ -59,7 +65,9 @@ export default function NetworkPanel({ summary, harUrl }: { summary: NetworkSumm
 
       {summary.failures.length > 0 && (
         <section className="mb-3">
-          <h4 className="text-xs font-medium text-destructive mb-1">{t('network.failed', 'Failed requests')}</h4>
+          <h4 className="text-xs font-medium text-destructive mb-1">
+            {t('network.failed', 'Failed requests')}
+          </h4>
           <ul className="space-y-1" data-testid="network-failures">
             {summary.failures.map((request, index) => (
               <RequestRow key={`f-${index}`} request={request} />
@@ -67,7 +75,9 @@ export default function NetworkPanel({ summary, harUrl }: { summary: NetworkSumm
           </ul>
           {summary.failed > summary.failures.length && (
             <p className="text-xs text-muted-foreground mt-1">
-              {t('network.more', 'and {{count}} more in the HAR', { count: summary.failed - summary.failures.length })}
+              {t('network.more', 'and {{count}} more in the HAR', {
+                count: summary.failed - summary.failures.length,
+              })}
             </p>
           )}
         </section>

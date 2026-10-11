@@ -121,8 +121,12 @@ export default function SecurityCard({ isOwner = false }: { isOwner?: boolean })
         ) : (
           <>
             <p className="text-sm" data-testid="mfa-status">
-              {t('security.mfa.enabledSince', 'On since {{date}}.', { date: new Date(status.enabledAt!).toLocaleDateString() })}{' '}
-              {t('security.mfa.codesLeft', '{{count}} recovery codes left.', { count: status.recoveryCodesLeft })}
+              {t('security.mfa.enabledSince', 'On since {{date}}.', {
+                date: new Date(status.enabledAt!).toLocaleDateString(),
+              })}{' '}
+              {t('security.mfa.codesLeft', '{{count}} recovery codes left.', {
+                count: status.recoveryCodesLeft,
+              })}
             </p>
             {mode === 'idle' ? (
               <div className="flex flex-wrap gap-2">
@@ -140,17 +144,37 @@ export default function SecurityCard({ isOwner = false }: { isOwner?: boolean })
                 {mode === 'disable' && (
                   <div className="space-y-1">
                     <Label htmlFor="mfa-password">{t('security.mfa.password', 'Password')}</Label>
-                    <Input id="mfa-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <Input
+                      id="mfa-password"
+                      type="password"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
                   </div>
                 )}
                 <div className="space-y-1">
-                  <Label htmlFor="mfa-code">{t('security.mfa.codeOrRecovery', 'Code from the app, or a recovery code')}</Label>
-                  <Input id="mfa-code" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} />
+                  <Label htmlFor="mfa-code">
+                    {t('security.mfa.codeOrRecovery', 'Code from the app, or a recovery code')}
+                  </Label>
+                  <Input
+                    id="mfa-code"
+                    autoComplete="one-time-code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                  />
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" size="sm" variant={mode === 'disable' ? 'destructive' : 'default'} disabled={busy || code.trim().length < 6 || (mode === 'disable' && !password)}>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant={mode === 'disable' ? 'destructive' : 'default'}
+                    disabled={busy || code.trim().length < 6 || (mode === 'disable' && !password)}
+                  >
                     {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    {mode === 'disable' ? t('security.mfa.disableConfirm', 'Turn off') : t('security.mfa.regenerateConfirm', 'Replace the codes')}
+                    {mode === 'disable'
+                      ? t('security.mfa.disableConfirm', 'Turn off')
+                      : t('security.mfa.regenerateConfirm', 'Replace the codes')}
                   </Button>
                   <Button type="button" size="sm" variant="ghost" onClick={reset}>
                     {t('security.cancel', 'Cancel')}
@@ -160,7 +184,10 @@ export default function SecurityCard({ isOwner = false }: { isOwner?: boolean })
             )}
             {status.required && (
               <p className="text-xs text-muted-foreground">
-                {t('security.mfa.requiredNote', 'Your organization requires it, so it cannot be turned off.')}
+                {t(
+                  'security.mfa.requiredNote',
+                  'Your organization requires it, so it cannot be turned off.',
+                )}
               </p>
             )}
           </>
@@ -174,7 +201,10 @@ export default function SecurityCard({ isOwner = false }: { isOwner?: boolean })
               </Label>
               <p className="text-xs text-muted-foreground">
                 {status.enabled
-                  ? t('security.policy.hint', 'Members without it are asked to set it up before they can do anything else. API keys are not affected.')
+                  ? t(
+                      'security.policy.hint',
+                      'Members without it are asked to set it up before they can do anything else. API keys are not affected.',
+                    )
                   : t('security.policy.needsOwn', 'Turn it on for yourself first.')}
               </p>
             </div>

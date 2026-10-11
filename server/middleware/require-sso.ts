@@ -20,7 +20,8 @@ export async function requireSso(req: Request, res: Response, next: NextFunction
     req.logout((error) => {
       if (error) return next(error);
       res.status(401).json({
-        error: 'Your organization signs in with single sign-on. Sign in again with "Sign in with SSO".',
+        error:
+          'Your organization signs in with single sign-on. Sign in again with "Sign in with SSO".',
         code: 'sso_required',
       });
     });

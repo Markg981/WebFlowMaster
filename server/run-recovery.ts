@@ -29,7 +29,8 @@ import loggerPromise from './logger';
  * cannot write a verdict over it, and several web servers sweeping at once end each run once.
  */
 
-export const RUN_STALE_AFTER_MS = Number(process.env.RUN_STALE_AFTER_MS) || Math.max(8 * RUN_HEARTBEAT_INTERVAL_MS, 120_000);
+export const RUN_STALE_AFTER_MS =
+  Number(process.env.RUN_STALE_AFTER_MS) || Math.max(8 * RUN_HEARTBEAT_INTERVAL_MS, 120_000);
 export const RUN_TIMEOUT_GRACE_MS = 5 * 60_000;
 
 export interface RecoveryOptions {
@@ -50,7 +51,11 @@ export interface RecoveryReport {
 export async function recoverAbandonedRuns(options: RecoveryOptions = {}): Promise<RecoveryReport> {
   const now = options.now ?? new Date();
   const staleBefore = new Date(now.getTime() - (options.staleAfterMs ?? RUN_STALE_AFTER_MS));
-  const overdueBefore = new Date(now.getTime() - (options.maxDurationMs ?? RUN_MAX_DURATION_MS) - (options.graceMs ?? RUN_TIMEOUT_GRACE_MS));
+  const overdueBefore = new Date(
+    now.getTime() -
+      (options.maxDurationMs ?? RUN_MAX_DURATION_MS) -
+      (options.graceMs ?? RUN_TIMEOUT_GRACE_MS),
+  );
   const lastSignOfLife = sql`coalesce(${testPlanExecutions.heartbeatAt}, ${testPlanExecutions.startedAt}, ${testPlanExecutions.queuedAt})`;
 
   // Across every organization: a sweep is not a request and has no tenant of its own. It only
@@ -67,7 +72,10 @@ export async function recoverAbandonedRuns(options: RecoveryOptions = {}): Promi
     .where(
       and(
         inArray(testPlanExecutions.status, [...LIVE_EXECUTION_STATUSES]),
-        or(sql`${lastSignOfLife} < ${staleBefore}`, lt(testPlanExecutions.startedAt, overdueBefore)),
+        or(
+          sql`${lastSignOfLife} < ${staleBefore}`,
+          lt(testPlanExecutions.startedAt, overdueBefore),
+        ),
       ),
     );
 

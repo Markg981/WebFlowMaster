@@ -27,7 +27,6 @@ export const fetchFullTestPlansAPI = async (): Promise<TestPlan[]> => {
   return response.json();
 };
 
-
 // Fetch a single test plan by ID (full details)
 // Through apiRequest, like the page's other calls: the same credentials and headers, so the plan
 // and its contents cannot disagree about whether it exists. The server says why in `error`.
@@ -38,12 +37,13 @@ export const fetchTestPlanByIdAPI = async (id: string): Promise<TestPlan> => {
   } catch (error) {
     if (error instanceof ApiError) {
       const body = error.body as { error?: string; message?: string } | null;
-      throw new Error(body?.error || body?.message || `Failed to fetch test plan ${id} (HTTP ${error.status})`);
+      throw new Error(
+        body?.error || body?.message || `Failed to fetch test plan ${id} (HTTP ${error.status})`,
+      );
     }
     throw error;
   }
 };
-
 
 // This type might need to be more specific based on the actual backend response structure
 // For now, assuming it returns the TestPlanRun object which might have a 'data' wrapper from the route.

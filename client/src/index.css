@@ -226,8 +226,7 @@
 
     /* Elevation */
     --shadow-sm: 0 1px 2px hsl(222 47% 11% / 0.05);
-    --shadow-md:
-      0 1px 2px hsl(222 47% 11% / 0.04), 0 4px 16px hsl(222 47% 11% / 0.06);
+    --shadow-md: 0 1px 2px hsl(222 47% 11% / 0.04), 0 4px 16px hsl(222 47% 11% / 0.06);
   }
 
   .dark {
@@ -292,7 +291,12 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-family:
+      'Inter',
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
@@ -301,7 +305,9 @@
   code,
   kbd,
   samp {
-    font-feature-settings: 'tnum' 1, 'zero' 1;
+    font-feature-settings:
+      'tnum' 1,
+      'zero' 1;
   }
 
   /* Calmer, hue-tinted scrollbars so dense tables/consoles don't look raw. */
@@ -309,12 +315,18 @@
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
   }
-  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
   *::-webkit-scrollbar-thumb {
     background: hsl(var(--border));
     border: 2px solid transparent;
     background-clip: content-box;
     border-radius: 9999px;
   }
-  *::-webkit-scrollbar-thumb:hover { background: hsl(var(--input)); background-clip: content-box; }
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--input));
+    background-clip: content-box;
+  }
 }

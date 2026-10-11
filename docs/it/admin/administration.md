@@ -5,27 +5,27 @@ l'accesso, e i controlli che un owner ha su sicurezza, capacità e dati dell'org
 L'installazione vera e propria è descritta in [Installazione](./installation) e
 [Operatività](./operations).
 
-Quasi tutto ciò che segue si trova in **Impostazioni**. Le sezioni segnate *owner* sono visibili
+Quasi tutto ciò che segue si trova in **Impostazioni**. Le sezioni segnate _owner_ sono visibili
 solo agli owner.
 
 ## Ruoli
 
 Ogni persona appartiene a una sola organizzazione, con un solo ruolo.
 
-| | Viewer | Editor | Owner |
-|---|:---:|:---:|:---:|
-| Vedere test, piani, run e report | ✓ | ✓ | ✓ |
-| Creare e modificare test, suite, piani, schedulazioni, ambienti | | ✓ | ✓ |
-| Avviare e annullare run | | ✓ | ✓ |
-| Creare le proprie chiavi API | | ✓ | ✓ |
-| Approvare revisioni, quando l'organizzazione le richiede | | ✓ | ✓ |
-| Membri, inviti e ruoli | | | ✓ |
-| Progetti riservati e chi vi accede | | | ✓ |
-| Account di servizio; revocare la chiave API di chiunque | | | ✓ |
-| Agenti locali, collegamenti GitHub/GitLab | | | ✓ |
-| Criterio sul secondo fattore, criterio sulle revisioni | | | ✓ |
-| Runner, registro di audit, impostazioni di sistema | | | ✓ |
-| Esportare o cancellare l'organizzazione | | | ✓ |
+|                                                                 | Viewer | Editor | Owner |
+| --------------------------------------------------------------- | :----: | :----: | :---: |
+| Vedere test, piani, run e report                                |   ✓    |   ✓    |   ✓   |
+| Creare e modificare test, suite, piani, schedulazioni, ambienti |        |   ✓    |   ✓   |
+| Avviare e annullare run                                         |        |   ✓    |   ✓   |
+| Creare le proprie chiavi API                                    |        |   ✓    |   ✓   |
+| Approvare revisioni, quando l'organizzazione le richiede        |        |   ✓    |   ✓   |
+| Membri, inviti e ruoli                                          |        |        |   ✓   |
+| Progetti riservati e chi vi accede                              |        |        |   ✓   |
+| Account di servizio; revocare la chiave API di chiunque         |        |        |   ✓   |
+| Agenti locali, collegamenti GitHub/GitLab                       |        |        |   ✓   |
+| Criterio sul secondo fattore, criterio sulle revisioni          |        |        |   ✓   |
+| Runner, registro di audit, impostazioni di sistema              |        |        |   ✓   |
+| Esportare o cancellare l'organizzazione                         |        |        |   ✓   |
 
 Ogni organizzazione conserva almeno un owner: l'ultimo owner non può essere declassato né
 rimosso.
@@ -33,7 +33,7 @@ rimosso.
 Date a ciascuno il ruolo minimo che gli permette di lavorare. Chi segue solo i risultati è
 viewer; le pipeline usano chiavi API, non l'account di una persona.
 
-## Membri e inviti *(owner)* {#membri-e-inviti}
+## Membri e inviti _(owner)_ {#membri-e-inviti}
 
 **Impostazioni → Membri** elenca le persone dell'organizzazione con i loro ruoli, e gli inviti
 ancora in attesa.
@@ -76,17 +76,17 @@ Ognuna di queste operazioni viene registrata nel [registro di audit](#registro-d
 ::: details Le stesse operazioni tramite l'API
 Con la chiave API ad accesso completo di un owner (`Authorization: Bearer wfm_…`):
 
-| Operazione | Richiesta |
-|---|---|
-| Elencare i membri | `GET /api/organization` |
-| Invitare | `POST /api/organization/invitations` con `{"username":"maria.rossi","role":"editor"}`; la risposta contiene il token, una volta |
-| Inviti in attesa, revocarne uno | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>` |
-| Registrarsi con un invito | `POST /api/register` con `{"username","password","invitationToken"}` |
-| Cambiare un ruolo | `PATCH /api/organization/members/<userId>` con `{"role":"owner"}` |
-| Rimuovere | `DELETE /api/organization/members/<userId>`, facoltativamente con `{"transferTo":<userId>}` |
-| Link di reset della password | `POST /api/organization/members/<userId>/password-reset`; la risposta contiene il token, una volta. Il link è `/auth?reset=<token>` |
-| Azzerare il secondo fattore | `DELETE /api/organization/members/<userId>/mfa` |
-:::
+| Operazione                      | Richiesta                                                                                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Elencare i membri               | `GET /api/organization`                                                                                                             |
+| Invitare                        | `POST /api/organization/invitations` con `{"username":"maria.rossi","role":"editor"}`; la risposta contiene il token, una volta     |
+| Inviti in attesa, revocarne uno | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                                    |
+| Registrarsi con un invito       | `POST /api/register` con `{"username","password","invitationToken"}`                                                                |
+| Cambiare un ruolo               | `PATCH /api/organization/members/<userId>` con `{"role":"owner"}`                                                                   |
+| Rimuovere                       | `DELETE /api/organization/members/<userId>`, facoltativamente con `{"transferTo":<userId>}`                                         |
+| Link di reset della password    | `POST /api/organization/members/<userId>/password-reset`; la risposta contiene il token, una volta. Il link è `/auth?reset=<token>` |
+| Azzerare il secondo fattore     | `DELETE /api/organization/members/<userId>/mfa`                                                                                     |
+| :::                             |
 
 ## Progetti riservati
 
@@ -112,7 +112,7 @@ sessioni già aperte. Le chiavi API non sono coinvolte.
 Un membro che ha perso sia il dispositivo sia i codici di recupero ha bisogno che un owner
 azzeri il suo secondo fattore in **Impostazioni → Membri**.
 
-## Single sign-on *(owner)* {#single-sign-on}
+## Single sign-on _(owner)_ {#single-sign-on}
 
 I membri possono accedere con l'identity provider dell'organizzazione tramite **OpenID Connect**
 o **SAML 2.0**. OpenID Connect va bene per Microsoft Entra ID, Okta, Google Workspace, Keycloak,
@@ -134,12 +134,12 @@ alla scheda.
    editor).
 4. **Salva**, poi **Prova il provider**: scarica il documento di discovery con quanto salvato.
 
-| Provider | Issuer |
-|---|---|
-| Microsoft Entra ID | `https://login.microsoftonline.com/{tenant-id}/v2.0` |
-| Google Workspace | `https://accounts.google.com` |
-| Okta | `https://{vostro-dominio}.okta.com` (o un authorization server al suo interno) |
-| Keycloak | `https://{host}/realms/{realm}` |
+| Provider           | Issuer                                                                         |
+| ------------------ | ------------------------------------------------------------------------------ |
+| Microsoft Entra ID | `https://login.microsoftonline.com/{tenant-id}/v2.0`                           |
+| Google Workspace   | `https://accounts.google.com`                                                  |
+| Okta               | `https://{vostro-dominio}.okta.com` (o un authorization server al suo interno) |
+| Keycloak           | `https://{host}/realms/{realm}`                                                |
 
 Il client secret è salvato cifrato e non viene più mostrato; lasciate il campo vuoto per
 mantenerlo quando cambiate altro. Ogni dominio appartiene a una sola organizzazione
@@ -148,10 +148,10 @@ dell'installazione.
 **Configurare SAML 2.0.** Protocollo **SAML 2.0**. La scheda mostra cosa dare al provider; ogni
 organizzazione è un service provider a sé:
 
-| Valore di WebFlowMaster | Dove va presso il provider |
-|---|---|
-| **Entity ID** `…/api/sso/saml/{organizzazione}` | Identifier / Audience / *Relying party identifier* / *Client ID* di Keycloak |
-| **URL ACS** `…/api/sso/saml/{organizzazione}/acs` | Reply URL / *Assertion Consumer Service*, binding **HTTP-POST** |
+| Valore di WebFlowMaster                                         | Dove va presso il provider                                                                                            |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Entity ID** `…/api/sso/saml/{organizzazione}`                 | Identifier / Audience / _Relying party identifier_ / _Client ID_ di Keycloak                                          |
+| **URL ACS** `…/api/sso/saml/{organizzazione}/acs`               | Reply URL / _Assertion Consumer Service_, binding **HTTP-POST**                                                       |
 | **URL dei metadati** `…/api/sso/saml/{organizzazione}/metadata` | I provider che importano i metadati del service provider (ADFS, Shibboleth) leggono tutto da qui, dopo il salvataggio |
 
 Presso il provider:
@@ -173,12 +173,12 @@ l'URL di accesso risponda. La scheda mostra soggetto e scadenza del certificato;
 lo rinnova incollate il nuovo — con un certificato scaduto ogni accesso viene rifiutato, e la
 scheda lo dice.
 
-| Provider | Dove trovare i metadati |
-|---|---|
-| Microsoft Entra ID | Enterprise application → Single sign-on → *Federation Metadata XML* |
-| Okta | Applicazione → Sign On → *Identity Provider metadata* |
-| ADFS | `https://{host}/FederationMetadata/2007-06/FederationMetadata.xml` |
-| Keycloak | `https://{host}/realms/{realm}/protocol/saml/descriptor` |
+| Provider           | Dove trovare i metadati                                             |
+| ------------------ | ------------------------------------------------------------------- |
+| Microsoft Entra ID | Enterprise application → Single sign-on → _Federation Metadata XML_ |
+| Okta               | Applicazione → Sign On → _Identity Provider metadata_               |
+| ADFS               | `https://{host}/FederationMetadata/2007-06/FederationMetadata.xml`  |
+| Keycloak           | `https://{host}/realms/{realm}/protocol/saml/descriptor`            |
 
 **SAML avanzato.** L'accesso avviato dall'identity provider è disabilitato per default. Abilitarlo
 esplicitamente per l'avvio dal portale del provider. Ogni asserzione viene verificata per firma,
@@ -233,12 +233,12 @@ I gruppi si confrontano senza distinguere maiuscole e minuscole. **Claim o attri
 gruppi** indica dove il provider li mette: `groups` se vuoto; vanno bene sia una lista sia un
 valore singolo.
 
-| Provider | Cosa inviare |
-|---|---|
-| Microsoft Entra ID | Registrazione app → Configurazione token → *Aggiungi attestazione gruppi*. Il claim `groups` contiene gli **object ID** dei gruppi: mappate quelli, non i nomi. Oltre 200 gruppi Entra invia un link al posto della lista; assegnate i gruppi all'applicazione per restare sotto il limite. |
-| Okta | Authorization server → Claims → un claim `groups` con un filtro (es. *Starts with* `wfm-`). Per SAML, un group attribute statement. |
-| Keycloak | Client scope → Mapper *Group Membership*, nome del claim `groups`, *Full group path* disattivato. Per SAML, il mapper *Group list*. |
-| ADFS | Una regola di claim che invia *Token-Groups – Unqualified Names* come attributo (es. `groups`). |
+| Provider           | Cosa inviare                                                                                                                                                                                                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Microsoft Entra ID | Registrazione app → Configurazione token → _Aggiungi attestazione gruppi_. Il claim `groups` contiene gli **object ID** dei gruppi: mappate quelli, non i nomi. Oltre 200 gruppi Entra invia un link al posto della lista; assegnate i gruppi all'applicazione per restare sotto il limite. |
+| Okta               | Authorization server → Claims → un claim `groups` con un filtro (es. _Starts with_ `wfm-`). Per SAML, un group attribute statement.                                                                                                                                                         |
+| Keycloak           | Client scope → Mapper _Group Membership_, nome del claim `groups`, _Full group path_ disattivato. Per SAML, il mapper _Group list_.                                                                                                                                                         |
+| ADFS               | Una regola di claim che invia _Token-Groups – Unqualified Names_ come attributo (es. `groups`).                                                                                                                                                                                             |
 
 **Rifiuta chi non è in nessuno di questi gruppi** (dopo aver mappato almeno un gruppo) fa della
 mappatura il cancello d'ingresso: chi non è in nessun gruppo mappato non può accedere, che il suo
@@ -267,11 +267,11 @@ che viene mostrato una sola volta; **Sostituisci il token** chiude subito quello
 **Revoca** chiude il provisioning. Prima va configurato il single sign-on: gli account creati così
 non hanno password e accedono tramite il provider, che li collega per indirizzo al primo accesso.
 
-| Provider | Dove |
-|---|---|
-| Microsoft Entra ID | Applicazione enterprise → Provisioning → *Automatico*: **Tenant URL** è l'URL di base, **Secret token** il token. Mappate `userPrincipalName` (o `mail`) su `userName`; *Provision Microsoft Entra ID Groups* invia i gruppi. |
-| Okta | Scheda *Provisioning* dell'app → SCIM 2.0, **Base URL** e autenticazione *HTTP Header* con il token; identificativo univoco `userName` (l'indirizzo e-mail); attivate *Create*, *Update* e *Deactivate Users*, e *Push Groups*. |
-| Altri (OneLogin, JumpCloud, Keycloak con un'estensione SCIM…) | SCIM 2.0 con un bearer token: l'URL di base e il token. |
+| Provider                                                      | Dove                                                                                                                                                                                                                            |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Microsoft Entra ID                                            | Applicazione enterprise → Provisioning → _Automatico_: **Tenant URL** è l'URL di base, **Secret token** il token. Mappate `userPrincipalName` (o `mail`) su `userName`; _Provision Microsoft Entra ID Groups_ invia i gruppi.   |
+| Okta                                                          | Scheda _Provisioning_ dell'app → SCIM 2.0, **Base URL** e autenticazione _HTTP Header_ con il token; identificativo univoco `userName` (l'indirizzo e-mail); attivate _Create_, _Update_ e _Deactivate Users_, e _Push Groups_. |
+| Altri (OneLogin, JumpCloud, Keycloak con un'estensione SCIM…) | SCIM 2.0 con un bearer token: l'URL di base e il token.                                                                                                                                                                         |
 
 Cosa fa qui:
 
@@ -281,7 +281,7 @@ Cosa fa qui:
   carico invece di crearli di nuovo.
 - **`active: false` disattiva** subito l'account: le sue sessioni terminano alla richiesta
   successiva, non può accedere e le sue chiavi API smettono di funzionare. **Impostazioni →
-  Membri** lo segna come *disattivato*. `active: true` lo restituisce con il suo ruolo e tutto ciò
+  Membri** lo segna come _disattivato_. `active: true` lo restituisce con il suo ruolo e tutto ciò
   che ha creato.
 - **Cancellare** un utente rimuove il membro come farebbe un owner: ciò che ha creato passa
   all'owner presente da più tempo.
@@ -350,14 +350,14 @@ Gli owner vedono e possono revocare ogni chiave dell'organizzazione.
 
 ## Integrazioni
 
-| Cosa | Dove | Chi |
-|---|---|---|
-| Avviare piani dalla CI | Chiavi API e la CLI `wfm`; vedi [Integrazione CI](../integrations/ci) | Editor |
-| Webhook che avviano un piano | Le impostazioni del piano; ognuno ha il proprio token | Editor |
-| Issue tracker (Jira, Azure DevOps) | **Impostazioni → Issue tracker** | Editor |
+| Cosa                                           | Dove                                                                                                               | Chi    |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------ |
+| Avviare piani dalla CI                         | Chiavi API e la CLI `wfm`; vedi [Integrazione CI](../integrations/ci)                                              | Editor |
+| Webhook che avviano un piano                   | Le impostazioni del piano; ognuno ha il proprio token                                                              | Editor |
+| Issue tracker (Jira, Azure DevOps)             | **Impostazioni → Issue tracker**                                                                                   | Editor |
 | Test management (TestRail, Xray, Zephyr Scale) | **Impostazioni → Test management**; vedi [Pubblicare su TestRail, Xray o Zephyr](../guide/results#test-management) | Editor |
-| Stati dei commit su GitHub e GitLab | **Impostazioni → GitHub e GitLab**; mostra l'ultimo errore di invio | Owner |
-| Agenti locali | **Impostazioni → Agenti locali**; vedi [Agenti locali](../integrations/local-agents) | Owner |
+| Stati dei commit su GitHub e GitLab            | **Impostazioni → GitHub e GitLab**; mostra l'ultimo errore di invio                                                | Owner  |
+| Agenti locali                                  | **Impostazioni → Agenti locali**; vedi [Agenti locali](../integrations/local-agents)                               | Owner  |
 
 I token dei tracker, degli strumenti di test management e di GitHub/GitLab vengono cifrati al salvataggio e non vengono più
 mostrati; per cambiarne uno, inserite il nuovo valore.
@@ -377,7 +377,7 @@ modifica a un test arriva ai piani solo dopo che un altro membro l'ha approvata.
 piani continuano a eseguire l'ultima versione pubblicata. Utile dove i test decidono un rilascio
 e una modifica deve essere vista da due persone.
 
-## Runner *(owner)*
+## Runner _(owner)_
 
 **Impostazioni → Runner** elenca le macchine worker dell'installazione: online, in svuotamento o
 offline, cosa stanno eseguendo e con quale versione.
@@ -390,13 +390,13 @@ riprenderne uno; gli altri owner vedono l'elenco senza i pulsanti.
 ## Utilizzo dei run e limiti
 
 **Impostazioni → Utilizzo dei run** mostra i run in corso e in attesa dell'organizzazione
-rispetto ai suoi limiti, e quanti runner sono online. Un run che resta *in coda* di solito si
+rispetto ai suoi limiti, e quanti runner sono online. Un run che resta _in coda_ di solito si
 spiega qui: l'organizzazione è al limite, o nessun runner è online.
 
 I limiti li imposta chi gestisce l'installazione, non gli owner (vedi
 [Capacità e limiti](./operations#capacita-e-limiti)).
 
-## Registro di audit *(owner)* {#registro-di-audit}
+## Registro di audit _(owner)_ {#registro-di-audit}
 
 **Impostazioni → Registro di audit** registra chi ha fatto cosa e quando: accessi e accessi
 falliti, membri e inviti, chiavi e account di servizio, test, piani, schedulazioni, suite,
@@ -412,7 +412,7 @@ averne di più).
 Il registro non si può modificare né cancellare dall'applicazione: il database gli concede solo
 lettura e aggiunta. Viene rimosso solo quando si cancella l'intera organizzazione.
 
-## Impostazioni di sistema *(owner)*
+## Impostazioni di sistema _(owner)_
 
 **Impostazioni → Sistema** imposta il livello dei log e per quanto tempo si conservano i file
 di log.
@@ -435,7 +435,7 @@ singola organizzazione. Chi può cambiarli:
 Un'azienda che gestisce la propria installazione non deve fare nulla. Un'installazione condivisa
 da più clienti dovrebbe nominare i propri operatori.
 
-## Esportazione e cancellazione *(owner)* {#esportazione-e-cancellazione}
+## Esportazione e cancellazione _(owner)_ {#esportazione-e-cancellazione}
 
 In **Impostazioni → Esportazione e cancellazione**: **Scarica l'esportazione**, e **Cancella
 definitivamente** dopo aver scritto il nome esatto dell'organizzazione. Lo stesso si può fare
@@ -488,18 +488,22 @@ L’invio copre inviti e reset password emessi dall’owner, richieste di passwo
 
 Selezionare il provider, compilare i campi obbligatori e salvare prima di copiare l’URL callback dell’organizzazione, `https://host-pubblico/api/mail-deliveries/providers/<callbackId>`. Usare l’origine HTTPS pubblica del deployment. L’URL opaco seleziona l’organizzazione; la firma del provider autentica ogni richiesta. Ruotarlo solo deliberatamente: il vecchio URL diventa subito invalido, inclusi gli eventi in attesa; aggiornare quindi la configurazione del provider.
 
-| Provider | Configurazione e correlazione |
-| --- | --- |
-| Amazon SES / SNS | Impostare l’ARN esatto del topic SNS. Configurare le notifiche SES di consegna e bounce su quel topic, **abilitare gli header originali** e sottoscrivere il callback come endpoint HTTPS. La conferma di sottoscrizione firmata è supportata. Le notifiche devono conservare `X-Wfm-Delivery-Id` negli header originali. |
-| SendGrid | Abilitare gli Event Webhook firmati per delivered, deferred e bounce, indicare il callback e incollare la chiave pubblica di verifica nelle impostazioni. WebFlowMaster aggiunge `wfm_delivery_id` attraverso gli unique arguments SMTP `X-SMTPAPI`. |
-| Mailgun | Configurare i webhook delivered e failed sul callback. Salvare la chiave di firma webhook anziché la chiave API (almeno 32 caratteri). WebFlowMaster fornisce `wfm_delivery_id` con `X-Mailgun-Variables`. |
-| Eventi generici firmati | Salvare un segreto di almeno 32 caratteri e usare un adattatore che normalizzi gli eventi del provider secondo il contratto sotto. |
-| Nessuna conferma di consegna | Si registrano accettazione/rifiuto SMTP; non si deduce la consegna. |
+| Provider                     | Configurazione e correlazione                                                                                                                                                                                                                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Amazon SES / SNS             | Impostare l’ARN esatto del topic SNS. Configurare le notifiche SES di consegna e bounce su quel topic, **abilitare gli header originali** e sottoscrivere il callback come endpoint HTTPS. La conferma di sottoscrizione firmata è supportata. Le notifiche devono conservare `X-Wfm-Delivery-Id` negli header originali. |
+| SendGrid                     | Abilitare gli Event Webhook firmati per delivered, deferred e bounce, indicare il callback e incollare la chiave pubblica di verifica nelle impostazioni. WebFlowMaster aggiunge `wfm_delivery_id` attraverso gli unique arguments SMTP `X-SMTPAPI`.                                                                      |
+| Mailgun                      | Configurare i webhook delivered e failed sul callback. Salvare la chiave di firma webhook anziché la chiave API (almeno 32 caratteri). WebFlowMaster fornisce `wfm_delivery_id` con `X-Mailgun-Variables`.                                                                                                                |
+| Eventi generici firmati      | Salvare un segreto di almeno 32 caratteri e usare un adattatore che normalizzi gli eventi del provider secondo il contratto sotto.                                                                                                                                                                                        |
+| Nessuna conferma di consegna | Si registrano accettazione/rifiuto SMTP; non si deduce la consegna.                                                                                                                                                                                                                                                       |
 
 SES, SendGrid e Mailgun accettano eventi nativi senza un adattatore esterno. Gli eventi generici richiedono JSON normalizzato:
 
 ```json
-{"eventId":"provider-event-123","messageId":"e3dab9f5-d6c4-4a74-af2e-a665498b18cd","status":"hard_bounce"}
+{
+  "eventId": "provider-event-123",
+  "messageId": "e3dab9f5-d6c4-4a74-af2e-a665498b18cd",
+  "status": "hard_bounce"
+}
 ```
 
 `status` è `delivered`, `soft_bounce` o `hard_bounce`. Impostare `X-Wfm-Mail-Timestamp` al tempo Unix in secondi e `X-Wfm-Mail-Signature` all’HMAC-SHA256 esadecimale di `timestamp.eventId.messageId.status` con il segreto dell’organizzazione. Il timestamp deve essere entro cinque minuti. L’endpoint di installazione esistente `/api/mail-deliveries/events` e `MAIL_DELIVERY_WEBHOOK_SECRET` restano compatibili per le integrazioni dell’installazione.
@@ -530,13 +534,13 @@ Per l'uso locale gratuito senza limiti impostare `TENANT_QUOTA_MODE=off`. `monit
 rifiutare operazioni; `enforce` applica i limiti. Il default `enforce` conserva i precedenti limiti
 di concorrenza/coda, con le nuove dimensioni illimitate. La modalità è configurabile per tenant.
 
-| Limite | Default dell'ambiente | Significato |
-| --- | --- | --- |
-| Piani contemporanei | `ORG_MAX_CONCURRENT_RUNS=2` | I successivi aspettano; intero positivo |
-| Piani in coda | `ORG_MAX_QUEUED_RUNS=100` | Invii oltre il limite: HTTP 429; intero positivo |
-| Test salvati | `ORG_MAX_TESTS=0` | Definizioni UI/BDD, API e mobile, inclusi i test archiviati |
-| Artefatti conservati | `ORG_MAX_ARTIFACT_BYTES=0` | Evidenze, baseline e screenshot mobile nel database, in byte |
-| Esecuzione mensile | `ORG_MAX_MONTHLY_EXECUTION_MINUTES=0` | Occupazione, inclusi browser/API/mobile diretti e worker aggiuntivi degli shard |
+| Limite               | Default dell'ambiente                 | Significato                                                                     |
+| -------------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
+| Piani contemporanei  | `ORG_MAX_CONCURRENT_RUNS=2`           | I successivi aspettano; intero positivo                                         |
+| Piani in coda        | `ORG_MAX_QUEUED_RUNS=100`             | Invii oltre il limite: HTTP 429; intero positivo                                |
+| Test salvati         | `ORG_MAX_TESTS=0`                     | Definizioni UI/BDD, API e mobile, inclusi i test archiviati                     |
+| Artefatti conservati | `ORG_MAX_ARTIFACT_BYTES=0`            | Evidenze, baseline e screenshot mobile nel database, in byte                    |
+| Esecuzione mensile   | `ORG_MAX_MONTHLY_EXECUTION_MINUTES=0` | Occupazione, inclusi browser/API/mobile diretti e worker aggiuntivi degli shard |
 
 Zero significa illimitato per i tre nuovi limiti. **Eredita** elimina l'override e usa il default.
 In `off` controllo e misurazione dei minuti sono disabilitati; conteggi dei test e contabilità degli

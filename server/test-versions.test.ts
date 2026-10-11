@@ -26,8 +26,14 @@ describe('signatureOf', () => {
   });
 
   it('prefers the repository element, so healing a selector is not a changed step', () => {
-    const before = { action: { id: 'click' }, targetElement: { elementId: 'el-1', selector: '#save' } };
-    const after = { action: { id: 'click' }, targetElement: { elementId: 'el-1', selector: '#save-v2' } };
+    const before = {
+      action: { id: 'click' },
+      targetElement: { elementId: 'el-1', selector: '#save' },
+    };
+    const after = {
+      action: { id: 'click' },
+      targetElement: { elementId: 'el-1', selector: '#save-v2' },
+    };
 
     expect(signatureOf(before)).toBe(signatureOf(after));
   });
@@ -35,7 +41,9 @@ describe('signatureOf', () => {
 
 describe('describeChange', () => {
   it('says what a first version is', () => {
-    expect(describeChange(null, snapshot([step('click', '#a'), step('click', '#b')]))).toBe('Created with 2 steps.');
+    expect(describeChange(null, snapshot([step('click', '#a'), step('click', '#b')]))).toBe(
+      'Created with 2 steps.',
+    );
     expect(describeChange(null, snapshot([step('click', '#a')]))).toBe('Created with 1 step.');
   });
 

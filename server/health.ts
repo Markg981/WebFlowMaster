@@ -21,8 +21,12 @@ export async function readiness(checks: Record<string, ReadinessCheck>, timeoutM
       let timer: ReturnType<typeof setTimeout> | undefined;
       try {
         const passed = await Promise.race([
-          Promise.resolve().then(check).then((value) => value !== false),
-          new Promise<boolean>((resolve) => { timer = setTimeout(() => resolve(false), timeoutMs); }),
+          Promise.resolve()
+            .then(check)
+            .then((value) => value !== false),
+          new Promise<boolean>((resolve) => {
+            timer = setTimeout(() => resolve(false), timeoutMs);
+          }),
         ]);
         return [name, passed ? 'ok' : 'failed'];
       } catch {
@@ -43,7 +47,10 @@ export function healthRouter(checks: Record<string, ReadinessCheck>, timeoutMs?:
   });
   router.get('/readyz', async (_req, res) => {
     const { ready, checks: results } = await readiness(checks, timeoutMs);
-    res.set('Cache-Control', 'no-store').status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not ready', checks: results });
+    res
+      .set('Cache-Control', 'no-store')
+      .status(ready ? 200 : 503)
+      .json({ status: ready ? 'ready' : 'not ready', checks: results });
   });
   return router;
 }

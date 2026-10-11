@@ -28,17 +28,21 @@ export async function freezeExecutionDatasets(
     .from(testDataSets)
     .where(eq(testDataSets.organizationId, organizationId));
   const ids = [...new Set(testIds)];
-  const rows = frozenUi ?? (ids.length
-    ? await tx
-        .select()
-        .from(tests)
-        .where(and(inArray(tests.id, ids), eq(tests.organizationId, organizationId)))
-    : []);
+  const rows =
+    frozenUi ??
+    (ids.length
+      ? await tx
+          .select()
+          .from(tests)
+          .where(and(inArray(tests.id, ids), eq(tests.organizationId, organizationId)))
+      : []);
   // Match the worker's dataset choice: publication wins over the working copy.
-  const published = frozenUi ? new Map() : await publishedContentOf(
-    tx,
-    rows.map((row) => row.id),
-  );
+  const published = frozenUi
+    ? new Map()
+    : await publishedContentOf(
+        tx,
+        rows.map((row) => row.id),
+      );
   const byId = new Map(sets.map((set) => [set.id, set]));
   return structuredClone({
     version: 1 as const,

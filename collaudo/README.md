@@ -84,19 +84,19 @@ L'installazione su cui si esegue il **protocollo di collaudo manuale**: il prodo
 `docker-compose.yml`, in modalità produzione e dietro HTTPS, più tutto ciò che i casi richiedono
 intorno:
 
-| Servizio | A cosa serve | Indirizzo |
-|---|---|---|
-| `caddy` | HTTPS con un'autorità di certificazione propria | https://wfm.collaudo.test, https://keycloak.collaudo.test |
-| `api`, `worker`, `postgres`, `redis`, `migrate` | il prodotto | https://wfm.collaudo.test |
-| `keycloak` | identity provider per l'area SSO e per OAuth 2.0 (API-04) | https://keycloak.collaudo.test |
-| `intranet` | applicazione su una rete privata, raggiungibile solo dall'agente (area AGT) | http://intranet.acme.local, solo dall'agente |
-| `ricevitore` | riceve e stampa i webhook delle notifiche (PLN-13) | http://ricevitore:8080, dall'interno |
-| `mailpit` | la casella di test: vi arrivano le email di Keycloak (WEB-45…WEB-47) | http://localhost:8025; SMTP `mailpit:1025` dall'interno |
-| `display` | lo schermo su cui si apre la finestra di registrazione (WEB-11, ENV-04) | http://localhost:6080 |
-| `simulatori` | TestRail, Jira, Xray, Zephyr Scale, Azure DevOps, GitHub, GitLab e Gemini simulati (aree TMG, TRC, INT, analisi AI) | http://localhost:8090; dall'interno `http://simulatori:8080/<servizio>` |
-| `loki`, `grafana` | i log dell'applicazione (OPS-09) | http://localhost:13001 (admin / admin); Loki su http://localhost:13100 |
-| `agente` | l'agente locale (profilo `agente`), avviato quando il suo token esiste | — |
-| `agente-diverso` | un agente con un'altra versione di Playwright (profilo `agente-diverso`, AGT-05) | — |
+| Servizio                                        | A cosa serve                                                                                                        | Indirizzo                                                               |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `caddy`                                         | HTTPS con un'autorità di certificazione propria                                                                     | https://wfm.collaudo.test, https://keycloak.collaudo.test               |
+| `api`, `worker`, `postgres`, `redis`, `migrate` | il prodotto                                                                                                         | https://wfm.collaudo.test                                               |
+| `keycloak`                                      | identity provider per l'area SSO e per OAuth 2.0 (API-04)                                                           | https://keycloak.collaudo.test                                          |
+| `intranet`                                      | applicazione su una rete privata, raggiungibile solo dall'agente (area AGT)                                         | http://intranet.acme.local, solo dall'agente                            |
+| `ricevitore`                                    | riceve e stampa i webhook delle notifiche (PLN-13)                                                                  | http://ricevitore:8080, dall'interno                                    |
+| `mailpit`                                       | la casella di test: vi arrivano le email di Keycloak (WEB-45…WEB-47)                                                | http://localhost:8025; SMTP `mailpit:1025` dall'interno                 |
+| `display`                                       | lo schermo su cui si apre la finestra di registrazione (WEB-11, ENV-04)                                             | http://localhost:6080                                                   |
+| `simulatori`                                    | TestRail, Jira, Xray, Zephyr Scale, Azure DevOps, GitHub, GitLab e Gemini simulati (aree TMG, TRC, INT, analisi AI) | http://localhost:8090; dall'interno `http://simulatori:8080/<servizio>` |
+| `loki`, `grafana`                               | i log dell'applicazione (OPS-09)                                                                                    | http://localhost:13001 (admin / admin); Loki su http://localhost:13100  |
+| `agente`                                        | l'agente locale (profilo `agente`), avviato quando il suo token esiste                                              | —                                                                       |
+| `agente-diverso`                                | un agente con un'altra versione di Playwright (profilo `agente-diverso`, AGT-05)                                    | —                                                                       |
 
 I valori (password, segreti, chiavi) sono solo per il collaudo: non vanno mai riusati altrove.
 
@@ -161,6 +161,7 @@ wfmc cp caddy:/data/caddy/pki/authorities/local/root.crt ./collaudo-root.crt
 Un nuovo `down -v` genera un'autorità nuova: va importata di nuovo.
 
 **Su Windows:**
+
 - Il `curl` di Windows controlla la revoca dei certificati, che un'autorità locale non pubblica:
   aggiungere `--ssl-no-revoke`, per esempio
   `curl --ssl-no-revoke --cacert collaudo-root.crt https://wfm.collaudo.test/api/user`.
@@ -182,13 +183,13 @@ npm run collaudo:check     # «Pronto» o, per ogni problema, cosa fare
 
 `collaudo:prepare` (richiede Node 18+ e `collaudo/collaudo-root.crt`, passo 4):
 
-| Crea | Per i casi |
-|---|---|
-| le persone di `seed.mjs` | tutti, se si salta l'area Accesso |
+| Crea                                                                                                                                  | Per i casi                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| le persone di `seed.mjs`                                                                                                              | tutti, se si salta l'area Accesso                                           |
 | una sessione aperta per owner.a, editor.a e viewer.a in `collaudo/.sessions/` (`curl --cookie collaudo/.sessions/viewer.a.cookies …`) | MEM-04…MEM-06 e ogni verifica via API, senza consumare tentativi di accesso |
-| l'ambiente **Staging** con `baseUrl`, `USERNAME`, `PASSWORD`, `apiBase`, `token` | ENV, WEB, API-05 |
-| il test **Login ok** e il piano **Collaudo · rete e trace**, già eseguito una volta | PLN, REP-04 (pannello Rete e HAR) |
-| **Progetto P**, riservato, con editor.a come viewer | MEM-06 |
+| l'ambiente **Staging** con `baseUrl`, `USERNAME`, `PASSWORD`, `apiBase`, `token`                                                      | ENV, WEB, API-05                                                            |
+| il test **Login ok** e il piano **Collaudo · rete e trace**, già eseguito una volta                                                   | PLN, REP-04 (pannello Rete e HAR)                                           |
+| **Progetto P**, riservato, con editor.a come viewer                                                                                   | MEM-06                                                                      |
 
 `collaudo:check` controlla i servizi (compresi Loki e Grafana per OPS-09), HTTPS e Keycloak,
 Mailpit, le sessioni con il loro ruolo e i dati. Segnala come avviso i siti pubblici usati dai casi
@@ -215,15 +216,15 @@ Azure DevOps e Gemini, con i dati che i casi si aspettano. Così TMG-01…07, TR
 AI (REP-15…22) si eseguono senza account esterni. `npm run collaudo:simulatori` crea le connessioni
 «Simulato · …» e ne verifica ciascuna attraverso il prodotto.
 
-| Strumento | Indirizzo (nel prodotto) | Credenziali | Dati |
-|---|---|---|---|
-| TestRail | `http://simulatori:8080/testrail` | `collaudo@acme.test` / `collaudo-testrail` | progetto `3`, casi C1, C2, C3 |
-| Xray Cloud | `http://simulatori:8080/xray` | client id `collaudo`, secret `collaudo-xray` | progetto `SHOP`, test SHOP-45 e SHOP-46, Test Plan SHOP-100 |
-| Jira / Xray Server | `http://simulatori:8080/jira` | `collaudo@acme.test` / `collaudo-jira` | epic SHOP-1 con le story SHOP-10 e SHOP-11 |
-| Zephyr Scale | `http://simulatori:8080/zephyr` | token `collaudo-zephyr` | progetto `SHOP`, casi SHOP-T1 e SHOP-T2 |
-| Azure DevOps | `http://simulatori:8080/ado` | PAT `collaudo-ado` | progetto `Shop`: Epic 1, Feature 2, User Story 3 |
-| GitHub (INT-07) | `http://simulatori:8080/github` | token `collaudo-github` | repository `acme/shop`, ogni commit esadecimale |
-| GitLab (INT-07) | `http://simulatori:8080/gitlab` | token `collaudo-gitlab` | progetto `acme/shop`, ogni commit esadecimale |
+| Strumento          | Indirizzo (nel prodotto)          | Credenziali                                  | Dati                                                        |
+| ------------------ | --------------------------------- | -------------------------------------------- | ----------------------------------------------------------- |
+| TestRail           | `http://simulatori:8080/testrail` | `collaudo@acme.test` / `collaudo-testrail`   | progetto `3`, casi C1, C2, C3                               |
+| Xray Cloud         | `http://simulatori:8080/xray`     | client id `collaudo`, secret `collaudo-xray` | progetto `SHOP`, test SHOP-45 e SHOP-46, Test Plan SHOP-100 |
+| Jira / Xray Server | `http://simulatori:8080/jira`     | `collaudo@acme.test` / `collaudo-jira`       | epic SHOP-1 con le story SHOP-10 e SHOP-11                  |
+| Zephyr Scale       | `http://simulatori:8080/zephyr`   | token `collaudo-zephyr`                      | progetto `SHOP`, casi SHOP-T1 e SHOP-T2                     |
+| Azure DevOps       | `http://simulatori:8080/ado`      | PAT `collaudo-ado`                           | progetto `Shop`: Epic 1, Feature 2, User Story 3            |
+| GitHub (INT-07)    | `http://simulatori:8080/github`   | token `collaudo-github`                      | repository `acme/shop`, ogni commit esadecimale             |
+| GitLab (INT-07)    | `http://simulatori:8080/gitlab`   | token `collaudo-gitlab`                      | progetto `acme/shop`, ogni commit esadecimale               |
 
 Gli stati dei commit ricevuti sono sulla pagina http://localhost:8090 e su `/_admin/statuses`.
 `npm run collaudo:simulatori` verifica anche INT-10 (tracker con token sbagliato), WEB-16 (elemento
@@ -291,37 +292,37 @@ in pausa dopo un minuto invece di 15.
   wfmc exec api node /collaudo/seed.mjs
   ```
 
-  | Utente | Organizzazione | Ruolo |
-  |---|---|---|
-  | `owner.a` | Acme | owner |
-  | `editor.a` | Acme | editor |
-  | `viewer.a` | Acme | viewer |
-  | `marco@acme.test` | Acme | editor (collegato via SSO in SSO-04) |
-  | `owner.b` | Beta | owner |
-  | `luca@acme.test` | Beta | editor (rifiutato via SSO in SSO-05) |
+  | Utente            | Organizzazione | Ruolo                                |
+  | ----------------- | -------------- | ------------------------------------ |
+  | `owner.a`         | Acme           | owner                                |
+  | `editor.a`        | Acme           | editor                               |
+  | `viewer.a`        | Acme           | viewer                               |
+  | `marco@acme.test` | Acme           | editor (collegato via SSO in SSO-04) |
+  | `owner.b`         | Beta           | owner                                |
+  | `luca@acme.test`  | Beta           | editor (rifiutato via SSO in SSO-05) |
 
 ## 7. Valori per i casi
 
 **Single sign-on (SSO-01).** In Impostazioni → Sicurezza → Single sign-on di owner.a:
 
-| Campo | Valore |
-|---|---|
-| Issuer | `https://keycloak.collaudo.test/realms/acme` |
-| Client ID | `webflowmaster` |
-| Client secret | `collaudo-sso-secret` |
-| Domini e-mail | `acme.test` |
+| Campo         | Valore                                       |
+| ------------- | -------------------------------------------- |
+| Issuer        | `https://keycloak.collaudo.test/realms/acme` |
+| Client ID     | `webflowmaster`                              |
+| Client secret | `collaudo-sso-secret`                        |
+| Domini e-mail | `acme.test`                                  |
 
 Il redirect URI mostrato dall'applicazione (`https://wfm.collaudo.test/api/sso/callback`) è già
 registrato nel client. Utenti Keycloak, tutti con password `Collaudo.2026!`:
 
-| Utente Keycloak | E-mail | Per il caso |
-|---|---|---|
-| `anna` | anna@acme.test | SSO-02, SSO-03 (primo accesso, poi cambio e-mail) |
-| `marco` | marco@acme.test | SSO-04 (collegamento a un account esistente) |
-| `nonverificata` | nonverificata@acme.test, non verificata | SSO-05 |
-| `fuori` | fuori@altro.test | SSO-05: avviare con un indirizzo `@acme.test`, accedere come fuori |
-| `luca` | luca@acme.test | SSO-05: il suo account è nell'organizzazione B |
-| `reimposta` | reimposta@acme.test | WEB-45: la sua password viene reimpostata via email a ogni esecuzione |
+| Utente Keycloak | E-mail                                  | Per il caso                                                           |
+| --------------- | --------------------------------------- | --------------------------------------------------------------------- |
+| `anna`          | anna@acme.test                          | SSO-02, SSO-03 (primo accesso, poi cambio e-mail)                     |
+| `marco`         | marco@acme.test                         | SSO-04 (collegamento a un account esistente)                          |
+| `nonverificata` | nonverificata@acme.test, non verificata | SSO-05                                                                |
+| `fuori`         | fuori@altro.test                        | SSO-05: avviare con un indirizzo `@acme.test`, accedere come fuori    |
+| `luca`          | luca@acme.test                          | SSO-05: il suo account è nell'organizzazione B                        |
+| `reimposta`     | reimposta@acme.test                     | WEB-45: la sua password viene reimpostata via email a ogni esecuzione |
 
 Per SAML avanzato (avvio IdP, cifratura, logout) ed email HTML con rimbalzi, usare anche i
 [casi di collaudo amministrazione](../docs/acceptance/administration-acceptance.md), con chiavi e relay di test.
@@ -346,7 +347,7 @@ verifica riuscita è coperta dai test automatici (`server/sso.test.ts`).
 `npm run collaudo:scim`, che parla come Entra ID e Okta. Richiede il single sign-on di Acme
 configurato (SSO-01) e la mappatura `wfm-editor` → editor (SSO-18); emette un token come `owner.a`
 (sostituendo quello eventualmente emesso prima), crea `scim.ada@acme.test`, la mette nel gruppo,
-la disattiva (e controlla che **Impostazioni → Membri** la segni come *disattivata*) e la
+la disattiva (e controlla che **Impostazioni → Membri** la segni come _disattivata_) e la
 riattiva, poi rimuove utente e gruppo. Il token resta emesso: revocarlo da **Impostazioni →
 Single sign-on → Provisioning (SCIM)** fa parte di SSO-23.
 
@@ -461,14 +462,14 @@ non si eseguono senza un Mac.
 **Impostazioni che alcuni casi cambiano per un momento.** Si passano come variabili e si
 applicano riavviando i servizi interessati; senza variabile tornano al valore di default:
 
-| Variabile | Casi | Esempio |
-|---|---|---|
-| `INSTALLATION_ADMINS` | ADM-01…ADM-03 | `INSTALLATION_ADMINS=owner.a wfmc up -d api` |
-| `ORG_MAX_CONCURRENT_RUNS`, `ORG_MAX_QUEUED_RUNS` | PLN-11 | `ORG_MAX_CONCURRENT_RUNS=1 ORG_MAX_QUEUED_RUNS=2 wfmc up -d api worker` |
-| `RUN_MAX_DURATION_MS` | PLN-15 | `RUN_MAX_DURATION_MS=60000 wfmc up -d api worker` |
-| `API_RATE_LIMIT`, `WEBHOOK_RATE_LIMIT` | INT-11 | `API_RATE_LIMIT=5 wfmc up -d api` |
-| `GEMINI_API_KEY` | WEB-10, WEB-16 | `GEMINI_API_KEY=... wfmc up -d api worker` |
-| `REGISTRATION` | ACC, organizzazione B | vedi sopra |
+| Variabile                                        | Casi                  | Esempio                                                                 |
+| ------------------------------------------------ | --------------------- | ----------------------------------------------------------------------- |
+| `INSTALLATION_ADMINS`                            | ADM-01…ADM-03         | `INSTALLATION_ADMINS=owner.a wfmc up -d api`                            |
+| `ORG_MAX_CONCURRENT_RUNS`, `ORG_MAX_QUEUED_RUNS` | PLN-11                | `ORG_MAX_CONCURRENT_RUNS=1 ORG_MAX_QUEUED_RUNS=2 wfmc up -d api worker` |
+| `RUN_MAX_DURATION_MS`                            | PLN-15                | `RUN_MAX_DURATION_MS=60000 wfmc up -d api worker`                       |
+| `API_RATE_LIMIT`, `WEBHOOK_RATE_LIMIT`           | INT-11                | `API_RATE_LIMIT=5 wfmc up -d api`                                       |
+| `GEMINI_API_KEY`                                 | WEB-10, WEB-16        | `GEMINI_API_KEY=... wfmc up -d api worker`                              |
+| `REGISTRATION`                                   | ACC, organizzazione B | vedi sopra                                                              |
 
 **Registrazione (WEB-11, ENV-04).** La finestra di registrazione si apre sul server, cioè nel
 container `api`, che la disegna sullo schermo virtuale del servizio `display`. Prima di avviare

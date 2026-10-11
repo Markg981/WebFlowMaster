@@ -2,7 +2,7 @@
 
 WebFlowMaster è scritto per lo più come moduli di funzioni: le decisioni sono funzioni pure in file propri, gli
 effetti stanno nei moduli che li eseguono. Il prodotto ha quindi poche classi, e quelle che ha stanno proprio
-dove serve *uno stato con una vita*: un relay WebSocket, un pool di browser, una sessione su un dispositivo, un
+dove serve _uno stato con una vita_: un relay WebSocket, un pool di browser, una sessione su un dispositivo, un
 debugger. Questa pagina le disegna e disegna accanto il **modello di dominio**: i tipi che l'intero sistema si
 scambia, che sono interfacce e record più che classi. I diagrammi sono in inglese, come i nomi nel codice.
 
@@ -164,10 +164,10 @@ classDiagram
 Tre cose che il diagramma non può mostrare:
 
 - **Un run è congelato quando viene richiesto.** `Execution.snapshot` contiene la configurazione del piano e
-  l'*elenco risolto dei test*; modificare il piano dopo non cambia nulla di un run già esistente.
+  l'_elenco risolto dei test_; modificare il piano dopo non cambia nulla di un run già esistente.
 - **La copertura si calcola, non si salva.** `Requirement.coverage` deriva dagli ultimi risultati dei test che
   la coprono (`shared/requirements.ts`).
-- **Un risultato appartiene a un test *e a un browser*.** Un test su tre browser sono tre righe `TestResult`,
+- **Un risultato appartiene a un test _e a un browser_.** Un test su tre browser sono tre righe `TestResult`,
   ciascuna con i propri tentativi, evidenze ed esito.
 
 ## 2. Creazione e controllo dei run
@@ -636,20 +636,20 @@ classDiagram
 
 ### Gli errori
 
-Ogni area ha la propria sottoclasse di `Error` con un *codice* che la rotta trasforma in uno stato e in una
+Ogni area ha la propria sottoclasse di `Error` con un _codice_ che la rotta trasforma in uno stato e in una
 frase. Nessuna viene intercettata per tipo fuori dalla sua area; un gestore generico trasforma il resto in un
 `500` e in un incidente.
 
-| Classe | File | Sollevata quando |
-|---|---|---|
-| `ExecutionEnqueueError` | `execution-orchestrator.ts` | Non si può creare un run: piano sconosciuto, coda piena, coda irraggiungibile, input non valido. |
-| `BrowserTaskError` | `browser-tasks.ts` | Un task per un worker è scaduto, è stato rifiutato o non ha trovato un worker. |
-| `TenantConflictError` | `middleware/tenancy.ts` | Il codice tenta di eseguire in due organizzazioni insieme. |
-| `PublishingError`, `QuarantineError` | `test-publishing.ts`, `test-quarantine.ts` | Un test non può essere pubblicato, revisionato o messo in quarantena nel suo stato attuale. |
-| `SsoConfigError` | `sso.ts` | La configurazione del provider non è valida o è irraggiungibile. |
-| `ReportExportError` | `report-export.ts` | Un report non può essere generato. |
-| `WebDriverError` | `appium-client.ts` | Il server Appium ha risposto con un errore W3C WebDriver. |
-| `InspectorError` | `mobile-inspector.ts` | Una sessione dell'inspector non esiste più, è occupata o è stata rifiutata. |
+| Classe                               | File                                       | Sollevata quando                                                                                 |
+| ------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `ExecutionEnqueueError`              | `execution-orchestrator.ts`                | Non si può creare un run: piano sconosciuto, coda piena, coda irraggiungibile, input non valido. |
+| `BrowserTaskError`                   | `browser-tasks.ts`                         | Un task per un worker è scaduto, è stato rifiutato o non ha trovato un worker.                   |
+| `TenantConflictError`                | `middleware/tenancy.ts`                    | Il codice tenta di eseguire in due organizzazioni insieme.                                       |
+| `PublishingError`, `QuarantineError` | `test-publishing.ts`, `test-quarantine.ts` | Un test non può essere pubblicato, revisionato o messo in quarantena nel suo stato attuale.      |
+| `SsoConfigError`                     | `sso.ts`                                   | La configurazione del provider non è valida o è irraggiungibile.                                 |
+| `ReportExportError`                  | `report-export.ts`                         | Un report non può essere generato.                                                               |
+| `WebDriverError`                     | `appium-client.ts`                         | Il server Appium ha risposto con un errore W3C WebDriver.                                        |
+| `InspectorError`                     | `mobile-inspector.ts`                      | Una sessione dell'inspector non esiste più, è occupata o è stata rifiutata.                      |
 
 ## 7. Come leggere il codice con questi diagrammi
 

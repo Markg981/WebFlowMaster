@@ -33,7 +33,9 @@ Protocol worker creates `shared/api-protocol-config.ts`:
 
 ```ts
 export interface ProtocolConfig {
-  timeoutMs?: number; maxMessages?: number; maxBytes?: number;
+  timeoutMs?: number;
+  maxMessages?: number;
+  maxBytes?: number;
   grpcMode?: 'auto' | 'unary' | 'server_stream' | 'client_stream' | 'bidi';
   tls?: { rootCa?: string; clientCertificate?: string; clientKey?: string; keyPassphrase?: string };
 }
@@ -58,8 +60,13 @@ SOAP worker extends `importApiDescription(content, options?)` where options has 
 - [x] Preserve existing unary and send/collect tests. Run focused tests and lint. Report exact RED/GREEN evidence and any integration requirements; do not commit others' changes.
 
 Example acceptance assertion:
+
 ```ts
-expect(response.body).toMatchObject({count: 2, last: {confirmed: true}, captures: {token: 'challenge'}});
+expect(response.body).toMatchObject({
+  count: 2,
+  last: { confirmed: true },
+  captures: { token: 'challenge' },
+});
 expect(response.status).toBe(0); // gRPC terminal status, not response end alone
 ```
 
@@ -75,8 +82,12 @@ expect(response.status).toBe(0); // gRPC terminal status, not response end alone
 - [x] Run importer and route tests/lint; report RED/GREEN and contract changes promptly.
 
 Example acceptance assertion:
+
 ```ts
-const result = importApiDescription(rootWsdl, {rootLocation:'service.wsdl', documents:[{location:'types/request.xsd',content:externalXsd}]});
+const result = importApiDescription(rootWsdl, {
+  rootLocation: 'service.wsdl',
+  documents: [{ location: 'types/request.xsd', content: externalXsd }],
+});
 expect(result.tests[0].requestBody).toContain('OrderId');
 expect(result.tests[0].warnings).not.toContain('missing schema');
 ```
@@ -92,6 +103,7 @@ expect(result.tests[0].warnings).not.toContain('missing schema');
 - [x] Test identity/load resets, stale preview invalidation, file limits and accessible controls. Run focused client tests/lint and provide translation keys.
 
 Example acceptance assertion:
+
 ```ts
 expect(saved.protocolConfig.tls.clientKey).toBe('{{secret_grpc_key}}');
 expect(runBody.protocolConfig).toEqual(saved.protocolConfig);

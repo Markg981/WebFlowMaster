@@ -24,7 +24,10 @@ export function hashResetToken(token: string): string {
 }
 
 /** Where the person goes: the sign-in page, which offers the new-password form. */
-export function passwordResetLink(origin: string, reset: { token: string; username: string }): string {
+export function passwordResetLink(
+  origin: string,
+  reset: { token: string; username: string },
+): string {
   const query = new URLSearchParams({ reset: reset.token, username: reset.username });
   return `${origin.replace(/\/+$/, '')}/auth?${query.toString()}`;
 }
@@ -46,7 +49,13 @@ export async function issuePasswordReset(
 ): Promise<IssuedReset> {
   await tx
     .delete(passwordResets)
-    .where(and(eq(passwordResets.userId, input.userId), eq(passwordResets.organizationId, input.organizationId), isNull(passwordResets.usedAt)));
+    .where(
+      and(
+        eq(passwordResets.userId, input.userId),
+        eq(passwordResets.organizationId, input.organizationId),
+        isNull(passwordResets.usedAt),
+      ),
+    );
 
   const token = randomBytes(32).toString('base64url');
   const id = randomUUID();

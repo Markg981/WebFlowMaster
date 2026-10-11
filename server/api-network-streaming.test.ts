@@ -146,7 +146,16 @@ describe('bounded real protocol conversations', () => {
     await expect(call('Never', '{}', { timeoutMs: 50 })).rejects.toThrow(/deadline|timeout/i);
   });
   it('fails an incomplete stream without assertions instead of passing the partial transcript', async () => {
-    const result = await runApiRequest({ method: 'GRPC', url: base + 'Never', protoDefinition: proto, body: {}, protocolConfig: { timeoutMs: 50 } }, {});
+    const result = await runApiRequest(
+      {
+        method: 'GRPC',
+        url: base + 'Never',
+        protoDefinition: proto,
+        body: {},
+        protocolConfig: { timeoutMs: 50 },
+      },
+      {},
+    );
     expect(result.passed).toBe(false);
     expect(result.error).toMatch(/deadline|timeout/i);
   });
@@ -192,7 +201,24 @@ describe('bounded real protocol conversations', () => {
     await expect(ws([{ type: 'receive' }], wsurl + '/close')).rejects.toThrow(/closed/i);
     await expect(call('Server', '{}', { maxBytes: 1 })).rejects.toThrow(/limit/i);
     await expect(call('Unary', '{"value":"large"}', { maxBytes: 1 })).rejects.toThrow(/limit/i);
-    await expect(runWebSocket({ url: wsurl, headers: {}, timeoutMs: 1000, config: { maxBytes: 64 }, body: JSON.stringify({ steps: [{ type: 'receive' }, ...Array.from({ length: 10 }, (_, i) => ({ type: 'capture', name: `copy${i}`, property: 'token' }))] }) })).rejects.toThrow(/capture.*limit/i);
+    await expect(
+      runWebSocket({
+        url: wsurl,
+        headers: {},
+        timeoutMs: 1000,
+        config: { maxBytes: 64 },
+        body: JSON.stringify({
+          steps: [
+            { type: 'receive' },
+            ...Array.from({ length: 10 }, (_, i) => ({
+              type: 'capture',
+              name: `copy${i}`,
+              property: 'token',
+            })),
+          ],
+        }),
+      }),
+    ).rejects.toThrow(/capture.*limit/i);
   });
   it('keeps ordered client writes through stream backpressure', async () => {
     const messages = Array.from({ length: 200 }, (_, index) => ({

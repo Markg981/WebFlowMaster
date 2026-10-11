@@ -1,12 +1,19 @@
 function compareCount(operator: string, actual: number, expected: number): boolean | null {
   switch (operator) {
-    case '==': return actual === expected;
-    case '>=': return actual >= expected;
-    case '<=': return actual <= expected;
-    case '>': return actual > expected;
-    case '<': return actual < expected;
-    case '!=': return actual !== expected;
-    default: return null;
+    case '==':
+      return actual === expected;
+    case '>=':
+      return actual >= expected;
+    case '<=':
+      return actual <= expected;
+    case '>':
+      return actual > expected;
+    case '<':
+      return actual < expected;
+    case '!=':
+      return actual !== expected;
+    default:
+      return null;
   }
 }
 
@@ -23,7 +30,9 @@ export function compareValues(expression: string): { value: boolean } | { error:
 
   const symbols = /^(.*?)\s*(==|!=|>=|<=|>|<)\s*(.*)$/s.exec(text);
   if (!symbols) {
-    return { error: `"${expression}" is not a comparison. Write it as left == right, !=, >, <, >=, <=, contains or not contains.` };
+    return {
+      error: `"${expression}" is not a comparison. Write it as left == right, !=, >, <, >=, <=, contains or not contains.`,
+    };
   }
   const [, rawLeft, operator, rawRight] = symbols;
   const left = rawLeft.trim();

@@ -1,9 +1,21 @@
 import { and, eq } from 'drizzle-orm';
-import { issueLinks, issueTrackers, type IssueLink, type IssueProvider, type IssueTracker } from '@shared/schema';
+import {
+  issueLinks,
+  issueTrackers,
+  type IssueLink,
+  type IssueProvider,
+  type IssueTracker,
+} from '@shared/schema';
 import { withTenantTransaction } from './middleware/tenancy';
 import { decryptSecret } from './crypto';
 import { addComment, createIssue, type ProviderDeps, type TrackerConfig } from './issue-providers';
-import { dedupeKeyFor, issueDraftFor, recurrenceComment, resolvedComment, type FailureContext } from './issue-tracking';
+import {
+  dedupeKeyFor,
+  issueDraftFor,
+  recurrenceComment,
+  resolvedComment,
+  type FailureContext,
+} from './issue-tracking';
 
 /**
  * Filing a failure, once.
@@ -90,7 +102,12 @@ export async function fileFailure(
 
     if (existing) {
       const occurrences = existing.occurrences + 1;
-      await addComment(config, existing.issueKey, recurrenceComment(input.failure, occurrences), deps);
+      await addComment(
+        config,
+        existing.issueKey,
+        recurrenceComment(input.failure, occurrences),
+        deps,
+      );
       await withTenantTransaction((tx) =>
         tx
           .update(issueLinks)
@@ -106,7 +123,12 @@ export async function fileFailure(
           // returning(): the tenant transaction type does not accept an update with no result.
           .returning(),
       );
-      return { action: 'commented', issueKey: existing.issueKey, issueUrl: existing.issueUrl, occurrences };
+      return {
+        action: 'commented',
+        issueKey: existing.issueKey,
+        issueUrl: existing.issueUrl,
+        occurrences,
+      };
     }
 
     const created = await createIssue(config, issueDraftFor(input.failure), deps);
@@ -162,13 +184,23 @@ export async function markResolved(
   try {
     const existing = await findLink(input.tracker.id, dedupeKey);
     if (!existing) return { action: 'skipped', reason: 'Nothing was ever filed for this test.' };
-    if (existing.resolvedAt) return { action: 'skipped', reason: 'Already reported as passing again.' };
+    if (existing.resolvedAt)
+      return { action: 'skipped', reason: 'Already reported as passing again.' };
 
-    await addComment(toConfig(input.tracker), existing.issueKey, resolvedComment(input.failure), deps);
+    await addComment(
+      toConfig(input.tracker),
+      existing.issueKey,
+      resolvedComment(input.failure),
+      deps,
+    );
     await withTenantTransaction((tx) =>
       tx
         .update(issueLinks)
-        .set({ resolvedAt: new Date(), lastExecutionId: input.failure.executionId, updatedAt: new Date() })
+        .set({
+          resolvedAt: new Date(),
+          lastExecutionId: input.failure.executionId,
+          updatedAt: new Date(),
+        })
         .where(eq(issueLinks.id, existing.id))
         .returning(),
     );

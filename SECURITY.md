@@ -18,12 +18,12 @@ and do not degrade a shared service.
 
 ## What happens next
 
-| Step | Target |
-|---|---|
-| Acknowledgement of the report | 3 working days |
-| First assessment and severity | 10 working days |
+| Step                                           | Target                      |
+| ---------------------------------------------- | --------------------------- |
+| Acknowledgement of the report                  | 3 working days              |
+| First assessment and severity                  | 10 working days             |
 | Fix or mitigation for a critical or high issue | 30 days from the assessment |
-| Fix for a moderate or low issue | the next scheduled release |
+| Fix for a moderate or low issue                | the next scheduled release  |
 
 You are kept informed until the fix is released and credited in the release notes unless you
 prefer otherwise. If a target cannot be met, the report is told why and when instead.

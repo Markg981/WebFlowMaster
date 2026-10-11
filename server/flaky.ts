@@ -112,7 +112,10 @@ export interface FlakyOptions {
  * not start a browser says nothing about whether the test is reliable, and letting it count as
  * a failure would manufacture two flips out of one bad night on the runner.
  */
-export function summariseFlakiness(rows: FlakyInputRow[], options: FlakyOptions = {}): FlakySummary[] {
+export function summariseFlakiness(
+  rows: FlakyInputRow[],
+  options: FlakyOptions = {},
+): FlakySummary[] {
   const minimumRuns = options.minimumRuns ?? 3;
   const minimumFlips = options.minimumFlips ?? 1;
 
@@ -126,7 +129,9 @@ export function summariseFlakiness(rows: FlakyInputRow[], options: FlakyOptions 
 
   const summaries: FlakySummary[] = [];
   for (const group of groups.values()) {
-    const ordered = [...group].sort((left, right) => timeOf(left.startedAt) - timeOf(right.startedAt));
+    const ordered = [...group].sort(
+      (left, right) => timeOf(left.startedAt) - timeOf(right.startedAt),
+    );
     // Verdict and version travel together: which version produced a verdict is what decides
     // whether the next change of verdict is a surprise or a consequence.
     const judged: Array<{ verdict: 'passed' | 'failed'; version: number | null }> = [];
@@ -155,11 +160,17 @@ export function summariseFlakiness(rows: FlakyInputRow[], options: FlakyOptions 
     if (unexplainedFlips < minimumFlips) continue;
 
     const versions = Array.from(
-      new Set(judged.map((entry) => entry.version).filter((version): version is number => version !== null)),
+      new Set(
+        judged
+          .map((entry) => entry.version)
+          .filter((version): version is number => version !== null),
+      ),
     ).sort((left, right) => left - right);
 
     const passed = judged.filter((entry) => entry.verdict === 'passed').length;
-    const latestWithTest = [...ordered].reverse().find((row) => row.uiTestId || row.apiTestId || row.mobileTestId);
+    const latestWithTest = [...ordered]
+      .reverse()
+      .find((row) => row.uiTestId || row.apiTestId || row.mobileTestId);
     summaries.push({
       testName: ordered[0].testName,
       test: latestWithTest?.uiTestId
@@ -187,7 +198,9 @@ export function summariseFlakiness(rows: FlakyInputRow[], options: FlakyOptions 
 
   // Most changeable first; ties broken by how much history says so, so a test that flipped
   // twice in three runs does not outrank one that flipped twenty times in thirty.
-  return summaries.sort((left, right) => right.flakiness - left.flakiness || right.flips - left.flips);
+  return summaries.sort(
+    (left, right) => right.flakiness - left.flakiness || right.flips - left.flips,
+  );
 }
 
 /** One line for a run's console or a notification: what this run's flakiest tests are doing. */

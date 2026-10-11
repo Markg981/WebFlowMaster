@@ -15,7 +15,7 @@ const pc = (over: Partial<Precondition>): Precondition => ({
 });
 
 const okResponse = { ok: true, status: 200 } as Response;
-const badResponse = (status: number) => ({ ok: false, status } as Response);
+const badResponse = (status: number) => ({ ok: false, status }) as Response;
 
 describe('runPreconditions', () => {
   it('returns ok with ranCount 0 for empty/null preconditions', async () => {
@@ -36,7 +36,9 @@ describe('runPreconditions', () => {
     expect(result).toMatchObject({ ok: true, ranCount: 1, satisfiedCount: 0 });
     // With no check declared, the call runs — which is what every precondition written
     // before checks existed keeps doing.
-    expect(result.steps).toEqual([{ name: 'setup', status: 'applied', detail: expect.any(String) }]);
+    expect(result.steps).toEqual([
+      { name: 'setup', status: 'applied', detail: expect.any(String) },
+    ]);
     const [url, opts] = fetchImpl.mock.calls[0];
     expect(url).toBe('http://localhost:7000/api/NetContentScale/SaveCheck?equipmentRowId=42');
     expect(opts.method).toBe('POST');
@@ -62,7 +64,11 @@ describe('runPreconditions', () => {
 
   it('reports a network error as a failed precondition', async () => {
     const fetchImpl = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
-    const result = await runPreconditions([pc({ name: 'setup' })], { baseUrl: 'http://h' }, fetchImpl as any);
+    const result = await runPreconditions(
+      [pc({ name: 'setup' })],
+      { baseUrl: 'http://h' },
+      fetchImpl as any,
+    );
     expect(result.ok).toBe(false);
     expect(result.failedAt).toBe('setup');
     expect(result.reason).toMatch(/ECONNREFUSED/);
@@ -278,7 +284,11 @@ describe('a precondition that is already satisfied', () => {
     const result = await runPreconditions(
       [
         pc({ name: 'function A', check: { url: 'http://h/a', jsonPath: 'on', equals: true } }),
-        pc({ name: 'function B', url: 'http://h/b', check: { url: 'http://h/b?', jsonPath: 'on', equals: true } }),
+        pc({
+          name: 'function B',
+          url: 'http://h/b',
+          check: { url: 'http://h/b?', jsonPath: 'on', equals: true },
+        }),
       ],
       {},
       fetchImpl as any,

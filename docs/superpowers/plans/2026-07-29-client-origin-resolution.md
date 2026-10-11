@@ -22,6 +22,7 @@
 ## File Structure
 
 **Modified:**
+
 - `server/observability/stack.ts` — `parseStack` gains a third, optional parameter that rewrites bundler-relative browser paths before classification. `resolveOrigin` is unchanged: it already works generically off whatever `parseStack` produces.
 - `server/observability/stack.test.ts` — new cases proving the rewrite works and that server stacks are unaffected when the parameter is omitted.
 - `server/observability/incident.ts` — passes the browser source root to `parseStack` only when `input.kind === 'client-runtime'`; adds `schemaVersion: 1` to every incident it constructs.
@@ -34,12 +35,14 @@
 ### Task 1: Resolve browser-relative stack paths to real source files
 
 **Files:**
+
 - Modify: `server/observability/stack.ts`
 - Test: `server/observability/stack.test.ts`
 - Modify: `server/observability/incident.ts`
 - Test: `server/observability/incident.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing new — `StackFrame`, `IncidentOrigin` from `@shared/observability` (already imported in `stack.ts`).
 - Produces: `parseStack(stack: string | undefined, repoRoot: string, browserSrcRoot?: string): StackFrame[]` — the signature every other caller of `parseStack` already uses still works unchanged, since the new parameter is optional and appended last.
 
@@ -95,7 +98,7 @@ describe('parseStack browser-relative paths', () => {
     expect(origin?.unresolved).toBeUndefined();
   });
 
-  it('does not rewrite when no browserSrcRoot is given, matching today\'s server-only behaviour', () => {
+  it("does not rewrite when no browserSrcRoot is given, matching today's server-only behaviour", () => {
     const stack = `TypeError: boom\n    at Toaster (/src/components/ui/toaster.tsx:16:15)`;
 
     const frames = parseStack(stack, repoRoot);
@@ -193,12 +196,12 @@ Expected: PASS, 14 tests (9 existing + 5 new).
 Open `server/observability/incident.ts`. Find the line that calls `parseStack` (currently `const frames = parseStack(input.error.stack, repoRoot);`, around line 177) and replace it with:
 
 ```ts
-    // Browser stack frames name files as Vite serves them (`/src/...`), not as filesystem
-    // paths — only client-runtime incidents need the rewrite; a server stack that happened
-    // to contain a literal "/src/" would not exist on this codebase's disk layout anyway.
-    const browserSrcRoot =
-      input.kind === 'client-runtime' ? path.join(repoRoot, 'client', 'src') : undefined;
-    const frames = parseStack(input.error.stack, repoRoot, browserSrcRoot);
+// Browser stack frames name files as Vite serves them (`/src/...`), not as filesystem
+// paths — only client-runtime incidents need the rewrite; a server stack that happened
+// to contain a literal "/src/" would not exist on this codebase's disk layout anyway.
+const browserSrcRoot =
+  input.kind === 'client-runtime' ? path.join(repoRoot, 'client', 'src') : undefined;
+const frames = parseStack(input.error.stack, repoRoot, browserSrcRoot);
 ```
 
 Check the top of `server/observability/incident.ts` for an existing `import path from 'node:path';` — if it is not already imported, add it alongside the other node: imports at the top of the file.
@@ -219,29 +222,29 @@ const clientErrorFrom = () => {
 Then, before that test file's `beforeEach` writes its `repoRoot` fixture files, make sure a client source file exists too — extend the existing `beforeEach` (the one that does `fs.mkdirSync(path.join(repoRoot, 'server'), ...)` and writes `thing.ts`) to also create:
 
 ```ts
-  fs.mkdirSync(path.join(repoRoot, 'client', 'src', 'components', 'ui'), { recursive: true });
-  fs.writeFileSync(
-    path.join(repoRoot, 'client', 'src', 'components', 'ui', 'toaster.tsx'),
-    Array.from({ length: 20 }, (_unused, i) => `const line${i + 1} = ${i + 1};`).join('\n'),
-    'utf8',
-  );
+fs.mkdirSync(path.join(repoRoot, 'client', 'src', 'components', 'ui'), { recursive: true });
+fs.writeFileSync(
+  path.join(repoRoot, 'client', 'src', 'components', 'ui', 'toaster.tsx'),
+  Array.from({ length: 20 }, (_unused, i) => `const line${i + 1} = ${i + 1};`).join('\n'),
+  'utf8',
+);
 ```
 
 Then add the test itself:
 
 ```ts
-  it('resolves origin for a client-runtime incident from a Vite-style stack', async () => {
-    const incident = await recordIncident({
-      kind: 'client-runtime',
-      error: clientErrorFrom(),
-      trigger: { route: '/dashboard/create-test' },
-      correlationId: 'c-1',
-    });
-
-    expect(incident!.origin?.file).toBe('client/src/components/ui/toaster.tsx');
-    expect(incident!.origin?.line).toBe(16);
-    expect(incident!.origin?.unresolved).toBeUndefined();
+it('resolves origin for a client-runtime incident from a Vite-style stack', async () => {
+  const incident = await recordIncident({
+    kind: 'client-runtime',
+    error: clientErrorFrom(),
+    trigger: { route: '/dashboard/create-test' },
+    correlationId: 'c-1',
   });
+
+  expect(incident!.origin?.file).toBe('client/src/components/ui/toaster.tsx');
+  expect(incident!.origin?.line).toBe(16);
+  expect(incident!.origin?.unresolved).toBeUndefined();
+});
 ```
 
 - [ ] **Step 7: Run it to verify it fails**
@@ -288,12 +291,14 @@ unaffected."
 ### Task 2: Add `schemaVersion` to the incident artifact
 
 **Files:**
+
 - Modify: `shared/observability.ts`
 - Modify: `server/observability/incident.ts`
 - Test: `server/observability/incident.test.ts`
 - Test: `server/observability/store.test.ts`
 
 **Interfaces:**
+
 - Consumes: the `Incident` interface from Task 1's unchanged surface.
 - Produces: `Incident.schemaVersion: number`. Every incident `recordIncident` constructs carries `schemaVersion: 1`. Nothing reads or branches on this value yet — that only becomes necessary the day the shape changes again, which is exactly the point of adding it now rather than then.
 
@@ -339,15 +344,15 @@ export const CURRENT_INCIDENT_SCHEMA_VERSION = 1;
 In `server/observability/incident.test.ts`, add this test inside the existing `describe('recordIncident', ...)` block:
 
 ```ts
-  it('stamps every incident with the current schema version', async () => {
-    const incident = await recordIncident({
-      kind: 'server-api',
-      error: errorFrom('server/thing.ts', 3),
-      trigger: {},
-    });
-
-    expect(incident!.schemaVersion).toBe(1);
+it('stamps every incident with the current schema version', async () => {
+  const incident = await recordIncident({
+    kind: 'server-api',
+    error: errorFrom('server/thing.ts', 3),
+    trigger: {},
   });
+
+  expect(incident!.schemaVersion).toBe(1);
+});
 ```
 
 - [ ] **Step 3: Run it to verify it fails**
@@ -394,40 +399,40 @@ Expected: PASS, 13 tests (12 from Task 1 + 1 new).
 A file already exists on disk from before this change (the real one found during development, and potentially others in any long-running deployment). Reading it must not throw just because it predates this field. In `server/observability/store.test.ts`, add this test inside the existing `describe('IncidentStore.upsert', ...)` block:
 
 ```ts
-  it('tolerates reading and merging a legacy file written before schemaVersion existed', async () => {
-    const legacyPath = path.join(root, 'incidents', 'inc_legacy0.json');
-    fs.mkdirSync(path.dirname(legacyPath), { recursive: true });
-    // Deliberately built by hand, NOT via the incident() helper above, and with no
-    // schemaVersion key at all — this is what a file written by the previous version of
-    // the code actually looks like on disk.
-    fs.writeFileSync(
-      legacyPath,
-      JSON.stringify({
-        id: 'inc_legacy0',
-        fingerprint: 'legacy0',
-        kind: 'server-api',
-        status: 'open',
-        count: 1,
-        firstSeen: '2026-07-01T00:00:00.000Z',
-        lastSeen: '2026-07-01T00:00:00.000Z',
-        title: 'Old incident',
-        origin: null,
-        error: { name: 'Error', message: 'old', frames: [] },
-        trigger: {},
-        state: {},
-        breadcrumbs: [],
-        occurrences: [],
-      }),
-      'utf8',
-    );
+it('tolerates reading and merging a legacy file written before schemaVersion existed', async () => {
+  const legacyPath = path.join(root, 'incidents', 'inc_legacy0.json');
+  fs.mkdirSync(path.dirname(legacyPath), { recursive: true });
+  // Deliberately built by hand, NOT via the incident() helper above, and with no
+  // schemaVersion key at all — this is what a file written by the previous version of
+  // the code actually looks like on disk.
+  fs.writeFileSync(
+    legacyPath,
+    JSON.stringify({
+      id: 'inc_legacy0',
+      fingerprint: 'legacy0',
+      kind: 'server-api',
+      status: 'open',
+      count: 1,
+      firstSeen: '2026-07-01T00:00:00.000Z',
+      lastSeen: '2026-07-01T00:00:00.000Z',
+      title: 'Old incident',
+      origin: null,
+      error: { name: 'Error', message: 'old', frames: [] },
+      trigger: {},
+      state: {},
+      breadcrumbs: [],
+      occurrences: [],
+    }),
+    'utf8',
+  );
 
-    const read = await store.read('inc_legacy0');
-    expect(read).not.toBeNull();
-    expect(read!.schemaVersion).toBeUndefined(); // exactly what the file on disk says — no silent invention of data
+  const read = await store.read('inc_legacy0');
+  expect(read).not.toBeNull();
+  expect(read!.schemaVersion).toBeUndefined(); // exactly what the file on disk says — no silent invention of data
 
-    const merged = await store.upsert(incident({ id: 'inc_legacy0', fingerprint: 'legacy0' }));
-    expect(merged.count).toBe(2); // still merges as a recurrence of the same incident
-  });
+  const merged = await store.upsert(incident({ id: 'inc_legacy0', fingerprint: 'legacy0' }));
+  expect(merged.count).toBe(2); // still merges as a recurrence of the same incident
+});
 ```
 
 - [ ] **Step 7: Run it to verify it passes without any store.ts change**

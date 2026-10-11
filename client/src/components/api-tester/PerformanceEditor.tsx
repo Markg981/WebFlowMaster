@@ -10,7 +10,11 @@ import { PERFORMANCE_LIMITS, type ApiPerformance } from '@shared/api-performance
  * once, and the thresholds a run fails on. Off, the test sends its request once.
  */
 
-export const DEFAULT_PERFORMANCE: ApiPerformance = { iterations: 20, concurrency: 2, thresholds: { p95Ms: 1000, errorRatePct: 0 } };
+export const DEFAULT_PERFORMANCE: ApiPerformance = {
+  iterations: 20,
+  concurrency: 2,
+  thresholds: { p95Ms: 1000, errorRatePct: 0 },
+};
 
 type ThresholdKey = keyof ApiPerformance['thresholds'];
 
@@ -28,7 +32,11 @@ export function PerformanceEditor({ value, onChange, disabled }: Props) {
     if (!value) return;
     const thresholds = { ...value.thresholds };
     if (raw.trim() === '') delete thresholds[key];
-    else thresholds[key] = key === 'errorRatePct' ? Math.min(100, Math.max(0, Number(raw))) : Math.max(1, Math.round(Number(raw)));
+    else
+      thresholds[key] =
+        key === 'errorRatePct'
+          ? Math.min(100, Math.max(0, Number(raw)))
+          : Math.max(1, Math.round(Number(raw)));
     onChange({ ...value, thresholds });
   };
   const thresholdFields: Array<{ key: ThresholdKey; label: string; unit: string }> = [
@@ -41,7 +49,12 @@ export function PerformanceEditor({ value, onChange, disabled }: Props) {
   return (
     <div className="space-y-4">
       <label className="flex items-center gap-3 text-sm">
-        <Switch checked={!!value} onCheckedChange={(on) => onChange(on ? DEFAULT_PERFORMANCE : null)} disabled={disabled} aria-label={t('apiPerformance.enable', 'Check response times over several requests')} />
+        <Switch
+          checked={!!value}
+          onCheckedChange={(on) => onChange(on ? DEFAULT_PERFORMANCE : null)}
+          disabled={disabled}
+          aria-label={t('apiPerformance.enable', 'Check response times over several requests')}
+        />
         {t('apiPerformance.enable', 'Check response times over several requests')}
       </label>
       <p className="text-xs text-muted-foreground">
@@ -62,7 +75,16 @@ export function PerformanceEditor({ value, onChange, disabled }: Props) {
                 max={PERFORMANCE_LIMITS.iterations}
                 value={value.iterations}
                 disabled={disabled}
-                onChange={(e) => onChange({ ...value, iterations: clamp(Number(e.target.value) || 2, 2, PERFORMANCE_LIMITS.iterations) })}
+                onChange={(e) =>
+                  onChange({
+                    ...value,
+                    iterations: clamp(
+                      Number(e.target.value) || 2,
+                      2,
+                      PERFORMANCE_LIMITS.iterations,
+                    ),
+                  })
+                }
               />
             </div>
             <div className="space-y-1">
@@ -74,19 +96,37 @@ export function PerformanceEditor({ value, onChange, disabled }: Props) {
                 max={PERFORMANCE_LIMITS.concurrency}
                 value={value.concurrency}
                 disabled={disabled}
-                onChange={(e) => onChange({ ...value, concurrency: clamp(Number(e.target.value) || 1, 1, PERFORMANCE_LIMITS.concurrency) })}
+                onChange={(e) =>
+                  onChange({
+                    ...value,
+                    concurrency: clamp(
+                      Number(e.target.value) || 1,
+                      1,
+                      PERFORMANCE_LIMITS.concurrency,
+                    ),
+                  })
+                }
               />
             </div>
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium">{t('apiPerformance.thresholds', 'Fail the test when (leave empty for no limit)')}</p>
+            <p className="mb-2 text-sm font-medium">
+              {t('apiPerformance.thresholds', 'Fail the test when (leave empty for no limit)')}
+            </p>
             <div className="grid grid-cols-2 gap-3 sm:max-w-md">
               {thresholdFields.map(({ key, label, unit }) => (
                 <div key={key} className="space-y-1">
                   <Label htmlFor={`perf-${key}`}>
                     {label} &gt; ({unit})
                   </Label>
-                  <Input id={`perf-${key}`} type="number" min={0} value={value.thresholds[key] ?? ''} disabled={disabled} onChange={(e) => setThreshold(key, e.target.value)} />
+                  <Input
+                    id={`perf-${key}`}
+                    type="number"
+                    min={0}
+                    value={value.thresholds[key] ?? ''}
+                    disabled={disabled}
+                    onChange={(e) => setThreshold(key, e.target.value)}
+                  />
                 </div>
               ))}
             </div>

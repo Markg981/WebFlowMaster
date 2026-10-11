@@ -15,7 +15,12 @@ import {
   type LoadTimelinePoint,
 } from '@shared/load-test';
 import { DATA_PREFIX } from '@shared/test-data';
-import { apiTestSpec, runApiRequest, type ApiRequestSpec, type OneConnectionFetch } from './api-test-runner';
+import {
+  apiTestSpec,
+  runApiRequest,
+  type ApiRequestSpec,
+  type OneConnectionFetch,
+} from './api-test-runner';
 import { failureOf } from './api-performance';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { withExecutionUsage } from './execution-usage';
@@ -68,7 +73,14 @@ class Accumulator {
   }
 
   stats() {
-    return statsOf(this.requests, this.errors, this.sum, this.requests ? this.min : 0, this.max, this.sample);
+    return statsOf(
+      this.requests,
+      this.errors,
+      this.sum,
+      this.requests ? this.min : 0,
+      this.max,
+      this.sample,
+    );
   }
 }
 
@@ -85,7 +97,12 @@ export interface LoadPlan {
   thresholds: LoadThresholds;
   steps: Array<{ name: string; thinkTimeMs: number }>;
   /** The data set the virtual users read their rows from, when there is one. */
-  data?: { set: string; columns: string[]; rows: Array<Record<string, string>>; mode: LoadDataMode } | null;
+  data?: {
+    set: string;
+    columns: string[];
+    rows: Array<Record<string, string>>;
+    mode: LoadDataMode;
+  } | null;
 }
 
 export interface LoadEngineDeps {
@@ -106,7 +123,11 @@ export interface LoadOutcome {
   cancelled: boolean;
 }
 
-export async function runLoad(plan: LoadPlan, baseVars: Record<string, string>, deps: LoadEngineDeps): Promise<LoadOutcome> {
+export async function runLoad(
+  plan: LoadPlan,
+  baseVars: Record<string, string>,
+  deps: LoadEngineDeps,
+): Promise<LoadOutcome> {
   const random = deps.random ?? Math.random;
   const tickMs = deps.tickMs ?? 250;
   const progressMs = deps.progressMs ?? 2_000;
@@ -131,7 +152,8 @@ export async function runLoad(plan: LoadPlan, baseVars: Record<string, string>, 
   const bucket = (offsetMs: number) => {
     const index = Math.floor(Math.max(0, Math.min(offsetMs, totalMs - 1)) / 1000 / bucketSec);
     let found = buckets.get(index);
-    if (!found) buckets.set(index, (found = { acc: new Accumulator(BUCKET_SAMPLE_SIZE, random), vus: 0 }));
+    if (!found)
+      buckets.set(index, (found = { acc: new Accumulator(BUCKET_SAMPLE_SIZE, random), vus: 0 }));
     return found;
   };
 
@@ -154,7 +176,8 @@ export async function runLoad(plan: LoadPlan, baseVars: Record<string, string>, 
 
   const rowVars = (row: Record<string, string>): Record<string, string> => {
     const vars: Record<string, string> = {};
-    for (const column of plan.data!.columns) vars[`${DATA_PREFIX}.${plan.data!.set}.${column}`] = row[column] ?? '';
+    for (const column of plan.data!.columns)
+      vars[`${DATA_PREFIX}.${plan.data!.set}.${column}`] = row[column] ?? '';
     return vars;
   };
 
@@ -167,13 +190,16 @@ export async function runLoad(plan: LoadPlan, baseVars: Record<string, string>, 
   let globalIteration = 0;
 
   const virtualUser = async (slot: number) => {
-    const ownRow = plan.data?.mode === 'vu' ? rowVars(plan.data.rows[slot % plan.data.rows.length]) : {};
+    const ownRow =
+      plan.data?.mode === 'vu' ? rowVars(plan.data.rows[slot % plan.data.rows.length]) : {};
     let iteration = 0;
     try {
       while (!over() && slot < target) {
         iteration += 1;
         const row =
-          plan.data?.mode === 'iteration' ? rowVars(plan.data.rows[globalIteration++ % plan.data.rows.length]) : ownRow;
+          plan.data?.mode === 'iteration'
+            ? rowVars(plan.data.rows[globalIteration++ % plan.data.rows.length])
+            : ownRow;
         let vars: Record<string, string> = {
           ...baseVars,
           ...row,
@@ -217,7 +243,13 @@ export async function runLoad(plan: LoadPlan, baseVars: Record<string, string>, 
       .sort(([a], [b]) => a - b)
       .map(([index, { acc, vus }]) => {
         const s = acc.stats();
-        return { t: index * bucketSec, vus, requests: s.requests, errors: s.errors, p95Ms: s.p95Ms };
+        return {
+          t: index * bucketSec,
+          vus,
+          requests: s.requests,
+          errors: s.errors,
+          p95Ms: s.p95Ms,
+        };
       });
     const withRps = { ...stats, rps };
     return {
@@ -269,7 +301,8 @@ export async function runLoad(plan: LoadPlan, baseVars: Record<string, string>, 
 }
 
 /** Where a run's requests go. A field so the tests can send them to a stand-in server. */
-export const loadRunnerDeps: { fetch?: OneConnectionFetch; tickMs?: number; progressMs?: number } = {};
+export const loadRunnerDeps: { fetch?: OneConnectionFetch; tickMs?: number; progressMs?: number } =
+  {};
 
 /** Load runs this process holds now: LOAD_LIMITS.runsPerProcess at most. */
 let localRuns = 0;
@@ -292,84 +325,143 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
  * Runs the load test run `runId`, already written as "running" with its definition, on a slot taken
  * with reserveLoadSlot (released here). Never throws: whatever goes wrong is written on the run.
  */
-export async function executeLoadRun(runId: string, organizationId: number, userId: number): Promise<void> {
+export async function executeLoadRun(
+  runId: string,
+  organizationId: number,
+  userId: number,
+): Promise<void> {
   const logger = await loggerPromise;
   try {
-    await runWithTenant(organizationId, async () => {
-      const update = (values: Partial<typeof loadTestRuns.$inferInsert>) =>
-        withTenantTransaction(async (tx) =>
-          tx.update(loadTestRuns).set(values).where(eq(loadTestRuns.id, runId)).returning(),
-        );
-      try {
-        const loaded = await withTenantTransaction(async (tx) => {
-          const [run] = await tx.select().from(loadTestRuns).where(eq(loadTestRuns.id, runId)).limit(1);
-          if (!run) return null;
-          const definition = run.definition as unknown as LoadTestSnapshot;
-          const ids = [...new Set(definition.steps.map((step) => step.apiTestId))];
-          const tests = await tx.select().from(apiTests).where(inArray(apiTests.id, ids));
-          const [dataSet] = definition.dataSetId
-            ? await tx.select().from(testDataSets).where(and(eq(testDataSets.id, definition.dataSetId), eq(testDataSets.organizationId, organizationId))).limit(1)
-            : [];
-          return { run, definition, tests, dataSet };
-        });
-        if (!loaded) return;
-        const { run, definition, tests, dataSet } = loaded;
-        const byId = new Map(tests.map((test) => [test.id, test]));
-        const missing = definition.steps.find((step) => !byId.has(step.apiTestId));
-        if (missing) throw new LoadRunError(`API test #${missing.apiTestId} is no longer available.`);
-        if (definition.dataSetId && !dataSet) throw new LoadRunError('The data set is no longer available.');
-        if (dataSet) {
-          const problem = dataSetProblem(definition, dataSet.rows.length);
-          if (problem) throw new LoadRunError(problem);
-        }
-        const specs: ApiRequestSpec[] = definition.steps.map((step) => apiTestSpec(byId.get(step.apiTestId)!));
-        const vars = await resolveVariables({ userId, organizationId, environmentId: run.environmentId });
+    await runWithTenant(
+      organizationId,
+      async () => {
+        const update = (values: Partial<typeof loadTestRuns.$inferInsert>) =>
+          withTenantTransaction(async (tx) =>
+            tx.update(loadTestRuns).set(values).where(eq(loadTestRuns.id, runId)).returning(),
+          );
+        try {
+          const loaded = await withTenantTransaction(async (tx) => {
+            const [run] = await tx
+              .select()
+              .from(loadTestRuns)
+              .where(eq(loadTestRuns.id, runId))
+              .limit(1);
+            if (!run) return null;
+            const definition = run.definition as unknown as LoadTestSnapshot;
+            const ids = [...new Set(definition.steps.map((step) => step.apiTestId))];
+            const tests = await tx.select().from(apiTests).where(inArray(apiTests.id, ids));
+            const [dataSet] = definition.dataSetId
+              ? await tx
+                  .select()
+                  .from(testDataSets)
+                  .where(
+                    and(
+                      eq(testDataSets.id, definition.dataSetId),
+                      eq(testDataSets.organizationId, organizationId),
+                    ),
+                  )
+                  .limit(1)
+              : [];
+            return { run, definition, tests, dataSet };
+          });
+          if (!loaded) return;
+          const { run, definition, tests, dataSet } = loaded;
+          const byId = new Map(tests.map((test) => [test.id, test]));
+          const missing = definition.steps.find((step) => !byId.has(step.apiTestId));
+          if (missing)
+            throw new LoadRunError(`API test #${missing.apiTestId} is no longer available.`);
+          if (definition.dataSetId && !dataSet)
+            throw new LoadRunError('The data set is no longer available.');
+          if (dataSet) {
+            const problem = dataSetProblem(definition, dataSet.rows.length);
+            if (problem) throw new LoadRunError(problem);
+          }
+          const specs: ApiRequestSpec[] = definition.steps.map((step) =>
+            apiTestSpec(byId.get(step.apiTestId)!),
+          );
+          const vars = await resolveVariables({
+            userId,
+            organizationId,
+            environmentId: run.environmentId,
+          });
 
-        let cancelRequested = false;
-        const outcome = await withExecutionUsage(
-          'api',
-          () =>
-            runLoad(
-              {
-                stages: definition.stages,
-                warmUpSec: definition.warmUpSec,
-                thresholds: definition.thresholds ?? {},
-                steps: definition.steps.map((step) => ({ name: byId.get(step.apiTestId)!.name, thinkTimeMs: step.thinkTimeMs ?? 0 })),
-                data: dataSet ? { set: dataSet.name, columns: dataSet.columns, rows: dataSet.rows, mode: definition.dataMode } : null,
-              },
-              vars,
-              {
-                now: Date.now,
-                sleep,
-                tickMs: loadRunnerDeps.tickMs,
-                progressMs: loadRunnerDeps.progressMs,
-                shouldStop: () => cancelRequested,
-                send: async (index, stepVars) => {
-                  const result = await runApiRequest(specs[index], stepVars, loadRunnerDeps.fetch);
-                  return { durationMs: result.durationMs, error: failureOf(result), extracted: result.extracted };
+          let cancelRequested = false;
+          const outcome = await withExecutionUsage(
+            'api',
+            () =>
+              runLoad(
+                {
+                  stages: definition.stages,
+                  warmUpSec: definition.warmUpSec,
+                  thresholds: definition.thresholds ?? {},
+                  steps: definition.steps.map((step) => ({
+                    name: byId.get(step.apiTestId)!.name,
+                    thinkTimeMs: step.thinkTimeMs ?? 0,
+                  })),
+                  data: dataSet
+                    ? {
+                        set: dataSet.name,
+                        columns: dataSet.columns,
+                        rows: dataSet.rows,
+                        mode: definition.dataMode,
+                      }
+                    : null,
                 },
-                onProgress: async (summary) => {
-                  const [row] = await update({ summary, heartbeatAt: new Date() });
-                  cancelRequested = !!row?.cancelRequested;
+                vars,
+                {
+                  now: Date.now,
+                  sleep,
+                  tickMs: loadRunnerDeps.tickMs,
+                  progressMs: loadRunnerDeps.progressMs,
+                  shouldStop: () => cancelRequested,
+                  send: async (index, stepVars) => {
+                    const result = await runApiRequest(
+                      specs[index],
+                      stepVars,
+                      loadRunnerDeps.fetch,
+                    );
+                    return {
+                      durationMs: result.durationMs,
+                      error: failureOf(result),
+                      extracted: result.extracted,
+                    };
+                  },
+                  onProgress: async (summary) => {
+                    const [row] = await update({ summary, heartbeatAt: new Date() });
+                    cancelRequested = !!row?.cancelRequested;
+                  },
                 },
-              },
-            ),
-          runId,
-        );
-        const status: LoadRunStatus = outcome.cancelled ? 'cancelled' : outcome.summary.breaches.length ? 'failed' : 'passed';
-        await update({
-          status,
-          summary: outcome.summary,
-          error: status === 'failed' ? outcome.summary.breaches.join('; ') : null,
-          heartbeatAt: new Date(),
-          finishedAt: new Date(),
-        });
-      } catch (error) {
-        const message = error instanceof LoadRunError ? error.message : 'The load test could not run.';
-        if (!(error instanceof LoadRunError)) logger.error({ message: 'Load run crashed', runId, error: String((error as Error)?.message ?? error) });
-        await update({ status: 'error', error: message, finishedAt: new Date() }).catch(() => undefined);
-      }
-    }, { userId, role: 'editor' });
+              ),
+            runId,
+          );
+          const status: LoadRunStatus = outcome.cancelled
+            ? 'cancelled'
+            : outcome.summary.breaches.length
+              ? 'failed'
+              : 'passed';
+          await update({
+            status,
+            summary: outcome.summary,
+            error: status === 'failed' ? outcome.summary.breaches.join('; ') : null,
+            heartbeatAt: new Date(),
+            finishedAt: new Date(),
+          });
+        } catch (error) {
+          const message =
+            error instanceof LoadRunError ? error.message : 'The load test could not run.';
+          if (!(error instanceof LoadRunError))
+            logger.error({
+              message: 'Load run crashed',
+              runId,
+              error: String((error as Error)?.message ?? error),
+            });
+          await update({ status: 'error', error: message, finishedAt: new Date() }).catch(
+            () => undefined,
+          );
+        }
+      },
+      { userId, role: 'editor' },
+    );
   } finally {
     releaseLoadSlot();
   }

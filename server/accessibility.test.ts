@@ -36,7 +36,9 @@ beforeAll(async () => {
     const strict = req.url?.startsWith('/strict');
     res.writeHead(200, {
       'Content-Type': 'text/html',
-      ...(strict ? { 'Content-Security-Policy': "default-src 'none'; img-src data:; script-src 'none'" } : {}),
+      ...(strict
+        ? { 'Content-Security-Policy': "default-src 'none'; img-src data:; script-src 'none'" }
+        : {}),
     });
     res.end(req.url?.includes('accessible') ? ACCESSIBLE : INACCESSIBLE);
   });
@@ -51,7 +53,10 @@ afterAll(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
-const step = (value?: string) => ({ action: { id: 'assertAccessible', name: 'Check accessibility' }, value });
+const step = (value?: string) => ({
+  action: { id: 'assertAccessible', name: 'Check accessibility' },
+  value,
+});
 
 async function check(path: string, value?: string) {
   const page = await browser.newPage();
@@ -109,9 +114,28 @@ describe('what a step keeps of a scan', () => {
   const run = {
     url: 'https://shop.test/checkout',
     violations: [
-      { id: 'color-contrast', impact: 'serious', help: 'Contrast', helpUrl: 'u1', tags: ['wcag2aa'], nodes: [{ target: ['.price'] }, { target: ['.total'] }] },
-      { id: 'region', impact: 'moderate', help: 'Landmarks', helpUrl: 'u2', nodes: [{ target: ['body > div'] }] },
-      { id: 'button-name', impact: 'critical', help: 'Name', helpUrl: 'u3', nodes: [{ target: [['#widget', 'button']] }] },
+      {
+        id: 'color-contrast',
+        impact: 'serious',
+        help: 'Contrast',
+        helpUrl: 'u1',
+        tags: ['wcag2aa'],
+        nodes: [{ target: ['.price'] }, { target: ['.total'] }],
+      },
+      {
+        id: 'region',
+        impact: 'moderate',
+        help: 'Landmarks',
+        helpUrl: 'u2',
+        nodes: [{ target: ['body > div'] }],
+      },
+      {
+        id: 'button-name',
+        impact: 'critical',
+        help: 'Name',
+        helpUrl: 'u3',
+        nodes: [{ target: [['#widget', 'button']] }],
+      },
       { id: 'mystery', impact: null, help: 'Unrated', helpUrl: 'u4', nodes: [{ target: ['x'] }] },
     ],
     passes: [1, 2, 3],
@@ -126,7 +150,12 @@ describe('what a step keeps of a scan', () => {
       ['region', false],
       ['mystery', false],
     ]);
-    expect(finding).toMatchObject({ blocking: 2, passes: 3, incomplete: 1, url: 'https://shop.test/checkout' });
+    expect(finding).toMatchObject({
+      blocking: 2,
+      passes: 3,
+      incomplete: 1,
+      url: 'https://shop.test/checkout',
+    });
     // A target inside a shadow root or frame is a list of its own.
     expect(finding.violations[0].targets).toEqual(['#widget button']);
 
@@ -137,9 +166,18 @@ describe('what a step keeps of a scan', () => {
   it('reaches the report with the step, as the runner stored it', async () => {
     const { stepsWithArtifactUrls } = await import('./routes/artifacts.routes');
     const finding = summariseAxe(run, 'serious');
-    const [stored] = stepsWithArtifactUrls('exec-1', JSON.stringify([
-      { name: 'Check accessibility', type: 'assertAccessible', status: 'failed', details: 'x', accessibility: finding },
-    ]));
+    const [stored] = stepsWithArtifactUrls(
+      'exec-1',
+      JSON.stringify([
+        {
+          name: 'Check accessibility',
+          type: 'assertAccessible',
+          status: 'failed',
+          details: 'x',
+          accessibility: finding,
+        },
+      ]),
+    );
     expect(stored.accessibility).toEqual(finding);
   });
 

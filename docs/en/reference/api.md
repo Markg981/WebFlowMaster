@@ -38,18 +38,18 @@ expiry date, and is revoked from the same page.
 A key **without scopes** can do anything its account can, on every endpoint. A key **with scopes**
 works only on `/api/v1`, and on each endpoint only if it holds the scope the endpoint names:
 
-| Scope | Minimum role | Allows |
-|---|---|---|
-| `plans:read` | viewer | Listing test plans. |
-| `projects:read` / `projects:write` | viewer / editor | Read / create and update accessible projects. |
-| `tests:read` / `tests:write` | viewer / editor | Read / create and update UI, manual and BDD tests. |
-| `api-tests:read` / `api-tests:write` | viewer / editor | Read (literal secrets replaced by variables) / create and update API tests. |
-| `mobile-tests:read` / `mobile-tests:write` | viewer / editor | Read / create and update native mobile tests. |
-| `datasets:read` / `datasets:write` | viewer / editor | Read / create, replace and delete datasets. |
-| `plans:write` | editor | Create and update test plans. |
-| `suites:read` / `suites:write` | viewer / editor | Export / import portable test suites; API and mobile tests in a suite also need their own read / write scope. |
-| `runs:read` | viewer | Reading runs, their status, JUnit and exported reports. |
-| `runs:write` | editor | Starting runs and cancelling them. |
+| Scope                                      | Minimum role    | Allows                                                                                                        |
+| ------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `plans:read`                               | viewer          | Listing test plans.                                                                                           |
+| `projects:read` / `projects:write`         | viewer / editor | Read / create and update accessible projects.                                                                 |
+| `tests:read` / `tests:write`               | viewer / editor | Read / create and update UI, manual and BDD tests.                                                            |
+| `api-tests:read` / `api-tests:write`       | viewer / editor | Read (literal secrets replaced by variables) / create and update API tests.                                   |
+| `mobile-tests:read` / `mobile-tests:write` | viewer / editor | Read / create and update native mobile tests.                                                                 |
+| `datasets:read` / `datasets:write`         | viewer / editor | Read / create, replace and delete datasets.                                                                   |
+| `plans:write`                              | editor          | Create and update test plans.                                                                                 |
+| `suites:read` / `suites:write`             | viewer / editor | Export / import portable test suites; API and mobile tests in a suite also need their own read / write scope. |
+| `runs:read`                                | viewer          | Reading runs, their status, JUnit and exported reports.                                                       |
+| `runs:write`                               | editor          | Starting runs and cancelling them.                                                                            |
 
 Provisioning needs the write scopes for the resources it creates; add the corresponding read
 scopes to inspect them, and `suites:read` / `suites:write` for export / import. Scopes never bypass
@@ -69,20 +69,20 @@ A pipeline needs `runs:write` and `runs:read`; add `plans:read` if it looks plan
 - **Idempotency**: starting a run accepts an `Idempotency-Key` header (up to 255 characters). The
   same key returns the same run, so a retried request never starts a second one. Use the build id.
 
-| Code | Status | Meaning |
-|---|---|---|
-| `unauthenticated` | 401 | No key, or a key that is unknown, revoked or expired. |
-| `insufficient_scope` | 403 | The key lacks the scope this endpoint needs. |
-| `insufficient_role` | 403 | The key's account has a role below what the scope needs. |
-| `invalid_request` | 400 | A body, parameter or header that is not valid. |
-| `invalid_format` | 400 | An export format other than `html`, `pdf`, `allure`. |
-| `plan_not_found` | 404 | No such plan (or environment) in this organization. |
-| `run_not_found` | 404 | No such run in this organization. |
-| `not_found` | 404 | No such endpoint under `/api/v1`. |
-| `run_already_ended` | 409 | Cancelling a run that has already finished. |
-| `queue_quota_exceeded` | 429 | The organization's queue of waiting runs is full. |
-| `rate_limited` | 429 | Too many requests from this key in the last minute. |
-| `export_failed`, `internal_error` | 500 | Something went wrong on the server; the log has it. |
+| Code                              | Status | Meaning                                                  |
+| --------------------------------- | ------ | -------------------------------------------------------- |
+| `unauthenticated`                 | 401    | No key, or a key that is unknown, revoked or expired.    |
+| `insufficient_scope`              | 403    | The key lacks the scope this endpoint needs.             |
+| `insufficient_role`               | 403    | The key's account has a role below what the scope needs. |
+| `invalid_request`                 | 400    | A body, parameter or header that is not valid.           |
+| `invalid_format`                  | 400    | An export format other than `html`, `pdf`, `allure`.     |
+| `plan_not_found`                  | 404    | No such plan (or environment) in this organization.      |
+| `run_not_found`                   | 404    | No such run in this organization.                        |
+| `not_found`                       | 404    | No such endpoint under `/api/v1`.                        |
+| `run_already_ended`               | 409    | Cancelling a run that has already finished.              |
+| `queue_quota_exceeded`            | 429    | The organization's queue of waiting runs is full.        |
+| `rate_limited`                    | 429    | Too many requests from this key in the last minute.      |
+| `export_failed`, `internal_error` | 500    | Something went wrong on the server; the log has it.      |
 
 ## Authoring resources
 
@@ -90,22 +90,22 @@ These routes use the same API-key authentication, rate limits and error envelope
 Create endpoints return `201`; reads and updates return `200`. List endpoints use the pagination
 conventions above. Use the installed OpenAPI document for the complete request and response schemas.
 
-| Resource | Routes under `/api/v1` | Required scope |
-|---|---|---|
-| Projects | `GET /projects`, `GET /projects/{projectId}` | `projects:read` |
-| Projects | `POST /projects`, `PATCH /projects/{projectId}` | `projects:write` |
-| Tests | `GET /tests`, `GET /tests/{testId}` | `tests:read` |
-| Tests | `POST /tests`, `PATCH /tests/{testId}` | `tests:write` |
-| API tests | `GET /api-tests`, `GET /api-tests/{apiTestId}` | `api-tests:read` |
-| API tests | `POST /api-tests`, `PATCH /api-tests/{apiTestId}` | `api-tests:write` |
-| Mobile tests | `GET /mobile-tests`, `GET /mobile-tests/{mobileTestId}` | `mobile-tests:read` |
-| Mobile tests | `POST /mobile-tests`, `PATCH /mobile-tests/{mobileTestId}` | `mobile-tests:write` |
-| Datasets | `GET /datasets`, `GET /datasets/{datasetId}` | `datasets:read` |
-| Datasets | `POST /datasets`, `PUT /datasets/{datasetId}`, `DELETE /datasets/{datasetId}` | `datasets:write` |
-| Plans | `GET /plans`, `GET /plans/{planId}` | `plans:read` |
-| Plans | `POST /plans`, `PATCH /plans/{planId}` | `plans:write` |
-| Suite export | `POST /suites/export` | `suites:read` |
-| Suite import | `POST /suites/import` | `suites:write` |
+| Resource     | Routes under `/api/v1`                                                        | Required scope       |
+| ------------ | ----------------------------------------------------------------------------- | -------------------- |
+| Projects     | `GET /projects`, `GET /projects/{projectId}`                                  | `projects:read`      |
+| Projects     | `POST /projects`, `PATCH /projects/{projectId}`                               | `projects:write`     |
+| Tests        | `GET /tests`, `GET /tests/{testId}`                                           | `tests:read`         |
+| Tests        | `POST /tests`, `PATCH /tests/{testId}`                                        | `tests:write`        |
+| API tests    | `GET /api-tests`, `GET /api-tests/{apiTestId}`                                | `api-tests:read`     |
+| API tests    | `POST /api-tests`, `PATCH /api-tests/{apiTestId}`                             | `api-tests:write`    |
+| Mobile tests | `GET /mobile-tests`, `GET /mobile-tests/{mobileTestId}`                       | `mobile-tests:read`  |
+| Mobile tests | `POST /mobile-tests`, `PATCH /mobile-tests/{mobileTestId}`                    | `mobile-tests:write` |
+| Datasets     | `GET /datasets`, `GET /datasets/{datasetId}`                                  | `datasets:read`      |
+| Datasets     | `POST /datasets`, `PUT /datasets/{datasetId}`, `DELETE /datasets/{datasetId}` | `datasets:write`     |
+| Plans        | `GET /plans`, `GET /plans/{planId}`                                           | `plans:read`         |
+| Plans        | `POST /plans`, `PATCH /plans/{planId}`                                        | `plans:write`        |
+| Suite export | `POST /suites/export`                                                         | `suites:read`        |
+| Suite import | `POST /suites/import`                                                         | `suites:write`       |
 
 Only accessible resources are returned. The organization and author are derived from the key;
 clients cannot assign ownership to another organization. Restricted-project access is checked
@@ -158,8 +158,11 @@ for your application before running it.
 const base = process.env.WFM_URL;
 async function create(path, value) {
   const response = await fetch(`${base}/api/v1/${path}`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${process.env.WFM_API_KEY}`, "Content-Type": "application/json" },
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.WFM_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(value),
   });
   const result = await response.json();
@@ -167,17 +170,25 @@ async function create(path, value) {
   return result;
 }
 const suffix = Date.now();
-const project = await create("projects", { name: `Pipeline ${suffix}` });
-const dataset = await create("datasets", {
-  name: `customers_${suffix}`, columns: ["customer"], rows: [{ customer: "Ada" }],
+const project = await create('projects', { name: `Pipeline ${suffix}` });
+const dataset = await create('datasets', {
+  name: `customers_${suffix}`,
+  columns: ['customer'],
+  rows: [{ customer: 'Ada' }],
 });
-const test = await create("tests", {
-  name: `Smoke ${suffix}`, projectId: project.id, url: process.env.WFM_TARGET_URL,
-  sequence: [], elements: [], dataset: [{ $sharedSet: String(dataset.id) }],
+const test = await create('tests', {
+  name: `Smoke ${suffix}`,
+  projectId: project.id,
+  url: process.env.WFM_TARGET_URL,
+  sequence: [],
+  elements: [],
+  dataset: [{ $sharedSet: String(dataset.id) }],
 });
-const plan = await create("plans", {
-  name: `Pipeline smoke ${suffix}`, selectedTests: [{ id: test.id, type: "ui" }],
-  maxParallelTests: 1, captureScreenshots: "on_failed_steps",
+const plan = await create('plans', {
+  name: `Pipeline smoke ${suffix}`,
+  selectedTests: [{ id: test.id, type: 'ui' }],
+  maxParallelTests: 1,
+  captureScreenshots: 'on_failed_steps',
 });
 console.log({ projectId: project.id, testId: test.id, datasetId: dataset.id, planId: plan.id });
 ```
@@ -210,31 +221,31 @@ all of it back. It records versions and audit events and accepts at most 500 tes
 together), 500 mobile step groups and 2,000,000 content characters. Imported mobile tests have no
 grid; set `gridId` afterwards with `PATCH /mobile-tests/{mobileTestId}`.
 
-| Authoring error | Status | Meaning |
-|---|---|---|
-| `project_not_found`, `test_not_found`, `api_test_not_found`, `mobile_test_not_found`, `dataset_not_found`, `plan_not_found` | 404 | Resource absent or inaccessible. |
-| `project_read_only` | 403 | Restricted-project access does not allow editing. |
-| `manual_step_empty` | 400 | An empty manual step is invalid. |
-| `name_conflict` | 409 | A name is already used. |
-| `dataset_in_use` | 409 | Tests still reference the dataset. |
-| `insufficient_scope` | 403 | A suite includes API or mobile tests and the key lacks their scope; `requiredScope` names it. |
-| `suite_too_large` | 400 | Export exceeds 500 tests. |
-| `invalid_request` | 400 | Invalid body, references, bundle or import size. |
+| Authoring error                                                                                                             | Status | Meaning                                                                                       |
+| --------------------------------------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------- |
+| `project_not_found`, `test_not_found`, `api_test_not_found`, `mobile_test_not_found`, `dataset_not_found`, `plan_not_found` | 404    | Resource absent or inaccessible.                                                              |
+| `project_read_only`                                                                                                         | 403    | Restricted-project access does not allow editing.                                             |
+| `manual_step_empty`                                                                                                         | 400    | An empty manual step is invalid.                                                              |
+| `name_conflict`                                                                                                             | 409    | A name is already used.                                                                       |
+| `dataset_in_use`                                                                                                            | 409    | Tests still reference the dataset.                                                            |
+| `insufficient_scope`                                                                                                        | 403    | A suite includes API or mobile tests and the key lacks their scope; `requiredScope` names it. |
+| `suite_too_large`                                                                                                           | 400    | Export exceeds 500 tests.                                                                     |
+| `invalid_request`                                                                                                           | 400    | Invalid body, references, bundle or import size.                                              |
 
 ## Runs
 
 A run has one of these statuses:
 
-| Status | Finished | Meaning |
-|---|---|---|
-| `queued` | no | Waiting for a runner, or for the organization's limit. |
-| `running` | no | Being run. |
-| `cancelling` | no | Asked to stop; ends at its current step. |
-| `completed` | yes | Every test passed (failures of tests in quarantine do not count). |
-| `failed` | yes | At least one test failed. |
-| `error` | yes | The run could not be carried out (its runner stopped, a setup failed). |
-| `cancelled` | yes | Stopped by someone. |
-| `timed_out` | yes | Took longer than allowed. |
+| Status       | Finished | Meaning                                                                |
+| ------------ | -------- | ---------------------------------------------------------------------- |
+| `queued`     | no       | Waiting for a runner, or for the organization's limit.                 |
+| `running`    | no       | Being run.                                                             |
+| `cancelling` | no       | Asked to stop; ends at its current step.                               |
+| `completed`  | yes      | Every test passed (failures of tests in quarantine do not count).      |
+| `failed`     | yes      | At least one test failed.                                              |
+| `error`      | yes      | The run could not be carried out (its runner stopped, a setup failed). |
+| `cancelled`  | yes      | Stopped by someone.                                                    |
+| `timed_out`  | yes      | Took longer than allowed.                                              |
 
 Poll a run until its status is no longer `queued`, `running` or `cancelling`. Every few seconds is
 plenty; the CLI polls every five.
@@ -296,11 +307,11 @@ curl -s -X POST "$WFM_URL/api/v1/plans/12/runs" \
 
 The body is optional:
 
-| Field | Meaning |
-|---|---|
-| `environmentId` | The environment whose secrets the run uses. |
-| `updateBaselines` | Make this run's screenshots the new visual baselines. |
-| `ci` | The build that asked for the run: `provider` (required: `github`, `gitlab`, `jenkins`, `azure`, `bitbucket`, `circleci` or `other`), `repository`, `commit` (7 to 64 hex characters), `branch`, `pullRequest`, `buildId`, `buildUrl` (http or https), `actor`. Shown in the report, notifications and exports. |
+| Field             | Meaning                                                                                                                                                                                                                                                                                                        |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `environmentId`   | The environment whose secrets the run uses.                                                                                                                                                                                                                                                                    |
+| `updateBaselines` | Make this run's screenshots the new visual baselines.                                                                                                                                                                                                                                                          |
+| `ci`              | The build that asked for the run: `provider` (required: `github`, `gitlab`, `jenkins`, `azure`, `bitbucket`, `circleci` or `other`), `repository`, `commit` (7 to 64 hex characters), `branch`, `pullRequest`, `buildId`, `buildUrl` (http or https), `actor`. Shown in the report, notifications and exports. |
 
 Answers `202` with the run, and its address in `Location`. Also `400`, `404` for an unknown plan
 or environment, `429 queue_quota_exceeded`, and `503` when the run could not be handed to a
@@ -360,12 +371,12 @@ keep one.
 
 The authenticated web client uses these summary endpoints, separately from `/api/v1`:
 
-| GET endpoint | Additional filters | Full definition |
-|---|---|---|
-| `/api/catalog/tests` | `tagIds`, `projectId`, `status` | `/api/tests/:id` |
-| `/api/catalog/api-tests` | `tagIds`, `projectId` | `/api/api-tests/:id` |
-| `/api/catalog/mobile-tests` | `tagIds`, `projectId` | `/api/mobile-tests/:id` |
-| `/api/catalog/test-data` | None | `/api/test-data/:id` |
+| GET endpoint                | Additional filters              | Full definition         |
+| --------------------------- | ------------------------------- | ----------------------- |
+| `/api/catalog/tests`        | `tagIds`, `projectId`, `status` | `/api/tests/:id`        |
+| `/api/catalog/api-tests`    | `tagIds`, `projectId`           | `/api/api-tests/:id`    |
+| `/api/catalog/mobile-tests` | `tagIds`, `projectId`           | `/api/mobile-tests/:id` |
+| `/api/catalog/test-data`    | None                            | `/api/test-data/:id`    |
 
 All four accept `page`, `pageSize` and `search`, returning `{items, total, page, pageSize}`.
 Pages start at 1; the default page size is 25 and the maximum is 100. Page parameters must be

@@ -1,6 +1,6 @@
-import { createServer, type Server } from "http";
-import { Express } from "express";
-import { setupAuth } from "./auth";
+import { createServer, type Server } from 'http';
+import { Express } from 'express';
+import { setupAuth } from './auth';
 import {
   userSettings,
   projects,
@@ -27,100 +27,111 @@ import {
   ReportTestCaseResult,
   executionLogs,
   AUDIT_ACTIONS,
-} from "@shared/schema";
-import { auditActor, changedFields, recordAudit } from "./audit";
+} from '@shared/schema';
+import { auditActor, changedFields, recordAudit } from './audit';
 import { executionArtifactAvailability } from './artifact-metering';
 import { reproducibilitySummary, publicExecution } from './execution-provenance';
 import { readExecutionSnapshot } from './execution-snapshot';
-import { z } from "zod";
+import { z } from 'zod';
 // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
-import { privilegedDb } from "./db";
-import { eq, and, or, desc, sql, getTableColumns, asc, ilike, inArray, type SQL } from "drizzle-orm";
-import { playwrightService } from "./playwright-service";
-import { BrowserTaskError, browserTasks } from "./browser-tasks";
+import { privilegedDb } from './db';
+import {
+  eq,
+  and,
+  or,
+  desc,
+  sql,
+  getTableColumns,
+  asc,
+  ilike,
+  inArray,
+  type SQL,
+} from 'drizzle-orm';
+import { playwrightService } from './playwright-service';
+import { BrowserTaskError, browserTasks } from './browser-tasks';
 // Import schedulerService
-import loggerPromise, { updateLogLevel } from "./logger";
+import loggerPromise, { updateLogLevel } from './logger';
 
-import projectsRoutes from "./routes/projects.routes";
-import testsRoutes from "./routes/tests.routes";
-import catalogRoutes from "./routes/catalog.routes";
-import testPlansRoutes from "./routes/test-plans.routes";
-import uploadsRoutes from "./routes/uploads.routes";
-import reportsRoutes from "./routes/reports.routes";
-import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from "./routes/artifacts.routes";
-import apiKeysRoutes from "./routes/api-keys.routes";
-import serviceAccountsRoutes from "./routes/service-accounts.routes";
-import mfaRoutes from "./routes/mfa.routes";
-import ssoRoutes from "./routes/sso.routes";
-import testPublishingRoutes from "./routes/test-publishing.routes";
-import runnersRoutes from "./routes/runners.routes";
-import suitesRoutes from "./routes/suites.routes";
-import requirementsRoutes from "./routes/requirements.routes";
-import testDataRoutes from "./routes/test-data.routes";
-import impactRulesRoutes from "./routes/impact-rules.routes";
-import smsInboxRoutes from "./routes/sms-inbox.routes";
-import commentsRoutes from "./routes/comments.routes";
-import dashboardLayoutRoutes from "./routes/dashboard-layout.routes";
-import dashboardsRoutes from "./routes/dashboards.routes";
-import mailDeliveryRoutes, { mailDeliveryWebhookRouter } from "./routes/mail-delivery.routes";
+import projectsRoutes from './routes/projects.routes';
+import testsRoutes from './routes/tests.routes';
+import catalogRoutes from './routes/catalog.routes';
+import testPlansRoutes from './routes/test-plans.routes';
+import uploadsRoutes from './routes/uploads.routes';
+import reportsRoutes from './routes/reports.routes';
+import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from './routes/artifacts.routes';
+import apiKeysRoutes from './routes/api-keys.routes';
+import serviceAccountsRoutes from './routes/service-accounts.routes';
+import mfaRoutes from './routes/mfa.routes';
+import ssoRoutes from './routes/sso.routes';
+import testPublishingRoutes from './routes/test-publishing.routes';
+import runnersRoutes from './routes/runners.routes';
+import suitesRoutes from './routes/suites.routes';
+import requirementsRoutes from './routes/requirements.routes';
+import testDataRoutes from './routes/test-data.routes';
+import impactRulesRoutes from './routes/impact-rules.routes';
+import smsInboxRoutes from './routes/sms-inbox.routes';
+import commentsRoutes from './routes/comments.routes';
+import dashboardLayoutRoutes from './routes/dashboard-layout.routes';
+import dashboardsRoutes from './routes/dashboards.routes';
+import mailDeliveryRoutes, { mailDeliveryWebhookRouter } from './routes/mail-delivery.routes';
 import mailSettingsRoutes from './routes/mail-settings.routes';
 import mailTemplateRoutes from './routes/mail-templates.routes';
 import { mailProviderWebhookRouter } from './routes/mail-provider.routes';
-import testManagementRoutes from "./routes/test-management.routes";
-import mobileTestsRoutes from "./routes/mobile-tests.routes";
-import quarantineRoutes from "./routes/quarantine.routes";
-import { requireMfaEnrollment } from "./middleware/require-mfa-enrollment";
-import { requireSso } from "./middleware/require-sso";
-import apiV1Routes from "./routes/api-v1.routes";
-import cliRoutes from "./routes/cli.routes";
-import agentsRoutes from "./routes/agents.routes";
+import testManagementRoutes from './routes/test-management.routes';
+import mobileTestsRoutes from './routes/mobile-tests.routes';
+import quarantineRoutes from './routes/quarantine.routes';
+import { requireMfaEnrollment } from './middleware/require-mfa-enrollment';
+import { requireSso } from './middleware/require-sso';
+import apiV1Routes from './routes/api-v1.routes';
+import cliRoutes from './routes/cli.routes';
+import agentsRoutes from './routes/agents.routes';
 import bddRoutes from './routes/bdd.routes';
-import sourceHostsRoutes from "./routes/source-hosts.routes";
-import webhookManagementRoutes from "./routes/webhooks.routes";
-import stepGroupsRoutes from "./routes/step-groups.routes";
+import sourceHostsRoutes from './routes/source-hosts.routes';
+import webhookManagementRoutes from './routes/webhooks.routes';
+import stepGroupsRoutes from './routes/step-groups.routes';
 import mobileStepGroupsRoutes from './routes/mobile-step-groups.routes';
 import loadTestsRoutes from './routes/load-tests.routes';
-import customActionsRoutes from "./routes/custom-actions.routes";
-import manualResultsRoutes from "./routes/manual-results.routes";
-import failureAnalysisRoutes from "./routes/failure-analysis.routes";
-import debugSessionsRoutes from "./routes/debug-sessions.routes";
-import browserGridsRoutes from "./routes/browser-grids.routes";
-import { checkRunOn } from "./browser-grids";
-import projectElementsRoutes from "./routes/project-elements.routes";
-import nlAuthoringRoutes from "./routes/nl-authoring.routes";
-import tagsRoutes from "./routes/tags.routes";
-import { tagsOfTests, testIdsWithTags } from "./test-tags";
-import testVersionsRoutes from "./routes/test-versions.routes";
-import issueTrackersRoutes from "./routes/issue-trackers.routes";
-import issuesRoutes, { linkedIssuesFor } from "./routes/issues.routes";
-import { dedupeKeyFor } from "./issue-tracking";
-import authRoutes from "./routes/auth.routes";
-import observabilityRoutes from "./routes/observability.routes";
-import environmentRoutes from "./routes/environments.routes";
-import analyticsRoutes from "./routes/analytics.routes";
-import organizationRoutes from "./routes/organization.routes";
+import customActionsRoutes from './routes/custom-actions.routes';
+import manualResultsRoutes from './routes/manual-results.routes';
+import failureAnalysisRoutes from './routes/failure-analysis.routes';
+import debugSessionsRoutes from './routes/debug-sessions.routes';
+import browserGridsRoutes from './routes/browser-grids.routes';
+import { checkRunOn } from './browser-grids';
+import projectElementsRoutes from './routes/project-elements.routes';
+import nlAuthoringRoutes from './routes/nl-authoring.routes';
+import tagsRoutes from './routes/tags.routes';
+import { tagsOfTests, testIdsWithTags } from './test-tags';
+import testVersionsRoutes from './routes/test-versions.routes';
+import issueTrackersRoutes from './routes/issue-trackers.routes';
+import issuesRoutes, { linkedIssuesFor } from './routes/issues.routes';
+import { dedupeKeyFor } from './issue-tracking';
+import authRoutes from './routes/auth.routes';
+import observabilityRoutes from './routes/observability.routes';
+import environmentRoutes from './routes/environments.routes';
+import analyticsRoutes from './routes/analytics.routes';
+import organizationRoutes from './routes/organization.routes';
 import tenantQuotaAdminRoutes from './routes/tenant-quota-admin.routes';
-import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
-import { SharedDataError, expandSharedDataset } from "./test-data";
-import { sharedSetIdOf } from "@shared/test-data";
-import { apiKeyAuth } from "./middleware/api-key-auth";
-import { apiRateLimit } from "./middleware/rate-limits";
-import { requireInstallationAdmin } from "./installation-admin";
-import { runApiRequest } from "./api-test-runner";
+import { tenancyMiddleware, withTenantTransaction } from './middleware/tenancy';
+import { SharedDataError, expandSharedDataset } from './test-data';
+import { sharedSetIdOf } from '@shared/test-data';
+import { apiKeyAuth } from './middleware/api-key-auth';
+import { apiRateLimit } from './middleware/rate-limits';
+import { requireInstallationAdmin } from './installation-admin';
+import { runApiRequest } from './api-test-runner';
 import { withExecutionUsage } from './execution-usage';
 import { quotaErrorBody } from './tenant-quotas';
 import { ProtocolConfigSchema } from '@shared/api-protocol-config';
-import { defaultVariables, resolveVariables } from "./variables";
-import { redactHistoryEntry } from "./history-redaction";
-import { requireRole } from "./middleware/require-role";
-import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./routes/selected-tests";
+import { defaultVariables, resolveVariables } from './variables';
+import { redactHistoryEntry } from './history-redaction';
+import { requireRole } from './middleware/require-role';
+import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from './routes/selected-tests';
 
 export async function registerRoutes(app: Express): Promise<Server> {
-    const resolvedLogger = await loggerPromise;
+  const resolvedLogger = await loggerPromise;
 
   const loadWebsiteBodySchema = z.object({
-    url: z.string().url({ message: "Invalid URL" }),
+    url: z.string().url({ message: 'Invalid URL' }),
   });
 
   const proxyApiRequestBodySchema = z.object({
@@ -148,7 +159,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       )
       .optional()
       .nullable(),
-    binary: z.object({ contentType: z.string().optional().nullable(), base64: z.string() }).optional().nullable(),
+    binary: z
+      .object({ contentType: z.string().optional().nullable(), base64: z.string() })
+      .optional()
+      .nullable(),
     assertions: z.array(AssertionSchema).optional(),
     // Captured here as well as in a plan, so the tester can see what a request would hand
     // to the next one rather than finding out only when the plan runs.
@@ -166,7 +180,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     protocolConfig: ProtocolConfigSchema.optional().nullable(),
   });
 
-  const userSettingsBodySchema = createInsertSchema(userSettings).omit({ userId: true, updatedAt: true });
+  const userSettingsBodySchema = createInsertSchema(userSettings).omit({
+    userId: true,
+    updatedAt: true,
+  });
 
   const executeDirectTestSchema = z.object({
     name: z.string(),
@@ -186,56 +203,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     dataset: z.array(z.record(z.string())).optional().nullable(),
   });
 
-    // Auth First
-    setupAuth(app); // Attaches passport strategies
-    app.use(mailDeliveryWebhookRouter);
-    app.use(mailProviderWebhookRouter);
+  // Auth First
+  setupAuth(app); // Attaches passport strategies
+  app.use(mailDeliveryWebhookRouter);
+  app.use(mailProviderWebhookRouter);
 
-    // A request may authenticate as a person (the session passport just attached) or as a
-    // pipeline (an API key). This turns the second into the first, so everything after it —
-    // the tenancy binding, requireRole, every handler — has exactly one notion of who is
-    // calling, and no route has to be audited twice.
-    app.use(apiKeyAuth);
+  // A request may authenticate as a person (the session passport just attached) or as a
+  // pipeline (an API key). This turns the second into the first, so everything after it —
+  // the tenancy binding, requireRole, every handler — has exactly one notion of who is
+  // calling, and no route has to be audited twice.
+  app.use(apiKeyAuth);
 
-    // Machines are limited per minute: each API key, and anonymous calls to /api/v1
-    // (server/middleware/rate-limits.ts).
-    app.use(apiRateLimit());
+  // Machines are limited per minute: each API key, and anonymous calls to /api/v1
+  // (server/middleware/rate-limits.ts).
+  app.use(apiRateLimit());
 
-    // Before every router: establishes the ambient organization for the request, which
-    // withTenantTransaction requires and refuses to run without.
-    app.use(tenancyMiddleware);
+  // Before every router: establishes the ambient organization for the request, which
+  // withTenantTransaction requires and refuses to run without.
+  app.use(tenancyMiddleware);
 
-    // A password session of a member whose organization requires single sign-on ends here.
-    app.use(requireSso);
+  // A password session of a member whose organization requires single sign-on ends here.
+  app.use(requireSso);
 
-    // A member whose organization requires a second factor, and who has none, reaches only
-    // enrolment until they set one up.
-    app.use(requireMfaEnrollment);
+  // A member whose organization requires a second factor, and who has none, reaches only
+  // enrolment until they set one up.
+  app.use(requireMfaEnrollment);
 
-    // API Routers
-    // First: /api/v1 answers everything under it in its own words, including unknown paths.
-    app.use(cliRoutes);
-    app.use(agentsRoutes);
-    app.use(bddRoutes);
-    app.use(sourceHostsRoutes);
-    app.use(apiV1Routes);
-    app.use(authRoutes);
-    app.use(organizationRoutes);
-    app.use(tenantQuotaAdminRoutes);
-    app.use(projectsRoutes);
-    app.use(testsRoutes);
-    app.use(catalogRoutes);
-    app.use(testPlansRoutes);
-    app.use(uploadsRoutes);
-    app.use(reportsRoutes);
-    app.use(artifactsRoutes);
-    app.use(apiKeysRoutes);
-    app.use(serviceAccountsRoutes);
-    app.use(mfaRoutes);
-    app.use(ssoRoutes);
-    app.use(testPublishingRoutes);
-    app.use(runnersRoutes);
-    app.use(suitesRoutes);
+  // API Routers
+  // First: /api/v1 answers everything under it in its own words, including unknown paths.
+  app.use(cliRoutes);
+  app.use(agentsRoutes);
+  app.use(bddRoutes);
+  app.use(sourceHostsRoutes);
+  app.use(apiV1Routes);
+  app.use(authRoutes);
+  app.use(organizationRoutes);
+  app.use(tenantQuotaAdminRoutes);
+  app.use(projectsRoutes);
+  app.use(testsRoutes);
+  app.use(catalogRoutes);
+  app.use(testPlansRoutes);
+  app.use(uploadsRoutes);
+  app.use(reportsRoutes);
+  app.use(artifactsRoutes);
+  app.use(apiKeysRoutes);
+  app.use(serviceAccountsRoutes);
+  app.use(mfaRoutes);
+  app.use(ssoRoutes);
+  app.use(testPublishingRoutes);
+  app.use(runnersRoutes);
+  app.use(suitesRoutes);
   app.use(requirementsRoutes);
   app.use(testDataRoutes);
   app.use(impactRulesRoutes);
@@ -250,77 +267,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(mobileTestsRoutes);
   app.use(mobileStepGroupsRoutes);
   app.use(loadTestsRoutes);
-    app.use(quarantineRoutes);
-    app.use(webhookManagementRoutes);
-    app.use(stepGroupsRoutes);
-    app.use(customActionsRoutes);
-    app.use(manualResultsRoutes);
-    app.use(failureAnalysisRoutes);
-    app.use(debugSessionsRoutes);
-    app.use(browserGridsRoutes);
-    app.use(projectElementsRoutes);
-    app.use(nlAuthoringRoutes);
-    app.use(tagsRoutes);
-    app.use(testVersionsRoutes);
-    app.use(issueTrackersRoutes);
-    app.use(issuesRoutes);
-    app.use(observabilityRoutes);
-    app.use(environmentRoutes);
-    app.use(analyticsRoutes);
+  app.use(quarantineRoutes);
+  app.use(webhookManagementRoutes);
+  app.use(stepGroupsRoutes);
+  app.use(customActionsRoutes);
+  app.use(manualResultsRoutes);
+  app.use(failureAnalysisRoutes);
+  app.use(debugSessionsRoutes);
+  app.use(browserGridsRoutes);
+  app.use(projectElementsRoutes);
+  app.use(nlAuthoringRoutes);
+  app.use(tagsRoutes);
+  app.use(testVersionsRoutes);
+  app.use(issueTrackersRoutes);
+  app.use(issuesRoutes);
+  app.use(observabilityRoutes);
+  app.use(environmentRoutes);
+  app.use(analyticsRoutes);
 
-  app.post("/api/load-website", requireRole('editor'), async (req, res) => {
-    resolvedLogger.http(`POST /api/load-website - Handler reached. UserId: ${(req.user as any)?.id}`);
-    resolvedLogger.debug({ message: "POST /api/load-website - Request body:", body: req.body });
+  app.post('/api/load-website', requireRole('editor'), async (req, res) => {
+    resolvedLogger.http(
+      `POST /api/load-website - Handler reached. UserId: ${(req.user as any)?.id}`,
+    );
+    resolvedLogger.debug({ message: 'POST /api/load-website - Request body:', body: req.body });
 
     const parseResult = loadWebsiteBodySchema.safeParse(req.body);
 
     if (!parseResult.success) {
-      resolvedLogger.warn({ message: "POST /api/load-website - Invalid request body", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
-      return res.status(400).json({ success: false, error: 'Invalid request payload', details: parseResult.error.flatten() });
+      resolvedLogger.warn({
+        message: 'POST /api/load-website - Invalid request body',
+        errors: parseResult.error.flatten(),
+        userId: (req.user as any)?.id,
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request payload',
+        details: parseResult.error.flatten(),
+      });
     }
 
     const { url } = parseResult.data;
     const userId = (req.user as any)?.id as number | undefined;
 
     try {
-      resolvedLogger.debug({ message: `POST /api/load-website - Submitting the page load`, url, userId });
-      const result = await browserTasks.run<Awaited<ReturnType<typeof playwrightService.loadWebsite>>>({
+      resolvedLogger.debug({
+        message: `POST /api/load-website - Submitting the page load`,
+        url,
+        userId,
+      });
+      const result = await browserTasks.run<
+        Awaited<ReturnType<typeof playwrightService.loadWebsite>>
+      >({
         task: { kind: 'load-website', url },
         userId: req.user!.id,
         organizationId: req.user!.organizationId,
       });
-      resolvedLogger.debug({ message: `POST /api/load-website - playwrightService.loadWebsite returned`, success: result?.success, url, userId });
+      resolvedLogger.debug({
+        message: `POST /api/load-website - playwrightService.loadWebsite returned`,
+        success: result?.success,
+        url,
+        userId,
+      });
 
       if (result.success) {
         res.json({ success: true, screenshot: result.screenshot, html: result.html });
       } else {
-        resolvedLogger.error({ message: `POST /api/load-website - playwrightService.loadWebsite failed`, error: result.error, url, userId });
-        res.status(500).json({ success: false, error: result.error || 'Failed to load website using Playwright service.' });
+        resolvedLogger.error({
+          message: `POST /api/load-website - playwrightService.loadWebsite failed`,
+          error: result.error,
+          url,
+          userId,
+        });
+        res.status(500).json({
+          success: false,
+          error: result.error || 'Failed to load website using Playwright service.',
+        });
       }
     } catch (error: any) {
       const quota = quotaErrorBody(error);
       if (quota) return res.status(429).json(quota);
       if (error instanceof BrowserTaskError) {
-        return res.status(error.status).json({ success: false, error: error.message, code: error.code });
+        return res
+          .status(error.status)
+          .json({ success: false, error: error.message, code: error.code });
       }
-      resolvedLogger.error({ message: "POST /api/load-website - Critical error in route handler", error: error.message, stack: error.stack, url, userId });
+      resolvedLogger.error({
+        message: 'POST /api/load-website - Critical error in route handler',
+        error: error.message,
+        stack: error.stack,
+        url,
+        userId,
+      });
       const errorMessage = error instanceof Error ? error.message : 'Unknown internal server error';
       res.status(500).json({ success: false, error: `Internal server error: ${errorMessage}` });
     }
   });
 
-  app.post("/api/proxy-api-request", requireRole('editor'), async (req, res) => {
+  app.post('/api/proxy-api-request', requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const parseResult = proxyApiRequestBodySchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.warn({ message: "POST /api/proxy-api-request - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
-      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
+      resolvedLogger.warn({
+        message: 'POST /api/proxy-api-request - Invalid payload',
+        errors: parseResult.error.flatten(),
+        userId: (req.user as any)?.id,
+      });
+      return res
+        .status(400)
+        .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
     }
 
-    const { method, url, queryParams, headers, body, multipart, binary, assertions, extractions, auth, environmentId, protoDefinition, protocolConfig } = parseResult.data;
+    const {
+      method,
+      url,
+      queryParams,
+      headers,
+      body,
+      multipart,
+      binary,
+      assertions,
+      extractions,
+      auth,
+      environmentId,
+      protoDefinition,
+      protocolConfig,
+    } = parseResult.data;
 
     // The environment supplies the variables here exactly as it does for a scheduled run,
     // so a request that works in the tester works in a plan. Its id is the caller's; the
@@ -336,18 +410,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // `Math.random() > 0.2` in place of executing anything at all.
     let result: Awaited<ReturnType<typeof runApiRequest>>;
     try {
-      result = await withExecutionUsage('api', () => runApiRequest(
-        { method, url, queryParams, headers, body, multipart, binary, assertions, extractions, auth, protoDefinition, protocolConfig }, vars,
-      ));
+      result = await withExecutionUsage('api', () =>
+        runApiRequest(
+          {
+            method,
+            url,
+            queryParams,
+            headers,
+            body,
+            multipart,
+            binary,
+            assertions,
+            extractions,
+            auth,
+            protoDefinition,
+            protocolConfig,
+          },
+          vars,
+        ),
+      );
     } catch (error) {
       const quota = quotaErrorBody(error);
       if (quota) return res.status(429).json(quota);
-      resolvedLogger.error({ message: 'Direct API execution failed', error: (error as Error).message });
+      resolvedLogger.error({
+        message: 'Direct API execution failed',
+        error: (error as Error).message,
+      });
       return res.status(500).json({ error: 'The API request could not be executed.' });
     }
 
     if (result.error) {
-      resolvedLogger.error("Error in /api/proxy-api-request:", { error: result.error, url, method });
+      resolvedLogger.error('Error in /api/proxy-api-request:', {
+        error: result.error,
+        url,
+        method,
+      });
       return res.status(500).json({
         success: false,
         error: result.error,
@@ -370,35 +467,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-
   const detectElementsBodySchema = z.object({
-    url: z.string().url({ message: "Invalid URL for element detection" }),
+    url: z.string().url({ message: 'Invalid URL for element detection' }),
   });
-  app.post("/api/detect-elements", requireRole('editor'), async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) { // Ensure user is authenticated
-      return res.status(401).json({ success: false, error: "Unauthorized" });
+  app.post('/api/detect-elements', requireRole('editor'), async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      // Ensure user is authenticated
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
     const parseResult = detectElementsBodySchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.warn({ message: "POST /api/detect-elements - Invalid request body", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
-      return res.status(400).json({ success: false, error: "Invalid request payload", details: parseResult.error.flatten() });
+      resolvedLogger.warn({
+        message: 'POST /api/detect-elements - Invalid request body',
+        errors: parseResult.error.flatten(),
+        userId: (req.user as any)?.id,
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request payload',
+        details: parseResult.error.flatten(),
+      });
     }
     const { url } = parseResult.data;
     const userId = (req.user as any)?.id as number | undefined;
 
-    resolvedLogger.http(`POST /api/detect-elements - Handler reached. URL: ${url}, UserID: ${userId}`);
-    resolvedLogger.debug({ message: "POST /api/detect-elements - Request body:", body: req.body });
-
+    resolvedLogger.http(
+      `POST /api/detect-elements - Handler reached. URL: ${url}, UserID: ${userId}`,
+    );
+    resolvedLogger.debug({ message: 'POST /api/detect-elements - Request body:', body: req.body });
 
     try {
-      resolvedLogger.debug({ message: `POST /api/detect-elements - Submitting the element survey`, url, userId });
-      const detection = await browserTasks.run<Awaited<ReturnType<typeof playwrightService.detectElements>>>({
+      resolvedLogger.debug({
+        message: `POST /api/detect-elements - Submitting the element survey`,
+        url,
+        userId,
+      });
+      const detection = await browserTasks.run<
+        Awaited<ReturnType<typeof playwrightService.detectElements>>
+      >({
         task: { kind: 'detect-elements', url },
         userId: req.user.id,
         organizationId: req.user.organizationId,
       });
-      resolvedLogger.debug({ message: `POST /api/detect-elements - playwrightService.detectElements returned`, elementCount: detection.elements.length, url, userId });
+      resolvedLogger.debug({
+        message: `POST /api/detect-elements - playwrightService.detectElements returned`,
+        elementCount: detection.elements.length,
+        url,
+        userId,
+      });
 
       // The screenshot travels with the elements so the preview and the boxes drawn on it
       // come from one page load. `summary` lets the panel say "showing 300 of 812" rather
@@ -413,24 +530,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const quota = quotaErrorBody(error);
       if (quota) return res.status(429).json(quota);
       if (error instanceof BrowserTaskError) {
-        return res.status(error.status).json({ success: false, error: error.message, code: error.code });
+        return res
+          .status(error.status)
+          .json({ success: false, error: error.message, code: error.code });
       }
-      resolvedLogger.error({ message: "POST /api/detect-elements - Error in route handler", error: error.message, stack: error.stack, url, userId });
+      resolvedLogger.error({
+        message: 'POST /api/detect-elements - Error in route handler',
+        error: error.message,
+        stack: error.stack,
+        url,
+        userId,
+      });
       const errorMessage = error instanceof Error ? error.message : 'Unknown internal server error';
-      res.status(500).json({ success: false, error: `Internal server error during element detection: ${errorMessage}` });
+      res.status(500).json({
+        success: false,
+        error: `Internal server error during element detection: ${errorMessage}`,
+      });
     }
   });
 
-  app.delete("/api/projects/:projectId", requireRole('editor'), async (req, res) => {
+  app.delete('/api/projects/:projectId', requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     const userId = req.user.id;
     const projectIdString = req.params.projectId;
     const parsedProjectId = parseInt(projectIdString, 10);
 
     if (isNaN(parsedProjectId)) {
-      return res.status(400).json({ error: "Invalid project ID format." });
+      return res.status(400).json({ error: 'Invalid project ID format.' });
     }
 
     try {
@@ -461,28 +589,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!deleted) {
-        return res.status(404).json({ error: "Project not found or not owned by user." });
+        return res.status(404).json({ error: 'Project not found or not owned by user.' });
       }
 
       res.status(204).send();
-
     } catch (error: any) {
       resolvedLogger.error({
         message: `Error deleting project ${parsedProjectId} for user ${userId}`,
         error: error.message,
         stack: error.stack,
       });
-      res.status(500).json({ error: "Failed to delete project due to a server error." });
+      res.status(500).json({ error: 'Failed to delete project due to a server error.' });
     }
   });
 
-  app.get("/api/settings", requireRole('viewer'), async (req, res) => {
+  app.get('/api/settings', requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     try {
-      const settings = await privilegedDb.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
+      const settings = await privilegedDb
+        .select()
+        .from(userSettings)
+        .where(eq(userSettings.userId, req.user.id))
+        .limit(1);
 
       if (settings.length > 0) {
         return res.json(settings[0]);
@@ -490,86 +621,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // No settings found, create default settings
         const defaultSettings = {
           userId: req.user.id,
-          theme: "light",
-          defaultTestUrl: "",
-          playwrightBrowser: "chromium",
+          theme: 'light',
+          defaultTestUrl: '',
+          playwrightBrowser: 'chromium',
           playwrightHeadless: true,
           playwrightDefaultTimeout: 30000,
           playwrightWaitTime: 1000,
-          language: "en",
+          language: 'en',
         };
 
-        const newSettings = await privilegedDb.insert(userSettings).values(defaultSettings).returning();
+        const newSettings = await privilegedDb
+          .insert(userSettings)
+          .values(defaultSettings)
+          .returning();
         return res.json(newSettings[0]);
       }
     } catch (error: any) {
-      resolvedLogger.error({ message: "Failed to fetch user settings", userId: (req.user as any)?.id, error: error.message, stack: error.stack });
-      return res.status(500).json({ error: "Failed to fetch settings" });
+      resolvedLogger.error({
+        message: 'Failed to fetch user settings',
+        userId: (req.user as any)?.id,
+        error: error.message,
+        stack: error.stack,
+      });
+      return res.status(500).json({ error: 'Failed to fetch settings' });
     }
   });
 
-  app.post("/api/settings", requireRole('viewer'), async (req, res) => {
+  app.post('/api/settings', requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const parseResult = userSettingsBodySchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.warn({ message: "POST /api/settings - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
-      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
+      resolvedLogger.warn({
+        message: 'POST /api/settings - Invalid payload',
+        errors: parseResult.error.flatten(),
+        userId: (req.user as any)?.id,
+      });
+      return res
+        .status(400)
+        .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
     }
 
     try {
-      const existingSettings = await privilegedDb.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
+      const existingSettings = await privilegedDb
+        .select()
+        .from(userSettings)
+        .where(eq(userSettings.userId, req.user.id))
+        .limit(1);
 
       if (existingSettings.length > 0) {
         // Update existing settings
-        const updatedSettings = await privilegedDb.update(userSettings)
+        const updatedSettings = await privilegedDb
+          .update(userSettings)
           .set({ ...parseResult.data, updatedAt: new Date() })
           .where(eq(userSettings.userId, req.user.id))
           .returning();
         return res.json(updatedSettings[0]);
       } else {
         // Insert new settings
-        const newSettings = await privilegedDb.insert(userSettings)
+        const newSettings = await privilegedDb
+          .insert(userSettings)
           .values({ ...parseResult.data, userId: req.user.id })
           .returning();
         return res.json(newSettings[0]);
       }
     } catch (error: any) {
-      resolvedLogger.error({ message: "Failed to save user settings", userId: (req.user as any)?.id, error: error.message, stack: error.stack, body: req.body });
-      return res.status(500).json({ error: "Failed to save settings" });
+      resolvedLogger.error({
+        message: 'Failed to save user settings',
+        userId: (req.user as any)?.id,
+        error: error.message,
+        stack: error.stack,
+        body: req.body,
+      });
+      return res.status(500).json({ error: 'Failed to save settings' });
     }
   });
 
-  app.post("/api/execute-test-direct", requireRole('editor'), async (req, res) => {
+  app.post('/api/execute-test-direct', requireRole('editor'), async (req, res) => {
     const userId = (req.user as any)?.id;
-    resolvedLogger.http({ message: "POST /api/execute-test-direct - Handler Reached.", userId });
-    resolvedLogger.debug({ message: "POST /api/execute-test-direct - Request body:", body: req.body, userId });
+    resolvedLogger.http({ message: 'POST /api/execute-test-direct - Handler Reached.', userId });
+    resolvedLogger.debug({
+      message: 'POST /api/execute-test-direct - Request body:',
+      body: req.body,
+      userId,
+    });
 
     if (!req.isAuthenticated() || !userId) {
-      resolvedLogger.warn({ message: "POST /api/execute-test-direct - Unauthorized access attempt.", userId });
-      return res.status(401).json({ success: false, error: "Unauthorized" });
+      resolvedLogger.warn({
+        message: 'POST /api/execute-test-direct - Unauthorized access attempt.',
+        userId,
+      });
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
     const parseResult = executeDirectTestSchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.warn({ message: "POST /api/execute-test-direct - Invalid request payload", errors: parseResult.error.flatten(), userId });
-      return res.status(400).json({ success: false, error: "Invalid request payload", details: parseResult.error.flatten() });
+      resolvedLogger.warn({
+        message: 'POST /api/execute-test-direct - Invalid request payload',
+        errors: parseResult.error.flatten(),
+        userId,
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request payload',
+        details: parseResult.error.flatten(),
+      });
     }
 
     // A test running over a shared data set runs over its rows here too (shared/test-data.ts).
     let payload: typeof parseResult.data = parseResult.data;
     try {
-      if (sharedSetIdOf(payload.dataset) !== null) payload = await withTenantTransaction((tx) => expandSharedDataset(tx, parseResult.data));
+      if (sharedSetIdOf(payload.dataset) !== null)
+        payload = await withTenantTransaction((tx) => expandSharedDataset(tx, parseResult.data));
     } catch (error) {
-      if (error instanceof SharedDataError) return res.status(400).json({ success: false, error: error.message });
+      if (error instanceof SharedDataError)
+        return res.status(400).json({ success: false, error: error.message });
       throw error;
     }
     let resultFromService: any; // Keep it flexible to hold partial results in case of error
 
     try {
-      resolvedLogger.debug({ message: "POST /api/execute-test-direct - Calling playwrightService.executeAdhocSequence.", userId, testName: payload.name });
+      resolvedLogger.debug({
+        message: 'POST /api/execute-test-direct - Calling playwrightService.executeAdhocSequence.',
+        userId,
+        testName: payload.name,
+      });
       // organizationId comes from the session, not the payload: the schema does not accept
       // it, so a client cannot name a tenant whose environment secrets it would resolve.
       resultFromService = await browserTasks.run({
@@ -577,8 +755,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         organizationId: (req.user as any).organizationId,
       });
-      resolvedLogger.debug({ message: "POST /api/execute-test-direct - playwrightService.executeAdhocSequence returned.", userId, testName: payload.name, serviceSuccess: resultFromService?.success });
-      resolvedLogger.debug({ message: "POST /api/execute-test-direct - Result from service:", result: resultFromService, userId });
+      resolvedLogger.debug({
+        message: 'POST /api/execute-test-direct - playwrightService.executeAdhocSequence returned.',
+        userId,
+        testName: payload.name,
+        serviceSuccess: resultFromService?.success,
+      });
+      resolvedLogger.debug({
+        message: 'POST /api/execute-test-direct - Result from service:',
+        result: resultFromService,
+        userId,
+      });
 
       // Ensure that even if executeAdhocSequence returns a non-standard error structure, we handle it
       if (typeof resultFromService?.success === 'boolean') {
@@ -586,26 +773,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // This case implies executeAdhocSequence might have thrown an error that was caught by the outer try-catch
         // or returned an unexpected structure.
-        resolvedLogger.error({ message: "POST /api/execute-test-direct - Unexpected structure from playwrightService.executeAdhocSequence.", resultFromService, userId, testName: payload.name });
+        resolvedLogger.error({
+          message:
+            'POST /api/execute-test-direct - Unexpected structure from playwrightService.executeAdhocSequence.',
+          resultFromService,
+          userId,
+          testName: payload.name,
+        });
         res.status(500).json({
           success: false,
-          error: "Internal server error: Unexpected response from test execution service.",
+          error: 'Internal server error: Unexpected response from test execution service.',
           steps: [],
           detection: undefined,
-          duration: 0
+          duration: 0,
         });
       }
     } catch (error: any) {
       const quota = quotaErrorBody(error);
       if (quota) return res.status(429).json(quota);
       if (error instanceof BrowserTaskError && !res.headersSent) {
-        res.status(error.status).json({ success: false, error: error.message, code: error.code, steps: [], duration: 0 });
+        res
+          .status(error.status)
+          .json({ success: false, error: error.message, code: error.code, steps: [], duration: 0 });
         return;
       }
-      resolvedLogger.error({ message: `POST /api/execute-test-direct - ERROR during playwrightService.executeAdhocSequence call or response sending`, error: error.message, stack: error.stack, userId, testName: payload.name });
+      resolvedLogger.error({
+        message: `POST /api/execute-test-direct - ERROR during playwrightService.executeAdhocSequence call or response sending`,
+        error: error.message,
+        stack: error.stack,
+        userId,
+        testName: payload.name,
+      });
       const responseError = {
         success: false,
-        error: "Error executing test sequence: " + error.message,
+        error: 'Error executing test sequence: ' + error.message,
         steps: resultFromService?.steps || [],
         detectedElements: resultFromService?.detectedElements || [],
         duration: resultFromService?.duration || 0,
@@ -615,9 +816,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } finally {
       const logData: any = {
-        message: "POST /api/execute-test-direct - Handler complete.",
+        message: 'POST /api/execute-test-direct - Handler complete.',
         userId,
-        testName: payload.name
+        testName: payload.name,
       };
       if (resultFromService) {
         logData.overallSuccess = resultFromService.success;
@@ -630,9 +831,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       resolvedLogger.http(logData);
 
       resolvedLogger.debug({
-        message: "POST /api/execute-test-direct - Full response that was/would be sent:",
-        responseDetails: resultFromService || "Error response sent in catch block or resultFromService was undefined",
-        userId
+        message: 'POST /api/execute-test-direct - Full response that was/would be sent:',
+        responseDetails:
+          resultFromService ||
+          'Error response sent in catch block or resultFromService was undefined',
+        userId,
       });
     }
   });
@@ -646,9 +849,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
    * is whether it has a display at all — a Linux container without DISPLAY never will — so
    * the UI can disable the button with a real reason instead of failing at launch time.
    */
-  app.get("/api/recording-capability", requireRole('viewer'), async (req, res) => {
+  app.get('/api/recording-capability', requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const headlessOnly = process.platform === 'linux' && !process.env.DISPLAY;
@@ -661,65 +864,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.post("/api/start-recording", requireRole('editor'), async (req, res) => {
+  app.post('/api/start-recording', requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     const startRecordingSchema = z.object({
-      url: z.string().url("Invalid URL format")
+      url: z.string().url('Invalid URL format'),
     });
-    
+
     const parseResult = startRecordingSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ 
-        error: "Invalid request data", 
-        details: parseResult.error.flatten() 
+      return res.status(400).json({
+        error: 'Invalid request data',
+        details: parseResult.error.flatten(),
       });
     }
-    
+
     try {
       const { url } = parseResult.data;
       const result = await playwrightService.startRecordingSession(url, req.user.id);
-      
+
       if (result.success) {
-        res.json({ 
-          success: true, 
-          sessionId: result.sessionId 
+        res.json({
+          success: true,
+          sessionId: result.sessionId,
         });
       } else {
-        res.status(500).json({ 
-          success: false, 
-          error: result.error || "Failed to start recording session" 
+        res.status(500).json({
+          success: false,
+          error: result.error || 'Failed to start recording session',
         });
       }
     } catch (error: any) {
-      resolvedLogger.error({ message: "Error starting recording session", error: error.message, stack: error.stack, url: req.body?.url, userId: (req.user as any)?.id });
-      res.status(500).json({ 
-        success: false, 
-        error: "Internal server error" 
+      resolvedLogger.error({
+        message: 'Error starting recording session',
+        error: error.message,
+        stack: error.stack,
+        url: req.body?.url,
+        userId: (req.user as any)?.id,
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
       });
     }
   });
-  
+
   /**
    * Saves the recorder browser's current session against an environment.
    *
    * Called after the tester has signed in inside the recorder window, so runs against that
    * environment start authenticated instead of replaying the login every time.
    */
-  app.post("/api/recording-login-state", requireRole('editor'), async (req, res) => {
+  app.post('/api/recording-login-state', requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const schema = z.object({
-      sessionId: z.string().min(1, "Session ID is required"),
+      sessionId: z.string().min(1, 'Session ID is required'),
       environmentId: z.number().int().positive(),
     });
     const parseResult = schema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ error: "Invalid request data", details: parseResult.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid request data', details: parseResult.error.flatten() });
     }
 
     try {
@@ -734,33 +945,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!saved) {
         return res.status(404).json({
           success: false,
-          error: "That recording session is not open, so there was no browser session to save.",
+          error: 'That recording session is not open, so there was no browser session to save.',
         });
       }
       res.json({ success: true });
     } catch (error: any) {
-      resolvedLogger.error({ message: "Error capturing login state", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ success: false, error: "Failed to save the login state" });
+      resolvedLogger.error({
+        message: 'Error capturing login state',
+        error: error.message,
+        stack: error.stack,
+        userId: (req.user as any)?.id,
+      });
+      res.status(500).json({ success: false, error: 'Failed to save the login state' });
     }
   });
 
-  app.post("/api/stop-recording", requireRole('editor'), async (req, res) => {
+  app.post('/api/stop-recording', requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const stopRecordingSchema = z.object({
-      sessionId: z.string().min(1, "Session ID is required")
+      sessionId: z.string().min(1, 'Session ID is required'),
     });
-    
+
     const parseResult = stopRecordingSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ 
-        error: "Invalid request data", 
-        details: parseResult.error.flatten() 
+      return res.status(400).json({
+        error: 'Invalid request data',
+        details: parseResult.error.flatten(),
       });
     }
-    
+
     try {
       const { sessionId } = parseResult.data;
       const result = await playwrightService.stopRecordingSession(sessionId, req.user.id);
@@ -768,40 +984,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.success) {
         res.json({
           success: true,
-          sequence: result.sequence || []
+          sequence: result.sequence || [],
         });
       } else {
-        res.status(404).json({ 
-          success: false, 
-          error: result.error || "Recording session not found" 
+        res.status(404).json({
+          success: false,
+          error: result.error || 'Recording session not found',
         });
       }
     } catch (error: any) {
-      resolvedLogger.error({ message: "Error stopping recording session", error: error.message, stack: error.stack, sessionId: req.body?.sessionId, userId: (req.user as any)?.id });
-      res.status(500).json({ 
-        success: false, 
-        error: "Internal server error" 
+      resolvedLogger.error({
+        message: 'Error stopping recording session',
+        error: error.message,
+        stack: error.stack,
+        sessionId: req.body?.sessionId,
+        userId: (req.user as any)?.id,
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
       });
     }
   });
-  
-  app.get("/api/get-recorded-actions", requireRole('editor'), async (req, res) => {
+
+  app.get('/api/get-recorded-actions', requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     const getRecordedActionsSchema = z.object({
-      sessionId: z.string().min(1, "Session ID is required")
+      sessionId: z.string().min(1, 'Session ID is required'),
     });
-    
+
     const parseResult = getRecordedActionsSchema.safeParse(req.query);
     if (!parseResult.success) {
-      return res.status(400).json({ 
-        error: "Invalid request data", 
-        details: parseResult.error.flatten() 
+      return res.status(400).json({
+        error: 'Invalid request data',
+        details: parseResult.error.flatten(),
       });
     }
-    
+
     try {
       const { sessionId } = parseResult.data;
       const result = await playwrightService.getRecordedActions(sessionId, req.user.id);
@@ -821,45 +1043,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: false,
           sequence: [],
           sessionEnded: result.sessionEnded || false,
-          error: result.error || "Recording session not found"
+          error: result.error || 'Recording session not found',
         });
       }
     } catch (error: any) {
-      resolvedLogger.error({ message: "Error getting recorded actions", error: error.message, stack: error.stack, sessionId: req.query?.sessionId, userId: (req.user as any)?.id });
-      res.status(500).json({ 
-        success: false, 
-        error: "Internal server error" 
+      resolvedLogger.error({
+        message: 'Error getting recorded actions',
+        error: error.message,
+        stack: error.stack,
+        sessionId: req.query?.sessionId,
+        userId: (req.user as any)?.id,
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
       });
     }
   });
 
   // --- API Test History Endpoints ---
-  app.post("/api/api-test-history", requireRole('editor'), async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
+  app.post('/api/api-test-history', requireRole('editor'), async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const parseResult = insertApiTestHistorySchema.safeParse(req.body);
-    if (!parseResult.success) { resolvedLogger.warn({ message: "POST /api/api-test-history - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid history data", details: parseResult.error.flatten() }); }
+    if (!parseResult.success) {
+      resolvedLogger.warn({
+        message: 'POST /api/api-test-history - Invalid payload',
+        errors: parseResult.error.flatten(),
+        userId: (req.user as any)?.id,
+      });
+      return res
+        .status(400)
+        .json({ error: 'Invalid history data', details: parseResult.error.flatten() });
+    }
     try {
       // The environment the request ran in, so its values can be taken back out of what is
       // stored. Only the environment's own values: the defaults (baseUrl) are configuration,
       // not secrets, and replacing them would only make entries harder to read.
       const environmentId = Number(req.body?.environmentId);
-      const resolved = Number.isInteger(environmentId) && environmentId > 0
-        ? await resolveVariables({ userId: req.user.id, organizationId: req.user.organizationId, environmentId })
-        : {};
+      const resolved =
+        Number.isInteger(environmentId) && environmentId > 0
+          ? await resolveVariables({
+              userId: req.user.id,
+              organizationId: req.user.organizationId,
+              environmentId,
+            })
+          : {};
       const defaults = defaultVariables();
       const environmentValues = Object.fromEntries(
         Object.entries(resolved).filter(([name, value]) => defaults[name] !== value),
       );
       const entry = redactHistoryEntry(parseResult.data, environmentValues);
       const newHistoryEntry = await withTenantTransaction((tx) =>
-        tx.insert(apiTestHistory).values({ ...entry, userId: req.user!.id, organizationId: req.user!.organizationId }).returning(),
+        tx
+          .insert(apiTestHistory)
+          .values({ ...entry, userId: req.user!.id, organizationId: req.user!.organizationId })
+          .returning(),
       );
       res.status(201).json(newHistoryEntry[0]);
-    } catch (error: any) { resolvedLogger.error({ message: "Error creating API test history entry", error: error.message, stack: error.stack, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to save API test history" }); }
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: 'Error creating API test history entry',
+        error: error.message,
+        stack: error.stack,
+        userId: (req.user as any)?.id,
+      });
+      res.status(500).json({ error: 'Failed to save API test history' });
+    }
   });
 
-  app.get("/api/api-test-history", requireRole('viewer'), async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
+  app.get('/api/api-test-history', requireRole('viewer'), async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = (page - 1) * limit;
@@ -867,37 +1124,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Both inside one tenant transaction: RLS bounds them to the caller's organization, and
       // the count must be taken under the same binding as the page it describes.
       const { historyEntries, totalResult } = await withTenantTransaction(async (tx) => ({
-        historyEntries: await tx.select().from(apiTestHistory).where(eq(apiTestHistory.userId, req.user!.id)).orderBy(desc(apiTestHistory.createdAt)).limit(limit).offset(offset),
-        totalResult: await tx.select({ count: sql`count(*)` }).from(apiTestHistory).where(eq(apiTestHistory.userId, req.user!.id)),
+        historyEntries: await tx
+          .select()
+          .from(apiTestHistory)
+          .where(eq(apiTestHistory.userId, req.user!.id))
+          .orderBy(desc(apiTestHistory.createdAt))
+          .limit(limit)
+          .offset(offset),
+        totalResult: await tx
+          .select({ count: sql`count(*)` })
+          .from(apiTestHistory)
+          .where(eq(apiTestHistory.userId, req.user!.id)),
       }));
       const total = totalResult[0]?.count || 0;
-      res.json({ items: historyEntries, page, limit, totalItems: Number(total), totalPages: Math.ceil(Number(total) / limit) });
-    } catch (error: any) { resolvedLogger.error({ message: "Error fetching API test history", error: error.message, stack: error.stack, userId: (req.user as any)?.id, query: req.query }); res.status(500).json({ error: "Failed to fetch API test history" }); }
+      res.json({
+        items: historyEntries,
+        page,
+        limit,
+        totalItems: Number(total),
+        totalPages: Math.ceil(Number(total) / limit),
+      });
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: 'Error fetching API test history',
+        error: error.message,
+        stack: error.stack,
+        userId: (req.user as any)?.id,
+        query: req.query,
+      });
+      res.status(500).json({ error: 'Failed to fetch API test history' });
+    }
   });
 
-  app.delete("/api/api-test-history/:id", requireRole('editor'), async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
+  app.delete('/api/api-test-history/:id', requireRole('editor'), async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const id = parseInt(req.params.id);
-    if (isNaN(id)) { return res.status(400).json({ error: "Invalid history ID" }); }
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid history ID' });
+    }
     try {
       const result = await withTenantTransaction((tx) =>
-        tx.delete(apiTestHistory).where(and(eq(apiTestHistory.id, id), eq(apiTestHistory.userId, req.user!.id))).returning(),
+        tx
+          .delete(apiTestHistory)
+          .where(and(eq(apiTestHistory.id, id), eq(apiTestHistory.userId, req.user!.id)))
+          .returning(),
       );
-      if (result.length === 0) { return res.status(404).json({ error: "History entry not found or not owned by user" }); }
+      if (result.length === 0) {
+        return res.status(404).json({ error: 'History entry not found or not owned by user' });
+      }
       res.status(204).send();
-    } catch (error: any) { resolvedLogger.error({ message: `Error deleting API test history entry ${id}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to delete history entry" }); }
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: `Error deleting API test history entry ${id}`,
+        error: error.message,
+        stack: error.stack,
+        userId: (req.user as any)?.id,
+      });
+      res.status(500).json({ error: 'Failed to delete history entry' });
+    }
   });
 
   // --- Test Plan Schedules API Endpoints (formerly /api/schedules) ---
 
   // GET /api/test-plan-schedules/plan/:planId - List schedules for a specific test plan
-  app.get("/api/test-plan-schedules/plan/:planId", requireRole('viewer'), async (req, res) => {
+  app.get('/api/test-plan-schedules/plan/:planId', requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     const { planId } = req.params;
     if (!planId) {
-      return res.status(400).json({ error: "Test Plan ID is required." });
+      return res.status(400).json({ error: 'Test Plan ID is required.' });
     }
 
     try {
@@ -918,20 +1216,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const parsedResults = result.map((schedule: any) => ({
         ...schedule,
-        browsers: typeof schedule.browsers === 'string' ? JSON.parse(schedule.browsers) : schedule.browsers,
-        notificationConfigOverride: typeof schedule.notificationConfigOverride === 'string' ? JSON.parse(schedule.notificationConfigOverride) : schedule.notificationConfigOverride,
-        executionParameters: typeof schedule.executionParameters === 'string' ? JSON.parse(schedule.executionParameters) : schedule.executionParameters,
+        browsers:
+          typeof schedule.browsers === 'string' ? JSON.parse(schedule.browsers) : schedule.browsers,
+        notificationConfigOverride:
+          typeof schedule.notificationConfigOverride === 'string'
+            ? JSON.parse(schedule.notificationConfigOverride)
+            : schedule.notificationConfigOverride,
+        executionParameters:
+          typeof schedule.executionParameters === 'string'
+            ? JSON.parse(schedule.executionParameters)
+            : schedule.executionParameters,
       }));
       res.json(parsedResults);
     } catch (error: any) {
-      resolvedLogger.error({ message: `Error fetching schedules for plan ${planId}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to fetch schedules for the specified plan" });
+      resolvedLogger.error({
+        message: `Error fetching schedules for plan ${planId}`,
+        error: error.message,
+        stack: error.stack,
+        userId: (req.user as any)?.id,
+      });
+      res.status(500).json({ error: 'Failed to fetch schedules for the specified plan' });
     }
   });
 
   // testPlanApiPayloadSchema / updateTestPlanApiPayloadSchema now live in shared/schema.ts
   // so server/routes/test-plans.routes.ts can validate against the same shape.
-
 
   // --- Test Plans API Endpoints ---
 
@@ -942,16 +1251,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/test-plans - Create a new test plan
 
   // PUT /api/test-plans/:id - Update an existing test plan
-  app.put("/api/test-plans/:id", requireRole('editor'), async (req, res) => {
+  app.put('/api/test-plans/:id', requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     const testPlanId = req.params.id;
 
     const parseResult = updateTestPlanApiPayloadSchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.warn({message: `PUT /api/test-plans/${testPlanId} - Invalid payload`, errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
-      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
+      resolvedLogger.warn({
+        message: `PUT /api/test-plans/${testPlanId} - Invalid payload`,
+        errors: parseResult.error.flatten(),
+        userId: (req.user as any)?.id,
+      });
+      return res
+        .status(400)
+        .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
     }
 
     // Agents or a grid, never both, and only a grid of this organization (server/browser-grids.ts).
@@ -968,9 +1283,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId)),
         );
         if (existingPlanCheck.length === 0) {
-            return res.status(404).json({ error: "Test plan not found." });
+          return res.status(404).json({ error: 'Test plan not found.' });
         }
-        return res.status(400).json({ error: "No update data provided." });
+        return res.status(400).json({ error: 'No update data provided.' });
       }
 
       // withTenantTransaction, not privilegedDb.transaction: RLS is silently inert under a
@@ -983,10 +1298,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // object shape while the DB stores them as text.
           const updatesToApply = { ...planUpdates } as Record<string, unknown>;
           if (planUpdates.testMachinesConfig !== undefined) {
-            updatesToApply.testMachinesConfig = planUpdates.testMachinesConfig ? JSON.stringify(planUpdates.testMachinesConfig) : null;
+            updatesToApply.testMachinesConfig = planUpdates.testMachinesConfig
+              ? JSON.stringify(planUpdates.testMachinesConfig)
+              : null;
           }
           if (planUpdates.notificationSettings !== undefined) {
-            updatesToApply.notificationSettings = planUpdates.notificationSettings ? JSON.stringify(planUpdates.notificationSettings) : null;
+            updatesToApply.notificationSettings = planUpdates.notificationSettings
+              ? JSON.stringify(planUpdates.notificationSettings)
+              : null;
           }
 
           mainPlanUpdated = await tx
@@ -1002,12 +1321,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // there. Without this the handler would happily update any plan by id, and the
             // join rows below would then be stamped with the foreign plan's organization
             // while naming tests from the caller's — a row that is internally cross-tenant.
-            .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user.organizationId)))
+            .where(
+              and(
+                eq(testPlans.id, testPlanId),
+                eq(testPlans.organizationId, req.user.organizationId),
+              ),
+            )
             .returning();
 
           if (mainPlanUpdated.length === 0) {
-            resolvedLogger.warn(`PUT /api/test-plans/${testPlanId} - Test plan not found during main record update.`);
-            throw new Error("Test plan not found or no changes to main record."); // Will be caught and result in 404 like
+            resolvedLogger.warn(
+              `PUT /api/test-plans/${testPlanId} - Test plan not found during main record update.`,
+            );
+            throw new Error('Test plan not found or no changes to main record.'); // Will be caught and result in 404 like
           }
         } else {
           // If only selectedTests are being updated, fetch the current plan to return.
@@ -1015,16 +1341,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const currentPlan = await tx
             .select()
             .from(testPlans)
-            .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user.organizationId)));
+            .where(
+              and(
+                eq(testPlans.id, testPlanId),
+                eq(testPlans.organizationId, req.user.organizationId),
+              ),
+            );
           if (currentPlan.length === 0) {
-            throw new Error("Test plan not found.");
+            throw new Error('Test plan not found.');
           }
           mainPlanUpdated = currentPlan;
         }
 
-
-        if (selectedTests !== undefined) { // If selectedTests is provided (even an empty array)
-          await tx.delete(testPlanSelectedTests).where(eq(testPlanSelectedTests.testPlanId, testPlanId));
+        if (selectedTests !== undefined) {
+          // If selectedTests is provided (even an empty array)
+          await tx
+            .delete(testPlanSelectedTests)
+            .where(eq(testPlanSelectedTests.testPlanId, testPlanId));
 
           if (selectedTests.length > 0) {
             await assertSelectedTestsBelongTo(tx, req.user.organizationId, selectedTests);
@@ -1057,31 +1390,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return mainPlanUpdated[0]; // Return the first element of the (potentially) updated plan
       });
 
-      if (!updatedPlanResult) { // Should be caught by transaction error handling but as a safeguard
-        return res.status(404).json({ error: "Test plan not found or no effective changes made." });
+      if (!updatedPlanResult) {
+        // Should be caught by transaction error handling but as a safeguard
+        return res.status(404).json({ error: 'Test plan not found or no effective changes made.' });
       }
       res.json(updatedPlanResult);
-
     } catch (error: any) {
-      resolvedLogger.error({ message: `Error updating test plan ${testPlanId}`, error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
-       if (error.message.toLowerCase().includes("test plan not found")) { // Custom error from transaction
-        return res.status(404).json({ error: "Test plan not found." });
+      resolvedLogger.error({
+        message: `Error updating test plan ${testPlanId}`,
+        error: error.message,
+        stack: error.stack,
+        requestBody: req.body,
+        userId: (req.user as any)?.id,
+      });
+      if (error.message.toLowerCase().includes('test plan not found')) {
+        // Custom error from transaction
+        return res.status(404).json({ error: 'Test plan not found.' });
       }
       // Either the DB rejected an id that doesn't exist at all, or assertSelectedTestsBelongTo
       // rejected one that exists in another organization. Both are the caller naming a test
       // that is not theirs to name, and both answer the same way — a distinct message for the
       // second would tell them which ids exist in other tenants.
-      if (/foreign key/i.test(error.message || '') || SELECTED_TESTS_NOT_FOUND.test(error.message || '')) {
-        return res.status(400).json({ error: "One or more selected tests do not exist."})
+      if (
+        /foreign key/i.test(error.message || '') ||
+        SELECTED_TESTS_NOT_FOUND.test(error.message || '')
+      ) {
+        return res.status(400).json({ error: 'One or more selected tests do not exist.' });
       }
-      res.status(500).json({ error: "Failed to update test plan" });
+      res.status(500).json({ error: 'Failed to update test plan' });
     }
   });
 
   // DELETE /api/test-plans/:id - Delete a test plan
-  app.delete("/api/test-plans/:id", requireRole('editor'), async (req, res) => {
+  app.delete('/api/test-plans/:id', requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     const testPlanId = req.params.id;
 
@@ -1096,7 +1439,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await withTenantTransaction(async (tx) => {
         const rows = await tx
           .delete(testPlans)
-          .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user!.organizationId)))
+          .where(
+            and(
+              eq(testPlans.id, testPlanId),
+              eq(testPlans.organizationId, req.user!.organizationId),
+            ),
+          )
           .returning();
         if (rows.length > 0) {
           await recordAudit(tx, {
@@ -1112,24 +1460,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (result.length === 0) {
-        return res.status(404).json({ error: "Test plan not found" });
+        return res.status(404).json({ error: 'Test plan not found' });
       }
       res.status(204).send();
     } catch (error: any) {
-      resolvedLogger.error({ message: `Error deleting test plan ${testPlanId}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to delete test plan" });
+      resolvedLogger.error({
+        message: `Error deleting test plan ${testPlanId}`,
+        error: error.message,
+        stack: error.stack,
+        userId: (req.user as any)?.id,
+      });
+      res.status(500).json({ error: 'Failed to delete test plan' });
     }
   });
 
   // POST /api/run-test-plan/:id - Execute a test plan
-  app.post("/api/run-test-plan/:id", requireRole('editor'), async (req, res) => {
+  app.post('/api/run-test-plan/:id', requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     const testPlanId = req.params.id;
     const userId = req.user.id;
 
-    resolvedLogger.http({ message: `POST /api/run-test-plan/${testPlanId} - Handler reached`, testPlanId, userId });
+    resolvedLogger.http({
+      message: `POST /api/run-test-plan/${testPlanId} - Handler reached`,
+      testPlanId,
+      userId,
+    });
 
     try {
       // Ownership gate: runTestPlan (test-execution-service.ts) and everything it kicks off
@@ -1141,41 +1498,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // is a larger change (it also runs as a background job with no ambient tenant) and is
       // deliberately out of scope here; this closes the one wire-reachable entry point.
       const owned = await withTenantTransaction((tx) =>
-        tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId)).limit(1),
+        tx
+          .select({ id: testPlans.id })
+          .from(testPlans)
+          .where(eq(testPlans.id, testPlanId))
+          .limit(1),
       );
       if (owned.length === 0) {
-        return res.status(404).json({ error: "Test plan not found" });
+        return res.status(404).json({ error: 'Test plan not found' });
       }
 
       // A pipeline that retries this request after a timeout sends the same key and gets the
       // run it already started, instead of a second one.
       const idempotencyKey = req.get('Idempotency-Key')?.trim() || undefined;
       if (idempotencyKey && idempotencyKey.length > 255) {
-        return res.status(400).json({ success: false, error: "Idempotency-Key must be at most 255 characters." });
+        return res
+          .status(400)
+          .json({ success: false, error: 'Idempotency-Key must be at most 255 characters.' });
       }
 
       // Dynamically import runTestPlan to avoid circular dependencies if test-execution-service grows
-      const { runTestPlan } = await import("./test-execution-service");
+      const { runTestPlan } = await import('./test-execution-service');
       // `updateBaselines` is how a legitimate redesign gets a visually-tested plan out of red:
       // this run's screenshots become the baselines the next one is measured against.
       const executionResult = await runTestPlan(testPlanId, userId, {
-        environmentId: typeof req.body?.environmentId === 'number' ? req.body.environmentId : undefined,
+        environmentId:
+          typeof req.body?.environmentId === 'number' ? req.body.environmentId : undefined,
         updateBaselines: req.body?.updateBaselines === true,
         ...(idempotencyKey ? { idempotencyKey } : {}),
       });
 
-      if ("error" in executionResult) {
-        const errorResult = executionResult as { error: string; status?: number; testPlanRunId?: string };
+      if ('error' in executionResult) {
+        const errorResult = executionResult as {
+          error: string;
+          status?: number;
+          testPlanRunId?: string;
+        };
         // Check if a specific status code was suggested by runTestPlan
-        const statusCode = errorResult.status && typeof errorResult.status === 'number' ? errorResult.status : 500;
-        resolvedLogger.error({ message: `Test plan execution failed for plan ${testPlanId}`, error: errorResult.error, testPlanRunId: errorResult.testPlanRunId });
-        return res.status(statusCode).json({ success: false, error: errorResult.error, data: executionResult });
+        const statusCode =
+          errorResult.status && typeof errorResult.status === 'number' ? errorResult.status : 500;
+        resolvedLogger.error({
+          message: `Test plan execution failed for plan ${testPlanId}`,
+          error: errorResult.error,
+          testPlanRunId: errorResult.testPlanRunId,
+        });
+        return res
+          .status(statusCode)
+          .json({ success: false, error: errorResult.error, data: executionResult });
       }
 
-      resolvedLogger.info({ message: `Test plan ${testPlanId} executed successfully. Run ID: ${executionResult.id}` });
+      resolvedLogger.info({
+        message: `Test plan ${testPlanId} executed successfully. Run ID: ${executionResult.id}`,
+      });
       // executionResult should be the full TestPlanRun object
       res.status(200).json({ success: true, data: publicExecution(executionResult) });
-
     } catch (error: any) {
       resolvedLogger.error({
         message: `Critical error in /api/run-test-plan/${testPlanId} route handler`,
@@ -1184,15 +1560,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message,
         stack: error.stack,
       });
-      res.status(500).json({ success: false, error: "Internal server error during test plan execution." });
+      res
+        .status(500)
+        .json({ success: false, error: 'Internal server error during test plan execution.' });
     }
   });
 
-
   // GET /api/selectable-tests - List UI, API and mobile app tests for selection in Test Plans
-  app.get("/api/selectable-tests", requireRole('viewer'), async (req, res) => {
+  app.get('/api/selectable-tests', requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     const userId = req.user.id;
 
@@ -1226,66 +1603,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Execute queries
       // One tenant transaction for both: RLS bounds them to the caller's organization and hides
       // the restricted projects they are not on.
-      const { uiTestResults, apiTestResults, mobileTestResults, tagsByTest } = await withTenantTransaction(async (tx) => {
-        if (tagIds.length > 0) {
-          // A tag filter that matches nothing must offer nothing. inArray on an empty list is
-          // not a predicate, so the empty case is answered here rather than by a query that
-          // would quietly return everything.
-          const [uiIds, apiIds, mobileIds] = await Promise.all([
-            testIdsWithTags(tx, { tagIds, testType: 'ui' }),
-            testIdsWithTags(tx, { tagIds, testType: 'api' }),
-            testIdsWithTags(tx, { tagIds, testType: 'mobile' }),
-          ]);
-          if (mobileIds.length === 0) mobileConditions.push(sql`false`);
-          else mobileConditions.push(inArray(mobileTests.id, mobileIds));
-          if (uiIds.length === 0) uiConditions.push(sql`false`);
-          else uiConditions.push(inArray(tests.id, uiIds));
-          if (apiIds.length === 0) apiConditions.push(sql`false`);
-          else apiConditions.push(inArray(apiTests.id, apiIds));
-        }
+      const { uiTestResults, apiTestResults, mobileTestResults, tagsByTest } =
+        await withTenantTransaction(async (tx) => {
+          if (tagIds.length > 0) {
+            // A tag filter that matches nothing must offer nothing. inArray on an empty list is
+            // not a predicate, so the empty case is answered here rather than by a query that
+            // would quietly return everything.
+            const [uiIds, apiIds, mobileIds] = await Promise.all([
+              testIdsWithTags(tx, { tagIds, testType: 'ui' }),
+              testIdsWithTags(tx, { tagIds, testType: 'api' }),
+              testIdsWithTags(tx, { tagIds, testType: 'mobile' }),
+            ]);
+            if (mobileIds.length === 0) mobileConditions.push(sql`false`);
+            else mobileConditions.push(inArray(mobileTests.id, mobileIds));
+            if (uiIds.length === 0) uiConditions.push(sql`false`);
+            else uiConditions.push(inArray(tests.id, uiIds));
+            if (apiIds.length === 0) apiConditions.push(sql`false`);
+            else apiConditions.push(inArray(apiTests.id, apiIds));
+          }
 
-        const uiTestResults = await tx.select({
-            id: tests.id,
-            name: tests.name,
-            description: sql<string>`null`.as('description'),
-            type: sql<string>`'ui'`.as('type'),
-            updatedAt: tests.updatedAt
-          })
-          .from(tests)
-          .where(and(...uiConditions));
-        const apiTestResults = await tx.select({
-            id: apiTests.id,
-            name: apiTests.name,
-            description: sql<string>`null`.as('description'),
-            type: sql<string>`'api'`.as('type'),
-            updatedAt: apiTests.updatedAt
-          })
-          .from(apiTests)
-          .where(and(...apiConditions));
-        // Mobile app tests (migrations 0053, 0056), narrowed by name and tags like the others.
-        const mobileTestResults = await tx.select({
-            id: mobileTests.id,
-            name: mobileTests.name,
-            description: sql<string>`null`.as('description'),
-            type: sql<string>`'mobile'`.as('type'),
-            updatedAt: mobileTests.updatedAt
-          })
-          .from(mobileTests)
-          .where(and(...mobileConditions));
+          const uiTestResults = await tx
+            .select({
+              id: tests.id,
+              name: tests.name,
+              description: sql<string>`null`.as('description'),
+              type: sql<string>`'ui'`.as('type'),
+              updatedAt: tests.updatedAt,
+            })
+            .from(tests)
+            .where(and(...uiConditions));
+          const apiTestResults = await tx
+            .select({
+              id: apiTests.id,
+              name: apiTests.name,
+              description: sql<string>`null`.as('description'),
+              type: sql<string>`'api'`.as('type'),
+              updatedAt: apiTests.updatedAt,
+            })
+            .from(apiTests)
+            .where(and(...apiConditions));
+          // Mobile app tests (migrations 0053, 0056), narrowed by name and tags like the others.
+          const mobileTestResults = await tx
+            .select({
+              id: mobileTests.id,
+              name: mobileTests.name,
+              description: sql<string>`null`.as('description'),
+              type: sql<string>`'mobile'`.as('type'),
+              updatedAt: mobileTests.updatedAt,
+            })
+            .from(mobileTests)
+            .where(and(...mobileConditions));
 
-        return {
-          uiTestResults,
-          apiTestResults,
-          mobileTestResults,
-          // Shown beside each name, so somebody picking tests can see what they are picking
-          // rather than recognising it from the name alone.
-          tagsByTest: await tagsOfTests(tx, {
-            testIds: uiTestResults.map((row) => row.id),
-            apiTestIds: apiTestResults.map((row) => row.id),
-            mobileTestIds: mobileTestResults.map((row) => row.id),
-          }),
-        };
-      });
+          return {
+            uiTestResults,
+            apiTestResults,
+            mobileTestResults,
+            // Shown beside each name, so somebody picking tests can see what they are picking
+            // rather than recognising it from the name alone.
+            tagsByTest: await tagsOfTests(tx, {
+              testIds: uiTestResults.map((row) => row.id),
+              apiTestIds: apiTestResults.map((row) => row.id),
+              mobileTestIds: mobileTestResults.map((row) => row.id),
+            }),
+          };
+        });
 
       // Combine results
       const combinedResults = [
@@ -1313,433 +1694,554 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentPage: page,
         itemsPerPage: limit,
       });
-
     } catch (error: any) {
-      resolvedLogger.error({ message: "Error fetching selectable tests", error: error.message, stack: error.stack, userId, query: req.query });
-      res.status(500).json({ error: "Failed to fetch selectable tests" });
+      resolvedLogger.error({
+        message: 'Error fetching selectable tests',
+        error: error.message,
+        stack: error.stack,
+        userId,
+        query: req.query,
+      });
+      res.status(500).json({ error: 'Failed to fetch selectable tests' });
     }
   });
 
-// --- Test Execution Logs API Endpoint ---
-app.get("/api/test-plan-executions/:executionId/logs", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  const { executionId } = req.params;
+  // --- Test Execution Logs API Endpoint ---
+  app.get(
+    '/api/test-plan-executions/:executionId/logs',
+    requireRole('viewer'),
+    async (req, res) => {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const { executionId } = req.params;
 
-  try {
-    // Scoped to the tenant transaction: execution_logs carries test steps and substituted
-    // values, so an unscoped privilegedDb query here handed a foreign execution's full log
-    // body to any authenticated caller who guessed its id.
-    const logs = await withTenantTransaction((tx) =>
-      tx
-        .select()
-        .from(executionLogs)
-        .where(eq(executionLogs.testPlanExecutionId, executionId))
-        .orderBy(asc(executionLogs.timestamp)),
-    );
+      try {
+        // Scoped to the tenant transaction: execution_logs carries test steps and substituted
+        // values, so an unscoped privilegedDb query here handed a foreign execution's full log
+        // body to any authenticated caller who guessed its id.
+        const logs = await withTenantTransaction((tx) =>
+          tx
+            .select()
+            .from(executionLogs)
+            .where(eq(executionLogs.testPlanExecutionId, executionId))
+            .orderBy(asc(executionLogs.timestamp)),
+        );
 
-    res.json(logs);
-  } catch (error: any) {
-    resolvedLogger.error({ message: "Error fetching execution logs", error: error.message, executionId });
-    res.status(500).json({ error: "Failed to fetch execution logs" });
-  }
-});
+        res.json(logs);
+      } catch (error: any) {
+        resolvedLogger.error({
+          message: 'Error fetching execution logs',
+          error: error.message,
+          executionId,
+        });
+        res.status(500).json({ error: 'Failed to fetch execution logs' });
+      }
+    },
+  );
 
-// --- Test Report Page API Endpoint ---
-app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  const { executionId } = req.params;
-  const userId = req.user.id; // Assuming reports might be user-scoped in the future or for auth checks
+  // --- Test Report Page API Endpoint ---
+  app.get(
+    '/api/test-plan-executions/:executionId/report',
+    requireRole('viewer'),
+    async (req, res) => {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const { executionId } = req.params;
+      const userId = req.user.id; // Assuming reports might be user-scoped in the future or for auth checks
 
-  resolvedLogger.http({ message: `GET /api/test-plan-executions/${executionId}/report - Handler reached`, executionId, userId });
+      resolvedLogger.http({
+        message: `GET /api/test-plan-executions/${executionId}/report - Handler reached`,
+        executionId,
+        userId,
+      });
 
-  if (!executionId) {
-    return res.status(400).json({ error: "Execution ID is required." });
-  }
-
-  try {
-    // Both queries run inside the same tenant transaction: unscoped privilegedDb queries
-    // here returned a foreign execution's full report — including plan and test-case names
-    // — to any authenticated caller who guessed its id.
-    const reportSource = await withTenantTransaction(async (tx) => {
-      // 1. Fetch the main TestPlanExecution record and its associated TestPlan
-      const executionDetailsResult = await tx
-        .select({
-          execution: getTableColumns(testPlanExecutions),
-          plan: getTableColumns(testPlans),
-        })
-        .from(testPlanExecutions)
-        .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
-        .where(eq(testPlanExecutions.id, executionId))
-        .limit(1);
-
-      if (executionDetailsResult.length === 0) {
-        return null;
+      if (!executionId) {
+        return res.status(400).json({ error: 'Execution ID is required.' });
       }
 
-      // 2. Fetch all reportTestCaseResults for this execution
-      // Ensure reportTestCaseResults is imported from @shared/schema
-      const testCaseResults: ReportTestCaseResult[] = await tx
-        .select()
-        .from(reportTestCaseResults)
-        .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
-        .orderBy(desc(reportTestCaseResults.status), asc(reportTestCaseResults.testName)); // Example ordering
-
-      // The attempt that followed this one, when a schedule's retry policy queued one — so a
-      // failed attempt's report can point at the run that decided the verdict.
-      const thisRun = executionDetailsResult[0].execution;
-      const [nextAttempt] = await tx
-        .select({ id: testPlanExecutions.id, status: testPlanExecutions.status, attempt: testPlanExecutions.attempt })
-        .from(testPlanExecutions)
-        .where(and(
-          eq(testPlanExecutions.retryOfExecutionId, thisRun.retryOfExecutionId ?? thisRun.id),
-          eq(testPlanExecutions.attempt, thisRun.attempt + 1),
-        ))
-        .limit(1);
-
-      // Every attempt of the same occurrence, in order: "attempt 1 of 3 failed, 2 of 3 failed,
-      // 3 of 3 passed" is the history a retry policy produces, and each report shows all of it.
-      const firstAttemptId = thisRun.retryOfExecutionId ?? thisRun.id;
-      const attemptHistory = thisRun.maxAttempts > 1
-        ? await tx
+      try {
+        // Both queries run inside the same tenant transaction: unscoped privilegedDb queries
+        // here returned a foreign execution's full report — including plan and test-case names
+        // — to any authenticated caller who guessed its id.
+        const reportSource = await withTenantTransaction(async (tx) => {
+          // 1. Fetch the main TestPlanExecution record and its associated TestPlan
+          const executionDetailsResult = await tx
             .select({
-              id: testPlanExecutions.id,
-              attempt: testPlanExecutions.attempt,
-              status: testPlanExecutions.status,
-              startedAt: testPlanExecutions.startedAt,
-              completedAt: testPlanExecutions.completedAt,
+              execution: getTableColumns(testPlanExecutions),
+              plan: getTableColumns(testPlans),
             })
             .from(testPlanExecutions)
-            .where(or(
-              eq(testPlanExecutions.id, firstAttemptId),
-              eq(testPlanExecutions.retryOfExecutionId, firstAttemptId),
-            ))
-            .orderBy(asc(testPlanExecutions.attempt))
-        : [];
+            .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
+            .where(eq(testPlanExecutions.id, executionId))
+            .limit(1);
 
-      // What the run warned about — a browser that ran on another engine, an OS or a browser
-      // version it could not apply — for the report's header, not only its console.
-      const warnings = await tx
-        .select({ message: executionLogs.message })
-        .from(executionLogs)
-        .where(and(
-          eq(executionLogs.testPlanExecutionId, executionId),
-          eq(executionLogs.level, 'warn'),
-          eq(executionLogs.source, 'system'),
-        ))
-        .orderBy(asc(executionLogs.timestamp));
+          if (executionDetailsResult.length === 0) {
+            return null;
+          }
 
-      // The issues already filed for these tests, so a failure offers "Open in tracker".
-      const issues = (await linkedIssuesFor(tx, executionId)) ?? [];
+          // 2. Fetch all reportTestCaseResults for this execution
+          // Ensure reportTestCaseResults is imported from @shared/schema
+          const testCaseResults: ReportTestCaseResult[] = await tx
+            .select()
+            .from(reportTestCaseResults)
+            .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
+            .orderBy(desc(reportTestCaseResults.status), asc(reportTestCaseResults.testName)); // Example ordering
 
-      return {
-        ...executionDetailsResult[0],
-        testCaseResults,
-        nextAttempt: nextAttempt ?? null,
-        attemptHistory,
-        warnings: Array.from(new Set(warnings.map((w) => w.message))),
-        issues,
-      };
-    });
+          // The attempt that followed this one, when a schedule's retry policy queued one — so a
+          // failed attempt's report can point at the run that decided the verdict.
+          const thisRun = executionDetailsResult[0].execution;
+          const [nextAttempt] = await tx
+            .select({
+              id: testPlanExecutions.id,
+              status: testPlanExecutions.status,
+              attempt: testPlanExecutions.attempt,
+            })
+            .from(testPlanExecutions)
+            .where(
+              and(
+                eq(testPlanExecutions.retryOfExecutionId, thisRun.retryOfExecutionId ?? thisRun.id),
+                eq(testPlanExecutions.attempt, thisRun.attempt + 1),
+              ),
+            )
+            .limit(1);
 
-    if (!reportSource) {
-      resolvedLogger.warn({ message: `Execution ID ${executionId} not found.`, userId });
-      return res.status(404).json({ error: "Test plan execution not found." });
-    }
+          // Every attempt of the same occurrence, in order: "attempt 1 of 3 failed, 2 of 3 failed,
+          // 3 of 3 passed" is the history a retry policy produces, and each report shows all of it.
+          const firstAttemptId = thisRun.retryOfExecutionId ?? thisRun.id;
+          const attemptHistory =
+            thisRun.maxAttempts > 1
+              ? await tx
+                  .select({
+                    id: testPlanExecutions.id,
+                    attempt: testPlanExecutions.attempt,
+                    status: testPlanExecutions.status,
+                    startedAt: testPlanExecutions.startedAt,
+                    completedAt: testPlanExecutions.completedAt,
+                  })
+                  .from(testPlanExecutions)
+                  .where(
+                    or(
+                      eq(testPlanExecutions.id, firstAttemptId),
+                      eq(testPlanExecutions.retryOfExecutionId, firstAttemptId),
+                    ),
+                  )
+                  .orderBy(asc(testPlanExecutions.attempt))
+              : [];
 
-    const { execution, plan, testCaseResults, nextAttempt, attemptHistory, warnings, issues } = reportSource;
-    const issueFor = (r: { testName: string; browser: string | null }) => {
-      const key = dedupeKeyFor({ planId: execution.testPlanId, testName: r.testName, browser: r.browser });
-      const link = issues.find((issue) => issue.dedupeKey === key);
-      return link ? { key: link.issueKey, url: link.issueUrl, occurrences: link.occurrences, resolvedAt: link.resolvedAt } : null;
-    };
+          // What the run warned about — a browser that ran on another engine, an OS or a browser
+          // version it could not apply — for the report's header, not only its console.
+          const warnings = await tx
+            .select({ message: executionLogs.message })
+            .from(executionLogs)
+            .where(
+              and(
+                eq(executionLogs.testPlanExecutionId, executionId),
+                eq(executionLogs.level, 'warn'),
+                eq(executionLogs.source, 'system'),
+              ),
+            )
+            .orderBy(asc(executionLogs.timestamp));
 
-    // A run whose evidence retention has removed links to nothing: its images would all be
-    // broken, and the header says why they are not there instead.
-    const purged = !!execution.artifactsPurgedAt;
-    const retained = await executionArtifactAvailability(execution.organizationId, execution.testPlanId, executionId);
-    const openable = (storedPath: string | null | undefined) => (purged ? null : artifactUrl(executionId, storedPath, retained));
-    const stepsOf = (detailedLog: string | null | undefined) => {
-      const steps = stepsWithArtifactUrls(executionId, detailedLog, retained);
-      if (!purged) return steps;
-      return steps.map((step) => ({
-        ...step,
-        screenshot: null,
-        visual: step.visual ? { ...step.visual, baselineImage: null, actualImage: null, diffImage: null } : undefined,
-      }));
-    };
+          // The issues already filed for these tests, so a failure offers "Open in tracker".
+          const issues = (await linkedIssuesFor(tx, executionId)) ?? [];
 
-    // 3. Calculate Key Metrics
-    const totalTests = testCaseResults.length;
-    const passedTests = testCaseResults.filter(r => r.status === 'Passed').length;
-    const failedTests = testCaseResults.filter(r => r.status === 'Failed').length;
-    const skippedTests = testCaseResults.filter(r => r.status === 'Skipped').length;
-    // Add other statuses if needed (e.g., 'Error', 'Pending')
+          return {
+            ...executionDetailsResult[0],
+            testCaseResults,
+            nextAttempt: nextAttempt ?? null,
+            attemptHistory,
+            warnings: Array.from(new Set(warnings.map((w) => w.message))),
+            issues,
+          };
+        });
 
-    let totalDurationMs = 0;
-    testCaseResults.forEach(r => {
-      if (r.durationMs !== null && r.durationMs !== undefined) {
-        totalDurationMs += r.durationMs;
+        if (!reportSource) {
+          resolvedLogger.warn({ message: `Execution ID ${executionId} not found.`, userId });
+          return res.status(404).json({ error: 'Test plan execution not found.' });
+        }
+
+        const { execution, plan, testCaseResults, nextAttempt, attemptHistory, warnings, issues } =
+          reportSource;
+        const issueFor = (r: { testName: string; browser: string | null }) => {
+          const key = dedupeKeyFor({
+            planId: execution.testPlanId,
+            testName: r.testName,
+            browser: r.browser,
+          });
+          const link = issues.find((issue) => issue.dedupeKey === key);
+          return link
+            ? {
+                key: link.issueKey,
+                url: link.issueUrl,
+                occurrences: link.occurrences,
+                resolvedAt: link.resolvedAt,
+              }
+            : null;
+        };
+
+        // A run whose evidence retention has removed links to nothing: its images would all be
+        // broken, and the header says why they are not there instead.
+        const purged = !!execution.artifactsPurgedAt;
+        const retained = await executionArtifactAvailability(
+          execution.organizationId,
+          execution.testPlanId,
+          executionId,
+        );
+        const openable = (storedPath: string | null | undefined) =>
+          purged ? null : artifactUrl(executionId, storedPath, retained);
+        const stepsOf = (detailedLog: string | null | undefined) => {
+          const steps = stepsWithArtifactUrls(executionId, detailedLog, retained);
+          if (!purged) return steps;
+          return steps.map((step) => ({
+            ...step,
+            screenshot: null,
+            visual: step.visual
+              ? { ...step.visual, baselineImage: null, actualImage: null, diffImage: null }
+              : undefined,
+          }));
+        };
+
+        // 3. Calculate Key Metrics
+        const totalTests = testCaseResults.length;
+        const passedTests = testCaseResults.filter((r) => r.status === 'Passed').length;
+        const failedTests = testCaseResults.filter((r) => r.status === 'Failed').length;
+        const skippedTests = testCaseResults.filter((r) => r.status === 'Skipped').length;
+        // Add other statuses if needed (e.g., 'Error', 'Pending')
+
+        let totalDurationMs = 0;
+        testCaseResults.forEach((r) => {
+          if (r.durationMs !== null && r.durationMs !== undefined) {
+            totalDurationMs += r.durationMs;
+          }
+        });
+        const averageTimePerTest = totalTests > 0 ? Math.round(totalDurationMs / totalTests) : 0;
+
+        // 4. Prepare data for charts
+        const passFailSkippedDistribution = {
+          passed: passedTests,
+          failed: failedTests,
+          skipped: skippedTests,
+        };
+
+        const priorityDistribution: Record<
+          string,
+          { passed: number; failed: number; skipped: number; total: number }
+        > = {};
+        testCaseResults.forEach((r) => {
+          const prio = r.priority || 'N/A';
+          if (!priorityDistribution[prio]) {
+            priorityDistribution[prio] = { passed: 0, failed: 0, skipped: 0, total: 0 };
+          }
+          priorityDistribution[prio].total++;
+          if (r.status === 'Passed') priorityDistribution[prio].passed++;
+          else if (r.status === 'Failed') priorityDistribution[prio].failed++;
+          else if (r.status === 'Skipped') priorityDistribution[prio].skipped++;
+        });
+
+        const detailedSeverityDistribution: Record<
+          string,
+          { passed: number; failed: number; skipped: number; total: number }
+        > = {};
+        testCaseResults.forEach((r) => {
+          const sev = r.severity || 'N/A';
+          if (!detailedSeverityDistribution[sev]) {
+            detailedSeverityDistribution[sev] = { passed: 0, failed: 0, skipped: 0, total: 0 };
+          }
+          detailedSeverityDistribution[sev].total++;
+          if (r.status === 'Passed') detailedSeverityDistribution[sev].passed++;
+          else if (r.status === 'Failed') detailedSeverityDistribution[sev].failed++;
+          else if (r.status === 'Skipped') detailedSeverityDistribution[sev].skipped++;
+        });
+
+        // 5. Detailed View of Failed Tests
+        const failedTestDetails = testCaseResults
+          .filter((r) => r.status === 'Failed')
+          .map((r) => ({
+            id: r.id,
+            testName: r.testName,
+            // Which browser this failure came from. A plan covering two browsers fails a test on
+            // one and passes it on the other, and the two rows are otherwise identical.
+            browser: r.browser,
+            // Which version of the test this was. Null for a result recorded before versions were,
+            // and for API tests, which have no history to point at.
+            testVersion: r.testVersion,
+            reasonForFailure: r.reasonForFailure,
+            // In quarantine when it ran: shown, and not held against the run.
+            quarantined: r.quarantined,
+            // How many times the plan ran it before this result stood.
+            attempts: r.attempts,
+            // The issue this failure is already filed as, with the link to open it in the tracker.
+            issue: issueFor(r),
+            screenshotUrl: openable(r.screenshotUrl),
+            // A recording of the run, and a trace of it, when the plan kept them. The trace is the
+            // one that answers what a screenshot cannot: the DOM, the network and the console at
+            // every step.
+            videoUrl: openable(r.videoUrl),
+            traceUrl: openable(r.traceUrl),
+            // The page's requests: the file, and the failed and slow ones read out of it.
+            harUrl: openable(r.harUrl),
+            networkSummary: r.networkSummary,
+            // What the AI made of this failure, when somebody asked (routes/failure-analysis.routes.ts).
+            aiAnalysis: r.aiAnalysis ?? null,
+            detailedLog: r.detailedLog,
+            // The step list the runner already recorded, with its images made openable. The
+            // report had no way to show which step failed; the row's reason string was all of it.
+            steps: stepsOf(r.detailedLog),
+            component: r.component,
+            priority: r.priority,
+            severity: r.severity,
+            durationMs: r.durationMs,
+            uiTestId: r.uiTestId,
+            apiTestId: r.apiTestId,
+            testType: r.testType,
+          }));
+
+        // 6. Expandable Test Groupings (by module, then by component as an example)
+        const groupedByModule: Record<
+          string,
+          {
+            passed: number;
+            failed: number;
+            skipped: number;
+            total: number;
+            components: Record<
+              string,
+              {
+                passed: number;
+                failed: number;
+                skipped: number;
+                total: number;
+                tests: Array<(typeof testCaseResults)[0]>; // Using the inferred type of elements in testCaseResults
+              }
+            >;
+          }
+        > = {};
+
+        testCaseResults.forEach((r) => {
+          const moduleName = r.module || 'Uncategorized Module';
+          const componentName = r.component || 'Uncategorized Component';
+
+          if (!groupedByModule[moduleName]) {
+            groupedByModule[moduleName] = {
+              passed: 0,
+              failed: 0,
+              skipped: 0,
+              total: 0,
+              components: {},
+            };
+          }
+          if (!groupedByModule[moduleName].components[componentName]) {
+            groupedByModule[moduleName].components[componentName] = {
+              passed: 0,
+              failed: 0,
+              skipped: 0,
+              total: 0,
+              tests: [],
+            };
+          }
+
+          groupedByModule[moduleName].total++;
+          groupedByModule[moduleName].components[componentName].total++;
+          // The row as stored, plus its steps and an openable screenshot: the grouped table is
+          // where a passing test's visual baselines are looked at, not only a failing one's.
+          groupedByModule[moduleName].components[componentName].tests.push({
+            ...r,
+            screenshotUrl: openable(r.screenshotUrl),
+            videoUrl: openable(r.videoUrl),
+            traceUrl: openable(r.traceUrl),
+            harUrl: openable(r.harUrl),
+            steps: stepsOf(r.detailedLog),
+          } as typeof r);
+
+          if (r.status === 'Passed') {
+            groupedByModule[moduleName].passed++;
+            groupedByModule[moduleName].components[componentName].passed++;
+          } else if (r.status === 'Failed') {
+            groupedByModule[moduleName].failed++;
+            groupedByModule[moduleName].components[componentName].failed++;
+          } else if (r.status === 'Skipped') {
+            groupedByModule[moduleName].skipped++;
+            groupedByModule[moduleName].components[componentName].skipped++;
+          }
+        });
+
+        const reportData = {
+          header: {
+            testSuiteName:
+              readExecutionSnapshot(execution.configurationSnapshot)?.plan.name ||
+              plan?.name ||
+              'N/A',
+            reproducibility: reproducibilitySummary(execution.configurationSnapshot),
+            environment: execution.environment || 'N/A',
+            // What the schedule asked for, else the browsers the results actually came from: a plan
+            // run by hand records its browsers on each result, and the header said none.
+            browsers: (() => {
+              const requested =
+                typeof execution.browsers === 'string'
+                  ? JSON.parse(execution.browsers)
+                  : (execution.browsers ?? []);
+              if (Array.isArray(requested) && requested.length > 0) return requested;
+              return Array.from(
+                new Set(testCaseResults.map((r) => r.browser).filter((b): b is string => !!b)),
+              );
+            })(),
+            // What the run could not do as asked, said where the verdict is read.
+            warnings,
+            dateTime: execution.startedAt ? execution.startedAt.toISOString() : 'N/A',
+            completedAt: execution.completedAt ? execution.completedAt.toISOString() : null,
+            status: execution.status,
+            triggeredBy: execution.triggeredBy,
+            // Which runner took it: where to look when one machine is the one that fails.
+            runnerId: execution.runnerId ?? null,
+            // The build, commit and branch that asked for it, when a pipeline did.
+            ci: execution.ciContext ?? null,
+            executionId: execution.id,
+            testPlanId: execution.testPlanId,
+            // Which attempt of its scheduled occurrence this run is, and where the others are.
+            attempt: execution.attempt,
+            maxAttempts: execution.maxAttempts,
+            firstAttemptId: execution.retryOfExecutionId,
+            nextAttempt,
+            attempts: attemptHistory.map((a) => ({
+              id: a.id,
+              attempt: a.attempt,
+              status: a.status,
+              startedAt: a.startedAt ? a.startedAt.toISOString() : null,
+              completedAt: a.completedAt ? a.completedAt.toISOString() : null,
+            })),
+            // Why a run ended the way it did when that was not its tests: cancelled, out of time,
+            // its worker lost.
+            failureCode: execution.failureCode,
+            failureMessage: execution.failureMessage,
+            // When retention removed this run's screenshots, videos and traces.
+            artifactsPurgedAt: execution.artifactsPurgedAt
+              ? execution.artifactsPurgedAt.toISOString()
+              : null,
+            artifactStorageStatus: execution.artifactStorageStatus,
+            quotaDeferReason: execution.quotaDeferReason,
+            quotaDeferUntil: execution.quotaDeferUntil,
+            // Tests that passed only after being run again: a pass, and a finding of its own.
+            flakyTests: testCaseResults.filter(
+              (r) => r.status === 'Passed' && (r.attempts ?? 1) > 1,
+            ).length,
+            // Failures of tests in quarantine: counted in the failed figure, not in the verdict.
+            quarantinedFailures: testCaseResults.filter(
+              (r) => r.quarantined && (r.status === 'Failed' || r.status === 'Error'),
+            ).length,
+          },
+          keyMetrics: {
+            totalTests: execution.totalTests ?? totalTests, // Prefer pre-calculated, fallback to fresh calculation
+            passedTests: execution.passedTests ?? passedTests,
+            failedTests: execution.failedTests ?? failedTests,
+            skippedTests: execution.skippedTests ?? skippedTests,
+            passRate:
+              (execution.totalTests ?? totalTests) > 0
+                ? parseFloat(
+                    (
+                      ((execution.passedTests ?? passedTests) /
+                        (execution.totalTests ?? totalTests)) *
+                      100
+                    ).toFixed(2),
+                  )
+                : 0,
+            averageTimePerTestMs: averageTimePerTest, // This needs fresh calculation from reportTestCaseResults
+            totalTestCasesDurationMs: totalDurationMs, // Sum of individual test case durations
+            executionDurationMs:
+              execution.executionDurationMs ??
+              (execution.completedAt && execution.startedAt
+                ? new Date(execution.completedAt).getTime() -
+                  new Date(execution.startedAt).getTime()
+                : null),
+          },
+          charts: {
+            passFailSkippedDistribution,
+            priorityDistribution,
+            severityDistribution: detailedSeverityDistribution,
+          },
+          failedTestDetails,
+          testGroupings: groupedByModule,
+          // Every row, with the same openable links as the rest of the report: the stored `/results/…`
+          // paths are served by nothing and opened the application's own page instead of the file.
+          allTests: testCaseResults.map((r) => ({
+            ...r,
+            screenshotUrl: openable(r.screenshotUrl),
+            videoUrl: openable(r.videoUrl),
+            traceUrl: openable(r.traceUrl),
+            harUrl: openable(r.harUrl),
+            issue: issueFor(r),
+          })),
+          issues: issues.map((issue) => ({
+            key: issue.issueKey,
+            url: issue.issueUrl,
+            testName: issue.testName,
+            browser: issue.browser,
+            occurrences: issue.occurrences,
+            resolvedAt: issue.resolvedAt,
+          })),
+        };
+
+        res.json(reportData);
+      } catch (error: any) {
+        resolvedLogger.error({
+          message: `Error fetching report for execution ${executionId}`,
+          error: error.message,
+          stack: error.stack,
+          userId,
+        });
+        res.status(500).json({ error: 'Failed to fetch test execution report.' });
       }
-    });
-    const averageTimePerTest = totalTests > 0 ? Math.round(totalDurationMs / totalTests) : 0;
-
-    // 4. Prepare data for charts
-    const passFailSkippedDistribution = {
-      passed: passedTests,
-      failed: failedTests,
-      skipped: skippedTests,
-    };
-
-    const priorityDistribution: Record<string, { passed: number, failed: number, skipped: number, total: number }> = {};
-    testCaseResults.forEach(r => {
-      const prio = r.priority || 'N/A';
-      if (!priorityDistribution[prio]) {
-        priorityDistribution[prio] = { passed: 0, failed: 0, skipped: 0, total: 0 };
-      }
-      priorityDistribution[prio].total++;
-      if (r.status === 'Passed') priorityDistribution[prio].passed++;
-      else if (r.status === 'Failed') priorityDistribution[prio].failed++;
-      else if (r.status === 'Skipped') priorityDistribution[prio].skipped++;
-    });
-
-    const detailedSeverityDistribution: Record<string, { passed: number, failed: number, skipped: number, total: number }> = {};
-     testCaseResults.forEach(r => {
-      const sev = r.severity || 'N/A';
-      if (!detailedSeverityDistribution[sev]) {
-        detailedSeverityDistribution[sev] = { passed: 0, failed: 0, skipped: 0, total: 0 };
-      }
-      detailedSeverityDistribution[sev].total++;
-      if (r.status === 'Passed') detailedSeverityDistribution[sev].passed++;
-      else if (r.status === 'Failed') detailedSeverityDistribution[sev].failed++;
-      else if (r.status === 'Skipped') detailedSeverityDistribution[sev].skipped++;
-    });
-
-    // 5. Detailed View of Failed Tests
-    const failedTestDetails = testCaseResults
-      .filter(r => r.status === 'Failed')
-      .map(r => ({
-        id: r.id,
-        testName: r.testName,
-        // Which browser this failure came from. A plan covering two browsers fails a test on
-        // one and passes it on the other, and the two rows are otherwise identical.
-        browser: r.browser,
-        // Which version of the test this was. Null for a result recorded before versions were,
-        // and for API tests, which have no history to point at.
-        testVersion: r.testVersion,
-        reasonForFailure: r.reasonForFailure,
-        // In quarantine when it ran: shown, and not held against the run.
-        quarantined: r.quarantined,
-        // How many times the plan ran it before this result stood.
-        attempts: r.attempts,
-        // The issue this failure is already filed as, with the link to open it in the tracker.
-        issue: issueFor(r),
-        screenshotUrl: openable(r.screenshotUrl),
-        // A recording of the run, and a trace of it, when the plan kept them. The trace is the
-        // one that answers what a screenshot cannot: the DOM, the network and the console at
-        // every step.
-        videoUrl: openable(r.videoUrl),
-        traceUrl: openable(r.traceUrl),
-        // The page's requests: the file, and the failed and slow ones read out of it.
-        harUrl: openable(r.harUrl),
-        networkSummary: r.networkSummary,
-        // What the AI made of this failure, when somebody asked (routes/failure-analysis.routes.ts).
-        aiAnalysis: r.aiAnalysis ?? null,
-        detailedLog: r.detailedLog,
-        // The step list the runner already recorded, with its images made openable. The
-        // report had no way to show which step failed; the row's reason string was all of it.
-        steps: stepsOf(r.detailedLog),
-        component: r.component,
-        priority: r.priority,
-        severity: r.severity,
-        durationMs: r.durationMs,
-        uiTestId: r.uiTestId,
-        apiTestId: r.apiTestId,
-        testType: r.testType,
-      }));
-
-    // 6. Expandable Test Groupings (by module, then by component as an example)
-    const groupedByModule: Record<string, {
-        passed: number, failed: number, skipped: number, total: number,
-        components: Record<string, {
-            passed: number, failed: number, skipped: number, total: number,
-            tests: Array<typeof testCaseResults[0]> // Using the inferred type of elements in testCaseResults
-        }>
-    }> = {};
-
-    testCaseResults.forEach(r => {
-      const moduleName = r.module || 'Uncategorized Module';
-      const componentName = r.component || 'Uncategorized Component';
-
-      if (!groupedByModule[moduleName]) {
-        groupedByModule[moduleName] = { passed: 0, failed: 0, skipped: 0, total: 0, components: {} };
-      }
-      if (!groupedByModule[moduleName].components[componentName]) {
-        groupedByModule[moduleName].components[componentName] = { passed: 0, failed: 0, skipped: 0, total: 0, tests: [] };
-      }
-
-      groupedByModule[moduleName].total++;
-      groupedByModule[moduleName].components[componentName].total++;
-      // The row as stored, plus its steps and an openable screenshot: the grouped table is
-      // where a passing test's visual baselines are looked at, not only a failing one's.
-      groupedByModule[moduleName].components[componentName].tests.push({
-        ...r,
-        screenshotUrl: openable(r.screenshotUrl),
-        videoUrl: openable(r.videoUrl),
-        traceUrl: openable(r.traceUrl),
-        harUrl: openable(r.harUrl),
-        steps: stepsOf(r.detailedLog),
-      } as typeof r);
-
-      if (r.status === 'Passed') {
-        groupedByModule[moduleName].passed++;
-        groupedByModule[moduleName].components[componentName].passed++;
-      } else if (r.status === 'Failed') {
-        groupedByModule[moduleName].failed++;
-        groupedByModule[moduleName].components[componentName].failed++;
-      } else if (r.status === 'Skipped') {
-        groupedByModule[moduleName].skipped++;
-        groupedByModule[moduleName].components[componentName].skipped++;
-      }
-    });
-
-    const reportData = {
-      header: {
-        testSuiteName: readExecutionSnapshot(execution.configurationSnapshot)?.plan.name || plan?.name || 'N/A',
-        reproducibility: reproducibilitySummary(execution.configurationSnapshot),
-        environment: execution.environment || 'N/A',
-        // What the schedule asked for, else the browsers the results actually came from: a plan
-        // run by hand records its browsers on each result, and the header said none.
-        browsers: (() => {
-          const requested = typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : (execution.browsers ?? []);
-          if (Array.isArray(requested) && requested.length > 0) return requested;
-          return Array.from(new Set(testCaseResults.map((r) => r.browser).filter((b): b is string => !!b)));
-        })(),
-        // What the run could not do as asked, said where the verdict is read.
-        warnings,
-        dateTime: execution.startedAt ? execution.startedAt.toISOString() : 'N/A',
-        completedAt: execution.completedAt ? execution.completedAt.toISOString() : null,
-        status: execution.status,
-        triggeredBy: execution.triggeredBy,
-        // Which runner took it: where to look when one machine is the one that fails.
-        runnerId: execution.runnerId ?? null,
-        // The build, commit and branch that asked for it, when a pipeline did.
-        ci: execution.ciContext ?? null,
-        executionId: execution.id,
-        testPlanId: execution.testPlanId,
-        // Which attempt of its scheduled occurrence this run is, and where the others are.
-        attempt: execution.attempt,
-        maxAttempts: execution.maxAttempts,
-        firstAttemptId: execution.retryOfExecutionId,
-        nextAttempt,
-        attempts: attemptHistory.map((a) => ({
-          id: a.id,
-          attempt: a.attempt,
-          status: a.status,
-          startedAt: a.startedAt ? a.startedAt.toISOString() : null,
-          completedAt: a.completedAt ? a.completedAt.toISOString() : null,
-        })),
-        // Why a run ended the way it did when that was not its tests: cancelled, out of time,
-        // its worker lost.
-        failureCode: execution.failureCode,
-        failureMessage: execution.failureMessage,
-        // When retention removed this run's screenshots, videos and traces.
-        artifactsPurgedAt: execution.artifactsPurgedAt ? execution.artifactsPurgedAt.toISOString() : null,
-        artifactStorageStatus: execution.artifactStorageStatus,
-        quotaDeferReason: execution.quotaDeferReason,
-        quotaDeferUntil: execution.quotaDeferUntil,
-        // Tests that passed only after being run again: a pass, and a finding of its own.
-        flakyTests: testCaseResults.filter((r) => r.status === 'Passed' && (r.attempts ?? 1) > 1).length,
-        // Failures of tests in quarantine: counted in the failed figure, not in the verdict.
-        quarantinedFailures: testCaseResults.filter((r) => r.quarantined && (r.status === 'Failed' || r.status === 'Error')).length,
-      },
-      keyMetrics: {
-        totalTests: execution.totalTests ?? totalTests, // Prefer pre-calculated, fallback to fresh calculation
-        passedTests: execution.passedTests ?? passedTests,
-        failedTests: execution.failedTests ?? failedTests,
-        skippedTests: execution.skippedTests ?? skippedTests,
-        passRate: (execution.totalTests ?? totalTests) > 0 ?
-                  parseFloat((((execution.passedTests ?? passedTests) / (execution.totalTests ?? totalTests)) * 100).toFixed(2)) : 0,
-        averageTimePerTestMs: averageTimePerTest, // This needs fresh calculation from reportTestCaseResults
-        totalTestCasesDurationMs: totalDurationMs, // Sum of individual test case durations
-        executionDurationMs: execution.executionDurationMs ?? ((execution.completedAt && execution.startedAt) ? (new Date(execution.completedAt).getTime() - new Date(execution.startedAt).getTime()) : null),
-      },
-      charts: {
-        passFailSkippedDistribution,
-        priorityDistribution,
-        severityDistribution: detailedSeverityDistribution,
-      },
-      failedTestDetails,
-      testGroupings: groupedByModule,
-      // Every row, with the same openable links as the rest of the report: the stored `/results/…`
-      // paths are served by nothing and opened the application's own page instead of the file.
-      allTests: testCaseResults.map((r) => ({
-        ...r,
-        screenshotUrl: openable(r.screenshotUrl),
-        videoUrl: openable(r.videoUrl),
-        traceUrl: openable(r.traceUrl),
-        harUrl: openable(r.harUrl),
-        issue: issueFor(r),
-      })),
-      issues: issues.map((issue) => ({
-        key: issue.issueKey,
-        url: issue.issueUrl,
-        testName: issue.testName,
-        browser: issue.browser,
-        occurrences: issue.occurrences,
-        resolvedAt: issue.resolvedAt,
-      })),
-    };
-
-    res.json(reportData);
-
-  } catch (error: any) {
-    resolvedLogger.error({
-      message: `Error fetching report for execution ${executionId}`,
-      error: error.message,
-      stack: error.stack,
-      userId,
-    });
-    res.status(500).json({ error: "Failed to fetch test execution report." });
-  }
-});
+    },
+  );
 
   // --- System Settings API Endpoints ---
 
   // GET /api/system-settings - List all system settings
-  app.get("/api/system-settings", requireRole('viewer'), async (req, res) => {
+  app.get('/api/system-settings', requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       // Assuming admin rights might be needed here, or specific user settings vs system settings
       // For now, just basic auth check
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
       const settings = await privilegedDb.select().from(systemSettings);
       res.json(settings);
     } catch (error: any) {
-      resolvedLogger.error({ message: "Error fetching system settings", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to fetch system settings" });
+      resolvedLogger.error({
+        message: 'Error fetching system settings',
+        error: error.message,
+        stack: error.stack,
+        userId: (req.user as any)?.id,
+      });
+      res.status(500).json({ error: 'Failed to fetch system settings' });
     }
   });
 
   // GET /api/system-settings/:key - Get a single system setting by key
-  app.get("/api/system-settings/:key", requireRole('viewer'), async (req, res) => {
+  app.get('/api/system-settings/:key', requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     const { key } = req.params;
     try {
-      const result = await privilegedDb.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+      const result = await privilegedDb
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, key))
+        .limit(1);
       if (result.length === 0) {
-        return res.status(404).json({ error: "Setting not found" });
+        return res.status(404).json({ error: 'Setting not found' });
       }
       res.json(result[0]);
     } catch (error: any) {
-      resolvedLogger.error({ message: `Error fetching system setting ${key}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to fetch system setting" });
+      resolvedLogger.error({
+        message: `Error fetching system setting ${key}`,
+        error: error.message,
+        stack: error.stack,
+        userId: (req.user as any)?.id,
+      });
+      res.status(500).json({ error: 'Failed to fetch system setting' });
     }
   });
 
@@ -1747,74 +2249,113 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
   // system_settings is deliberately global (logRetentionDays, logLevel, clientLogLevel), so
   // this is gated to owners rather than any authenticated user of any organization: a
   // viewer or editor should not be able to reconfigure logging for every tenant.
-  app.post("/api/system-settings", requireRole('owner'), requireInstallationAdmin, async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const parseResult = insertSystemSettingSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      resolvedLogger.warn({ message: "POST /api/system-settings - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
-      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
-    }
-    try {
-      const { key, value } = parseResult.data;
-
-      // For SQLite, Drizzle's .onConflictDoUpdate().returning() might not return the inserted/updated row directly in all cases.
-      // It's safer to perform the upsert and then select the row.
-      await privilegedDb.insert(systemSettings)
-        .values({ key, value })
-        .onConflictDoUpdate({
-          target: systemSettings.key,
-          set: { value: value }, // For SQLite, directly set the value. `sql`excluded.value` is more for PostgreSQL.
+  app.post(
+    '/api/system-settings',
+    requireRole('owner'),
+    requireInstallationAdmin,
+    async (req, res) => {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const parseResult = insertSystemSettingSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        resolvedLogger.warn({
+          message: 'POST /api/system-settings - Invalid payload',
+          errors: parseResult.error.flatten(),
+          userId: (req.user as any)?.id,
         });
-
-      // Fetch the (potentially) updated or newly inserted row
-      const finalResult = await privilegedDb.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
-
-      if (finalResult.length === 0) {
-         // This case should ideally not be reached if upsert is successful
-         resolvedLogger.error({ message: "System setting upsert failed, no record found post-operation", key, value, userId: (req.user as any)?.id });
-         return res.status(500).json({ error: "Failed to create or update system setting, and could not retrieve it." });
+        return res
+          .status(400)
+          .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
       }
-      // Respond with 201 if it was an insert, 200 if an update.
-      // For simplicity, we'll just return 200/201 with the final state.
-      // Checking if it was an insert or update might require another query or different DB driver behavior.
-      const savedSetting = finalResult[0];
+      try {
+        const { key, value } = parseResult.data;
 
-      // In the owner's organization, since that is where an owner looks. Not in the same
-      // transaction as the change: system_settings is installation-wide and has no tenant, so
-      // the upsert above cannot run under one. The key and not the value, which may be anything.
-      await withTenantTransaction((tx) =>
-        recordAudit(tx, {
-          action: AUDIT_ACTIONS.SYSTEM_SETTINGS_CHANGED,
-          actor: auditActor(req),
-          targetType: 'system_settings',
-          targetId: key,
-          metadata: { key },
-        }),
-      );
+        // For SQLite, Drizzle's .onConflictDoUpdate().returning() might not return the inserted/updated row directly in all cases.
+        // It's safer to perform the upsert and then select the row.
+        await privilegedDb
+          .insert(systemSettings)
+          .values({ key, value })
+          .onConflictDoUpdate({
+            target: systemSettings.key,
+            set: { value: value }, // For SQLite, directly set the value. `sql`excluded.value` is more for PostgreSQL.
+          });
 
-      res.status(200).json(savedSetting); // Could be 201 if we knew it was an insert
+        // Fetch the (potentially) updated or newly inserted row
+        const finalResult = await privilegedDb
+          .select()
+          .from(systemSettings)
+          .where(eq(systemSettings.key, key))
+          .limit(1);
 
-      // After successfully saving, if the key is logLevel, update the logger instance
-      if (savedSetting.key === 'logLevel' && savedSetting.value) {
-        try {
-          await updateLogLevel(savedSetting.value);
-          resolvedLogger.info({ message: `Log level dynamically updated to: ${savedSetting.value} via API`, key: savedSetting.key, value: savedSetting.value, userId: (req.user as any)?.id });
-        } catch (updateError: any) {
-          resolvedLogger.error({ message: `Failed to dynamically update log level to ${savedSetting.value} after saving setting`, error: updateError.message, stack: updateError.stack, key: savedSetting.key, value: savedSetting.value, userId: (req.user as any)?.id });
-          // Do not fail the entire request, as the setting was saved to DB.
-          // The logger will pick up the new level on next restart if dynamic update fails.
+        if (finalResult.length === 0) {
+          // This case should ideally not be reached if upsert is successful
+          resolvedLogger.error({
+            message: 'System setting upsert failed, no record found post-operation',
+            key,
+            value,
+            userId: (req.user as any)?.id,
+          });
+          return res.status(500).json({
+            error: 'Failed to create or update system setting, and could not retrieve it.',
+          });
         }
+        // Respond with 201 if it was an insert, 200 if an update.
+        // For simplicity, we'll just return 200/201 with the final state.
+        // Checking if it was an insert or update might require another query or different DB driver behavior.
+        const savedSetting = finalResult[0];
+
+        // In the owner's organization, since that is where an owner looks. Not in the same
+        // transaction as the change: system_settings is installation-wide and has no tenant, so
+        // the upsert above cannot run under one. The key and not the value, which may be anything.
+        await withTenantTransaction((tx) =>
+          recordAudit(tx, {
+            action: AUDIT_ACTIONS.SYSTEM_SETTINGS_CHANGED,
+            actor: auditActor(req),
+            targetType: 'system_settings',
+            targetId: key,
+            metadata: { key },
+          }),
+        );
+
+        res.status(200).json(savedSetting); // Could be 201 if we knew it was an insert
+
+        // After successfully saving, if the key is logLevel, update the logger instance
+        if (savedSetting.key === 'logLevel' && savedSetting.value) {
+          try {
+            await updateLogLevel(savedSetting.value);
+            resolvedLogger.info({
+              message: `Log level dynamically updated to: ${savedSetting.value} via API`,
+              key: savedSetting.key,
+              value: savedSetting.value,
+              userId: (req.user as any)?.id,
+            });
+          } catch (updateError: any) {
+            resolvedLogger.error({
+              message: `Failed to dynamically update log level to ${savedSetting.value} after saving setting`,
+              error: updateError.message,
+              stack: updateError.stack,
+              key: savedSetting.key,
+              value: savedSetting.value,
+              userId: (req.user as any)?.id,
+            });
+            // Do not fail the entire request, as the setting was saved to DB.
+            // The logger will pick up the new level on next restart if dynamic update fails.
+          }
+        }
+      } catch (error: any) {
+        resolvedLogger.error({
+          message: 'Error creating/updating system setting',
+          error: error.message,
+          stack: error.stack,
+          requestBody: req.body,
+          userId: (req.user as any)?.id,
+        });
+        res.status(500).json({ error: 'Failed to create or update system setting' });
       }
+    },
+  );
 
-    } catch (error: any) {
-      resolvedLogger.error({ message: "Error creating/updating system setting", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to create or update system setting" });
-    }
-  });
-
-    const httpServer = createServer(app);
-    return httpServer;
+  const httpServer = createServer(app);
+  return httpServer;
 }
-

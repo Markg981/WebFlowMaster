@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { findNode, flatten, nodeAt, parsePageSource, suggestLocators } from '@shared/mobile-inspector';
+import {
+  findNode,
+  flatten,
+  nodeAt,
+  parsePageSource,
+  suggestLocators,
+} from '@shared/mobile-inspector';
 import { parseMobileLocator } from '@shared/mobile';
 
 /**
@@ -41,7 +47,10 @@ describe('reading a page source', () => {
   it('reads iOS bounds from x, y, width and height; and nothing from no XML', () => {
     const root = parsePageSource(IOS)!;
     const button = flatten(root).find((n) => n.attributes.name === 'login')!;
-    expect(button).toMatchObject({ type: 'XCUIElementTypeButton', bounds: { x: 20, y: 600, width: 350, height: 50 } });
+    expect(button).toMatchObject({
+      type: 'XCUIElementTypeButton',
+      bounds: { x: 20, y: 600, width: 350, height: 50 },
+    });
     expect(parsePageSource('')).toBeNull();
     expect(parsePageSource('not xml')).toBeNull();
   });
@@ -56,44 +65,70 @@ describe('reading a page source', () => {
 
 describe('the locators offered', () => {
   const root = parsePageSource(ANDROID)!;
-  const byText = (text: string) => flatten(root).find((n) => n.attributes.text === text && n.type.endsWith('Button'))!;
+  const byText = (text: string) =>
+    flatten(root).find((n) => n.attributes.text === text && n.type.endsWith('Button'))!;
 
   it('offers the accessibility id first when it is unique', () => {
     const email = flatten(root).find((n) => n.attributes['content-desc'] === 'email')!;
     const offered = suggestLocators(root, email, 'android');
     expect(offered[0]).toEqual({ kind: 'accessibility', locator: '~email', unique: true });
-    expect(offered.map((s) => s.locator)).toEqual(['~email', 'id=com.shop:id/email', '//android.widget.EditText[@resource-id="com.shop:id/email"]']);
+    expect(offered.map((s) => s.locator)).toEqual([
+      '~email',
+      'id=com.shop:id/email',
+      '//android.widget.EditText[@resource-id="com.shop:id/email"]',
+    ]);
   });
 
   it('marks what finds more than one element, and puts the unique ones first', () => {
     const offered = suggestLocators(root, byText('Sign in'), 'android');
     // The resource id is shared with Help, and "Sign in" is also the title's text.
-    expect(offered.find((s) => s.kind === 'id')).toMatchObject({ locator: 'id=com.shop:id/action', unique: false });
-    expect(offered.find((s) => s.kind === 'text')).toMatchObject({ locator: 'text=Sign in', unique: false });
+    expect(offered.find((s) => s.kind === 'id')).toMatchObject({
+      locator: 'id=com.shop:id/action',
+      unique: false,
+    });
+    expect(offered.find((s) => s.kind === 'text')).toMatchObject({
+      locator: 'text=Sign in',
+      unique: false,
+    });
     expect(offered[0].unique).toBe(true);
-    expect(offered[0].locator).toBe('/hierarchy/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.Button[1]');
+    expect(offered[0].locator).toBe(
+      '/hierarchy/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.Button[1]',
+    );
   });
 
   it('quotes an XPath value holding quotes, and falls back to the position for an element with no name', () => {
     const help = suggestLocators(root, byText('Help & "FAQ"'), 'android');
-    expect(help.find((s) => s.kind === 'text')).toMatchObject({ locator: 'text=Help & "FAQ"', unique: true });
+    expect(help.find((s) => s.kind === 'text')).toMatchObject({
+      locator: 'text=Help & "FAQ"',
+      unique: true,
+    });
     const unnamed = flatten(root)[flatten(root).length - 1];
     expect(suggestLocators(root, unnamed, 'android')).toEqual([
-      { kind: 'xpath', locator: '/hierarchy/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.Button[3]', unique: true },
+      {
+        kind: 'xpath',
+        locator:
+          '/hierarchy/android.widget.FrameLayout[1]/android.widget.LinearLayout[1]/android.widget.Button[3]',
+        unique: true,
+      },
     ]);
   });
 
   it('offers on iOS the name as accessibility id and the label as text', () => {
     const ios = parsePageSource(IOS)!;
     const button = flatten(ios).find((n) => n.attributes.name === 'login')!;
-    expect(suggestLocators(ios, button, 'ios').map((s) => s.locator)).toEqual(['~login', 'text=Sign in', '//XCUIElementTypeButton[@name="login"]']);
+    expect(suggestLocators(ios, button, 'ios').map((s) => s.locator)).toEqual([
+      '~login',
+      'text=Sign in',
+      '//XCUIElementTypeButton[@name="login"]',
+    ]);
     const welcome = flatten(ios).find((n) => n.attributes.name === 'Welcome')!;
     expect(suggestLocators(ios, welcome, 'ios').find((s) => s.kind === 'text')?.unique).toBe(true);
   });
 
   it('offers only locators a step can use', () => {
     for (const node of flatten(root).slice(1)) {
-      for (const offered of suggestLocators(root, node, 'android')) expect(parseMobileLocator(offered.locator, 'android')).not.toBeNull();
+      for (const offered of suggestLocators(root, node, 'android'))
+        expect(parseMobileLocator(offered.locator, 'android')).not.toBeNull();
     }
   });
 });
@@ -119,11 +154,27 @@ describe('an inspector session left alone', () => {
           : url.endsWith('/window/rect')
             ? { width: 1080, height: 2400 }
             : null;
-      return new Response(JSON.stringify({ value }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ value }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     };
     const owner = { organizationId: 1, userId: 1 };
-    const grid = { id: 'g', name: 'BrowserStack', provider: 'browserstack' as const, username: 'u', endpoint: null, key: 'k' };
-    const opened = await openInspector(owner, grid, { platform: 'android', app: 'bs://a', deviceName: 'Google Pixel 8', osVersion: null, name: 'Inspector' });
+    const grid = {
+      id: 'g',
+      name: 'BrowserStack',
+      provider: 'browserstack' as const,
+      username: 'u',
+      endpoint: null,
+      key: 'k',
+    };
+    const opened = await openInspector(owner, grid, {
+      platform: 'android',
+      app: 'bs://a',
+      deviceName: 'Google Pixel 8',
+      osVersion: null,
+      name: 'Inspector',
+    });
     expect(opened.device).toBe('Google Pixel 8 · Android 14');
     expect(opened.tree?.type).toBe('hierarchy');
 
@@ -131,7 +182,9 @@ describe('an inspector session left alone', () => {
     // The idle timer starts the close and does not wait for it; the DELETE goes out once the
     // session has read its earlier responses, which takes real event-loop turns. Under a full
     // parallel run that came after an immediate assertion: wait for it instead.
-    await vi.waitFor(() => expect(calls.some((c) => c.startsWith('DELETE ') && c.endsWith('/session/s1'))).toBe(true));
+    await vi.waitFor(() =>
+      expect(calls.some((c) => c.startsWith('DELETE ') && c.endsWith('/session/s1'))).toBe(true),
+    );
     await expect(inspectorSnapshot(opened.id, owner)).rejects.toMatchObject({ status: 404 });
   });
 });

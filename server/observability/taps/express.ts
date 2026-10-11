@@ -13,7 +13,13 @@ import { quotaErrorBody } from '../../tenant-quotas';
  * name is deliberately NOT allowlisted: that name is where a proxy, a different client, or
  * a future reader would put a real session token, and this tap must never write one to disk.
  */
-const HEADER_ALLOWLIST = ['content-type', 'accept', 'user-agent', 'x-correlation-id', 'x-wfm-session-id'];
+const HEADER_ALLOWLIST = [
+  'content-type',
+  'accept',
+  'user-agent',
+  'x-correlation-id',
+  'x-wfm-session-id',
+];
 
 export function buildServerApiTrigger(req: Request): Record<string, unknown> {
   const headers: Record<string, unknown> = {};
@@ -40,7 +46,10 @@ export function buildServerApiTrigger(req: Request): Record<string, unknown> {
 export function incidentErrorHandler(logger: IncidentLogger): ErrorRequestHandler {
   return (err, req, res, _next) => {
     const quota = quotaErrorBody(err);
-    if (quota && !res.headersSent) { res.status(429).json(quota); return; }
+    if (quota && !res.headersSent) {
+      res.status(429).json(quota);
+      return;
+    }
     const status = err?.status || err?.statusCode || 500;
     const message = err?.message || 'Internal Server Error';
     const trigger = buildServerApiTrigger(req);

@@ -86,7 +86,15 @@ describe('FlakyTestsCard', () => {
       ok: true,
       json: async () => ({
         ...response,
-        items: [{ ...response.items[0], flips: 7, unexplainedFlips: 2, versions: [4, 5], changedDuringWindow: true }],
+        items: [
+          {
+            ...response.items[0],
+            flips: 7,
+            unexplainedFlips: 2,
+            versions: [4, 5],
+            changedDuringWindow: true,
+          },
+        ],
       }),
     });
     renderCard();
@@ -116,12 +124,20 @@ describe('FlakyTestsCard', () => {
 
     const confirm = screen.getAllByRole('button', { name: 'Quarantine' }).at(-1)!;
     expect(confirm).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Why'), { target: { value: 'Times out one night in three' } });
+    fireEvent.change(screen.getByLabelText('Why'), {
+      target: { value: 'Times out one night in three' },
+    });
     fireEvent.click(confirm);
 
     await waitFor(() => {
-      const call = fetchMock.mock.calls.find(([url, init]: any[]) => url === '/api/quarantine' && init?.method === 'POST');
-      expect(call && JSON.parse(call[1].body)).toEqual({ testType: 'ui', testId: 42, reason: 'Times out one night in three' });
+      const call = fetchMock.mock.calls.find(
+        ([url, init]: any[]) => url === '/api/quarantine' && init?.method === 'POST',
+      );
+      expect(call && JSON.parse(call[1].body)).toEqual({
+        testType: 'ui',
+        testId: 42,
+        reason: 'Times out one night in three',
+      });
     });
   });
 
@@ -131,8 +147,16 @@ describe('FlakyTestsCard', () => {
       json: async () => ({
         ...response,
         items: [
-          { ...response.items[0], quarantine: { id: 3, reason: 'Flaky', since: '2026-09-20T00:00:00.000Z' } },
-          { ...response.items[0], testName: 'Search', browser: 'firefox', test: { type: 'ui', id: 43 } },
+          {
+            ...response.items[0],
+            quarantine: { id: 3, reason: 'Flaky', since: '2026-09-20T00:00:00.000Z' },
+          },
+          {
+            ...response.items[0],
+            testName: 'Search',
+            browser: 'firefox',
+            test: { type: 'ui', id: 43 },
+          },
         ],
       }),
     });
@@ -148,7 +172,14 @@ describe('FlakyTestsCard', () => {
       ok: true,
       json: async () => ({
         ...response,
-        items: [{ ...response.items[0], testName: 'Checkout on Android', browser: 'Pixel 8 · 14.0', test: { type: 'mobile', id: 9 } }],
+        items: [
+          {
+            ...response.items[0],
+            testName: 'Checkout on Android',
+            browser: 'Pixel 8 · 14.0',
+            test: { type: 'mobile', id: 9 },
+          },
+        ],
       }),
     });
     renderCard();
@@ -156,11 +187,19 @@ describe('FlakyTestsCard', () => {
     expect(await screen.findByText('Mobile')).toBeInTheDocument();
     expect(screen.getByText('Pixel 8 · 14.0')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Quarantine' }));
-    fireEvent.change(screen.getByLabelText('Why'), { target: { value: 'Device farm drops the session' } });
+    fireEvent.change(screen.getByLabelText('Why'), {
+      target: { value: 'Device farm drops the session' },
+    });
     fireEvent.click(screen.getAllByRole('button', { name: 'Quarantine' }).at(-1)!);
     await waitFor(() => {
-      const call = fetchMock.mock.calls.find(([url, init]: any[]) => url === '/api/quarantine' && init?.method === 'POST');
-      expect(call && JSON.parse(call[1].body)).toEqual({ testType: 'mobile', testId: 9, reason: 'Device farm drops the session' });
+      const call = fetchMock.mock.calls.find(
+        ([url, init]: any[]) => url === '/api/quarantine' && init?.method === 'POST',
+      );
+      expect(call && JSON.parse(call[1].body)).toEqual({
+        testType: 'mobile',
+        testId: 9,
+        reason: 'Device farm drops the session',
+      });
     });
   });
 

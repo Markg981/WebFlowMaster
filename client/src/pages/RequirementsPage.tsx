@@ -7,18 +7,42 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import RequirementDialog, { type RequirementPayload } from '@/components/requirements/RequirementDialog';
+import RequirementDialog, {
+  type RequirementPayload,
+} from '@/components/requirements/RequirementDialog';
 import LinkTestsDialog, { type LinkedTest } from '@/components/requirements/LinkTestsDialog';
 import GenerateTestsDialog from '@/components/requirements/GenerateTestsDialog';
-import ImportRequirementsDialog, { type ImportRequest, type TrackerOption } from '@/components/requirements/ImportRequirementsDialog';
+import ImportRequirementsDialog, {
+  type ImportRequest,
+  type TrackerOption,
+} from '@/components/requirements/ImportRequirementsDialog';
 import {
   COVERAGE_STATES,
   type CoverageState,
@@ -27,8 +51,21 @@ import {
   type TestOutcome,
 } from '@shared/requirements';
 import {
-  CheckCircle2, ChevronDown, ChevronRight, CircleDashed, CircleOff, Download, ExternalLink,
-  Link2, Loader2, Pencil, Plus, Sparkles, Trash2, Upload, XCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  CircleDashed,
+  CircleOff,
+  Download,
+  ExternalLink,
+  Link2,
+  Loader2,
+  Pencil,
+  Plus,
+  Sparkles,
+  Trash2,
+  Upload,
+  XCircle,
 } from 'lucide-react';
 
 /**
@@ -58,8 +95,18 @@ export interface RequirementRow {
 
 interface CoverageAnswer {
   requirements: RequirementRow[];
-  summary: { total: number; passing: number; failing: number; notRun: number; uncovered: number; coveredPercent: number };
-  scope: null | { kind: 'plan'; planId: string; planName: string } | { kind: 'execution'; id: string; planId: string; planName: string | null; at: string | null };
+  summary: {
+    total: number;
+    passing: number;
+    failing: number;
+    notRun: number;
+    uncovered: number;
+    coveredPercent: number;
+  };
+  scope:
+    | null
+    | { kind: 'plan'; planId: string; planName: string }
+    | { kind: 'execution'; id: string; planId: string; planName: string | null; at: string | null };
   trackers: TrackerOption[];
 }
 
@@ -112,7 +159,10 @@ function StateBadge({ state }: { state: CoverageState }) {
   const label = useStateLabel()(state);
   const { icon: Icon, className } = STATE_LOOK[state];
   return (
-    <span className={`inline-flex items-center gap-1 text-sm font-medium ${className}`} data-state={state}>
+    <span
+      className={`inline-flex items-center gap-1 text-sm font-medium ${className}`}
+      data-state={state}
+    >
       <Icon className="h-4 w-4" aria-hidden /> {label}
     </span>
   );
@@ -131,7 +181,9 @@ const RequirementsPage: React.FC = () => {
 
   // A run's report links here with ?executionId=: the coverage of exactly that run.
   const [executionId, setExecutionId] = useState<string | null>(() =>
-    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('executionId'),
+    typeof window === 'undefined'
+      ? null
+      : new URLSearchParams(window.location.search).get('executionId'),
   );
   const [planId, setPlanId] = useState<string>(ALL);
   const [search, setSearch] = useState('');
@@ -144,7 +196,11 @@ const RequirementsPage: React.FC = () => {
   const [deleting, setDeleting] = useState<RequirementRow | null>(null);
   const [generating, setGenerating] = useState<RequirementRow | null>(null);
 
-  const scopeQuery = executionId ? `?executionId=${encodeURIComponent(executionId)}` : planId !== ALL ? `?planId=${encodeURIComponent(planId)}` : '';
+  const scopeQuery = executionId
+    ? `?executionId=${encodeURIComponent(executionId)}`
+    : planId !== ALL
+      ? `?planId=${encodeURIComponent(planId)}`
+      : '';
 
   const { data, isLoading, isError, error } = useQuery<CoverageAnswer, Error>({
     queryKey: ['requirements', scopeQuery],
@@ -157,11 +213,14 @@ const RequirementsPage: React.FC = () => {
   // Memoised: a new empty array at every render made the tree below recompute every time.
   const rows = useMemo(() => data?.requirements ?? [], [data]);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['requirements'] });
-  const onError = (title: string) => (err: Error) => toast({ variant: 'destructive', title, description: err.message });
+  const onError = (title: string) => (err: Error) =>
+    toast({ variant: 'destructive', title, description: err.message });
 
   const save = useMutation({
     mutationFn: (payload: RequirementPayload) =>
-      editing && editing !== 'new' ? send('PUT', `/api/requirements/${editing.id}`, payload) : send('POST', '/api/requirements', payload),
+      editing && editing !== 'new'
+        ? send('PUT', `/api/requirements/${editing.id}`, payload)
+        : send('POST', '/api/requirements', payload),
     onSuccess: async () => {
       setEditing(null);
       await refresh();
@@ -170,7 +229,8 @@ const RequirementsPage: React.FC = () => {
     onError: onError(t('requirements.saveFailed', 'The requirement was not saved')),
   });
   const saveLinks = useMutation({
-    mutationFn: (items: Array<{ type: 'ui' | 'api' | 'mobile'; id: number }>) => send('PUT', `/api/requirements/${linking!.row.id}/tests`, { items }),
+    mutationFn: (items: Array<{ type: 'ui' | 'api' | 'mobile'; id: number }>) =>
+      send('PUT', `/api/requirements/${linking!.row.id}/tests`, { items }),
     onSuccess: async () => {
       setLinking(null);
       await refresh();
@@ -189,13 +249,24 @@ const RequirementsPage: React.FC = () => {
   });
   const importer = useMutation({
     mutationFn: (request: ImportRequest & { sync?: boolean }) =>
-      send('POST', request.sync ? '/api/requirements/sync' : '/api/requirements/import', { trackerId: request.trackerId, keys: request.keys, query: request.query }),
+      send('POST', request.sync ? '/api/requirements/sync' : '/api/requirements/import', {
+        trackerId: request.trackerId,
+        keys: request.keys,
+        query: request.query,
+      }),
     onSuccess: async (result: { created: string[]; updated: string[]; missing: string[] }) => {
       setImporting(false);
       await refresh();
       toast({
-        title: t('requirements.import.done', '{{created}} new, {{updated}} updated', { created: result.created.length, updated: result.updated.length }),
-        description: result.missing.length ? t('requirements.import.missing', 'Not found in the tracker: {{keys}}', { keys: result.missing.join(', ') }) : undefined,
+        title: t('requirements.import.done', '{{created}} new, {{updated}} updated', {
+          created: result.created.length,
+          updated: result.updated.length,
+        }),
+        description: result.missing.length
+          ? t('requirements.import.missing', 'Not found in the tracker: {{keys}}', {
+              keys: result.missing.join(', '),
+            })
+          : undefined,
       });
     },
     onError: onError(t('requirements.import.failed', 'The import failed')),
@@ -215,7 +286,9 @@ const RequirementsPage: React.FC = () => {
   const ordered = useMemo(() => {
     const needle = search.trim().toLowerCase();
     const matches = (row: RequirementRow) =>
-      (!needle || row.key.toLowerCase().includes(needle) || row.title.toLowerCase().includes(needle)) &&
+      (!needle ||
+        row.key.toLowerCase().includes(needle) ||
+        row.title.toLowerCase().includes(needle)) &&
       (stateFilter === ALL || row.coverage.state === stateFilter);
     const byId = new Map(rows.map((row) => [row.id, row]));
     const children = new Map<number | null, RequirementRow[]>();
@@ -249,7 +322,10 @@ const RequirementsPage: React.FC = () => {
   const tiles: Array<{ label: string; value: string; state?: CoverageState }> = summary
     ? [
         { label: t('requirements.summary.total', 'Requirements'), value: String(summary.total) },
-        { label: t('requirements.summary.covered', 'With tests'), value: `${summary.coveredPercent}%` },
+        {
+          label: t('requirements.summary.covered', 'With tests'),
+          value: `${summary.coveredPercent}%`,
+        },
         { label: stateLabel('passing'), value: String(summary.passing), state: 'passing' },
         { label: stateLabel('failing'), value: String(summary.failing), state: 'failing' },
         { label: stateLabel('notRun'), value: String(summary.notRun), state: 'notRun' },
@@ -262,18 +338,23 @@ const RequirementsPage: React.FC = () => {
       <PageHeader
         className="mb-6"
         title={t('requirements.title', 'Requirements')}
-        description={t('requirements.pageDescription', 'Epics, user stories and requirements, the tests that cover them, and how those tests did the last time they ran.')}
+        description={t(
+          'requirements.pageDescription',
+          'Epics, user stories and requirements, the tests that cover them, and how those tests did the last time they ran.',
+        )}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" asChild>
               <a href={`/api/requirements/matrix.csv${scopeQuery}`} download>
-                <Download className="mr-1 h-4 w-4" /> {t('requirements.export', 'Export matrix (CSV)')}
+                <Download className="mr-1 h-4 w-4" />{' '}
+                {t('requirements.export', 'Export matrix (CSV)')}
               </a>
             </Button>
             {canEdit && (
               <>
                 <Button variant="outline" onClick={() => setImporting(true)}>
-                  <Upload className="mr-1 h-4 w-4" /> {t('requirements.import.open', 'Import from tracker')}
+                  <Upload className="mr-1 h-4 w-4" />{' '}
+                  {t('requirements.import.open', 'Import from tracker')}
                 </Button>
                 <Button onClick={() => setEditing('new')}>
                   <Plus className="mr-1 h-4 w-4" /> {t('requirements.create', 'New requirement')}
@@ -286,14 +367,22 @@ const RequirementsPage: React.FC = () => {
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
         {executionId ? (
-          <div className="flex items-center gap-2 rounded border px-3 py-2 text-sm" data-testid="requirements-run-scope">
+          <div
+            className="flex items-center gap-2 rounded border px-3 py-2 text-sm"
+            data-testid="requirements-run-scope"
+          >
             <span>
               {data?.scope?.kind === 'execution'
-                ? t('requirements.scope.run', 'Results of one run of {{plan}}', { plan: data.scope.planName ?? '' })
+                ? t('requirements.scope.run', 'Results of one run of {{plan}}', {
+                    plan: data.scope.planName ?? '',
+                  })
                 : t('requirements.scope.runLoading', 'Results of one run')}
             </span>
             {data?.scope?.kind === 'execution' && (
-              <Link href={`/test-plans/${data.scope.planId}/executions/${data.scope.id}/report`} className="underline">
+              <Link
+                href={`/test-plans/${data.scope.planId}/executions/${data.scope.id}/report`}
+                className="underline"
+              >
                 {t('requirements.scope.openReport', 'Open the report')}
               </Link>
             )}
@@ -307,21 +396,35 @@ const RequirementsPage: React.FC = () => {
               {t('requirements.scope.label', 'Results from')}
             </label>
             <Select value={planId} onValueChange={setPlanId}>
-              <SelectTrigger id="requirements-scope" className="w-64" aria-label={t('requirements.scope.label', 'Results from')}>
+              <SelectTrigger
+                id="requirements-scope"
+                className="w-64"
+                aria-label={t('requirements.scope.label', 'Results from')}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>{t('requirements.scope.all', 'The latest run of each test')}</SelectItem>
+                <SelectItem value={ALL}>
+                  {t('requirements.scope.all', 'The latest run of each test')}
+                </SelectItem>
                 {(Array.isArray(plans) ? plans : []).map((plan) => (
                   <SelectItem key={plan.id} value={plan.id}>
-                    {t('requirements.scope.plan', 'The latest run of {{plan}}', { plan: plan.name })}
+                    {t('requirements.scope.plan', 'The latest run of {{plan}}', {
+                      plan: plan.name,
+                    })}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         )}
-        <Input className="w-64" placeholder={t('requirements.search', 'Search key or title…')} value={search} onChange={(e) => setSearch(e.target.value)} aria-label={t('requirements.search', 'Search key or title…')} />
+        <Input
+          className="w-64"
+          placeholder={t('requirements.search', 'Search key or title…')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label={t('requirements.search', 'Search key or title…')}
+        />
         <Select value={stateFilter} onValueChange={setStateFilter}>
           <SelectTrigger className="w-48" aria-label={t('requirements.filterState', 'Coverage')}>
             <SelectValue />
@@ -338,13 +441,18 @@ const RequirementsPage: React.FC = () => {
       </div>
 
       {tiles.length > 0 && (
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" data-testid="requirements-summary">
+        <div
+          className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+          data-testid="requirements-summary"
+        >
           {tiles.map((tile) => {
             const Icon = tile.state ? STATE_LOOK[tile.state].icon : null;
             return (
               <Card key={tile.label}>
                 <CardContent className="p-4">
-                  <div className={`flex items-center gap-1 text-xs ${tile.state ? STATE_LOOK[tile.state].className : 'text-muted-foreground'}`}>
+                  <div
+                    className={`flex items-center gap-1 text-xs ${tile.state ? STATE_LOOK[tile.state].className : 'text-muted-foreground'}`}
+                  >
                     {Icon && <Icon className="h-3.5 w-3.5" aria-hidden />} {tile.label}
                   </div>
                   <div className="mt-1 text-2xl font-semibold tabular-nums">{tile.value}</div>
@@ -360,10 +468,15 @@ const RequirementsPage: React.FC = () => {
           {isLoading ? (
             <p className="text-sm text-muted-foreground">{t('requirements.loading', 'Loading…')}</p>
           ) : isError ? (
-            <p className="text-sm text-destructive">{error?.message ?? t('requirements.error', 'The requirements could not be loaded.')}</p>
+            <p className="text-sm text-destructive">
+              {error?.message ?? t('requirements.error', 'The requirements could not be loaded.')}
+            </p>
           ) : rows.length === 0 ? (
             <p className="text-sm text-muted-foreground" data-testid="requirements-empty">
-              {t('requirements.empty', 'No requirements yet. Import epics and stories from Jira or Azure DevOps, or add one by hand, then link the tests that cover it.')}
+              {t(
+                'requirements.empty',
+                'No requirements yet. Import epics and stories from Jira or Azure DevOps, or add one by hand, then link the tests that cover it.',
+              )}
             </p>
           ) : (
             <Table>
@@ -374,7 +487,9 @@ const RequirementsPage: React.FC = () => {
                   <TableHead>{t('requirements.columns.trackerStatus', 'Tracker status')}</TableHead>
                   <TableHead>{t('requirements.columns.coverage', 'Coverage')}</TableHead>
                   <TableHead>{t('requirements.columns.tests', 'Tests')}</TableHead>
-                  <TableHead className="text-right">{t('requirements.columns.actions', 'Actions')}</TableHead>
+                  <TableHead className="text-right">
+                    {t('requirements.columns.actions', 'Actions')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -388,10 +503,18 @@ const RequirementsPage: React.FC = () => {
                               type="button"
                               className="mt-0.5 text-muted-foreground"
                               onClick={() => setCollapsed((current) => toggle(current, row.id))}
-                              aria-label={collapsed.has(row.id) ? t('requirements.expand', 'Show what it contains') : t('requirements.collapse', 'Hide what it contains')}
+                              aria-label={
+                                collapsed.has(row.id)
+                                  ? t('requirements.expand', 'Show what it contains')
+                                  : t('requirements.collapse', 'Hide what it contains')
+                              }
                               aria-expanded={!collapsed.has(row.id)}
                             >
-                              {collapsed.has(row.id) ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              {collapsed.has(row.id) ? (
+                                <ChevronRight className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
                             </button>
                           ) : (
                             <span className="w-4" />
@@ -399,7 +522,12 @@ const RequirementsPage: React.FC = () => {
                           <div>
                             <div className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
                               {row.url ? (
-                                <a href={row.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline">
+                                <a
+                                  href={row.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 underline"
+                                >
                                   {row.key} <ExternalLink className="h-3 w-3" aria-hidden />
                                 </a>
                               ) : (
@@ -412,10 +540,19 @@ const RequirementsPage: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant={row.kind === 'epic' ? 'secondary' : 'outline'}>
-                          {t(`requirements.kind.${row.kind}`, row.kind === 'epic' ? 'Epic' : row.kind === 'story' ? 'User story' : 'Requirement')}
+                          {t(
+                            `requirements.kind.${row.kind}`,
+                            row.kind === 'epic'
+                              ? 'Epic'
+                              : row.kind === 'story'
+                                ? 'User story'
+                                : 'Requirement',
+                          )}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{row.externalStatus ?? '—'}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {row.externalStatus ?? '—'}
+                      </TableCell>
                       <TableCell>
                         <StateBadge state={row.coverage.state} />
                       </TableCell>
@@ -427,15 +564,23 @@ const RequirementsPage: React.FC = () => {
                           disabled={row.coverage.tests.length === 0}
                           aria-expanded={expanded.has(row.id)}
                         >
-                          {t('requirements.testCounts', '{{passed}} passed · {{failed}} failed · {{notRun}} not run', {
-                            passed: row.coverage.passed,
-                            failed: row.coverage.failed,
-                            notRun: row.coverage.notRun,
-                          })}
+                          {t(
+                            'requirements.testCounts',
+                            '{{passed}} passed · {{failed}} failed · {{notRun}} not run',
+                            {
+                              passed: row.coverage.passed,
+                              failed: row.coverage.failed,
+                              notRun: row.coverage.notRun,
+                            },
+                          )}
                         </button>
                         {row.coverage.hidden > 0 && (
                           <div className="text-xs text-muted-foreground">
-                            {t('requirements.hiddenTests', '+{{count}} in projects you cannot see', { count: row.coverage.hidden })}
+                            {t(
+                              'requirements.hiddenTests',
+                              '+{{count}} in projects you cannot see',
+                              { count: row.coverage.hidden },
+                            )}
                           </div>
                         )}
                       </TableCell>
@@ -443,15 +588,36 @@ const RequirementsPage: React.FC = () => {
                         {canEdit && (
                           <>
                             <Button variant="outline" size="sm" onClick={() => openLinks(row)}>
-                              <Link2 className="mr-1 h-4 w-4" /> {t('requirements.linkTests', 'Tests')}
+                              <Link2 className="mr-1 h-4 w-4" />{' '}
+                              {t('requirements.linkTests', 'Tests')}
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => setGenerating(row)} title={t('requirements.generateTests', 'Generate tests')} aria-label={t('requirements.generateTestsFor', 'Generate tests for {{key}}', { key: row.key })}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setGenerating(row)}
+                              title={t('requirements.generateTests', 'Generate tests')}
+                              aria-label={t(
+                                'requirements.generateTestsFor',
+                                'Generate tests for {{key}}',
+                                { key: row.key },
+                              )}
+                            >
                               <Sparkles className="h-4 w-4" />
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => setEditing(row)} aria-label={t('requirements.edit', 'Edit')}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditing(row)}
+                              aria-label={t('requirements.edit', 'Edit')}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => setDeleting(row)} aria-label={t('requirements.delete', 'Delete')}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDeleting(row)}
+                              aria-label={t('requirements.delete', 'Delete')}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </>
@@ -460,19 +626,37 @@ const RequirementsPage: React.FC = () => {
                     </TableRow>
                     {expanded.has(row.id) &&
                       row.coverage.tests.map((test) => (
-                        <TableRow key={`${row.id}-${test.type}-${test.id}`} className="bg-muted/40" data-testid={`requirement-${row.key}-test-${test.type}-${test.id}`}>
+                        <TableRow
+                          key={`${row.id}-${test.type}-${test.id}`}
+                          className="bg-muted/40"
+                          data-testid={`requirement-${row.key}-test-${test.type}-${test.id}`}
+                        >
                           <TableCell colSpan={3}>
-                            <div className="flex items-center gap-2 text-sm" style={{ paddingLeft: depth * 20 + 24 }}>
-                              <Badge variant="outline">{test.type === 'ui' ? t('requirements.web', 'Web') : test.type === 'mobile' ? t('requirements.mobile', 'Mobile') : 'API'}</Badge>
+                            <div
+                              className="flex items-center gap-2 text-sm"
+                              style={{ paddingLeft: depth * 20 + 24 }}
+                            >
+                              <Badge variant="outline">
+                                {test.type === 'ui'
+                                  ? t('requirements.web', 'Web')
+                                  : test.type === 'mobile'
+                                    ? t('requirements.mobile', 'Mobile')
+                                    : 'API'}
+                              </Badge>
                               {test.name}
                             </div>
                           </TableCell>
                           <TableCell className="text-sm">{outcomeLabel(test.outcome)}</TableCell>
                           <TableCell colSpan={2} className="text-sm text-muted-foreground">
                             {test.lastRun ? (
-                              <Link href={`/test-plans/${test.lastRun.planId}/executions/${test.lastRun.executionId}/report`} className="underline">
+                              <Link
+                                href={`/test-plans/${test.lastRun.planId}/executions/${test.lastRun.executionId}/report`}
+                                className="underline"
+                              >
                                 {test.lastRun.planName ?? t('requirements.run', 'Run')}
-                                {test.lastRun.at ? ` · ${new Date(test.lastRun.at).toLocaleString()}` : ''}
+                                {test.lastRun.at
+                                  ? ` · ${new Date(test.lastRun.at).toLocaleString()}`
+                                  : ''}
                               </Link>
                             ) : (
                               '—'
@@ -498,25 +682,36 @@ const RequirementsPage: React.FC = () => {
       <RequirementDialog
         isOpen={editing !== null}
         requirement={editing && editing !== 'new' ? editing : null}
-        options={rows.map((row) => ({ id: row.id, key: row.key, title: row.title, kind: row.kind }))}
+        options={rows.map((row) => ({
+          id: row.id,
+          key: row.key,
+          title: row.title,
+          kind: row.kind,
+        }))}
         saving={save.isPending}
         onClose={() => setEditing(null)}
         onSave={(payload) => save.mutate(payload)}
       />
       <LinkTestsDialog
         isOpen={linking !== null}
-        requirement={linking ? { key: linking.row.key, title: linking.row.title, tests: linking.tests } : null}
+        requirement={
+          linking ? { key: linking.row.key, title: linking.row.title, tests: linking.tests } : null
+        }
         saving={saveLinks.isPending}
         onClose={() => setLinking(null)}
         onSave={(items) => saveLinks.mutate(items)}
       />
       <GenerateTestsDialog
-        requirement={generating ? { id: generating.id, key: generating.key, title: generating.title } : null}
+        requirement={
+          generating ? { id: generating.id, key: generating.key, title: generating.title } : null
+        }
         onClose={() => setGenerating(null)}
         onCreated={async (count) => {
           setGenerating(null);
           await refresh();
-          toast({ title: t('requirements.generated', '{{count}} tests created and linked', { count }) });
+          toast({
+            title: t('requirements.generated', '{{count}} tests created and linked', { count }),
+          });
         }}
       />
       <ImportRequirementsDialog
@@ -531,9 +726,14 @@ const RequirementsPage: React.FC = () => {
       <AlertDialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('requirements.deleteTitle', 'Delete {{key}}?', { key: deleting?.key ?? '' })}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t('requirements.deleteTitle', 'Delete {{key}}?', { key: deleting?.key ?? '' })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {t('requirements.deleteBody', 'Its links to tests go with it; the tests and their results stay. What it contains moves to the top level. Nothing changes in the tracker.')}
+              {t(
+                'requirements.deleteBody',
+                'Its links to tests go with it; the tests and their results stay. What it contains moves to the top level. Nothing changes in the tracker.',
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

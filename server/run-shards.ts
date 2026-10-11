@@ -36,7 +36,13 @@ export const WORK_POLL_MS = process.env.NODE_ENV === 'test' ? 20 : 1_000;
 
 /** What one item runs: tests in order, with the variables they start from. */
 export interface WorkUnit {
-  units: Array<{ link: number; browserChoice?: BrowserChoice; locale?: string; bddRowIndex?: number; mobileTarget?:import('./mobile-plan-units').MobilePlanTarget }>;
+  units: Array<{
+    link: number;
+    browserChoice?: BrowserChoice;
+    locale?: string;
+    bddRowIndex?: number;
+    mobileTarget?: import('./mobile-plan-units').MobilePlanTarget;
+  }>;
   captured: Record<string, string>;
 }
 
@@ -67,7 +73,15 @@ export async function writeWorkItems(
   await withTenantTransaction(async (tx) => {
     await tx
       .insert(runWorkItems)
-      .values(items.map((item, position) => ({ executionId, organizationId, key: item.key, position, unit: item.unit })))
+      .values(
+        items.map((item, position) => ({
+          executionId,
+          organizationId,
+          key: item.key,
+          position,
+          unit: item.unit,
+        })),
+      )
       .onConflictDoNothing();
   });
 }
@@ -76,7 +90,10 @@ export async function writeWorkItems(
  * The next item nobody holds, in plan order, or one whose holder stopped answering. Rows another
  * worker is claiming at the same moment are skipped rather than waited for.
  */
-export async function claimWorkItem(executionId: string, worker: string): Promise<{ key: string; unit: WorkUnit } | null> {
+export async function claimWorkItem(
+  executionId: string,
+  worker: string,
+): Promise<{ key: string; unit: WorkUnit } | null> {
   return withTenantTransaction(async (tx) => {
     const staleBefore = sql`now() - make_interval(secs => ${STALE_CLAIM_MS / 1000})`;
     const [next] = await tx
@@ -109,7 +126,13 @@ export async function heartbeatWorkItems(executionId: string, worker: string): P
     await tx
       .update(runWorkItems)
       .set({ heartbeatAt: sql`now()` })
-      .where(and(eq(runWorkItems.executionId, executionId), eq(runWorkItems.claimedBy, worker), eq(runWorkItems.state, 'claimed')));
+      .where(
+        and(
+          eq(runWorkItems.executionId, executionId),
+          eq(runWorkItems.claimedBy, worker),
+          eq(runWorkItems.state, 'claimed'),
+        ),
+      );
   });
 }
 
@@ -127,7 +150,13 @@ export async function finishWorkItem(
     tx
       .update(runWorkItems)
       .set({ state: 'done', finishedAt: sql`now()`, results, error: results.failures[0] ?? null })
-      .where(and(eq(runWorkItems.executionId, executionId), eq(runWorkItems.key, key), eq(runWorkItems.claimedBy, worker)))
+      .where(
+        and(
+          eq(runWorkItems.executionId, executionId),
+          eq(runWorkItems.key, key),
+          eq(runWorkItems.claimedBy, worker),
+        ),
+      )
       .returning(),
   );
   return rows.length > 0;
@@ -174,13 +203,23 @@ export async function recordStopReason(executionId: string, reason: string): Pro
 
 export async function sharedStopReason(executionId: string): Promise<string | null> {
   const [row] = await withTenantTransaction((tx) =>
-    tx.select({ stopReason: testPlanExecutions.stopReason }).from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId)).limit(1),
+    tx
+      .select({ stopReason: testPlanExecutions.stopReason })
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, executionId))
+      .limit(1),
   );
   return row?.stopReason ?? null;
 }
 
 /** Asks for helpers: the worker process registers how (server/worker.ts). Without one, the coordinator runs every item itself. */
-export type ShardDispatcher = (job: { executionId: string; planId: string; userId: number; shard: number; updateBaselines: boolean }) => Promise<void>;
+export type ShardDispatcher = (job: {
+  executionId: string;
+  planId: string;
+  userId: number;
+  shard: number;
+  updateBaselines: boolean;
+}) => Promise<void>;
 
 let dispatcher: ShardDispatcher | null = null;
 

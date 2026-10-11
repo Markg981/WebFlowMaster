@@ -90,8 +90,13 @@ describe('resolveVariables', () => {
       .returning();
     const { encryptedValue, iv, authTag } = encryptSecret('not-yours');
     await privilegedDb.insert(secrets).values({
-      environmentId: foreign.id, keyName: 'secret_password',
-      encryptedValue, iv, authTag, userId: otherUser, organizationId: otherOrg,
+      environmentId: foreign.id,
+      keyName: 'secret_password',
+      encryptedValue,
+      iv,
+      authTag,
+      userId: otherUser,
+      organizationId: otherOrg,
     });
 
     const vars = await resolveVariables({ userId, organizationId, environmentId: foreign.id });
@@ -122,7 +127,10 @@ describe('the base URL is not tied to one customer', () => {
   const saved = { app: process.env.APP_BASE_URL, dmo: process.env.DMO_BASE_URL };
 
   afterEach(() => {
-    for (const [key, value] of [['APP_BASE_URL', saved.app], ['DMO_BASE_URL', saved.dmo]] as const) {
+    for (const [key, value] of [
+      ['APP_BASE_URL', saved.app],
+      ['DMO_BASE_URL', saved.dmo],
+    ] as const) {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
     }

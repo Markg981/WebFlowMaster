@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { 
+import {
   ReactFlow,
   Background,
   Node,
@@ -11,7 +11,7 @@ import {
   OnEdgesChange,
   OnConnect,
   ConnectionMode,
-  MarkerType
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -103,17 +103,18 @@ export function VisualTestBuilder({
         onSetTarget: (id, element) => handleSetTarget(id, element),
         breakpoint: breakpoints?.has(step.id) ?? false,
         onToggleBreakpoint,
-        debugPaused: debugPausedAt?.stepId === step.id ? (debugPausedAt.failed ? 'failed' : 'before') : null,
-      }
+        debugPaused:
+          debugPausedAt?.stepId === step.id ? (debugPausedAt.failed ? 'failed' : 'before') : null,
+      },
     }));
 
     // Crea automaticamente i collegamenti (Edges)
     const newEdges: Edge[] = [];
     for (let i = 0; i < testSequence.length - 1; i++) {
       newEdges.push({
-        id: `e-${testSequence[i].id}-${testSequence[i+1].id}`,
+        id: `e-${testSequence[i].id}-${testSequence[i + 1].id}`,
         source: testSequence[i].id,
-        target: testSequence[i+1].id,
+        target: testSequence[i + 1].id,
         animated: isExecuting,
         style: { stroke: isExecuting ? '#3b82f6' : '#9ca3af', strokeWidth: 2 },
         markerEnd: { type: MarkerType.ArrowClosed, color: isExecuting ? '#3b82f6' : '#9ca3af' },
@@ -126,59 +127,75 @@ export function VisualTestBuilder({
     // stable onUpdateSequence prop; the effect re-syncs whenever testSequence changes, so
     // listing the (non-memoized) handlers would only cause redundant re-runs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [testSequence, isExecuting, isRecordingActive, breakpoints, debugPausedAt, onToggleBreakpoint]);
+  }, [
+    testSequence,
+    isExecuting,
+    isRecordingActive,
+    breakpoints,
+    debugPausedAt,
+    onToggleBreakpoint,
+  ]);
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds) as Node<TestNodeData>[]),
-    []
+    [],
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
+    [],
   );
 
   const onConnect: OnConnect = useCallback(
-    (params) => setEdges((eds) => addEdge({ 
-      ...params, 
-      animated: false,
-      style: { stroke: '#9ca3af', strokeWidth: 2 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#9ca3af' }
-    }, eds)),
-    []
+    (params) =>
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            animated: false,
+            style: { stroke: '#9ca3af', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#9ca3af' },
+          },
+          eds,
+        ),
+      ),
+    [],
   );
 
-  const [{ isOver }, dropRef] = useDrop(() => ({
-    accept: "action",
-    drop: (item: any) => {
-      if (isRecordingActive) return;
-      const newStep: TestStep = {
-        id: `step-${Date.now()}`,
-        action: item.data,
-        // A step group is dragged like any action, and the group it names travels in `value` —
-        // which is where the runner looks when it expands the call.
-        value: item.data?.groupId ?? ""
-      };
-      onUpdateSequence([...testSequence, newStep]);
-    },
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
+  const [{ isOver }, dropRef] = useDrop(
+    () => ({
+      accept: 'action',
+      drop: (item: any) => {
+        if (isRecordingActive) return;
+        const newStep: TestStep = {
+          id: `step-${Date.now()}`,
+          action: item.data,
+          // A step group is dragged like any action, and the group it names travels in `value` —
+          // which is where the runner looks when it expands the call.
+          value: item.data?.groupId ?? '',
+        };
+        onUpdateSequence([...testSequence, newStep]);
+      },
+      collect: (monitor) => ({
+        isOver: !!monitor.isOver(),
+      }),
     }),
-  }), [testSequence, onUpdateSequence, isRecordingActive]);
+    [testSequence, onUpdateSequence, isRecordingActive],
+  );
 
   // Callback passate al custom node
   const handleUpdateValue = (id: string, value: string) => {
-    const updated = testSequence.map(s => s.id === id ? { ...s, value } : s);
+    const updated = testSequence.map((s) => (s.id === id ? { ...s, value } : s));
     onUpdateSequence(updated);
   };
 
   const handleDeleteNode = (id: string) => {
-    const updated = testSequence.filter(s => s.id !== id);
+    const updated = testSequence.filter((s) => s.id !== id);
     onUpdateSequence(updated);
   };
 
   const handleSetTarget = (id: string, element: DetectedElement) => {
-    const updated = testSequence.map(s => s.id === id ? { ...s, targetElement: element } : s);
+    const updated = testSequence.map((s) => (s.id === id ? { ...s, targetElement: element } : s));
     onUpdateSequence(updated);
   };
 
@@ -191,7 +208,10 @@ export function VisualTestBuilder({
             size="sm"
             onClick={onDescribeTest}
             disabled={isRecordingActive}
-            title={t('testSequenceBuilder.describe.tooltip', 'Write what the test does and turn it into steps')}
+            title={t(
+              'testSequenceBuilder.describe.tooltip',
+              'Write what the test does and turn it into steps',
+            )}
           >
             <Wand2 className="h-4 w-4 mr-1" />
             {t('testSequenceBuilder.describe.button', 'Describe')}
@@ -203,13 +223,21 @@ export function VisualTestBuilder({
             size="sm"
             onClick={onSaveAsGroup}
             disabled={testSequence.length === 0 || isRecordingActive}
-            title={t('testSequenceBuilder.saveAsGroup.tooltip', 'Save these steps as a group other tests can call')}
+            title={t(
+              'testSequenceBuilder.saveAsGroup.tooltip',
+              'Save these steps as a group other tests can call',
+            )}
           >
             <Layers className="h-4 w-4 mr-1" />
             {t('testSequenceBuilder.saveAsGroup.button', 'Save as group')}
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={onClearSequence} disabled={testSequence.length === 0 || isRecordingActive}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onClearSequence}
+          disabled={testSequence.length === 0 || isRecordingActive}
+        >
           {t('testSequenceBuilder.clear.button')}
         </Button>
       </div>
@@ -217,8 +245,13 @@ export function VisualTestBuilder({
       {/* The same check the runner makes before launching a browser, shown while the test is
           being written rather than after it has been run. */}
       {flowErrors.length > 0 && (
-        <div role="alert" className="absolute bottom-4 left-4 z-10 max-w-md rounded-md border border-destructive/40 bg-card p-3 text-xs text-destructive shadow">
-          <p className="font-semibold mb-1">{t('testSequenceBuilder.flowErrors', 'Blocks that do not close')}</p>
+        <div
+          role="alert"
+          className="absolute bottom-4 left-4 z-10 max-w-md rounded-md border border-destructive/40 bg-card p-3 text-xs text-destructive shadow"
+        >
+          <p className="font-semibold mb-1">
+            {t('testSequenceBuilder.flowErrors', 'Blocks that do not close')}
+          </p>
           <ul className="list-disc pl-4 space-y-0.5">
             {flowErrors.map((error) => (
               <li key={error}>{error}</li>
@@ -252,7 +285,9 @@ export function VisualTestBuilder({
         {lastTestOutcome === true && <CheckCircle2 className="mr-2 h-5 w-5 text-success" />}
         {lastTestOutcome === false && <XCircle className="mr-2 h-5 w-5 text-destructive" />}
         <Button onClick={onExecuteTest} disabled={isExecuting} className="flex-1">
-          {isExecuting ? t('apiTesterPage.loading.button') : t('testSequenceBuilder.executeTest.button')}
+          {isExecuting
+            ? t('apiTesterPage.loading.button')
+            : t('testSequenceBuilder.executeTest.button')}
         </Button>
         {onDebugTest && debugRowCount > 1 && onDebugRowChange && (
           <select
@@ -274,13 +309,21 @@ export function VisualTestBuilder({
             onClick={onDebugTest}
             disabled={isExecuting || testSequence.length === 0 || isRecordingActive}
             variant="outline"
-            title={t('debugger.start.tooltip', 'Run step by step: stops at breakpoints and where a step fails')}
+            title={t(
+              'debugger.start.tooltip',
+              'Run step by step: stops at breakpoints and where a step fails',
+            )}
           >
             <Bug className="mr-2 h-4 w-4" />
             {t('debugger.start.button', 'Debug')}
           </Button>
         )}
-        <Button onClick={onSaveTest} disabled={testSequence.length === 0 || isSaving} variant="secondary" className="flex-1">
+        <Button
+          onClick={onSaveTest}
+          disabled={testSequence.length === 0 || isSaving}
+          variant="secondary"
+          className="flex-1"
+        >
           {isSaving ? t('apiTesterPage.loading.button') : t('apiTesterPage.saveTest.button')}
         </Button>
       </div>

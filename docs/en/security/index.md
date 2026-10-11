@@ -13,15 +13,15 @@ GitHub, never in a public issue.
 
 ## Shared responsibility
 
-| Area | The product | The operator of the installation | The organization's owners |
-|---|---|---|---|
-| Isolation between organizations | Enforced by the database on every query | Runs PostgreSQL with the required roles | — |
-| Accounts and access | Roles, two-factor, API key scopes, invitation-only registration, audit trail | Network exposure, the `REGISTRATION` setting | Members, roles, requiring two-factor, key hygiene |
-| Secrets stored for tests | Encrypted with AES-256-GCM, never returned | Keeps `ENCRYPTION_KEY` safe and backed up | Decides which secrets to store |
-| Data in transit | Secure cookies, origin checks | TLS in front of the web process, between services | — |
-| Data at rest | Application-level encryption of secrets | Disk, database, backup and bucket encryption | — |
-| Where tests may connect | Nothing is blocked: reaching the application is the job | Network rules for the workers | What their tests call |
-| Updates | Releases with migrations | Applying them, patching hosts | — |
+| Area                            | The product                                                                  | The operator of the installation                  | The organization's owners                         |
+| ------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------- |
+| Isolation between organizations | Enforced by the database on every query                                      | Runs PostgreSQL with the required roles           | —                                                 |
+| Accounts and access             | Roles, two-factor, API key scopes, invitation-only registration, audit trail | Network exposure, the `REGISTRATION` setting      | Members, roles, requiring two-factor, key hygiene |
+| Secrets stored for tests        | Encrypted with AES-256-GCM, never returned                                   | Keeps `ENCRYPTION_KEY` safe and backed up         | Decides which secrets to store                    |
+| Data in transit                 | Secure cookies, origin checks                                                | TLS in front of the web process, between services | —                                                 |
+| Data at rest                    | Application-level encryption of secrets                                      | Disk, database, backup and bucket encryption      | —                                                 |
+| Where tests may connect         | Nothing is blocked: reaching the application is the job                      | Network rules for the workers                     | What their tests call                             |
+| Updates                         | Releases with migrations                                                     | Applying them, patching hosts                     | —                                                 |
 
 ## Isolation between organizations
 
@@ -80,13 +80,13 @@ sign-up, where each new account gets an organization of its own.
 
 **Machines** never use a person's password:
 
-| Credential | Stored as | Scope | Lifetime |
-|---|---|---|---|
-| API key | SHA-256 hash, shown once | Its account's role; optionally narrowed to named scopes on `/api/v1` | Until revoked or its expiry date |
-| Service account | An account that cannot sign in | Viewer or editor | Until disabled, which revokes its keys |
-| Webhook token | SHA-256 hash, shown once | Starts one plan | Until deleted |
-| Local agent token | SHA-256 hash, shown once | One agent of one organization | Until revoked |
-| Relay ticket | Not stored; HMAC-signed | One organization, pool and browser | 60 seconds |
+| Credential        | Stored as                      | Scope                                                                | Lifetime                               |
+| ----------------- | ------------------------------ | -------------------------------------------------------------------- | -------------------------------------- |
+| API key           | SHA-256 hash, shown once       | Its account's role; optionally narrowed to named scopes on `/api/v1` | Until revoked or its expiry date       |
+| Service account   | An account that cannot sign in | Viewer or editor                                                     | Until disabled, which revokes its keys |
+| Webhook token     | SHA-256 hash, shown once       | Starts one plan                                                      | Until deleted                          |
+| Local agent token | SHA-256 hash, shown once       | One agent of one organization                                        | Until revoked                          |
+| Relay ticket      | Not stored; HMAC-signed        | One organization, pool and browser                                   | 60 seconds                             |
 
 Tokens are 32 random bytes; a single hash is enough for values that cannot be guessed, and makes
 the lookup exact.
@@ -199,11 +199,11 @@ the installation:
 AI features are **off unless the operator sets a Google Gemini API key**. When they are on, the
 following leaves the installation for Google's API:
 
-| Feature | What is sent |
-|---|---|
-| Describing a test in sentences | The sentences, the list of allowed actions, and the names and labels of the elements available (never selectors or secrets). |
-| Selector healing, when a step cannot find its element | The failing selector, the error, and up to 30,000 characters of the page's HTML. |
-| Tests from a story, when an editor asks for them | The requirement's key and title, and its description and acceptance criteria as the tracker has them (up to 12,000 characters). |
+| Feature                                                         | What is sent                                                                                                                                                                                                                                                |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Describing a test in sentences                                  | The sentences, the list of allowed actions, and the names and labels of the elements available (never selectors or secrets).                                                                                                                                |
+| Selector healing, when a step cannot find its element           | The failing selector, the error, and up to 30,000 characters of the page's HTML.                                                                                                                                                                            |
+| Tests from a story, when an editor asks for them                | The requirement's key and title, and its description and acceptance criteria as the tracker has them (up to 12,000 characters).                                                                                                                             |
 | Failure analysis, when an editor asks for it on a failed result | The test's name, the runner's reason, the steps around the failure with their selectors, errors and values (values that look like passwords, codes or keys are replaced by `[hidden]`), the failed and slowest requests, and the screenshot of the failure. |
 
 Page HTML can contain personal data of the application under test. Enable the key only where

@@ -8,7 +8,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) => {
       let text = typeof fallback === 'string' ? fallback : _key;
-      for (const [name, value] of Object.entries(options ?? {})) text = text.replace(`{{${name}}}`, String(value));
+      for (const [name, value] of Object.entries(options ?? {}))
+        text = text.replace(`{{${name}}}`, String(value));
       return text;
     },
   }),
@@ -39,8 +40,20 @@ const state = (overrides: Partial<DebugState> = {}): DebugState => ({
   id: 'd1',
   status: 'paused',
   paused: pause(),
-  steps: [{ name: 'Open cart', type: 'navigate', stepId: 's1', status: 'passed', detail: 'ok', corrected: false }],
-  variables: [{ name: 'password', value: null }, { name: 'orderId', value: 'A-17' }],
+  steps: [
+    {
+      name: 'Open cart',
+      type: 'navigate',
+      stepId: 's1',
+      status: 'passed',
+      detail: 'ok',
+      corrected: false,
+    },
+  ],
+  variables: [
+    { name: 'password', value: null },
+    { name: 'orderId', value: 'A-17' },
+  ],
   breakpoints: ['s2'],
   outcome: null,
   updatedAt: '',
@@ -51,7 +64,15 @@ function renderPanel(debugState: DebugState, isOwnStep = () => true) {
   const onCommand = vi.fn();
   const onCorrection = vi.fn();
   render(
-    <DebugPanel state={debugState} error={null} busy={false} onCommand={onCommand} onClose={vi.fn()} onCorrection={onCorrection} isOwnStep={isOwnStep} />,
+    <DebugPanel
+      state={debugState}
+      error={null}
+      busy={false}
+      onCommand={onCommand}
+      onClose={vi.fn()}
+      onCorrection={onCorrection}
+      isOwnStep={isOwnStep}
+    />,
   );
   return { onCommand, onCorrection };
 }
@@ -72,19 +93,29 @@ describe('DebugPanel', () => {
   });
 
   it('on a failure: retries with the correction, and copies it into the test', () => {
-    const { onCommand, onCorrection } = renderPanel(state({ paused: pause({ reason: 'failure', error: 'Timeout waiting for #buy' }) }));
+    const { onCommand, onCorrection } = renderPanel(
+      state({ paused: pause({ reason: 'failure', error: 'Timeout waiting for #buy' }) }),
+    );
 
     expect(screen.getByRole('alert').textContent).toContain('Timeout waiting for #buy');
     expect(screen.queryByText('Continue')).toBeNull();
-    fireEvent.change(screen.getByLabelText('Selector'), { target: { value: "role=button[name='Buy']" } });
+    fireEvent.change(screen.getByLabelText('Selector'), {
+      target: { value: "role=button[name='Buy']" },
+    });
     fireEvent.click(screen.getByText('Retry'));
 
-    expect(onCommand).toHaveBeenCalledWith({ type: 'retry', patch: { selector: "role=button[name='Buy']" } });
+    expect(onCommand).toHaveBeenCalledWith({
+      type: 'retry',
+      patch: { selector: "role=button[name='Buy']" },
+    });
     expect(onCorrection).toHaveBeenCalledWith('s2', { selector: "role=button[name='Buy']" });
   });
 
   it('keeps a correction to a step inside a group to this run', () => {
-    const { onCommand, onCorrection } = renderPanel(state({ paused: pause({ reason: 'failure', calledFrom: 'g1', stepId: 'inner' }) }), () => false);
+    const { onCommand, onCorrection } = renderPanel(
+      state({ paused: pause({ reason: 'failure', calledFrom: 'g1', stepId: 'inner' }) }),
+      () => false,
+    );
 
     expect(screen.getByText(/applies to this run only/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'x' } });
@@ -105,7 +136,13 @@ describe('DebugPanel', () => {
   });
 
   it('shows the outcome, the steps and the variables, never an environment value', () => {
-    renderPanel(state({ status: 'finished', paused: null, outcome: { success: false, error: null, skipped: 1 } }));
+    renderPanel(
+      state({
+        status: 'finished',
+        paused: null,
+        outcome: { success: false, error: null, skipped: 1 },
+      }),
+    );
     expect(screen.getByText(/The test did not pass\. 1 step\(s\) passed over\./)).toBeTruthy();
     expect(screen.getByText('Open cart')).toBeTruthy();
     expect(screen.getByText('A-17')).toBeTruthy();

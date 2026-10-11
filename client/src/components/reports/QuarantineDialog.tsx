@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,7 +57,11 @@ export default function QuarantineDialog({ test, testName, onClose }: Quarantine
       toast({ title: t('quarantine.done', '"{{name}}" is in quarantine', { name: testName }) });
       onClose();
     } catch (error) {
-      toast({ variant: 'destructive', title: t('quarantine.failed', 'The test was not quarantined'), description: (error as Error).message });
+      toast({
+        variant: 'destructive',
+        title: t('quarantine.failed', 'The test was not quarantined'),
+        description: (error as Error).message,
+      });
     } finally {
       setSaving(false);
     }
@@ -60,7 +71,9 @@ export default function QuarantineDialog({ test, testName, onClose }: Quarantine
     <Dialog open={test !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t('quarantine.title', 'Quarantine "{{name}}"', { name: testName })}</DialogTitle>
+          <DialogTitle>
+            {t('quarantine.title', 'Quarantine "{{name}}"', { name: testName })}
+          </DialogTitle>
           <DialogDescription>
             {t(
               'quarantine.explain',
@@ -75,7 +88,10 @@ export default function QuarantineDialog({ test, testName, onClose }: Quarantine
             rows={3}
             value={reason}
             maxLength={2000}
-            placeholder={t('quarantine.reasonPlaceholder', 'e.g. times out waiting for the payment iframe about one night in three')}
+            placeholder={t(
+              'quarantine.reasonPlaceholder',
+              'e.g. times out waiting for the payment iframe about one night in three',
+            )}
             onChange={(e) => setReason(e.target.value)}
           />
         </div>

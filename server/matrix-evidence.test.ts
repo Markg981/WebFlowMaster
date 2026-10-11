@@ -4,14 +4,29 @@ import { appiumMatrixEvidence, browserMatrixEvidence } from './matrix-evidence';
 
 describe('requested versus observed matrix', () => {
   it('does not certify a remote browser brand from the requested channel', async () => {
-    const choice = { label: 'chrome', engine: 'chromium' as const, channel: 'chrome', headless: true,
-      grid: { id: 'g', provider: 'browserstack' as const, name: 'Grid', browserName: 'chrome' } };
-    const browser = { version: () => '140.0', browserType: () => ({ name: () => 'chromium' }) } as any;
-    const substituted = await browserMatrixEvidence(choice, browser, { evaluate: async () => ({ browser: 'playwright-chromium' }) } as any);
+    const choice = {
+      label: 'chrome',
+      engine: 'chromium' as const,
+      channel: 'chrome',
+      headless: true,
+      grid: { id: 'g', provider: 'browserstack' as const, name: 'Grid', browserName: 'chrome' },
+    };
+    const browser = {
+      version: () => '140.0',
+      browserType: () => ({ name: () => 'chromium' }),
+    } as any;
+    const substituted = await browserMatrixEvidence(choice, browser, {
+      evaluate: async () => ({ browser: 'playwright-chromium' }),
+    } as any);
     expect(substituted.verdict).toBe('mismatch');
-    const missing = await browserMatrixEvidence(choice, browser, { evaluate: async () => ({}) } as any);
-    expect(missing.verdict).toBe('unverified'); expect(missing.effective.browser).toBeNull();
-    const actual = await browserMatrixEvidence(choice, browser, { evaluate: async () => ({ browser: 'chrome' }) } as any);
+    const missing = await browserMatrixEvidence(choice, browser, {
+      evaluate: async () => ({}),
+    } as any);
+    expect(missing.verdict).toBe('unverified');
+    expect(missing.effective.browser).toBeNull();
+    const actual = await browserMatrixEvidence(choice, browser, {
+      evaluate: async () => ({ browser: 'chrome' }),
+    } as any);
     expect(actual.verdict).toBe('matched');
   });
   it('never certifies a copied request or a missing session', () => {

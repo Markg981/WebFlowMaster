@@ -44,12 +44,7 @@ describe('SchedulesList', () => {
 
   it('renders loading state', () => {
     render(
-      <SchedulesList
-        schedules={[]}
-        onEdit={mockOnEdit}
-        onDelete={mockOnDelete}
-        isLoading={true}
-      />
+      <SchedulesList schedules={[]} onEdit={mockOnEdit} onDelete={mockOnDelete} isLoading={true} />,
     );
     expect(screen.getByText('Loading schedules...')).toBeInTheDocument();
   });
@@ -62,7 +57,7 @@ describe('SchedulesList', () => {
         onDelete={mockOnDelete}
         isLoading={false}
         error={new Error('Failed to load')}
-      />
+      />,
     );
     expect(screen.getByText('Error loading schedules: Failed to load')).toBeInTheDocument();
   });
@@ -74,7 +69,7 @@ describe('SchedulesList', () => {
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
         isLoading={false}
-      />
+      />,
     );
     expect(screen.getByText('No schedules found. Create one to get started!')).toBeInTheDocument();
   });
@@ -86,7 +81,7 @@ describe('SchedulesList', () => {
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
         isLoading={false}
-      />
+      />,
     );
 
     expect(screen.getByText('Daily Smoke Test')).toBeInTheDocument();
@@ -116,7 +111,7 @@ describe('SchedulesList', () => {
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
         isLoading={false}
-      />
+      />,
     );
     // Get all edit buttons. Since title is "Edit Schedule" for all:
     const editButtons = screen.getAllByTitle('Edit Schedule');
@@ -131,7 +126,7 @@ describe('SchedulesList', () => {
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
         isLoading={false}
-      />
+      />,
     );
     const deleteButtons = screen.getAllByTitle('Delete Schedule');
     fireEvent.click(deleteButtons[0]); // Click the first one

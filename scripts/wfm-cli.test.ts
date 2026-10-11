@@ -1,7 +1,28 @@
 import { describe, it, expect, vi } from 'vitest';
-it('requires an explicit Cucumber import binding and preserves the pinned revision',() => {
-  expect(parseArgs(['tests','import','shop.feature','--bdd-mode','cucumber'],{})).toHaveProperty('error');
-  expect(parseArgs(['tests','import','shop.feature','--bdd-mode','cucumber','--bdd-profile','a50f9025-d495-4724-9849-cedb38ec0bb9','--bdd-revision','rev-1'],{})).toMatchObject({bddMode:'cucumber',bddProfile:'a50f9025-d495-4724-9849-cedb38ec0bb9',bddRevision:'rev-1'});
+it('requires an explicit Cucumber import binding and preserves the pinned revision', () => {
+  expect(
+    parseArgs(['tests', 'import', 'shop.feature', '--bdd-mode', 'cucumber'], {}),
+  ).toHaveProperty('error');
+  expect(
+    parseArgs(
+      [
+        'tests',
+        'import',
+        'shop.feature',
+        '--bdd-mode',
+        'cucumber',
+        '--bdd-profile',
+        'a50f9025-d495-4724-9849-cedb38ec0bb9',
+        '--bdd-revision',
+        'rev-1',
+      ],
+      {},
+    ),
+  ).toMatchObject({
+    bddMode: 'cucumber',
+    bddProfile: 'a50f9025-d495-4724-9849-cedb38ec0bb9',
+    bddRevision: 'rev-1',
+  });
 });
 import {
   EXIT_PASSED,
@@ -48,7 +69,12 @@ function io(fetchImpl: ReturnType<typeof vi.fn>, env: Record<string, string> = {
   const files = new Map<string, string | Uint8Array>();
   const appended = new Map<string, string>();
   let clock = 0;
-  const context: CliIo & { lines: string[]; errors: string[]; files: typeof files; appended: typeof appended } = {
+  const context: CliIo & {
+    lines: string[];
+    errors: string[];
+    files: typeof files;
+    appended: typeof appended;
+  } = {
     fetchImpl: fetchImpl as unknown as typeof fetch,
     writeFile: async (path, contents) => {
       files.set(path, contents);
@@ -86,40 +112,86 @@ const options = (overrides: Partial<CliOptions> = {}): CliOptions => ({
   ...overrides,
 });
 
-const started = (id = 'run-1') => jsonResponse({ id, status: 'queued', links: { report: `https://wfm.test/r/${id}` } }, 202);
-const run = (status: string, tests: Record<string, number> = {}, extra: Record<string, unknown> = {}) =>
-  jsonResponse({ id: 'run-1', status, planName: 'Nightly', tests, durationMs: 12_000, links: { report: 'https://wfm.test/r/run-1' }, ...extra });
+const started = (id = 'run-1') =>
+  jsonResponse({ id, status: 'queued', links: { report: `https://wfm.test/r/${id}` } }, 202);
+const run = (
+  status: string,
+  tests: Record<string, number> = {},
+  extra: Record<string, unknown> = {},
+) =>
+  jsonResponse({
+    id: 'run-1',
+    status,
+    planName: 'Nightly',
+    tests,
+    durationMs: 12_000,
+    links: { report: 'https://wfm.test/r/run-1' },
+    ...extra,
+  });
 
 describe('parseArgs', () => {
   it('reads a run command and its options', () => {
-    const parsed = parseArgs(['run', 'plan-1', '--wait', '--environment', '4', '--timeout', '90'], {} as NodeJS.ProcessEnv);
-    expect(parsed).toMatchObject({ command: 'run', target: 'plan-1', wait: true, environmentId: 4, timeoutSeconds: 90, ci: true });
+    const parsed = parseArgs(
+      ['run', 'plan-1', '--wait', '--environment', '4', '--timeout', '90'],
+      {} as NodeJS.ProcessEnv,
+    );
+    expect(parsed).toMatchObject({
+      command: 'run',
+      target: 'plan-1',
+      wait: true,
+      environmentId: 4,
+      timeoutSeconds: 90,
+      ci: true,
+    });
   });
 
   it('takes the server and the key from the environment, as a pipeline supplies them', () => {
-    const parsed = parseArgs(['status', 'run-1'], { WFM_URL: 'https://ci.test', WFM_API_KEY: 'wfm_abc' } as NodeJS.ProcessEnv);
+    const parsed = parseArgs(['status', 'run-1'], {
+      WFM_URL: 'https://ci.test',
+      WFM_API_KEY: 'wfm_abc',
+    } as NodeJS.ProcessEnv);
     expect(parsed).toMatchObject({ baseUrl: 'https://ci.test', apiKey: 'wfm_abc' });
   });
 
   it('waits when asked for any report, because none can be written before the run ends', () => {
     for (const flag of ['--junit', '--html', '--pdf', '--allure']) {
-      expect((parseArgs(['run', 'plan-1', flag, 'out'], {} as NodeJS.ProcessEnv) as CliOptions).wait).toBe(true);
+      expect(
+        (parseArgs(['run', 'plan-1', flag, 'out'], {} as NodeJS.ProcessEnv) as CliOptions).wait,
+      ).toBe(true);
     }
   });
 
   it('refuses what it cannot act on rather than guessing', () => {
-    expect(parseArgs(['run'], {} as NodeJS.ProcessEnv)).toEqual({ error: 'run needs an id. See --help.' });
-    expect(parseArgs(['fly', 'plan-1'], {} as NodeJS.ProcessEnv)).toEqual({ error: 'Unknown command "fly".' });
-    expect(parseArgs(['run', 'plan-1', '--turbo'], {} as NodeJS.ProcessEnv)).toEqual({ error: 'Unknown option "--turbo".' });
-    expect(parseArgs(['run', 'plan-1', '--timeout', 'soon'], {} as NodeJS.ProcessEnv)).toMatchObject({ error: expect.stringContaining('--timeout') });
-    expect(parseArgs(['export', 'run-1'], {} as NodeJS.ProcessEnv)).toMatchObject({ error: expect.stringContaining('--html') });
+    expect(parseArgs(['run'], {} as NodeJS.ProcessEnv)).toEqual({
+      error: 'run needs an id. See --help.',
+    });
+    expect(parseArgs(['fly', 'plan-1'], {} as NodeJS.ProcessEnv)).toEqual({
+      error: 'Unknown command "fly".',
+    });
+    expect(parseArgs(['run', 'plan-1', '--turbo'], {} as NodeJS.ProcessEnv)).toEqual({
+      error: 'Unknown option "--turbo".',
+    });
+    expect(
+      parseArgs(['run', 'plan-1', '--timeout', 'soon'], {} as NodeJS.ProcessEnv),
+    ).toMatchObject({ error: expect.stringContaining('--timeout') });
+    expect(parseArgs(['export', 'run-1'], {} as NodeJS.ProcessEnv)).toMatchObject({
+      error: expect.stringContaining('--html'),
+    });
   });
 
   it('reads the idempotency key from the flag or from WFM_IDEMPOTENCY_KEY, and --no-ci', () => {
-    expect(parseArgs(['run', 'plan-1', '--idempotency-key', 'k1'], {} as NodeJS.ProcessEnv)).toMatchObject({ idempotencyKey: 'k1' });
-    expect(parseArgs(['run', 'plan-1'], { WFM_IDEMPOTENCY_KEY: 'k2' } as NodeJS.ProcessEnv)).toMatchObject({ idempotencyKey: 'k2' });
-    expect(parseArgs(['run', 'plan-1', '--idempotency-key', ' '], {} as NodeJS.ProcessEnv)).toEqual({ error: '--idempotency-key needs a value.' });
-    expect(parseArgs(['run', 'plan-1', '--no-ci'], {} as NodeJS.ProcessEnv)).toMatchObject({ ci: false });
+    expect(
+      parseArgs(['run', 'plan-1', '--idempotency-key', 'k1'], {} as NodeJS.ProcessEnv),
+    ).toMatchObject({ idempotencyKey: 'k1' });
+    expect(
+      parseArgs(['run', 'plan-1'], { WFM_IDEMPOTENCY_KEY: 'k2' } as NodeJS.ProcessEnv),
+    ).toMatchObject({ idempotencyKey: 'k2' });
+    expect(parseArgs(['run', 'plan-1', '--idempotency-key', ' '], {} as NodeJS.ProcessEnv)).toEqual(
+      { error: '--idempotency-key needs a value.' },
+    );
+    expect(parseArgs(['run', 'plan-1', '--no-ci'], {} as NodeJS.ProcessEnv)).toMatchObject({
+      ci: false,
+    });
   });
 
   it('explains itself when asked, and when asked for nothing', () => {
@@ -165,15 +237,28 @@ describe('runCli', () => {
   it('passes the environment and the baseline switch through to the run', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(started());
     await runCli(options({ environmentId: 7, updateBaselines: true }), io(fetchImpl));
-    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ environmentId: 7, updateBaselines: true });
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({
+      environmentId: 7,
+      updateBaselines: true,
+    });
   });
 
   it('sends where the build is, read from the CI, unless told not to', async () => {
-    const env = { GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: 'acme/shop', GITHUB_SHA: '3f2a1c9d0e', GITHUB_REF_NAME: 'main', GITHUB_RUN_ID: '42' };
+    const env = {
+      GITHUB_ACTIONS: 'true',
+      GITHUB_REPOSITORY: 'acme/shop',
+      GITHUB_SHA: '3f2a1c9d0e',
+      GITHUB_REF_NAME: 'main',
+      GITHUB_RUN_ID: '42',
+    };
     const fetchImpl = vi.fn().mockResolvedValue(started());
     const context = io(fetchImpl, env);
     await runCli(options(), context);
-    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).ci).toMatchObject({ provider: 'github', repository: 'acme/shop', commit: '3f2a1c9d0e' });
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).ci).toMatchObject({
+      provider: 'github',
+      repository: 'acme/shop',
+      commit: '3f2a1c9d0e',
+    });
     expect(context.lines[0]).toBe('Started run run-1 for acme/shop@3f2a1c9.');
 
     const quiet = vi.fn().mockResolvedValue(started());
@@ -182,7 +267,11 @@ describe('runCli', () => {
   });
 
   it('exits 0 when the run it waited for passed', async () => {
-    const fetchImpl = vi.fn().mockResolvedValueOnce(started()).mockResolvedValueOnce(run('running')).mockResolvedValueOnce(run('completed', { total: 3, passed: 3 }));
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(started())
+      .mockResolvedValueOnce(run('running'))
+      .mockResolvedValueOnce(run('completed', { total: 3, passed: 3 }));
     expect(await runCli(options({ wait: true }), io(fetchImpl))).toBe(EXIT_PASSED);
     expect(fetchImpl.mock.calls[1][0]).toBe('https://wfm.test/api/v1/runs/run-1');
   });
@@ -191,7 +280,8 @@ describe('runCli', () => {
     // A run the server has just accepted is `queued`. When that word was missing from the
     // list of states that mean "still going", the CLI read it as finished and the pipeline
     // reported before a single test had run.
-    const fetchImpl = vi.fn()
+    const fetchImpl = vi
+      .fn()
       .mockResolvedValueOnce(started())
       .mockResolvedValueOnce(run('queued'))
       .mockResolvedValueOnce(run('running'))
@@ -210,12 +300,15 @@ describe('runCli', () => {
   it('gives up after the timeout rather than hanging the pipeline', async () => {
     const fetchImpl = vi.fn().mockResolvedValueOnce(started()).mockResolvedValue(run('running'));
     const context = io(fetchImpl);
-    expect(await runCli(options({ wait: true, timeoutSeconds: 3, pollSeconds: 1 }), context)).toBe(EXIT_TOOL_ERROR);
+    expect(await runCli(options({ wait: true, timeoutSeconds: 3, pollSeconds: 1 }), context)).toBe(
+      EXIT_TOOL_ERROR,
+    );
     expect(context.errors.join(' ')).toContain('Timed out');
   });
 
   it('writes the JUnit file and the reports, from /api/v1, even when the run failed', async () => {
-    const fetchImpl = vi.fn()
+    const fetchImpl = vi
+      .fn()
       .mockResolvedValueOnce(started())
       .mockResolvedValueOnce(run('failed', { total: 2, passed: 1, failed: 1 }))
       .mockResolvedValueOnce(textResponse('<testsuites />'))
@@ -224,7 +317,16 @@ describe('runCli', () => {
       .mockResolvedValueOnce(textResponse('PK'));
     const context = io(fetchImpl);
 
-    const code = await runCli(options({ wait: true, junitPath: 'junit.xml', htmlPath: 'r.html', pdfPath: 'r.pdf', allurePath: 'allure.zip' }), context);
+    const code = await runCli(
+      options({
+        wait: true,
+        junitPath: 'junit.xml',
+        htmlPath: 'r.html',
+        pdfPath: 'r.pdf',
+        allurePath: 'allure.zip',
+      }),
+      context,
+    );
 
     expect(code).toBe(EXIT_RUN_FAILED);
     expect(fetchImpl.mock.calls.slice(2).map(([url]: any[]) => url)).toEqual([
@@ -240,11 +342,20 @@ describe('runCli', () => {
     expect(context.files.get('allure.zip')).toBeInstanceOf(Uint8Array);
   });
 
-  it('reports a refused start as a tool error, with the server\'s own reason', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ error: { code: 'insufficient_scope', message: 'This key needs runs:write.' } }, 403));
+  it("reports a refused start as a tool error, with the server's own reason", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(
+          { error: { code: 'insufficient_scope', message: 'This key needs runs:write.' } },
+          403,
+        ),
+      );
     const context = io(fetchImpl);
     expect(await runCli(options(), context)).toBe(EXIT_TOOL_ERROR);
-    expect(context.errors.join(' ')).toBe('Could not start the plan: 403 insufficient_scope: This key needs runs:write.');
+    expect(context.errors.join(' ')).toBe(
+      'Could not start the plan: 403 insufficient_scope: This key needs runs:write.',
+    );
   });
 
   it('reports an unreachable server as a tool error', async () => {
@@ -256,47 +367,70 @@ describe('runCli', () => {
 
   it('answers status without starting anything', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(run('running'));
-    expect(await runCli(options({ command: 'status', target: 'run-1' }), io(fetchImpl))).toBe(EXIT_PASSED);
+    expect(await runCli(options({ command: 'status', target: 'run-1' }), io(fetchImpl))).toBe(
+      EXIT_PASSED,
+    );
     expect(fetchImpl.mock.calls[0][0]).toBe('https://wfm.test/api/v1/runs/run-1');
-    expect(fetchImpl.mock.calls.every(([, init]: any[]) => (init?.method ?? 'GET') === 'GET')).toBe(true);
+    expect(fetchImpl.mock.calls.every(([, init]: any[]) => (init?.method ?? 'GET') === 'GET')).toBe(
+      true,
+    );
   });
 
   it('fetches a JUnit report, or the exports, for a run that already finished', async () => {
     const junit = vi.fn().mockResolvedValue(textResponse('<testsuites />'));
     const junitIo = io(junit);
-    expect(await runCli(options({ command: 'junit', target: 'run-9', junitPath: 'out.xml' }), junitIo)).toBe(EXIT_PASSED);
+    expect(
+      await runCli(options({ command: 'junit', target: 'run-9', junitPath: 'out.xml' }), junitIo),
+    ).toBe(EXIT_PASSED);
     expect(junit.mock.calls[0][0]).toBe('https://wfm.test/api/v1/runs/run-9/junit');
     expect(junitIo.files.get('out.xml')).toBe('<testsuites />');
 
     const exports = vi.fn().mockResolvedValue(textResponse('<html>'));
     const exportIo = io(exports);
-    expect(await runCli(options({ command: 'export', target: 'run-9', htmlPath: 'r.html' }), exportIo)).toBe(EXIT_PASSED);
+    expect(
+      await runCli(options({ command: 'export', target: 'run-9', htmlPath: 'r.html' }), exportIo),
+    ).toBe(EXIT_PASSED);
     expect(exports.mock.calls[0][0]).toBe('https://wfm.test/api/v1/runs/run-9/export/html');
   });
 });
 
 describe('on GitHub Actions', () => {
-  const env = { GITHUB_ACTIONS: 'true', GITHUB_OUTPUT: '/gh/output', GITHUB_STEP_SUMMARY: '/gh/summary' };
+  const env = {
+    GITHUB_ACTIONS: 'true',
+    GITHUB_OUTPUT: '/gh/output',
+    GITHUB_STEP_SUMMARY: '/gh/summary',
+  };
 
   it('sets the step outputs and writes the run on the job summary, and annotates a failure', async () => {
-    const fetchImpl = vi.fn()
+    const fetchImpl = vi
+      .fn()
       .mockResolvedValueOnce(started())
-      .mockResolvedValueOnce(run('failed', { total: 10, passed: 7, failed: 3, quarantinedFailures: 1 }));
+      .mockResolvedValueOnce(
+        run('failed', { total: 10, passed: 7, failed: 3, quarantinedFailures: 1 }),
+      );
     const context = io(fetchImpl, env);
 
     expect(await runCli(options({ wait: true }), context)).toBe(EXIT_RUN_FAILED);
 
     // Once when started, so a later step has the id even if this one is cancelled; once at the end.
     expect(context.appended.get('/gh/output')).toBe(
-      'run-id=run-1\nstatus=queued\nreport-url=https://wfm.test/r/run-1\n' + 'run-id=run-1\nstatus=failed\nreport-url=https://wfm.test/r/run-1\n',
+      'run-id=run-1\nstatus=queued\nreport-url=https://wfm.test/r/run-1\n' +
+        'run-id=run-1\nstatus=failed\nreport-url=https://wfm.test/r/run-1\n',
     );
     expect(context.appended.get('/gh/summary')).toContain('### ❌ Nightly: failed');
-    expect(context.appended.get('/gh/summary')).toContain('| 10 | 7 | 3 (1 in quarantine) | 0 | 12.0 s |');
-    expect(context.lines).toContain('::error title=WebFlowMaster::Nightly: failed — 7/10 passed, 3 failed (1 in quarantine) in 12.0s — https://wfm.test/r/run-1');
+    expect(context.appended.get('/gh/summary')).toContain(
+      '| 10 | 7 | 3 (1 in quarantine) | 0 | 12.0 s |',
+    );
+    expect(context.lines).toContain(
+      '::error title=WebFlowMaster::Nightly: failed — 7/10 passed, 3 failed (1 in quarantine) in 12.0s — https://wfm.test/r/run-1',
+    );
   });
 
   it('writes nothing of the kind anywhere else', async () => {
-    const fetchImpl = vi.fn().mockResolvedValueOnce(started()).mockResolvedValueOnce(run('completed', { total: 1, passed: 1 }));
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(started())
+      .mockResolvedValueOnce(run('completed', { total: 1, passed: 1 }));
     const context = io(fetchImpl, { GITHUB_OUTPUT: '/gh/output' });
     await runCli(options({ wait: true }), context);
     expect(context.appended.size).toBe(0);
@@ -308,46 +442,140 @@ describe('detectCi', () => {
   it('reads GitHub Actions, including a pull request and a re-run attempt', () => {
     expect(
       detectCi({
-        GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: 'acme/shop', GITHUB_SHA: 'a'.repeat(40), GITHUB_REF: 'refs/pull/17/merge',
-        GITHUB_HEAD_REF: 'feature/pay', GITHUB_REF_NAME: '17/merge', GITHUB_RUN_ID: '9001', GITHUB_RUN_ATTEMPT: '2',
-        GITHUB_SERVER_URL: 'https://github.com', GITHUB_ACTOR: 'mario',
+        GITHUB_ACTIONS: 'true',
+        GITHUB_REPOSITORY: 'acme/shop',
+        GITHUB_SHA: 'a'.repeat(40),
+        GITHUB_REF: 'refs/pull/17/merge',
+        GITHUB_HEAD_REF: 'feature/pay',
+        GITHUB_REF_NAME: '17/merge',
+        GITHUB_RUN_ID: '9001',
+        GITHUB_RUN_ATTEMPT: '2',
+        GITHUB_SERVER_URL: 'https://github.com',
+        GITHUB_ACTOR: 'mario',
       }),
     ).toEqual({
-      provider: 'github', repository: 'acme/shop', commit: 'a'.repeat(40), branch: 'feature/pay', pullRequest: '17',
-      buildId: '9001.2', buildUrl: 'https://github.com/acme/shop/actions/runs/9001/attempts/2', actor: 'mario',
+      provider: 'github',
+      repository: 'acme/shop',
+      commit: 'a'.repeat(40),
+      branch: 'feature/pay',
+      pullRequest: '17',
+      buildId: '9001.2',
+      buildUrl: 'https://github.com/acme/shop/actions/runs/9001/attempts/2',
+      actor: 'mario',
     });
   });
 
   it('reads GitLab CI, Azure Pipelines, Bitbucket, CircleCI and Jenkins', () => {
-    expect(detectCi({ GITLAB_CI: 'true', CI_PROJECT_PATH: 'acme/shop', CI_COMMIT_SHA: 'b'.repeat(40), CI_COMMIT_REF_NAME: 'main', CI_PIPELINE_ID: '55', CI_PIPELINE_URL: 'https://gitlab.test/acme/shop/-/pipelines/55' }))
-      .toMatchObject({ provider: 'gitlab', buildUrl: 'https://gitlab.test/acme/shop/-/pipelines/55', branch: 'main' });
-    expect(detectCi({ TF_BUILD: 'True', BUILD_REPOSITORY_NAME: 'shop', BUILD_SOURCEVERSION: 'c'.repeat(40), BUILD_SOURCEBRANCH: 'refs/heads/release', BUILD_BUILDID: '77', BUILD_BUILDNUMBER: '20260924.3', SYSTEM_COLLECTIONURI: 'https://dev.azure.com/acme/', SYSTEM_TEAMPROJECT: 'Web Shop' }))
-      .toMatchObject({ provider: 'azure', branch: 'release', buildId: '20260924.3', buildUrl: 'https://dev.azure.com/acme/Web%20Shop/_build/results?buildId=77' });
-    expect(detectCi({ BITBUCKET_BUILD_NUMBER: '12', BITBUCKET_REPO_FULL_NAME: 'acme/shop', BITBUCKET_COMMIT: 'd'.repeat(40) }))
-      .toMatchObject({ provider: 'bitbucket', buildUrl: 'https://bitbucket.org/acme/shop/pipelines/results/12' });
-    expect(detectCi({ CIRCLECI: 'true', CIRCLE_PROJECT_USERNAME: 'acme', CIRCLE_PROJECT_REPONAME: 'shop', CIRCLE_BUILD_URL: 'https://circleci.com/gh/acme/shop/8' }))
-      .toMatchObject({ provider: 'circleci', repository: 'acme/shop' });
-    expect(detectCi({ JENKINS_URL: 'https://ci.acme.test/', JOB_NAME: 'shop/main', BUILD_NUMBER: '314', BUILD_URL: 'https://ci.acme.test/job/shop/314/', GIT_COMMIT: 'e'.repeat(40), GIT_BRANCH: 'origin/main', GIT_URL: 'https://token:x@git.acme.test/shop.git' }))
-      .toEqual({ provider: 'jenkins', repository: 'https://git.acme.test/shop', commit: 'e'.repeat(40), branch: 'main', buildId: 'shop/main #314', buildUrl: 'https://ci.acme.test/job/shop/314/' });
+    expect(
+      detectCi({
+        GITLAB_CI: 'true',
+        CI_PROJECT_PATH: 'acme/shop',
+        CI_COMMIT_SHA: 'b'.repeat(40),
+        CI_COMMIT_REF_NAME: 'main',
+        CI_PIPELINE_ID: '55',
+        CI_PIPELINE_URL: 'https://gitlab.test/acme/shop/-/pipelines/55',
+      }),
+    ).toMatchObject({
+      provider: 'gitlab',
+      buildUrl: 'https://gitlab.test/acme/shop/-/pipelines/55',
+      branch: 'main',
+    });
+    expect(
+      detectCi({
+        TF_BUILD: 'True',
+        BUILD_REPOSITORY_NAME: 'shop',
+        BUILD_SOURCEVERSION: 'c'.repeat(40),
+        BUILD_SOURCEBRANCH: 'refs/heads/release',
+        BUILD_BUILDID: '77',
+        BUILD_BUILDNUMBER: '20260924.3',
+        SYSTEM_COLLECTIONURI: 'https://dev.azure.com/acme/',
+        SYSTEM_TEAMPROJECT: 'Web Shop',
+      }),
+    ).toMatchObject({
+      provider: 'azure',
+      branch: 'release',
+      buildId: '20260924.3',
+      buildUrl: 'https://dev.azure.com/acme/Web%20Shop/_build/results?buildId=77',
+    });
+    expect(
+      detectCi({
+        BITBUCKET_BUILD_NUMBER: '12',
+        BITBUCKET_REPO_FULL_NAME: 'acme/shop',
+        BITBUCKET_COMMIT: 'd'.repeat(40),
+      }),
+    ).toMatchObject({
+      provider: 'bitbucket',
+      buildUrl: 'https://bitbucket.org/acme/shop/pipelines/results/12',
+    });
+    expect(
+      detectCi({
+        CIRCLECI: 'true',
+        CIRCLE_PROJECT_USERNAME: 'acme',
+        CIRCLE_PROJECT_REPONAME: 'shop',
+        CIRCLE_BUILD_URL: 'https://circleci.com/gh/acme/shop/8',
+      }),
+    ).toMatchObject({ provider: 'circleci', repository: 'acme/shop' });
+    expect(
+      detectCi({
+        JENKINS_URL: 'https://ci.acme.test/',
+        JOB_NAME: 'shop/main',
+        BUILD_NUMBER: '314',
+        BUILD_URL: 'https://ci.acme.test/job/shop/314/',
+        GIT_COMMIT: 'e'.repeat(40),
+        GIT_BRANCH: 'origin/main',
+        GIT_URL: 'https://token:x@git.acme.test/shop.git',
+      }),
+    ).toEqual({
+      provider: 'jenkins',
+      repository: 'https://git.acme.test/shop',
+      commit: 'e'.repeat(40),
+      branch: 'main',
+      buildId: 'shop/main #314',
+      buildUrl: 'https://ci.acme.test/job/shop/314/',
+    });
   });
 
   it('drops what the server would refuse, rather than failing the run over it, and finds nothing outside CI', () => {
-    expect(detectCi({ GITHUB_ACTIONS: 'true', GITHUB_SHA: 'not-a-sha', GITHUB_REPOSITORY: 'x'.repeat(500), GITHUB_SERVER_URL: 'javascript:alert(1)', GITHUB_RUN_ID: '1' }))
-      .toEqual({ provider: 'github', repository: 'x'.repeat(300), buildId: '1' });
+    expect(
+      detectCi({
+        GITHUB_ACTIONS: 'true',
+        GITHUB_SHA: 'not-a-sha',
+        GITHUB_REPOSITORY: 'x'.repeat(500),
+        GITHUB_SERVER_URL: 'javascript:alert(1)',
+        GITHUB_RUN_ID: '1',
+      }),
+    ).toEqual({ provider: 'github', repository: 'x'.repeat(300), buildId: '1' });
     expect(detectCi({ PATH: '/usr/bin' })).toBeUndefined();
   });
 });
 
 describe('describing a run', () => {
   it('says the verdict, the counts and where the report is, in one line', () => {
-    expect(describeRun({ id: 'run-1', status: 'failed', planName: 'Nightly', tests: { total: 10, passed: 7, failed: 3 }, durationMs: 95_000 }))
-      .toBe('Nightly: failed — 7/10 passed, 3 failed in 95.0s');
+    expect(
+      describeRun({
+        id: 'run-1',
+        status: 'failed',
+        planName: 'Nightly',
+        tests: { total: 10, passed: 7, failed: 3 },
+        durationMs: 95_000,
+      }),
+    ).toBe('Nightly: failed — 7/10 passed, 3 failed in 95.0s');
     expect(describeRun({ id: 'run-1', status: 'error' })).toContain('no tests ran');
   });
 
   it('writes a Markdown summary a job page can show', () => {
-    expect(markdownSummary({ id: 'run-1', status: 'completed', planName: 'Smoke', tests: { total: 2, passed: 2 }, durationMs: 1000, links: { report: 'https://wfm.test/r/1' } }))
-      .toBe('### ✅ Smoke: passed\n\n| Tests | Passed | Failed | Skipped | Duration |\n| ---: | ---: | ---: | ---: | ---: |\n| 2 | 2 | 0 | 0 | 1.0 s |\n\n[Open the report](https://wfm.test/r/1) · run `run-1`\n');
+    expect(
+      markdownSummary({
+        id: 'run-1',
+        status: 'completed',
+        planName: 'Smoke',
+        tests: { total: 2, passed: 2 },
+        durationMs: 1000,
+        links: { report: 'https://wfm.test/r/1' },
+      }),
+    ).toBe(
+      '### ✅ Smoke: passed\n\n| Tests | Passed | Failed | Skipped | Duration |\n| ---: | ---: | ---: | ---: | ---: |\n| 2 | 2 | 0 | 0 | 1.0 s |\n\n[Open the report](https://wfm.test/r/1) · run `run-1`\n',
+    );
   });
 });
 
@@ -356,15 +584,27 @@ describe('wfm tests', () => {
     Object.assign(response, { headers: new Headers(headers) }) as Response;
 
   it('accepts Gherkin export format and rejects unsupported formats', () => {
-    expect(parseArgs(['tests', 'export', '--format', 'gherkin'], {})).toMatchObject({ testsAction: 'export', format: 'gherkin' });
-    expect(parseArgs(['tests', 'export', '--format', 'xml'], {})).toEqual({ error: expect.stringContaining('gherkin') });
+    expect(parseArgs(['tests', 'export', '--format', 'gherkin'], {})).toMatchObject({
+      testsAction: 'export',
+      format: 'gherkin',
+    });
+    expect(parseArgs(['tests', 'export', '--format', 'xml'], {})).toEqual({
+      error: expect.stringContaining('gherkin'),
+    });
   });
 
   it('exports Gherkin with a feature fallback filename and preserves the requested output path', async () => {
     for (const outPath of [undefined, 'specs/login.feature']) {
-      const fetchImpl = vi.fn().mockResolvedValue(withHeaders(textResponse('Feature: Login\n'), {}));
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValue(withHeaders(textResponse('Feature: Login\n'), {}));
       const context = io(fetchImpl);
-      expect(await runCli(options({ command: 'tests', testsAction: 'export', format: 'gherkin', outPath }), context)).toBe(EXIT_PASSED);
+      expect(
+        await runCli(
+          options({ command: 'tests', testsAction: 'export', format: 'gherkin', outPath }),
+          context,
+        ),
+      ).toBe(EXIT_PASSED);
       expect(fetchImpl.mock.calls[0][0]).toBe('https://wfm.test/api/tests/export?format=gherkin');
       expect(context.files.get(outPath ?? 'tests.feature')).toBe('Feature: Login\n');
     }
@@ -372,79 +612,165 @@ describe('wfm tests', () => {
 
   it('imports feature text unchanged so the server can autodetect Gherkin, including dry runs', async () => {
     const content = '@smoke\nFeature: Login\nScenario: Valid user\nGiven a login page';
-    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ dryRun: true, results: [{ kind: 'test', name: 'Login / Valid user', outcome: 'created' }] }));
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        dryRun: true,
+        results: [{ kind: 'test', name: 'Login / Valid user', outcome: 'created' }],
+      }),
+    );
     const context = Object.assign(io(fetchImpl), { readFile: vi.fn().mockResolvedValue(content) });
-    expect(await runCli(options({ command: 'tests', testsAction: 'import', target: 'login.feature', dryRun: true }), context)).toBe(EXIT_PASSED);
+    expect(
+      await runCli(
+        options({ command: 'tests', testsAction: 'import', target: 'login.feature', dryRun: true }),
+        context,
+      ),
+    ).toBe(EXIT_PASSED);
     expect(context.readFile).toHaveBeenCalledWith('login.feature');
     expect(fetchImpl.mock.calls[0][0]).toBe('https://wfm.test/api/tests/import-bundle');
     expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ content, dryRun: true });
   });
 
   it('reads export and import, and refuses what it cannot do', () => {
-    expect(parseArgs(['tests', 'export', '--project', '12', '--format', 'json'], {})).toMatchObject({ command: 'tests', testsAction: 'export', project: '12', format: 'json' });
-    expect(parseArgs(['tests', 'import', 'shop.wfm.yaml', '--dry-run'], {})).toMatchObject({ testsAction: 'import', target: 'shop.wfm.yaml', dryRun: true });
-    expect(parseArgs(['tests'], {})).toEqual({ error: expect.stringContaining('export or import') });
-    expect(parseArgs(['tests', 'import'], {})).toEqual({ error: expect.stringContaining('needs the file') });
-    expect(parseArgs(['tests', 'export', '--project', 'shop'], {})).toEqual({ error: expect.stringContaining('--project') });
+    expect(parseArgs(['tests', 'export', '--project', '12', '--format', 'json'], {})).toMatchObject(
+      { command: 'tests', testsAction: 'export', project: '12', format: 'json' },
+    );
+    expect(parseArgs(['tests', 'import', 'shop.wfm.yaml', '--dry-run'], {})).toMatchObject({
+      testsAction: 'import',
+      target: 'shop.wfm.yaml',
+      dryRun: true,
+    });
+    expect(parseArgs(['tests'], {})).toEqual({
+      error: expect.stringContaining('export or import'),
+    });
+    expect(parseArgs(['tests', 'import'], {})).toEqual({
+      error: expect.stringContaining('needs the file'),
+    });
+    expect(parseArgs(['tests', 'export', '--project', 'shop'], {})).toEqual({
+      error: expect.stringContaining('--project'),
+    });
   });
 
   it('writes the export where the server names it, and says what it left out', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
-      withHeaders(textResponse('kind: webflowmaster/tests\n'), { 'content-disposition': 'attachment; filename="shop.wfm.yaml"', 'x-wfm-secrets-replaced': '2', 'x-wfm-tests-with-references': '0' }),
+      withHeaders(textResponse('kind: webflowmaster/tests\n'), {
+        'content-disposition': 'attachment; filename="shop.wfm.yaml"',
+        'x-wfm-secrets-replaced': '2',
+        'x-wfm-tests-with-references': '0',
+      }),
     );
     const context = io(fetchImpl);
-    const code = await runCli(options({ command: 'tests', testsAction: 'export', project: '12' }), context);
+    const code = await runCli(
+      options({ command: 'tests', testsAction: 'export', project: '12' }),
+      context,
+    );
     expect(code).toBe(EXIT_PASSED);
-    expect(fetchImpl.mock.calls[0][0]).toBe('https://wfm.test/api/tests/export?format=yaml&projectId=12');
+    expect(fetchImpl.mock.calls[0][0]).toBe(
+      'https://wfm.test/api/tests/export?format=yaml&projectId=12',
+    );
     expect(context.files.get('shop.wfm.yaml')).toBe('kind: webflowmaster/tests\n');
     expect(context.lines.join('\n')).toContain('2 secret(s)');
   });
 
   it('imports a file, lists what happened, and fails when tests were left out', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
-      jsonResponse({ dryRun: false, results: [{ kind: 'test', name: 'Login', outcome: 'updated' }, { kind: 'api_test', name: 'Broken', outcome: 'invalid', reason: 'url: Invalid URL' }] }, 201),
+      jsonResponse(
+        {
+          dryRun: false,
+          results: [
+            { kind: 'test', name: 'Login', outcome: 'updated' },
+            { kind: 'api_test', name: 'Broken', outcome: 'invalid', reason: 'url: Invalid URL' },
+          ],
+        },
+        201,
+      ),
     );
-    const context = Object.assign(io(fetchImpl), { readFile: async () => 'kind: webflowmaster/tests' });
-    const code = await runCli(options({ command: 'tests', testsAction: 'import', target: 'shop.wfm.yaml', project: '3' }), context);
+    const context = Object.assign(io(fetchImpl), {
+      readFile: async () => 'kind: webflowmaster/tests',
+    });
+    const code = await runCli(
+      options({ command: 'tests', testsAction: 'import', target: 'shop.wfm.yaml', project: '3' }),
+      context,
+    );
     expect(code).toBe(EXIT_RUN_FAILED);
-    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ content: 'kind: webflowmaster/tests', dryRun: false, projectId: 3 });
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({
+      content: 'kind: webflowmaster/tests',
+      dryRun: false,
+      projectId: 3,
+    });
     expect(context.lines.join('\n')).toContain('1 updated');
     expect(context.lines.join('\n')).toContain('API Broken — url: Invalid URL');
   });
 
   it('explains a refused key', async () => {
     const context = io(vi.fn().mockResolvedValue(jsonResponse({}, 401)));
-    expect(await runCli(options({ command: 'tests', testsAction: 'export' }), context)).toBe(EXIT_TOOL_ERROR);
+    expect(await runCli(options({ command: 'tests', testsAction: 'export' }), context)).toBe(
+      EXIT_TOOL_ERROR,
+    );
     expect(context.errors[0]).toContain('full-access API key');
   });
 });
 
 describe('running what a change affects', () => {
   it('reads --changed-since and --changed-files, one at a time, with run', () => {
-    expect(parseArgs(['run', 'p', '--changed-since', 'origin/main'], {})).toMatchObject({ changedSince: 'origin/main' });
-    expect(parseArgs(['run', 'p', '--changed-files', 'changed.txt'], {})).toMatchObject({ changedFilesPath: 'changed.txt' });
-    expect(parseArgs(['run', 'p', '--changed-since', 'a', '--changed-files', 'b'], {})).toEqual({ error: expect.stringContaining('not both') });
-    expect(parseArgs(['status', 'r', '--changed-since', 'a'], {})).toEqual({ error: expect.stringContaining('go with run') });
+    expect(parseArgs(['run', 'p', '--changed-since', 'origin/main'], {})).toMatchObject({
+      changedSince: 'origin/main',
+    });
+    expect(parseArgs(['run', 'p', '--changed-files', 'changed.txt'], {})).toMatchObject({
+      changedFilesPath: 'changed.txt',
+    });
+    expect(parseArgs(['run', 'p', '--changed-since', 'a', '--changed-files', 'b'], {})).toEqual({
+      error: expect.stringContaining('not both'),
+    });
+    expect(parseArgs(['status', 'r', '--changed-since', 'a'], {})).toEqual({
+      error: expect.stringContaining('go with run'),
+    });
   });
 
   it('sends the files git lists, and prints what the server decided', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
-      jsonResponse({ id: 'run-1', status: 'queued', selection: { mode: 'affected', reason: '2 changed file(s) affect the tags checkout: 3 of 9 tests run.', selected: 3, total: 9 } }, 202),
+      jsonResponse(
+        {
+          id: 'run-1',
+          status: 'queued',
+          selection: {
+            mode: 'affected',
+            reason: '2 changed file(s) affect the tags checkout: 3 of 9 tests run.',
+            selected: 3,
+            total: 9,
+          },
+        },
+        202,
+      ),
     );
-    const context = Object.assign(io(fetchImpl), { changedFilesSince: async (ref: string) => (ref === 'origin/main' ? ['src/a.ts', 'src/b.ts'] : []) });
+    const context = Object.assign(io(fetchImpl), {
+      changedFilesSince: async (ref: string) =>
+        ref === 'origin/main' ? ['src/a.ts', 'src/b.ts'] : [],
+    });
     expect(await runCli(options({ changedSince: 'origin/main' }), context)).toBe(EXIT_PASSED);
-    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).changedFiles).toEqual(['src/a.ts', 'src/b.ts']);
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).changedFiles).toEqual([
+      'src/a.ts',
+      'src/b.ts',
+    ]);
     expect(context.lines.join('\n')).toContain('3 of 9 tests run');
   });
 
   it('reads a list from a file, and starts nothing when it cannot list the changes', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(started());
-    const fromFile = Object.assign(io(fetchImpl), { readFile: async () => 'src/a.ts\r\n\r\ndocs/x.md\n' });
+    const fromFile = Object.assign(io(fetchImpl), {
+      readFile: async () => 'src/a.ts\r\n\r\ndocs/x.md\n',
+    });
     await runCli(options({ changedFilesPath: 'changed.txt' }), fromFile);
-    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).changedFiles).toEqual(['src/a.ts', 'docs/x.md']);
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).changedFiles).toEqual([
+      'src/a.ts',
+      'docs/x.md',
+    ]);
 
     const noGit = vi.fn();
-    const failing = Object.assign(io(noGit), { changedFilesSince: async () => { throw new Error('fatal: bad revision'); } });
+    const failing = Object.assign(io(noGit), {
+      changedFilesSince: async () => {
+        throw new Error('fatal: bad revision');
+      },
+    });
     expect(await runCli(options({ changedSince: 'nope' }), failing)).toBe(EXIT_TOOL_ERROR);
     expect(noGit).not.toHaveBeenCalled();
     expect(failing.errors[0]).toContain('bad revision');

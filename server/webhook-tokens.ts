@@ -22,7 +22,11 @@ export interface GeneratedWebhookToken {
 
 export function generateWebhookToken(): GeneratedWebhookToken {
   const token = `${WEBHOOK_TOKEN_PREFIX}_${randomBytes(32).toString('base64url')}`;
-  return { token, tokenHash: hashWebhookToken(token), tokenPrefix: token.slice(0, VISIBLE_PREFIX_LENGTH) };
+  return {
+    token,
+    tokenHash: hashWebhookToken(token),
+    tokenPrefix: token.slice(0, VISIBLE_PREFIX_LENGTH),
+  };
 }
 
 export const hashWebhookToken = hashApiKey;

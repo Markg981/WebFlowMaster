@@ -70,17 +70,31 @@ export async function runCleanups(
         .filter((p) => p.enabled !== false && p.key)
         .map((p) => ({ key: p.key, value: substituteVariables(p.value, vars) }));
       const headers: Record<string, string> = {};
-      for (const [key, value] of Object.entries(cleanup.requestHeaders ?? {})) headers[key] = substituteVariables(value, vars);
+      for (const [key, value] of Object.entries(cleanup.requestHeaders ?? {}))
+        headers[key] = substituteVariables(value, vars);
       let body: string | undefined;
       if (cleanup.requestBody != null && method !== 'GET' && method !== 'HEAD') {
-        const raw = typeof cleanup.requestBody === 'string' ? cleanup.requestBody : JSON.stringify(cleanup.requestBody);
+        const raw =
+          typeof cleanup.requestBody === 'string'
+            ? cleanup.requestBody
+            : JSON.stringify(cleanup.requestBody);
         body = substituteVariables(raw, vars);
-        if (!headers['Content-Type'] && !headers['content-type']) headers['Content-Type'] = 'application/json';
+        if (!headers['Content-Type'] && !headers['content-type'])
+          headers['Content-Type'] = 'application/json';
       }
 
-      const missing = unresolvedIn([url, body, ...query.map((q) => q.value), ...Object.values(headers)]);
+      const missing = unresolvedIn([
+        url,
+        body,
+        ...query.map((q) => q.value),
+        ...Object.values(headers),
+      ]);
       if (missing) {
-        steps.push({ name, status: 'skipped', detail: `not called: {{${missing}}} has no value in this run (the step that sets it did not run)` });
+        steps.push({
+          name,
+          status: 'skipped',
+          detail: `not called: {{${missing}}} has no value in this run (the step that sets it did not run)`,
+        });
         continue;
       }
 
@@ -95,15 +109,39 @@ export async function runCleanups(
       }
 
       try {
-        const res = await fetchImpl(target, { method, headers, body, signal: AbortSignal.timeout(CLEANUP_TIMEOUT_MS) });
-        if (res.ok) steps.push({ name, status: 'done', detail: `${method} ${target} answered ${res.status}` });
+        const res = await fetchImpl(target, {
+          method,
+          headers,
+          body,
+          signal: AbortSignal.timeout(CLEANUP_TIMEOUT_MS),
+        });
+        if (res.ok)
+          steps.push({
+            name,
+            status: 'done',
+            detail: `${method} ${target} answered ${res.status}`,
+          });
         else if ([...GONE, ...(cleanup.satisfiedStatuses ?? [])].includes(res.status)) {
-          steps.push({ name, status: 'gone', detail: `${method} ${target} answered ${res.status}: already gone` });
-        } else steps.push({ name, status: 'failed', detail: `HTTP ${res.status} from ${method} ${target}` });
+          steps.push({
+            name,
+            status: 'gone',
+            detail: `${method} ${target} answered ${res.status}: already gone`,
+          });
+        } else
+          steps.push({
+            name,
+            status: 'failed',
+            detail: `HTTP ${res.status} from ${method} ${target}`,
+          });
         // The body is not read; release the connection.
         await res.body?.cancel().catch(() => undefined);
       } catch (error) {
-        const message = error instanceof Error ? (error.name === 'TimeoutError' ? `no answer in ${CLEANUP_TIMEOUT_MS / 1000}s` : error.message) : String(error);
+        const message =
+          error instanceof Error
+            ? error.name === 'TimeoutError'
+              ? `no answer in ${CLEANUP_TIMEOUT_MS / 1000}s`
+              : error.message
+            : String(error);
         steps.push({ name, status: 'failed', detail: `request error: ${message}` });
       }
     }
@@ -112,9 +150,20 @@ export async function runCleanups(
 }
 
 /** The cleanup as one line of the test's steps in a report: failed when any call failed. */
-export function cleanupReportStep(result: CleanupResult): { name: string; type: 'cleanup'; status: 'passed' | 'failed'; details: string; error?: string } {
+export function cleanupReportStep(result: CleanupResult): {
+  name: string;
+  type: 'cleanup';
+  status: 'passed' | 'failed';
+  details: string;
+  error?: string;
+} {
   const count = (status: CleanupStatus) => result.steps.filter((s) => s.status === status).length;
-  const parts = [`${count('done')} done`, count('gone') ? `${count('gone')} already gone` : '', count('skipped') ? `${count('skipped')} skipped` : '', count('failed') ? `${count('failed')} failed` : '']
+  const parts = [
+    `${count('done')} done`,
+    count('gone') ? `${count('gone')} already gone` : '',
+    count('skipped') ? `${count('skipped')} skipped` : '',
+    count('failed') ? `${count('failed')} failed` : '',
+  ]
     .filter(Boolean)
     .join(', ');
   const failed = result.steps.filter((s) => s.status === 'failed');
@@ -123,6 +172,10 @@ export function cleanupReportStep(result: CleanupResult): { name: string; type: 
     type: 'cleanup',
     status: result.ok ? 'passed' : 'failed',
     details: `${parts}. ${result.steps.map((s) => `${s.name}: ${s.status} (${s.detail})`).join('; ')}`,
-    ...(failed.length > 0 ? { error: `Data may have been left behind: ${failed.map((s) => `${s.name} — ${s.detail}`).join('; ')}` } : {}),
+    ...(failed.length > 0
+      ? {
+          error: `Data may have been left behind: ${failed.map((s) => `${s.name} — ${s.detail}`).join('; ')}`,
+        }
+      : {}),
   };
 }

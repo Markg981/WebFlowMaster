@@ -19,9 +19,11 @@ import { privilegedDb } from './db';
  * another organization's work.
  */
 
-export const RUNNER_HEARTBEAT_INTERVAL_MS = Number(process.env.RUNNER_HEARTBEAT_INTERVAL_MS) || 15_000;
+export const RUNNER_HEARTBEAT_INTERVAL_MS =
+  Number(process.env.RUNNER_HEARTBEAT_INTERVAL_MS) || 15_000;
 /** Not heard from for this long: offline. Three missed heartbeats, by default. */
-export const RUNNER_OFFLINE_AFTER_MS = Number(process.env.RUNNER_OFFLINE_AFTER_MS) || RUNNER_HEARTBEAT_INTERVAL_MS * 3;
+export const RUNNER_OFFLINE_AFTER_MS =
+  Number(process.env.RUNNER_OFFLINE_AFTER_MS) || RUNNER_HEARTBEAT_INTERVAL_MS * 3;
 /** Gone this long: removed from the list. Its runs keep its id. */
 const RUNNER_FORGET_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -63,7 +65,8 @@ export async function registerRunner(description: RunnerDescription): Promise<st
     id,
     hostname,
     pid: process.pid,
-    version: description.version ?? process.env.APP_VERSION ?? process.env.npm_package_version ?? null,
+    version:
+      description.version ?? process.env.APP_VERSION ?? process.env.npm_package_version ?? null,
     concurrency: description.concurrency,
     browserTaskConcurrency: description.browserTaskConcurrency,
     browsers: description.browsers ?? installedBrowsers(),
@@ -77,7 +80,10 @@ export async function registerRunner(description: RunnerDescription): Promise<st
  * operator removed it, or it was forgotten after a long absence — in which case the worker
  * registers again.
  */
-export async function runnerHeartbeat(id: string, activeJobs: number): Promise<'active' | 'drain' | null> {
+export async function runnerHeartbeat(
+  id: string,
+  activeJobs: number,
+): Promise<'active' | 'drain' | null> {
   const [row] = await privilegedDb
     .update(runners)
     .set({ lastSeenAt: new Date(), activeJobs, stoppedAt: null })
@@ -88,17 +94,26 @@ export async function runnerHeartbeat(id: string, activeJobs: number): Promise<'
 
 /** A clean shutdown: offline at once, rather than after three missed heartbeats. */
 export async function markRunnerStopped(id: string): Promise<void> {
-  await privilegedDb.update(runners).set({ stoppedAt: new Date(), activeJobs: 0 }).where(eq(runners.id, id));
+  await privilegedDb
+    .update(runners)
+    .set({ stoppedAt: new Date(), activeJobs: 0 })
+    .where(eq(runners.id, id));
 }
 
-export function statusOf(runner: Pick<Runner, 'lastSeenAt' | 'stoppedAt' | 'desiredState'>, now = Date.now()): RunnerStatus {
-  if (runner.stoppedAt || now - runner.lastSeenAt.getTime() > RUNNER_OFFLINE_AFTER_MS) return 'offline';
+export function statusOf(
+  runner: Pick<Runner, 'lastSeenAt' | 'stoppedAt' | 'desiredState'>,
+  now = Date.now(),
+): RunnerStatus {
+  if (runner.stoppedAt || now - runner.lastSeenAt.getTime() > RUNNER_OFFLINE_AFTER_MS)
+    return 'offline';
   return runner.desiredState === 'drain' ? 'draining' : 'online';
 }
 
 export async function listRunners(now = Date.now()) {
   // Forgotten, not just offline: a row from a container replaced a week ago is noise.
-  await privilegedDb.delete(runners).where(lt(runners.lastSeenAt, new Date(now - RUNNER_FORGET_AFTER_MS)));
+  await privilegedDb
+    .delete(runners)
+    .where(lt(runners.lastSeenAt, new Date(now - RUNNER_FORGET_AFTER_MS)));
   const rows = await privilegedDb.select().from(runners).orderBy(desc(runners.lastSeenAt));
   return rows.map((row) => {
     const status = statusOf(row, now);
@@ -112,8 +127,15 @@ export async function availableRunnerCount(now = Date.now()): Promise<number> {
   return rows.filter((row) => statusOf(row, now) === 'online').length;
 }
 
-export async function setRunnerDesiredState(id: string, desiredState: 'active' | 'drain'): Promise<Runner | null> {
-  const [row] = await privilegedDb.update(runners).set({ desiredState }).where(eq(runners.id, id)).returning();
+export async function setRunnerDesiredState(
+  id: string,
+  desiredState: 'active' | 'drain',
+): Promise<Runner | null> {
+  const [row] = await privilegedDb
+    .update(runners)
+    .set({ desiredState })
+    .where(eq(runners.id, id))
+    .returning();
   return row ?? null;
 }
 
@@ -158,8 +180,16 @@ export class RunnerAgent {
   }
 
   start(intervalMs = RUNNER_HEARTBEAT_INTERVAL_MS): void {
-    this.timer = setInterval(() => void this.tick().catch((e) => this.options.log?.(`Runner heartbeat failed: ${e?.message ?? e}`)), intervalMs);
-    void this.tick().catch((e) => this.options.log?.(`Runner heartbeat failed: ${e?.message ?? e}`));
+    this.timer = setInterval(
+      () =>
+        void this.tick().catch((e) =>
+          this.options.log?.(`Runner heartbeat failed: ${e?.message ?? e}`),
+        ),
+      intervalMs,
+    );
+    void this.tick().catch((e) =>
+      this.options.log?.(`Runner heartbeat failed: ${e?.message ?? e}`),
+    );
   }
 
   /** One report: say how busy, hear what to be. */
@@ -177,7 +207,9 @@ export class RunnerAgent {
       this.draining = true;
       // true: do not wait for the jobs in hand; they finish on their own, nothing new starts.
       await Promise.all(this.options.queues.map((queue) => queue.pause(true)));
-      this.options.log?.(`Runner ${this.id} draining: ${activeJobs} job(s) still running, taking no new ones.`);
+      this.options.log?.(
+        `Runner ${this.id} draining: ${activeJobs} job(s) still running, taking no new ones.`,
+      );
     } else if (desired === 'active' && this.draining) {
       this.draining = false;
       this.options.queues.forEach((queue) => queue.resume());

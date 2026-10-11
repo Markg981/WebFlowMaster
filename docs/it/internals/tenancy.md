@@ -9,11 +9,11 @@ Un'**organizzazione** possiede tutto ciò che un team crea: progetti, test, pian
 credenziali. Ogni tabella per organizzazione ha un `organization_id`, e ogni utente appartiene a una
 sola organizzazione con un solo **ruolo**:
 
-| Ruolo | Può |
-|---|---|
-| `viewer` | Leggere tutto ciò che l'organizzazione vede; non esegue nulla e non modifica nulla. |
-| `editor` | Creare e modificare test, piani, schedulazioni, suite, ambienti; avviare e annullare run. |
-| `owner` | Tutto ciò che può un editor, più membri e inviti, chiavi API altrui, service account, agenti locali, collegamenti GitHub/GitLab, policy di sicurezza, runner, audit log. |
+| Ruolo    | Può                                                                                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `viewer` | Leggere tutto ciò che l'organizzazione vede; non esegue nulla e non modifica nulla.                                                                                      |
+| `editor` | Creare e modificare test, piani, schedulazioni, suite, ambienti; avviare e annullare run.                                                                                |
+| `owner`  | Tutto ciò che può un editor, più membri e inviti, chiavi API altrui, service account, agenti locali, collegamenti GitHub/GitLab, policy di sicurezza, runner, audit log. |
 
 I ruoli sono controllati da `requireRole(minimo)` (`server/middleware/require-role.ts`) su ogni rotta.
 Decidono quali **operazioni** un utente può fare. Quali **righe** esistono per lui lo decide il
@@ -147,13 +147,13 @@ l'interfaccia, così non propone una modifica che il database rifiuterebbe.
 
 ### Macchine
 
-| Credenziale | Per | Salvata come | Dettagli |
-|---|---|---|---|
-| **Chiave API** (`wfm_…`) | Pipeline e script | Hash SHA-256 + prefisso | Agisce come il suo utente o service account. Gli **scope** opzionali la limitano a `/api/v1` e a permessi precisi (`plans:read`, `runs:read`, `runs:write`); il ruolo del titolare vale comunque. Scadenza opzionale; ultimo uso registrato. |
-| **Service account** | Chiavi che devono sopravvivere a una persona | Un utente che non può accedere | Ha un ruolo (mai `owner`) e possiede chiavi; disattivarlo le revoca tutte. |
-| **Token di webhook** | Sistemi di CI che avviano un piano con un URL | Hash SHA-256 + prefisso | Inviato in `X-Webhook-Token` o `Authorization: Bearer`; mascherato nei log. |
-| **Token di agente** (`wfa_…`) | Agenti locali | Hash SHA-256 + prefisso | Identifica un agente di un'organizzazione; revocarlo lo disconnette. |
-| **Ticket del relay** | Un runner che prende in prestito un browser di un agente | Non salvato | Firmato HMAC, indica organizzazione, pool e browser, valido 60 secondi. |
+| Credenziale                   | Per                                                      | Salvata come                   | Dettagli                                                                                                                                                                                                                                     |
+| ----------------------------- | -------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Chiave API** (`wfm_…`)      | Pipeline e script                                        | Hash SHA-256 + prefisso        | Agisce come il suo utente o service account. Gli **scope** opzionali la limitano a `/api/v1` e a permessi precisi (`plans:read`, `runs:read`, `runs:write`); il ruolo del titolare vale comunque. Scadenza opzionale; ultimo uso registrato. |
+| **Service account**           | Chiavi che devono sopravvivere a una persona             | Un utente che non può accedere | Ha un ruolo (mai `owner`) e possiede chiavi; disattivarlo le revoca tutte.                                                                                                                                                                   |
+| **Token di webhook**          | Sistemi di CI che avviano un piano con un URL            | Hash SHA-256 + prefisso        | Inviato in `X-Webhook-Token` o `Authorization: Bearer`; mascherato nei log.                                                                                                                                                                  |
+| **Token di agente** (`wfa_…`) | Agenti locali                                            | Hash SHA-256 + prefisso        | Identifica un agente di un'organizzazione; revocarlo lo disconnette.                                                                                                                                                                         |
+| **Ticket del relay**          | Un runner che prende in prestito un browser di un agente | Non salvato                    | Firmato HMAC, indica organizzazione, pool e browser, valido 60 secondi.                                                                                                                                                                      |
 
 Un token ad alta entropia non ha bisogno di essere "stirato": un solo SHA-256 rende la verifica una
 query su indice e non lascia nulla da indovinare. Ognuno viene mostrato una sola volta, alla creazione.

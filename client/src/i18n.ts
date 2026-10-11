@@ -20,7 +20,10 @@ const lazyLocales: BackendModule = {
   read(language, _namespace, callback) {
     const load = otherLanguages[language];
     if (!load) return callback(null, {});
-    load().then((module) => callback(null, module.default), (error) => callback(error, false));
+    load().then(
+      (module) => callback(null, module.default),
+      (error) => callback(error, false),
+    );
   },
 };
 

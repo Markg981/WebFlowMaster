@@ -28,7 +28,10 @@ const page = {} as Page;
 describe('what the step asks for', () => {
   it('reads a statement, and one for a named connection', () => {
     expect(parseDatabaseQuery(' SELECT 1 ')).toEqual({ connection: null, sql: 'SELECT 1' });
-    expect(parseDatabaseQuery('@reporting SELECT count(*)\nFROM t')).toEqual({ connection: 'reporting', sql: 'SELECT count(*)\nFROM t' });
+    expect(parseDatabaseQuery('@reporting SELECT count(*)\nFROM t')).toEqual({
+      connection: 'reporting',
+      sql: 'SELECT count(*)\nFROM t',
+    });
     expect(parseDatabaseQuery('@reporting')).toMatchObject({ error: /not a SQL statement/ });
   });
 
@@ -43,11 +46,16 @@ describe('what the step asks for', () => {
 
   it('never repeats the password', () => {
     expect(redactUrl('postgres://qa:s3cr%40t@db:5432/shop')).toBe('postgres://qa:***@db:5432/shop');
-    expect(redactMessage('login failed for qa with s3cr@t', 'postgres://qa:s3cr%40t@db/shop')).toBe('login failed for qa with ***');
+    expect(redactMessage('login failed for qa with s3cr@t', 'postgres://qa:s3cr%40t@db/shop')).toBe(
+      'login failed for qa with ***',
+    );
   });
 
   it('reads a SQL Server address, with its instance and TLS flags', () => {
-    const config = sqlServerConfig('sqlserver://sa:Pa%24%24@db%5CSQLEXPRESS:1433/Shop?encrypt=false&trustServerCertificate=true', 5000);
+    const config = sqlServerConfig(
+      'sqlserver://sa:Pa%24%24@db%5CSQLEXPRESS:1433/Shop?encrypt=false&trustServerCertificate=true',
+      5000,
+    );
     expect(config).toMatchObject({
       server: 'db',
       port: 1433,
@@ -56,7 +64,10 @@ describe('what the step asks for', () => {
       database: 'Shop',
       options: { encrypt: false, trustServerCertificate: true, instanceName: 'SQLEXPRESS' },
     });
-    expect(sqlServerConfig('sqlserver://sa:x@db/Shop', 5000).options).toEqual({ encrypt: true, trustServerCertificate: false });
+    expect(sqlServerConfig('sqlserver://sa:x@db/Shop', 5000).options).toEqual({
+      encrypt: true,
+      trustServerCertificate: false,
+    });
   });
 
   it('turns cells into the text a step types or compares', () => {
@@ -64,8 +75,17 @@ describe('what the step asks for', () => {
     expect(cellText(new Date('2026-09-30T10:00:00Z'))).toBe('2026-09-30T10:00:00.000Z');
     expect(cellText(12n)).toBe('12');
     expect(cellText({ a: 1 })).toBe('{"a":1}');
-    const vars = resultVariables({ columns: ['count(*)', 'status'], rows: [{ 'count(*)': 3, status: null }], rowCount: 1 });
-    expect(vars).toMatchObject({ 'db.value': '3', 'db.count___': '3', 'db.status': '', 'db.rowCount': '1' });
+    const vars = resultVariables({
+      columns: ['count(*)', 'status'],
+      rows: [{ 'count(*)': 3, status: null }],
+      rowCount: 1,
+    });
+    expect(vars).toMatchObject({
+      'db.value': '3',
+      'db.count___': '3',
+      'db.status': '',
+      'db.rowCount': '1',
+    });
     expect(JSON.parse(vars['db.json'])).toEqual([{ 'count(*)': 3, status: null }]);
   });
 });
@@ -96,26 +116,51 @@ describe('against a real Postgres', () => {
   });
 
   it('reads rows and counts changes', async () => {
-    const read = await runDatabaseQuery('postgres', url, "SELECT email, total FROM orders ORDER BY id", 10_000);
+    const read = await runDatabaseQuery(
+      'postgres',
+      url,
+      'SELECT email, total FROM orders ORDER BY id',
+      10_000,
+    );
     expect(read.columns).toEqual(['email', 'total']);
-    expect(read.rows).toEqual([{ email: 'ann@shop.test', total: '42.50' }, { email: 'bob@shop.test', total: '10.00' }]);
+    expect(read.rows).toEqual([
+      { email: 'ann@shop.test', total: '42.50' },
+      { email: 'bob@shop.test', total: '10.00' },
+    ]);
     expect(read.rowCount).toBe(2);
 
-    const changed = await runDatabaseQuery('postgres', url, "UPDATE orders SET total = total + 1 WHERE email LIKE '%@shop.test'", 10_000);
+    const changed = await runDatabaseQuery(
+      'postgres',
+      url,
+      "UPDATE orders SET total = total + 1 WHERE email LIKE '%@shop.test'",
+      10_000,
+    );
     expect(changed).toMatchObject({ columns: [], rowCount: 2 });
   });
 
   it('checks an order the application wrote, and says what it read', async () => {
     const vars: Record<string, string> = { 'db.url': url, email: 'ann@shop.test' };
     const ctx = { page, vars };
-    const read = await executeStep(ctx, step('queryDatabase', "SELECT count(*) AS n, max(placed_at) AS placed FROM orders WHERE email = '{{email}}'"));
+    const read = await executeStep(
+      ctx,
+      step(
+        'queryDatabase',
+        "SELECT count(*) AS n, max(placed_at) AS placed FROM orders WHERE email = '{{email}}'",
+      ),
+    );
     expect(read).toMatchObject({ status: 'passed', detail: '1 row(s); {{db.value}} = "1".' });
     expect(vars['db.n']).toBe('1');
     expect(vars['db.placed']).toBe('2026-09-30T10:00:00.000Z');
     expect(vars['db.rowCount']).toBe('1');
 
-    expect(await executeStep(ctx, step('assertCondition', '{{db.value}} == 1'))).toMatchObject({ status: 'passed', detail: '"{{db.value}} == 1" (1 == 1) holds.' });
-    expect(await executeStep(ctx, step('assertCondition', '{{db.n}} > 1'))).toMatchObject({ status: 'failed', error: '"{{db.n}} > 1" (1 > 1) does not hold.' });
+    expect(await executeStep(ctx, step('assertCondition', '{{db.value}} == 1'))).toMatchObject({
+      status: 'passed',
+      detail: '"{{db.value}} == 1" (1 == 1) holds.',
+    });
+    expect(await executeStep(ctx, step('assertCondition', '{{db.n}} > 1'))).toMatchObject({
+      status: 'failed',
+      error: '"{{db.n}} > 1" (1 > 1) does not hold.',
+    });
 
     // The next query has other columns: the old ones do not answer for it.
     await executeStep(ctx, step('queryDatabase', 'SELECT email FROM orders WHERE false'));
@@ -126,7 +171,10 @@ describe('against a real Postgres', () => {
   });
 
   it('fails on a wrong statement with what the database said', async () => {
-    const outcome = await executeStep({ page, vars: { 'db.url': url } }, step('queryDatabase', 'SELECT nope FROM orders'));
+    const outcome = await executeStep(
+      { page, vars: { 'db.url': url } },
+      step('queryDatabase', 'SELECT nope FROM orders'),
+    );
     expect(outcome.status).toBe('failed');
     expect(outcome.error).toMatch(/^The database answered: .*nope/);
   });
@@ -141,28 +189,68 @@ describe('the step, whichever database', () => {
   };
 
   it('uses the named connection and its timeout', async () => {
-    const vars: Record<string, string> = { 'db.reporting.url': 'sqlserver://qa:hunter2@db/Reports', 'db.timeout': '5' };
-    const outcome = await executeStep({ page, vars, database }, step('queryDatabase', '@reporting SELECT status FROM orders'));
+    const vars: Record<string, string> = {
+      'db.reporting.url': 'sqlserver://qa:hunter2@db/Reports',
+      'db.timeout': '5',
+    };
+    const outcome = await executeStep(
+      { page, vars, database },
+      step('queryDatabase', '@reporting SELECT status FROM orders'),
+    );
     expect(outcome.status).toBe('passed');
-    expect(recorded.at(-1)).toEqual({ kind: 'sqlserver', url: 'sqlserver://qa:hunter2@db/Reports', sql: 'SELECT status FROM orders', timeoutMs: 5000 });
+    expect(recorded.at(-1)).toEqual({
+      kind: 'sqlserver',
+      url: 'sqlserver://qa:hunter2@db/Reports',
+      sql: 'SELECT status FROM orders',
+      timeoutMs: 5000,
+    });
     expect(vars['db.status']).toBe('Paid');
   });
 
   it('keeps the password out of an error', async () => {
-    const outcome = await executeStep({ page, vars: { 'db.url': 'mysql://qa:hunter2@db/shop' }, database }, step('queryDatabase', 'SELECT boom'));
-    expect(outcome).toMatchObject({ status: 'failed', error: 'The database answered: Login failed for user qa with password ***' });
+    const outcome = await executeStep(
+      { page, vars: { 'db.url': 'mysql://qa:hunter2@db/shop' }, database },
+      step('queryDatabase', 'SELECT boom'),
+    );
+    expect(outcome).toMatchObject({
+      status: 'failed',
+      error: 'The database answered: Login failed for user qa with password ***',
+    });
   });
 
   it('says what to configure, and refuses an address it cannot drive', async () => {
-    expect(await executeStep({ page, vars: {}, database }, step('queryDatabase', 'SELECT 1'))).toMatchObject({ error: /add db\.url to the environment/ });
-    expect(await executeStep({ page, vars: {}, database }, step('queryDatabase', '@crm SELECT 1'))).toMatchObject({ error: /add db\.crm\.url/ });
-    expect(await executeStep({ page, vars: { 'db.url': 'oracle://h/x' }, database }, step('queryDatabase', 'SELECT 1'))).toMatchObject({ error: /not a postgres:\/\/, mysql:\/\/ or sqlserver:\/\// });
-    expect(await executeStep({ page, vars: { 'db.url': 'postgres://h/x' }, database }, step('queryDatabase', 'SELECT {{missing}}'))).toMatchObject({ error: /Unresolved variable\(s\) missing/ });
+    expect(
+      await executeStep({ page, vars: {}, database }, step('queryDatabase', 'SELECT 1')),
+    ).toMatchObject({ error: /add db\.url to the environment/ });
+    expect(
+      await executeStep({ page, vars: {}, database }, step('queryDatabase', '@crm SELECT 1')),
+    ).toMatchObject({ error: /add db\.crm\.url/ });
+    expect(
+      await executeStep(
+        { page, vars: { 'db.url': 'oracle://h/x' }, database },
+        step('queryDatabase', 'SELECT 1'),
+      ),
+    ).toMatchObject({ error: /not a postgres:\/\/, mysql:\/\/ or sqlserver:\/\// });
+    expect(
+      await executeStep(
+        { page, vars: { 'db.url': 'postgres://h/x' }, database },
+        step('queryDatabase', 'SELECT {{missing}}'),
+      ),
+    ).toMatchObject({ error: /Unresolved variable\(s\) missing/ });
   });
 
   it('does not show a secret an assertion compares', async () => {
-    const outcome = await executeStep({ page, vars: { secret_pin: '1234' } }, step('assertCondition', '{{secret_pin}} == 9999'));
-    expect(outcome).toMatchObject({ status: 'failed', error: '"{{secret_pin}} == 9999" does not hold.' });
-    expect(await executeStep({ page, vars: {} }, step('assertCondition', 'a ~ b'))).toMatchObject({ status: 'failed', error: /is not a comparison/ });
+    const outcome = await executeStep(
+      { page, vars: { secret_pin: '1234' } },
+      step('assertCondition', '{{secret_pin}} == 9999'),
+    );
+    expect(outcome).toMatchObject({
+      status: 'failed',
+      error: '"{{secret_pin}} == 9999" does not hold.',
+    });
+    expect(await executeStep({ page, vars: {} }, step('assertCondition', 'a ~ b'))).toMatchObject({
+      status: 'failed',
+      error: /is not a comparison/,
+    });
   });
 });

@@ -2,7 +2,7 @@
 
 WebFlowMaster is written mostly as modules of functions: decisions are pure functions in their own
 files, effects are in the modules that perform them. The product therefore has few classes, and the
-ones it has sit exactly where *state with a lifetime* is needed — a WebSocket relay, a browser pool, a
+ones it has sit exactly where _state with a lifetime_ is needed — a WebSocket relay, a browser pool, a
 device session, a debugger. This page draws them, and draws next to them the **domain model**: the
 types that the whole system passes around, which are interfaces and records rather than classes.
 
@@ -164,10 +164,10 @@ classDiagram
 Three things the diagram cannot show:
 
 - **A run is frozen when it is requested.** `Execution.snapshot` holds the plan's configuration and the
-  *resolved list of tests*; editing the plan afterwards changes nothing about a run that exists.
+  _resolved list of tests_; editing the plan afterwards changes nothing about a run that exists.
 - **Coverage is computed, never stored.** `Requirement.coverage` comes from the latest results of the
   tests that cover it (`shared/requirements.ts`).
-- **A test result belongs to a test *and a browser*.** One test on three browsers is three
+- **A test result belongs to a test _and a browser_.** One test on three browsers is three
   `TestResult` rows, each with its own attempts, evidence and verdict.
 
 ## 2. Run creation and control
@@ -636,20 +636,20 @@ classDiagram
 
 ### The errors
 
-Each area has its own `Error` subclass carrying a *code* the route turns into a status and a
+Each area has its own `Error` subclass carrying a _code_ the route turns into a status and a
 sentence. None is caught by type outside its own area; a generic handler turns the rest into a `500`
 and an incident.
 
-| Class | File | Raised when |
-|---|---|---|
-| `ExecutionEnqueueError` | `execution-orchestrator.ts` | A run cannot be created: unknown plan, queue full, queue unreachable, invalid input. |
-| `BrowserTaskError` | `browser-tasks.ts` | A task for a worker timed out, was refused or found no worker. |
-| `TenantConflictError` | `middleware/tenancy.ts` | Code tries to run in two organizations at once. |
-| `PublishingError`, `QuarantineError` | `test-publishing.ts`, `test-quarantine.ts` | A test cannot be published, reviewed or quarantined in its current state. |
-| `SsoConfigError` | `sso.ts` | The provider's configuration is invalid or unreachable. |
-| `ReportExportError` | `report-export.ts` | A report cannot be rendered. |
-| `WebDriverError` | `appium-client.ts` | The Appium server answered with a W3C WebDriver error. |
-| `InspectorError` | `mobile-inspector.ts` | An inspector session is gone, busy or refused. |
+| Class                                | File                                       | Raised when                                                                          |
+| ------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `ExecutionEnqueueError`              | `execution-orchestrator.ts`                | A run cannot be created: unknown plan, queue full, queue unreachable, invalid input. |
+| `BrowserTaskError`                   | `browser-tasks.ts`                         | A task for a worker timed out, was refused or found no worker.                       |
+| `TenantConflictError`                | `middleware/tenancy.ts`                    | Code tries to run in two organizations at once.                                      |
+| `PublishingError`, `QuarantineError` | `test-publishing.ts`, `test-quarantine.ts` | A test cannot be published, reviewed or quarantined in its current state.            |
+| `SsoConfigError`                     | `sso.ts`                                   | The provider's configuration is invalid or unreachable.                              |
+| `ReportExportError`                  | `report-export.ts`                         | A report cannot be rendered.                                                         |
+| `WebDriverError`                     | `appium-client.ts`                         | The Appium server answered with a W3C WebDriver error.                               |
+| `InspectorError`                     | `mobile-inspector.ts`                      | An inspector session is gone, busy or refused.                                       |
 
 ## 7. How to read the code with these diagrams
 

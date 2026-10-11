@@ -7,14 +7,14 @@ locali sono stati conservati, con una copia di sicurezza prima della preparazion
 Le verifiche sono state eseguite tramite API autenticate come editor, pubblicazione dei
 test, coda dei piani e worker del prodotto. Non sono risultati di un mock.
 
-| Verifica | Evidenza | Esito |
-| --- | --- | --- |
-| gRPC, metadati, WebSocket, estrazione e riuso in OAuth, deadline di 30 secondi, recupero dello slot | Run `be0470a5-9a29-4fa5-af8b-f837c564aafc`, piano `bf4dd8a3-f5db-4c2e-bd6a-700dca879943` | `completed`, cinque risultati `passed`, estrazione `echo=hello agent` |
-| Stessi endpoint privati dai runner del server | Run `7fa3a161-0346-400c-ad19-bea03ffa2574`, piano `797be83b-9bc4-4597-9c06-9f7902b3b27c` | `failed` atteso: gRPC codice 14; WebSocket `getaddrinfo ENOTFOUND protocolli` |
-| HTTP con bundle originale 1.0.0 | Run `fa534fa3-7666-4784-b74b-5b02dbcb5565`, piano `9e19c008-0964-486a-8436-a6e36fb8fff6` | `completed`, risultato `passed` |
-| Rifiuto WebSocket con bundle originale 1.0.0 | Run `b7efff5e-d5d0-494b-98d1-5de1250d7251`, piano `ce3755f5-eabd-43ea-98e9-b91a7d12ab4f` | `failed` atteso, errore che richiede l'aggiornamento dell'agente |
-| Esportazioni JUnit e HTML | Tutti e quattro i run sopra | HTTP riuscito e contenuto con i test del piano verificato dal comando |
-| Verifica visiva del report | Report del primo run | Da completare: il browser in-app richiede la gestione manuale del nuovo certificato locale |
+| Verifica                                                                                            | Evidenza                                                                                 | Esito                                                                                      |
+| --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| gRPC, metadati, WebSocket, estrazione e riuso in OAuth, deadline di 30 secondi, recupero dello slot | Run `be0470a5-9a29-4fa5-af8b-f837c564aafc`, piano `bf4dd8a3-f5db-4c2e-bd6a-700dca879943` | `completed`, cinque risultati `passed`, estrazione `echo=hello agent`                      |
+| Stessi endpoint privati dai runner del server                                                       | Run `7fa3a161-0346-400c-ad19-bea03ffa2574`, piano `797be83b-9bc4-4597-9c06-9f7902b3b27c` | `failed` atteso: gRPC codice 14; WebSocket `getaddrinfo ENOTFOUND protocolli`              |
+| HTTP con bundle originale 1.0.0                                                                     | Run `fa534fa3-7666-4784-b74b-5b02dbcb5565`, piano `9e19c008-0964-486a-8436-a6e36fb8fff6` | `completed`, risultato `passed`                                                            |
+| Rifiuto WebSocket con bundle originale 1.0.0                                                        | Run `b7efff5e-d5d0-494b-98d1-5de1250d7251`, piano `ce3755f5-eabd-43ea-98e9-b91a7d12ab4f` | `failed` atteso, errore che richiede l'aggiornamento dell'agente                           |
+| Esportazioni JUnit e HTML                                                                           | Tutti e quattro i run sopra                                                              | HTTP riuscito e contenuto con i test del piano verificato dal comando                      |
+| Verifica visiva del report                                                                          | Report del primo run                                                                     | Da completare: il browser in-app richiede la gestione manuale del nuovo certificato locale |
 
 I report dei quattro run restano nel prodotto. I casi del catalogo manuale non sono stati
 segnati automaticamente come superati. La preparazione ha conservato i risultati storici

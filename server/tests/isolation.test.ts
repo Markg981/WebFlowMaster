@@ -130,15 +130,17 @@ describe('row-level isolation', () => {
     it('cannot write to the users table beyond updating and removing a member', async () => {
       await expect(
         asAppUser((tx) =>
-          tx.execute(sql`INSERT INTO users (username, password, organization_id) VALUES ('smuggled', 'x', ${orgA})`),
+          tx.execute(
+            sql`INSERT INTO users (username, password, organization_id) VALUES ('smuggled', 'x', ${orgA})`,
+          ),
         ),
       ).rejects.toThrow(/permission denied/i);
     });
 
     it('cannot read the session table', async () => {
-      await expect(asAppUser((tx) => tx.execute(sql`SELECT * FROM sessions LIMIT 1`))).rejects.toThrow(
-        /permission denied/i,
-      );
+      await expect(
+        asAppUser((tx) => tx.execute(sql`SELECT * FROM sessions LIMIT 1`)),
+      ).rejects.toThrow(/permission denied/i);
     });
 
     it('cannot rewrite global settings', async () => {

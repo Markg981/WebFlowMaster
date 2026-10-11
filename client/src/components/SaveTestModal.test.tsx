@@ -80,13 +80,11 @@ const openSelect = async (trigger: HTMLElement) => {
  * the modal is open — so the options are only reachable with `hidden: true`.
  */
 const selectOptions = () => screen.getAllByRole('option', { hidden: true });
-const selectOption = (name: string) =>
-  screen.findByRole('option', { name, hidden: true });
+const selectOption = (name: string) => screen.findByRole('option', { name, hidden: true });
 
 const projectsFetchCount = () =>
-  mockApiRequest.mock.calls.filter(
-    ([method, url]) => method === 'GET' && url === '/api/projects',
-  ).length;
+  mockApiRequest.mock.calls.filter(([method, url]) => method === 'GET' && url === '/api/projects')
+    .length;
 
 describe('SaveTestModal', () => {
   let onSaveMock: ReturnType<typeof vi.fn>;
@@ -229,9 +227,7 @@ describe('SaveTestModal', () => {
         expect(within(projectSelectTrigger).getByText(newProjectName)).toBeInTheDocument(),
       );
 
-      expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Project Created' }),
-      );
+      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Project Created' }));
       await waitFor(() =>
         expect(
           screen.queryByRole('dialog', { name: 'Create New Project' }),

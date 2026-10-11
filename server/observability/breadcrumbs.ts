@@ -20,7 +20,9 @@ export class BreadcrumbRing {
   private readonly maxPerCorrelation: number;
   private readonly ttlMs: number;
 
-  constructor(options: { maxCorrelations?: number; maxPerCorrelation?: number; ttlMs?: number } = {}) {
+  constructor(
+    options: { maxCorrelations?: number; maxPerCorrelation?: number; ttlMs?: number } = {},
+  ) {
     this.maxCorrelations = options.maxCorrelations ?? DEFAULT_MAX_CORRELATIONS;
     this.maxPerCorrelation = options.maxPerCorrelation ?? DEFAULT_MAX_PER_CORRELATION;
     this.ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;

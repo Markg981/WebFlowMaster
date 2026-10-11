@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Copy, Loader2, RefreshCw, Sparkles, Wrench } from 'lucide-react';
@@ -58,13 +64,19 @@ export default function FailureAnalysisDialog({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/test-plan-executions/${executionId}/results/${result.id}/ai-analysis`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: interfaceLanguage(i18n.language), refresh }),
-      });
+      const response = await fetch(
+        `/api/test-plan-executions/${executionId}/results/${result.id}/ai-analysis`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: interfaceLanguage(i18n.language), refresh }),
+        },
+      );
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || t('failureAnalysis.failed', 'The analysis could not be made.'));
+      if (!response.ok)
+        throw new Error(
+          body.error || t('failureAnalysis.failed', 'The analysis could not be made.'),
+        );
       setAnalysis(readFailureAnalysis(body.analysis));
       if (!body.cached) onAnalysed();
     } catch (analysisError: any) {
@@ -98,17 +110,27 @@ export default function FailureAnalysisDialog({
     setApplying(true);
     setApplied(null);
     try {
-      const response = await fetch(`/api/tests/${result.uiTestId}/steps/${encodeURIComponent(blamedStep!.stepId!)}/selector`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selector: analysis.proposedSelector }),
-      });
+      const response = await fetch(
+        `/api/tests/${result.uiTestId}/steps/${encodeURIComponent(blamedStep!.stepId!)}/selector`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ selector: analysis.proposedSelector }),
+        },
+      );
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || t('failureAnalysis.applyFailed', 'The selector could not be applied.'));
+      if (!response.ok)
+        throw new Error(
+          body.error || t('failureAnalysis.applyFailed', 'The selector could not be applied.'),
+        );
       setApplied({
         ok: true,
         message: body.version
-          ? t('failureAnalysis.appliedVersion', 'Applied: the test was saved as version {{version}}. The next run uses it once it is published.', { version: body.version })
+          ? t(
+              'failureAnalysis.appliedVersion',
+              'Applied: the test was saved as version {{version}}. The next run uses it once it is published.',
+              { version: body.version },
+            )
           : t('failureAnalysis.applied', 'Applied to the test.'),
       });
     } catch (applyError: any) {
@@ -148,54 +170,90 @@ export default function FailureAnalysisDialog({
             {t('failureAnalysis.loading', 'Reading the steps, the errors and the requests…')}
           </p>
         )}
-        {error && !loading && <p className="text-sm text-destructive" role="alert">{error}</p>}
+        {error && !loading && (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
 
         {analysis && !loading && (
           <div className="space-y-4 text-sm">
             <div className="flex flex-wrap items-center gap-2">
               <Badge>{t(`failureAnalysis.category.${analysis.category}`, analysis.category)}</Badge>
               <Badge variant="outline">
-                {t('failureAnalysis.confidenceLabel', 'Confidence')}: {t(`failureAnalysis.confidence.${analysis.confidence}`, analysis.confidence)}
+                {t('failureAnalysis.confidenceLabel', 'Confidence')}:{' '}
+                {t(`failureAnalysis.confidence.${analysis.confidence}`, analysis.confidence)}
               </Badge>
               {analysis.failedStep !== null && (
-                <Badge variant="secondary">{t('failureAnalysis.step', 'Step {{n}}', { n: analysis.failedStep })}</Badge>
+                <Badge variant="secondary">
+                  {t('failureAnalysis.step', 'Step {{n}}', { n: analysis.failedStep })}
+                </Badge>
               )}
             </div>
             <p className="font-medium">{analysis.summary}</p>
             {analysis.explanation && (
               <div>
-                <h4 className="text-xs font-semibold uppercase text-muted-foreground">{t('failureAnalysis.why', 'Why')}</h4>
+                <h4 className="text-xs font-semibold uppercase text-muted-foreground">
+                  {t('failureAnalysis.why', 'Why')}
+                </h4>
                 <p className="whitespace-pre-line">{analysis.explanation}</p>
               </div>
             )}
             {analysis.suggestion && (
               <div>
-                <h4 className="text-xs font-semibold uppercase text-muted-foreground">{t('failureAnalysis.next', 'What to do')}</h4>
+                <h4 className="text-xs font-semibold uppercase text-muted-foreground">
+                  {t('failureAnalysis.next', 'What to do')}
+                </h4>
                 <p className="whitespace-pre-line">{analysis.suggestion}</p>
               </div>
             )}
             {analysis.proposedSelector && (
               <div>
-                <h4 className="text-xs font-semibold uppercase text-muted-foreground">{t('failureAnalysis.selector', 'Proposed selector')}</h4>
+                <h4 className="text-xs font-semibold uppercase text-muted-foreground">
+                  {t('failureAnalysis.selector', 'Proposed selector')}
+                </h4>
                 <div className="mt-1 flex items-center gap-2">
-                  <code className="flex-1 break-all rounded bg-muted px-2 py-1 text-xs">{analysis.proposedSelector}</code>
-                  <Button variant="outline" size="sm" onClick={copySelector} aria-label={t('failureAnalysis.copy', 'Copy')}>
+                  <code className="flex-1 break-all rounded bg-muted px-2 py-1 text-xs">
+                    {analysis.proposedSelector}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copySelector}
+                    aria-label={t('failureAnalysis.copy', 'Copy')}
+                  >
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
                   {canApply && (
-                    <Button size="sm" onClick={applySelector} disabled={applying || applied?.ok === true}>
-                      {applying ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Wrench className="mr-1 h-4 w-4" />}
+                    <Button
+                      size="sm"
+                      onClick={applySelector}
+                      disabled={applying || applied?.ok === true}
+                    >
+                      {applying ? (
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Wrench className="mr-1 h-4 w-4" />
+                      )}
                       {t('failureAnalysis.apply', 'Apply to the test')}
                     </Button>
                   )}
                 </div>
                 {!canApply && blamedStep?.calledFrom && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {t('failureAnalysis.inGroup', 'The step is inside a step group: change it in the group.')}
+                    {t(
+                      'failureAnalysis.inGroup',
+                      'The step is inside a step group: change it in the group.',
+                    )}
                   </p>
                 )}
                 {applied && (
-                  <p className={`mt-1 text-xs ${applied.ok ? 'text-success' : 'text-destructive'}`} role="status">{applied.message}</p>
+                  <p
+                    className={`mt-1 text-xs ${applied.ok ? 'text-success' : 'text-destructive'}`}
+                    role="status"
+                  >
+                    {applied.message}
+                  </p>
                 )}
               </div>
             )}
@@ -205,8 +263,13 @@ export default function FailureAnalysisDialog({
                 name: analysis.byUsername,
                 when: new Date(analysis.at).toLocaleString(),
               })}{' '}
-              {analysis.sawScreenshot ? t('failureAnalysis.withScreenshot', 'It saw the screenshot.') : t('failureAnalysis.noScreenshot', 'No screenshot was available.')}{' '}
-              {t('failureAnalysis.caveat', 'It is a probable cause, not a verdict: check it against the steps.')}
+              {analysis.sawScreenshot
+                ? t('failureAnalysis.withScreenshot', 'It saw the screenshot.')
+                : t('failureAnalysis.noScreenshot', 'No screenshot was available.')}{' '}
+              {t(
+                'failureAnalysis.caveat',
+                'It is a probable cause, not a verdict: check it against the steps.',
+              )}
             </p>
           </div>
         )}
@@ -215,7 +278,9 @@ export default function FailureAnalysisDialog({
           <div className="flex justify-end">
             <Button variant="outline" size="sm" onClick={() => analyse(analysis !== null)}>
               <RefreshCw className="mr-2 h-4 w-4" />
-              {analysis ? t('failureAnalysis.again', 'Analyse again') : t('failureAnalysis.retry', 'Try again')}
+              {analysis
+                ? t('failureAnalysis.again', 'Analyse again')
+                : t('failureAnalysis.retry', 'Try again')}
             </Button>
           </div>
         )}

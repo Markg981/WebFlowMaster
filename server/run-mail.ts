@@ -19,7 +19,8 @@ const FAILED = new Set(['failed', 'error', 'timed_out']);
 
 /** The person's own switches for this outcome: completion covers every end, failures only failures. */
 export function personWantsMail(
-  prefs: { notifyByEmail: boolean; notifyRunCompleted: boolean; notifyRunFailed: boolean } | undefined,
+  prefs:
+    { notifyByEmail: boolean; notifyRunCompleted: boolean; notifyRunFailed: boolean } | undefined,
   status: string,
 ): boolean {
   if (!prefs?.notifyByEmail) return false;
@@ -39,30 +40,60 @@ export async function mailRunFinished(
   requestedByUserId: number | null | undefined,
   summary: RunSummary,
 ): Promise<RunMailOutcome[]> {
-  const [execution] = await privilegedDb.select({ organizationId: testPlanExecutions.organizationId }).from(testPlanExecutions).where(eq(testPlanExecutions.id, summary.executionId)).limit(1);
-  const [plan] = execution ? [] : await privilegedDb.select({ organizationId: testPlans.organizationId }).from(testPlans).where(eq(testPlans.id, summary.planId)).limit(1);
-  let organizationId = execution?.organizationId ?? plan?.organizationId ?? getTenantOrgId() ?? null;
+  const [execution] = await privilegedDb
+    .select({ organizationId: testPlanExecutions.organizationId })
+    .from(testPlanExecutions)
+    .where(eq(testPlanExecutions.id, summary.executionId))
+    .limit(1);
+  const [plan] = execution
+    ? []
+    : await privilegedDb
+        .select({ organizationId: testPlans.organizationId })
+        .from(testPlans)
+        .where(eq(testPlans.id, summary.planId))
+        .limit(1);
+  let organizationId =
+    execution?.organizationId ?? plan?.organizationId ?? getTenantOrgId() ?? null;
   const recipients = new Set<string>();
   if (shouldNotify(settings, summary.status)) {
-    for (const address of settings.emails ?? []) if (isEmailAddress(address?.trim())) recipients.add(address.trim().toLowerCase());
+    for (const address of settings.emails ?? [])
+      if (isEmailAddress(address?.trim())) recipients.add(address.trim().toLowerCase());
   }
   if (requestedByUserId) {
     const [person] = await privilegedDb
-      .select({ username: users.username, kind: users.kind, organizationId: users.organizationId, notifyByEmail: userSettings.notifyByEmail, notifyRunCompleted: userSettings.notifyRunCompleted, notifyRunFailed: userSettings.notifyRunFailed })
+      .select({
+        username: users.username,
+        kind: users.kind,
+        organizationId: users.organizationId,
+        notifyByEmail: userSettings.notifyByEmail,
+        notifyRunCompleted: userSettings.notifyRunCompleted,
+        notifyRunFailed: userSettings.notifyRunFailed,
+      })
       .from(users)
       .leftJoin(userSettings, eq(userSettings.userId, users.id))
       .where(eq(users.id, requestedByUserId))
       .limit(1);
-    const prefs = person && person.notifyByEmail !== null
-      ? { notifyByEmail: person.notifyByEmail, notifyRunCompleted: person.notifyRunCompleted!, notifyRunFailed: person.notifyRunFailed! }
-      : undefined;
+    const prefs =
+      person && person.notifyByEmail !== null
+        ? {
+            notifyByEmail: person.notifyByEmail,
+            notifyRunCompleted: person.notifyRunCompleted!,
+            notifyRunFailed: person.notifyRunFailed!,
+          }
+        : undefined;
     if (organizationId === null) organizationId = person?.organizationId ?? null;
-    if (person && person.organizationId === organizationId && person.kind === 'person' && isEmailAddress(person.username) && personWantsMail(prefs, summary.status)) {
+    if (
+      person &&
+      person.organizationId === organizationId &&
+      person.kind === 'person' &&
+      isEmailAddress(person.username) &&
+      personWantsMail(prefs, summary.status)
+    ) {
       recipients.add(person.username.toLowerCase());
     }
   }
   const outcomes: RunMailOutcome[] = [];
-  if (!await organizationMailConfigured(organizationId)) return outcomes;
+  if (!(await organizationMailConfigured(organizationId))) return outcomes;
   for (const to of Array.from(recipients)) {
     const result = await sendMail(runFinishedMail(to, summary, organizationId));
     outcomes.push({ to, ...result });

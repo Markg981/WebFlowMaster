@@ -479,7 +479,9 @@ async function saveApiTest(
     .select({ id: apiTests.id })
     .from(apiTests)
     .where(
-      existing ? and(eq(apiTests.name, name!), ne(apiTests.id, existing.id)) : eq(apiTests.name, name!),
+      existing
+        ? and(eq(apiTests.name, name!), ne(apiTests.id, existing.id))
+        : eq(apiTests.name, name!),
     )
     .limit(1);
   if (duplicate)
@@ -1300,12 +1302,27 @@ export function registerAuthoringRoutes(router: Router) {
               `The API test name "${candidate.name}" is already used elsewhere in the organization.`,
             );
           const incoming = existing
-            ? { ...candidate, authParams: keepRedactedSecrets(candidate.authParams, existing.authParams) }
+            ? {
+                ...candidate,
+                authParams: keepRedactedSecrets(candidate.authParams, existing.authParams),
+              }
             : candidate;
-          if (existing && sameAs(existing as unknown as Record<string, unknown>, incoming, API_TEST_FIELDS)) {
-            results.push({ kind: 'api_test', name: existing.name, id: existing.id, outcome: 'unchanged' });
+          if (
+            existing &&
+            sameAs(existing as unknown as Record<string, unknown>, incoming, API_TEST_FIELDS)
+          ) {
+            results.push({
+              kind: 'api_test',
+              name: existing.name,
+              id: existing.id,
+              outcome: 'unchanged',
+            });
           } else if (input.dryRun) {
-            results.push({ kind: 'api_test', name: candidate.name, outcome: existing ? 'updated' : 'created' });
+            results.push({
+              kind: 'api_test',
+              name: candidate.name,
+              outcome: existing ? 'updated' : 'created',
+            });
           } else {
             const row = await saveApiTest(tx, req, candidate, existing);
             results.push({

@@ -3,7 +3,13 @@ export interface ExecutionProvenance {
   capturedAt: string;
   inputFingerprint: string;
   datasetsFingerprint: string;
-  datasets: Array<{ testId: number; rowCount: number; fingerprint: string; source?: { id: number; name: string; updatedAt: string }; unavailable: boolean }>;
+  datasets: Array<{
+    testId: number;
+    rowCount: number;
+    fingerprint: string;
+    source?: { id: number; name: string; updatedAt: string };
+    unavailable: boolean;
+  }>;
   definitions: Array<{
     type: 'ui' | 'api' | 'mobile';
     id: number;

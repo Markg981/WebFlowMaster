@@ -1,7 +1,12 @@
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from './db';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
-import { BASELINES_PREFIX, RESULTS_PREFIX, artifactStore, type ArtifactStore } from './artifact-store';
+import {
+  BASELINES_PREFIX,
+  RESULTS_PREFIX,
+  artifactStore,
+  type ArtifactStore,
+} from './artifact-store';
 
 /**
  * Export and erasure for a whole organization.
@@ -54,7 +59,8 @@ async function deletionOrder(): Promise<string[]> {
   // Repeatedly take any table nothing left in the set still points at.
   while (remaining.size > 0) {
     const free = [...remaining].filter(
-      (table) => !edges.some((e) => e.parent === table && e.child !== table && remaining.has(e.child)),
+      (table) =>
+        !edges.some((e) => e.parent === table && e.child !== table && remaining.has(e.child)),
     );
 
     if (free.length === 0) {
@@ -134,10 +140,16 @@ export async function eraseOrganization(
   const runs = await privilegedDb.execute(
     sql`SELECT test_plan_id, id FROM test_plan_executions WHERE organization_id = ${organizationId}`,
   );
-  const retained = await privilegedDb.execute(sql`SELECT key FROM quota_artifacts WHERE organization_id=${organizationId}`);
+  const retained = await privilegedDb.execute(
+    sql`SELECT key FROM quota_artifacts WHERE organization_id=${organizationId}`,
+  );
   const prefixes = new Set([
-    ...(runs.rows as Array<{ test_plan_id: string; id: string }>).map((run) => `${RESULTS_PREFIX}${run.test_plan_id}/${run.id}/`),
-    ...(retained.rows as Array<{ key: string }>).flatMap(row => /^results\/[^/]+\/[^/]+\//.exec(row.key)?.[0] ?? []),
+    ...(runs.rows as Array<{ test_plan_id: string; id: string }>).map(
+      (run) => `${RESULTS_PREFIX}${run.test_plan_id}/${run.id}/`,
+    ),
+    ...(retained.rows as Array<{ key: string }>).flatMap(
+      (row) => /^results\/[^/]+\/[^/]+\//.exec(row.key)?.[0] ?? [],
+    ),
     `${BASELINES_PREFIX}org_${organizationId}/`,
   ]);
 
@@ -147,33 +159,35 @@ export async function eraseOrganization(
     return r.rowCount ?? r.affectedRows ?? 0;
   };
 
-  return privilegedDb.transaction(async (tx) => {
-    const deleted: Record<string, number> = {};
+  return privilegedDb
+    .transaction(async (tx) => {
+      const deleted: Record<string, number> = {};
 
-    for (const table of order) {
-      const result = await tx.execute(
-        sql`DELETE FROM ${sql.identifier(table)} WHERE organization_id = ${organizationId}`,
-      );
-      deleted[table] = rowsAffected(result);
-    }
-
-    const org = await tx.execute(sql`DELETE FROM organizations WHERE id = ${organizationId}`);
-    deleted.organizations = rowsAffected(org);
-
-    return deleted;
-  }).then(async (deleted) => {
-    // The files go after the rows have: a failed transaction must not leave a living
-    // organization without its evidence. A file that cannot be removed is reported, never
-    // thrown — the rows are already gone, and the operator is told exactly what is left.
-    const store = options.store ?? artifactStore();
-    const files = { removed: 0, failed: [] as string[] };
-    for (const prefix of prefixes) {
-      try {
-        files.removed += await store.deletePrefix(prefix);
-      } catch {
-        files.failed.push(prefix);
+      for (const table of order) {
+        const result = await tx.execute(
+          sql`DELETE FROM ${sql.identifier(table)} WHERE organization_id = ${organizationId}`,
+        );
+        deleted[table] = rowsAffected(result);
       }
-    }
-    return { deleted, files };
-  });
+
+      const org = await tx.execute(sql`DELETE FROM organizations WHERE id = ${organizationId}`);
+      deleted.organizations = rowsAffected(org);
+
+      return deleted;
+    })
+    .then(async (deleted) => {
+      // The files go after the rows have: a failed transaction must not leave a living
+      // organization without its evidence. A file that cannot be removed is reported, never
+      // thrown — the rows are already gone, and the operator is told exactly what is left.
+      const store = options.store ?? artifactStore();
+      const files = { removed: 0, failed: [] as string[] };
+      for (const prefix of prefixes) {
+        try {
+          files.removed += await store.deletePrefix(prefix);
+        } catch {
+          files.failed.push(prefix);
+        }
+      }
+      return { deleted, files };
+    });
 }

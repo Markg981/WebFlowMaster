@@ -1,7 +1,10 @@
 import { loadFont } from '@remotion/google-fonts/Inter';
 
 // The product's own typeface and colours (client/src/index.css, client/public/favicon.svg).
-export const { fontFamily } = loadFont('normal', { weights: ['400', '500', '600', '700', '800'], subsets: ['latin'] });
+export const { fontFamily } = loadFont('normal', {
+  weights: ['400', '500', '600', '700', '800'],
+  subsets: ['latin'],
+});
 
 export const FPS = 30;
 

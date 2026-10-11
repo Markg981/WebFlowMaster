@@ -1,12 +1,12 @@
-import { Router } from "express";
-import { z } from "zod";
-import { desc, eq } from "drizzle-orm";
+import { Router } from 'express';
+import { z } from 'zod';
+import { desc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { stepGroups, tests, AdhocTestStepSchema } from "@shared/schema";
-import { withTenantTransaction } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
-import { asSteps, isGroupCall, referencedGroupIds } from "../step-groups";
-import loggerPromise from "../logger";
+import { stepGroups, tests, AdhocTestStepSchema } from '@shared/schema';
+import { withTenantTransaction } from '../middleware/tenancy';
+import { requireRole } from '../middleware/require-role';
+import { asSteps, isGroupCall, referencedGroupIds } from '../step-groups';
+import loggerPromise from '../logger';
 
 /**
  * The named sequences tests call instead of repeating them.
@@ -25,13 +25,14 @@ const logger = await loggerPromise;
  * requester cannot edit or see (row-level security, migration 0031). One answer for both, so it
  * does not say whether a restricted project exists.
  */
-const isUnreachableProject = (error: any) => /foreign key|row-level security/i.test(error?.message ?? "");
+const isUnreachableProject = (error: any) =>
+  /foreign key|row-level security/i.test(error?.message ?? '');
 
 const stepGroupBodySchema = z.object({
-  name: z.string().trim().min(1, "A name is required").max(120),
+  name: z.string().trim().min(1, 'A name is required').max(120),
   description: z.string().trim().max(500).optional().nullable(),
   projectId: z.number().int().positive().optional().nullable(),
-  sequence: z.array(AdhocTestStepSchema).min(1, "A step group needs at least one step"),
+  sequence: z.array(AdhocTestStepSchema).min(1, 'A step group needs at least one step'),
 });
 
 const updateStepGroupBodySchema = stepGroupBodySchema.partial();
@@ -42,8 +43,8 @@ function callsAnotherGroup(sequence: unknown): boolean {
 }
 
 // GET /api/step-groups — everything this organization can call, newest first.
-router.get("/api/step-groups", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/step-groups', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   // No organization predicate: RLS supplies it.
   const groups = await withTenantTransaction((tx) =>
@@ -53,15 +54,15 @@ router.get("/api/step-groups", requireRole('viewer'), async (req, res) => {
 });
 
 // POST /api/step-groups
-router.post("/api/step-groups", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/step-groups', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   const parsed = stepGroupBodySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
   }
   if (callsAnotherGroup(parsed.data.sequence)) {
-    return res.status(400).json({ error: "A step group cannot call another step group." });
+    return res.status(400).json({ error: 'A step group cannot call another step group.' });
   }
 
   const id = uuidv4();
@@ -84,25 +85,29 @@ router.post("/api/step-groups", requireRole('editor'), async (req, res) => {
     });
     res.status(201).json({ ...created, sequence: asSteps(created.sequence) });
   } catch (error: any) {
-    if (isUnreachableProject(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
-    logger.error({ message: 'Failed to create step group', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Failed to create the step group." });
+    if (isUnreachableProject(error))
+      return res.status(400).json({ error: 'Invalid project ID or project does not exist.' });
+    logger.error({
+      message: 'Failed to create step group',
+      error: error?.message ?? String(error),
+    });
+    res.status(500).json({ error: 'Failed to create the step group.' });
   }
 });
 
 // PUT /api/step-groups/:id — the edit that changes what every calling test does next run.
-router.put("/api/step-groups/:id", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.put('/api/step-groups/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   const parsed = updateStepGroupBodySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
   }
   if (parsed.data.sequence && callsAnotherGroup(parsed.data.sequence)) {
-    return res.status(400).json({ error: "A step group cannot call another step group." });
+    return res.status(400).json({ error: 'A step group cannot call another step group.' });
   }
   if (Object.keys(parsed.data).length === 0) {
-    return res.status(400).json({ error: "No update data provided." });
+    return res.status(400).json({ error: 'No update data provided.' });
   }
 
   try {
@@ -111,8 +116,12 @@ router.put("/api/step-groups/:id", requireRole('editor'), async (req, res) => {
         .update(stepGroups)
         .set({
           ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
-          ...(parsed.data.description !== undefined ? { description: parsed.data.description ?? null } : {}),
-          ...(parsed.data.projectId !== undefined ? { projectId: parsed.data.projectId ?? null } : {}),
+          ...(parsed.data.description !== undefined
+            ? { description: parsed.data.description ?? null }
+            : {}),
+          ...(parsed.data.projectId !== undefined
+            ? { projectId: parsed.data.projectId ?? null }
+            : {}),
           ...(parsed.data.sequence !== undefined ? { sequence: parsed.data.sequence } : {}),
           updatedAt: new Date(),
         })
@@ -120,12 +129,16 @@ router.put("/api/step-groups/:id", requireRole('editor'), async (req, res) => {
         .returning();
       return row;
     });
-    if (!updated) return res.status(404).json({ error: "Step group not found." });
+    if (!updated) return res.status(404).json({ error: 'Step group not found.' });
     res.json({ ...updated, sequence: asSteps(updated.sequence) });
   } catch (error: any) {
-    if (isUnreachableProject(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
-    logger.error({ message: 'Failed to update step group', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Failed to update the step group." });
+    if (isUnreachableProject(error))
+      return res.status(400).json({ error: 'Invalid project ID or project does not exist.' });
+    logger.error({
+      message: 'Failed to update step group',
+      error: error?.message ?? String(error),
+    });
+    res.status(500).json({ error: 'Failed to update the step group.' });
   }
 });
 
@@ -136,13 +149,15 @@ router.put("/api/step-groups/:id", requireRole('editor'), async (req, res) => {
  * them — which is the right behaviour at run time and a terrible way to find out at edit time.
  * The tests that would break are named, because "in use" without saying by what is a dead end.
  */
-router.delete("/api/step-groups/:id", requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.delete('/api/step-groups/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { id } = req.params;
   try {
     const outcome = await withTenantTransaction(async (tx) => {
-      const callers = await tx.select({ id: tests.id, name: tests.name, sequence: tests.sequence }).from(tests);
+      const callers = await tx
+        .select({ id: tests.id, name: tests.name, sequence: tests.sequence })
+        .from(tests);
       const using = callers
         .filter((test) => referencedGroupIds(test.sequence).includes(id))
         .map((test) => test.name);
@@ -158,11 +173,15 @@ router.delete("/api/step-groups/:id", requireRole('editor'), async (req, res) =>
         tests: outcome.blockedBy,
       });
     }
-    if (!('deleted' in outcome) || !outcome.deleted) return res.status(404).json({ error: "Step group not found." });
+    if (!('deleted' in outcome) || !outcome.deleted)
+      return res.status(404).json({ error: 'Step group not found.' });
     res.json({ success: true });
   } catch (error: any) {
-    logger.error({ message: 'Failed to delete step group', error: error?.message ?? String(error) });
-    res.status(500).json({ error: "Failed to delete the step group." });
+    logger.error({
+      message: 'Failed to delete step group',
+      error: error?.message ?? String(error),
+    });
+    res.status(500).json({ error: 'Failed to delete the step group.' });
   }
 });
 
@@ -172,8 +191,8 @@ router.delete("/api/step-groups/:id", requireRole('editor'), async (req, res) =>
  * The question anyone asks before editing one: changing a group changes every test that calls
  * it, and there was no way to know which those were.
  */
-router.get("/api/step-groups/:id/usage", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/step-groups/:id/usage', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
   const { id } = req.params;
   const callers = await withTenantTransaction((tx) =>

@@ -16,14 +16,19 @@
  * can connect to.
  */
 
-export const BROWSER_GRID_PROVIDERS = ["browserstack", "lambdatest", "playwright_server", "local_appium"] as const;
+export const BROWSER_GRID_PROVIDERS = [
+  'browserstack',
+  'lambdatest',
+  'playwright_server',
+  'local_appium',
+] as const;
 export type BrowserGridProvider = (typeof BROWSER_GRID_PROVIDERS)[number];
 
 export const BROWSER_GRID_LABELS: Record<BrowserGridProvider, string> = {
-  browserstack: "BrowserStack",
-  lambdatest: "LambdaTest",
-  playwright_server: "Playwright server",
-  local_appium: "Local Appium (agent)",
+  browserstack: 'BrowserStack',
+  lambdatest: 'LambdaTest',
+  playwright_server: 'Playwright server',
+  local_appium: 'Local Appium (agent)',
 };
 
 /** Whether the provider chooses OS and browser version, or runs what it has. */
@@ -43,26 +48,58 @@ export const RUNS_BROWSERS: Record<BrowserGridProvider, boolean> = {
 };
 
 /** Where Appium listens when it is started with no options, on the agent's machine. */
-export const LOCAL_APPIUM_DEFAULT_URL = "http://127.0.0.1:4723";
+export const LOCAL_APPIUM_DEFAULT_URL = 'http://127.0.0.1:4723';
 
 /** What each provider needs to be saved. */
 export const GRID_FIELDS: Record<
   BrowserGridProvider,
-  { username: boolean; endpoint: boolean; key: "required" | "optional" | "none"; agentPool: boolean; endpointRequired: boolean }
+  {
+    username: boolean;
+    endpoint: boolean;
+    key: 'required' | 'optional' | 'none';
+    agentPool: boolean;
+    endpointRequired: boolean;
+  }
 > = {
-  browserstack: { username: true, endpoint: false, key: "required", agentPool: false, endpointRequired: false },
-  lambdatest: { username: true, endpoint: false, key: "required", agentPool: false, endpointRequired: false },
-  playwright_server: { username: false, endpoint: true, key: "optional", agentPool: false, endpointRequired: true },
+  browserstack: {
+    username: true,
+    endpoint: false,
+    key: 'required',
+    agentPool: false,
+    endpointRequired: false,
+  },
+  lambdatest: {
+    username: true,
+    endpoint: false,
+    key: 'required',
+    agentPool: false,
+    endpointRequired: false,
+  },
+  playwright_server: {
+    username: false,
+    endpoint: true,
+    key: 'optional',
+    agentPool: false,
+    endpointRequired: true,
+  },
   // The address defaults to LOCAL_APPIUM_DEFAULT_URL; Appium started with no options needs no key.
-  local_appium: { username: false, endpoint: true, key: "none", agentPool: true, endpointRequired: false },
+  local_appium: {
+    username: false,
+    endpoint: true,
+    key: 'none',
+    agentPool: true,
+    endpointRequired: false,
+  },
 };
 
 /** Why an address is not one this provider can use; null when it is. */
 export function endpointProblem(provider: BrowserGridProvider, endpoint: string): string | null {
-  if (provider === "playwright_server" && !/^wss?:\/\//i.test(endpoint)) return "The address of a Playwright server starts with ws:// or wss://";
-  if (provider === "local_appium" && !/^https?:\/\/[^\s]+$/i.test(endpoint)) return "Appium's address starts with http:// or https://, as the agent's machine reaches it (http://127.0.0.1:4723).";
+  if (provider === 'playwright_server' && !/^wss?:\/\//i.test(endpoint))
+    return 'The address of a Playwright server starts with ws:// or wss://';
+  if (provider === 'local_appium' && !/^https?:\/\/[^\s]+$/i.test(endpoint))
+    return "Appium's address starts with http:// or https://, as the agent's machine reaches it (http://127.0.0.1:4723).";
   return null;
 }
 
 /** The operating systems offered for a machine on a grid that chooses them. */
-export const GRID_OPERATING_SYSTEMS = ["Windows", "macOS"] as const;
+export const GRID_OPERATING_SYSTEMS = ['Windows', 'macOS'] as const;

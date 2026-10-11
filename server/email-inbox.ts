@@ -50,7 +50,10 @@ const POLL_INTERVAL_MS = 1_000;
 export const CLOCK_SLACK_MS = 30_000;
 
 /** The inbox the variables name, the server's own, or null when there is none. */
-export function inboxConfig(vars: Record<string, string>, env: NodeJS.ProcessEnv = process.env): InboxConfig | null {
+export function inboxConfig(
+  vars: Record<string, string>,
+  env: NodeJS.ProcessEnv = process.env,
+): InboxConfig | null {
   const fromVars = vars['mailpit.url']?.trim();
   const url = (fromVars || env.MAILPIT_URL || '').trim().replace(/\/+$/, '');
   if (!url) return null;
@@ -58,7 +61,11 @@ export function inboxConfig(vars: Record<string, string>, env: NodeJS.ProcessEnv
   const password = fromVars ? vars['mailpit.password'] : env.MAILPIT_PASSWORD;
   return {
     url,
-    ...(username ? { authorization: `Basic ${Buffer.from(`${username}:${password ?? ''}`).toString('base64')}` } : {}),
+    ...(username
+      ? {
+          authorization: `Basic ${Buffer.from(`${username}:${password ?? ''}`).toString('base64')}`,
+        }
+      : {}),
   };
 }
 
@@ -77,7 +84,9 @@ export function parseEmailQuery(value: string): EmailQuery | { error: string } {
   const [address = '', subject = '', ...rest] = value.split('|');
   const to = address.trim();
   if (!/^[^\s@]+@[^\s@]+$/.test(to)) {
-    return { error: `"${to}" is not an email address. The value is address, address|subject, or address|subject|pattern.` };
+    return {
+      error: `"${to}" is not an email address. The value is address, address|subject, or address|subject|pattern.`,
+    };
   }
   const source = rest.join('|').trim();
   let pattern: RegExp | null = null;
@@ -85,7 +94,9 @@ export function parseEmailQuery(value: string): EmailQuery | { error: string } {
     try {
       pattern = new RegExp(source, 'i');
     } catch (error: any) {
-      return { error: `The pattern "${source}" is not a valid regular expression: ${error?.message ?? error}.` };
+      return {
+        error: `The pattern "${source}" is not a valid regular expression: ${error?.message ?? error}.`,
+      };
     }
   }
   return { address: to, subject: subject.trim(), pattern };
@@ -115,7 +126,8 @@ export function htmlToText(html: string): string {
 }
 
 /** Words that sit next to a one-time code, in the languages the product speaks. */
-const CODE_WORDS = /(code|codice|otp|pin|passcode|one[- ]time|verification|verifica|conferma|confirm|token|bestätigung|Bestätigungscode|vérification)/i;
+const CODE_WORDS =
+  /(code|codice|otp|pin|passcode|one[- ]time|verification|verifica|conferma|confirm|token|bestätigung|Bestätigungscode|vérification)/i;
 
 /**
  * The one-time code in an email.
@@ -144,21 +156,27 @@ export function findOtp(text: string, pattern: RegExp | null = null): string | n
 }
 
 /** Links that are about the email rather than the thing it asks the reader to do. */
-const INCIDENTAL_LINK = /unsubscribe|optout|opt-out|privacy|preferences|mailto:|\.(png|jpe?g|gif|svg|css)(\?|$)/i;
+const INCIDENTAL_LINK =
+  /unsubscribe|optout|opt-out|privacy|preferences|mailto:|\.(png|jpe?g|gif|svg|css)(\?|$)/i;
 
 /**
  * The link the email asks the reader to follow: the first http(s) link in the HTML that is not
  * an unsubscribe, a logo or a stylesheet, else the first in the text.
  */
 export function findLink(message: Pick<InboxMessage, 'html' | 'text'>): string | null {
-  const hrefs = [...message.html.matchAll(/<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/gi)].map((m) => decodeEntities(m[2]));
+  const hrefs = [...message.html.matchAll(/<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/gi)].map((m) =>
+    decodeEntities(m[2]),
+  );
   const inText = [...message.text.matchAll(/https?:\/\/[^\s<>"')\]]+/g)].map((m) => m[0]);
   const candidates = [...hrefs, ...inText].filter((link) => /^https?:\/\//i.test(link));
   return candidates.find((link) => !INCIDENTAL_LINK.test(link)) ?? candidates[0] ?? null;
 }
 
 /** GET a JSON document from the inbox: the caller decides the transport. */
-export type InboxGet = (url: string, headers: Record<string, string>) => Promise<{ status: number; json: () => Promise<any> }>;
+export type InboxGet = (
+  url: string,
+  headers: Record<string, string>,
+) => Promise<{ status: number; json: () => Promise<any> }>;
 
 interface Summary {
   ID: string;
@@ -172,15 +190,24 @@ interface Summary {
 async function getJson(get: InboxGet, config: InboxConfig, path: string): Promise<any> {
   let response: Awaited<ReturnType<InboxGet>>;
   try {
-    response = await get(`${config.url}${path}`, config.authorization ? { Authorization: config.authorization } : {});
+    response = await get(
+      `${config.url}${path}`,
+      config.authorization ? { Authorization: config.authorization } : {},
+    );
   } catch (error: any) {
-    throw new Error(`The test inbox at ${config.url} could not be reached: ${error?.message ?? error}.`);
+    throw new Error(
+      `The test inbox at ${config.url} could not be reached: ${error?.message ?? error}.`,
+    );
   }
   if (response.status === 401 || response.status === 403) {
-    throw new Error(`The test inbox at ${config.url} refused the credentials (HTTP ${response.status}): check mailpit.username and mailpit.password.`);
+    throw new Error(
+      `The test inbox at ${config.url} refused the credentials (HTTP ${response.status}): check mailpit.username and mailpit.password.`,
+    );
   }
   if (response.status >= 400) {
-    throw new Error(`The test inbox at ${config.url} answered HTTP ${response.status}. Is it a Mailpit?`);
+    throw new Error(
+      `The test inbox at ${config.url} answered HTTP ${response.status}. Is it a Mailpit?`,
+    );
   }
   return response.json();
 }
@@ -205,7 +232,11 @@ export async function waitForEmail(
     const page = await getJson(get, config, search);
     const found = ((page?.messages ?? []) as Summary[])
       // Mailpit's search matches the address as words; the recipient must be this one exactly.
-      .filter((m) => [...(m.To ?? []), ...(m.Cc ?? []), ...(m.Bcc ?? [])].some((to) => to.Address?.toLowerCase() === address))
+      .filter((m) =>
+        [...(m.To ?? []), ...(m.Cc ?? []), ...(m.Bcc ?? [])].some(
+          (to) => to.Address?.toLowerCase() === address,
+        ),
+      )
       .filter((m) => !subject || (m.Subject ?? '').toLowerCase().includes(subject))
       .filter((m) => Date.parse(m.Created) >= since - CLOCK_SLACK_MS)
       .sort((a, b) => Date.parse(b.Created) - Date.parse(a.Created))[0];
@@ -221,7 +252,11 @@ export async function waitForEmail(
         html,
         text: String(full?.Text ?? '').trim() || htmlToText(html),
       };
-      return { message, otp: findOtp(`${message.subject}\n${message.text}`, query.pattern), link: findLink(message) };
+      return {
+        message,
+        otp: findOtp(`${message.subject}\n${message.text}`, query.pattern),
+        link: findLink(message),
+      };
     }
     if (Date.now() >= deadline) return null;
     await sleep(POLL_INTERVAL_MS);

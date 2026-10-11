@@ -40,9 +40,20 @@ export async function junitReportFor(executionId: string): Promise<string | null
   if (!source) return null;
   const reproducibility = reproducibilitySummary(source.execution.configurationSnapshot);
   return buildJUnitXml({
-    planName: readExecutionSnapshot(source.execution.configurationSnapshot)?.plan.name ?? source.execution.planName ?? source.execution.testPlanId,
-    properties: { 'wfm.reproducibility': JSON.stringify(reproducibility),
-      'wfm.matrix': JSON.stringify(source.results.map(r => ({ test: r.testName, browser: r.browser, evidence: readMatrixEvidence(r.detailedLog) }))) },
+    planName:
+      readExecutionSnapshot(source.execution.configurationSnapshot)?.plan.name ??
+      source.execution.planName ??
+      source.execution.testPlanId,
+    properties: {
+      'wfm.reproducibility': JSON.stringify(reproducibility),
+      'wfm.matrix': JSON.stringify(
+        source.results.map((r) => ({
+          test: r.testName,
+          browser: r.browser,
+          evidence: readMatrixEvidence(r.detailedLog),
+        })),
+      ),
+    },
     executionId,
     startedAt: source.execution.startedAt,
     results: source.results,

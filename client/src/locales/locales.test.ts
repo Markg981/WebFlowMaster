@@ -88,7 +88,8 @@ describe.each(BUNDLES.map(([lang]) => lang))('%s translation bundle', (lang) => 
       [...english.keys()].filter((key) => plural.test(key)).map((key) => key.replace(plural, '')),
     );
     const orphans = [...bundle.keys()].filter(
-      (key) => !english.has(key) && !(plural.test(key) && englishPlurals.has(key.replace(plural, ''))),
+      (key) =>
+        !english.has(key) && !(plural.test(key) && englishPlurals.has(key.replace(plural, ''))),
     );
     expect(orphans).toEqual([]);
   });
@@ -134,7 +135,8 @@ describe('keys used in the code', () => {
     }
   }
   // A key called with a count may exist only in its plural forms, which i18next picks from.
-  const inEnglish = (key: string) => english.has(key) || english.has(`${key}_one`) || english.has(`${key}_other`);
+  const inEnglish = (key: string) =>
+    english.has(key) || english.has(`${key}_one`) || english.has(`${key}_other`);
 
   it('finds the calls it is meant to check', () => {
     expect(used.get('editTestPlanSettings.runOn.label')).toMatch(/EditTestPlanSettingsModal\.tsx$/);

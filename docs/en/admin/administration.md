@@ -4,33 +4,33 @@ For the owners of an organization: who can do what, how people and machines get 
 the controls an owner has over security, capacity and the organization's data. Setting up the
 installation itself is in [Installation](./installation) and [Operations](./operations).
 
-Most of what follows is in **Settings**. Sections marked *owners* are only shown to owners.
+Most of what follows is in **Settings**. Sections marked _owners_ are only shown to owners.
 
 ## Roles
 
 Each person belongs to exactly one organization, with one role.
 
-| | Viewer | Editor | Owner |
-|---|:---:|:---:|:---:|
-| See tests, plans, runs and reports | ✓ | ✓ | ✓ |
-| Create and change tests, suites, plans, schedules, environments | | ✓ | ✓ |
-| Start and cancel runs | | ✓ | ✓ |
-| Create their own API keys | | ✓ | ✓ |
-| Approve reviews, when the organization requires them | | ✓ | ✓ |
-| Members, invitations and roles | | | ✓ |
-| Restricted projects and who is on them | | | ✓ |
-| Service accounts; revoke anyone's API key | | | ✓ |
-| Local agents, GitHub/GitLab connections | | | ✓ |
-| Two-factor policy, review policy | | | ✓ |
-| Runners, audit log, system settings | | | ✓ |
-| Export or erase the organization | | | ✓ |
+|                                                                 | Viewer | Editor | Owner |
+| --------------------------------------------------------------- | :----: | :----: | :---: |
+| See tests, plans, runs and reports                              |   ✓    |   ✓    |   ✓   |
+| Create and change tests, suites, plans, schedules, environments |        |   ✓    |   ✓   |
+| Start and cancel runs                                           |        |   ✓    |   ✓   |
+| Create their own API keys                                       |        |   ✓    |   ✓   |
+| Approve reviews, when the organization requires them            |        |   ✓    |   ✓   |
+| Members, invitations and roles                                  |        |        |   ✓   |
+| Restricted projects and who is on them                          |        |        |   ✓   |
+| Service accounts; revoke anyone's API key                       |        |        |   ✓   |
+| Local agents, GitHub/GitLab connections                         |        |        |   ✓   |
+| Two-factor policy, review policy                                |        |        |   ✓   |
+| Runners, audit log, system settings                             |        |        |   ✓   |
+| Export or erase the organization                                |        |        |   ✓   |
 
 Every organization keeps at least one owner: the last owner cannot be demoted or removed.
 
 Give people the smallest role that lets them work. Stakeholders who follow results are viewers;
 pipelines use API keys, not a person's account.
 
-## Members and invitations *(owners)* {#members-and-invitations}
+## Members and invitations _(owners)_ {#members-and-invitations}
 
 **Settings → Members** lists the people in the organization with their roles, and the
 invitations still waiting.
@@ -71,17 +71,17 @@ Each of these is recorded in the [audit log](#audit-log).
 ::: details The same through the API
 With an owner's API key with full access (`Authorization: Bearer wfm_…`):
 
-| Action | Request |
-|---|---|
-| List members | `GET /api/organization` |
-| Invite | `POST /api/organization/invitations` with `{"username":"maria.rossi","role":"editor"}`; the answer holds the token, once |
-| Pending invitations, revoke one | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>` |
-| Register with an invitation | `POST /api/register` with `{"username","password","invitationToken"}` |
-| Change a role | `PATCH /api/organization/members/<userId>` with `{"role":"owner"}` |
-| Remove | `DELETE /api/organization/members/<userId>`, optionally with `{"transferTo":<userId>}` |
-| Password reset link | `POST /api/organization/members/<userId>/password-reset`; the answer holds the token, once. The link is `/auth?reset=<token>` |
-| Reset the second factor | `DELETE /api/organization/members/<userId>/mfa` |
-:::
+| Action                          | Request                                                                                                                       |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| List members                    | `GET /api/organization`                                                                                                       |
+| Invite                          | `POST /api/organization/invitations` with `{"username":"maria.rossi","role":"editor"}`; the answer holds the token, once      |
+| Pending invitations, revoke one | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                              |
+| Register with an invitation     | `POST /api/register` with `{"username","password","invitationToken"}`                                                         |
+| Change a role                   | `PATCH /api/organization/members/<userId>` with `{"role":"owner"}`                                                            |
+| Remove                          | `DELETE /api/organization/members/<userId>`, optionally with `{"transferTo":<userId>}`                                        |
+| Password reset link             | `POST /api/organization/members/<userId>/password-reset`; the answer holds the token, once. The link is `/auth?reset=<token>` |
+| Reset the second factor         | `DELETE /api/organization/members/<userId>/mfa`                                                                               |
+| :::                             |
 
 ## Restricted projects
 
@@ -106,7 +106,7 @@ already open. API keys are not affected.
 A member who lost both their device and their recovery codes needs an owner to reset their
 second factor in **Settings → Members**.
 
-## Single sign-on *(owners)* {#single-sign-on}
+## Single sign-on _(owners)_ {#single-sign-on}
 
 Members can sign in with the organization's identity provider through **OpenID Connect** or
 **SAML 2.0**. OpenID Connect suits Microsoft Entra ID, Okta, Google Workspace, Keycloak, Auth0 and
@@ -126,12 +126,12 @@ and one protocol at a time; choose it with **Protocol** at the top of the card.
    members' addresses end in, and the **role of new accounts** (viewer or editor).
 4. **Save**, then **Test the provider**: it fetches the discovery document with what was saved.
 
-| Provider | Issuer |
-|---|---|
-| Microsoft Entra ID | `https://login.microsoftonline.com/{tenant-id}/v2.0` |
-| Google Workspace | `https://accounts.google.com` |
-| Okta | `https://{your-domain}.okta.com` (or an authorization server under it) |
-| Keycloak | `https://{host}/realms/{realm}` |
+| Provider           | Issuer                                                                 |
+| ------------------ | ---------------------------------------------------------------------- |
+| Microsoft Entra ID | `https://login.microsoftonline.com/{tenant-id}/v2.0`                   |
+| Google Workspace   | `https://accounts.google.com`                                          |
+| Okta               | `https://{your-domain}.okta.com` (or an authorization server under it) |
+| Keycloak           | `https://{host}/realms/{realm}`                                        |
 
 The client secret is stored encrypted and never shown again; leave the field empty to keep it
 when changing something else. Each domain belongs to one organization on the installation.
@@ -139,10 +139,10 @@ when changing something else. Each domain belongs to one organization on the ins
 **Setting up SAML 2.0.** Protocol **SAML 2.0**. The card shows what to give your provider; every
 organization is its own service provider:
 
-| WebFlowMaster value | Where it goes at the provider |
-|---|---|
-| **Entity ID** `…/api/sso/saml/{organization}` | Identifier / Audience / *Relying party identifier* / Keycloak *Client ID* |
-| **ACS URL** `…/api/sso/saml/{organization}/acs` | Reply URL / *Assertion Consumer Service*, binding **HTTP-POST** |
+| WebFlowMaster value                                       | Where it goes at the provider                                                                            |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Entity ID** `…/api/sso/saml/{organization}`             | Identifier / Audience / _Relying party identifier_ / Keycloak _Client ID_                                |
+| **ACS URL** `…/api/sso/saml/{organization}/acs`           | Reply URL / _Assertion Consumer Service_, binding **HTTP-POST**                                          |
 | **Metadata URL** `…/api/sso/saml/{organization}/metadata` | Providers that import service-provider metadata (ADFS, Shibboleth) read everything from here, once saved |
 
 At the provider:
@@ -164,12 +164,12 @@ answers. The card shows the certificate's subject and expiry date; when the prov
 certificate, paste the new one — with an expired certificate every sign-in is refused, and the
 card says so.
 
-| Provider | Where to find the metadata |
-|---|---|
-| Microsoft Entra ID | Enterprise application → Single sign-on → *Federation Metadata XML* |
-| Okta | Application → Sign On → *Identity Provider metadata* |
-| ADFS | `https://{host}/FederationMetadata/2007-06/FederationMetadata.xml` |
-| Keycloak | `https://{host}/realms/{realm}/protocol/saml/descriptor` |
+| Provider           | Where to find the metadata                                          |
+| ------------------ | ------------------------------------------------------------------- |
+| Microsoft Entra ID | Enterprise application → Single sign-on → _Federation Metadata XML_ |
+| Okta               | Application → Sign On → _Identity Provider metadata_                |
+| ADFS               | `https://{host}/FederationMetadata/2007-06/FederationMetadata.xml`  |
+| Keycloak           | `https://{host}/realms/{realm}/protocol/saml/descriptor`            |
 
 **Advanced SAML.** Identity provider initiated sign-in is off by default. Enable it explicitly
 when users launch this application from the provider's portal. An unsolicited response is checked
@@ -222,12 +222,12 @@ itself out.
 Groups are compared without regard to case. **Claim or attribute with the groups** names where the
 provider puts them — `groups` when empty; a list or a single value both work.
 
-| Provider | What to send |
-|---|---|
-| Microsoft Entra ID | App registration → Token configuration → *Add groups claim*. The `groups` claim carries the groups' **object IDs**: map those, not the names. Over 200 groups Entra sends a link instead of the list; assign the groups to the application to stay under it. |
-| Okta | Authorization server → Claims → a `groups` claim with a filter (e.g. *Starts with* `wfm-`). For SAML, a group attribute statement. |
-| Keycloak | Client scope → Mapper *Group Membership*, token claim name `groups`, *Full group path* off. For SAML, the *Group list* mapper. |
-| ADFS | A claim rule sending *Token-Groups – Unqualified Names* as an attribute (e.g. `groups`). |
+| Provider           | What to send                                                                                                                                                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Microsoft Entra ID | App registration → Token configuration → _Add groups claim_. The `groups` claim carries the groups' **object IDs**: map those, not the names. Over 200 groups Entra sends a link instead of the list; assign the groups to the application to stay under it. |
+| Okta               | Authorization server → Claims → a `groups` claim with a filter (e.g. _Starts with_ `wfm-`). For SAML, a group attribute statement.                                                                                                                           |
+| Keycloak           | Client scope → Mapper _Group Membership_, token claim name `groups`, _Full group path_ off. For SAML, the _Group list_ mapper.                                                                                                                               |
+| ADFS               | A claim rule sending _Token-Groups – Unqualified Names_ as an attribute (e.g. `groups`).                                                                                                                                                                     |
 
 **Refuse whoever is in none of these groups** (once a group is mapped) turns the mapping into the
 gate: a person in none of the mapped groups cannot sign in, whether their account exists or not,
@@ -255,11 +255,11 @@ which is shown once; **Replace the token** ends the old one at once, **Revoke** 
 Single sign-on must be set up first: provisioned accounts have no password and sign in through
 the provider, which links them by address at the first sign-in.
 
-| Provider | Where |
-|---|---|
-| Microsoft Entra ID | Enterprise application → Provisioning → *Automatic*: **Tenant URL** is the base URL, **Secret token** the token. Map `userPrincipalName` (or `mail`) to `userName`; *Provision Microsoft Entra ID Groups* pushes the groups. |
-| Okta | The app's *Provisioning* tab → SCIM 2.0, **Base URL** and *HTTP Header* authentication with the token; unique identifier `userName` (the e-mail address); turn on *Create*, *Update* and *Deactivate Users*, and *Push Groups*. |
-| Others (OneLogin, JumpCloud, Keycloak with a SCIM extension…) | SCIM 2.0 with a bearer token: the base URL and the token. |
+| Provider                                                      | Where                                                                                                                                                                                                                           |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Microsoft Entra ID                                            | Enterprise application → Provisioning → _Automatic_: **Tenant URL** is the base URL, **Secret token** the token. Map `userPrincipalName` (or `mail`) to `userName`; _Provision Microsoft Entra ID Groups_ pushes the groups.    |
+| Okta                                                          | The app's _Provisioning_ tab → SCIM 2.0, **Base URL** and _HTTP Header_ authentication with the token; unique identifier `userName` (the e-mail address); turn on _Create_, _Update_ and _Deactivate Users_, and _Push Groups_. |
+| Others (OneLogin, JumpCloud, Keycloak with a SCIM extension…) | SCIM 2.0 with a bearer token: the base URL and the token.                                                                                                                                                                       |
 
 What it does here:
 
@@ -268,7 +268,7 @@ What it does here:
   are listed too, so a provider matching by `userName` takes them over instead of creating them
   again.
 - **`active: false` deactivates** the account at once: its sessions end at their next request, it
-  cannot sign in, and its API keys stop working. **Settings → Members** marks it *deactivated*.
+  cannot sign in, and its API keys stop working. **Settings → Members** marks it _deactivated_.
   `active: true` gives it back with its role and everything it made.
 - **Deleting** a user removes the member as an owner would: what they made goes to the
   longest-standing owner.
@@ -334,14 +334,14 @@ Owners see and can revoke every key in the organization.
 
 ## Integrations
 
-| What | Where | Who |
-|---|---|---|
-| Starting plans from CI | API keys and the `wfm` CLI; see [CI integration](../integrations/ci) | Editors |
-| Webhooks that start a plan | The plan's settings; each has its own token | Editors |
-| Issue trackers (Jira, Azure DevOps) | **Settings → Issue trackers** | Editors |
+| What                                           | Where                                                                                                          | Who     |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------- |
+| Starting plans from CI                         | API keys and the `wfm` CLI; see [CI integration](../integrations/ci)                                           | Editors |
+| Webhooks that start a plan                     | The plan's settings; each has its own token                                                                    | Editors |
+| Issue trackers (Jira, Azure DevOps)            | **Settings → Issue trackers**                                                                                  | Editors |
 | Test management (TestRail, Xray, Zephyr Scale) | **Settings → Test management**; see [Publishing to TestRail, Xray or Zephyr](../guide/results#test-management) | Editors |
-| Commit statuses on GitHub and GitLab | **Settings → GitHub & GitLab**; shows the last delivery error | Owners |
-| Local agents | **Settings → Local agents**; see [Local agents](../integrations/local-agents) | Owners |
+| Commit statuses on GitHub and GitLab           | **Settings → GitHub & GitLab**; shows the last delivery error                                                  | Owners  |
+| Local agents                                   | **Settings → Local agents**; see [Local agents](../integrations/local-agents)                                  | Owners  |
 
 Tokens for trackers, test management tools and GitHub/GitLab are encrypted when saved and are never shown again; to
 change one, enter the new value.
@@ -359,7 +359,7 @@ When an owner turns on **Require a review to publish** on the **Reviews** page, 
 test reaches the plans only after another member approves it. Plans keep running the last published version
 in the meantime. Useful where tests gate releases and a change should be seen by two people.
 
-## Runners *(owners)*
+## Runners _(owners)_
 
 **Settings → Runners** lists the worker machines of the installation: online, draining or
 offline, what they are running and which version they are on.
@@ -372,13 +372,13 @@ list without the buttons.
 ## Run usage and limits
 
 **Settings → Run usage** shows the organization's runs in progress and waiting, against its
-limits, and how many runners are online. A run that stays *queued* is usually explained here:
+limits, and how many runners are online. A run that stays _queued_ is usually explained here:
 the organization is at its limit, or no runner is online.
 
 The limits are set by the installation's operator, not by owners (see
 [Capacity and limits](./operations#capacity-and-limits)).
 
-## Audit log *(owners)* {#audit-log}
+## Audit log _(owners)_ {#audit-log}
 
 **Settings → Audit log** records who did what and when: sign-ins and failed sign-ins, members
 and invitations, keys and service accounts, tests, plans, schedules, suites, projects and their
@@ -392,7 +392,7 @@ exported as CSV (up to 10,000 entries per export; narrow the dates for more).
 The log cannot be changed or deleted from the application: the database grants it only
 reading and adding. It is removed only when the whole organization is erased.
 
-## System settings *(owners)*
+## System settings _(owners)_
 
 **Settings → System** sets the log level and how long log files are kept.
 
@@ -413,7 +413,7 @@ Who may change them:
 A single company running its own installation needs to do nothing. An installation shared by
 several customers should name its operators.
 
-## Export and erasure *(owners)*
+## Export and erasure _(owners)_
 
 In **Settings → Export and erasure**: **Download the export**, and **Erase permanently** after
 typing the organization's exact name. The same is available through the API, with an owner's
@@ -465,18 +465,22 @@ Sending covers invitations and owner-issued password reset links, forgotten-pass
 
 Select a provider, fill its required fields and save before copying the organization's callback URL, `https://your-public-host/api/mail-deliveries/providers/<callbackId>`. Use your public HTTPS deployment origin. The opaque URL selects the organization; the provider signature authenticates each request. Rotate it only deliberately: the old URL immediately becomes invalid, including outstanding events, so update the provider configuration afterwards.
 
-| Provider | Configuration and correlation |
-| --- | --- |
-| Amazon SES / SNS | Set the exact SNS topic ARN. Configure SES delivery and bounce notifications to that topic, **enable original headers**, and subscribe the callback as an HTTPS endpoint. Signed subscription confirmation is supported. Notifications must preserve `X-Wfm-Delivery-Id` in the original headers. |
-| SendGrid | Enable signed Event Webhooks for delivered, deferred and bounce events, point them to the callback and paste the public verification key into settings. WebFlowMaster adds `wfm_delivery_id` through SMTP `X-SMTPAPI` unique arguments. |
-| Mailgun | Configure delivered and failed webhooks to the callback. Save the webhook signing key, rather than the API key (at least 32 characters). WebFlowMaster supplies `wfm_delivery_id` through `X-Mailgun-Variables`. |
-| Generic signed events | Save a secret of at least 32 characters and have an adapter normalize your provider's events to the contract below. |
-| No confirmed tracking | SMTP acceptance/rejection is recorded; no delivery confirmation is inferred. |
+| Provider              | Configuration and correlation                                                                                                                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Amazon SES / SNS      | Set the exact SNS topic ARN. Configure SES delivery and bounce notifications to that topic, **enable original headers**, and subscribe the callback as an HTTPS endpoint. Signed subscription confirmation is supported. Notifications must preserve `X-Wfm-Delivery-Id` in the original headers. |
+| SendGrid              | Enable signed Event Webhooks for delivered, deferred and bounce events, point them to the callback and paste the public verification key into settings. WebFlowMaster adds `wfm_delivery_id` through SMTP `X-SMTPAPI` unique arguments.                                                           |
+| Mailgun               | Configure delivered and failed webhooks to the callback. Save the webhook signing key, rather than the API key (at least 32 characters). WebFlowMaster supplies `wfm_delivery_id` through `X-Mailgun-Variables`.                                                                                  |
+| Generic signed events | Save a secret of at least 32 characters and have an adapter normalize your provider's events to the contract below.                                                                                                                                                                               |
+| No confirmed tracking | SMTP acceptance/rejection is recorded; no delivery confirmation is inferred.                                                                                                                                                                                                                      |
 
 SES, SendGrid and Mailgun accept native events without an external adapter. Generic events require normalized JSON:
 
 ```json
-{"eventId":"provider-event-123","messageId":"e3dab9f5-d6c4-4a74-af2e-a665498b18cd","status":"hard_bounce"}
+{
+  "eventId": "provider-event-123",
+  "messageId": "e3dab9f5-d6c4-4a74-af2e-a665498b18cd",
+  "status": "hard_bounce"
+}
 ```
 
 `status` is `delivered`, `soft_bounce` or `hard_bounce`. Set `X-Wfm-Mail-Timestamp` to Unix seconds and `X-Wfm-Mail-Signature` to hex HMAC-SHA256 of `timestamp.eventId.messageId.status` using the organization secret. Timestamps must be within five minutes. The existing installation endpoint `/api/mail-deliveries/events` and `MAIL_DELIVERY_WEBHOOK_SECRET` remain compatible for installation integrations.
@@ -507,13 +511,13 @@ For free unlimited local use set `TENANT_QUOTA_MODE=off`. `monitor` measures wit
 operations; `enforce` applies limits. The default is `enforce`, preserving existing concurrency
 and queue behavior, with all new limits unlimited. Administrators can override mode per tenant.
 
-| Limit | Environment default | Meaning |
-| --- | --- | --- |
-| Concurrent plans | `ORG_MAX_CONCURRENT_RUNS=2` | Further plans wait; positive integer |
-| Queued plans | `ORG_MAX_QUEUED_RUNS=100` | Excess submissions receive HTTP 429; positive integer |
-| Saved tests | `ORG_MAX_TESTS=0` | UI/BDD, API and mobile definitions, including archived tests |
-| Retained artifacts | `ORG_MAX_ARTIFACT_BYTES=0` | Evidence, baselines and inline mobile screenshots, in bytes |
-| Monthly execution | `ORG_MAX_MONTHLY_EXECUTION_MINUTES=0` | Occupancy time, including direct browser/API/mobile work and additional shard workers |
+| Limit              | Environment default                   | Meaning                                                                               |
+| ------------------ | ------------------------------------- | ------------------------------------------------------------------------------------- |
+| Concurrent plans   | `ORG_MAX_CONCURRENT_RUNS=2`           | Further plans wait; positive integer                                                  |
+| Queued plans       | `ORG_MAX_QUEUED_RUNS=100`             | Excess submissions receive HTTP 429; positive integer                                 |
+| Saved tests        | `ORG_MAX_TESTS=0`                     | UI/BDD, API and mobile definitions, including archived tests                          |
+| Retained artifacts | `ORG_MAX_ARTIFACT_BYTES=0`            | Evidence, baselines and inline mobile screenshots, in bytes                           |
+| Monthly execution  | `ORG_MAX_MONTHLY_EXECUTION_MINUTES=0` | Occupancy time, including direct browser/API/mobile work and additional shard workers |
 
 Zero means unlimited for the three new limits. **Inherit** clears an override and uses the
 installation default. In `off`, enforcement and execution metering are disabled; test counts and

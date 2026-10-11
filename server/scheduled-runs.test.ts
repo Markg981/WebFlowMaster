@@ -9,21 +9,36 @@ import { eq } from 'drizzle-orm';
  * environment, a name like "QA", was parsed as a number by the runner and never loaded.
  */
 
-const queued: Array<{ name: string; data: Record<string, unknown>; options: Record<string, unknown> }> = [];
+const queued: Array<{
+  name: string;
+  data: Record<string, unknown>;
+  options: Record<string, unknown>;
+}> = [];
 
 vi.mock('node-cron', () => ({
-  default: { schedule: vi.fn(() => ({ stop: vi.fn(), start: vi.fn() })), validate: vi.fn(() => true) },
+  default: {
+    schedule: vi.fn(() => ({ stop: vi.fn(), start: vi.fn() })),
+    validate: vi.fn(() => true),
+  },
 }));
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() }),
+  default: Promise.resolve({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    http: vi.fn(),
+  }),
 }));
 vi.mock('./queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: {
-    add: vi.fn(async (name: string, data: Record<string, unknown>, options: Record<string, unknown>) => {
-      queued.push({ name, data, options });
-      return { id: options?.jobId };
-    }),
+    add: vi.fn(
+      async (name: string, data: Record<string, unknown>, options: Record<string, unknown>) => {
+        queued.push({ name, data, options });
+        return { id: options?.jobId };
+      },
+    ),
     upsertJobScheduler: vi.fn(),
     removeJobScheduler: vi.fn(),
     remove: vi.fn(),
@@ -32,7 +47,14 @@ vi.mock('./queue', () => ({
 }));
 
 import { privilegedDb } from './db';
-import { environments, testPlanExecutions, testPlanSchedules, testPlans, users, type TestPlanSchedule } from '@shared/schema';
+import {
+  environments,
+  testPlanExecutions,
+  testPlanSchedules,
+  testPlans,
+  users,
+  type TestPlanSchedule,
+} from '@shared/schema';
 import {
   attemptsForPolicy,
   executeScheduledPlanForTest,
@@ -49,7 +71,10 @@ const occurrence = new Date('2026-09-24T02:00:00.000Z');
 
 async function seed(scheduleColumns: Partial<TestPlanSchedule> = {}) {
   const organizationId = await createTestOrganization();
-  const [owner] = await privilegedDb.insert(users).values({ username: `u_${rnd()}`, password: 'x', organizationId }).returning();
+  const [owner] = await privilegedDb
+    .insert(users)
+    .values({ username: `u_${rnd()}`, password: 'x', organizationId })
+    .returning();
   const [plan] = await privilegedDb
     .insert(testPlans)
     .values({ id: `plan_${rnd()}`, userId: owner.id, organizationId, name: 'Nightly' })
@@ -72,7 +97,10 @@ async function seed(scheduleColumns: Partial<TestPlanSchedule> = {}) {
 }
 
 async function runsOf(scheduleId: string) {
-  return privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, scheduleId));
+  return privilegedDb
+    .select()
+    .from(testPlanExecutions)
+    .where(eq(testPlanExecutions.scheduleId, scheduleId));
 }
 
 async function cleanup() {
@@ -111,7 +139,10 @@ describe('a scheduled occurrence', () => {
       browsers: { requested: ['chromium', 'firefox'] },
     });
     expect(queued).toEqual([
-      expect.objectContaining({ name: 'execute-plan', options: { jobId: execution!.id, priority: 1 } }),
+      expect.objectContaining({
+        name: 'execute-plan',
+        options: { jobId: execution!.id, priority: 1 },
+      }),
     ]);
   });
 
@@ -120,8 +151,16 @@ describe('a scheduled occurrence', () => {
 
     const first = await executeScheduledPlanForTest(schedule, plan, occurrence);
     // Another replica, a few seconds into the same minute.
-    const again = await executeScheduledPlanForTest(schedule, plan, new Date(occurrence.getTime() + 7_000));
-    const tomorrow = await executeScheduledPlanForTest(schedule, plan, new Date(occurrence.getTime() + 86_400_000));
+    const again = await executeScheduledPlanForTest(
+      schedule,
+      plan,
+      new Date(occurrence.getTime() + 7_000),
+    );
+    const tomorrow = await executeScheduledPlanForTest(
+      schedule,
+      plan,
+      new Date(occurrence.getTime() + 86_400_000),
+    );
 
     expect(again!.id).toBe(first!.id);
     expect(tomorrow!.id).not.toBe(first!.id);
@@ -175,20 +214,29 @@ describe('a scheduled occurrence', () => {
 
   it('does not run a schedule switched off after the cron job captured it, nor move it on', async () => {
     const { plan, schedule } = await seed();
-    await privilegedDb.update(testPlanSchedules).set({ isActive: false }).where(eq(testPlanSchedules.id, schedule.id));
+    await privilegedDb
+      .update(testPlanSchedules)
+      .set({ isActive: false })
+      .where(eq(testPlanSchedules.id, schedule.id));
 
     const execution = await executeScheduledPlanForTest(schedule, plan, occurrence);
 
     expect(execution).toBeNull();
     expect(await runsOf(schedule.id)).toHaveLength(0);
     expect(queued).toHaveLength(0);
-    const [after] = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, schedule.id));
+    const [after] = await privilegedDb
+      .select()
+      .from(testPlanSchedules)
+      .where(eq(testPlanSchedules.id, schedule.id));
     expect(after.nextRunAt).toEqual(schedule.nextRunAt);
   });
 
   it('uses the schedule as it is now, not as the cron job captured it', async () => {
     const { plan, schedule } = await seed();
-    await privilegedDb.update(testPlanSchedules).set({ browsers: ['webkit'] }).where(eq(testPlanSchedules.id, schedule.id));
+    await privilegedDb
+      .update(testPlanSchedules)
+      .set({ browsers: ['webkit'] })
+      .where(eq(testPlanSchedules.id, schedule.id));
 
     const execution = await executeScheduledPlanForTest(schedule, plan, occurrence);
 
@@ -206,12 +254,18 @@ describe('a scheduled occurrence', () => {
   it('moves a recurring schedule on to its next occurrence, and retires a one-off one', async () => {
     const daily = await seed();
     await executeScheduledPlanForTest(daily.schedule, daily.plan, occurrence);
-    const [dailyAfter] = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, daily.schedule.id));
+    const [dailyAfter] = await privilegedDb
+      .select()
+      .from(testPlanSchedules)
+      .where(eq(testPlanSchedules.id, daily.schedule.id));
     expect(dailyAfter.nextRunAt.getTime()).toBeGreaterThan(Date.now());
 
     const once = await seed({ frequency: 'once' });
     await executeScheduledPlanForTest(once.schedule, once.plan, occurrence);
-    const [onceAfter] = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, once.schedule.id));
+    const [onceAfter] = await privilegedDb
+      .select()
+      .from(testPlanSchedules)
+      .where(eq(testPlanSchedules.id, once.schedule.id));
     expect(onceAfter.isActive).toBe(false);
   });
 });
@@ -225,13 +279,24 @@ describe('the pieces a scheduled run is keyed and counted by', () => {
   });
 
   it('keys an occurrence by its minute', () => {
-    expect(occurrenceKey('s1', new Date('2026-09-24T02:00:59.999Z'))).toBe('schedule-s1-2026-09-24T02:00:00.000Z');
-    expect(occurrenceKey('s1', new Date('2026-09-24T02:01:00.000Z'))).toBe('schedule-s1-2026-09-24T02:01:00.000Z');
+    expect(occurrenceKey('s1', new Date('2026-09-24T02:00:59.999Z'))).toBe(
+      'schedule-s1-2026-09-24T02:00:00.000Z',
+    );
+    expect(occurrenceKey('s1', new Date('2026-09-24T02:01:00.000Z'))).toBe(
+      'schedule-s1-2026-09-24T02:01:00.000Z',
+    );
   });
 
   it('reads the occurrence a BullMQ trigger was meant for, not when it was picked up', () => {
     const at = Date.parse('2026-09-24T02:00:00.000Z');
-    expect(scheduledOccurrence({ timestamp: at - 86_400_000, opts: { prevMillis: at, delay: 86_400_000 } }).getTime()).toBe(at);
-    expect(scheduledOccurrence({ timestamp: at - 60_000, opts: { delay: 60_000 } }).getTime()).toBe(at);
+    expect(
+      scheduledOccurrence({
+        timestamp: at - 86_400_000,
+        opts: { prevMillis: at, delay: 86_400_000 },
+      }).getTime(),
+    ).toBe(at);
+    expect(scheduledOccurrence({ timestamp: at - 60_000, opts: { delay: 60_000 } }).getTime()).toBe(
+      at,
+    );
   });
 });

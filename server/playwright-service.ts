@@ -16,7 +16,11 @@ import path from 'path';
 import { PlaywrightReporter } from './playwright-reporter';
 import { browserPool } from './browser-pool';
 import { getWsEmitter } from './websocket';
-import { allowsSelfSignedCertificate, substituteVariables, requestVariables } from './outbound-http';
+import {
+  allowsSelfSignedCertificate,
+  substituteVariables,
+  requestVariables,
+} from './outbound-http';
 import { executeStep } from './step-executor';
 import { FlowCursor } from './flow-cursor';
 import type { DebugHooks } from './debug-session';
@@ -28,14 +32,37 @@ import type { AccessibilityFinding } from '@shared/accessibility';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
 import type { DownloadFinding } from '@shared/downloads';
 import { resolveVariables } from './variables';
-import { loadLoginState, saveLoginState, type EnvironmentScope, type LoginState } from './login-state';
-import { describeBrowser, deviceContextOptions, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
+import {
+  loadLoginState,
+  saveLoginState,
+  type EnvironmentScope,
+  type LoginState,
+} from './login-state';
+import {
+  describeBrowser,
+  deviceContextOptions,
+  launchBrowser,
+  resolveBrowser,
+  type BrowserChoice,
+} from './browsers';
 import { browserMatrixEvidence } from './matrix-evidence';
 import { matrixEvidence, type MatrixEvidence } from '@shared/matrix-evidence';
-import { compareStepScreenshot, isVisualFailure, stableScreenshot, type VisualContext } from './visual-testing';
+import {
+  compareStepScreenshot,
+  isVisualFailure,
+  stableScreenshot,
+  type VisualContext,
+} from './visual-testing';
 import { expandSequenceForRun, type SequenceStep } from './step-groups';
 import { elementIdOfStep, resolveSequenceForRun } from './step-elements';
-import { captureRunEvidence, harContextOptions, startTrace, videoContextOptions, type CapturedEvidence, type EvidenceOptions } from './run-evidence';
+import {
+  captureRunEvidence,
+  harContextOptions,
+  startTrace,
+  videoContextOptions,
+  type CapturedEvidence,
+  type EvidenceOptions,
+} from './run-evidence';
 import { keepsScreenshot, type StepRuntime } from './run-policies';
 
 // Default settings if not found or incomplete
@@ -85,16 +112,21 @@ let resolvedLogger: WinstonLogger;
   try {
     resolvedLogger = await loggerPromise;
     if (resolvedLogger && typeof resolvedLogger.info === 'function') {
-      resolvedLogger.info("PlaywrightService: Winston logger initialized successfully.");
+      resolvedLogger.info('PlaywrightService: Winston logger initialized successfully.');
     } else {
       // This case implies loggerPromise resolved to something unexpected or the instance is malformed
       const fallbackLogger = console; // Use console directly
-      fallbackLogger.error("PlaywrightService: Logger resolved but is not a valid Winston instance. Falling back to console.");
+      fallbackLogger.error(
+        'PlaywrightService: Logger resolved but is not a valid Winston instance. Falling back to console.',
+      );
       resolvedLogger = fallbackLogger as any; // Cast to any to satisfy WinstonLogger type for basic console methods
     }
   } catch (error: any) {
     const fallbackLogger = console;
-    fallbackLogger.error("PlaywrightService: Failed to initialize Winston logger. Falling back to console.", { error: error.message, stack: error.stack });
+    fallbackLogger.error(
+      'PlaywrightService: Failed to initialize Winston logger. Falling back to console.',
+      { error: error.message, stack: error.stack },
+    );
     // Fallback to a console-based logger if promise rejects
     resolvedLogger = fallbackLogger as any;
   }
@@ -109,7 +141,8 @@ interface TestAction {
   description: string;
 }
 
-export interface DetectedElement { // Exporting if it's used elsewhere, or keep private
+export interface DetectedElement {
+  // Exporting if it's used elsewhere, or keep private
   id: string;
   type: string;
   selector: string;
@@ -125,7 +158,8 @@ export interface DetectedElement { // Exporting if it's used elsewhere, or keep 
   text?: string | null;
   tag: string;
   attributes: Record<string, string>;
-  boundingBox?: { // Optional as per original description
+  boundingBox?: {
+    // Optional as per original description
     x: number;
     y: number;
     width: number;
@@ -293,264 +327,238 @@ const IMPLICIT_NAVIGATION_WINDOW_MS = 3000;
  * top document and page.locator does not cross the boundary either.
  */
 function collectCandidatesInFrame(volatileIdPatterns: readonly string[]) {
-    // esbuild/tsx (keepNames) wraps named functions in `__name(fn, "…")`; that helper only
-    // exists in the Node bundle, so provide a harmless identity shim for the browser page.
-    (globalThis as any).__name = (globalThis as any).__name || ((fn: any) => fn);
+  // esbuild/tsx (keepNames) wraps named functions in `__name(fn, "…")`; that helper only
+  // exists in the Node bundle, so provide a harmless identity shim for the browser page.
+  (globalThis as any).__name = (globalThis as any).__name || ((fn: any) => fn);
 
-    const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
+  const interactiveSelectors = [
+    'input:not([type="hidden"])',
+    'button',
+    'a[href]',
+    'select',
+    'textarea',
+    '[onclick]',
+    '[role="button"]',
+    '[tabindex]:not([tabindex="-1"])',
+    'h1, h2, h3, h4, h5, h6',
+    'img[alt]',
+    'form',
+    '[data-testid]',
+    '[data-test]',
+  ];
 
-    /**
-     * Ids a framework generated rather than a developer chose.
-     *
-     * Angular Material stamps `mat-input-3`, `mat-select-value-5`, `mat-button-9` in render
-     * order, so they shift as soon as anything above the element changes. Radix and React's
-     * useId produce `:r1a:`. Preferring one of these over a label is what makes a recorded
-     * test fail the next day against an application nobody touched.
-     *
-     * The rule itself now lives in shared/selectors.ts and arrives as an argument, because
-     * the recorder needs exactly the same one and had a weaker one of its own — which is
-     * how a recording of an Angular Material application came back anchored on
-     * `#cdk-overlay-0` and could not be replayed even once.
-     */
-    const volatileIdRes = volatileIdPatterns.map((pattern) => new RegExp(pattern, 'i'));
-    const isVolatileId = (id: string) => volatileIdRes.some((re) => re.test(id));
+  /**
+   * Ids a framework generated rather than a developer chose.
+   *
+   * Angular Material stamps `mat-input-3`, `mat-select-value-5`, `mat-button-9` in render
+   * order, so they shift as soon as anything above the element changes. Radix and React's
+   * useId produce `:r1a:`. Preferring one of these over a label is what makes a recorded
+   * test fail the next day against an application nobody touched.
+   *
+   * The rule itself now lives in shared/selectors.ts and arrives as an argument, because
+   * the recorder needs exactly the same one and had a weaker one of its own — which is
+   * how a recording of an Angular Material application came back anchored on
+   * `#cdk-overlay-0` and could not be replayed even once.
+   */
+  const volatileIdRes = volatileIdPatterns.map((pattern) => new RegExp(pattern, 'i'));
+  const isVolatileId = (id: string) => volatileIdRes.some((re) => re.test(id));
 
-    /**
-     * Every document-like root, including open shadow roots.
-     *
-     * querySelectorAll stops at a shadow boundary; Playwright's CSS engine pierces open
-     * roots on its own. Walking only the light DOM therefore left the element missing from
-     * the list while being perfectly clickable — and made the uniqueness check disagree
-     * with the engine that would later act on the selector.
-     */
-    const roots: Array<Document | ShadowRoot> = [document];
-    (function collectRoots(root: Document | ShadowRoot) {
-      root.querySelectorAll('*').forEach((el) => {
-        if (el.shadowRoot) {
-          roots.push(el.shadowRoot);
-          collectRoots(el.shadowRoot);
-        }
-      });
-    })(document);
-
-    const queryAll = (sel: string): Element[] =>
-      roots.flatMap((root) => {
-        try { return Array.from(root.querySelectorAll(sel)); } catch { return []; }
-      });
-
-    const isUnique = (sel: string) => queryAll(sel).length === 1;
-
-    const isVolatileClass = (c: string) =>
-      !c ||
-      /[:()[\]/.]/.test(c) ||
-      /^(ng|cdk|mat|mdc)-/.test(c) ||
-      /(focus|active|hover|selected|touched|dirty|pristine|disabled|expanded)/i.test(c);
-
-    const structuralPath = (el: Element): string => {
-      const parts: string[] = [];
-      let node: Element | null = el;
-      while (node && node.nodeType === 1 && node.tagName.toLowerCase() !== 'html') {
-        if (node.id && !isVolatileId(node.id) && isUnique(`#${CSS.escape(node.id)}`)) {
-          parts.unshift(`#${CSS.escape(node.id)}`);
-          break;
-        }
-        let part = node.tagName.toLowerCase();
-        const parent: Element | null = node.parentElement;
-        if (parent) {
-          const sameTag = Array.from(parent.children).filter((c) => c.tagName === node!.tagName);
-          if (sameTag.length > 1) part += `:nth-of-type(${sameTag.indexOf(node) + 1})`;
-        }
-        parts.unshift(part);
-        node = parent;
+  /**
+   * Every document-like root, including open shadow roots.
+   *
+   * querySelectorAll stops at a shadow boundary; Playwright's CSS engine pierces open
+   * roots on its own. Walking only the light DOM therefore left the element missing from
+   * the list while being perfectly clickable — and made the uniqueness check disagree
+   * with the engine that would later act on the selector.
+   */
+  const roots: Array<Document | ShadowRoot> = [document];
+  (function collectRoots(root: Document | ShadowRoot) {
+    root.querySelectorAll('*').forEach((el) => {
+      if (el.shadowRoot) {
+        roots.push(el.shadowRoot);
+        collectRoots(el.shadowRoot);
       }
-      return parts.join(' > ');
-    };
+    });
+  })(document);
 
-    /**
-     * The first CSS selector that identifies this element on its own, or null.
-     *
-     * Ordered by how long the thing it keys on tends to survive: a developer-chosen id,
-     * then a test id, then the accessible label, then non-framework classes. A generated id
-     * is skipped rather than ranked last, because it looks perfectly unique today — which
-     * is exactly why it used to win.
-     */
-    const buildCssSelector = (el: Element): string | null => {
-      const tag = el.tagName.toLowerCase();
-
-      if (el.id && !isVolatileId(el.id) && isUnique(`#${CSS.escape(el.id)}`)) {
-        return `#${CSS.escape(el.id)}`;
+  const queryAll = (sel: string): Element[] =>
+    roots.flatMap((root) => {
+      try {
+        return Array.from(root.querySelectorAll(sel));
+      } catch {
+        return [];
       }
-      for (const attr of ['data-testid', 'data-test', 'name', 'aria-label', 'placeholder']) {
-        const v = el.getAttribute(attr);
-        if (v) {
-          const s = `${tag}[${attr}="${v.replace(/"/g, '\\"')}"]`;
-          if (isUnique(s)) return s;
-        }
-      }
-      if (typeof el.className === 'string' && el.className.trim()) {
-        const classes = el.className.split(/\s+/).filter((c) => !isVolatileClass(c));
-        for (let n = classes.length; n >= 1; n--) {
-          const s = `${tag}.${classes.slice(0, n).join('.')}`;
-          if (isUnique(s)) return s;
-        }
-      }
-      return null;
-    };
-
-    /** The ARIA role: explicit, or the obvious one implied by the tag. */
-    const roleOf = (el: Element): string | null => {
-      const explicit = el.getAttribute('role');
-      if (explicit) return explicit;
-      const tag = el.tagName.toLowerCase();
-      if (tag === 'button') return 'button';
-      if (tag === 'a') return 'link';
-      if (tag === 'select') return 'combobox';
-      if (tag === 'textarea') return 'textbox';
-      if (/^h[1-6]$/.test(tag)) return 'heading';
-      if (tag === 'img') return 'img';
-      if (tag === 'input') {
-        const type = (el.getAttribute('type') || 'text').toLowerCase();
-        if (type === 'checkbox') return 'checkbox';
-        if (type === 'radio') return 'radio';
-        if (type === 'submit' || type === 'button') return 'button';
-        if (['text', 'email', 'tel', 'url', 'password', 'search'].indexOf(type) !== -1) return 'textbox';
-      }
-      return null;
-    };
-
-    /** Close enough to the accessible name for Playwright's `role=…[name=…]` engine. */
-    const accessibleNameOf = (el: Element): string | null => {
-      const label = el.getAttribute('aria-label');
-      if (label && label.trim()) return label.trim();
-      const alt = el.getAttribute('alt');
-      if (alt && alt.trim()) return alt.trim();
-      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
-      if (text && text.length <= 80) return text;
-      const placeholder = el.getAttribute('placeholder');
-      if (placeholder && placeholder.trim()) return placeholder.trim();
-      return null;
-    };
-
-    /**
-     * What a person would call a control that shows no text of its own — a field is named by
-     * its <label>, not by what is typed in it.
-     *
-     * Without this a login form's inputs were listed as "input-0" and "input-1": the element list
-     * said nothing useful, and "Type tomsmith in the Username field" found nothing called
-     * Username. The invented name is still the last resort.
-     */
-    const nameOfControl = (el: Element): string => {
-      const clean = (value: string | null | undefined) => (value || '').trim().replace(/\s+/g, ' ');
-      const aria = clean(el.getAttribute('aria-label'));
-      if (aria) return aria;
-      const labelledBy = el.getAttribute('aria-labelledby');
-      if (labelledBy) {
-        const byText = labelledBy
-          .split(/\s+/)
-          .map((id) => clean(el.ownerDocument.getElementById(id)?.textContent))
-          .filter(Boolean)
-          .join(' ');
-        if (byText) return byText;
-      }
-      const labels = (el as HTMLInputElement).labels;
-      if (labels && labels.length > 0) {
-        const byLabel = Array.from(labels).map((label) => clean(label.textContent)).filter(Boolean).join(' ');
-        if (byLabel) return byLabel;
-      }
-      return clean(el.getAttribute('title')) || clean(el.getAttribute('name')) || clean(el.id);
-    };
-
-    const detectedElements: any[] = [];
-    const seen = new Set<Element>();
-    let globalElementCounter = 0;
-
-    interactiveSelectors.forEach((selector) => {
-      queryAll(selector).forEach((element, index) => {
-        if (seen.has(element)) return; // an element can match several selectors — keep one entry
-        const rect = element.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) return;
-        seen.add(element);
-
-        const tagName = element.tagName.toLowerCase();
-        const text = element.textContent?.trim() || '';
-        const placeholder = element.getAttribute('placeholder') || '';
-        const displayText = text || placeholder || element.getAttribute('alt') || nameOfControl(element) || `${tagName}-${index}`;
-        let elementType = 'element';
-        if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
-        else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
-        else if (tagName === 'a') elementType = 'link';
-        else if (tagName.match(/h[1-6]/)) elementType = 'heading';
-        else if (tagName === 'select') elementType = 'select';
-        else if (tagName === 'textarea') elementType = 'textarea';
-        const attributes: Record<string, string> = {};
-        Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; });
-
-        const exactText = text.replace(/\s+/g, ' ').trim();
-
-        detectedElements.push({
-          id: `elem-${tagName}-${globalElementCounter++}`,
-          type: elementType,
-          text: displayText.substring(0, 100),
-          tag: tagName,
-          attributes,
-          // Document-relative, not viewport-relative: the preview is a full-page
-          // screenshot, and an element below the fold has to be drawable on it.
-          boundingBox: {
-            x: Math.round(rect.x + window.scrollX),
-            y: Math.round(rect.y + window.scrollY),
-            width: Math.round(rect.width),
-            height: Math.round(rect.height),
-          },
-          cssSelector: buildCssSelector(element),
-          role: roleOf(element),
-          accessibleName: accessibleNameOf(element),
-          exactText: exactText && exactText.length <= 80 ? exactText : null,
-          structuralPath: structuralPath(element),
-        });
-      });
     });
 
-    /**
-     * Then text a test would verify: an element carrying words of its own.
-     *
-     * Only interactive elements used to be collected, so a page of plain text — the frames of
-     * /nested_frames are nothing but a word each — detected nothing at all, and "Verify text"
-     * had no element to point at. Listed after the interactive ones, so the truncation limit
-     * drops text before it drops a field or a button; and skipped inside an element already
-     * listed, whose own text is the label of that button or link.
-     */
-    const nonText = new Set(['script', 'style', 'noscript', 'template', 'title', 'option', 'head', 'html']);
-    const ownText = (el: Element) =>
-      Array.from(el.childNodes)
-        .filter((node) => node.nodeType === 3)
-        .map((node) => node.textContent || '')
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-    const insideListed = (el: Element) => {
-      for (let node = el.parentElement; node; node = node.parentElement) if (seen.has(node)) return true;
-      return false;
-    };
-    const textCandidates = document.body ? [document.body, ...queryAll('body *')] : queryAll('body *');
-    textCandidates.forEach((element) => {
-      const tagName = element.tagName.toLowerCase();
-      if (seen.has(element) || nonText.has(tagName)) return;
-      const own = ownText(element);
-      if (!own || insideListed(element)) return;
+  const isUnique = (sel: string) => queryAll(sel).length === 1;
+
+  const isVolatileClass = (c: string) =>
+    !c ||
+    /[:()[\]/.]/.test(c) ||
+    /^(ng|cdk|mat|mdc)-/.test(c) ||
+    /(focus|active|hover|selected|touched|dirty|pristine|disabled|expanded)/i.test(c);
+
+  const structuralPath = (el: Element): string => {
+    const parts: string[] = [];
+    let node: Element | null = el;
+    while (node && node.nodeType === 1 && node.tagName.toLowerCase() !== 'html') {
+      if (node.id && !isVolatileId(node.id) && isUnique(`#${CSS.escape(node.id)}`)) {
+        parts.unshift(`#${CSS.escape(node.id)}`);
+        break;
+      }
+      let part = node.tagName.toLowerCase();
+      const parent: Element | null = node.parentElement;
+      if (parent) {
+        const sameTag = Array.from(parent.children).filter((c) => c.tagName === node!.tagName);
+        if (sameTag.length > 1) part += `:nth-of-type(${sameTag.indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      node = parent;
+    }
+    return parts.join(' > ');
+  };
+
+  /**
+   * The first CSS selector that identifies this element on its own, or null.
+   *
+   * Ordered by how long the thing it keys on tends to survive: a developer-chosen id,
+   * then a test id, then the accessible label, then non-framework classes. A generated id
+   * is skipped rather than ranked last, because it looks perfectly unique today — which
+   * is exactly why it used to win.
+   */
+  const buildCssSelector = (el: Element): string | null => {
+    const tag = el.tagName.toLowerCase();
+
+    if (el.id && !isVolatileId(el.id) && isUnique(`#${CSS.escape(el.id)}`)) {
+      return `#${CSS.escape(el.id)}`;
+    }
+    for (const attr of ['data-testid', 'data-test', 'name', 'aria-label', 'placeholder']) {
+      const v = el.getAttribute(attr);
+      if (v) {
+        const s = `${tag}[${attr}="${v.replace(/"/g, '\\"')}"]`;
+        if (isUnique(s)) return s;
+      }
+    }
+    if (typeof el.className === 'string' && el.className.trim()) {
+      const classes = el.className.split(/\s+/).filter((c) => !isVolatileClass(c));
+      for (let n = classes.length; n >= 1; n--) {
+        const s = `${tag}.${classes.slice(0, n).join('.')}`;
+        if (isUnique(s)) return s;
+      }
+    }
+    return null;
+  };
+
+  /** The ARIA role: explicit, or the obvious one implied by the tag. */
+  const roleOf = (el: Element): string | null => {
+    const explicit = el.getAttribute('role');
+    if (explicit) return explicit;
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'button') return 'button';
+    if (tag === 'a') return 'link';
+    if (tag === 'select') return 'combobox';
+    if (tag === 'textarea') return 'textbox';
+    if (/^h[1-6]$/.test(tag)) return 'heading';
+    if (tag === 'img') return 'img';
+    if (tag === 'input') {
+      const type = (el.getAttribute('type') || 'text').toLowerCase();
+      if (type === 'checkbox') return 'checkbox';
+      if (type === 'radio') return 'radio';
+      if (type === 'submit' || type === 'button') return 'button';
+      if (['text', 'email', 'tel', 'url', 'password', 'search'].indexOf(type) !== -1)
+        return 'textbox';
+    }
+    return null;
+  };
+
+  /** Close enough to the accessible name for Playwright's `role=…[name=…]` engine. */
+  const accessibleNameOf = (el: Element): string | null => {
+    const label = el.getAttribute('aria-label');
+    if (label && label.trim()) return label.trim();
+    const alt = el.getAttribute('alt');
+    if (alt && alt.trim()) return alt.trim();
+    const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+    if (text && text.length <= 80) return text;
+    const placeholder = el.getAttribute('placeholder');
+    if (placeholder && placeholder.trim()) return placeholder.trim();
+    return null;
+  };
+
+  /**
+   * What a person would call a control that shows no text of its own — a field is named by
+   * its <label>, not by what is typed in it.
+   *
+   * Without this a login form's inputs were listed as "input-0" and "input-1": the element list
+   * said nothing useful, and "Type tomsmith in the Username field" found nothing called
+   * Username. The invented name is still the last resort.
+   */
+  const nameOfControl = (el: Element): string => {
+    const clean = (value: string | null | undefined) => (value || '').trim().replace(/\s+/g, ' ');
+    const aria = clean(el.getAttribute('aria-label'));
+    if (aria) return aria;
+    const labelledBy = el.getAttribute('aria-labelledby');
+    if (labelledBy) {
+      const byText = labelledBy
+        .split(/\s+/)
+        .map((id) => clean(el.ownerDocument.getElementById(id)?.textContent))
+        .filter(Boolean)
+        .join(' ');
+      if (byText) return byText;
+    }
+    const labels = (el as HTMLInputElement).labels;
+    if (labels && labels.length > 0) {
+      const byLabel = Array.from(labels)
+        .map((label) => clean(label.textContent))
+        .filter(Boolean)
+        .join(' ');
+      if (byLabel) return byLabel;
+    }
+    return clean(el.getAttribute('title')) || clean(el.getAttribute('name')) || clean(el.id);
+  };
+
+  const detectedElements: any[] = [];
+  const seen = new Set<Element>();
+  let globalElementCounter = 0;
+
+  interactiveSelectors.forEach((selector) => {
+    queryAll(selector).forEach((element, index) => {
+      if (seen.has(element)) return; // an element can match several selectors — keep one entry
       const rect = element.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
       seen.add(element);
 
-      const text = (element.textContent || '').replace(/\s+/g, ' ').trim();
+      const tagName = element.tagName.toLowerCase();
+      const text = element.textContent?.trim() || '';
+      const placeholder = element.getAttribute('placeholder') || '';
+      const displayText =
+        text ||
+        placeholder ||
+        element.getAttribute('alt') ||
+        nameOfControl(element) ||
+        `${tagName}-${index}`;
+      let elementType = 'element';
+      if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+      else if (tagName === 'button' || element.getAttribute('role') === 'button')
+        elementType = 'button';
+      else if (tagName === 'a') elementType = 'link';
+      else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+      else if (tagName === 'select') elementType = 'select';
+      else if (tagName === 'textarea') elementType = 'textarea';
       const attributes: Record<string, string> = {};
-      Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; });
+      Array.from(element.attributes).forEach((attr: any) => {
+        attributes[attr.name] = attr.value;
+      });
+
+      const exactText = text.replace(/\s+/g, ' ').trim();
 
       detectedElements.push({
         id: `elem-${tagName}-${globalElementCounter++}`,
-        type: 'content',
-        text: (text || own).substring(0, 100),
+        type: elementType,
+        text: displayText.substring(0, 100),
         tag: tagName,
         attributes,
+        // Document-relative, not viewport-relative: the preview is a full-page
+        // screenshot, and an element below the fold has to be drawable on it.
         boundingBox: {
           x: Math.round(rect.x + window.scrollX),
           y: Math.round(rect.y + window.scrollY),
@@ -560,19 +568,89 @@ function collectCandidatesInFrame(volatileIdPatterns: readonly string[]) {
         cssSelector: buildCssSelector(element),
         role: roleOf(element),
         accessibleName: accessibleNameOf(element),
-        exactText: text && text.length <= 80 ? text : null,
+        exactText: exactText && exactText.length <= 80 ? exactText : null,
         structuralPath: structuralPath(element),
       });
     });
+  });
 
-    return {
-      elements: detectedElements,
-      totalFound: detectedElements.length,
-      pageSize: {
-        width: Math.max(document.documentElement.scrollWidth, window.innerWidth),
-        height: Math.max(document.documentElement.scrollHeight, window.innerHeight),
+  /**
+   * Then text a test would verify: an element carrying words of its own.
+   *
+   * Only interactive elements used to be collected, so a page of plain text — the frames of
+   * /nested_frames are nothing but a word each — detected nothing at all, and "Verify text"
+   * had no element to point at. Listed after the interactive ones, so the truncation limit
+   * drops text before it drops a field or a button; and skipped inside an element already
+   * listed, whose own text is the label of that button or link.
+   */
+  const nonText = new Set([
+    'script',
+    'style',
+    'noscript',
+    'template',
+    'title',
+    'option',
+    'head',
+    'html',
+  ]);
+  const ownText = (el: Element) =>
+    Array.from(el.childNodes)
+      .filter((node) => node.nodeType === 3)
+      .map((node) => node.textContent || '')
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  const insideListed = (el: Element) => {
+    for (let node = el.parentElement; node; node = node.parentElement)
+      if (seen.has(node)) return true;
+    return false;
+  };
+  const textCandidates = document.body
+    ? [document.body, ...queryAll('body *')]
+    : queryAll('body *');
+  textCandidates.forEach((element) => {
+    const tagName = element.tagName.toLowerCase();
+    if (seen.has(element) || nonText.has(tagName)) return;
+    const own = ownText(element);
+    if (!own || insideListed(element)) return;
+    const rect = element.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    seen.add(element);
+
+    const text = (element.textContent || '').replace(/\s+/g, ' ').trim();
+    const attributes: Record<string, string> = {};
+    Array.from(element.attributes).forEach((attr: any) => {
+      attributes[attr.name] = attr.value;
+    });
+
+    detectedElements.push({
+      id: `elem-${tagName}-${globalElementCounter++}`,
+      type: 'content',
+      text: (text || own).substring(0, 100),
+      tag: tagName,
+      attributes,
+      boundingBox: {
+        x: Math.round(rect.x + window.scrollX),
+        y: Math.round(rect.y + window.scrollY),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
       },
-    };
+      cssSelector: buildCssSelector(element),
+      role: roleOf(element),
+      accessibleName: accessibleNameOf(element),
+      exactText: text && text.length <= 80 ? text : null,
+      structuralPath: structuralPath(element),
+    });
+  });
+
+  return {
+    elements: detectedElements,
+    totalFound: detectedElements.length,
+    pageSize: {
+      width: Math.max(document.documentElement.scrollWidth, window.innerWidth),
+      height: Math.max(document.documentElement.scrollHeight, window.innerHeight),
+    },
+  };
 }
 
 /**
@@ -604,7 +682,10 @@ function datasetRows(test: { dataset?: unknown }): Array<Record<string, string>>
   if (!Array.isArray(parsed) || parsed.length === 0) return null;
 
   return parsed
-    .filter((row): row is Record<string, unknown> => !!row && typeof row === 'object' && !Array.isArray(row))
+    .filter(
+      (row): row is Record<string, unknown> =>
+        !!row && typeof row === 'object' && !Array.isArray(row),
+    )
     .map((row) =>
       Object.fromEntries(
         Object.entries(row).map(([key, value]) => [
@@ -675,24 +756,41 @@ export class PlaywrightService {
   // initialize and close methods might need to be re-evaluated if a shared browser is ever re-introduced.
   // For now, each major function will manage its own browser lifecycle.
 
-  async loadWebsite(url: string, userId?: number): Promise<{ success: boolean; screenshot?: string; html?: string; error?: string }> {
-    resolvedLogger.http({ message: "PlaywrightService: loadWebsite called", url, userId });
+  async loadWebsite(
+    url: string,
+    userId?: number,
+  ): Promise<{ success: boolean; screenshot?: string; html?: string; error?: string }> {
+    resolvedLogger.http({ message: 'PlaywrightService: loadWebsite called', url, userId });
     const targetUrl = substituteVariables(url);
     let browser: Browser | null = null;
     try {
       const userSettings = userId ? await storage.getUserSettings(userId) : undefined;
       const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
-      const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
+      const headlessMode =
+        userSettings?.playwrightHeadless !== undefined
+          ? userSettings.playwrightHeadless
+          : DEFAULT_HEADLESS;
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
       const effectiveWaitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
-      resolvedLogger.debug({ message: "PS:loadWebsite - Effective settings", browserType, headlessMode, pageTimeout, effectiveWaitTime, userId });
+      resolvedLogger.debug({
+        message: 'PS:loadWebsite - Effective settings',
+        browserType,
+        headlessMode,
+        pageTimeout,
+        effectiveWaitTime,
+        userId,
+      });
 
       const browserEngine = (playwright as any)[browserType];
       if (!browserEngine) throw new Error(`Invalid browser type: ${browserType}`);
       browser = await browserEngine.launch({ ...browserEgressOptions(), headless: headlessMode });
-      if (!browser) throw new Error("Failed to launch browser instance.");
-      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // Standardized UA
-      const context = await browser.newContext({ userAgent, ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl) });
+      if (!browser) throw new Error('Failed to launch browser instance.');
+      const userAgent =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // Standardized UA
+      const context = await browser.newContext({
+        userAgent,
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl),
+      });
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
 
@@ -708,14 +806,17 @@ export class PlaywrightService {
       // network to go idle first; if it never settles (long-polling/websockets), fall
       // back to the fixed wait rather than failing.
       await page.waitForLoadState('networkidle', { timeout: pageTimeout }).catch(() => {
-        resolvedLogger.debug({ message: "PS:loadWebsite - networkidle not reached, proceeding after fixed wait", url });
+        resolvedLogger.debug({
+          message: 'PS:loadWebsite - networkidle not reached, proceeding after fixed wait',
+          url,
+        });
       });
       await page.waitForTimeout(effectiveWaitTime);
 
       const html = await page.content();
       const screenshotBuffer = await page.screenshot({
         type: 'png',
-        fullPage: false
+        fullPage: false,
       });
 
       await page.close();
@@ -724,13 +825,19 @@ export class PlaywrightService {
       return {
         success: true,
         screenshot: `data:image/png;base64,${screenshotBuffer.toString('base64')}`,
-        html
+        html,
       };
     } catch (error: any) {
-      resolvedLogger.error({ message: 'Error loading website', url, userId, error: error.message, stack: error.stack });
+      resolvedLogger.error({
+        message: 'Error loading website',
+        url,
+        userId,
+        error: error.message,
+        stack: error.stack,
+      });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     } finally {
       if (browser) {
@@ -748,13 +855,20 @@ export class PlaywrightService {
   private pushAction(sessionId: string, raw: unknown): void {
     const session = this.activeSessions.get(sessionId);
     if (!session) {
-      resolvedLogger.warn({ message: "PS:pushAction - Action received for non-existent session", sessionId });
+      resolvedLogger.warn({
+        message: 'PS:pushAction - Action received for non-existent session',
+        sessionId,
+      });
       return;
     }
 
     const parsed = RecordedActionSchema.safeParse(raw);
     if (!parsed.success) {
-      resolvedLogger.warn({ message: "PS:pushAction - Discarded malformed action from page", sessionId, issues: parsed.error.flatten() });
+      resolvedLogger.warn({
+        message: 'PS:pushAction - Discarded malformed action from page',
+        sessionId,
+        issues: parsed.error.flatten(),
+      });
       return;
     }
 
@@ -766,17 +880,30 @@ export class PlaywrightService {
     session.lastActivityAt = action.timestamp;
 
     if (action.type === 'navigate' && this.isRedundantNavigation(session, action)) {
-      resolvedLogger.verbose({ message: "PS:pushAction - Skipped redundant navigation", sessionId, url: action.url });
+      resolvedLogger.verbose({
+        message: 'PS:pushAction - Skipped redundant navigation',
+        sessionId,
+        url: action.url,
+      });
       return;
     }
 
     if (session.actions.length >= MAX_RECORDED_ACTIONS) {
-      resolvedLogger.warn({ message: "PS:pushAction - Action buffer full, dropping action", sessionId, cap: MAX_RECORDED_ACTIONS });
+      resolvedLogger.warn({
+        message: 'PS:pushAction - Action buffer full, dropping action',
+        sessionId,
+        cap: MAX_RECORDED_ACTIONS,
+      });
       return;
     }
 
     session.actions.push(action);
-    resolvedLogger.verbose({ message: "PS:pushAction - Action recorded", sessionId, actionType: action.type, total: session.actions.length });
+    resolvedLogger.verbose({
+      message: 'PS:pushAction - Action recorded',
+      sessionId,
+      actionType: action.type,
+      total: session.actions.length,
+    });
   }
 
   /**
@@ -784,7 +911,7 @@ export class PlaywrightService {
    * we are already on, or it is the direct consequence of the interaction just recorded.
    */
   private isRedundantNavigation(session: ActiveSession, action: RecordedAction): boolean {
-    const previous = [...session.actions].reverse().find(a => !a.meta);
+    const previous = [...session.actions].reverse().find((a) => !a.meta);
     if (!previous) {
       // First real action: the initial page load is already implied by the test's own URL.
       return true;
@@ -819,7 +946,11 @@ export class PlaywrightService {
     const now = Date.now();
     for (const [sessionId, session] of [...this.activeSessions.entries()]) {
       if (now - session.lastActivityAt < RECORDING_SESSION_IDLE_MS) continue;
-      resolvedLogger.warn({ message: "PS:sweepIdleSessions - Reaping idle recording session", sessionId, idleMs: now - session.lastActivityAt });
+      resolvedLogger.warn({
+        message: 'PS:sweepIdleSessions - Reaping idle recording session',
+        sessionId,
+        idleMs: now - session.lastActivityAt,
+      });
       await this.disposeSessionResources(session, sessionId);
       this.activeSessions.delete(sessionId);
     }
@@ -829,13 +960,31 @@ export class PlaywrightService {
   /** Closes page/context/browser of a session, never throwing. */
   private async disposeSessionResources(session: ActiveSession, sessionId: string): Promise<void> {
     if (session.page && !session.page.isClosed()) {
-      await session.page.close().catch(e => resolvedLogger.warn({ message: "PS:disposeSessionResources - Error closing page", sessionId, error: e.message }));
+      await session.page.close().catch((e) =>
+        resolvedLogger.warn({
+          message: 'PS:disposeSessionResources - Error closing page',
+          sessionId,
+          error: e.message,
+        }),
+      );
     }
     if (session.context) {
-      await session.context.close().catch(e => resolvedLogger.warn({ message: "PS:disposeSessionResources - Error closing context", sessionId, error: e.message }));
+      await session.context.close().catch((e) =>
+        resolvedLogger.warn({
+          message: 'PS:disposeSessionResources - Error closing context',
+          sessionId,
+          error: e.message,
+        }),
+      );
     }
     if (session.browser && session.browser.isConnected()) {
-      await session.browser.close().catch(e => resolvedLogger.warn({ message: "PS:disposeSessionResources - Error closing browser", sessionId, error: e.message }));
+      await session.browser.close().catch((e) =>
+        resolvedLogger.warn({
+          message: 'PS:disposeSessionResources - Error closing browser',
+          sessionId,
+          error: e.message,
+        }),
+      );
     }
   }
 
@@ -857,7 +1006,9 @@ export class PlaywrightService {
     try {
       const [request] = await Promise.all([
         page.waitForRequest(() => true, { timeout: 5000 }),
-        page.evaluate(() => fetch(location.href, { method: 'HEAD', credentials: 'include' }).catch(() => undefined)),
+        page.evaluate(() =>
+          fetch(location.href, { method: 'HEAD', credentials: 'include' }).catch(() => undefined),
+        ),
       ]);
       return (await request.allHeaders())['accept-language'];
     } catch {
@@ -878,7 +1029,10 @@ export class PlaywrightService {
 
     const state = await session.context.storageState();
     const acceptLanguage = await this.acceptLanguageOf(session.page);
-    await saveLoginState(environment, { ...(state as any), ...(acceptLanguage ? { acceptLanguage } : {}) });
+    await saveLoginState(environment, {
+      ...(state as any),
+      ...(acceptLanguage ? { acceptLanguage } : {}),
+    });
     resolvedLogger.info({
       message: 'PS:captureLoginState - login state saved',
       sessionId,
@@ -933,7 +1087,11 @@ export class PlaywrightService {
   }
 
   /** Registers a session record without launching a browser. Used by installRecorder callers. */
-  registerSession(sessionId: string, session: Omit<ActiveSession, 'actions' | 'lastActivityAt'> & Partial<Pick<ActiveSession, 'actions'>>): void {
+  registerSession(
+    sessionId: string,
+    session: Omit<ActiveSession, 'actions' | 'lastActivityAt'> &
+      Partial<Pick<ActiveSession, 'actions'>>,
+  ): void {
     this.activeSessions.set(sessionId, {
       actions: session.actions ?? [],
       lastActivityAt: Date.now(),
@@ -941,8 +1099,15 @@ export class PlaywrightService {
     } as ActiveSession);
   }
 
-  async startRecordingSession(url: string, userId?: number): Promise<{ success: boolean, sessionId?: string, error?: string }> {
-    resolvedLogger.http({ message: "PlaywrightService: startRecordingSession called", url, userId });
+  async startRecordingSession(
+    url: string,
+    userId?: number,
+  ): Promise<{ success: boolean; sessionId?: string; error?: string }> {
+    resolvedLogger.http({
+      message: 'PlaywrightService: startRecordingSession called',
+      url,
+      userId,
+    });
     const targetUrl = substituteVariables(url);
     const sessionId = uuidv4();
     let browser: Browser | null = null;
@@ -958,7 +1123,14 @@ export class PlaywrightService {
       const specificWaitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
       // Recording is interactive by definition: the user drives a real, visible window.
       const effectiveHeadlessMode = false;
-      resolvedLogger.debug({ message: "PS:startRecordingSession - Effective settings", sessionId, browserType, effectiveHeadlessMode, pageTimeout, specificWaitTime });
+      resolvedLogger.debug({
+        message: 'PS:startRecordingSession - Effective settings',
+        sessionId,
+        browserType,
+        effectiveHeadlessMode,
+        pageTimeout,
+        specificWaitTime,
+      });
 
       const browserEngine = (playwright as any)[browserType];
       if (!browserEngine) throw new Error(`Invalid browser type: ${browserType}`);
@@ -974,12 +1146,13 @@ export class PlaywrightService {
         headless: effectiveHeadlessMode,
         args: effectiveHeadlessMode ? undefined : ['--start-maximized'],
       });
-      if (!browser) throw new Error("Failed to launch browser for recording.");
+      if (!browser) throw new Error('Failed to launch browser for recording.');
 
       context = await browser.newContext({
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        userAgent:
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         viewport: null,
-        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl)
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl),
       });
 
       await this.installRecorder(context, sessionId);
@@ -1011,13 +1184,16 @@ export class PlaywrightService {
       const markClosedIfLastPage = () => {
         const session = this.activeSessions.get(sessionId);
         if (!session) return;
-        const stillOpen = session.context.pages().filter(p => !p.isClosed());
+        const stillOpen = session.context.pages().filter((p) => !p.isClosed());
         if (stillOpen.length === 0) {
           session.pageClosedByEventHandler = true;
-          resolvedLogger.info({ message: "PS:startRecordingSession - All pages closed; session marked as ended", sessionId });
+          resolvedLogger.info({
+            message: 'PS:startRecordingSession - All pages closed; session marked as ended',
+            sessionId,
+          });
         }
       };
-      context.on('page', newPage => {
+      context.on('page', (newPage) => {
         newPage.on('close', markClosedIfLastPage);
       });
       page.on('close', markClosedIfLastPage);
@@ -1026,18 +1202,29 @@ export class PlaywrightService {
       await page.waitForTimeout(specificWaitTime);
       await page.bringToFront();
 
-      resolvedLogger.info({ message: "PS:startRecordingSession - Recording session started successfully", sessionId, url, userId: userId || 'anonymous' });
+      resolvedLogger.info({
+        message: 'PS:startRecordingSession - Recording session started successfully',
+        sessionId,
+        url,
+        userId: userId || 'anonymous',
+      });
       return { success: true, sessionId };
-
     } catch (error: any) {
-      let stage = "unknown";
+      let stage = 'unknown';
       if (!browser) stage = `browser launch (type: ${browserType})`;
-      else if (!context) stage = "browser context creation";
-      else if (!page) stage = "page creation";
-      else if (page.isClosed()) stage = "page operation on closed page";
-      else stage = "page navigation/setup";
+      else if (!context) stage = 'browser context creation';
+      else if (!page) stage = 'page creation';
+      else if (page.isClosed()) stage = 'page operation on closed page';
+      else stage = 'page navigation/setup';
 
-      resolvedLogger.error({ message: "PS:startRecordingSession - CRITICAL ERROR during session setup", sessionId, stage, url, error: error.message, stack: error.stack });
+      resolvedLogger.error({
+        message: 'PS:startRecordingSession - CRITICAL ERROR during session setup',
+        sessionId,
+        stage,
+        url,
+        error: error.message,
+        stack: error.stack,
+      });
 
       // Infrastructure failure, not a test that legitimately failed — worth an incident.
       recordRunnerFailure({
@@ -1048,7 +1235,13 @@ export class PlaywrightService {
       });
 
       if (browser && browser.isConnected()) {
-        await browser.close().catch(err => resolvedLogger.error({ message: "PS:startRecordingSession - Failed to close browser during error handling", sessionId, error: err.message }));
+        await browser.close().catch((err) =>
+          resolvedLogger.error({
+            message: 'PS:startRecordingSession - Failed to close browser during error handling',
+            sessionId,
+            error: err.message,
+          }),
+        );
       }
       this.activeSessions.delete(sessionId);
       this.stopSweeperIfIdle();
@@ -1056,25 +1249,41 @@ export class PlaywrightService {
     }
   }
 
-  async stopRecordingSession(sessionId: string, userId?: number): Promise<{ success: boolean, sequence?: RecordedAction[], error?: string }> {
-    resolvedLogger.http({ message: "PlaywrightService: stopRecordingSession called", sessionId, userId });
+  async stopRecordingSession(
+    sessionId: string,
+    userId?: number,
+  ): Promise<{ success: boolean; sequence?: RecordedAction[]; error?: string }> {
+    resolvedLogger.http({
+      message: 'PlaywrightService: stopRecordingSession called',
+      sessionId,
+      userId,
+    });
     const session = this.activeSessions.get(sessionId);
 
     if (!session) {
-      resolvedLogger.warn({ message: "PS:stopRecordingSession - Session not found or already stopped.", sessionId, userId });
-      return { success: false, error: "Recording session not found or already stopped." };
+      resolvedLogger.warn({
+        message: 'PS:stopRecordingSession - Session not found or already stopped.',
+        sessionId,
+        userId,
+      });
+      return { success: false, error: 'Recording session not found or already stopped.' };
     }
 
     if (userId && session.userId && session.userId !== userId) {
-      resolvedLogger.warn({ message: "User ID mismatch attempting to stop session", sessionId, requestUserId: userId, sessionUserId: session.userId });
-      return { success: false, error: "Unauthorized to stop this recording session." };
+      resolvedLogger.warn({
+        message: 'User ID mismatch attempting to stop session',
+        sessionId,
+        requestUserId: userId,
+        sessionUserId: session.userId,
+      });
+      return { success: false, error: 'Unauthorized to stop this recording session.' };
     }
 
     try {
       const pageOpen = !!session.page && !session.page.isClosed();
       const lastUrl = pageOpen
         ? session.page.url()
-        : ([...session.actions].reverse().find(a => a.url)?.url ?? session.targetUrl);
+        : ([...session.actions].reverse().find((a) => a.url)?.url ?? session.targetUrl);
 
       session.actions.push({
         type: 'navigate',
@@ -1087,36 +1296,73 @@ export class PlaywrightService {
       await this.disposeSessionResources(session, sessionId);
 
       const recordedActions = session.actions;
-      const userActionCount = recordedActions.filter(a => !a.meta).length;
+      const userActionCount = recordedActions.filter((a) => !a.meta).length;
       if (userActionCount === 0) {
-        resolvedLogger.warn({ message: "PS:stopRecordingSession - Session stopped without any user action.", sessionId });
+        resolvedLogger.warn({
+          message: 'PS:stopRecordingSession - Session stopped without any user action.',
+          sessionId,
+        });
       }
 
       this.activeSessions.delete(sessionId);
       this.stopSweeperIfIdle();
-      resolvedLogger.info({ message: "PS:stopRecordingSession - Session finalized.", sessionId, actionCount: recordedActions.length, userActionCount });
+      resolvedLogger.info({
+        message: 'PS:stopRecordingSession - Session finalized.',
+        sessionId,
+        actionCount: recordedActions.length,
+        userActionCount,
+      });
 
       return { success: true, sequence: recordedActions };
-
     } catch (error: any) {
-      resolvedLogger.error({ message: "PS:stopRecordingSession - CRITICAL error during stop sequence", sessionId, error: error.message, stack: error.stack });
+      resolvedLogger.error({
+        message: 'PS:stopRecordingSession - CRITICAL error during stop sequence',
+        sessionId,
+        error: error.message,
+        stack: error.stack,
+      });
       this.activeSessions.delete(sessionId);
       this.stopSweeperIfIdle();
-      return { success: false, error: error.message || `Unknown error stopping recording session ${sessionId}` };
+      return {
+        success: false,
+        error: error.message || `Unknown error stopping recording session ${sessionId}`,
+      };
     }
   }
 
-  async getRecordedActions(sessionId: string, userId?: number): Promise<{ success: boolean, sequence?: RecordedAction[], error?: string, sessionEnded?: boolean }> {
+  async getRecordedActions(
+    sessionId: string,
+    userId?: number,
+  ): Promise<{
+    success: boolean;
+    sequence?: RecordedAction[];
+    error?: string;
+    sessionEnded?: boolean;
+  }> {
     const session = this.activeSessions.get(sessionId);
-    resolvedLogger.debug({ message: "PS:getRecordedActions called", sessionId, userId, sessionFound: !!session });
+    resolvedLogger.debug({
+      message: 'PS:getRecordedActions called',
+      sessionId,
+      userId,
+      sessionFound: !!session,
+    });
 
     if (!session) {
-      return { success: false, sessionEnded: true, error: "Recording session not found or already stopped." };
+      return {
+        success: false,
+        sessionEnded: true,
+        error: 'Recording session not found or already stopped.',
+      };
     }
 
     if (userId && session.userId && session.userId !== userId) {
-      resolvedLogger.warn({ message: "User ID mismatch attempting to get actions for session", sessionId, requestUserId: userId, sessionUserId: session.userId });
-      return { success: false, error: "Unauthorized to access this recording session." };
+      resolvedLogger.warn({
+        message: 'User ID mismatch attempting to get actions for session',
+        sessionId,
+        requestUserId: userId,
+        sessionUserId: session.userId,
+      });
+      return { success: false, error: 'Unauthorized to access this recording session.' };
     }
 
     // The browser window was closed without pressing Stop: hand back what we buffered and
@@ -1126,7 +1372,7 @@ export class PlaywrightService {
         success: true,
         sequence: [...session.actions],
         sessionEnded: true,
-        error: "The recording browser window was closed.",
+        error: 'The recording browser window was closed.',
       };
     }
 
@@ -1171,7 +1417,8 @@ export class PlaywrightService {
           const name = el.getAttribute('name');
           if (name && unique(tag + '[name="' + name + '"]')) return tag + '[name="' + name + '"]';
           const title = el.getAttribute('title');
-          if (title && unique(tag + '[title="' + title + '"]')) return tag + '[title="' + title + '"]';
+          if (title && unique(tag + '[title="' + title + '"]'))
+            return tag + '[title="' + title + '"]';
 
           // Position among the same tag in its own document: stable as long as the
           // surrounding markup is, which is the same bargain the structural path makes.
@@ -1209,7 +1456,10 @@ export class PlaywrightService {
     try {
       elements = await this.detectElementsOnPage(page);
     } catch (evalError: any) {
-      resolvedLogger.warn({ message: "PS:surveyPage - Evaluation failed", error: evalError.message });
+      resolvedLogger.warn({
+        message: 'PS:surveyPage - Evaluation failed',
+        error: evalError.message,
+      });
     }
 
     const screenshotBuffer = await page.screenshot({ type: 'png', fullPage: true });
@@ -1230,7 +1480,11 @@ export class PlaywrightService {
   private async detectElementsOnPage(page: Page): Promise<DetectedElement[]> {
     // One pass per frame. page.frames() is flat and already includes nested ones, so a
     // frame three levels down is reached the same way as a direct child.
-    const perFrame: Array<{ frameSelector: string | null; offset: { x: number; y: number }; data: any }> = [];
+    const perFrame: Array<{
+      frameSelector: string | null;
+      offset: { x: number; y: number };
+      data: any;
+    }> = [];
     for (const frame of page.frames()) {
       let frameSelector: string | null = null;
       let offset = { x: 0, y: 0 };
@@ -1403,12 +1657,28 @@ export class PlaywrightService {
     }
   }
 
-  async executeAdhocSequence(payload: AdhocSequencePayload, userId: number, debug?: DebugHooks): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detection?: DetectionResult }> {
-    if (!payload.cleanups || payload.cleanups.length === 0) return this.runAdhocSequence(payload, userId, debug);
+  async executeAdhocSequence(
+    payload: AdhocSequencePayload,
+    userId: number,
+    debug?: DebugHooks,
+  ): Promise<{
+    success: boolean;
+    steps?: StepResult[];
+    error?: string;
+    duration?: number;
+    detection?: DetectionResult;
+  }> {
+    if (!payload.cleanups || payload.cleanups.length === 0)
+      return this.runAdhocSequence(payload, userId, debug);
     // The cleanup runs once the steps are over — after every row, as a saved run does it — with
     // the variables each row ended with.
     const variableSets: Array<Record<string, string>> = [];
-    const result = await this.runAdhocSequence({ ...payload, cleanups: null }, userId, debug, variableSets);
+    const result = await this.runAdhocSequence(
+      { ...payload, cleanups: null },
+      userId,
+      debug,
+      variableSets,
+    );
     const cleanup = await runCleanups(payload.cleanups, variableSets);
     return { ...result, steps: [...(result.steps ?? []), cleanupReportStep(cleanup)] };
   }
@@ -1418,9 +1688,20 @@ export class PlaywrightService {
     userId: number,
     debug?: DebugHooks,
     variableSets?: Array<Record<string, string>>,
-  ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detection?: DetectionResult }> {
-    const testName = payload.name || "Ad-hoc Test";
-    resolvedLogger.http({ message: "PlaywrightService: executeAdhocSequence called", testName, userId, url: payload.url });
+  ): Promise<{
+    success: boolean;
+    steps?: StepResult[];
+    error?: string;
+    duration?: number;
+    detection?: DetectionResult;
+  }> {
+    const testName = payload.name || 'Ad-hoc Test';
+    resolvedLogger.http({
+      message: 'PlaywrightService: executeAdhocSequence called',
+      testName,
+      userId,
+      url: payload.url,
+    });
 
     // Same rows, same loop, same labels as a saved run. A preview that runs once while the
     // saved test runs twenty is the same class of divergence as the two step executors:
@@ -1429,7 +1710,12 @@ export class PlaywrightService {
     if (adhocRows) {
       const adhocStart = Date.now();
       const merged = await runOverDataset(adhocRows, (row) =>
-        this.runAdhocSequence({ ...payload, dataset: null, rowVariables: row }, userId, undefined, variableSets),
+        this.runAdhocSequence(
+          { ...payload, dataset: null, rowVariables: row },
+          userId,
+          undefined,
+          variableSets,
+        ),
       );
       return { ...merged, duration: Date.now() - adhocStart };
     }
@@ -1453,7 +1739,7 @@ export class PlaywrightService {
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
-    resolvedLogger.debug({ message: "PS:executeAdhocSequence - Initial state", testName, userId });
+    resolvedLogger.debug({ message: 'PS:executeAdhocSequence - Initial state', testName, userId });
     const stepResults: StepResult[] = [];
     let overallSuccess = true;
     /** Why a debug session ended the run early, when it did. */
@@ -1465,14 +1751,25 @@ export class PlaywrightService {
     // opening anything (collaudo WEB-36).
     const adhocExpansion = await expandSequenceForRun(payload.sequence);
     if (adhocExpansion.errors.length > 0) {
-      return { success: false, steps: [], error: adhocExpansion.errors.join(' '), duration: Date.now() - startTime };
+      return {
+        success: false,
+        steps: [],
+        error: adhocExpansion.errors.join(' '),
+        duration: Date.now() - startTime,
+      };
     }
-    const adhocSequence = (await resolveSequenceForRun(adhocExpansion.steps)).steps as unknown as TestStep[];
+    const adhocSequence = (await resolveSequenceForRun(adhocExpansion.steps))
+      .steps as unknown as TestStep[];
     // After expansion, so a block that opens in a group and closes in the test is judged
     // as the run will meet it.
     const adhocFlow = analyseFlow(adhocSequence);
     if (!adhocFlow.ok) {
-      return { success: false, steps: [], error: adhocFlow.errors.join(' '), duration: Date.now() - startTime };
+      return {
+        success: false,
+        steps: [],
+        error: adhocFlow.errors.join(' '),
+        duration: Date.now() - startTime,
+      };
     }
 
     try {
@@ -1483,19 +1780,27 @@ export class PlaywrightService {
         const preResult = await runPreconditions(payload.preconditions, requestVariables());
         if (!preResult.ok) {
           const reason = `Precondition failed at "${preResult.failedAt}": ${preResult.reason}`;
-          resolvedLogger.warn({ message: "PS:executeAdhocSequence - Blocked by precondition", testName, userId, failedAt: preResult.failedAt, reason: preResult.reason });
+          resolvedLogger.warn({
+            message: 'PS:executeAdhocSequence - Blocked by precondition',
+            testName,
+            userId,
+            failedAt: preResult.failedAt,
+            reason: preResult.reason,
+          });
           return {
             success: false,
             error: reason,
             duration: Date.now() - startTime,
             detection: undefined,
-            steps: [{
-              name: `Precondition: ${preResult.failedAt ?? 'setup'}`,
-              type: 'precondition',
-              status: 'failed',
-              error: preResult.reason,
-              details: reason,
-            }],
+            steps: [
+              {
+                name: `Precondition: ${preResult.failedAt ?? 'setup'}`,
+                type: 'precondition',
+                status: 'failed',
+                error: preResult.reason,
+                details: reason,
+              },
+            ],
           };
         }
         // Counted separately on purpose. "3 setup calls completed" and "1 call made, 2 were
@@ -1519,48 +1824,111 @@ export class PlaywrightService {
         });
       }
 
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - Fetching user settings", testName, userId });
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - Fetching user settings',
+        testName,
+        userId,
+      });
       const userSettings = await storage.getUserSettings(userId);
-      const settingsSummary = userSettings ? { browser: userSettings.playwrightBrowser, headless: userSettings.playwrightHeadless, timeout: userSettings.playwrightDefaultTimeout } : {};
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - User settings fetched", testName, settingsSummary });
+      const settingsSummary = userSettings
+        ? {
+            browser: userSettings.playwrightBrowser,
+            headless: userSettings.playwrightHeadless,
+            timeout: userSettings.playwrightDefaultTimeout,
+          }
+        : {};
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - User settings fetched',
+        testName,
+        settingsSummary,
+      });
 
       const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
-      const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
+      const headlessMode =
+        userSettings?.playwrightHeadless !== undefined
+          ? userSettings.playwrightHeadless
+          : DEFAULT_HEADLESS;
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - Effective settings", testName, browserType, headlessMode, pageTimeout });
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - Effective settings',
+        testName,
+        browserType,
+        headlessMode,
+        pageTimeout,
+      });
 
       const browserLaunchOptions = { ...browserEgressOptions(), headless: headlessMode };
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting to launch browser", testName, browserType, options: browserLaunchOptions });
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - Attempting to launch browser',
+        testName,
+        browserType,
+        options: browserLaunchOptions,
+      });
       const browserEngine = (playwright as any)[browserType];
       if (!browserEngine) throw new Error(`Invalid browser type: ${browserType}`);
       browser = await browserEngine.launch(browserLaunchOptions);
-      if (!browser) throw new Error("Failed to launch browser instance.");
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - Browser launched", testName, connected: browser?.isConnected(), type: browser?.browserType?.().name() });
+      if (!browser) throw new Error('Failed to launch browser instance.');
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - Browser launched',
+        testName,
+        connected: browser?.isConnected(),
+        type: browser?.browserType?.().name(),
+      });
 
       const contextOptions = {
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? '')
+        userAgent:
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? ''),
       };
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting to create new browser context", testName, options: contextOptions });
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - Attempting to create new browser context',
+        testName,
+        options: contextOptions,
+      });
       context = await browser.newContext(contextOptions);
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - Browser context created", testName });
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - Browser context created',
+        testName,
+      });
 
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting to create new page", testName });
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - Attempting to create new page',
+        testName,
+      });
       page = await context.newPage();
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - New page created", testName, pageClosed: page?.isClosed() });
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - New page created',
+        testName,
+        pageClosed: page?.isClosed(),
+      });
 
-      resolvedLogger.debug({ message: `PS:executeAdhocSequence - Setting default timeout to ${pageTimeout}ms`, testName });
+      resolvedLogger.debug({
+        message: `PS:executeAdhocSequence - Setting default timeout to ${pageTimeout}ms`,
+        testName,
+      });
       page.setDefaultTimeout(pageTimeout);
 
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - Setting viewport size to 1280x720", testName });
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - Setting viewport size to 1280x720',
+        testName,
+      });
       await page.setViewportSize({ width: 1280, height: 720 });
 
       if (targetUrl) {
         const gotoOptions = { waitUntil: 'domcontentloaded' as const };
-        resolvedLogger.debug({ message: `PS:executeAdhocSequence - Navigating to URL`, testName, url: targetUrl, options: gotoOptions, pageClosed: page?.isClosed() });
+        resolvedLogger.debug({
+          message: `PS:executeAdhocSequence - Navigating to URL`,
+          testName,
+          url: targetUrl,
+          options: gotoOptions,
+          pageClosed: page?.isClosed(),
+        });
         try {
           await page.goto(targetUrl, gotoOptions);
-          resolvedLogger.debug({ message: "PS:executeAdhocSequence - Navigation complete. Attempting screenshot...", testName });
+          resolvedLogger.debug({
+            message: 'PS:executeAdhocSequence - Navigation complete. Attempting screenshot...',
+            testName,
+          });
           const screenshotBuffer = await page.screenshot({ type: 'png' });
           const screenshot = screenshotBuffer.toString('base64');
           stepResults.push({
@@ -1572,7 +1940,14 @@ export class PlaywrightService {
           });
         } catch (e: any) {
           overallSuccess = false;
-          resolvedLogger.error({ message: `PS:executeAdhocSequence - ERROR during initial navigation`, testName, url: payload.url, error: e.message, stack: e.stack, pageClosed: page?.isClosed() });
+          resolvedLogger.error({
+            message: `PS:executeAdhocSequence - ERROR during initial navigation`,
+            testName,
+            url: payload.url,
+            error: e.message,
+            stack: e.stack,
+            pageClosed: page?.isClosed(),
+          });
           const errorScreenshotBuffer = await page?.screenshot({ type: 'png' }).catch(() => null);
           const errorScreenshot = errorScreenshotBuffer?.toString('base64');
           stepResults.push({
@@ -1586,21 +1961,45 @@ export class PlaywrightService {
           const duration = Date.now() - startTime;
           let finalDetectionNavFail: DetectionResult | undefined;
           if (page && !page.isClosed()) {
-            resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection (due to navigation failure)", testName, pageClosed: page?.isClosed() });
+            resolvedLogger.debug({
+              message:
+                'PS:executeAdhocSequence - Attempting element detection (due to navigation failure)',
+              testName,
+              pageClosed: page?.isClosed(),
+            });
             try {
               finalDetectionNavFail = await this.surveyPage(page);
             } catch (detectionError: any) {
-              resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during element detection (navigation fail path)`, testName, error: detectionError.message, stack: detectionError.stack });
+              resolvedLogger.warn({
+                message: `PS:executeAdhocSequence - Error during element detection (navigation fail path)`,
+                testName,
+                error: detectionError.message,
+                stack: detectionError.stack,
+              });
             }
           }
-          return { success: false, steps: stepResults, error: `Initial navigation failed: ${e.message}`, duration, detection: finalDetectionNavFail };
+          return {
+            success: false,
+            steps: stepResults,
+            error: `Initial navigation failed: ${e.message}`,
+            duration,
+            detection: finalDetectionNavFail,
+          };
         }
       } else {
-        stepResults.push({ name: 'Initial State', type: 'setup', status: 'passed', details: 'No initial URL provided for ad-hoc sequence.' });
+        stepResults.push({
+          name: 'Initial State',
+          type: 'setup',
+          status: 'passed',
+          details: 'No initial URL provided for ad-hoc sequence.',
+        });
       }
 
       if (overallSuccess && adhocSequence.length > 0) {
-        resolvedLogger.debug({ message: `PS:executeAdhocSequence - Starting execution of ${adhocSequence.length} steps.`, testName });
+        resolvedLogger.debug({
+          message: `PS:executeAdhocSequence - Starting execution of ${adhocSequence.length} steps.`,
+          testName,
+        });
         const cursor = new FlowCursor(adhocSequence, adhocFlow.blocks, vars);
         // Debugging (server/debug-session.ts): a step corrected where it failed runs again as
         // corrected, and is not stopped at again on its way back in.
@@ -1625,7 +2024,14 @@ export class PlaywrightService {
               break;
             }
             if (decision.kind === 'skip') {
-              await debug.record({ name: step.action?.name || 'Unnamed Action', type: step.action?.id || 'unknown', stepId: step.id ?? null, status: 'skipped', detail: 'Passed over while debugging.', corrected: false });
+              await debug.record({
+                name: step.action?.name || 'Unnamed Action',
+                type: step.action?.id || 'unknown',
+                stepId: step.id ?? null,
+                status: 'skipped',
+                detail: 'Passed over while debugging.',
+                corrected: false,
+              });
               cursor.advance({});
               continue;
             }
@@ -1644,14 +2050,28 @@ export class PlaywrightService {
           let stepDownload: DownloadFinding | undefined;
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
-          resolvedLogger.verbose({ message: `PS:executeAdhocSequence - LOOP START for step`, testName, actionName, actionId, pageClosed: page?.isClosed() });
+          resolvedLogger.verbose({
+            message: `PS:executeAdhocSequence - LOOP START for step`,
+            testName,
+            actionName,
+            actionId,
+            pageClosed: page?.isClosed(),
+          });
 
           try {
             if (!actionId) throw new Error('Step action ID is missing.');
             if (!page) throw new Error('Page is not available.');
-            if (page.isClosed()) throw new Error('Page was closed unexpectedly before step execution.');
+            if (page.isClosed())
+              throw new Error('Page was closed unexpectedly before step execution.');
 
-            resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Executing step`, testName, actionName, actionId, selector: step.targetElement?.selector, value: step.value });
+            resolvedLogger.verbose({
+              message: `PS:executeAdhocSequence - Executing step`,
+              testName,
+              actionName,
+              actionId,
+              selector: step.targetElement?.selector,
+              value: step.value,
+            });
 
             const outcome = await executeStep({ page, vars, startedAt: startTime }, step);
             flowOutcome = outcome;
@@ -1677,33 +2097,71 @@ export class PlaywrightService {
               // mid-transition frame (old menu overlapping a half-open dialog).
               await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
               await page.waitForTimeout(600);
-              resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Taking screenshot for step`, testName, actionName, actionId });
+              resolvedLogger.verbose({
+                message: `PS:executeAdhocSequence - Taking screenshot for step`,
+                testName,
+                actionName,
+                actionId,
+              });
               const screenshotBuffer = await evidenceScreenshot(page, (reason) =>
-                resolvedLogger.warn({ message: 'PS:executeAdhocSequence - No screenshot for step', testName, actionName, reason }),
+                resolvedLogger.warn({
+                  message: 'PS:executeAdhocSequence - No screenshot for step',
+                  testName,
+                  actionName,
+                  reason,
+                }),
               );
-              stepScreenshot = screenshotBuffer ? `data:image/png;base64,${screenshotBuffer.toString('base64')}` : undefined;
-              resolvedLogger.verbose({ message: "PS:executeAdhocSequence - Step screenshot taken", testName, actionName });
+              stepScreenshot = screenshotBuffer
+                ? `data:image/png;base64,${screenshotBuffer.toString('base64')}`
+                : undefined;
+              resolvedLogger.verbose({
+                message: 'PS:executeAdhocSequence - Step screenshot taken',
+                testName,
+                actionName,
+              });
             }
-
           } catch (e: any) {
             stepStatus = 'failed';
             stepError = e.message;
             overallSuccess = false;
-            resolvedLogger.error({ message: `PS:executeAdhocSequence - ERROR during step execution`, testName, actionName, actionId, error: e.message, stack: e.stack, pageClosed: page?.isClosed() });
+            resolvedLogger.error({
+              message: `PS:executeAdhocSequence - ERROR during step execution`,
+              testName,
+              actionName,
+              actionId,
+              error: e.message,
+              stack: e.stack,
+              pageClosed: page?.isClosed(),
+            });
             if (page && !page.isClosed()) {
-              resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting error screenshot for failed step...", testName, actionName });
+              resolvedLogger.debug({
+                message: 'PS:executeAdhocSequence - Attempting error screenshot for failed step...',
+                testName,
+                actionName,
+              });
               try {
                 const errorScreenshotBuffer = await page.screenshot({ type: 'png' });
                 stepScreenshot = `data:image/png;base64,${errorScreenshotBuffer.toString('base64')}`;
               } catch (screenError: any) {
-                resolvedLogger.warn({ message: 'PS:executeAdhocSequence - Failed to take error screenshot for step', testName, actionName, error: screenError.message, stack: screenError.stack });
+                resolvedLogger.warn({
+                  message: 'PS:executeAdhocSequence - Failed to take error screenshot for step',
+                  testName,
+                  actionName,
+                  error: screenError.message,
+                  stack: screenError.stack,
+                });
               }
             }
           }
           if (stepStatus === 'failed') overallSuccess = false;
 
           if (debug && stepStatus === 'failed') {
-            const decision = await debug.afterFailure({ pc: cursor.pc, step, error: stepError || 'Unknown error', ...pageNow });
+            const decision = await debug.afterFailure({
+              pc: cursor.pc,
+              step,
+              error: stepError || 'Unknown error',
+              ...pageNow,
+            });
             if (decision.kind === 'run') {
               // Tried again in the same place, corrected or not: the failure is no longer the
               // step's result, the next attempt is.
@@ -1713,46 +2171,119 @@ export class PlaywrightService {
               continue;
             }
             if (decision.kind === 'skip') {
-              await debug.record({ name: actionName, type: actionId || 'unknown', stepId: step.id ?? null, status: 'skipped', detail: `Failed, then passed over while debugging: ${stepError || 'Unknown error'}`, corrected });
+              await debug.record({
+                name: actionName,
+                type: actionId || 'unknown',
+                stepId: step.id ?? null,
+                status: 'skipped',
+                detail: `Failed, then passed over while debugging: ${stepError || 'Unknown error'}`,
+                corrected,
+              });
               overallSuccess = true;
               cursor.advance({});
               continue;
             }
             debugStopped = decision.reason;
           }
-          await debug?.record({ name: actionName, type: actionId || 'unknown', stepId: step.id ?? null, status: stepStatus, detail: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : (stepError || 'Unknown error'), corrected });
+          await debug?.record({
+            name: actionName,
+            type: actionId || 'unknown',
+            stepId: step.id ?? null,
+            status: stepStatus,
+            detail:
+              stepStatus === 'passed'
+                ? (stepDetail ?? 'Action executed successfully.')
+                : stepError || 'Unknown error',
+            corrected,
+          });
 
-          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : `Action failed: ${stepError || 'Unknown error'}`, accessibility: stepAccessibility, performance: stepPerformance, lighthouse: stepLighthouse, download: stepDownload, });
+          stepResults.push({
+            name: actionName,
+            type: actionId || 'unknown',
+            selector: step.targetElement?.selector,
+            value: step.value,
+            status: stepStatus,
+            screenshot: stepScreenshot,
+            error: stepError,
+            details:
+              stepStatus === 'passed'
+                ? (stepDetail ?? 'Action executed successfully.')
+                : `Action failed: ${stepError || 'Unknown error'}`,
+            accessibility: stepAccessibility,
+            performance: stepPerformance,
+            lighthouse: stepLighthouse,
+            download: stepDownload,
+          });
           if (!overallSuccess) {
-            resolvedLogger.info({ message: `PS:executeAdhocSequence - Step failed. Stopping sequence execution.`, testName, failedStep: actionName });
+            resolvedLogger.info({
+              message: `PS:executeAdhocSequence - Step failed. Stopping sequence execution.`,
+              testName,
+              failedStep: actionName,
+            });
             break;
           }
           const runaway = cursor.advance(flowOutcome);
           if (runaway) {
             overallSuccess = false;
-            stepResults.push({ name: actionName, type: actionId || 'unknown', status: 'failed', error: runaway, details: runaway });
+            stepResults.push({
+              name: actionName,
+              type: actionId || 'unknown',
+              status: 'failed',
+              error: runaway,
+              details: runaway,
+            });
             break;
           }
         }
       }
 
       const duration = Date.now() - startTime;
-      resolvedLogger.info({ message: `PS:executeAdhocSequence - Test completed.`, testName, overallSuccess, durationMs: duration, stepsExecuted: stepResults.length });
+      resolvedLogger.info({
+        message: `PS:executeAdhocSequence - Test completed.`,
+        testName,
+        overallSuccess,
+        durationMs: duration,
+        stepsExecuted: stepResults.length,
+      });
 
       let finalDetection: DetectionResult | undefined;
       if (page && !page.isClosed()) {
-        resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting final element detection (success path)", testName, pageClosed: page?.isClosed() });
+        resolvedLogger.debug({
+          message: 'PS:executeAdhocSequence - Attempting final element detection (success path)',
+          testName,
+          pageClosed: page?.isClosed(),
+        });
         try {
           finalDetection = await this.surveyPage(page);
         } catch (detectionError: any) {
-          resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during final element detection (success path)`, testName, error: detectionError.message, stack: detectionError.stack });
+          resolvedLogger.warn({
+            message: `PS:executeAdhocSequence - Error during final element detection (success path)`,
+            testName,
+            error: detectionError.message,
+            stack: detectionError.stack,
+          });
         }
       }
-      return { success: overallSuccess, steps: stepResults, duration, detection: finalDetection, ...(debugStopped ? { error: debugStopped } : {}) };
-
+      return {
+        success: overallSuccess,
+        steps: stepResults,
+        duration,
+        detection: finalDetection,
+        ...(debugStopped ? { error: debugStopped } : {}),
+      };
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      resolvedLogger.error({ message: `PS:executeAdhocSequence - CRITICAL ERROR in executeAdhocSequence`, testName, userId, error: error.message, stack: error.stack, browserExists: !!browser, contextExists: !!context, pageExists: !!page, pageClosed: page?.isClosed() });
+      resolvedLogger.error({
+        message: `PS:executeAdhocSequence - CRITICAL ERROR in executeAdhocSequence`,
+        testName,
+        userId,
+        error: error.message,
+        stack: error.stack,
+        browserExists: !!browser,
+        contextExists: !!context,
+        pageExists: !!page,
+        pageClosed: page?.isClosed(),
+      });
 
       // A step that fails its assertion is a normal product outcome and never lands here;
       // this catch is reached only when the run itself could not be carried out.
@@ -1764,104 +2295,234 @@ export class PlaywrightService {
       });
       let finalDetectionCriticalError: DetectionResult | undefined;
       if (page && !page.isClosed()) {
-        resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection after critical error", testName, pageClosed: page?.isClosed() });
+        resolvedLogger.debug({
+          message: 'PS:executeAdhocSequence - Attempting element detection after critical error',
+          testName,
+          pageClosed: page?.isClosed(),
+        });
         try {
           finalDetectionCriticalError = await this.surveyPage(page);
         } catch (detectionError: any) {
-          resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during element detection (critical error path)`, testName, error: detectionError.message, stack: detectionError.stack });
+          resolvedLogger.warn({
+            message: `PS:executeAdhocSequence - Error during element detection (critical error path)`,
+            testName,
+            error: detectionError.message,
+            stack: detectionError.stack,
+          });
         }
       }
-      return { success: false, steps: stepResults, error: error.message || 'Unknown critical error during ad-hoc execution', duration, detection: finalDetectionCriticalError };
+      return {
+        success: false,
+        steps: stepResults,
+        error: error.message || 'Unknown critical error during ad-hoc execution',
+        duration,
+        detection: finalDetectionCriticalError,
+      };
     } finally {
-      resolvedLogger.debug({ message: "PS:executeAdhocSequence - Inside finally block.", testName });
-      resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing page", testName, pageExists: !!page, pageClosed: page?.isClosed() });
+      resolvedLogger.debug({
+        message: 'PS:executeAdhocSequence - Inside finally block.',
+        testName,
+      });
+      resolvedLogger.verbose({
+        message: 'PS:executeAdhocSequence (finally) - State before closing page',
+        testName,
+        pageExists: !!page,
+        pageClosed: page?.isClosed(),
+      });
       if (page && !page.isClosed()) {
-        resolvedLogger.debug({ message: "PS:executeAdhocSequence - Closing page", testName });
+        resolvedLogger.debug({ message: 'PS:executeAdhocSequence - Closing page', testName });
         await page.close();
       }
-      resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing context", testName, contextExists: !!context });
+      resolvedLogger.verbose({
+        message: 'PS:executeAdhocSequence (finally) - State before closing context',
+        testName,
+        contextExists: !!context,
+      });
       if (context) {
-        resolvedLogger.debug({ message: "PS:executeAdhocSequence - Closing context", testName });
+        resolvedLogger.debug({ message: 'PS:executeAdhocSequence - Closing context', testName });
         await context.close();
       }
-      resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing browser", testName, browserExists: !!browser, browserConnected: browser?.isConnected() });
+      resolvedLogger.verbose({
+        message: 'PS:executeAdhocSequence (finally) - State before closing browser',
+        testName,
+        browserExists: !!browser,
+        browserConnected: browser?.isConnected(),
+      });
       if (browser && browser.isConnected()) {
-        resolvedLogger.debug({ message: "PS:executeAdhocSequence (finally) - Attempting to close browser...", testName });
-        await browser.close().catch(e => resolvedLogger.warn({ message: "PS:executeAdhocSequence - Error closing browser (adhoc)", testName, error: e.message, stack: e.stack }));
+        resolvedLogger.debug({
+          message: 'PS:executeAdhocSequence (finally) - Attempting to close browser...',
+          testName,
+        });
+        await browser.close().catch((e) =>
+          resolvedLogger.warn({
+            message: 'PS:executeAdhocSequence - Error closing browser (adhoc)',
+            testName,
+            error: e.message,
+            stack: e.stack,
+          }),
+        );
       }
     }
   }
 
   async detectElements(url: string, userId?: number): Promise<DetectionResult> {
-    resolvedLogger.http({ message: "PlaywrightService: detectElements called", url, userId });
+    resolvedLogger.http({ message: 'PlaywrightService: detectElements called', url, userId });
     const targetUrl = substituteVariables(url);
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
-    resolvedLogger.debug({ message: "PS:detectElements - Initial state", url, userId });
+    resolvedLogger.debug({ message: 'PS:detectElements - Initial state', url, userId });
 
     try {
-      resolvedLogger.debug({ message: "PS:detectElements - Fetching user settings", userId });
+      resolvedLogger.debug({ message: 'PS:detectElements - Fetching user settings', userId });
       const userSettings = userId ? await storage.getUserSettings(userId) : undefined;
       const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
-      const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
+      const headlessMode =
+        userSettings?.playwrightHeadless !== undefined
+          ? userSettings.playwrightHeadless
+          : DEFAULT_HEADLESS;
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
-      resolvedLogger.debug({ message: "PS:detectElements - Effective settings", browserType, headlessMode, pageTimeout, userId });
+      resolvedLogger.debug({
+        message: 'PS:detectElements - Effective settings',
+        browserType,
+        headlessMode,
+        pageTimeout,
+        userId,
+      });
 
-      resolvedLogger.debug({ message: "PS:detectElements - Attempting to launch browser", browserType, headlessMode });
+      resolvedLogger.debug({
+        message: 'PS:detectElements - Attempting to launch browser',
+        browserType,
+        headlessMode,
+      });
       const browserEngine = (playwright as any)[browserType];
       if (!browserEngine) throw new Error(`Invalid browser type: ${browserType}`);
       browser = await browserEngine.launch({ ...browserEgressOptions(), headless: headlessMode });
-      if (!browser) throw new Error("Failed to launch browser instance for detectElements.");
+      if (!browser) throw new Error('Failed to launch browser instance for detectElements.');
 
-      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-      resolvedLogger.debug({ message: "PS:detectElements - Attempting to create new browser context", userAgent });
-      context = await browser.newContext({ userAgent, ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl) });
+      const userAgent =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      resolvedLogger.debug({
+        message: 'PS:detectElements - Attempting to create new browser context',
+        userAgent,
+      });
+      context = await browser.newContext({
+        userAgent,
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl),
+      });
 
-      resolvedLogger.debug({ message: "PS:detectElements - Attempting to create new page" });
+      resolvedLogger.debug({ message: 'PS:detectElements - Attempting to create new page' });
       page = await context.newPage();
 
-      resolvedLogger.debug({ message: "PS:detectElements - Setting default timeout", pageTimeout });
+      resolvedLogger.debug({ message: 'PS:detectElements - Setting default timeout', pageTimeout });
       page.setDefaultTimeout(pageTimeout);
 
-      resolvedLogger.debug({ message: "PS:detectElements - Setting viewport size" });
+      resolvedLogger.debug({ message: 'PS:detectElements - Setting viewport size' });
       await page.setViewportSize({ width: 1280, height: 720 });
 
-      resolvedLogger.debug({ message: `PS:detectElements - Navigating to URL`, url: targetUrl, pageClosed: page?.isClosed() });
+      resolvedLogger.debug({
+        message: `PS:detectElements - Navigating to URL`,
+        url: targetUrl,
+        pageClosed: page?.isClosed(),
+      });
       await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
       // SPA content (Angular/DevExpress, React, …) mounts after domcontentloaded. Wait
       // for the network to settle so the DOM is populated before we query it; fall back
       // to the fixed wait if it never idles (long-polling/websockets).
       await page.waitForLoadState('networkidle', { timeout: pageTimeout }).catch(() => {
-        resolvedLogger.debug({ message: "PS:detectElements - networkidle not reached, proceeding after fixed wait", url });
+        resolvedLogger.debug({
+          message: 'PS:detectElements - networkidle not reached, proceeding after fixed wait',
+          url,
+        });
       });
       const waitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
-      resolvedLogger.debug({ message: `PS:detectElements - Waiting for timeout`, waitTime, pageClosed: page?.isClosed() });
+      resolvedLogger.debug({
+        message: `PS:detectElements - Waiting for timeout`,
+        waitTime,
+        pageClosed: page?.isClosed(),
+      });
       await page.waitForTimeout(waitTime);
 
       const detection = await this.surveyPage(page);
-      resolvedLogger.info({ message: `PS:detectElements - Element detection script completed.`, foundCount: detection.elements.length, url, userId });
+      resolvedLogger.info({
+        message: `PS:detectElements - Element detection script completed.`,
+        foundCount: detection.elements.length,
+        url,
+        userId,
+      });
       return detection;
     } catch (error: any) {
-      resolvedLogger.error({ message: "PS:detectElements - Error caught during element detection", url, userId, error: error.message, stack: error.stack, pageExists: !!page, pageClosed: page?.isClosed() });
+      resolvedLogger.error({
+        message: 'PS:detectElements - Error caught during element detection',
+        url,
+        userId,
+        error: error.message,
+        stack: error.stack,
+        pageExists: !!page,
+        pageClosed: page?.isClosed(),
+      });
       throw error;
     } finally {
-      resolvedLogger.debug({ message: "PS:detectElements - Inside finally block.", url, userId });
-      resolvedLogger.verbose({ message: "PS:detectElements (finally) - State before closing page", url, pageExists: !!page, pageClosed: page?.isClosed() });
+      resolvedLogger.debug({ message: 'PS:detectElements - Inside finally block.', url, userId });
+      resolvedLogger.verbose({
+        message: 'PS:detectElements (finally) - State before closing page',
+        url,
+        pageExists: !!page,
+        pageClosed: page?.isClosed(),
+      });
       if (page && !page.isClosed()) {
-        resolvedLogger.debug({ message: "PS:detectElements (finally) - Attempting to close page...", url });
-        await page.close().catch(e => resolvedLogger.warn({ message: "PS:detectElements - Error closing page", url, error: e.message, stack: e.stack }));
+        resolvedLogger.debug({
+          message: 'PS:detectElements (finally) - Attempting to close page...',
+          url,
+        });
+        await page.close().catch((e) =>
+          resolvedLogger.warn({
+            message: 'PS:detectElements - Error closing page',
+            url,
+            error: e.message,
+            stack: e.stack,
+          }),
+        );
       }
-      resolvedLogger.verbose({ message: "PS:detectElements (finally) - State before closing context", url, contextExists: !!context });
+      resolvedLogger.verbose({
+        message: 'PS:detectElements (finally) - State before closing context',
+        url,
+        contextExists: !!context,
+      });
       if (context) {
-        resolvedLogger.debug({ message: "PS:detectElements (finally) - Attempting to close context...", url });
-        await context.close().catch(e => resolvedLogger.warn({ message: "PS:detectElements - Error closing context", url, error: e.message, stack: e.stack }));
+        resolvedLogger.debug({
+          message: 'PS:detectElements (finally) - Attempting to close context...',
+          url,
+        });
+        await context.close().catch((e) =>
+          resolvedLogger.warn({
+            message: 'PS:detectElements - Error closing context',
+            url,
+            error: e.message,
+            stack: e.stack,
+          }),
+        );
       }
-      resolvedLogger.verbose({ message: "PS:detectElements (finally) - State before closing browser", url, browserExists: !!browser, browserConnected: browser?.isConnected() });
+      resolvedLogger.verbose({
+        message: 'PS:detectElements (finally) - State before closing browser',
+        url,
+        browserExists: !!browser,
+        browserConnected: browser?.isConnected(),
+      });
       if (browser && browser.isConnected()) {
-        resolvedLogger.debug({ message: "PS:detectElements (finally) - Attempting to close browser...", url });
-        await browser.close().catch(e => resolvedLogger.warn({ message: "PS:detectElements - Error closing browser", url, error: e.message, stack: e.stack }));
+        resolvedLogger.debug({
+          message: 'PS:detectElements (finally) - Attempting to close browser...',
+          url,
+        });
+        await browser.close().catch((e) =>
+          resolvedLogger.warn({
+            message: 'PS:detectElements - Error closing browser',
+            url,
+            error: e.message,
+            stack: e.stack,
+          }),
+        );
       }
     }
   }
@@ -1881,7 +2542,13 @@ export class PlaywrightService {
     // to compare each step against its visual baseline. Absent means what it has always
     // meant — the user's own browser setting, and no visual comparison.
     options?: ExecuteSequenceOptions,
-  ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; evidence?: CapturedEvidence }> {
+  ): Promise<{
+    success: boolean;
+    steps?: StepResult[];
+    error?: string;
+    duration?: number;
+    evidence?: CapturedEvidence;
+  }> {
     const startTime = Date.now();
 
     // A test with rows of input runs once per row, with that row's values layered over the
@@ -1916,7 +2583,14 @@ export class PlaywrightService {
     // The object itself: the steps store into it, and the cleanup after the test reads what they stored.
     options?.onVariables?.(vars);
     const wsEmitter = getWsEmitter();
-    resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
+    resolvedLogger.http({
+      message: 'PlaywrightService: executeTestSequence called',
+      testName: test.name,
+      testId: test.id,
+      userId,
+      testUrl: test.url,
+      screenshotBaseDir,
+    });
 
     // Calls to step groups become the steps those groups hold, before anything is launched.
     // A call that cannot be expanded — a group deleted since the test was written — fails the
@@ -1924,7 +2598,11 @@ export class PlaywrightService {
     const expansion = await expandSequenceForRun(test.sequence);
     if (expansion.errors.length > 0) {
       const message = expansion.errors.join(' ');
-      resolvedLogger.warn({ message: `PS:executeTestSequence - ${message}`, testName: test.name, testId: test.id });
+      resolvedLogger.warn({
+        message: `PS:executeTestSequence - ${message}`,
+        testName: test.name,
+        testId: test.id,
+      });
       return { success: false, steps: [], error: message, duration: Date.now() - startTime };
     }
     // Then the steps that name an element from the project's repository take its current
@@ -1936,7 +2614,11 @@ export class PlaywrightService {
     const flow = analyseFlow(sequenceToRun);
     if (!flow.ok) {
       const message = flow.errors.join(' ');
-      resolvedLogger.warn({ message: `PS:executeTestSequence - ${message}`, testName: test.name, testId: test.id });
+      resolvedLogger.warn({
+        message: `PS:executeTestSequence - ${message}`,
+        testName: test.name,
+        testId: test.id,
+      });
       return { success: false, steps: [], error: message, duration: Date.now() - startTime };
     }
     if (resolution.unresolved.length > 0) {
@@ -1990,11 +2672,22 @@ export class PlaywrightService {
      */
     const finishEvidence = async (passed: boolean) => {
       if (matrix) {
-        if (!stepResults.length) stepResults.push({ name: 'Runtime configuration', type: 'configuration', status: 'passed', details: matrix.verdict });
+        if (!stepResults.length)
+          stepResults.push({
+            name: 'Runtime configuration',
+            type: 'configuration',
+            status: 'passed',
+            details: matrix.verdict,
+          });
         stepResults[0].matrixEvidence = matrix;
       }
       if (gridProvider && page) {
-        await markGridSession(page, gridProvider, passed, stepResults.find((step) => step.status === 'failed')?.error ?? null);
+        await markGridSession(
+          page,
+          gridProvider,
+          passed,
+          stepResults.find((step) => step.status === 'failed')?.error ?? null,
+        );
       }
       evidence = await captureRunEvidence({
         context,
@@ -2012,20 +2705,39 @@ export class PlaywrightService {
 
     try {
       const userSettings = await storage.getUserSettings(userId);
-      const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
+      const headlessMode =
+        userSettings?.playwrightHeadless !== undefined
+          ? userSettings.playwrightHeadless
+          : DEFAULT_HEADLESS;
       // The plan's element timeout when a plan is driving this, the user's own setting otherwise.
-      const pageTimeout = options?.runtime?.elementTimeoutMs ?? (userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT);
+      const pageTimeout =
+        options?.runtime?.elementTimeoutMs ??
+        (userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT);
       // The plan's browser when a plan is driving this, the user's own setting otherwise —
       // which is what every run used before a plan's choice was honoured at all.
-      const browserChoice =
-        options?.browser ??
-        resolveBrowser(userSettings?.playwrightBrowser || DEFAULT_BROWSER, headlessMode) ??
-        { label: DEFAULT_BROWSER, engine: DEFAULT_BROWSER, headless: headlessMode };
-      resolvedLogger.debug({ message: `PS:executeTestSequence - Effective settings`, testName: test.name, browser: describeBrowser(browserChoice), pageTimeout });
-      matrix = matrixEvidence({ route: browserChoice.grid ? 'grid' : browserChoice.agent ? 'agent' : 'local',
+      const browserChoice = options?.browser ??
+        resolveBrowser(userSettings?.playwrightBrowser || DEFAULT_BROWSER, headlessMode) ?? {
+          label: DEFAULT_BROWSER,
+          engine: DEFAULT_BROWSER,
+          headless: headlessMode,
+        };
+      resolvedLogger.debug({
+        message: `PS:executeTestSequence - Effective settings`,
+        testName: test.name,
+        browser: describeBrowser(browserChoice),
+        pageTimeout,
+      });
+      matrix = matrixEvidence({
+        route: browserChoice.grid ? 'grid' : browserChoice.agent ? 'agent' : 'local',
         ...(browserChoice.grid ? { provider: browserChoice.grid.provider } : {}),
-        requested: { browser: browserChoice.name ?? browserChoice.grid?.browserName ?? browserChoice.label, ...browserChoice.machine,
-          ...(browserChoice.device ? { device: browserChoice.device } : {}) }, effective: {}, source: 'unavailable' });
+        requested: {
+          browser: browserChoice.name ?? browserChoice.grid?.browserName ?? browserChoice.label,
+          ...browserChoice.machine,
+          ...(browserChoice.device ? { device: browserChoice.device } : {}),
+        },
+        effective: {},
+        source: 'unavailable',
+      });
 
       browser = await launchBrowser(browserChoice, {
         name: test.name ?? 'test',
@@ -2037,11 +2749,14 @@ export class PlaywrightService {
       // spend its first thirty seconds logging in — and does not fail for a reason that has
       // nothing to do with what it checks.
       const savedLogin = environment ? await loadLoginState(environment) : undefined;
-      const { acceptLanguage: savedAcceptLanguage, ...storageState } = savedLogin ?? ({} as Partial<LoginState>);
+      const { acceptLanguage: savedAcceptLanguage, ...storageState } =
+        savedLogin ?? ({} as Partial<LoginState>);
       // A plan's own locale wins: it is what the plan tests. Otherwise the recorder's header, so
       // a site that binds its session to it keeps the session.
       const replayHeaders =
-        savedLogin && savedAcceptLanguage && !options?.locale ? { 'Accept-Language': savedAcceptLanguage } : undefined;
+        savedLogin && savedAcceptLanguage && !options?.locale
+          ? { 'Accept-Language': savedAcceptLanguage }
+          : undefined;
       if (savedLogin) {
         resolvedLogger.debug({
           message: 'PS:executeTestSequence - starting from the saved login state',
@@ -2086,40 +2801,80 @@ export class PlaywrightService {
       if (targetUrl) {
         try {
           const navMessage = `Navigating to ${targetUrl}`;
-          resolvedLogger.debug({ message: "PS:executeTestSequence - " + navMessage, testName: test.name, url: targetUrl });
+          resolvedLogger.debug({
+            message: 'PS:executeTestSequence - ' + navMessage,
+            testName: test.name,
+            url: targetUrl,
+          });
           if (executionId) {
             wsEmitter.emitExecutionLog(executionId, {
               level: 'step',
               source: 'playwright',
               message: navMessage,
               timestamp: new Date().toISOString(),
-              metadata: { url: targetUrl }
+              metadata: { url: targetUrl },
             });
           }
           await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
           const navBuffer = keepsScreenshot(screenshots, 'passed')
             ? await evidenceScreenshot(page, (reason) =>
-                resolvedLogger.warn({ message: 'PS:executeTestSequence - No screenshot of the loaded page', testName: test.name, reason }),
+                resolvedLogger.warn({
+                  message: 'PS:executeTestSequence - No screenshot of the loaded page',
+                  testName: test.name,
+                  reason,
+                }),
               )
             : undefined;
-          const navScreenshotPath = navBuffer ? await storeScreenshot(navBuffer, 'navigation_load') : undefined;
-          stepResults.push({ name: 'Load Page', type: 'navigation', status: 'passed', screenshot: navScreenshotPath, details: `Successfully navigated to ${test.url}` });
+          const navScreenshotPath = navBuffer
+            ? await storeScreenshot(navBuffer, 'navigation_load')
+            : undefined;
+          stepResults.push({
+            name: 'Load Page',
+            type: 'navigation',
+            status: 'passed',
+            screenshot: navScreenshotPath,
+            details: `Successfully navigated to ${test.url}`,
+          });
         } catch (e: any) {
           overallSuccess = false;
-          resolvedLogger.error({ message: "PS:executeTestSequence - Failed initial navigation", testName: test.name, url: test.url, error: e.message, stack: e.stack });
+          resolvedLogger.error({
+            message: 'PS:executeTestSequence - Failed initial navigation',
+            testName: test.name,
+            url: test.url,
+            error: e.message,
+            stack: e.stack,
+          });
           let errorNavScreenshotPath: string | undefined;
           if (page && !page.isClosed() && keepsScreenshot(screenshots, 'failed')) {
             if (screenshotBaseDir) {
               await fs.ensureDir(screenshotBaseDir);
-              const errorScreenshotFilePath = path.join(screenshotBaseDir, `step_navigation_load_error_${Date.now()}.png`);
-              await page.screenshot({ type: 'png', path: errorScreenshotFilePath }).catch(err => resolvedLogger.warn("Failed to save error screenshot to file", err));
+              const errorScreenshotFilePath = path.join(
+                screenshotBaseDir,
+                `step_navigation_load_error_${Date.now()}.png`,
+              );
+              await page
+                .screenshot({ type: 'png', path: errorScreenshotFilePath })
+                .catch((err) =>
+                  resolvedLogger.warn('Failed to save error screenshot to file', err),
+                );
               errorNavScreenshotPath = errorScreenshotFilePath;
             } else {
-              const errorScreenshotBuffer = await page.screenshot({ type: 'png' }).catch(() => null);
-              errorNavScreenshotPath = errorScreenshotBuffer ? `data:image/png;base64,${errorScreenshotBuffer.toString('base64')}` : undefined;
+              const errorScreenshotBuffer = await page
+                .screenshot({ type: 'png' })
+                .catch(() => null);
+              errorNavScreenshotPath = errorScreenshotBuffer
+                ? `data:image/png;base64,${errorScreenshotBuffer.toString('base64')}`
+                : undefined;
             }
           }
-          stepResults.push({ name: 'Load Page', type: 'navigation', status: 'failed', error: e.message, screenshot: errorNavScreenshotPath, details: `Failed to navigate to ${test.url}` });
+          stepResults.push({
+            name: 'Load Page',
+            type: 'navigation',
+            status: 'failed',
+            error: e.message,
+            screenshot: errorNavScreenshotPath,
+            details: `Failed to navigate to ${test.url}`,
+          });
           const duration = Date.now() - startTime;
           // A run that never got past the first navigation is exactly the run somebody will
           // want the video of.
@@ -2127,13 +2882,21 @@ export class PlaywrightService {
           return { success: false, steps: stepResults, error: e.message, duration, evidence };
         }
       } else {
-        stepResults.push({ name: 'Initial State', type: 'setup', status: 'passed', details: 'No initial URL provided.' });
+        stepResults.push({
+          name: 'Initial State',
+          type: 'setup',
+          status: 'passed',
+          details: 'No initial URL provided.',
+        });
       }
 
       const reporter = new PlaywrightReporter(page); // Initialize reporter
 
       if (overallSuccess && sequenceToRun.length > 0) {
-        resolvedLogger.debug({ message: `PS:executeTestSequence - Starting execution of ${sequenceToRun.length} steps`, testName: test.name });
+        resolvedLogger.debug({
+          message: `PS:executeTestSequence - Starting execution of ${sequenceToRun.length} steps`,
+          testName: test.name,
+        });
 
         const cursor = new FlowCursor(sequenceToRun, flow.blocks, vars);
         while (!cursor.done) {
@@ -2145,8 +2908,9 @@ export class PlaywrightService {
           if (options?.signal?.aborted) {
             // The run is stopping. The step that was going has finished; this one does not start,
             // and the test says why it is shorter than it should be.
-            const reason = String((options.signal.reason as Error | undefined)?.message ?? 'The run was stopped.')
-              .replace(/^Not run: /, '');
+            const reason = String(
+              (options.signal.reason as Error | undefined)?.message ?? 'The run was stopped.',
+            ).replace(/^Not run: /, '');
             stepResults.push({
               name: step.action?.name || 'Unnamed Action',
               type: step.action?.id || 'unknown',
@@ -2182,7 +2946,11 @@ export class PlaywrightService {
               source: 'playwright',
               message: stepLogMessage,
               timestamp: new Date().toISOString(),
-              metadata: { action: actionName, stepIndex: i, selector: step.targetElement?.selector }
+              metadata: {
+                action: actionName,
+                stepIndex: i,
+                selector: step.targetElement?.selector,
+              },
             });
           }
 
@@ -2191,11 +2959,17 @@ export class PlaywrightService {
 
             let outcome: Awaited<ReturnType<typeof executeStep>>;
             try {
-              outcome = await executeStep({ page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir }, step);
+              outcome = await executeStep(
+                { page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir },
+                step,
+              );
             } catch (firstError: any) {
               // Retried below like a failed outcome; without the plan's retry it fails as it did.
               if (!options?.runtime?.retryFailedStep) throw firstError;
-              outcome = { status: 'failed', error: firstError?.message ?? String(firstError) } as typeof outcome;
+              outcome = {
+                status: 'failed',
+                error: firstError?.message ?? String(firstError),
+              } as typeof outcome;
             }
             if (outcome.status === 'failed' && options?.runtime?.retryFailedStep) {
               // "On Major Step Failure: Retry Step" — once. What the step reports is the second
@@ -2211,7 +2985,10 @@ export class PlaywrightService {
                 });
               }
               reporter.resetStepState();
-              outcome = await executeStep({ page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir }, step);
+              outcome = await executeStep(
+                { page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir },
+                step,
+              );
             }
             // A step that moved the test to another tab: the steps after it, the healing pass
             // and this step's screenshot all belong to that tab.
@@ -2244,7 +3021,12 @@ export class PlaywrightService {
             // Either way a picture that cannot be taken leaves the step's result as it is: a
             // comparison without its image is skipped, not failed (see evidenceScreenshot).
             const noPicture = (reason: string) => {
-              resolvedLogger.warn({ message: 'PS:executeTestSequence - No screenshot for step', testName: test.name, step: i + 1, reason });
+              resolvedLogger.warn({
+                message: 'PS:executeTestSequence - No screenshot for step',
+                testName: test.name,
+                step: i + 1,
+                reason,
+              });
               if (executionId) {
                 wsEmitter.emitExecutionLog(executionId, {
                   level: 'warn',
@@ -2274,12 +3056,16 @@ export class PlaywrightService {
               // Inside a loop, each pass has its own baseline (see FlowCursor.iterationKey).
               const iteration = cursor.iterationKey();
               const visualContext = iteration
-                ? { ...options.visual, variant: [options.visual.variant, iteration].filter(Boolean).join('_') }
+                ? {
+                    ...options.visual,
+                    variant: [options.visual.variant, iteration].filter(Boolean).join('_'),
+                  }
                 : options.visual;
               const visualOutcome = await compareStepScreenshot(visualContext, i, screenshotBuffer);
               stepVisual = {
                 outcome: visualOutcome.kind,
-                detail: visualOutcome.kind === 'skipped' ? visualOutcome.reason : visualOutcome.detail,
+                detail:
+                  visualOutcome.kind === 'skipped' ? visualOutcome.reason : visualOutcome.detail,
                 ...(visualOutcome.kind === 'diff'
                   ? {
                       diffRatio: visualOutcome.diffRatio,
@@ -2308,7 +3094,6 @@ export class PlaywrightService {
                 });
               }
             }
-
           } catch (e: any) {
             stepStatus = 'failed';
             stepError = e.message;
@@ -2317,9 +3102,15 @@ export class PlaywrightService {
 
             // A step that threw is the step somebody will want the picture of. Only for a plan
             // run, which decides screenshots: the other callers never took one here.
-            if (options?.runtime && !stepScreenshot && keepsScreenshot(screenshots, 'failed') && !page.isClosed()) {
+            if (
+              options?.runtime &&
+              !stepScreenshot &&
+              keepsScreenshot(screenshots, 'failed') &&
+              !page.isClosed()
+            ) {
               const buffer = await page.screenshot({ type: 'png' }).catch(() => null);
-              if (buffer) stepScreenshot = await storeScreenshot(buffer, actionName).catch(() => undefined);
+              if (buffer)
+                stepScreenshot = await storeScreenshot(buffer, actionName).catch(() => undefined);
             }
           }
 
@@ -2330,7 +3121,10 @@ export class PlaywrightService {
             // Which of the test's steps this was, so a fix proposed from the report can be put
             // back into that step (client/src/components/reports/FailureAnalysisDialog.tsx).
             stepId: typeof step.id === 'string' ? step.id : undefined,
-            calledFrom: typeof (step as { calledFrom?: unknown }).calledFrom === 'string' ? (step as { calledFrom?: string }).calledFrom : undefined,
+            calledFrom:
+              typeof (step as { calledFrom?: unknown }).calledFrom === 'string'
+                ? (step as { calledFrom?: string }).calledFrom
+                : undefined,
             selector: step.targetElement?.selector ?? null,
             status: stepStatus,
             screenshot: stepScreenshot,
@@ -2348,7 +3142,13 @@ export class PlaywrightService {
           const runaway = cursor.advance(flowOutcome);
           if (runaway) {
             overallSuccess = false;
-            stepResults.push({ name: actionName, type: actionId || 'unknown', status: 'failed', error: runaway, details: runaway });
+            stepResults.push({
+              name: actionName,
+              type: actionId || 'unknown',
+              status: 'failed',
+              error: runaway,
+              details: runaway,
+            });
             break;
           }
         }
@@ -2357,21 +3157,24 @@ export class PlaywrightService {
       const duration = Date.now() - startTime;
       await finishEvidence(overallSuccess);
       return { success: overallSuccess, steps: stepResults, duration, evidence };
-
     } catch (error: any) {
       const duration = Date.now() - startTime;
       await finishEvidence(false);
-      return { success: false, steps: stepResults, error: error.message || 'Unknown critical error', duration, evidence };
+      return {
+        success: false,
+        steps: stepResults,
+        error: error.message || 'Unknown critical error',
+        duration,
+        evidence,
+      };
     } finally {
       // Defensive: finishEvidence has normally closed both already and nulled them, so these
       // only fire on a path that returned without going through it.
-      if (page) await page.close().catch(() => { });
-      if (context) await context.close().catch(() => { });
+      if (page) await page.close().catch(() => {});
+      if (context) await context.close().catch(() => {});
       if (browser) await (await browserPool).release(browser);
     }
   }
 }
 
-
 export const playwrightService = new PlaywrightService();
-

@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { addComment, authHeader, checkConnection, createIssue, toAdf, toHtml } from './issue-providers';
+import {
+  addComment,
+  authHeader,
+  checkConnection,
+  createIssue,
+  toAdf,
+  toHtml,
+} from './issue-providers';
 
 /**
  * Speaking to Jira and to Azure DevOps.
@@ -37,7 +44,9 @@ function respond(body: unknown, init: { status?: number } = {}) {
 
 describe('authHeader', () => {
   it('pairs a Jira token with the account it belongs to', () => {
-    expect(authHeader(jira)).toBe(`Basic ${Buffer.from('qa@acme.test:token-123').toString('base64')}`);
+    expect(authHeader(jira)).toBe(
+      `Basic ${Buffer.from('qa@acme.test:token-123').toString('base64')}`,
+    );
   });
 
   it('sends an Azure DevOps token with no username, which is what it wants', () => {
@@ -72,7 +81,11 @@ describe('createIssue', () => {
   it('files a Jira issue and answers with where to find it', async () => {
     const fetchImpl = respond({ id: '10001', key: 'SHOP-412' });
 
-    const created = await createIssue(jira, { title: 'Checkout fails', body: 'Because.' }, { fetchImpl });
+    const created = await createIssue(
+      jira,
+      { title: 'Checkout fails', body: 'Because.' },
+      { fetchImpl },
+    );
 
     expect(created).toEqual({ key: 'SHOP-412', url: 'https://acme.atlassian.net/browse/SHOP-412' });
     const [url, init] = fetchImpl.mock.calls[0];
@@ -83,15 +96,26 @@ describe('createIssue', () => {
   });
 
   it('files an Azure DevOps work item as the patch it expects', async () => {
-    const fetchImpl = respond({ id: 77, _links: { html: { href: 'https://dev.azure.com/acme/_workitems/edit/77' } } });
+    const fetchImpl = respond({
+      id: 77,
+      _links: { html: { href: 'https://dev.azure.com/acme/_workitems/edit/77' } },
+    });
 
-    const created = await createIssue(azure, { title: 'Checkout fails', body: 'Because.' }, { fetchImpl });
+    const created = await createIssue(
+      azure,
+      { title: 'Checkout fails', body: 'Because.' },
+      { fetchImpl },
+    );
 
     expect(created).toEqual({ key: '77', url: 'https://dev.azure.com/acme/_workitems/edit/77' });
     const [url, init] = fetchImpl.mock.calls[0];
     expect(url).toContain('/Platform/_apis/wit/workitems/$Bug');
     expect(init.headers['Content-Type']).toBe('application/json-patch+json');
-    expect(JSON.parse(init.body)[0]).toEqual({ op: 'add', path: '/fields/System.Title', value: 'Checkout fails' });
+    expect(JSON.parse(init.body)[0]).toEqual({
+      op: 'add',
+      path: '/fields/System.Title',
+      value: 'Checkout fails',
+    });
   });
 
   it('repeats what Jira said was wrong, rather than the status code', async () => {
@@ -103,7 +127,10 @@ describe('createIssue', () => {
   });
 
   it('repeats what Azure DevOps said was wrong', async () => {
-    const fetchImpl = respond({ message: 'The field Area Path contains an invalid value' }, { status: 400 });
+    const fetchImpl = respond(
+      { message: 'The field Area Path contains an invalid value' },
+      { status: 400 },
+    );
 
     await expect(createIssue(azure, { title: 't', body: 'b' }, { fetchImpl })).rejects.toThrow(
       /Area Path/,
@@ -113,7 +140,9 @@ describe('createIssue', () => {
   it('refuses to claim an issue exists when the answer does not name one', async () => {
     const fetchImpl = respond({ ok: true });
 
-    await expect(createIssue(jira, { title: 't', body: 'b' }, { fetchImpl })).rejects.toThrow(/did not say/);
+    await expect(createIssue(jira, { title: 't', body: 'b' }, { fetchImpl })).rejects.toThrow(
+      /did not say/,
+    );
   });
 });
 
@@ -123,7 +152,9 @@ describe('addComment', () => {
 
     await addComment(jira, 'SHOP-412', 'Failed again.', { fetchImpl });
 
-    expect(fetchImpl.mock.calls[0][0]).toBe('https://acme.atlassian.net/rest/api/3/issue/SHOP-412/comment');
+    expect(fetchImpl.mock.calls[0][0]).toBe(
+      'https://acme.atlassian.net/rest/api/3/issue/SHOP-412/comment',
+    );
   });
 
   it('comments on the Azure DevOps work item', async () => {

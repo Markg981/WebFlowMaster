@@ -12,7 +12,7 @@ import {
   type User,
   type Project,
   type InsertUser,
-  type InsertProject
+  type InsertProject,
 } from '../shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { createTestOrganization } from './tests/factories';
@@ -30,7 +30,6 @@ vi.mock('./logger', () => ({
   },
   updateLogLevel: vi.fn(),
 }));
-
 
 let app: Application;
 
@@ -50,7 +49,6 @@ let seededApiTestUser1Project1: InsertApiTest;
 let _seededApiTestUser1NoProject: InsertApiTest;
 let seededApiTestUser2: InsertApiTest;
 let organizationId: number;
-
 
 beforeAll(async () => {
   app = express();
@@ -79,7 +77,6 @@ beforeAll(async () => {
 // let seededUser1: User; // This was the duplicate line causing issues if it appeared again below
 // let seededUser2: User; // This was the duplicate line
 
-
 beforeEach(async () => {
   // Clear tables in reverse order of dependencies or specific order
   await privilegedDb.delete(apiTests);
@@ -95,11 +92,31 @@ beforeEach(async () => {
   // Seed Users
   // Drizzle's .returning() gives an array, so destructure to get the object.
   // Do not specify IDs, let them be auto-generated.
-  [seededUser1] = await privilegedDb.insert(users).values({ username: mockUser1Data.username, password: 'hashed_password1', organizationId } as Omit<InsertUser, 'id'>).returning();
-  [seededUser2] = await privilegedDb.insert(users).values({ username: mockUser2Data.username, password: 'hashed_password2', organizationId } as Omit<InsertUser, 'id'>).returning();
+  [seededUser1] = await privilegedDb
+    .insert(users)
+    .values({
+      username: mockUser1Data.username,
+      password: 'hashed_password1',
+      organizationId,
+    } as Omit<InsertUser, 'id'>)
+    .returning();
+  [seededUser2] = await privilegedDb
+    .insert(users)
+    .values({
+      username: mockUser2Data.username,
+      password: 'hashed_password2',
+      organizationId,
+    } as Omit<InsertUser, 'id'>)
+    .returning();
 
   // Seed Projects
-  [seededProject1User1] = await privilegedDb.insert(projects).values({ name: 'User1 Project1', userId: seededUser1.id, organizationId } as Omit<InsertProject, 'id'>).returning();
+  [seededProject1User1] = await privilegedDb
+    .insert(projects)
+    .values({ name: 'User1 Project1', userId: seededUser1.id, organizationId } as Omit<
+      InsertProject,
+      'id'
+    >)
+    .returning();
 
   // Seed ApiTests
   const testDataUser1Project1 = {
@@ -117,9 +134,11 @@ beforeEach(async () => {
   // Store a reference if needed, e.g. by re-selecting or assuming ID if auto-increment makes it predictable (not safe)
   // For simplicity, we will query them back in tests or rely on names/user to identify.
   // Let's retrieve them to have IDs for direct GET/DELETE tests.
-  const insertedTestsUser1Project1 = await privilegedDb.select().from(apiTests).where(and(eq(apiTests.name, testDataUser1Project1.name), eq(apiTests.userId, seededUser1.id)));
+  const insertedTestsUser1Project1 = await privilegedDb
+    .select()
+    .from(apiTests)
+    .where(and(eq(apiTests.name, testDataUser1Project1.name), eq(apiTests.userId, seededUser1.id)));
   seededApiTestUser1Project1 = insertedTestsUser1Project1[0];
-
 
   const testDataUser1NoProject = {
     userId: seededUser1.id,
@@ -129,9 +148,13 @@ beforeEach(async () => {
     url: 'http://example.com/user1/noproj',
   };
   await privilegedDb.insert(apiTests).values(testDataUser1NoProject);
-  const insertedTestsUser1NoProject = await privilegedDb.select().from(apiTests).where(and(eq(apiTests.name, testDataUser1NoProject.name), eq(apiTests.userId, seededUser1.id)));
+  const insertedTestsUser1NoProject = await privilegedDb
+    .select()
+    .from(apiTests)
+    .where(
+      and(eq(apiTests.name, testDataUser1NoProject.name), eq(apiTests.userId, seededUser1.id)),
+    );
   _seededApiTestUser1NoProject = insertedTestsUser1NoProject[0];
-
 
   const testDataUser2 = {
     userId: seededUser2.id,
@@ -141,7 +164,10 @@ beforeEach(async () => {
     url: 'http://example.com/user2',
   };
   await privilegedDb.insert(apiTests).values(testDataUser2);
-  const insertedTestsUser2 = await privilegedDb.select().from(apiTests).where(and(eq(apiTests.name, testDataUser2.name), eq(apiTests.userId, seededUser2.id)));
+  const insertedTestsUser2 = await privilegedDb
+    .select()
+    .from(apiTests)
+    .where(and(eq(apiTests.name, testDataUser2.name), eq(apiTests.userId, seededUser2.id)));
   seededApiTestUser2 = insertedTestsUser2[0];
 
   currentMockUser = seededUser1; // Default to user1 for tests
@@ -158,8 +184,24 @@ afterAll(async () => {
 /** An API test in another organization, and a member of it to look from there. */
 async function otherOrganizationTest() {
   const otherOrganizationId = await createTestOrganization('Other API Org');
-  const [stranger] = await privilegedDb.insert(users).values({ username: `stranger-${Date.now()}`, password: 'x', organizationId: otherOrganizationId } as Omit<InsertUser, 'id'>).returning();
-  const [theirs] = await privilegedDb.insert(apiTests).values({ userId: stranger.id, organizationId: otherOrganizationId, name: 'Theirs', method: 'GET', url: 'http://example.com/theirs' }).returning();
+  const [stranger] = await privilegedDb
+    .insert(users)
+    .values({
+      username: `stranger-${Date.now()}`,
+      password: 'x',
+      organizationId: otherOrganizationId,
+    } as Omit<InsertUser, 'id'>)
+    .returning();
+  const [theirs] = await privilegedDb
+    .insert(apiTests)
+    .values({
+      userId: stranger.id,
+      organizationId: otherOrganizationId,
+      name: 'Theirs',
+      method: 'GET',
+      url: 'http://example.com/theirs',
+    })
+    .returning();
   return { stranger, theirs };
 }
 
@@ -170,11 +212,13 @@ describe('API Tests Endpoints', () => {
     // nothing left to restrict (collaudo MEM-06).
     it("lists the organization's API tests, colleagues' included, with creator and project names", async () => {
       currentMockUser = seededUser2;
-      const response = await request(app)
-        .get('/api/api-tests')
-        .expect(200);
+      const response = await request(app).get('/api/api-tests').expect(200);
 
-      expect(response.body.map((t: ApiTest) => t.name).sort()).toEqual(['Test for User1, No Project', 'Test for User1, Project1', 'Test for User2']);
+      expect(response.body.map((t: ApiTest) => t.name).sort()).toEqual([
+        'Test for User1, No Project',
+        'Test for User1, Project1',
+        'Test for User2',
+      ]);
 
       const test1 = response.body.find((t: ApiTest) => t.name === 'Test for User1, Project1');
       expect(test1.creatorUsername).toBe(seededUser1.username);
@@ -195,12 +239,18 @@ describe('API Tests Endpoints', () => {
     });
 
     it("hides a restricted project's API tests from a member not on it", async () => {
-      await privilegedDb.update(projects).set({ restricted: true }).where(eq(projects.id, seededProject1User1.id));
+      await privilegedDb
+        .update(projects)
+        .set({ restricted: true })
+        .where(eq(projects.id, seededProject1User1.id));
       currentMockUser = seededUser2;
 
       const response = await request(app).get('/api/api-tests').expect(200);
 
-      expect(response.body.map((t: ApiTest) => t.name).sort()).toEqual(['Test for User1, No Project', 'Test for User2']);
+      expect(response.body.map((t: ApiTest) => t.name).sort()).toEqual([
+        'Test for User1, No Project',
+        'Test for User2',
+      ]);
     });
   });
 
@@ -208,9 +258,7 @@ describe('API Tests Endpoints', () => {
     it('should return a single API test with details if it belongs to the user', async () => {
       currentMockUser = seededUser1;
       const testId = seededApiTestUser1Project1.id;
-      const response = await request(app)
-        .get(`/api/api-tests/${testId}`)
-        .expect(200);
+      const response = await request(app).get(`/api/api-tests/${testId}`).expect(200);
 
       expect(response.body.id).toBe(testId);
       expect(response.body.name).toBe(seededApiTestUser1Project1.name);
@@ -222,14 +270,14 @@ describe('API Tests Endpoints', () => {
     it('should return 404 if the API test is not found', async () => {
       currentMockUser = seededUser1;
       const nonExistentId = 9999;
-      await request(app)
-        .get(`/api/api-tests/${nonExistentId}`)
-        .expect(404);
+      await request(app).get(`/api/api-tests/${nonExistentId}`).expect(404);
     });
 
     it("opens a colleague's API test", async () => {
       currentMockUser = seededUser1;
-      const response = await request(app).get(`/api/api-tests/${seededApiTestUser2.id}`).expect(200);
+      const response = await request(app)
+        .get(`/api/api-tests/${seededApiTestUser2.id}`)
+        .expect(200);
       expect(response.body.creatorUsername).toBe(seededUser2.username);
     });
 
@@ -244,8 +292,8 @@ describe('API Tests Endpoints', () => {
       await request(app)
         .get('/api/api-tests/invalid-id')
         .expect(400)
-        .then(res => {
-            expect(res.body.error).toBe("Invalid test ID format");
+        .then((res) => {
+          expect(res.body.error).toBe('Invalid test ID format');
         });
     });
   });
@@ -269,7 +317,10 @@ describe('API Tests Endpoints', () => {
       expect(response.body.projectId).toBe(seededProject1User1.id);
       expect(response.body.userId).toBe(seededUser1.id);
 
-      const [stored] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, response.body.id));
+      const [stored] = await privilegedDb
+        .select()
+        .from(apiTests)
+        .where(eq(apiTests.id, response.body.id));
       expect(stored.projectId).toBe(seededProject1User1.id);
     });
 
@@ -291,17 +342,28 @@ describe('API Tests Endpoints', () => {
 
     it('keeps a performance check, and refuses one beyond the caps', async () => {
       currentMockUser = seededUser1;
-      const performance = { iterations: 30, concurrency: 3, thresholds: { p95Ms: 400, errorRatePct: 1 } };
+      const performance = {
+        iterations: 30,
+        concurrency: 3,
+        thresholds: { p95Ms: 400, errorRatePct: 1 },
+      };
       const response = await request(app)
         .post('/api/api-tests')
         .send({ ...newTestPayload(), name: 'Timed', performance })
         .expect(201);
-      const [stored] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, response.body.id));
+      const [stored] = await privilegedDb
+        .select()
+        .from(apiTests)
+        .where(eq(apiTests.id, response.body.id));
       expect(stored.performance).toEqual(performance);
 
       await request(app)
         .post('/api/api-tests')
-        .send({ ...newTestPayload(), name: 'Load test in disguise', performance: { ...performance, iterations: 10_000 } })
+        .send({
+          ...newTestPayload(),
+          name: 'Load test in disguise',
+          performance: { ...performance, iterations: 10_000 },
+        })
         .expect(400);
     });
 
@@ -333,7 +395,10 @@ describe('API Tests Endpoints', () => {
       expect(response.body.organizationId).toBe(organizationId);
       expect(response.body.organizationId).not.toBe(otherOrganizationId);
 
-      const [stored] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, response.body.id));
+      const [stored] = await privilegedDb
+        .select()
+        .from(apiTests)
+        .where(eq(apiTests.id, response.body.id));
       expect(stored.organizationId).toBe(organizationId);
     });
   });
@@ -366,13 +431,24 @@ describe('API Tests Endpoints', () => {
       currentMockUser = seededUser1;
       await request(app).put(`/api/api-tests/${theirs.id}`).send({ name: 'Hijacked' }).expect(404);
 
-      const [untouched] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, theirs.id));
+      const [untouched] = await privilegedDb
+        .select()
+        .from(apiTests)
+        .where(eq(apiTests.id, theirs.id));
       expect(untouched.name).toBe('Theirs');
     });
 
     it('answers 403 to a viewer on the restricted project, and changes nothing', async () => {
-      await privilegedDb.update(projects).set({ restricted: true }).where(eq(projects.id, seededProject1User1.id));
-      await privilegedDb.insert(projectMembers).values({ projectId: seededProject1User1.id, userId: seededUser2.id, organizationId, role: 'viewer' });
+      await privilegedDb
+        .update(projects)
+        .set({ restricted: true })
+        .where(eq(projects.id, seededProject1User1.id));
+      await privilegedDb.insert(projectMembers).values({
+        projectId: seededProject1User1.id,
+        userId: seededUser2.id,
+        organizationId,
+        role: 'viewer',
+      });
       currentMockUser = seededUser2;
 
       const response = await request(app)
@@ -381,7 +457,10 @@ describe('API Tests Endpoints', () => {
         .expect(403);
 
       expect(response.body.code).toBe('project_read_only');
-      const [untouched] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, seededApiTestUser1Project1.id));
+      const [untouched] = await privilegedDb
+        .select()
+        .from(apiTests)
+        .where(eq(apiTests.id, seededApiTestUser1Project1.id));
       expect(untouched.name).toBe('Test for User1, Project1');
     });
 
@@ -391,8 +470,8 @@ describe('API Tests Endpoints', () => {
         .put('/api/api-tests/invalid-id')
         .send({ name: 'Whatever' })
         .expect(400)
-        .then(res => {
-          expect(res.body.error).toBe("Invalid test ID format");
+        .then((res) => {
+          expect(res.body.error).toBe('Invalid test ID format');
         });
     });
   });
@@ -402,44 +481,41 @@ describe('API Tests Endpoints', () => {
       currentMockUser = seededUser1;
       const testIdToDelete = seededApiTestUser1Project1.id;
 
-      await request(app)
-        .delete(`/api/api-tests/${testIdToDelete}`)
-        .expect(204);
+      await request(app).delete(`/api/api-tests/${testIdToDelete}`).expect(204);
 
       // Verify it's actually deleted from DB
-      const dbCheck = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, testIdToDelete));
+      const dbCheck = await privilegedDb
+        .select()
+        .from(apiTests)
+        .where(eq(apiTests.id, testIdToDelete));
       expect(dbCheck.length).toBe(0);
     });
 
     it('should return 404 when trying to delete a non-existent API test', async () => {
       currentMockUser = seededUser1;
       const nonExistentId = 9999;
-      await request(app)
-        .delete(`/api/api-tests/${nonExistentId}`)
-        .expect(404);
+      await request(app).delete(`/api/api-tests/${nonExistentId}`).expect(404);
     });
 
     it("answers 404 for another organization's API test, and leaves it in place", async () => {
       const { theirs } = await otherOrganizationTest();
       currentMockUser = seededUser1;
 
-      await request(app)
-        .delete(`/api/api-tests/${theirs.id}`)
-        .expect(404);
+      await request(app).delete(`/api/api-tests/${theirs.id}`).expect(404);
 
       const dbCheck = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, theirs.id));
       expect(dbCheck.length).toBe(1);
     });
 
     it('should return 400 if test ID is not a number', async () => {
-        currentMockUser = seededUser1;
-        await request(app)
-          .delete('/api/api-tests/invalid-id')
-          .expect(400)
-          .then(res => {
-              expect(res.body.error).toBe("Invalid test ID format");
-          });
-      });
+      currentMockUser = seededUser1;
+      await request(app)
+        .delete('/api/api-tests/invalid-id')
+        .expect(400)
+        .then((res) => {
+          expect(res.body.error).toBe('Invalid test ID format');
+        });
+    });
   });
 });
 

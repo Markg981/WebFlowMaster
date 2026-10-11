@@ -61,6 +61,7 @@ export function concurrencyCeiling(): number {
 
 /** What a plan asked for, bounded by what this installation allows. */
 export function effectiveConcurrency(requested: number | null | undefined): number {
-  const asked = Number.isFinite(requested) && (requested as number) > 0 ? Math.floor(requested as number) : 1;
+  const asked =
+    Number.isFinite(requested) && (requested as number) > 0 ? Math.floor(requested as number) : 1;
   return Math.max(1, Math.min(asked, concurrencyCeiling()));
 }

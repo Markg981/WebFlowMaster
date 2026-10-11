@@ -166,7 +166,9 @@ describe('SettingsPage - Project Deletion', () => {
     renderSettingsPage();
 
     await openDeleteDialogFor('Project Alpha');
-    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
+    );
 
     await waitFor(() =>
       expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -175,9 +177,7 @@ describe('SettingsPage - Project Deletion', () => {
       ),
     );
     await waitFor(() =>
-      expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Project Deleted' }),
-      ),
+      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Project Deleted' })),
     );
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
@@ -189,7 +189,9 @@ describe('SettingsPage - Project Deletion', () => {
     renderSettingsPage();
 
     await openDeleteDialogFor('Project Alpha');
-    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }),
+    );
 
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith(

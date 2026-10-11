@@ -23,7 +23,10 @@ export interface ViewInventory {
 }
 
 const clean = (s: string | undefined | null): string =>
-  (s ?? '').replace(/\{\{[^}]*\}\}/g, '').replace(/\s+/g, ' ').trim();
+  (s ?? '')
+    .replace(/\{\{[^}]*\}\}/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 // Best-effort stable selector, prioritising the attributes AngularJS apps expose.
 function bestSelector(el: HTMLElement): string {
@@ -43,8 +46,10 @@ function bestSelector(el: HTMLElement): string {
 function classify(el: HTMLElement): { role: UiElement['role']; action: UiElement['action'] } {
   const tag = el.rawTagName?.toLowerCase();
   const type = (el.getAttribute('type') || '').toLowerCase();
-  if (tag === 'input' && (type === 'checkbox' || type === 'radio')) return { role: 'checkbox', action: 'toggle' };
-  if (tag === 'input' || tag === 'textarea') return { role: tag === 'textarea' ? 'textarea' : 'input', action: 'input' };
+  if (tag === 'input' && (type === 'checkbox' || type === 'radio'))
+    return { role: 'checkbox', action: 'toggle' };
+  if (tag === 'input' || tag === 'textarea')
+    return { role: tag === 'textarea' ? 'textarea' : 'input', action: 'input' };
   if (tag === 'select') return { role: 'select', action: 'select' };
   if (tag === 'button') return { role: 'button', action: 'click' };
   if (tag === 'a') return { role: 'link', action: 'click' };
@@ -99,7 +104,9 @@ export function buildViewInventory(htmlPath: string): ViewInventory {
   const viewName = path.basename(htmlPath, '.html');
   const elements = parseView(html, viewName);
   const ctrlPath = htmlPath.replace(/\.html$/, '.controller.js');
-  const actions = fs.existsSync(ctrlPath) ? parseControllerActions(fs.readFileSync(ctrlPath, 'utf-8')) : [];
+  const actions = fs.existsSync(ctrlPath)
+    ? parseControllerActions(fs.readFileSync(ctrlPath, 'utf-8'))
+    : [];
   return { view: viewName, elements, actions };
 }
 
@@ -113,12 +120,17 @@ if (invokedDirectly) {
     process.exit(1);
   }
   const inv = buildViewInventory(file);
-  const byAction = inv.elements.reduce<Record<string, number>>((a, e) => ((a[e.action] = (a[e.action] || 0) + 1), a), {});
+  const byAction = inv.elements.reduce<Record<string, number>>(
+    (a, e) => ((a[e.action] = (a[e.action] || 0) + 1), a),
+    {},
+  );
   console.log(`VIEW: ${inv.view}`);
   console.log(`elements: ${inv.elements.length}`, byAction);
   console.log(`controller actions: ${inv.actions.length}`);
   console.log('\n--- sample interactive elements ---');
   for (const e of inv.elements.filter((x) => x.label).slice(0, 25)) {
-    console.log(`  [${e.action}] "${e.label.slice(0, 40)}" -> ${e.selector}${e.ngClick ? `  (ng-click: ${e.ngClick.slice(0, 50)})` : ''}`);
+    console.log(
+      `  [${e.action}] "${e.label.slice(0, 40)}" -> ${e.selector}${e.ngClick ? `  (ng-click: ${e.ngClick.slice(0, 50)})` : ''}`,
+    );
   }
 }

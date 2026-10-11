@@ -12,7 +12,11 @@ test('empty policy denies every destination', () => {
 });
 
 test('rules bind each exact hostname to its own ports without reverse DNS', () => {
-  const config = squidConfig(parseAllowlist('[{"host":"example.com","ports":[80,443]},{"host":"other.example.com","ports":[8443]}]'));
+  const config = squidConfig(
+    parseAllowlist(
+      '[{"host":"example.com","ports":[80,443]},{"host":"other.example.com","ports":[8443]}]',
+    ),
+  );
   assert.match(config, /acl destination_0 dstdomain -n example.com/);
   assert.match(config, /acl ports_0 port 80 443/);
   assert.match(config, /http_access allow destination_0 ports_0/);
@@ -22,17 +26,44 @@ test('rules bind each exact hostname to its own ports without reverse DNS', () =
 });
 
 test('reject malformed, wildcard, literal, numeric, local and injectable policies', () => {
-  for (const host of ['*.example.com', '.example.com', 'localhost', 'localhost.localdomain', 'host.local', '169.254.169.254', '127.1', '2130706433', '0x7f000001', '[::1]', 'example.com/secret', 'example.com\nhttp_access allow all', 'example.com.', '-bad.example.com']) {
-    assert.throws(() => parseAllowlist(JSON.stringify([{ host, ports: [443] }])), { message: /policy/i });
+  for (const host of [
+    '*.example.com',
+    '.example.com',
+    'localhost',
+    'localhost.localdomain',
+    'host.local',
+    '169.254.169.254',
+    '127.1',
+    '2130706433',
+    '0x7f000001',
+    '[::1]',
+    'example.com/secret',
+    'example.com\nhttp_access allow all',
+    'example.com.',
+    '-bad.example.com',
+  ]) {
+    assert.throws(() => parseAllowlist(JSON.stringify([{ host, ports: [443] }])), {
+      message: /policy/i,
+    });
   }
   for (const ports of [[], [0], [65536], ['443'], [443.2]]) {
     assert.throws(() => parseAllowlist(JSON.stringify([{ host: 'example.com', ports }])));
   }
-  for (const raw of ['{}', 'invalid', '[{"host":"example.com","ports":[443],"wildcard":true}]']) assert.throws(() => parseAllowlist(raw));
+  for (const raw of ['{}', 'invalid', '[{"host":"example.com","ports":[443],"wildcard":true}]'])
+    assert.throws(() => parseAllowlist(raw));
 });
 
 test('secret inputs must be distinct strong hex values with no defaults', () => {
-  const env = Object.fromEntries(['POSTGRES_ADMIN_PASSWORD', 'WFM_DATABASE_PASSWORD', 'REDIS_PASSWORD', 'SESSION_SECRET', 'ENCRYPTION_KEY', 'AGENT_RELAY_SECRET'].map(key => [key, randomBytes(32).toString('hex')]));
+  const env = Object.fromEntries(
+    [
+      'POSTGRES_ADMIN_PASSWORD',
+      'WFM_DATABASE_PASSWORD',
+      'REDIS_PASSWORD',
+      'SESSION_SECRET',
+      'ENCRYPTION_KEY',
+      'AGENT_RELAY_SECRET',
+    ].map((key) => [key, randomBytes(32).toString('hex')]),
+  );
   assert.doesNotThrow(() => validateSecrets(env));
   assert.throws(() => validateSecrets({ ...env, SESSION_SECRET: undefined }));
   assert.throws(() => validateSecrets({ ...env, ENCRYPTION_KEY: '0'.repeat(64) }));
@@ -40,7 +71,9 @@ test('secret inputs must be distinct strong hex values with no defaults', () => 
 });
 
 test('only guards have NET_ADMIN and only egress guard has an uplink', () => {
-  const compose = parse(readFileSync(new URL('./compose.yml', import.meta.url), 'utf8'), { merge: true });
+  const compose = parse(readFileSync(new URL('./compose.yml', import.meta.url), 'utf8'), {
+    merge: true,
+  });
   for (const [name, service] of Object.entries(compose.services)) {
     if (name.endsWith('-guard')) {
       assert.deepEqual(service.cap_add, ['NET_ADMIN']);
@@ -66,7 +99,19 @@ test('only guards have NET_ADMIN and only egress guard has an uplink', () => {
 test('proxy ACL and egress guard both deny all reserved address ranges', () => {
   const guard = readFileSync(new URL('./guard.sh', import.meta.url), 'utf8');
   const config = squidConfig([]);
-  for (const cidr of ['0.0.0.0/8', '100.64.0.0/10', '127.0.0.0/8', '169.254.0.0/16', '172.16.0.0/12', '192.168.0.0/16', '198.18.0.0/15', '224.0.0.0/4', '240.0.0.0/4', '2001::/23', '2002::/16']) {
+  for (const cidr of [
+    '0.0.0.0/8',
+    '100.64.0.0/10',
+    '127.0.0.0/8',
+    '169.254.0.0/16',
+    '172.16.0.0/12',
+    '192.168.0.0/16',
+    '198.18.0.0/15',
+    '224.0.0.0/4',
+    '240.0.0.0/4',
+    '2001::/23',
+    '2002::/16',
+  ]) {
     assert.ok(config.includes(cidr));
     assert.ok(guard.includes(cidr));
   }
@@ -88,7 +133,15 @@ test('compose has standalone guarded namespaces, private stores and mandatory se
   assert.match(compose, /network_mode: service:api-guard/);
   assert.match(compose, /network_mode: service:worker-guard/);
   assert.match(compose, /127\.0\.0\.1:\$\{WFM_SAAS_PORT:-5090\}:5000/);
-  for (const key of ['POSTGRES_ADMIN_PASSWORD', 'WFM_DATABASE_PASSWORD', 'REDIS_PASSWORD', 'SESSION_SECRET', 'ENCRYPTION_KEY', 'AGENT_RELAY_SECRET']) assert.match(compose, new RegExp('\\$\\{' + key + ':\\?'));
+  for (const key of [
+    'POSTGRES_ADMIN_PASSWORD',
+    'WFM_DATABASE_PASSWORD',
+    'REDIS_PASSWORD',
+    'SESSION_SECRET',
+    'ENCRYPTION_KEY',
+    'AGENT_RELAY_SECRET',
+  ])
+    assert.match(compose, new RegExp('\\$\\{' + key + ':\\?'));
   assert.match(compose, /WFM_EGRESS_PROXY: http:\/\/egress:3128/);
   const guard = readFileSync(new URL('./guard.sh', import.meta.url), 'utf8');
   assert.match(guard, /iptables -P OUTPUT DROP/);
@@ -100,17 +153,28 @@ test('compose has standalone guarded namespaces, private stores and mandatory se
 });
 
 test('transport browser fixtures use the locked and digest-pinned production Playwright base', () => {
-  const harness = parse(readFileSync(new URL('./check.compose.yml', import.meta.url), 'utf8'), { merge: true });
-  const lock = JSON.parse(readFileSync(new URL('../../package-lock.json', import.meta.url), 'utf8'));
+  const harness = parse(readFileSync(new URL('./check.compose.yml', import.meta.url), 'utf8'), {
+    merge: true,
+  });
+  const lock = JSON.parse(
+    readFileSync(new URL('../../package-lock.json', import.meta.url), 'utf8'),
+  );
   const expectedVersion = lock.packages['node_modules/playwright'].version;
-  const dockerfiles = ['../../Dockerfile', '../../Dockerfile.worker'].map(path => {
+  const dockerfiles = ['../../Dockerfile', '../../Dockerfile.worker'].map((path) => {
     const dockerfile = readFileSync(new URL(path, import.meta.url), 'utf8');
     return dockerfile.match(/^FROM\s+(mcr\.microsoft\.com\/playwright:\S+)/m)?.[1];
   });
   for (const name of ['transport', 'transport-fixture']) {
     const image = harness.services[name].image;
-    assert.match(image, new RegExp(`^mcr\\.microsoft\\.com/playwright:v${expectedVersion.replaceAll('.', '\\.')}-[a-z]+@sha256:[a-f0-9]{64}$`), `${name} must provide the browsers requested by the locked Playwright runtime`);
-    for (const base of dockerfiles) assert.equal(image, base, `${name} must reuse the verified production base`);
+    assert.match(
+      image,
+      new RegExp(
+        `^mcr\\.microsoft\\.com/playwright:v${expectedVersion.replaceAll('.', '\\.')}-[a-z]+@sha256:[a-f0-9]{64}$`,
+      ),
+      `${name} must provide the browsers requested by the locked Playwright runtime`,
+    );
+    for (const base of dockerfiles)
+      assert.equal(image, base, `${name} must reuse the verified production base`);
     assert.deepEqual(harness.services[name].cap_drop, ['ALL']);
     assert.deepEqual(harness.services[name].security_opt, ['no-new-privileges:true']);
   }

@@ -14,7 +14,11 @@ export function watchForEndedSession(): void {
   const originalFetch = window.fetch.bind(window);
   window.fetch = async (...args: Parameters<typeof fetch>) => {
     const response = await originalFetch(...args);
-    if (response.status === 401 && isApiRequest(args[0]) && queryClient.getQueryData(['/api/user'])) {
+    if (
+      response.status === 401 &&
+      isApiRequest(args[0]) &&
+      queryClient.getQueryData(['/api/user'])
+    ) {
       queryClient.setQueryData(['/api/user'], null);
     }
     return response;

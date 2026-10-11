@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 const errorFrom = (file: string, line: number) => {
-  const error = new Error('Cannot read properties of undefined (reading \'selector\')');
+  const error = new Error("Cannot read properties of undefined (reading 'selector')");
   error.stack = `TypeError: ${error.message}\n    at run (${path.join(repoRoot, file)}:${line}:5)`;
   return error;
 };
@@ -156,8 +156,16 @@ describe('recordIncident', () => {
   });
 
   it('rate-limits repeats of the same fingerprint within a second', async () => {
-    const first = await recordIncident({ kind: 'job', error: errorFrom('server/thing.ts', 3), trigger: {} });
-    const second = await recordIncident({ kind: 'job', error: errorFrom('server/thing.ts', 3), trigger: {} });
+    const first = await recordIncident({
+      kind: 'job',
+      error: errorFrom('server/thing.ts', 3),
+      trigger: {},
+    });
+    const second = await recordIncident({
+      kind: 'job',
+      error: errorFrom('server/thing.ts', 3),
+      trigger: {},
+    });
 
     expect(first).not.toBeNull();
     expect(second).toBeNull();

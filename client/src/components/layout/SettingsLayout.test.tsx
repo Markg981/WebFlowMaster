@@ -49,11 +49,11 @@ describe('SettingsLayout', () => {
   it('lists every section in the rail', () => {
     renderLayout();
 
-    expect(rail().getAllByRole('button').map((b) => b.textContent)).toEqual([
-      'Preferences',
-      'Environments',
-      'Notifications',
-    ]);
+    expect(
+      rail()
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Preferences', 'Environments', 'Notifications']);
   });
 
   it('shows only the active section, so the page is one screen and not three', () => {

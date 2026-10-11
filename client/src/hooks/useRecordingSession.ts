@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import {
   mapRecordedSequence,
   type MappedTestStep,
   type RecordedAction,
   type RecordingSequenceResponse,
-} from "@shared/recording";
+} from '@shared/recording';
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -52,7 +52,7 @@ export function useRecordingSession({
   callbacksRef.current = { onStepsChange, onError, onNotice };
 
   /** Serialized snapshot of the last buffer applied, used to skip no-op updates. */
-  const lastAppliedRef = useRef<string>("");
+  const lastAppliedRef = useRef<string>('');
 
   const applySequence = useCallback((sequence: RecordedAction[]) => {
     const fingerprint = JSON.stringify(sequence);
@@ -64,15 +64,15 @@ export function useRecordingSession({
 
   const startMutation = useMutation({
     mutationFn: async (url: string) => {
-      const res = await apiRequest("POST", "/api/start-recording", { url });
+      const res = await apiRequest('POST', '/api/start-recording', { url });
       const result = await res.json();
       if (!res.ok || !result.success) {
-        throw new Error(result.error || "Failed to start recording session.");
+        throw new Error(result.error || 'Failed to start recording session.');
       }
       return result as { sessionId: string };
     },
     onSuccess: (data) => {
-      lastAppliedRef.current = "";
+      lastAppliedRef.current = '';
       setRecordedActions([]);
       setSessionId(data.sessionId);
       setIsRecording(true);
@@ -80,18 +80,18 @@ export function useRecordingSession({
     onError: (error: Error) => {
       setIsRecording(false);
       setSessionId(null);
-      callbacksRef.current.onError("recording.start.failed", error.message);
+      callbacksRef.current.onError('recording.start.failed', error.message);
     },
   });
 
   const stopMutation = useMutation({
     mutationFn: async (activeSessionId: string) => {
-      const res = await apiRequest("POST", "/api/stop-recording", {
+      const res = await apiRequest('POST', '/api/stop-recording', {
         sessionId: activeSessionId,
       });
       const result = (await res.json()) as RecordingSequenceResponse;
       if (!res.ok || !result.success) {
-        throw new Error(result.error || "Failed to stop recording session.");
+        throw new Error(result.error || 'Failed to stop recording session.');
       }
       return result;
     },
@@ -99,7 +99,7 @@ export function useRecordingSession({
       applySequence(result.sequence ?? []);
     },
     onError: (error: Error) => {
-      callbacksRef.current.onError("recording.stop.failed", error.message);
+      callbacksRef.current.onError('recording.stop.failed', error.message);
     },
     onSettled: () => {
       setIsRecording(false);
@@ -116,7 +116,7 @@ export function useRecordingSession({
     const poll = async () => {
       try {
         const res = await apiRequest(
-          "GET",
+          'GET',
           `/api/get-recorded-actions?sessionId=${encodeURIComponent(sessionId)}`,
         );
         const result = (await res.json()) as RecordingSequenceResponse;
@@ -127,16 +127,13 @@ export function useRecordingSession({
         if (result.sessionEnded) {
           setIsRecording(false);
           setSessionId(null);
-          callbacksRef.current.onNotice(
-            "recording.sessionEnded",
-            result.error ?? "",
-          );
+          callbacksRef.current.onNotice('recording.sessionEnded', result.error ?? '');
           return;
         }
 
         if (!result.success && !res.ok) {
           callbacksRef.current.onError(
-            "recording.pollFailed",
+            'recording.pollFailed',
             result.error ?? `HTTP ${res.status}`,
           );
         }
@@ -144,7 +141,7 @@ export function useRecordingSession({
         // A transient network blip must not wipe the steps captured so far, so the
         // buffer is simply left untouched until the next tick.
         if (!cancelled) {
-          console.warn("Recording poll failed, will retry:", error);
+          console.warn('Recording poll failed, will retry:', error);
         }
       }
     };

@@ -54,15 +54,15 @@ connected but is not chosen for runs, and **Settings → Local agents** shows wh
 
 ## Backups
 
-| What | Where | How |
-|---|---|---|
-| **Database** | PostgreSQL | `npm run backup:create` (below), `pg_dump`, or the managed service's snapshots. Everything the product knows is here. |
-| **`ENCRYPTION_KEY`** | Your secret manager | Stored separately from the database backup, and never inside it. Without it the encrypted secrets in a restored database are unreadable. |
-| **Artifacts** | `results/` and `data/visual-baselines/`, or the S3 bucket | Included by `backup:create` when the store is local; the bucket's own versioning or replication when it is S3. Visual baselines are the ones that matter: losing them means approving new ones. Screenshots, videos and traces are removed by retention anyway. |
-| **Redis** | Redis | Optional. It holds queues, sessions and the BullMQ schedules, which are rebuilt from the database when the web process starts. |
+| What                 | Where                                                     | How                                                                                                                                                                                                                                                             |
+| -------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Database**         | PostgreSQL                                                | `npm run backup:create` (below), `pg_dump`, or the managed service's snapshots. Everything the product knows is here.                                                                                                                                           |
+| **`ENCRYPTION_KEY`** | Your secret manager                                       | Stored separately from the database backup, and never inside it. Without it the encrypted secrets in a restored database are unreadable.                                                                                                                        |
+| **Artifacts**        | `results/` and `data/visual-baselines/`, or the S3 bucket | Included by `backup:create` when the store is local; the bucket's own versioning or replication when it is S3. Visual baselines are the ones that matter: losing them means approving new ones. Screenshots, videos and traces are removed by retention anyway. |
+| **Redis**            | Redis                                                     | Optional. It holds queues, sessions and the BullMQ schedules, which are rebuilt from the database when the web process starts.                                                                                                                                  |
 
 If Redis loses its data, everyone is signed out, and runs that were waiting in the queue stay
-*queued* without starting: cancel them and start them again.
+_queued_ without starting: cancel them and start them again.
 
 ### The backup tool
 
@@ -82,11 +82,11 @@ With another Compose project or extra files, pass them as to `docker compose`:
 
 A backup is a folder:
 
-| File | Contents |
-|---|---|
-| `database.dump` | `pg_dump --format=custom --no-owner`: tables, data, grants, row-level security policies. |
-| `results.tar`, `visual-baselines.tar` | The run evidence and the visual baselines (local store only). |
-| `manifest.json` | When and from which version it was taken; the number of applied migrations; how many tables have row-level security; exact row counts of the main tables; the size and SHA-256 of every file; a **fingerprint** of the encryption key (a hash of a hash: it identifies the key without revealing it). |
+| File                                  | Contents                                                                                                                                                                                                                                                                                              |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `database.dump`                       | `pg_dump --format=custom --no-owner`: tables, data, grants, row-level security policies.                                                                                                                                                                                                              |
+| `results.tar`, `visual-baselines.tar` | The run evidence and the visual baselines (local store only).                                                                                                                                                                                                                                         |
+| `manifest.json`                       | When and from which version it was taken; the number of applied migrations; how many tables have row-level security; exact row counts of the main tables; the size and SHA-256 of every file; a **fingerprint** of the encryption key (a hash of a hash: it identifies the key without revealing it). |
 
 **`verify` is the database restore check.** It checks every file against its checksum, restores the dump into a
 scratch database next to the live one (`webflowmaster_restore_check`), compares row counts, migrations,
@@ -216,15 +216,15 @@ channel that confirms who they are.
 
 ## Monitoring
 
-| What | Signal |
-|---|---|
-| Web process alive | `GET /healthz` answers `200` without touching any dependency: use it as a liveness probe, so a database outage does not get the process restarted. |
+| What              | Signal                                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web process alive | `GET /healthz` answers `200` without touching any dependency: use it as a liveness probe, so a database outage does not get the process restarted.                                                                                                                                                                                                                              |
 | Web process ready | `GET /readyz` answers `200` when PostgreSQL, the Redis behind queues and rate limits, and the session store all answer within 2 seconds; otherwise `503` with the check that failed, e.g. `{"status":"not ready","checks":{"database":"failed","redis":"ok","sessions":"ok"}}`. The image's `HEALTHCHECK` and a load balancer use this one. Neither needs a session or a token. |
-| Workers | **Settings → Runners**: online, draining or offline, with running jobs and version. A runner not heard from for `RUNNER_OFFLINE_AFTER_MS` is offline. |
-| Queue pressure | **Settings → Run usage**: runs in progress and waiting for the organization, against its limits, and how many runners are online. |
-| Lost runs | Runs ending as *error* with reason `worker_lost`: a worker died or was restarted mid-run. |
-| Timeouts | Runs ending as *timed out*: past `RUN_MAX_DURATION_MS`. |
-| Integrations | Delivery errors are shown on each GitHub/GitLab connection and issue tracker in Settings. |
+| Workers           | **Settings → Runners**: online, draining or offline, with running jobs and version. A runner not heard from for `RUNNER_OFFLINE_AFTER_MS` is offline.                                                                                                                                                                                                                           |
+| Queue pressure    | **Settings → Run usage**: runs in progress and waiting for the organization, against its limits, and how many runners are online.                                                                                                                                                                                                                                               |
+| Lost runs         | Runs ending as _error_ with reason `worker_lost`: a worker died or was restarted mid-run.                                                                                                                                                                                                                                                                                       |
+| Timeouts          | Runs ending as _timed out_: past `RUN_MAX_DURATION_MS`.                                                                                                                                                                                                                                                                                                                         |
+| Integrations      | Delivery errors are shown on each GitHub/GitLab connection and issue tracker in Settings.                                                                                                                                                                                                                                                                                       |
 
 ## Capacity and limits
 
@@ -283,28 +283,28 @@ organization ended after 9 s, where waiting for the next look took 33 s.
 
 ## Troubleshooting
 
-| Symptom | Likely cause | What to do |
-|---|---|---|
-| The server exits at startup naming `app_user`, `BYPASSRLS` or `SET ROLE` | The database roles are not as the tenancy design requires | Run the command in the message (see [Prepare PostgreSQL](./installation#prepare-postgresql)). |
-| `db:migrate` stops with `permission denied to create role` | The role running the migrations cannot create `app_user` | `ALTER ROLE <role> CREATEROLE;` as a superuser, run the migrations again, then `NOCREATEROLE` (see [Prepare PostgreSQL](./installation#prepare-postgresql)). |
-| The server exits saying the database was created with `db:push` | Tables exist without the migration journal | `npm run db:doctor`; recreate the database with `db:migrate`. |
-| `SESSION_SECRET must be set` or `ENCRYPTION_KEY is missing` | A secret is not set in that process | Set it (see [Secrets](./installation#secrets)); workers need `ENCRYPTION_KEY` too. |
-| Saved secrets fail to decrypt after a move or restore | A different `ENCRYPTION_KEY` | Use the key the secrets were saved with; there is no other way to read them. |
-| `Session Redis is not connected. Refusing to start in production` | Redis unreachable at startup | Check `REDIS_URL` and that Redis accepts connections from this machine. |
-| Registration answers "Accounts on this installation are created by invitation" | `REGISTRATION=invitation` (the default) and an account already exists | Invite the person from **Settings → Members**, or set `REGISTRATION=open` if sign-up should be public. |
-| Sign-in answers OK but the next page is signed out | Secure cookie over plain HTTP | Serve over HTTPS; for a local stack only, `SESSION_COOKIE_SECURE=false`. |
-| `403` on every save behind a proxy | The public origin differs from the `Host` the server sees | Add it to `CSRF_TRUSTED_ORIGINS`. |
-| A blank page, or parts missing, with `Content Security Policy` errors in the browser console | Something injects or loads scripts from elsewhere (a proxy, a browser extension, a customized build) | Remove what injects them; to confirm the cause, `CONTENT_SECURITY_POLICY=report-only` and read the console. |
-| Pipelines get `429 rate_limited` | A key made more than `API_RATE_LIMIT` calls in a minute | Poll less often, give each pipeline its own key, or raise `API_RATE_LIMIT`. |
-| Settings → System is read-only, and the runners have no Drain button | Installation-wide settings are for its administrators | Add the username to `INSTALLATION_ADMINS` (see [Installation administrators](./administration#installation-administrators)). |
-| Runs stay *queued* | No runner online, the organization at its limit, or runners drained | Settings → Runners and Settings → Run usage. |
-| Runs end *error: worker lost* | Workers restarted or killed (often out of memory) | Worker logs and memory; lower `WORKER_CONCURRENCY` or the plan's parallelism. |
-| Previews and page loads fail with "No worker is running to open a browser" | `BROWSER_TASKS=worker` and no worker running | Start a worker, or `BROWSER_TASKS=inline` on a single machine. |
-| Previews and page loads answer `504` | The task took longer than `BROWSER_TASK_TIMEOUT_MS`, usually because the workers are busy | More workers or a higher `BROWSER_TASK_CONCURRENCY`. |
-| Screenshots missing in reports | Worker and web process on different disks with the local store | `ARTIFACT_STORE=s3`. |
-| Each schedule starts twice | Several web processes with `SCHEDULER_BACKEND=cron` | `SCHEDULER_BACKEND=bullmq` on all of them. |
-| Runs on a local agent fail with "relay could not be reached" | Workers do not know where the relay is | `AGENT_RELAY_URL` on the workers; the same `AGENT_RELAY_SECRET` everywhere. |
-| AI features are missing | No AI key | Set `GEMINI_API_KEY`; everything else works without it. |
+| Symptom                                                                                      | Likely cause                                                                                         | What to do                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The server exits at startup naming `app_user`, `BYPASSRLS` or `SET ROLE`                     | The database roles are not as the tenancy design requires                                            | Run the command in the message (see [Prepare PostgreSQL](./installation#prepare-postgresql)).                                                                |
+| `db:migrate` stops with `permission denied to create role`                                   | The role running the migrations cannot create `app_user`                                             | `ALTER ROLE <role> CREATEROLE;` as a superuser, run the migrations again, then `NOCREATEROLE` (see [Prepare PostgreSQL](./installation#prepare-postgresql)). |
+| The server exits saying the database was created with `db:push`                              | Tables exist without the migration journal                                                           | `npm run db:doctor`; recreate the database with `db:migrate`.                                                                                                |
+| `SESSION_SECRET must be set` or `ENCRYPTION_KEY is missing`                                  | A secret is not set in that process                                                                  | Set it (see [Secrets](./installation#secrets)); workers need `ENCRYPTION_KEY` too.                                                                           |
+| Saved secrets fail to decrypt after a move or restore                                        | A different `ENCRYPTION_KEY`                                                                         | Use the key the secrets were saved with; there is no other way to read them.                                                                                 |
+| `Session Redis is not connected. Refusing to start in production`                            | Redis unreachable at startup                                                                         | Check `REDIS_URL` and that Redis accepts connections from this machine.                                                                                      |
+| Registration answers "Accounts on this installation are created by invitation"               | `REGISTRATION=invitation` (the default) and an account already exists                                | Invite the person from **Settings → Members**, or set `REGISTRATION=open` if sign-up should be public.                                                       |
+| Sign-in answers OK but the next page is signed out                                           | Secure cookie over plain HTTP                                                                        | Serve over HTTPS; for a local stack only, `SESSION_COOKIE_SECURE=false`.                                                                                     |
+| `403` on every save behind a proxy                                                           | The public origin differs from the `Host` the server sees                                            | Add it to `CSRF_TRUSTED_ORIGINS`.                                                                                                                            |
+| A blank page, or parts missing, with `Content Security Policy` errors in the browser console | Something injects or loads scripts from elsewhere (a proxy, a browser extension, a customized build) | Remove what injects them; to confirm the cause, `CONTENT_SECURITY_POLICY=report-only` and read the console.                                                  |
+| Pipelines get `429 rate_limited`                                                             | A key made more than `API_RATE_LIMIT` calls in a minute                                              | Poll less often, give each pipeline its own key, or raise `API_RATE_LIMIT`.                                                                                  |
+| Settings → System is read-only, and the runners have no Drain button                         | Installation-wide settings are for its administrators                                                | Add the username to `INSTALLATION_ADMINS` (see [Installation administrators](./administration#installation-administrators)).                                 |
+| Runs stay _queued_                                                                           | No runner online, the organization at its limit, or runners drained                                  | Settings → Runners and Settings → Run usage.                                                                                                                 |
+| Runs end _error: worker lost_                                                                | Workers restarted or killed (often out of memory)                                                    | Worker logs and memory; lower `WORKER_CONCURRENCY` or the plan's parallelism.                                                                                |
+| Previews and page loads fail with "No worker is running to open a browser"                   | `BROWSER_TASKS=worker` and no worker running                                                         | Start a worker, or `BROWSER_TASKS=inline` on a single machine.                                                                                               |
+| Previews and page loads answer `504`                                                         | The task took longer than `BROWSER_TASK_TIMEOUT_MS`, usually because the workers are busy            | More workers or a higher `BROWSER_TASK_CONCURRENCY`.                                                                                                         |
+| Screenshots missing in reports                                                               | Worker and web process on different disks with the local store                                       | `ARTIFACT_STORE=s3`.                                                                                                                                         |
+| Each schedule starts twice                                                                   | Several web processes with `SCHEDULER_BACKEND=cron`                                                  | `SCHEDULER_BACKEND=bullmq` on all of them.                                                                                                                   |
+| Runs on a local agent fail with "relay could not be reached"                                 | Workers do not know where the relay is                                                               | `AGENT_RELAY_URL` on the workers; the same `AGENT_RELAY_SECRET` everywhere.                                                                                  |
+| AI features are missing                                                                      | No AI key                                                                                            | Set `GEMINI_API_KEY`; everything else works without it.                                                                                                      |
 
 ## Prometheus and OpenTelemetry
 

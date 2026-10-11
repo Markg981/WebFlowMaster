@@ -162,7 +162,7 @@ describe('parseStack browser-relative paths', () => {
     expect(origin?.unresolved).toBeUndefined();
   });
 
-  it('does not rewrite when no browserSrcRoot is given, matching today\'s server-only behaviour', () => {
+  it("does not rewrite when no browserSrcRoot is given, matching today's server-only behaviour", () => {
     const stack = `TypeError: boom\n    at Toaster (/src/components/ui/toaster.tsx:16:15)`;
 
     const frames = parseStack(stack, repoRoot);

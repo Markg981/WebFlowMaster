@@ -11,13 +11,13 @@ lavoro su F-10 ne è emerso un quinto, più grave di tutti e quattro.
 `npm run check` pulito, `npm run lint` senza warning, **467 test server su 55 file** più
 **95 client**. Tredici migrazioni applicate da database vuoto.
 
-| Difetto | Esito |
-| :--- | :--- |
-| F-09 — `db:push` lascia un DB non migrabile | Fatto. `server/schema-state.ts`, `npm run db:doctor` |
-| F-10 — nessun chaining nell'API Tester | Fatto. Estrazioni + scheda Captures |
-| F-11 — `Dockerfile` mancante, porta 5000, texture da CDN | Fatto |
-| F-12 — schedulazioni solo UTC | Fatto. Fuso orario per schedulazione |
-| **Nuovo** — i test API nei piani non venivano eseguiti | Fatto |
+| Difetto                                                  | Esito                                                |
+| :------------------------------------------------------- | :--------------------------------------------------- |
+| F-09 — `db:push` lascia un DB non migrabile              | Fatto. `server/schema-state.ts`, `npm run db:doctor` |
+| F-10 — nessun chaining nell'API Tester                   | Fatto. Estrazioni + scheda Captures                  |
+| F-11 — `Dockerfile` mancante, porta 5000, texture da CDN | Fatto                                                |
+| F-12 — schedulazioni solo UTC                            | Fatto. Fuso orario per schedulazione                 |
+| **Nuovo** — i test API nei piani non venivano eseguiti   | Fatto                                                |
 
 ---
 

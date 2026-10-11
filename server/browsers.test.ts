@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { browsersForRun, describeBrowser, onAgents, resolveBrowser, unsupportedMachineFields } from './browsers';
+import {
+  browsersForRun,
+  describeBrowser,
+  onAgents,
+  resolveBrowser,
+  unsupportedMachineFields,
+} from './browsers';
 
 /**
  * The plan wizard and the schedule form have always collected a browser configuration that
@@ -8,9 +14,24 @@ import { browsersForRun, describeBrowser, onAgents, resolveBrowser, unsupportedM
 
 describe('resolveBrowser', () => {
   it('maps the branded names onto an engine and a channel', () => {
-    expect(resolveBrowser('edge', true)).toEqual({ label: 'edge', engine: 'chromium', channel: 'msedge', headless: true });
-    expect(resolveBrowser('chrome', true)).toEqual({ label: 'chrome', engine: 'chromium', channel: 'chrome', headless: true });
-    expect(resolveBrowser('safari', true)).toEqual({ label: 'safari', engine: 'webkit', channel: undefined, headless: true });
+    expect(resolveBrowser('edge', true)).toEqual({
+      label: 'edge',
+      engine: 'chromium',
+      channel: 'msedge',
+      headless: true,
+    });
+    expect(resolveBrowser('chrome', true)).toEqual({
+      label: 'chrome',
+      engine: 'chromium',
+      channel: 'chrome',
+      headless: true,
+    });
+    expect(resolveBrowser('safari', true)).toEqual({
+      label: 'safari',
+      engine: 'webkit',
+      channel: undefined,
+      headless: true,
+    });
   });
 
   it('is indifferent to case and stray spaces, and refuses what it does not know', () => {
@@ -69,7 +90,9 @@ describe('browsersForRun', () => {
   });
 
   it('reads a jsonb column that came back as text, which is how these columns are written here', () => {
-    const { browsers } = browsersForRun({ executionBrowsers: JSON.stringify(['firefox', 'webkit']) });
+    const { browsers } = browsersForRun({
+      executionBrowsers: JSON.stringify(['firefox', 'webkit']),
+    });
 
     expect(browsers.map((b) => b.label)).toEqual(['firefox', 'webkit']);
   });
@@ -99,27 +122,38 @@ describe('unsupportedMachineFields', () => {
   });
 
   it('stays quiet about "latest", which is what the runner gives anyway', () => {
-    const warnings = unsupportedMachineFields([{ browserName: 'chrome', browserVersion: 'latest' }]);
+    const warnings = unsupportedMachineFields([
+      { browserName: 'chrome', browserVersion: 'latest' },
+    ]);
     expect(warnings.join(' ')).not.toContain('chrome');
   });
 });
 
 describe('describeBrowser', () => {
   it('shows the channel and the headed mode, which are what differ between two rows of the same engine', () => {
-    expect(describeBrowser({ label: 'edge', engine: 'chromium', channel: 'msedge', headless: false }))
-      .toBe('edge (chromium/msedge), headed');
-    expect(describeBrowser({ label: 'firefox', engine: 'firefox', headless: true })).toBe('firefox');
+    expect(
+      describeBrowser({ label: 'edge', engine: 'chromium', channel: 'msedge', headless: false }),
+    ).toBe('edge (chromium/msedge), headed');
+    expect(describeBrowser({ label: 'firefox', engine: 'firefox', headless: true })).toBe(
+      'firefox',
+    );
   });
 });
 
 describe('onAgents', () => {
   it("sends every pass to the pool, and gives the runner's default pass a browser an agent can start", () => {
     const agent = { organizationId: 3, pool: 'onprem' };
-    const passes = onAgents([undefined, { label: 'firefox', engine: 'firefox', headless: false }], agent);
+    const passes = onAgents(
+      [undefined, { label: 'firefox', engine: 'firefox', headless: false }],
+      agent,
+    );
     expect(passes).toEqual([
       { label: 'chromium', engine: 'chromium', headless: true, agent },
       { label: 'firefox', engine: 'firefox', headless: false, agent },
     ]);
-    expect(passes.map(describeBrowser)).toEqual(['chromium on agent pool "onprem"', 'firefox, headed on agent pool "onprem"']);
+    expect(passes.map(describeBrowser)).toEqual([
+      'chromium on agent pool "onprem"',
+      'firefox, headed on agent pool "onprem"',
+    ]);
   });
 });

@@ -5,7 +5,13 @@ import path from 'path';
 import fs from 'fs-extra';
 import type { AddressInfo } from 'net';
 import type { Browser } from 'playwright';
-import { describeNetworkFailures, REDACTED, sanitiseHar, summariseHar, type HarLike } from '@shared/network';
+import {
+  describeNetworkFailures,
+  REDACTED,
+  sanitiseHar,
+  summariseHar,
+  type HarLike,
+} from '@shared/network';
 import { captureRunEvidence, harContextOptions } from './run-evidence';
 
 /**
@@ -17,10 +23,20 @@ import { captureRunEvidence, harContextOptions } from './run-evidence';
  * all of it against a real browser, since the file is Playwright's to write.
  */
 
-const entry = (method: string, url: string, status: number, time: number, extra: Record<string, unknown> = {}) => ({
+const entry = (
+  method: string,
+  url: string,
+  status: number,
+  time: number,
+  extra: Record<string, unknown> = {},
+) => ({
   time,
   request: { method, url, headers: [] },
-  response: { status, statusText: status === 500 ? 'Internal Server Error' : 'OK', _transferSize: 100 },
+  response: {
+    status,
+    statusText: status === 500 ? 'Internal Server Error' : 'OK',
+    _transferSize: 100,
+  },
   ...extra,
 });
 
@@ -32,7 +48,10 @@ describe('reading a HAR', () => {
           entry('GET', 'https://shop.test/favicon.ico', 404, 5),
           entry('POST', 'https://shop.test/api/orders', 500, 1200),
           entry('GET', 'https://shop.test/', 200, 300),
-          { ...entry('GET', 'https://cdn.test/app.js', 0, 30000), response: { status: 0, _failureText: 'net::ERR_CONNECTION_REFUSED' } },
+          {
+            ...entry('GET', 'https://cdn.test/app.js', 0, 30000),
+            response: { status: 0, _failureText: 'net::ERR_CONNECTION_REFUSED' },
+          },
         ] as HarLike['log']['entries'],
       },
     };
@@ -45,7 +64,9 @@ describe('reading a HAR', () => {
     expect(describeNetworkFailures(summary)).toBe(
       '2 requests failed during this test: POST shop.test/api/orders → 500; GET cdn.test/app.js → net::ERR_CONNECTION_REFUSED.',
     );
-    expect(describeNetworkFailures(summariseHar({ log: { entries: [har.log.entries[0]] } }))).toBeNull();
+    expect(
+      describeNetworkFailures(summariseHar({ log: { entries: [har.log.entries[0]] } })),
+    ).toBeNull();
   });
 
   it('keeps no credential the page sent, and no body', () => {
@@ -63,8 +84,14 @@ describe('reading a HAR', () => {
                 { name: 'Accept', value: 'application/json' },
               ],
               cookies: [{ name: 'sid', value: 's3cret' }],
-              queryString: [{ name: 'next', value: '/cart' }, { name: 'access_token', value: 'abc123' }],
-              postData: { mimeType: 'application/x-www-form-urlencoded', text: 'user=mario&password=hunter2' },
+              queryString: [
+                { name: 'next', value: '/cart' },
+                { name: 'access_token', value: 'abc123' },
+              ],
+              postData: {
+                mimeType: 'application/x-www-form-urlencoded',
+                text: 'user=mario&password=hunter2',
+              },
             },
             response: {
               status: 200,
@@ -78,10 +105,19 @@ describe('reading a HAR', () => {
     });
 
     const text = JSON.stringify(har);
-    for (const secret of ['abc123', 's3cret', 'k-999', 'hunter2', 'user:pass']) expect(text).not.toContain(secret);
-    expect(har.log.entries[0].request.url).toBe(`https://shop.test/login?next=%2Fcart&access_token=${encodeURIComponent(REDACTED)}`);
-    expect(har.log.entries[0].request.headers).toContainEqual({ name: 'Accept', value: 'application/json' });
-    expect(har.log.entries[0].request.postData).toEqual({ mimeType: 'application/x-www-form-urlencoded', text: REDACTED });
+    for (const secret of ['abc123', 's3cret', 'k-999', 'hunter2', 'user:pass'])
+      expect(text).not.toContain(secret);
+    expect(har.log.entries[0].request.url).toBe(
+      `https://shop.test/login?next=%2Fcart&access_token=${encodeURIComponent(REDACTED)}`,
+    );
+    expect(har.log.entries[0].request.headers).toContainEqual({
+      name: 'Accept',
+      value: 'application/json',
+    });
+    expect(har.log.entries[0].request.postData).toEqual({
+      mimeType: 'application/x-www-form-urlencoded',
+      text: REDACTED,
+    });
   });
 });
 
@@ -98,7 +134,10 @@ describe('recording it in a browser', () => {
         return res.end('{"error":"database is down"}');
       }
       if (req.url?.startsWith('/api/ok')) {
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': 'sid=server-s3cret' });
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Set-Cookie': 'sid=server-s3cret',
+        });
         return res.end('{"ok":true}');
       }
       res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -128,7 +167,15 @@ describe('recording it in a browser', () => {
     const page = await context.newPage();
     await page.goto(baseUrl);
     await page.waitForSelector('body[data-done="1"]');
-    return captureRunEvidence({ context, page, options, tracing: false, passed, label, harScratchPath: har.recordHar?.path });
+    return captureRunEvidence({
+      context,
+      page,
+      options,
+      tracing: false,
+      passed,
+      label,
+      harScratchPath: har.recordHar?.path,
+    });
   }
 
   it('keeps a HAR with the requests and none of the credentials, and summarises the failure', async () => {

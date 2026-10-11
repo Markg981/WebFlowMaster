@@ -62,8 +62,9 @@ describe('apiKeyFromRequest', () => {
   });
 
   it('prefers the explicit header when a request carries both', () => {
-    expect(apiKeyFromRequest({ authorization: 'Bearer wfm_from-auth', 'x-api-key': 'wfm_explicit' }))
-      .toBe('wfm_explicit');
+    expect(
+      apiKeyFromRequest({ authorization: 'Bearer wfm_from-auth', 'x-api-key': 'wfm_explicit' }),
+    ).toBe('wfm_explicit');
   });
 
   it("ignores a Bearer token that is not one of ours, rather than failing somebody else's login", () => {

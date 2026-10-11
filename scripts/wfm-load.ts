@@ -77,7 +77,10 @@ interface Run {
 
 const TERMINAL = new Set(['completed', 'failed', 'error', 'cancelled', 'timed_out']);
 
-export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): LoadOptions | { error: string } {
+export function parseArgs(
+  argv: string[],
+  env: NodeJS.ProcessEnv = process.env,
+): LoadOptions | { error: string } {
   const options: Partial<LoadOptions> & { targets: Target[] } = { ...DEFAULTS, targets: [] };
   const numbers: Record<string, keyof LoadOptions> = {
     '--soak-seconds': 'soakSeconds',
@@ -99,22 +102,36 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
     else if (flag === '--json') options.jsonPath = value;
     else if (flag === '--target') {
       const at = value?.lastIndexOf(':') ?? -1;
-      if (at <= 0 || at === value.length - 1) return { error: `--target is <api key>:<plan id>, not "${value ?? ''}".` };
+      if (at <= 0 || at === value.length - 1)
+        return { error: `--target is <api key>:<plan id>, not "${value ?? ''}".` };
       options.targets.push({ key: value.slice(0, at), planId: value.slice(at + 1) });
     } else if (flag in numbers) {
       const n = Number(value);
-      if (!value || value.trim() === '' || !Number.isFinite(n) || n < 0) return { error: `${flag} takes a number, not "${value ?? ''}".` };
+      if (!value || value.trim() === '' || !Number.isFinite(n) || n < 0)
+        return { error: `${flag} takes a number, not "${value ?? ''}".` };
       (options as Record<string, unknown>)[numbers[flag]] = n;
     } else return { error: `Unknown option ${flag}.` };
     i++;
   }
   options.baseUrl = (options.baseUrl ?? env.WFM_URL)?.replace(/\/+$/, '');
   if (!options.baseUrl) return { error: 'Name the installation: --url or WFM_URL.' };
-  if (options.targets.length === 0) return { error: 'Name at least one --target <api key>:<plan id>.' };
+  if (options.targets.length === 0)
+    return { error: 'Name at least one --target <api key>:<plan id>.' };
   for (const field of ['readers', 'runs', 'maxConcurrent'] as const) {
     if (!Number.isSafeInteger(options[field])) return { error: `${field} must be an integer.` };
   }
-  if (options.readers! < 1 || options.maxConcurrent! < 1 || options.pollSeconds! <= 0 || options.runTimeoutSeconds! <= 0 || options.intervalSeconds! <= 0 || options.requestTimeoutSeconds! <= 0) return { error: 'Readers, concurrency, poll, run timeout, interval and request timeout must be positive.' };
+  if (
+    options.readers! < 1 ||
+    options.maxConcurrent! < 1 ||
+    options.pollSeconds! <= 0 ||
+    options.runTimeoutSeconds! <= 0 ||
+    options.intervalSeconds! <= 0 ||
+    options.requestTimeoutSeconds! <= 0
+  )
+    return {
+      error:
+        'Readers, concurrency, poll, run timeout, interval and request timeout must be positive.',
+    };
   if (options.maxErrorRate! > 1) return { error: '--max-error-rate is a fraction from 0 to 1.' };
   if (options.runs! > 100) return { error: '--runs is at most 100 per target.' };
   return options as LoadOptions;
@@ -199,7 +216,10 @@ const time = (value: string | null) => (value ? Date.parse(value) : NaN);
  * The most runs in progress at once, from when each started and ended. Polling alone misses it:
  * runs shorter than the poll interval are never seen running. A run not ended counts until now.
  */
-export function maxOverlap(runs: Array<Pick<Run, 'startedAt' | 'completedAt'>>, now = Date.now()): number {
+export function maxOverlap(
+  runs: Array<Pick<Run, 'startedAt' | 'completedAt'>>,
+  now = Date.now(),
+): number {
   const events: Array<[number, number]> = [];
   for (const run of runs) {
     const start = time(run.startedAt);
@@ -218,10 +238,18 @@ export function maxOverlap(runs: Array<Pick<Run, 'startedAt' | 'completedAt'>>, 
   return most;
 }
 
-export function summariseRuns(runs: Run[], refused: number, startErrors: string[], maxRunning: number, burstAt: number): RunSummary {
+export function summariseRuns(
+  runs: Run[],
+  refused: number,
+  startErrors: string[],
+  maxRunning: number,
+  burstAt: number,
+): RunSummary {
   const statuses: Record<string, number> = {};
   for (const run of runs) statuses[run.status] = (statuses[run.status] ?? 0) + 1;
-  const waits = runs.map((r) => time(r.startedAt) - time(r.queuedAt)).filter((n) => Number.isFinite(n) && n >= 0);
+  const waits = runs
+    .map((r) => time(r.startedAt) - time(r.queuedAt))
+    .filter((n) => Number.isFinite(n) && n >= 0);
   const durations = runs
     .filter((r) => TERMINAL.has(r.status))
     .map((r) => r.durationMs ?? time(r.completedAt) - time(r.startedAt))
@@ -245,19 +273,32 @@ export function summariseRuns(runs: Run[], refused: number, startErrors: string[
 }
 
 /** What breached a threshold, in words; empty when nothing did. */
-export function breaches(reads: ReadSummary, runs: RunSummary[], options: Pick<LoadOptions, 'maxP95Ms' | 'maxErrorRate' | 'maxConcurrent'>): string[] {
+export function breaches(
+  reads: ReadSummary,
+  runs: RunSummary[],
+  options: Pick<LoadOptions, 'maxP95Ms' | 'maxErrorRate' | 'maxConcurrent'>,
+): string[] {
   const found: string[] = [];
-  if (reads.p95 !== null && reads.p95 > options.maxP95Ms) found.push(`reads: p95 ${reads.p95} ms > ${options.maxP95Ms} ms`);
-  if (reads.errorRate > options.maxErrorRate) found.push(`reads: ${reads.errors} errors (${(reads.errorRate * 100).toFixed(1)}%)`);
+  if (reads.p95 !== null && reads.p95 > options.maxP95Ms)
+    found.push(`reads: p95 ${reads.p95} ms > ${options.maxP95Ms} ms`);
+  if (reads.errorRate > options.maxErrorRate)
+    found.push(`reads: ${reads.errors} errors (${(reads.errorRate * 100).toFixed(1)}%)`);
   runs.forEach((run, index) => {
     const name = `target ${index + 1}`;
-    if (run.maxRunning > options.maxConcurrent) found.push(`${name}: ${run.maxRunning} runs in progress at once > ${options.maxConcurrent}`);
-    if ((run.requested ?? 0) > 0 && run.started === 0) found.push(`${name}: no runs accepted for requested workload`);
+    if (run.maxRunning > options.maxConcurrent)
+      found.push(`${name}: ${run.maxRunning} runs in progress at once > ${options.maxConcurrent}`);
+    if ((run.requested ?? 0) > 0 && run.started === 0)
+      found.push(`${name}: no runs accepted for requested workload`);
     if ((run.missing ?? 0) > 0) found.push(`${name}: ${run.missing} accepted runs never retrieved`);
     if (run.unfinished > 0) found.push(`${name}: ${run.unfinished} runs not ended in time`);
-    const lost = Object.entries(run.statuses).filter(([status]) => status !== 'completed' && TERMINAL.has(status));
+    const lost = Object.entries(run.statuses).filter(
+      ([status]) => status !== 'completed' && TERMINAL.has(status),
+    );
     for (const [status, count] of lost) found.push(`${name}: ${count} runs ended ${status}`);
-    if (run.startErrors.length > 0) found.push(`${name}: ${run.startErrors.length} runs could not be started (${run.startErrors[0]})`);
+    if (run.startErrors.length > 0)
+      found.push(
+        `${name}: ${run.startErrors.length} runs could not be started (${run.startErrors[0]})`,
+      );
   });
   return found;
 }
@@ -278,24 +319,47 @@ const defaultIo: LoadIo = {
   log: (line) => console.log(line),
 };
 
-async function request<T>(io: LoadIo, url: string, init: RequestInit, timeoutSeconds: number, consume: (res: Response) => Promise<T>): Promise<T> {
+async function request<T>(
+  io: LoadIo,
+  url: string,
+  init: RequestInit,
+  timeoutSeconds: number,
+  consume: (res: Response) => Promise<T>,
+): Promise<T> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => { controller.abort(); reject(new Error('HTTP request deadline exceeded')); }, timeoutSeconds * 1000);
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error('HTTP request deadline exceeded'));
+    }, timeoutSeconds * 1000);
   });
   try {
-    return await Promise.race([io.fetch(url, { ...init, signal: controller.signal }).then(consume), timeout]);
-  } finally { clearTimeout(timer!); }
+    return await Promise.race([
+      io.fetch(url, { ...init, signal: controller.signal }).then(consume),
+      timeout,
+    ]);
+  } finally {
+    clearTimeout(timer!);
+  }
 }
 
-async function timed(io: LoadIo, url: string, init: RequestInit, timeoutSeconds: number): Promise<Sample & { retryAfter?: number }> {
+async function timed(
+  io: LoadIo,
+  url: string,
+  init: RequestInit,
+  timeoutSeconds: number,
+): Promise<Sample & { retryAfter?: number }> {
   const start = io.now();
   try {
-    return await request(io, url, init, timeoutSeconds, async res => {
+    return await request(io, url, init, timeoutSeconds, async (res) => {
       await res.text();
       const retryAfter = Number(res.headers?.get?.('retry-after'));
-      return { ms: io.now() - start, status: res.status, ...(Number.isFinite(retryAfter) && retryAfter > 0 ? { retryAfter } : {}) };
+      return {
+        ms: io.now() - start,
+        status: res.status,
+        ...(Number.isFinite(retryAfter) && retryAfter > 0 ? { retryAfter } : {}),
+      };
     });
   } catch {
     return { ms: io.now() - start, status: 0 };
@@ -315,19 +379,34 @@ class ReadAccumulator {
     this.requests++;
     if (sample.status === 429) this.limited++;
     else if (sample.status === 0 || sample.status >= 400) this.errors++;
-    if (sample.status > 0 && sample.status !== 429) this.slowest = Math.max(this.slowest ?? 0, sample.ms);
+    if (sample.status > 0 && sample.status !== 429)
+      this.slowest = Math.max(this.slowest ?? 0, sample.ms);
     if (this.samples.length < 10000) this.samples.push(sample);
-    else { const slot = Math.floor(Math.random() * this.requests); if (slot < 10000) this.samples[slot] = sample; }
+    else {
+      const slot = Math.floor(Math.random() * this.requests);
+      if (slot < 10000) this.samples[slot] = sample;
+    }
   }
   summary(seconds: number): ReadSummary {
-    return { ...summariseReads(this.samples, seconds), requests: this.requests, latencySampleSize: this.samples.length,
-      perSecond: seconds > 0 ? Math.round(this.requests / seconds * 10) / 10 : 0,
-      errors: this.errors, limited: this.limited, slowest: this.slowest,
-      errorRate: this.requests > this.limited ? this.errors / (this.requests - this.limited) : 0 };
+    return {
+      ...summariseReads(this.samples, seconds),
+      requests: this.requests,
+      latencySampleSize: this.samples.length,
+      perSecond: seconds > 0 ? Math.round((this.requests / seconds) * 10) / 10 : 0,
+      errors: this.errors,
+      limited: this.limited,
+      slowest: this.slowest,
+      errorRate: this.requests > this.limited ? this.errors / (this.requests - this.limited) : 0,
+    };
   }
 }
 
-async function readPhase(options: LoadOptions, io: LoadIo, stopped: () => boolean = () => false, aggregate?: ReadAccumulator): Promise<ReadSummary> {
+async function readPhase(
+  options: LoadOptions,
+  io: LoadIo,
+  stopped: () => boolean = () => false,
+  aggregate?: ReadAccumulator,
+): Promise<ReadSummary> {
   const samples = new ReadAccumulator();
   const deadline = io.now() + options.readSeconds * 1000;
   const paths = ['/api/v1/plans?limit=20', '/api/v1/runs?limit=20'];
@@ -336,7 +415,12 @@ async function readPhase(options: LoadOptions, io: LoadIo, stopped: () => boolea
     while (io.now() < deadline && !stopped()) {
       const target = options.targets[turn % options.targets.length];
       const path = paths[turn++ % paths.length];
-      const sample = await timed(io, `${options.baseUrl}${path}`, { headers: auth(target.key) }, options.requestTimeoutSeconds ?? 30);
+      const sample = await timed(
+        io,
+        `${options.baseUrl}${path}`,
+        { headers: auth(target.key) },
+        options.requestTimeoutSeconds ?? 30,
+      );
       samples.add(sample);
       aggregate?.add(sample);
       // A limited client waits as told, as a well-behaved pipeline does.
@@ -348,7 +432,13 @@ async function readPhase(options: LoadOptions, io: LoadIo, stopped: () => boolea
   return samples.summary((io.now() - started) / 1000);
 }
 
-async function runPhase(options: LoadOptions, io: LoadIo, invocation: string, cycle = 0, seenIds = new Set<string>()): Promise<RunSummary[]> {
+async function runPhase(
+  options: LoadOptions,
+  io: LoadIo,
+  invocation: string,
+  cycle = 0,
+  seenIds = new Set<string>(),
+): Promise<RunSummary[]> {
   const burstAt = io.now();
   const started = await Promise.all(
     options.targets.map(async (target, t) => {
@@ -358,18 +448,37 @@ async function runPhase(options: LoadOptions, io: LoadIo, invocation: string, cy
       await Promise.all(
         Array.from({ length: options.runs }, async (_, i) => {
           try {
-            const answer = await request(io, `${options.baseUrl}/api/v1/plans/${encodeURIComponent(target.planId)}/runs`, {
-              method: 'POST',
-              headers: { ...auth(target.key), 'Content-Type': 'application/json', 'Idempotency-Key': `wfm-load-${invocation}-${cycle}-${t}-${i}` },
-              body: '{}',
-            }, options.requestTimeoutSeconds ?? 30, async res => ({ status: res.status, body: await res.json().catch(() => ({})) }));
+            const answer = await request(
+              io,
+              `${options.baseUrl}/api/v1/plans/${encodeURIComponent(target.planId)}/runs`,
+              {
+                method: 'POST',
+                headers: {
+                  ...auth(target.key),
+                  'Content-Type': 'application/json',
+                  'Idempotency-Key': `wfm-load-${invocation}-${cycle}-${t}-${i}`,
+                },
+                body: '{}',
+              },
+              options.requestTimeoutSeconds ?? 30,
+              async (res) => ({ status: res.status, body: await res.json().catch(() => ({})) }),
+            );
             const res = answer;
-            const body = answer.body as { id?: string; error?: { code?: string; message?: string } };
+            const body = answer.body as {
+              id?: string;
+              error?: { code?: string; message?: string };
+            };
             if (res.status === 202 && typeof body.id === 'string' && body.id) {
               if (seenIds.has(body.id)) errors.push(`duplicate returned run ID ${body.id}`);
-              else { seenIds.add(body.id); ids.push(body.id); }
-            }
-            else if (res.status === 429 && ['queue_quota_exceeded', 'queue_full'].includes(body.error?.code ?? 'unknown_error')) refused++;
+              else {
+                seenIds.add(body.id);
+                ids.push(body.id);
+              }
+            } else if (
+              res.status === 429 &&
+              ['queue_quota_exceeded', 'queue_full'].includes(body.error?.code ?? 'unknown_error')
+            )
+              refused++;
             else errors.push(`${res.status} ${body.error?.code ?? 'unknown_error'}`.trim());
           } catch (error) {
             errors.push(error instanceof Error ? error.message : String(error));
@@ -379,7 +488,9 @@ async function runPhase(options: LoadOptions, io: LoadIo, invocation: string, cy
       return { ids: new Set(ids), refused, errors };
     }),
   );
-  io.log(`Runs started: ${started.map((s, t) => `target ${t + 1} ${s.ids.size}${s.refused ? ` (+${s.refused} refused)` : ''}`).join(', ')}`);
+  io.log(
+    `Runs started: ${started.map((s, t) => `target ${t + 1} ${s.ids.size}${s.refused ? ` (+${s.refused} refused)` : ''}`).join(', ')}`,
+  );
 
   const latest = started.map(() => new Map<string, Run>());
   const maxRunning = started.map(() => 0);
@@ -388,26 +499,56 @@ async function runPhase(options: LoadOptions, io: LoadIo, invocation: string, cy
     await Promise.all(
       options.targets.map(async (target, t) => {
         if (started[t].ids.size === 0) return;
-        await Promise.all([...started[t].ids].map(async id => {
-          if (TERMINAL.has(latest[t].get(id)?.status ?? '')) return;
-          try {
-            const answer = await request(io, `${options.baseUrl}/api/v1/runs/${encodeURIComponent(id)}`, { headers: auth(target.key) }, options.requestTimeoutSeconds ?? 30,
-              async res => ({ ok: res.ok, body: await res.json() }));
-            if (answer.ok && answer.body?.id === id) latest[t].set(id, answer.body as Run);
-          } catch { /* Retry until the run deadline; missing runs remain unfinished. */ }
-        }));
-        const running = [...latest[t].values()].filter(r => r.status === 'running' || r.status === 'cancelling').length;
+        await Promise.all(
+          [...started[t].ids].map(async (id) => {
+            if (TERMINAL.has(latest[t].get(id)?.status ?? '')) return;
+            try {
+              const answer = await request(
+                io,
+                `${options.baseUrl}/api/v1/runs/${encodeURIComponent(id)}`,
+                { headers: auth(target.key) },
+                options.requestTimeoutSeconds ?? 30,
+                async (res) => ({ ok: res.ok, body: await res.json() }),
+              );
+              if (answer.ok && answer.body?.id === id) latest[t].set(id, answer.body as Run);
+            } catch {
+              /* Retry until the run deadline; missing runs remain unfinished. */
+            }
+          }),
+        );
+        const running = [...latest[t].values()].filter(
+          (r) => r.status === 'running' || r.status === 'cancelling',
+        ).length;
         maxRunning[t] = Math.max(maxRunning[t], running);
       }),
     );
-    const open = latest.reduce((sum, runs, t) => sum + started[t].ids.size - [...runs.values()].filter((r) => TERMINAL.has(r.status)).length, 0);
+    const open = latest.reduce(
+      (sum, runs, t) =>
+        sum + started[t].ids.size - [...runs.values()].filter((r) => TERMINAL.has(r.status)).length,
+      0,
+    );
     if (open === 0 || io.now() >= deadline) break;
     await io.sleep(Math.min(options.pollSeconds * 1000, Math.max(0, deadline - io.now())));
   }
   return started.map((s, t) => {
     // A run never retrieved individually is reported as still queued: it did not end where anyone could see.
-    const runs = [...s.ids].map((id) => latest[t].get(id) ?? { id, status: 'queued', queuedAt: null, startedAt: null, completedAt: null, durationMs: null, failure: null });
-    return { ...summariseRuns(runs, s.refused, s.errors, maxRunning[t], burstAt), missing: s.ids.size - latest[t].size, requested: options.runs };
+    const runs = [...s.ids].map(
+      (id) =>
+        latest[t].get(id) ?? {
+          id,
+          status: 'queued',
+          queuedAt: null,
+          startedAt: null,
+          completedAt: null,
+          durationMs: null,
+          failure: null,
+        },
+    );
+    return {
+      ...summariseRuns(runs, s.refused, s.errors, maxRunning[t], burstAt),
+      missing: s.ids.size - latest[t].size,
+      requested: options.runs,
+    };
   });
 }
 
@@ -423,11 +564,17 @@ export function report(reads: ReadSummary, runs: RunSummary[], found: string[]):
     '',
     'Runs',
     ...runs.flatMap((run, index) => [
-      `  target ${index + 1}: ${run.started} started${run.refused ? `, ${run.refused} refused (queue full)` : ''} · ${Object.entries(run.statuses).map(([s, n]) => `${n} ${s}`).join(', ') || 'none'}`,
+      `  target ${index + 1}: ${run.started} started${run.refused ? `, ${run.refused} refused (queue full)` : ''} · ${
+        Object.entries(run.statuses)
+          .map(([s, n]) => `${n} ${s}`)
+          .join(', ') || 'none'
+      }`,
       `    waited p50 ${seconds(run.waitP50)}, p95 ${seconds(run.waitP95)} · ran p50 ${seconds(run.durationP50)}, p95 ${seconds(run.durationP95)} · at most ${run.maxRunning} in progress · first start ${seconds(run.firstStartMs)}, last end ${seconds(run.lastEndMs)}`,
     ]),
     '',
-    found.length === 0 ? 'Within the thresholds.' : `Breached:\n${found.map((f) => `  ✗ ${f}`).join('\n')}`,
+    found.length === 0
+      ? 'Within the thresholds.'
+      : `Breached:\n${found.map((f) => `  ✗ ${f}`).join('\n')}`,
   ];
   return lines.join('\n');
 }
@@ -441,7 +588,16 @@ export interface LoadCycle {
   breaches: string[];
 }
 
-export async function runLoad(options: LoadOptions, io: LoadIo = defaultIo): Promise<{ code: number; reads: ReadSummary; runs: RunSummary[]; breaches: string[]; cycles?: LoadCycle[] }> {
+export async function runLoad(
+  options: LoadOptions,
+  io: LoadIo = defaultIo,
+): Promise<{
+  code: number;
+  reads: ReadSummary;
+  runs: RunSummary[];
+  breaches: string[];
+  cycles?: LoadCycle[];
+}> {
   const invocation = randomUUID();
   if ((options.soakSeconds ?? 0) > 0) {
     const start = io.now();
@@ -456,26 +612,47 @@ export async function runLoad(options: LoadOptions, io: LoadIo = defaultIo): Pro
       const runsPromise = (async () => {
         try {
           const runs = await runPhase(options, io, invocation, cycle, seenIds);
-          const pause = Math.min(deadline, cycleStart + (options.intervalSeconds ?? 30) * 1000) - io.now();
+          const pause =
+            Math.min(deadline, cycleStart + (options.intervalSeconds ?? 30) * 1000) - io.now();
           if (pause > 0) await io.sleep(pause);
           return runs;
-        } finally { stopped = true; }
+        } finally {
+          stopped = true;
+        }
       })();
-      const [runs, reads] = await Promise.all([runsPromise,
-        readPhase({ ...options, readSeconds: Math.max(0, (deadline - io.now()) / 1000) }, io, () => stopped, allReads)]);
+      const [runs, reads] = await Promise.all([
+        runsPromise,
+        readPhase(
+          { ...options, readSeconds: Math.max(0, (deadline - io.now()) / 1000) },
+          io,
+          () => stopped,
+          allReads,
+        ),
+      ]);
       const found = breaches(reads, runs, options);
-      const metrics = { cycle, startedAt: new Date(cycleStart).toISOString(), elapsedSeconds: (io.now() - cycleStart) / 1000, reads, runs, breaches: found };
+      const metrics = {
+        cycle,
+        startedAt: new Date(cycleStart).toISOString(),
+        elapsedSeconds: (io.now() - cycleStart) / 1000,
+        reads,
+        runs,
+        breaches: found,
+      };
       cycles.push(metrics);
       io.log(JSON.stringify(metrics));
     }
     const reads = allReads.summary((io.now() - start) / 1000);
-    const found = cycles.flatMap(c => c.breaches.map(b => `cycle ${c.cycle}: ${b}`));
+    const found = cycles.flatMap((c) => c.breaches.map((b) => `cycle ${c.cycle}: ${b}`));
     // The complete per-cycle run metrics are in cycles; retain the final cycle for burst consumers.
     const runs = cycles.at(-1)?.runs ?? [];
-    io.log(`Soak: ${cycles.length} cycles, ${(io.now() - start) / 1000} s, ${found.length} breaches`);
+    io.log(
+      `Soak: ${cycles.length} cycles, ${(io.now() - start) / 1000} s, ${found.length} breaches`,
+    );
     return { code: found.length ? EXIT_BREACHED : EXIT_OK, reads, runs, breaches: found, cycles };
   }
-  io.log(`Reads: ${options.readers} clients for ${options.readSeconds} s against ${options.baseUrl}`);
+  io.log(
+    `Reads: ${options.readers} clients for ${options.readSeconds} s against ${options.baseUrl}`,
+  );
   const reads = await readPhase(options, io);
   io.log(`Runs: ${options.runs} at once for each of ${options.targets.length} target(s)`);
   const runs = await runPhase(options, io, invocation);
@@ -487,18 +664,36 @@ export async function runLoad(options: LoadOptions, io: LoadIo = defaultIo): Pro
 export async function main(argv: string[]): Promise<number> {
   const options = parseArgs(argv);
   if ('error' in options) {
-    console.error(`${options.error}\nUsage: wfm-load --url <installation> --target <api key>:<plan id> [--target …] [--readers 10] [--read-seconds 30] [--runs 10] [--max-concurrent 2] [--run-timeout 600] [--max-p95-ms 1000] [--max-error-rate 0] [--soak-seconds 3600] [--interval-seconds 30] [--request-timeout 30] [--json report.json]`);
+    console.error(
+      `${options.error}\nUsage: wfm-load --url <installation> --target <api key>:<plan id> [--target …] [--readers 10] [--read-seconds 30] [--runs 10] [--max-concurrent 2] [--run-timeout 600] [--max-p95-ms 1000] [--max-error-rate 0] [--soak-seconds 3600] [--interval-seconds 30] [--request-timeout 30] [--json report.json]`,
+    );
     return EXIT_TOOL_ERROR;
   }
   try {
     const result = await runLoad(options);
     if (options.jsonPath) {
       const { writeFileSync } = await import('node:fs');
-      writeFileSync(options.jsonPath, JSON.stringify({ at: new Date().toISOString(), baseUrl: options.baseUrl, reads: result.reads, runs: result.runs, breaches: result.breaches, cycles: result.cycles }, null, 2));
+      writeFileSync(
+        options.jsonPath,
+        JSON.stringify(
+          {
+            at: new Date().toISOString(),
+            baseUrl: options.baseUrl,
+            reads: result.reads,
+            runs: result.runs,
+            breaches: result.breaches,
+            cycles: result.cycles,
+          },
+          null,
+          2,
+        ),
+      );
     }
     return result.code;
   } catch (error) {
-    console.error(`The load test could not be run: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `The load test could not be run: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return EXIT_TOOL_ERROR;
   }
 }

@@ -25,22 +25,44 @@ import { QuotaError } from './tenant-quotas';
 
 /** The part of a BullMQ queue this needs. */
 export interface PromotableQueue {
-  getJob(id: string): Promise<{ data?: Record<string, unknown>; getState(): Promise<string>; promote(): Promise<void> } | undefined | null>;
+  getJob(
+    id: string,
+  ): Promise<
+    | { data?: Record<string, unknown>; getState(): Promise<string>; promote(): Promise<void> }
+    | undefined
+    | null
+  >;
 }
 
 /** Makes the deferred jobs of the organization's oldest waiting runs ready, up to its free slots. Returns how many. */
-export async function promoteWaitingRuns(organizationId: number, queue: PromotableQueue): Promise<number> {
+export async function promoteWaitingRuns(
+  organizationId: number,
+  queue: PromotableQueue,
+): Promise<number> {
   const waiting = await runWithTenant(organizationId, () =>
     withTenantTransaction(async (tx) => {
-      const [quotas, counts] = [await quotasFor(tx, organizationId), await liveRunCounts(tx, organizationId)];
-      try { await checkExecutionBudget(tx, organizationId); }
-      catch (error) { if (error instanceof QuotaError) return []; throw error; }
-      const free = quotas.mode === 'enforce' ? quotas.maxConcurrentRuns - counts.running : counts.queued;
+      const [quotas, counts] = [
+        await quotasFor(tx, organizationId),
+        await liveRunCounts(tx, organizationId),
+      ];
+      try {
+        await checkExecutionBudget(tx, organizationId);
+      } catch (error) {
+        if (error instanceof QuotaError) return [];
+        throw error;
+      }
+      const free =
+        quotas.mode === 'enforce' ? quotas.maxConcurrentRuns - counts.running : counts.queued;
       if (free <= 0 || counts.queued === 0) return [];
       return tx
         .select({ id: testPlanExecutions.id })
         .from(testPlanExecutions)
-        .where(and(eq(testPlanExecutions.organizationId, organizationId), eq(testPlanExecutions.status, 'queued')))
+        .where(
+          and(
+            eq(testPlanExecutions.organizationId, organizationId),
+            eq(testPlanExecutions.status, 'queued'),
+          ),
+        )
         .orderBy(asc(testPlanExecutions.queuedAt), asc(testPlanExecutions.id))
         .limit(free);
     }),
@@ -51,7 +73,10 @@ export async function promoteWaitingRuns(organizationId: number, queue: Promotab
     if (!job || job.data?.deferredForQuota !== true) continue;
     // Between the look and the promotion the job may have been taken or promoted already.
     if ((await job.getState()) !== 'delayed') continue;
-    await job.promote().then(() => promoted++, () => undefined);
+    await job.promote().then(
+      () => promoted++,
+      () => undefined,
+    );
   }
   return promoted;
 }

@@ -39,7 +39,6 @@ const mockScheduleWithPlanNameFromServer = {
   testPlanName: 'Awesome Test Plan',
 };
 
-
 describe('Schedule API Client', () => {
   beforeEach(() => {
     mockFetch.mockClear();
@@ -74,17 +73,17 @@ describe('Schedule API Client', () => {
 
   describe('fetchSchedulesByPlanId', () => {
     it('should fetch schedules by plan ID and parse them', async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => [mockScheduleWithPlanNameFromServer],
-        });
-        const planId = 'planXYZ';
-        const result = await fetchSchedulesByPlanId(planId);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [mockScheduleWithPlanNameFromServer],
+      });
+      const planId = 'planXYZ';
+      const result = await fetchSchedulesByPlanId(planId);
 
-        expect(mockFetch).toHaveBeenCalledWith(`/api/test-plan-schedules/plan/${planId}`);
-        expect(result.length).toBe(1);
-        expect(result[0].id).toBe(mockScheduleWithPlanNameFromServer.id);
-        expect(result[0].nextRunAt).toEqual(new Date('2024-01-01T10:00:00Z'));
+      expect(mockFetch).toHaveBeenCalledWith(`/api/test-plan-schedules/plan/${planId}`);
+      expect(result.length).toBe(1);
+      expect(result[0].id).toBe(mockScheduleWithPlanNameFromServer.id);
+      expect(result[0].nextRunAt).toEqual(new Date('2024-01-01T10:00:00Z'));
     });
   });
 
@@ -137,22 +136,24 @@ describe('Schedule API Client', () => {
       expect(result.scheduleName).toBe(newSchedulePayload.scheduleName);
       expect(result.nextRunAt).toEqual(newSchedulePayload.nextRunAt); // Parsed back to Date
       expect(result.browsers).toEqual(newSchedulePayload.browsers);
-      expect(result.notificationConfigOverride).toEqual(newSchedulePayload.notificationConfigOverride);
+      expect(result.notificationConfigOverride).toEqual(
+        newSchedulePayload.notificationConfigOverride,
+      );
       expect(result.executionParameters).toEqual(newSchedulePayload.executionParameters);
     });
 
-     it('should throw extracted Zod error message on createSchedule failure', async () => {
-      const newSchedulePayload: CreateScheduleClientPayload = { /* ... */ } as any; // Incomplete for test
+    it('should throw extracted Zod error message on createSchedule failure', async () => {
+      const newSchedulePayload: CreateScheduleClientPayload = {/* ... */} as any; // Incomplete for test
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
         json: async () => ({
-          error: "Invalid request payload",
-          details: { body: { _errors: ["Schedule name is required"] } }
+          error: 'Invalid request payload',
+          details: { body: { _errors: ['Schedule name is required'] } },
         }),
       });
 
-      await expect(createSchedule(newSchedulePayload)).rejects.toThrow("Schedule name is required");
+      await expect(createSchedule(newSchedulePayload)).rejects.toThrow('Schedule name is required');
     });
   });
 

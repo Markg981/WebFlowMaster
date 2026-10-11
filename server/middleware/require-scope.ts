@@ -7,7 +7,13 @@ import type { KeyAuthenticatedRequest } from './api-key-auth';
 export type ScopeGuard = RequestHandler & { scope: ApiScope };
 
 /** How every /api/v1 error looks: a stable code to branch on, and a sentence for a person. */
-export function apiError(res: Response, status: number, code: string, message: string, extra: Record<string, unknown> = {}) {
+export function apiError(
+  res: Response,
+  status: number,
+  code: string,
+  message: string,
+  extra: Record<string, unknown> = {},
+) {
   return res.status(status).json({ error: { code, message, ...extra } });
 }
 
@@ -27,14 +33,31 @@ export function requireScope(scope: ApiScope): ScopeGuard {
 
   const guard = ((req: Request, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated?.() || !req.user) {
-      return apiError(res, 401, 'unauthenticated', 'Send an API key as "Authorization: Bearer <key>" or "X-API-Key".');
+      return apiError(
+        res,
+        401,
+        'unauthenticated',
+        'Send an API key as "Authorization: Bearer <key>" or "X-API-Key".',
+      );
     }
     if (!roleAllows(req.user.role, minimumRole)) {
-      return apiError(res, 403, 'insufficient_role', `This needs the ${minimumRole} role or higher.`, { requiredRole: minimumRole });
+      return apiError(
+        res,
+        403,
+        'insufficient_role',
+        `This needs the ${minimumRole} role or higher.`,
+        { requiredRole: minimumRole },
+      );
     }
     const scopes = (req as KeyAuthenticatedRequest).apiKeyScopes;
     if (scopes && !scopes.includes(scope)) {
-      return apiError(res, 403, 'insufficient_scope', `This API key does not have the "${scope}" scope.`, { requiredScope: scope });
+      return apiError(
+        res,
+        403,
+        'insufficient_scope',
+        `This API key does not have the "${scope}" scope.`,
+        { requiredScope: scope },
+      );
     }
     next();
   }) as ScopeGuard;

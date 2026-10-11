@@ -17,7 +17,14 @@ import {
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -42,26 +49,82 @@ let runId: string;
 beforeAll(async () => {
   organizationId = await createTestOrganization('Plan Contents Org');
   const ownerId = await createTestUser(organizationId, 'contents-owner');
-  outsider = { id: await createTestUser(organizationId, 'contents-outsider'), organizationId, role: 'viewer', username: 'outsider' };
-  reader = { id: await createTestUser(organizationId, 'contents-reader'), organizationId, role: 'editor', username: 'reader' };
+  outsider = {
+    id: await createTestUser(organizationId, 'contents-outsider'),
+    organizationId,
+    role: 'viewer',
+    username: 'outsider',
+  };
+  reader = {
+    id: await createTestUser(organizationId, 'contents-reader'),
+    organizationId,
+    role: 'editor',
+    username: 'reader',
+  };
 
-  const [secret] = await privilegedDb.insert(projects).values({ name: 'Secret', userId: ownerId, organizationId, restricted: true }).returning();
-  await privilegedDb.insert(projectMembers).values({ projectId: secret.id, userId: reader.id, organizationId, role: 'viewer' });
+  const [secret] = await privilegedDb
+    .insert(projects)
+    .values({ name: 'Secret', userId: ownerId, organizationId, restricted: true })
+    .returning();
+  await privilegedDb
+    .insert(projectMembers)
+    .values({ projectId: secret.id, userId: reader.id, organizationId, role: 'viewer' });
 
   const makeTest = async (name: string, projectId: number | null) =>
-    (await privilegedDb.insert(tests).values({ name, url: 'https://x.test', sequence: [], elements: [], userId: ownerId, organizationId, projectId } as any).returning())[0].id;
+    (
+      await privilegedDb
+        .insert(tests)
+        .values({
+          name,
+          url: 'https://x.test',
+          sequence: [],
+          elements: [],
+          userId: ownerId,
+          organizationId,
+          projectId,
+        } as any)
+        .returning()
+    )[0].id;
   looseTestId = await makeTest('Loose login', null);
   secretTestId = await makeTest('Secret checkout', secret.id);
 
-  const [suite] = await privilegedDb.insert(testSuites).values({ name: 'Secret suite', kind: 'static', projectId: secret.id, userId: ownerId, organizationId } as any).returning();
-  await privilegedDb.insert(testSuiteItems).values({ suiteId: suite.id, organizationId, testType: 'ui', testId: secretTestId, position: 0 } as any);
+  const [suite] = await privilegedDb
+    .insert(testSuites)
+    .values({
+      name: 'Secret suite',
+      kind: 'static',
+      projectId: secret.id,
+      userId: ownerId,
+      organizationId,
+    } as any)
+    .returning();
+  await privilegedDb.insert(testSuiteItems).values({
+    suiteId: suite.id,
+    organizationId,
+    testType: 'ui',
+    testId: secretTestId,
+    position: 0,
+  } as any);
 
   planId = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Nightly', userId: ownerId, organizationId });
-  await privilegedDb.insert(testPlanSelectedTests).values({ testPlanId: planId, organizationId, testId: looseTestId, testType: 'ui' });
-  await privilegedDb.insert(testPlanSuites).values({ testPlanId: planId, suiteId: suite.id, organizationId, position: 0 } as any);
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Nightly', userId: ownerId, organizationId });
+  await privilegedDb
+    .insert(testPlanSelectedTests)
+    .values({ testPlanId: planId, organizationId, testId: looseTestId, testType: 'ui' });
+  await privilegedDb
+    .insert(testPlanSuites)
+    .values({ testPlanId: planId, suiteId: suite.id, organizationId, position: 0 } as any);
   runId = uuidv4();
-  await privilegedDb.insert(testPlanExecutions).values({ id: runId, organizationId, testPlanId: planId, status: 'completed', triggeredBy: 'manual', startedAt: new Date() } as any);
+  await privilegedDb.insert(testPlanExecutions).values({
+    id: runId,
+    organizationId,
+    testPlanId: planId,
+    status: 'completed',
+    triggeredBy: 'manual',
+    startedAt: new Date(),
+  } as any);
 
   const { default: testPlanRoutes } = await import('./test-plans.routes');
   const { runWithTenant } = await import('../middleware/tenancy');
@@ -70,7 +133,10 @@ beforeAll(async () => {
   app.use((req, _res, next) => {
     (req as any).user = currentUser;
     (req as any).isAuthenticated = () => true;
-    runWithTenant(currentUser.organizationId, () => next(), { userId: currentUser.id, role: currentUser.role });
+    runWithTenant(currentUser.organizationId, () => next(), {
+      userId: currentUser.id,
+      role: currentUser.role,
+    });
   });
   app.use(testPlanRoutes);
 });
@@ -93,8 +159,13 @@ describe('GET /api/test-plans/:id/contents', () => {
     currentUser = reader;
     const response = await request(app).get(`/api/test-plans/${planId}/contents`).expect(200);
 
-    expect(response.body.tests.map((test: { name: string | null }) => test.name)).toEqual(['Loose login', 'Secret checkout']);
-    expect(response.body.suites.map((suite: { name: string }) => suite.name)).toEqual(['Secret suite']);
+    expect(response.body.tests.map((test: { name: string | null }) => test.name)).toEqual([
+      'Loose login',
+      'Secret checkout',
+    ]);
+    expect(response.body.suites.map((suite: { name: string }) => suite.name)).toEqual([
+      'Secret suite',
+    ]);
   });
 
   it('answers 404 for a plan that is not there', async () => {

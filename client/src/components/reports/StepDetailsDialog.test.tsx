@@ -6,7 +6,9 @@ import StepDetailsDialog, { type ReportStep } from './StepDetailsDialog';
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: string, options?: Record<string, unknown>) =>
-      (fallback ?? _key).replace(/\{\{(\w+)\}\}/g, (_m, name: string) => String(options?.[name] ?? '')),
+      (fallback ?? _key).replace(/\{\{(\w+)\}\}/g, (_m, name: string) =>
+        String(options?.[name] ?? ''),
+      ),
   }),
 }));
 
@@ -38,22 +40,58 @@ const steps: ReportStep[] = [
 
 describe('StepDetailsDialog', () => {
   it('marks omitted evidence without rendering a broken image', () => {
-    render(<StepDetailsDialog open onOpenChange={() => {}} testName="Storage cap" steps={[{ name: 'Saved verdict', type: 'check', status: 'passed', details: 'Passed', evidenceUnavailable: true, screenshot: null }]} />);
-    expect(screen.getByText('Evidence unavailable: not retained by the artifact store.')).toBeInTheDocument();
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Storage cap"
+        steps={[
+          {
+            name: 'Saved verdict',
+            type: 'check',
+            status: 'passed',
+            details: 'Passed',
+            evidenceUnavailable: true,
+            screenshot: null,
+          },
+        ]}
+      />,
+    );
+    expect(
+      screen.getByText('Evidence unavailable: not retained by the artifact store.'),
+    ).toBeInTheDocument();
     expect(screen.queryByAltText('Screenshot')).toBeNull();
   });
   it('lists the steps in order, with the failing one carrying its error', () => {
-    render(<StepDetailsDialog open onOpenChange={() => {}} testName="Login works" browser="firefox" steps={steps} />);
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Login works"
+        browser="firefox"
+        steps={steps}
+      />,
+    );
 
     expect(screen.getByText('Login works')).toBeInTheDocument();
     expect(screen.getByText('Steps recorded on firefox.')).toBeInTheDocument();
     expect(screen.getByText('1. Load Page')).toBeInTheDocument();
     expect(screen.getByText('2. Click Save')).toBeInTheDocument();
-    expect(screen.getAllByText('Visual difference: 4.20% of pixels changed').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText('Visual difference: 4.20% of pixels changed').length,
+    ).toBeGreaterThan(0);
   });
 
   it('shows the baseline, this run and the difference as three labelled pictures', () => {
-    render(<StepDetailsDialog open onOpenChange={() => {}} testName="Login works" browser="firefox" steps={steps} />);
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Login works"
+        browser="firefox"
+        steps={steps}
+      />,
+    );
 
     expect(screen.getByAltText('Baseline')).toHaveAttribute(
       'src',
@@ -75,7 +113,15 @@ describe('StepDetailsDialog', () => {
         onOpenChange={() => {}}
         testName="Login works"
         browser={null}
-        steps={[{ name: 'Type password', type: 'input', status: 'passed', details: 'Success', screenshot: '/shot.png' }]}
+        steps={[
+          {
+            name: 'Type password',
+            type: 'input',
+            status: 'passed',
+            details: 'Success',
+            screenshot: '/shot.png',
+          },
+        ]}
       />,
     );
 
@@ -120,7 +166,15 @@ describe('StepDetailsDialog', () => {
   });
 
   it('shows no recording section for a run that kept none', () => {
-    render(<StepDetailsDialog open onOpenChange={() => {}} testName="Login works" browser="chromium" steps={steps} />);
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Login works"
+        browser="chromium"
+        steps={steps}
+      />,
+    );
 
     expect(screen.queryByTestId('run-video')).not.toBeInTheDocument();
     expect(screen.queryByText(/Download the Playwright trace/i)).not.toBeInTheDocument();
@@ -140,7 +194,10 @@ describe('StepDetailsDialog', () => {
     );
 
     expect(screen.getByText(/Steps recorded on Google Pixel 8 · 14.0/)).toBeInTheDocument();
-    expect(screen.getByTestId('device-session')).toHaveAttribute('href', 'https://app-automate.browserstack.com/s/abc');
+    expect(screen.getByTestId('device-session')).toHaveAttribute(
+      'href',
+      'https://app-automate.browserstack.com/s/abc',
+    );
   });
 
   it("lists an accessibility check's violations, marks the ones that failed the step, and links each rule", () => {
@@ -156,7 +213,8 @@ describe('StepDetailsDialog', () => {
             type: 'assertAccessible',
             status: 'failed',
             details: '',
-            error: '1 accessibility violation serious or worse: button-name (critical, 7 elements).',
+            error:
+              '1 accessibility violation serious or worse: button-name (critical, 7 elements).',
             accessibility: {
               url: 'https://shop.test/checkout',
               threshold: 'serious',
@@ -165,14 +223,24 @@ describe('StepDetailsDialog', () => {
               incomplete: 2,
               violations: [
                 {
-                  id: 'button-name', impact: 'critical', help: 'Buttons must have discernible text',
-                  helpUrl: 'https://dequeuniversity.com/rules/axe/4.10/button-name', tags: ['wcag2a'],
-                  count: 7, targets: ['#pay', '.close', '.next', '.prev', '.menu'], blocking: true,
+                  id: 'button-name',
+                  impact: 'critical',
+                  help: 'Buttons must have discernible text',
+                  helpUrl: 'https://dequeuniversity.com/rules/axe/4.10/button-name',
+                  tags: ['wcag2a'],
+                  count: 7,
+                  targets: ['#pay', '.close', '.next', '.prev', '.menu'],
+                  blocking: true,
                 },
                 {
-                  id: 'region', impact: 'moderate', help: 'All page content should be contained by landmarks',
-                  helpUrl: 'https://dequeuniversity.com/rules/axe/4.10/region', tags: [],
-                  count: 1, targets: ['body > div'], blocking: false,
+                  id: 'region',
+                  impact: 'moderate',
+                  help: 'All page content should be contained by landmarks',
+                  helpUrl: 'https://dequeuniversity.com/rules/axe/4.10/region',
+                  tags: [],
+                  count: 1,
+                  targets: ['body > div'],
+                  blocking: false,
                 },
               ],
             },
@@ -181,11 +249,16 @@ describe('StepDetailsDialog', () => {
       />,
     );
 
-    expect(screen.getByText(/2 rules broken, 40 passed, 2 need a person to check/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/2 rules broken, 40 passed, 2 need a person to check/),
+    ).toBeInTheDocument();
     const blocking = screen.getByTestId('violation-button-name');
     expect(blocking).toHaveTextContent('failed the step');
     expect(blocking).toHaveTextContent('#pay · .close · .next · .prev · .menu · +2');
-    expect(screen.getByRole('link', { name: /button-name/ })).toHaveAttribute('href', 'https://dequeuniversity.com/rules/axe/4.10/button-name');
+    expect(screen.getByRole('link', { name: /button-name/ })).toHaveAttribute(
+      'href',
+      'https://dequeuniversity.com/rules/axe/4.10/button-name',
+    );
     expect(screen.getByTestId('violation-region')).not.toHaveTextContent('failed the step');
   });
 
@@ -195,30 +268,84 @@ describe('StepDetailsDialog', () => {
       failed: 27,
       transferredBytes: 2_560_000,
       failures: [
-        { method: 'POST', url: 'https://shop.test/api/orders', status: 500, statusText: 'Internal Server Error', timeMs: 1200, resourceType: 'fetch' },
-        { method: 'GET', url: 'https://cdn.test/app.js', status: 0, statusText: 'net::ERR_CONNECTION_REFUSED', timeMs: 30, resourceType: 'script' },
+        {
+          method: 'POST',
+          url: 'https://shop.test/api/orders',
+          status: 500,
+          statusText: 'Internal Server Error',
+          timeMs: 1200,
+          resourceType: 'fetch',
+        },
+        {
+          method: 'GET',
+          url: 'https://cdn.test/app.js',
+          status: 0,
+          statusText: 'net::ERR_CONNECTION_REFUSED',
+          timeMs: 30,
+          resourceType: 'script',
+        },
       ],
-      slowest: [{ method: 'GET', url: 'https://shop.test/api/catalog', status: 200, statusText: 'OK', timeMs: 8400, resourceType: 'fetch' }],
+      slowest: [
+        {
+          method: 'GET',
+          url: 'https://shop.test/api/catalog',
+          status: 200,
+          statusText: 'OK',
+          timeMs: 8400,
+          resourceType: 'fetch',
+        },
+      ],
     };
     const { rerender } = render(
-      <StepDetailsDialog open onOpenChange={() => {}} testName="Checkout" browser="chromium" steps={steps} network={network} harUrl="/api/test-plan-executions/exec-1/artifacts/ui_5/checkout_network.har" />,
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Checkout"
+        browser="chromium"
+        steps={steps}
+        network={network}
+        harUrl="/api/test-plan-executions/exec-1/artifacts/ui_5/checkout_network.har"
+      />,
     );
 
     expect(screen.getByText('42 requests, 27 failed, 2.4 MB received')).toBeInTheDocument();
-    expect(screen.getByTestId('network-failures')).toHaveTextContent('500POSThttps://shop.test/api/orders1200 ms');
+    expect(screen.getByTestId('network-failures')).toHaveTextContent(
+      '500POSThttps://shop.test/api/orders1200 ms',
+    );
     expect(screen.getByTestId('network-failures')).toHaveTextContent('net::ERR_CONNECTION_REFUSED');
     expect(screen.getByText('and 25 more in the HAR')).toBeInTheDocument();
     expect(screen.getByTestId('network-slowest')).toHaveTextContent('8400 ms');
-    expect(screen.getByText(/Download the HAR/)).toHaveAttribute('href', '/api/test-plan-executions/exec-1/artifacts/ui_5/checkout_network.har');
+    expect(screen.getByText(/Download the HAR/)).toHaveAttribute(
+      'href',
+      '/api/test-plan-executions/exec-1/artifacts/ui_5/checkout_network.har',
+    );
 
     // A passing test under "on failure": the summary without the file.
-    rerender(<StepDetailsDialog open onOpenChange={() => {}} testName="Checkout" browser="chromium" steps={steps} network={network} harUrl={null} />);
+    rerender(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Checkout"
+        browser="chromium"
+        steps={steps}
+        network={network}
+        harUrl={null}
+      />,
+    );
     expect(screen.getByTestId('network-panel')).toBeInTheDocument();
     expect(screen.queryByText(/Download the HAR/)).not.toBeInTheDocument();
   });
 
   it('says why there is nothing to show rather than opening empty', () => {
-    render(<StepDetailsDialog open onOpenChange={() => {}} testName="Some API test" browser={null} steps={[]} />);
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Some API test"
+        browser={null}
+        steps={[]}
+      />,
+    );
 
     expect(screen.getByText(/no recorded steps/i)).toBeInTheDocument();
   });

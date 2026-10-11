@@ -8,7 +8,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, values?: Record<string, unknown>) => {
       const template = typeof fallback === 'string' ? fallback : _key;
-      const vars = typeof fallback === 'object' ? fallback : values ?? {};
+      const vars = typeof fallback === 'object' ? fallback : (values ?? {});
       return template.replace(/\{\{(\w+)\}\}/g, (_m, name) => String(vars[name] ?? ''));
     },
   }),
@@ -44,7 +44,9 @@ describe('CancelRunButton', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('is not offered for a run that has ended', () => {
-    const { container } = render(<CancelRunButton executionId="e1" status="completed" onChanged={vi.fn()} />);
+    const { container } = render(
+      <CancelRunButton executionId="e1" status="completed" onChanged={vi.fn()} />,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -64,19 +66,31 @@ describe('CancelRunButton', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Cancel run' }).at(-1)!);
 
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
-    expect(fetchMock).toHaveBeenCalledWith('/api/test-plan-executions/e1/cancel', { method: 'POST' });
+    expect(fetchMock).toHaveBeenCalledWith('/api/test-plan-executions/e1/cancel', {
+      method: 'POST',
+    });
     expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Stopping the run' }));
   });
 
   it('says why when the server refuses', async () => {
-    fetchMock.mockResolvedValue({ ok: false, json: async () => ({ error: 'The run has already ended (completed).' }) });
+    fetchMock.mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: 'The run has already ended (completed).' }),
+    });
     const onChanged = vi.fn();
     render(<CancelRunButton executionId="e1" status="queued" onChanged={onChanged} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel run' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Cancel run' }).at(-1)!);
 
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive', description: 'The run has already ended (completed).' })));
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'destructive',
+          description: 'The run has already ended (completed).',
+        }),
+      ),
+    );
     expect(onChanged).not.toHaveBeenCalled();
   });
 });

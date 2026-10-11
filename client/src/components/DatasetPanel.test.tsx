@@ -137,7 +137,9 @@ describe('DatasetPanel', () => {
     renderPanel([]);
 
     fireEvent.click(screen.getByRole('button', { name: /Paste from a spreadsheet/i }));
-    fireEvent.change(screen.getByLabelText(/Paste the block/i), { target: { value: 'just one line' } });
+    fireEvent.change(screen.getByLabelText(/Paste the block/i), {
+      target: { value: 'just one line' },
+    });
 
     expect(screen.getByRole('button', { name: /Replace the rows/i })).toBeDisabled();
     expect(screen.getByText(/Needs a header row/i)).toBeInTheDocument();

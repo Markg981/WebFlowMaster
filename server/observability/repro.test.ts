@@ -18,7 +18,12 @@ const incident = (overrides: Partial<Incident> = {}): Incident => ({
   title: 'TypeError: boom',
   origin: { file: 'server/x.ts', line: 10, column: 1, functionName: 'run', source: [] },
   error: { name: 'TypeError', message: 'boom', frames: [] },
-  trigger: { method: 'POST', path: '/api/execute-test-direct', body: { url: 'https://x.test' }, userId: 7 },
+  trigger: {
+    method: 'POST',
+    path: '/api/execute-test-direct',
+    body: { url: 'https://x.test' },
+    userId: 7,
+  },
   state: {},
   breadcrumbs: [],
   occurrences: [],
@@ -60,7 +65,10 @@ describe('generateRepro', () => {
 
   it('marks a client-runtime reproduction best-effort and puts it under client/', async () => {
     const repro = await generateRepro(
-      incident({ kind: 'client-runtime', trigger: { route: '/dashboard', componentStack: '\n    at Toaster' } }),
+      incident({
+        kind: 'client-runtime',
+        trigger: { route: '/dashboard', componentStack: '\n    at Toaster' },
+      }),
       repoRoot,
     );
 

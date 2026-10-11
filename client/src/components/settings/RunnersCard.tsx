@@ -4,7 +4,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Loader2, Pause, Play } from 'lucide-react';
 
 /**
@@ -41,7 +48,11 @@ export default function RunnersCard({ canManage = true }: { canManage?: boolean 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  const { data: runners = [], isLoading, isError } = useQuery<RunnerRow[]>({
+  const {
+    data: runners = [],
+    isLoading,
+    isError,
+  } = useQuery<RunnerRow[]>({
     queryKey: ['runners'],
     queryFn: async () => {
       const response = await fetch('/api/runners', { credentials: 'include' });
@@ -56,8 +67,14 @@ export default function RunnersCard({ canManage = true }: { canManage?: boolean 
     setBusy(runner.id);
     setError('');
     try {
-      const response = await fetch(`/api/runners/${encodeURIComponent(runner.id)}/${action}`, { method: 'POST', credentials: 'include' });
-      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? 'Could not change the runner');
+      const response = await fetch(`/api/runners/${encodeURIComponent(runner.id)}/${action}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok)
+        throw new Error(
+          (await response.json().catch(() => ({}))).error ?? 'Could not change the runner',
+        );
       await queryClient.invalidateQueries({ queryKey: ['runners'] });
     } catch (e) {
       setError((e as Error).message);
@@ -74,14 +91,22 @@ export default function RunnersCard({ canManage = true }: { canManage?: boolean 
         {isLoading ? (
           <p className="text-sm text-muted-foreground">{t('runners.loading', 'Loading…')}</p>
         ) : isError ? (
-          <p className="text-sm text-destructive">{t('runners.error', 'The runners could not be loaded.')}</p>
+          <p className="text-sm text-destructive">
+            {t('runners.error', 'The runners could not be loaded.')}
+          </p>
         ) : runners.length === 0 || online === 0 ? (
           <p className="text-sm text-amber-700 dark:text-amber-400" data-testid="runners-none">
-            {t('runners.none', 'No runner is taking work: every new run will wait in the queue. Start a worker (npm run dev:worker, or the worker service).')}
+            {t(
+              'runners.none',
+              'No runner is taking work: every new run will wait in the queue. Start a worker (npm run dev:worker, or the worker service).',
+            )}
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">
-            {t('runners.summary', '{{online}} of {{total}} runners taking work.', { online, total: runners.length })}
+            {t('runners.summary', '{{online}} of {{total}} runners taking work.', {
+              online,
+              total: runners.length,
+            })}
           </p>
         )}
 
@@ -117,35 +142,63 @@ export default function RunnersCard({ canManage = true }: { canManage?: boolean 
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[runner.status]}`}>
+                      <span
+                        className={`rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[runner.status]}`}
+                      >
                         {t(`runners.status.${runner.status}`, runner.status)}
                       </span>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {runner.status === 'offline' ? '—' : `${runner.activeJobs} / ${runner.concurrency + runner.browserTaskConcurrency}`}
+                      {runner.status === 'offline'
+                        ? '—'
+                        : `${runner.activeJobs} / ${runner.concurrency + runner.browserTaskConcurrency}`}
                     </TableCell>
                     <TableCell className="text-xs">
                       {runner.browsers.length > 0 ? (
                         <span className="flex flex-wrap gap-1">
                           {runner.browsers.map((browser) => (
-                            <Badge key={browser} variant="outline" className="text-[10px]">{browser}</Badge>
+                            <Badge key={browser} variant="outline" className="text-[10px]">
+                              {browser}
+                            </Badge>
                           ))}
                         </span>
                       ) : (
-                        <span className="text-destructive">{t('runners.noBrowsers', 'none installed')}</span>
+                        <span className="text-destructive">
+                          {t('runners.noBrowsers', 'none installed')}
+                        </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">{new Date(runner.lastSeenAt).toLocaleString()}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {new Date(runner.lastSeenAt).toLocaleString()}
+                    </TableCell>
                     <TableCell className="text-right">
                       {canManage && runner.status === 'online' && (
-                        <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => act(runner, 'drain')}>
-                          {busy === runner.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pause className="h-4 w-4 mr-1" />}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={busy !== null}
+                          onClick={() => act(runner, 'drain')}
+                        >
+                          {busy === runner.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Pause className="h-4 w-4 mr-1" />
+                          )}
                           {t('runners.drain', 'Drain')}
                         </Button>
                       )}
                       {canManage && runner.status === 'draining' && (
-                        <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => act(runner, 'resume')}>
-                          {busy === runner.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={busy !== null}
+                          onClick={() => act(runner, 'resume')}
+                        >
+                          {busy === runner.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Play className="h-4 w-4 mr-1" />
+                          )}
                           {t('runners.resume', 'Resume')}
                         </Button>
                       )}

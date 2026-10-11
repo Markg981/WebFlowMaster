@@ -26,7 +26,8 @@ function normalized(key: string, value: string): string {
     if (['darwin', 'macos', 'mac os', 'os x'].includes(text)) return 'macos';
     if (['win32', 'windows'].includes(text)) return 'windows';
   }
-  if (key === 'browser') return text.replace(/^(?:playwright|pw)-/, '').replace(/^(?:msedge|microsoft edge)$/, 'edge');
+  if (key === 'browser')
+    return text.replace(/^(?:playwright|pw)-/, '').replace(/^(?:msedge|microsoft edge)$/, 'edge');
   return text;
 }
 

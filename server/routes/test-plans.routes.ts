@@ -1,17 +1,35 @@
-import { Router } from "express";
-import { checkRunOn } from "../browser-grids";
-import { testPlans, testPlanSchedules, testPlanExecutions, testPlanSelectedTests, testPlanSuites, testSuites, tests, apiTests, mobileTests, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema, type TestPlanSchedule } from "@shared/schema";
-import { eq, desc, asc, and, inArray, getTableColumns, sql, type SQL } from "drizzle-orm";
+import { Router } from 'express';
+import { checkRunOn } from '../browser-grids';
+import {
+  testPlans,
+  testPlanSchedules,
+  testPlanExecutions,
+  testPlanSelectedTests,
+  testPlanSuites,
+  testSuites,
+  tests,
+  apiTests,
+  mobileTests,
+  insertTestPlanScheduleSchema,
+  updateTestPlanScheduleSchema,
+  testPlanApiPayloadSchema,
+  type TestPlanSchedule,
+} from '@shared/schema';
+import { eq, desc, asc, and, inArray, getTableColumns, sql, type SQL } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import loggerPromise from "../logger";
-import schedulerService, { assertValidTimezone, DEFAULT_SCHEDULE_TIMEZONE, firstRunAt } from "../scheduler-service";
-import { runAsOrganization, withTenantTransaction, type TenantTx } from "../middleware/tenancy";
-import { expandPlanTests, type TestReference } from "../test-suites";
-import { requireRole } from "../middleware/require-role";
-import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./selected-tests";
-import { requestCancellation } from "../execution-state";
-import { AUDIT_ACTIONS } from "@shared/schema";
-import { auditActor, changedFields, recordAudit } from "../audit";
+import loggerPromise from '../logger';
+import schedulerService, {
+  assertValidTimezone,
+  DEFAULT_SCHEDULE_TIMEZONE,
+  firstRunAt,
+} from '../scheduler-service';
+import { runAsOrganization, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import { expandPlanTests, type TestReference } from '../test-suites';
+import { requireRole } from '../middleware/require-role';
+import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from './selected-tests';
+import { requestCancellation } from '../execution-state';
+import { AUDIT_ACTIONS } from '@shared/schema';
+import { auditActor, changedFields, recordAudit } from '../audit';
 import { publicExecution } from '../execution-provenance';
 
 const router = Router();
@@ -23,118 +41,132 @@ const logger = await loggerPromise;
 // called from inside a withTenantTransaction callback, and a second transaction there
 // would deadlock under PGlite (see withTenantTransaction's doc comment).
 async function fetchScheduleWithPlanName(tx: TenantTx, id: string) {
-    const rows = await tx
-        .select({ ...getTableColumns(testPlanSchedules), testPlanName: testPlans.name })
-        .from(testPlanSchedules)
-        .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
-        .where(eq(testPlanSchedules.id, id))
-        .limit(1);
-    if (rows.length === 0) return null;
-    const s = rows[0];
-    return {
-        ...s,
-        browsers: typeof s.browsers === 'string' ? JSON.parse(s.browsers) : s.browsers,
-        notificationConfigOverride: typeof s.notificationConfigOverride === 'string' ? JSON.parse(s.notificationConfigOverride) : s.notificationConfigOverride,
-        executionParameters: typeof s.executionParameters === 'string' ? JSON.parse(s.executionParameters) : s.executionParameters,
-    };
+  const rows = await tx
+    .select({ ...getTableColumns(testPlanSchedules), testPlanName: testPlans.name })
+    .from(testPlanSchedules)
+    .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
+    .where(eq(testPlanSchedules.id, id))
+    .limit(1);
+  if (rows.length === 0) return null;
+  const s = rows[0];
+  return {
+    ...s,
+    browsers: typeof s.browsers === 'string' ? JSON.parse(s.browsers) : s.browsers,
+    notificationConfigOverride:
+      typeof s.notificationConfigOverride === 'string'
+        ? JSON.parse(s.notificationConfigOverride)
+        : s.notificationConfigOverride,
+    executionParameters:
+      typeof s.executionParameters === 'string'
+        ? JSON.parse(s.executionParameters)
+        : s.executionParameters,
+  };
 }
 
 function isForeignKeyError(e: any): boolean {
-    return !!e?.message && e.message.toLowerCase().includes('foreign key');
+  return !!e?.message && e.message.toLowerCase().includes('foreign key');
 }
 
 // --- Test Plans ---
 
-router.get("/api/test-plans", requireRole('viewer'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
-    // No organization filter here on purpose: the RLS policy applies it.
-    const plans = await withTenantTransaction((tx) =>
-      tx.select().from(testPlans).orderBy(desc(testPlans.createdAt)),
-    );
-    res.json(plans);
+router.get('/api/test-plans', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+  // No organization filter here on purpose: the RLS policy applies it.
+  const plans = await withTenantTransaction((tx) =>
+    tx.select().from(testPlans).orderBy(desc(testPlans.createdAt)),
+  );
+  res.json(plans);
 });
 
-router.post("/api/test-plans", requireRole('editor'), async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/test-plans', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const parseResult = testPlanApiPayloadSchema.safeParse(req.body);
-    if (!parseResult.success) return res.status(400).json({ error: "Invalid data", details: parseResult.error.flatten() });
+  const parseResult = testPlanApiPayloadSchema.safeParse(req.body);
+  if (!parseResult.success)
+    return res.status(400).json({ error: 'Invalid data', details: parseResult.error.flatten() });
 
-    // selectedTests lives in a separate join table (testPlanSelectedTests) rather than as a
-    // column on testPlans, so it is inserted separately below — not dropped. It used to be
-    // destructured away and discarded here, which meant every plan created from the UI had
-    // zero linked tests: CreateTestPlanWizard always sends this field.
-    // Agents or a grid, never both, and only a grid of this organization (server/browser-grids.ts).
-    const runOn = await checkRunOn(parseResult.data);
-    if (!runOn.ok) return res.status(400).json({ error: runOn.error });
-    const { selectedTests, ...planData } = { ...parseResult.data, ...runOn.changes };
+  // selectedTests lives in a separate join table (testPlanSelectedTests) rather than as a
+  // column on testPlans, so it is inserted separately below — not dropped. It used to be
+  // destructured away and discarded here, which meant every plan created from the UI had
+  // zero linked tests: CreateTestPlanWizard always sends this field.
+  // Agents or a grid, never both, and only a grid of this organization (server/browser-grids.ts).
+  const runOn = await checkRunOn(parseResult.data);
+  if (!runOn.ok) return res.status(400).json({ error: runOn.error });
+  const { selectedTests, ...planData } = { ...parseResult.data, ...runOn.changes };
 
-    const planId = uuidv4();
-    try {
-        const newPlan = await withTenantTransaction(async (tx) => {
-          const inserted = await tx.insert(testPlans).values({
-            ...planData,
-            id: planId,
-            // The tenancy boundary: always derived from the authenticated session, never
-            // trusted from the request body (testPlanApiPayloadSchema omits both fields).
-            userId: req.user!.id,
-            organizationId: req.user!.organizationId,
-            testMachinesConfig: planData.testMachinesConfig ? JSON.stringify(planData.testMachinesConfig) : null,
-            notificationSettings: planData.notificationSettings ? JSON.stringify(planData.notificationSettings) : null
-          }).returning();
+  const planId = uuidv4();
+  try {
+    const newPlan = await withTenantTransaction(async (tx) => {
+      const inserted = await tx
+        .insert(testPlans)
+        .values({
+          ...planData,
+          id: planId,
+          // The tenancy boundary: always derived from the authenticated session, never
+          // trusted from the request body (testPlanApiPayloadSchema omits both fields).
+          userId: req.user!.id,
+          organizationId: req.user!.organizationId,
+          testMachinesConfig: planData.testMachinesConfig
+            ? JSON.stringify(planData.testMachinesConfig)
+            : null,
+          notificationSettings: planData.notificationSettings
+            ? JSON.stringify(planData.notificationSettings)
+            : null,
+        })
+        .returning();
 
-          const mainPlan = inserted[0];
+      const mainPlan = inserted[0];
 
-          if (selectedTests && selectedTests.length > 0) {
-            // Nothing downstream re-checks these ids — test-execution-service loads them with
-            // inArray and no organization filter — so an unvalidated foreign id would mean the
-            // runner executes another tenant's test.
-            await assertSelectedTestsBelongTo(tx, req.user!.organizationId, selectedTests);
-            await tx.insert(testPlanSelectedTests).values(
-              selectedTests.map((st) => ({
-                testPlanId: mainPlan.id,
-                // From the plan these rows hang off, not from the session: a join row belongs
-                // to the same organization as its parent.
-                organizationId: mainPlan.organizationId,
-                testId: st.type === 'ui' ? st.id : null,
-                apiTestId: st.type === 'api' ? st.id : null,
-                mobileTestId: st.type === 'mobile' ? st.id : null,
-                testType: st.type,
-              })),
-            );
-          }
+      if (selectedTests && selectedTests.length > 0) {
+        // Nothing downstream re-checks these ids — test-execution-service loads them with
+        // inArray and no organization filter — so an unvalidated foreign id would mean the
+        // runner executes another tenant's test.
+        await assertSelectedTestsBelongTo(tx, req.user!.organizationId, selectedTests);
+        await tx.insert(testPlanSelectedTests).values(
+          selectedTests.map((st) => ({
+            testPlanId: mainPlan.id,
+            // From the plan these rows hang off, not from the session: a join row belongs
+            // to the same organization as its parent.
+            organizationId: mainPlan.organizationId,
+            testId: st.type === 'ui' ? st.id : null,
+            apiTestId: st.type === 'api' ? st.id : null,
+            mobileTestId: st.type === 'mobile' ? st.id : null,
+            testType: st.type,
+          })),
+        );
+      }
 
-          await recordAudit(tx, {
-            action: AUDIT_ACTIONS.PLAN_CREATED,
-            actor: auditActor(req),
-            targetType: 'test_plan',
-            targetId: mainPlan.id,
-            metadata: { name: mainPlan.name, tests: selectedTests?.length ?? 0 },
-          });
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.PLAN_CREATED,
+        actor: auditActor(req),
+        targetType: 'test_plan',
+        targetId: mainPlan.id,
+        metadata: { name: mainPlan.name, tests: selectedTests?.length ?? 0 },
+      });
 
-          return mainPlan;
-        });
-        res.status(201).json(newPlan);
-    } catch(e: any) {
-        // Either the DB rejected an id that does not exist at all, or the check above rejected
-        // one that exists in another organization. Both are the caller naming a test that is
-        // not theirs to name, and both answer the same way — a distinct message for the second
-        // would tell them which ids exist in other tenants.
-        if (SELECTED_TESTS_NOT_FOUND.test(e.message || '') || isForeignKeyError(e)) {
-            return res.status(400).json({ error: "One or more selected tests do not exist." });
-        }
-        logger.error({ message: "Plan creation failed", error: e.message });
-        res.status(500).json({ error: "Failed to create plan" });
+      return mainPlan;
+    });
+    res.status(201).json(newPlan);
+  } catch (e: any) {
+    // Either the DB rejected an id that does not exist at all, or the check above rejected
+    // one that exists in another organization. Both are the caller naming a test that is
+    // not theirs to name, and both answer the same way — a distinct message for the second
+    // would tell them which ids exist in other tenants.
+    if (SELECTED_TESTS_NOT_FOUND.test(e.message || '') || isForeignKeyError(e)) {
+      return res.status(400).json({ error: 'One or more selected tests do not exist.' });
     }
+    logger.error({ message: 'Plan creation failed', error: e.message });
+    res.status(500).json({ error: 'Failed to create plan' });
+  }
 });
 
-router.get("/api/test-plans/:id", requireRole('viewer'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
-    const plan = await withTenantTransaction((tx) =>
-      tx.select().from(testPlans).where(eq(testPlans.id, req.params.id)).limit(1),
-    );
-    if(plan.length === 0) return res.status(404).json({ error: "Test plan not found." });
-    res.json(plan[0]);
+router.get('/api/test-plans/:id', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+  const plan = await withTenantTransaction((tx) =>
+    tx.select().from(testPlans).where(eq(testPlans.id, req.params.id)).limit(1),
+  );
+  if (plan.length === 0) return res.status(404).json({ error: 'Test plan not found.' });
+  res.json(plan[0]);
 });
 
 /**
@@ -147,324 +179,425 @@ router.get("/api/test-plans/:id", requireRole('viewer'), async (req, res) => {
  * viewer had no way to open a plan at all, and nobody could tell from the plan that it ran a
  * restricted project's tests.
  */
-router.get("/api/test-plans/:id/contents", requireRole('viewer'), async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
-    try {
-        const planId = req.params.id;
-        const [plan] = await withTenantTransaction((tx) =>
-          tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, planId)).limit(1),
-        );
-        if (!plan) return res.status(404).json({ error: "Not found" });
+router.get('/api/test-plans/:id/contents', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const planId = req.params.id;
+    const [plan] = await withTenantTransaction((tx) =>
+      tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, planId)).limit(1),
+    );
+    if (!plan) return res.status(404).json({ error: 'Not found' });
 
-        const refs = await runAsOrganization(req.user.organizationId, () =>
-          withTenantTransaction(async (tx) => {
-            const direct = await tx
-              .select({ testType: testPlanSelectedTests.testType, testId: testPlanSelectedTests.testId, apiTestId: testPlanSelectedTests.apiTestId, mobileTestId: testPlanSelectedTests.mobileTestId })
-              .from(testPlanSelectedTests)
-              .where(eq(testPlanSelectedTests.testPlanId, planId))
-              .orderBy(asc(testPlanSelectedTests.id));
-            return expandPlanTests(tx, planId, direct as TestReference[]);
-          }),
-        );
+    const refs = await runAsOrganization(req.user.organizationId, () =>
+      withTenantTransaction(async (tx) => {
+        const direct = await tx
+          .select({
+            testType: testPlanSelectedTests.testType,
+            testId: testPlanSelectedTests.testId,
+            apiTestId: testPlanSelectedTests.apiTestId,
+            mobileTestId: testPlanSelectedTests.mobileTestId,
+          })
+          .from(testPlanSelectedTests)
+          .where(eq(testPlanSelectedTests.testPlanId, planId))
+          .orderBy(asc(testPlanSelectedTests.id));
+        return expandPlanTests(tx, planId, direct as TestReference[]);
+      }),
+    );
 
-        const view = await withTenantTransaction(async (tx) => {
-          const uiIds = refs.filter((r) => r.testType === 'ui').map((r) => r.testId!);
-          const apiIds = refs.filter((r) => r.testType === 'api').map((r) => r.apiTestId!);
-          const uiNames = new Map(uiIds.length ? (await tx.select({ id: tests.id, name: tests.name }).from(tests).where(inArray(tests.id, uiIds))).map((t) => [t.id, t.name]) : []);
-          const apiNames = new Map(apiIds.length ? (await tx.select({ id: apiTests.id, name: apiTests.name }).from(apiTests).where(inArray(apiTests.id, apiIds))).map((t) => [t.id, t.name]) : []);
-          const mobileIds = refs.filter((r) => r.testType === 'mobile').map((r) => r.mobileTestId!);
-          const mobileNames = new Map(mobileIds.length ? (await tx.select({ id: mobileTests.id, name: mobileTests.name }).from(mobileTests).where(inArray(mobileTests.id, mobileIds))).map((t) => [t.id, t.name]) : []);
-          // Suites through RLS as well: one in a project the requester cannot see is not listed,
-          // though its tests are still counted above.
-          const suites = await tx
-            .select({ id: testSuites.id, name: testSuites.name })
-            .from(testPlanSuites)
-            .innerJoin(testSuites, eq(testSuites.id, testPlanSuites.suiteId))
-            .where(eq(testPlanSuites.testPlanId, planId))
-            .orderBy(asc(testPlanSuites.position));
-          const [latestRun] = await tx
-            .select({ id: testPlanExecutions.id, status: testPlanExecutions.status, startedAt: testPlanExecutions.startedAt })
-            .from(testPlanExecutions)
-            .where(eq(testPlanExecutions.testPlanId, planId))
-            .orderBy(desc(testPlanExecutions.startedAt))
-            .limit(1);
-          return {
-            tests: refs.map((r) =>
-              r.testType === 'ui'
-                ? { type: 'ui' as const, id: r.testId!, name: uiNames.get(r.testId!) ?? null }
-                : r.testType === 'mobile'
-                  ? { type: 'mobile' as const, id: r.mobileTestId!, name: mobileNames.get(r.mobileTestId!) ?? null }
-                  : { type: 'api' as const, id: r.apiTestId!, name: apiNames.get(r.apiTestId!) ?? null },
-            ),
-            suites,
-            latestRun: latestRun ?? null,
-          };
-        });
-        res.json(view);
-    } catch (e: any) {
-        logger.error({ message: "Failed to read a plan's contents", error: e?.message ?? String(e), planId: req.params.id });
-        res.status(500).json({ error: "Failed to load the plan." });
-    }
+    const view = await withTenantTransaction(async (tx) => {
+      const uiIds = refs.filter((r) => r.testType === 'ui').map((r) => r.testId!);
+      const apiIds = refs.filter((r) => r.testType === 'api').map((r) => r.apiTestId!);
+      const uiNames = new Map(
+        uiIds.length
+          ? (
+              await tx
+                .select({ id: tests.id, name: tests.name })
+                .from(tests)
+                .where(inArray(tests.id, uiIds))
+            ).map((t) => [t.id, t.name])
+          : [],
+      );
+      const apiNames = new Map(
+        apiIds.length
+          ? (
+              await tx
+                .select({ id: apiTests.id, name: apiTests.name })
+                .from(apiTests)
+                .where(inArray(apiTests.id, apiIds))
+            ).map((t) => [t.id, t.name])
+          : [],
+      );
+      const mobileIds = refs.filter((r) => r.testType === 'mobile').map((r) => r.mobileTestId!);
+      const mobileNames = new Map(
+        mobileIds.length
+          ? (
+              await tx
+                .select({ id: mobileTests.id, name: mobileTests.name })
+                .from(mobileTests)
+                .where(inArray(mobileTests.id, mobileIds))
+            ).map((t) => [t.id, t.name])
+          : [],
+      );
+      // Suites through RLS as well: one in a project the requester cannot see is not listed,
+      // though its tests are still counted above.
+      const suites = await tx
+        .select({ id: testSuites.id, name: testSuites.name })
+        .from(testPlanSuites)
+        .innerJoin(testSuites, eq(testSuites.id, testPlanSuites.suiteId))
+        .where(eq(testPlanSuites.testPlanId, planId))
+        .orderBy(asc(testPlanSuites.position));
+      const [latestRun] = await tx
+        .select({
+          id: testPlanExecutions.id,
+          status: testPlanExecutions.status,
+          startedAt: testPlanExecutions.startedAt,
+        })
+        .from(testPlanExecutions)
+        .where(eq(testPlanExecutions.testPlanId, planId))
+        .orderBy(desc(testPlanExecutions.startedAt))
+        .limit(1);
+      return {
+        tests: refs.map((r) =>
+          r.testType === 'ui'
+            ? { type: 'ui' as const, id: r.testId!, name: uiNames.get(r.testId!) ?? null }
+            : r.testType === 'mobile'
+              ? {
+                  type: 'mobile' as const,
+                  id: r.mobileTestId!,
+                  name: mobileNames.get(r.mobileTestId!) ?? null,
+                }
+              : {
+                  type: 'api' as const,
+                  id: r.apiTestId!,
+                  name: apiNames.get(r.apiTestId!) ?? null,
+                },
+        ),
+        suites,
+        latestRun: latestRun ?? null,
+      };
+    });
+    res.json(view);
+  } catch (e: any) {
+    logger.error({
+      message: "Failed to read a plan's contents",
+      error: e?.message ?? String(e),
+      planId: req.params.id,
+    });
+    res.status(500).json({ error: 'Failed to load the plan.' });
+  }
 });
 
 // --- Schedules ---
 
-router.get("/api/test-plan-schedules", requireRole('viewer'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/test-plan-schedules', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
-    // No organization filter here on purpose: the RLS policy applies it.
-    const results = await withTenantTransaction((tx) =>
-      tx.select({
+  // No organization filter here on purpose: the RLS policy applies it.
+  const results = await withTenantTransaction((tx) =>
+    tx
+      .select({
         ...getTableColumns(testPlanSchedules),
-        testPlanName: testPlans.name
+        testPlanName: testPlans.name,
       })
       .from(testPlanSchedules)
       .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
       .orderBy(desc(testPlanSchedules.createdAt)),
-    );
+  );
 
-    // Parse JSONs
-    const parsed = results.map(s => ({
-        ...s,
-        browsers: typeof s.browsers === 'string' ? JSON.parse(s.browsers) : s.browsers,
-        executionParameters: typeof s.executionParameters === 'string' ? JSON.parse(s.executionParameters) : s.executionParameters
-    }));
+  // Parse JSONs
+  const parsed = results.map((s) => ({
+    ...s,
+    browsers: typeof s.browsers === 'string' ? JSON.parse(s.browsers) : s.browsers,
+    executionParameters:
+      typeof s.executionParameters === 'string'
+        ? JSON.parse(s.executionParameters)
+        : s.executionParameters,
+  }));
 
-    res.json(parsed);
+  res.json(parsed);
 });
 
-router.post("/api/test-plan-schedules", requireRole('editor'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/test-plan-schedules', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
-    const parseResult = insertTestPlanScheduleSchema.safeParse(req.body);
-    if(!parseResult.success) return res.status(400).json({ error: "Invalid data", details: parseResult.error.flatten() });
+  const parseResult = insertTestPlanScheduleSchema.safeParse(req.body);
+  if (!parseResult.success)
+    return res.status(400).json({ error: 'Invalid data', details: parseResult.error.flatten() });
 
-    const scheduleId = uuidv4();
-    const data = parseResult.data;
+  const scheduleId = uuidv4();
+  const data = parseResult.data;
 
-    try {
-        // Reject an unresolvable zone here, at the point the schedule is saved. Doing it
-        // later, when the scheduler builds the pattern, would leave a row in the database
-        // that can never be scheduled and whose failure appears in a worker log.
-        if (data.timezone) {
-          try {
-            assertValidTimezone(data.timezone);
-          } catch (e: any) {
-            return res.status(400).json({ error: e.message });
-          }
-        }
-
-        // nextRunAt arrives as a Date or a unix-seconds number (schema allows both). For a CRON
-        // expression it is the pattern's first occurrence in the schedule's zone, not the moment
-        // the form was sent (see firstRunAt).
-        const requestedRunAt = data.nextRunAt instanceof Date ? data.nextRunAt : new Date(data.nextRunAt * 1000);
-        let nextRunAt: Date;
-        try {
-          nextRunAt = firstRunAt(data.frequency, requestedRunAt, data.timezone || DEFAULT_SCHEDULE_TIMEZONE);
-        } catch (e: any) {
-          return res.status(400).json({ error: e.message });
-        }
-
-        const created = await withTenantTransaction(async (tx) => {
-          await tx.insert(testPlanSchedules).values({
-              ...data,
-              id: scheduleId,
-              nextRunAt,
-              browsers: data.browsers ? JSON.stringify(data.browsers) : null,
-              notificationConfigOverride: data.notificationConfigOverride ? JSON.stringify(data.notificationConfigOverride) : null,
-              executionParameters: data.executionParameters ? JSON.stringify(data.executionParameters) : null,
-              userId: (req.user as any)?.id ?? null,
-              organizationId: (req.user as { organizationId: number }).organizationId,
-              updatedAt: new Date()
-          });
-
-          const schedule = await fetchScheduleWithPlanName(tx, scheduleId);
-          await recordAudit(tx, {
-            action: AUDIT_ACTIONS.SCHEDULE_CREATED,
-            actor: auditActor(req),
-            targetType: 'schedule',
-            targetId: scheduleId,
-            metadata: { name: data.scheduleName, planId: data.testPlanId, planName: schedule?.testPlanName ?? null, frequency: data.frequency },
-          });
-          return schedule;
-        });
-        // Add to scheduler
-        await schedulerService.addScheduleJob(created as any);
-
-        res.status(201).json(created);
-    } catch(e: any) {
-        if (isForeignKeyError(e)) {
-            return res.status(400).json({ error: "Invalid Test Plan ID: The specified Test Plan does not exist." });
-        }
-        logger.error({ message: "Schedule creation failed", error: e.message });
-        res.status(500).json({ error: "Failed to create schedule" });
+  try {
+    // Reject an unresolvable zone here, at the point the schedule is saved. Doing it
+    // later, when the scheduler builds the pattern, would leave a row in the database
+    // that can never be scheduled and whose failure appears in a worker log.
+    if (data.timezone) {
+      try {
+        assertValidTimezone(data.timezone);
+      } catch (e: any) {
+        return res.status(400).json({ error: e.message });
+      }
     }
+
+    // nextRunAt arrives as a Date or a unix-seconds number (schema allows both). For a CRON
+    // expression it is the pattern's first occurrence in the schedule's zone, not the moment
+    // the form was sent (see firstRunAt).
+    const requestedRunAt =
+      data.nextRunAt instanceof Date ? data.nextRunAt : new Date(data.nextRunAt * 1000);
+    let nextRunAt: Date;
+    try {
+      nextRunAt = firstRunAt(
+        data.frequency,
+        requestedRunAt,
+        data.timezone || DEFAULT_SCHEDULE_TIMEZONE,
+      );
+    } catch (e: any) {
+      return res.status(400).json({ error: e.message });
+    }
+
+    const created = await withTenantTransaction(async (tx) => {
+      await tx.insert(testPlanSchedules).values({
+        ...data,
+        id: scheduleId,
+        nextRunAt,
+        browsers: data.browsers ? JSON.stringify(data.browsers) : null,
+        notificationConfigOverride: data.notificationConfigOverride
+          ? JSON.stringify(data.notificationConfigOverride)
+          : null,
+        executionParameters: data.executionParameters
+          ? JSON.stringify(data.executionParameters)
+          : null,
+        userId: (req.user as any)?.id ?? null,
+        organizationId: (req.user as { organizationId: number }).organizationId,
+        updatedAt: new Date(),
+      });
+
+      const schedule = await fetchScheduleWithPlanName(tx, scheduleId);
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.SCHEDULE_CREATED,
+        actor: auditActor(req),
+        targetType: 'schedule',
+        targetId: scheduleId,
+        metadata: {
+          name: data.scheduleName,
+          planId: data.testPlanId,
+          planName: schedule?.testPlanName ?? null,
+          frequency: data.frequency,
+        },
+      });
+      return schedule;
+    });
+    // Add to scheduler
+    await schedulerService.addScheduleJob(created as any);
+
+    res.status(201).json(created);
+  } catch (e: any) {
+    if (isForeignKeyError(e)) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid Test Plan ID: The specified Test Plan does not exist.' });
+    }
+    logger.error({ message: 'Schedule creation failed', error: e.message });
+    res.status(500).json({ error: 'Failed to create schedule' });
+  }
 });
 
-router.put("/api/test-plan-schedules/:id", requireRole('editor'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
-    const id = req.params.id;
+router.put('/api/test-plan-schedules/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+  const id = req.params.id;
 
-    const parseResult = updateTestPlanScheduleSchema.safeParse(req.body);
-    if(!parseResult.success) return res.status(400).json({ error: "Invalid data", details: parseResult.error.flatten() });
-    const updates = parseResult.data;
+  const parseResult = updateTestPlanScheduleSchema.safeParse(req.body);
+  if (!parseResult.success)
+    return res.status(400).json({ error: 'Invalid data', details: parseResult.error.flatten() });
+  const updates = parseResult.data;
 
-    try {
-        // Same check as on create: a zone the platform cannot resolve is the caller's
-        // mistake, and saying so now beats a row that silently never runs.
-        if (updates.timezone) {
-          try {
-            assertValidTimezone(updates.timezone);
-          } catch (e: any) {
-            return res.status(400).json({ error: e.message });
-          }
-        }
-
-        const values: Record<string, any> = { ...updates, updatedAt: new Date() };
-        if (updates.nextRunAt !== undefined) {
-            values.nextRunAt = updates.nextRunAt instanceof Date ? updates.nextRunAt : new Date((updates.nextRunAt as number) * 1000);
-        }
-        if (updates.browsers !== undefined) values.browsers = updates.browsers ? JSON.stringify(updates.browsers) : null;
-        if (updates.notificationConfigOverride !== undefined) values.notificationConfigOverride = updates.notificationConfigOverride ? JSON.stringify(updates.notificationConfigOverride) : null;
-        if (updates.executionParameters !== undefined) values.executionParameters = updates.executionParameters ? JSON.stringify(updates.executionParameters) : null;
-        // Drop undefined keys so Drizzle doesn't try to set them.
-        Object.keys(values).forEach(k => values[k] === undefined && delete values[k]);
-
-        // A change to when it runs recomputes the first run, as on create — against the row as it
-        // is for whatever the request leaves out.
-        if (updates.frequency !== undefined || updates.timezone !== undefined || updates.nextRunAt !== undefined) {
-          const [current] = await withTenantTransaction((tx) =>
-            tx
-              .select({ frequency: testPlanSchedules.frequency, timezone: testPlanSchedules.timezone, nextRunAt: testPlanSchedules.nextRunAt })
-              .from(testPlanSchedules)
-              .where(eq(testPlanSchedules.id, id))
-              .limit(1),
-          );
-          if (!current) return res.status(404).json({ error: "Schedule not found" });
-          try {
-            values.nextRunAt = firstRunAt(
-              values.frequency ?? current.frequency,
-              values.nextRunAt ?? current.nextRunAt,
-              values.timezone ?? current.timezone ?? DEFAULT_SCHEDULE_TIMEZONE,
-            );
-          } catch (e: any) {
-            return res.status(400).json({ error: e.message });
-          }
-        }
-
-        // Under RLS this matches nothing for another organization's schedule (closing the
-        // ownership gap this handler used to have — an id from any tenant reached this
-        // query with no organization filter at all), so the 404 below is the correct
-        // answer rather than a cross-tenant write.
-        let updatedRow: TestPlanSchedule | undefined;
-        const result = await withTenantTransaction(async (tx) => {
-          const updated = await tx.update(testPlanSchedules).set(values).where(eq(testPlanSchedules.id, id)).returning();
-          if (updated.length === 0) return null;
-
-          updatedRow = updated[0];
-          await recordAudit(tx, {
-            action: AUDIT_ACTIONS.SCHEDULE_UPDATED,
-            actor: auditActor(req),
-            targetType: 'schedule',
-            targetId: id,
-            // Switching a schedule off is the change people come looking for, so it is spelled out.
-            metadata: {
-              name: updated[0].scheduleName,
-              fields: changedFields(updates as Record<string, unknown>),
-              ...(updates.isActive !== undefined ? { isActive: updates.isActive } : {}),
-            },
-          });
-          return fetchScheduleWithPlanName(tx, id);
-        });
-        if (result === null) return res.status(404).json({ error: "Schedule not found" });
-
-        // Outside the transaction, like the sibling POST above: updateScheduleJob reaches
-        // scheduler-service.ts, which issues its own privilegedDb.select(). A second query on
-        // the handle while this transaction still holds the connection deadlocks the shared
-        // PGlite client under dev/test and, under node-postgres, takes a second pool client
-        // and runs outside RLS as superuser.
-        await schedulerService.updateScheduleJob(updatedRow!);
-
-        res.json(result);
-    } catch(e: any) {
-        if (isForeignKeyError(e)) {
-            return res.status(400).json({ error: "Invalid Test Plan ID: The specified Test Plan does not exist." });
-        }
-        logger.error({ message: "Schedule update failed", error: e.message });
-        res.status(500).json({ error: "Failed to update schedule" });
+  try {
+    // Same check as on create: a zone the platform cannot resolve is the caller's
+    // mistake, and saying so now beats a row that silently never runs.
+    if (updates.timezone) {
+      try {
+        assertValidTimezone(updates.timezone);
+      } catch (e: any) {
+        return res.status(400).json({ error: e.message });
+      }
     }
+
+    const values: Record<string, any> = { ...updates, updatedAt: new Date() };
+    if (updates.nextRunAt !== undefined) {
+      values.nextRunAt =
+        updates.nextRunAt instanceof Date
+          ? updates.nextRunAt
+          : new Date((updates.nextRunAt as number) * 1000);
+    }
+    if (updates.browsers !== undefined)
+      values.browsers = updates.browsers ? JSON.stringify(updates.browsers) : null;
+    if (updates.notificationConfigOverride !== undefined)
+      values.notificationConfigOverride = updates.notificationConfigOverride
+        ? JSON.stringify(updates.notificationConfigOverride)
+        : null;
+    if (updates.executionParameters !== undefined)
+      values.executionParameters = updates.executionParameters
+        ? JSON.stringify(updates.executionParameters)
+        : null;
+    // Drop undefined keys so Drizzle doesn't try to set them.
+    Object.keys(values).forEach((k) => values[k] === undefined && delete values[k]);
+
+    // A change to when it runs recomputes the first run, as on create — against the row as it
+    // is for whatever the request leaves out.
+    if (
+      updates.frequency !== undefined ||
+      updates.timezone !== undefined ||
+      updates.nextRunAt !== undefined
+    ) {
+      const [current] = await withTenantTransaction((tx) =>
+        tx
+          .select({
+            frequency: testPlanSchedules.frequency,
+            timezone: testPlanSchedules.timezone,
+            nextRunAt: testPlanSchedules.nextRunAt,
+          })
+          .from(testPlanSchedules)
+          .where(eq(testPlanSchedules.id, id))
+          .limit(1),
+      );
+      if (!current) return res.status(404).json({ error: 'Schedule not found' });
+      try {
+        values.nextRunAt = firstRunAt(
+          values.frequency ?? current.frequency,
+          values.nextRunAt ?? current.nextRunAt,
+          values.timezone ?? current.timezone ?? DEFAULT_SCHEDULE_TIMEZONE,
+        );
+      } catch (e: any) {
+        return res.status(400).json({ error: e.message });
+      }
+    }
+
+    // Under RLS this matches nothing for another organization's schedule (closing the
+    // ownership gap this handler used to have — an id from any tenant reached this
+    // query with no organization filter at all), so the 404 below is the correct
+    // answer rather than a cross-tenant write.
+    let updatedRow: TestPlanSchedule | undefined;
+    const result = await withTenantTransaction(async (tx) => {
+      const updated = await tx
+        .update(testPlanSchedules)
+        .set(values)
+        .where(eq(testPlanSchedules.id, id))
+        .returning();
+      if (updated.length === 0) return null;
+
+      updatedRow = updated[0];
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.SCHEDULE_UPDATED,
+        actor: auditActor(req),
+        targetType: 'schedule',
+        targetId: id,
+        // Switching a schedule off is the change people come looking for, so it is spelled out.
+        metadata: {
+          name: updated[0].scheduleName,
+          fields: changedFields(updates as Record<string, unknown>),
+          ...(updates.isActive !== undefined ? { isActive: updates.isActive } : {}),
+        },
+      });
+      return fetchScheduleWithPlanName(tx, id);
+    });
+    if (result === null) return res.status(404).json({ error: 'Schedule not found' });
+
+    // Outside the transaction, like the sibling POST above: updateScheduleJob reaches
+    // scheduler-service.ts, which issues its own privilegedDb.select(). A second query on
+    // the handle while this transaction still holds the connection deadlocks the shared
+    // PGlite client under dev/test and, under node-postgres, takes a second pool client
+    // and runs outside RLS as superuser.
+    await schedulerService.updateScheduleJob(updatedRow!);
+
+    res.json(result);
+  } catch (e: any) {
+    if (isForeignKeyError(e)) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid Test Plan ID: The specified Test Plan does not exist.' });
+    }
+    logger.error({ message: 'Schedule update failed', error: e.message });
+    res.status(500).json({ error: 'Failed to update schedule' });
+  }
 });
 
-router.delete("/api/test-plan-schedules/:id", requireRole('editor'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
-    const id = req.params.id;
-    try {
-        const deleted = await withTenantTransaction(async (tx) => {
-          const rows = await tx.delete(testPlanSchedules).where(eq(testPlanSchedules.id, id)).returning();
-          if (rows.length > 0) {
-            await recordAudit(tx, {
-              action: AUDIT_ACTIONS.SCHEDULE_DELETED,
-              actor: auditActor(req),
-              targetType: 'schedule',
-              targetId: id,
-              metadata: { name: rows[0].scheduleName, planId: rows[0].testPlanId },
-            });
-          }
-          return rows;
+router.delete('/api/test-plan-schedules/:id', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+  const id = req.params.id;
+  try {
+    const deleted = await withTenantTransaction(async (tx) => {
+      const rows = await tx
+        .delete(testPlanSchedules)
+        .where(eq(testPlanSchedules.id, id))
+        .returning();
+      if (rows.length > 0) {
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.SCHEDULE_DELETED,
+          actor: auditActor(req),
+          targetType: 'schedule',
+          targetId: id,
+          metadata: { name: rows[0].scheduleName, planId: rows[0].testPlanId },
         });
-        if (deleted.length === 0) return res.status(404).json({ error: "Schedule not found" });
-        schedulerService.removeScheduleJob(id);
-        res.status(204).send();
-    } catch(e: any) {
-        res.status(500).json({ error: "Failed to delete schedule" });
-    }
+      }
+      return rows;
+    });
+    if (deleted.length === 0) return res.status(404).json({ error: 'Schedule not found' });
+    schedulerService.removeScheduleJob(id);
+    res.status(204).send();
+  } catch (e: any) {
+    res.status(500).json({ error: 'Failed to delete schedule' });
+  }
 });
 
 // --- Executions ---
 
-router.get("/api/test-plan-executions", requireRole('viewer'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
-    const { planId, scheduleId, status, triggeredBy, limit = 10, offset = 0 } = req.query;
-    const pageLimit = Math.min(Math.max(1, parseInt(limit as string) || 10), 100);
-    const pageOffset = Math.max(0, parseInt(offset as string) || 0);
+router.get('/api/test-plan-executions', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+  const { planId, scheduleId, status, triggeredBy, limit = 10, offset = 0 } = req.query;
+  const pageLimit = Math.min(Math.max(1, parseInt(limit as string) || 10), 100);
+  const pageOffset = Math.max(0, parseInt(offset as string) || 0);
 
-    // Explicitly typed: an empty-initialized array captured by the withTenantTransaction
-    // closure below loses TypeScript's "evolving any[]" inference (that inference only
-    // tracks assignments within the declaring function, not through a nested closure).
-    const conditions: SQL[] = [];
-    if (planId && typeof planId === 'string') conditions.push(eq(testPlanExecutions.testPlanId, planId));
-    if (scheduleId && typeof scheduleId === 'string') conditions.push(eq(testPlanExecutions.scheduleId, scheduleId));
-    if (status && typeof status === 'string') conditions.push(eq(testPlanExecutions.status, status));
-    if (triggeredBy && typeof triggeredBy === 'string') conditions.push(eq(testPlanExecutions.triggeredBy, triggeredBy));
+  // Explicitly typed: an empty-initialized array captured by the withTenantTransaction
+  // closure below loses TypeScript's "evolving any[]" inference (that inference only
+  // tracks assignments within the declaring function, not through a nested closure).
+  const conditions: SQL[] = [];
+  if (planId && typeof planId === 'string')
+    conditions.push(eq(testPlanExecutions.testPlanId, planId));
+  if (scheduleId && typeof scheduleId === 'string')
+    conditions.push(eq(testPlanExecutions.scheduleId, scheduleId));
+  if (status && typeof status === 'string') conditions.push(eq(testPlanExecutions.status, status));
+  if (triggeredBy && typeof triggeredBy === 'string')
+    conditions.push(eq(testPlanExecutions.triggeredBy, triggeredBy));
 
-    // No organization filter here on purpose: the RLS policy applies it.
-    const results = await withTenantTransaction((tx) => {
-      let query = tx.select({
-          ...getTableColumns(testPlanExecutions),
-          testPlanName: testPlans.name,
-          scheduleName: testPlanSchedules.scheduleName,
+  // No organization filter here on purpose: the RLS policy applies it.
+  const results = await withTenantTransaction((tx) => {
+    let query = tx
+      .select({
+        ...getTableColumns(testPlanExecutions),
+        testPlanName: testPlans.name,
+        scheduleName: testPlanSchedules.scheduleName,
       })
       .from(testPlanExecutions)
       .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
       .leftJoin(testPlanSchedules, eq(testPlanExecutions.scheduleId, testPlanSchedules.id))
       .$dynamic();
 
-      if (conditions.length > 0) query = query.where(and(...conditions));
+    if (conditions.length > 0) query = query.where(and(...conditions));
 
-      // When it started, or failing that when it was asked for: a queued run has no start time,
-      // and nulls sort first in a descending order, which would pin queued runs to the top.
-      return query
-        .orderBy(desc(sql`coalesce(${testPlanExecutions.startedAt}, ${testPlanExecutions.queuedAt})`))
-        .limit(pageLimit)
-        .offset(pageOffset);
-    });
-    const parsed = results.map(e => ({
-        ...publicExecution(e),
-        results: typeof e.results === 'string' ? JSON.parse(e.results) : e.results,
-        browsers: typeof e.browsers === 'string' ? JSON.parse(e.browsers) : e.browsers,
-    }));
+    // When it started, or failing that when it was asked for: a queued run has no start time,
+    // and nulls sort first in a descending order, which would pin queued runs to the top.
+    return query
+      .orderBy(desc(sql`coalesce(${testPlanExecutions.startedAt}, ${testPlanExecutions.queuedAt})`))
+      .limit(pageLimit)
+      .offset(pageOffset);
+  });
+  const parsed = results.map((e) => ({
+    ...publicExecution(e),
+    results: typeof e.results === 'string' ? JSON.parse(e.results) : e.results,
+    browsers: typeof e.browsers === 'string' ? JSON.parse(e.browsers) : e.browsers,
+  }));
 
-    res.json({ items: parsed, limit: pageLimit, offset: pageOffset });
+  res.json({ items: parsed, limit: pageLimit, offset: pageOffset });
 });
 
 /**
@@ -474,26 +607,28 @@ router.get("/api/test-plan-executions", requireRole('viewer'), async (req, res) 
  * yet?" was to fetch the whole report — every test case row, its steps and its screenshots —
  * once every few seconds. This is the question it was actually asking.
  */
-router.get("/api/test-plan-executions/:id", requireRole('viewer'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get('/api/test-plan-executions/:id', requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
-    // No organization filter: RLS supplies it, so another tenant's run is simply not found.
-    const rows = await withTenantTransaction((tx) =>
-      tx
-        .select({ ...getTableColumns(testPlanExecutions), testPlanName: testPlans.name })
-        .from(testPlanExecutions)
-        .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
-        .where(eq(testPlanExecutions.id, req.params.id))
-        .limit(1),
-    );
-    if (rows.length === 0) return res.status(404).json({ error: "Test plan execution not found." });
+  // No organization filter: RLS supplies it, so another tenant's run is simply not found.
+  const rows = await withTenantTransaction((tx) =>
+    tx
+      .select({ ...getTableColumns(testPlanExecutions), testPlanName: testPlans.name })
+      .from(testPlanExecutions)
+      .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
+      .where(eq(testPlanExecutions.id, req.params.id))
+      .limit(1),
+  );
+  if (rows.length === 0) return res.status(404).json({ error: 'Test plan execution not found.' });
 
-    const execution = rows[0];
-    res.json({
-      ...publicExecution(execution),
-      results: typeof execution.results === 'string' ? JSON.parse(execution.results) : execution.results,
-      browsers: typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : execution.browsers,
-    });
+  const execution = rows[0];
+  res.json({
+    ...publicExecution(execution),
+    results:
+      typeof execution.results === 'string' ? JSON.parse(execution.results) : execution.results,
+    browsers:
+      typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : execution.browsers,
+  });
 });
 
 /**
@@ -505,32 +640,42 @@ router.get("/api/test-plan-executions/:id", requireRole('viewer'), async (req, r
  * worker ends it at its next step. Asking twice is harmless, and asking about a run that has
  * already finished says so rather than pretending to have stopped it.
  */
-router.post("/api/test-plan-executions/:id/cancel", requireRole('editor'), async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+router.post('/api/test-plan-executions/:id/cancel', requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const who = (req.user as { username?: string }).username ?? `user ${req.user.id}`;
-    const result = await requestCancellation(req.params.id, `Cancelled by ${who}.`, (tx, execution) =>
-      recordAudit(tx, {
-        action: AUDIT_ACTIONS.RUN_CANCELLED,
-        actor: auditActor(req),
-        targetType: 'run',
-        targetId: execution.id,
-        metadata: { planId: execution.testPlanId },
-      }),
-    );
+  const who = (req.user as { username?: string }).username ?? `user ${req.user.id}`;
+  const result = await requestCancellation(req.params.id, `Cancelled by ${who}.`, (tx, execution) =>
+    recordAudit(tx, {
+      action: AUDIT_ACTIONS.RUN_CANCELLED,
+      actor: auditActor(req),
+      targetType: 'run',
+      targetId: execution.id,
+      metadata: { planId: execution.testPlanId },
+    }),
+  );
 
-    switch (result.outcome) {
-      case 'not_found':
-        return res.status(404).json({ error: "Test plan execution not found." });
-      case 'already_ended':
-        return res.status(409).json({ error: `The run has already ended (${result.status}).`, status: result.status });
-      case 'cancelled':
-        logger.info({ message: 'Queued run cancelled', executionId: req.params.id, by: req.user.id });
-        return res.status(200).json({ status: 'cancelled', execution: publicExecution(result.execution) });
-      case 'cancelling':
-        logger.info({ message: 'Running run asked to stop', executionId: req.params.id, by: req.user.id });
-        return res.status(202).json({ status: 'cancelling', execution: publicExecution(result.execution) });
-    }
+  switch (result.outcome) {
+    case 'not_found':
+      return res.status(404).json({ error: 'Test plan execution not found.' });
+    case 'already_ended':
+      return res
+        .status(409)
+        .json({ error: `The run has already ended (${result.status}).`, status: result.status });
+    case 'cancelled':
+      logger.info({ message: 'Queued run cancelled', executionId: req.params.id, by: req.user.id });
+      return res
+        .status(200)
+        .json({ status: 'cancelled', execution: publicExecution(result.execution) });
+    case 'cancelling':
+      logger.info({
+        message: 'Running run asked to stop',
+        executionId: req.params.id,
+        by: req.user.id,
+      });
+      return res
+        .status(202)
+        .json({ status: 'cancelling', execution: publicExecution(result.execution) });
+  }
 });
 
 export default router;

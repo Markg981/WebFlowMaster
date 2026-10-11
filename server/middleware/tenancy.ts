@@ -61,12 +61,18 @@ const tenantStore = new AsyncLocalStorage<TenantContext>();
  * on every project or on none pressed Run. Refuses when a transaction bound to a user is already
  * open, because that binding cannot be undone from inside it.
  */
-export async function runAsOrganization<T>(organizationId: number, fn: () => Promise<T> | T): Promise<T> {
+export async function runAsOrganization<T>(
+  organizationId: number,
+  fn: () => Promise<T> | T,
+): Promise<T> {
   const store = tenantStore.getStore();
   if (store?.tx !== undefined) {
-    if (store.organizationId !== organizationId) throw new TenantConflictError(store.organizationId, organizationId);
+    if (store.organizationId !== organizationId)
+      throw new TenantConflictError(store.organizationId, organizationId);
     if (store.principal) {
-      throw new Error('runAsOrganization called inside a transaction already bound to a user; call it before opening one.');
+      throw new Error(
+        'runAsOrganization called inside a transaction already bound to a user; call it before opening one.',
+      );
     }
     return tenantStore.run({ organizationId, tx: store.tx }, fn);
   }
@@ -81,7 +87,10 @@ export async function runAsOrganization<T>(organizationId: number, fn: () => Pro
  * neither join a transaction that will have committed by the time it runs, nor be refused for being
  * started inside one.
  */
-export function runDetachedForOrganization<T>(organizationId: number, fn: () => Promise<T>): Promise<T> {
+export function runDetachedForOrganization<T>(
+  organizationId: number,
+  fn: () => Promise<T>,
+): Promise<T> {
   return tenantStore.run({ organizationId }, fn);
 }
 
@@ -174,13 +183,20 @@ export async function withTenantTransaction<T>(fn: (tx: TenantTx) => Promise<T>)
     await tx.execute(sql`SELECT set_config('app.current_org', ${String(organizationId)}, true)`);
     // Who is asking, for the project policies (migration 0031). Left unset for the system.
     if (store?.principal) {
-      await tx.execute(sql`SELECT set_config('app.current_user', ${String(store.principal.userId)}, true)`);
-      await tx.execute(sql`SELECT set_config('app.current_user_role', ${store.principal.role}, true)`);
+      await tx.execute(
+        sql`SELECT set_config('app.current_user', ${String(store.principal.userId)}, true)`,
+      );
+      await tx.execute(
+        sql`SELECT set_config('app.current_user_role', ${store.principal.role}, true)`,
+      );
     }
     // Bind the transaction into context for the duration of fn so a nested
     // withTenantTransaction call (e.g. once Task 5 wraps handlers that already contain their
     // own privilegedDb.transaction calls, such as server/storage.ts's createUser) joins this
     // transaction instead of opening a second one.
-    return tenantStore.run({ organizationId, principal: store?.principal, tx: tx as TenantTx }, () => fn(tx as TenantTx));
+    return tenantStore.run(
+      { organizationId, principal: store?.principal, tx: tx as TenantTx },
+      () => fn(tx as TenantTx),
+    );
   });
 }

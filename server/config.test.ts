@@ -55,17 +55,25 @@ describe('sessionCookieSecure', () => {
     // Without this the shipped docker-compose stack cannot be logged into at all: the
     // browser drops the cookie, /api/login answers 200, and every request after it is
     // anonymous with nothing anywhere saying why.
-    expect(sessionCookieSecure({ NODE_ENV: 'production', SESSION_COOKIE_SECURE: 'false' })).toBe(false);
+    expect(sessionCookieSecure({ NODE_ENV: 'production', SESSION_COOKIE_SECURE: 'false' })).toBe(
+      false,
+    );
   });
 
   it('can be turned on in development, for testing behind a TLS proxy', () => {
-    expect(sessionCookieSecure({ NODE_ENV: 'development', SESSION_COOKIE_SECURE: 'true' })).toBe(true);
+    expect(sessionCookieSecure({ NODE_ENV: 'development', SESSION_COOKIE_SECURE: 'true' })).toBe(
+      true,
+    );
   });
 
   it('ignores a value it does not understand rather than guessing', () => {
     // Guessing either way is worse than the default: "yes" reading as false would silently
     // expose the cookie, and reading as true would silently break every login.
-    expect(sessionCookieSecure({ NODE_ENV: 'production', SESSION_COOKIE_SECURE: 'yes' })).toBe(true);
-    expect(sessionCookieSecure({ NODE_ENV: 'development', SESSION_COOKIE_SECURE: 'yes' })).toBe(false);
+    expect(sessionCookieSecure({ NODE_ENV: 'production', SESSION_COOKIE_SECURE: 'yes' })).toBe(
+      true,
+    );
+    expect(sessionCookieSecure({ NODE_ENV: 'development', SESSION_COOKIE_SECURE: 'yes' })).toBe(
+      false,
+    );
   });
 });

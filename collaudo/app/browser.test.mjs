@@ -55,9 +55,11 @@ test('historical cycles stay frozen while the current catalog is available witho
   assert.equal(await page.locator('#TEL-01').count(), 1);
   const automationCases = current.cases.filter((item) => item.area === 'AUT');
   for (const id of ['AUT-10', 'AUT-11', 'AUT-12'])
-    assert.ok(automationCases.some((item) => item.id === id), `${id} is in the current catalog`);
-  for (const item of automationCases)
-    assert.equal(await page.locator(`#${item.id}`).count(), 1);
+    assert.ok(
+      automationCases.some((item) => item.id === id),
+      `${id} is in the current catalog`,
+    );
+  for (const item of automationCases) assert.equal(await page.locator(`#${item.id}`).count(), 1);
   await page.locator('#AUT-01 [data-expand]').click();
   assert.match(await page.locator('#AUT-01').innerText(), /recovery/i);
   assert.equal(await page.locator('[data-set]:enabled').count(), 0);

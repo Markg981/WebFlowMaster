@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -32,7 +34,14 @@ const row = (overrides: Partial<QuarantineRow>): QuarantineRow => ({
   reason: 'Times out on the payment iframe',
   quarantinedAt: '2026-09-10T08:00:00.000Z',
   quarantinedBy: 'marco',
-  evidence: { runs: 12, passed: 11, failed: 1, passingStreak: 11, lastRunAt: '2026-09-23T02:00:00.000Z', lastStatus: 'Passed' },
+  evidence: {
+    runs: 12,
+    passed: 11,
+    failed: 1,
+    passingStreak: 11,
+    lastRunAt: '2026-09-23T02:00:00.000Z',
+    lastStatus: 'Passed',
+  },
   ...overrides,
 });
 
@@ -63,21 +72,43 @@ describe('QuarantinedTestsCard', () => {
   });
 
   it('shows what each test has done since, and which are ready to come back', async () => {
-    renderCard([row({}), row({ id: 2, testName: 'Search', evidence: { runs: 4, passed: 2, failed: 2, passingStreak: 1, lastRunAt: null, lastStatus: 'Passed' } })]);
+    renderCard([
+      row({}),
+      row({
+        id: 2,
+        testName: 'Search',
+        evidence: {
+          runs: 4,
+          passed: 2,
+          failed: 2,
+          passingStreak: 1,
+          lastRunAt: null,
+          lastStatus: 'Passed',
+        },
+      }),
+    ]);
 
     const ready = await screen.findByTestId('quarantine-1');
     expect(within(ready).getByText('Times out on the payment iframe')).toBeInTheDocument();
     expect(within(ready).getByText('11 passed, 1 failed')).toBeInTheDocument();
-    expect(within(ready).getByText('Passed its last 11 runs: ready to release')).toBeInTheDocument();
-    expect(within(screen.getByTestId('quarantine-2')).getByText('1 passes in a row')).toBeInTheDocument();
+    expect(
+      within(ready).getByText('Passed its last 11 runs: ready to release'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('quarantine-2')).getByText('1 passes in a row'),
+    ).toBeInTheDocument();
   });
 
   it("releases a test with its own row's note", async () => {
     renderCard([row({}), row({ id: 2, testName: 'Search' })]);
 
     const second = await screen.findByTestId('quarantine-2');
-    fireEvent.change(within(second).getByLabelText('Release note'), { target: { value: 'Fixed the wait' } });
-    fireEvent.click(within(screen.getByTestId('quarantine-1')).getByRole('button', { name: /Release/ }));
+    fireEvent.change(within(second).getByLabelText('Release note'), {
+      target: { value: 'Fixed the wait' },
+    });
+    fireEvent.click(
+      within(screen.getByTestId('quarantine-1')).getByRole('button', { name: /Release/ }),
+    );
 
     await waitFor(() => {
       const call = fetchMock.mock.calls.find(([url]: any[]) => url === '/api/quarantine/1/release');

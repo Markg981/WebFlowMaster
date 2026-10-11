@@ -8,7 +8,12 @@ import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -57,7 +62,10 @@ beforeAll(async () => {
   otherOrganizationId = await createTestOrganization('Other Versions Org');
   otherUserId = await createTestUser(otherOrganizationId, 'other-versions-user');
 
-  const [project] = await privilegedDb.insert(projects).values({ name: 'Shop', userId, organizationId }).returning();
+  const [project] = await privilegedDb
+    .insert(projects)
+    .values({ name: 'Shop', userId, organizationId })
+    .returning();
   projectId = project.id;
 
   const { default: testsRoutes } = await import('./tests.routes');
@@ -130,7 +138,9 @@ describe('a version per save', () => {
     const created = await createTest();
     // created_by is ON DELETE SET NULL: a member must be removable, and their work stays in
     // the history with an author nobody can name rather than disappearing with them.
-    await privilegedDb.execute(sql`UPDATE test_versions SET created_by = NULL WHERE test_id = ${created.id}`);
+    await privilegedDb.execute(
+      sql`UPDATE test_versions SET created_by = NULL WHERE test_id = ${created.id}`,
+    );
 
     const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
 
@@ -168,7 +178,10 @@ describe('what each version did when it ran', () => {
 
   it('counts the runs of each version separately', async () => {
     const created = await createTest();
-    await request(app).put(`/api/tests/${created.id}`).send({ sequence: [step('click', '#other')] }).expect(200);
+    await request(app)
+      .put(`/api/tests/${created.id}`)
+      .send({ sequence: [step('click', '#other')] })
+      .expect(200);
     await recordRun(created.id, { status: 'Passed', testVersion: 1 });
     await recordRun(created.id, { status: 'Passed', testVersion: 1 });
     await recordRun(created.id, { status: 'Failed', testVersion: 2 });
@@ -184,7 +197,12 @@ describe('what each version did when it ran', () => {
 
     const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
 
-    expect(history.body.versions[0]).toMatchObject({ runs: 0, passed: 0, failed: 0, lastRunAt: null });
+    expect(history.body.versions[0]).toMatchObject({
+      runs: 0,
+      passed: 0,
+      failed: 0,
+      lastRunAt: null,
+    });
   });
 
   it('counts a run that never reached a verdict as neither', async () => {
@@ -213,7 +231,10 @@ describe('what each version did when it ran', () => {
 describe('reading one version', () => {
   it('answers with the whole snapshot, so it can be read before it is restored', async () => {
     const created = await createTest();
-    await request(app).put(`/api/tests/${created.id}`).send({ sequence: [step('click', '#other')] }).expect(200);
+    await request(app)
+      .put(`/api/tests/${created.id}`)
+      .send({ sequence: [step('click', '#other')] })
+      .expect(200);
 
     const version = await request(app).get(`/api/tests/${created.id}/versions/1`).expect(200);
 
@@ -236,7 +257,9 @@ describe('restoring', () => {
       .send({ name: 'Checkout v2', sequence: [step('click', '#other')] })
       .expect(200);
 
-    const restored = await request(app).post(`/api/tests/${created.id}/versions/1/restore`).expect(200);
+    const restored = await request(app)
+      .post(`/api/tests/${created.id}/versions/1/restore`)
+      .expect(200);
 
     expect(restored.body.test.name).toBe('Checkout');
     expect(restored.body.test.sequence[0].targetElement.selector).toBe('#buy');
@@ -247,7 +270,10 @@ describe('restoring', () => {
     // The versions in between stay exactly where they are, and can be restored in turn. A
     // history the application can edit is not evidence of anything.
     const created = await createTest();
-    await request(app).put(`/api/tests/${created.id}`).send({ sequence: [step('click', '#other')] }).expect(200);
+    await request(app)
+      .put(`/api/tests/${created.id}`)
+      .send({ sequence: [step('click', '#other')] })
+      .expect(200);
 
     await request(app).post(`/api/tests/${created.id}/versions/1/restore`).expect(200);
 
@@ -259,7 +285,9 @@ describe('restoring', () => {
   it('changes nothing, and records nothing, when the test already is that version', async () => {
     const created = await createTest();
 
-    const restored = await request(app).post(`/api/tests/${created.id}/versions/1/restore`).expect(200);
+    const restored = await request(app)
+      .post(`/api/tests/${created.id}/versions/1/restore`)
+      .expect(200);
 
     expect(restored.body.newVersion).toBeNull();
     const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
@@ -270,7 +298,10 @@ describe('restoring', () => {
     // A restore that silently moved the project, the author or the status would be doing more
     // than it said it was doing.
     const created = await createTest({ status: 'ready' });
-    await request(app).put(`/api/tests/${created.id}`).send({ sequence: [step('click', '#other')] }).expect(200);
+    await request(app)
+      .put(`/api/tests/${created.id}`)
+      .send({ sequence: [step('click', '#other')] })
+      .expect(200);
 
     await request(app).post(`/api/tests/${created.id}/versions/1/restore`).expect(200);
 
@@ -292,7 +323,12 @@ describe('restoring', () => {
 describe('another organization', () => {
   it('has no history here, and cannot restore one', async () => {
     const created = await createTest();
-    currentUser = { id: otherUserId, username: 'other-versions-user', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-versions-user',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
 
     await request(app).get(`/api/tests/${created.id}/versions`).expect(404);
     await request(app).post(`/api/tests/${created.id}/versions/1/restore`).expect(404);
@@ -309,7 +345,9 @@ describe('the history cannot be rewritten', () => {
 
     await expect(
       runWithTenant(organizationId, () =>
-        withTenantTransaction((tx) => tx.execute(sql`DELETE FROM test_versions WHERE test_id = ${created.id}`)),
+        withTenantTransaction((tx) =>
+          tx.execute(sql`DELETE FROM test_versions WHERE test_id = ${created.id}`),
+        ),
       ),
     ).rejects.toThrow();
   });

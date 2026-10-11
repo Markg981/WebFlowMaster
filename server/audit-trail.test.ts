@@ -16,13 +16,21 @@ import { v4 as uuidv4 } from 'uuid';
 
 vi.mock('./logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
 // Nothing here runs a browser or queues a run; without these the imports open Redis connections.
 vi.mock('./browser-tasks', () => ({ browserTasks: {}, BrowserTaskError: class extends Error {} }));
-vi.mock('./queue', () => ({ TEST_EXECUTION_QUEUE_NAME: 'test-queue', testExecutionQueue: { add: vi.fn() } }));
+vi.mock('./queue', () => ({
+  TEST_EXECUTION_QUEUE_NAME: 'test-queue',
+  testExecutionQueue: { add: vi.fn() },
+}));
 vi.mock('./scheduler-service', () => ({
   default: { addScheduleJob: vi.fn(), updateScheduleJob: vi.fn(), removeScheduleJob: vi.fn() },
   assertValidTimezone: vi.fn(),
@@ -49,7 +57,12 @@ beforeAll(async () => {
   org = await createTestOrganization('Audited Org');
   const [row] = await privilegedDb
     .insert(users)
-    .values({ username: `auditor-${uuidv4().slice(0, 6)}`, password: 'x', organizationId: org, role: 'owner' })
+    .values({
+      username: `auditor-${uuidv4().slice(0, 6)}`,
+      password: 'x',
+      organizationId: org,
+      role: 'owner',
+    })
     .returning();
   owner = { id: row.id, username: row.username, organizationId: org, role: 'owner' };
 
@@ -76,14 +89,23 @@ const trail = (action?: string) =>
   privilegedDb
     .select()
     .from(auditLog)
-    .where(action ? and(eq(auditLog.organizationId, org), eq(auditLog.action, action)) : eq(auditLog.organizationId, org));
+    .where(
+      action
+        ? and(eq(auditLog.organizationId, org), eq(auditLog.action, action))
+        : eq(auditLog.organizationId, org),
+    );
 
 describe('a change to a test', () => {
   it('is recorded with who, from where, and through which key', async () => {
     viaKey = 'key-123';
     const created = await request(app)
       .post('/api/tests')
-      .send({ name: `Checkout ${uuidv4().slice(0, 4)}`, url: 'https://shop.test', sequence: [], elements: [] })
+      .send({
+        name: `Checkout ${uuidv4().slice(0, 4)}`,
+        url: 'https://shop.test',
+        sequence: [],
+        elements: [],
+      })
       .expect(201);
 
     const [entry] = await trail('test.created');
@@ -101,10 +123,18 @@ describe('a change to a test', () => {
   it('names the fields an update touched, never their values', async () => {
     const created = await request(app)
       .post('/api/tests')
-      .send({ name: `Login ${uuidv4().slice(0, 4)}`, url: 'https://shop.test', sequence: [], elements: [] })
+      .send({
+        name: `Login ${uuidv4().slice(0, 4)}`,
+        url: 'https://shop.test',
+        sequence: [],
+        elements: [],
+      })
       .expect(201);
 
-    await request(app).put(`/api/tests/${created.body.id}`).send({ url: 'https://user:hunter2@shop.test' }).expect(200);
+    await request(app)
+      .put(`/api/tests/${created.body.id}`)
+      .send({ url: 'https://user:hunter2@shop.test' })
+      .expect(200);
 
     const [entry] = await trail('test.updated');
     expect(entry.metadata).toEqual({ name: created.body.name, fields: ['url'] });
@@ -114,7 +144,12 @@ describe('a change to a test', () => {
   it('keeps the name of a deleted test, and records nothing for one that was not there', async () => {
     const created = await request(app)
       .post('/api/tests')
-      .send({ name: `Doomed ${uuidv4().slice(0, 4)}`, url: 'https://shop.test', sequence: [], elements: [] })
+      .send({
+        name: `Doomed ${uuidv4().slice(0, 4)}`,
+        url: 'https://shop.test',
+        sequence: [],
+        elements: [],
+      })
       .expect(201);
 
     await request(app).delete(`/api/tests/${created.body.id}`).expect(204);
@@ -128,7 +163,10 @@ describe('a change to a test', () => {
 
 describe('plans, schedules and runs', () => {
   it('records a plan, and a schedule switched off, as such', async () => {
-    const plan = await request(app).post('/api/test-plans').send({ name: 'Nightly regression' }).expect(201);
+    const plan = await request(app)
+      .post('/api/test-plans')
+      .send({ name: 'Nightly regression' })
+      .expect(201);
     const schedule = await request(app)
       .post('/api/test-plan-schedules')
       .send({
@@ -138,33 +176,56 @@ describe('plans, schedules and runs', () => {
         nextRunAt: Math.floor(Date.now() / 1000) + 3600,
       })
       .expect(201);
-    await request(app).put(`/api/test-plan-schedules/${schedule.body.id}`).send({ isActive: false }).expect(200);
+    await request(app)
+      .put(`/api/test-plan-schedules/${schedule.body.id}`)
+      .send({ isActive: false })
+      .expect(200);
     await request(app).delete(`/api/test-plan-schedules/${schedule.body.id}`).expect(204);
 
     const actions = (await trail()).map((e) => e.action).sort();
-    expect(actions).toEqual(['plan.created', 'schedule.created', 'schedule.deleted', 'schedule.updated']);
+    expect(actions).toEqual([
+      'plan.created',
+      'schedule.created',
+      'schedule.deleted',
+      'schedule.updated',
+    ]);
     const [update] = await trail('schedule.updated');
-    expect(update.metadata).toMatchObject({ name: 'Every night', isActive: false, fields: ['isActive'] });
+    expect(update.metadata).toMatchObject({
+      name: 'Every night',
+      isActive: false,
+      fields: ['isActive'],
+    });
   });
 
   it('records who stopped a run', async () => {
     const planId = uuidv4();
-    await privilegedDb.insert(testPlans).values({ id: planId, name: 'P', userId: owner.id, organizationId: org } as any);
+    await privilegedDb
+      .insert(testPlans)
+      .values({ id: planId, name: 'P', userId: owner.id, organizationId: org } as any);
     const runId = uuidv4();
-    await privilegedDb.insert(testPlanExecutions).values({ id: runId, organizationId: org, testPlanId: planId, status: 'queued' } as any);
+    await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id: runId, organizationId: org, testPlanId: planId, status: 'queued' } as any);
 
     await request(app).post(`/api/test-plan-executions/${runId}/cancel`).expect(200);
     await request(app).post(`/api/test-plan-executions/${runId}/cancel`).expect(409);
 
     const cancellations = await trail('run.cancelled');
     expect(cancellations).toHaveLength(1);
-    expect(cancellations[0]).toMatchObject({ targetId: runId, actorUserId: owner.id, metadata: { planId } });
+    expect(cancellations[0]).toMatchObject({
+      targetId: runId,
+      actorUserId: owner.id,
+      metadata: { planId },
+    });
   });
 });
 
 describe('environments and secrets', () => {
   it('records a secret by its name, never by its value', async () => {
-    const environment = await request(app).post('/api/environments').send({ name: `Staging ${uuidv4().slice(0, 4)}` }).expect(201);
+    const environment = await request(app)
+      .post('/api/environments')
+      .send({ name: `Staging ${uuidv4().slice(0, 4)}` })
+      .expect(201);
     await request(app)
       .post(`/api/environments/${environment.body.id}/secrets`)
       .send({ keyName: 'DB_PASSWORD', value: 's3cr3t-value' })
@@ -189,7 +250,10 @@ describe('the actions', () => {
       const { auditLog: labels } = JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
       for (const action of Object.values(AUDIT_ACTIONS)) {
         expect(labels.actions[action.replace('.', '_')], `${language}: ${action}`).toBeTruthy();
-        expect(labels.categories[action.split('.')[0]], `${language}: ${action.split('.')[0]}`).toBeTruthy();
+        expect(
+          labels.categories[action.split('.')[0]],
+          `${language}: ${action.split('.')[0]}`,
+        ).toBeTruthy();
       }
     }
   });
@@ -202,21 +266,34 @@ describe('reading the trail', () => {
     }
     await request(app)
       .post('/api/tests')
-      .send({ name: `=HYPERLINK("http://evil") ${uuidv4().slice(0, 4)}`, url: 'https://shop.test', sequence: [], elements: [] })
+      .send({
+        name: `=HYPERLINK("http://evil") ${uuidv4().slice(0, 4)}`,
+        url: 'https://shop.test',
+        sequence: [],
+        elements: [],
+      })
       .expect(201);
   });
 
   it('filters by category and by action, and says when there is more', async () => {
-    const plans = await request(app).get('/api/organization/audit-log?category=plan&limit=2').expect(200);
+    const plans = await request(app)
+      .get('/api/organization/audit-log?category=plan&limit=2')
+      .expect(200);
     expect(plans.body.entries).toHaveLength(2);
     expect(plans.body.hasMore).toBe(true);
-    expect(plans.body.entries.every((e: { action: string }) => e.action === 'plan.created')).toBe(true);
+    expect(plans.body.entries.every((e: { action: string }) => e.action === 'plan.created')).toBe(
+      true,
+    );
 
-    const rest = await request(app).get('/api/organization/audit-log?category=plan&limit=2&offset=2').expect(200);
+    const rest = await request(app)
+      .get('/api/organization/audit-log?category=plan&limit=2&offset=2')
+      .expect(200);
     expect(rest.body.entries).toHaveLength(1);
     expect(rest.body.hasMore).toBe(false);
 
-    const tests = await request(app).get('/api/organization/audit-log?action=test.created').expect(200);
+    const tests = await request(app)
+      .get('/api/organization/audit-log?action=test.created')
+      .expect(200);
     expect(tests.body.entries).toHaveLength(1);
   });
 
@@ -230,7 +307,9 @@ describe('reading the trail', () => {
 
     expect(csv.headers['content-type']).toContain('text/csv');
     const lines = csv.text.trim().split('\r\n');
-    expect(lines[0]).toBe('createdAt,action,actorUsername,actorUserId,apiKeyId,ipAddress,targetType,targetId,metadata');
+    expect(lines[0]).toBe(
+      'createdAt,action,actorUsername,actorUserId,apiKeyId,ipAddress,targetType,targetId,metadata',
+    );
     expect(lines).toHaveLength(5);
     const testLine = lines.find((line) => line.includes('test.created'))!;
     // The name sits inside the metadata cell; nothing in the line starts a cell with "=".

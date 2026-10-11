@@ -4,7 +4,18 @@ import express, { type Application } from 'express';
 import { eq } from 'drizzle-orm';
 import { parse as parseYaml } from 'yaml';
 import { privilegedDb } from './db';
-import { apiTests, auditLog, projects, projectMembers, testVersions, tests, users, mobileTests, mobileStepGroups, type User } from '@shared/schema';
+import {
+  apiTests,
+  auditLog,
+  projects,
+  projectMembers,
+  testVersions,
+  tests,
+  users,
+  mobileTests,
+  mobileStepGroups,
+  type User,
+} from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
 import { tenancyMiddleware } from './middleware/tenancy';
 import { envName, toPlaywright } from './playwright-export';
@@ -21,7 +32,17 @@ const step = (id: string, value?: string, selector?: string, frameSelector?: str
   id: `s-${Math.random()}`,
   action: { id, type: id, name: id, icon: 'x', description: id },
   value,
-  targetElement: selector ? { id: 'e', type: 'element', selector, text: '', tag: 'div', attributes: {}, ...(frameSelector ? { frameSelector } : {}) } : undefined,
+  targetElement: selector
+    ? {
+        id: 'e',
+        type: 'element',
+        selector,
+        text: '',
+        tag: 'div',
+        attributes: {},
+        ...(frameSelector ? { frameSelector } : {}),
+      }
+    : undefined,
 });
 
 describe('a web test as Playwright', () => {
@@ -40,32 +61,57 @@ describe('a web test as Playwright', () => {
         step('endIf'),
         step('blockRequests', '**/analytics/**'),
       ],
-      preconditions: [{ id: 'p', name: 'Create cart', method: 'POST', url: '{{api}}/carts', requestBody: { items: 1 } }],
-      cleanups: [{ id: 'c', name: 'Delete cart', method: 'DELETE', url: '{{api}}/carts/{{cartId}}' }],
+      preconditions: [
+        {
+          id: 'p',
+          name: 'Create cart',
+          method: 'POST',
+          url: '{{api}}/carts',
+          requestBody: { items: 1 },
+        },
+      ],
+      cleanups: [
+        { id: 'c', name: 'Delete cart', method: 'DELETE', url: '{{api}}/carts/{{cartId}}' },
+      ],
     });
     expect(out.fileName).toBe('checkout.spec.ts');
     expect(out.variables).toEqual(['api', 'baseUrl', 'cardNumber', 'cartId', 'total']);
     expect(out.code).toContain(`"baseUrl": process.env.${envName('baseUrl')} ?? ''`);
-    expect(out.code).toContain(`p.frameLocator("iframe#checkout").frameLocator("iframe.card").locator("button.pay").first().click();`);
+    expect(out.code).toContain(
+      `p.frameLocator("iframe#checkout").frameLocator("iframe.card").locator("button.pay").first().click();`,
+    );
     expect(out.code).toContain(`.fill(v("{{cardNumber}}"));`);
     expect(out.code).toContain('toBeChecked()');
-    expect(out.code).toMatch(/if \(holds\(v\("\{\{total\}\} > 100"\)\)\) \{\n\s+await p\.locator\("#coupon"\)[^\n]+\n\s+\} else \{\n\s+await p\.waitForTimeout\(500\);\n\s+\}/);
+    expect(out.code).toMatch(
+      /if \(holds\(v\("\{\{total\}\} > 100"\)\)\) \{\n\s+await p\.locator\("#coupon"\)[^\n]+\n\s+\} else \{\n\s+await p\.waitForTimeout\(500\);\n\s+\}/,
+    );
     expect(out.code).toContain(`route.abort('blockedbyclient')`);
     // Setup before, cleanup in a finally.
     expect(out.code.indexOf('precondition Create cart')).toBeLessThan(out.code.indexOf('try {'));
-    expect(out.code).toMatch(/\} finally \{\n\s+\/\/ Cleanup, whatever happened\n\s+await request\.fetch\(v\("\{\{api\}\}\/carts\/\{\{cartId\}\}"\), \{ method: "DELETE" \}\)/);
+    expect(out.code).toMatch(
+      /\} finally \{\n\s+\/\/ Cleanup, whatever happened\n\s+await request\.fetch\(v\("\{\{api\}\}\/carts\/\{\{cartId\}\}"\), \{ method: "DELETE" \}\)/,
+    );
     expect(out.notExported).toEqual([]);
   });
 
   it('says what it cannot export, in the file and in the result', () => {
-    const out = toPlaywright({ name: 'Mail', url: '', sequence: [step('waitForEmail', 'a@example.com'), step('click')] });
+    const out = toPlaywright({
+      name: 'Mail',
+      url: '',
+      sequence: [step('waitForEmail', 'a@example.com'), step('click')],
+    });
     expect(out.notExported).toHaveLength(2);
     expect(out.code).toContain('// 2 step(s) could not be exported');
     expect(out.code).toContain('// Not exported — waitForEmail (a@example.com)');
   });
 
   it('runs once per dataset row', () => {
-    const out = toPlaywright({ name: 'Login', url: 'https://app.example.com', sequence: [step('input', '{{user}}', '#u')], dataset: [{ user: 'ada' }, { user: 'bob' }] });
+    const out = toPlaywright({
+      name: 'Login',
+      url: 'https://app.example.com',
+      sequence: [step('input', '{{user}}', '#u')],
+      dataset: [{ user: 'ada' }, { user: 'bob' }],
+    });
     expect(out.code).toContain('for (const [index, row] of rows.entries())');
     expect(out.code).toContain('"user": "bob"');
   });
@@ -91,39 +137,124 @@ describe('the test file', () => {
 
   async function organization(name: string) {
     const organizationId = await createTestOrganization(name);
-    [user] = await privilegedDb.insert(users).values({ username: `${name}-${Date.now()}-${Math.random()}`, password: 'x.y', organizationId, role: 'editor' }).returning();
-    [{ id: projectId }] = await privilegedDb.insert(projects).values({ name: 'Shop', userId: user.id, organizationId }).returning();
+    [user] = await privilegedDb
+      .insert(users)
+      .values({
+        username: `${name}-${Date.now()}-${Math.random()}`,
+        password: 'x.y',
+        organizationId,
+        role: 'editor',
+      })
+      .returning();
+    [{ id: projectId }] = await privilegedDb
+      .insert(projects)
+      .values({ name: 'Shop', userId: user.id, organizationId })
+      .returning();
     return organizationId;
   }
 
-  it('previews and imports mobile groups without IDs and versions leaking into dry-run',async()=>{
-    const source=await organization('MobileSource');
-    const groupId=crypto.randomUUID();
-    await privilegedDb.insert(mobileStepGroups).values({id:groupId,name:'Login group',platform:'android',steps:[{id:'back',action:'back'}],organizationId:source,projectId});
-    await privilegedDb.insert(mobileTests).values({name:'Native login',platform:'android',app:'bs://app',deviceName:'Pixel 8',deviceMatrix:[{deviceName:'Pixel 9',osVersion:'15'}],steps:[{id:'call',action:'callGroup',value:groupId}],organizationId:source,projectId});
-    const exported=await request(app).get('/api/tests/export').query({projectId}).expect(200);
+  it('previews and imports mobile groups without IDs and versions leaking into dry-run', async () => {
+    const source = await organization('MobileSource');
+    const groupId = crypto.randomUUID();
+    await privilegedDb.insert(mobileStepGroups).values({
+      id: groupId,
+      name: 'Login group',
+      platform: 'android',
+      steps: [{ id: 'back', action: 'back' }],
+      organizationId: source,
+      projectId,
+    });
+    await privilegedDb.insert(mobileTests).values({
+      name: 'Native login',
+      platform: 'android',
+      app: 'bs://app',
+      deviceName: 'Pixel 8',
+      deviceMatrix: [{ deviceName: 'Pixel 9', osVersion: '15' }],
+      steps: [{ id: 'call', action: 'callGroup', value: groupId }],
+      organizationId: source,
+      projectId,
+    });
+    const exported = await request(app).get('/api/tests/export').query({ projectId }).expect(200);
     expect(exported.text).not.toContain(groupId);
-    const target=await organization('MobileTarget');
-    const preview=await request(app).post('/api/tests/import-bundle').send({content:exported.text,projectId,dryRun:true}).expect(200);
-    expect(preview.body.results.map((r:any)=>r.outcome)).toEqual(['created','created']);
-    expect(await privilegedDb.select().from(mobileTests).where(eq(mobileTests.organizationId,target))).toHaveLength(0);
-    expect(await privilegedDb.select().from(mobileStepGroups).where(eq(mobileStepGroups.organizationId,target))).toHaveLength(0);
-    await request(app).post('/api/tests/import-bundle').send({content:exported.text,projectId}).expect(201).expect(res=>expect(res.body.results.every((r:any)=>r.outcome==='created')).toBe(true));
-    const [test]=await privilegedDb.select().from(mobileTests).where(eq(mobileTests.organizationId,target));
-    const [group]=await privilegedDb.select().from(mobileStepGroups).where(eq(mobileStepGroups.organizationId,target));
-    expect(test.steps[0].value).toBe(group.id);expect(test.gridId).toBeNull();
-    await request(app).post('/api/tests/import-bundle').send({content:exported.text,projectId}).expect(201).expect(res=>expect(res.body.results.every((r:any)=>r.outcome==='unchanged')).toBe(true));
-    expect(await privilegedDb.select().from(testVersions).where(eq(testVersions.mobileTestId,test.id))).toHaveLength(1);
+    const target = await organization('MobileTarget');
+    const preview = await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: exported.text, projectId, dryRun: true })
+      .expect(200);
+    expect(preview.body.results.map((r: any) => r.outcome)).toEqual(['created', 'created']);
+    expect(
+      await privilegedDb.select().from(mobileTests).where(eq(mobileTests.organizationId, target)),
+    ).toHaveLength(0);
+    expect(
+      await privilegedDb
+        .select()
+        .from(mobileStepGroups)
+        .where(eq(mobileStepGroups.organizationId, target)),
+    ).toHaveLength(0);
+    await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: exported.text, projectId })
+      .expect(201)
+      .expect((res) =>
+        expect(res.body.results.every((r: any) => r.outcome === 'created')).toBe(true),
+      );
+    const [test] = await privilegedDb
+      .select()
+      .from(mobileTests)
+      .where(eq(mobileTests.organizationId, target));
+    const [group] = await privilegedDb
+      .select()
+      .from(mobileStepGroups)
+      .where(eq(mobileStepGroups.organizationId, target));
+    expect(test.steps[0].value).toBe(group.id);
+    expect(test.gridId).toBeNull();
+    await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: exported.text, projectId })
+      .expect(201)
+      .expect((res) =>
+        expect(res.body.results.every((r: any) => r.outcome === 'unchanged')).toBe(true),
+      );
+    expect(
+      await privilegedDb.select().from(testVersions).where(eq(testVersions.mobileTestId, test.id)),
+    ).toHaveLength(1);
   });
-  it('rejects duplicate native keys and missing dependencies without partial tests',async()=>{
-    const target=await organization('MobileDuplicates');
-    const group={key:'["android","Login"]',name:'Login',platform:'android',steps:[{id:'back',action:'back'}]};
-    const native={name:'Native',platform:'android',app:'bs://app',deviceName:'Pixel',steps:[{id:'c',action:'callGroup',value:group.key}]};
-    const content=JSON.stringify({kind:'webflowmaster/tests',version:2,mobileStepGroups:[group,group],mobileTests:[native]});
-    const imported=await request(app).post('/api/tests/import-bundle').send({content}).expect(201);
-    expect(imported.body.results).toHaveLength(3);expect(imported.body.results.every((r:any)=>r.outcome==='invalid')).toBe(true);
-    expect(await privilegedDb.select().from(mobileTests).where(eq(mobileTests.organizationId,target))).toHaveLength(0);
-    expect(await privilegedDb.select().from(mobileStepGroups).where(eq(mobileStepGroups.organizationId,target))).toHaveLength(0);
+  it('rejects duplicate native keys and missing dependencies without partial tests', async () => {
+    const target = await organization('MobileDuplicates');
+    const group = {
+      key: '["android","Login"]',
+      name: 'Login',
+      platform: 'android',
+      steps: [{ id: 'back', action: 'back' }],
+    };
+    const native = {
+      name: 'Native',
+      platform: 'android',
+      app: 'bs://app',
+      deviceName: 'Pixel',
+      steps: [{ id: 'c', action: 'callGroup', value: group.key }],
+    };
+    const content = JSON.stringify({
+      kind: 'webflowmaster/tests',
+      version: 2,
+      mobileStepGroups: [group, group],
+      mobileTests: [native],
+    });
+    const imported = await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content })
+      .expect(201);
+    expect(imported.body.results).toHaveLength(3);
+    expect(imported.body.results.every((r: any) => r.outcome === 'invalid')).toBe(true);
+    expect(
+      await privilegedDb.select().from(mobileTests).where(eq(mobileTests.organizationId, target)),
+    ).toHaveLength(0);
+    expect(
+      await privilegedDb
+        .select()
+        .from(mobileStepGroups)
+        .where(eq(mobileStepGroups.organizationId, target)),
+    ).toHaveLength(0);
   });
 
   beforeEach(async () => {
@@ -135,53 +266,126 @@ describe('the test file', () => {
 
   it('imports Gherkin manually with a preview, exports actions losslessly, and isolates organizations', async () => {
     const source = await organization('GherkinSource');
-    const content = '@smoke\nFeature: Cart\nBackground:\nGiven a cart\nScenario Outline: Pay <method>\nWhen I pay by <method>\nThen paid\nExamples:\n| method |\n| card |\n| cash |';
-    const preview = await request(app).post('/api/tests/import-bundle').send({ content, format: 'gherkin', dryRun: true, projectId }).expect(200);
+    const content =
+      '@smoke\nFeature: Cart\nBackground:\nGiven a cart\nScenario Outline: Pay <method>\nWhen I pay by <method>\nThen paid\nExamples:\n| method |\n| card |\n| cash |';
+    const preview = await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content, format: 'gherkin', dryRun: true, projectId })
+      .expect(200);
     expect(preview.body.results.map((r: any) => r.outcome)).toEqual(['created', 'created']);
-    expect(await privilegedDb.select().from(tests).where(eq(tests.organizationId, source))).toHaveLength(0);
+    expect(
+      await privilegedDb.select().from(tests).where(eq(tests.organizationId, source)),
+    ).toHaveLength(0);
     await request(app).post('/api/tests/import-bundle').send({ content, projectId }).expect(201);
-    const imported = await privilegedDb.select().from(tests).where(eq(tests.organizationId, source));
+    const imported = await privilegedDb
+      .select()
+      .from(tests)
+      .where(eq(tests.organizationId, source));
     expect(imported).toHaveLength(2);
-    expect((imported[0].sequence as any[]).every(s => s.action.id === 'manualStep')).toBe(true);
+    expect((imported[0].sequence as any[]).every((s) => s.action.id === 'manualStep')).toBe(true);
     expect(await privilegedDb.select().from(testVersions)).toHaveLength(2);
-    const exported = await request(app).get('/api/tests/export').query({ format: 'gherkin', projectId }).expect(200);
+    const exported = await request(app)
+      .get('/api/tests/export')
+      .query({ format: 'gherkin', projectId })
+      .expect(200);
     expect(exported.headers['content-disposition']).toContain('.feature');
     expect(exported.text).toContain('# wfm-test:');
     expect(exported.text).not.toContain('organizationId');
     const target = await organization('GherkinTarget');
-    await request(app).get('/api/tests/export').query({ format: 'gherkin', projectId: imported[0].projectId }).expect(404);
-    await request(app).post('/api/tests/import-bundle').send({ content: exported.text, projectId }).expect(201);
-    const destination = await privilegedDb.select().from(tests).where(eq(tests.organizationId, target));
-    expect(destination.map(row => ({name:row.name,sequence:row.sequence})).sort((a,b)=>a.name.localeCompare(b.name))).toEqual(imported.map(row => ({name:row.name,sequence:row.sequence})).sort((a,b)=>a.name.localeCompare(b.name)));
-    await request(app).post('/api/tests/import-bundle').send({ content: exported.text }).expect(201).expect(res => expect(res.body.results.every((r: any) => r.outcome === 'unchanged')).toBe(true));
+    await request(app)
+      .get('/api/tests/export')
+      .query({ format: 'gherkin', projectId: imported[0].projectId })
+      .expect(404);
+    await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: exported.text, projectId })
+      .expect(201);
+    const destination = await privilegedDb
+      .select()
+      .from(tests)
+      .where(eq(tests.organizationId, target));
+    expect(
+      destination
+        .map((row) => ({ name: row.name, sequence: row.sequence }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    ).toEqual(
+      imported
+        .map((row) => ({ name: row.name, sequence: row.sequence }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    );
+    await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: exported.text })
+      .expect(201)
+      .expect((res) =>
+        expect(res.body.results.every((r: any) => r.outcome === 'unchanged')).toBe(true),
+      );
   });
 
   it('rejects unsupported Gherkin and forbids viewers from importing', async () => {
     await organization('GherkinStrict');
-    await request(app).post('/api/tests/import-bundle').send({ content: 'Feature: F\nRule: R', format: 'gherkin' }).expect(400);
+    await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: 'Feature: F\nRule: R', format: 'gherkin' })
+      .expect(400);
     await request(app).get('/api/tests/export').query({ format: 'cucumber' }).expect(400);
     user = { ...user, role: 'viewer' };
-    await request(app).post('/api/tests/import-bundle').send({ content: 'Feature: F\nScenario: S\nGiven something', format: 'gherkin' }).expect(403);
+    await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: 'Feature: F\nScenario: S\nGiven something', format: 'gherkin' })
+      .expect(403);
   });
 
   it('does not export or import into a restricted project without membership', async () => {
     const organizationId = await organization('GherkinRestricted');
     await privilegedDb.update(projects).set({ restricted: true }).where(eq(projects.id, projectId));
     await request(app).get('/api/tests/export').query({ projectId, format: 'gherkin' }).expect(404);
-    await request(app).post('/api/tests/import-bundle').send({ content: 'Feature: F\nScenario: S\nGiven a', format: 'gherkin', projectId, dryRun: true }).expect(400);
-    await request(app).post('/api/tests/import-bundle').send({ content: 'Feature: F\nScenario: S\nGiven a', format: 'gherkin', projectId }).expect(400);
-    expect(await privilegedDb.select().from(tests).where(eq(tests.organizationId, organizationId))).toHaveLength(0);
+    await request(app)
+      .post('/api/tests/import-bundle')
+      .send({
+        content: 'Feature: F\nScenario: S\nGiven a',
+        format: 'gherkin',
+        projectId,
+        dryRun: true,
+      })
+      .expect(400);
+    await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: 'Feature: F\nScenario: S\nGiven a', format: 'gherkin', projectId })
+      .expect(400);
+    expect(
+      await privilegedDb.select().from(tests).where(eq(tests.organizationId, organizationId)),
+    ).toHaveLength(0);
   });
 
   it('reports readonly project tests as invalid during both preview and import', async () => {
     const organizationId = await organization('GherkinReadonly');
     await privilegedDb.update(projects).set({ restricted: true }).where(eq(projects.id, projectId));
-    await privilegedDb.insert(projectMembers).values({ projectId, userId: user.id, organizationId, role: 'viewer' });
-    const [existing] = await privilegedDb.insert(tests).values({ name: 'F / S', url: '', sequence: [step('click', '#old')], elements: [], projectId, userId: user.id, organizationId }).returning();
+    await privilegedDb
+      .insert(projectMembers)
+      .values({ projectId, userId: user.id, organizationId, role: 'viewer' });
+    const [existing] = await privilegedDb
+      .insert(tests)
+      .values({
+        name: 'F / S',
+        url: '',
+        sequence: [step('click', '#old')],
+        elements: [],
+        projectId,
+        userId: user.id,
+        organizationId,
+      })
+      .returning();
     const content = 'Feature: F\nScenario: S\nGiven a';
     for (const dryRun of [true, false]) {
-      const result = await request(app).post('/api/tests/import-bundle').send({ content, format: 'gherkin', dryRun }).expect(dryRun ? 200 : 201);
-      expect(result.body.results[0]).toMatchObject({ outcome: 'invalid', reason: expect.stringContaining('not change') });
+      const result = await request(app)
+        .post('/api/tests/import-bundle')
+        .send({ content, format: 'gherkin', dryRun })
+        .expect(dryRun ? 200 : 201);
+      expect(result.body.results[0]).toMatchObject({
+        outcome: 'invalid',
+        reason: expect.stringContaining('not change'),
+      });
     }
     const [unchanged] = await privilegedDb.select().from(tests).where(eq(tests.id, existing.id));
     expect(unchanged.sequence).toEqual(existing.sequence);
@@ -189,11 +393,32 @@ describe('the test file', () => {
 
   it('exports a project as YAML without ids or secrets, and imports it into another organization', async () => {
     const source = await organization('Source');
-    await privilegedDb.insert(tests).values({ name: 'Login', url: '{{baseUrl}}', sequence: [step('click', undefined, '#go')], elements: [{ big: true }], userId: user.id, organizationId: source, projectId });
-    await privilegedDb.insert(tests).values({ name: 'Elsewhere', url: 'https://x.example', sequence: [], elements: [], userId: user.id, organizationId: source });
+    await privilegedDb.insert(tests).values({
+      name: 'Login',
+      url: '{{baseUrl}}',
+      sequence: [step('click', undefined, '#go')],
+      elements: [{ big: true }],
+      userId: user.id,
+      organizationId: source,
+      projectId,
+    });
+    await privilegedDb.insert(tests).values({
+      name: 'Elsewhere',
+      url: 'https://x.example',
+      sequence: [],
+      elements: [],
+      userId: user.id,
+      organizationId: source,
+    });
     await privilegedDb.insert(apiTests).values({
-      name: 'Health', method: 'GET', url: '{{baseUrl}}/health', userId: user.id, organizationId: source, projectId,
-      authType: 'bearer', authParams: { type: 'bearer', params: { token: 'literal-token-123' } },
+      name: 'Health',
+      method: 'GET',
+      url: '{{baseUrl}}/health',
+      userId: user.id,
+      organizationId: source,
+      projectId,
+      authType: 'bearer',
+      authParams: { type: 'bearer', params: { token: 'literal-token-123' } },
     });
 
     const exported = await request(app).get('/api/tests/export').query({ projectId }).expect(200);
@@ -203,61 +428,147 @@ describe('the test file', () => {
     expect(yamlText).not.toContain('literal-token-123');
     expect(yamlText).not.toMatch(/organizationId|userId|createdAt|elements/);
     const doc = parseYaml(yamlText);
-    expect(doc).toMatchObject({ kind: 'webflowmaster/tests', version: 2, project: 'Shop', tests: [{ name: 'Login' }], apiTests: [{ name: 'Health', authParams: { params: { token: '{{bearer_token}}' } } }] });
+    expect(doc).toMatchObject({
+      kind: 'webflowmaster/tests',
+      version: 2,
+      project: 'Shop',
+      tests: [{ name: 'Login' }],
+      apiTests: [{ name: 'Health', authParams: { params: { token: '{{bearer_token}}' } } }],
+    });
 
     const target = await organization('Target');
-    const preview = await request(app).post('/api/tests/import-bundle').send({ content: yamlText, dryRun: true }).expect(200);
-    expect(preview.body.results.map((r: { outcome: string }) => r.outcome)).toEqual(['created', 'created']);
-    expect(await privilegedDb.select().from(tests).where(eq(tests.organizationId, target))).toEqual([]);
+    const preview = await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: yamlText, dryRun: true })
+      .expect(200);
+    expect(preview.body.results.map((r: { outcome: string }) => r.outcome)).toEqual([
+      'created',
+      'created',
+    ]);
+    expect(await privilegedDb.select().from(tests).where(eq(tests.organizationId, target))).toEqual(
+      [],
+    );
 
-    const imported = await request(app).post('/api/tests/import-bundle').send({ content: yamlText, projectId }).expect(201);
-    expect(imported.body.results.map((r: { outcome: string }) => r.outcome)).toEqual(['created', 'created']);
+    const imported = await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: yamlText, projectId })
+      .expect(201);
+    expect(imported.body.results.map((r: { outcome: string }) => r.outcome)).toEqual([
+      'created',
+      'created',
+    ]);
     const [login] = await privilegedDb.select().from(tests).where(eq(tests.organizationId, target));
     expect(login).toMatchObject({ name: 'Login', projectId, url: '{{baseUrl}}' });
-    expect((await privilegedDb.select().from(testVersions).where(eq(testVersions.testId, login.id))).length).toBe(1);
+    expect(
+      (await privilegedDb.select().from(testVersions).where(eq(testVersions.testId, login.id)))
+        .length,
+    ).toBe(1);
 
     // Again, unchanged: nothing saved. Changed: an update, and a new version.
-    const again = await request(app).post('/api/tests/import-bundle').send({ content: yamlText }).expect(201);
-    expect(again.body.results.map((r: { outcome: string }) => r.outcome)).toEqual(['unchanged', 'unchanged']);
-    const changed = yamlText.replace("url: \"{{baseUrl}}\"", 'url: "{{baseUrl}}/v2"').replace('url: "{{baseUrl}}"', 'url: "{{baseUrl}}/v2"');
-    const updated = await request(app).post('/api/tests/import-bundle').send({ content: changed }).expect(201);
+    const again = await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: yamlText })
+      .expect(201);
+    expect(again.body.results.map((r: { outcome: string }) => r.outcome)).toEqual([
+      'unchanged',
+      'unchanged',
+    ]);
+    const changed = yamlText
+      .replace('url: "{{baseUrl}}"', 'url: "{{baseUrl}}/v2"')
+      .replace('url: "{{baseUrl}}"', 'url: "{{baseUrl}}/v2"');
+    const updated = await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: changed })
+      .expect(201);
     expect(updated.body.results[0]).toMatchObject({ name: 'Login', outcome: 'updated' });
-    expect((await privilegedDb.select().from(testVersions).where(eq(testVersions.testId, login.id))).length).toBe(2);
-    expect((await privilegedDb.select().from(auditLog).where(eq(auditLog.action, 'test.imported'))).length).toBe(2);
+    expect(
+      (await privilegedDb.select().from(testVersions).where(eq(testVersions.testId, login.id)))
+        .length,
+    ).toBe(2);
+    expect(
+      (await privilegedDb.select().from(auditLog).where(eq(auditLog.action, 'test.imported')))
+        .length,
+    ).toBe(2);
   });
 
   it('round-trips streaming mode, conversation and TLS references across organizations', async () => {
     const source = await organization('ProtocolSource');
-    const protocolConfig = { grpcMode: 'bidi' as const, timeoutMs: 1500, tls: { clientCertificate: '{{secret_cert}}', clientKey: '{{secret_key}}' } };
-    const requestBody = JSON.stringify({ steps: [{ type: 'receive' }, { type: 'capture', name: 'token', property: 'token' }, { type: 'send', message: '{{capture.token}}' }] });
-    await privilegedDb.insert(apiTests).values({ name: 'Streaming', method: 'GRPC', url: 'grpcs://service.test/chat.Service/Talk', userId: user.id, organizationId: source, projectId, protoDefinition: 'syntax="proto3";', protocolConfig, requestBody });
+    const protocolConfig = {
+      grpcMode: 'bidi' as const,
+      timeoutMs: 1500,
+      tls: { clientCertificate: '{{secret_cert}}', clientKey: '{{secret_key}}' },
+    };
+    const requestBody = JSON.stringify({
+      steps: [
+        { type: 'receive' },
+        { type: 'capture', name: 'token', property: 'token' },
+        { type: 'send', message: '{{capture.token}}' },
+      ],
+    });
+    await privilegedDb.insert(apiTests).values({
+      name: 'Streaming',
+      method: 'GRPC',
+      url: 'grpcs://service.test/chat.Service/Talk',
+      userId: user.id,
+      organizationId: source,
+      projectId,
+      protoDefinition: 'syntax="proto3";',
+      protocolConfig,
+      requestBody,
+    });
     const exported = await request(app).get('/api/tests/export').query({ projectId }).expect(200);
     expect(parseYaml(exported.text).apiTests[0]).toMatchObject({ protocolConfig, requestBody });
     const target = await organization('ProtocolTarget');
-    await request(app).post('/api/tests/import-bundle').send({ content: exported.text, projectId }).expect(201);
-    const [imported] = await privilegedDb.select().from(apiTests).where(eq(apiTests.organizationId, target));
+    await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: exported.text, projectId })
+      .expect(201);
+    const [imported] = await privilegedDb
+      .select()
+      .from(apiTests)
+      .where(eq(apiTests.organizationId, target));
     expect(imported).toMatchObject({ protocolConfig, requestBody });
-    const [version] = await privilegedDb.select().from(testVersions).where(eq(testVersions.apiTestId, imported.id));
+    const [version] = await privilegedDb
+      .select()
+      .from(testVersions)
+      .where(eq(testVersions.apiTestId, imported.id));
     expect(version.snapshot).toMatchObject({ protocolConfig, requestBody });
   });
 
   it('reports a test it cannot take, and refuses what is not a test file', async () => {
     await organization('Strict');
-    const content = 'kind: webflowmaster/tests\nversion: 1\ntests:\n  - name: Broken\n    url: https://x.example\n    sequence: "not steps"\n';
+    const content =
+      'kind: webflowmaster/tests\nversion: 1\ntests:\n  - name: Broken\n    url: https://x.example\n    sequence: "not steps"\n';
     const res = await request(app).post('/api/tests/import-bundle').send({ content }).expect(201);
     expect(res.body.results[0]).toMatchObject({ name: 'Broken', outcome: 'invalid' });
-    await request(app).post('/api/tests/import-bundle').send({ content: 'kind: other' }).expect(400);
+    await request(app)
+      .post('/api/tests/import-bundle')
+      .send({ content: 'kind: other' })
+      .expect(400);
     expect(() => parseBundle('kind: webflowmaster/tests\nversion: 9\n')).toThrow(BundleError);
   });
 
   it('serves one test as a Playwright file', async () => {
     const organizationId = await organization('Pw');
-    const [test] = await privilegedDb.insert(tests).values({ name: 'Search box', url: 'https://shop.example', sequence: [step('input', 'shoes', '#q'), step('pressKey', 'Enter')], elements: [], userId: user.id, organizationId }).returning();
+    const [test] = await privilegedDb
+      .insert(tests)
+      .values({
+        name: 'Search box',
+        url: 'https://shop.example',
+        sequence: [step('input', 'shoes', '#q'), step('pressKey', 'Enter')],
+        elements: [],
+        userId: user.id,
+        organizationId,
+      })
+      .returning();
     const res = await request(app).get(`/api/tests/${test.id}/playwright`).expect(200);
     expect(res.headers['content-disposition']).toContain('search-box.spec.ts');
     expect(res.text).toContain(`await p.locator("#q").first().fill("shoes");`);
     expect(res.text).toContain(`await p.keyboard.press("Enter");`);
-    const json = await request(app).get(`/api/tests/${test.id}/playwright`).query({ format: 'json' }).expect(200);
+    const json = await request(app)
+      .get(`/api/tests/${test.id}/playwright`)
+      .query({ format: 'json' })
+      .expect(200);
     expect(json.body.notExported).toEqual([]);
     await request(app).get('/api/tests/999999/playwright').expect(404);
   });

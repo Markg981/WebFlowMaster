@@ -15,7 +15,9 @@ import { applicationMetrics } from '../observability/metrics';
  * IP, a container name), never the load balancer's. Unset, the relay is the only one, which is
  * right for a single web server and needs no Redis.
  */
-export async function relayCluster(env: NodeJS.ProcessEnv = process.env): Promise<RelayCluster | undefined> {
+export async function relayCluster(
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<RelayCluster | undefined> {
   const url = env.AGENT_RELAY_ADVERTISE_URL?.trim();
   if (!url) return undefined;
   const { connection } = await import('../redis');
@@ -35,21 +37,32 @@ export async function setupAgentRelay(server: Server): Promise<AgentRelay> {
   const relay = new AgentRelay({
     authenticate: async (token) => {
       const agent = await authenticateAgentToken(token);
-      return agent ? { id: agent.id, organizationId: agent.organizationId, pool: agent.pool, name: agent.name } : null;
+      return agent
+        ? { id: agent.id, organizationId: agent.organizationId, pool: agent.pool, name: agent.name }
+        : null;
     },
     onSeen: async (agentId, hello) => {
       const now = Date.now();
       if (!hello && now - (lastWrite.get(agentId) ?? 0) < 55_000) return;
       lastWrite.set(agentId, now);
       await recordAgentSeen(agentId, hello).catch((error) =>
-        logger.warn({ message: 'Could not record a local agent as seen', agentId, error: error?.message }),
+        logger.warn({
+          message: 'Could not record a local agent as seen',
+          agentId,
+          error: error?.message,
+        }),
       );
     },
     secret: () => relaySecret(),
     cluster,
     log: (level, message, meta) => logger[level]({ message, ...meta }),
   });
-  if (cluster) logger.info({ message: 'Agent relay runs as one of several instances', instanceId: cluster.instanceId, advertisedAt: cluster.url });
+  if (cluster)
+    logger.info({
+      message: 'Agent relay runs as one of several instances',
+      instanceId: cluster.instanceId,
+      advertisedAt: cluster.url,
+    });
   relay.attach(server);
   setAgentRelay(relay);
   applicationMetrics.setAgentSnapshot(() => relay.telemetrySnapshot());

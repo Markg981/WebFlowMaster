@@ -26,7 +26,9 @@ const planId = 'time-zone-plan';
 beforeAll(async () => {
   organizationId = await createTestOrganization('Time zone org');
   userId = await createTestUser(organizationId, 'time-zone-user');
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Time zone plan', userId, organizationId });
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Time zone plan', userId, organizationId });
 });
 
 describe('the database session', () => {
@@ -64,12 +66,16 @@ describe('a column the database fills in', () => {
     // The case that surfaced this: queued_at left to the default, started_at written by the
     // worker. Before the fix the run started an hour before anyone asked for it.
     const id = 'time-zone-execution';
-    await privilegedDb.insert(testPlanExecutions).values({ id, testPlanId: planId, organizationId, status: 'queued' });
+    await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id, testPlanId: planId, organizationId, status: 'queued' });
 
     const started = await runWithTenant(organizationId, () => transitionExecution(id, 'running'));
 
     expect(started).not.toBeNull();
     expect(started!.startedAt!.getTime()).toBeGreaterThanOrEqual(started!.queuedAt.getTime());
-    expect(started!.startedAt!.getTime() - started!.queuedAt.getTime()).toBeLessThan(SAME_MOMENT_MS);
+    expect(started!.startedAt!.getTime() - started!.queuedAt.getTime()).toBeLessThan(
+      SAME_MOMENT_MS,
+    );
   });
 });

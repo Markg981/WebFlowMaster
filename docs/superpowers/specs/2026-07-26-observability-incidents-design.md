@@ -7,7 +7,7 @@
 
 Give the system a memory of its own failures, in two forms:
 
-1. **Logs** — continuous and human-readable, covering server *and* frontend in one
+1. **Logs** — continuous and human-readable, covering server _and_ frontend in one
    correlated stream, so a person can read what happened.
 2. **Incidents** — structured JSON artifacts containing the stack resolved to a source
    line, the inputs that caused the failure, and the events leading up to it, so an agent
@@ -18,14 +18,14 @@ id, and every incident records the correlation id needed to find its log lines.
 
 ## Decisions taken
 
-| Question | Decision |
-|---|---|
-| How the agent is triggered | On demand, reading local files. No watcher, no daemon. |
-| What "reproduce automatically" means | Each incident yields a runnable failing test. |
-| Which layers produce incidents | All four: server API, client runtime, runner infrastructure, background jobs. |
-| Where incidents live | `.observability/` on disk, gitignored, redacted, rotated. |
-| Which environment | Development only. Production and source-map resolution are out of scope. |
-| Frontend log volume | Continuous, level configurable, batched. |
+| Question                             | Decision                                                                      |
+| ------------------------------------ | ----------------------------------------------------------------------------- |
+| How the agent is triggered           | On demand, reading local files. No watcher, no daemon.                        |
+| What "reproduce automatically" means | Each incident yields a runnable failing test.                                 |
+| Which layers produce incidents       | All four: server API, client runtime, runner infrastructure, background jobs. |
+| Where incidents live                 | `.observability/` on disk, gitignored, redacted, rotated.                     |
+| Which environment                    | Development only. Production and source-map resolution are out of scope.      |
+| Frontend log volume                  | Continuous, level configurable, batched.                                      |
 
 ## What already exists
 
@@ -152,14 +152,14 @@ session can be made verbose without touching the database.
 
 ### Automatic instrumentation
 
-| Event | Level | Payload |
-|---|---|---|
-| Route change (wouter) | `info` | from → to, time spent on previous route |
-| Every API call | `http` | method, url, status, duration, correlationId |
-| Failed react-query query/mutation | `error` | key, message, HTTP status |
-| `unhandledrejection` | `error` | reason + stack |
-| `window.onerror` | `error` | message, file:line:column, stack |
-| React error boundary catch | `error` | error + `componentStack` |
+| Event                             | Level   | Payload                                      |
+| --------------------------------- | ------- | -------------------------------------------- |
+| Route change (wouter)             | `info`  | from → to, time spent on previous route      |
+| Every API call                    | `http`  | method, url, status, duration, correlationId |
+| Failed react-query query/mutation | `error` | key, message, HTTP status                    |
+| `unhandledrejection`              | `error` | reason + stack                               |
+| `window.onerror`                  | `error` | message, file:line:column, stack             |
+| React error boundary catch        | `error` | error + `componentStack`                     |
 
 Explicit calls remain available for feature code:
 `clientLogger.info('recording started', { sessionId })`.
@@ -233,41 +233,49 @@ another.
 ```jsonc
 {
   "id": "inc_7f21a9",
-  "kind": "server-api",              // server-api | client-runtime | job | runner
-  "status": "open",                  // open | fixed | ignored
-  "count": 12, "firstSeen": "...", "lastSeen": "...",
+  "kind": "server-api", // server-api | client-runtime | job | runner
+  "status": "open", // open | fixed | ignored
+  "count": 12,
+  "firstSeen": "...",
+  "lastSeen": "...",
 
   "title": "TypeError: Cannot read properties of undefined (reading 'selector')",
 
-  "origin": {                        // first frame belonging to this project
+  "origin": {
+    // first frame belonging to this project
     "file": "server/playwright-service.ts",
-    "line": 742, "column": 31,
+    "line": 742,
+    "column": 31,
     "function": "PlaywrightService.executeAdhocSequence",
     "source": [
       "740 |   for (const step of payload.sequence) {",
       "741 |     const actionId = step.action?.id;",
       "742 >     await page.click(step.targetElement.selector);",
-      "743 |     stepResults.push({ ... });"
-    ]
+      "743 |     stepResults.push({ ... });",
+    ],
   },
 
-  "error": { "name": "TypeError", "message": "...", "frames": [ /* app vs vendor */ ] },
+  "error": { "name": "TypeError", "message": "...", "frames": [/* app vs vendor */] },
 
-  "trigger": { /* shape depends on kind — see below */ },
+  "trigger": {/* shape depends on kind — see below */},
 
   "state": {
-    "gitCommit": "a1221b5", "gitBranch": "feature/...", "workingTreeDirty": true,
-    "nodeVersion": "v20.16.0", "platform": "win32", "nodeEnv": "development"
+    "gitCommit": "a1221b5",
+    "gitBranch": "feature/...",
+    "workingTreeDirty": true,
+    "nodeVersion": "v20.16.0",
+    "platform": "win32",
+    "nodeEnv": "development",
   },
 
-  "breadcrumbs": [ /* last 50 events before the failure */ ],
-  "occurrences": [ { "ts": "...", "correlationId": "c-9f3a", "sessionId": "s-7c2" } ],
+  "breadcrumbs": [/* last 50 events before the failure */],
+  "occurrences": [{ "ts": "...", "correlationId": "c-9f3a", "sessionId": "s-7c2" }],
 
   "repro": {
     "path": "server/__repro__/inc_7f21a9.repro.ts",
     "command": "npx vitest run --include '**/*.repro.ts'",
-    "confidence": "high"
-  }
+    "confidence": "high",
+  },
 }
 ```
 
@@ -277,16 +285,16 @@ stack — without it, "line 742" means nothing.
 
 ### Trigger shapes per kind
 
-| Kind | Trigger contents |
-|---|---|
-| `server-api` | method, path, query, body (redacted), header allowlist, userId, correlationId |
+| Kind             | Trigger contents                                                                 |
+| ---------------- | -------------------------------------------------------------------------------- |
+| `server-api`     | method, path, query, body (redacted), header allowlist, userId, correlationId    |
 | `client-runtime` | route, componentStack, serialisable props snapshot when available, last API call |
-| `job` | queue, job name, jobData, attemptsMade |
-| `runner` | phase, test name, url, browser type, sessionId |
+| `job`            | queue, job name, jobData, attemptsMade                                           |
+| `runner`         | phase, test name, url, browser type, sessionId                                   |
 
 ### Stack resolution
 
-A small parser splits frames into *project* and *library*, takes the first project frame as
+A small parser splits frames into _project_ and _library_, takes the first project frame as
 `origin`, and reads ±5 lines from disk. In development `tsx` and Vite serve real sources,
 so paths are genuine TypeScript locations.
 
@@ -320,12 +328,12 @@ directory the right vitest project already covers.
 
 Confidence varies by kind and is declared in the artifact rather than assumed:
 
-| Kind | Confidence | What is generated |
-|---|---|---|
-| `server-api` | **high** | supertest test registering the routes, authenticating the captured user, replaying the request, asserting the response is not 5xx. Follows the existing pattern in `server/test-plan-executions.test.ts` |
-| `job` | **high** | Calls the job handler directly with the captured `jobData` |
-| `runner` | **medium** | Calls the service method with captured arguments; may need a real browser, and is marked as such |
-| `client-runtime` | **best-effort** | With serialisable props from the error boundary, a render test using them; otherwise a skeleton with breadcrumbs as comments and `it.todo` |
+| Kind             | Confidence      | What is generated                                                                                                                                                                                        |
+| ---------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server-api`     | **high**        | supertest test registering the routes, authenticating the captured user, replaying the request, asserting the response is not 5xx. Follows the existing pattern in `server/test-plan-executions.test.ts` |
+| `job`            | **high**        | Calls the job handler directly with the captured `jobData`                                                                                                                                               |
+| `runner`         | **medium**      | Calls the service method with captured arguments; may need a real browser, and is marked as such                                                                                                         |
+| `client-runtime` | **best-effort** | With serialisable props from the error boundary, a render test using them; otherwise a skeleton with breadcrumbs as comments and `it.todo`                                                               |
 
 ### Retention
 
@@ -355,14 +363,14 @@ generated reproduction → run → red → fix applied → green.
 
 ## Failure modes and mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Observability throws and breaks the product | Every tap wrapped; a `recordIncident` failure goes to `console.error` once and is swallowed |
-| Recursive incident (the recorder errors) | Guard flag: the recorder never records itself |
-| Hot loop throwing thousands of times | Per-fingerprint rate limit: at most one occurrence recorded per second, the rest counted |
-| Disk full or permission denied | Degrades to log-only, without retry loops |
-| Hostile payload on the client endpoint | zod validation, size caps, per-session rate limit |
-| Breadcrumb ring buffer growing without bound | Maximum 500 correlation ids, LRU eviction, 5-minute TTL |
+| Risk                                         | Mitigation                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Observability throws and breaks the product  | Every tap wrapped; a `recordIncident` failure goes to `console.error` once and is swallowed |
+| Recursive incident (the recorder errors)     | Guard flag: the recorder never records itself                                               |
+| Hot loop throwing thousands of times         | Per-fingerprint rate limit: at most one occurrence recorded per second, the rest counted    |
+| Disk full or permission denied               | Degrades to log-only, without retry loops                                                   |
+| Hostile payload on the client endpoint       | zod validation, size caps, per-session rate limit                                           |
+| Breadcrumb ring buffer growing without bound | Maximum 500 correlation ids, LRU eviction, 5-minute TTL                                     |
 
 The last row matters: it is the same class of bug just fixed in the recording sessions map
 (an unbounded, non-expiring in-memory `Map`). A second one is not being introduced.

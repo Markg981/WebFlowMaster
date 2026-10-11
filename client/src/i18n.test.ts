@@ -39,7 +39,9 @@ describe('the application translations', () => {
     await i18n.changeLanguage('it');
     expect(i18n.hasResourceBundle('it', 'translation')).toBe(true);
     expect(i18n.t(key!)).not.toBe(english);
-    expect(i18n.t(key!)).toBe(key!.split('.').reduce<unknown>((node, part) => (node as Tree)[part], translationIT));
+    expect(i18n.t(key!)).toBe(
+      key!.split('.').reduce<unknown>((node, part) => (node as Tree)[part], translationIT),
+    );
   });
 
   it('fall back to English for a language it does not have', async () => {
@@ -47,6 +49,8 @@ describe('the application translations', () => {
     const { default: i18n } = await import('./i18n');
     const key = differingKey(translationEN as Tree, translationIT as Tree)!;
     await i18n.changeLanguage('pt');
-    expect(i18n.t(key)).toBe(key.split('.').reduce<unknown>((node, part) => (node as Tree)[part], translationEN));
+    expect(i18n.t(key)).toBe(
+      key.split('.').reduce<unknown>((node, part) => (node as Tree)[part], translationEN),
+    );
   });
 });

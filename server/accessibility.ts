@@ -1,6 +1,11 @@
 import { createRequire } from 'module';
 import type { Page } from 'playwright';
-import { summariseAxe, type AccessibilityFinding, type AccessibilityImpact, type AxeRunResult } from '@shared/accessibility';
+import {
+  summariseAxe,
+  type AccessibilityFinding,
+  type AccessibilityImpact,
+  type AxeRunResult,
+} from '@shared/accessibility';
 
 /**
  * Runs axe-core in a page. See shared/accessibility.ts for what is kept and why.
@@ -20,7 +25,10 @@ function source(): string {
   return axeSource;
 }
 
-export async function scanAccessibility(page: Page, threshold: AccessibilityImpact): Promise<AccessibilityFinding> {
+export async function scanAccessibility(
+  page: Page,
+  threshold: AccessibilityImpact,
+): Promise<AccessibilityFinding> {
   const loaded = await page.evaluate(() => typeof (window as any).axe?.run === 'function');
   if (!loaded) await page.evaluate(source());
   const result = (await page.evaluate(async () => {

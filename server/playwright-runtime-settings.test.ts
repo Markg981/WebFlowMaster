@@ -29,7 +29,10 @@ vi.mock('./browsers', async (importOriginal) => {
     close: vi.fn().mockResolvedValue(undefined),
     screenshot: mocks.screenshot,
   };
-  const context = { newPage: vi.fn().mockResolvedValue(page), close: vi.fn().mockResolvedValue(undefined) };
+  const context = {
+    newPage: vi.fn().mockResolvedValue(page),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
   mocks.newContext.mockResolvedValue(context);
   return {
     ...actual,
@@ -73,11 +76,22 @@ const runtime = (overrides: Partial<StepRuntime> = {}): StepRuntime => ({
 });
 
 const run = (options?: { runtime?: StepRuntime }) =>
-  playwrightService.executeTestSequence(oneStepTest(), 1, undefined, undefined, {}, undefined, options);
+  playwrightService.executeTestSequence(
+    oneStepTest(),
+    1,
+    undefined,
+    undefined,
+    {},
+    undefined,
+    options,
+  );
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getUserSettings.mockResolvedValue({ playwrightDefaultTimeout: 90_000, playwrightHeadless: true });
+  mocks.getUserSettings.mockResolvedValue({
+    playwrightDefaultTimeout: 90_000,
+    playwrightHeadless: true,
+  });
   mocks.screenshot.mockResolvedValue(Buffer.from('png'));
   mocks.executeStep.mockResolvedValue({ status: 'passed' });
 });
@@ -85,18 +99,37 @@ beforeEach(() => {
 describe('saved login', () => {
   const staging = { environmentId: 3, organizationId: 1 };
   const runIn = (options?: { locale?: string }) =>
-    playwrightService.executeTestSequence(oneStepTest(), 1, undefined, undefined, {}, staging, options as any);
+    playwrightService.executeTestSequence(
+      oneStepTest(),
+      1,
+      undefined,
+      undefined,
+      {},
+      staging,
+      options as any,
+    );
   const contextOptions = () => mocks.newContext.mock.calls[0][0];
 
   it("sends the recorder's Accept-Language, which sites bind their session to", async () => {
-    mocks.loadLoginState.mockResolvedValue({ cookies: [{ name: 'rack.session' }], origins: [], acceptLanguage: 'en-US,en;q=0.9' });
+    mocks.loadLoginState.mockResolvedValue({
+      cookies: [{ name: 'rack.session' }],
+      origins: [],
+      acceptLanguage: 'en-US,en;q=0.9',
+    });
     await runIn();
-    expect(contextOptions().storageState).toEqual({ cookies: [{ name: 'rack.session' }], origins: [] });
+    expect(contextOptions().storageState).toEqual({
+      cookies: [{ name: 'rack.session' }],
+      origins: [],
+    });
     expect(contextOptions().extraHTTPHeaders).toEqual({ 'Accept-Language': 'en-US,en;q=0.9' });
   });
 
   it("keeps a plan's own locale, which is what the plan tests", async () => {
-    mocks.loadLoginState.mockResolvedValue({ cookies: [], origins: [], acceptLanguage: 'en-US,en;q=0.9' });
+    mocks.loadLoginState.mockResolvedValue({
+      cookies: [],
+      origins: [],
+      acceptLanguage: 'en-US,en;q=0.9',
+    });
     await runIn({ locale: 'it-IT' });
     expect(contextOptions().locale).toBe('it-IT');
     expect(contextOptions().extraHTTPHeaders).toBeUndefined();
@@ -132,17 +165,23 @@ describe('screenshots', () => {
     expect(mocks.screenshot).not.toHaveBeenCalled();
   });
 
-  it('keeps the failed step\'s', async () => {
+  it("keeps the failed step's", async () => {
     mocks.executeStep.mockResolvedValue({ status: 'failed', error: 'Button not found' });
     const result = await run({ runtime: runtime() });
-    expect(result.steps?.[1]).toMatchObject({ status: 'failed', screenshot: 'data:image/png;base64,cG5n' });
+    expect(result.steps?.[1]).toMatchObject({
+      status: 'failed',
+      screenshot: 'data:image/png;base64,cG5n',
+    });
   });
 
   it('keeps every one under "always", and without a plan, as it always has', async () => {
     for (const options of [{ runtime: runtime({ screenshots: 'always' }) }, undefined]) {
       mocks.screenshot.mockClear();
       const result = await run(options);
-      expect(result.steps?.map((step) => step.screenshot)).toEqual(['data:image/png;base64,cG5n', 'data:image/png;base64,cG5n']);
+      expect(result.steps?.map((step) => step.screenshot)).toEqual([
+        'data:image/png;base64,cG5n',
+        'data:image/png;base64,cG5n',
+      ]);
     }
   });
 
@@ -158,20 +197,33 @@ describe('a run that is stopping', () => {
     const controller = new AbortController();
     controller.abort(new Error('Not run: the run was cancelled.'));
 
-    const result = await playwrightService.executeTestSequence(oneStepTest(), 1, undefined, undefined, {}, undefined, {
-      runtime: runtime(),
-      signal: controller.signal,
-    });
+    const result = await playwrightService.executeTestSequence(
+      oneStepTest(),
+      1,
+      undefined,
+      undefined,
+      {},
+      undefined,
+      {
+        runtime: runtime(),
+        signal: controller.signal,
+      },
+    );
 
     expect(mocks.executeStep).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
-    expect(result.steps?.[1]).toMatchObject({ status: 'failed', error: 'Stopped: the run was cancelled.' });
+    expect(result.steps?.[1]).toMatchObject({
+      status: 'failed',
+      error: 'Stopped: the run was cancelled.',
+    });
   });
 });
 
 describe('"Retry Step"', () => {
   it('tries a failed step once more, and a pass on the second try is a pass', async () => {
-    mocks.executeStep.mockResolvedValueOnce({ status: 'failed', error: 'not yet' }).mockResolvedValueOnce({ status: 'passed' });
+    mocks.executeStep
+      .mockResolvedValueOnce({ status: 'failed', error: 'not yet' })
+      .mockResolvedValueOnce({ status: 'passed' });
 
     const result = await run({ runtime: runtime({ retryFailedStep: true }) });
 

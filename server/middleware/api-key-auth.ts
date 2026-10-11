@@ -93,11 +93,19 @@ export async function apiKeyAuth(req: Request, _res: Response, next: NextFunctio
     // to prevent — so there it is not a credential at all, and the request is answered as the
     // unauthenticated one it is.
     if (matched!.scopes && !isScopedApiPath(req.path)) {
-      logger.warn({ message: 'Scoped API key used outside /api/v1; ignored', apiKeyId: matched!.id, path: req.path });
+      logger.warn({
+        message: 'Scoped API key used outside /api/v1; ignored',
+        apiKeyId: matched!.id,
+        path: req.path,
+      });
       return next();
     }
 
-    const [user] = await privilegedDb.select().from(users).where(eq(users.id, matched!.userId)).limit(1);
+    const [user] = await privilegedDb
+      .select()
+      .from(users)
+      .where(eq(users.id, matched!.userId))
+      .limit(1);
     if (!user) {
       logger.warn({ message: 'API key names a user that no longer exists', apiKeyId: matched!.id });
       return next();
@@ -113,7 +121,10 @@ export async function apiKeyAuth(req: Request, _res: Response, next: NextFunctio
     }
 
     if (user.disabledAt) {
-      logger.warn({ message: 'API key belongs to a disabled account; refusing', apiKeyId: matched!.id });
+      logger.warn({
+        message: 'API key belongs to a disabled account; refusing',
+        apiKeyId: matched!.id,
+      });
       return next();
     }
 
@@ -130,7 +141,10 @@ export async function apiKeyAuth(req: Request, _res: Response, next: NextFunctio
     });
     return next();
   } catch (error: any) {
-    logger.error({ message: 'API key authentication failed', error: error?.message ?? String(error) });
+    logger.error({
+      message: 'API key authentication failed',
+      error: error?.message ?? String(error),
+    });
     return next();
   }
 }
@@ -140,7 +154,10 @@ async function touchLastUsed(apiKeyId: string): Promise<void> {
   const last = recentlyTouched.get(apiKeyId);
   if (last !== undefined && now - last < LAST_USED_WRITE_INTERVAL_MS) return;
   recentlyTouched.set(apiKeyId, now);
-  await privilegedDb.update(apiKeys).set({ lastUsedAt: new Date(now) }).where(eq(apiKeys.id, apiKeyId));
+  await privilegedDb
+    .update(apiKeys)
+    .set({ lastUsedAt: new Date(now) })
+    .where(eq(apiKeys.id, apiKeyId));
 }
 
 /** Test seam: the throttle is process-wide state, and a test must not inherit another's. */

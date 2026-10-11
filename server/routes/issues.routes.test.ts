@@ -10,7 +10,12 @@ import { encryptSecret } from '../crypto';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -91,7 +96,9 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  createIssue.mockReset().mockResolvedValue({ key: 'SHOP-412', url: 'https://acme.atlassian.net/browse/SHOP-412' });
+  createIssue
+    .mockReset()
+    .mockResolvedValue({ key: 'SHOP-412', url: 'https://acme.atlassian.net/browse/SHOP-412' });
   addComment.mockReset().mockResolvedValue(undefined);
   checkConnection.mockReset().mockResolvedValue({ ok: true, detail: 'Connected to Shop.' });
 
@@ -146,7 +153,11 @@ describe('issue trackers', () => {
     // Not even masked: a mask still leaks length, and nothing here needs either.
     const response = await request(app).get('/api/issue-trackers').expect(200);
 
-    expect(response.body[0]).toMatchObject({ name: 'Jira', provider: 'jira', authenticatesAs: 'qa@acme.test' });
+    expect(response.body[0]).toMatchObject({
+      name: 'Jira',
+      provider: 'jira',
+      authenticatesAs: 'qa@acme.test',
+    });
     expect(JSON.stringify(response.body)).not.toContain('token-123');
     expect(Object.keys(response.body[0])).not.toContain('encryptedToken');
   });
@@ -154,7 +165,13 @@ describe('issue trackers', () => {
   it('refuses a Jira tracker with no account for the token to belong to', async () => {
     const response = await request(app)
       .post('/api/issue-trackers')
-      .send({ name: 'Jira 2', provider: 'jira', baseUrl: 'https://acme.atlassian.net', projectKey: 'SHOP', token: 'x' })
+      .send({
+        name: 'Jira 2',
+        provider: 'jira',
+        baseUrl: 'https://acme.atlassian.net',
+        projectKey: 'SHOP',
+        token: 'x',
+      })
       .expect(400);
 
     expect(response.body.error).toContain('email');
@@ -163,7 +180,13 @@ describe('issue trackers', () => {
   it('stores an Azure DevOps tracker, which needs no email', async () => {
     await request(app)
       .post('/api/issue-trackers')
-      .send({ name: 'ADO', provider: 'azure_devops', baseUrl: 'https://dev.azure.com/acme', projectKey: 'Platform', token: 'pat' })
+      .send({
+        name: 'ADO',
+        provider: 'azure_devops',
+        baseUrl: 'https://dev.azure.com/acme',
+        projectKey: 'Platform',
+        token: 'pat',
+      })
       .expect(201);
 
     const rows = await privilegedDb.select().from(issueTrackers);
@@ -176,7 +199,10 @@ describe('issue trackers', () => {
     // "leave it alone" rather than "set it to nothing".
     const before = (await privilegedDb.select().from(issueTrackers))[0];
 
-    await request(app).put(`/api/issue-trackers/${trackerId}`).send({ projectKey: 'SHOP2' }).expect(200);
+    await request(app)
+      .put(`/api/issue-trackers/${trackerId}`)
+      .send({ projectKey: 'SHOP2' })
+      .expect(200);
 
     const after = (await privilegedDb.select().from(issueTrackers))[0];
     expect(after.projectKey).toBe('SHOP2');
@@ -191,7 +217,12 @@ describe('issue trackers', () => {
   });
 
   it('is not visible to another organization', async () => {
-    currentUser = { id: otherUserId, username: 'other-issue-routes-user', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-issue-routes-user',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
 
     expect((await request(app).get('/api/issue-trackers').expect(200)).body).toEqual([]);
     await request(app).post(`/api/issue-trackers/${trackerId}/test`).expect(404);
@@ -201,7 +232,14 @@ describe('issue trackers', () => {
   it('refuses a second tracker with the same name', async () => {
     await request(app)
       .post('/api/issue-trackers')
-      .send({ name: 'JIRA', provider: 'jira', baseUrl: 'https://acme.atlassian.net', projectKey: 'S', token: 'x', userEmail: 'a@b.test' })
+      .send({
+        name: 'JIRA',
+        provider: 'jira',
+        baseUrl: 'https://acme.atlassian.net',
+        projectKey: 'S',
+        token: 'x',
+        userEmail: 'a@b.test',
+      })
       .expect(409);
   });
 });
@@ -224,7 +262,10 @@ describe('POST /api/issues', () => {
   });
 
   it('comments instead of filing the same failure twice', async () => {
-    await request(app).post('/api/issues').send({ executionId: EXECUTION_ID, testCaseResultId: failedResultId }).expect(200);
+    await request(app)
+      .post('/api/issues')
+      .send({ executionId: EXECUTION_ID, testCaseResultId: failedResultId })
+      .expect(200);
 
     const second = await request(app)
       .post('/api/issues')
@@ -284,7 +325,12 @@ describe('POST /api/issues', () => {
   });
 
   it('cannot file another organization’s failure', async () => {
-    currentUser = { id: otherUserId, username: 'other-issue-routes-user', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-issue-routes-user',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
 
     await request(app)
       .post('/api/issues')
@@ -304,9 +350,14 @@ describe('POST /api/issues', () => {
 
 describe('GET /api/test-plan-executions/:executionId/issues', () => {
   it('shows what this run’s failures already have', async () => {
-    await request(app).post('/api/issues').send({ executionId: EXECUTION_ID, testCaseResultId: failedResultId }).expect(200);
+    await request(app)
+      .post('/api/issues')
+      .send({ executionId: EXECUTION_ID, testCaseResultId: failedResultId })
+      .expect(200);
 
-    const response = await request(app).get(`/api/test-plan-executions/${EXECUTION_ID}/issues`).expect(200);
+    const response = await request(app)
+      .get(`/api/test-plan-executions/${EXECUTION_ID}/issues`)
+      .expect(200);
 
     expect(response.body).toHaveLength(1);
     expect(response.body[0]).toMatchObject({ issueKey: 'SHOP-412', testName: 'Checkout' });
@@ -332,19 +383,28 @@ describe('GET /api/test-plan-executions/:executionId/issues', () => {
       lastExecutionId: 'exec-older',
     });
 
-    const response = await request(app).get(`/api/test-plan-executions/${EXECUTION_ID}/issues`).expect(200);
+    const response = await request(app)
+      .get(`/api/test-plan-executions/${EXECUTION_ID}/issues`)
+      .expect(200);
 
     expect(response.body[0].issueKey).toBe('SHOP-99');
   });
 
   it('is empty, not an error, when nothing has been filed', async () => {
-    const response = await request(app).get(`/api/test-plan-executions/${EXECUTION_ID}/issues`).expect(200);
+    const response = await request(app)
+      .get(`/api/test-plan-executions/${EXECUTION_ID}/issues`)
+      .expect(200);
 
     expect(response.body).toEqual([]);
   });
 
   it('is a 404 for another organization’s execution', async () => {
-    currentUser = { id: otherUserId, username: 'other-issue-routes-user', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-issue-routes-user',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
 
     await request(app).get(`/api/test-plan-executions/${EXECUTION_ID}/issues`).expect(404);
   });

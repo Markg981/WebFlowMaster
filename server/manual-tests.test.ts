@@ -3,13 +3,24 @@ import { manualSequenceProblem, toSequence } from '@shared/manual-tests';
 
 describe('manualSequenceProblem', () => {
   it('accepts a manual test whose steps all say what to do', () => {
-    expect(manualSequenceProblem(toSequence([{ action: 'Print the invoice', expected: 'Logo and total' }]))).toBeNull();
+    expect(
+      manualSequenceProblem(
+        toSequence([{ action: 'Print the invoice', expected: 'Logo and total' }]),
+      ),
+    ).toBeNull();
   });
 
   it('refuses a manual test whose steps are blank (collaudo LIB-13)', () => {
-    expect(manualSequenceProblem(toSequence([{ action: '  ', expected: '' }]))).toMatch(/needs its action/);
+    expect(manualSequenceProblem(toSequence([{ action: '  ', expected: '' }]))).toMatch(
+      /needs its action/,
+    );
     expect(
-      manualSequenceProblem(toSequence([{ action: 'Open it', expected: '' }, { action: '', expected: 'Shown' }])),
+      manualSequenceProblem(
+        toSequence([
+          { action: 'Open it', expected: '' },
+          { action: '', expected: 'Shown' },
+        ]),
+      ),
     ).toMatch(/needs its action/);
   });
 

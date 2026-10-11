@@ -83,10 +83,10 @@ npx playwright install chromium        # and firefox / webkit / msedge if plans 
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```
 
-| Variable | Meaning |
-|---|---|
-| `WFM_URL` | The WebFlowMaster server |
-| `WFM_AGENT_TOKEN` | The token from Settings |
+| Variable                 | Meaning                                                     |
+| ------------------------ | ----------------------------------------------------------- |
+| `WFM_URL`                | The WebFlowMaster server                                    |
+| `WFM_AGENT_TOKEN`        | The token from Settings                                     |
 | `WFM_AGENT_MAX_SESSIONS` | Browser and native API sessions at once (default 2, max 16) |
 
 The agent reconnects on its own when the connection drops. It exits with code **2** when the server
@@ -98,16 +98,16 @@ refuses its token (revoked) or its protocol version: those do not fix themselves
 An agent also reaches an **Appium** server on its machine or network, for mobile app tests on
 emulators and phones: see [local Appium](../guide/mobile-apps#local-appium).
 
-In the plan's **Run settings → Run on**, choose *Local agents: &lt;pool&gt;*. The plan's browser
+In the plan's **Run settings → Run on**, choose _Local agents: &lt;pool&gt;_. The plan's browser
 list still applies: each browser is borrowed from the pool.
 
 ## Server configuration
 
-| Variable | Where | Meaning |
-|---|---|---|
-| `AGENT_RELAY_SECRET` | web and worker | Signs the tickets. Defaults to `SESSION_SECRET`; set it explicitly when the worker does not share the web server's session secret. |
-| `AGENT_RELAY_URL` | worker | Where the runner reaches the relay. Defaults to `http://127.0.0.1:$PORT`, which is right when the worker runs in the web process. With separate workers, point it at the web server (or its load balancer). |
-| `AGENT_RELAY_ADVERTISE_URL` | web, with several web servers | This web server's own address as the other web servers reach it (pod IP, container name — not the load balancer). Setting it turns on the shared directory in Redis. |
+| Variable                    | Where                         | Meaning                                                                                                                                                                                                     |
+| --------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENT_RELAY_SECRET`        | web and worker                | Signs the tickets. Defaults to `SESSION_SECRET`; set it explicitly when the worker does not share the web server's session secret.                                                                          |
+| `AGENT_RELAY_URL`           | worker                        | Where the runner reaches the relay. Defaults to `http://127.0.0.1:$PORT`, which is right when the worker runs in the web process. With separate workers, point it at the web server (or its load balancer). |
+| `AGENT_RELAY_ADVERTISE_URL` | web, with several web servers | This web server's own address as the other web servers reach it (pod IP, container name — not the load balancer). Setting it turns on the shared directory in Redis.                                        |
 
 The relay lives in the web process and accepts WebSocket upgrades on `/api/agent/v1/*`: a reverse
 proxy in front of it must forward WebSocket upgrades on those paths.

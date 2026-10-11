@@ -3,8 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildViewInventory, type ViewInventory } from './parse-views';
 
-const DEFAULT_VIEWS_DIR =
-  String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\Templates\Views`;
+const DEFAULT_VIEWS_DIR = String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\Templates\Views`;
 
 function walkHtml(dir: string): string[] {
   const out: string[] = [];
@@ -38,7 +37,9 @@ function main() {
   console.log(`Inventory written: ${outPath}`);
   console.log('\n--- per view (elements / controller-actions) ---');
   for (const v of inventories) {
-    console.log(`  ${String(v.elements.length).padStart(3)} els / ${String(v.actions.length).padStart(3)} acts   ${v.view}`);
+    console.log(
+      `  ${String(v.elements.length).padStart(3)} els / ${String(v.actions.length).padStart(3)} acts   ${v.view}`,
+    );
   }
 }
 

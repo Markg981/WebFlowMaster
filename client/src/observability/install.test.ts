@@ -3,8 +3,9 @@ import { installObservability, reportClientIncident, __resetInstallForTests } fr
 import { pushBreadcrumb, takeBreadcrumbs, __resetBreadcrumbs } from './breadcrumbs';
 
 const posted = () =>
-  vi.mocked(globalThis.fetch).mock.calls
-    .filter(([url]) => String(url) === '/api/incidents')
+  vi
+    .mocked(globalThis.fetch)
+    .mock.calls.filter(([url]) => String(url) === '/api/incidents')
     .map(([, init]) => JSON.parse(String((init as RequestInit).body)));
 
 beforeEach(() => {
@@ -27,7 +28,11 @@ describe('reportClientIncident', () => {
   it('posts the report with session, breadcrumbs and route', async () => {
     pushBreadcrumb({ type: 'click', target: '#execute' });
 
-    reportClientIncident({ name: 'TypeError', message: 'boom', stack: 'TypeError: boom\n    at x' });
+    reportClientIncident({
+      name: 'TypeError',
+      message: 'boom',
+      stack: 'TypeError: boom\n    at x',
+    });
     await vi.waitFor(() => expect(posted()).toHaveLength(1));
 
     const [report] = posted();

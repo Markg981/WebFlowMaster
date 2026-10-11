@@ -214,7 +214,8 @@ describe('the name of a field without text', () => {
     const { playwrightService } = await import('./playwright-service');
     const { elements } = await playwrightService.detectElements(formUrl);
     const inputs = elements.filter((e) => e.tag === 'input');
-    const textOf = (predicate: (e: (typeof inputs)[number]) => boolean) => inputs.find(predicate)?.text;
+    const textOf = (predicate: (e: (typeof inputs)[number]) => boolean) =>
+      inputs.find(predicate)?.text;
 
     expect(textOf((e) => e.attributes.id === 'username')).toBe('Username');
     expect(textOf((e) => e.attributes.id === 'password')).toBe('Password');
@@ -228,7 +229,11 @@ describe('the name of a field without text', () => {
     const { buildCatalogue, resolveTarget } = await import('./nl-authoring');
     const { elements } = await playwrightService.detectElements(formUrl);
 
-    const resolved = resolveTarget('Username field', buildCatalogue({ detected: elements as never }), 'input');
+    const resolved = resolveTarget(
+      'Username field',
+      buildCatalogue({ detected: elements as never }),
+      'input',
+    );
 
     expect(resolved.ok).toBe(true);
     expect(resolved.ok && resolved.entry.selector).toContain('username');
@@ -304,13 +309,23 @@ describe('the element list after the sequence has run', () => {
   const runBuilderPreview = async (selector: string) => {
     const { playwrightService } = await import('./playwright-service');
     return playwrightService.executeAdhocSequence(
-      { name: 'builder preview', url: appUrl, elements: [], sequence: [clickStep(selector)] } as never,
+      {
+        name: 'builder preview',
+        url: appUrl,
+        elements: [],
+        sequence: [clickStep(selector)],
+      } as never,
       1,
     );
   };
 
-  const ids = (result: { detection?: { elements: Array<{ attributes: Record<string, string> }> } }) =>
-    (result.detection?.elements ?? []).map((e) => e.attributes.id).filter(Boolean).sort();
+  const ids = (result: {
+    detection?: { elements: Array<{ attributes: Record<string, string> }> };
+  }) =>
+    (result.detection?.elements ?? [])
+      .map((e) => e.attributes.id)
+      .filter(Boolean)
+      .sort();
 
   it('offers the dialog the sequence opened', async () => {
     const result = await runBuilderPreview('#open-modal');

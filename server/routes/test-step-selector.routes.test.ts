@@ -8,7 +8,14 @@ import { stepsWithArtifactUrls } from './artifacts.routes';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn() }),
+  default: Promise.resolve({
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  }),
   updateLogLevel: vi.fn(),
 }));
 
@@ -28,7 +35,11 @@ let testId: number;
 
 const sequence = [
   { id: 'open', action: { id: 'navigate', name: 'Open' }, value: 'https://shop.test' },
-  { id: 'buy', action: { id: 'click', name: 'Buy' }, targetElement: { id: 'e1', selector: 'button.buy-old', tag: 'button' } },
+  {
+    id: 'buy',
+    action: { id: 'click', name: 'Buy' },
+    targetElement: { id: 'e1', selector: 'button.buy-old', tag: 'button' },
+  },
 ];
 
 beforeAll(async () => {
@@ -53,7 +64,14 @@ beforeEach(async () => {
   currentUser = { id: userId, username: 'selector-user', organizationId, role: 'editor' };
   const [row] = await privilegedDb
     .insert(tests)
-    .values({ userId, organizationId, name: `Checkout ${Date.now()}`, url: 'https://shop.test', sequence, elements: [] } as any)
+    .values({
+      userId,
+      organizationId,
+      name: `Checkout ${Date.now()}`,
+      url: 'https://shop.test',
+      sequence,
+      elements: [],
+    } as any)
     .returning();
   testId = row.id;
 });
@@ -68,17 +86,30 @@ describe("a step's selector", () => {
     expect(res.body.id).toBe(testId);
 
     const [row] = await privilegedDb.select().from(tests).where(eq(tests.id, testId));
-    const saved = (typeof row.sequence === 'string' ? JSON.parse(row.sequence) : row.sequence) as typeof sequence;
-    expect(saved[1].targetElement).toEqual({ id: 'e1', selector: "role=button[name='Buy']", tag: 'button' });
+    const saved = (
+      typeof row.sequence === 'string' ? JSON.parse(row.sequence) : row.sequence
+    ) as typeof sequence;
+    expect(saved[1].targetElement).toEqual({
+      id: 'e1',
+      selector: "role=button[name='Buy']",
+      tag: 'button',
+    });
     expect(saved[0]).toEqual(sequence[0]);
 
-    const versions = await privilegedDb.select().from(testVersions).where(eq(testVersions.testId, testId));
+    const versions = await privilegedDb
+      .select()
+      .from(testVersions)
+      .where(eq(testVersions.testId, testId));
     expect(versions.length).toBeGreaterThan(0);
     const [entry] = await privilegedDb
       .select()
       .from(auditLog)
       .where(and(eq(auditLog.action, 'test.updated'), eq(auditLog.targetId, String(testId))));
-    expect(entry.metadata).toMatchObject({ step: 'buy', previousSelector: 'button.buy-old', selector: "role=button[name='Buy']" });
+    expect(entry.metadata).toMatchObject({
+      step: 'buy',
+      previousSelector: 'button.buy-old',
+      selector: "role=button[name='Buy']",
+    });
   });
 
   it('is refused for a step the test does not have, one with no element, or no selector', async () => {
@@ -88,7 +119,12 @@ describe("a step's selector", () => {
   });
 
   it("is not another organization's to change, nor a viewer's", async () => {
-    currentUser = { id: otherUserId, username: 'other', organizationId: otherOrganizationId, role: 'owner' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other',
+      organizationId: otherOrganizationId,
+      role: 'owner',
+    };
     expect((await apply('buy', '#x')).status).toBe(404);
     currentUser = { id: userId, username: 'selector-user', organizationId, role: 'viewer' };
     expect((await apply('buy', '#x')).status).toBe(403);
@@ -97,12 +133,23 @@ describe("a step's selector", () => {
 
 describe('the steps a report shows', () => {
   it("carry the test's own step id and the group call, so a fix can find its step", () => {
-    const steps = stepsWithArtifactUrls('run-1', JSON.stringify([
-      { name: 'Buy', type: 'click', status: 'failed', stepId: 'buy', selector: '#old' },
-      { name: 'Group › Pay', type: 'click', status: 'passed', stepId: 'pay', calledFrom: 'g-call' },
-      { name: 'Old result', type: 'click', status: 'passed' },
-    ]));
-    expect(steps.map(({ stepId, calledFrom, selector }) => ({ stepId, calledFrom, selector }))).toEqual([
+    const steps = stepsWithArtifactUrls(
+      'run-1',
+      JSON.stringify([
+        { name: 'Buy', type: 'click', status: 'failed', stepId: 'buy', selector: '#old' },
+        {
+          name: 'Group › Pay',
+          type: 'click',
+          status: 'passed',
+          stepId: 'pay',
+          calledFrom: 'g-call',
+        },
+        { name: 'Old result', type: 'click', status: 'passed' },
+      ]),
+    );
+    expect(
+      steps.map(({ stepId, calledFrom, selector }) => ({ stepId, calledFrom, selector })),
+    ).toEqual([
       { stepId: 'buy', calledFrom: undefined, selector: '#old' },
       { stepId: 'pay', calledFrom: 'g-call', selector: null },
       { stepId: undefined, calledFrom: undefined, selector: null },

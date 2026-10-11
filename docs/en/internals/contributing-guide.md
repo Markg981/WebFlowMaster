@@ -106,6 +106,7 @@ database or acceptance volumes to obtain a passing test.
 | `npm run test:client -- --run`                                              | Client tests, including locale consistency                        |
 | `npm run check`                                                             | TypeScript projects, Collaudo/E2E and BDD runtime types           |
 | `npm run lint`                                                              | Repository lint rules                                             |
+| `npm run format:check`                                                      | Prettier formatting, a CI gate; `npm run format` fixes it         |
 | `npm test`                                                                  | Root Vitest suite plus separate BDD runtime suite                 |
 | `npm run test:rls`                                                          | Real PostgreSQL isolation gate; requires suitable `DATABASE_URL`  |
 | `npm run test:collaudo`                                                     | Collaudo application tests, not the complete acceptance catalogue |

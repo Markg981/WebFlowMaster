@@ -12,7 +12,10 @@ const test = {
 };
 describe('native flow and device definitions', () => {
   it('normalizes group references before they are stored', () => {
-    const parsed = mobileTestSchema.parse({...test,steps:[{id:'g',action:'callGroup',value:'\t group-id \n'}]});
+    const parsed = mobileTestSchema.parse({
+      ...test,
+      steps: [{ id: 'g', action: 'callGroup', value: '\t group-id \n' }],
+    });
     expect(parsed.steps[0].value).toBe('group-id');
   });
   it('keeps the legacy target and normalizes matrix targets', () => {

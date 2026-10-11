@@ -112,27 +112,86 @@ const ACTION_IDS = new Set<string>(ADHOC_ACTION_IDS);
 
 /** Words that name a kind of control rather than the control, dropped when matching. */
 const NOUN_WORDS = new Set([
-  'button', 'field', 'input', 'link', 'checkbox', 'box', 'menu', 'dropdown', 'icon', 'label',
-  'element', 'tab', 'toggle', 'option', 'row', 'column', 'header', 'title', 'text',
-  'pulsante', 'bottone', 'campo', 'casella', 'collegamento', 'tendina', 'icona', 'etichetta',
-  'elemento', 'scheda', 'riga', 'colonna', 'intestazione', 'titolo', 'testo',
+  'button',
+  'field',
+  'input',
+  'link',
+  'checkbox',
+  'box',
+  'menu',
+  'dropdown',
+  'icon',
+  'label',
+  'element',
+  'tab',
+  'toggle',
+  'option',
+  'row',
+  'column',
+  'header',
+  'title',
+  'text',
+  'pulsante',
+  'bottone',
+  'campo',
+  'casella',
+  'collegamento',
+  'tendina',
+  'icona',
+  'etichetta',
+  'elemento',
+  'scheda',
+  'riga',
+  'colonna',
+  'intestazione',
+  'titolo',
+  'testo',
 ]);
 
 const ARTICLES = new Set([
-  'the', 'a', 'an', 'il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una', 'del', 'della',
-  'dei', 'delle', 'dello', 'l',
+  'the',
+  'a',
+  'an',
+  'il',
+  'lo',
+  'la',
+  'i',
+  'gli',
+  'le',
+  'un',
+  'uno',
+  'una',
+  'del',
+  'della',
+  'dei',
+  'delle',
+  'dello',
+  'l',
 ]);
 
 /** What a state is called in the sentence → what the runner calls it. */
 const STATE_WORDS: Record<string, string> = {
-  checked: 'checked', ticked: 'checked', on: 'checked', selezionato: 'checked', attivo: 'checked',
-  unchecked: 'unchecked', off: 'unchecked', deselezionato: 'unchecked', disattivo: 'unchecked',
-  enabled: 'enabled', abilitato: 'enabled',
-  disabled: 'disabled', disabilitato: 'disabled',
-  editable: 'editable', modificabile: 'editable',
-  readonly: 'readonly', 'read-only': 'readonly',
-  visible: 'visible', visibile: 'visible',
-  hidden: 'hidden', nascosto: 'hidden',
+  checked: 'checked',
+  ticked: 'checked',
+  on: 'checked',
+  selezionato: 'checked',
+  attivo: 'checked',
+  unchecked: 'unchecked',
+  off: 'unchecked',
+  deselezionato: 'unchecked',
+  disattivo: 'unchecked',
+  enabled: 'enabled',
+  abilitato: 'enabled',
+  disabled: 'disabled',
+  disabilitato: 'disabled',
+  editable: 'editable',
+  modificabile: 'editable',
+  readonly: 'readonly',
+  'read-only': 'readonly',
+  visible: 'visible',
+  visibile: 'visible',
+  hidden: 'hidden',
+  nascosto: 'hidden',
 };
 
 function canonicalState(word: string): string | null {
@@ -141,10 +200,26 @@ function canonicalState(word: string): string | null {
 
 /** What a key is called in the sentence → what Playwright calls it. */
 const KEY_WORDS: Record<string, string> = {
-  enter: 'Enter', invio: 'Enter', return: 'Enter', tab: 'Tab', escape: 'Escape', esc: 'Escape',
-  backspace: 'Backspace', delete: 'Delete', canc: 'Delete', space: 'Space', spazio: 'Space',
-  arrowup: 'ArrowUp', arrowdown: 'ArrowDown', arrowleft: 'ArrowLeft', arrowright: 'ArrowRight',
-  control: 'Control', ctrl: 'Control', shift: 'Shift', alt: 'Alt', meta: 'Meta',
+  enter: 'Enter',
+  invio: 'Enter',
+  return: 'Enter',
+  tab: 'Tab',
+  escape: 'Escape',
+  esc: 'Escape',
+  backspace: 'Backspace',
+  delete: 'Delete',
+  canc: 'Delete',
+  space: 'Space',
+  spazio: 'Space',
+  arrowup: 'ArrowUp',
+  arrowdown: 'ArrowDown',
+  arrowleft: 'ArrowLeft',
+  arrowright: 'ArrowRight',
+  control: 'Control',
+  ctrl: 'Control',
+  shift: 'Shift',
+  alt: 'Alt',
+  meta: 'Meta',
 };
 
 /** "ctrl+a" → "Control+a", "invio" → "Enter". Playwright is strict about the names. */
@@ -284,7 +359,8 @@ function resolveAmong(phrase: string, catalogue: CatalogueEntry[]): TargetResolu
   if (wanted === '') return { ok: false, reason: 'No element was named in this instruction.' };
 
   const exact = catalogue.filter(
-    (entry) => normaliseLabel(entry.label) === wanted || normaliseLabel(entry.text ?? '') === wanted,
+    (entry) =>
+      normaliseLabel(entry.label) === wanted || normaliseLabel(entry.text ?? '') === wanted,
   );
   if (exact.length === 1) return { ok: true, entry: exact[0] };
   if (exact.length > 1) return ambiguous(phrase, exact);
@@ -315,7 +391,16 @@ function resolveAmong(phrase: string, catalogue: CatalogueEntry[]): TargetResolu
 }
 
 const NON_TEXT_INPUTS = new Set([
-  'checkbox', 'radio', 'submit', 'button', 'reset', 'image', 'file', 'hidden', 'range', 'color',
+  'checkbox',
+  'radio',
+  'submit',
+  'button',
+  'reset',
+  'image',
+  'file',
+  'hidden',
+  'range',
+  'color',
 ]);
 
 function inputType(entry: CatalogueEntry): string {
@@ -338,7 +423,13 @@ function isChoice(entry: CatalogueEntry): boolean {
 function isToggle(entry: CatalogueEntry): boolean {
   const role = (entry.attributes?.role ?? '').toLowerCase();
   const type = inputType(entry);
-  return type === 'checkbox' || type === 'radio' || role === 'checkbox' || role === 'switch' || role === 'radio';
+  return (
+    type === 'checkbox' ||
+    type === 'radio' ||
+    role === 'checkbox' ||
+    role === 'switch' ||
+    role === 'radio'
+  );
 }
 
 /** Which of several same-named elements an action can actually be performed on. */
@@ -368,7 +459,12 @@ function quotedText(phrase: string): string | null {
  * guess.
  */
 const TEXT_TARGET_ACTIONS = new Set<AdhocActionId>([
-  'assert', 'waitForElement', 'click', 'hover', 'assertTextContains', 'waitForText',
+  'assert',
+  'waitForElement',
+  'click',
+  'hover',
+  'assertTextContains',
+  'waitForText',
 ]);
 
 /**
@@ -395,7 +491,10 @@ function textEntry(text: string): CatalogueEntry {
 }
 
 function ambiguous(phrase: string, matches: CatalogueEntry[]): TargetResolution {
-  const names = matches.slice(0, 4).map((entry) => `"${entry.label}"`).join(', ');
+  const names = matches
+    .slice(0, 4)
+    .map((entry) => `"${entry.label}"`)
+    .join(', ');
   return {
     ok: false,
     reason: `"${phrase.trim()}" matches ${matches.length} elements (${names}). Name one of them exactly.`,
@@ -423,11 +522,13 @@ const RULES: Rule[] = [
     build: (g) => ({ action: 'navigate', value: g.url ?? null }),
   },
   {
-    regex: /^(?:wait for (?:the )?(?:network|page) to (?:be idle|settle|go quiet)|attendi (?:che )?la rete(?: sia)? (?:inattiva|ferma))$/i,
+    regex:
+      /^(?:wait for (?:the )?(?:network|page) to (?:be idle|settle|go quiet)|attendi (?:che )?la rete(?: sia)? (?:inattiva|ferma))$/i,
     build: () => ({ action: 'waitForNetworkIdle' }),
   },
   {
-    regex: /^(?:wait (?:for|until)|attendi(?: che)?|aspetta(?: che)?)\s+(?<target>.+?)\s+(?:to be |to become |is |becomes |sia |diventi |venga )?(?<state>visible|hidden|visibile|nascosto)$/i,
+    regex:
+      /^(?:wait (?:for|until)|attendi(?: che)?|aspetta(?: che)?)\s+(?<target>.+?)\s+(?:to be |to become |is |becomes |sia |diventi |venga )?(?<state>visible|hidden|visibile|nascosto)$/i,
     build: (g) => ({
       action: 'waitForElement',
       targetPhrase: g.target ?? null,
@@ -435,11 +536,17 @@ const RULES: Rule[] = [
     }),
   },
   {
-    regex: /^(?:wait (?:for|until)|attendi che|aspetta che)\s+(?<target>.+?)\s+(?:to contain|contains|to show|shows|contenga|mostri)\s+"?(?<value>[^"]+?)"?$/i,
-    build: (g) => ({ action: 'waitForText', targetPhrase: g.target ?? null, value: g.value ?? null }),
+    regex:
+      /^(?:wait (?:for|until)|attendi che|aspetta che)\s+(?<target>.+?)\s+(?:to contain|contains|to show|shows|contenga|mostri)\s+"?(?<value>[^"]+?)"?$/i,
+    build: (g) => ({
+      action: 'waitForText',
+      targetPhrase: g.target ?? null,
+      value: g.value ?? null,
+    }),
   },
   {
-    regex: /^(?:wait|attendi|aspetta)\s+(?<amount>\d+(?:[.,]\d+)?)\s*(?<unit>ms|milliseconds|millisecondi|s|sec|secs|seconds|secondi)?$/i,
+    regex:
+      /^(?:wait|attendi|aspetta)\s+(?<amount>\d+(?:[.,]\d+)?)\s*(?<unit>ms|milliseconds|millisecondi|s|sec|secs|seconds|secondi)?$/i,
     build: (g) => {
       const amount = Number((g.amount ?? '').replace(',', '.'));
       if (!Number.isFinite(amount)) return null;
@@ -453,11 +560,13 @@ const RULES: Rule[] = [
   },
   {
     // Before the general "check that X …" readings, which would take "the page" for an element.
-    regex: /^(?:check|assert|verify|make sure|ensure|verifica|controlla)\s+(?:that\s+|che\s+)?(?:the\s+page\s+is\s+|la\s+pagina\s+(?:sia|è)\s+)?(?:accessib(?:le|ility|ile|ilità)|a11y)(?:\s+(?:at|for|a livello|di livello)\s+(?<impact>minor|moderate|serious|critical))?$/i,
+    regex:
+      /^(?:check|assert|verify|make sure|ensure|verifica|controlla)\s+(?:that\s+|che\s+)?(?:the\s+page\s+is\s+|la\s+pagina\s+(?:sia|è)\s+)?(?:accessib(?:le|ility|ile|ilità)|a11y)(?:\s+(?:at|for|a livello|di livello)\s+(?<impact>minor|moderate|serious|critical))?$/i,
     build: (g) => ({ action: 'assertAccessible', value: g.impact ? g.impact.toLowerCase() : null }),
   },
   {
-    regex: /^(?:check|assert|verify|make sure|ensure|verifica|controlla)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:contains|shows|displays|contiene|contenga|mostra|mostri)\s+"?(?<value>[^"]+?)"?$/i,
+    regex:
+      /^(?:check|assert|verify|make sure|ensure|verifica|controlla)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:contains|shows|displays|contiene|contenga|mostra|mostri)\s+"?(?<value>[^"]+?)"?$/i,
     build: (g) => ({
       action: 'assertTextContains',
       targetPhrase: g.target ?? null,
@@ -467,33 +576,52 @@ const RULES: Rule[] = [
   {
     // Deliberately not "make sure": with a state a control can be put into, that means bring
     // it about, and the rule further down does. Here the verb can only mean read it.
-    regex: /^(?:check|assert|verify|verifica|controlla)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:is|è|sia)\s+(?<state>checked|unchecked|enabled|disabled|editable|read-?only|selezionato|deselezionato|abilitato|disabilitato|modificabile)$/i,
-    build: (g) => ({ action: 'assertState', targetPhrase: g.target ?? null, value: canonicalState(g.state ?? '') }),
+    regex:
+      /^(?:check|assert|verify|verifica|controlla)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:is|è|sia)\s+(?<state>checked|unchecked|enabled|disabled|editable|read-?only|selezionato|deselezionato|abilitato|disabilitato|modificabile)$/i,
+    build: (g) => ({
+      action: 'assertState',
+      targetPhrase: g.target ?? null,
+      value: canonicalState(g.state ?? ''),
+    }),
   },
   {
-    regex: /^(?:check|assert|verify|make sure|ensure|verifica|controlla)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:is visible|is displayed|is shown|is present|exists|appears|(?:è|sia|venga) (?:visibile|visualizzat[oa]|mostrat[oa]|presente)|esiste|esista|appare|appaia|compare|compaia)$/i,
+    regex:
+      /^(?:check|assert|verify|make sure|ensure|verifica|controlla)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:is visible|is displayed|is shown|is present|exists|appears|(?:è|sia|venga) (?:visibile|visualizzat[oa]|mostrat[oa]|presente)|esiste|esista|appare|appaia|compare|compaia)$/i,
     build: (g) => ({ action: 'assert', targetPhrase: g.target ?? null }),
   },
   {
-    regex: /^(?:make sure|ensure|set|assicurati che|imposta)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:is\s+|è\s+|sia\s+)?(?<state>checked|unchecked|ticked|on|off|selezionato|deselezionato|attivo|disattivo)$/i,
-    build: (g) => ({ action: 'ensureState', targetPhrase: g.target ?? null, value: canonicalState(g.state ?? '') }),
+    regex:
+      /^(?:make sure|ensure|set|assicurati che|imposta)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:is\s+|è\s+|sia\s+)?(?<state>checked|unchecked|ticked|on|off|selezionato|deselezionato|attivo|disattivo)$/i,
+    build: (g) => ({
+      action: 'ensureState',
+      targetPhrase: g.target ?? null,
+      value: canonicalState(g.state ?? ''),
+    }),
   },
   {
-    regex: /^(?:type|enter|fill in|fill|input|scrivi|inserisci|digita)\s+"(?<value>[^"]*)"\s+(?:in(?:to)?|nel|nella|su)\s+(?<target>.+)$/i,
+    regex:
+      /^(?:type|enter|fill in|fill|input|scrivi|inserisci|digita)\s+"(?<value>[^"]*)"\s+(?:in(?:to)?|nel|nella|su)\s+(?<target>.+)$/i,
     build: (g) => ({ action: 'input', targetPhrase: g.target ?? null, value: g.value ?? '' }),
   },
   {
-    regex: /^(?:type|enter|fill in|fill|input|scrivi|inserisci|digita)\s+(?<value>.+?)\s+(?:into|in the|nel campo|nella casella|nel|nella)\s+(?<target>.+)$/i,
+    regex:
+      /^(?:type|enter|fill in|fill|input|scrivi|inserisci|digita)\s+(?<value>.+?)\s+(?:into|in the|nel campo|nella casella|nel|nella)\s+(?<target>.+)$/i,
     build: (g) => ({ action: 'input', targetPhrase: g.target ?? null, value: g.value ?? '' }),
   },
   {
-    regex: /^(?:select|choose|pick|seleziona|scegli)\s+"?(?<value>[^"]+?)"?\s+(?:from|in|da|dal|dalla|nel|nella)\s+(?<target>.+)$/i,
+    regex:
+      /^(?:select|choose|pick|seleziona|scegli)\s+"?(?<value>[^"]+?)"?\s+(?:from|in|da|dal|dalla|nel|nella)\s+(?<target>.+)$/i,
     build: (g) => ({ action: 'select', targetPhrase: g.target ?? null, value: g.value ?? null }),
   },
   {
     // Before click, whose "press" would otherwise take the key for an element's name.
-    regex: /^(?:press|hit|premi|digita)\s+(?:the\s+|il\s+)?(?:key\s+|tasto\s+)?(?<key>enter|invio|return|tab|escape|esc|backspace|delete|canc|space|spazio|arrow(?:up|down|left|right)|(?:control|ctrl|shift|alt|meta)\+\S+)(?:\s+key)?(?:\s+(?:in|on|into|nel|nella|sul|sulla|su)\s+(?<target>.+))?$/i,
-    build: (g) => ({ action: 'pressKey', targetPhrase: g.target ?? null, value: canonicalKey(g.key ?? '') }),
+    regex:
+      /^(?:press|hit|premi|digita)\s+(?:the\s+|il\s+)?(?:key\s+|tasto\s+)?(?<key>enter|invio|return|tab|escape|esc|backspace|delete|canc|space|spazio|arrow(?:up|down|left|right)|(?:control|ctrl|shift|alt|meta)\+\S+)(?:\s+key)?(?:\s+(?:in|on|into|nel|nella|sul|sulla|su)\s+(?<target>.+))?$/i,
+    build: (g) => ({
+      action: 'pressKey',
+      targetPhrase: g.target ?? null,
+      value: canonicalKey(g.key ?? ''),
+    }),
   },
   {
     // "clic" too: it is how Italian spells it, and the one people write by hand.
@@ -501,40 +629,52 @@ const RULES: Rule[] = [
     build: (g) => ({ action: 'doubleClick', targetPhrase: g.target ?? null }),
   },
   {
-    regex: /^(?:right[- ]?click(?: on)?|(?:fai )?clic(?:k)? destro su|clicca col destro su)\s+(?<target>.+)$/i,
+    regex:
+      /^(?:right[- ]?click(?: on)?|(?:fai )?clic(?:k)? destro su|clicca col destro su)\s+(?<target>.+)$/i,
     build: (g) => ({ action: 'rightClick', targetPhrase: g.target ?? null }),
   },
   {
     // The file is one word ("fattura.pdf"), quoted or not; what follows the preposition is the field.
-    regex: /^(?:upload|attach|carica|allega)\s+(?:the\s+file\s+|il\s+file\s+|file\s+)?["«“']?(?<value>[^\s"»”']+\.[\w]+)["»”']?\s+(?:to|into|in|on|nel|nella|nello|sul|sulla|su)\s+(?<target>.+)$/i,
-    build: (g) => ({ action: 'uploadFile', targetPhrase: g.target ?? null, value: g.value ?? null }),
+    regex:
+      /^(?:upload|attach|carica|allega)\s+(?:the\s+file\s+|il\s+file\s+|file\s+)?["«“']?(?<value>[^\s"»”']+\.[\w]+)["»”']?\s+(?:to|into|in|on|nel|nella|nello|sul|sulla|su)\s+(?<target>.+)$/i,
+    build: (g) => ({
+      action: 'uploadFile',
+      targetPhrase: g.target ?? null,
+      value: g.value ?? null,
+    }),
   },
   {
     // A prompt's answer: before the plain accept/dismiss rule, which would stop at "prompt".
-    regex: /^(?:accept|answer|accetta|rispondi)\s+(?:to\s+)?(?:the\s+|il\s+|al\s+|a\s+)?(?:next\s+|prossimo\s+)?(?:prompt|dialog)\s+(?:with|con)\s+["«“']?(?<text>.*?)["»”']?$/i,
+    regex:
+      /^(?:accept|answer|accetta|rispondi)\s+(?:to\s+)?(?:the\s+|il\s+|al\s+|a\s+)?(?:next\s+|prossimo\s+)?(?:prompt|dialog)\s+(?:with|con)\s+["«“']?(?<text>.*?)["»”']?$/i,
     build: (g) => ({ action: 'handleDialog', value: `accept:${g.text ?? ''}` }),
   },
   {
-    regex: /^(?<verb>accept|confirm|ok|dismiss|cancel|close|accetta|conferma|annulla|chiudi|rifiuta)\s+(?:the\s+|il\s+|la\s+|l')?(?:next\s+|prossim[oa]\s+)?(?:dialog|alert|confirm|prompt|popup|finestra di dialogo|messaggio)$/i,
+    regex:
+      /^(?<verb>accept|confirm|ok|dismiss|cancel|close|accetta|conferma|annulla|chiudi|rifiuta)\s+(?:the\s+|il\s+|la\s+|l')?(?:next\s+|prossim[oa]\s+)?(?:dialog|alert|confirm|prompt|popup|finestra di dialogo|messaggio)$/i,
     build: (g) => ({
       action: 'handleDialog',
       value: /^(accept|confirm|ok|accetta|conferma)$/i.test(g.verb ?? '') ? 'accept' : 'dismiss',
     }),
   },
   {
-    regex: /^(?:switch to|go to|passa al?l?[a']?|vai al?l?[a']?)\s*(?:the\s+)?(?:new|newest|latest|nuova|ultima)\s+(?:tab|scheda|window|finestra)$/i,
+    regex:
+      /^(?:switch to|go to|passa al?l?[a']?|vai al?l?[a']?)\s*(?:the\s+)?(?:new|newest|latest|nuova|ultima)\s+(?:tab|scheda|window|finestra)$/i,
     build: () => ({ action: 'switchTab' }),
   },
   {
-    regex: /^(?:close|chiudi)\s+(?:the\s+|la\s+)?(?:current\s+)?(?:tab|scheda|window|finestra)(?:\s+corrente)?$/i,
+    regex:
+      /^(?:close|chiudi)\s+(?:the\s+|la\s+)?(?:current\s+)?(?:tab|scheda|window|finestra)(?:\s+corrente)?$/i,
     build: () => ({ action: 'closeTab' }),
   },
   {
-    regex: /^(?:clear|delete|cancella|elimina|svuota)\s+(?:all\s+|the\s+|i\s+|tutti i\s+)?cookies?$/i,
+    regex:
+      /^(?:clear|delete|cancella|elimina|svuota)\s+(?:all\s+|the\s+|i\s+|tutti i\s+)?cookies?$/i,
     build: () => ({ action: 'clearCookies' }),
   },
   {
-    regex: /^(?:store|save|remember|salva|memorizza|ricorda)\s+(?:the\s+(?:text|value)\s+of\s+|il\s+(?:testo|valore)\s+(?:di|del|della|dello)\s+)?(?<target>.+?)\s+(?:as|into|in|come|nella variabile)\s+\{{0,2}(?<name>[\w.]+)\}{0,2}$/i,
+    regex:
+      /^(?:store|save|remember|salva|memorizza|ricorda)\s+(?:the\s+(?:text|value)\s+of\s+|il\s+(?:testo|valore)\s+(?:di|del|della|dello)\s+)?(?<target>.+?)\s+(?:as|into|in|come|nella variabile)\s+\{{0,2}(?<name>[\w.]+)\}{0,2}$/i,
     build: (g) => ({ action: 'storeText', targetPhrase: g.target ?? null, value: g.name ?? null }),
   },
   {
@@ -555,7 +695,10 @@ const RULES: Rule[] = [
 export function splitInstructions(text: string): { line: number; text: string }[] {
   const lines: { line: number; text: string }[] = [];
   for (const raw of text.split(/\r?\n/)) {
-    const cleaned = raw.trim().replace(/^(?:[-*•]|\d+[.)])\s+/, '').trim();
+    const cleaned = raw
+      .trim()
+      .replace(/^(?:[-*•]|\d+[.)])\s+/, '')
+      .trim();
     if (cleaned === '') continue;
     lines.push({ line: lines.length + 1, text: cleaned });
   }
@@ -595,7 +738,8 @@ export function buildStep(candidate: Candidate, catalogue: CatalogueEntry[]): St
   if (requirements.target) {
     if (candidate.targetKey) {
       entry = catalogue.find((item) => item.key === candidate.targetKey);
-      if (!entry) return { ok: false, reason: 'That element is not on this page or in the repository.' };
+      if (!entry)
+        return { ok: false, reason: 'That element is not on this page or in the repository.' };
     } else {
       const phrase = candidate.targetPhrase ?? '';
       const resolution = resolveTarget(phrase, catalogue, action);
@@ -605,13 +749,17 @@ export function buildStep(candidate: Candidate, catalogue: CatalogueEntry[]): St
         entry = textEntry(quoted);
       } else return { ok: false, reason: resolution.reason };
     }
-  } else if (OPTIONAL_TARGET_ACTIONS.has(action) && (candidate.targetPhrase || candidate.targetKey)) {
+  } else if (
+    OPTIONAL_TARGET_ACTIONS.has(action) &&
+    (candidate.targetPhrase || candidate.targetKey)
+  ) {
     // An element the action can do without, but that the author named: "press Enter in the
     // Search field". Named and not found is refused, not dropped — the key would otherwise go
     // to whatever had focus, which is not what the sentence said.
     if (candidate.targetKey) {
       entry = catalogue.find((item) => item.key === candidate.targetKey);
-      if (!entry) return { ok: false, reason: 'That element is not on this page or in the repository.' };
+      if (!entry)
+        return { ok: false, reason: 'That element is not on this page or in the repository.' };
     } else {
       const resolution = resolveTarget(candidate.targetPhrase ?? '', catalogue, action);
       if (!resolution.ok) return { ok: false, reason: resolution.reason };
@@ -687,13 +835,24 @@ export function buildStep(candidate: Candidate, catalogue: CatalogueEntry[]): St
  * It gets the actions and the element keys, and nothing else. There is no selector in this
  * prompt, so there is no selector it can be tempted to improve on.
  */
-export function buildPrompt(lines: { line: number; text: string }[], catalogue: CatalogueEntry[]): string {
+export function buildPrompt(
+  lines: { line: number; text: string }[],
+  catalogue: CatalogueEntry[],
+): string {
   const actions = ADHOC_ACTION_IDS.map((id) => {
     const requirements = ACTION_REQUIREMENTS[id];
     const options = ACTION_VALUE_OPTIONS[id];
     const parts = [
-      requirements.target ? 'needs an element' : OPTIONAL_TARGET_ACTIONS.has(id) ? 'optional element' : 'no element',
-      requirements.valueRequired ? 'needs a value' : requirements.value ? 'optional value' : 'no value',
+      requirements.target
+        ? 'needs an element'
+        : OPTIONAL_TARGET_ACTIONS.has(id)
+          ? 'optional element'
+          : 'no element',
+      requirements.valueRequired
+        ? 'needs a value'
+        : requirements.value
+          ? 'optional value'
+          : 'no value',
     ];
     if (options) parts.push(`value is one of: ${options.join(' | ')}`);
     return `- ${id} (${parts.join('; ')})`;

@@ -60,7 +60,10 @@ export interface BrowserChoice {
  * Safari itself. That is an approximation, and `browsersForRun` says so out loud rather than
  * letting a report claim a Safari run that never happened.
  */
-const ENGINE_BY_NAME: Record<string, { engine: BrowserEngine; channel?: string; approximate?: string }> = {
+const ENGINE_BY_NAME: Record<
+  string,
+  { engine: BrowserEngine; channel?: string; approximate?: string }
+> = {
   chromium: { engine: 'chromium' },
   chrome: { engine: 'chromium', channel: 'chrome' },
   edge: { engine: 'chromium', channel: 'msedge' },
@@ -165,7 +168,14 @@ export function browsersForRun(input: BrowserMatrixInput): BrowserMatrix {
     }
     // The machine is part of what makes two rows different: Chrome on Windows and Chrome on
     // macOS are two passes on a grid.
-    const key = [choice.label, choice.headless, choice.machine?.os, choice.machine?.osVersion, choice.machine?.browserVersion, choice.device].join(':');
+    const key = [
+      choice.label,
+      choice.headless,
+      choice.machine?.os,
+      choice.machine?.osVersion,
+      choice.machine?.browserVersion,
+      choice.device,
+    ].join(':');
     if (seen.has(key)) return;
     seen.add(key);
     const approximate = ENGINE_BY_NAME[choice.name ?? choice.label]?.approximate;
@@ -185,13 +195,30 @@ export function browsersForRun(input: BrowserMatrixInput): BrowserMatrix {
       for (const machine of machines) {
         const name = typeof machine?.browserName === 'string' ? machine.browserName : '';
         const resolved = resolveBrowser(name, machine?.headless !== false);
-        const wanted = { os: machine?.os ?? null, osVersion: machine?.osVersion ?? null, browserVersion: machine?.browserVersion ?? null };
-        let choice = resolved && (wanted.os || wanted.osVersion || wanted.browserVersion) ? { ...resolved, machine: wanted } : resolved;
+        const wanted = {
+          os: machine?.os ?? null,
+          osVersion: machine?.osVersion ?? null,
+          browserVersion: machine?.browserVersion ?? null,
+        };
+        let choice =
+          resolved && (wanted.os || wanted.osVersion || wanted.browserVersion)
+            ? { ...resolved, machine: wanted }
+            : resolved;
         const device = typeof machine?.device === 'string' ? machine.device.trim() : '';
         if (choice && device) {
-          if (!isMobileDevice(device)) warnings.push(`Unknown device "${device}" for ${choice.label}: it ran as a desktop browser.`);
-          else if (!canEmulateDevice(choice.label)) warnings.push(`Firefox cannot emulate ${device}: it ran as a desktop browser.`);
-          else choice = { ...choice, name: choice.label, device, label: `${choice.label} · ${device}` };
+          if (!isMobileDevice(device))
+            warnings.push(
+              `Unknown device "${device}" for ${choice.label}: it ran as a desktop browser.`,
+            );
+          else if (!canEmulateDevice(choice.label))
+            warnings.push(`Firefox cannot emulate ${device}: it ran as a desktop browser.`);
+          else
+            choice = {
+              ...choice,
+              name: choice.label,
+              device,
+              label: `${choice.label} · ${device}`,
+            };
         }
         add(choice, name || '(empty)');
       }
@@ -203,7 +230,9 @@ export function browsersForRun(input: BrowserMatrixInput): BrowserMatrix {
   if (browsers.length === 0) {
     const fallback = input.fallback ?? { label: DEFAULT_BROWSER_LABEL, headless: true };
     const resolved = resolveBrowser(fallback.label, fallback.headless);
-    browsers.push(resolved ?? { label: DEFAULT_BROWSER_LABEL, engine: 'chromium', headless: fallback.headless });
+    browsers.push(
+      resolved ?? { label: DEFAULT_BROWSER_LABEL, engine: 'chromium', headless: fallback.headless },
+    );
   }
 
   return { browsers, warnings };
@@ -230,7 +259,11 @@ export function unsupportedMachineFields(machines: TestMachineConfig[]): string[
   }
   const versions = new Set(
     machines
-      .map((m) => (m.browserVersion && m.browserVersion.toLowerCase() !== 'latest' ? `${m.browserName} ${m.browserVersion}` : ''))
+      .map((m) =>
+        m.browserVersion && m.browserVersion.toLowerCase() !== 'latest'
+          ? `${m.browserName} ${m.browserVersion}`
+          : '',
+      )
       .filter(Boolean),
   );
   if (versions.size > 0) {
@@ -268,9 +301,16 @@ export function onGrid(
   grid: { id: string; provider: BrowserGridProvider; name: string },
 ): BrowserChoice[] {
   return passes.map((pass) => {
-    const base = pass ?? { label: DEFAULT_BROWSER_LABEL, engine: 'chromium' as const, headless: true };
+    const base = pass ?? {
+      label: DEFAULT_BROWSER_LABEL,
+      engine: 'chromium' as const,
+      headless: true,
+    };
     const machine = [base.machine?.os, base.machine?.osVersion].filter(Boolean).join(' ');
-    const version = base.machine?.browserVersion && base.machine.browserVersion !== 'latest' ? ` ${base.machine.browserVersion}` : '';
+    const version =
+      base.machine?.browserVersion && base.machine.browserVersion !== 'latest'
+        ? ` ${base.machine.browserVersion}`
+        : '';
     return {
       ...base,
       label: `${base.name ?? base.label}${version}${base.device ? ` · ${base.device}` : ''}${machine ? ` · ${machine}` : ''}`,
@@ -295,7 +335,9 @@ export function deviceContextOptions(choice: Pick<BrowserChoice, 'device' | 'eng
 
 /** A label for the run's logs and for the report column. */
 export function describeBrowser(choice: BrowserChoice): string {
-  const base = choice.channel ? `${choice.label} (${choice.engine}/${choice.channel})` : choice.label;
+  const base = choice.channel
+    ? `${choice.label} (${choice.engine}/${choice.channel})`
+    : choice.label;
   const where = choice.agent
     ? ` on agent pool "${choice.agent.pool}"`
     : choice.grid
@@ -322,7 +364,10 @@ export async function launchBrowser(
     const where = `${BROWSER_GRID_LABELS[choice.grid.provider]} grid "${choice.grid.name}"`;
     const { gridConnection, loadGridConfig } = await import('./browser-grids');
     const config = await loadGridConfig(choice.grid.id);
-    if (!config) throw new Error(`The ${where} no longer exists. Pick another place to run in the plan's settings.`);
+    if (!config)
+      throw new Error(
+        `The ${where} no longer exists. Pick another place to run in the plan's settings.`,
+      );
     const connection = gridConnection(config, {
       label: choice.grid.browserName,
       engine: choice.engine,
@@ -331,10 +376,15 @@ export async function launchBrowser(
       buildName: session?.build ?? 'WebFlowMaster',
     });
     try {
-      return await playwright[connection.engine].connect(connection.wsEndpoint, { timeout: 90_000, ...(connection.headers ? { headers: connection.headers } : {}) });
+      return await playwright[connection.engine].connect(connection.wsEndpoint, {
+        timeout: 90_000,
+        ...(connection.headers ? { headers: connection.headers } : {}),
+      });
     } catch (error: any) {
       // The address carries the credentials for the clouds: the message never repeats it.
-      const message = String(error?.message ?? error).split(connection.wsEndpoint).join('<grid address>');
+      const message = String(error?.message ?? error)
+        .split(connection.wsEndpoint)
+        .join('<grid address>');
       throw new Error(`Could not open ${choice.label} on the ${where}: ${message}`);
     }
   }
@@ -343,7 +393,9 @@ export async function launchBrowser(
     try {
       return await connectToAgentBrowser({ ...choice, agent: choice.agent });
     } catch (error: any) {
-      throw new Error(`Could not borrow ${choice.label} from agent pool "${choice.agent.pool}": ${error?.message ?? error}`);
+      throw new Error(
+        `Could not borrow ${choice.label} from agent pool "${choice.agent.pool}": ${error?.message ?? error}`,
+      );
     }
   }
   try {

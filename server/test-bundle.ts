@@ -30,15 +30,48 @@ export const BUNDLE_KIND = 'webflowmaster/tests';
 export const BUNDLE_VERSION = 2;
 
 const TEST_FIELDS = [
-  'name', 'url', 'module', 'featureArea', 'scenario', 'component', 'priority', 'severity', 'status',
-  'sequence', 'preconditions', 'cleanups', 'dataset', 'bdd',
+  'name',
+  'url',
+  'module',
+  'featureArea',
+  'scenario',
+  'component',
+  'priority',
+  'severity',
+  'status',
+  'sequence',
+  'preconditions',
+  'cleanups',
+  'dataset',
+  'bdd',
 ] as const;
 
 const API_TEST_FIELDS = [
-  'name', 'method', 'url', 'module', 'featureArea', 'scenario', 'component', 'priority', 'severity',
-  'queryParams', 'requestHeaders', 'requestBody', 'assertions', 'extractions', 'performance',
-  'authType', 'authParams', 'bodyType', 'bodyRawContentType', 'bodyFormData', 'bodyUrlEncoded',
-  'bodyGraphqlQuery', 'bodyGraphqlVariables', 'protoDefinition', 'protocolConfig',
+  'name',
+  'method',
+  'url',
+  'module',
+  'featureArea',
+  'scenario',
+  'component',
+  'priority',
+  'severity',
+  'queryParams',
+  'requestHeaders',
+  'requestBody',
+  'assertions',
+  'extractions',
+  'performance',
+  'authType',
+  'authParams',
+  'bodyType',
+  'bodyRawContentType',
+  'bodyFormData',
+  'bodyUrlEncoded',
+  'bodyGraphqlQuery',
+  'bodyGraphqlVariables',
+  'protoDefinition',
+  'protocolConfig',
 ] as const;
 
 /** The parameters of an authorization that are secrets, by authorization type. */
@@ -66,7 +99,10 @@ export interface BundleExport {
   withReferences: string[];
 }
 
-function pick<T extends Record<string, unknown>>(row: T, fields: readonly string[]): Record<string, unknown> {
+function pick<T extends Record<string, unknown>>(
+  row: T,
+  fields: readonly string[],
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const field of fields) {
     const value = row[field];
@@ -88,18 +124,23 @@ type AuthParams = { type?: string; params?: Record<string, unknown> } | null | u
 export function keepRedactedSecrets(incoming: unknown, stored: unknown): unknown {
   const next = incoming as AuthParams;
   const previous = stored as AuthParams;
-  if (!next?.type || !next.params || !previous?.params || previous.type !== next.type) return incoming;
+  if (!next?.type || !next.params || !previous?.params || previous.type !== next.type)
+    return incoming;
   const params = { ...next.params };
   for (const key of SECRET_PARAMS[next.type] ?? []) {
     const kept = previous.params[key];
-    if (params[key] === `{{${next.type}_${key}}}` && typeof kept === 'string' && kept !== '') params[key] = kept;
+    if (params[key] === `{{${next.type}_${key}}}` && typeof kept === 'string' && kept !== '')
+      params[key] = kept;
   }
   return { ...next, params };
 }
 
-export function withoutSecrets(test: Record<string, unknown>, replaced: string[]): Record<string, unknown> {
+export function withoutSecrets(
+  test: Record<string, unknown>,
+  replaced: string[],
+): Record<string, unknown> {
   const auth = test.authParams as { type?: string; params?: Record<string, unknown> } | undefined;
-  const keys = auth?.type ? SECRET_PARAMS[auth.type] ?? [] : [];
+  const keys = auth?.type ? (SECRET_PARAMS[auth.type] ?? []) : [];
   if (!auth?.params || keys.length === 0) return test;
   const params = { ...auth.params };
   for (const key of keys) {
@@ -114,7 +155,13 @@ export function withoutSecrets(test: Record<string, unknown>, replaced: string[]
 }
 
 export function exportBundle(
-  input: { project: string | null; tests: Test[]; apiTests: ApiTest[];mobileTests?:MobileTest[];mobileStepGroups?:MobileGroupDefinition[] },
+  input: {
+    project: string | null;
+    tests: Test[];
+    apiTests: ApiTest[];
+    mobileTests?: MobileTest[];
+    mobileStepGroups?: MobileGroupDefinition[];
+  },
   format: 'yaml' | 'json' | 'gherkin' = 'yaml',
 ): BundleExport {
   const secretsReplaced: string[] = [];
@@ -122,23 +169,57 @@ export function exportBundle(
   const byName = <T extends { name: string }>(a: T, b: T) => a.name.localeCompare(b.name);
   const tests = [...input.tests].sort(byName).map((test) => {
     const steps = asSteps(test.sequence);
-    if (referencedGroupIds(test.sequence).length || referencedCustomActionIds(steps).length || referencedElementIds(test.sequence).length) {
+    if (
+      referencedGroupIds(test.sequence).length ||
+      referencedCustomActionIds(steps).length ||
+      referencedElementIds(test.sequence).length
+    ) {
       withReferences.push(test.name);
     }
     return pick(test as unknown as Record<string, unknown>, TEST_FIELDS);
   });
   const apiTests = [...input.apiTests]
     .sort(byName)
-    .map((test) => withoutSecrets(pick(test as unknown as Record<string, unknown>, API_TEST_FIELDS), secretsReplaced));
+    .map((test) =>
+      withoutSecrets(
+        pick(test as unknown as Record<string, unknown>, API_TEST_FIELDS),
+        secretsReplaced,
+      ),
+    );
   if (format === 'gherkin') {
-    return { ...exportGherkin({ project: input.project, tests }), secretsReplaced: [], withReferences };
+    return {
+      ...exportGherkin({ project: input.project, tests }),
+      secretsReplaced: [],
+      withReferences,
+    };
   }
   let native;
-  try {native=exportMobileCatalog(input.mobileTests??[],input.mobileStepGroups??[]);}catch(error){throw new BundleError((error as Error).message);}
-  const bundle = { kind: BUNDLE_KIND, version: BUNDLE_VERSION, project: input.project, tests, apiTests,...native };
-  const content = format === 'json' ? `${JSON.stringify(bundle, null, 2)}\n` : toYaml(bundle, { lineWidth: 0 });
-  const slug = (input.project ?? 'tests').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'tests';
-  return { content, fileName: `${slug}.wfm.${format === 'json' ? 'json' : 'yaml'}`, secretsReplaced, withReferences };
+  try {
+    native = exportMobileCatalog(input.mobileTests ?? [], input.mobileStepGroups ?? []);
+  } catch (error) {
+    throw new BundleError((error as Error).message);
+  }
+  const bundle = {
+    kind: BUNDLE_KIND,
+    version: BUNDLE_VERSION,
+    project: input.project,
+    tests,
+    apiTests,
+    ...native,
+  };
+  const content =
+    format === 'json' ? `${JSON.stringify(bundle, null, 2)}\n` : toYaml(bundle, { lineWidth: 0 });
+  const slug =
+    (input.project ?? 'tests')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'tests';
+  return {
+    content,
+    fileName: `${slug}.wfm.${format === 'json' ? 'json' : 'yaml'}`,
+    secretsReplaced,
+    withReferences,
+  };
 }
 
 const bundleSchema = z.object({
@@ -155,10 +236,20 @@ export type Bundle = z.infer<typeof bundleSchema>;
 export class BundleError extends Error {}
 
 /** Reads a bundle; the tests in it are checked one by one by the caller, against the same schemas as a save. */
-export function parseBundle(content: string, format?: 'gherkin', bdd?:GherkinImportOptions): Bundle {
+export function parseBundle(
+  content: string,
+  format?: 'gherkin',
+  bdd?: GherkinImportOptions,
+): Bundle {
   let doc: unknown;
   const text = content.trim();
-  const gherkinBundle = (): Bundle => ({ kind: BUNDLE_KIND, version: BUNDLE_VERSION, ...parseGherkin(content,bdd),mobileTests:[],mobileStepGroups:[] });
+  const gherkinBundle = (): Bundle => ({
+    kind: BUNDLE_KIND,
+    version: BUNDLE_VERSION,
+    ...parseGherkin(content, bdd),
+    mobileTests: [],
+    mobileStepGroups: [],
+  });
   if (format === 'gherkin') {
     return gherkinBundle();
   }
@@ -166,26 +257,43 @@ export function parseBundle(content: string, format?: 'gherkin', bdd?:GherkinImp
     doc = text.startsWith('{') ? JSON.parse(text) : parseYaml(text, { maxAliasCount: 100 });
   } catch (error) {
     if (autodetectGherkin(text)) return gherkinBundle();
-    throw new BundleError(`Not JSON or YAML: ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`);
+    throw new BundleError(
+      `Not JSON or YAML: ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`,
+    );
   }
   // A YAML bundle can contain indented Feature/language lines inside bdd.source.
   // Its envelope takes precedence over detecting those embedded lines as a feature file.
-  const hasBundleKind = doc !== null && typeof doc === 'object' && !Array.isArray(doc) && (doc as Record<string,unknown>).kind === BUNDLE_KIND;
+  const hasBundleKind =
+    doc !== null &&
+    typeof doc === 'object' &&
+    !Array.isArray(doc) &&
+    (doc as Record<string, unknown>).kind === BUNDLE_KIND;
   if (!hasBundleKind && autodetectGherkin(text)) return gherkinBundle();
   const parsed = bundleSchema.safeParse(doc);
   if (!parsed.success) {
-    throw new BundleError(`Not a WebFlowMaster test file (kind: ${BUNDLE_KIND}): ${parsed.error.issues[0]?.path.join('.') || 'top'} ${parsed.error.issues[0]?.message ?? ''}`.trim());
+    throw new BundleError(
+      `Not a WebFlowMaster test file (kind: ${BUNDLE_KIND}): ${parsed.error.issues[0]?.path.join('.') || 'top'} ${parsed.error.issues[0]?.message ?? ''}`.trim(),
+    );
   }
   if (parsed.data.version > BUNDLE_VERSION) {
-    throw new BundleError(`This file is version ${parsed.data.version}; this installation reads up to version ${BUNDLE_VERSION}. Update WebFlowMaster first.`);
+    throw new BundleError(
+      `This file is version ${parsed.data.version}; this installation reads up to version ${BUNDLE_VERSION}. Update WebFlowMaster first.`,
+    );
   }
   return parsed.data;
 }
 
 /** Whether a stored row already says what the file says, field by field: an unchanged test is not saved again. */
-export function sameAs(row: Record<string, unknown>, incoming: Record<string, unknown>, fields: readonly string[]): boolean {
-  const norm = (v: unknown) => (v === undefined || v === null || (Array.isArray(v) && v.length === 0) ? null : v);
-  return fields.every((field) => field === 'name' || isDeepStrictEqual(norm(row[field]), norm(incoming[field])));
+export function sameAs(
+  row: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+  fields: readonly string[],
+): boolean {
+  const norm = (v: unknown) =>
+    v === undefined || v === null || (Array.isArray(v) && v.length === 0) ? null : v;
+  return fields.every(
+    (field) => field === 'name' || isDeepStrictEqual(norm(row[field]), norm(incoming[field])),
+  );
 }
 
 export { TEST_FIELDS, API_TEST_FIELDS };

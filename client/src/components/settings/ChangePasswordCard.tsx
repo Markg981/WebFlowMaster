@@ -40,7 +40,10 @@ const ChangePasswordCard: React.FC = () => {
       setConfirmPassword('');
       setMessage({
         kind: 'ok',
-        text: t('settings.account.passwordChanged', 'Password changed. Any other session you had open has been signed out.'),
+        text: t(
+          'settings.account.passwordChanged',
+          'Password changed. Any other session you had open has been signed out.',
+        ),
       });
     },
     onError: (error: Error) => setMessage({ kind: 'error', text: error.message }),
@@ -48,7 +51,11 @@ const ChangePasswordCard: React.FC = () => {
 
   const tooShort = newPassword.length > 0 && newPassword.length < 8;
   const mismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
-  const canSubmit = currentPassword !== '' && newPassword.length >= 8 && newPassword === confirmPassword && !change.isPending;
+  const canSubmit =
+    currentPassword !== '' &&
+    newPassword.length >= 8 &&
+    newPassword === confirmPassword &&
+    !change.isPending;
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -64,13 +71,19 @@ const ChangePasswordCard: React.FC = () => {
           <span>{t('settings.account.title', 'Account')}</span>
         </CardTitle>
         <CardDescription>
-          {t('settings.account.signedInAs', 'Signed in as {{username}}. Usernames cannot be changed.', { username: user?.username ?? '' })}
+          {t(
+            'settings.account.signedInAs',
+            'Signed in as {{username}}. Usernames cannot be changed.',
+            { username: user?.username ?? '' },
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">{t('settings.account.currentPassword', 'Current password')}</Label>
+            <Label htmlFor="currentPassword">
+              {t('settings.account.currentPassword', 'Current password')}
+            </Label>
             <Input
               id="currentPassword"
               type="password"
@@ -89,11 +102,15 @@ const ChangePasswordCard: React.FC = () => {
               onChange={(e) => setNewPassword(e.target.value)}
             />
             {tooShort && (
-              <p className="text-sm text-destructive">{t('settings.account.tooShort', 'At least 8 characters.')}</p>
+              <p className="text-sm text-destructive">
+                {t('settings.account.tooShort', 'At least 8 characters.')}
+              </p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmNewPassword">{t('settings.account.confirmPassword', 'Repeat the new password')}</Label>
+            <Label htmlFor="confirmNewPassword">
+              {t('settings.account.confirmPassword', 'Repeat the new password')}
+            </Label>
             <Input
               id="confirmNewPassword"
               type="password"
@@ -102,11 +119,16 @@ const ChangePasswordCard: React.FC = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
             {mismatch && (
-              <p className="text-sm text-destructive">{t('settings.account.mismatch', 'The two new passwords are different.')}</p>
+              <p className="text-sm text-destructive">
+                {t('settings.account.mismatch', 'The two new passwords are different.')}
+              </p>
             )}
           </div>
           {message && (
-            <p className={`text-sm ${message.kind === 'ok' ? 'text-muted-foreground' : 'text-destructive'}`} role="status">
+            <p
+              className={`text-sm ${message.kind === 'ok' ? 'text-muted-foreground' : 'text-destructive'}`}
+              role="status"
+            >
               {message.text}
             </p>
           )}

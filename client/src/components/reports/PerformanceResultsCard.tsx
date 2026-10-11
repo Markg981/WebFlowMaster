@@ -31,7 +31,12 @@ export default function PerformanceResultsCard({ rows }: { rows: PerformanceResu
         <CardTitle className="flex items-center gap-2">
           <Gauge className="h-5 w-5" /> {t('apiPerformance.reportTitle', 'Response times')}
         </CardTitle>
-        <CardDescription>{t('apiPerformance.reportDescription', 'API tests that sent their request several times and checked the times against thresholds.')}</CardDescription>
+        <CardDescription>
+          {t(
+            'apiPerformance.reportDescription',
+            'API tests that sent their request several times and checked the times against thresholds.',
+          )}
+        </CardDescription>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -42,7 +47,9 @@ export default function PerformanceResultsCard({ rows }: { rows: PerformanceResu
               <th className="py-1 pr-3 text-right">p50</th>
               <th className="py-1 pr-3 text-right">p95</th>
               <th className="py-1 pr-3 text-right">max</th>
-              <th className="py-1 pr-3 text-right">{t('apiPerformance.errorRate', 'Failed requests')}</th>
+              <th className="py-1 pr-3 text-right">
+                {t('apiPerformance.errorRate', 'Failed requests')}
+              </th>
               <th className="py-1">{t('apiPerformance.verdict', 'Verdict')}</th>
             </tr>
           </thead>
@@ -51,17 +58,23 @@ export default function PerformanceResultsCard({ rows }: { rows: PerformanceResu
               <tr key={row.id} className="border-t align-top" data-testid="performance-row">
                 <td className="py-1.5 pr-3 font-medium">{row.testName}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">
-                  {summary.iterations} <span className="text-xs text-muted-foreground">×{summary.concurrency}</span>
+                  {summary.iterations}{' '}
+                  <span className="text-xs text-muted-foreground">×{summary.concurrency}</span>
                 </td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{summary.p50Ms} ms</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{summary.p95Ms} ms</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{summary.maxMs} ms</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">
-                  {summary.errorRatePct}%{summary.errors > 0 && <span className="text-xs text-muted-foreground"> ({summary.errors})</span>}
+                  {summary.errorRatePct}%
+                  {summary.errors > 0 && (
+                    <span className="text-xs text-muted-foreground"> ({summary.errors})</span>
+                  )}
                 </td>
                 <td className="py-1.5">
                   {summary.breaches.length === 0 ? (
-                    <Badge variant="secondary">{t('apiPerformance.withinThresholds', 'within thresholds')}</Badge>
+                    <Badge variant="secondary">
+                      {t('apiPerformance.withinThresholds', 'within thresholds')}
+                    </Badge>
                   ) : (
                     <div className="space-y-0.5">
                       {summary.breaches.map((breach) => (
@@ -71,7 +84,11 @@ export default function PerformanceResultsCard({ rows }: { rows: PerformanceResu
                       ))}
                     </div>
                   )}
-                  {summary.sampleErrors.length > 0 && <p className="mt-1 text-xs text-muted-foreground break-all">{summary.sampleErrors[0]}</p>}
+                  {summary.sampleErrors.length > 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground break-all">
+                      {summary.sampleErrors[0]}
+                    </p>
+                  )}
                 </td>
               </tr>
             ))}

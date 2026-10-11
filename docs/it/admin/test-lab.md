@@ -32,7 +32,7 @@ Per ripristinare uno stato precedente, arrestare il server, copiare `.local` al 
 rinominare `state.json`, riavviare e importare il backup scelto. Conservare anche una copia
 su un'altra macchina: i backup locali non proteggono da guasti del disco.
 
-I test automatici provano il codice; l'ambiente di collaudo prova il *prodotto come lo incontra una persona*: le
+I test automatici provano il codice; l'ambiente di collaudo prova il _prodotto come lo incontra una persona_: le
 immagini vere, TLS, cookie, single sign-on, e-mail, agenti in un'altra rete, un emulatore vero. Il protocollo è
 un elenco di casi numerati (aree ACC, MFA, SSO, MEM, ENV, WEB, API, LIB, PLN, SCH, REP, INT, AGT, ADM, SEC, OPS,
 UX, TMG, TRC, MOB) conservato localmente in `collaudo/casi.json`; ogni esito registrato è legato all'id del
@@ -80,35 +80,35 @@ flowchart TB
   JK -- "wfm API key, JUnit, HTML" --> CAD
 ```
 
-| Servizio | Scopo | Casi |
-|---|---|---|
-| `caddy` | HTTPS con un'autorità di certificazione propria; il prodotto e il worker la conoscono già, il browser di chi collauda la importa una volta | tutti |
-| `keycloak` | Identity provider per SSO, OAuth 2.0 client credentials, utenti TOTP, e-mail di reimpostazione password | SSO, API-04, WEB-45…49 |
-| `mailpit` | Casella per Keycloak e per gli step «Wait for email» | WEB-45…47 |
-| `simulatori` | Un server Node che risponde come TestRail, Jira (e Xray Server), Xray Cloud, Zephyr Scale, Azure DevOps, GitHub, GitLab e Gemini, con i dati che i casi si aspettano; una pagina di amministrazione mostra cosa ha ricevuto | TMG, TRC, INT-07, REP-15…22, WEB-16 |
-| `intranet` | Un sito su una rete privata che solo l'agente raggiunge | AGT |
-| `ricevitore` | Stampa i webhook delle notifiche | PLN-13 |
-| `display` | Uno schermo virtuale (noVNC) dove si apre la finestra di registrazione | WEB-11, ENV-04 |
-| `loki`, `grafana` | I log dell'applicazione | OPS-09 |
-| `agente`, `agente-diverso` | Agenti locali; il secondo ha un'altra versione di Playwright per provare il messaggio di incompatibilità | AGT |
-| `jenkins` | Jenkins configurato da codice che esegue la shared library di `integrations/jenkins` contro l'ambiente | INT-08 |
-| Emulatore Android | Un emulatore vero con Appium (`budtmo/docker-android`), raggiunto tramite un agente e una griglia *Local Appium* | MOB |
+| Servizio                   | Scopo                                                                                                                                                                                                                       | Casi                                |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `caddy`                    | HTTPS con un'autorità di certificazione propria; il prodotto e il worker la conoscono già, il browser di chi collauda la importa una volta                                                                                  | tutti                               |
+| `keycloak`                 | Identity provider per SSO, OAuth 2.0 client credentials, utenti TOTP, e-mail di reimpostazione password                                                                                                                     | SSO, API-04, WEB-45…49              |
+| `mailpit`                  | Casella per Keycloak e per gli step «Wait for email»                                                                                                                                                                        | WEB-45…47                           |
+| `simulatori`               | Un server Node che risponde come TestRail, Jira (e Xray Server), Xray Cloud, Zephyr Scale, Azure DevOps, GitHub, GitLab e Gemini, con i dati che i casi si aspettano; una pagina di amministrazione mostra cosa ha ricevuto | TMG, TRC, INT-07, REP-15…22, WEB-16 |
+| `intranet`                 | Un sito su una rete privata che solo l'agente raggiunge                                                                                                                                                                     | AGT                                 |
+| `ricevitore`               | Stampa i webhook delle notifiche                                                                                                                                                                                            | PLN-13                              |
+| `display`                  | Uno schermo virtuale (noVNC) dove si apre la finestra di registrazione                                                                                                                                                      | WEB-11, ENV-04                      |
+| `loki`, `grafana`          | I log dell'applicazione                                                                                                                                                                                                     | OPS-09                              |
+| `agente`, `agente-diverso` | Agenti locali; il secondo ha un'altra versione di Playwright per provare il messaggio di incompatibilità                                                                                                                    | AGT                                 |
+| `jenkins`                  | Jenkins configurato da codice che esegue la shared library di `integrations/jenkins` contro l'ambiente                                                                                                                      | INT-08                              |
+| Emulatore Android          | Un emulatore vero con Appium (`budtmo/docker-android`), raggiunto tramite un agente e una griglia _Local Appium_                                                                                                            | MOB                                 |
 
 ## Comandi
 
 Sono tutti script `npm run` alla radice del repository; usano il nome di progetto `wfm-collaudo`, quindi database
 e volumi dell'ambiente non si mescolano mai con uno stack di sviluppo.
 
-| Comando | Fa |
-|---|---|
-| `collaudo:up` | Costruisce l'immagine dal codice attuale e avvia ogni servizio, attendendo che sia sano. |
-| `collaudo:prepare` | Crea persone, una sessione aperta per ruolo, l'ambiente *Staging*, un test di login e un piano già eseguito una volta, e un progetto riservato. Ripetibile. |
-| `collaudo:check` | Stampa «Pronto» o, per ogni problema, cosa fare. I siti pubblici usati dai casi sono avvisi: se non rispondono il caso è *Bloccato*, non *Fallito*. |
-| `collaudo:simulatori` | Crea le connessioni «Simulato · …» e verifica ciascuna attraverso il prodotto. |
-| `collaudo:jenkins` | Crea una chiave API, avvia Jenkins ed esegue il job INT-08. |
-| `collaudo:mobile` | Avvia l'emulatore e Appium, scarica l'app di prova. |
-| `collaudo:sicurezza-mobile` | Esegue via API i passi di isolamento SEC-25…30 dei test mobili. |
-| `collaudo:reset` | Rimuove lo stack e i suoi volumi. |
+| Comando                     | Fa                                                                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `collaudo:up`               | Costruisce l'immagine dal codice attuale e avvia ogni servizio, attendendo che sia sano.                                                                    |
+| `collaudo:prepare`          | Crea persone, una sessione aperta per ruolo, l'ambiente _Staging_, un test di login e un piano già eseguito una volta, e un progetto riservato. Ripetibile. |
+| `collaudo:check`            | Stampa «Pronto» o, per ogni problema, cosa fare. I siti pubblici usati dai casi sono avvisi: se non rispondono il caso è _Bloccato_, non _Fallito_.         |
+| `collaudo:simulatori`       | Crea le connessioni «Simulato · …» e verifica ciascuna attraverso il prodotto.                                                                              |
+| `collaudo:jenkins`          | Crea una chiave API, avvia Jenkins ed esegue il job INT-08.                                                                                                 |
+| `collaudo:mobile`           | Avvia l'emulatore e Appium, scarica l'app di prova.                                                                                                         |
+| `collaudo:sicurezza-mobile` | Esegue via API i passi di isolamento SEC-25…30 dei test mobili.                                                                                             |
+| `collaudo:reset`            | Rimuove lo stack e i suoi volumi.                                                                                                                           |
 
 ## Scelte di progetto da conoscere
 

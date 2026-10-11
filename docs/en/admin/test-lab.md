@@ -31,7 +31,7 @@ history without overwriting conflicting results. For rollback, stop the server, 
 somewhere safe, rename `state.json`, restart and import the selected backup. Keep an off-machine
 copy too: local backups do not protect against disk failure.
 
-The automated tests prove the code; the lab proves the *product as a person meets it*: the real images,
+The automated tests prove the code; the lab proves the _product as a person meets it_: the real images,
 TLS, cookies, single sign-on, e-mail, agents in another network, a real emulator. The protocol is a
 list of numbered cases (areas ACC, MFA, SSO, MEM, ENV, WEB, API, LIB, PLN, SCH, REP, INT, AGT, ADM, SEC,
 OPS, UX, TMG, TRC, MOB) kept locally in `collaudo/casi.json`; each recorded result is keyed by
@@ -79,35 +79,35 @@ flowchart TB
   JK -- "wfm API key, JUnit, HTML" --> CAD
 ```
 
-| Service | Purpose | Cases |
-|---|---|---|
-| `caddy` | HTTPS with a private certificate authority; the product and the worker already trust it, the tester's browser imports it once | all |
-| `keycloak` | Identity provider for SSO, OAuth 2.0 client credentials, TOTP users, reset-password mail | SSO, API-04, WEB-45…49 |
-| `mailpit` | Inbox for Keycloak and for "Wait for email" steps | WEB-45…47 |
-| `simulatori` | One Node server answering like TestRail, Jira (and Xray Server), Xray Cloud, Zephyr Scale, Azure DevOps, GitHub, GitLab and Gemini, with the data the cases expect; an admin page shows what it received | TMG, TRC, INT-07, REP-15…22, WEB-16 |
-| `intranet` | A site on a private network that only the agent can reach | AGT |
-| `ricevitore` | Prints notification webhooks | PLN-13 |
-| `display` | A virtual screen (noVNC) where the recording window opens | WEB-11, ENV-04 |
-| `loki`, `grafana` | The application's logs | OPS-09 |
-| `agente`, `agente-diverso` | Local agents; the second runs another Playwright version to test the mismatch message | AGT |
-| `jenkins` | Jenkins configured by code that runs the shared library of `integrations/jenkins` against the lab | INT-08 |
-| Android emulator | A real emulator with Appium (`budtmo/docker-android`), reached through an agent and a *Local Appium* grid | MOB |
+| Service                    | Purpose                                                                                                                                                                                                  | Cases                               |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `caddy`                    | HTTPS with a private certificate authority; the product and the worker already trust it, the tester's browser imports it once                                                                            | all                                 |
+| `keycloak`                 | Identity provider for SSO, OAuth 2.0 client credentials, TOTP users, reset-password mail                                                                                                                 | SSO, API-04, WEB-45…49              |
+| `mailpit`                  | Inbox for Keycloak and for "Wait for email" steps                                                                                                                                                        | WEB-45…47                           |
+| `simulatori`               | One Node server answering like TestRail, Jira (and Xray Server), Xray Cloud, Zephyr Scale, Azure DevOps, GitHub, GitLab and Gemini, with the data the cases expect; an admin page shows what it received | TMG, TRC, INT-07, REP-15…22, WEB-16 |
+| `intranet`                 | A site on a private network that only the agent can reach                                                                                                                                                | AGT                                 |
+| `ricevitore`               | Prints notification webhooks                                                                                                                                                                             | PLN-13                              |
+| `display`                  | A virtual screen (noVNC) where the recording window opens                                                                                                                                                | WEB-11, ENV-04                      |
+| `loki`, `grafana`          | The application's logs                                                                                                                                                                                   | OPS-09                              |
+| `agente`, `agente-diverso` | Local agents; the second runs another Playwright version to test the mismatch message                                                                                                                    | AGT                                 |
+| `jenkins`                  | Jenkins configured by code that runs the shared library of `integrations/jenkins` against the lab                                                                                                        | INT-08                              |
+| Android emulator           | A real emulator with Appium (`budtmo/docker-android`), reached through an agent and a _Local Appium_ grid                                                                                                | MOB                                 |
 
 ## Commands
 
 All are `npm run` scripts at the repository root; they use the project name `wfm-collaudo`, so the lab's
 database and volumes never mix with a development stack.
 
-| Command | Does |
-|---|---|
-| `collaudo:up` | Builds the image from the current code and starts every service, waiting until healthy. |
-| `collaudo:prepare` | Creates people, one signed-in session per role, the *Staging* environment, a login test and a plan already run once, and a restricted project. Repeatable. |
-| `collaudo:check` | Prints "Ready" or, for each problem, what to do. Public sites used by cases are warnings: if they are down, the case is *Blocked*, not *Failed*. |
-| `collaudo:simulatori` | Creates the "Simulated · …" connections and verifies each through the product. |
-| `collaudo:jenkins` | Creates an API key, starts Jenkins and runs job INT-08. |
-| `collaudo:mobile` | Starts the emulator and Appium, downloads the sample app. |
-| `collaudo:sicurezza-mobile` | Runs the SEC-25…30 isolation steps of mobile tests through the API. |
-| `collaudo:reset` | Removes the stack and its volumes. |
+| Command                     | Does                                                                                                                                                       |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `collaudo:up`               | Builds the image from the current code and starts every service, waiting until healthy.                                                                    |
+| `collaudo:prepare`          | Creates people, one signed-in session per role, the _Staging_ environment, a login test and a plan already run once, and a restricted project. Repeatable. |
+| `collaudo:check`            | Prints "Ready" or, for each problem, what to do. Public sites used by cases are warnings: if they are down, the case is _Blocked_, not _Failed_.           |
+| `collaudo:simulatori`       | Creates the "Simulated · …" connections and verifies each through the product.                                                                             |
+| `collaudo:jenkins`          | Creates an API key, starts Jenkins and runs job INT-08.                                                                                                    |
+| `collaudo:mobile`           | Starts the emulator and Appium, downloads the sample app.                                                                                                  |
+| `collaudo:sicurezza-mobile` | Runs the SEC-25…30 isolation steps of mobile tests through the API.                                                                                        |
+| `collaudo:reset`            | Removes the stack and its volumes.                                                                                                                         |
 
 ## Design decisions worth knowing
 

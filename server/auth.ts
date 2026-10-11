@@ -1,31 +1,41 @@
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import { Express, type RequestHandler } from "express";
-import session from "express-session";
-import { createHmac, scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
-import { z } from "zod";
-import rateLimit from "express-rate-limit";
-import { sharedStore } from "./middleware/rate-limit-store";
-import { passwordProblem, policyFrom, PASSWORD_MAX_LENGTH } from "@shared/password-policy";
-import { isEmailAddress, mailAvailableOnInstallation, organizationMailConfigured, sendMail } from "./mailer";
-import { passwordResetMail } from "./mail-messages";
-import { RedisStore } from "connect-redis";
-import { storage } from "./storage";
-import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from "@shared/schema";
-import { recordAudit } from "./audit";
-import { runWithTenant, withTenantTransaction } from "./middleware/tenancy";
-import loggerPromise from "./logger";
-import { isMfaEnabled, mfaStatus, verifySecondFactor } from "./mfa";
-import createMemoryStore from "memorystore";
-import { sessionRedis } from "./redis";
-import { sessionCookieSecure } from "./config";
-import { registrationMode, registrationPolicy } from "./registration";
-import { securityHeaders } from "./security-headers";
-import { canManageInstallation } from "./installation-admin";
-import { ssoRequiredFor } from "./sso";
-import { requireActiveSamlSession } from "./middleware/saml-session";
-import { forgetSamlSession, startSessionSamlLogout, SLO_BINDING_COOKIE, REQUEST_TTL_MS } from "./sso-saml";
+import passport from 'passport';
+import { Strategy as LocalStrategy } from 'passport-local';
+import { Express, type RequestHandler } from 'express';
+import session from 'express-session';
+import { createHmac, scrypt, randomBytes, timingSafeEqual } from 'crypto';
+import { promisify } from 'util';
+import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
+import { sharedStore } from './middleware/rate-limit-store';
+import { passwordProblem, policyFrom, PASSWORD_MAX_LENGTH } from '@shared/password-policy';
+import {
+  isEmailAddress,
+  mailAvailableOnInstallation,
+  organizationMailConfigured,
+  sendMail,
+} from './mailer';
+import { passwordResetMail } from './mail-messages';
+import { RedisStore } from 'connect-redis';
+import { storage } from './storage';
+import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from '@shared/schema';
+import { recordAudit } from './audit';
+import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import loggerPromise from './logger';
+import { isMfaEnabled, mfaStatus, verifySecondFactor } from './mfa';
+import createMemoryStore from 'memorystore';
+import { sessionRedis } from './redis';
+import { sessionCookieSecure } from './config';
+import { registrationMode, registrationPolicy } from './registration';
+import { securityHeaders } from './security-headers';
+import { canManageInstallation } from './installation-admin';
+import { ssoRequiredFor } from './sso';
+import { requireActiveSamlSession } from './middleware/saml-session';
+import {
+  forgetSamlSession,
+  startSessionSamlLogout,
+  SLO_BINDING_COOKIE,
+  REQUEST_TTL_MS,
+} from './sso-saml';
 
 const MemoryStore = createMemoryStore(session);
 
@@ -37,7 +47,7 @@ declare global {
 
 const scryptAsync = promisify(scrypt);
 
-declare module "express-session" {
+declare module 'express-session' {
   interface SessionData {
     /** A password accepted, a second factor still owed. Not a login: req.user stays unset. */
     mfaPending?: { userId: number; expiresAt: number; attempts: number };
@@ -96,20 +106,28 @@ export async function recordAuthEvent(
     );
   } catch (error: any) {
     const logger = await loggerPromise;
-    logger.error({ message: 'Could not record a sign-in event', action, userId: user.id, error: error?.message ?? String(error) });
+    logger.error({
+      message: 'Could not record a sign-in event',
+      action,
+      userId: user.id,
+      error: error?.message ?? String(error),
+    });
   }
 }
 
 // Validation schema for the registration endpoint (prevents mass-assignment
 // and rejects malformed/missing credentials before hashing).
 const registerSchema = z.object({
-  username: z.string().trim().min(3, "Username must be at least 3 characters").max(64),
+  username: z.string().trim().min(3, 'Username must be at least 3 characters').max(64),
   // The length and the rest are the password policy's (shared/password-policy.ts), checked below.
   password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
   // Optional. Present, it makes the new account a member of the inviting organization
   // instead of the owner of a brand new one. 64 hex characters — see randomBytes(32) in
   // server/routes/organization.routes.ts.
-  invitationToken: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+  invitationToken: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
 });
 
 // Choose a session store: Redis for real deployments (shared across instances /
@@ -118,26 +136,26 @@ const registerSchema = z.object({
 // node-redis sets it on entry to connect(), before a socket exists, so it is true even
 // when the connection was refused. Only `isReady` means the handshake completed.
 export function createSessionStore(): session.Store {
-  if (process.env.NODE_ENV === "test") {
+  if (process.env.NODE_ENV === 'test') {
     return new MemoryStore({ checkPeriod: 86400000 });
   }
   if (sessionRedis.isReady) {
     // Uses the node-redis client (sessionRedis), not the ioredis one: connect-redis peer-
     // depends on `redis` >= 5 and calls set(key, val, {EX}), mGet() and scanIterator().
-    return new RedisStore({ client: sessionRedis, prefix: "wfm:sess:" });
+    return new RedisStore({ client: sessionRedis, prefix: 'wfm:sess:' });
   }
   // Redis is unreachable. In production a shared store is mandatory (multiple instances +
   // the worker must see the same sessions), so refuse to start on an in-memory store.
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === 'production') {
     throw new Error(
-      "Session Redis is not connected. Refusing to start in production without a shared session store — check REDIS_URL and that Redis is reachable.",
+      'Session Redis is not connected. Refusing to start in production without a shared session store — check REDIS_URL and that Redis is reachable.',
     );
   }
   // Development convenience only: don't make local work depend on a running Redis. Sessions
   // live in memory (lost on restart, single-process), which is fine for one developer.
   console.warn(
-    "[auth] Redis unavailable — using an in-memory session store for local development. " +
-      "Sessions will not persist across restarts. Start Redis to use the shared store.",
+    '[auth] Redis unavailable — using an in-memory session store for local development. ' +
+      'Sessions will not persist across restarts. Start Redis to use the shared store.',
   );
   return new MemoryStore({ checkPeriod: 86400000 });
 }
@@ -146,18 +164,18 @@ export function createSessionStore(): session.Store {
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   // Effectively disabled under test so the suite isn't throttled; enforced in real runs.
-  max: process.env.NODE_ENV === "test" ? 100000 : Number(process.env.AUTH_RATE_LIMIT) || 20,
+  max: process.env.NODE_ENV === 'test' ? 100000 : Number(process.env.AUTH_RATE_LIMIT) || 20,
   standardHeaders: true,
   legacyHeaders: false,
   // Shared by every web process (server/middleware/rate-limit-store.ts).
-  store: sharedStore("auth"),
-  message: { message: "Too many attempts, please try again later." },
+  store: sharedStore('auth'),
+  message: { message: 'Too many attempts, please try again later.' },
 });
 
 export async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
+  const salt = randomBytes(16).toString('hex');
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  return `${buf.toString('hex')}.${salt}`;
 }
 
 /**
@@ -165,7 +183,10 @@ export async function hashPassword(password: string) {
  * session store holds nothing that helps guess the password, and a new password makes it differ.
  */
 export function passwordStamp(storedHash: string): string {
-  return createHmac("sha256", process.env.SESSION_SECRET ?? "").update(storedHash).digest("hex").slice(0, 32);
+  return createHmac('sha256', process.env.SESSION_SECRET ?? '')
+    .update(storedHash)
+    .digest('hex')
+    .slice(0, 32);
 }
 
 const newPasswordSchema = z.string().min(1).max(PASSWORD_MAX_LENGTH);
@@ -176,8 +197,8 @@ export function newPasswordProblem(password: string, username: string | null): s
 }
 
 export async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
+  const [hashed, salt] = stored.split('.');
+  const hashedBuf = Buffer.from(hashed, 'hex');
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
@@ -187,7 +208,7 @@ let sharedSessionMiddleware: RequestHandler | undefined;
 
 export function setupAuth(app: Express) {
   if (!process.env.SESSION_SECRET) {
-    throw new Error("SESSION_SECRET must be set for session security.");
+    throw new Error('SESSION_SECRET must be set for session security.');
   }
   // A malformed REGISTRATION stops the start, rather than the first registration.
   registrationMode();
@@ -196,11 +217,11 @@ export function setupAuth(app: Express) {
     // Said out loud, because the symptom of getting this wrong is a 200 from /api/login
     // followed by silence: the browser drops the cookie and every later request is
     // anonymous, with nothing in any log connecting the two.
-    if (process.env.NODE_ENV === "production" && !sessionCookieSecure()) {
+    if (process.env.NODE_ENV === 'production' && !sessionCookieSecure()) {
       console.warn(
-        "[auth] SESSION_COOKIE_SECURE=false: the session cookie will be sent over plain " +
-          "HTTP. Acceptable for a local stack; put TLS in front of this before anyone else " +
-          "can reach it.",
+        '[auth] SESSION_COOKIE_SECURE=false: the session cookie will be sent over plain ' +
+          'HTTP. Acceptable for a local stack; put TLS in front of this before anyone else ' +
+          'can reach it.',
       );
     }
 
@@ -211,7 +232,7 @@ export function setupAuth(app: Express) {
       store: createSessionStore(),
       cookie: {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: 'lax',
         secure: sessionCookieSecure(),
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       },
@@ -222,7 +243,7 @@ export function setupAuth(app: Express) {
   // (server/security-headers.ts).
   app.use(securityHeaders());
 
-  app.set("trust proxy", 1);
+  app.set('trust proxy', 1);
   app.use(sharedSessionMiddleware);
   app.use(passport.initialize());
   app.use(passport.session());
@@ -243,7 +264,9 @@ export function setupAuth(app: Express) {
         return done(null, false);
       }
       if (!(await comparePasswords(password, user.password))) {
-        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, { reason: 'wrong_password' });
+        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, {
+          reason: 'wrong_password',
+        });
         return done(null, false);
       }
       return done(null, user);
@@ -254,14 +277,18 @@ export function setupAuth(app: Express) {
   // changes the stamp, so every other session of that person stops being one at its next request —
   // which is the point of changing a password someone else may know. A session from before stamps
   // existed (a bare id) is not trusted either: it means signing in once more after this upgrade.
-  passport.serializeUser((user, done) => done(null, { id: user.id, pw: passwordStamp(user.password) }));
+  passport.serializeUser((user, done) =>
+    done(null, { id: user.id, pw: passwordStamp(user.password) }),
+  );
   passport.deserializeUser(async (payload: unknown, done) => {
     try {
       const stamped = payload as { id?: unknown; pw?: unknown } | null;
-      if (!stamped || typeof stamped !== 'object' || typeof stamped.id !== 'number') return done(null, false);
+      if (!stamped || typeof stamped !== 'object' || typeof stamped.id !== 'number')
+        return done(null, false);
       const user = await storage.getUser(stamped.id);
       // A disabled account's sessions end with it (an identity provider deactivating someone, server/scim.ts).
-      if (!user || stamped.pw !== passwordStamp(user.password) || user.disabledAt) return done(null, false);
+      if (!user || stamped.pw !== passwordStamp(user.password) || user.disabledAt)
+        return done(null, false);
       done(null, user);
     } catch (error) {
       done(error);
@@ -273,7 +300,7 @@ export function setupAuth(app: Express) {
       const parsed = registerSchema.safeParse(req.body);
       if (!parsed.success) {
         res.status(400).json({
-          message: "Invalid registration data",
+          message: 'Invalid registration data',
           errors: parsed.error.flatten().fieldErrors,
         });
         return;
@@ -288,8 +315,8 @@ export function setupAuth(app: Express) {
       // With an invitation the username check waits until the token has been validated
       // (createUserFromInvitation): a used invitation names a username that now exists, and
       // answering "Username already exists" to it would tell it apart from an invalid one.
-      if (!invitationToken && await storage.getUserByUsername(username)) {
-        res.status(400).json({ message: "Username already exists" });
+      if (!invitationToken && (await storage.getUserByUsername(username))) {
+        res.status(400).json({ message: 'Username already exists' });
         return;
       }
 
@@ -306,13 +333,13 @@ export function setupAuth(app: Express) {
         const result = await storage.createUserFromInvitation(credentials, invitationToken);
         if ('error' in result && result.error === 'username_taken') {
           // The token was live and names this username, so its holder learns nothing new.
-          res.status(400).json({ message: "Username already exists" });
+          res.status(400).json({ message: 'Username already exists' });
           return;
         }
         if ('error' in result) {
           // One message for all three cases. Distinguishing "no such token" from "expired"
           // from "already used" would let someone probe the token space for near-misses.
-          res.status(400).json({ message: "That invitation is not valid." });
+          res.status(400).json({ message: 'That invitation is not valid.' });
           return;
         }
         user = result;
@@ -324,8 +351,9 @@ export function setupAuth(app: Express) {
         const first = await storage.createFirstUser(credentials);
         if (!first) {
           res.status(403).json({
-            message: "Accounts on this installation are created by invitation. Ask an owner of your organization to invite you.",
-            code: "invitation_required",
+            message:
+              'Accounts on this installation are created by invitation. Ask an owner of your organization to invite you.',
+            code: 'invitation_required',
           });
           return;
         }
@@ -347,10 +375,10 @@ export function setupAuth(app: Express) {
     }
   };
 
-  app.post("/api/register", authLimiter, registerHandler);
+  app.post('/api/register', authLimiter, registerHandler);
 
   // Public: the sign-in page asks it whether to offer a registration form at all.
-  app.get("/api/registration", async (_req, res, next) => {
+  app.get('/api/registration', async (_req, res, next) => {
     try {
       res.json(await registrationPolicy());
     } catch (error) {
@@ -365,23 +393,31 @@ export function setupAuth(app: Express) {
    * Until then the session is as anonymous as it was — req.user is not set — so a password
    * alone reaches nothing.
    */
-  app.post("/api/login", authLimiter, (req, res, next) => {
-    passport.authenticate("local", async (err: unknown, user: SelectUser | false) => {
+  app.post('/api/login', authLimiter, (req, res, next) => {
+    passport.authenticate('local', async (err: unknown, user: SelectUser | false) => {
       if (err) return next(err);
-      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      if (!user) return res.status(401).json({ message: 'Unauthorized' });
       try {
         // Said only after the password was right, so it tells a stranger nothing about who has an
         // account. Owners keep their password: they are the way back in if the provider fails.
         if (await ssoRequiredFor(user)) {
-          await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, { reason: "sso_required" });
+          await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, {
+            reason: 'sso_required',
+          });
           return res.status(403).json({
-            message: "Your organization signs in with single sign-on. Use \"Sign in with SSO\".",
-            code: "sso_required",
+            message: 'Your organization signs in with single sign-on. Use "Sign in with SSO".',
+            code: 'sso_required',
           });
         }
         if (await isMfaEnabled(user.id)) {
-          req.session.mfaPending = { userId: user.id, expiresAt: Date.now() + MFA_CHALLENGE_TTL_MS, attempts: 0 };
-          return req.session.save((saveError) => (saveError ? next(saveError) : res.status(200).json({ mfaRequired: true })));
+          req.session.mfaPending = {
+            userId: user.id,
+            expiresAt: Date.now() + MFA_CHALLENGE_TTL_MS,
+            attempts: 0,
+          };
+          return req.session.save((saveError) =>
+            saveError ? next(saveError) : res.status(200).json({ mfaRequired: true }),
+          );
         }
         req.login(user, async (loginError) => {
           if (loginError) return next(loginError);
@@ -401,28 +437,42 @@ export function setupAuth(app: Express) {
    * is a million, and without a limit per challenge the rate limiter alone would be the only
    * thing between a stolen password and a guessed code.
    */
-  app.post("/api/login/mfa", authLimiter, async (req, res, next) => {
+  app.post('/api/login/mfa', authLimiter, async (req, res, next) => {
     const pending = req.session.mfaPending;
-    const code = typeof req.body?.code === "string" ? req.body.code : "";
+    const code = typeof req.body?.code === 'string' ? req.body.code : '';
     if (!pending || pending.expiresAt < Date.now()) {
       delete req.session.mfaPending;
-      return res.status(401).json({ message: "Sign in with your password again.", code: "mfa_challenge_expired" });
+      return res
+        .status(401)
+        .json({ message: 'Sign in with your password again.', code: 'mfa_challenge_expired' });
     }
     try {
       const user = await storage.getUser(pending.userId);
-      if (!user || user.kind !== "person" || user.disabledAt) {
+      if (!user || user.kind !== 'person' || user.disabledAt) {
         delete req.session.mfaPending;
-        return res.status(401).json({ message: "Unauthorized" });
+        return res.status(401).json({ message: 'Unauthorized' });
       }
-      const method = await verifySecondFactor(user.id, user.organizationId, { id: user.id, username: user.username, ipAddress: req.ip ?? null }, code);
+      const method = await verifySecondFactor(
+        user.id,
+        user.organizationId,
+        { id: user.id, username: user.username, ipAddress: req.ip ?? null },
+        code,
+      );
       if (!method) {
         pending.attempts += 1;
-        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, { reason: "wrong_mfa_code" });
+        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, {
+          reason: 'wrong_mfa_code',
+        });
         if (pending.attempts >= MFA_MAX_ATTEMPTS) {
           delete req.session.mfaPending;
-          return res.status(401).json({ message: "Too many wrong codes. Sign in with your password again.", code: "mfa_challenge_expired" });
+          return res.status(401).json({
+            message: 'Too many wrong codes. Sign in with your password again.',
+            code: 'mfa_challenge_expired',
+          });
         }
-        return res.status(401).json({ message: "That code is not valid.", code: "mfa_code_invalid" });
+        return res
+          .status(401)
+          .json({ message: 'That code is not valid.', code: 'mfa_code_invalid' });
       }
       delete req.session.mfaPending;
       // req.login regenerates the session: the challenge's session id does not become the
@@ -437,7 +487,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/logout", async (req, res, next) => {
+  app.post('/api/logout', async (req, res, next) => {
     const sessionId = req.sessionID;
     let samlLogout: { url: string; requestId: string } | null = null;
     try {
@@ -449,7 +499,10 @@ export function setupAuth(app: Express) {
     } catch (error) {
       // The provider being unavailable must not prevent local logout.
       const logger = await loggerPromise;
-      logger.warn({ message: 'SAML provider logout could not start', error: error instanceof Error ? error.message : String(error) });
+      logger.warn({
+        message: 'SAML provider logout could not start',
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
     // Before the session is gone, while it still says who this was.
     if (req.isAuthenticated?.() && req.user) {
@@ -457,22 +510,25 @@ export function setupAuth(app: Express) {
     }
     req.logout((err) => {
       if (err) return next(err);
-      req.session.destroy(destroyError => {
+      req.session.destroy((destroyError) => {
         if (destroyError) return next(destroyError);
         if (!samlLogout) return res.sendStatus(200);
         res.cookie(SLO_BINDING_COOKIE, samlLogout.requestId, {
-          path: '/api/sso/saml', httpOnly: true, secure: sessionCookieSecure(),
-          sameSite: sessionCookieSecure() ? 'none' : 'lax', maxAge: REQUEST_TTL_MS,
+          path: '/api/sso/saml',
+          httpOnly: true,
+          secure: sessionCookieSecure(),
+          sameSite: sessionCookieSecure() ? 'none' : 'lax',
+          maxAge: REQUEST_TTL_MS,
         });
         res.json({ redirectUrl: samlLogout.url });
       });
     });
   });
 
-  app.get("/api/user", async (req, res, next) => {
+  app.get('/api/user', async (req, res, next) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      res.json(await publicUser(req.user as SelectUser, req.session.signedInWith === "sso"));
+      res.json(await publicUser(req.user as SelectUser, req.session.signedInWith === 'sso'));
     } catch (error) {
       next(error);
     }
@@ -486,21 +542,33 @@ export function setupAuth(app: Express) {
    * The new password changes the session stamp (passwordStamp), which ends every other session of
    * this person; this one is re-established on the new stamp so the person stays signed in here.
    */
-  app.post("/api/user/password", authLimiter, async (req, res, next) => {
+  app.post('/api/user/password', authLimiter, async (req, res, next) => {
     if (!req.isAuthenticated() || !req.user) return res.sendStatus(401);
-    const parsed = z.object({ currentPassword: z.string(), newPassword: newPasswordSchema }).safeParse(req.body);
+    const parsed = z
+      .object({ currentPassword: z.string(), newPassword: newPasswordSchema })
+      .safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid password", errors: parsed.error.flatten().fieldErrors });
+      return res
+        .status(400)
+        .json({ message: 'Invalid password', errors: parsed.error.flatten().fieldErrors });
     }
     const weak = newPasswordProblem(parsed.data.newPassword, (req.user as SelectUser).username);
-    if (weak) return res.status(400).json({ message: weak, code: "weak_password" });
+    if (weak) return res.status(400).json({ message: weak, code: 'weak_password' });
     try {
       const user = req.user as SelectUser;
       if (!(await comparePasswords(parsed.data.currentPassword, user.password))) {
-        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, { reason: "wrong_current_password" });
-        return res.status(403).json({ message: "The current password is not correct.", code: "wrong_current_password" });
+        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, {
+          reason: 'wrong_current_password',
+        });
+        return res.status(403).json({
+          message: 'The current password is not correct.',
+          code: 'wrong_current_password',
+        });
       }
-      const updated = await storage.updatePassword(user.id, await hashPassword(parsed.data.newPassword));
+      const updated = await storage.updatePassword(
+        user.id,
+        await hashPassword(parsed.data.newPassword),
+      );
       if (!updated) return res.sendStatus(401);
       await recordAuthEvent(updated, AUDIT_ACTIONS.PASSWORD_CHANGED, req.ip);
       req.login(updated, (loginError) => {
@@ -517,19 +585,31 @@ export function setupAuth(app: Express) {
    * (server/password-reset.ts). Nobody is signed in; the link is the credential. The person then
    * signs in as usual — with their second factor, if they have one.
    */
-  app.post("/api/password-reset", authLimiter, async (req, res, next) => {
-    const parsed = z.object({ token: z.string().min(1).max(200), newPassword: newPasswordSchema }).safeParse(req.body);
+  app.post('/api/password-reset', authLimiter, async (req, res, next) => {
+    const parsed = z
+      .object({ token: z.string().min(1).max(200), newPassword: newPasswordSchema })
+      .safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: "Invalid request", errors: parsed.error.flatten().fieldErrors });
+      return res
+        .status(400)
+        .json({ message: 'Invalid request', errors: parsed.error.flatten().fieldErrors });
     }
     const weak = newPasswordProblem(parsed.data.newPassword, null);
-    if (weak) return res.status(400).json({ message: weak, code: "weak_password" });
+    if (weak) return res.status(400).json({ message: weak, code: 'weak_password' });
     try {
-      const result = await storage.redeemPasswordReset(parsed.data.token, await hashPassword(parsed.data.newPassword), req.ip ?? null);
-      if ("error" in result) {
+      const result = await storage.redeemPasswordReset(
+        parsed.data.token,
+        await hashPassword(parsed.data.newPassword),
+        req.ip ?? null,
+      );
+      if ('error' in result) {
         // One answer for unknown, used and expired, as for invitations: telling them apart would
         // help someone probing for links.
-        return res.status(400).json({ message: "This link is not valid any more. Ask an owner of your organization for a new one.", code: "reset_invalid" });
+        return res.status(400).json({
+          message:
+            'This link is not valid any more. Ask an owner of your organization for a new one.',
+          code: 'reset_invalid',
+        });
       }
       res.json({ reset: true, username: result.username });
     } catch (error) {
@@ -538,8 +618,12 @@ export function setupAuth(app: Express) {
   });
 
   /** Whether the sign-in page offers "Forgot your password?": only where a link can be mailed. */
-  app.get("/api/password-reset/available", async (_req, res, next) => {
-    try { res.json({ available: await mailAvailableOnInstallation() }); } catch (error) { next(error); }
+  app.get('/api/password-reset/available', async (_req, res, next) => {
+    try {
+      res.json({ available: await mailAvailableOnInstallation() });
+    } catch (error) {
+      next(error);
+    }
   });
 
   /**
@@ -547,35 +631,69 @@ export function setupAuth(app: Express) {
    * whether or not the account exists, is a person, or has an address for a username, so it cannot
    * be used to find out who has an account here. The link is the one an owner would issue.
    */
-  app.post("/api/password-reset/request", authLimiter, async (req, res, next) => {
+  app.post('/api/password-reset/request', authLimiter, async (req, res, next) => {
     const parsed = z.object({ username: z.string().trim().min(1).max(254) }).safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ message: "Give the address you sign in with." });
-    const answer = { message: "If an account with that address exists, a link to choose a new password is on its way." };
+    if (!parsed.success)
+      return res.status(400).json({ message: 'Give the address you sign in with.' });
+    const answer = {
+      message:
+        'If an account with that address exists, a link to choose a new password is on its way.',
+    };
     try {
-      if (!await mailAvailableOnInstallation()) return res.status(404).json({ message: "Password reset by e-mail is not available here. Ask an owner of your organization for a link." });
+      if (!(await mailAvailableOnInstallation()))
+        return res.status(404).json({
+          message:
+            'Password reset by e-mail is not available here. Ask an owner of your organization for a link.',
+        });
       const user = await storage.getUserByUsername(parsed.data.username);
-      if (user && user.kind === "person" && isEmailAddress(user.username) && user.organizationId && await organizationMailConfigured(user.organizationId)) {
-        const { runWithTenant, withTenantTransaction } = await import("./middleware/tenancy");
-        const { issuePasswordReset } = await import("./password-reset");
+      if (
+        user &&
+        user.kind === 'person' &&
+        isEmailAddress(user.username) &&
+        user.organizationId &&
+        (await organizationMailConfigured(user.organizationId))
+      ) {
+        const { runWithTenant, withTenantTransaction } = await import('./middleware/tenancy');
+        const { issuePasswordReset } = await import('./password-reset');
         const issued = await runWithTenant(user.organizationId, () =>
           withTenantTransaction(async (tx) => {
-            const reset = await issuePasswordReset(tx, { organizationId: user.organizationId!, userId: user.id, createdBy: null });
-            const { recordAudit } = await import("./audit");
+            const reset = await issuePasswordReset(tx, {
+              organizationId: user.organizationId!,
+              userId: user.id,
+              createdBy: null,
+            });
+            const { recordAudit } = await import('./audit');
             await recordAudit(tx, {
               action: AUDIT_ACTIONS.PASSWORD_RESET_ISSUED,
               actor: null,
-              targetType: "user",
+              targetType: 'user',
               targetId: user.id,
-              metadata: { username: user.username, expiresAt: reset.expiresAt.toISOString(), requestedByEmail: true },
+              metadata: {
+                username: user.username,
+                expiresAt: reset.expiresAt.toISOString(),
+                requestedByEmail: true,
+              },
             });
             return reset;
           }),
         );
-        const { publicBase } = await import("./routes/sso.routes");
-        const sent = await sendMail({ ...passwordResetMail({ base: publicBase(req), username: user.username, token: issued.token, expiresAt: issued.expiresAt }), organizationId: user.organizationId });
+        const { publicBase } = await import('./routes/sso.routes');
+        const sent = await sendMail({
+          ...passwordResetMail({
+            base: publicBase(req),
+            username: user.username,
+            token: issued.token,
+            expiresAt: issued.expiresAt,
+          }),
+          organizationId: user.organizationId,
+        });
         if (!sent.sent) {
           const logger = await loggerPromise;
-          logger.warn({ message: "Password reset link could not be mailed", userId: user.id, error: sent.error });
+          logger.warn({
+            message: 'Password reset link could not be mailed',
+            userId: user.id,
+            error: sent.error,
+          });
         }
       }
       res.status(202).json(answer);
@@ -597,8 +715,8 @@ export function setupAuth(app: Express) {
 export function getSessionMiddleware(): RequestHandler {
   if (!sharedSessionMiddleware) {
     throw new Error(
-      "getSessionMiddleware() was called before setupAuth(app) ran — the shared session " +
-        "middleware is built there.",
+      'getSessionMiddleware() was called before setupAuth(app) ran — the shared session ' +
+        'middleware is built there.',
     );
   }
   return sharedSessionMiddleware;

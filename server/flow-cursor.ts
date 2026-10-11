@@ -49,7 +49,9 @@ export class FlowCursor {
    * the application did not make. This is the rest of the key.
    */
   iterationKey(): string | null {
-    return this.loops.length === 0 ? null : `iter_${this.loops.map((loop) => loop.index).join('_')}`;
+    return this.loops.length === 0
+      ? null
+      : `iter_${this.loops.map((loop) => loop.index).join('_')}`;
   }
 
   /**

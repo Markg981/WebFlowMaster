@@ -53,8 +53,12 @@ beforeEach(() => {
 
 describe('describeEntry', () => {
   it('puts what was touched in one line, without values', () => {
-    expect(describeEntry({ name: 'Checkout', fields: ['sequence', 'url'] })).toBe('Checkout (sequence, url)');
-    expect(describeEntry({ name: 'Every night', isActive: false, fields: ['isActive'] })).toBe('Every night (isActive) → off');
+    expect(describeEntry({ name: 'Checkout', fields: ['sequence', 'url'] })).toBe(
+      'Checkout (sequence, url)',
+    );
+    expect(describeEntry({ name: 'Every night', isActive: false, fields: ['isActive'] })).toBe(
+      'Every night (isActive) → off',
+    );
     expect(describeEntry({ keyName: 'DB_PASSWORD', environmentId: 3 })).toBe('DB_PASSWORD');
     expect(describeEntry({ reason: 'wrong_password' })).toBe('wrong password');
     expect(describeEntry(null)).toBe('');
@@ -64,7 +68,10 @@ describe('describeEntry', () => {
 describe('AuditLogCard', () => {
   it('shows who, from where, through a key, and what', async () => {
     answer({
-      entries: [entry(1), entry(2, { action: 'run.cancelled', apiKeyId: 'k1', metadata: { planId: 'p' } })],
+      entries: [
+        entry(1),
+        entry(2, { action: 'run.cancelled', apiKeyId: 'k1', metadata: { planId: 'p' } }),
+      ],
       limit: 25,
       offset: 0,
       hasMore: false,
@@ -90,7 +97,9 @@ describe('AuditLogCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Older' }));
 
     await waitFor(() => {
-      expect(fetchMock.mock.calls.some(([url]: any[]) => String(url).includes('offset=25'))).toBe(true);
+      expect(fetchMock.mock.calls.some(([url]: any[]) => String(url).includes('offset=25'))).toBe(
+        true,
+      );
     });
   });
 
@@ -99,7 +108,10 @@ describe('AuditLogCard', () => {
     renderCard();
     await screen.findByTestId('audit-entry-1');
 
-    expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute('href', '/api/organization/audit-log?format=csv');
+    expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
+      'href',
+      '/api/organization/audit-log?format=csv',
+    );
   });
 
   it('says when nothing has been recorded', async () => {

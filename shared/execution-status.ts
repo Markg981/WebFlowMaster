@@ -12,8 +12,14 @@
  * Which state may follow which lives in server/execution-state.ts.
  */
 export const EXECUTION_STATUSES = [
-  'queued', 'running', 'completed', 'failed', 'error',
-  'cancelling', 'cancelled', 'timed_out',
+  'queued',
+  'running',
+  'completed',
+  'failed',
+  'error',
+  'cancelling',
+  'cancelled',
+  'timed_out',
 ] as const;
 export type ExecutionStatus = (typeof EXECUTION_STATUSES)[number];
 

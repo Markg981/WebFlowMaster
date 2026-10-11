@@ -31,10 +31,17 @@ describe('SaveStepGroupModal', () => {
     render(<SaveStepGroupModal isOpen onClose={onClose} stepCount={2} onSave={onSave} />);
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: '  Login  ' } });
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Signs in as the test user' } });
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Signs in as the test user' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ name: 'Login', description: 'Signs in as the test user' }));
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith({
+        name: 'Login',
+        description: 'Signs in as the test user',
+      }),
+    );
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
@@ -49,14 +56,18 @@ describe('SaveStepGroupModal', () => {
   });
 
   it('shows what the server refused and stays open', async () => {
-    const onSave = vi.fn().mockRejectedValue(new Error('A step group cannot call another step group.'));
+    const onSave = vi
+      .fn()
+      .mockRejectedValue(new Error('A step group cannot call another step group.'));
     const onClose = vi.fn();
     render(<SaveStepGroupModal isOpen onClose={onClose} stepCount={2} onSave={onSave} />);
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Outer' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    expect(await screen.findByText('A step group cannot call another step group.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('A step group cannot call another step group.'),
+    ).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });
 });

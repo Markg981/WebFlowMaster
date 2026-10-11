@@ -88,20 +88,32 @@ describe('what removing a member does to each reference to users', () => {
   it('hands on, deletes or forgets — never anything undecided', async () => {
     const undecided = (await constraintsOnUsers())
       .map((c) => c.reference)
-      .filter((reference) => !transferred.includes(reference) && !PERSONAL.includes(reference) && !PROVENANCE.includes(reference));
+      .filter(
+        (reference) =>
+          !transferred.includes(reference) &&
+          !PERSONAL.includes(reference) &&
+          !PROVENANCE.includes(reference),
+      );
     expect(undecided).toEqual([]);
   });
 
   it('never cascades into the organization’s data', async () => {
     const constraints = await constraintsOnUsers();
     // 'a' is NO ACTION: a row the transfer missed makes the removal fail instead of vanishing.
-    expect(constraints.filter((c) => transferred.includes(c.reference) && c.onDelete !== 'a')).toEqual([]);
-    for (const reference of transferred) expect(constraints.some((c) => c.reference === reference)).toBe(true);
+    expect(
+      constraints.filter((c) => transferred.includes(c.reference) && c.onDelete !== 'a'),
+    ).toEqual([]);
+    for (const reference of transferred)
+      expect(constraints.some((c) => c.reference === reference)).toBe(true);
   });
 
   it('deletes only what is the person’s, and forgets only who did what', async () => {
     const constraints = await constraintsOnUsers();
-    expect(constraints.filter((c) => PERSONAL.includes(c.reference) && c.onDelete !== 'c')).toEqual([]);
-    expect(constraints.filter((c) => PROVENANCE.includes(c.reference) && c.onDelete !== 'n')).toEqual([]);
+    expect(constraints.filter((c) => PERSONAL.includes(c.reference) && c.onDelete !== 'c')).toEqual(
+      [],
+    );
+    expect(
+      constraints.filter((c) => PROVENANCE.includes(c.reference) && c.onDelete !== 'n'),
+    ).toEqual([]);
   });
 });

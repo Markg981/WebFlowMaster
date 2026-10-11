@@ -6,7 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     // Exclude setupFiles to avoid loading broken native DB bindings
-    setupFiles: [], 
+    setupFiles: [],
     include: ['server/ai-automation-service.test.ts'],
   },
   resolve: {

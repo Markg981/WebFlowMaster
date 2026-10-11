@@ -184,18 +184,30 @@ export interface DebugHooks {
   /** The run's variables, handed over once the run has them, and read as they change. */
   watch(vars: Record<string, string>): void;
   beforeStep<S extends DebugStep>(context: DebugStepContext<S>): Promise<DebugDecision<S>>;
-  afterFailure<S extends DebugStep>(context: DebugStepContext<S> & { error: string }): Promise<DebugDecision<S>>;
+  afterFailure<S extends DebugStep>(
+    context: DebugStepContext<S> & { error: string },
+  ): Promise<DebugDecision<S>>;
   record(record: DebugStepRecord): Promise<void>;
   finish(outcome: { success: boolean; error: string | null }): Promise<void>;
 }
 
 /** A step with the correction made to it; the step itself is left as it was. */
-export function applyPatch<S extends DebugStep>(step: S, patch: DebugStepPatch | undefined): { step: S; corrected: boolean } {
+export function applyPatch<S extends DebugStep>(
+  step: S,
+  patch: DebugStepPatch | undefined,
+): { step: S; corrected: boolean } {
   if (!patch) return { step, corrected: false };
   let corrected = false;
   let next: S = step;
-  if (typeof patch.selector === 'string' && patch.selector.trim() && patch.selector.trim() !== step.targetElement?.selector) {
-    next = { ...next, targetElement: { ...(step.targetElement ?? {}), selector: patch.selector.trim() } };
+  if (
+    typeof patch.selector === 'string' &&
+    patch.selector.trim() &&
+    patch.selector.trim() !== step.targetElement?.selector
+  ) {
+    next = {
+      ...next,
+      targetElement: { ...(step.targetElement ?? {}), selector: patch.selector.trim() },
+    };
     corrected = true;
   }
   if (typeof patch.value === 'string' && patch.value !== (step.value ?? '')) {
@@ -205,7 +217,8 @@ export function applyPatch<S extends DebugStep>(step: S, patch: DebugStepPatch |
   return { step: next, corrected };
 }
 
-export const canSkipStep = (actionId: string | undefined) => !actionId || !FLOW_ACTION_IDS.has(actionId);
+export const canSkipStep = (actionId: string | undefined) =>
+  !actionId || !FLOW_ACTION_IDS.has(actionId);
 
 export interface DebugControllerOptions {
   breakpoints: string[];
@@ -241,7 +254,8 @@ export class DebugController implements DebugHooks {
   ) {
     this.breakpoints = new Set(options.breakpoints);
     this.environmentKeys = new Set(options.environmentKeys);
-    this.idleTimeoutMs = options.idleTimeoutMs ?? (Number(process.env.DEBUG_IDLE_TIMEOUT_MS) || DEBUG_IDLE_TIMEOUT_MS);
+    this.idleTimeoutMs =
+      options.idleTimeoutMs ?? (Number(process.env.DEBUG_IDLE_TIMEOUT_MS) || DEBUG_IDLE_TIMEOUT_MS);
     this.now = options.now ?? (() => new Date());
   }
 
@@ -301,13 +315,19 @@ export class DebugController implements DebugHooks {
     return this.waitAt(context, reason, null);
   }
 
-  async afterFailure<S extends DebugStep>(context: DebugStepContext<S> & { error: string }): Promise<DebugDecision<S>> {
+  async afterFailure<S extends DebugStep>(
+    context: DebugStepContext<S> & { error: string },
+  ): Promise<DebugDecision<S>> {
     for (const command of await this.channel.drain(this.id)) this.absorb(command);
     if (this.stopAsked) return { kind: 'stop', reason: 'Stopped while debugging.' };
     return this.waitAt(context, 'failure', context.error);
   }
 
-  private async waitAt<S extends DebugStep>(context: DebugStepContext<S>, reason: PauseReason, error: string | null): Promise<DebugDecision<S>> {
+  private async waitAt<S extends DebugStep>(
+    context: DebugStepContext<S>,
+    reason: PauseReason,
+    error: string | null,
+  ): Promise<DebugDecision<S>> {
     const { step } = context;
     const actionId = step.action?.id ?? 'unknown';
     this.pauseAsked = false;
@@ -330,19 +350,27 @@ export class DebugController implements DebugHooks {
 
     for (;;) {
       const command = await this.channel.next(this.id, this.idleTimeoutMs);
-      if (!command) return this.resume({ kind: 'stop', reason: `Stopped after ${Math.round(this.idleTimeoutMs / 60_000)} minutes without a command.` });
+      if (!command)
+        return this.resume({
+          kind: 'stop',
+          reason: `Stopped after ${Math.round(this.idleTimeoutMs / 60_000)} minutes without a command.`,
+        });
       if (command.type === 'breakpoints') {
         this.absorb(command);
         await this.publish();
         continue;
       }
-      if (command.type === 'stop') return this.resume({ kind: 'stop', reason: 'Stopped while debugging.' });
+      if (command.type === 'stop')
+        return this.resume({ kind: 'stop', reason: 'Stopped while debugging.' });
       if (command.type === 'skip' && this.paused.canSkip) {
         this.skipped += 1;
         return this.resume({ kind: 'skip' });
       }
       const failed = reason === 'failure';
-      if ((failed && command.type === 'retry') || (!failed && (command.type === 'continue' || command.type === 'step'))) {
+      if (
+        (failed && command.type === 'retry') ||
+        (!failed && (command.type === 'continue' || command.type === 'step'))
+      ) {
         this.stepping = command.type === 'step' || (failed && this.stepping);
         const { step: next, corrected } = applyPatch(step, command.patch);
         return this.resume({ kind: 'run', step: next, corrected });
@@ -367,7 +395,11 @@ export class DebugController implements DebugHooks {
     this.status = this.stopAsked || /^Stopped/.test(outcome.error ?? '') ? 'stopped' : 'finished';
     this.paused = null;
     // A run that passed over a step has not shown the test passes.
-    await this.publish({ success: outcome.success && this.skipped === 0, error: outcome.error, skipped: this.skipped });
+    await this.publish({
+      success: outcome.success && this.skipped === 0,
+      error: outcome.error,
+      skipped: this.skipped,
+    });
   }
 
   /** The run could not be carried out at all. */

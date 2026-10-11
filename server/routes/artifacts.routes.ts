@@ -1,14 +1,14 @@
 import { stepListOf } from '@shared/mobile';
-import { Router } from "express";
-import { eq } from "drizzle-orm";
-import { artifactStore, assertSafeKey, RESULTS_PREFIX } from "../artifact-store";
-import { testPlanExecutions } from "@shared/schema";
-import type { AccessibilityFinding } from "@shared/accessibility";
-import type { LighthouseFinding, PerformanceFinding } from "@shared/web-performance";
-import type { DownloadFinding } from "@shared/downloads";
-import { withTenantTransaction } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
-import loggerPromise from "../logger";
+import { Router } from 'express';
+import { eq } from 'drizzle-orm';
+import { artifactStore, assertSafeKey, RESULTS_PREFIX } from '../artifact-store';
+import { testPlanExecutions } from '@shared/schema';
+import type { AccessibilityFinding } from '@shared/accessibility';
+import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
+import type { DownloadFinding } from '@shared/downloads';
+import { withTenantTransaction } from '../middleware/tenancy';
+import { requireRole } from '../middleware/require-role';
+import loggerPromise from '../logger';
 
 /**
  * Serving what a run produced: screenshots, and the three images of a visual comparison.
@@ -37,7 +37,11 @@ const logger = await loggerPromise;
  * separators included — and rows written before this route existed hold `/results/…` URLs
  * from the same directory. Both reduce to the part below the run's own directory.
  */
-export function artifactUrl(executionId: string, storedPath: string | null | undefined, available: (relative: string) => boolean = () => true): string | null {
+export function artifactUrl(
+  executionId: string,
+  storedPath: string | null | undefined,
+  available: (relative: string) => boolean = () => true,
+): string | null {
   if (!storedPath || typeof storedPath !== 'string') return null;
   if (storedPath.startsWith('data:image')) return storedPath;
 
@@ -91,7 +95,11 @@ export interface ReportStep {
  * displayed nowhere: the report's per-test button has always been a placeholder, so the only
  * way to see which step failed was the reason string on the row.
  */
-export function stepsWithArtifactUrls(executionId: string, detailedLog: string | null | undefined, available: (relative: string) => boolean = () => true): ReportStep[] {
+export function stepsWithArtifactUrls(
+  executionId: string,
+  detailedLog: string | null | undefined,
+  available: (relative: string) => boolean = () => true,
+): ReportStep[] {
   if (!detailedLog) return [];
   let parsed: unknown;
   try {
@@ -115,90 +123,129 @@ export function stepsWithArtifactUrls(executionId: string, detailedLog: string |
       healed: step.healed === true,
       rca: step.rca ? String(step.rca) : undefined,
       screenshot: artifactUrl(executionId, step.screenshot, available),
-      evidenceUnavailable: [step.screenshot, step.visual?.baselineImage, step.visual?.actualImage, step.visual?.diffImage, step.lighthouse?.reportUrl, step.download?.fileUrl]
-        .some(value => !!artifactUrl(executionId, value) && !artifactUrl(executionId, value, available)),
+      evidenceUnavailable: [
+        step.screenshot,
+        step.visual?.baselineImage,
+        step.visual?.actualImage,
+        step.visual?.diffImage,
+        step.lighthouse?.reportUrl,
+        step.download?.fileUrl,
+      ].some(
+        (value) => !!artifactUrl(executionId, value) && !artifactUrl(executionId, value, available),
+      ),
       visual: step.visual
         ? {
             outcome: String(step.visual.outcome ?? 'skipped'),
             detail: String(step.visual.detail ?? ''),
-            diffRatio: typeof step.visual.diffRatio === 'number' ? step.visual.diffRatio : undefined,
+            diffRatio:
+              typeof step.visual.diffRatio === 'number' ? step.visual.diffRatio : undefined,
             baselineImage: artifactUrl(executionId, step.visual.baselineImage, available),
             actualImage: artifactUrl(executionId, step.visual.actualImage, available),
             diffImage: artifactUrl(executionId, step.visual.diffImage, available),
           }
         : undefined,
       // Selectors and rule names, no images: passed through as the runner wrote it.
-      accessibility: step.accessibility && Array.isArray(step.accessibility.violations) ? (step.accessibility as AccessibilityFinding) : undefined,
+      accessibility:
+        step.accessibility && Array.isArray(step.accessibility.violations)
+          ? (step.accessibility as AccessibilityFinding)
+          : undefined,
       // Numbers, and the Lighthouse report as a link like any other file of the run.
-      performance: step.performance && step.performance.metrics ? (step.performance as PerformanceFinding) : undefined,
-      lighthouse: step.lighthouse && step.lighthouse.scores
-        ? { ...(step.lighthouse as LighthouseFinding), reportUrl: artifactUrl(executionId, step.lighthouse.reportUrl, available) ?? undefined }
-        : undefined,
-      download: step.download && typeof step.download.name === 'string'
-        ? { ...(step.download as DownloadFinding), fileUrl: artifactUrl(executionId, step.download.fileUrl, available) ?? undefined }
-        : undefined,
+      performance:
+        step.performance && step.performance.metrics
+          ? (step.performance as PerformanceFinding)
+          : undefined,
+      lighthouse:
+        step.lighthouse && step.lighthouse.scores
+          ? {
+              ...(step.lighthouse as LighthouseFinding),
+              reportUrl:
+                artifactUrl(executionId, step.lighthouse.reportUrl, available) ?? undefined,
+            }
+          : undefined,
+      download:
+        step.download && typeof step.download.name === 'string'
+          ? {
+              ...(step.download as DownloadFinding),
+              fileUrl: artifactUrl(executionId, step.download.fileUrl, available) ?? undefined,
+            }
+          : undefined,
     }));
 }
 
 // GET /api/test-plan-executions/:executionId/artifacts/<path below the run directory>
-router.get("/api/test-plan-executions/:executionId/artifacts/*", requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+router.get(
+  '/api/test-plan-executions/:executionId/artifacts/*',
+  requireRole('viewer'),
+  async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { executionId } = req.params;
-  const requestedPath = decodeURIComponent((req.params as Record<string, string>)[0] ?? '');
+    const { executionId } = req.params;
+    const requestedPath = decodeURIComponent((req.params as Record<string, string>)[0] ?? '');
 
-  // No organization predicate: RLS supplies it, so another tenant's execution is not found
-  // rather than forbidden — the id itself tells the caller nothing.
-  const execution = await withTenantTransaction((tx) =>
-    tx
-      .select({ testPlanId: testPlanExecutions.testPlanId })
-      .from(testPlanExecutions)
-      .where(eq(testPlanExecutions.id, executionId))
-      .limit(1),
-  );
-  if (execution.length === 0) {
-    return res.status(404).json({ error: "Test plan execution not found." });
-  }
-
-  // The key is the run's own directory and the path below it. The check is what decides that a
-  // request for ../../../.env is not a screenshot, whichever store would be asked for it.
-  let key: string;
-  try {
-    key = assertSafeKey(`${RESULTS_PREFIX}${execution[0].testPlanId}/${executionId}/${requestedPath.replace(/\\/g, '/')}`);
-  } catch {
-    logger.warn({ message: "Rejected an artifact path outside its run directory", executionId, requestedPath });
-    return res.status(400).json({ error: "Invalid artifact path." });
-  }
-
-  let artifact;
-  try {
-    artifact = await artifactStore().open(key);
-  } catch (error: any) {
-    logger.error({ message: "The artifact store could not be read", executionId, key, error: error?.message });
-    return res.status(502).json({ error: "The artifact store could not be reached." });
-  }
-  if (!artifact) return res.status(404).json({ error: "Artifact not found." });
-
-  // These are immutable once written: a run's screenshots are never rewritten, and the report
-  // is read far more often than it is produced.
-  res.setHeader('Cache-Control', 'private, max-age=3600');
-  res.setHeader('Content-Type', artifact.contentType);
-  // An HTML artifact (a Lighthouse report) runs its own inline scripts. Sandboxed without
-  // allow-same-origin it gets an opaque origin: it cannot read this application's cookies or call
-  // its API, whatever the audited page put into it.
-  if (/^text\/html/i.test(artifact.contentType)) {
-    res.setHeader(
-      'Content-Security-Policy',
-      "sandbox allow-scripts allow-popups; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:",
+    // No organization predicate: RLS supplies it, so another tenant's execution is not found
+    // rather than forbidden — the id itself tells the caller nothing.
+    const execution = await withTenantTransaction((tx) =>
+      tx
+        .select({ testPlanId: testPlanExecutions.testPlanId })
+        .from(testPlanExecutions)
+        .where(eq(testPlanExecutions.id, executionId))
+        .limit(1),
     );
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-  }
-  if (artifact.size !== undefined) res.setHeader('Content-Length', String(artifact.size));
-  artifact.stream.on('error', (error) => {
-    logger.error({ message: "Artifact stream failed", executionId, key, error: error.message });
-    res.destroy(error);
-  });
-  artifact.stream.pipe(res);
-});
+    if (execution.length === 0) {
+      return res.status(404).json({ error: 'Test plan execution not found.' });
+    }
+
+    // The key is the run's own directory and the path below it. The check is what decides that a
+    // request for ../../../.env is not a screenshot, whichever store would be asked for it.
+    let key: string;
+    try {
+      key = assertSafeKey(
+        `${RESULTS_PREFIX}${execution[0].testPlanId}/${executionId}/${requestedPath.replace(/\\/g, '/')}`,
+      );
+    } catch {
+      logger.warn({
+        message: 'Rejected an artifact path outside its run directory',
+        executionId,
+        requestedPath,
+      });
+      return res.status(400).json({ error: 'Invalid artifact path.' });
+    }
+
+    let artifact;
+    try {
+      artifact = await artifactStore().open(key);
+    } catch (error: any) {
+      logger.error({
+        message: 'The artifact store could not be read',
+        executionId,
+        key,
+        error: error?.message,
+      });
+      return res.status(502).json({ error: 'The artifact store could not be reached.' });
+    }
+    if (!artifact) return res.status(404).json({ error: 'Artifact not found.' });
+
+    // These are immutable once written: a run's screenshots are never rewritten, and the report
+    // is read far more often than it is produced.
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.setHeader('Content-Type', artifact.contentType);
+    // An HTML artifact (a Lighthouse report) runs its own inline scripts. Sandboxed without
+    // allow-same-origin it gets an opaque origin: it cannot read this application's cookies or call
+    // its API, whatever the audited page put into it.
+    if (/^text\/html/i.test(artifact.contentType)) {
+      res.setHeader(
+        'Content-Security-Policy',
+        "sandbox allow-scripts allow-popups; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:",
+      );
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+    if (artifact.size !== undefined) res.setHeader('Content-Length', String(artifact.size));
+    artifact.stream.on('error', (error) => {
+      logger.error({ message: 'Artifact stream failed', executionId, key, error: error.message });
+      res.destroy(error);
+    });
+    artifact.stream.pipe(res);
+  },
+);
 
 export default router;

@@ -72,7 +72,15 @@ export interface ReportModel {
   evidenceStorageStatus?: 'quota_exceeded' | 'error' | null;
   /** The build that asked for the run, when a pipeline did. */
   ci: CiContext | null;
-  counts: { total: number; passed: number; failed: number; errors: number; skipped: number; quarantinedFailures: number; flaky: number };
+  counts: {
+    total: number;
+    passed: number;
+    failed: number;
+    errors: number;
+    skipped: number;
+    quarantinedFailures: number;
+    flaky: number;
+  };
   results: ReportResultModel[];
 }
 
@@ -88,7 +96,10 @@ function stepsOf(detailedLog: string | null): ReportStepModel[] {
         type: String(step.type ?? 'unknown'),
         status: step.status === 'failed' ? 'failed' : 'passed',
         message: String(step.error || step.details || ''),
-        accessibility: step.accessibility && Array.isArray(step.accessibility.violations) ? step.accessibility : undefined,
+        accessibility:
+          step.accessibility && Array.isArray(step.accessibility.violations)
+            ? step.accessibility
+            : undefined,
       }));
   } catch {
     return [];
@@ -103,7 +114,13 @@ export function failedStepScreenshot(detailedLog: string | null): string | null 
     if (!Array.isArray(parsed)) return null;
     for (let i = parsed.length - 1; i >= 0; i -= 1) {
       const step = parsed[i];
-      if (step && step.status === 'failed' && typeof step.screenshot === 'string' && step.screenshot) return step.screenshot;
+      if (
+        step &&
+        step.status === 'failed' &&
+        typeof step.screenshot === 'string' &&
+        step.screenshot
+      )
+        return step.screenshot;
     }
   } catch {
     // Not a step list: no screenshot to offer.
@@ -135,7 +152,10 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
   return {
     executionId: execution.id,
     planId: execution.testPlanId,
-    planName: readExecutionSnapshot(execution.configurationSnapshot)?.plan.name ?? planName ?? execution.testPlanId,
+    planName:
+      readExecutionSnapshot(execution.configurationSnapshot)?.plan.name ??
+      planName ??
+      execution.testPlanId,
     reproducibility: reproducibilitySummary(execution.configurationSnapshot),
     status: execution.status,
     trigger: execution.triggeredBy,
@@ -157,7 +177,9 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
       failed: count('Failed'),
       errors: count('Error'),
       skipped: count('Skipped') + count('Pending'),
-      quarantinedFailures: results.filter((r) => r.quarantined && (r.status === 'Failed' || r.status === 'Error')).length,
+      quarantinedFailures: results.filter(
+        (r) => r.quarantined && (r.status === 'Failed' || r.status === 'Error'),
+      ).length,
       flaky: results.filter((r) => r.status === 'Passed' && (r.attempts ?? 1) > 1).length,
     },
     results: results.map((r) => ({
@@ -182,7 +204,9 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
       network: (r.networkSummary as NetworkSummary | null) ?? null,
       // The result's own screenshot, else the one its failed step kept: either way the picture of
       // where it broke, for the export that embeds it.
-      screenshotPath: execution.artifactsPurgedAt ? null : r.screenshotUrl ?? failedStepScreenshot(r.detailedLog),
+      screenshotPath: execution.artifactsPurgedAt
+        ? null
+        : (r.screenshotUrl ?? failedStepScreenshot(r.detailedLog)),
     })),
   };
 }
@@ -196,14 +220,19 @@ export const MAX_EMBEDDED_IMAGE_BYTES = 2 * 1024 * 1024;
  * Stored paths are what the runner's filesystem produced, relative to the run's directory once
  * the part up to the execution id is cut off — the same reading the artifacts route does.
  */
-export async function readScreenshot(model: Pick<ReportModel, 'planId' | 'executionId'>, storedPath: string | null): Promise<{ bytes: Buffer; contentType: string } | null> {
+export async function readScreenshot(
+  model: Pick<ReportModel, 'planId' | 'executionId'>,
+  storedPath: string | null,
+): Promise<{ bytes: Buffer; contentType: string } | null> {
   if (!storedPath || storedPath.startsWith('data:')) return null;
   const normalized = storedPath.replace(/\\/g, '/');
   const marker = `/${model.executionId}/`;
   const index = normalized.indexOf(marker);
   if (index === -1) return null;
   try {
-    const key = assertSafeKey(`${RESULTS_PREFIX}${model.planId}/${model.executionId}/${normalized.slice(index + marker.length)}`);
+    const key = assertSafeKey(
+      `${RESULTS_PREFIX}${model.planId}/${model.executionId}/${normalized.slice(index + marker.length)}`,
+    );
     const bytes = await artifactStore().read(key);
     if (!bytes || bytes.length > MAX_EMBEDDED_IMAGE_BYTES) return null;
     return { bytes, contentType: contentTypeFor(key) };

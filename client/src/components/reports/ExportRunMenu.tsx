@@ -2,7 +2,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Download } from 'lucide-react';
 
@@ -13,9 +18,24 @@ import { Download } from 'lucide-react';
  */
 
 const FORMATS = [
-  { key: 'html', path: 'export/html', label: 'HTML report', hint: 'One file that opens anywhere, screenshots included' },
-  { key: 'pdf', path: 'export/pdf', label: 'PDF', hint: 'To attach to a ticket or file for an audit' },
-  { key: 'allure', path: 'export/allure', label: 'Allure results (.zip)', hint: 'For allure generate or an Allure server' },
+  {
+    key: 'html',
+    path: 'export/html',
+    label: 'HTML report',
+    hint: 'One file that opens anywhere, screenshots included',
+  },
+  {
+    key: 'pdf',
+    path: 'export/pdf',
+    label: 'PDF',
+    hint: 'To attach to a ticket or file for an audit',
+  },
+  {
+    key: 'allure',
+    path: 'export/allure',
+    label: 'Allure results (.zip)',
+    hint: 'For allure generate or an Allure server',
+  },
   { key: 'junit', path: 'junit', label: 'JUnit XML', hint: 'For a CI system’s test report' },
 ] as const;
 
@@ -33,10 +53,16 @@ export default function ExportRunMenu({ executionId }: { executionId: string }) 
         <DropdownMenuSeparator />
         {FORMATS.map((format) => (
           <DropdownMenuItem key={format.key} asChild>
-            <a href={`/api/test-plan-executions/${encodeURIComponent(executionId)}/${format.path}`} download data-testid={`export-${format.key}`}>
+            <a
+              href={`/api/test-plan-executions/${encodeURIComponent(executionId)}/${format.path}`}
+              download
+              data-testid={`export-${format.key}`}
+            >
               <div className="flex flex-col">
                 <span>{t(`exportRun.formats.${format.key}.label`, format.label)}</span>
-                <span className="text-xs text-muted-foreground">{t(`exportRun.formats.${format.key}.hint`, format.hint)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t(`exportRun.formats.${format.key}.hint`, format.hint)}
+                </span>
               </div>
             </a>
           </DropdownMenuItem>

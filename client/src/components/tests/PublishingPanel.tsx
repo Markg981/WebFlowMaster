@@ -24,7 +24,12 @@ export interface PublishingState {
   runs: 'published' | 'working_copy' | 'nothing';
   hasUnpublishedChanges: boolean;
   reviewRequired: boolean;
-  pendingReview: { id: number; version: number; requestedBy: number | null; note: string | null } | null;
+  pendingReview: {
+    id: number;
+    version: number;
+    requestedBy: number | null;
+    note: string | null;
+  } | null;
   rollbackTargets: number[];
 }
 
@@ -77,25 +82,45 @@ export default function PublishingPanel({
       ? t('publishing.runsPublished', 'Plans run version {{n}}.', { n: state.publishedVersion })
       : state.runs === 'working_copy'
         ? t('publishing.runsWorkingCopy', 'Not published: plans run the latest save.')
-        : t('publishing.runsNothing', 'Not published: plans skip this test until a reviewed version is published.');
+        : t(
+            'publishing.runsNothing',
+            'Not published: plans skip this test until a reviewed version is published.',
+          );
 
   return (
     <div className="rounded-md border p-3 space-y-2" data-testid="publishing-panel">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-medium">{what}</span>
-        {state.reviewRequired && <Badge variant="outline">{t('publishing.reviewRequired', 'review required')}</Badge>}
+        {state.reviewRequired && (
+          <Badge variant="outline">{t('publishing.reviewRequired', 'review required')}</Badge>
+        )}
       </div>
       {state.hasUnpublishedChanges && state.publishedVersion !== null && (
         <p className="text-xs text-amber-700 dark:text-amber-400">
-          {t('publishing.unpublishedChanges', 'Version {{n}} has changes that are not published yet.', { n: state.latestVersion })}
+          {t(
+            'publishing.unpublishedChanges',
+            'Version {{n}} has changes that are not published yet.',
+            { n: state.latestVersion },
+          )}
         </p>
       )}
 
       {state.pendingReview ? (
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span>{t('publishing.waiting', 'Version {{n}} is waiting for review.', { n: state.pendingReview.version })}</span>
+          <span>
+            {t('publishing.waiting', 'Version {{n}} is waiting for review.', {
+              n: state.pendingReview.version,
+            })}
+          </span>
           {canEdit && state.pendingReview.requestedBy === currentUserId && (
-            <Button variant="ghost" size="sm" disabled={busy} onClick={() => act(() => send(`/api/test-reviews/${state.pendingReview!.id}/withdraw`))}>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() =>
+                act(() => send(`/api/test-reviews/${state.pendingReview!.id}/withdraw`))
+              }
+            >
               {t('publishing.withdraw', 'Withdraw')}
             </Button>
           )}
@@ -108,17 +133,40 @@ export default function PublishingPanel({
             <Input
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder={t('publishing.notePlaceholder', 'What changed, for the reviewer (optional)')}
+              placeholder={t(
+                'publishing.notePlaceholder',
+                'What changed, for the reviewer (optional)',
+              )}
               aria-label={t('publishing.noteLabel', 'Note for the reviewer')}
             />
-            <Button size="sm" disabled={busy} onClick={() => act(() => send(`${testRoute(testType, state.testId)}/reviews`, { note }))}>
-              {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
-              {t('publishing.askReview', 'Ask for review of version {{n}}', { n: state.latestVersion })}
+            <Button
+              size="sm"
+              disabled={busy}
+              onClick={() =>
+                act(() => send(`${testRoute(testType, state.testId)}/reviews`, { note }))
+              }
+            >
+              {busy ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-1" />
+              )}
+              {t('publishing.askReview', 'Ask for review of version {{n}}', {
+                n: state.latestVersion,
+              })}
             </Button>
           </div>
         ) : (
-          <Button size="sm" disabled={busy} onClick={() => act(() => send(`${testRoute(testType, state.testId)}/publish`))}>
-            {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() => act(() => send(`${testRoute(testType, state.testId)}/publish`))}
+          >
+            {busy ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-1" />
+            )}
             {t('publishing.publish', 'Publish version {{n}}', { n: state.latestVersion })}
           </Button>
         ))

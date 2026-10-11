@@ -29,7 +29,10 @@ function header(incident: Incident): string {
 
 function serverApiRepro(incident: Incident): string {
   const trigger = incident.trigger as {
-    method?: string; path?: string; body?: unknown; userId?: number;
+    method?: string;
+    path?: string;
+    body?: unknown;
+    userId?: number;
   };
   const method = (trigger.method ?? 'GET').toLowerCase();
 
@@ -166,15 +169,20 @@ export async function generateRepro(incident: Incident, repoRoot: string): Promi
     : `server/__repro__/${incident.id}.repro.ts`;
 
   const confidence: ReproConfidence =
-    incident.kind === 'client-runtime' ? 'best-effort'
-    : incident.kind === 'runner' ? 'medium'
-    : 'high';
+    incident.kind === 'client-runtime'
+      ? 'best-effort'
+      : incident.kind === 'runner'
+        ? 'medium'
+        : 'high';
 
   const content =
-    incident.kind === 'server-api' ? serverApiRepro(incident)
-    : incident.kind === 'job' ? jobRepro(incident)
-    : incident.kind === 'runner' ? runnerRepro(incident)
-    : clientRuntimeRepro(incident);
+    incident.kind === 'server-api'
+      ? serverApiRepro(incident)
+      : incident.kind === 'job'
+        ? jobRepro(incident)
+        : incident.kind === 'runner'
+          ? runnerRepro(incident)
+          : clientRuntimeRepro(incident);
 
   const absolute = path.join(repoRoot, relativePath);
   await fs.mkdir(path.dirname(absolute), { recursive: true });

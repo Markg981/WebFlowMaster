@@ -57,7 +57,10 @@ export function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () =
             {t('security.recoveryCodes.copy', 'Copy')}
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <a href={`data:text/plain;charset=utf-8,${encodeURIComponent(text + '\n')}`} download="recovery-codes.txt">
+            <a
+              href={`data:text/plain;charset=utf-8,${encodeURIComponent(text + '\n')}`}
+              download="recovery-codes.txt"
+            >
               <Download className="h-4 w-4 mr-1" />
               {t('security.recoveryCodes.download', 'Download')}
             </a>
@@ -96,7 +99,9 @@ export default function MfaSetup({ onEnabled }: { onEnabled: () => void }) {
     setBusy(true);
     setError('');
     try {
-      const result = await postJson<{ recoveryCodes: string[] }>('/api/mfa/enrollment/confirm', { code: code.trim() });
+      const result = await postJson<{ recoveryCodes: string[] }>('/api/mfa/enrollment/confirm', {
+        code: code.trim(),
+      });
       setRecoveryCodes(result.recoveryCodes);
     } catch (e) {
       setError((e as Error).message);
@@ -128,9 +133,15 @@ export default function MfaSetup({ onEnabled }: { onEnabled: () => void }) {
         )}
       </p>
       <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-        <img src={enrollment.qrDataUrl} alt={t('security.mfa.qrAlt', 'QR code for your authenticator app')} className="h-44 w-44 rounded border bg-white p-1" />
+        <img
+          src={enrollment.qrDataUrl}
+          alt={t('security.mfa.qrAlt', 'QR code for your authenticator app')}
+          className="h-44 w-44 rounded border bg-white p-1"
+        />
         <div className="text-xs space-y-1">
-          <p className="text-muted-foreground">{t('security.mfa.manual', 'Or type this key in by hand:')}</p>
+          <p className="text-muted-foreground">
+            {t('security.mfa.manual', 'Or type this key in by hand:')}
+          </p>
           <code className="block break-all bg-muted px-2 py-1 rounded" data-testid="mfa-secret">
             {enrollment.secret.replace(/(.{4})/g, '$1 ').trim()}
           </code>

@@ -4,12 +4,12 @@ import type { Request, Response, NextFunction } from 'express';
 
 /**
  * Correlation ID Store
- * 
+ *
  * Uses Node.js AsyncLocalStorage to propagate a unique correlation ID
  * through the entire async call chain of a request — including database
  * queries, BullMQ jobs, and Playwright execution — without passing it
  * as an explicit parameter.
- * 
+ *
  * Usage in any file:
  *   import { getCorrelationId } from './middleware/correlation';
  *   const cid = getCorrelationId(); // returns the current ID or undefined
@@ -23,7 +23,7 @@ export const correlationStore = new AsyncLocalStorage<CorrelationContext>();
 
 /**
  * Express middleware that creates or adopts a Correlation ID for each request.
- * 
+ *
  * - If the client sends `X-Correlation-Id`, it is reused (useful for frontend-initiated traces).
  * - Otherwise, a new short UUID is generated.
  * - The ID is set on the response header so the client can see it.

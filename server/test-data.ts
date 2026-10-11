@@ -15,7 +15,9 @@ export class SharedDataError extends Error {}
 
 /** Every set of the organization as {{data.<set>.<column>}} values. */
 export async function loadDataVariables(tx: TenantTx): Promise<Record<string, string>> {
-  const sets = await tx.select({ name: testDataSets.name, columns: testDataSets.columns, rows: testDataSets.rows }).from(testDataSets);
+  const sets = await tx
+    .select({ name: testDataSets.name, columns: testDataSets.columns, rows: testDataSets.rows })
+    .from(testDataSets);
   return dataVariables(sets);
 }
 
@@ -23,10 +25,17 @@ export async function loadDataVariables(tx: TenantTx): Promise<Record<string, st
  * The dataset to run: the test's own rows, or the shared set's rows when it points at one.
  * A set deleted since is an error that names it, never a silent single run.
  */
-export async function expandSharedDataset<T extends { dataset?: unknown; name?: string }>(tx: TenantTx, test: T): Promise<T> {
+export async function expandSharedDataset<T extends { dataset?: unknown; name?: string }>(
+  tx: TenantTx,
+  test: T,
+): Promise<T> {
   const id = sharedSetIdOf(test.dataset);
   if (id === null) return test;
-  const [set] = await tx.select({ rows: testDataSets.rows }).from(testDataSets).where(eq(testDataSets.id, id)).limit(1);
+  const [set] = await tx
+    .select({ rows: testDataSets.rows })
+    .from(testDataSets)
+    .where(eq(testDataSets.id, id))
+    .limit(1);
   if (!set) {
     throw new SharedDataError(
       `${test.name ? `${test.name} uses` : 'This test uses'} shared data set ${id}, which no longer exists. Choose another set or give the test its own rows.`,

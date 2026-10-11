@@ -46,20 +46,30 @@ export function parseMockSpec(value: string): MockSpec | { error: string } {
     method = methodMatch[1].toUpperCase();
     pattern = methodMatch[2].trim();
   }
-  if (!pattern) return { error: 'Name the address to answer: a URL or a pattern such as **/api/orders*.' };
+  if (!pattern)
+    return { error: 'Name the address to answer: a URL or a pattern such as **/api/orders*.' };
 
   let status = 200;
   let delayMs = 0;
   const statusText = statusPart.trim();
   if (statusText) {
     const match = /^(\d{3})(?:\s+after\s+(\d+)\s*(ms|s))?$/i.exec(statusText);
-    if (!match) return { error: `"${statusText}" is not a status: write 200, 404, or 200 after 1500ms.` };
+    if (!match)
+      return { error: `"${statusText}" is not a status: write 200, 404, or 200 after 1500ms.` };
     status = Number(match[1]);
     if (status < 100 || status > 599) return { error: `${status} is not an HTTP status.` };
     if (match[2]) delayMs = Number(match[2]) * (match[3].toLowerCase() === 's' ? 1000 : 1);
-    if (delayMs > MAX_MOCK_DELAY_MS) return { error: `A delay of at most ${MAX_MOCK_DELAY_MS / 1000} s.` };
+    if (delayMs > MAX_MOCK_DELAY_MS)
+      return { error: `A delay of at most ${MAX_MOCK_DELAY_MS / 1000} s.` };
   }
-  return { method, pattern, status, delayMs, body, contentType: looksLikeJson(body) ? 'application/json' : 'text/plain; charset=utf-8' };
+  return {
+    method,
+    pattern,
+    status,
+    delayMs,
+    body,
+    contentType: looksLikeJson(body) ? 'application/json' : 'text/plain; charset=utf-8',
+  };
 }
 
 function looksLikeJson(body: string): boolean {
@@ -73,9 +83,16 @@ function looksLikeJson(body: string): boolean {
 }
 
 /** Mocks and blocks a run has set, so clearMocks can take them all back. */
-const installed = new WeakMap<BrowserContext, Array<{ pattern: string; handler: (route: Route) => Promise<void> }>>();
+const installed = new WeakMap<
+  BrowserContext,
+  Array<{ pattern: string; handler: (route: Route) => Promise<void> }>
+>();
 
-function remember(context: BrowserContext, pattern: string, handler: (route: Route) => Promise<void>) {
+function remember(
+  context: BrowserContext,
+  pattern: string,
+  handler: (route: Route) => Promise<void>,
+) {
   const list = installed.get(context) ?? [];
   list.push({ pattern, handler });
   installed.set(context, list);
@@ -86,13 +103,15 @@ export async function installMock(context: BrowserContext, spec: MockSpec): Prom
     // A route for another method passes the request on, to an earlier route or the network.
     if (spec.method && route.request().method() !== spec.method) return route.fallback();
     if (spec.delayMs > 0) await new Promise((resolve) => setTimeout(resolve, spec.delayMs));
-    await route.fulfill({
-      status: spec.status,
-      contentType: spec.contentType,
-      body: spec.body,
-      // A page on another origin than the API would otherwise refuse the answer.
-      headers: { 'access-control-allow-origin': '*' },
-    }).catch(() => undefined);
+    await route
+      .fulfill({
+        status: spec.status,
+        contentType: spec.contentType,
+        body: spec.body,
+        // A page on another origin than the API would otherwise refuse the answer.
+        headers: { 'access-control-allow-origin': '*' },
+      })
+      .catch(() => undefined);
   };
   await context.route(spec.pattern, handler);
   remember(context, spec.pattern, handler);
@@ -108,7 +127,8 @@ export async function installBlock(context: BrowserContext, pattern: string): Pr
 /** Takes back every mock and block the test set: the page talks to the real servers again. */
 export async function clearMocks(context: BrowserContext): Promise<number> {
   const list = installed.get(context) ?? [];
-  for (const { pattern, handler } of list) await context.unroute(pattern, handler).catch(() => undefined);
+  for (const { pattern, handler } of list)
+    await context.unroute(pattern, handler).catch(() => undefined);
   installed.delete(context);
   return list.length;
 }

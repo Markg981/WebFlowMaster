@@ -2,7 +2,14 @@ import { Router, type Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm';
-import { AUDIT_ACTIONS, apiTests, environments, loadTestRuns, loadTests, testDataSets } from '@shared/schema';
+import {
+  AUDIT_ACTIONS,
+  apiTests,
+  environments,
+  loadTestRuns,
+  loadTests,
+  testDataSets,
+} from '@shared/schema';
 import { dataSetProblem, loadTestSchema, type LoadTestDefinition } from '@shared/load-test';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
@@ -27,12 +34,17 @@ const router = Router();
 const logger = await loggerPromise;
 
 /** What starts a run. A field so the tests can wait for the run they started. */
-export const loadRunner: { start: (runId: string, organizationId: number, userId: number) => Promise<void> } = {
+export const loadRunner: {
+  start: (runId: string, organizationId: number, userId: number) => Promise<void>;
+} = {
   start: executeLoadRun,
 };
 
 class LoadError extends Error {
-  constructor(readonly status: number, message: string) {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
     super(message);
   }
 }
@@ -42,8 +54,10 @@ function fail(res: Response, error: unknown, what: string) {
   if (quota) return res.status(429).json(quota);
   if (error instanceof LoadError) return res.status(error.status).json({ error: error.message });
   const message = (error as Error)?.message ?? '';
-  if (/unique|duplicate/i.test(message)) return res.status(409).json({ error: 'A load test with this name already exists.' });
-  if (/foreign key|row-level security/i.test(message)) return res.status(400).json({ error: 'Invalid project ID or project does not exist.' });
+  if (/unique|duplicate/i.test(message))
+    return res.status(409).json({ error: 'A load test with this name already exists.' });
+  if (/foreign key|row-level security/i.test(message))
+    return res.status(400).json({ error: 'Invalid project ID or project does not exist.' });
   logger.error({ message: `Failed to ${what}`, error: message });
   return res.status(500).json({ error: `Failed to ${what}.` });
 }
@@ -69,9 +83,15 @@ async function editableTest(tx: TenantTx, id: number) {
 }
 
 /** The API tests and the data set a definition names exist, and can be read by whoever saves it. */
-async function checkReferences(tx: TenantTx, definition: Pick<LoadTestDefinition, 'steps' | 'dataSetId' | 'dataMode' | 'stages'>) {
+async function checkReferences(
+  tx: TenantTx,
+  definition: Pick<LoadTestDefinition, 'steps' | 'dataSetId' | 'dataMode' | 'stages'>,
+) {
   const ids = [...new Set(definition.steps.map((step) => step.apiTestId))];
-  const found = await tx.select({ id: apiTests.id }).from(apiTests).where(inArray(apiTests.id, ids));
+  const found = await tx
+    .select({ id: apiTests.id })
+    .from(apiTests)
+    .where(inArray(apiTests.id, ids));
   const known = new Set(found.map((row) => row.id));
   const missing = ids.find((id) => !known.has(id));
   if (missing !== undefined) throw new LoadError(400, `API test #${missing} not found.`);
@@ -79,7 +99,12 @@ async function checkReferences(tx: TenantTx, definition: Pick<LoadTestDefinition
     const [set] = await tx
       .select({ rows: sql<number>`jsonb_array_length(${testDataSets.rows})`.mapWith(Number) })
       .from(testDataSets)
-      .where(and(eq(testDataSets.id, definition.dataSetId), eq(testDataSets.organizationId, getTenantOrgId()!)))
+      .where(
+        and(
+          eq(testDataSets.id, definition.dataSetId),
+          eq(testDataSets.organizationId, getTenantOrgId()!),
+        ),
+      )
       .limit(1);
     if (!set) throw new LoadError(400, 'Data set not found.');
     const problem = dataSetProblem(definition, set.rows);
@@ -92,12 +117,28 @@ async function settleInterrupted(tx: TenantTx) {
   const staleBefore = new Date(Date.now() - LOAD_HEARTBEAT_STALE_MS);
   await tx
     .update(loadTestRuns)
-    .set({ status: 'error', error: 'Interrupted: the server running it stopped.', finishedAt: new Date() })
-    .where(and(eq(loadTestRuns.status, 'running'), lt(sql`coalesce(${loadTestRuns.heartbeatAt}, ${loadTestRuns.startedAt})`, staleBefore)));
+    .set({
+      status: 'error',
+      error: 'Interrupted: the server running it stopped.',
+      finishedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(loadTestRuns.status, 'running'),
+        lt(sql`coalesce(${loadTestRuns.heartbeatAt}, ${loadTestRuns.startedAt})`, staleBefore),
+      ),
+    );
 }
 
 /** A run as the page reads it: not the definition it keeps for itself. */
-const shownRun = ({ organizationId: _org, projectId: _project, definition: _definition, requestedBy: _by, heartbeatAt: _beat, ...shown }: typeof loadTestRuns.$inferSelect) => shown;
+const shownRun = ({
+  organizationId: _org,
+  projectId: _project,
+  definition: _definition,
+  requestedBy: _by,
+  heartbeatAt: _beat,
+  ...shown
+}: typeof loadTestRuns.$inferSelect) => shown;
 
 const runColumns = {
   id: loadTestRuns.id,
@@ -117,7 +158,12 @@ router.get('/api/load-tests', requireRole('viewer'), async (_req, res) => {
       await settleInterrupted(tx);
       const all = await tx.select().from(loadTests).orderBy(loadTests.name);
       const latest = await tx
-        .selectDistinctOn([loadTestRuns.loadTestId], { loadTestId: loadTestRuns.loadTestId, id: loadTestRuns.id, status: loadTestRuns.status, startedAt: loadTestRuns.startedAt })
+        .selectDistinctOn([loadTestRuns.loadTestId], {
+          loadTestId: loadTestRuns.loadTestId,
+          id: loadTestRuns.id,
+          status: loadTestRuns.status,
+          startedAt: loadTestRuns.startedAt,
+        })
         .from(loadTestRuns)
         .orderBy(loadTestRuns.loadTestId, desc(loadTestRuns.startedAt));
       const byTest = new Map(latest.map((run) => [run.loadTestId, run]));
@@ -136,7 +182,12 @@ router.get('/api/load-tests/:id', requireRole('viewer'), async (req, res) => {
       await settleInterrupted(tx);
       const [test] = await tx.select().from(loadTests).where(eq(loadTests.id, id)).limit(1);
       if (!test) return null;
-      const runs = await tx.select(runColumns).from(loadTestRuns).where(eq(loadTestRuns.loadTestId, id)).orderBy(desc(loadTestRuns.startedAt)).limit(10);
+      const runs = await tx
+        .select(runColumns)
+        .from(loadTestRuns)
+        .where(eq(loadTestRuns.loadTestId, id))
+        .orderBy(desc(loadTestRuns.startedAt))
+        .limit(10);
       return { ...test, runs };
     });
     if (!found) return res.status(404).json({ error: 'Load test not found.' });
@@ -160,14 +211,19 @@ const valuesOf = (data: LoadTestDefinition) => ({
 
 router.post('/api/load-tests', requireRole('editor'), async (req, res) => {
   const parsed = loadTestSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid load test' });
+  if (!parsed.success)
+    return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid load test' });
   try {
     const created = await withTenantTransaction(async (tx) => {
       await editableProject(tx, parsed.data.projectId ?? null);
       await checkReferences(tx, parsed.data);
       const [row] = await tx
         .insert(loadTests)
-        .values({ ...valuesOf(parsed.data), organizationId: getTenantOrgId()!, createdBy: req.user!.id })
+        .values({
+          ...valuesOf(parsed.data),
+          organizationId: getTenantOrgId()!,
+          createdBy: req.user!.id,
+        })
         .returning();
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.LOAD_TEST_CREATED,
@@ -186,7 +242,8 @@ router.post('/api/load-tests', requireRole('editor'), async (req, res) => {
 
 router.put('/api/load-tests/:id', requireRole('editor'), async (req, res) => {
   const parsed = loadTestSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid load test' });
+  if (!parsed.success)
+    return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid load test' });
   try {
     const id = idOf(req.params.id);
     const updated = await withTenantTransaction(async (tx) => {
@@ -239,7 +296,9 @@ router.delete('/api/load-tests/:id', requireRole('editor'), async (req, res) => 
   }
 });
 
-const runSchema = z.object({ environmentId: z.number().int().positive().optional().nullable() }).strict();
+const runSchema = z
+  .object({ environmentId: z.number().int().positive().optional().nullable() })
+  .strict();
 
 /**
  * POST /api/load-tests/:id/runs — { environmentId? }: starts a run in this server process and
@@ -247,9 +306,13 @@ const runSchema = z.object({ environmentId: z.number().int().positive().optional
  */
 router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) => {
   const parsed = runSchema.safeParse(req.body ?? {});
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid run' });
+  if (!parsed.success)
+    return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid run' });
   if (!reserveLoadSlot()) {
-    return res.status(503).json({ error: 'This server is already running as many load tests as it may. Try again when one ends.' });
+    return res.status(503).json({
+      error:
+        'This server is already running as many load tests as it may. Try again when one ends.',
+    });
   }
   let started = false;
   try {
@@ -261,13 +324,25 @@ router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) 
       const test = await editableTest(tx, id);
       await checkReferences(tx, test);
       if (parsed.data.environmentId) {
-        const [environment] = await tx.select({ id: environments.id }).from(environments).where(eq(environments.id, parsed.data.environmentId)).limit(1);
+        const [environment] = await tx
+          .select({ id: environments.id })
+          .from(environments)
+          .where(eq(environments.id, parsed.data.environmentId))
+          .limit(1);
         if (!environment) throw new LoadError(404, 'Environment not found.');
       }
       await settleInterrupted(tx);
       // Two load tests at once would measure each other.
-      const [busy] = await tx.select({ id: loadTestRuns.id }).from(loadTestRuns).where(eq(loadTestRuns.status, 'running')).limit(1);
-      if (busy) throw new LoadError(409, 'Another load test of the organization is running. Wait for it to end, or cancel it.');
+      const [busy] = await tx
+        .select({ id: loadTestRuns.id })
+        .from(loadTestRuns)
+        .where(eq(loadTestRuns.status, 'running'))
+        .limit(1);
+      if (busy)
+        throw new LoadError(
+          409,
+          'Another load test of the organization is running. Wait for it to end, or cancel it.',
+        );
       const [row] = await tx
         .insert(loadTestRuns)
         .values({
@@ -292,9 +367,11 @@ router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) 
     });
     started = true;
     // Not awaited: the page follows the run, and the runner writes whatever happens on it.
-    void loadRunner.start(run.id, organizationId, req.user!.id).catch((error) =>
-      logger.error({ message: 'Load run crashed', runId: run.id, error: String(error) }),
-    );
+    void loadRunner
+      .start(run.id, organizationId, req.user!.id)
+      .catch((error) =>
+        logger.error({ message: 'Load run crashed', runId: run.id, error: String(error) }),
+      );
     res.status(202).json(run);
   } catch (error) {
     fail(res, error, 'start the load test');
@@ -307,7 +384,11 @@ router.get('/api/load-test-runs/:runId', requireRole('viewer'), async (req, res)
   try {
     const run = await withTenantTransaction(async (tx) => {
       await settleInterrupted(tx);
-      const [row] = await tx.select(runColumns).from(loadTestRuns).where(eq(loadTestRuns.id, req.params.runId)).limit(1);
+      const [row] = await tx
+        .select(runColumns)
+        .from(loadTestRuns)
+        .where(eq(loadTestRuns.id, req.params.runId))
+        .limit(1);
       return row;
     });
     if (!run) return res.status(404).json({ error: 'Run not found.' });
@@ -321,11 +402,19 @@ router.get('/api/load-test-runs/:runId', requireRole('viewer'), async (req, res)
 router.post('/api/load-test-runs/:runId/cancel', requireRole('editor'), async (req, res) => {
   try {
     const run = await withTenantTransaction(async (tx) => {
-      const [current] = await tx.select(runColumns).from(loadTestRuns).where(eq(loadTestRuns.id, req.params.runId)).limit(1);
+      const [current] = await tx
+        .select(runColumns)
+        .from(loadTestRuns)
+        .where(eq(loadTestRuns.id, req.params.runId))
+        .limit(1);
       if (!current) throw new LoadError(404, 'Run not found.');
       await editableTest(tx, current.loadTestId);
       if (current.status !== 'running') throw new LoadError(409, 'The run is already over.');
-      const [row] = await tx.update(loadTestRuns).set({ cancelRequested: true }).where(eq(loadTestRuns.id, current.id)).returning();
+      const [row] = await tx
+        .update(loadTestRuns)
+        .set({ cancelRequested: true })
+        .where(eq(loadTestRuns.id, current.id))
+        .returning();
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.LOAD_TEST_CANCELLED,
         actor: auditActor(req),

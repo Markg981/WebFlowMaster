@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -32,8 +34,20 @@ const members = [
   { id: 3, username: 'luca', role: 'viewer', createdAt: '2026-03-01T00:00:00.000Z' },
 ];
 const invitations = [
-  { id: 9, username: 'newcomer', role: 'viewer', expiresAt: '2099-01-01T00:00:00.000Z', acceptedAt: null },
-  { id: 10, username: 'joined', role: 'editor', expiresAt: '2099-01-01T00:00:00.000Z', acceptedAt: '2026-09-01T00:00:00.000Z' },
+  {
+    id: 9,
+    username: 'newcomer',
+    role: 'viewer',
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    acceptedAt: null,
+  },
+  {
+    id: 10,
+    username: 'joined',
+    role: 'editor',
+    expiresAt: '2099-01-01T00:00:00.000Z',
+    acceptedAt: '2026-09-01T00:00:00.000Z',
+  },
 ];
 
 const ok = (body: unknown) => ({ ok: true, json: async () => body });
@@ -48,16 +62,26 @@ function renderCard() {
 }
 
 const calls = (method: string, url: string) =>
-  fetchMock.mock.calls.filter(([calledUrl, init]: any[]) => calledUrl === url && (init?.method ?? 'GET') === method);
+  fetchMock.mock.calls.filter(
+    ([calledUrl, init]: any[]) => calledUrl === url && (init?.method ?? 'GET') === method,
+  );
 
 beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
-    if (method === 'GET' && url === '/api/organization') return ok({ organization: { id: 1, name: 'Acme' }, members });
+    if (method === 'GET' && url === '/api/organization')
+      return ok({ organization: { id: 1, name: 'Acme' }, members });
     if (method === 'GET' && url === '/api/organization/invitations') return ok(invitations);
     if (method === 'POST' && url === '/api/organization/invitations') {
-      return ok({ id: 11, username: 'giulia', role: 'editor', token: 'f'.repeat(64), expiresAt: '2099-01-01T00:00:00.000Z', acceptedAt: null });
+      return ok({
+        id: 11,
+        username: 'giulia',
+        role: 'editor',
+        token: 'f'.repeat(64),
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        acceptedAt: null,
+      });
     }
     if (method === 'DELETE' && url === '/api/organization/members/2') {
       return ok({ removed: 2, transferredTo: { id: 3, username: 'luca' }, transferred: {} });
@@ -89,19 +113,28 @@ describe('MembersCard', () => {
     renderCard();
     await screen.findByText('maria');
 
-    fireEvent.change(screen.getByLabelText('Username for the new account'), { target: { value: 'giulia' } });
+    fireEvent.change(screen.getByLabelText('Username for the new account'), {
+      target: { value: 'giulia' },
+    });
     fireEvent.click(screen.getByRole('button', { name: /Create invitation/i }));
 
     const link = (await screen.findByLabelText('Invitation link')) as HTMLInputElement;
-    expect(link.value).toBe(`${window.location.origin}/auth?invitation=${'f'.repeat(64)}&username=giulia`);
-    expect(JSON.parse(calls('POST', '/api/organization/invitations')[0][1].body)).toEqual({ username: 'giulia', role: 'editor' });
+    expect(link.value).toBe(
+      `${window.location.origin}/auth?invitation=${'f'.repeat(64)}&username=giulia`,
+    );
+    expect(JSON.parse(calls('POST', '/api/organization/invitations')[0][1].body)).toEqual({
+      username: 'giulia',
+      role: 'editor',
+    });
   });
 
   it('refuses a username too short to be one before asking the server', async () => {
     renderCard();
     await screen.findByText('maria');
 
-    fireEvent.change(screen.getByLabelText('Username for the new account'), { target: { value: 'ab' } });
+    fireEvent.change(screen.getByLabelText('Username for the new account'), {
+      target: { value: 'ab' },
+    });
     fireEvent.click(screen.getByRole('button', { name: /Create invitation/i }));
 
     expect(await screen.findByText(/at least 3 characters/)).toBeInTheDocument();
@@ -116,28 +149,39 @@ describe('MembersCard', () => {
     expect(await screen.findByText('Remove maria?')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Remove member/i }));
 
-    expect(await screen.findByText('maria was removed. What they made now belongs to luca.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('maria was removed. What they made now belongs to luca.'),
+    ).toBeInTheDocument();
     // Nobody was chosen, so the server decides: the owner removing them.
     expect(JSON.parse(calls('DELETE', '/api/organization/members/2')[0][1].body)).toEqual({});
   });
 
   it('issues a password reset link for a member, not for the owner themselves', async () => {
-    fetchMock.mockImplementationOnce(async () => ok({ organization: { id: 1, name: 'Acme' }, members }));
+    fetchMock.mockImplementationOnce(async () =>
+      ok({ organization: { id: 1, name: 'Acme' }, members }),
+    );
     renderCard();
     await screen.findByText('maria');
     expect(screen.queryByRole('button', { name: 'Password reset link for founder' })).toBeNull();
 
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       if (init?.method === 'POST' && url === '/api/organization/members/2/password-reset') {
-        return ok({ username: 'maria', token: 'r'.repeat(40), expiresAt: '2099-01-01T00:00:00.000Z' });
+        return ok({
+          username: 'maria',
+          token: 'r'.repeat(40),
+          expiresAt: '2099-01-01T00:00:00.000Z',
+        });
       }
-      if (url === '/api/organization') return ok({ organization: { id: 1, name: 'Acme' }, members });
+      if (url === '/api/organization')
+        return ok({ organization: { id: 1, name: 'Acme' }, members });
       return ok(invitations);
     });
     fireEvent.click(screen.getByRole('button', { name: 'Password reset link for maria' }));
 
     const link = (await screen.findByLabelText('Password reset link')) as HTMLInputElement;
-    expect(link.value).toBe(`${window.location.origin}/auth?reset=${'r'.repeat(40)}&username=maria`);
+    expect(link.value).toBe(
+      `${window.location.origin}/auth?reset=${'r'.repeat(40)}&username=maria`,
+    );
   });
 
   it('revokes an invitation', async () => {
@@ -152,8 +196,8 @@ describe('MembersCard', () => {
 
 describe('invitationLink', () => {
   it('escapes what it carries', () => {
-    expect(invitationLink('https://wfm.example.com', { token: 'abc', username: 'maria rossi' })).toBe(
-      'https://wfm.example.com/auth?invitation=abc&username=maria+rossi',
-    );
+    expect(
+      invitationLink('https://wfm.example.com', { token: 'abc', username: 'maria rossi' }),
+    ).toBe('https://wfm.example.com/auth?invitation=abc&username=maria+rossi');
   });
 });

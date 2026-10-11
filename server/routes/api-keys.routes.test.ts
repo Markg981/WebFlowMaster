@@ -9,7 +9,12 @@ import { hashApiKey } from '../api-keys';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -53,13 +58,19 @@ beforeEach(async () => {
 
 describe('POST /api/api-keys', () => {
   it('returns the key once, and stores only its hash', async () => {
-    const response = await request(app).post('/api/api-keys').send({ name: 'GitHub Actions' }).expect(201);
+    const response = await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'GitHub Actions' })
+      .expect(201);
 
     expect(response.body.key).toMatch(/^wfm_/);
     expect(response.body.prefix).toBe(response.body.key.slice(0, 12));
     expect(response.body.hashedKey).toBeUndefined();
 
-    const [stored] = await privilegedDb.select().from(apiKeys).where(eq(apiKeys.id, response.body.id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.id, response.body.id));
     expect(stored.hashedKey).toBe(hashApiKey(response.body.key));
     expect(JSON.stringify(stored)).not.toContain(response.body.key);
   });
@@ -80,7 +91,10 @@ describe('POST /api/api-keys', () => {
       .send({ name: 'Sneaky', organizationId: otherOrganizationId, userId: otherUserId })
       .expect(201);
 
-    const [stored] = await privilegedDb.select().from(apiKeys).where(eq(apiKeys.id, response.body.id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.id, response.body.id));
     expect(stored.organizationId).toBe(organizationId);
     expect(stored.userId).toBe(userId);
   });
@@ -97,7 +111,10 @@ describe('POST /api/api-keys', () => {
   });
 
   it('gives a key a lifetime when one was asked for', async () => {
-    const response = await request(app).post('/api/api-keys').send({ name: 'Short', expiresInDays: 7 }).expect(201);
+    const response = await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'Short', expiresInDays: 7 })
+      .expect(201);
 
     const expiresAt = new Date(response.body.expiresAt).getTime();
     expect(expiresAt).toBeGreaterThan(Date.now());
@@ -118,7 +135,12 @@ describe('POST /api/api-keys', () => {
 describe('GET /api/api-keys', () => {
   it("shows this organization's keys and not another's", async () => {
     await request(app).post('/api/api-keys').send({ name: 'Ours' }).expect(201);
-    currentUser = { id: otherUserId, username: 'other-keys-user', organizationId: otherOrganizationId, role: 'editor' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-keys-user',
+      organizationId: otherOrganizationId,
+      role: 'editor',
+    };
     await request(app).post('/api/api-keys').send({ name: 'Theirs' }).expect(201);
 
     const theirs = await request(app).get('/api/api-keys').expect(200);
@@ -150,11 +172,19 @@ describe('DELETE /api/api-keys/:id', () => {
 
   it("cannot revoke another organization's key, and is not told it exists", async () => {
     const created = await request(app).post('/api/api-keys').send({ name: 'Ours' }).expect(201);
-    currentUser = { id: otherUserId, username: 'other-keys-user', organizationId: otherOrganizationId, role: 'editor' };
+    currentUser = {
+      id: otherUserId,
+      username: 'other-keys-user',
+      organizationId: otherOrganizationId,
+      role: 'editor',
+    };
 
     await request(app).delete(`/api/api-keys/${created.body.id}`).expect(404);
 
-    const [stored] = await privilegedDb.select().from(apiKeys).where(eq(apiKeys.id, created.body.id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.id, created.body.id));
     expect(stored.revokedAt).toBeNull();
   });
 });
@@ -165,10 +195,15 @@ describe('the user a key belongs to', () => {
 
     await privilegedDb.delete(users).where(eq(users.id, userId));
 
-    const remaining = await privilegedDb.select().from(apiKeys).where(eq(apiKeys.id, created.body.id));
+    const remaining = await privilegedDb
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.id, created.body.id));
     expect(remaining).toHaveLength(0);
 
     // Put the member back for the tests that follow.
-    await privilegedDb.insert(users).values({ id: userId, username: 'keys-user', password: 'hashed', organizationId });
+    await privilegedDb
+      .insert(users)
+      .values({ id: userId, username: 'keys-user', password: 'hashed', organizationId });
   });
 });

@@ -85,7 +85,11 @@ function sameCode(a: string, b: string): boolean {
 }
 
 /** The step a code belongs to, within the allowed drift, or null. */
-export function matchingStep(secret: string, code: string, now: number = Date.now()): number | null {
+export function matchingStep(
+  secret: string,
+  code: string,
+  now: number = Date.now(),
+): number | null {
   const candidate = code.replace(/\s/g, '');
   if (!/^\d{6}$/.test(candidate)) return null;
   const step = currentStep(now);
@@ -127,8 +131,24 @@ type Tx = Parameters<Parameters<typeof privilegedDb.transaction>[0]>[0];
  * The one statement here that names an organization's table: the entry for a change made in
  * the same transaction. The organization is the actor's own, from their session.
  */
-async function audit(tx: Tx, organizationId: number, actor: AuditActor, action: AuditAction, metadata?: Record<string, unknown>) {
-  await tx.insert(auditLog).values({ organizationId, actorUserId: actor.id, actorUsername: actor.username, apiKeyId: actor.apiKeyId ?? null, ipAddress: actor.ipAddress ?? null, action, targetType: 'user', targetId: String(actor.id), metadata: metadata ?? null });
+async function audit(
+  tx: Tx,
+  organizationId: number,
+  actor: AuditActor,
+  action: AuditAction,
+  metadata?: Record<string, unknown>,
+) {
+  await tx.insert(auditLog).values({
+    organizationId,
+    actorUserId: actor.id,
+    actorUsername: actor.username,
+    apiKeyId: actor.apiKeyId ?? null,
+    ipAddress: actor.ipAddress ?? null,
+    action,
+    targetType: 'user',
+    targetId: String(actor.id),
+    metadata: metadata ?? null,
+  });
 }
 
 export interface MfaStatus {
@@ -141,7 +161,11 @@ export interface MfaStatus {
 
 export async function mfaStatus(userId: number, organizationId: number): Promise<MfaStatus> {
   const [row] = await privilegedDb
-    .select({ required: organizations.mfaRequired, enabledAt: userMfa.enabledAt, recoveryCodes: userMfa.recoveryCodes })
+    .select({
+      required: organizations.mfaRequired,
+      enabledAt: userMfa.enabledAt,
+      recoveryCodes: userMfa.recoveryCodes,
+    })
     .from(organizations)
     .leftJoin(userMfa, eq(userMfa.userId, userId))
     .where(eq(organizations.id, organizationId))
@@ -155,7 +179,11 @@ export async function mfaStatus(userId: number, organizationId: number): Promise
 }
 
 export async function isMfaEnabled(userId: number): Promise<boolean> {
-  const [row] = await privilegedDb.select({ enabledAt: userMfa.enabledAt }).from(userMfa).where(eq(userMfa.userId, userId)).limit(1);
+  const [row] = await privilegedDb
+    .select({ enabledAt: userMfa.enabledAt })
+    .from(userMfa)
+    .where(eq(userMfa.userId, userId))
+    .limit(1);
   return Boolean(row?.enabledAt);
 }
 
@@ -166,30 +194,63 @@ export async function isMfaEnabled(userId: number): Promise<boolean> {
  * code from the old one, so a stolen session cannot quietly move somebody's second factor to
  * the thief's phone.
  */
-export async function beginEnrollment(userId: number, account: string): Promise<{ secret: string; otpauthUri: string; qrDataUrl: string } | null> {
+export async function beginEnrollment(
+  userId: number,
+  account: string,
+): Promise<{ secret: string; otpauthUri: string; qrDataUrl: string } | null> {
   if (await isMfaEnabled(userId)) return null;
   const secret = base32Encode(randomBytes(20));
   const { encryptedValue, iv, authTag } = encryptSecret(secret);
   await privilegedDb
     .insert(userMfa)
-    .values({ userId, pendingSecretEncrypted: encryptedValue, pendingSecretIv: iv, pendingSecretAuthTag: authTag })
+    .values({
+      userId,
+      pendingSecretEncrypted: encryptedValue,
+      pendingSecretIv: iv,
+      pendingSecretAuthTag: authTag,
+    })
     .onConflictDoUpdate({
       target: userMfa.userId,
-      set: { pendingSecretEncrypted: encryptedValue, pendingSecretIv: iv, pendingSecretAuthTag: authTag, updatedAt: new Date() },
+      set: {
+        pendingSecretEncrypted: encryptedValue,
+        pendingSecretIv: iv,
+        pendingSecretAuthTag: authTag,
+        updatedAt: new Date(),
+      },
     });
   const uri = otpauthUri(secret, account);
-  return { secret, otpauthUri: uri, qrDataUrl: await QRCode.toDataURL(uri, { margin: 1, width: 220 }) };
+  return {
+    secret,
+    otpauthUri: uri,
+    qrDataUrl: await QRCode.toDataURL(uri, { margin: 1, width: 220 }),
+  };
 }
 
 /**
  * Finishes enrolling, if the code comes from the pending secret. Returns the recovery codes —
  * shown once, like an API key — or null for a wrong code or nothing pending.
  */
-export async function confirmEnrollment(userId: number, organizationId: number, actor: AuditActor, code: string): Promise<string[] | null> {
+export async function confirmEnrollment(
+  userId: number,
+  organizationId: number,
+  actor: AuditActor,
+  code: string,
+): Promise<string[] | null> {
   return privilegedDb.transaction(async (tx) => {
     const [row] = await tx.select().from(userMfa).where(eq(userMfa.userId, userId)).limit(1);
-    if (!row || row.enabledAt || !row.pendingSecretEncrypted || !row.pendingSecretIv || !row.pendingSecretAuthTag) return null;
-    const secret = decryptSecret(row.pendingSecretEncrypted, row.pendingSecretIv, row.pendingSecretAuthTag);
+    if (
+      !row ||
+      row.enabledAt ||
+      !row.pendingSecretEncrypted ||
+      !row.pendingSecretIv ||
+      !row.pendingSecretAuthTag
+    )
+      return null;
+    const secret = decryptSecret(
+      row.pendingSecretEncrypted,
+      row.pendingSecretIv,
+      row.pendingSecretAuthTag,
+    );
     const step = matchingStep(secret, code);
     if (step === null) return null;
 
@@ -223,8 +284,17 @@ export type SecondFactorMethod = 'totp' | 'recovery_code';
  * with a conditional update so two requests racing with the same code cannot both pass. A
  * recovery code is removed as it is used, the same way.
  */
-export async function verifySecondFactor(userId: number, organizationId: number, actor: AuditActor, input: string): Promise<SecondFactorMethod | null> {
-  const [row] = await privilegedDb.select().from(userMfa).where(eq(userMfa.userId, userId)).limit(1);
+export async function verifySecondFactor(
+  userId: number,
+  organizationId: number,
+  actor: AuditActor,
+  input: string,
+): Promise<SecondFactorMethod | null> {
+  const [row] = await privilegedDb
+    .select()
+    .from(userMfa)
+    .where(eq(userMfa.userId, userId))
+    .limit(1);
   if (!row?.enabledAt || !row.secretEncrypted || !row.secretIv || !row.secretAuthTag) return null;
 
   const trimmed = input.trim();
@@ -235,7 +305,12 @@ export async function verifySecondFactor(userId: number, organizationId: number,
     const accepted = await privilegedDb
       .update(userMfa)
       .set({ lastUsedStep: step })
-      .where(and(eq(userMfa.userId, userId), sql`(${userMfa.lastUsedStep} is null or ${userMfa.lastUsedStep} < ${step})`))
+      .where(
+        and(
+          eq(userMfa.userId, userId),
+          sql`(${userMfa.lastUsedStep} is null or ${userMfa.lastUsedStep} < ${step})`,
+        ),
+      )
       .returning();
     return accepted.length > 0 ? 'totp' : null;
   }
@@ -249,13 +324,19 @@ export async function verifySecondFactor(userId: number, organizationId: number,
       .returning();
     if (consumed.length === 0) return null;
     // Worth knowing: a recovery code in use usually means a lost phone, or somebody else.
-    await audit(tx, organizationId, actor, AUDIT_ACTIONS.MFA_RECOVERY_CODE_USED, { recoveryCodesLeft: consumed[0].recoveryCodes.length });
+    await audit(tx, organizationId, actor, AUDIT_ACTIONS.MFA_RECOVERY_CODE_USED, {
+      recoveryCodesLeft: consumed[0].recoveryCodes.length,
+    });
     return 'recovery_code' as const;
   });
 }
 
 /** A fresh set of recovery codes, replacing the old ones entirely. */
-export async function regenerateRecoveryCodes(userId: number, organizationId: number, actor: AuditActor): Promise<string[] | null> {
+export async function regenerateRecoveryCodes(
+  userId: number,
+  organizationId: number,
+  actor: AuditActor,
+): Promise<string[] | null> {
   return privilegedDb.transaction(async (tx) => {
     const { codes, hashes } = newRecoveryCodes();
     const updated = await tx
@@ -269,11 +350,22 @@ export async function regenerateRecoveryCodes(userId: number, organizationId: nu
   });
 }
 
-export async function disableMfa(userId: number, organizationId: number, actor: AuditActor, disabledBy: 'self' | 'owner' = 'self'): Promise<boolean> {
+export async function disableMfa(
+  userId: number,
+  organizationId: number,
+  actor: AuditActor,
+  disabledBy: 'self' | 'owner' = 'self',
+): Promise<boolean> {
   return privilegedDb.transaction(async (tx) => {
     const removed = await tx.delete(userMfa).where(eq(userMfa.userId, userId)).returning();
     if (removed.length === 0) return false;
-    await audit(tx, organizationId, actor, AUDIT_ACTIONS.MFA_DISABLED, disabledBy === 'owner' ? { by: 'owner', userId } : undefined);
+    await audit(
+      tx,
+      organizationId,
+      actor,
+      AUDIT_ACTIONS.MFA_DISABLED,
+      disabledBy === 'owner' ? { by: 'owner', userId } : undefined,
+    );
     return true;
   });
 }
@@ -284,9 +376,16 @@ export async function disableMfa(userId: number, organizationId: number, actor: 
  * Privileged because app_user may only read organizations; the id is the caller's own
  * organization, from their session, and the route allows owners only.
  */
-export async function setMfaRequired(organizationId: number, actor: AuditActor, required: boolean): Promise<void> {
+export async function setMfaRequired(
+  organizationId: number,
+  actor: AuditActor,
+  required: boolean,
+): Promise<void> {
   await privilegedDb.transaction(async (tx) => {
-    await tx.update(organizations).set({ mfaRequired: required }).where(eq(organizations.id, organizationId));
+    await tx
+      .update(organizations)
+      .set({ mfaRequired: required })
+      .where(eq(organizations.id, organizationId));
     await audit(tx, organizationId, actor, AUDIT_ACTIONS.MFA_POLICY_CHANGED, { required });
   });
 }

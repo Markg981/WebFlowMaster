@@ -7,7 +7,8 @@ vi.mock('./db', () => ({
   privilegedDb: { select: () => ({ from: async () => [{ count: organizationCount }] }) },
 }));
 
-const { canManageInstallation, installationAdmins, requireInstallationAdmin } = await import('./installation-admin');
+const { canManageInstallation, installationAdmins, requireInstallationAdmin } =
+  await import('./installation-admin');
 
 const owner = { username: 'olivia', role: 'owner', kind: 'person' };
 
@@ -38,7 +39,9 @@ describe('canManageInstallation', () => {
   });
 
   it('never lets a service account or nobody', async () => {
-    expect(await canManageInstallation({ ...owner, kind: 'service' }, { INSTALLATION_ADMINS: 'olivia' })).toBe(false);
+    expect(
+      await canManageInstallation({ ...owner, kind: 'service' }, { INSTALLATION_ADMINS: 'olivia' }),
+    ).toBe(false);
     expect(await canManageInstallation(undefined, {})).toBe(false);
   });
 });
@@ -47,8 +50,14 @@ describe('requireInstallationAdmin', () => {
   function res() {
     const r = { statusCode: 0, body: undefined as any };
     return Object.assign(r, {
-      status(code: number) { r.statusCode = code; return this; },
-      json(payload: unknown) { r.body = payload; return this; },
+      status(code: number) {
+        r.statusCode = code;
+        return this;
+      },
+      json(payload: unknown) {
+        r.body = payload;
+        return this;
+      },
     }) as unknown as Response & typeof r;
   }
 

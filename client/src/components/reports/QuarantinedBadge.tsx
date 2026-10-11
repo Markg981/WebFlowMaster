@@ -11,7 +11,10 @@ export default function QuarantinedBadge({ quarantined }: { quarantined?: boolea
     <Badge
       variant="outline"
       className="ml-2 font-normal whitespace-nowrap"
-      title={t('quarantine.badgeTitle', 'This test was in quarantine: a failure of it does not fail the run.')}
+      title={t(
+        'quarantine.badgeTitle',
+        'This test was in quarantine: a failure of it does not fail the run.',
+      )}
       data-testid="quarantined-badge"
     >
       <ShieldAlert className="mr-1 h-3 w-3" />

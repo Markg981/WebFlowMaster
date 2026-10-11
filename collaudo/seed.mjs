@@ -19,7 +19,9 @@ const COLLAUDO_URL = 'https://wfm.collaudo.test';
 const PASSWORD = 'Collaudo.2026!';
 
 if (process.env.WEBFLOW_PUBLIC_URL !== COLLAUDO_URL) {
-  console.error(`Refusing to run: WEBFLOW_PUBLIC_URL is not ${COLLAUDO_URL}. This script is only for the collaudo stack.`);
+  console.error(
+    `Refusing to run: WEBFLOW_PUBLIC_URL is not ${COLLAUDO_URL}. This script is only for the collaudo stack.`,
+  );
   process.exit(2);
 }
 
@@ -62,15 +64,23 @@ try {
   const summary = [];
   for (const organization of ORGANIZATIONS) {
     // The organization is the one its first person already belongs to, or a new one.
-    const first = await client.query('SELECT organization_id FROM users WHERE username = $1', [organization.people[0][0]]);
+    const first = await client.query('SELECT organization_id FROM users WHERE username = $1', [
+      organization.people[0][0],
+    ]);
     let organizationId = first.rows[0]?.organization_id;
     if (!organizationId) {
-      const created = await client.query('INSERT INTO organizations (name) VALUES ($1) RETURNING id', [organization.name]);
+      const created = await client.query(
+        'INSERT INTO organizations (name) VALUES ($1) RETURNING id',
+        [organization.name],
+      );
       organizationId = created.rows[0].id;
     }
 
     for (const [username, role] of organization.people) {
-      const existing = await client.query('SELECT organization_id, role FROM users WHERE username = $1', [username]);
+      const existing = await client.query(
+        'SELECT organization_id, role FROM users WHERE username = $1',
+        [username],
+      );
       if (existing.rows[0]) {
         summary.push([username, organization.name, existing.rows[0].role, 'already there']);
         continue;

@@ -3,12 +3,27 @@ import express from 'express';
 import request from 'supertest';
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from '../db';
-import { mobileTests, reportTestCaseResults, testPlanExecutions, testPlans, testQuarantines, projects, tests, testPlanSelectedTests, testPlanSchedules } from '@shared/schema';
+import {
+  mobileTests,
+  reportTestCaseResults,
+  testPlanExecutions,
+  testPlans,
+  testQuarantines,
+  projects,
+  tests,
+  testPlanSelectedTests,
+  testPlanSchedules,
+} from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -50,7 +65,10 @@ beforeAll(async () => {
     // The same binding tenancyMiddleware establishes in production. The dashboard route does
     // not need it; the flaky analysis queries org-scoped tables under RLS and does.
     if (!currentUser) return next();
-    runWithTenant(currentUser.organizationId, () => next(), { userId: currentUser.id, role: currentUser.role });
+    runWithTenant(currentUser.organizationId, () => next(), {
+      userId: currentUser.id,
+      role: currentUser.role,
+    });
   });
   app.use(analyticsRoutes);
 });
@@ -167,7 +185,13 @@ describe('GET /api/analytics/dashboard', () => {
 describe('GET /api/analytics/flaky', () => {
   async function recordResult(
     planId: string,
-    input: { testName: string; status: string; browser?: string | null; daysAgo: number; testVersion?: number | null },
+    input: {
+      testName: string;
+      status: string;
+      browser?: string | null;
+      daysAgo: number;
+      testVersion?: number | null;
+    },
   ) {
     const executionId = nextId('exec');
     const startedAt = new Date(Date.now() - input.daysAgo * 86_400_000);
@@ -204,26 +228,63 @@ describe('GET /api/analytics/flaky', () => {
     const plan = await createPlan(userId, 'Devices');
     const [{ id: mobileTestId }] = await privilegedDb
       .insert(mobileTests)
-      .values({ organizationId, name: 'Checkout on Android', platform: 'android', app: 'bs://a', deviceName: 'Pixel 8', steps: [] } as any)
+      .values({
+        organizationId,
+        name: 'Checkout on Android',
+        platform: 'android',
+        app: 'bs://a',
+        deviceName: 'Pixel 8',
+        steps: [],
+      } as any)
       .returning();
-    for (const [status, daysAgo] of [['Passed', 4], ['Failed', 3], ['Passed', 2]] as const) {
+    for (const [status, daysAgo] of [
+      ['Passed', 4],
+      ['Failed', 3],
+      ['Passed', 2],
+    ] as const) {
       const executionId = nextId('exec');
       const startedAt = new Date(Date.now() - daysAgo * 86_400_000);
-      await privilegedDb.insert(testPlanExecutions).values({ id: executionId, testPlanId: plan, organizationId, status: 'completed', startedAt } as any);
+      await privilegedDb.insert(testPlanExecutions).values({
+        id: executionId,
+        testPlanId: plan,
+        organizationId,
+        status: 'completed',
+        startedAt,
+      } as any);
       await privilegedDb.insert(reportTestCaseResults).values({
-        id: nextId('rep'), testPlanExecutionId: executionId, organizationId, testType: 'mobile', mobileTestId,
-        testName: 'Checkout on Android', browser: 'Pixel 8 · 14.0', status, startedAt,
+        id: nextId('rep'),
+        testPlanExecutionId: executionId,
+        organizationId,
+        testType: 'mobile',
+        mobileTestId,
+        testName: 'Checkout on Android',
+        browser: 'Pixel 8 · 14.0',
+        status,
+        startedAt,
       } as any);
     }
 
     const before = await request(app).get('/api/analytics/flaky').expect(200);
     expect(before.body.items).toEqual([
-      expect.objectContaining({ testName: 'Checkout on Android', browser: 'Pixel 8 · 14.0', flips: 2, test: { type: 'mobile', id: mobileTestId }, quarantine: null }),
+      expect.objectContaining({
+        testName: 'Checkout on Android',
+        browser: 'Pixel 8 · 14.0',
+        flips: 2,
+        test: { type: 'mobile', id: mobileTestId },
+        quarantine: null,
+      }),
     ]);
 
-    await privilegedDb.insert(testQuarantines).values({ organizationId, testType: 'mobile', mobileTestId, reason: 'Device farm drops the session' });
+    await privilegedDb.insert(testQuarantines).values({
+      organizationId,
+      testType: 'mobile',
+      mobileTestId,
+      reason: 'Device farm drops the session',
+    });
     const after = await request(app).get('/api/analytics/flaky').expect(200);
-    expect(after.body.items[0].quarantine).toMatchObject({ reason: 'Device farm drops the session' });
+    expect(after.body.items[0].quarantine).toMatchObject({
+      reason: 'Device farm drops the session',
+    });
   });
 
   it('looks only as far back as it says it does', async () => {
@@ -254,7 +315,9 @@ describe('GET /api/analytics/flaky', () => {
   });
 
   it('refuses nonsense thresholds rather than trusting them', async () => {
-    const res = await request(app).get('/api/analytics/flaky?days=abc&minRuns=-5&limit=99999').expect(200);
+    const res = await request(app)
+      .get('/api/analytics/flaky?days=abc&minRuns=-5&limit=99999')
+      .expect(200);
 
     expect(res.body.window.days).toBe(30);
     expect(res.body.thresholds.minimumRuns).toBe(2);
@@ -265,10 +328,30 @@ describe('GET /api/analytics/flaky', () => {
     // ever since is a changed test, not an unreliable one, and a list that cannot tell them
     // apart is one people stop reading.
     const plan = await createPlan(userId, 'Nightly');
-    await recordResult(plan, { testName: 'Checkout', status: 'Passed', daysAgo: 5, testVersion: 1 });
-    await recordResult(plan, { testName: 'Checkout', status: 'Passed', daysAgo: 4, testVersion: 1 });
-    await recordResult(plan, { testName: 'Checkout', status: 'Failed', daysAgo: 3, testVersion: 2 });
-    await recordResult(plan, { testName: 'Checkout', status: 'Failed', daysAgo: 2, testVersion: 2 });
+    await recordResult(plan, {
+      testName: 'Checkout',
+      status: 'Passed',
+      daysAgo: 5,
+      testVersion: 1,
+    });
+    await recordResult(plan, {
+      testName: 'Checkout',
+      status: 'Passed',
+      daysAgo: 4,
+      testVersion: 1,
+    });
+    await recordResult(plan, {
+      testName: 'Checkout',
+      status: 'Failed',
+      daysAgo: 3,
+      testVersion: 2,
+    });
+    await recordResult(plan, {
+      testName: 'Checkout',
+      status: 'Failed',
+      daysAgo: 2,
+      testVersion: 2,
+    });
 
     const res = await request(app).get('/api/analytics/flaky').expect(200);
 
@@ -277,10 +360,30 @@ describe('GET /api/analytics/flaky', () => {
 
   it('reports the changes of verdict an edit does not account for, and says it was edited', async () => {
     const plan = await createPlan(userId, 'Nightly');
-    await recordResult(plan, { testName: 'Checkout', status: 'Passed', daysAgo: 5, testVersion: 1 });
-    await recordResult(plan, { testName: 'Checkout', status: 'Failed', daysAgo: 4, testVersion: 1 });
-    await recordResult(plan, { testName: 'Checkout', status: 'Passed', daysAgo: 3, testVersion: 2 });
-    await recordResult(plan, { testName: 'Checkout', status: 'Failed', daysAgo: 2, testVersion: 2 });
+    await recordResult(plan, {
+      testName: 'Checkout',
+      status: 'Passed',
+      daysAgo: 5,
+      testVersion: 1,
+    });
+    await recordResult(plan, {
+      testName: 'Checkout',
+      status: 'Failed',
+      daysAgo: 4,
+      testVersion: 1,
+    });
+    await recordResult(plan, {
+      testName: 'Checkout',
+      status: 'Passed',
+      daysAgo: 3,
+      testVersion: 2,
+    });
+    await recordResult(plan, {
+      testName: 'Checkout',
+      status: 'Failed',
+      daysAgo: 2,
+      testVersion: 2,
+    });
 
     const res = await request(app).get('/api/analytics/flaky').expect(200);
 
@@ -301,7 +404,11 @@ describe('GET /api/analytics/flaky', () => {
 
     const res = await request(app).get('/api/analytics/flaky').expect(200);
 
-    expect(res.body.items[0]).toMatchObject({ unexplainedFlips: 2, changedDuringWindow: false, versions: [] });
+    expect(res.body.items[0]).toMatchObject({
+      unexplainedFlips: 2,
+      changedDuringWindow: false,
+      versions: [],
+    });
   });
 
   it('says nothing, successfully, when nothing has run', async () => {
@@ -314,71 +421,180 @@ describe('GET /api/analytics/flaky', () => {
 
 describe('dashboard widget filters and project isolation', () => {
   async function projectFixture(restricted: boolean) {
-    const [project] = await privilegedDb.insert(projects).values({ name: restricted ? 'Confidential app' : 'Open app', userId, organizationId, restricted }).returning();
-    const [test] = await privilegedDb.insert(tests).values({ name: 'Project test', userId, organizationId, projectId: project.id, url: 'https://example.com', sequence: [], elements: [] }).returning();
+    const [project] = await privilegedDb
+      .insert(projects)
+      .values({
+        name: restricted ? 'Confidential app' : 'Open app',
+        userId,
+        organizationId,
+        restricted,
+      })
+      .returning();
+    const [test] = await privilegedDb
+      .insert(tests)
+      .values({
+        name: 'Project test',
+        userId,
+        organizationId,
+        projectId: project.id,
+        url: 'https://example.com',
+        sequence: [],
+        elements: [],
+      })
+      .returning();
     return { project, test };
   }
-  const widget = (config = {}, type = 'kpis') => ({ id: 'instance', type, visible: true, width: 'full', config });
+  const widget = (config = {}, type = 'kpis') => ({
+    id: 'instance',
+    type,
+    visible: true,
+    width: 'full',
+    config,
+  });
   it('filters all metrics and trend by period and bounds query inputs', async () => {
-    const plan = await createPlan(otherUserId, 'Period'); await createExecution(plan, 'completed', 1000);
-    await privilegedDb.insert(testPlanExecutions).values({ id: nextId('old'), organizationId, testPlanId: plan, status: 'failed', startedAt: new Date(Date.now() - 10 * 86400000), queuedAt: new Date(Date.now() - 10 * 86400000) });
-    const oneDay = await request(app).post('/api/analytics/dashboard/widget').send(widget({ days: 1 }));
-    expect(oneDay.status).toBe(200); expect(oneDay.body.kpis.totalRuns).toBe(1); expect(oneDay.body.trend).toHaveLength(1);
-    const month = await request(app).get('/api/analytics/dashboard?days=30'); expect(month.body.kpis.totalRuns).toBe(2);
-    for (const filters of ['days=366', 'days=0', 'limit=51', 'projectId=-1', 'unknown=value']) expect((await request(app).get(`/api/analytics/dashboard?${filters}`)).status).toBe(400);
+    const plan = await createPlan(otherUserId, 'Period');
+    await createExecution(plan, 'completed', 1000);
+    await privilegedDb.insert(testPlanExecutions).values({
+      id: nextId('old'),
+      organizationId,
+      testPlanId: plan,
+      status: 'failed',
+      startedAt: new Date(Date.now() - 10 * 86400000),
+      queuedAt: new Date(Date.now() - 10 * 86400000),
+    });
+    const oneDay = await request(app)
+      .post('/api/analytics/dashboard/widget')
+      .send(widget({ days: 1 }));
+    expect(oneDay.status).toBe(200);
+    expect(oneDay.body.kpis.totalRuns).toBe(1);
+    expect(oneDay.body.trend).toHaveLength(1);
+    const month = await request(app).get('/api/analytics/dashboard?days=30');
+    expect(month.body.kpis.totalRuns).toBe(2);
+    for (const filters of ['days=366', 'days=0', 'limit=51', 'projectId=-1', 'unknown=value'])
+      expect((await request(app).get(`/api/analytics/dashboard?${filters}`)).status).toBe(400);
   });
   it('returns unavailable without project names or counts for a restricted project', async () => {
-    const { project } = await projectFixture(true); currentUser.role = 'viewer';
-    const response = await request(app).post('/api/analytics/dashboard/widget').send(widget({ projectId: project.id }));
-    expect(response.status).toBe(200); expect(response.body).toEqual({ unavailable: true });
+    const { project } = await projectFixture(true);
+    currentUser.role = 'viewer';
+    const response = await request(app)
+      .post('/api/analytics/dashboard/widget')
+      .send(widget({ projectId: project.id }));
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ unavailable: true });
   });
   it('excludes hidden and mixed-project executions and schedules across all widget requests', async () => {
-    const open = await projectFixture(false), hidden = await projectFixture(true);
-    const visible = await createPlan(otherUserId, 'Visible plan'), secret = await createPlan(otherUserId, 'Confidential plan'), mixed = await createPlan(otherUserId, 'Mixed plan');
+    const open = await projectFixture(false),
+      hidden = await projectFixture(true);
+    const visible = await createPlan(otherUserId, 'Visible plan'),
+      secret = await createPlan(otherUserId, 'Confidential plan'),
+      mixed = await createPlan(otherUserId, 'Mixed plan');
     await privilegedDb.insert(testPlanSelectedTests).values([
       { organizationId, testPlanId: visible, testId: open.test.id, testType: 'ui' },
       { organizationId, testPlanId: secret, testId: hidden.test.id, testType: 'ui' },
       { organizationId, testPlanId: mixed, testId: open.test.id, testType: 'ui' },
       { organizationId, testPlanId: mixed, testId: hidden.test.id, testType: 'ui' },
     ]);
-    for (const plan of [visible, secret, mixed]) { await createExecution(plan, 'completed', 1000); await privilegedDb.insert(testPlanSchedules).values({ id: nextId('schedule'), organizationId, testPlanId: plan, scheduleName: plan, frequency: 'daily', nextRunAt: new Date(), environment: 'prod' }); }
+    for (const plan of [visible, secret, mixed]) {
+      await createExecution(plan, 'completed', 1000);
+      await privilegedDb.insert(testPlanSchedules).values({
+        id: nextId('schedule'),
+        organizationId,
+        testPlanId: plan,
+        scheduleName: plan,
+        frequency: 'daily',
+        nextRunAt: new Date(),
+        environment: 'prod',
+      });
+    }
     currentUser.role = 'viewer';
     const metrics = await request(app).post('/api/analytics/dashboard/widget').send(widget());
-    expect(metrics.body.kpis.totalRuns).toBe(1); expect(metrics.body.recent.map((r: any) => r.planName)).toEqual(['Visible plan']);
-    const schedules = await request(app).post('/api/analytics/dashboard/widget').send(widget({ projectId: open.project.id, environment: 'prod', limit: 50 }, 'schedules'));
+    expect(metrics.body.kpis.totalRuns).toBe(1);
+    expect(metrics.body.recent.map((r: any) => r.planName)).toEqual(['Visible plan']);
+    const schedules = await request(app)
+      .post('/api/analytics/dashboard/widget')
+      .send(widget({ projectId: open.project.id, environment: 'prod', limit: 50 }, 'schedules'));
     expect(schedules.body.schedules.map((r: any) => r.testPlanName)).toEqual(['Visible plan']);
-    const staging = await request(app).post('/api/analytics/dashboard/widget').send(widget({ environment: 'staging' }, 'schedules')); expect(staging.body.schedules).toEqual([]);
+    const staging = await request(app)
+      .post('/api/analytics/dashboard/widget')
+      .send(widget({ environment: 'staging' }, 'schedules'));
+    expect(staging.body.schedules).toEqual([]);
   });
   it('checks historical result references even when a plan no longer selects the restricted test', async () => {
-    const hidden = await projectFixture(true); const plan = await createPlan(otherUserId, 'Past confidential result'); await createExecution(plan, 'completed', 1000);
+    const hidden = await projectFixture(true);
+    const plan = await createPlan(otherUserId, 'Past confidential result');
+    await createExecution(plan, 'completed', 1000);
     const [execution] = await privilegedDb.select().from(testPlanExecutions);
-    await privilegedDb.insert(reportTestCaseResults).values({ id: nextId('result'), organizationId, testPlanExecutionId: execution.id, uiTestId: hidden.test.id, testType: 'ui', testName: hidden.test.name, status: 'passed', startedAt: new Date() });
-    currentUser.role = 'viewer'; const response = await request(app).get('/api/analytics/dashboard'); expect(response.body.kpis.totalRuns).toBe(0); expect(response.body.recent).toEqual([]);
+    await privilegedDb.insert(reportTestCaseResults).values({
+      id: nextId('result'),
+      organizationId,
+      testPlanExecutionId: execution.id,
+      uiTestId: hidden.test.id,
+      testType: 'ui',
+      testName: hidden.test.name,
+      status: 'passed',
+      startedAt: new Date(),
+    });
+    currentUser.role = 'viewer';
+    const response = await request(app).get('/api/analytics/dashboard');
+    expect(response.body.kpis.totalRuns).toBe(0);
+    expect(response.body.recent).toEqual([]);
   });
   it('checks frozen queued-run references after the current plan changes its selected tests', async () => {
-    const hidden = await projectFixture(true), open = await projectFixture(false);
+    const hidden = await projectFixture(true),
+      open = await projectFixture(false);
     const plan = await createPlan(otherUserId, 'Changed plan');
     await privilegedDb.insert(testPlanExecutions).values([
-      { id: nextId('frozen-hidden'), organizationId, testPlanId: plan, configurationSnapshot: { selectedTests: [{ testId: hidden.test.id, apiTestId: null, testType: 'ui' }] } },
-      { id: nextId('frozen-open'), organizationId, testPlanId: plan, configurationSnapshot: { selectedTests: [{ testId: open.test.id, apiTestId: null, testType: 'ui' }] } },
+      {
+        id: nextId('frozen-hidden'),
+        organizationId,
+        testPlanId: plan,
+        configurationSnapshot: {
+          selectedTests: [{ testId: hidden.test.id, apiTestId: null, testType: 'ui' }],
+        },
+      },
+      {
+        id: nextId('frozen-open'),
+        organizationId,
+        testPlanId: plan,
+        configurationSnapshot: {
+          selectedTests: [{ testId: open.test.id, apiTestId: null, testType: 'ui' }],
+        },
+      },
     ]);
     currentUser.role = 'viewer';
-    const response = await request(app).get(`/api/analytics/dashboard?projectId=${open.project.id}`);
-    expect(response.status).toBe(200); expect(response.body.kpis.totalRuns).toBe(1);
-    const all = await request(app).get('/api/analytics/dashboard'); expect(all.body.kpis.totalRuns).toBe(1);
+    const response = await request(app).get(
+      `/api/analytics/dashboard?projectId=${open.project.id}`,
+    );
+    expect(response.status).toBe(200);
+    expect(response.body.kpis.totalRuns).toBe(1);
+    const all = await request(app).get('/api/analytics/dashboard');
+    expect(all.body.kpis.totalRuns).toBe(1);
   });
   it('uses a queued run’s frozen project instead of the current plan’s replacement project', async () => {
-    const original = await projectFixture(false), replacement = await projectFixture(false);
+    const original = await projectFixture(false),
+      replacement = await projectFixture(false);
     const plan = await createPlan(otherUserId, 'Reassigned plan');
     await privilegedDb.insert(testPlanExecutions).values({
-      id: nextId('frozen-original'), organizationId, testPlanId: plan,
-      configurationSnapshot: { selectedTests: [{ testId: original.test.id, apiTestId: null, testType: 'ui' }] },
+      id: nextId('frozen-original'),
+      organizationId,
+      testPlanId: plan,
+      configurationSnapshot: {
+        selectedTests: [{ testId: original.test.id, apiTestId: null, testType: 'ui' }],
+      },
     });
-    await privilegedDb.insert(testPlanSelectedTests).values({ organizationId, testPlanId: plan, testId: replacement.test.id, testType: 'ui' });
+    await privilegedDb
+      .insert(testPlanSelectedTests)
+      .values({ organizationId, testPlanId: plan, testId: replacement.test.id, testType: 'ui' });
     currentUser.role = 'viewer';
-    const replacementMetrics = await request(app).get(`/api/analytics/dashboard?projectId=${replacement.project.id}`);
-    expect(replacementMetrics.status).toBe(200); expect(replacementMetrics.body.kpis.totalRuns).toBe(0);
-    const originalMetrics = await request(app).get(`/api/analytics/dashboard?projectId=${original.project.id}`);
-    expect(originalMetrics.status).toBe(200); expect(originalMetrics.body.kpis.totalRuns).toBe(1);
+    const replacementMetrics = await request(app).get(
+      `/api/analytics/dashboard?projectId=${replacement.project.id}`,
+    );
+    expect(replacementMetrics.status).toBe(200);
+    expect(replacementMetrics.body.kpis.totalRuns).toBe(0);
+    const originalMetrics = await request(app).get(
+      `/api/analytics/dashboard?projectId=${original.project.id}`,
+    );
+    expect(originalMetrics.status).toBe(200);
+    expect(originalMetrics.body.kpis.totalRuns).toBe(1);
   });
 });

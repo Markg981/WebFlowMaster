@@ -18,7 +18,11 @@ import { BddAgentProfileSchema } from '@shared/bdd-agent';
 
 export function generateAgentToken(): { token: string; prefix: string; hash: string } {
   const token = `${AGENT_TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`;
-  return { token, prefix: token.slice(0, AGENT_TOKEN_PREFIX.length + 6), hash: hashAgentToken(token) };
+  return {
+    token,
+    prefix: token.slice(0, AGENT_TOKEN_PREFIX.length + 6),
+    hash: hashAgentToken(token),
+  };
 }
 
 export function hashAgentToken(token: string): string {
@@ -47,7 +51,8 @@ export const TICKET_LIFETIME_MS = 60_000;
 /** The secret tickets are signed with; the server and every runner must have the same one. */
 export function relaySecret(env: NodeJS.ProcessEnv = process.env): string {
   const secret = env.AGENT_RELAY_SECRET || env.SESSION_SECRET;
-  if (!secret) throw new Error('AGENT_RELAY_SECRET (or SESSION_SECRET) must be set to use local agents.');
+  if (!secret)
+    throw new Error('AGENT_RELAY_SECRET (or SESSION_SECRET) must be set to use local agents.');
   return secret;
 }
 
@@ -55,29 +60,62 @@ function sign(payload: string, secret: string): string {
   return createHmac('sha256', secret).update(payload).digest('base64url');
 }
 
-export function signTicket(ticket: Omit<BrowserTicket, 'expiresAt'>, secret: string, now = Date.now()): string {
-  const payload = Buffer.from(JSON.stringify({ ...ticket, traceContext: captureTrace(), expiresAt: now + TICKET_LIFETIME_MS })).toString('base64url');
+export function signTicket(
+  ticket: Omit<BrowserTicket, 'expiresAt'>,
+  secret: string,
+  now = Date.now(),
+): string {
+  const payload = Buffer.from(
+    JSON.stringify({
+      ...ticket,
+      traceContext: captureTrace(),
+      expiresAt: now + TICKET_LIFETIME_MS,
+    }),
+  ).toString('base64url');
   return `${payload}.${sign(payload, secret)}`;
 }
 
 /** The ticket, or why it is not one. Constant-time on the signature. */
-export function verifyTicket(value: string, secret: string, now = Date.now()): BrowserTicket | { error: string } {
+export function verifyTicket(
+  value: string,
+  secret: string,
+  now = Date.now(),
+): BrowserTicket | { error: string } {
   const [payload, signature, extra] = value.split('.');
   if (!payload || !signature || extra !== undefined) return { error: 'malformed ticket' };
   const expected = Buffer.from(sign(payload, secret));
   const given = Buffer.from(signature);
-  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return { error: 'bad signature' };
+  if (expected.length !== given.length || !timingSafeEqual(expected, given))
+    return { error: 'bad signature' };
   let ticket: BrowserTicket;
   try {
     ticket = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
   } catch {
     return { error: 'malformed ticket' };
   }
-  if (typeof ticket.expiresAt !== 'number' || ticket.expiresAt < now) return { error: 'expired ticket' };
-  if (!Number.isInteger(ticket.organizationId) || !AGENT_POOL_PATTERN.test(ticket.pool)) return { error: 'malformed ticket' };
-  if (!['chromium', 'firefox', 'webkit'].includes(ticket.engine)) return { error: 'malformed ticket' };
-  if (ticket.apiProtocol !== undefined && !['grpc', 'websocket'].includes(ticket.apiProtocol)) return { error: 'malformed ticket' };
-  if (ticket.bddProfile !== undefined && (ticket.apiProtocol || ticket.apiFeatures || !BddAgentProfileSchema.pick({id:true,revision:true}).safeParse(ticket.bddProfile).success)) return { error: 'malformed ticket' };
-  if (ticket.apiFeatures !== undefined && (!ticket.apiProtocol || !Array.isArray(ticket.apiFeatures) || ticket.apiFeatures.length > 1 || ticket.apiFeatures.some(feature => feature !== 'native-protocol-v2'))) return { error: 'malformed ticket' };
+  if (typeof ticket.expiresAt !== 'number' || ticket.expiresAt < now)
+    return { error: 'expired ticket' };
+  if (!Number.isInteger(ticket.organizationId) || !AGENT_POOL_PATTERN.test(ticket.pool))
+    return { error: 'malformed ticket' };
+  if (!['chromium', 'firefox', 'webkit'].includes(ticket.engine))
+    return { error: 'malformed ticket' };
+  if (ticket.apiProtocol !== undefined && !['grpc', 'websocket'].includes(ticket.apiProtocol))
+    return { error: 'malformed ticket' };
+  if (
+    ticket.bddProfile !== undefined &&
+    (ticket.apiProtocol ||
+      ticket.apiFeatures ||
+      !BddAgentProfileSchema.pick({ id: true, revision: true }).safeParse(ticket.bddProfile)
+        .success)
+  )
+    return { error: 'malformed ticket' };
+  if (
+    ticket.apiFeatures !== undefined &&
+    (!ticket.apiProtocol ||
+      !Array.isArray(ticket.apiFeatures) ||
+      ticket.apiFeatures.length > 1 ||
+      ticket.apiFeatures.some((feature) => feature !== 'native-protocol-v2'))
+  )
+    return { error: 'malformed ticket' };
   return ticket;
 }

@@ -1,9 +1,9 @@
-import { useDrag } from "react-dnd";
-import { useTranslation } from "react-i18next";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Search, MousePointer, Bookmark } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useDrag } from 'react-dnd';
+import { useTranslation } from 'react-i18next';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Search, MousePointer, Bookmark } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface DetectedElement {
   id: string;
@@ -35,26 +35,29 @@ export function DraggableElement({ element, onHover, onKeep }: DraggableElementP
   // (regenerated from 0 on every detect), so React reuses the same DraggableElement
   // instance for a different element after a re-detect. Without deps, useDrag keeps the
   // stale item from first render and the wrong element gets bound to the step.
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: "element",
-    item: { id: element.id, type: "element", data: element },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
+  const [{ isDragging }, drag] = useDrag(
+    () => ({
+      type: 'element',
+      item: { id: element.id, type: 'element', data: element },
+      collect: (monitor) => ({
+        isDragging: !!monitor.isDragging(),
+      }),
     }),
-  }), [element]);
+    [element],
+  );
 
   const renderElementIcon = (type: string) => {
-    const iconProps = { className: "h-4 w-4 text-muted-foreground" };
+    const iconProps = { className: 'h-4 w-4 text-muted-foreground' };
     switch (type) {
-      case "input":
-      case "text":
-      case "password":
-      case "email":
+      case 'input':
+      case 'text':
+      case 'password':
+      case 'email':
         return <Search {...iconProps} />;
-      case "button":
-      case "link":
+      case 'button':
+      case 'link':
         return <MousePointer {...iconProps} />;
-      case "heading":
+      case 'heading':
         return <span className="text-muted-foreground font-bold text-sm">H</span>;
       default:
         return <MousePointer {...iconProps} />;
@@ -63,30 +66,30 @@ export function DraggableElement({ element, onHover, onKeep }: DraggableElementP
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "input":
-      case "text":
-      case "password":
-      case "email":
-      case "textarea":
-        return "bg-primary text-primary-foreground";
-      case "button":
-        return "bg-success text-primary-foreground";
-      case "link":
-        return "bg-accent text-accent-foreground";
-      case "heading":
-        return "bg-secondary text-secondary-foreground";
-      case "select":
-        return "bg-secondary text-secondary-foreground";
+      case 'input':
+      case 'text':
+      case 'password':
+      case 'email':
+      case 'textarea':
+        return 'bg-primary text-primary-foreground';
+      case 'button':
+        return 'bg-success text-primary-foreground';
+      case 'link':
+        return 'bg-accent text-accent-foreground';
+      case 'heading':
+        return 'bg-secondary text-secondary-foreground';
+      case 'select':
+        return 'bg-secondary text-secondary-foreground';
       default:
-        return "bg-secondary text-secondary-foreground";
+        return 'bg-secondary text-secondary-foreground';
     }
   };
 
   return (
-    <Card 
+    <Card
       ref={drag}
       className={`p-3 cursor-pointer hover:border-primary hover:bg-blue-50 transition-colors ${
-        isDragging ? "opacity-50" : ""
+        isDragging ? 'opacity-50' : ''
       }`}
       onMouseEnter={() => onHover(element.id)}
       onMouseLeave={() => onHover(null)}
@@ -101,19 +104,26 @@ export function DraggableElement({ element, onHover, onKeep }: DraggableElementP
             <span className="text-xs text-muted-foreground">{element.tag}</span>
           </div>
           <div className="font-medium text-foreground text-sm truncate">
-            {element.text || element.attributes.placeholder || element.attributes.alt || `${element.tag} ${t('draggableElement.element.text')}`}
+            {element.text ||
+              element.attributes.placeholder ||
+              element.attributes.alt ||
+              `${element.tag} ${t('draggableElement.element.text')}`}
           </div>
-          <div className="text-xs text-muted-foreground truncate">
-            {element.selector}
-          </div>
+          <div className="text-xs text-muted-foreground truncate">{element.selector}</div>
           {/* Said out loud because it changes what a step does: the runner has to enter the
               frame first, and a selector copied elsewhere without it finds nothing. */}
           {element.frameSelector && (
             <div className="mt-1 flex items-center gap-1 min-w-0" title={element.frameSelector}>
-              <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0" data-testid="in-frame-badge">
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1 py-0 shrink-0"
+                data-testid="in-frame-badge"
+              >
                 {t('draggableElement.inFrame', 'in frame')}
               </Badge>
-              <span className="text-[10px] text-muted-foreground truncate">{element.frameSelector}</span>
+              <span className="text-[10px] text-muted-foreground truncate">
+                {element.frameSelector}
+              </span>
             </div>
           )}
         </div>
@@ -125,8 +135,14 @@ export function DraggableElement({ element, onHover, onKeep }: DraggableElementP
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0"
-            title={t('draggableElement.keep.tooltip', 'Keep this element in the project repository')}
-            aria-label={t('draggableElement.keep.tooltip', 'Keep this element in the project repository')}
+            title={t(
+              'draggableElement.keep.tooltip',
+              'Keep this element in the project repository',
+            )}
+            aria-label={t(
+              'draggableElement.keep.tooltip',
+              'Keep this element in the project repository',
+            )}
             onClick={(event) => {
               event.stopPropagation();
               onKeep(element);

@@ -22,50 +22,50 @@ Trascinate un'azione da **Azioni Disponibili** nella **Sequenza del test**, poi 
 sopra un elemento rilevato (oppure usate **Imposta elemento**). Compilate il valore che l'azione
 richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
 
-| Azione | Cosa fa |
-|---|---|
-| **Naviga** | Va a un indirizzo. |
-| **Click Elemento** | Clicca. |
-| **Inserimento Testo** | Scrive in un campo. |
-| **Seleziona Opzione** | Sceglie un'opzione di un menu nativo. |
-| **Scegli Da Menu** | Apre un menu personalizzato e sceglie un'opzione dal testo. |
-| **Passa sopra** | Porta il mouse sopra un elemento (per i menu che si aprono al passaggio). |
-| **Scorri** | Scorre la pagina o un elemento. |
-| **Porta allo stato** | Attiva o disattiva una casella o un interruttore, solo se non lo è già. |
-| **Attendi** | Attende un numero fisso di millisecondi. Meglio le attese qui sotto. |
-| **Attendi Elemento** | Attende che un elemento sia visibile, o nascosto. |
-| **Attendi Testo** | Attende che un elemento contenga un testo. |
-| **Attendi Rete** | Attende che le richieste della pagina si siano concluse. |
-| **Verifica Visibilità** | Fallisce se l'elemento non è visibile. |
-| **Verifica Testo Contenuto** | Fallisce se l'elemento non contiene il testo. |
-| **Verifica Conteggio Elementi** | Fallisce se il numero di elementi corrispondenti non è quello giusto, per esempio `==1`, `>=5`, `<3`. |
-| **Verifica stato** | Fallisce se un controllo non è selezionato, abilitato, modificabile — o il contrario. |
-| **Verifica accessibilità** | Controlla la pagina in quel punto con axe-core, e fallisce sulle violazioni di gravità pari o superiore a quella scelta (serious di default). |
-| **Imposta la posizione** | Da quel momento il browser comunica alla pagina questa posizione — vedi [Posizione e download](#posizione-e-download). |
-| **Verifica un download** | Clicca l'elemento e controlla il file scaricato — vedi [Posizione e download](#posizione-e-download). |
-| **Misura la velocità della pagina** | Controlla le Core Web Vitals e i tempi misurati dal browser per la pagina rispetto a dei limiti — vedi [Velocità delle pagine](#velocita-delle-pagine). |
-| **Audit Lighthouse** | Esegue Lighthouse sulla pagina corrente e ne controlla i punteggi — vedi [Velocità delle pagine](#velocita-delle-pagine). |
-| **Premi tasto** | Preme un tasto o una combinazione — `Enter`, `Tab`, `Escape`, `Control+A` — sull'elemento, o su quello che ha il focus se lo step non ne ha. |
-| **Doppio click** / **Click destro** | Fa doppio click, o apre il menu contestuale dell'elemento. |
-| **Trascina e rilascia** | Trascina l'elemento su quello il cui selettore è il valore. |
-| **Carica file** | Passa a un campo file — o al pulsante che apre la scelta del file — un file creato dal valore: `fattura.csv`, oppure `fattura.csv\|contenuto`. |
-| **Rispondi al dialog** | Dice come rispondere al prossimo `alert`, `confirm` o `prompt`: `accept`, `dismiss` o `accept:testo`. Va messo **prima** dello step che apre il dialog. Un dialog senza risposta viene chiuso. |
-| **Cambia scheda** | Continua in un'altra scheda: vuoto per la più recente, un numero (da 1), o un testo nel suo indirizzo o titolo. |
-| **Chiudi scheda** | Chiude la scheda corrente e torna a quella che l'ha aperta. |
-| **Salva testo in variabile** | Legge il testo dell'elemento, o il valore di un campo, nella variabile indicata dal valore, per gli step successivi. |
-| **Imposta variabile** | `nome=valore`, per gli step successivi. Vedi [valori generati](#valori-generati). |
-| **Attendi email** | Attende l'email inviata a un indirizzo e ne legge codice e link in variabili. Vedi [email](#email). |
-| **Attendi SMS** | Attende l'SMS inviato a un numero di test e ne legge il codice in una variabile. Vedi [SMS](#sms). |
-| **Query al database** | Esegue un'istruzione SQL sul database dell'ambiente e legge la prima riga in variabili. Vedi [database](#database). |
-| **Verifica valori** | Fallisce se un confronto non è vero: <code v-pre>{{db.value}} == 1</code>, <code v-pre>{{total}} > 0</code>, <code v-pre>{{email.subject}} contains Benvenuto</code>. Gli stessi confronti di una condizione senza elemento. |
-| **Imposta cookie** / **Cancella cookie** | `nome=valore` per l'indirizzo corrente; oppure li elimina tutti. |
-| **Imposta localStorage** | `chiave=valore` nello storage della pagina corrente. |
-| **Esegui JavaScript** | Esegue il valore nella pagina. Fallisce se lancia un errore o restituisce `false`, così può verificare ciò che nessun altro step sa esprimere. |
-| **Simula richiesta** | Da quel momento risponde alle richieste della pagina a un indirizzo al posto del server — vedi [Simulare la rete](#simulare-la-rete). |
-| **Blocca richieste** | Da quel momento le richieste della pagina a un indirizzo falliscono come se la rete fosse giù. |
-| **Rimuovi simulazioni** | Toglie tutte le simulazioni e i blocchi: la pagina torna a raggiungere i server veri. |
-| **Se** / **Altrimenti** / **Fine se** | Esegue degli step solo quando una condizione è vera. Vedi [condizioni e cicli](#condizioni-e-cicli). |
-| **Ripeti** / **Ripeti finché** / **Fine ciclo** | Esegue degli step un numero di volte, o finché una condizione è vera. |
+| Azione                                          | Cosa fa                                                                                                                                                                                                                      |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Naviga**                                      | Va a un indirizzo.                                                                                                                                                                                                           |
+| **Click Elemento**                              | Clicca.                                                                                                                                                                                                                      |
+| **Inserimento Testo**                           | Scrive in un campo.                                                                                                                                                                                                          |
+| **Seleziona Opzione**                           | Sceglie un'opzione di un menu nativo.                                                                                                                                                                                        |
+| **Scegli Da Menu**                              | Apre un menu personalizzato e sceglie un'opzione dal testo.                                                                                                                                                                  |
+| **Passa sopra**                                 | Porta il mouse sopra un elemento (per i menu che si aprono al passaggio).                                                                                                                                                    |
+| **Scorri**                                      | Scorre la pagina o un elemento.                                                                                                                                                                                              |
+| **Porta allo stato**                            | Attiva o disattiva una casella o un interruttore, solo se non lo è già.                                                                                                                                                      |
+| **Attendi**                                     | Attende un numero fisso di millisecondi. Meglio le attese qui sotto.                                                                                                                                                         |
+| **Attendi Elemento**                            | Attende che un elemento sia visibile, o nascosto.                                                                                                                                                                            |
+| **Attendi Testo**                               | Attende che un elemento contenga un testo.                                                                                                                                                                                   |
+| **Attendi Rete**                                | Attende che le richieste della pagina si siano concluse.                                                                                                                                                                     |
+| **Verifica Visibilità**                         | Fallisce se l'elemento non è visibile.                                                                                                                                                                                       |
+| **Verifica Testo Contenuto**                    | Fallisce se l'elemento non contiene il testo.                                                                                                                                                                                |
+| **Verifica Conteggio Elementi**                 | Fallisce se il numero di elementi corrispondenti non è quello giusto, per esempio `==1`, `>=5`, `<3`.                                                                                                                        |
+| **Verifica stato**                              | Fallisce se un controllo non è selezionato, abilitato, modificabile — o il contrario.                                                                                                                                        |
+| **Verifica accessibilità**                      | Controlla la pagina in quel punto con axe-core, e fallisce sulle violazioni di gravità pari o superiore a quella scelta (serious di default).                                                                                |
+| **Imposta la posizione**                        | Da quel momento il browser comunica alla pagina questa posizione — vedi [Posizione e download](#posizione-e-download).                                                                                                       |
+| **Verifica un download**                        | Clicca l'elemento e controlla il file scaricato — vedi [Posizione e download](#posizione-e-download).                                                                                                                        |
+| **Misura la velocità della pagina**             | Controlla le Core Web Vitals e i tempi misurati dal browser per la pagina rispetto a dei limiti — vedi [Velocità delle pagine](#velocita-delle-pagine).                                                                      |
+| **Audit Lighthouse**                            | Esegue Lighthouse sulla pagina corrente e ne controlla i punteggi — vedi [Velocità delle pagine](#velocita-delle-pagine).                                                                                                    |
+| **Premi tasto**                                 | Preme un tasto o una combinazione — `Enter`, `Tab`, `Escape`, `Control+A` — sull'elemento, o su quello che ha il focus se lo step non ne ha.                                                                                 |
+| **Doppio click** / **Click destro**             | Fa doppio click, o apre il menu contestuale dell'elemento.                                                                                                                                                                   |
+| **Trascina e rilascia**                         | Trascina l'elemento su quello il cui selettore è il valore.                                                                                                                                                                  |
+| **Carica file**                                 | Passa a un campo file — o al pulsante che apre la scelta del file — un file creato dal valore: `fattura.csv`, oppure `fattura.csv\|contenuto`.                                                                               |
+| **Rispondi al dialog**                          | Dice come rispondere al prossimo `alert`, `confirm` o `prompt`: `accept`, `dismiss` o `accept:testo`. Va messo **prima** dello step che apre il dialog. Un dialog senza risposta viene chiuso.                               |
+| **Cambia scheda**                               | Continua in un'altra scheda: vuoto per la più recente, un numero (da 1), o un testo nel suo indirizzo o titolo.                                                                                                              |
+| **Chiudi scheda**                               | Chiude la scheda corrente e torna a quella che l'ha aperta.                                                                                                                                                                  |
+| **Salva testo in variabile**                    | Legge il testo dell'elemento, o il valore di un campo, nella variabile indicata dal valore, per gli step successivi.                                                                                                         |
+| **Imposta variabile**                           | `nome=valore`, per gli step successivi. Vedi [valori generati](#valori-generati).                                                                                                                                            |
+| **Attendi email**                               | Attende l'email inviata a un indirizzo e ne legge codice e link in variabili. Vedi [email](#email).                                                                                                                          |
+| **Attendi SMS**                                 | Attende l'SMS inviato a un numero di test e ne legge il codice in una variabile. Vedi [SMS](#sms).                                                                                                                           |
+| **Query al database**                           | Esegue un'istruzione SQL sul database dell'ambiente e legge la prima riga in variabili. Vedi [database](#database).                                                                                                          |
+| **Verifica valori**                             | Fallisce se un confronto non è vero: <code v-pre>{{db.value}} == 1</code>, <code v-pre>{{total}} > 0</code>, <code v-pre>{{email.subject}} contains Benvenuto</code>. Gli stessi confronti di una condizione senza elemento. |
+| **Imposta cookie** / **Cancella cookie**        | `nome=valore` per l'indirizzo corrente; oppure li elimina tutti.                                                                                                                                                             |
+| **Imposta localStorage**                        | `chiave=valore` nello storage della pagina corrente.                                                                                                                                                                         |
+| **Esegui JavaScript**                           | Esegue il valore nella pagina. Fallisce se lancia un errore o restituisce `false`, così può verificare ciò che nessun altro step sa esprimere.                                                                               |
+| **Simula richiesta**                            | Da quel momento risponde alle richieste della pagina a un indirizzo al posto del server — vedi [Simulare la rete](#simulare-la-rete).                                                                                        |
+| **Blocca richieste**                            | Da quel momento le richieste della pagina a un indirizzo falliscono come se la rete fosse giù.                                                                                                                               |
+| **Rimuovi simulazioni**                         | Toglie tutte le simulazioni e i blocchi: la pagina torna a raggiungere i server veri.                                                                                                                                        |
+| **Se** / **Altrimenti** / **Fine se**           | Esegue degli step solo quando una condizione è vera. Vedi [condizioni e cicli](#condizioni-e-cicli).                                                                                                                         |
+| **Ripeti** / **Ripeti finché** / **Fine ciclo** | Esegue degli step un numero di volte, o finché una condizione è vera.                                                                                                                                                        |
 
 Ogni azione attende già che il suo elemento sia pronto prima di agire, quindi un **Attendi**
 fisso serve di rado; quando uno step fallisce perché qualcosa era lento, attendete proprio
@@ -86,7 +86,7 @@ prima che si apra il browser, indicando lo step.
 
 Una condizione ha una di due forme:
 
-- **Con un elemento**: lo stato in cui è *adesso* — `visible`, `hidden`, `exists`, `missing`,
+- **Con un elemento**: lo stato in cui è _adesso_ — `visible`, `hidden`, `exists`, `missing`,
   `checked`, `unchecked`, `enabled`, `disabled`, oppure `contains:testo` / `not contains:testo`.
   La risposta è immediata: "se il banner dei cookie è visibile, chiudilo" prosegue subito quando
   il banner non c'è. Per qualcosa che sta ancora caricando, mettete uno step di attesa prima.
@@ -120,14 +120,14 @@ Quando si ferma, il pannello **Debugger** mostra perché, la pagina in quel mome
 indirizzo, gli step eseguiti fin lì e le variabili (i valori che vengono dall'ambiente sono
 segreti: se ne vede solo il nome). Lo step su cui è fermo ha un bordo colorato nel canvas. Da lì:
 
-| Comando | Cosa fa |
-|---|---|
-| **Continua** | Prosegue fino al prossimo breakpoint, fallimento o alla fine. |
-| **Passo** | Esegue questo step e si ferma prima del successivo. |
-| **Riprova** | Dopo un fallimento: esegue di nuovo lo step, con la correzione se c'è. |
-| **Salta** | Salta questo step. Non è offerto per if, else, cicli e le loro chiusure. |
-| **Ferma** | Termina il run e chiude il browser. |
-| **Pausa** | Durante l'esecuzione: si ferma prima dello step successivo. |
+| Comando      | Cosa fa                                                                  |
+| ------------ | ------------------------------------------------------------------------ |
+| **Continua** | Prosegue fino al prossimo breakpoint, fallimento o alla fine.            |
+| **Passo**    | Esegue questo step e si ferma prima del successivo.                      |
+| **Riprova**  | Dopo un fallimento: esegue di nuovo lo step, con la correzione se c'è.   |
+| **Salta**    | Salta questo step. Non è offerto per if, else, cicli e le loro chiusure. |
+| **Ferma**    | Termina il run e chiude il browser.                                      |
+| **Pausa**    | Durante l'esecuzione: si ferma prima dello step successivo.              |
 
 **Selettore** e **valore** dello step si possono correggere prima di continuare, andare avanti di
 un passo o riprovare. La correzione di uno step del test viene copiata anche nel canvas;
@@ -201,16 +201,16 @@ mancante.
 Un segnaposto che comincia con `$` crea un valore ogni volta che viene usato, ovunque le
 variabili siano accettate — uno step, un URL, un test API:
 
-| Segnaposto | Valore |
-|---|---|
-| <code v-pre>{{$randomEmail}}</code> | `test.k3v9…@example.com` (un dominio che non consegna a nessuno) |
-| <code v-pre>{{$uuid}}</code> | Un UUID casuale |
-| <code v-pre>{{$randomInt(1,100)}}</code> | Un intero fra i due, estremi inclusi (0–1000 di default) |
-| <code v-pre>{{$randomString(8)}}</code> | Lettere e cifre |
-| <code v-pre>{{$randomDigits(6)}}</code> | Solo cifre |
-| <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | Una data, `aaaa-mm-gg`, oggi o fra quei giorni |
-| <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code> | L'istante corrente, ISO o in millisecondi |
-| <code v-pre>{{$totp(secret&#95;mfa)}}</code> | Il codice che un'app di autenticazione mostra adesso per il seme contenuto nella variabile indicata; vedi [accesso in due passaggi](#totp) |
+| Segnaposto                                                       | Valore                                                                                                                                     |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| <code v-pre>{{$randomEmail}}</code>                              | `test.k3v9…@example.com` (un dominio che non consegna a nessuno)                                                                           |
+| <code v-pre>{{$uuid}}</code>                                     | Un UUID casuale                                                                                                                            |
+| <code v-pre>{{$randomInt(1,100)}}</code>                         | Un intero fra i due, estremi inclusi (0–1000 di default)                                                                                   |
+| <code v-pre>{{$randomString(8)}}</code>                          | Lettere e cifre                                                                                                                            |
+| <code v-pre>{{$randomDigits(6)}}</code>                          | Solo cifre                                                                                                                                 |
+| <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | Una data, `aaaa-mm-gg`, oggi o fra quei giorni                                                                                             |
+| <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code>   | L'istante corrente, ISO o in millisecondi                                                                                                  |
+| <code v-pre>{{$totp(secret&#95;mfa)}}</code>                     | Il codice che un'app di autenticazione mostra adesso per il seme contenuto nella variabile indicata; vedi [accesso in due passaggi](#totp) |
 
 Ogni segnaposto è un valore nuovo. Per usarne uno due volte — registrarsi con un indirizzo e poi
 accedere con lo stesso — dategli prima un nome: **Imposta variabile**
@@ -240,7 +240,7 @@ lo nomina. Il codice è calcolato dall'orologio del runner, che deve essere gius
 Per saltare il login in ogni test: scegliete l'ambiente nel costruttore, avviate una
 registrazione, accedete nella finestra di registrazione e premete **Save login for this
 environment**. I run su quell'ambiente partono allora con quella sessione; l'ambiente compare
-come *con accesso salvato* nel selettore. Salvatelo di nuovo quando la sessione scade.
+come _con accesso salvato_ nel selettore. Salvatelo di nuovo quando la sessione scade.
 
 ### Email: codici e link {#email}
 
@@ -253,12 +253,12 @@ inventati.
 
 Una registrazione, dall'inizio alla fine:
 
-| Azione | Valore |
-|---|---|
-| Imposta variabile | <code v-pre>email={{$randomEmail}}</code> |
-| Digita | <code v-pre>{{email}}</code> nel campo dell'indirizzo, poi inviare il modulo |
-| Attendi email | <code v-pre>{{email}}\|Conferma il tuo account</code> |
-| Digita | <code v-pre>{{email.otp}}</code> nel campo del codice — oppure **Naviga** su <code v-pre>{{email.link}}</code> |
+| Azione            | Valore                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------- |
+| Imposta variabile | <code v-pre>email={{$randomEmail}}</code>                                                                      |
+| Digita            | <code v-pre>{{email}}</code> nel campo dell'indirizzo, poi inviare il modulo                                   |
+| Attendi email     | <code v-pre>{{email}}\|Conferma il tuo account</code>                                                          |
+| Digita            | <code v-pre>{{email.otp}}</code> nel campo del codice — oppure **Naviga** su <code v-pre>{{email.link}}</code> |
 
 Il valore è l'indirizzo, seguito facoltativamente da `|` e da un testo contenuto nell'oggetto, e
 da un secondo `|` e un'espressione regolare per il codice:
@@ -267,11 +267,11 @@ Lo step attende fino a 60 secondi l'email più recente a quell'indirizzo esatto 
 arrivata **dopo l'inizio del test**, così un indirizzo fisso, come quello di un utente di prova,
 non legge l'email del run precedente. Poi imposta:
 
-| Variabile | Contiene |
-|---|---|
-| <code v-pre>{{email.otp}}</code> | Il codice: il primo numero di 4–8 cifre dopo una parola come *codice*, *code*, *OTP*, *PIN* o *verifica*, oppure l'unico dell'email; con un pattern, ciò che il pattern ha trovato |
-| <code v-pre>{{email.link}}</code> | Il primo link da seguire, saltando disiscrizioni, immagini e fogli di stile |
-| <code v-pre>{{email.subject}}</code>, <code v-pre>{{email.from}}</code>, <code v-pre>{{email.text}}</code> | Oggetto, indirizzo del mittente e testo (un'email solo HTML viene convertita in testo) |
+| Variabile                                                                                                  | Contiene                                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <code v-pre>{{email.otp}}</code>                                                                           | Il codice: il primo numero di 4–8 cifre dopo una parola come _codice_, _code_, _OTP_, _PIN_ o _verifica_, oppure l'unico dell'email; con un pattern, ciò che il pattern ha trovato |
+| <code v-pre>{{email.link}}</code>                                                                          | Il primo link da seguire, saltando disiscrizioni, immagini e fogli di stile                                                                                                        |
+| <code v-pre>{{email.subject}}</code>, <code v-pre>{{email.from}}</code>, <code v-pre>{{email.text}}</code> | Oggetto, indirizzo del mittente e testo (un'email solo HTML viene convertita in testo)                                                                                             |
 
 Una variabile che l'email non fornisce — nessun codice, nessun link — resta non definita, così uno
 step successivo che la usa fallisce e la nomina, invece di digitare un valore di un'email
@@ -289,7 +289,7 @@ rete dell'agente.
 **Attendi SMS** fa per un codice inviato via SMS ciò che **Attendi email** fa per uno inviato via
 email. Legge la **casella SMS** dell'organizzazione (Impostazioni → Casella SMS): un owner vi crea
 un indirizzo di ricezione, mostrato una sola volta, e lo imposta come webhook dei messaggi in arrivo
-dei numeri di test presso il provider SMS — *A message comes in* di Twilio, l'inbound URL di
+dei numeri di test presso il provider SMS — _A message comes in_ di Twilio, l'inbound URL di
 Vonage, o qualunque provider che invii `To` e `Body` (o `to` e `text`), come form o JSON. Ogni
 messaggio ricevuto da quei numeri viene archiviato lì e conservato sette giorni; la pagina delle
 impostazioni mostra gli ultimi.
@@ -312,19 +312,19 @@ amministrazione — o ciò che un test deve preparare senza passare per dieci sc
 **Query al database** lo legge o lo scrive direttamente. Il valore è un'istruzione SQL, con
 variabili:
 
-| Azione | Valore |
-|---|---|
+| Azione            | Valore                                                                        |
+| ----------------- | ----------------------------------------------------------------------------- |
 | Query al database | <code v-pre>SELECT status, total FROM orders WHERE email = '{{email}}'</code> |
-| Verifica valori | <code v-pre>{{db.status}} == Paid</code> |
+| Verifica valori   | <code v-pre>{{db.status}} == Paid</code>                                      |
 
 Imposta:
 
-| Variabile | Contiene |
-|---|---|
-| <code v-pre>{{db.value}}</code> | La prima colonna della prima riga (vuota se non ci sono righe) |
-| <code v-pre>{{db.colonna}}</code> | Ogni colonna della prima riga con il suo nome — <code v-pre>{{db.status}}</code>, <code v-pre>{{db.total}}</code>; i caratteri diversi da lettere, cifre, `_` e `.` diventano `_`, quindi date un nome alle colonne calcolate (`count(*) AS n`) |
-| <code v-pre>{{db.rowCount}}</code> | Le righe restituite, o quelle modificate da un INSERT, UPDATE o DELETE |
-| <code v-pre>{{db.json}}</code> | Le prime 100 righe, in JSON |
+| Variabile                          | Contiene                                                                                                                                                                                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <code v-pre>{{db.value}}</code>    | La prima colonna della prima riga (vuota se non ci sono righe)                                                                                                                                                                                  |
+| <code v-pre>{{db.colonna}}</code>  | Ogni colonna della prima riga con il suo nome — <code v-pre>{{db.status}}</code>, <code v-pre>{{db.total}}</code>; i caratteri diversi da lettere, cifre, `_` e `.` diventano `_`, quindi date un nome alle colonne calcolate (`count(*) AS n`) |
+| <code v-pre>{{db.rowCount}}</code> | Le righe restituite, o quelle modificate da un INSERT, UPDATE o DELETE                                                                                                                                                                          |
+| <code v-pre>{{db.json}}</code>     | Le prime 100 righe, in JSON                                                                                                                                                                                                                     |
 
 Le date sono in formato ISO, i valori nulli sono testo vuoto. Ogni query dimentica le colonne della
 precedente, così una colonna che questa query non ha restituito è non definita invece di restare
@@ -333,11 +333,11 @@ database.
 
 **Quale database.** Il segreto dell'ambiente `db.url`, un indirizzo il cui schema sceglie il database:
 
-| Database | Indirizzo |
-|---|---|
-| PostgreSQL | `postgres://utente:password@host:5432/shop` (`?sslmode=require` per TLS) |
-| MySQL, MariaDB | `mysql://utente:password@host:3306/shop` |
-| SQL Server | `sqlserver://utente:password@host:1433/Shop` — `sqlserver://…@host%5CSQLEXPRESS/Shop` per un'istanza con nome; `?encrypt=false` per un server senza TLS, `?trustServerCertificate=true` per un certificato autofirmato |
+| Database       | Indirizzo                                                                                                                                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PostgreSQL     | `postgres://utente:password@host:5432/shop` (`?sslmode=require` per TLS)                                                                                                                                               |
+| MySQL, MariaDB | `mysql://utente:password@host:3306/shop`                                                                                                                                                                               |
+| SQL Server     | `sqlserver://utente:password@host:1433/Shop` — `sqlserver://…@host%5CSQLEXPRESS/Shop` per un'istanza con nome; `?encrypt=false` per un server senza TLS, `?trustServerCertificate=true` per un certificato autofirmato |
 
 Caratteri come `@` o `/` nella password si scrivono `%40` e `%2F`. Per un secondo database
 dategli un nome: `db.reporting.url` e il valore `@reporting SELECT …`.
@@ -387,16 +387,16 @@ elenca i limiti:
 
 `LCP < 2.5s, CLS <= 0.1, INP < 200, TTFB < 800ms, weight < 2MB`
 
-| Metrica | Cos'è |
-|---|---|
-| `LCP` | Largest Contentful Paint: quando è comparso il contenuto principale. |
-| `CLS` | Cumulative Layout Shift: quanto si è spostata la pagina (la finestra di 5 secondi peggiore). |
-| `INP` | Interaction to Next Paint: la risposta più lenta a un clic o a un tasto finora; misurata solo dopo che il test ha interagito. |
-| `FCP`, `TTFB`, `DCL`, `LOAD` | Primo disegno, primo byte, DOM pronto, evento load. |
-| `TBT` | Total Blocking Time: i task lunghi dopo il primo disegno. |
-| `REQUESTS`, `WEIGHT` | Quante richieste, e quanti byte trasferiti (i file di altri domini senza `Timing-Allow-Origin` contano 0). |
+| Metrica                      | Cos'è                                                                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `LCP`                        | Largest Contentful Paint: quando è comparso il contenuto principale.                                                          |
+| `CLS`                        | Cumulative Layout Shift: quanto si è spostata la pagina (la finestra di 5 secondi peggiore).                                  |
+| `INP`                        | Interaction to Next Paint: la risposta più lenta a un clic o a un tasto finora; misurata solo dopo che il test ha interagito. |
+| `FCP`, `TTFB`, `DCL`, `LOAD` | Primo disegno, primo byte, DOM pronto, evento load.                                                                           |
+| `TBT`                        | Total Blocking Time: i task lunghi dopo il primo disegno.                                                                     |
+| `REQUESTS`, `WEIGHT`         | Quante richieste, e quanti byte trasferiti (i file di altri domini senza `Timing-Allow-Origin` contano 0).                    |
 
-I tempi accettano `ms` o `s`, le dimensioni `KB` o `MB`. Se vuoto, controlla le soglie *buone* delle
+I tempi accettano `ms` o `s`, le dimensioni `KB` o `MB`. Se vuoto, controlla le soglie _buone_ delle
 Core Web Vitals: `LCP <= 2500, CLS <= 0.1, INP <= 200`. Mettetelo dopo che la pagina si è caricata —
 dopo un **Attendi elemento** sul contenuto principale, per esempio — e dopo un'interazione quando
 conta l'INP. Solo Chromium misura LCP, CLS, INP e TBT; in Firefox e WebKit compaiono come — e un
@@ -528,7 +528,7 @@ progetto, così quando l'applicazione cambia, correggere il selettore una volta 
 → Repository degli elementi** sistema tutti i test.
 
 Quando uno step non trova il suo elemento e l'installazione ha una chiave AI, il run può
-**correggerlo**: chiede un nuovo selettore, riprova, e segna lo step come *healed* nel report. Un
+**correggerlo**: chiede un nuovo selettore, riprova, e segna lo step come _healed_ nel report. Un
 elemento salvato che è stato corretto mostra nel repository il selettore vecchio e quello nuovo,
 da confermare.
 

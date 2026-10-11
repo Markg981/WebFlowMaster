@@ -62,7 +62,10 @@ export function referencedElementIds(sequence: unknown): string[] {
  * because what the repository owns is where the element is, not what it looked like when
  * somebody last recorded it.
  */
-export function resolveStepElements(sequence: unknown, elements: RepositoryElement[]): ResolutionResult {
+export function resolveStepElements(
+  sequence: unknown,
+  elements: RepositoryElement[],
+): ResolutionResult {
   const steps = asSteps(sequence);
   const byId = new Map(elements.map((element) => [element.id, element]));
   const unresolved: string[] = [];

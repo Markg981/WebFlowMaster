@@ -4,8 +4,21 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Download } from 'lucide-react';
 
 /**
@@ -47,11 +60,14 @@ export function describeEntry(metadata: Record<string, unknown> | null): string 
   const parts: string[] = [];
   const name = metadata.name ?? metadata.keyName ?? metadata.username ?? metadata.key;
   if (typeof name === 'string') parts.push(name);
-  if (Array.isArray(metadata.fields) && metadata.fields.length > 0) parts.push(`(${metadata.fields.join(', ')})`);
+  if (Array.isArray(metadata.fields) && metadata.fields.length > 0)
+    parts.push(`(${metadata.fields.join(', ')})`);
   if (typeof metadata.isActive === 'boolean') parts.push(metadata.isActive ? '→ on' : '→ off');
-  if (typeof metadata.from === 'string' && typeof metadata.to === 'string') parts.push(`${metadata.from} → ${metadata.to}`);
+  if (typeof metadata.from === 'string' && typeof metadata.to === 'string')
+    parts.push(`${metadata.from} → ${metadata.to}`);
   if (typeof metadata.reason === 'string') parts.push(metadata.reason.replace(/_/g, ' '));
-  if (typeof metadata.restoredFromVersion === 'number') parts.push(`v${metadata.restoredFromVersion}`);
+  if (typeof metadata.restoredFromVersion === 'number')
+    parts.push(`v${metadata.restoredFromVersion}`);
   return parts.join(' ');
 }
 
@@ -64,7 +80,9 @@ export default function AuditLogCard() {
   const { data, isLoading, isError } = useQuery<AuditPage>({
     queryKey: ['auditLog', category, offset],
     queryFn: async () => {
-      const response = await fetch(`/api/organization/audit-log?limit=${PAGE_SIZE}&offset=${offset}${filter}`);
+      const response = await fetch(
+        `/api/organization/audit-log?limit=${PAGE_SIZE}&offset=${offset}${filter}`,
+      );
       if (!response.ok) throw new Error('Could not load the audit log');
       return response.json();
     },
@@ -84,7 +102,10 @@ export default function AuditLogCard() {
               setOffset(0);
             }}
           >
-            <SelectTrigger className="w-full sm:w-56" aria-label={t('auditLog.filterLabel', 'Show')}>
+            <SelectTrigger
+              className="w-full sm:w-56"
+              aria-label={t('auditLog.filterLabel', 'Show')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -107,9 +128,13 @@ export default function AuditLogCard() {
         {isLoading ? (
           <p className="text-sm text-muted-foreground">{t('auditLog.loading', 'Loading…')}</p>
         ) : isError || !data ? (
-          <p className="text-sm text-destructive">{t('auditLog.error', 'The audit log could not be loaded.')}</p>
+          <p className="text-sm text-destructive">
+            {t('auditLog.error', 'The audit log could not be loaded.')}
+          </p>
         ) : data.entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('auditLog.empty', 'Nothing recorded yet.')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('auditLog.empty', 'Nothing recorded yet.')}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -124,7 +149,9 @@ export default function AuditLogCard() {
               <TableBody>
                 {data.entries.map((entry) => (
                   <TableRow key={entry.id} data-testid={`audit-entry-${entry.id}`}>
-                    <TableCell className="text-xs whitespace-nowrap">{new Date(entry.createdAt).toLocaleString()}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {new Date(entry.createdAt).toLocaleString()}
+                    </TableCell>
                     <TableCell className="text-xs">
                       {entry.actorUsername ?? t('auditLog.system', 'system')}
                       {entry.apiKeyId && (
@@ -132,9 +159,13 @@ export default function AuditLogCard() {
                           {t('auditLog.viaKey', 'API key')}
                         </Badge>
                       )}
-                      {entry.ipAddress && <span className="block text-muted-foreground">{entry.ipAddress}</span>}
+                      {entry.ipAddress && (
+                        <span className="block text-muted-foreground">{entry.ipAddress}</span>
+                      )}
                     </TableCell>
-                    <TableCell className="text-xs">{t(`auditLog.actions.${entry.action.replace('.', '_')}`, entry.action)}</TableCell>
+                    <TableCell className="text-xs">
+                      {t(`auditLog.actions.${entry.action.replace('.', '_')}`, entry.action)}
+                    </TableCell>
                     <TableCell className="text-xs">{describeEntry(entry.metadata)}</TableCell>
                   </TableRow>
                 ))}
@@ -145,10 +176,20 @@ export default function AuditLogCard() {
 
         {data && (offset > 0 || data.hasMore) && (
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={offset === 0}
+              onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+            >
               {t('auditLog.newer', 'Newer')}
             </Button>
-            <Button variant="outline" size="sm" disabled={!data.hasMore} onClick={() => setOffset(offset + PAGE_SIZE)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!data.hasMore}
+              onClick={() => setOffset(offset + PAGE_SIZE)}
+            >
               {t('auditLog.older', 'Older')}
             </Button>
           </div>

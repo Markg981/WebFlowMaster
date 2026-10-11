@@ -73,7 +73,10 @@ function toSummary(entry: HarLike['log']['entries'][number]): NetworkRequestSumm
     method: entry.request.method,
     url: entry.request.url,
     status,
-    statusText: entry.response?._failureText || entry.response?.statusText || (status === 0 ? 'No response' : ''),
+    statusText:
+      entry.response?._failureText ||
+      entry.response?.statusText ||
+      (status === 0 ? 'No response' : ''),
     timeMs: Math.max(0, Math.round(Number(entry.time) || 0)),
     resourceType: entry._resourceType ?? null,
   };
@@ -119,7 +122,8 @@ export const SENSITIVE_HEADERS = [
 ];
 
 /** Query parameters whose value is a credential, e.g. an OAuth code or a signed link's token. */
-const SENSITIVE_QUERY = /^(?:access_token|id_token|refresh_token|token|code|api_?key|key|secret|password|signature|sig|x-amz-signature|x-amz-security-token)$/i;
+const SENSITIVE_QUERY =
+  /^(?:access_token|id_token|refresh_token|token|code|api_?key|key|secret|password|signature|sig|x-amz-signature|x-amz-security-token)$/i;
 
 export const REDACTED = '[redacted]';
 
@@ -154,13 +158,17 @@ function redactUrl(url: string): string {
  */
 export function sanitiseHar<T extends HarLike>(har: T): T {
   const scrubHeaders = (headers?: Array<{ name: string; value: string }>) =>
-    headers?.map((h) => (SENSITIVE_HEADERS.includes(h.name.toLowerCase()) ? { ...h, value: REDACTED } : h));
+    headers?.map((h) =>
+      SENSITIVE_HEADERS.includes(h.name.toLowerCase()) ? { ...h, value: REDACTED } : h,
+    );
   for (const entry of har.log.entries) {
     entry.request.url = redactUrl(entry.request.url);
     entry.request.headers = scrubHeaders(entry.request.headers);
     entry.request.cookies = [];
     if (entry.request.queryString) {
-      entry.request.queryString = entry.request.queryString.map((q) => (SENSITIVE_QUERY.test(q.name) ? { ...q, value: REDACTED } : q));
+      entry.request.queryString = entry.request.queryString.map((q) =>
+        SENSITIVE_QUERY.test(q.name) ? { ...q, value: REDACTED } : q,
+      );
     }
     if (entry.request.postData) {
       // A login form's body is the password. The size and type are still there.
@@ -181,10 +189,16 @@ export function describeNetworkFailures(summary: NetworkSummary): string | null 
   if (serious.length === 0) return null;
   const shown = serious
     .slice(0, 3)
-    .map((r) => `${r.method} ${pathOf(r.url)} → ${r.status === 0 ? r.statusText || 'no response' : r.status}`)
+    .map(
+      (r) =>
+        `${r.method} ${pathOf(r.url)} → ${r.status === 0 ? r.statusText || 'no response' : r.status}`,
+    )
     .join('; ');
-  return `${serious.length} request${serious.length === 1 ? '' : 's'} failed during this test: ${shown}` +
-    (serious.length > 3 ? `; and ${serious.length - 3} more` : '') + '.';
+  return (
+    `${serious.length} request${serious.length === 1 ? '' : 's'} failed during this test: ${shown}` +
+    (serious.length > 3 ? `; and ${serious.length - 3} more` : '') +
+    '.'
+  );
 }
 
 function pathOf(url: string): string {

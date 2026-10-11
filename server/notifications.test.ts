@@ -92,9 +92,18 @@ describe('summaryLine and buildPayload', () => {
   });
 
   it('names the build and the commit for a run a pipeline started', () => {
-    const ci = { provider: 'github' as const, repository: 'acme/shop', commit: '3f2a1c9d0e1b', branch: 'main', pullRequest: '17', buildId: '9001' };
+    const ci = {
+      provider: 'github' as const,
+      repository: 'acme/shop',
+      commit: '3f2a1c9d0e1b',
+      branch: 'main',
+      pullRequest: '17',
+      buildId: '9001',
+    };
 
-    expect(summaryLine({ ...summary, ci })).toContain(', GitHub Actions · acme/shop@3f2a1c9 on main · PR 17 · build 9001).');
+    expect(summaryLine({ ...summary, ci })).toContain(
+      ', GitHub Actions · acme/shop@3f2a1c9 on main · PR 17 · build 9001).',
+    );
     expect((buildPayload({ ...summary, ci }) as any).execution.ci).toEqual(ci);
   });
 
@@ -113,8 +122,12 @@ describe('summaryLine and buildPayload', () => {
 
     // The path the client actually serves. This used to be `/test-plan-executions/{id}`,
     // which no route has ever matched: every notification carried a link to a missing page.
-    expect(payload.execution.url).toBe('https://qa.example.com/test-plans/plan-1/executions/exec-1/report');
-    expect(payload.text).toContain('https://qa.example.com/test-plans/plan-1/executions/exec-1/report');
+    expect(payload.execution.url).toBe(
+      'https://qa.example.com/test-plans/plan-1/executions/exec-1/report',
+    );
+    expect(payload.text).toContain(
+      'https://qa.example.com/test-plans/plan-1/executions/exec-1/report',
+    );
   });
 });
 
@@ -149,7 +162,9 @@ describe('sendRunNotification', () => {
   });
 
   it('says plainly that no destination was configured', async () => {
-    const result = await sendRunNotification({ failed: true }, summary, { fetchImpl: vi.fn() as any });
+    const result = await sendRunNotification({ failed: true }, summary, {
+      fetchImpl: vi.fn() as any,
+    });
 
     expect(result.delivered).toBe(false);
     expect(result.reason).toContain('No notification webhook URL');
@@ -169,7 +184,9 @@ describe('sendRunNotification', () => {
   });
 
   it('reports a rejecting receiver without throwing, because the run is already over', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' } as any);
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' } as any);
 
     const result = await sendRunNotification(
       { failed: true, webhookUrl: 'https://hooks.example/gone' },
@@ -197,7 +214,9 @@ describe('sendRunNotification', () => {
 
 describe('describeUnsupported', () => {
   it('says an email list is not delivered only when the installation has no SMTP', () => {
-    expect(describeUnsupported({ emails: ['qa@example.com'] }).join(' ')).toContain('no SMTP configured');
+    expect(describeUnsupported({ emails: ['qa@example.com'] }).join(' ')).toContain(
+      'no SMTP configured',
+    );
     expect(describeUnsupported({ emails: ['qa@example.com'] }, true)).toEqual([]);
     expect(describeUnsupported({})).toEqual([]);
   });

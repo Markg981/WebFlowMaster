@@ -1,4 +1,20 @@
-import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, uniqueIndex, unique, primaryKey, check, foreignKey, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  integer,
+  bigint,
+  serial,
+  timestamp,
+  boolean,
+  jsonb,
+  index,
+  uniqueIndex,
+  unique,
+  primaryKey,
+  check,
+  foreignKey,
+  type AnyPgColumn,
+} from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations, sql } from 'drizzle-orm';
@@ -6,12 +22,25 @@ import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './r
 import { CUSTOM_ACTION_STEP_ID_PATTERN, type CustomActionParameter } from './custom-actions';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from './locales';
 import { canEmulateDevice, isMobileDevice } from './devices';
-import type { MobilePlatform, MobileRunStatus, MobileStep, MobileStepResult, MobileDeviceTarget } from './mobile';
+import type {
+  MobilePlatform,
+  MobileRunStatus,
+  MobileStep,
+  MobileStepResult,
+  MobileDeviceTarget,
+} from './mobile';
 import type { NetworkSummary } from './network';
 import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
 import { ApiPerformanceSchema, type ApiPerformance } from './api-performance';
-import type { LoadDataMode, LoadRunStatus, LoadStage, LoadStep, LoadSummary, LoadThresholds } from './load-test';
+import type {
+  LoadDataMode,
+  LoadRunStatus,
+  LoadStage,
+  LoadStep,
+  LoadSummary,
+  LoadThresholds,
+} from './load-test';
 import { ProtocolConfigSchema, type ProtocolConfig } from './api-protocol-config';
 import { BddTestSchema, type BddTest } from './bdd';
 import type { BddAgentProfile } from './bdd-agent';
@@ -24,16 +53,16 @@ export * from './mail-settings';
 export * from './mail-templates';
 
 // Table Definitions
-export const organizations = pgTable("organizations", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+export const organizations = pgTable('organizations', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
   /**
    * This organization's share of the execution plane — see server/tenant-quotas.ts. Null is the
    * installation's default. Set by the operator; the application has no grant to change them.
    */
-  maxConcurrentRuns: integer("max_concurrent_runs"),
-  maxQueuedRuns: integer("max_queued_runs"),
+  maxConcurrentRuns: integer('max_concurrent_runs'),
+  maxQueuedRuns: integer('max_queued_runs'),
   quotaMode: text('quota_mode').$type<import('./tenant-quotas').QuotaMode>(),
   maxTests: bigint('max_tests', { mode: 'number' }),
   maxArtifactBytes: bigint('max_artifact_bytes', { mode: 'number' }),
@@ -41,32 +70,47 @@ export const organizations = pgTable("organizations", {
   quotaRevision: integer('quota_revision').notNull().default(1),
   artifactsReconciledAt: timestamp('artifacts_reconciled_at'),
   /** Every member signing in with a password must use a second factor. Keys are not affected. */
-  mfaRequired: boolean("mfa_required").notNull().default(false),
+  mfaRequired: boolean('mfa_required').notNull().default(false),
   /** Publishing a test needs another member's approval, and plans run published tests only. */
-  testReviewRequired: boolean("test_review_required").notNull().default(false),
+  testReviewRequired: boolean('test_review_required').notNull().default(false),
   /** The test SMS inbox's inbound address token, hashed (server/sms-inbox.ts, migration 0070). */
-  smsInboundTokenHash: text("sms_inbound_token_hash"),
-  smsInboundTokenPrefix: text("sms_inbound_token_prefix"),
-  smsInboundTokenCreatedAt: timestamp("sms_inbound_token_created_at"),
+  smsInboundTokenHash: text('sms_inbound_token_hash'),
+  smsInboundTokenPrefix: text('sms_inbound_token_prefix'),
+  smsInboundTokenCreatedAt: timestamp('sms_inbound_token_created_at'),
 });
 
-export const quotaExecutionSessions = pgTable('quota_execution_sessions', {
-  organizationId: integer('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  kind: text('kind').notNull(),
-  executionId: text('execution_id').notNull(),
-  startedAt: timestamp('started_at').notNull(),
-  heartbeatAt: timestamp('heartbeat_at').notNull(),
-  endedAt: timestamp('ended_at'),
-}, table => [primaryKey({ columns: [table.organizationId, table.kind, table.executionId] }), index('quota_execution_period_idx').on(table.organizationId, table.startedAt)]);
+export const quotaExecutionSessions = pgTable(
+  'quota_execution_sessions',
+  {
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    executionId: text('execution_id').notNull(),
+    startedAt: timestamp('started_at').notNull(),
+    heartbeatAt: timestamp('heartbeat_at').notNull(),
+    endedAt: timestamp('ended_at'),
+  },
+  (table) => [
+    primaryKey({ columns: [table.organizationId, table.kind, table.executionId] }),
+    index('quota_execution_period_idx').on(table.organizationId, table.startedAt),
+  ],
+);
 
-export const quotaArtifacts = pgTable('quota_artifacts', {
-  organizationId: integer('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  key: text('key').notNull(),
-  bytes: bigint('bytes', { mode: 'number' }).notNull().default(0),
-  reservedBytes: bigint('reserved_bytes', { mode: 'number' }).notNull().default(0),
-  reservationId: text('reservation_id'),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-}, table => [primaryKey({ columns: [table.organizationId, table.key] })]);
+export const quotaArtifacts = pgTable(
+  'quota_artifacts',
+  {
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    bytes: bigint('bytes', { mode: 'number' }).notNull().default(0),
+    reservedBytes: bigint('reserved_bytes', { mode: 'number' }).notNull().default(0),
+    reservationId: text('reservation_id'),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.key] })],
+);
 
 export const quotaInstallationDefaults = pgTable('quota_installation_defaults', {
   id: integer('id').primaryKey(),
@@ -75,25 +119,27 @@ export const quotaInstallationDefaults = pgTable('quota_installation_defaults', 
   maxArtifactBytes: bigint('max_artifact_bytes', { mode: 'number' }).notNull().default(0),
 });
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  username: text('username').notNull().unique(),
+  password: text('password').notNull(),
   // The tenancy boundary. One user belongs to exactly one organization.
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  organizationId: integer('organization_id')
+    .notNull()
+    .references(() => organizations.id),
   // Verbs, not rows: RLS decides which rows are visible, this decides what may be done to them.
-  role: text("role").notNull().default('editor'),
+  role: text('role').notNull().default('editor'),
   /** 'person' signs in with a password; 'service' never signs in and exists to hold API keys. */
-  kind: text("kind").notNull().default('person'),
+  kind: text('kind').notNull().default('person'),
   /** What a service account is called. Its username is generated, being unique across organizations. */
-  displayName: text("display_name"),
+  displayName: text('display_name'),
   /**
    * A disabled service account keeps its row, so the runs it started still name it. A person is
    * disabled by their identity provider through SCIM (server/scim.ts): they cannot sign in, their
    * sessions and keys stop working, and the account comes back as it was when they are reactivated.
    */
-  disabledAt: timestamp("disabled_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  disabledAt: timestamp('disabled_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 /**
@@ -101,226 +147,288 @@ export const users = pgTable("users", {
  * everywhere (session, /api/user, req.user). Reached only through server/mfa.ts; app_user has
  * no grant on it. See migrations/0030_mfa_totp.sql.
  */
-export const userMfa = pgTable("user_mfa", {
-  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: 'cascade' }),
-  secretEncrypted: text("secret_encrypted"),
-  secretIv: text("secret_iv"),
-  secretAuthTag: text("secret_auth_tag"),
-  pendingSecretEncrypted: text("pending_secret_encrypted"),
-  pendingSecretIv: text("pending_secret_iv"),
-  pendingSecretAuthTag: text("pending_secret_auth_tag"),
-  enabledAt: timestamp("enabled_at"),
-  lastUsedStep: bigint("last_used_step", { mode: 'number' }),
+export const userMfa = pgTable('user_mfa', {
+  userId: integer('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  secretEncrypted: text('secret_encrypted'),
+  secretIv: text('secret_iv'),
+  secretAuthTag: text('secret_auth_tag'),
+  pendingSecretEncrypted: text('pending_secret_encrypted'),
+  pendingSecretIv: text('pending_secret_iv'),
+  pendingSecretAuthTag: text('pending_secret_auth_tag'),
+  enabledAt: timestamp('enabled_at'),
+  lastUsedStep: bigint('last_used_step', { mode: 'number' }),
   /** SHA-256 hashes of the unused recovery codes. */
-  recoveryCodes: jsonb("recovery_codes").$type<string[]>().notNull().default([]),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  recoveryCodes: jsonb('recovery_codes').$type<string[]>().notNull().default([]),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export const userSettings = pgTable("user_settings", {
+export const userSettings = pgTable('user_settings', {
   // A person's own preferences: they go with the account (migration 0040).
-  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: 'cascade' }),
-  theme: text("theme").default('light').notNull(),
-  defaultTestUrl: text("default_test_url"),
-  playwrightBrowser: text("playwright_browser").default('chromium').notNull(),
-  playwrightHeadless: boolean("playwright_headless").default(true).notNull(),
-  playwrightDefaultTimeout: integer("playwright_default_timeout").default(30000).notNull(),
-  playwrightWaitTime: integer("playwright_wait_time").default(1000).notNull(),
-  language: text("language").default('en').notNull(),
+  userId: integer('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  theme: text('theme').default('light').notNull(),
+  defaultTestUrl: text('default_test_url'),
+  playwrightBrowser: text('playwright_browser').default('chromium').notNull(),
+  playwrightHeadless: boolean('playwright_headless').default(true).notNull(),
+  playwrightDefaultTimeout: integer('playwright_default_timeout').default(30000).notNull(),
+  playwrightWaitTime: integer('playwright_wait_time').default(1000).notNull(),
+  language: text('language').default('en').notNull(),
   /**
    * E-mail about the runs this person starts (server/mail-messages.ts): the master switch, then
    * when. Off until the person turns it on; nothing is sent while the installation has no SMTP.
    */
-  notifyByEmail: boolean("notify_by_email").default(false).notNull(),
-  notifyRunCompleted: boolean("notify_run_completed").default(true).notNull(),
-  notifyRunFailed: boolean("notify_run_failed").default(true).notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  notifyByEmail: boolean('notify_by_email').default(false).notNull(),
+  notifyRunCompleted: boolean('notify_run_completed').default(true).notNull(),
+  notifyRunFailed: boolean('notify_run_failed').default(true).notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export const projects = pgTable("projects", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  /**
-   * Visible only to the organization's owners and the project's members (project_members), who
-   * may edit it only as editors there. Enforced by RLS — see migrations/0031_project_access.sql.
-   */
-  restricted: boolean("restricted").notNull().default(false),
-}, (table) => [
-  index("projects_user_id_idx").on(table.userId),
-  index("projects_organization_id_idx").on(table.organizationId),
-]);
+export const projects = pgTable(
+  'projects',
+  {
+    id: serial('id').primaryKey(),
+    name: text('name').notNull(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    /**
+     * Visible only to the organization's owners and the project's members (project_members), who
+     * may edit it only as editors there. Enforced by RLS — see migrations/0031_project_access.sql.
+     */
+    restricted: boolean('restricted').notNull().default(false),
+  },
+  (table) => [
+    index('projects_user_id_idx').on(table.userId),
+    index('projects_organization_id_idx').on(table.organizationId),
+  ],
+);
 
 /**
  * Who is on a restricted project, and as what. A project role only ever narrows the
  * organization role: an organization viewer who is an editor here is still a viewer.
  */
-export const projectMembers = pgTable("project_members", {
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  /** 'viewer' | 'editor' */
-  role: text("role").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  primaryKey({ columns: [table.projectId, table.userId] }),
-  index("project_members_organization_id_idx").on(table.organizationId),
-  index("project_members_user_id_idx").on(table.userId),
-]);
+export const projectMembers = pgTable(
+  'project_members',
+  {
+    projectId: integer('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    /** 'viewer' | 'editor' */
+    role: text('role').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.projectId, table.userId] }),
+    index('project_members_organization_id_idx').on(table.organizationId),
+    index('project_members_user_id_idx').on(table.userId),
+  ],
+);
 
 export type ProjectMember = typeof projectMembers.$inferSelect;
 
-export const tests = pgTable("tests", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
-  name: text("name").notNull(),
-  url: text("url").notNull(),
-  sequence: jsonb("sequence").notNull(),
-  bdd: jsonb('bdd').$type<BddTest>(),
-  elements: jsonb("elements").notNull(),
-  // Ordered API setup calls that must succeed before the UI sequence runs, so the
-  // system under test is in the required state (e.g. a static scale check before a
-  // tare check). Nullable: existing/most tests have none. See PreconditionSchema.
-  preconditions: jsonb("preconditions"),
-  // API calls after the test, whatever its outcome, that remove what it created (migration 0065,
-  // server/cleanup-runner.ts). Nullable: most tests have none. See CleanupSchema.
-  cleanups: jsonb("cleanups"),
-  /**
-   * Rows of input this test runs over, one run each.
-   *
-   * Each key becomes a {{variable}} for that run, layered over the environment values.
-   * Null or empty means one run with no extra variables — what every test did before.
-   */
-  dataset: jsonb("dataset"),
-  status: text("status").notNull().default("draft"),
-  /**
-   * The version plans run (test_versions.version). Null: never published, and plans run this
-   * row — the working copy — as they always did. See migrations/0032_test_publishing.sql.
-   */
-  publishedVersion: integer("published_version"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export const tests = pgTable(
+  'tests',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    name: text('name').notNull(),
+    url: text('url').notNull(),
+    sequence: jsonb('sequence').notNull(),
+    bdd: jsonb('bdd').$type<BddTest>(),
+    elements: jsonb('elements').notNull(),
+    // Ordered API setup calls that must succeed before the UI sequence runs, so the
+    // system under test is in the required state (e.g. a static scale check before a
+    // tare check). Nullable: existing/most tests have none. See PreconditionSchema.
+    preconditions: jsonb('preconditions'),
+    // API calls after the test, whatever its outcome, that remove what it created (migration 0065,
+    // server/cleanup-runner.ts). Nullable: most tests have none. See CleanupSchema.
+    cleanups: jsonb('cleanups'),
+    /**
+     * Rows of input this test runs over, one run each.
+     *
+     * Each key becomes a {{variable}} for that run, layered over the environment values.
+     * Null or empty means one run with no extra variables — what every test did before.
+     */
+    dataset: jsonb('dataset'),
+    status: text('status').notNull().default('draft'),
+    /**
+     * The version plans run (test_versions.version). Null: never published, and plans run this
+     * row — the working copy — as they always did. See migrations/0032_test_publishing.sql.
+     */
+    publishedVersion: integer('published_version'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
 
-  // NEW Fields for reporting
-  module: text("module"),
-  featureArea: text("feature_area"),
-  scenario: text("scenario"),
-  component: text("component"),
-  priority: text("priority").default('Medium'), // enum is handled by app logic/zod
-  severity: text("severity").default('Major'),
-}, (table) => [
-  index("tests_user_id_idx").on(table.userId),
-  index("tests_project_id_idx").on(table.projectId),
-  index("tests_status_idx").on(table.status),
-  index("tests_organization_id_idx").on(table.organizationId),
-]);
+    // NEW Fields for reporting
+    module: text('module'),
+    featureArea: text('feature_area'),
+    scenario: text('scenario'),
+    component: text('component'),
+    priority: text('priority').default('Medium'), // enum is handled by app logic/zod
+    severity: text('severity').default('Major'),
+  },
+  (table) => [
+    index('tests_user_id_idx').on(table.userId),
+    index('tests_project_id_idx').on(table.projectId),
+    index('tests_status_idx').on(table.status),
+    index('tests_organization_id_idx').on(table.organizationId),
+  ],
+);
 
-export const testRuns = pgTable("test_runs", {
-  id: serial("id").primaryKey(),
-  testId: integer("test_id").notNull().references(() => tests.id),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  status: text("status").notNull(),
-  results: jsonb("results"),
-  startedAt: timestamp("started_at").defaultNow().notNull(),
-  completedAt: timestamp("completed_at"),
-}, (table) => [
-  index("test_runs_test_id_idx").on(table.testId),
-  index("test_runs_organization_id_idx").on(table.organizationId),
-]);
+export const testRuns = pgTable(
+  'test_runs',
+  {
+    id: serial('id').primaryKey(),
+    testId: integer('test_id')
+      .notNull()
+      .references(() => tests.id),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    status: text('status').notNull(),
+    results: jsonb('results'),
+    startedAt: timestamp('started_at').defaultNow().notNull(),
+    completedAt: timestamp('completed_at'),
+  },
+  (table) => [
+    index('test_runs_test_id_idx').on(table.testId),
+    index('test_runs_organization_id_idx').on(table.organizationId),
+  ],
+);
 
-export const detectedElements = pgTable("detected_elements", {
-  id: serial("id").primaryKey(),
-  testId: integer("test_id").notNull().references(() => tests.id, { onDelete: 'cascade' }),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  elementId: text("element_id").notNull(), // Client-side ID like elem-button-1
-  selector: text("selector").notNull(),
-  originalSelector: text("original_selector"),
-  type: text("type"),
-  text: text("text"),
-  tag: text("tag"),
-  attributes: jsonb("attributes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("detected_elements_test_id_idx").on(table.testId),
-  index("detected_elements_test_id_element_id_idx").on(table.testId, table.elementId),
-  index("detected_elements_organization_id_idx").on(table.organizationId),
-]);
+export const detectedElements = pgTable(
+  'detected_elements',
+  {
+    id: serial('id').primaryKey(),
+    testId: integer('test_id')
+      .notNull()
+      .references(() => tests.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    elementId: text('element_id').notNull(), // Client-side ID like elem-button-1
+    selector: text('selector').notNull(),
+    originalSelector: text('original_selector'),
+    type: text('type'),
+    text: text('text'),
+    tag: text('tag'),
+    attributes: jsonb('attributes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('detected_elements_test_id_idx').on(table.testId),
+    index('detected_elements_test_id_element_id_idx').on(table.testId, table.elementId),
+    index('detected_elements_organization_id_idx').on(table.organizationId),
+  ],
+);
 
-export const apiTestHistory = pgTable("api_test_history", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  method: text("method").notNull(),
-  url: text("url").notNull(),
-  queryParams: jsonb("query_params"),
-  requestHeaders: jsonb("request_headers"),
-  requestBody: text("request_body"),
-  responseStatus: integer("response_status"),
-  responseHeaders: jsonb("response_headers"),
-  responseBody: text("response_body"),
-  durationMs: integer("duration_ms"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("api_test_history_user_id_idx").on(table.userId),
-  index("api_test_history_organization_id_idx").on(table.organizationId),
-]);
+export const apiTestHistory = pgTable(
+  'api_test_history',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    method: text('method').notNull(),
+    url: text('url').notNull(),
+    queryParams: jsonb('query_params'),
+    requestHeaders: jsonb('request_headers'),
+    requestBody: text('request_body'),
+    responseStatus: integer('response_status'),
+    responseHeaders: jsonb('response_headers'),
+    responseBody: text('response_body'),
+    durationMs: integer('duration_ms'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('api_test_history_user_id_idx').on(table.userId),
+    index('api_test_history_organization_id_idx').on(table.organizationId),
+  ],
+);
 
-export const apiTests = pgTable("api_tests", {
-  id: serial("id").primaryKey(),
-  // The organization's, not the person's: a removed member's API tests are handed to another
-  // member (server/member-removal.ts), never deleted with them (migration 0040).
-  userId: integer("user_id").notNull().references(() => users.id),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
-  publishedVersion: integer("published_version"),
-  name: text("name").notNull(),
-  method: text("method").notNull(),
-  url: text("url").notNull(),
-  queryParams: jsonb("query_params"),
-  requestHeaders: jsonb("request_headers"),
-  requestBody: text("request_body"),
-  assertions: jsonb("assertions"),
-  /**
-   * Values to capture from the response for later requests in the same plan run.
-   *
-   * Assertions could read a response but nothing could take a value out of one, so a test
-   * could only check one endpoint in isolation — never a flow. See ExtractionSchema.
-   */
-  extractions: jsonb('extractions'),
-  /**
-   * Send the request several times and hold its response times against thresholds — see
-   * shared/api-performance.ts. Null: the test sends it once, as it always did.
-   */
-  performance: jsonb('performance').$type<ApiPerformance>(),
-  authType: text("auth_type"),
-  authParams: jsonb("auth_params"),
-  bodyType: text("body_type"),
-  bodyRawContentType: text("body_raw_content_type"),
-  bodyFormData: jsonb("body_form_data"),
-  bodyUrlEncoded: jsonb("body_url_encoded"),
-  bodyGraphqlQuery: text("body_graphql_query"),
-  bodyGraphqlVariables: text("body_graphql_variables"),
-  /** A gRPC test's .proto (server/api-protocols.ts, migration 0069). */
-  protoDefinition: text("proto_definition"),
-  protocolConfig: jsonb('protocol_config').$type<ProtocolConfig>(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export const apiTests = pgTable(
+  'api_tests',
+  {
+    id: serial('id').primaryKey(),
+    // The organization's, not the person's: a removed member's API tests are handed to another
+    // member (server/member-removal.ts), never deleted with them (migration 0040).
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    publishedVersion: integer('published_version'),
+    name: text('name').notNull(),
+    method: text('method').notNull(),
+    url: text('url').notNull(),
+    queryParams: jsonb('query_params'),
+    requestHeaders: jsonb('request_headers'),
+    requestBody: text('request_body'),
+    assertions: jsonb('assertions'),
+    /**
+     * Values to capture from the response for later requests in the same plan run.
+     *
+     * Assertions could read a response but nothing could take a value out of one, so a test
+     * could only check one endpoint in isolation — never a flow. See ExtractionSchema.
+     */
+    extractions: jsonb('extractions'),
+    /**
+     * Send the request several times and hold its response times against thresholds — see
+     * shared/api-performance.ts. Null: the test sends it once, as it always did.
+     */
+    performance: jsonb('performance').$type<ApiPerformance>(),
+    authType: text('auth_type'),
+    authParams: jsonb('auth_params'),
+    bodyType: text('body_type'),
+    bodyRawContentType: text('body_raw_content_type'),
+    bodyFormData: jsonb('body_form_data'),
+    bodyUrlEncoded: jsonb('body_url_encoded'),
+    bodyGraphqlQuery: text('body_graphql_query'),
+    bodyGraphqlVariables: text('body_graphql_variables'),
+    /** A gRPC test's .proto (server/api-protocols.ts, migration 0069). */
+    protoDefinition: text('proto_definition'),
+    protocolConfig: jsonb('protocol_config').$type<ProtocolConfig>(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
 
-  // NEW Fields for reporting
-  module: text("module"),
-  featureArea: text("feature_area"),
-  scenario: text("scenario"),
-  component: text("component"),
-  priority: text("priority").default('Medium'),
-  severity: text("severity").default('Major'),
-}, (table) => [
-  index("api_tests_user_id_idx").on(table.userId),
-  index("api_tests_project_id_idx").on(table.projectId),
-  index("api_tests_organization_id_idx").on(table.organizationId),
-]);
+    // NEW Fields for reporting
+    module: text('module'),
+    featureArea: text('feature_area'),
+    scenario: text('scenario'),
+    component: text('component'),
+    priority: text('priority').default('Medium'),
+    severity: text('severity').default('Major'),
+  },
+  (table) => [
+    index('api_tests_user_id_idx').on(table.userId),
+    index('api_tests_project_id_idx').on(table.projectId),
+    index('api_tests_organization_id_idx').on(table.organizationId),
+  ],
+);
 
 export const systemSettings = pgTable('system_settings', {
   key: text('key').primaryKey(),
@@ -331,131 +439,162 @@ export const systemSettings = pgTable('system_settings', {
  * The worker processes that run plans, as they describe themselves. Installation-wide and
  * outside RLS, like system_settings; see migrations/0033_runner_registry.sql.
  */
-export const runners = pgTable('runners', {
-  id: text('id').primaryKey(),
-  hostname: text('hostname').notNull(),
-  pid: integer('pid').notNull(),
-  version: text('version'),
-  concurrency: integer('concurrency').notNull(),
-  browserTaskConcurrency: integer('browser_task_concurrency').notNull(),
-  browsers: jsonb('browsers').$type<string[]>().notNull().default([]),
-  activeJobs: integer('active_jobs').notNull().default(0),
-  /** 'drain' asks the runner to finish what it has and take nothing new. */
-  desiredState: text('desired_state').$type<'active' | 'drain'>().notNull().default('active'),
-  startedAt: timestamp('started_at').defaultNow().notNull(),
-  lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
-  /** Set when the runner shut down cleanly. */
-  stoppedAt: timestamp('stopped_at'),
-}, (table) => [
-  index('runners_last_seen_at_idx').on(table.lastSeenAt),
-]);
+export const runners = pgTable(
+  'runners',
+  {
+    id: text('id').primaryKey(),
+    hostname: text('hostname').notNull(),
+    pid: integer('pid').notNull(),
+    version: text('version'),
+    concurrency: integer('concurrency').notNull(),
+    browserTaskConcurrency: integer('browser_task_concurrency').notNull(),
+    browsers: jsonb('browsers').$type<string[]>().notNull().default([]),
+    activeJobs: integer('active_jobs').notNull().default(0),
+    /** 'drain' asks the runner to finish what it has and take nothing new. */
+    desiredState: text('desired_state').$type<'active' | 'drain'>().notNull().default('active'),
+    startedAt: timestamp('started_at').defaultNow().notNull(),
+    lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
+    /** Set when the runner shut down cleanly. */
+    stoppedAt: timestamp('stopped_at'),
+  },
+  (table) => [index('runners_last_seen_at_idx').on(table.lastSeenAt)],
+);
 
 export type Runner = typeof runners.$inferSelect;
 
 // Test Plans Table
-export const testPlans = pgTable("test_plans", {
-  id: text('id').primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  name: text('name').notNull(),
-  description: text('description'),
-  testMachinesConfig: jsonb('test_machines_config'),
-  captureScreenshots: text('capture_screenshots').default('on_failed_steps'),
-  /**
-   * Whether to keep a video of the run, and a Playwright trace of it.
-   *
-   * A report holds one picture per step and the message the step died with, which answers
-   * "the button was not there" and nothing else. A test that failed because a request was
-   * slow, or because a dialog appeared and vanished, looks exactly like one with a wrong
-   * selector. 'never' | 'on_failure' | 'always'; both default to never, because both cost
-   * disk on every run.
-   */
-  captureVideo: text('capture_video').default('never').notNull(),
-  captureTrace: text('capture_trace').default('never').notNull(),
-  /** A HAR of each test's requests (no bodies, no credentials) and the summary the report shows. */
-  captureNetwork: text('capture_network').default('never').notNull(),
-  /** Run on the local agents of this pool (shared/agents.ts); null runs on the server's runners. */
-  agentPool: text('agent_pool'),
-  /** Run on this browser grid (shared/browser-grids.ts) instead: never together with a pool. */
-  browserGridId: text('browser_grid_id').references(() => browserGrids.id, { onDelete: 'set null' }),
-  visualTestingEnabled: boolean('visual_testing_enabled').default(false),
-  pageLoadTimeout: integer('page_load_timeout').default(30000),
-  elementTimeout: integer('element_timeout').default(30000),
-  onMajorStepFailure: text('on_major_step_failure').default('abort_and_run_next_test_case'),
-  onAbortedTestCase: text('on_aborted_test_case').default('delete_cookies_and_reuse_session'),
-  onTestSuitePreRequisiteFailure: text('on_test_suite_pre_requisite_failure').default('stop_execution'),
-  onTestCasePreRequisiteFailure: text('on_test_case_pre_requisite_failure').default('stop_execution'),
-  onTestStepPreRequisiteFailure: text('on_test_step_pre_requisite_failure').default('abort_and_run_next_test_case'),
-  reRunOnFailure: text('re_run_on_failure').default('none'),
-  /**
-   * How many of this plan's runs may be in flight at once, across all its browsers.
-   *
-   * 1 is what every plan did before this existed: one browser session at a time, so forty
-   * tests on three browsers were a hundred and twenty of them end to end. How high this can
-   * go is a fact about the machine the runner is on, which is why it is a setting and not a
-   * constant.
-   */
-  maxParallelTests: integer('max_parallel_tests').default(1).notNull(),
-  /**
-   * How many workers may share one run of this plan (server/run-shards.ts), each running
-   * `maxParallelTests` at a time. 1 is one worker, as before this existed (migration 0067).
-   */
-  shards: integer('shards').default(1).notNull(),
-  /** Languages every test runs in, one pass each; empty for the browser's default (migration 0047). */
-  locales: jsonb('locales').$type<string[]>().notNull().default([]),
-  /**
-   * Where this plan's failures are filed, and whether they are filed at all.
-   *
-   * Off for every plan that exists, and off by default for a new one: filing a bug is an action
-   * in somebody else's system, and a feature that starts doing that on its own the moment it is
-   * deployed is one nobody forgives. A plan opts in, and names the tracker it opts into.
-   */
-  issueTrackerId: text('issue_tracker_id').references(() => issueTrackers.id, { onDelete: 'set null' }),
-  /** The TestRail, Xray or Zephyr Scale every finished run is published to (shared/test-management.ts). */
-  testManagementId: text('test_management_id').references((): AnyPgColumn => testManagementConnections.id, { onDelete: 'set null' }),
-  createIssuesOnFailure: boolean('create_issues_on_failure').default(false).notNull(),
-  notificationSettings: jsonb('notification_settings'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => [
-  index("test_plans_user_id_idx").on(table.userId),
-  index("test_plans_organization_id_idx").on(table.organizationId),
-]);
+export const testPlans = pgTable(
+  'test_plans',
+  {
+    id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    name: text('name').notNull(),
+    description: text('description'),
+    testMachinesConfig: jsonb('test_machines_config'),
+    captureScreenshots: text('capture_screenshots').default('on_failed_steps'),
+    /**
+     * Whether to keep a video of the run, and a Playwright trace of it.
+     *
+     * A report holds one picture per step and the message the step died with, which answers
+     * "the button was not there" and nothing else. A test that failed because a request was
+     * slow, or because a dialog appeared and vanished, looks exactly like one with a wrong
+     * selector. 'never' | 'on_failure' | 'always'; both default to never, because both cost
+     * disk on every run.
+     */
+    captureVideo: text('capture_video').default('never').notNull(),
+    captureTrace: text('capture_trace').default('never').notNull(),
+    /** A HAR of each test's requests (no bodies, no credentials) and the summary the report shows. */
+    captureNetwork: text('capture_network').default('never').notNull(),
+    /** Run on the local agents of this pool (shared/agents.ts); null runs on the server's runners. */
+    agentPool: text('agent_pool'),
+    /** Run on this browser grid (shared/browser-grids.ts) instead: never together with a pool. */
+    browserGridId: text('browser_grid_id').references(() => browserGrids.id, {
+      onDelete: 'set null',
+    }),
+    visualTestingEnabled: boolean('visual_testing_enabled').default(false),
+    pageLoadTimeout: integer('page_load_timeout').default(30000),
+    elementTimeout: integer('element_timeout').default(30000),
+    onMajorStepFailure: text('on_major_step_failure').default('abort_and_run_next_test_case'),
+    onAbortedTestCase: text('on_aborted_test_case').default('delete_cookies_and_reuse_session'),
+    onTestSuitePreRequisiteFailure: text('on_test_suite_pre_requisite_failure').default(
+      'stop_execution',
+    ),
+    onTestCasePreRequisiteFailure: text('on_test_case_pre_requisite_failure').default(
+      'stop_execution',
+    ),
+    onTestStepPreRequisiteFailure: text('on_test_step_pre_requisite_failure').default(
+      'abort_and_run_next_test_case',
+    ),
+    reRunOnFailure: text('re_run_on_failure').default('none'),
+    /**
+     * How many of this plan's runs may be in flight at once, across all its browsers.
+     *
+     * 1 is what every plan did before this existed: one browser session at a time, so forty
+     * tests on three browsers were a hundred and twenty of them end to end. How high this can
+     * go is a fact about the machine the runner is on, which is why it is a setting and not a
+     * constant.
+     */
+    maxParallelTests: integer('max_parallel_tests').default(1).notNull(),
+    /**
+     * How many workers may share one run of this plan (server/run-shards.ts), each running
+     * `maxParallelTests` at a time. 1 is one worker, as before this existed (migration 0067).
+     */
+    shards: integer('shards').default(1).notNull(),
+    /** Languages every test runs in, one pass each; empty for the browser's default (migration 0047). */
+    locales: jsonb('locales').$type<string[]>().notNull().default([]),
+    /**
+     * Where this plan's failures are filed, and whether they are filed at all.
+     *
+     * Off for every plan that exists, and off by default for a new one: filing a bug is an action
+     * in somebody else's system, and a feature that starts doing that on its own the moment it is
+     * deployed is one nobody forgives. A plan opts in, and names the tracker it opts into.
+     */
+    issueTrackerId: text('issue_tracker_id').references(() => issueTrackers.id, {
+      onDelete: 'set null',
+    }),
+    /** The TestRail, Xray or Zephyr Scale every finished run is published to (shared/test-management.ts). */
+    testManagementId: text('test_management_id').references(
+      (): AnyPgColumn => testManagementConnections.id,
+      { onDelete: 'set null' },
+    ),
+    createIssuesOnFailure: boolean('create_issues_on_failure').default(false).notNull(),
+    notificationSettings: jsonb('notification_settings'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('test_plans_user_id_idx').on(table.userId),
+    index('test_plans_organization_id_idx').on(table.organizationId),
+  ],
+);
 
-export const testPlanSchedules = pgTable("test_plan_schedules", {
-  id: text('id').primaryKey(),
-  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
-  organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  // Owner of the schedule; scheduled executions run on behalf of this user.
-  // Nullable so pre-existing rows migrate cleanly (the scheduler falls back for them).
-  // A removed member's schedules are handed to another member, not deleted (migration 0040).
-  userId: integer('user_id').references(() => users.id),
-  scheduleName: text('schedule_name').notNull(),
-  frequency: text('frequency').notNull(),
-  nextRunAt: timestamp('next_run_at').notNull(),
-  /**
-   * IANA zone the schedule's time is meant in, e.g. 'Europe/Rome'.
-   *
-   * An offset cannot express "02:00 local all year round", which is what people actually
-   * want from a nightly job — and deriving everything from UTC, as this used to, moved such
-   * a job by an hour twice a year without anything having changed but the clocks.
-   * Defaults to 'UTC', which is what every pre-existing row already meant.
-   */
-  timezone: text('timezone').notNull().default('UTC'),
-  environment: text('environment'),
-  browsers: jsonb('browsers'),
-  notificationConfigOverride: jsonb('notification_config_override'),
-  executionParameters: jsonb('execution_parameters'),
-  isActive: boolean('is_active').default(true).notNull(),
-  retryOnFailure: text('retry_on_failure').default('none').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at'),
-}, (table) => [
-  index("test_plan_schedules_test_plan_id_idx").on(table.testPlanId),
-  index("test_plan_schedules_user_id_idx").on(table.userId),
-  index("test_plan_schedules_active_next_run_idx").on(table.isActive, table.nextRunAt),
-  index("test_plan_schedules_organization_id_idx").on(table.organizationId),
-]);
+export const testPlanSchedules = pgTable(
+  'test_plan_schedules',
+  {
+    id: text('id').primaryKey(),
+    testPlanId: text('test_plan_id')
+      .notNull()
+      .references(() => testPlans.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    // Owner of the schedule; scheduled executions run on behalf of this user.
+    // Nullable so pre-existing rows migrate cleanly (the scheduler falls back for them).
+    // A removed member's schedules are handed to another member, not deleted (migration 0040).
+    userId: integer('user_id').references(() => users.id),
+    scheduleName: text('schedule_name').notNull(),
+    frequency: text('frequency').notNull(),
+    nextRunAt: timestamp('next_run_at').notNull(),
+    /**
+     * IANA zone the schedule's time is meant in, e.g. 'Europe/Rome'.
+     *
+     * An offset cannot express "02:00 local all year round", which is what people actually
+     * want from a nightly job — and deriving everything from UTC, as this used to, moved such
+     * a job by an hour twice a year without anything having changed but the clocks.
+     * Defaults to 'UTC', which is what every pre-existing row already meant.
+     */
+    timezone: text('timezone').notNull().default('UTC'),
+    environment: text('environment'),
+    browsers: jsonb('browsers'),
+    notificationConfigOverride: jsonb('notification_config_override'),
+    executionParameters: jsonb('execution_parameters'),
+    isActive: boolean('is_active').default(true).notNull(),
+    retryOnFailure: text('retry_on_failure').default('none').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at'),
+  },
+  (table) => [
+    index('test_plan_schedules_test_plan_id_idx').on(table.testPlanId),
+    index('test_plan_schedules_user_id_idx').on(table.userId),
+    index('test_plan_schedules_active_next_run_idx').on(table.isActive, table.nextRunAt),
+    index('test_plan_schedules_organization_id_idx').on(table.organizationId),
+  ],
+);
 
 // The run's states live in shared/execution-status.ts so the client can share them without
 // importing the database layer. Which state may follow which lives in server/execution-state.ts,
@@ -468,260 +607,331 @@ export {
   type ExecutionTrigger,
 } from './execution-status';
 
-export const testPlanExecutions = pgTable("test_plan_executions", {
-  id: text('id').primaryKey(),
-  scheduleId: text('schedule_id').references(() => testPlanSchedules.id, { onDelete: 'set null' }),
-  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
-  organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  /** Who asked for the run. Null on rows from before this was recorded. */
-  requestedByUserId: integer('requested_by_user_id').references(() => users.id, { onDelete: 'set null' }),
-  status: text('status').notNull().default('queued'),
-  results: jsonb("results"),
-  /** When somebody asked for the run. */
-  queuedAt: timestamp('queued_at').notNull().defaultNow(),
-  /**
-   * When a worker began it. Null while it waits: stamping it at enqueue time used to make a run
-   * that sat in the queue for ten minutes report ten minutes it never ran for.
-   */
-  startedAt: timestamp('started_at'),
-  completedAt: timestamp('completed_at'),
-  cancelRequestedAt: timestamp('cancel_requested_at'),
-  /** Why a sharded run stopped early under the plan's stop policy, for every worker sharing it (migration 0067). */
-  stopReason: text('stop_reason'),
-  /** Stamped when a worker takes the run, so "is anyone still on this?" has an answer. */
-  heartbeatAt: timestamp('heartbeat_at'),
-  /** Why a run ended in `error`: a code to branch on, and a sentence for a person. */
-  failureCode: text('failure_code'),
-  failureMessage: text('failure_message'),
-  /**
-   * Every setting the run will use, taken when it was asked for — see server/execution-snapshot.ts.
-   * '{}' on rows from before this existed; the worker reads the plan for those.
-   */
-  configurationSnapshot: jsonb('configuration_snapshot').notNull().default({}),
-  /** Chosen by the caller, so asking twice returns the same run. Unique per organization. */
-  idempotencyKey: text('idempotency_key'),
-  /** Which attempt this run is, out of how many a schedule's retry policy allowed. */
-  attempt: integer('attempt').notNull().default(1),
-  maxAttempts: integer('max_attempts').notNull().default(1),
-  /** The first attempt, on every retry of it. The foreign key is in migration 0023. */
-  retryOfExecutionId: text('retry_of_execution_id'),
-  /** When retention removed this run's screenshots, videos and traces; the results stay. */
-  artifactsPurgedAt: timestamp('artifacts_purged_at'),
-  artifactStorageStatus: text('artifact_storage_status').$type<'quota_exceeded' | 'error'>(),
-  quotaDeferReason: text('quota_defer_reason').$type<'execution_quota_exceeded' | 'concurrent_run_quota'>(),
-  quotaDeferUntil: timestamp('quota_defer_until'),
-  /** The runner that took the run (runners.id, host:pid:suffix). Readable after the runner is gone. */
-  runnerId: text('runner_id'),
-  /** The build, commit and branch that asked for the run, when a pipeline did — see shared/ci.ts. */
-  ciContext: jsonb('ci_context').$type<CiContext>(),
-  environment: text('environment'),
-  browsers: jsonb('browsers'),
-  triggeredBy: text('triggered_by').notNull().default('manual'),
-  totalTests: integer("total_tests"),
-  passedTests: integer("passed_tests"),
-  failedTests: integer("failed_tests"),
-  skippedTests: integer("skipped_tests"),
-  /** Of the failed and errored tests, those in quarantine: counted, shown, not held against the run. */
-  quarantinedFailures: integer("quarantined_failures").notNull().default(0),
-  executionDurationMs: integer("execution_duration_ms"),
-}, (table) => [
-  index("test_plan_executions_test_plan_id_idx").on(table.testPlanId),
-  index("test_plan_executions_schedule_id_idx").on(table.scheduleId),
-  index("test_plan_executions_status_idx").on(table.status),
-  index("test_plan_executions_started_at_idx").on(table.startedAt),
-  index("test_plan_executions_organization_id_idx").on(table.organizationId),
-]);
+export const testPlanExecutions = pgTable(
+  'test_plan_executions',
+  {
+    id: text('id').primaryKey(),
+    scheduleId: text('schedule_id').references(() => testPlanSchedules.id, {
+      onDelete: 'set null',
+    }),
+    testPlanId: text('test_plan_id')
+      .notNull()
+      .references(() => testPlans.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    /** Who asked for the run. Null on rows from before this was recorded. */
+    requestedByUserId: integer('requested_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    status: text('status').notNull().default('queued'),
+    results: jsonb('results'),
+    /** When somebody asked for the run. */
+    queuedAt: timestamp('queued_at').notNull().defaultNow(),
+    /**
+     * When a worker began it. Null while it waits: stamping it at enqueue time used to make a run
+     * that sat in the queue for ten minutes report ten minutes it never ran for.
+     */
+    startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
+    cancelRequestedAt: timestamp('cancel_requested_at'),
+    /** Why a sharded run stopped early under the plan's stop policy, for every worker sharing it (migration 0067). */
+    stopReason: text('stop_reason'),
+    /** Stamped when a worker takes the run, so "is anyone still on this?" has an answer. */
+    heartbeatAt: timestamp('heartbeat_at'),
+    /** Why a run ended in `error`: a code to branch on, and a sentence for a person. */
+    failureCode: text('failure_code'),
+    failureMessage: text('failure_message'),
+    /**
+     * Every setting the run will use, taken when it was asked for — see server/execution-snapshot.ts.
+     * '{}' on rows from before this existed; the worker reads the plan for those.
+     */
+    configurationSnapshot: jsonb('configuration_snapshot').notNull().default({}),
+    /** Chosen by the caller, so asking twice returns the same run. Unique per organization. */
+    idempotencyKey: text('idempotency_key'),
+    /** Which attempt this run is, out of how many a schedule's retry policy allowed. */
+    attempt: integer('attempt').notNull().default(1),
+    maxAttempts: integer('max_attempts').notNull().default(1),
+    /** The first attempt, on every retry of it. The foreign key is in migration 0023. */
+    retryOfExecutionId: text('retry_of_execution_id'),
+    /** When retention removed this run's screenshots, videos and traces; the results stay. */
+    artifactsPurgedAt: timestamp('artifacts_purged_at'),
+    artifactStorageStatus: text('artifact_storage_status').$type<'quota_exceeded' | 'error'>(),
+    quotaDeferReason: text('quota_defer_reason').$type<
+      'execution_quota_exceeded' | 'concurrent_run_quota'
+    >(),
+    quotaDeferUntil: timestamp('quota_defer_until'),
+    /** The runner that took the run (runners.id, host:pid:suffix). Readable after the runner is gone. */
+    runnerId: text('runner_id'),
+    /** The build, commit and branch that asked for the run, when a pipeline did — see shared/ci.ts. */
+    ciContext: jsonb('ci_context').$type<CiContext>(),
+    environment: text('environment'),
+    browsers: jsonb('browsers'),
+    triggeredBy: text('triggered_by').notNull().default('manual'),
+    totalTests: integer('total_tests'),
+    passedTests: integer('passed_tests'),
+    failedTests: integer('failed_tests'),
+    skippedTests: integer('skipped_tests'),
+    /** Of the failed and errored tests, those in quarantine: counted, shown, not held against the run. */
+    quarantinedFailures: integer('quarantined_failures').notNull().default(0),
+    executionDurationMs: integer('execution_duration_ms'),
+  },
+  (table) => [
+    index('test_plan_executions_test_plan_id_idx').on(table.testPlanId),
+    index('test_plan_executions_schedule_id_idx').on(table.scheduleId),
+    index('test_plan_executions_status_idx').on(table.status),
+    index('test_plan_executions_started_at_idx').on(table.startedAt),
+    index('test_plan_executions_organization_id_idx').on(table.organizationId),
+  ],
+);
 
-export const reportTestCaseResults = pgTable("report_test_case_results", {
-  id: text("id").primaryKey(),
-  testPlanExecutionId: text("test_plan_execution_id").notNull().references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  uiTestId: integer("ui_test_id").references(() => tests.id, { onDelete: 'set null' }),
-  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'set null' }),
-  /** A mobile app test's result (migration 0053). Plain integer here: mobile_tests is declared further down. */
-  mobileTestId: integer("mobile_test_id"),
-  testType: text("test_type").notNull(),
-  testName: text("test_name").notNull(),
-  /**
-   * The browser this result came from, as the plan or schedule named it.
-   *
-   * A plan that asks for two browsers produces two rows per test, and without this they read
-   * as the same test disagreeing with itself. Null on rows written before runs covered more
-   * than one browser.
-   */
-  browser: text("browser"),
-  /**
-   * Which version of the test this result came from — see `testVersions`.
-   *
-   * The history of a test and the runs of it existed side by side and were never connected, so
-   * "did the application change, or did the test?" had no answer in the data. Null on every row
-   * written before this was recorded, and on API tests, which have no version history: a result
-   * that does not know its version says so rather than claiming version 1.
-   */
-  testVersion: integer("test_version"),
-  status: text("status").notNull(),
-  /**
-   * How many times the test ran in this run before this result stood: more than one when the
-   * plan re-runs failed tests. A pass with attempts > 1 is a flaky test, which is a finding of
-   * its own and not the same thing as a pass.
-   */
-  attempts: integer("attempts").notNull().default(1),
-  /**
-   * The test was in quarantine when it ran (see `testQuarantines`): its failure is recorded and
-   * shown, and did not count against the run.
-   */
-  quarantined: boolean("quarantined").notNull().default(false),
-  reasonForFailure: text("reason_for_failure"),
-  screenshotUrl: text("screenshot_url"),
-  /**
-   * A recording of the run, and a Playwright trace of it, when the plan asked to keep them.
-   *
-   * The trace is the one that answers questions a screenshot cannot: it carries the DOM, the
-   * network and the console at every step, and opens in Playwright's own viewer.
-   */
-  videoUrl: text("video_url"),
-  traceUrl: text("trace_url"),
-  /** The kept HAR, when the plan keeps one for this outcome. */
-  harUrl: text("har_url"),
-  /** Failed and slow requests, read from the HAR whenever one was recorded — see shared/network.ts. */
-  networkSummary: jsonb("network_summary").$type<NetworkSummary>(),
-  /** What the AI made of this failure, once somebody asked — see shared/failure-analysis.ts. */
-  aiAnalysis: jsonb("ai_analysis").$type<FailureAnalysis>(),
-  detailedLog: text("detailed_log"),
-  startedAt: timestamp("started_at").notNull(),
-  completedAt: timestamp("completed_at"),
-  durationMs: integer("duration_ms"),
-  module: text("module"),
-  featureArea: text("feature_area"),
-  scenario: text("scenario"),
-  component: text("component"),
-  priority: text("priority"),
-  severity: text("severity"),
-}, (table) => [
-  index("report_test_case_results_execution_id_idx").on(table.testPlanExecutionId),
-  index("report_test_case_results_ui_test_id_idx").on(table.uiTestId),
-  index("report_test_case_results_api_test_id_idx").on(table.apiTestId),
-  index("report_test_case_results_organization_id_idx").on(table.organizationId),
-]);
+export const reportTestCaseResults = pgTable(
+  'report_test_case_results',
+  {
+    id: text('id').primaryKey(),
+    testPlanExecutionId: text('test_plan_execution_id')
+      .notNull()
+      .references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    uiTestId: integer('ui_test_id').references(() => tests.id, { onDelete: 'set null' }),
+    apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'set null' }),
+    /** A mobile app test's result (migration 0053). Plain integer here: mobile_tests is declared further down. */
+    mobileTestId: integer('mobile_test_id'),
+    testType: text('test_type').notNull(),
+    testName: text('test_name').notNull(),
+    /**
+     * The browser this result came from, as the plan or schedule named it.
+     *
+     * A plan that asks for two browsers produces two rows per test, and without this they read
+     * as the same test disagreeing with itself. Null on rows written before runs covered more
+     * than one browser.
+     */
+    browser: text('browser'),
+    /**
+     * Which version of the test this result came from — see `testVersions`.
+     *
+     * The history of a test and the runs of it existed side by side and were never connected, so
+     * "did the application change, or did the test?" had no answer in the data. Null on every row
+     * written before this was recorded, and on API tests, which have no version history: a result
+     * that does not know its version says so rather than claiming version 1.
+     */
+    testVersion: integer('test_version'),
+    status: text('status').notNull(),
+    /**
+     * How many times the test ran in this run before this result stood: more than one when the
+     * plan re-runs failed tests. A pass with attempts > 1 is a flaky test, which is a finding of
+     * its own and not the same thing as a pass.
+     */
+    attempts: integer('attempts').notNull().default(1),
+    /**
+     * The test was in quarantine when it ran (see `testQuarantines`): its failure is recorded and
+     * shown, and did not count against the run.
+     */
+    quarantined: boolean('quarantined').notNull().default(false),
+    reasonForFailure: text('reason_for_failure'),
+    screenshotUrl: text('screenshot_url'),
+    /**
+     * A recording of the run, and a Playwright trace of it, when the plan asked to keep them.
+     *
+     * The trace is the one that answers questions a screenshot cannot: it carries the DOM, the
+     * network and the console at every step, and opens in Playwright's own viewer.
+     */
+    videoUrl: text('video_url'),
+    traceUrl: text('trace_url'),
+    /** The kept HAR, when the plan keeps one for this outcome. */
+    harUrl: text('har_url'),
+    /** Failed and slow requests, read from the HAR whenever one was recorded — see shared/network.ts. */
+    networkSummary: jsonb('network_summary').$type<NetworkSummary>(),
+    /** What the AI made of this failure, once somebody asked — see shared/failure-analysis.ts. */
+    aiAnalysis: jsonb('ai_analysis').$type<FailureAnalysis>(),
+    detailedLog: text('detailed_log'),
+    startedAt: timestamp('started_at').notNull(),
+    completedAt: timestamp('completed_at'),
+    durationMs: integer('duration_ms'),
+    module: text('module'),
+    featureArea: text('feature_area'),
+    scenario: text('scenario'),
+    component: text('component'),
+    priority: text('priority'),
+    severity: text('severity'),
+  },
+  (table) => [
+    index('report_test_case_results_execution_id_idx').on(table.testPlanExecutionId),
+    index('report_test_case_results_ui_test_id_idx').on(table.uiTestId),
+    index('report_test_case_results_api_test_id_idx').on(table.apiTestId),
+    index('report_test_case_results_organization_id_idx').on(table.organizationId),
+  ],
+);
 
 // ─── Execution Logs (User-Facing Console) ─────────────────────────────────────
 // Stores structured log entries emitted during test plan execution.
 // Queried by the frontend log console and streamed live via WebSocket.
-export const executionLogs = pgTable("execution_logs", {
-  id: serial('id').primaryKey(),
-  testPlanExecutionId: text('test_plan_execution_id').notNull()
-    .references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
-  organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  timestamp: timestamp('timestamp').defaultNow().notNull(),
-  level: text('level').notNull(),               // 'info' | 'warn' | 'error' | 'step' | 'debug'
-  source: text('source').notNull(),             // 'playwright' | 'api-runner' | 'system' | 'worker'
-  message: text('message').notNull(),
-  metadata: jsonb('metadata'),                  // Step details, screenshots, timing, etc.
-  testCaseResultId: text('test_case_result_id'), // Optional link to a specific test case
-  correlationId: text('correlation_id'),
-}, (table) => [
-  index("execution_logs_execution_id_idx").on(table.testPlanExecutionId),
-  index("execution_logs_correlation_id_idx").on(table.correlationId),
-  index("execution_logs_organization_id_idx").on(table.organizationId),
-]);
+export const executionLogs = pgTable(
+  'execution_logs',
+  {
+    id: serial('id').primaryKey(),
+    testPlanExecutionId: text('test_plan_execution_id')
+      .notNull()
+      .references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    timestamp: timestamp('timestamp').defaultNow().notNull(),
+    level: text('level').notNull(), // 'info' | 'warn' | 'error' | 'step' | 'debug'
+    source: text('source').notNull(), // 'playwright' | 'api-runner' | 'system' | 'worker'
+    message: text('message').notNull(),
+    metadata: jsonb('metadata'), // Step details, screenshots, timing, etc.
+    testCaseResultId: text('test_case_result_id'), // Optional link to a specific test case
+    correlationId: text('correlation_id'),
+  },
+  (table) => [
+    index('execution_logs_execution_id_idx').on(table.testPlanExecutionId),
+    index('execution_logs_correlation_id_idx').on(table.correlationId),
+    index('execution_logs_organization_id_idx').on(table.organizationId),
+  ],
+);
 
-export const environments = pgTable("environments", {
-  id: serial('id').primaryKey(),
-  // Unique within the organization, without case. The index is on lower(name), so it lives in
-  // migrations/0041_environment_name_per_organization.sql rather than here, as for tags.
-  name: text('name').notNull(),
-  description: text('description'),
-  // Who created it. The environment is the organization's: removing that member hands it to
-  // another one rather than deleting it and its secrets (migration 0040).
-  userId: integer('user_id').notNull().references(() => users.id),
-  organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  /**
-   * A saved browser session (Playwright `storageState`), so a test can start already
-   * authenticated instead of logging in through the UI first.
-   *
-   * Encrypted with the same AES-256-GCM scheme as `secrets`, and for the same reason: the
-   * payload is cookies and session tokens, which are credentials for the system under test.
-   * See migrations/0010_environment_login_state.sql.
-   */
-  loginState: text('login_state'),
-  loginStateIv: text('login_state_iv'),
-  loginStateAuthTag: text('login_state_auth_tag'),
-  loginStateCapturedAt: timestamp('login_state_captured_at'),
-}, (table) => [
-  index("environments_user_id_idx").on(table.userId),
-  index("environments_organization_id_idx").on(table.organizationId),
-]);
+export const environments = pgTable(
+  'environments',
+  {
+    id: serial('id').primaryKey(),
+    // Unique within the organization, without case. The index is on lower(name), so it lives in
+    // migrations/0041_environment_name_per_organization.sql rather than here, as for tags.
+    name: text('name').notNull(),
+    description: text('description'),
+    // Who created it. The environment is the organization's: removing that member hands it to
+    // another one rather than deleting it and its secrets (migration 0040).
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    /**
+     * A saved browser session (Playwright `storageState`), so a test can start already
+     * authenticated instead of logging in through the UI first.
+     *
+     * Encrypted with the same AES-256-GCM scheme as `secrets`, and for the same reason: the
+     * payload is cookies and session tokens, which are credentials for the system under test.
+     * See migrations/0010_environment_login_state.sql.
+     */
+    loginState: text('login_state'),
+    loginStateIv: text('login_state_iv'),
+    loginStateAuthTag: text('login_state_auth_tag'),
+    loginStateCapturedAt: timestamp('login_state_captured_at'),
+  },
+  (table) => [
+    index('environments_user_id_idx').on(table.userId),
+    index('environments_organization_id_idx').on(table.organizationId),
+  ],
+);
 
-export const secrets = pgTable("secrets", {
-  id: serial('id').primaryKey(),
-  environmentId: integer('environment_id').notNull().references(() => environments.id, { onDelete: 'cascade' }),
-  keyName: text('key_name').notNull(),
-  encryptedValue: text('encrypted_value').notNull(),
-  iv: text('iv').notNull(),
-  authTag: text('auth_tag').notNull(),
-  userId: integer('user_id').notNull().references(() => users.id),
-  organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-}, (table) => [
-  index("secrets_environment_id_idx").on(table.environmentId),
-  index("secrets_user_id_idx").on(table.userId),
-  index("secrets_organization_id_idx").on(table.organizationId),
-]);
+export const secrets = pgTable(
+  'secrets',
+  {
+    id: serial('id').primaryKey(),
+    environmentId: integer('environment_id')
+      .notNull()
+      .references(() => environments.id, { onDelete: 'cascade' }),
+    keyName: text('key_name').notNull(),
+    encryptedValue: text('encrypted_value').notNull(),
+    iv: text('iv').notNull(),
+    authTag: text('auth_tag').notNull(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('secrets_environment_id_idx').on(table.environmentId),
+    index('secrets_user_id_idx').on(table.userId),
+    index('secrets_organization_id_idx').on(table.organizationId),
+  ],
+);
 
-export const testPlanWebhooks = pgTable("test_plan_webhooks", {
-  id: serial('id').primaryKey(),
-  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
-  organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  /**
-   * SHA-256 of the token, which is all that is kept — see server/webhook-tokens.ts. The token
-   * itself was stored as it was, so anyone who could read this table could start any plan.
-   */
-  tokenHash: text('token_hash').notNull().unique(),
-  /** The first characters of the token, to tell two webhooks apart in a list. */
-  tokenPrefix: text('token_prefix').notNull(),
-  name: text('name').notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  lastUsedAt: timestamp('last_used_at'),
-}, (table) => [
-  index("test_plan_webhooks_test_plan_id_idx").on(table.testPlanId),
-  index("test_plan_webhooks_organization_id_idx").on(table.organizationId),
-]);
+export const testPlanWebhooks = pgTable(
+  'test_plan_webhooks',
+  {
+    id: serial('id').primaryKey(),
+    testPlanId: text('test_plan_id')
+      .notNull()
+      .references(() => testPlans.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    /**
+     * SHA-256 of the token, which is all that is kept — see server/webhook-tokens.ts. The token
+     * itself was stored as it was, so anyone who could read this table could start any plan.
+     */
+    tokenHash: text('token_hash').notNull().unique(),
+    /** The first characters of the token, to tell two webhooks apart in a list. */
+    tokenPrefix: text('token_prefix').notNull(),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at'),
+  },
+  (table) => [
+    index('test_plan_webhooks_test_plan_id_idx').on(table.testPlanId),
+    index('test_plan_webhooks_organization_id_idx').on(table.organizationId),
+  ],
+);
 
-export const testPlanSelectedTests = pgTable("test_plan_selected_tests", {
-  id: serial('id').primaryKey(),
-  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
-  organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
-  apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
-  /** A mobile app test in the plan (migration 0053); testType 'mobile'. */
-  mobileTestId: integer('mobile_test_id'),
-  testType: text('test_type').notNull(),
-}, (table) => [
-  index("test_plan_selected_tests_test_plan_id_idx").on(table.testPlanId),
-  index("test_plan_selected_tests_test_id_idx").on(table.testId),
-  index("test_plan_selected_tests_api_test_id_idx").on(table.apiTestId),
-  index("test_plan_selected_tests_organization_id_idx").on(table.organizationId),
-]);
+export const testPlanSelectedTests = pgTable(
+  'test_plan_selected_tests',
+  {
+    id: serial('id').primaryKey(),
+    testPlanId: text('test_plan_id')
+      .notNull()
+      .references(() => testPlans.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
+    apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
+    /** A mobile app test in the plan (migration 0053); testType 'mobile'. */
+    mobileTestId: integer('mobile_test_id'),
+    testType: text('test_type').notNull(),
+  },
+  (table) => [
+    index('test_plan_selected_tests_test_plan_id_idx').on(table.testPlanId),
+    index('test_plan_selected_tests_test_id_idx').on(table.testId),
+    index('test_plan_selected_tests_api_test_id_idx').on(table.apiTestId),
+    index('test_plan_selected_tests_organization_id_idx').on(table.organizationId),
+  ],
+);
 
 // Excel Sequences Map Table
-export const excelSequencesMap = pgTable("excel_sequences_map", {
-  id: serial("id").primaryKey(),
-  testId: integer("test_id")
-    .notNull()
-    .references(() => tests.id, { onDelete: "cascade" }),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  // Unique per organization, not globally: the id comes from a customer's own spreadsheet, so
-  // two tenants using the same one is ordinary. See the unique constraint below.
-  excelTestCaseId: text("excel_test_case_id").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("excel_sequences_map_test_id_idx").on(table.testId),
-  index("excel_sequences_map_organization_id_idx").on(table.organizationId),
-  unique("excel_sequences_map_org_excel_test_case_id_unique").on(table.organizationId, table.excelTestCaseId),
-]);
-
+export const excelSequencesMap = pgTable(
+  'excel_sequences_map',
+  {
+    id: serial('id').primaryKey(),
+    testId: integer('test_id')
+      .notNull()
+      .references(() => tests.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    // Unique per organization, not globally: the id comes from a customer's own spreadsheet, so
+    // two tenants using the same one is ordinary. See the unique constraint below.
+    excelTestCaseId: text('excel_test_case_id').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('excel_sequences_map_test_id_idx').on(table.testId),
+    index('excel_sequences_map_organization_id_idx').on(table.organizationId),
+    unique('excel_sequences_map_org_excel_test_case_id_unique').on(
+      table.organizationId,
+      table.excelTestCaseId,
+    ),
+  ],
+);
 
 /**
  * A standing offer for a named username to join an organization.
@@ -736,31 +946,39 @@ export const excelSequencesMap = pgTable("excel_sequences_map", {
  * make that impossible. Every query from a route therefore carries its own organizationId
  * predicate, and app_user's grants on this table are narrow (see the migration).
  */
-export const invitations = pgTable("invitations", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  /** The username the invitation is for. Checked as still-unregistered at accept time too. */
-  username: text("username").notNull(),
-  /** The role the invitee gets on arrival. Never 'owner' — see the route. */
-  role: text("role").notNull().default('editor'),
-  /** Unguessable, and the only thing needed to accept. Unique so a lookup cannot be ambiguous. */
-  token: text("token").notNull().unique(),
-  /** Null once the inviting member's account is gone (migration 0040). */
-  invitedByUserId: integer("invited_by_user_id").references(() => users.id, { onDelete: 'set null' }),
-  expiresAt: timestamp("expires_at").notNull(),
-  /** Set once used. A used invitation is kept for the audit trail rather than deleted. */
-  acceptedAt: timestamp("accepted_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("invitations_organization_id_idx").on(table.organizationId),
-  // One pending invitation per username per organization (migration 0044): accepted ones stay
-  // for the audit trail and do not stop a removed member's username from being invited again.
-  // Two organizations may both invite the same username; whichever token is used first wins,
-  // and the other is then unacceptable because the username exists.
-  uniqueIndex("invitations_org_username_pending_unique")
-    .on(table.organizationId, table.username)
-    .where(sql`${table.acceptedAt} IS NULL`),
-]);
+export const invitations = pgTable(
+  'invitations',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    /** The username the invitation is for. Checked as still-unregistered at accept time too. */
+    username: text('username').notNull(),
+    /** The role the invitee gets on arrival. Never 'owner' — see the route. */
+    role: text('role').notNull().default('editor'),
+    /** Unguessable, and the only thing needed to accept. Unique so a lookup cannot be ambiguous. */
+    token: text('token').notNull().unique(),
+    /** Null once the inviting member's account is gone (migration 0040). */
+    invitedByUserId: integer('invited_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    expiresAt: timestamp('expires_at').notNull(),
+    /** Set once used. A used invitation is kept for the audit trail rather than deleted. */
+    acceptedAt: timestamp('accepted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('invitations_organization_id_idx').on(table.organizationId),
+    // One pending invitation per username per organization (migration 0044): accepted ones stay
+    // for the audit trail and do not stop a removed member's username from being invited again.
+    // Two organizations may both invite the same username; whichever token is used first wins,
+    // and the other is then unacceptable because the username exists.
+    uniqueIndex('invitations_org_username_pending_unique')
+      .on(table.organizationId, table.username)
+      .where(sql`${table.acceptedAt} IS NULL`),
+  ],
+);
 
 export type Invitation = typeof invitations.$inferSelect;
 
@@ -772,19 +990,27 @@ export type Invitation = typeof invitations.$inferSelect;
  * is stored only as its SHA-256. Org-scoped like the rest; redeeming it is the one privileged
  * lookup, in server/storage.ts, because nobody is signed in yet.
  */
-export const passwordResets = pgTable("password_resets", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  tokenHash: text("token_hash").notNull().unique(),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  expiresAt: timestamp("expires_at").notNull(),
-  usedAt: timestamp("used_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("password_resets_organization_id_idx").on(table.organizationId),
-  index("password_resets_user_id_idx").on(table.userId),
-]);
+export const passwordResets = pgTable(
+  'password_resets',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    expiresAt: timestamp('expires_at').notNull(),
+    usedAt: timestamp('used_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('password_resets_organization_id_idx').on(table.organizationId),
+    index('password_resets_user_id_idx').on(table.userId),
+  ],
+);
 
 export type PasswordReset = typeof passwordResets.$inferSelect;
 
@@ -796,51 +1022,60 @@ export type PasswordReset = typeof passwordResets.$inferSelect;
  * found before anyone is signed in. app_user has no grant on any of them; server/sso.ts names the
  * organization in every statement.
  */
-export const organizationSso = pgTable("organization_sso", {
-  organizationId: integer("organization_id").primaryKey().references(() => organizations.id, { onDelete: 'cascade' }),
-  /** 'oidc' or 'saml' (migration 0059). */
-  protocol: text("protocol").notNull().default('oidc'),
-  /** OpenID Connect: the issuer URL. SAML: the identity provider's entity ID. */
-  issuer: text("issuer").notNull(),
-  /** OpenID Connect only, like the secret. */
-  clientId: text("client_id"),
-  clientSecretEncrypted: text("client_secret_encrypted"),
-  clientSecretIv: text("client_secret_iv"),
-  clientSecretAuthTag: text("client_secret_auth_tag"),
-  /** SAML only: where AuthnRequests go (HTTP-Redirect binding). */
-  samlSsoUrl: text("saml_sso_url"),
-  /** SAML only: the provider's signing certificate, PEM. Public, so not encrypted. */
-  samlCertificate: text("saml_certificate"),
-  samlAllowIdpInitiated: boolean("saml_allow_idp_initiated").notNull().default(false),
-  samlRequireEncryptedAssertions: boolean("saml_require_encrypted_assertions").notNull().default(false),
-  samlSloUrl: text("saml_slo_url"),
-  samlSpCertificate: text("saml_sp_certificate"),
-  samlSpPrivateKeyEncrypted: text("saml_sp_private_key_encrypted"),
-  samlSpPrivateKeyIv: text("saml_sp_private_key_iv"),
-  samlSpPrivateKeyAuthTag: text("saml_sp_private_key_auth_tag"),
-  /** The role of an account created on its first sign-in: viewer or editor, never owner. */
-  defaultRole: text("default_role").notNull().default('viewer'),
-  enabled: boolean("enabled").notNull().default(true),
-  /** Members other than owners must sign in through the provider; their passwords stop working. */
-  required: boolean("required").notNull().default(false),
-  /** The claim (OpenID Connect) or attribute (SAML) carrying the groups; null means "groups". */
-  groupAttribute: text("group_attribute"),
-  /** Group → role, applied at every sign-in (shared/sso-roles.ts). Empty: roles are managed here. */
-  roleMappings: jsonb("role_mappings").$type<Array<{ group: string; role: "viewer" | "editor" | "owner" }>>().notNull().default([]),
-  /** With mappings, refuse a person who is in none of the mapped groups. */
-  requireGroup: boolean("require_group").notNull().default(false),
-  /**
-   * The bearer token the provider's SCIM client presents (server/scim.ts, migration 0064): its
-   * SHA-256, like an API key's, and enough of it to recognise in a list. Null: no provisioning.
-   */
-  scimTokenHash: text("scim_token_hash"),
-  scimTokenPrefix: text("scim_token_prefix"),
-  scimTokenCreatedAt: timestamp("scim_token_created_at"),
-  scimTokenLastUsedAt: timestamp("scim_token_last_used_at"),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  uniqueIndex("organization_sso_scim_token_hash_idx").on(table.scimTokenHash),
-]);
+export const organizationSso = pgTable(
+  'organization_sso',
+  {
+    organizationId: integer('organization_id')
+      .primaryKey()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    /** 'oidc' or 'saml' (migration 0059). */
+    protocol: text('protocol').notNull().default('oidc'),
+    /** OpenID Connect: the issuer URL. SAML: the identity provider's entity ID. */
+    issuer: text('issuer').notNull(),
+    /** OpenID Connect only, like the secret. */
+    clientId: text('client_id'),
+    clientSecretEncrypted: text('client_secret_encrypted'),
+    clientSecretIv: text('client_secret_iv'),
+    clientSecretAuthTag: text('client_secret_auth_tag'),
+    /** SAML only: where AuthnRequests go (HTTP-Redirect binding). */
+    samlSsoUrl: text('saml_sso_url'),
+    /** SAML only: the provider's signing certificate, PEM. Public, so not encrypted. */
+    samlCertificate: text('saml_certificate'),
+    samlAllowIdpInitiated: boolean('saml_allow_idp_initiated').notNull().default(false),
+    samlRequireEncryptedAssertions: boolean('saml_require_encrypted_assertions')
+      .notNull()
+      .default(false),
+    samlSloUrl: text('saml_slo_url'),
+    samlSpCertificate: text('saml_sp_certificate'),
+    samlSpPrivateKeyEncrypted: text('saml_sp_private_key_encrypted'),
+    samlSpPrivateKeyIv: text('saml_sp_private_key_iv'),
+    samlSpPrivateKeyAuthTag: text('saml_sp_private_key_auth_tag'),
+    /** The role of an account created on its first sign-in: viewer or editor, never owner. */
+    defaultRole: text('default_role').notNull().default('viewer'),
+    enabled: boolean('enabled').notNull().default(true),
+    /** Members other than owners must sign in through the provider; their passwords stop working. */
+    required: boolean('required').notNull().default(false),
+    /** The claim (OpenID Connect) or attribute (SAML) carrying the groups; null means "groups". */
+    groupAttribute: text('group_attribute'),
+    /** Group → role, applied at every sign-in (shared/sso-roles.ts). Empty: roles are managed here. */
+    roleMappings: jsonb('role_mappings')
+      .$type<Array<{ group: string; role: 'viewer' | 'editor' | 'owner' }>>()
+      .notNull()
+      .default([]),
+    /** With mappings, refuse a person who is in none of the mapped groups. */
+    requireGroup: boolean('require_group').notNull().default(false),
+    /**
+     * The bearer token the provider's SCIM client presents (server/scim.ts, migration 0064): its
+     * SHA-256, like an API key's, and enough of it to recognise in a list. Null: no provisioning.
+     */
+    scimTokenHash: text('scim_token_hash'),
+    scimTokenPrefix: text('scim_token_prefix'),
+    scimTokenCreatedAt: timestamp('scim_token_created_at'),
+    scimTokenLastUsedAt: timestamp('scim_token_last_used_at'),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex('organization_sso_scim_token_hash_idx').on(table.scimTokenHash)],
+);
 
 /**
  * Provisioning with SCIM 2.0 (server/scim.ts, migration 0064). Not RLS-scoped, like the other
@@ -850,94 +1085,146 @@ export const organizationSso = pgTable("organization_sso", {
  * scim_users marks the accounts the provider manages and keeps the id it knows them by; the
  * account itself is an ordinary users row, its SCIM id the user id.
  */
-export const scimUsers = pgTable("scim_users", {
-  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: 'cascade' }),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  externalId: text("external_id"),
-  /** Deactivated because, with "require a group", the person is in none of the mapped groups (migration 0066). */
-  disabledByGroups: boolean("disabled_by_groups").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("scim_users_organization_id_idx").on(table.organizationId),
-]);
+export const scimUsers = pgTable(
+  'scim_users',
+  {
+    userId: integer('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    externalId: text('external_id'),
+    /** Deactivated because, with "require a group", the person is in none of the mapped groups (migration 0066). */
+    disabledByGroups: boolean('disabled_by_groups').notNull().default(false),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('scim_users_organization_id_idx').on(table.organizationId)],
+);
 
 /** The provider's groups as it pushes them. Their names and external ids are what role mappings match. */
-export const scimGroups = pgTable("scim_groups", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  displayName: text("display_name").notNull(),
-  externalId: text("external_id"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("scim_groups_organization_id_idx").on(table.organizationId),
-]);
+export const scimGroups = pgTable(
+  'scim_groups',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    displayName: text('display_name').notNull(),
+    externalId: text('external_id'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('scim_groups_organization_id_idx').on(table.organizationId)],
+);
 
-export const scimGroupMembers = pgTable("scim_group_members", {
-  groupId: text("group_id").notNull().references(() => scimGroups.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-}, (table) => [
-  primaryKey({ name: "scim_group_members_pkey", columns: [table.groupId, table.userId] }),
-  index("scim_group_members_user_id_idx").on(table.userId),
-]);
+export const scimGroupMembers = pgTable(
+  'scim_group_members',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => scimGroups.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    primaryKey({ name: 'scim_group_members_pkey', columns: [table.groupId, table.userId] }),
+    index('scim_group_members_user_id_idx').on(table.userId),
+  ],
+);
 
 /**
  * SAML AuthnRequests sent and not yet answered (migration 0059). A response must answer one, and
  * answering removes it. Logout requests are correlated separately; opt-in unsolicited assertions
  * use the replay registry. Not RLS-scoped, like the other sso tables.
  */
-export const ssoSamlRequests = pgTable("sso_saml_requests", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  purpose: text("purpose").notNull().default('authn'),
-  sessionId: text("session_id"),
-}, (table) => [
-  index("sso_saml_requests_created_at_idx").on(table.createdAt),
-]);
+export const ssoSamlRequests = pgTable(
+  'sso_saml_requests',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    purpose: text('purpose').notNull().default('authn'),
+    sessionId: text('session_id'),
+  },
+  (table) => [index('sso_saml_requests_created_at_idx').on(table.createdAt)],
+);
 
 /** Signed SAML message identifiers consumed once, before authentication or logout. */
-export const ssoSamlReplay = pgTable("sso_saml_replay", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  expiresAt: timestamp("expires_at").notNull(),
-}, table => [index("sso_saml_replay_expires_at_idx").on(table.expiresAt)]);
+export const ssoSamlReplay = pgTable(
+  'sso_saml_replay',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at').notNull(),
+  },
+  (table) => [index('sso_saml_replay_expires_at_idx').on(table.expiresAt)],
+);
 
 /** SAML sessions addressable by signed logout messages even without a cross-site cookie. */
-export const ssoSamlSessions = pgTable("sso_saml_sessions", {
-  sessionId: text("session_id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  issuer: text("issuer").notNull(),
-  nameId: text("name_id").notNull(),
-  nameIdFormat: text("name_id_format"),
-  sessionIndex: text("session_index"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, table => [index("sso_saml_sessions_identity_idx").on(table.organizationId, table.issuer, table.nameId, table.sessionIndex)]);
+export const ssoSamlSessions = pgTable(
+  'sso_saml_sessions',
+  {
+    sessionId: text('session_id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    issuer: text('issuer').notNull(),
+    nameId: text('name_id').notNull(),
+    nameIdFormat: text('name_id_format'),
+    sessionIndex: text('session_index'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('sso_saml_sessions_identity_idx').on(
+      table.organizationId,
+      table.issuer,
+      table.nameId,
+      table.sessionIndex,
+    ),
+  ],
+);
 
-export const ssoDomains = pgTable("sso_domains", {
-  /** Lower case. The primary key: one organization per domain. */
-  domain: text("domain").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  /** What the TXT record _wfm-verification.<domain> must say (shared/sso-roles.ts). */
-  verificationToken: text("verification_token"),
-  /** When the record was found; null while the domain is unproven. */
-  verifiedAt: timestamp("verified_at"),
-}, (table) => [
-  index("sso_domains_organization_id_idx").on(table.organizationId),
-]);
+export const ssoDomains = pgTable(
+  'sso_domains',
+  {
+    /** Lower case. The primary key: one organization per domain. */
+    domain: text('domain').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    /** What the TXT record _wfm-verification.<domain> must say (shared/sso-roles.ts). */
+    verificationToken: text('verification_token'),
+    /** When the record was found; null while the domain is unproven. */
+    verifiedAt: timestamp('verified_at'),
+  },
+  (table) => [index('sso_domains_organization_id_idx').on(table.organizationId)],
+);
 
-export const ssoIdentities = pgTable("sso_identities", {
-  issuer: text("issuer").notNull(),
-  /** The provider's stable identifier for the person (the `sub` claim), not their e-mail address. */
-  subject: text("subject").notNull(),
-  userId: integer("user_id").notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  lastSignInAt: timestamp("last_sign_in_at").defaultNow().notNull(),
-}, (table) => [
-  primaryKey({ name: "sso_identities_pkey", columns: [table.issuer, table.subject] }),
-]);
+export const ssoIdentities = pgTable(
+  'sso_identities',
+  {
+    issuer: text('issuer').notNull(),
+    /** The provider's stable identifier for the person (the `sub` claim), not their e-mail address. */
+    subject: text('subject').notNull(),
+    userId: integer('user_id')
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    lastSignInAt: timestamp('last_sign_in_at').defaultNow().notNull(),
+  },
+  (table) => [primaryKey({ name: 'sso_identities_pkey', columns: [table.issuer, table.subject] })],
+);
 
 /**
  * Append-only record of who changed what, within one organization.
@@ -955,31 +1242,37 @@ export const ssoIdentities = pgTable("sso_identities", {
  * `actorUserId` is nullable and ON DELETE SET NULL: removing a member must not erase what they
  * did, and must not be blocked by the fact that they did it.
  */
-export const auditLog = pgTable("audit_log", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  /** Null once the actor's account is gone, or for an action taken before one existed. */
-  actorUserId: integer("actor_user_id").references(() => users.id, { onDelete: 'set null' }),
-  /** Kept alongside actorUserId so the entry still names someone after the account is deleted. */
-  actorUsername: text("actor_username"),
-  /** Dotted verb, e.g. 'member.role_changed'. See AUDIT_ACTIONS. */
-  action: text("action").notNull(),
-  /** What the action was done to: 'user', 'invitation', 'organization'. */
-  targetType: text("target_type"),
-  /** Text rather than integer: targets are variously serial ids and uuids. */
-  targetId: text("target_id"),
-  /** Before/after values and anything else needed to understand the entry. Never secrets. */
-  metadata: jsonb("metadata"),
-  /** The API key the request authenticated with. Null for a session, or for the system itself. */
-  apiKeyId: text("api_key_id"),
-  /** The client address as the application saw it. */
-  ipAddress: text("ip_address"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("audit_log_organization_id_idx").on(table.organizationId),
-  index("audit_log_created_at_idx").on(table.createdAt),
-  index("audit_log_organization_action_idx").on(table.organizationId, table.action),
-]);
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    /** Null once the actor's account is gone, or for an action taken before one existed. */
+    actorUserId: integer('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+    /** Kept alongside actorUserId so the entry still names someone after the account is deleted. */
+    actorUsername: text('actor_username'),
+    /** Dotted verb, e.g. 'member.role_changed'. See AUDIT_ACTIONS. */
+    action: text('action').notNull(),
+    /** What the action was done to: 'user', 'invitation', 'organization'. */
+    targetType: text('target_type'),
+    /** Text rather than integer: targets are variously serial ids and uuids. */
+    targetId: text('target_id'),
+    /** Before/after values and anything else needed to understand the entry. Never secrets. */
+    metadata: jsonb('metadata'),
+    /** The API key the request authenticated with. Null for a session, or for the system itself. */
+    apiKeyId: text('api_key_id'),
+    /** The client address as the application saw it. */
+    ipAddress: text('ip_address'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('audit_log_organization_id_idx').on(table.organizationId),
+    index('audit_log_created_at_idx').on(table.createdAt),
+    index('audit_log_organization_action_idx').on(table.organizationId, table.action),
+  ],
+);
 
 export type AuditLogEntry = typeof auditLog.$inferSelect;
 
@@ -994,22 +1287,30 @@ export type AuditLogEntry = typeof auditLog.$inferSelect;
  * it at execution time, which is the point: editing the group changes what every test does on
  * its next run.
  */
-export const stepGroups = pgTable("step_groups", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  userId: integer("user_id").notNull().references(() => users.id),
-  /** Nullable like `tests.projectId`: a group may be one application's or the whole tenant's. */
-  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
-  name: text("name").notNull(),
-  description: text("description"),
-  /** The same shape as a test's sequence, minus any call to another group — see step-groups.ts. */
-  sequence: jsonb("sequence").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("step_groups_organization_id_idx").on(table.organizationId),
-  index("step_groups_project_id_idx").on(table.projectId),
-]);
+export const stepGroups = pgTable(
+  'step_groups',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    /** Nullable like `tests.projectId`: a group may be one application's or the whole tenant's. */
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    /** The same shape as a test's sequence, minus any call to another group — see step-groups.ts. */
+    sequence: jsonb('sequence').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('step_groups_organization_id_idx').on(table.organizationId),
+    index('step_groups_project_id_idx').on(table.projectId),
+  ],
+);
 
 export type StepGroup = typeof stepGroups.$inferSelect;
 export type InsertStepGroup = typeof stepGroups.$inferInsert;
@@ -1019,21 +1320,29 @@ export type InsertStepGroup = typeof stepGroups.$inferInsert;
  * test. Referenced by tests like a step group, never copied into them — see
  * shared/custom-actions.ts for why the script runs in the page and nowhere else.
  */
-export const customActions = pgTable("custom_actions", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  userId: integer("user_id").notNull().references(() => users.id),
-  name: text("name").notNull(),
-  description: text("description"),
-  parameters: jsonb("parameters").$type<CustomActionParameter[]>().notNull().default([]),
-  script: text("script").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("custom_actions_organization_id_idx").on(table.organizationId),
-  // One name per organization: it is what the palette shows and what a report names.
-  uniqueIndex("custom_actions_organization_name_idx").on(table.organizationId, table.name),
-]);
+export const customActions = pgTable(
+  'custom_actions',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    name: text('name').notNull(),
+    description: text('description'),
+    parameters: jsonb('parameters').$type<CustomActionParameter[]>().notNull().default([]),
+    script: text('script').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('custom_actions_organization_id_idx').on(table.organizationId),
+    // One name per organization: it is what the palette shows and what a report names.
+    uniqueIndex('custom_actions_organization_name_idx').on(table.organizationId, table.name),
+  ],
+);
 
 export type CustomAction = typeof customActions.$inferSelect;
 
@@ -1041,20 +1350,26 @@ export type CustomAction = typeof customActions.$inferSelect;
  * Data an organization keeps once and every test reuses — see shared/test-data.ts. Read as
  * {{data.<name>.<column>}} by any test, or as the rows a UI test runs over.
  */
-export const testDataSets = pgTable("test_data_sets", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  name: text("name").notNull(),
-  description: text("description"),
-  columns: jsonb("columns").$type<string[]>().notNull(),
-  rows: jsonb("rows").$type<Array<Record<string, string>>>().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("test_data_sets_organization_id_idx").on(table.organizationId),
-  // The name is how a test refers to it: {{data.customers.email}}.
-  uniqueIndex("test_data_sets_organization_name_idx").on(table.organizationId, table.name),
-]);
+export const testDataSets = pgTable(
+  'test_data_sets',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    name: text('name').notNull(),
+    description: text('description'),
+    columns: jsonb('columns').$type<string[]>().notNull(),
+    rows: jsonb('rows').$type<Array<Record<string, string>>>().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('test_data_sets_organization_id_idx').on(table.organizationId),
+    // The name is how a test refers to it: {{data.customers.email}}.
+    uniqueIndex('test_data_sets_organization_name_idx').on(table.organizationId, table.name),
+  ],
+);
 
 export type TestDataSet = typeof testDataSets.$inferSelect;
 
@@ -1063,22 +1378,30 @@ export type TestDataSet = typeof testDataSets.$inferSelect;
  * browser and language, or per browser and language when its API tests pass values on. Claimed
  * one at a time; a claim whose heartbeat stops is taken back (migration 0067).
  */
-export const runWorkItems = pgTable("run_work_items", {
-  executionId: text("execution_id").notNull().references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  key: text("key").notNull(),
-  position: integer("position").notNull(),
-  unit: jsonb("unit").notNull(),
-  state: text("state").$type<'pending' | 'claimed' | 'done'>().notNull().default('pending'),
-  claimedBy: text("claimed_by"),
-  heartbeatAt: timestamp("heartbeat_at"),
-  finishedAt: timestamp("finished_at"),
-  error: text("error"),
-  results: jsonb("results"),
-}, (table) => [
-  primaryKey({ columns: [table.executionId, table.key] }),
-  index("run_work_items_organization_id_idx").on(table.organizationId),
-]);
+export const runWorkItems = pgTable(
+  'run_work_items',
+  {
+    executionId: text('execution_id')
+      .notNull()
+      .references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    key: text('key').notNull(),
+    position: integer('position').notNull(),
+    unit: jsonb('unit').notNull(),
+    state: text('state').$type<'pending' | 'claimed' | 'done'>().notNull().default('pending'),
+    claimedBy: text('claimed_by'),
+    heartbeatAt: timestamp('heartbeat_at'),
+    finishedAt: timestamp('finished_at'),
+    error: text('error'),
+    results: jsonb('results'),
+  },
+  (table) => [
+    primaryKey({ columns: [table.executionId, table.key] }),
+    index('run_work_items_organization_id_idx').on(table.organizationId),
+  ],
+);
 
 export type RunWorkItem = typeof runWorkItems.$inferSelect;
 
@@ -1086,30 +1409,44 @@ export type RunWorkItem = typeof runWorkItems.$inferSelect;
  * Which tests a change affects (server/test-impact.ts): the files a glob pattern matches map to a
  * tag. A rule without a tag marks files that affect no test (migration 0068).
  */
-export const impactRules = pgTable("impact_rules", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  pattern: text("pattern").notNull(),
-  tagId: text("tag_id").references(() => tags.id, { onDelete: 'cascade' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("impact_rules_organization_id_idx").on(table.organizationId),
-]);
+export const impactRules = pgTable(
+  'impact_rules',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    pattern: text('pattern').notNull(),
+    tagId: text('tag_id').references(() => tags.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('impact_rules_organization_id_idx').on(table.organizationId)],
+);
 
 export type ImpactRule = typeof impactRules.$inferSelect;
 
 /** Text messages the organization's test numbers received (server/sms-inbox.ts, migration 0070). */
-export const smsMessages = pgTable("sms_messages", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  toNumber: text("to_number").notNull(),
-  fromNumber: text("from_number"),
-  body: text("body").notNull(),
-  provider: text("provider"),
-  receivedAt: timestamp("received_at").defaultNow().notNull(),
-}, (table) => [
-  index("sms_messages_organization_to_idx").on(table.organizationId, table.toNumber, table.receivedAt),
-]);
+export const smsMessages = pgTable(
+  'sms_messages',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    toNumber: text('to_number').notNull(),
+    fromNumber: text('from_number'),
+    body: text('body').notNull(),
+    provider: text('provider'),
+    receivedAt: timestamp('received_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('sms_messages_organization_to_idx').on(
+      table.organizationId,
+      table.toNumber,
+      table.receivedAt,
+    ),
+  ],
+);
 
 export type SmsMessage = typeof smsMessages.$inferSelect;
 
@@ -1123,30 +1460,38 @@ export type SmsMessage = typeof smsMessages.$inferSelect;
  *
  * Scoped to a project because a selector is a fact about one application.
  */
-export const projectElements = pgTable("project_elements", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: 'cascade' }),
-  /** How a person finds it. Unique within the project — see the migration. */
-  name: text("name").notNull(),
-  selector: text("selector").notNull(),
-  /** What it was before healing ever moved it, so "what did this used to be?" has an answer. */
-  originalSelector: text("original_selector"),
-  /** The iframe chain, ' >> ' separated and outermost first. */
-  frameSelector: text("frame_selector"),
-  tag: text("tag"),
-  elementType: text("element_type"),
-  text: text("text"),
-  attributes: jsonb("attributes"),
-  /** Set when the healing pass repaired it: what the application has been moving underneath. */
-  healedAt: timestamp("healed_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("project_elements_organization_id_idx").on(table.organizationId),
-  index("project_elements_project_id_idx").on(table.projectId),
-  unique("project_elements_project_name_unique").on(table.projectId, table.name),
-]);
+export const projectElements = pgTable(
+  'project_elements',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    projectId: integer('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /** How a person finds it. Unique within the project — see the migration. */
+    name: text('name').notNull(),
+    selector: text('selector').notNull(),
+    /** What it was before healing ever moved it, so "what did this used to be?" has an answer. */
+    originalSelector: text('original_selector'),
+    /** The iframe chain, ' >> ' separated and outermost first. */
+    frameSelector: text('frame_selector'),
+    tag: text('tag'),
+    elementType: text('element_type'),
+    text: text('text'),
+    attributes: jsonb('attributes'),
+    /** Set when the healing pass repaired it: what the application has been moving underneath. */
+    healedAt: timestamp('healed_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('project_elements_organization_id_idx').on(table.organizationId),
+    index('project_elements_project_id_idx').on(table.projectId),
+    unique('project_elements_project_name_unique').on(table.projectId, table.name),
+  ],
+);
 
 export type ProjectElement = typeof projectElements.$inferSelect;
 export type InsertProjectElement = typeof projectElements.$inferInsert;
@@ -1163,14 +1508,18 @@ export type InsertProjectElement = typeof projectElements.$inferInsert;
  * one tag two people typed differently, and two tags that look identical in a list are worse
  * than none: a filter on one quietly omits the tests filed under the other.
  */
-export const tags = pgTable("tags", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  name: text("name").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("tags_organization_id_idx").on(table.organizationId),
-]);
+export const tags = pgTable(
+  'tags',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('tags_organization_id_idx').on(table.organizationId)],
+);
 
 export type Tag = typeof tags.$inferSelect;
 export type InsertTag = typeof tags.$inferInsert;
@@ -1183,22 +1532,30 @@ export type InsertTag = typeof tags.$inferInsert;
  * of the two ids is set, which a CHECK constraint enforces rather than leaving it to whoever
  * writes the next insert.
  */
-export const testTags = pgTable("test_tags", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  tagId: text("tag_id").notNull().references(() => tags.id, { onDelete: 'cascade' }),
-  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
-  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
-  /** A mobile app test (migration 0056). Plain integer here: mobile_tests is declared further down. */
-  mobileTestId: integer("mobile_test_id"),
-  testType: text("test_type").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("test_tags_organization_id_idx").on(table.organizationId),
-  index("test_tags_tag_id_idx").on(table.tagId),
-  index("test_tags_test_id_idx").on(table.testId),
-  index("test_tags_api_test_id_idx").on(table.apiTestId),
-]);
+export const testTags = pgTable(
+  'test_tags',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => tags.id, { onDelete: 'cascade' }),
+    testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
+    apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
+    /** A mobile app test (migration 0056). Plain integer here: mobile_tests is declared further down. */
+    mobileTestId: integer('mobile_test_id'),
+    testType: text('test_type').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('test_tags_organization_id_idx').on(table.organizationId),
+    index('test_tags_tag_id_idx').on(table.tagId),
+    index('test_tags_test_id_idx').on(table.testId),
+    index('test_tags_api_test_id_idx').on(table.apiTestId),
+  ],
+);
 
 export type TestTag = typeof testTags.$inferSelect;
 export type InsertTestTag = typeof testTags.$inferInsert;
@@ -1220,40 +1577,62 @@ export type TaggableType = (typeof TAGGABLE_TYPES)[number];
  * version instead of deleting the ones after it, and app_user is granted SELECT and INSERT only
  * (see the migration): a history the application can rewrite is not evidence of anything.
  */
-export const testVersions = pgTable("test_versions", {
-  bdd: jsonb('bdd').$type<BddTest>(),
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
-  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
-  mobileTestId: integer("mobile_test_id").references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade' }),
-  /** 1-based and per test, so "version 4" names one row. */
-  version: integer("version").notNull(),
-  name: text("name").notNull(),
-  url: text("url").notNull(),
-  sequence: jsonb("sequence").notNull(),
-  elements: jsonb("elements").notNull(),
-  preconditions: jsonb("preconditions"),
-  cleanups: jsonb("cleanups"),
-  dataset: jsonb("dataset"),
-  /** What changed since the version before, worked out when the row is written. */
-  snapshot: jsonb("snapshot").$type<Record<string, unknown>>(),
-  summary: text("summary"),
-  /** Set when this version exists because somebody restored an older one. */
-  restoredFromVersion: integer("restored_from_version"),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  foreignKey({name:"test_versions_api_test_id_same_org_fk",columns:[table.apiTestId,table.organizationId],foreignColumns:[apiTests.id,apiTests.organizationId]}).onDelete('cascade'),
-  foreignKey({name:"test_versions_mobile_test_id_same_org_fk",columns:[table.mobileTestId,table.organizationId],foreignColumns:[mobileTests.id,mobileTests.organizationId]}).onDelete('cascade'),
-  check("test_versions_typed_snapshot", sql`${table.testId} IS NOT NULL OR ${table.snapshot} IS NOT NULL`),
-  check("test_versions_one_target", sql`num_nonnulls(${table.testId}, ${table.apiTestId}, ${table.mobileTestId}) = 1`),
-  index("test_versions_organization_id_idx").on(table.organizationId),
-  index("test_versions_test_id_idx").on(table.testId),
-  unique("test_versions_test_version_unique").on(table.testId, table.version),
-  unique("test_versions_api_version_unique").on(table.apiTestId, table.version),
-  unique("test_versions_mobile_version_unique").on(table.mobileTestId, table.version),
-]);
+export const testVersions = pgTable(
+  'test_versions',
+  {
+    bdd: jsonb('bdd').$type<BddTest>(),
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
+    apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
+    mobileTestId: integer('mobile_test_id').references((): AnyPgColumn => mobileTests.id, {
+      onDelete: 'cascade',
+    }),
+    /** 1-based and per test, so "version 4" names one row. */
+    version: integer('version').notNull(),
+    name: text('name').notNull(),
+    url: text('url').notNull(),
+    sequence: jsonb('sequence').notNull(),
+    elements: jsonb('elements').notNull(),
+    preconditions: jsonb('preconditions'),
+    cleanups: jsonb('cleanups'),
+    dataset: jsonb('dataset'),
+    /** What changed since the version before, worked out when the row is written. */
+    snapshot: jsonb('snapshot').$type<Record<string, unknown>>(),
+    summary: text('summary'),
+    /** Set when this version exists because somebody restored an older one. */
+    restoredFromVersion: integer('restored_from_version'),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'test_versions_api_test_id_same_org_fk',
+      columns: [table.apiTestId, table.organizationId],
+      foreignColumns: [apiTests.id, apiTests.organizationId],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'test_versions_mobile_test_id_same_org_fk',
+      columns: [table.mobileTestId, table.organizationId],
+      foreignColumns: [mobileTests.id, mobileTests.organizationId],
+    }).onDelete('cascade'),
+    check(
+      'test_versions_typed_snapshot',
+      sql`${table.testId} IS NOT NULL OR ${table.snapshot} IS NOT NULL`,
+    ),
+    check(
+      'test_versions_one_target',
+      sql`num_nonnulls(${table.testId}, ${table.apiTestId}, ${table.mobileTestId}) = 1`,
+    ),
+    index('test_versions_organization_id_idx').on(table.organizationId),
+    index('test_versions_test_id_idx').on(table.testId),
+    unique('test_versions_test_version_unique').on(table.testId, table.version),
+    unique('test_versions_api_version_unique').on(table.apiTestId, table.version),
+    unique('test_versions_mobile_version_unique').on(table.mobileTestId, table.version),
+  ],
+);
 
 export type TestVersion = typeof testVersions.$inferSelect;
 export type InsertTestVersion = typeof testVersions.$inferInsert;
@@ -1262,51 +1641,89 @@ export const TEST_PUBLICATION_KINDS = ['publish', 'review', 'rollback', 'unpubli
 export type TestPublicationKind = (typeof TEST_PUBLICATION_KINDS)[number];
 
 /** Every time a version of a test was put live, or taken down. Append-only. */
-export const testPublications = pgTable("test_publications", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
-  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
-  mobileTestId: integer("mobile_test_id").references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade' }),
-  /** Null for an 'unpublish': plans went back to the working copy. */
-  version: integer("version"),
-  kind: text("kind").$type<TestPublicationKind>().notNull(),
-  reviewId: integer("review_id"),
-  publishedBy: integer("published_by").references(() => users.id, { onDelete: 'set null' }),
-  publishedAt: timestamp("published_at").defaultNow().notNull(),
-}, (table) => [
-  foreignKey({name:"test_publications_api_test_id_same_org_fk",columns:[table.apiTestId,table.organizationId],foreignColumns:[apiTests.id,apiTests.organizationId]}).onDelete('cascade'),
-  foreignKey({name:"test_publications_mobile_test_id_same_org_fk",columns:[table.mobileTestId,table.organizationId],foreignColumns:[mobileTests.id,mobileTests.organizationId]}).onDelete('cascade'),
-  check("test_publications_one_target", sql`num_nonnulls(${table.testId}, ${table.apiTestId}, ${table.mobileTestId}) = 1`),
-  index("test_publications_test_id_idx").on(table.testId),
-  index("test_publications_organization_id_idx").on(table.organizationId),
-]);
+export const testPublications = pgTable(
+  'test_publications',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
+    apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
+    mobileTestId: integer('mobile_test_id').references((): AnyPgColumn => mobileTests.id, {
+      onDelete: 'cascade',
+    }),
+    /** Null for an 'unpublish': plans went back to the working copy. */
+    version: integer('version'),
+    kind: text('kind').$type<TestPublicationKind>().notNull(),
+    reviewId: integer('review_id'),
+    publishedBy: integer('published_by').references(() => users.id, { onDelete: 'set null' }),
+    publishedAt: timestamp('published_at').defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'test_publications_api_test_id_same_org_fk',
+      columns: [table.apiTestId, table.organizationId],
+      foreignColumns: [apiTests.id, apiTests.organizationId],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'test_publications_mobile_test_id_same_org_fk',
+      columns: [table.mobileTestId, table.organizationId],
+      foreignColumns: [mobileTests.id, mobileTests.organizationId],
+    }).onDelete('cascade'),
+    check(
+      'test_publications_one_target',
+      sql`num_nonnulls(${table.testId}, ${table.apiTestId}, ${table.mobileTestId}) = 1`,
+    ),
+    index('test_publications_test_id_idx').on(table.testId),
+    index('test_publications_organization_id_idx').on(table.organizationId),
+  ],
+);
 
 export const TEST_REVIEW_STATUSES = ['pending', 'approved', 'rejected', 'withdrawn'] as const;
 export type TestReviewStatus = (typeof TEST_REVIEW_STATUSES)[number];
 
 /** A request to publish one version of a test, and what became of it. */
-export const testReviews = pgTable("test_reviews", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
-  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
-  mobileTestId: integer("mobile_test_id").references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade' }),
-  version: integer("version").notNull(),
-  status: text("status").$type<TestReviewStatus>().notNull().default('pending'),
-  note: text("note"),
-  requestedBy: integer("requested_by").references(() => users.id, { onDelete: 'set null' }),
-  requestedAt: timestamp("requested_at").defaultNow().notNull(),
-  decidedBy: integer("decided_by").references(() => users.id, { onDelete: 'set null' }),
-  decidedAt: timestamp("decided_at"),
-  decisionComment: text("decision_comment"),
-}, (table) => [
-  foreignKey({name:"test_reviews_api_test_id_same_org_fk",columns:[table.apiTestId,table.organizationId],foreignColumns:[apiTests.id,apiTests.organizationId]}).onDelete('cascade'),
-  foreignKey({name:"test_reviews_mobile_test_id_same_org_fk",columns:[table.mobileTestId,table.organizationId],foreignColumns:[mobileTests.id,mobileTests.organizationId]}).onDelete('cascade'),
-  check("test_reviews_one_target", sql`num_nonnulls(${table.testId}, ${table.apiTestId}, ${table.mobileTestId}) = 1`),
-  index("test_reviews_organization_status_idx").on(table.organizationId, table.status),
-  index("test_reviews_test_id_idx").on(table.testId),
-]);
+export const testReviews = pgTable(
+  'test_reviews',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
+    apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
+    mobileTestId: integer('mobile_test_id').references((): AnyPgColumn => mobileTests.id, {
+      onDelete: 'cascade',
+    }),
+    version: integer('version').notNull(),
+    status: text('status').$type<TestReviewStatus>().notNull().default('pending'),
+    note: text('note'),
+    requestedBy: integer('requested_by').references(() => users.id, { onDelete: 'set null' }),
+    requestedAt: timestamp('requested_at').defaultNow().notNull(),
+    decidedBy: integer('decided_by').references(() => users.id, { onDelete: 'set null' }),
+    decidedAt: timestamp('decided_at'),
+    decisionComment: text('decision_comment'),
+  },
+  (table) => [
+    foreignKey({
+      name: 'test_reviews_api_test_id_same_org_fk',
+      columns: [table.apiTestId, table.organizationId],
+      foreignColumns: [apiTests.id, apiTests.organizationId],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'test_reviews_mobile_test_id_same_org_fk',
+      columns: [table.mobileTestId, table.organizationId],
+      foreignColumns: [mobileTests.id, mobileTests.organizationId],
+    }).onDelete('cascade'),
+    check(
+      'test_reviews_one_target',
+      sql`num_nonnulls(${table.testId}, ${table.apiTestId}, ${table.mobileTestId}) = 1`,
+    ),
+    index('test_reviews_organization_status_idx').on(table.organizationId, table.status),
+    index('test_reviews_test_id_idx').on(table.testId),
+  ],
+);
 
 export type TestReview = typeof testReviews.$inferSelect;
 
@@ -1317,73 +1734,97 @@ export type TestSuiteKind = (typeof TEST_SUITE_KINDS)[number];
  * A named set of tests that plans share: chosen one by one (static), or every test carrying some
  * tags (dynamic, worked out when a run is created). See migrations/0034.
  */
-export const testSuites = pgTable("test_suites", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
-  name: text("name").notNull(),
-  description: text("description"),
-  kind: text("kind").$type<TestSuiteKind>().notNull().default('static'),
-  /** The dynamic rule: tags a test must all carry. */
-  tagIds: jsonb("tag_ids").$type<string[]>().notNull().default([]),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("test_suites_organization_id_idx").on(table.organizationId),
-]);
+export const testSuites = pgTable(
+  'test_suites',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    kind: text('kind').$type<TestSuiteKind>().notNull().default('static'),
+    /** The dynamic rule: tags a test must all carry. */
+    tagIds: jsonb('tag_ids').$type<string[]>().notNull().default([]),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('test_suites_organization_id_idx').on(table.organizationId)],
+);
 
 export type TestSuite = typeof testSuites.$inferSelect;
 
 /** The tests of a static suite, in order. */
-export const testSuiteItems = pgTable("test_suite_items", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  suiteId: integer("suite_id").notNull().references(() => testSuites.id, { onDelete: 'cascade' }),
-  testType: text("test_type").$type<'ui' | 'api' | 'mobile'>().notNull(),
-  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
-  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
-  /** A mobile app test (migration 0054). Plain integer here: mobile_tests is declared further down. */
-  mobileTestId: integer("mobile_test_id"),
-  position: integer("position").notNull(),
-}, (table) => [
-  index("test_suite_items_suite_id_idx").on(table.suiteId),
-]);
+export const testSuiteItems = pgTable(
+  'test_suite_items',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    suiteId: integer('suite_id')
+      .notNull()
+      .references(() => testSuites.id, { onDelete: 'cascade' }),
+    testType: text('test_type').$type<'ui' | 'api' | 'mobile'>().notNull(),
+    testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
+    apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
+    /** A mobile app test (migration 0054). Plain integer here: mobile_tests is declared further down. */
+    mobileTestId: integer('mobile_test_id'),
+    position: integer('position').notNull(),
+  },
+  (table) => [index('test_suite_items_suite_id_idx').on(table.suiteId)],
+);
 
 /** The suites a plan includes, in order, after its own tests. */
-export const testPlanSuites = pgTable("test_plan_suites", {
-  testPlanId: text("test_plan_id").notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
-  suiteId: integer("suite_id").notNull().references(() => testSuites.id, { onDelete: 'cascade' }),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  position: integer("position").notNull(),
-}, (table) => [
-  primaryKey({ columns: [table.testPlanId, table.suiteId] }),
-  index("test_plan_suites_suite_id_idx").on(table.suiteId),
-]);
+export const testPlanSuites = pgTable(
+  'test_plan_suites',
+  {
+    testPlanId: text('test_plan_id')
+      .notNull()
+      .references(() => testPlans.id, { onDelete: 'cascade' }),
+    suiteId: integer('suite_id')
+      .notNull()
+      .references(() => testSuites.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    position: integer('position').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.testPlanId, table.suiteId] }),
+    index('test_plan_suites_suite_id_idx').on(table.suiteId),
+  ],
+);
 
 /**
  * A test set aside while it is unreliable: it still runs, and its result is still recorded, but
  * its failures do not fail the run, stop the plan, file issues or break a pipeline. One row per
  * time a test was quarantined; the open one has no releasedAt. See migrations/0035.
  */
-export const testQuarantines = pgTable("test_quarantines", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  testType: text("test_type").$type<'ui' | 'api' | 'mobile'>().notNull(),
-  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
-  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
-  /** A mobile app test (migration 0058). Plain integer here: mobile_tests is declared further down. */
-  mobileTestId: integer("mobile_test_id"),
-  /** Why, in words: the thing whoever releases it will want to know was dealt with. */
-  reason: text("reason").notNull(),
-  quarantinedBy: integer("quarantined_by").references(() => users.id, { onDelete: 'set null' }),
-  quarantinedAt: timestamp("quarantined_at").defaultNow().notNull(),
-  releasedBy: integer("released_by").references(() => users.id, { onDelete: 'set null' }),
-  releasedAt: timestamp("released_at"),
-  releaseNote: text("release_note"),
-}, (table) => [
-  index("test_quarantines_organization_id_idx").on(table.organizationId),
-]);
+export const testQuarantines = pgTable(
+  'test_quarantines',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    testType: text('test_type').$type<'ui' | 'api' | 'mobile'>().notNull(),
+    testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
+    apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
+    /** A mobile app test (migration 0058). Plain integer here: mobile_tests is declared further down. */
+    mobileTestId: integer('mobile_test_id'),
+    /** Why, in words: the thing whoever releases it will want to know was dealt with. */
+    reason: text('reason').notNull(),
+    quarantinedBy: integer('quarantined_by').references(() => users.id, { onDelete: 'set null' }),
+    quarantinedAt: timestamp('quarantined_at').defaultNow().notNull(),
+    releasedBy: integer('released_by').references(() => users.id, { onDelete: 'set null' }),
+    releasedAt: timestamp('released_at'),
+    releaseNote: text('release_note'),
+  },
+  (table) => [index('test_quarantines_organization_id_idx').on(table.organizationId)],
+);
 
 export type TestQuarantine = typeof testQuarantines.$inferSelect;
 
@@ -1392,40 +1833,53 @@ export type TestQuarantine = typeof testQuarantines.$inferSelect;
  * connections it opens itself (shared/agents.ts). Authenticated by a token shown once; stored
  * as its hash.
  */
-export const agents = pgTable("agents", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  name: text("name").notNull(),
-  /** Plans name a pool, not an agent: any agent of the pool may take the run. */
-  pool: text("pool").notNull().default('default'),
-  tokenPrefix: text("token_prefix").notNull(),
-  tokenHash: text("token_hash").notNull().unique(),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  /** Written by the relay while the agent is connected. */
-  lastSeenAt: timestamp("last_seen_at"),
-  /** What it reported the last time it connected. */
-  hostname: text("hostname"),
-  agentVersion: text("agent_version"),
-  playwrightVersion: text("playwright_version"),
-  browsers: jsonb("browsers").$type<string[]>(),
-  bddProfiles: jsonb('bdd_profiles').$type<BddAgentProfile[]>(),
-  revokedAt: timestamp("revoked_at"),
-}, (table) => [
-  index("agents_organization_id_idx").on(table.organizationId),
-]);
+export const agents = pgTable(
+  'agents',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    name: text('name').notNull(),
+    /** Plans name a pool, not an agent: any agent of the pool may take the run. */
+    pool: text('pool').notNull().default('default'),
+    tokenPrefix: text('token_prefix').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    /** Written by the relay while the agent is connected. */
+    lastSeenAt: timestamp('last_seen_at'),
+    /** What it reported the last time it connected. */
+    hostname: text('hostname'),
+    agentVersion: text('agent_version'),
+    playwrightVersion: text('playwright_version'),
+    browsers: jsonb('browsers').$type<string[]>(),
+    bddProfiles: jsonb('bdd_profiles').$type<BddAgentProfile[]>(),
+    revokedAt: timestamp('revoked_at'),
+  },
+  (table) => [index('agents_organization_id_idx').on(table.organizationId)],
+);
 
 export type Agent = typeof agents.$inferSelect;
 
-export const bddExecutionProfiles = pgTable('bdd_execution_profiles', {
-  id: text('id').primaryKey(),
-  organizationId: integer('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(), pool: text('pool').notNull(),
-  operatorProfileId: text('operator_profile_id').notNull(), revision: text('revision').notNull(),
-  timeoutMs: integer('timeout_ms').notNull().default(60000),
-  createdAt: timestamp('created_at').defaultNow().notNull(), updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, table => [index('bdd_execution_profiles_organization_idx').on(table.organizationId)]);
+export const bddExecutionProfiles = pgTable(
+  'bdd_execution_profiles',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    pool: text('pool').notNull(),
+    operatorProfileId: text('operator_profile_id').notNull(),
+    revision: text('revision').notNull(),
+    timeoutMs: integer('timeout_ms').notNull().default(60000),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('bdd_execution_profiles_organization_idx').on(table.organizationId)],
+);
 
 /** Where an organization's code lives, for the commit statuses a run reports (server/commit-status.ts). */
 export const SOURCE_HOST_PROVIDERS = ['github', 'gitlab'] as const;
@@ -1438,24 +1892,30 @@ export type SourceHostProvider = (typeof SOURCE_HOST_PROVIDERS)[number];
  * run goes. One per provider per organization, because the run says which provider it came from and
  * nothing more. The token is encrypted as a tracker's is and never leaves the server.
  */
-export const sourceHosts = pgTable("source_hosts", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  provider: text("provider").$type<SourceHostProvider>().notNull(),
-  /** https://api.github.com, a GitHub Enterprise's /api/v3, or a GitLab's /api/v4. */
-  apiUrl: text("api_url").notNull(),
-  encryptedToken: text("encrypted_token").notNull(),
-  tokenIv: text("token_iv").notNull(),
-  tokenAuthTag: text("token_auth_tag").notNull(),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  /** The last status sent, and why it was refused if it was: the answer to "why is there no check?". */
-  lastDeliveryAt: timestamp("last_delivery_at"),
-  lastDeliveryError: text("last_delivery_error"),
-}, (table) => [
-  uniqueIndex("source_hosts_organization_provider_idx").on(table.organizationId, table.provider),
-]);
+export const sourceHosts = pgTable(
+  'source_hosts',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    provider: text('provider').$type<SourceHostProvider>().notNull(),
+    /** https://api.github.com, a GitHub Enterprise's /api/v3, or a GitLab's /api/v4. */
+    apiUrl: text('api_url').notNull(),
+    encryptedToken: text('encrypted_token').notNull(),
+    tokenIv: text('token_iv').notNull(),
+    tokenAuthTag: text('token_auth_tag').notNull(),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    /** The last status sent, and why it was refused if it was: the answer to "why is there no check?". */
+    lastDeliveryAt: timestamp('last_delivery_at'),
+    lastDeliveryError: text('last_delivery_error'),
+  },
+  (table) => [
+    uniqueIndex('source_hosts_organization_provider_idx').on(table.organizationId, table.provider),
+  ],
+);
 
 export type SourceHost = typeof sourceHosts.$inferSelect;
 
@@ -1473,26 +1933,30 @@ export type IssueProvider = (typeof ISSUE_PROVIDERS)[number];
  * The token is encrypted exactly as `secrets` are, and never leaves the server: the API answers
  * with the tracker and who it authenticates as, never with the credential.
  */
-export const issueTrackers = pgTable("issue_trackers", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  name: text("name").notNull(),
-  provider: text("provider").notNull(),
-  baseUrl: text("base_url").notNull(),
-  /** The Jira project key (SHOP), or the Azure DevOps project name. */
-  projectKey: text("project_key").notNull(),
-  issueType: text("issue_type").default('Bug').notNull(),
-  /** Jira authenticates an API token against an account's email; Azure DevOps ignores it. */
-  userEmail: text("user_email"),
-  encryptedToken: text("encrypted_token").notNull(),
-  tokenIv: text("token_iv").notNull(),
-  tokenAuthTag: text("token_auth_tag").notNull(),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("issue_trackers_organization_id_idx").on(table.organizationId),
-]);
+export const issueTrackers = pgTable(
+  'issue_trackers',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    name: text('name').notNull(),
+    provider: text('provider').notNull(),
+    baseUrl: text('base_url').notNull(),
+    /** The Jira project key (SHOP), or the Azure DevOps project name. */
+    projectKey: text('project_key').notNull(),
+    issueType: text('issue_type').default('Bug').notNull(),
+    /** Jira authenticates an API token against an account's email; Azure DevOps ignores it. */
+    userEmail: text('user_email'),
+    encryptedToken: text('encrypted_token').notNull(),
+    tokenIv: text('token_iv').notNull(),
+    tokenAuthTag: text('token_auth_tag').notNull(),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('issue_trackers_organization_id_idx').on(table.organizationId)],
+);
 
 /**
  * Where a plan's browsers can come from besides the runners and the local agents: BrowserStack,
@@ -1500,24 +1964,28 @@ export const issueTrackers = pgTable("issue_trackers", {
  *
  * The key is encrypted like an issue tracker's token and, like it, never sent back.
  */
-export const browserGrids = pgTable("browser_grids", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  name: text("name").notNull(),
-  provider: text("provider").notNull(),
-  username: text("username"),
-  endpoint: text("endpoint"),
-  encryptedKey: text("encrypted_key"),
-  keyIv: text("key_iv"),
-  keyAuthTag: text("key_auth_tag"),
-  /** For a local Appium: the pool of agents that reach it (migration 0055). */
-  agentPool: text("agent_pool"),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("browser_grids_organization_id_idx").on(table.organizationId),
-]);
+export const browserGrids = pgTable(
+  'browser_grids',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    name: text('name').notNull(),
+    provider: text('provider').notNull(),
+    username: text('username'),
+    endpoint: text('endpoint'),
+    encryptedKey: text('encrypted_key'),
+    keyIv: text('key_iv'),
+    keyAuthTag: text('key_auth_tag'),
+    /** For a local Appium: the pool of agents that reach it (migration 0055). */
+    agentPool: text('agent_pool'),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('browser_grids_organization_id_idx').on(table.organizationId)],
+);
 
 export type BrowserGrid = typeof browserGrids.$inferSelect;
 
@@ -1526,27 +1994,35 @@ export type BrowserGrid = typeof browserGrids.$inferSelect;
  * (shared/requirements.ts, migrations/0050). Typed in, or imported from the organization's Jira or
  * Azure DevOps; its coverage is worked out from the tests' latest results, never stored.
  */
-export const requirements = pgTable("requirements", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  key: text("key").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  kind: text("kind").$type<RequirementKind>().notNull().default('story'),
-  parentId: integer("parent_id").references((): AnyPgColumn => requirements.id, { onDelete: 'set null' }),
-  trackerId: text("tracker_id").references(() => issueTrackers.id, { onDelete: 'set null' }),
-  url: text("url"),
-  /** The tracker's own words for it: "Story", "User Story", "Epic", "Feature". */
-  externalType: text("external_type"),
-  externalStatus: text("external_status"),
-  syncedAt: timestamp("synced_at"),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("requirements_organization_id_idx").on(table.organizationId),
-  index("requirements_parent_id_idx").on(table.parentId),
-]);
+export const requirements = pgTable(
+  'requirements',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    key: text('key').notNull(),
+    title: text('title').notNull(),
+    description: text('description'),
+    kind: text('kind').$type<RequirementKind>().notNull().default('story'),
+    parentId: integer('parent_id').references((): AnyPgColumn => requirements.id, {
+      onDelete: 'set null',
+    }),
+    trackerId: text('tracker_id').references(() => issueTrackers.id, { onDelete: 'set null' }),
+    url: text('url'),
+    /** The tracker's own words for it: "Story", "User Story", "Epic", "Feature". */
+    externalType: text('external_type'),
+    externalStatus: text('external_status'),
+    syncedAt: timestamp('synced_at'),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('requirements_organization_id_idx').on(table.organizationId),
+    index('requirements_parent_id_idx').on(table.parentId),
+  ],
+);
 
 export type Requirement = typeof requirements.$inferSelect;
 
@@ -1554,64 +2030,82 @@ export type Requirement = typeof requirements.$inferSelect;
  * A TestRail, Xray or Zephyr Scale account the organization publishes run results to
  * (shared/test-management.ts, migrations/0051). The token is encrypted and never sent back.
  */
-export const testManagementConnections = pgTable("test_management_connections", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  name: text("name").notNull(),
-  provider: text("provider").$type<TestManagementProvider>().notNull(),
-  baseUrl: text("base_url").notNull(),
-  username: text("username"),
-  projectKey: text("project_key").notNull(),
-  suiteId: text("suite_id"),
-  testPlanKey: text("test_plan_key"),
-  encryptedToken: text("encrypted_token").notNull(),
-  tokenIv: text("token_iv").notNull(),
-  tokenAuthTag: text("token_auth_tag").notNull(),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("test_management_connections_organization_id_idx").on(table.organizationId),
-]);
+export const testManagementConnections = pgTable(
+  'test_management_connections',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    name: text('name').notNull(),
+    provider: text('provider').$type<TestManagementProvider>().notNull(),
+    baseUrl: text('base_url').notNull(),
+    username: text('username'),
+    projectKey: text('project_key').notNull(),
+    suiteId: text('suite_id'),
+    testPlanKey: text('test_plan_key'),
+    encryptedToken: text('encrypted_token').notNull(),
+    tokenIv: text('token_iv').notNull(),
+    tokenAuthTag: text('token_auth_tag').notNull(),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('test_management_connections_organization_id_idx').on(table.organizationId)],
+);
 
 export type TestManagementConnection = typeof testManagementConnections.$inferSelect;
 
 /** Which case in the tool each test is. */
-export const testCaseLinks = pgTable("test_case_links", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  connectionId: text("connection_id").notNull().references(() => testManagementConnections.id, { onDelete: 'cascade' }),
-  testType: text("test_type").$type<'ui' | 'api' | 'mobile'>().notNull(),
-  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
-  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
-  /** A mobile app test (migration 0054). Plain integer here: mobile_tests is declared further down. */
-  mobileTestId: integer("mobile_test_id"),
-  caseKey: text("case_key").notNull(),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("test_case_links_connection_id_idx").on(table.connectionId),
-]);
+export const testCaseLinks = pgTable(
+  'test_case_links',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    connectionId: text('connection_id')
+      .notNull()
+      .references(() => testManagementConnections.id, { onDelete: 'cascade' }),
+    testType: text('test_type').$type<'ui' | 'api' | 'mobile'>().notNull(),
+    testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
+    apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
+    /** A mobile app test (migration 0054). Plain integer here: mobile_tests is declared further down. */
+    mobileTestId: integer('mobile_test_id'),
+    caseKey: text('case_key').notNull(),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('test_case_links_connection_id_idx').on(table.connectionId)],
+);
 
 /** Each publication of a run to a tool, and what came of it. */
-export const testManagementPublications = pgTable("test_management_publications", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  testPlanExecutionId: text("test_plan_execution_id").notNull().references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
-  connectionId: text("connection_id").references(() => testManagementConnections.id, { onDelete: 'set null' }),
-  connectionName: text("connection_name").notNull(),
-  provider: text("provider").notNull(),
-  status: text("status").$type<'published' | 'failed' | 'nothing_to_publish'>().notNull(),
-  externalKey: text("external_key"),
-  externalUrl: text("external_url"),
-  publishedCount: integer("published_count").notNull().default(0),
-  unmappedCount: integer("unmapped_count").notNull().default(0),
-  message: text("message"),
-  requestedBy: integer("requested_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("test_management_publications_execution_idx").on(table.testPlanExecutionId),
-]);
+export const testManagementPublications = pgTable(
+  'test_management_publications',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    testPlanExecutionId: text('test_plan_execution_id')
+      .notNull()
+      .references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+    connectionId: text('connection_id').references(() => testManagementConnections.id, {
+      onDelete: 'set null',
+    }),
+    connectionName: text('connection_name').notNull(),
+    provider: text('provider').notNull(),
+    status: text('status').$type<'published' | 'failed' | 'nothing_to_publish'>().notNull(),
+    externalKey: text('external_key'),
+    externalUrl: text('external_url'),
+    publishedCount: integer('published_count').notNull().default(0),
+    unmappedCount: integer('unmapped_count').notNull().default(0),
+    message: text('message'),
+    requestedBy: integer('requested_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('test_management_publications_execution_idx').on(table.testPlanExecutionId)],
+);
 
 export type TestManagementPublication = typeof testManagementPublications.$inferSelect;
 
@@ -1619,68 +2113,95 @@ export type TestManagementPublication = typeof testManagementPublications.$infer
  * A test of a native Android or iOS app, run on a cloud grid's real device through Appium
  * (shared/mobile.ts, migrations/0052).
  */
-export const mobileTests = pgTable("mobile_tests", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
-  publishedVersion: integer("published_version"),
-  name: text("name").notNull(),
-  platform: text("platform").$type<MobilePlatform>().notNull(),
-  app: text("app").notNull(),
-  deviceName: text("device_name").notNull(),
-  osVersion: text("os_version"),
-  deviceMatrix: jsonb('device_matrix').$type<MobileDeviceTarget[]>().notNull().default([]),
-  /** The grid it runs on in a plan (migration 0053). */
-  gridId: text("grid_id").references(() => browserGrids.id, { onDelete: 'set null' }),
-  steps: jsonb("steps").$type<MobileStep[]>().notNull().default([]),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("mobile_tests_organization_id_idx").on(table.organizationId),
-]);
+export const mobileTests = pgTable(
+  'mobile_tests',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    publishedVersion: integer('published_version'),
+    name: text('name').notNull(),
+    platform: text('platform').$type<MobilePlatform>().notNull(),
+    app: text('app').notNull(),
+    deviceName: text('device_name').notNull(),
+    osVersion: text('os_version'),
+    deviceMatrix: jsonb('device_matrix').$type<MobileDeviceTarget[]>().notNull().default([]),
+    /** The grid it runs on in a plan (migration 0053). */
+    gridId: text('grid_id').references(() => browserGrids.id, { onDelete: 'set null' }),
+    steps: jsonb('steps').$type<MobileStep[]>().notNull().default([]),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('mobile_tests_organization_id_idx').on(table.organizationId)],
+);
 
 export type MobileTest = typeof mobileTests.$inferSelect;
 
-export const mobileStepGroups = pgTable('mobile_step_groups', {
-  id: text('id').primaryKey(),
-  organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
-  name: text('name').notNull(),
-  description: text('description'),
-  platform: text('platform').$type<MobilePlatform>().notNull(),
-  steps: jsonb('steps').$type<MobileStep[]>().notNull(),
-  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, table => [index('mobile_step_groups_org_idx').on(table.organizationId),
-  uniqueIndex('mobile_step_groups_name_unique').on(table.organizationId, table.platform, sql`lower(${table.name})`),
-  foreignKey({name: 'mobile_step_groups_project_id_same_org_fk', columns: [table.projectId, table.organizationId], foreignColumns: [projects.id, projects.organizationId]}),
-]);
+export const mobileStepGroups = pgTable(
+  'mobile_step_groups',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    platform: text('platform').$type<MobilePlatform>().notNull(),
+    steps: jsonb('steps').$type<MobileStep[]>().notNull(),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('mobile_step_groups_org_idx').on(table.organizationId),
+    uniqueIndex('mobile_step_groups_name_unique').on(
+      table.organizationId,
+      table.platform,
+      sql`lower(${table.name})`,
+    ),
+    foreignKey({
+      name: 'mobile_step_groups_project_id_same_org_fk',
+      columns: [table.projectId, table.organizationId],
+      foreignColumns: [projects.id, projects.organizationId],
+    }),
+  ],
+);
 
 /** One run of a mobile test on a grid's device. */
-export const mobileTestRuns = pgTable("mobile_test_runs", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  mobileTestId: integer("mobile_test_id").notNull().references(() => mobileTests.id, { onDelete: 'cascade' }),
-  gridId: text("grid_id").references(() => browserGrids.id, { onDelete: 'set null' }),
-  environmentId: integer("environment_id").references(() => environments.id, { onDelete: 'set null' }),
-  testVersion: integer("test_version"),
-  testSnapshot: jsonb("test_snapshot").$type<Record<string, unknown>>(),
-  status: text("status").$type<MobileRunStatus>().notNull(),
-  device: text("device").notNull(),
-  steps: jsonb("steps").$type<MobileStepResult[]>().notNull().default([]),
-  error: text("error"),
-  screenshot: text("screenshot"),
-  artifactStorageStatus: text('artifact_storage_status').$type<'quota_exceeded' | 'error'>(),
-  sessionUrl: text("session_url"),
-  requestedBy: integer("requested_by").references(() => users.id, { onDelete: 'set null' }),
-  startedAt: timestamp("started_at"),
-  finishedAt: timestamp("finished_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("mobile_test_runs_test_idx").on(table.mobileTestId, table.createdAt),
-]);
+export const mobileTestRuns = pgTable(
+  'mobile_test_runs',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    mobileTestId: integer('mobile_test_id')
+      .notNull()
+      .references(() => mobileTests.id, { onDelete: 'cascade' }),
+    gridId: text('grid_id').references(() => browserGrids.id, { onDelete: 'set null' }),
+    environmentId: integer('environment_id').references(() => environments.id, {
+      onDelete: 'set null',
+    }),
+    testVersion: integer('test_version'),
+    testSnapshot: jsonb('test_snapshot').$type<Record<string, unknown>>(),
+    status: text('status').$type<MobileRunStatus>().notNull(),
+    device: text('device').notNull(),
+    steps: jsonb('steps').$type<MobileStepResult[]>().notNull().default([]),
+    error: text('error'),
+    screenshot: text('screenshot'),
+    artifactStorageStatus: text('artifact_storage_status').$type<'quota_exceeded' | 'error'>(),
+    sessionUrl: text('session_url'),
+    requestedBy: integer('requested_by').references(() => users.id, { onDelete: 'set null' }),
+    startedAt: timestamp('started_at'),
+    finishedAt: timestamp('finished_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('mobile_test_runs_test_idx').on(table.mobileTestId, table.createdAt)],
+);
 
 export type MobileTestRun = typeof mobileTestRuns.$inferSelect;
 
@@ -1688,68 +2209,90 @@ export type MobileTestRun = typeof mobileTestRuns.$inferSelect;
  * A load test (shared/load-test.ts): API tests repeated by virtual users along a profile of
  * stages. Run on its own, never inside a plan.
  */
-export const loadTests = pgTable("load_tests", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
-  name: text("name").notNull(),
-  description: text("description"),
-  steps: jsonb("steps").$type<LoadStep[]>().notNull(),
-  stages: jsonb("stages").$type<LoadStage[]>().notNull(),
-  warmUpSec: integer("warm_up_sec").notNull().default(0),
-  dataSetId: integer("data_set_id").references(() => testDataSets.id, { onDelete: 'set null' }),
-  dataMode: text("data_mode").$type<LoadDataMode>().notNull().default('vu'),
-  thresholds: jsonb("thresholds").$type<LoadThresholds>().notNull().default({}),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("load_tests_org_idx").on(table.organizationId),
-]);
+export const loadTests = pgTable(
+  'load_tests',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    steps: jsonb('steps').$type<LoadStep[]>().notNull(),
+    stages: jsonb('stages').$type<LoadStage[]>().notNull(),
+    warmUpSec: integer('warm_up_sec').notNull().default(0),
+    dataSetId: integer('data_set_id').references(() => testDataSets.id, { onDelete: 'set null' }),
+    dataMode: text('data_mode').$type<LoadDataMode>().notNull().default('vu'),
+    thresholds: jsonb('thresholds').$type<LoadThresholds>().notNull().default({}),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('load_tests_org_idx').on(table.organizationId)],
+);
 
 export type LoadTest = typeof loadTests.$inferSelect;
 
 /** One run of a load test: its live summary while it runs, its verdict once it is over. */
-export const loadTestRuns = pgTable("load_test_runs", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  loadTestId: integer("load_test_id").notNull().references(() => loadTests.id, { onDelete: 'cascade' }),
-  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
-  environmentId: integer("environment_id").references(() => environments.id, { onDelete: 'set null' }),
-  status: text("status").$type<LoadRunStatus>().notNull(),
-  /** The definition as it was when the run started: the test may change while it runs. */
-  definition: jsonb("definition").$type<Record<string, unknown>>().notNull(),
-  summary: jsonb("summary").$type<LoadSummary>(),
-  error: text("error"),
-  cancelRequested: boolean("cancel_requested").notNull().default(false),
-  /** Written with every progress: a running run whose heartbeat stopped was interrupted. */
-  heartbeatAt: timestamp("heartbeat_at"),
-  requestedBy: integer("requested_by").references(() => users.id, { onDelete: 'set null' }),
-  startedAt: timestamp("started_at").defaultNow().notNull(),
-  finishedAt: timestamp("finished_at"),
-}, (table) => [
-  index("load_test_runs_test_idx").on(table.loadTestId, table.startedAt),
-]);
+export const loadTestRuns = pgTable(
+  'load_test_runs',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    loadTestId: integer('load_test_id')
+      .notNull()
+      .references(() => loadTests.id, { onDelete: 'cascade' }),
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    environmentId: integer('environment_id').references(() => environments.id, {
+      onDelete: 'set null',
+    }),
+    status: text('status').$type<LoadRunStatus>().notNull(),
+    /** The definition as it was when the run started: the test may change while it runs. */
+    definition: jsonb('definition').$type<Record<string, unknown>>().notNull(),
+    summary: jsonb('summary').$type<LoadSummary>(),
+    error: text('error'),
+    cancelRequested: boolean('cancel_requested').notNull().default(false),
+    /** Written with every progress: a running run whose heartbeat stopped was interrupted. */
+    heartbeatAt: timestamp('heartbeat_at'),
+    requestedBy: integer('requested_by').references(() => users.id, { onDelete: 'set null' }),
+    startedAt: timestamp('started_at').defaultNow().notNull(),
+    finishedAt: timestamp('finished_at'),
+  },
+  (table) => [index('load_test_runs_test_idx').on(table.loadTestId, table.startedAt)],
+);
 
 export type LoadTestRun = typeof loadTestRuns.$inferSelect;
 
 /** Which tests cover which requirement. */
-export const requirementTests = pgTable("requirement_tests", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  requirementId: integer("requirement_id").notNull().references(() => requirements.id, { onDelete: 'cascade' }),
-  testType: text("test_type").$type<'ui' | 'api' | 'mobile'>().notNull(),
-  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
-  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
-  /** A mobile app test (migration 0054). */
-  mobileTestId: integer("mobile_test_id").references(() => mobileTests.id, { onDelete: 'cascade' }),
-  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("requirement_tests_requirement_id_idx").on(table.requirementId),
-  index("requirement_tests_test_id_idx").on(table.testId),
-  index("requirement_tests_api_test_id_idx").on(table.apiTestId),
-]);
+export const requirementTests = pgTable(
+  'requirement_tests',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    requirementId: integer('requirement_id')
+      .notNull()
+      .references(() => requirements.id, { onDelete: 'cascade' }),
+    testType: text('test_type').$type<'ui' | 'api' | 'mobile'>().notNull(),
+    testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
+    apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
+    /** A mobile app test (migration 0054). */
+    mobileTestId: integer('mobile_test_id').references(() => mobileTests.id, {
+      onDelete: 'cascade',
+    }),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('requirement_tests_requirement_id_idx').on(table.requirementId),
+    index('requirement_tests_test_id_idx').on(table.testId),
+    index('requirement_tests_api_test_id_idx').on(table.apiTestId),
+  ],
+);
 
 export type IssueTracker = typeof issueTrackers.$inferSelect;
 export type InsertIssueTracker = typeof issueTrackers.$inferInsert;
@@ -1765,35 +2308,47 @@ export type InsertIssueTracker = typeof issueTrackers.$inferInsert;
  * Every reference is ON DELETE SET NULL: the issue exists in Jira whatever happens here, and a
  * link table that forgets it is how a duplicate gets opened.
  */
-export const issueLinks = pgTable("issue_links", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  trackerId: text("tracker_id").notNull().references(() => issueTrackers.id, { onDelete: 'cascade' }),
-  dedupeKey: text("dedupe_key").notNull(),
-  testPlanId: text("test_plan_id").references(() => testPlans.id, { onDelete: 'set null' }),
-  uiTestId: integer("ui_test_id").references(() => tests.id, { onDelete: 'set null' }),
-  /** Kept as text too: the name is what the issue says, and it must stay readable. */
-  testName: text("test_name").notNull(),
-  browser: text("browser"),
-  issueKey: text("issue_key").notNull(),
-  issueUrl: text("issue_url").notNull(),
-  firstExecutionId: text("first_execution_id").references(() => testPlanExecutions.id, { onDelete: 'set null' }),
-  lastExecutionId: text("last_execution_id").references(() => testPlanExecutions.id, { onDelete: 'set null' }),
-  occurrences: integer("occurrences").default(1).notNull(),
-  /**
-   * Set when the test passed again. Local knowledge only: whether the issue is closed is the
-   * tracker's business, and claiming to know it would be claiming more than this can see.
-   */
-  resolvedAt: timestamp("resolved_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => [
-  index("issue_links_organization_id_idx").on(table.organizationId),
-  index("issue_links_tracker_id_idx").on(table.trackerId),
-  index("issue_links_test_plan_id_idx").on(table.testPlanId),
-  index("issue_links_last_execution_id_idx").on(table.lastExecutionId),
-  unique("issue_links_tracker_dedupe_unique").on(table.trackerId, table.dedupeKey),
-]);
+export const issueLinks = pgTable(
+  'issue_links',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    trackerId: text('tracker_id')
+      .notNull()
+      .references(() => issueTrackers.id, { onDelete: 'cascade' }),
+    dedupeKey: text('dedupe_key').notNull(),
+    testPlanId: text('test_plan_id').references(() => testPlans.id, { onDelete: 'set null' }),
+    uiTestId: integer('ui_test_id').references(() => tests.id, { onDelete: 'set null' }),
+    /** Kept as text too: the name is what the issue says, and it must stay readable. */
+    testName: text('test_name').notNull(),
+    browser: text('browser'),
+    issueKey: text('issue_key').notNull(),
+    issueUrl: text('issue_url').notNull(),
+    firstExecutionId: text('first_execution_id').references(() => testPlanExecutions.id, {
+      onDelete: 'set null',
+    }),
+    lastExecutionId: text('last_execution_id').references(() => testPlanExecutions.id, {
+      onDelete: 'set null',
+    }),
+    occurrences: integer('occurrences').default(1).notNull(),
+    /**
+     * Set when the test passed again. Local knowledge only: whether the issue is closed is the
+     * tracker's business, and claiming to know it would be claiming more than this can see.
+     */
+    resolvedAt: timestamp('resolved_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('issue_links_organization_id_idx').on(table.organizationId),
+    index('issue_links_tracker_id_idx').on(table.trackerId),
+    index('issue_links_test_plan_id_idx').on(table.testPlanId),
+    index('issue_links_last_execution_id_idx').on(table.lastExecutionId),
+    unique('issue_links_tracker_dedupe_unique').on(table.trackerId, table.dedupeKey),
+  ],
+);
 
 export type IssueLink = typeof issueLinks.$inferSelect;
 export type InsertIssueLink = typeof issueLinks.$inferInsert;
@@ -1809,30 +2364,38 @@ export type InsertIssueLink = typeof issueLinks.$inferInsert;
  * kept only so a list of keys can be told apart. A key carries the role of the user who made
  * it, so nothing downstream needs a second authorisation model.
  */
-export const apiKeys = pgTable("api_keys", {
-  id: text("id").primaryKey(),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  /** The key acts as this user. Deleting the member takes their keys with them. */
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  /** What it is for, in the words of whoever created it: "GitHub Actions", "nightly". */
-  name: text("name").notNull(),
-  prefix: text("prefix").notNull(),
-  hashedKey: text("hashed_key").notNull().unique(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  /** Answers "is this key still in use?", which is what makes cleaning them up possible. */
-  lastUsedAt: timestamp("last_used_at"),
-  expiresAt: timestamp("expires_at"),
-  /** Set instead of deleting, so a key that ran ten thousand builds stays nameable. */
-  revokedAt: timestamp("revoked_at"),
-  /**
-   * What the key may do, through /api/v1 only (see shared/api-scopes.ts). Null is a key from
-   * before scopes: it acts as its user, with their role, on every endpoint, as it always did.
-   */
-  scopes: text("scopes").array(),
-}, (table) => [
-  index("api_keys_organization_id_idx").on(table.organizationId),
-  index("api_keys_user_id_idx").on(table.userId),
-]);
+export const apiKeys = pgTable(
+  'api_keys',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    /** The key acts as this user. Deleting the member takes their keys with them. */
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** What it is for, in the words of whoever created it: "GitHub Actions", "nightly". */
+    name: text('name').notNull(),
+    prefix: text('prefix').notNull(),
+    hashedKey: text('hashed_key').notNull().unique(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    /** Answers "is this key still in use?", which is what makes cleaning them up possible. */
+    lastUsedAt: timestamp('last_used_at'),
+    expiresAt: timestamp('expires_at'),
+    /** Set instead of deleting, so a key that ran ten thousand builds stays nameable. */
+    revokedAt: timestamp('revoked_at'),
+    /**
+     * What the key may do, through /api/v1 only (see shared/api-scopes.ts). Null is a key from
+     * before scopes: it acts as its user, with their role, on every endpoint, as it always did.
+     */
+    scopes: text('scopes').array(),
+  },
+  (table) => [
+    index('api_keys_organization_id_idx').on(table.organizationId),
+    index('api_keys_user_id_idx').on(table.userId),
+  ],
+);
 
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = typeof apiKeys.$inferInsert;
@@ -1992,13 +2555,15 @@ export const AUDIT_ACTIONS = {
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 
-export const sessions = pgTable("sessions", {
-  sid: text("sid").primaryKey(),
-  sess: jsonb("sess").notNull(),
-  expire: timestamp("expire").notNull(),
-}, (table) => [
-  index("sessions_expire_idx").on(table.expire),
-]);
+export const sessions = pgTable(
+  'sessions',
+  {
+    sid: text('sid').primaryKey(),
+    sess: jsonb('sess').notNull(),
+    expire: timestamp('expire').notNull(),
+  },
+  (table) => [index('sessions_expire_idx').on(table.expire)],
+);
 
 // Relation Definitions
 export const usersRelations = relations(users, ({ many, one }) => ({
@@ -2020,7 +2585,10 @@ export const environmentsRelations = relations(environments, ({ one, many }) => 
 }));
 
 export const secretsRelations = relations(secrets, ({ one }) => ({
-  environment: one(environments, { fields: [secrets.environmentId], references: [environments.id] }),
+  environment: one(environments, {
+    fields: [secrets.environmentId],
+    references: [environments.id],
+  }),
   user: one(users, { fields: [secrets.userId], references: [users.id] }),
 }));
 
@@ -2072,74 +2640,62 @@ export const apiTestsRelations = relations(apiTests, ({ one }) => ({
 
 export const testPlansRelations = relations(testPlans, ({ many }) => ({
   selectedTests: many(testPlanSelectedTests, {
-    relationName: "selectedTestsForPlan",
+    relationName: 'selectedTestsForPlan',
   }),
   schedules: many(testPlanSchedules),
   executions: many(testPlanExecutions),
 }));
 
-export const testPlanSchedulesRelations = relations(
-  testPlanSchedules,
-  ({ one, many }) => ({
-    testPlan: one(testPlans, {
-      fields: [testPlanSchedules.testPlanId],
-      references: [testPlans.id],
-    }),
-    executions: many(testPlanExecutions),
+export const testPlanSchedulesRelations = relations(testPlanSchedules, ({ one, many }) => ({
+  testPlan: one(testPlans, {
+    fields: [testPlanSchedules.testPlanId],
+    references: [testPlans.id],
   }),
-);
+  executions: many(testPlanExecutions),
+}));
 
-export const testPlanExecutionsRelations = relations(
-  testPlanExecutions,
-  ({ one, many }) => ({
-    testPlan: one(testPlans, {
-      fields: [testPlanExecutions.testPlanId],
-      references: [testPlans.id],
-    }),
-    schedule: one(testPlanSchedules, {
-      fields: [testPlanExecutions.scheduleId],
-      references: [testPlanSchedules.id],
-    }),
-    detailedResults: many(reportTestCaseResults),
+export const testPlanExecutionsRelations = relations(testPlanExecutions, ({ one, many }) => ({
+  testPlan: one(testPlans, {
+    fields: [testPlanExecutions.testPlanId],
+    references: [testPlans.id],
   }),
-);
+  schedule: one(testPlanSchedules, {
+    fields: [testPlanExecutions.scheduleId],
+    references: [testPlanSchedules.id],
+  }),
+  detailedResults: many(reportTestCaseResults),
+}));
 
-export const reportTestCaseResultsRelations = relations(
-  reportTestCaseResults,
-  ({ one }) => ({
-    testPlanExecution: one(testPlanExecutions, {
-      fields: [reportTestCaseResults.testPlanExecutionId],
-      references: [testPlanExecutions.id],
-    }),
-    uiTest: one(tests, {
-      fields: [reportTestCaseResults.uiTestId],
-      references: [tests.id],
-    }),
-    apiTest: one(apiTests, {
-      fields: [reportTestCaseResults.apiTestId],
-      references: [apiTests.id],
-    }),
+export const reportTestCaseResultsRelations = relations(reportTestCaseResults, ({ one }) => ({
+  testPlanExecution: one(testPlanExecutions, {
+    fields: [reportTestCaseResults.testPlanExecutionId],
+    references: [testPlanExecutions.id],
   }),
-);
+  uiTest: one(tests, {
+    fields: [reportTestCaseResults.uiTestId],
+    references: [tests.id],
+  }),
+  apiTest: one(apiTests, {
+    fields: [reportTestCaseResults.apiTestId],
+    references: [apiTests.id],
+  }),
+}));
 
-export const testPlanSelectedTestsRelations = relations(
-  testPlanSelectedTests,
-  ({ one }) => ({
-    testPlan: one(testPlans, {
-      fields: [testPlanSelectedTests.testPlanId],
-      references: [testPlans.id],
-      relationName: "selectedTestsForPlan",
-    }),
-    uiTest: one(tests, {
-      fields: [testPlanSelectedTests.testId],
-      references: [tests.id],
-    }),
-    apiTest: one(apiTests, {
-      fields: [testPlanSelectedTests.apiTestId],
-      references: [apiTests.id],
-    }),
+export const testPlanSelectedTestsRelations = relations(testPlanSelectedTests, ({ one }) => ({
+  testPlan: one(testPlans, {
+    fields: [testPlanSelectedTests.testPlanId],
+    references: [testPlans.id],
+    relationName: 'selectedTestsForPlan',
   }),
-);
+  uiTest: one(tests, {
+    fields: [testPlanSelectedTests.testId],
+    references: [tests.id],
+  }),
+  apiTest: one(apiTests, {
+    fields: [testPlanSelectedTests.apiTestId],
+    references: [apiTests.id],
+  }),
+}));
 
 // Zod Schemas for Insertions
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -2149,7 +2705,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 // ---- ZOD SCHEMAS AND TYPES for excelSequencesMap ----
 export const insertExcelSequencesMapSchema = createInsertSchema(excelSequencesMap, {
-  excelTestCaseId: z.string().min(1, "Excel Test Case ID is required"),
+  excelTestCaseId: z.string().min(1, 'Excel Test Case ID is required'),
 }).omit({ id: true, createdAt: true });
 
 export const selectExcelSequencesMapSchema = createSelectSchema(excelSequencesMap);
@@ -2247,12 +2803,12 @@ export const insertTestSchema = createInsertSchema(tests, {
   cleanups: z.array(CleanupSchema).max(50).optional().nullable(),
   // Rows of input, each key a {{variable}} for that run. Typed rather than raw jsonb so a
   // malformed dataset is refused at save time instead of halfway through a scheduled run.
-  dataset: z.array(z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))).optional().nullable(),
-  priority: z.enum(["Critical", "High", "Medium", "Low"]).optional().nullable(),
-  severity: z
-    .enum(["Blocker", "Critical", "Major", "Minor"])
+  dataset: z
+    .array(z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])))
     .optional()
     .nullable(),
+  priority: z.enum(['Critical', 'High', 'Medium', 'Low']).optional().nullable(),
+  severity: z.enum(['Blocker', 'Critical', 'Major', 'Minor']).optional().nullable(),
 }).omit({
   id: true,
   createdAt: true,
@@ -2274,7 +2830,7 @@ export const insertTestSchema = createInsertSchema(tests, {
 });
 
 export const insertProjectSchema = createInsertSchema(projects, {
-  name: z.string().min(1, "Project name cannot be empty"),
+  name: z.string().min(1, 'Project name cannot be empty'),
 }).pick({ name: true });
 
 export const insertTestRunSchema = createInsertSchema(testRuns).omit({
@@ -2319,13 +2875,16 @@ const TestMachineConfigSchema = z
     device: z
       .string()
       .max(60)
-      .refine((name) => isMobileDevice(name), { message: "Not a device this installation can emulate." })
+      .refine((name) => isMobileDevice(name), {
+        message: 'Not a device this installation can emulate.',
+      })
       .optional()
       .nullable(),
   })
   .refine((machine) => !machine.device || canEmulateDevice(machine.browserName), {
-    message: "Firefox cannot emulate a phone or a tablet: choose Chromium, Chrome, Edge or WebKit for it.",
-    path: ["device"],
+    message:
+      'Firefox cannot emulate a phone or a tablet: choose Chromium, Chrome, Edge or WebKit for it.',
+    path: ['device'],
   })
   .optional();
 
@@ -2335,44 +2894,47 @@ const TestMachineConfigSchema = z
  * 'on_failure' still records — Playwright writes a video when the context closes and cannot
  * be asked for one afterwards — and decides only whether the file survives the run.
  */
-export const EVIDENCE_CAPTURE_MODES = ["never", "on_failure", "always"] as const;
+export const EVIDENCE_CAPTURE_MODES = ['never', 'on_failure', 'always'] as const;
 export type EvidenceCaptureMode = (typeof EVIDENCE_CAPTURE_MODES)[number];
 
 export const insertTestPlanSchema = createInsertSchema(testPlans, {
-  name: z.string().min(1, "Test Plan Name is required"),
+  name: z.string().min(1, 'Test Plan Name is required'),
   description: z.string().optional(),
   testMachinesConfig: z.array(TestMachineConfigSchema).optional().nullable(),
-  captureScreenshots: z
-    .enum(["always", "on_failed_steps", "never"])
-    .default("on_failed_steps"),
+  captureScreenshots: z.enum(['always', 'on_failed_steps', 'never']).default('on_failed_steps'),
   // Kept in their own vocabulary rather than reusing the screenshots one: a video is of the
   // run, not of a step, so "on failed steps" would be a promise neither can keep.
-  captureVideo: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
-  captureTrace: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
-  captureNetwork: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
+  captureVideo: z.enum(EVIDENCE_CAPTURE_MODES).default('never'),
+  captureTrace: z.enum(EVIDENCE_CAPTURE_MODES).default('never'),
+  captureNetwork: z.enum(EVIDENCE_CAPTURE_MODES).default('never'),
   // A pool of local agents, or null for the server's own runners.
-  agentPool: z.string().trim().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/, "A pool name is lowercase letters, digits, - and _").nullable().optional(),
+  agentPool: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9][a-z0-9_-]{0,39}$/, 'A pool name is lowercase letters, digits, - and _')
+    .nullable()
+    .optional(),
   visualTestingEnabled: z.boolean().default(false),
   // Milliseconds. A second at least: the wizard once sent seconds here, and a value that small
   // is that mistake, not a timeout anybody wants.
   pageLoadTimeout: z.number().int().min(1000).max(600000).default(30000),
   elementTimeout: z.number().int().min(1000).max(600000).default(30000),
   onMajorStepFailure: z
-    .enum(["abort_and_run_next_test_case", "stop_execution", "retry_step"])
-    .default("abort_and_run_next_test_case"),
+    .enum(['abort_and_run_next_test_case', 'stop_execution', 'retry_step'])
+    .default('abort_and_run_next_test_case'),
   onAbortedTestCase: z
-    .enum(["delete_cookies_and_reuse_session", "stop_execution"])
-    .default("delete_cookies_and_reuse_session"),
+    .enum(['delete_cookies_and_reuse_session', 'stop_execution'])
+    .default('delete_cookies_and_reuse_session'),
   onTestSuitePreRequisiteFailure: z
-    .enum(["stop_execution", "skip_test_suite", "continue_anyway"])
-    .default("stop_execution"),
+    .enum(['stop_execution', 'skip_test_suite', 'continue_anyway'])
+    .default('stop_execution'),
   onTestCasePreRequisiteFailure: z
-    .enum(["stop_execution", "skip_test_case", "continue_anyway"])
-    .default("stop_execution"),
+    .enum(['stop_execution', 'skip_test_case', 'continue_anyway'])
+    .default('stop_execution'),
   onTestStepPreRequisiteFailure: z
-    .enum(["abort_and_run_next_test_case", "stop_execution", "skip_test_step"])
-    .default("abort_and_run_next_test_case"),
-  reRunOnFailure: z.enum(["none", "once", "twice", "thrice"]).default("none"),
+    .enum(['abort_and_run_next_test_case', 'stop_execution', 'skip_test_step'])
+    .default('abort_and_run_next_test_case'),
+  reRunOnFailure: z.enum(['none', 'once', 'twice', 'thrice']).default('none'),
   // Capped rather than open: each unit is a real browser, and a number typed into a form is
   // not a statement about how much memory the runner has.
   maxParallelTests: z.number().int().min(1).max(16).default(1),
@@ -2381,7 +2943,14 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   // The languages each test runs in (shared/locales.ts). Refused by name rather than dropped:
   // "english" silently becoming no language at all would be a run in the browser's default.
   locales: z
-    .array(z.string().trim().refine((value) => canonicalLocale(value) !== null, { message: 'A language is a code such as it, it-IT or en-US' }))
+    .array(
+      z
+        .string()
+        .trim()
+        .refine((value) => canonicalLocale(value) !== null, {
+          message: 'A language is a code such as it, it-IT or en-US',
+        }),
+    )
     .max(MAX_LOCALES)
     .transform((list) => normalizeLocales(list))
     .default([]),
@@ -2430,36 +2999,41 @@ export const updateTestPlanSchema = insertTestPlanSchema.partial();
 // server/routes/test-plans.routes.ts and server/routes.ts) validates against the same
 // shape instead of maintaining duplicate, possibly-drifting copies.
 export const testPlanApiPayloadSchema = insertTestPlanSchema.extend({
-  selectedTests: z.array(z.object({
-    id: z.number().int(), // tests.id, apiTests.id or mobileTests.id
-    type: z.enum(['ui', 'api', 'mobile'])
-  })).optional().default([])
+  selectedTests: z
+    .array(
+      z.object({
+        id: z.number().int(), // tests.id, apiTests.id or mobileTests.id
+        type: z.enum(['ui', 'api', 'mobile']),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 export const updateTestPlanApiPayloadSchema = updateTestPlanSchema.extend({
-  selectedTests: z.array(z.object({
-    id: z.number().int(),
-    type: z.enum(['ui', 'api', 'mobile'])
-  })).optional() // On update, if not provided, selected tests are not changed. If an empty array is provided, all are removed.
+  selectedTests: z
+    .array(
+      z.object({
+        id: z.number().int(),
+        type: z.enum(['ui', 'api', 'mobile']),
+      }),
+    )
+    .optional(), // On update, if not provided, selected tests are not changed. If an empty array is provided, all are removed.
 });
 
 export type TestPlan = typeof testPlans.$inferSelect;
 export type InsertTestPlan = typeof testPlans.$inferInsert;
 export type TestPlanSelectedTest = typeof testPlanSelectedTests.$inferSelect;
-export type InsertTestPlanSelectedTest =
-  typeof testPlanSelectedTests.$inferInsert;
+export type InsertTestPlanSelectedTest = typeof testPlanSelectedTests.$inferInsert;
 
-export const insertTestPlanScheduleSchema = createInsertSchema(
-  testPlanSchedules,
-  {
-    nextRunAt: z.number().positive().or(z.date()),
-    browsers: z.array(z.string()).optional().nullable(),
-    notificationConfigOverride: z.record(z.any()).optional().nullable(),
-    executionParameters: z.record(z.any()).optional().nullable(),
-    isActive: z.boolean().default(true),
-    retryOnFailure: z.enum(["none", "once", "twice"]).default("none"),
-  },
-).omit({
+export const insertTestPlanScheduleSchema = createInsertSchema(testPlanSchedules, {
+  nextRunAt: z.number().positive().or(z.date()),
+  browsers: z.array(z.string()).optional().nullable(),
+  notificationConfigOverride: z.record(z.any()).optional().nullable(),
+  executionParameters: z.record(z.any()).optional().nullable(),
+  isActive: z.boolean().default(true),
+  retryOnFailure: z.enum(['none', 'once', 'twice']).default('none'),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -2472,64 +3046,46 @@ export const insertTestPlanScheduleSchema = createInsertSchema(
   userId: true,
 });
 
-export const selectTestPlanScheduleSchema =
-  createSelectSchema(testPlanSchedules);
-export const updateTestPlanScheduleSchema = insertTestPlanScheduleSchema
-  .partial()
-  .extend({
-    isActive: z.boolean().optional(),
-  });
+export const selectTestPlanScheduleSchema = createSelectSchema(testPlanSchedules);
+export const updateTestPlanScheduleSchema = insertTestPlanScheduleSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
 
 export type TestPlanSchedule = typeof testPlanSchedules.$inferSelect;
 export type InsertTestPlanSchedule = typeof testPlanSchedules.$inferInsert;
 
-export const insertTestPlanExecutionSchema = createInsertSchema(
-  testPlanExecutions,
-  {
-    results: z.any().optional().nullable(),
-    startedAt: z.number().optional(),
-    completedAt: z.number().optional().nullable(),
-    browsers: z.array(z.string()).optional().nullable(),
-    totalTests: z.number().int().optional().nullable(),
-    passedTests: z.number().int().optional().nullable(),
-    failedTests: z.number().int().optional().nullable(),
-    skippedTests: z.number().int().optional().nullable(),
-    executionDurationMs: z.number().int().optional().nullable(),
-  },
-).omit({ id: true });
+export const insertTestPlanExecutionSchema = createInsertSchema(testPlanExecutions, {
+  results: z.any().optional().nullable(),
+  startedAt: z.number().optional(),
+  completedAt: z.number().optional().nullable(),
+  browsers: z.array(z.string()).optional().nullable(),
+  totalTests: z.number().int().optional().nullable(),
+  passedTests: z.number().int().optional().nullable(),
+  failedTests: z.number().int().optional().nullable(),
+  skippedTests: z.number().int().optional().nullable(),
+  executionDurationMs: z.number().int().optional().nullable(),
+}).omit({ id: true });
 
-export const selectTestPlanExecutionSchema =
-  createSelectSchema(testPlanExecutions);
+export const selectTestPlanExecutionSchema = createSelectSchema(testPlanExecutions);
 
 export type TestPlanExecution = typeof testPlanExecutions.$inferSelect;
 export type InsertTestPlanExecution = typeof testPlanExecutions.$inferInsert;
 
 // ---- ZOD SCHEMAS AND TYPES for reportTestCaseResults ----
-export const insertReportTestCaseResultSchema = createInsertSchema(
-  reportTestCaseResults,
-  {
-    startedAt: z.number(),
-    completedAt: z.number().optional().nullable(),
-    durationMs: z.number().int().optional().nullable(),
-    status: z.enum(["Passed", "Failed", "Skipped", "Pending", "Error"]),
-    priority: z
-      .enum(["Critical", "High", "Medium", "Low"])
-      .optional()
-      .nullable(),
-    severity: z
-      .enum(["Blocker", "Critical", "Major", "Minor"])
-      .optional()
-      .nullable(),
-    module: z.string().optional().nullable(),
-    featureArea: z.string().optional().nullable(),
-    scenario: z.string().optional().nullable(),
-    component: z.string().optional().nullable(),
-  },
-).omit({ id: true });
+export const insertReportTestCaseResultSchema = createInsertSchema(reportTestCaseResults, {
+  startedAt: z.number(),
+  completedAt: z.number().optional().nullable(),
+  durationMs: z.number().int().optional().nullable(),
+  status: z.enum(['Passed', 'Failed', 'Skipped', 'Pending', 'Error']),
+  priority: z.enum(['Critical', 'High', 'Medium', 'Low']).optional().nullable(),
+  severity: z.enum(['Blocker', 'Critical', 'Major', 'Minor']).optional().nullable(),
+  module: z.string().optional().nullable(),
+  featureArea: z.string().optional().nullable(),
+  scenario: z.string().optional().nullable(),
+  component: z.string().optional().nullable(),
+}).omit({ id: true });
 
-export const selectReportTestCaseResultSchema = createSelectSchema(
-  reportTestCaseResults,
-);
+export const selectReportTestCaseResultSchema = createSelectSchema(reportTestCaseResults);
 
 export type ReportTestCaseResult = typeof reportTestCaseResults.$inferSelect;
 export type InsertReportTestCaseResult = typeof reportTestCaseResults.$inferInsert;
@@ -2544,51 +3100,42 @@ export type InsertSecret = typeof secrets.$inferInsert;
 export type TestPlanWebhook = typeof testPlanWebhooks.$inferSelect;
 export type InsertTestPlanWebhook = typeof testPlanWebhooks.$inferInsert;
 
-
 // --- Assertion Schemas ---
 export const AssertionSourceSchema = z.enum([
-  "status_code",
-  "header",
-  "body_json_path",
-  "body_text",
-  "response_time",
+  'status_code',
+  'header',
+  'body_json_path',
+  'body_text',
+  'response_time',
   // An XML answer, such as SOAP's (server/api-protocols.ts).
-  "body_xpath",
+  'body_xpath',
 ]);
 export const AssertionComparisonSchema = z.enum([
-  "equals",
-  "not_equals",
-  "contains",
-  "not_contains",
-  "exists",
-  "not_exists",
-  "is_empty",
-  "is_not_empty",
-  "greater_than",
-  "less_than",
-  "greater_than_or_equals",
-  "less_than_or_equals",
-  "matches_regex",
-  "not_matches_regex",
+  'equals',
+  'not_equals',
+  'contains',
+  'not_contains',
+  'exists',
+  'not_exists',
+  'is_empty',
+  'is_not_empty',
+  'greater_than',
+  'less_than',
+  'greater_than_or_equals',
+  'less_than_or_equals',
+  'matches_regex',
+  'not_matches_regex',
 ]);
 
 export const AssertionSchema = z.object({
-  id: z
-    .string()
-    .uuid()
-    .describe("Client-generated unique ID for the assertion row"),
+  id: z.string().uuid().describe('Client-generated unique ID for the assertion row'),
   source: AssertionSourceSchema,
   property: z
     .string()
     .optional()
-    .describe(
-      "e.g., Header name, JSONPath expression, or empty for status_code/body_text",
-    ),
+    .describe('e.g., Header name, JSONPath expression, or empty for status_code/body_text'),
   comparison: AssertionComparisonSchema,
-  targetValue: z
-    .string()
-    .optional()
-    .describe("Expected value; regex for matches_regex"),
+  targetValue: z.string().optional().describe('Expected value; regex for matches_regex'),
   enabled: z.boolean().default(true),
 });
 export type Assertion = z.infer<typeof AssertionSchema>;
@@ -2602,47 +3149,47 @@ export type Assertion = z.infer<typeof AssertionSchema>;
 
 /** Deliberately the assertion vocabulary: the same places, read for a different purpose. */
 export const ExtractionSourceSchema = z.enum([
-  "status_code",
-  "header",
-  "body_json_path",
-  "body_text",
-  "body_xpath",
+  'status_code',
+  'header',
+  'body_json_path',
+  'body_text',
+  'body_xpath',
 ]);
 
 export const ExtractionSchema = z.object({
-  id: z.string().uuid().describe("Client-generated unique ID for the extraction row"),
+  id: z.string().uuid().describe('Client-generated unique ID for the extraction row'),
   name: z
     .string()
     .min(1)
     .regex(
       /^[A-Za-z_][A-Za-z0-9_]*$/,
-      "Use letters, digits and underscores, starting with a letter or underscore",
+      'Use letters, digits and underscores, starting with a letter or underscore',
     )
-    .describe("The name the captured value is bound to, used as {{name}} later"),
+    .describe('The name the captured value is bound to, used as {{name}} later'),
   source: ExtractionSourceSchema,
   property: z
     .string()
     .optional()
-    .describe("Header name or JSONPath; unused for status_code and body_text"),
+    .describe('Header name or JSONPath; unused for status_code and body_text'),
 });
 export type Extraction = z.infer<typeof ExtractionSchema>;
 
 // --- API Authentication Schemas ---
 export const AuthTypeSchema = z.enum([
-  "inherit",
-  "none",
-  "basic",
-  "bearer",
-  "jwtBearer",
-  "digest",
-  "oauth1",
-  "oauth2",
-  "hawk",
-  "aws",
-  "ntlm",
-  "apiKey",
-  "akamai",
-  "asap",
+  'inherit',
+  'none',
+  'basic',
+  'bearer',
+  'jwtBearer',
+  'digest',
+  'oauth1',
+  'oauth2',
+  'hawk',
+  'aws',
+  'ntlm',
+  'apiKey',
+  'akamai',
+  'asap',
 ]);
 export type AuthType = z.infer<typeof AuthTypeSchema>;
 
@@ -2656,7 +3203,7 @@ export type BearerTokenAuthParams = z.infer<typeof BearerTokenAuthParamsSchema>;
 export const ApiKeyAuthParamsSchema = z.object({
   key: z.string(),
   value: z.string(),
-  addTo: z.enum(["header", "query"]),
+  addTo: z.enum(['header', 'query']),
 });
 export type ApiKeyAuthParams = z.infer<typeof ApiKeyAuthParamsSchema>;
 
@@ -2673,19 +3220,19 @@ export type ApiKeyAuthParams = z.infer<typeof ApiKeyAuthParamsSchema>;
  * field is missing, which is a better place to find out than a schema error on load.
  */
 export const OAuth2AuthParamsSchema = z.object({
-  grantType: z.enum(["client_credentials", "password"]).default("client_credentials"),
-  tokenUrl: z.string().default(""),
-  clientId: z.string().default(""),
-  clientSecret: z.string().default(""),
-  scope: z.string().default(""),
+  grantType: z.enum(['client_credentials', 'password']).default('client_credentials'),
+  tokenUrl: z.string().default(''),
+  clientId: z.string().default(''),
+  clientSecret: z.string().default(''),
+  scope: z.string().default(''),
   // `password` grant only.
-  username: z.string().default(""),
-  password: z.string().default(""),
+  username: z.string().default(''),
+  password: z.string().default(''),
   /**
    * Where the client credentials go. RFC 6749 §2.3.1 prefers the Basic header and requires
    * servers to support it; some accept them only in the body, so both are offered.
    */
-  clientAuth: z.enum(["header", "body"]).default("header"),
+  clientAuth: z.enum(['header', 'body']).default('header'),
 });
 export type OAuth2AuthParams = z.infer<typeof OAuth2AuthParamsSchema>;
 
@@ -2694,76 +3241,88 @@ export type OAuth2AuthParams = z.infer<typeof OAuth2AuthParamsSchema>;
  * so a test saved while they were only names — `{ type: 'digest' }` — still loads; the runner
  * says which field is missing when it is sent.
  */
-export const JWT_ALGORITHMS = ["HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384", "ES512"] as const;
+export const JWT_ALGORITHMS = [
+  'HS256',
+  'HS384',
+  'HS512',
+  'RS256',
+  'RS384',
+  'RS512',
+  'ES256',
+  'ES384',
+  'ES512',
+] as const;
 export const JwtBearerAuthParamsSchema = z.object({
-  algorithm: z.enum(JWT_ALGORITHMS).default("HS256"),
+  algorithm: z.enum(JWT_ALGORITHMS).default('HS256'),
   /** The shared secret for HS*, the PEM private key for RS* and ES*. */
-  secret: z.string().default(""),
+  secret: z.string().default(''),
   secretBase64: z.boolean().default(false),
   /** The claims, as JSON. iat is added when absent. */
-  payload: z.string().default("{}"),
+  payload: z.string().default('{}'),
   /** Extra header fields, as JSON (kid, typ…). */
-  headers: z.string().default("{}"),
-  addTo: z.enum(["header", "query"]).default("header"),
-  headerPrefix: z.string().default("Bearer"),
-  queryParam: z.string().default("token"),
+  headers: z.string().default('{}'),
+  addTo: z.enum(['header', 'query']).default('header'),
+  headerPrefix: z.string().default('Bearer'),
+  queryParam: z.string().default('token'),
 });
 export const DigestAuthParamsSchema = z.object({
-  username: z.string().default(""),
-  password: z.string().default(""),
+  username: z.string().default(''),
+  password: z.string().default(''),
 });
 export const OAuth1AuthParamsSchema = z.object({
-  signatureMethod: z.enum(["HMAC-SHA1", "HMAC-SHA256", "HMAC-SHA512", "PLAINTEXT"]).default("HMAC-SHA1"),
-  consumerKey: z.string().default(""),
-  consumerSecret: z.string().default(""),
-  token: z.string().default(""),
-  tokenSecret: z.string().default(""),
-  realm: z.string().default(""),
-  addTo: z.enum(["header", "query"]).default("header"),
+  signatureMethod: z
+    .enum(['HMAC-SHA1', 'HMAC-SHA256', 'HMAC-SHA512', 'PLAINTEXT'])
+    .default('HMAC-SHA1'),
+  consumerKey: z.string().default(''),
+  consumerSecret: z.string().default(''),
+  token: z.string().default(''),
+  tokenSecret: z.string().default(''),
+  realm: z.string().default(''),
+  addTo: z.enum(['header', 'query']).default('header'),
 });
 export const HawkAuthParamsSchema = z.object({
-  authId: z.string().default(""),
-  authKey: z.string().default(""),
-  algorithm: z.enum(["sha256", "sha1"]).default("sha256"),
-  ext: z.string().default(""),
+  authId: z.string().default(''),
+  authKey: z.string().default(''),
+  algorithm: z.enum(['sha256', 'sha1']).default('sha256'),
+  ext: z.string().default(''),
   /** Hash the body into the MAC, as servers that verify payloads require. */
   includePayloadHash: z.boolean().default(false),
 });
 export const AwsSigV4AuthParamsSchema = z.object({
-  accessKey: z.string().default(""),
-  secretKey: z.string().default(""),
-  sessionToken: z.string().default(""),
-  region: z.string().default("us-east-1"),
-  service: z.string().default(""),
+  accessKey: z.string().default(''),
+  secretKey: z.string().default(''),
+  sessionToken: z.string().default(''),
+  region: z.string().default('us-east-1'),
+  service: z.string().default(''),
 });
 export const NtlmAuthParamsSchema = z.object({
-  username: z.string().default(""),
-  password: z.string().default(""),
-  domain: z.string().default(""),
-  workstation: z.string().default(""),
+  username: z.string().default(''),
+  password: z.string().default(''),
+  domain: z.string().default(''),
+  workstation: z.string().default(''),
 });
 export const AkamaiEdgeGridAuthParamsSchema = z.object({
-  clientToken: z.string().default(""),
-  clientSecret: z.string().default(""),
-  accessToken: z.string().default(""),
+  clientToken: z.string().default(''),
+  clientSecret: z.string().default(''),
+  accessToken: z.string().default(''),
   /** Headers to include in the signature, by name, comma-separated. */
-  headersToSign: z.string().default(""),
+  headersToSign: z.string().default(''),
   maxBody: z.number().int().positive().default(131072),
 });
 export const AsapAuthParamsSchema = z.object({
-  algorithm: z.enum(["RS256", "RS384", "RS512", "ES256", "ES384", "ES512"]).default("RS256"),
-  issuer: z.string().default(""),
-  audience: z.string().default(""),
-  keyId: z.string().default(""),
+  algorithm: z.enum(['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512']).default('RS256'),
+  issuer: z.string().default(''),
+  audience: z.string().default(''),
+  keyId: z.string().default(''),
   /** PEM private key. */
-  privateKey: z.string().default(""),
-  subject: z.string().default(""),
+  privateKey: z.string().default(''),
+  subject: z.string().default(''),
   expirySeconds: z.number().int().positive().max(3600).default(60),
   /** More claims, as JSON. */
-  additionalClaims: z.string().default("{}"),
+  additionalClaims: z.string().default('{}'),
 });
 
-export const AuthParamsSchema = z.discriminatedUnion("type", [
+export const AuthParamsSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal(AuthTypeSchema.enum.basic),
     params: BasicAuthParamsSchema,
@@ -2778,17 +3337,32 @@ export const AuthParamsSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal(AuthTypeSchema.enum.inherit) }),
   z.object({ type: z.literal(AuthTypeSchema.enum.none) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.jwtBearer), params: JwtBearerAuthParamsSchema.default({}) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.digest), params: DigestAuthParamsSchema.default({}) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.oauth1), params: OAuth1AuthParamsSchema.default({}) }),
+  z.object({
+    type: z.literal(AuthTypeSchema.enum.jwtBearer),
+    params: JwtBearerAuthParamsSchema.default({}),
+  }),
+  z.object({
+    type: z.literal(AuthTypeSchema.enum.digest),
+    params: DigestAuthParamsSchema.default({}),
+  }),
+  z.object({
+    type: z.literal(AuthTypeSchema.enum.oauth1),
+    params: OAuth1AuthParamsSchema.default({}),
+  }),
   z.object({
     type: z.literal(AuthTypeSchema.enum.oauth2),
     params: OAuth2AuthParamsSchema.default({}),
   }),
   z.object({ type: z.literal(AuthTypeSchema.enum.hawk), params: HawkAuthParamsSchema.default({}) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.aws), params: AwsSigV4AuthParamsSchema.default({}) }),
+  z.object({
+    type: z.literal(AuthTypeSchema.enum.aws),
+    params: AwsSigV4AuthParamsSchema.default({}),
+  }),
   z.object({ type: z.literal(AuthTypeSchema.enum.ntlm), params: NtlmAuthParamsSchema.default({}) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.akamai), params: AkamaiEdgeGridAuthParamsSchema.default({}) }),
+  z.object({
+    type: z.literal(AuthTypeSchema.enum.akamai),
+    params: AkamaiEdgeGridAuthParamsSchema.default({}),
+  }),
   z.object({ type: z.literal(AuthTypeSchema.enum.asap), params: AsapAuthParamsSchema.default({}) }),
 ]);
 export type AuthParams = z.infer<typeof AuthParamsSchema>;
@@ -2804,20 +3378,20 @@ export type AuthParams = z.infer<typeof AuthParamsSchema>;
  * runner's own handling against this list.
  */
 export const IMPLEMENTED_AUTH_TYPES = [
-  "none",
-  "inherit",
-  "basic",
-  "bearer",
-  "apiKey",
-  "oauth2",
-  "jwtBearer",
-  "digest",
-  "oauth1",
-  "hawk",
-  "aws",
-  "ntlm",
-  "akamai",
-  "asap",
+  'none',
+  'inherit',
+  'basic',
+  'bearer',
+  'apiKey',
+  'oauth2',
+  'jwtBearer',
+  'digest',
+  'oauth1',
+  'hawk',
+  'aws',
+  'ntlm',
+  'akamai',
+  'asap',
 ] as const satisfies readonly AuthType[];
 
 export function isImplementedAuthType(type: AuthType): boolean {
@@ -2825,12 +3399,12 @@ export function isImplementedAuthType(type: AuthType): boolean {
 }
 
 const bodyTypesArray = [
-  "none",
-  "form-data",
-  "x-www-form-urlencoded",
-  "raw",
-  "binary",
-  "GraphQL",
+  'none',
+  'form-data',
+  'x-www-form-urlencoded',
+  'raw',
+  'binary',
+  'GraphQL',
 ] as const;
 export const BodyTypeSchema = z.enum(bodyTypesArray);
 export type BodyType = z.infer<typeof BodyTypeSchema>;
@@ -2848,24 +3422,21 @@ export const FormDataFieldMetadataSchema = z.union([
     id: z.string(),
     key: z.string(),
     enabled: z.boolean(),
-    type: z.literal("text"),
+    type: z.literal('text'),
     value: z.string(),
   }),
   z.object({
     id: z.string(),
     key: z.string(),
     enabled: z.boolean(),
-    type: z.literal("file"),
+    type: z.literal('file'),
     fileName: z.string(),
     fileType: z.string(),
   }),
 ]);
 export type FormDataFieldMetadata = z.infer<typeof FormDataFieldMetadataSchema>;
 
-export const insertApiTestHistorySchema = createInsertSchema(
-  apiTestHistory,
-  {},
-).omit({
+export const insertApiTestHistorySchema = createInsertSchema(apiTestHistory, {}).omit({
   id: true,
   createdAt: true,
   userId: true,
@@ -2894,18 +3465,20 @@ export function isRequestUrl(value: string): boolean {
 }
 
 export const insertApiTestSchema = createInsertSchema(apiTests, {
-  name: z.string().min(1, "Test name cannot be empty"),
-  method: z.string().min(1, "HTTP method is required"),
-  url: z.string().refine(isRequestUrl, "Invalid URL format: an absolute URL, or one starting with a variable such as {{baseUrl}}"),
+  name: z.string().min(1, 'Test name cannot be empty'),
+  method: z.string().min(1, 'HTTP method is required'),
+  url: z
+    .string()
+    .refine(
+      isRequestUrl,
+      'Invalid URL format: an absolute URL, or one starting with a variable such as {{baseUrl}}',
+    ),
   module: z.string().optional().nullable(),
   featureArea: z.string().optional().nullable(),
   scenario: z.string().optional().nullable(),
   component: z.string().optional().nullable(),
-  priority: z.enum(["Critical", "High", "Medium", "Low"]).optional().nullable(),
-  severity: z
-    .enum(["Blocker", "Critical", "Major", "Minor"])
-    .optional()
-    .nullable(),
+  priority: z.enum(['Critical', 'High', 'Medium', 'Low']).optional().nullable(),
+  severity: z.enum(['Blocker', 'Critical', 'Major', 'Minor']).optional().nullable(),
   // Typed rather than left as raw jsonb: a malformed extraction is only discovered at run
   // time otherwise, in a worker, halfway through a scheduled plan.
   extractions: z.array(ExtractionSchema).optional().nullable(),
@@ -3018,7 +3591,12 @@ export type AdhocDetectedElement = z.infer<typeof AdhocDetectedElementSchema>;
 
 /** The requirements of an action, or none for the one step that is not an action. */
 function requirementsFor(id: string) {
-  return (ACTION_REQUIREMENTS as Record<string, { target: boolean; value: boolean; valueRequired: boolean } | undefined>)[id];
+  return (
+    ACTION_REQUIREMENTS as Record<
+      string,
+      { target: boolean; value: boolean; valueRequired: boolean } | undefined
+    >
+  )[id];
 }
 
 export const AdhocTestStepSchema = z
@@ -3036,35 +3614,34 @@ export const AdhocTestStepSchema = z
   // A call to a step group has no requirements of its own: what it needs is whatever the
   // group’s own steps need, and those were validated when the group was saved.
   .refine((data) => !requirementsFor(data.action.id)?.target || !!data.targetElement, {
-    message: "This action needs an element to act on.",
-    path: ["targetElement"],
+    message: 'This action needs an element to act on.',
+    path: ['targetElement'],
   })
   .refine(
     (data) =>
       !requirementsFor(data.action.id)?.valueRequired ||
-      (typeof data.value === "string" && data.value.trim() !== ""),
+      (typeof data.value === 'string' && data.value.trim() !== ''),
     {
-      message: "This action needs a non-empty value.",
-      path: ["value"],
+      message: 'This action needs a non-empty value.',
+      path: ['value'],
     },
   )
   .refine(
     (data) => {
-      if (data.action.id === "wait") return !isNaN(Number(data.value));
+      if (data.action.id === 'wait') return !isNaN(Number(data.value));
       return true;
     },
     {
-      message:
-        "For 'wait' action, value must be a number (e.g., '1000' for 1 second)",
-      path: ["value"],
+      message: "For 'wait' action, value must be a number (e.g., '1000' for 1 second)",
+      path: ['value'],
     },
   )
   .refine(
     (data) => {
       // A recorded navigation replays as page.goto(value), so the value must be a URL.
-      if (data.action.id !== "navigate") return true;
+      if (data.action.id !== 'navigate') return true;
       try {
-        new URL(data.value ?? "");
+        new URL(data.value ?? '');
         return true;
       } catch {
         return false;
@@ -3072,7 +3649,7 @@ export const AdhocTestStepSchema = z
     },
     {
       message: "For 'navigate' action, value must be an absolute URL",
-      path: ["value"],
+      path: ['value'],
     },
   );
 export type AdhocTestStep = z.infer<typeof AdhocTestStepSchema>;
@@ -3087,21 +3664,37 @@ export const selectSystemSettingSchema = createSelectSchema(systemSettings);
  */
 export const ORG_SCOPED_TABLES = [
   'browser_grids',
-  'projects', 'tests', 'test_runs', 'detected_elements', 'api_tests', 'api_test_history',
-  'test_plans', 'test_plan_schedules', 'test_plan_executions', 'test_plan_selected_tests',
-  'test_plan_webhooks', 'report_test_case_results', 'execution_logs', 'environments',
-  'secrets', 'excel_sequences_map',
+  'projects',
+  'tests',
+  'test_runs',
+  'detected_elements',
+  'api_tests',
+  'api_test_history',
+  'test_plans',
+  'test_plan_schedules',
+  'test_plan_executions',
+  'test_plan_selected_tests',
+  'test_plan_webhooks',
+  'report_test_case_results',
+  'execution_logs',
+  'environments',
+  'secrets',
+  'excel_sequences_map',
   // audit_log is org-scoped like the rest, but its grants are narrower: SELECT and INSERT
   // only, so the application cannot rewrite history. See migration 0009.
   'audit_log',
   // Shared building blocks rather than per-test copies: a sequence many tests call, and the
   // elements of one application. Org-scoped and policed like everything else.
-  'step_groups', 'project_elements',
+  'step_groups',
+  'project_elements',
   // What a test is for, and what it used to be. test_versions is granted SELECT and INSERT
   // only — the application cannot rewrite its own history. See migration 0018.
-  'tags', 'test_tags', 'test_versions',
+  'tags',
+  'test_tags',
+  'test_versions',
   // Where a failure is filed, and which failure produced which issue.
-  'issue_trackers', 'issue_links',
+  'issue_trackers',
+  'issue_links',
   // api_keys is org-scoped and policed like the rest. Unlike `invitations`, which cannot be,
   // the one lookup that must happen before an organization is known — authenticating a
   // request that carries a key — is a privileged bootstrap read in middleware, the same shape
@@ -3112,19 +3705,28 @@ export const ORG_SCOPED_TABLES = [
   'project_members',
   // Which version of a test is live, and the reviews that put it there (migration 0032).
   // test_publications is SELECT and INSERT only: a publication history is evidence.
-  'test_publications', 'test_reviews',
+  'test_publications',
+  'test_reviews',
   // Suites, their tests, and the plans that include them (migration 0034).
-  'test_suites', 'test_suite_items', 'test_plan_suites',
+  'test_suites',
+  'test_suite_items',
+  'test_plan_suites',
   // Requirements and the tests that cover them (migration 0050).
-  'requirements', 'requirement_tests',
+  'requirements',
+  'requirement_tests',
   // TestRail, Xray and Zephyr Scale connections, test-to-case links and publications (migration 0051).
-  'test_management_connections', 'test_case_links', 'test_management_publications',
+  'test_management_connections',
+  'test_case_links',
+  'test_management_publications',
   // Tests of native mobile apps and their runs (migration 0052).
-  'mobile_tests', 'mobile_test_runs', 'mobile_step_groups',
+  'mobile_tests',
+  'mobile_test_runs',
+  'mobile_step_groups',
   'test_quarantines',
   'agents',
   'bdd_execution_profiles',
-  'quota_execution_sessions', 'quota_artifacts',
+  'quota_execution_sessions',
+  'quota_artifacts',
   'source_hosts',
   // One-time links to choose a new password (migration 0042). Redeeming one is the privileged
   // bootstrap in server/storage.ts; issuing and listing them happen inside the organization.
@@ -3141,8 +3743,11 @@ export const ORG_SCOPED_TABLES = [
   'sms_messages',
   'comments',
   'user_dashboard_layouts',
-  'dashboards', 'user_dashboard_preferences',
-  'mail_deliveries', 'mail_delivery_events',
-  'organization_mail_settings', 'organization_mail_templates',
+  'dashboards',
+  'user_dashboard_preferences',
+  'mail_deliveries',
+  'mail_delivery_events',
+  'organization_mail_settings',
+  'organization_mail_templates',
   'mail_provider_requests',
 ] as const;

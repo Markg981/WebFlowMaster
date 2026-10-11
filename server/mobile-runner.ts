@@ -45,9 +45,14 @@ export const mobileEndpoints = {
 export const ELEMENT_TIMEOUT_MS = 15_000;
 const POLL_MS = 500;
 
-const basic = (grid: GridConfig) => `Basic ${Buffer.from(`${grid.username ?? ''}:${grid.key ?? ''}`).toString('base64')}`;
+const basic = (grid: GridConfig) =>
+  `Basic ${Buffer.from(`${grid.username ?? ''}:${grid.key ?? ''}`).toString('base64')}`;
 
-export function mobileSessionRequest(grid: GridConfig, test: Pick<MobileTest, 'platform' | 'app' | 'deviceName' | 'osVersion' | 'name'>, build: string) {
+export function mobileSessionRequest(
+  grid: GridConfig,
+  test: Pick<MobileTest, 'platform' | 'app' | 'deviceName' | 'osVersion' | 'name'>,
+  build: string,
+) {
   const platformName = test.platform === 'ios' ? 'iOS' : 'Android';
   const automationName = test.platform === 'ios' ? 'XCUITest' : 'UiAutomator2';
   if (grid.provider === 'browserstack') {
@@ -106,7 +111,9 @@ export function mobileSessionRequest(grid: GridConfig, test: Pick<MobileTest, 'p
       },
     };
   }
-  throw new Error(`"${grid.name}" is a Playwright server, which runs browsers only. Choose a BrowserStack, LambdaTest or local Appium grid for a mobile app.`);
+  throw new Error(
+    `"${grid.name}" is a Playwright server, which runs browsers only. Choose a BrowserStack, LambdaTest or local Appium grid for a mobile app.`,
+  );
 }
 
 /**
@@ -114,7 +121,10 @@ export function mobileSessionRequest(grid: GridConfig, test: Pick<MobileTest, 'p
  * through its pool's agent (server/agents/agent-fetch.ts), from the machine it runs next to.
  * `close` gives back what the agent lent.
  */
-export function appiumTransport(grid: GridConfig, override?: Fetch): { fetch: Fetch; close: () => Promise<void> } {
+export function appiumTransport(
+  grid: GridConfig,
+  override?: Fetch,
+): { fetch: Fetch; close: () => Promise<void> } {
   if (override) return { fetch: override, close: async () => {} };
   if (grid.provider === 'local_appium') {
     if (!grid.agentPool || grid.organizationId == null) {
@@ -133,11 +143,17 @@ export function redactGridSecret(message: string, grid: GridConfig): string {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function waitForElement(session: AppiumSession, locator: NonNullable<ReturnType<typeof parseMobileLocator>>, timeoutMs: number, visible = true) {
+async function waitForElement(
+  session: AppiumSession,
+  locator: NonNullable<ReturnType<typeof parseMobileLocator>>,
+  timeoutMs: number,
+  visible = true,
+) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const element = await session.find(locator);
-    if (element && (!visible || (await session.displayed(element).catch(() => false)))) return element;
+    if (element && (!visible || (await session.displayed(element).catch(() => false))))
+      return element;
     if (Date.now() >= deadline) return null;
     await sleep(POLL_MS);
   }
@@ -151,13 +167,19 @@ export interface StepContext {
 }
 
 /** One step. Throws with a message a tester can act on when it fails. */
-export async function runMobileStep(ctx: StepContext, step: MobileStep): Promise<string | undefined> {
+export async function runMobileStep(
+  ctx: StepContext,
+  step: MobileStep,
+): Promise<string | undefined> {
   const { session } = ctx;
   const timeout = ctx.elementTimeoutMs ?? ELEMENT_TIMEOUT_MS;
   const resolve = (raw: string | undefined) => {
     const text = raw ?? '';
     const missing = findUnresolvedVariables(text, ctx.vars);
-    if (missing.length) throw new Error(`Unresolved variable(s) ${missing.join(', ')}. Select an environment that defines them.`);
+    if (missing.length)
+      throw new Error(
+        `Unresolved variable(s) ${missing.join(', ')}. Select an environment that defines them.`,
+      );
     return substituteVariables(text, ctx.vars);
   };
   const spec = MOBILE_ACTIONS[step.action];
@@ -168,7 +190,8 @@ export async function runMobileStep(ctx: StepContext, step: MobileStep): Promise
   }
   const element = async () => {
     const found = await waitForElement(session, locator!, timeout);
-    if (!found) throw new Error(`No visible element ${step.target} within ${Math.round(timeout / 1000)}s.`);
+    if (!found)
+      throw new Error(`No visible element ${step.target} within ${Math.round(timeout / 1000)}s.`);
     return found;
   };
 
@@ -205,7 +228,8 @@ export async function runMobileStep(ctx: StepContext, step: MobileStep): Promise
       for (;;) {
         const text = await session.text(target);
         if (text.includes(wanted)) return `"${text.slice(0, 120)}"`;
-        if (Date.now() >= deadline) throw new Error(`${step.target} shows "${text.slice(0, 200)}", not "${wanted}".`);
+        if (Date.now() >= deadline)
+          throw new Error(`${step.target} shows "${text.slice(0, 200)}", not "${wanted}".`);
         await sleep(POLL_MS);
       }
     }
@@ -236,7 +260,9 @@ export async function runMobileStep(ctx: StepContext, step: MobileStep): Promise
       await sleep(Math.min(Number(resolve(step.value)) || 0, 60) * 1000);
       return;
     default:
-      throw new Error(`The mobile action ${step.action} requires a test flow, not an inspector interaction.`);
+      throw new Error(
+        `The mobile action ${step.action} requires a test flow, not an inspector interaction.`,
+      );
   }
 }
 
@@ -246,7 +272,12 @@ export interface RunDeps {
 }
 
 /** Tells the grid whether the session passed, so its dashboard agrees with the report. */
-async function markSession(session: AppiumSession, grid: GridConfig, passed: boolean, reason: string) {
+async function markSession(
+  session: AppiumSession,
+  grid: GridConfig,
+  passed: boolean,
+  reason: string,
+) {
   // A local Appium has no dashboard to tell.
   if (grid.provider !== 'browserstack' && grid.provider !== 'lambdatest') return;
   const status = passed ? 'passed' : 'failed';
@@ -258,13 +289,20 @@ async function markSession(session: AppiumSession, grid: GridConfig, passed: boo
 }
 
 /** BrowserStack's page for the session, with its video and logs. */
-async function sessionUrl(grid: GridConfig, sessionId: string, doFetch: Fetch): Promise<string | null> {
+async function sessionUrl(
+  grid: GridConfig,
+  sessionId: string,
+  doFetch: Fetch,
+): Promise<string | null> {
   if (grid.provider !== 'browserstack') return null;
   try {
-    const response = await doFetch(`${mobileEndpoints.browserstackApi}/app-automate/sessions/${sessionId}.json`, {
-      method: 'GET',
-      headers: { Authorization: basic(grid), Accept: 'application/json' },
-    });
+    const response = await doFetch(
+      `${mobileEndpoints.browserstackApi}/app-automate/sessions/${sessionId}.json`,
+      {
+        method: 'GET',
+        headers: { Authorization: basic(grid), Accept: 'application/json' },
+      },
+    );
     if (!response.ok) return null;
     const body: any = await response.json();
     return body?.automation_session?.public_url ?? body?.automation_session?.browser_url ?? null;
@@ -289,15 +327,27 @@ export interface MobileOutcome {
  * that would not open, or a grid that runs no apps, is an 'error' outcome with the reason.
  */
 export async function performMobileTest(
-  test: Pick<MobileTest, 'platform' | 'app' | 'deviceName' | 'osVersion' | 'name' | 'steps'> & { executionSteps?: MobileExecutionStep[] },
+  test: Pick<MobileTest, 'platform' | 'app' | 'deviceName' | 'osVersion' | 'name' | 'steps'> & {
+    executionSteps?: MobileExecutionStep[];
+  },
   grid: GridConfig,
   vars: Record<string, string>,
   build: string,
   deps: RunDeps & { onStep?: (steps: MobileStepResult[]) => Promise<void> } = {},
 ): Promise<MobileOutcome> {
   const results: MobileStepResult[] = [];
-  const requested = { os: test.platform === 'ios' ? 'iOS' : 'Android', osVersion: test.osVersion, device: test.deviceName };
-  let matrix = matrixEvidence({ route: 'appium', provider: grid.provider, requested, effective: {}, source: 'unavailable' });
+  const requested = {
+    os: test.platform === 'ios' ? 'iOS' : 'Android',
+    osVersion: test.osVersion,
+    device: test.deviceName,
+  };
+  let matrix = matrixEvidence({
+    route: 'appium',
+    provider: grid.provider,
+    requested,
+    effective: {},
+    source: 'unavailable',
+  });
   let session: AppiumSession | null = null;
   let transport: ReturnType<typeof appiumTransport> | null = null;
   try {
@@ -309,19 +359,63 @@ export async function performMobileTest(
     session = await AppiumSession.open({ ...request, fetch: doFetch });
     matrix = appiumMatrixEvidence(requested, session.capabilities, grid.provider, session.id);
 
-    const flow = await executeMobileFlow({ steps, session, platform: test.platform, vars,
-      primitive: step => runMobileStep({ session: session!, platform: test.platform, vars, elementTimeoutMs: deps.elementTimeoutMs }, step),
-      onStep: deps.onStep ? rows => deps.onStep!(rows.map(row => ({ ...row, error: row.error ? redactGridSecret(row.error, grid) : undefined }))) : undefined });
-    results.push(...flow.results.map(row => ({ ...row, error: row.error ? redactGridSecret(row.error, grid) : undefined })));
+    const flow = await executeMobileFlow({
+      steps,
+      session,
+      platform: test.platform,
+      vars,
+      primitive: (step) =>
+        runMobileStep(
+          {
+            session: session!,
+            platform: test.platform,
+            vars,
+            elementTimeoutMs: deps.elementTimeoutMs,
+          },
+          step,
+        ),
+      onStep: deps.onStep
+        ? (rows) =>
+            deps.onStep!(
+              rows.map((row) => ({
+                ...row,
+                error: row.error ? redactGridSecret(row.error, grid) : undefined,
+              })),
+            )
+        : undefined,
+    });
+    results.push(
+      ...flow.results.map((row) => ({
+        ...row,
+        error: row.error ? redactGridSecret(row.error, grid) : undefined,
+      })),
+    );
     const failure = flow.failure ? redactGridSecret(flow.failure, grid) : null;
 
     const screenshot = await session.screenshot();
     await markSession(session, grid, !failure, failure ?? 'All steps passed');
     const url = await sessionUrl(grid, session.id, doFetch);
-    return { status: failure ? 'failed' : 'passed', steps: results, error: failure, screenshot, sessionUrl: url, matrixEvidence: matrix };
+    return {
+      status: failure ? 'failed' : 'passed',
+      steps: results,
+      error: failure,
+      screenshot,
+      sessionUrl: url,
+      matrixEvidence: matrix,
+    };
   } catch (error: any) {
-    const message = error instanceof WebDriverError ? `${grid.name}: ${error.message}` : String(error?.message ?? error);
-    return { status: 'error', steps: results, error: redactGridSecret(message, grid), screenshot: null, sessionUrl: null, matrixEvidence: matrix };
+    const message =
+      error instanceof WebDriverError
+        ? `${grid.name}: ${error.message}`
+        : String(error?.message ?? error);
+    return {
+      status: 'error',
+      steps: results,
+      error: redactGridSecret(message, grid),
+      screenshot: null,
+      sessionUrl: null,
+      matrixEvidence: matrix,
+    };
   } finally {
     await session?.close();
     await transport?.close();
@@ -336,60 +430,106 @@ export const mobileDeviceLabel = (test: Pick<MobileTest, 'deviceName' | 'osVersi
  * Runs a queued run to its end, writing each step as it goes so the page can follow it. Never
  * throws: whatever went wrong is the run's error.
  */
-export async function executeMobileRun(runId: string, organizationId: number, userId: number, deps: RunDeps = {}): Promise<void> {
-  await runWithTenant(organizationId, async () => {
-    const update = (values: Partial<typeof mobileTestRuns.$inferInsert>) =>
-      withTenantTransaction(async (tx) => {
-        await tx.update(mobileTestRuns).set(values).where(eq(mobileTestRuns.id, runId));
-      });
+export async function executeMobileRun(
+  runId: string,
+  organizationId: number,
+  userId: number,
+  deps: RunDeps = {},
+): Promise<void> {
+  await runWithTenant(
+    organizationId,
+    async () => {
+      const update = (values: Partial<typeof mobileTestRuns.$inferInsert>) =>
+        withTenantTransaction(async (tx) => {
+          await tx.update(mobileTestRuns).set(values).where(eq(mobileTestRuns.id, runId));
+        });
 
-    const loaded = await withTenantTransaction(async (tx) => {
-      const [run] = await tx.select().from(mobileTestRuns).where(eq(mobileTestRuns.id, runId)).limit(1);
-      if (!run) return null;
-      const [test] = await tx.select().from(mobileTests).where(eq(mobileTests.id, run.mobileTestId)).limit(1);
-      const [grid] = run.gridId ? await tx.select().from(browserGrids).where(eq(browserGrids.id, run.gridId)).limit(1) : [];
-      // A delayed debug run must use the working copy it was started with.
-      const definition = test && run.testSnapshot ? { ...test, ...run.testSnapshot } as MobileTest & {executionSteps?:MobileExecutionStep[]} : test;
-      return { run, test: definition, grid };
-    });
-    if (!loaded) return;
-    const { run, test, grid: gridRow } = loaded;
-    if (!test || !gridRow) {
-      await update({ status: 'error', error: !test ? 'The test was deleted.' : 'The grid was deleted.', finishedAt: new Date() });
-      return;
-    }
-    const grid = toGridConfig(gridRow);
-    try {
-      if (!('executionSteps' in test)) {
-        const executionSteps=await withTenantTransaction(tx=>prepareMobileSteps(tx,test));
-        Object.assign(test,{executionSteps});
-        await update({testSnapshot:{...run.testSnapshot,...test,executionSteps}});
-      }
-      await update({ status: 'running', startedAt: new Date() });
-      const vars = await resolveVariables({ userId, organizationId, environmentId: run.environmentId });
-      const outcome = await withExecutionUsage('mobile', () => performMobileTest(test, grid, vars, `WebFlowMaster · ${test.name}`, {
-        ...deps,
-        onStep: (steps) => update({ steps }),
-      }), runId);
-      await update({
-        status: outcome.status,
-        steps: outcome.steps,
-        error: outcome.error,
-        screenshot: outcome.screenshot,
-        sessionUrl: outcome.sessionUrl,
-        finishedAt: new Date(),
+      const loaded = await withTenantTransaction(async (tx) => {
+        const [run] = await tx
+          .select()
+          .from(mobileTestRuns)
+          .where(eq(mobileTestRuns.id, runId))
+          .limit(1);
+        if (!run) return null;
+        const [test] = await tx
+          .select()
+          .from(mobileTests)
+          .where(eq(mobileTests.id, run.mobileTestId))
+          .limit(1);
+        const [grid] = run.gridId
+          ? await tx.select().from(browserGrids).where(eq(browserGrids.id, run.gridId)).limit(1)
+          : [];
+        // A delayed debug run must use the working copy it was started with.
+        const definition =
+          test && run.testSnapshot
+            ? ({ ...test, ...run.testSnapshot } as MobileTest & {
+                executionSteps?: MobileExecutionStep[];
+              })
+            : test;
+        return { run, test: definition, grid };
       });
-    } catch (error: any) {
-      await update({ status: 'error', error: redactGridSecret(String(error?.message ?? error), grid), finishedAt: new Date() });
-    }
-  }, { userId, role: 'editor' });
+      if (!loaded) return;
+      const { run, test, grid: gridRow } = loaded;
+      if (!test || !gridRow) {
+        await update({
+          status: 'error',
+          error: !test ? 'The test was deleted.' : 'The grid was deleted.',
+          finishedAt: new Date(),
+        });
+        return;
+      }
+      const grid = toGridConfig(gridRow);
+      try {
+        if (!('executionSteps' in test)) {
+          const executionSteps = await withTenantTransaction((tx) => prepareMobileSteps(tx, test));
+          Object.assign(test, { executionSteps });
+          await update({ testSnapshot: { ...run.testSnapshot, ...test, executionSteps } });
+        }
+        await update({ status: 'running', startedAt: new Date() });
+        const vars = await resolveVariables({
+          userId,
+          organizationId,
+          environmentId: run.environmentId,
+        });
+        const outcome = await withExecutionUsage(
+          'mobile',
+          () =>
+            performMobileTest(test, grid, vars, `WebFlowMaster · ${test.name}`, {
+              ...deps,
+              onStep: (steps) => update({ steps }),
+            }),
+          runId,
+        );
+        await update({
+          status: outcome.status,
+          steps: outcome.steps,
+          error: outcome.error,
+          screenshot: outcome.screenshot,
+          sessionUrl: outcome.sessionUrl,
+          finishedAt: new Date(),
+        });
+      } catch (error: any) {
+        await update({
+          status: 'error',
+          error: redactGridSecret(String(error?.message ?? error), grid),
+          finishedAt: new Date(),
+        });
+      }
+    },
+    { userId, role: 'editor' },
+  );
 }
 
 /**
  * Sends an app to the grid's storage and answers its address there: bs://… on BrowserStack,
  * lt://… on LambdaTest. The file is streamed from disk, not held in memory.
  */
-export async function uploadApp(grid: GridConfig, filePath: string, fileName: string, doFetch: Fetch = (url, init) => fetch(url, init)): Promise<string> {
+export async function uploadApp(
+  grid: GridConfig,
+  filePath: string,
+  fileName: string,
+  doFetch: Fetch = (url, init) => fetch(url, init),
+): Promise<string> {
   const blob = await fs.openAsBlob(filePath);
   const form = new FormData();
   const name = path.basename(fileName);
@@ -403,11 +543,19 @@ export async function uploadApp(grid: GridConfig, filePath: string, fileName: st
     form.append('name', name);
     url = `${mobileEndpoints.lambdatestApi}/app/upload/realDevice`;
   } else if (grid.provider === 'local_appium') {
-    throw new Error(`"${grid.name}" is a local Appium: put the app on the agent's machine and give its path, or an http(s):// address Appium can download it from.`);
+    throw new Error(
+      `"${grid.name}" is a local Appium: put the app on the agent's machine and give its path, or an http(s):// address Appium can download it from.`,
+    );
   } else {
-    throw new Error(`"${grid.name}" is a Playwright server: apps are uploaded to BrowserStack or LambdaTest.`);
+    throw new Error(
+      `"${grid.name}" is a Playwright server: apps are uploaded to BrowserStack or LambdaTest.`,
+    );
   }
-  const response = await doFetch(url, { method: 'POST', headers: { Authorization: basic(grid) }, body: form });
+  const response = await doFetch(url, {
+    method: 'POST',
+    headers: { Authorization: basic(grid) },
+    body: form,
+  });
   const text = await response.text();
   let body: any = null;
   try {
@@ -416,7 +564,8 @@ export async function uploadApp(grid: GridConfig, filePath: string, fileName: st
     body = null;
   }
   if (!response.ok || !body?.app_url) {
-    const reason = body?.error ?? body?.message ?? (text.slice(0, 200) || `HTTP ${response.status}`);
+    const reason =
+      body?.error ?? body?.message ?? (text.slice(0, 200) || `HTTP ${response.status}`);
     throw new Error(redactGridSecret(`${grid.name} refused the app: ${reason}`, grid));
   }
   return String(body.app_url);

@@ -15,7 +15,10 @@ vi.mock('react-i18next', () => ({
 describe('ExportRunMenu', () => {
   it('offers the run as HTML, PDF, Allure results and JUnit, each a download of this run', async () => {
     render(<ExportRunMenu executionId="run 1" />);
-    fireEvent.keyDown(screen.getByRole('button', { name: /Export/ }), { key: 'Enter', code: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('button', { name: /Export/ }), {
+      key: 'Enter',
+      code: 'Enter',
+    });
 
     const expected: Record<string, string> = {
       html: '/api/test-plan-executions/run%201/export/html',

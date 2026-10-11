@@ -77,7 +77,9 @@ export function expandCustomActions(
 }
 
 /** Loads what a sequence calls, under the caller's organization, and expands it. */
-export async function expandCustomActionsForRun(steps: SequenceStep[]): Promise<{ steps: SequenceStep[]; errors: string[] }> {
+export async function expandCustomActionsForRun(
+  steps: SequenceStep[],
+): Promise<{ steps: SequenceStep[]; errors: string[] }> {
   const ids = referencedCustomActionIds(steps);
   if (ids.length === 0) return { steps, errors: [] };
   try {
@@ -85,9 +87,17 @@ export async function expandCustomActionsForRun(steps: SequenceStep[]): Promise<
     const rows = await withTenantTransaction((tx) => tx.select().from(customActions));
     const loaded = rows
       .filter((row) => ids.includes(row.id))
-      .map((row) => ({ id: row.id, name: row.name, parameters: row.parameters ?? [], script: row.script }));
+      .map((row) => ({
+        id: row.id,
+        name: row.name,
+        parameters: row.parameters ?? [],
+        script: row.script,
+      }));
     return expandCustomActions(steps, loaded);
   } catch (error: any) {
-    return { steps, errors: [`Could not load the custom actions this test uses: ${error?.message ?? error}`] };
+    return {
+      steps,
+      errors: [`Could not load the custom actions this test uses: ${error?.message ?? error}`],
+    };
   }
 }

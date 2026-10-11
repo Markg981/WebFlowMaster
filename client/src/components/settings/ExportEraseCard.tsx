@@ -36,7 +36,10 @@ export default function ExportEraseCard({ onErased }: { onErased?: () => void })
     setError(null);
     try {
       const res = await fetch('/api/organization/export', { credentials: 'include' });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Export failed (${res.status})`);
+      if (!res.ok)
+        throw new Error(
+          (await res.json().catch(() => ({}))).error || `Export failed (${res.status})`,
+        );
       const url = URL.createObjectURL(await res.blob());
       const link = document.createElement('a');
       link.href = url;
@@ -51,7 +54,16 @@ export default function ExportEraseCard({ onErased }: { onErased?: () => void })
   };
 
   const erase = async () => {
-    if (!window.confirm(t('organizationData.lastWarning', 'Erase {{name}} and every account in it? This cannot be undone.', { name: organizationName }))) return;
+    if (
+      !window.confirm(
+        t(
+          'organizationData.lastWarning',
+          'Erase {{name}} and every account in it? This cannot be undone.',
+          { name: organizationName },
+        ),
+      )
+    )
+      return;
     setErasing(true);
     setError(null);
     try {
@@ -61,7 +73,10 @@ export default function ExportEraseCard({ onErased }: { onErased?: () => void })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ confirmName }),
       });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Erasure failed (${res.status})`);
+      if (!res.ok)
+        throw new Error(
+          (await res.json().catch(() => ({}))).error || `Erasure failed (${res.status})`,
+        );
       if (onErased) onErased();
       else window.location.assign('/auth');
     } catch (e) {
@@ -75,7 +90,8 @@ export default function ExportEraseCard({ onErased }: { onErased?: () => void })
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Download className="h-4 w-4" /> {t('organizationData.exportTitle', 'Export everything')}
+            <Download className="h-4 w-4" />{' '}
+            {t('organizationData.exportTitle', 'Export everything')}
           </CardTitle>
           <CardDescription>
             {t(
@@ -86,7 +102,11 @@ export default function ExportEraseCard({ onErased }: { onErased?: () => void })
         </CardHeader>
         <CardContent>
           <Button variant="outline" onClick={download} disabled={exporting}>
-            {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            {exporting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
             {t('organizationData.download', 'Download the export')}
           </Button>
         </CardContent>
@@ -95,7 +115,8 @@ export default function ExportEraseCard({ onErased }: { onErased?: () => void })
       <Card className="border-destructive">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base text-destructive">
-            <Trash2 className="h-4 w-4" /> {t('organizationData.eraseTitle', 'Erase the organization')}
+            <Trash2 className="h-4 w-4" />{' '}
+            {t('organizationData.eraseTitle', 'Erase the organization')}
           </CardTitle>
           <CardDescription>
             {t(
@@ -105,10 +126,24 @@ export default function ExportEraseCard({ onErased }: { onErased?: () => void })
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Label htmlFor="erase-confirm">{t('organizationData.typeName', 'Type the organization name, {{name}}, to confirm', { name: organizationName })}</Label>
+          <Label htmlFor="erase-confirm">
+            {t('organizationData.typeName', 'Type the organization name, {{name}}, to confirm', {
+              name: organizationName,
+            })}
+          </Label>
           <div className="flex flex-wrap gap-2">
-            <Input id="erase-confirm" className="max-w-xs" value={confirmName} onChange={(e) => setConfirmName(e.target.value)} autoComplete="off" />
-            <Button variant="destructive" onClick={erase} disabled={erasing || !organizationName || confirmName !== organizationName}>
+            <Input
+              id="erase-confirm"
+              className="max-w-xs"
+              value={confirmName}
+              onChange={(e) => setConfirmName(e.target.value)}
+              autoComplete="off"
+            />
+            <Button
+              variant="destructive"
+              onClick={erase}
+              disabled={erasing || !organizationName || confirmName !== organizationName}
+            >
               {erasing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('organizationData.erase', 'Erase permanently')}
             </Button>

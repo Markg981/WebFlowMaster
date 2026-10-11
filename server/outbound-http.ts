@@ -31,9 +31,14 @@ export function requestVariables(): Record<string, string> {
  * Generators (`{{$uuid}}`, see ./generators) are made up here too, after the variables, so
  * everything that resolves a placeholder can use them.
  */
-export function substituteVariables(value: string, vars: Record<string, string> = requestVariables()): string {
+export function substituteVariables(
+  value: string,
+  vars: Record<string, string> = requestVariables(),
+): string {
   return substituteGenerators(
-    value.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, key: string) => (key in vars ? vars[key] : match)),
+    value.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, key: string) =>
+      key in vars ? vars[key] : match,
+    ),
     vars,
   );
 }
@@ -46,7 +51,9 @@ export function substituteInValues<T extends Record<string, string | string[]>>(
   if (!record) return record;
   const out: Record<string, string | string[]> = {};
   for (const [key, value] of Object.entries(record)) {
-    out[key] = Array.isArray(value) ? value.map((v) => substituteVariables(v, vars)) : substituteVariables(value, vars);
+    out[key] = Array.isArray(value)
+      ? value.map((v) => substituteVariables(v, vars))
+      : substituteVariables(value, vars);
   }
   return out as T;
 }
@@ -92,7 +99,8 @@ export function dispatcherFor(url: string): Dispatcher | undefined {
   return insecureAgent;
 }
 
-const urlOf = (input: RequestInfo | URL) => (typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url);
+const urlOf = (input: RequestInfo | URL) =>
+  typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
 /** fetch() for systems under test: same contract, plus the per-host TLS exemption. */
 export const fetchTarget: typeof fetch & {
@@ -114,14 +122,22 @@ export const fetchTarget: typeof fetch & {
       return {
         fetch: ((input: RequestInfo | URL, init: RequestInit = {}) => {
           const proxy = egressProxy();
-          agent ??= proxy ? new ProxyAgent({
-            uri: proxy.origin, connections: 1, pipelining: 1,
-            ...(allowsSelfSignedCertificate(urlOf(input)) ? { requestTls: { rejectUnauthorized: false } } : {}),
-          }) : new Agent({
-            connections: 1,
-            pipelining: 1,
-            ...(allowsSelfSignedCertificate(urlOf(input)) ? { connect: { rejectUnauthorized: false } } : {}),
-          });
+          agent ??= proxy
+            ? new ProxyAgent({
+                uri: proxy.origin,
+                connections: 1,
+                pipelining: 1,
+                ...(allowsSelfSignedCertificate(urlOf(input))
+                  ? { requestTls: { rejectUnauthorized: false } }
+                  : {}),
+              })
+            : new Agent({
+                connections: 1,
+                pipelining: 1,
+                ...(allowsSelfSignedCertificate(urlOf(input))
+                  ? { connect: { rejectUnauthorized: false } }
+                  : {}),
+              });
           return fetch(input, { ...init, dispatcher: agent } as RequestInit);
         }) as typeof fetch,
         close: async () => {

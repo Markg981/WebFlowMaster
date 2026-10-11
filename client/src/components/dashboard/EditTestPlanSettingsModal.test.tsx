@@ -5,7 +5,9 @@ import EditTestPlanSettingsModal from './EditTestPlanSettingsModal';
 import type { TestPlan } from '@shared/schema';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_key: string, fallback?: any) => (typeof fallback === 'string' ? fallback : _key) }),
+  useTranslation: () => ({
+    t: (_key: string, fallback?: any) => (typeof fallback === 'string' ? fallback : _key),
+  }),
 }));
 
 /**
@@ -19,7 +21,13 @@ const plan = {
   name: 'Nightly regression',
   testMachinesConfig: [{ browserName: 'firefox', headless: true }],
   visualTestingEnabled: true,
-  notificationSettings: { passed: false, failed: true, notExecuted: true, stopped: true, webhookUrl: 'https://hooks.test/abc' },
+  notificationSettings: {
+    passed: false,
+    failed: true,
+    notExecuted: true,
+    stopped: true,
+    webhookUrl: 'https://hooks.test/abc',
+  },
 } as unknown as TestPlan;
 
 const fetchMock = vi.fn();
@@ -29,7 +37,10 @@ beforeEach(() => {
   fetchMock.mockImplementation((url: string) =>
     // Opening the dialog also reads the organization's issue trackers, so the save is no
     // longer the only request here — every assertion below looks for the PUT by name.
-    Promise.resolve({ ok: true, json: async () => (String(url).includes('/api/issue-trackers') ? [] : {}) }),
+    Promise.resolve({
+      ok: true,
+      json: async () => (String(url).includes('/api/issue-trackers') ? [] : {}),
+    }),
   );
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -58,7 +69,9 @@ describe('EditTestPlanSettingsModal', () => {
     const onSaved = vi.fn();
     render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={onSaved} />);
 
-    fireEvent.change(screen.getByLabelText(/webhook URL/i), { target: { value: 'https://hooks.test/new' } });
+    fireEvent.change(screen.getByLabelText(/webhook URL/i), {
+      target: { value: 'https://hooks.test/new' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
@@ -67,7 +80,16 @@ describe('EditTestPlanSettingsModal', () => {
     expect(init.method).toBe('PUT');
     const body = JSON.parse(init.body);
     // No grid: the OS and versions the runners cannot choose go out empty.
-    expect(body.testMachinesConfig).toEqual([{ browserName: 'firefox', headless: true, os: null, osVersion: null, browserVersion: null, device: null }]);
+    expect(body.testMachinesConfig).toEqual([
+      {
+        browserName: 'firefox',
+        headless: true,
+        os: null,
+        osVersion: null,
+        browserVersion: null,
+        device: null,
+      },
+    ]);
     expect(body.browserGridId).toBeNull();
     expect(body.visualTestingEnabled).toBe(true);
     expect(body.notificationSettings.webhookUrl).toBe('https://hooks.test/new');
@@ -98,7 +120,9 @@ describe('EditTestPlanSettingsModal', () => {
   it('refuses a webhook URL that is not http(s) instead of storing it', async () => {
     render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={() => {}} />);
 
-    fireEvent.change(screen.getByLabelText(/webhook URL/i), { target: { value: 'slack://channel' } });
+    fireEvent.change(screen.getByLabelText(/webhook URL/i), {
+      target: { value: 'slack://channel' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText(/must start with http/i)).toBeInTheDocument();
@@ -132,7 +156,9 @@ describe('EditTestPlanSettingsModal', () => {
       Promise.resolve({
         ok: true,
         json: async () =>
-          String(url).includes('/api/issue-trackers') ? [{ id: 'tracker-1', name: 'Jira — Shop', provider: 'jira' }] : {},
+          String(url).includes('/api/issue-trackers')
+            ? [{ id: 'tracker-1', name: 'Jira — Shop', provider: 'jira' }]
+            : {},
       }),
     );
     const onSaved = vi.fn();
@@ -158,7 +184,10 @@ describe('EditTestPlanSettingsModal', () => {
     expect(device).toHaveTextContent('Desktop');
     expect(device).toBeDisabled();
 
-    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Browser' }), { key: 'Enter', code: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Browser' }), {
+      key: 'Enter',
+      code: 'Enter',
+    });
     fireEvent.click(await screen.findByRole('option', { name: 'chromium' }));
     expect(device).not.toBeDisabled();
     fireEvent.keyDown(device, { key: 'Enter', code: 'Enter' });
@@ -166,7 +195,16 @@ describe('EditTestPlanSettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(savedBody().testMachinesConfig).toEqual([{ browserName: 'chromium', headless: true, os: null, osVersion: null, browserVersion: null, device: 'Pixel 7' }]);
+    expect(savedBody().testMachinesConfig).toEqual([
+      {
+        browserName: 'chromium',
+        headless: true,
+        os: null,
+        osVersion: null,
+        browserVersion: null,
+        device: 'Pixel 7',
+      },
+    ]);
   });
 
   it('publishes nowhere until a test management connection is chosen, then sends it', async () => {
@@ -174,7 +212,11 @@ describe('EditTestPlanSettingsModal', () => {
       Promise.resolve({
         ok: true,
         json: async () =>
-          String(url).includes('/api/test-management') ? [{ id: 'tm-1', name: 'TestRail QA', provider: 'testrail' }] : String(url).includes('/api/issue-trackers') ? [] : {},
+          String(url).includes('/api/test-management')
+            ? [{ id: 'tm-1', name: 'TestRail QA', provider: 'testrail' }]
+            : String(url).includes('/api/issue-trackers')
+              ? []
+              : {},
       }),
     );
     const onSaved = vi.fn();
@@ -182,7 +224,11 @@ describe('EditTestPlanSettingsModal', () => {
 
     const trigger = screen.getByRole('combobox', { name: 'Publish results to' });
     expect(trigger).toHaveTextContent('Nowhere — results stay in the report');
-    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/test-management')).toBe(true));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/test-management')).toBe(
+        true,
+      ),
+    );
     fireEvent.keyDown(trigger, { key: 'Enter', code: 'Enter' });
     fireEvent.click(await screen.findByRole('option', { name: 'TestRail QA' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -197,8 +243,15 @@ describe('EditTestPlanSettingsModal', () => {
         ok: true,
         json: async () =>
           String(url).includes('/api/agents')
-            ? { agents: [{ pool: 'onprem', revokedAt: null }, { pool: 'retired', revokedAt: '2026-09-01T00:00:00Z' }] }
-            : String(url).includes('/api/issue-trackers') ? [] : {},
+            ? {
+                agents: [
+                  { pool: 'onprem', revokedAt: null },
+                  { pool: 'retired', revokedAt: '2026-09-01T00:00:00Z' },
+                ],
+              }
+            : String(url).includes('/api/issue-trackers')
+              ? []
+              : {},
       }),
     );
     const onSaved = vi.fn();
@@ -206,7 +259,9 @@ describe('EditTestPlanSettingsModal', () => {
 
     const trigger = screen.getByRole('combobox', { name: 'Run on' });
     expect(trigger).toHaveTextContent("This server's runners");
-    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/agents')).toBe(true));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/agents')).toBe(true),
+    );
     fireEvent.keyDown(trigger, { key: 'Enter', code: 'Enter' });
     // A revoked agent's pool lends nothing, so it is not offered.
     const options = await screen.findAllByRole('option');
@@ -227,7 +282,10 @@ describe('EditTestPlanSettingsModal', () => {
   });
 
   it('reports a refused save rather than closing as if it had worked', async () => {
-    fetchMock.mockResolvedValue({ ok: false, json: async () => ({ error: 'Invalid request payload' }) });
+    fetchMock.mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: 'Invalid request payload' }),
+    });
     const onSaved = vi.fn();
     render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={onSaved} />);
 
@@ -252,7 +310,15 @@ describe('EditTestPlanSettingsModal', () => {
     const onGrid = {
       ...plan,
       browserGridId: 'g1',
-      testMachinesConfig: [{ browserName: 'chrome', headless: true, os: 'Windows', osVersion: '10', browserVersion: null }],
+      testMachinesConfig: [
+        {
+          browserName: 'chrome',
+          headless: true,
+          os: 'Windows',
+          osVersion: '10',
+          browserVersion: null,
+        },
+      ],
     } as unknown as TestPlan;
     const onSaved = vi.fn();
     render(<EditTestPlanSettingsModal isOpen plan={onGrid} onClose={() => {}} onSaved={onSaved} />);
@@ -266,7 +332,16 @@ describe('EditTestPlanSettingsModal', () => {
     const body = savedBody();
     expect(body.browserGridId).toBe('g1');
     expect(body.agentPool).toBeNull();
-    expect(body.testMachinesConfig).toEqual([{ browserName: 'chrome', headless: true, os: 'Windows', osVersion: '10', browserVersion: '120', device: null }]);
+    expect(body.testMachinesConfig).toEqual([
+      {
+        browserName: 'chrome',
+        headless: true,
+        os: 'Windows',
+        osVersion: '10',
+        browserVersion: '120',
+        device: null,
+      },
+    ]);
   });
 
   it('on the runners, does not ask for an OS or a version it could not honour', () => {

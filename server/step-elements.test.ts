@@ -172,7 +172,9 @@ describe('against the database', () => {
   it('records a healed selector once, where every test that names it will read it', async () => {
     const id = await seedElement(organizationId, projectId, '#was-here');
 
-    const updated = await runWithTenant(organizationId, () => recordHealedSelector(id, '#is-here-now'));
+    const updated = await runWithTenant(organizationId, () =>
+      recordHealedSelector(id, '#is-here-now'),
+    );
     const afterwards = await runWithTenant(organizationId, () =>
       resolveSequenceForRun([stepWith({ selector: '#was-here', elementId: id })]),
     );
@@ -186,7 +188,9 @@ describe('against the database', () => {
   it("will not heal another organization's element", async () => {
     const id = await seedElement(otherOrganizationId, otherProjectId, '#theirs');
 
-    const updated = await runWithTenant(organizationId, () => recordHealedSelector(id, '#hijacked'));
+    const updated = await runWithTenant(organizationId, () =>
+      recordHealedSelector(id, '#hijacked'),
+    );
 
     expect(updated).toBe(false);
     const [row] = await privilegedDb.select().from(projectElements);

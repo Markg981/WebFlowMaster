@@ -28,7 +28,9 @@ describe('organizations migration', () => {
   });
 
   it('creates the app_user role', async () => {
-    const rows = await privilegedDb.execute(sql`SELECT rolname FROM pg_roles WHERE rolname = 'app_user'`);
+    const rows = await privilegedDb.execute(
+      sql`SELECT rolname FROM pg_roles WHERE rolname = 'app_user'`,
+    );
     expect(rows.rows).toHaveLength(1);
   });
 });

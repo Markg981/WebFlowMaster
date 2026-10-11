@@ -93,7 +93,15 @@ export async function harContextOptions(
     ? path.join(options.artifactDir, '_har')
     : path.join(os.tmpdir(), 'webflowmaster-har');
   await fs.ensureDir(dir);
-  return { recordHar: { path: path.join(dir, `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.har`), content: 'omit' } };
+  return {
+    recordHar: {
+      path: path.join(
+        dir,
+        `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.har`,
+      ),
+      content: 'omit',
+    },
+  };
 }
 
 /**
@@ -124,7 +132,10 @@ async function collectHar(
 }
 
 /** Starts tracing when the plan asked for one. Never throws: evidence is not the run. */
-export async function startTrace(context: BrowserContext, options: EvidenceOptions | undefined): Promise<boolean> {
+export async function startTrace(
+  context: BrowserContext,
+  options: EvidenceOptions | undefined,
+): Promise<boolean> {
   if (!shouldRecord(options?.trace)) return false;
   try {
     await context.tracing.start({ screenshots: true, snapshots: true, sources: false });
@@ -184,7 +195,7 @@ export async function captureRunEvidence(input: {
   }
 
   // Taken before anything closes: after `page.close()` the handle is the only way back to it.
-  const video = shouldRecord(options?.video) ? page?.video() ?? null : null;
+  const video = shouldRecord(options?.video) ? (page?.video() ?? null) : null;
 
   if (page) await page.close().catch(() => {});
   if (context) await context.close().catch(() => {});
@@ -209,7 +220,11 @@ export async function captureRunEvidence(input: {
   if (harScratchPath) {
     Object.assign(
       captured,
-      await collectHar(harScratchPath, { keep: shouldKeep(options?.network, passed), artifactDir, stem }),
+      await collectHar(harScratchPath, {
+        keep: shouldKeep(options?.network, passed),
+        artifactDir,
+        stem,
+      }),
     );
     if (artifactDir) await fs.remove(path.join(artifactDir, '_har')).catch(() => {});
   }

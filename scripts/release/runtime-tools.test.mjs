@@ -16,21 +16,46 @@ function fixture(t, dependencies, packages) {
   }
   return root;
 }
-test('unused glob build tools are removed without changing runtime dependencies', t => {
-  const root = fixture(t, { service: '1' }, { service: { dependencies: { helper: '1' } }, helper: {}, 'fast-glob': {}, micromatch: {}, braces: {} });
+test('unused glob build tools are removed without changing runtime dependencies', (t) => {
+  const root = fixture(
+    t,
+    { service: '1' },
+    {
+      service: { dependencies: { helper: '1' } },
+      helper: {},
+      'fast-glob': {},
+      micromatch: {},
+      braces: {},
+    },
+  );
   removeUnusedGlobTools(root);
-  for (const name of ['fast-glob', 'micromatch', 'braces']) assert.equal(existsSync(join(root, 'node_modules', name)), false);
+  for (const name of ['fast-glob', 'micromatch', 'braces'])
+    assert.equal(existsSync(join(root, 'node_modules', name)), false);
   assert.ok(existsSync(join(root, 'node_modules/helper/package.json')));
 });
-test('runtime reachability refuses removal through ordinary and peer dependencies', t => {
+test('runtime reachability refuses removal through ordinary and peer dependencies', (t) => {
   for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
-    const root = fixture(t, { service: '1' }, { service: { [field]: { braces: '1' } }, braces: {} });
+    const root = fixture(
+      t,
+      { service: '1' },
+      { service: { [field]: { braces: '1' } }, braces: {} },
+    );
     assert.throws(() => removeUnusedGlobTools(root), /Runtime requires/);
     assert.ok(existsSync(join(root, 'node_modules/braces/package.json')));
   }
 });
-test('missing mandatory dependencies fail closed while absent optional dependencies are allowed', t => {
-  const root = fixture(t, { service: '1' }, { service: { optionalDependencies: { absent: '1' }, peerDependencies: { optionalPeer: '1' }, peerDependenciesMeta: { optionalPeer: { optional: true } } } });
+test('missing mandatory dependencies fail closed while absent optional dependencies are allowed', (t) => {
+  const root = fixture(
+    t,
+    { service: '1' },
+    {
+      service: {
+        optionalDependencies: { absent: '1' },
+        peerDependencies: { optionalPeer: '1' },
+        peerDependenciesMeta: { optionalPeer: { optional: true } },
+      },
+    },
+  );
   assert.doesNotThrow(() => removeUnusedGlobTools(root));
   const missing = fixture(t, { absent: '1' }, {});
   assert.throws(() => removeUnusedGlobTools(missing), /Missing runtime dependency/);

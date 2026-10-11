@@ -24,7 +24,10 @@ function fakeQueue(jobs: Record<string, { state: string; deferredForQuota?: bool
       return {
         data: job.deferredForQuota ? { deferredForQuota: true } : {},
         getState: async () => job.state,
-        promote: async () => { promoted.push(id); job.state = 'waiting'; },
+        promote: async () => {
+          promoted.push(id);
+          job.state = 'waiting';
+        },
       };
     },
   };
@@ -51,7 +54,9 @@ beforeEach(async () => {
   organizationId = await createTestOrganization('Promotion Org');
   const userId = await createTestUser(organizationId);
   planId = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Plan', userId, organizationId } as any);
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Plan', userId, organizationId } as any);
 });
 
 describe('promoting waiting runs', () => {
@@ -60,7 +65,10 @@ describe('promoting waiting runs', () => {
     await run('running', 10);
     const oldest = await run('queued', 9);
     const next = await run('queued', 8);
-    const { queue, promoted } = fakeQueue({ [oldest]: { state: 'delayed', deferredForQuota: true }, [next]: { state: 'delayed', deferredForQuota: true } });
+    const { queue, promoted } = fakeQueue({
+      [oldest]: { state: 'delayed', deferredForQuota: true },
+      [next]: { state: 'delayed', deferredForQuota: true },
+    });
     expect(await promoteWaitingRuns(organizationId, queue)).toBe(1);
     expect(promoted).toEqual([oldest]);
   });
@@ -69,7 +77,9 @@ describe('promoting waiting runs', () => {
     await run('running', 10);
     await run('cancelling', 10);
     const waiting = await run('queued', 5);
-    const { queue, promoted } = fakeQueue({ [waiting]: { state: 'delayed', deferredForQuota: true } });
+    const { queue, promoted } = fakeQueue({
+      [waiting]: { state: 'delayed', deferredForQuota: true },
+    });
     expect(await promoteWaitingRuns(organizationId, queue)).toBe(0);
     expect(promoted).toEqual([]);
   });
@@ -77,17 +87,31 @@ describe('promoting waiting runs', () => {
   it('leaves a retry in its backoff, and a job already ready, alone', async () => {
     const retry = await run('queued', 9);
     const ready = await run('queued', 8);
-    const { queue, promoted } = fakeQueue({ [retry]: { state: 'delayed' }, [ready]: { state: 'waiting', deferredForQuota: true } });
+    const { queue, promoted } = fakeQueue({
+      [retry]: { state: 'delayed' },
+      [ready]: { state: 'waiting', deferredForQuota: true },
+    });
     expect(await promoteWaitingRuns(organizationId, queue)).toBe(0);
     expect(promoted).toEqual([]);
   });
 
   it('happens when a run of the organization ends', async () => {
     const waiting = await run('queued', 5);
-    const { queue, promoted } = fakeQueue({ [waiting]: { state: 'delayed', deferredForQuota: true } });
+    const { queue, promoted } = fakeQueue({
+      [waiting]: { state: 'delayed', deferredForQuota: true },
+    });
     const off = registerRunPromotion(queue);
     try {
-      const [ended] = await privilegedDb.insert(testPlanExecutions).values({ id: uuidv4(), organizationId, testPlanId: planId, status: 'completed', triggeredBy: 'manual' } as any).returning();
+      const [ended] = await privilegedDb
+        .insert(testPlanExecutions)
+        .values({
+          id: uuidv4(),
+          organizationId,
+          testPlanId: planId,
+          status: 'completed',
+          triggeredBy: 'manual',
+        } as any)
+        .returning();
       announceExecution({ ...ended, status: 'running' });
       await new Promise((resolve) => setTimeout(resolve, 50));
       expect(promoted).toEqual([]);

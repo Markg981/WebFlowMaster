@@ -1,6 +1,6 @@
 export type AgentApiProtocol = 'grpc' | 'websocket';
 export const AGENT_API_FEATURES = ['native-protocol-v2'] as const;
-export type AgentApiFeature = typeof AGENT_API_FEATURES[number];
+export type AgentApiFeature = (typeof AGENT_API_FEATURES)[number];
 // The bounded response appears as messages, last and text; JSON escaping expands it again.
 export const AGENT_API_MAX_PAYLOAD = 64 * 1024 * 1024;
 

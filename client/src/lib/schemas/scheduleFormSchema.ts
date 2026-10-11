@@ -16,13 +16,16 @@ export const FREQUENCY_OPTIONS = [
   { value: 'custom_cron', label: 'Custom CRON' },
 ] as const;
 
-export const RETRY_ON_FAILURE_OPTIONS: { value: TestPlanSchedule['retryOnFailure']; label: string }[] = [
+export const RETRY_ON_FAILURE_OPTIONS: {
+  value: TestPlanSchedule['retryOnFailure'];
+  label: string;
+}[] = [
   { value: 'none', label: 'None' },
   { value: 'once', label: 'Once' },
   { value: 'twice', label: 'Twice' },
 ];
 
-export const RETRY_VALUES = RETRY_ON_FAILURE_OPTIONS.map(o => o.value);
+export const RETRY_VALUES = RETRY_ON_FAILURE_OPTIONS.map((o) => o.value);
 
 export const WEEK_DAY_OPTIONS = [
   { id: '0', label: 'Sunday' },
@@ -42,11 +45,10 @@ export const BROWSER_OPTIONS = [
   { value: 'safari', label: 'Safari' },
 ] as const;
 
-export const BROWSER_VALUES = BROWSER_OPTIONS.map(o => o.value);
+export const BROWSER_VALUES = BROWSER_OPTIONS.map((o) => o.value);
 
 // Environments are the organization's own, listed by ScheduleEnvironmentSelect. A fixed list of
 // names here is what made every schedule say "QA" and load no environment at all.
-
 
 /**
  * Suggestions only — the field accepts any IANA name.
@@ -80,56 +82,82 @@ export function browserTimezone(): string {
   }
 }
 
-export const scheduleFormSchema = z.object({
-  scheduleName: z.string().min(1, 'Schedule name is required'),
-  testPlanId: z.string().min(1, 'Test plan is required'),
-  frequency: z.string().min(1, 'Frequency is required'),
-  customCronExpression: z.string().optional(),
-  nextRunAt: z.date({ required_error: 'Next run date and time is required' }),
-  // IANA name. Defaults to the browser's zone rather than UTC: "02:00" means 02:00 where
-  // the tester is, and making them convert it twice a year is how a nightly job ends up
-  // running an hour off for half the year.
-  timezone: z.string().min(1, 'Timezone is required').default(browserTimezone()),
-  // An environment's id, as ScheduleEnvironmentSelect saves it; a name on schedules from before.
-  environment: z.string().optional(),
-  browsers: z.array(z.enum(BROWSER_OPTIONS.map(b => b.value) as [string, ...string[]]))
-              .min(1, 'At least one browser must be selected').optional().nullable(),
-  isActive: z.boolean().default(true),
-  retryOnFailure: z.enum(RETRY_ON_FAILURE_OPTIONS.map(opt => opt.value) as [TestPlanSchedule['retryOnFailure'], ...TestPlanSchedule['retryOnFailure'][]]).default('none'),
-  notificationConfigOverride: z.string().optional().refine((val) => {
-    if (!val || val.trim() === '') return true;
-    try {
-      JSON.parse(val);
-      return true;
-    } catch {
-      return false;
+export const scheduleFormSchema = z
+  .object({
+    scheduleName: z.string().min(1, 'Schedule name is required'),
+    testPlanId: z.string().min(1, 'Test plan is required'),
+    frequency: z.string().min(1, 'Frequency is required'),
+    customCronExpression: z.string().optional(),
+    nextRunAt: z.date({ required_error: 'Next run date and time is required' }),
+    // IANA name. Defaults to the browser's zone rather than UTC: "02:00" means 02:00 where
+    // the tester is, and making them convert it twice a year is how a nightly job ends up
+    // running an hour off for half the year.
+    timezone: z.string().min(1, 'Timezone is required').default(browserTimezone()),
+    // An environment's id, as ScheduleEnvironmentSelect saves it; a name on schedules from before.
+    environment: z.string().optional(),
+    browsers: z
+      .array(z.enum(BROWSER_OPTIONS.map((b) => b.value) as [string, ...string[]]))
+      .min(1, 'At least one browser must be selected')
+      .optional()
+      .nullable(),
+    isActive: z.boolean().default(true),
+    retryOnFailure: z
+      .enum(
+        RETRY_ON_FAILURE_OPTIONS.map((opt) => opt.value) as [
+          TestPlanSchedule['retryOnFailure'],
+          ...TestPlanSchedule['retryOnFailure'][],
+        ],
+      )
+      .default('none'),
+    notificationConfigOverride: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (!val || val.trim() === '') return true;
+          try {
+            JSON.parse(val);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { message: 'Must be valid JSON or empty' },
+      ),
+    executionParameters: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (!val || val.trim() === '') return true;
+          try {
+            JSON.parse(val);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { message: 'Must be valid JSON or empty' },
+      ),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.frequency === 'custom_cron' &&
+      (!data.customCronExpression || data.customCronExpression.trim() === '')
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['customCronExpression'],
+        message: 'CRON expression is required for custom frequency.',
+      });
     }
-  }, { message: 'Must be valid JSON or empty' }),
-  executionParameters: z.string().optional().refine((val) => {
-    if (!val || val.trim() === '') return true;
-    try {
-      JSON.parse(val);
-      return true;
-    } catch {
-      return false;
-    }
-  }, { message: 'Must be valid JSON or empty' }),
-}).superRefine((data, ctx) => {
-  if (data.frequency === 'custom_cron' && (!data.customCronExpression || data.customCronExpression.trim() === '')) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['customCronExpression'],
-      message: 'CRON expression is required for custom frequency.',
-    });
-  }
-});
+  });
 
 export type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
 
 export const transformFormValuesToApiPayload = (
-  values: ScheduleFormValues
+  values: ScheduleFormValues,
 ): Omit<InsertTestPlanSchedule, 'id' | 'createdAt' | 'updatedAt' | 'organizationId'> => {
-
   let effectiveFrequency = values.frequency;
   if (values.frequency === 'custom_cron' && values.customCronExpression) {
     effectiveFrequency = `cron:${values.customCronExpression}`;
@@ -145,13 +173,15 @@ export const transformFormValuesToApiPayload = (
     browsers: values.browsers && values.browsers.length > 0 ? values.browsers : null,
     isActive: values.isActive,
     retryOnFailure: values.retryOnFailure,
-    notificationConfigOverride: values.notificationConfigOverride ? JSON.parse(values.notificationConfigOverride) : null,
+    notificationConfigOverride: values.notificationConfigOverride
+      ? JSON.parse(values.notificationConfigOverride)
+      : null,
     executionParameters: values.executionParameters ? JSON.parse(values.executionParameters) : null,
   };
 };
 
 export const transformApiDataToFormValues = (
-  apiData: Partial<TestPlanScheduleEnhanced>
+  apiData: Partial<TestPlanScheduleEnhanced>,
 ): Partial<ScheduleFormValues> => {
   let frequency = apiData.frequency || '';
   let customCronExpression = '';
@@ -165,7 +195,11 @@ export const transformApiDataToFormValues = (
     testPlanId: apiData.testPlanId,
     frequency: frequency,
     customCronExpression: customCronExpression,
-    nextRunAt: apiData.nextRunAt ? (apiData.nextRunAt instanceof Date ? apiData.nextRunAt : new Date(apiData.nextRunAt)) : undefined,
+    nextRunAt: apiData.nextRunAt
+      ? apiData.nextRunAt instanceof Date
+        ? apiData.nextRunAt
+        : new Date(apiData.nextRunAt)
+      : undefined,
     // A saved schedule keeps the zone it was saved with — editing it must not silently
     // reinterpret its time in whatever zone the editor happens to be sitting in.
     timezone: apiData.timezone || browserTimezone(),
@@ -173,7 +207,11 @@ export const transformApiDataToFormValues = (
     browsers: apiData.browsers || [],
     isActive: apiData.isActive !== undefined ? apiData.isActive : true,
     retryOnFailure: apiData.retryOnFailure || 'none',
-    notificationConfigOverride: apiData.notificationConfigOverride ? JSON.stringify(apiData.notificationConfigOverride, null, 2) : '',
-    executionParameters: apiData.executionParameters ? JSON.stringify(apiData.executionParameters, null, 2) : '',
+    notificationConfigOverride: apiData.notificationConfigOverride
+      ? JSON.stringify(apiData.notificationConfigOverride, null, 2)
+      : '',
+    executionParameters: apiData.executionParameters
+      ? JSON.stringify(apiData.executionParameters, null, 2)
+      : '',
   };
 };

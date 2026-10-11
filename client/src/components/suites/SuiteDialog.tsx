@@ -1,13 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 
@@ -138,14 +151,27 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
   const candidates = useMemo(() => {
     const needle = filter.trim().toLowerCase();
     const rows = [
-      ...(Array.isArray(uiTests) ? uiTests : []).map((test) => ({ type: 'ui' as const, id: test.id, name: test.name })),
-      ...(Array.isArray(apiTests) ? apiTests : []).map((test) => ({ type: 'api' as const, id: test.id, name: test.name })),
-      ...(Array.isArray(mobileTests) ? mobileTests : []).map((test) => ({ type: 'mobile' as const, id: test.id, name: test.name })),
+      ...(Array.isArray(uiTests) ? uiTests : []).map((test) => ({
+        type: 'ui' as const,
+        id: test.id,
+        name: test.name,
+      })),
+      ...(Array.isArray(apiTests) ? apiTests : []).map((test) => ({
+        type: 'api' as const,
+        id: test.id,
+        name: test.name,
+      })),
+      ...(Array.isArray(mobileTests) ? mobileTests : []).map((test) => ({
+        type: 'mobile' as const,
+        id: test.id,
+        name: test.name,
+      })),
     ];
     return needle ? rows.filter((row) => row.name.toLowerCase().includes(needle)) : rows;
   }, [uiTests, apiTests, mobileTests, filter]);
 
-  const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+  const toggle = <T,>(list: T[], value: T) =>
+    list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
   const valid = name.trim().length > 0 && (kind === 'static' || tagIds.length > 0);
 
@@ -171,20 +197,39 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{suite ? t('suites.dialog.editTitle', 'Edit suite') : t('suites.dialog.createTitle', 'New suite')}</DialogTitle>
+          <DialogTitle>
+            {suite
+              ? t('suites.dialog.editTitle', 'Edit suite')
+              : t('suites.dialog.createTitle', 'New suite')}
+          </DialogTitle>
           <DialogDescription>
-            {t('suites.dialog.description', 'A suite is a list of tests kept once and included by as many plans as need it.')}
+            {t(
+              'suites.dialog.description',
+              'A suite is a list of tests kept once and included by as many plans as need it.',
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="suite-name">{t('suites.fields.name', 'Name')}</Label>
-            <Input id="suite-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
+            <Input
+              id="suite-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={120}
+            />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="suite-description">{t('suites.fields.description', 'Description')}</Label>
-            <Textarea id="suite-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+            <Label htmlFor="suite-description">
+              {t('suites.fields.description', 'Description')}
+            </Label>
+            <Textarea
+              id="suite-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+            />
           </div>
 
           <div className="space-y-1">
@@ -199,7 +244,11 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
               <SelectContent>
                 <SelectItem value={NO_PROJECT}>{t('suites.noProject', 'No project')}</SelectItem>
                 {(Array.isArray(projects) ? projects : []).map((project) => (
-                  <SelectItem key={project.id} value={String(project.id)} disabled={project.access === 'viewer'}>
+                  <SelectItem
+                    key={project.id}
+                    value={String(project.id)}
+                    disabled={project.access === 'viewer'}
+                  >
                     {project.name}
                   </SelectItem>
                 ))}
@@ -226,21 +275,33 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
             <p className="text-xs text-muted-foreground">
               {kind === 'static'
                 ? t('suites.kindHint.static', 'These tests, in the order you pick them.')
-                : t('suites.kindHint.dynamic', 'Every test carrying all of the chosen tags, worked out when a run is created.')}
+                : t(
+                    'suites.kindHint.dynamic',
+                    'Every test carrying all of the chosen tags, worked out when a run is created.',
+                  )}
             </p>
           </div>
 
           {kind === 'static' ? (
             <div className="space-y-2">
-              <Label htmlFor="suite-filter">{t('suites.fields.tests', 'Tests')} ({picked.length})</Label>
+              <Label htmlFor="suite-filter">
+                {t('suites.fields.tests', 'Tests')} ({picked.length})
+              </Label>
               <Input
                 id="suite-filter"
                 placeholder={t('suites.filterTests', 'Filter tests…')}
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
               />
-              <div className="max-h-56 overflow-y-auto rounded border p-2 space-y-1" data-testid="suite-test-list">
-                {candidates.length === 0 && <p className="text-sm text-muted-foreground">{t('suites.noTests', 'No tests.')}</p>}
+              <div
+                className="max-h-56 overflow-y-auto rounded border p-2 space-y-1"
+                data-testid="suite-test-list"
+              >
+                {candidates.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {t('suites.noTests', 'No tests.')}
+                  </p>
+                )}
                 {candidates.map((test) => {
                   const id = key(test.type, test.id);
                   return (
@@ -251,7 +312,9 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
                         aria-label={test.name}
                       />
                       <span className="flex-1">{test.name}</span>
-                      <Badge variant="outline">{test.type === 'ui' ? 'UI' : test.type === 'mobile' ? 'Mobile' : 'API'}</Badge>
+                      <Badge variant="outline">
+                        {test.type === 'ui' ? 'UI' : test.type === 'mobile' ? 'Mobile' : 'API'}
+                      </Badge>
                     </label>
                   );
                 })}
@@ -261,10 +324,18 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
             <div className="space-y-2">
               <Label>{t('suites.fields.tags', 'Tags (a test must carry all of them)')}</Label>
               <div className="flex flex-wrap gap-3 rounded border p-2" data-testid="suite-tag-list">
-                {allTags.length === 0 && <p className="text-sm text-muted-foreground">{t('suites.noTags', 'No tags yet: add them from the test library.')}</p>}
+                {allTags.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {t('suites.noTags', 'No tags yet: add them from the test library.')}
+                  </p>
+                )}
                 {allTags.map((tag) => (
                   <label key={tag.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <Checkbox checked={tagIds.includes(tag.id)} onCheckedChange={() => setTagIds((current) => toggle(current, tag.id))} aria-label={tag.name} />
+                    <Checkbox
+                      checked={tagIds.includes(tag.id)}
+                      onCheckedChange={() => setTagIds((current) => toggle(current, tag.id))}
+                      aria-label={tag.name}
+                    />
                     {tag.name}
                   </label>
                 ))}
@@ -274,15 +345,21 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
 
           {suite && (
             <div className="space-y-1" data-testid="suite-preview">
-              <Label>{t('suites.preview', 'Runs right now')} ({suite.tests.length})</Label>
+              <Label>
+                {t('suites.preview', 'Runs right now')} ({suite.tests.length})
+              </Label>
               <ul className="text-sm text-muted-foreground list-disc pl-5 max-h-32 overflow-y-auto">
                 {suite.tests.map((test) => (
-                  <li key={key(test.type, test.id)}>{test.name ?? t('suites.hiddenTest', 'A test in a project you cannot see')}</li>
+                  <li key={key(test.type, test.id)}>
+                    {test.name ?? t('suites.hiddenTest', 'A test in a project you cannot see')}
+                  </li>
                 ))}
               </ul>
               {suite.plans.length > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  {t('suites.includedBy', 'Included by: {{plans}}', { plans: suite.plans.map((p) => p.name).join(', ') })}
+                  {t('suites.includedBy', 'Included by: {{plans}}', {
+                    plans: suite.plans.map((p) => p.name).join(', '),
+                  })}
                 </p>
               )}
             </div>

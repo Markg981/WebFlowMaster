@@ -2,7 +2,14 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAllSchedules, TestPlanScheduleEnhanced } from '@/lib/api/schedules';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertCircle, CalendarDays, CalendarClock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -10,17 +17,25 @@ import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 
-const TestSchedulingsTable: React.FC<{ data?: TestPlanScheduleEnhanced[]; isLoading?: boolean; scoped?: boolean }> = ({ data, isLoading: externalLoading, scoped = false }) => {
+const TestSchedulingsTable: React.FC<{
+  data?: TestPlanScheduleEnhanced[];
+  isLoading?: boolean;
+  scoped?: boolean;
+}> = ({ data, isLoading: externalLoading, scoped = false }) => {
   const { t } = useTranslation();
 
-  const { data: fetched = [], isLoading: queryLoading, error } = useQuery<TestPlanScheduleEnhanced[]>({
+  const {
+    data: fetched = [],
+    isLoading: queryLoading,
+    error,
+  } = useQuery<TestPlanScheduleEnhanced[]>({
     enabled: !scoped,
     queryKey: ['allActiveSchedulesForDashboard'], // Unique query key
     queryFn: async () => {
       const allSchedules = await fetchAllSchedules();
       // Filter for active schedules and sort by nextRunAt ascending
       return allSchedules
-        .filter(s => s.isActive)
+        .filter((s) => s.isActive)
         .sort((a, b) => {
           const timeA = a.nextRunAt instanceof Date ? a.nextRunAt.getTime() : 0;
           const timeB = b.nextRunAt instanceof Date ? b.nextRunAt.getTime() : 0;
@@ -30,95 +45,120 @@ const TestSchedulingsTable: React.FC<{ data?: TestPlanScheduleEnhanced[]; isLoad
     // Refetch interval can be added if real-time updates are desired, e.g., refetchInterval: 60000, // every minute
   });
 
-    const schedules = data ?? fetched;
-    const isLoading = externalLoading ?? queryLoading;
-    const displayedSchedules = scoped ? schedules : schedules.slice(0, 5);
+  const schedules = data ?? fetched;
+  const isLoading = externalLoading ?? queryLoading;
+  const displayedSchedules = scoped ? schedules : schedules.slice(0, 5);
 
-    return(
-    <div className = "bg-card text-card-foreground p-4 rounded-lg border shadow-sm min-w-0 overflow-hidden" >
-        <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
-          <h3 className="min-w-0 wrap-break-word text-base font-semibold">{t('dashboard.testSchedulingsTable.upcomingActiveSchedules.title')}</h3>
-          <Link href="/test-suites" className="shrink-0 whitespace-nowrap text-sm text-primary hover:underline flex items-center">
-            {t('dashboard.testSchedulingsTable.viewAll.link')} <CalendarDays className="ml-1 h-4 w-4" />
-          </Link>
-        </div>
-
-      { isLoading && (
-      <div className="flex items-center justify-center h-40" role="status">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2">{t('dashboard.testSchedulingsTable.loading.text')}</p>
+  return (
+    <div className="bg-card text-card-foreground p-4 rounded-lg border shadow-sm min-w-0 overflow-hidden">
+      <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
+        <h3 className="min-w-0 wrap-break-word text-base font-semibold">
+          {t('dashboard.testSchedulingsTable.upcomingActiveSchedules.title')}
+        </h3>
+        <Link
+          href="/test-suites"
+          className="shrink-0 whitespace-nowrap text-sm text-primary hover:underline flex items-center"
+        >
+          {t('dashboard.testSchedulingsTable.viewAll.link')}{' '}
+          <CalendarDays className="ml-1 h-4 w-4" />
+        </Link>
       </div>
-    )}
 
-{
-  error && (
-    <div className="flex flex-col items-center justify-center min-h-40 text-center text-destructive wrap-anywhere">
-      <AlertCircle className="h-8 w-8 mb-2 shrink-0" />
-      <p>{t('dashboard.testSchedulingsTable.error.text')}</p>
-      <p className="text-xs">{error.message}</p>
+      {isLoading && (
+        <div className="flex items-center justify-center h-40" role="status">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-2">{t('dashboard.testSchedulingsTable.loading.text')}</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex flex-col items-center justify-center min-h-40 text-center text-destructive wrap-anywhere">
+          <AlertCircle className="h-8 w-8 mb-2 shrink-0" />
+          <p>{t('dashboard.testSchedulingsTable.error.text')}</p>
+          <p className="text-xs">{error.message}</p>
+        </div>
+      )}
+
+      {!isLoading && !error && displayedSchedules.length === 0 && (
+        <EmptyState
+          icon={CalendarClock}
+          title={t('dashboard.testSchedulingsTable.noUpcomingSchedules.text')}
+          description={t('dashboard.emptySchedules.description')}
+          action={
+            <Button asChild size="sm">
+              <Link href="/scheduling">{t('dashboard.emptySchedules.action')}</Link>
+            </Button>
+          }
+          className="min-h-[160px]"
+        />
+      )}
+
+      {!isLoading && !error && displayedSchedules.length > 0 && (
+        <div className="overflow-x-auto max-h-80">
+          {' '}
+          {/* Added max-h for scrollability if many items */}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('dashboard.testSchedulingsTable.table.testPlan.header')}</TableHead>
+                <TableHead>
+                  {t('dashboard.testSchedulingsTable.table.scheduleName.header')}
+                </TableHead>
+                <TableHead>
+                  {t('dashboard.testSchedulingsTable.table.environment.header')}
+                </TableHead>
+                <TableHead>{t('dashboard.testSchedulingsTable.table.nextRun.header')}</TableHead>
+                <TableHead>{t('dashboard.testSchedulingsTable.table.frequency.header')}</TableHead>
+                <TableHead>{t('dashboard.testSchedulingsTable.table.status.header')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {displayedSchedules.map((schedule) => (
+                <TableRow key={schedule.id}>
+                  <TableCell className="font-medium max-w-[16rem]">
+                    <Link
+                      href={`/test-suites?planId=${schedule.testPlanId}&tab=schedules`}
+                      className="block truncate hover:underline text-primary"
+                      title={schedule.testPlanName || schedule.testPlanId}
+                    >
+                      {schedule.testPlanName || schedule.testPlanId}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="max-w-[16rem] truncate" title={schedule.scheduleName}>
+                    {schedule.scheduleName}
+                  </TableCell>
+                  <TableCell>
+                    {schedule.environment ? (
+                      <Badge variant="outline">{schedule.environment}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        {t('dashboard.testSchedulingsTable.notSet.text')}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {schedule.nextRunAt instanceof Date
+                      ? format(schedule.nextRunAt, 'PPpp')
+                      : t('dashboard.testSchedulingsTable.notScheduled.text')}
+                  </TableCell>
+                  <TableCell className="text-xs">{schedule.frequency}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={schedule.isActive ? 'default' : 'secondary'}
+                      className={schedule.isActive ? 'bg-success hover:bg-success/90' : ''}
+                    >
+                      {schedule.isActive
+                        ? t('dashboard.testSchedulingsTable.status.active')
+                        : t('dashboard.testSchedulingsTable.status.inactive')}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
-  )
-}
-
-{
-  !isLoading && !error && displayedSchedules.length === 0 && (
-    <EmptyState
-      icon={CalendarClock}
-      title={t('dashboard.testSchedulingsTable.noUpcomingSchedules.text')}
-      description={t('dashboard.emptySchedules.description')}
-      action={
-        <Button asChild size="sm">
-          <Link href="/scheduling">{t('dashboard.emptySchedules.action')}</Link>
-        </Button>
-      }
-      className="min-h-[160px]"
-    />
-  )
-}
-
-{
-  !isLoading && !error && displayedSchedules.length > 0 && (
-    <div className="overflow-x-auto max-h-80"> {/* Added max-h for scrollability if many items */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t('dashboard.testSchedulingsTable.table.testPlan.header')}</TableHead>
-            <TableHead>{t('dashboard.testSchedulingsTable.table.scheduleName.header')}</TableHead>
-            <TableHead>{t('dashboard.testSchedulingsTable.table.environment.header')}</TableHead>
-            <TableHead>{t('dashboard.testSchedulingsTable.table.nextRun.header')}</TableHead>
-            <TableHead>{t('dashboard.testSchedulingsTable.table.frequency.header')}</TableHead>
-            <TableHead>{t('dashboard.testSchedulingsTable.table.status.header')}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {displayedSchedules.map((schedule) => (
-            <TableRow key={schedule.id}>
-              <TableCell className="font-medium max-w-[16rem]">
-                <Link href={`/test-suites?planId=${schedule.testPlanId}&tab=schedules`} className="block truncate hover:underline text-primary" title={schedule.testPlanName || schedule.testPlanId}>
-                  {schedule.testPlanName || schedule.testPlanId}
-                </Link>
-              </TableCell>
-              <TableCell className="max-w-[16rem] truncate" title={schedule.scheduleName}>{schedule.scheduleName}</TableCell>
-              <TableCell>
-                {schedule.environment ? <Badge variant="outline">{schedule.environment}</Badge> : <span className="text-xs text-muted-foreground">{t('dashboard.testSchedulingsTable.notSet.text')}</span>}
-              </TableCell>
-              <TableCell className="whitespace-nowrap">
-                {schedule.nextRunAt instanceof Date ? format(schedule.nextRunAt, 'PPpp') : t('dashboard.testSchedulingsTable.notScheduled.text')}
-              </TableCell>
-              <TableCell className="text-xs">{schedule.frequency}</TableCell>
-              <TableCell>
-                <Badge variant={schedule.isActive ? 'default' : 'secondary'} className={schedule.isActive ? 'bg-success hover:bg-success/90' : ''}>
-                  {schedule.isActive ? t('dashboard.testSchedulingsTable.status.active') : t('dashboard.testSchedulingsTable.status.inactive')}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )
-}
-    </div >
   );
 };
 

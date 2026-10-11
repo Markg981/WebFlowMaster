@@ -27,17 +27,45 @@ beforeEach(() => {
 });
 
 describe('ManualTestDialog', () => {
- it('blocks independent step editing for source-derived BDD tests',()=>{
-  render(<ManualTestDialog isOpen onClose={vi.fn()} test={{id:3,name:'BDD',bdd:{mode:'cucumber'},sequence:toSequence([{action:'Given A',expected:''}])} as any} onSaved={vi.fn()}/>);
-  expect(screen.queryByLabelText('Action')).toBeNull();
-  expect(screen.queryByText('Save')).toBeNull();
-  expect(screen.getByRole('alert')).toHaveTextContent('Gherkin source editor');
- });
- it('preserves structured arguments after explicit conversion when editing manual steps',async()=>{
- const gherkin={docString:{content:'payload'}};
- render(<ManualTestDialog isOpen onClose={vi.fn()} test={{id:3,name:'Converted',sequence:[{...toSequence([{action:'Given A',expected:''}])[0],gherkin}]}} onSaved={vi.fn()}/>);
- expect(screen.getByText('payload')).toBeInTheDocument();fireEvent.click(screen.getByText('Save'));await waitFor(()=>expect(fetchMock).toHaveBeenCalled());expect(JSON.parse(fetchMock.mock.calls[0][1].body).sequence[0].gherkin).toEqual(gherkin);
- });
+  it('blocks independent step editing for source-derived BDD tests', () => {
+    render(
+      <ManualTestDialog
+        isOpen
+        onClose={vi.fn()}
+        test={
+          {
+            id: 3,
+            name: 'BDD',
+            bdd: { mode: 'cucumber' },
+            sequence: toSequence([{ action: 'Given A', expected: '' }]),
+          } as any
+        }
+        onSaved={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText('Action')).toBeNull();
+    expect(screen.queryByText('Save')).toBeNull();
+    expect(screen.getByRole('alert')).toHaveTextContent('Gherkin source editor');
+  });
+  it('preserves structured arguments after explicit conversion when editing manual steps', async () => {
+    const gherkin = { docString: { content: 'payload' } };
+    render(
+      <ManualTestDialog
+        isOpen
+        onClose={vi.fn()}
+        test={{
+          id: 3,
+          name: 'Converted',
+          sequence: [{ ...toSequence([{ action: 'Given A', expected: '' }])[0], gherkin }],
+        }}
+        onSaved={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('payload')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).sequence[0].gherkin).toEqual(gherkin);
+  });
   it('saves a new test as manual steps, leaving out empty ones', async () => {
     const onSaved = vi.fn();
     render(<ManualTestDialog isOpen onClose={vi.fn()} test={null} onSaved={onSaved} />);
@@ -58,13 +86,19 @@ describe('ManualTestDialog', () => {
   });
 
   it('refuses a test without steps, and edits an existing one in place', async () => {
-    const { rerender } = render(<ManualTestDialog isOpen onClose={vi.fn()} test={null} onSaved={vi.fn()} />);
+    const { rerender } = render(
+      <ManualTestDialog isOpen onClose={vi.fn()} test={null} onSaved={vi.fn()} />,
+    );
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Empty' } });
     fireEvent.click(screen.getByText('Save'));
     expect(await screen.findByRole('alert')).toHaveTextContent('Write at least one step.');
     expect(fetchMock).not.toHaveBeenCalled();
 
-    const existing = { id: 3, name: 'Old', sequence: toSequence([{ action: 'Open', expected: 'Shown' }]) };
+    const existing = {
+      id: 3,
+      name: 'Old',
+      sequence: toSequence([{ action: 'Open', expected: 'Shown' }]),
+    };
     rerender(<ManualTestDialog isOpen onClose={vi.fn()} test={existing} onSaved={vi.fn()} />);
     expect(await screen.findByDisplayValue('Open')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Save'));

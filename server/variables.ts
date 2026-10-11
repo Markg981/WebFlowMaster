@@ -76,9 +76,7 @@ export async function resolveVariables(scope: VariableScope): Promise<Record<str
       // A secret encrypted under a previous ENCRYPTION_KEY cannot be recovered. Leave it
       // unresolved so the step reports a named missing variable rather than sending a
       // corrupted value to the system under test.
-      logger.warn(
-        `Failed to decrypt secret ${row.keyName} for environment ${scope.environmentId}`,
-      );
+      logger.warn(`Failed to decrypt secret ${row.keyName} for environment ${scope.environmentId}`);
     }
   }
 
@@ -95,10 +93,7 @@ const PLACEHOLDER = /\{\{\s*([\w.]+)\s*\}\}/g;
  * report: which names are missing, so the message can say what to define instead of
  * letting a literal `{{secret_password}}` reach a login form.
  */
-export function findUnresolvedVariables(
-  value: string,
-  vars: Record<string, string>,
-): string[] {
+export function findUnresolvedVariables(value: string, vars: Record<string, string>): string[] {
   const missing = new Set<string>();
   for (const match of value.matchAll(PLACEHOLDER)) {
     if (!(match[1] in vars)) missing.add(match[1]);

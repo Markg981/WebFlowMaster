@@ -84,11 +84,21 @@ export function runPoliciesFrom(snapshot: ExecutionSnapshot): RunPolicies {
   // A test here has preconditions of its own and nothing above or below it: there is no suite
   // with setup of its own, and no step that declares one. Said once in the run's log, so a
   // setting that does nothing is visibly one.
-  if (policies.onTestSuitePreRequisiteFailure && policies.onTestSuitePreRequisiteFailure !== 'stop_execution') {
-    notApplied.push('"On Test Suite Pre Requisite Failure" (a plan has no suite-level prerequisites)');
+  if (
+    policies.onTestSuitePreRequisiteFailure &&
+    policies.onTestSuitePreRequisiteFailure !== 'stop_execution'
+  ) {
+    notApplied.push(
+      '"On Test Suite Pre Requisite Failure" (a plan has no suite-level prerequisites)',
+    );
   }
-  if (policies.onTestStepPreRequisiteFailure && policies.onTestStepPreRequisiteFailure !== 'abort_and_run_next_test_case') {
-    notApplied.push('"On Test Step Pre Requisite Failure" (steps have no prerequisites of their own)');
+  if (
+    policies.onTestStepPreRequisiteFailure &&
+    policies.onTestStepPreRequisiteFailure !== 'abort_and_run_next_test_case'
+  ) {
+    notApplied.push(
+      '"On Test Step Pre Requisite Failure" (steps have no prerequisites of their own)',
+    );
   }
 
   return {
@@ -109,7 +119,10 @@ export function runPoliciesFrom(snapshot: ExecutionSnapshot): RunPolicies {
 }
 
 /** Whether a step's screenshot is kept as evidence. */
-export function keepsScreenshot(policy: ScreenshotPolicy, stepStatus: 'passed' | 'failed'): boolean {
+export function keepsScreenshot(
+  policy: ScreenshotPolicy,
+  stepStatus: 'passed' | 'failed',
+): boolean {
   if (policy === 'always') return true;
   if (policy === 'never') return false;
   return stepStatus === 'failed';
@@ -160,7 +173,8 @@ export function describePolicies(policies: RunPolicies): string {
     onStep,
   ];
   if (policies.stopOnAbortedTest) parts.push('a test that does not pass stops the run');
-  if (policies.testReruns > 0) parts.push(`a test that does not pass is run up to ${policies.testReruns} more time(s)`);
+  if (policies.testReruns > 0)
+    parts.push(`a test that does not pass is run up to ${policies.testReruns} more time(s)`);
   parts.push(
     policies.onPreconditionFailure === 'stop'
       ? 'a failed precondition stops the run'

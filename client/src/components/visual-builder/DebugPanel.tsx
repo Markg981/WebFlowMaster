@@ -5,7 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Bug, CheckCircle2, Loader2, Pause, Play, RotateCcw, SkipForward, Square, StepForward, X, XCircle } from 'lucide-react';
+import {
+  Bug,
+  CheckCircle2,
+  Loader2,
+  Pause,
+  Play,
+  RotateCcw,
+  SkipForward,
+  Square,
+  StepForward,
+  X,
+  XCircle,
+} from 'lucide-react';
 import {
   DEBUG_ENDED,
   allowedCommands,
@@ -54,11 +66,13 @@ export function useDebugSession() {
     setError(null);
     setBusy(true);
     try {
-      const body = await asJson(await fetch('/api/debug-sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }));
+      const body = await asJson(
+        await fetch('/api/debug-sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }),
+      );
       idRef.current = body.id;
       setState(body.state);
     } catch (startError: any) {
@@ -73,11 +87,13 @@ export function useDebugSession() {
     setError(null);
     setBusy(true);
     try {
-      await asJson(await fetch(`/api/debug-sessions/${idRef.current}/commands`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(command),
-      }));
+      await asJson(
+        await fetch(`/api/debug-sessions/${idRef.current}/commands`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(command),
+        }),
+      );
     } catch (commandError: any) {
       setError(commandError?.message ?? String(commandError));
     } finally {
@@ -146,20 +162,26 @@ export default function DebugPanel({
   const patch = (): DebugStepPatch | undefined => {
     if (!paused) return undefined;
     const next: DebugStepPatch = {};
-    if (paused.selector !== null && selector.trim() && selector.trim() !== paused.selector) next.selector = selector.trim();
+    if (paused.selector !== null && selector.trim() && selector.trim() !== paused.selector)
+      next.selector = selector.trim();
     if (value !== (paused.value ?? '')) next.value = value;
     return Object.keys(next).length > 0 ? next : undefined;
   };
 
   const go = (type: 'continue' | 'step' | 'retry') => {
     const correction = patch();
-    if (correction && paused?.stepId && !paused.calledFrom && isOwnStep(paused.stepId)) onCorrection(paused.stepId, correction);
+    if (correction && paused?.stepId && !paused.calledFrom && isOwnStep(paused.stepId))
+      onCorrection(paused.stepId, correction);
     onCommand({ type, patch: correction });
   };
 
   const reasonText = paused
     ? {
-        breakpoint: t('debugger.reason.breakpoint', 'Stopped at the breakpoint before “{{name}}”.', { name: paused.name }),
+        breakpoint: t(
+          'debugger.reason.breakpoint',
+          'Stopped at the breakpoint before “{{name}}”.',
+          { name: paused.name },
+        ),
         step: t('debugger.reason.step', 'Stopped before “{{name}}”.', { name: paused.name }),
         pause: t('debugger.reason.pause', 'Paused before “{{name}}”.', { name: paused.name }),
         failure: t('debugger.reason.failure', '“{{name}}” failed.', { name: paused.name }),
@@ -167,14 +189,26 @@ export default function DebugPanel({
     : null;
 
   return (
-    <Card className="fixed right-4 top-20 z-50 w-[420px] max-w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto p-4 shadow-2xl space-y-3" role="region" aria-label={t('debugger.title', 'Debugger')}>
+    <Card
+      className="fixed right-4 top-20 z-50 w-[420px] max-w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto p-4 shadow-2xl space-y-3"
+      role="region"
+      aria-label={t('debugger.title', 'Debugger')}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bug className="h-4 w-4 text-primary" />
           <span className="font-semibold">{t('debugger.title', 'Debugger')}</span>
-          <Badge variant={state.status === 'paused' ? 'default' : 'secondary'}>{t(`debugger.status.${state.status}`, state.status)}</Badge>
+          <Badge variant={state.status === 'paused' ? 'default' : 'secondary'}>
+            {t(`debugger.status.${state.status}`, state.status)}
+          </Badge>
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} aria-label={t('debugger.close', 'Close the debugger')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={onClose}
+          aria-label={t('debugger.close', 'Close the debugger')}
+        >
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -182,34 +216,73 @@ export default function DebugPanel({
       {(state.status === 'running' || state.status === 'starting') && (
         <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
           <Loader2 className="h-4 w-4 animate-spin" />
-          {state.status === 'starting' ? t('debugger.starting', 'Opening the browser…') : t('debugger.running', 'Running…')}
+          {state.status === 'starting'
+            ? t('debugger.starting', 'Opening the browser…')
+            : t('debugger.running', 'Running…')}
         </p>
       )}
 
       {paused && (
         <div className="space-y-3">
-          <p className={`text-sm font-medium ${paused.reason === 'failure' ? 'text-destructive' : ''}`}>{reasonText}</p>
-          {paused.error && <p className="text-xs text-destructive whitespace-pre-line wrap-break-word" role="alert">{paused.error}</p>}
-          {paused.screenshot && (
-            <img src={paused.screenshot} alt={t('debugger.screenshot', 'The page now')} className="w-full rounded border" />
+          <p
+            className={`text-sm font-medium ${paused.reason === 'failure' ? 'text-destructive' : ''}`}
+          >
+            {reasonText}
+          </p>
+          {paused.error && (
+            <p
+              className="text-xs text-destructive whitespace-pre-line wrap-break-word"
+              role="alert"
+            >
+              {paused.error}
+            </p>
           )}
-          {paused.url && <p className="text-[11px] text-muted-foreground break-all">{paused.url}</p>}
+          {paused.screenshot && (
+            <img
+              src={paused.screenshot}
+              alt={t('debugger.screenshot', 'The page now')}
+              className="w-full rounded border"
+            />
+          )}
+          {paused.url && (
+            <p className="text-[11px] text-muted-foreground break-all">{paused.url}</p>
+          )}
 
           <div className="space-y-2">
             {paused.selector !== null && (
               <div className="space-y-1">
-                <Label htmlFor="debug-selector" className="text-xs">{t('debugger.selector', 'Selector')}</Label>
-                <Input id="debug-selector" value={selector} onChange={(e) => setSelector(e.target.value)} className="h-8 text-xs font-mono" />
+                <Label htmlFor="debug-selector" className="text-xs">
+                  {t('debugger.selector', 'Selector')}
+                </Label>
+                <Input
+                  id="debug-selector"
+                  value={selector}
+                  onChange={(e) => setSelector(e.target.value)}
+                  className="h-8 text-xs font-mono"
+                />
               </div>
             )}
             <div className="space-y-1">
-              <Label htmlFor="debug-value" className="text-xs">{t('debugger.value', 'Value')}</Label>
-              <Input id="debug-value" value={value} onChange={(e) => setValue(e.target.value)} className="h-8 text-xs" />
+              <Label htmlFor="debug-value" className="text-xs">
+                {t('debugger.value', 'Value')}
+              </Label>
+              <Input
+                id="debug-value"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="h-8 text-xs"
+              />
             </div>
             <p className="text-[11px] text-muted-foreground">
               {paused.calledFrom
-                ? t('debugger.correction.group', 'This step is inside a step group: a correction applies to this run only.')
-                : t('debugger.correction.test', 'A correction is copied into the test; save it to keep it.')}
+                ? t(
+                    'debugger.correction.group',
+                    'This step is inside a step group: a correction applies to this run only.',
+                  )
+                : t(
+                    'debugger.correction.test',
+                    'A correction is copied into the test; save it to keep it.',
+                  )}
             </p>
           </div>
 
@@ -225,19 +298,34 @@ export default function DebugPanel({
                   <Play className="mr-1 h-4 w-4" />
                   {t('debugger.continue', 'Continue')}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => go('step')} disabled={!can('step')}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => go('step')}
+                  disabled={!can('step')}
+                >
                   <StepForward className="mr-1 h-4 w-4" />
                   {t('debugger.step', 'Step')}
                 </Button>
               </>
             )}
             {paused.canSkip && (
-              <Button size="sm" variant="outline" onClick={() => onCommand({ type: 'skip' })} disabled={!can('skip')}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onCommand({ type: 'skip' })}
+                disabled={!can('skip')}
+              >
                 <SkipForward className="mr-1 h-4 w-4" />
                 {t('debugger.skip', 'Skip')}
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={() => onCommand({ type: 'stop' })} disabled={!can('stop')}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onCommand({ type: 'stop' })}
+              disabled={!can('stop')}
+            >
               <Square className="mr-1 h-4 w-4" />
               {t('debugger.stop', 'Stop')}
             </Button>
@@ -247,11 +335,21 @@ export default function DebugPanel({
 
       {!paused && !DEBUG_ENDED.has(state.status) && (
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => onCommand({ type: 'pause' })} disabled={!can('pause')}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onCommand({ type: 'pause' })}
+            disabled={!can('pause')}
+          >
             <Pause className="mr-1 h-4 w-4" />
             {t('debugger.pause', 'Pause')}
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onCommand({ type: 'stop' })} disabled={!can('stop')}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onCommand({ type: 'stop' })}
+            disabled={!can('stop')}
+          >
             <Square className="mr-1 h-4 w-4" />
             {t('debugger.stop', 'Stop')}
           </Button>
@@ -259,30 +357,58 @@ export default function DebugPanel({
       )}
 
       {state.outcome && (
-        <p className={`flex items-center gap-2 text-sm font-medium ${state.outcome.success ? 'text-success' : 'text-destructive'}`} role="status">
-          {state.outcome.success ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+        <p
+          className={`flex items-center gap-2 text-sm font-medium ${state.outcome.success ? 'text-success' : 'text-destructive'}`}
+          role="status"
+        >
+          {state.outcome.success ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : (
+            <XCircle className="h-4 w-4" />
+          )}
           {state.status === 'stopped'
             ? t('debugger.outcome.stopped', 'Stopped.')
             : state.outcome.success
               ? t('debugger.outcome.passed', 'The test passed.')
               : t('debugger.outcome.failed', 'The test did not pass.')}
-          {state.outcome.skipped > 0 && ` ${t('debugger.outcome.skipped', '{{count}} step(s) passed over.', { count: state.outcome.skipped })}`}
+          {state.outcome.skipped > 0 &&
+            ` ${t('debugger.outcome.skipped', '{{count}} step(s) passed over.', { count: state.outcome.skipped })}`}
         </p>
       )}
-      {state.outcome?.error && state.status !== 'stopped' && <p className="text-xs text-destructive wrap-break-word">{state.outcome.error}</p>}
-      {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
+      {state.outcome?.error && state.status !== 'stopped' && (
+        <p className="text-xs text-destructive wrap-break-word">{state.outcome.error}</p>
+      )}
+      {error && (
+        <p className="text-xs text-destructive" role="alert">
+          {error}
+        </p>
+      )}
 
       {state.steps.length > 0 && (
         <div>
-          <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">{t('debugger.steps', 'Steps run')}</h4>
+          <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">
+            {t('debugger.steps', 'Steps run')}
+          </h4>
           <ol className="space-y-1 text-xs">
             {state.steps.map((step, index) => (
               <li key={index} className="flex items-center gap-2">
-                {step.status === 'passed' && <CheckCircle2 className="h-3 w-3 text-success shrink-0" />}
-                {step.status === 'failed' && <XCircle className="h-3 w-3 text-destructive shrink-0" />}
-                {step.status === 'skipped' && <SkipForward className="h-3 w-3 text-muted-foreground shrink-0" />}
-                <span className="truncate" title={step.detail}>{step.name}</span>
-                {step.corrected && <Badge variant="outline" className="text-[10px]">{t('debugger.corrected.badge', 'corrected')}</Badge>}
+                {step.status === 'passed' && (
+                  <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
+                )}
+                {step.status === 'failed' && (
+                  <XCircle className="h-3 w-3 text-destructive shrink-0" />
+                )}
+                {step.status === 'skipped' && (
+                  <SkipForward className="h-3 w-3 text-muted-foreground shrink-0" />
+                )}
+                <span className="truncate" title={step.detail}>
+                  {step.name}
+                </span>
+                {step.corrected && (
+                  <Badge variant="outline" className="text-[10px]">
+                    {t('debugger.corrected.badge', 'corrected')}
+                  </Badge>
+                )}
               </li>
             ))}
           </ol>
@@ -291,12 +417,17 @@ export default function DebugPanel({
 
       {state.variables.length > 0 && (
         <details>
-          <summary className="text-xs font-semibold uppercase text-muted-foreground cursor-pointer">{t('debugger.variables', 'Variables')}</summary>
+          <summary className="text-xs font-semibold uppercase text-muted-foreground cursor-pointer">
+            {t('debugger.variables', 'Variables')}
+          </summary>
           <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
             {state.variables.map((variable) => (
               <React.Fragment key={variable.name}>
                 <dt className="font-mono">{variable.name}</dt>
-                <dd className="break-all text-muted-foreground">{variable.value ?? t('debugger.fromEnvironment', '(from the environment, hidden)')}</dd>
+                <dd className="break-all text-muted-foreground">
+                  {variable.value ??
+                    t('debugger.fromEnvironment', '(from the environment, hidden)')}
+                </dd>
               </React.Fragment>
             ))}
           </dl>

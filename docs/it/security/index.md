@@ -13,15 +13,15 @@ tramite GitHub, mai in una issue pubblica.
 
 ## Responsabilità condivisa
 
-| Ambito | Il prodotto | Chi gestisce l'installazione | Gli owner dell'organizzazione |
-|---|---|---|---|
-| Isolamento tra organizzazioni | Imposto dal database su ogni query | Esegue PostgreSQL con i ruoli richiesti | — |
-| Account e accessi | Ruoli, secondo fattore, scope delle chiavi API, registrazione su invito, registro di audit | Esposizione in rete, l'impostazione `REGISTRATION` | Membri, ruoli, obbligo del secondo fattore, igiene delle chiavi |
-| Segreti salvati per i test | Cifrati con AES-256-GCM, mai restituiti | Custodisce `ENCRYPTION_KEY` e ne fa il backup | Decidono quali segreti salvare |
-| Dati in transito | Cookie sicuri, controlli sull'origine | TLS davanti al processo web e tra i servizi | — |
-| Dati a riposo | Cifratura applicativa dei segreti | Cifratura di dischi, database, backup e bucket | — |
-| Dove possono collegarsi i test | Nulla è bloccato: raggiungere l'applicazione è il compito | Regole di rete per i worker | Cosa chiamano i loro test |
-| Aggiornamenti | Release con migrazioni | Applicarle, aggiornare gli host | — |
+| Ambito                         | Il prodotto                                                                                | Chi gestisce l'installazione                       | Gli owner dell'organizzazione                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------- |
+| Isolamento tra organizzazioni  | Imposto dal database su ogni query                                                         | Esegue PostgreSQL con i ruoli richiesti            | —                                                               |
+| Account e accessi              | Ruoli, secondo fattore, scope delle chiavi API, registrazione su invito, registro di audit | Esposizione in rete, l'impostazione `REGISTRATION` | Membri, ruoli, obbligo del secondo fattore, igiene delle chiavi |
+| Segreti salvati per i test     | Cifrati con AES-256-GCM, mai restituiti                                                    | Custodisce `ENCRYPTION_KEY` e ne fa il backup      | Decidono quali segreti salvare                                  |
+| Dati in transito               | Cookie sicuri, controlli sull'origine                                                      | TLS davanti al processo web e tra i servizi        | —                                                               |
+| Dati a riposo                  | Cifratura applicativa dei segreti                                                          | Cifratura di dischi, database, backup e bucket     | —                                                               |
+| Dove possono collegarsi i test | Nulla è bloccato: raggiungere l'applicazione è il compito                                  | Regole di rete per i worker                        | Cosa chiamano i loro test                                       |
+| Aggiornamenti                  | Release con migrazioni                                                                     | Applicarle, aggiornare gli host                    | —                                                               |
 
 ## Isolamento tra organizzazioni
 
@@ -86,13 +86,13 @@ registrazione pubblica, in cui ogni nuovo account ottiene una propria organizzaz
 
 Le **macchine** non usano mai la password di una persona:
 
-| Credenziale | Salvata come | Ambito | Durata |
-|---|---|---|---|
-| Chiave API | Hash SHA-256, mostrata una volta | Il ruolo del suo account; facoltativamente ristretta a scope su `/api/v1` | Fino a revoca o scadenza |
-| Account di servizio | Un account che non può accedere | Viewer o editor | Fino alla disattivazione, che revoca le sue chiavi |
-| Token di webhook | Hash SHA-256, mostrato una volta | Avvia un piano | Fino alla cancellazione |
-| Token di un agente locale | Hash SHA-256, mostrato una volta | Un agente di un'organizzazione | Fino a revoca |
-| Ticket del relay | Non salvato; firmato con HMAC | Un'organizzazione, un pool e un browser | 60 secondi |
+| Credenziale               | Salvata come                     | Ambito                                                                    | Durata                                             |
+| ------------------------- | -------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------- |
+| Chiave API                | Hash SHA-256, mostrata una volta | Il ruolo del suo account; facoltativamente ristretta a scope su `/api/v1` | Fino a revoca o scadenza                           |
+| Account di servizio       | Un account che non può accedere  | Viewer o editor                                                           | Fino alla disattivazione, che revoca le sue chiavi |
+| Token di webhook          | Hash SHA-256, mostrato una volta | Avvia un piano                                                            | Fino alla cancellazione                            |
+| Token di un agente locale | Hash SHA-256, mostrato una volta | Un agente di un'organizzazione                                            | Fino a revoca                                      |
+| Ticket del relay          | Non salvato; firmato con HMAC    | Un'organizzazione, un pool e un browser                                   | 60 secondi                                         |
 
 I token sono 32 byte casuali; per valori che non si possono indovinare basta un singolo hash, e
 la ricerca resta esatta.
@@ -213,11 +213,11 @@ aprirla all'installazione:
 Le funzioni AI sono **disattivate finché l'operatore non imposta una chiave API di Google
 Gemini**. Quando sono attive, lascia l'installazione verso l'API di Google:
 
-| Funzione | Cosa viene inviato |
-|---|---|
-| Descrivere un test a frasi | Le frasi, l'elenco delle azioni ammesse, e nomi ed etichette degli elementi disponibili (mai selettori o segreti). |
-| Correzione del selettore, quando uno step non trova il suo elemento | Il selettore che fallisce, l'errore, e fino a 30.000 caratteri dell'HTML della pagina. |
-| Test da una story, quando un editor li chiede | Chiave e titolo del requisito, e la sua descrizione e i criteri di accettazione come li ha il tracker (fino a 12.000 caratteri). |
+| Funzione                                                                   | Cosa viene inviato                                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Descrivere un test a frasi                                                 | Le frasi, l'elenco delle azioni ammesse, e nomi ed etichette degli elementi disponibili (mai selettori o segreti).                                                                                                                                               |
+| Correzione del selettore, quando uno step non trova il suo elemento        | Il selettore che fallisce, l'errore, e fino a 30.000 caratteri dell'HTML della pagina.                                                                                                                                                                           |
+| Test da una story, quando un editor li chiede                              | Chiave e titolo del requisito, e la sua descrizione e i criteri di accettazione come li ha il tracker (fino a 12.000 caratteri).                                                                                                                                 |
 | Analisi del fallimento, quando un editor la chiede su un risultato fallito | Il nome del test, il motivo dato dal runner, gli step intorno al fallimento con selettori, errori e valori (i valori che sembrano password, codici o chiavi sono sostituiti da `[hidden]`), le richieste fallite e le più lente, e lo screenshot del fallimento. |
 
 L'HTML di una pagina può contenere dati personali dell'applicazione sotto test. Impostate la

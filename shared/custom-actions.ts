@@ -13,7 +13,7 @@
  * changes every test that uses it on its next run.
  */
 
-export const CUSTOM_ACTION_PREFIX = "customAction:";
+export const CUSTOM_ACTION_PREFIX = 'customAction:';
 
 /** The step id for a call to the action with this id. */
 export function customActionStepId(actionId: string): string {
@@ -24,7 +24,7 @@ export function customActionStepId(actionId: string): string {
 export function customActionIdOf(stepActionId: string | undefined | null): string | null {
   if (!stepActionId || !stepActionId.startsWith(CUSTOM_ACTION_PREFIX)) return null;
   const id = stepActionId.slice(CUSTOM_ACTION_PREFIX.length);
-  return id === "" ? null : id;
+  return id === '' ? null : id;
 }
 
 /** What the id of a call looks like, for the step schema. */
@@ -47,16 +47,23 @@ export interface CustomActionParameter {
  * that needs a semicolon writes it as `\;`. Values keep their `{{placeholders}}`: they are
  * resolved when the step runs, not here.
  */
-export function parseArguments(value: string | null | undefined): { args: Record<string, string> } | { error: string } {
+export function parseArguments(
+  value: string | null | undefined,
+): { args: Record<string, string> } | { error: string } {
   const args: Record<string, string> = {};
-  const text = (value ?? "").trim();
-  if (text === "") return { args };
-  const parts = text.split(/(?<!\\);/).map((part) => part.replace(/\\;/g, ";").trim()).filter(Boolean);
+  const text = (value ?? '').trim();
+  if (text === '') return { args };
+  const parts = text
+    .split(/(?<!\\);/)
+    .map((part) => part.replace(/\\;/g, ';').trim())
+    .filter(Boolean);
   for (const part of parts) {
-    const at = part.indexOf("=");
-    const name = at === -1 ? "" : part.slice(0, at).trim();
+    const at = part.indexOf('=');
+    const name = at === -1 ? '' : part.slice(0, at).trim();
     if (!PARAMETER_NAME_PATTERN.test(name)) {
-      return { error: `"${part}" is not name=value. Separate arguments with ; — for example code=4711; qty=2.` };
+      return {
+        error: `"${part}" is not name=value. Separate arguments with ; — for example code=4711; qty=2.`,
+      };
     }
     args[name] = part.slice(at + 1).trim();
   }
@@ -65,7 +72,7 @@ export function parseArguments(value: string | null | undefined): { args: Record
 
 /** The hint the builder shows in the value field: "code=…; qty=…". */
 export function argumentsHint(parameters: CustomActionParameter[]): string {
-  return parameters.map((p) => `${p.name}=…${p.required ? "" : " (optional)"}`).join("; ");
+  return parameters.map((p) => `${p.name}=…${p.required ? '' : ' (optional)'}`).join('; ');
 }
 
 /** Which required parameters a call leaves out, and which it names that the action does not have. */
@@ -73,10 +80,12 @@ export function checkArguments(
   parameters: CustomActionParameter[],
   args: Record<string, string>,
 ): string | null {
-  const missing = parameters.filter((p) => p.required && (args[p.name] ?? "") === "").map((p) => p.name);
-  if (missing.length > 0) return `Missing argument(s): ${missing.join(", ")}.`;
+  const missing = parameters
+    .filter((p) => p.required && (args[p.name] ?? '') === '')
+    .map((p) => p.name);
+  if (missing.length > 0) return `Missing argument(s): ${missing.join(', ')}.`;
   const known = new Set(parameters.map((p) => p.name));
   const unknown = Object.keys(args).filter((name) => !known.has(name));
-  if (unknown.length > 0) return `Unknown argument(s): ${unknown.join(", ")}.`;
+  if (unknown.length > 0) return `Unknown argument(s): ${unknown.join(', ')}.`;
   return null;
 }

@@ -11,7 +11,12 @@ import { apiKeyAuth, resetApiKeyUsageThrottle } from './api-key-auth';
 
 vi.mock('../logger', () => ({
   default: Promise.resolve({
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), http: vi.fn(), verbose: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
   }),
   updateLogLevel: vi.fn(),
 }));
@@ -78,7 +83,10 @@ describe('a request carrying a key', () => {
   it('authenticates as the user the key belongs to', async () => {
     const { id, key } = await seedKey();
 
-    const response = await request(app).get('/whoami').set('Authorization', `Bearer ${key}`).expect(200);
+    const response = await request(app)
+      .get('/whoami')
+      .set('Authorization', `Bearer ${key}`)
+      .expect(200);
 
     expect(response.body).toEqual({ userId, organizationId, apiKeyId: id });
   });
@@ -152,8 +160,11 @@ describe('a request whose key cannot be used', () => {
     expect(revoked.body).toEqual(none.body);
   });
 
-  it("leaves a Bearer token that is not ours alone", async () => {
-    await request(app).get('/whoami').set('Authorization', 'Bearer eyJhbGciOiJIUzI1NiJ9.jwt').expect(401);
+  it('leaves a Bearer token that is not ours alone', async () => {
+    await request(app)
+      .get('/whoami')
+      .set('Authorization', 'Bearer eyJhbGciOiJIUzI1NiJ9.jwt')
+      .expect(401);
   });
 });
 
@@ -162,7 +173,12 @@ describe('a session', () => {
     const { key } = await seedKey();
     const sessionApp = express();
     sessionApp.use((req, _res, next) => {
-      (req as any).user = { id: 999, organizationId: 4242, role: 'viewer', username: 'session-user' };
+      (req as any).user = {
+        id: 999,
+        organizationId: 4242,
+        role: 'viewer',
+        username: 'session-user',
+      };
       (req as any).isAuthenticated = () => true;
       next();
     });
@@ -180,14 +196,24 @@ describe('a session', () => {
     const { id, key } = await seedKey();
     const sessionApp = express();
     sessionApp.use((req, _res, next) => {
-      (req as any).user = { id: 999, organizationId: 4242, role: 'viewer', username: 'session-user' };
+      (req as any).user = {
+        id: 999,
+        organizationId: 4242,
+        role: 'viewer',
+        username: 'session-user',
+      };
       (req as any).isAuthenticated = () => true;
       next();
     });
     sessionApp.use(apiKeyAuth);
-    sessionApp.get('/api/v1/whoami', (req, res) => res.json({ userId: req.user!.id, apiKeyId: (req as any).apiKeyId }));
+    sessionApp.get('/api/v1/whoami', (req, res) =>
+      res.json({ userId: req.user!.id, apiKeyId: (req as any).apiKeyId }),
+    );
 
-    const response = await request(sessionApp).get('/api/v1/whoami').set('X-API-Key', key).expect(200);
+    const response = await request(sessionApp)
+      .get('/api/v1/whoami')
+      .set('X-API-Key', key)
+      .expect(200);
 
     expect(response.body).toEqual({ userId, apiKeyId: id });
   });

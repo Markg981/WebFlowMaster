@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -26,8 +28,30 @@ vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { id: 2, role } }) 
 const fetchMock = vi.fn();
 
 const reviews = [
-  { id: 1, testId: 9, testName: 'Checkout', version: 5, publishedVersion: 3, summary: '2 steps added', note: 'New payment step', requestedByName: 'alice', requestedAt: '2026-09-20T10:00:00.000Z', canDecide: true },
-  { id: 2, testId: 10, testName: 'Login', version: 2, publishedVersion: null, summary: null, note: null, requestedByName: 'me', requestedAt: '2026-09-20T11:00:00.000Z', canDecide: false },
+  {
+    id: 1,
+    testId: 9,
+    testName: 'Checkout',
+    version: 5,
+    publishedVersion: 3,
+    summary: '2 steps added',
+    note: 'New payment step',
+    requestedByName: 'alice',
+    requestedAt: '2026-09-20T10:00:00.000Z',
+    canDecide: true,
+  },
+  {
+    id: 2,
+    testId: 10,
+    testName: 'Login',
+    version: 2,
+    publishedVersion: null,
+    summary: null,
+    note: null,
+    requestedByName: 'me',
+    requestedAt: '2026-09-20T11:00:00.000Z',
+    canDecide: false,
+  },
 ];
 
 function renderPage() {
@@ -60,7 +84,11 @@ describe('ReviewsPage', () => {
     expect(within(item).getByText(/Asked by alice/)).toBeInTheDocument();
 
     fireEvent.click(within(item).getByRole('button', { name: /Approve and publish/ }));
-    await waitFor(() => expect(fetchMock.mock.calls.some(([url]: any[]) => url === '/api/test-reviews/1/approve')).toBe(true));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url]: any[]) => url === '/api/test-reviews/1/approve'),
+      ).toBe(true),
+    );
   });
 
   it('does not reject without a reason', async () => {
@@ -69,12 +97,18 @@ describe('ReviewsPage', () => {
 
     fireEvent.click(within(item).getByRole('button', { name: 'Reject' }));
     expect(await within(item).findByText(/Say what needs to change/)).toBeInTheDocument();
-    expect(fetchMock.mock.calls.some(([url]: any[]) => String(url).endsWith('/reject'))).toBe(false);
+    expect(fetchMock.mock.calls.some(([url]: any[]) => String(url).endsWith('/reject'))).toBe(
+      false,
+    );
 
-    fireEvent.change(within(item).getByLabelText('Comment on Checkout'), { target: { value: 'Step 3 is wrong' } });
+    fireEvent.change(within(item).getByLabelText('Comment on Checkout'), {
+      target: { value: 'Step 3 is wrong' },
+    });
     fireEvent.click(within(item).getByRole('button', { name: 'Reject' }));
     await waitFor(() => {
-      const call = fetchMock.mock.calls.find(([url]: any[]) => url === '/api/test-reviews/1/reject');
+      const call = fetchMock.mock.calls.find(
+        ([url]: any[]) => url === '/api/test-reviews/1/reject',
+      );
       expect(JSON.parse(call![1].body)).toEqual({ comment: 'Step 3 is wrong' });
     });
   });
@@ -94,13 +128,23 @@ describe('ReviewsPage', () => {
   });
 });
 
-it.each(['api', 'mobile'] as const)('opens the %s review history using its canonical target', async (testType) => {
-  const base = fetchMock.getMockImplementation()!;
-  fetchMock.mockImplementation((url: string) => url === '/api/test-reviews'
-    ? Promise.resolve({ ok: true, json: async () => [{ ...reviews[0], testType, testId: 42 }] }) : base(url));
-  renderPage();
-  const item = await screen.findByTestId('review-1');
-  fireEvent.click(within(item).getByRole('button', { name: 'History' }));
-  await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url === `/api/${testType}-tests/42/versions`)).toBe(true));
-  expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
-});
+it.each(['api', 'mobile'] as const)(
+  'opens the %s review history using its canonical target',
+  async (testType) => {
+    const base = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((url: string) =>
+      url === '/api/test-reviews'
+        ? Promise.resolve({ ok: true, json: async () => [{ ...reviews[0], testType, testId: 42 }] })
+        : base(url),
+    );
+    renderPage();
+    const item = await screen.findByTestId('review-1');
+    fireEvent.click(within(item).getByRole('button', { name: 'History' }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url]) => url === `/api/${testType}-tests/42/versions`),
+      ).toBe(true),
+    );
+    expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
+  },
+);

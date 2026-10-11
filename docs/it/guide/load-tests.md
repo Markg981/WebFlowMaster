@@ -32,11 +32,11 @@ Il numero di utenti virtuali segue gli **stage**. Ogni stage lo porta in modo li
 finito lo stage precedente (0 all'inizio) al suo obiettivo di **utenti virtuali**, nella sua
 **durata**:
 
-| Stage | Durata | Utenti virtuali | Cosa succede                    |
-| ----- | ------ | --------------- | ------------------------------- |
-| 1     | 60 s   | 50              | salita da 0 a 50                |
+| Stage | Durata | Utenti virtuali | Cosa succede                      |
+| ----- | ------ | --------------- | --------------------------------- |
+| 1     | 60 s   | 50              | salita da 0 a 50                  |
 | 2     | 600 s  | 50              | 50 utenti mantenuti per 10 minuti |
-| 3     | 60 s   | 0               | discesa a 0                     |
+| 3     | 60 s   | 0               | discesa a 0                       |
 
 Fino a 10 stage, 200 utenti virtuali e 3.600 s in tutto. Un utente oltre l'obiettivo del momento
 si ferma alla fine della sua iterazione, così una discesa non interrompe mai uno scenario a metà.

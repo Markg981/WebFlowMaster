@@ -2,7 +2,11 @@ import type { ClientLogEntry, ClientLogLevel } from '@shared/observability';
 import { getSessionId } from './session';
 
 const LEVEL_ORDER: Record<ClientLogLevel, number> = {
-  error: 0, warn: 1, info: 2, http: 3, debug: 4,
+  error: 0,
+  warn: 1,
+  info: 2,
+  http: 3,
+  debug: 4,
 };
 
 const INGEST_URL = '/api/client-logs';
@@ -39,7 +43,9 @@ function payload(): string {
 
 function ensureTimer(): void {
   if (timer !== null) return;
-  timer = setInterval(() => { void flushNow(); }, FLUSH_INTERVAL_MS);
+  timer = setInterval(() => {
+    void flushNow();
+  }, FLUSH_INTERVAL_MS);
   // Do not hold a Node test process open.
   (timer as unknown as { unref?: () => void }).unref?.();
 }
@@ -82,7 +88,11 @@ export async function flushNow(): Promise<void> {
   }
 }
 
-function enqueue(entryLevel: ClientLogLevel, message: string, meta?: Record<string, unknown>): void {
+function enqueue(
+  entryLevel: ClientLogLevel,
+  message: string,
+  meta?: Record<string, unknown>,
+): void {
   try {
     if (LEVEL_ORDER[entryLevel] > LEVEL_ORDER[level]) return;
 
@@ -143,5 +153,8 @@ export function __resetForTests(): void {
   level = 'info';
   currentRoute = '';
   currentCorrelationId = undefined;
-  if (timer !== null) { clearInterval(timer); timer = null; }
+  if (timer !== null) {
+    clearInterval(timer);
+    timer = null;
+  }
 }

@@ -31,7 +31,9 @@ beforeAll(async () => {
   organizationId = await createTestOrganization('Execution state organization');
   otherOrganizationId = await createTestOrganization('Other execution state organization');
   userId = await createTestUser(organizationId, 'execution-state-user');
-  await privilegedDb.insert(testPlans).values({ id: testPlanId, organizationId, userId, name: 'Execution state plan' });
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: testPlanId, organizationId, userId, name: 'Execution state plan' });
 });
 
 async function queuedRun(): Promise<string> {
@@ -76,7 +78,9 @@ describe('canTransitionExecution', () => {
   });
 
   it('knows which states are the end of a run', () => {
-    expect(['completed', 'failed', 'error', 'cancelled', 'timed_out'].every(isTerminalExecutionStatus)).toBe(true);
+    expect(
+      ['completed', 'failed', 'error', 'cancelled', 'timed_out'].every(isTerminalExecutionStatus),
+    ).toBe(true);
     expect(['queued', 'running', 'cancelling'].some(isTerminalExecutionStatus)).toBe(false);
   });
 });
@@ -115,7 +119,10 @@ describe('transitionExecution', () => {
 
     expect(late).toBeNull();
     expect(overwritten).toBeNull();
-    const [stored] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, id));
     expect(stored.status).toBe('completed');
     expect(stored.completedAt).toBeInstanceOf(Date);
   });
@@ -124,7 +131,10 @@ describe('transitionExecution', () => {
     const id = await queuedRun();
 
     const failed = await inTenant(() =>
-      transitionExecution(id, 'error', { failureCode: 'plan_missing', failureMessage: 'The plan was deleted.' }),
+      transitionExecution(id, 'error', {
+        failureCode: 'plan_missing',
+        failureMessage: 'The plan was deleted.',
+      }),
     );
 
     expect(failed).toMatchObject({ status: 'error', failureCode: 'plan_missing' });
@@ -141,10 +151,15 @@ describe('transitionExecution', () => {
   it('cannot move another organization’s run', async () => {
     const id = await queuedRun();
 
-    const moved = await runWithTenant(otherOrganizationId, () => transitionExecution(id, 'running'));
+    const moved = await runWithTenant(otherOrganizationId, () =>
+      transitionExecution(id, 'running'),
+    );
 
     expect(moved).toBeNull();
-    const [stored] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, id));
     expect(stored.status).toBe('queued');
   });
 });
@@ -156,7 +171,10 @@ describe('the lifecycle columns', () => {
     const id = `execution-state-${++counter}`;
     await privilegedDb.insert(testPlanExecutions).values({ id, testPlanId, organizationId });
 
-    const [stored] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, id));
 
     expect(stored.status).toBe('queued');
     expect(stored.startedAt).toBeNull();
@@ -166,11 +184,16 @@ describe('the lifecycle columns', () => {
   it('keeps who asked for a run after they leave, as nobody', async () => {
     const leaver = await createTestUser(organizationId, 'execution-state-leaver');
     const id = `execution-state-${++counter}`;
-    await privilegedDb.insert(testPlanExecutions).values({ id, testPlanId, organizationId, requestedByUserId: leaver });
+    await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id, testPlanId, organizationId, requestedByUserId: leaver });
 
     await privilegedDb.execute(sql`DELETE FROM users WHERE id = ${leaver}`);
 
-    const [stored] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+    const [stored] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, id));
     expect(stored).toBeDefined();
     expect(stored.requestedByUserId).toBeNull();
   });
@@ -181,7 +204,11 @@ describe('isExecutionInFlight', () => {
     // `pending` stays: an API client written against the previous version, or a database that
     // has not migrated yet, still uses it, and calling it finished stops a pipeline too early.
     expect(['queued', 'running', 'cancelling', 'pending'].every(isExecutionInFlight)).toBe(true);
-    expect(['completed', 'failed', 'error', 'cancelled', 'timed_out', undefined].some(isExecutionInFlight)).toBe(false);
+    expect(
+      ['completed', 'failed', 'error', 'cancelled', 'timed_out', undefined].some(
+        isExecutionInFlight,
+      ),
+    ).toBe(false);
   });
 });
 
@@ -192,7 +219,10 @@ describe('requestCancellation', () => {
     const result = await inTenant(() => requestCancellation(id, 'Cancelled by ada.'));
 
     expect(result.outcome).toBe('cancelled');
-    const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+    const [row] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, id));
     expect(row).toMatchObject({ status: 'cancelled', failureMessage: 'Cancelled by ada.' });
     expect(row.cancelRequestedAt).not.toBeNull();
     expect(row.completedAt).not.toBeNull();
@@ -207,7 +237,10 @@ describe('requestCancellation', () => {
     const result = await inTenant(() => requestCancellation(id, 'Cancelled by ada.'));
 
     expect(result.outcome).toBe('cancelling');
-    const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+    const [row] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, id));
     expect(row.status).toBe('cancelling');
     expect(row.completedAt).toBeNull();
     // Asking again is harmless.
@@ -219,11 +252,19 @@ describe('requestCancellation', () => {
     await inTenant(() => transitionExecution(id, 'running'));
     await inTenant(() => transitionExecution(id, 'completed'));
 
-    expect(await inTenant(() => requestCancellation(id, 'late'))).toEqual({ outcome: 'already_ended', status: 'completed' });
+    expect(await inTenant(() => requestCancellation(id, 'late'))).toEqual({
+      outcome: 'already_ended',
+      status: 'completed',
+    });
 
     const other = await queuedRun();
-    expect(await runWithTenant(otherOrganizationId, () => requestCancellation(other, 'not mine'))).toEqual({ outcome: 'not_found' });
-    const [untouched] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, other));
+    expect(
+      await runWithTenant(otherOrganizationId, () => requestCancellation(other, 'not mine')),
+    ).toEqual({ outcome: 'not_found' });
+    const [untouched] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, other));
     expect(untouched.status).toBe('queued');
   });
 });
@@ -234,9 +275,15 @@ describe('recordHeartbeat', () => {
     expect(await inTenant(() => recordHeartbeat(id))).toBeNull();
 
     await inTenant(() => transitionExecution(id, 'running'));
-    await privilegedDb.update(testPlanExecutions).set({ heartbeatAt: new Date(0) }).where(eq(testPlanExecutions.id, id));
+    await privilegedDb
+      .update(testPlanExecutions)
+      .set({ heartbeatAt: new Date(0) })
+      .where(eq(testPlanExecutions.id, id));
     expect(await inTenant(() => recordHeartbeat(id))).toBe('running');
-    const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+    const [row] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, id));
     expect(Date.now() - row.heartbeatAt!.getTime()).toBeLessThan(5_000);
 
     await inTenant(() => requestCancellation(id, 'stop'));

@@ -34,18 +34,18 @@ sequenceDiagram
 
 ## Componenti
 
-| Parte | File | Ruolo |
-|---|---|---|
-| Tipi del protocollo | `shared/agents.ts` | Percorsi, versione del protocollo, forma dei messaggi, regola dei nomi dei pool, compatibilità Playwright. |
-| Credenziali | `server/agents/agent-credentials.ts` | Token degli agenti (`wfa_…`, salvati come SHA-256), ticket del relay (HMAC, 60 s). |
-| Verifica del token | `server/agents/agent-auth.ts` | A quale agente appartiene un token (privilegiata: è il token a indicare l'organizzazione). |
-| Relay | `server/agents/relay.ts` | Accetta agenti, runner e sessioni; sceglie un agente; inoltra il protocollo. |
-| Directory | `server/agents/relay-directory.ts` | Cosa tiene ogni istanza del relay, quando ci sono più server web. |
-| Lato runner | `server/agents/agent-browser.ts` | Firma un ticket, chiede la disponibilità, si connette. |
-| Richieste API | `server/agents/agent-fetch.ts` | `fetch` eseguita tramite l'API request di un browser in prestito. |
-| Avvio | `server/agents/setup.ts` | Avvia il relay nel processo web, modalità cluster da `AGENT_RELAY_ADVERTISE_URL`. |
-| Programma dell'agente | `scripts/wfm-agent.ts` | Connessione di controllo, `launchServer`, inoltro delle sessioni, riconnessione, drenaggio. |
-| Rotte | `server/routes/agents.routes.ts` | Elenco, creazione (token mostrato una volta), revoca; disponibilità. |
+| Parte                 | File                                 | Ruolo                                                                                                      |
+| --------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Tipi del protocollo   | `shared/agents.ts`                   | Percorsi, versione del protocollo, forma dei messaggi, regola dei nomi dei pool, compatibilità Playwright. |
+| Credenziali           | `server/agents/agent-credentials.ts` | Token degli agenti (`wfa_…`, salvati come SHA-256), ticket del relay (HMAC, 60 s).                         |
+| Verifica del token    | `server/agents/agent-auth.ts`        | A quale agente appartiene un token (privilegiata: è il token a indicare l'organizzazione).                 |
+| Relay                 | `server/agents/relay.ts`             | Accetta agenti, runner e sessioni; sceglie un agente; inoltra il protocollo.                               |
+| Directory             | `server/agents/relay-directory.ts`   | Cosa tiene ogni istanza del relay, quando ci sono più server web.                                          |
+| Lato runner           | `server/agents/agent-browser.ts`     | Firma un ticket, chiede la disponibilità, si connette.                                                     |
+| Richieste API         | `server/agents/agent-fetch.ts`       | `fetch` eseguita tramite l'API request di un browser in prestito.                                          |
+| Avvio                 | `server/agents/setup.ts`             | Avvia il relay nel processo web, modalità cluster da `AGENT_RELAY_ADVERTISE_URL`.                          |
+| Programma dell'agente | `scripts/wfm-agent.ts`               | Connessione di controllo, `launchServer`, inoltro delle sessioni, riconnessione, drenaggio.                |
+| Rotte                 | `server/routes/agents.routes.ts`     | Elenco, creazione (token mostrato una volta), revoca; disponibilità.                                       |
 
 ## Credenziali
 

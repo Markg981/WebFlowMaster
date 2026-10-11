@@ -81,7 +81,11 @@ const GENERATORS: Record<string, Generator> = {
 export const GENERATOR_NAMES = Object.keys(GENERATORS);
 
 /** The generated value, or null when the name is unknown or its arguments do not fit. */
-export function generate(name: string, rawArgs?: string, vars: Record<string, string> = {}): string | null {
+export function generate(
+  name: string,
+  rawArgs?: string,
+  vars: Record<string, string> = {},
+): string | null {
   const generator = GENERATORS[name];
   if (!generator) return null;
   const args = rawArgs === undefined ? [] : rawArgs.split(',');
@@ -90,14 +94,18 @@ export function generate(name: string, rawArgs?: string, vars: Record<string, st
 
 /** Replaces every generator placeholder it can; one it cannot is left as written. */
 export function substituteGenerators(value: string, vars: Record<string, string> = {}): string {
-  return value.replace(GENERATOR_PATTERN, (match, name: string, args?: string) => generate(name, args, vars) ?? match);
+  return value.replace(
+    GENERATOR_PATTERN,
+    (match, name: string, args?: string) => generate(name, args, vars) ?? match,
+  );
 }
 
 /** The generator placeholders in a string that would stay as written, for the error message. */
 export function findInvalidGenerators(value: string, vars: Record<string, string> = {}): string[] {
   const invalid = new Set<string>();
   for (const match of value.matchAll(GENERATOR_PATTERN)) {
-    if (generate(match[1], match[2], vars) === null) invalid.add(match[0].replace(/^\{\{\s*|\s*\}\}$/g, ''));
+    if (generate(match[1], match[2], vars) === null)
+      invalid.add(match[0].replace(/^\{\{\s*|\s*\}\}$/g, ''));
   }
   return [...invalid];
 }

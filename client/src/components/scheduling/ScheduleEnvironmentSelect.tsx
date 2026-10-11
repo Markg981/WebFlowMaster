@@ -1,6 +1,12 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { NO_ENVIRONMENT, useEnvironments } from '@/hooks/use-environments';
 
 /**
@@ -49,7 +55,9 @@ export default function ScheduleEnvironmentSelect({
         <SelectValue placeholder={t('scheduleEnvironment.placeholder', 'Choose an environment')} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={NO_ENVIRONMENT}>{t('scheduleEnvironment.none', 'No environment (defaults only)')}</SelectItem>
+        <SelectItem value={NO_ENVIRONMENT}>
+          {t('scheduleEnvironment.none', 'No environment (defaults only)')}
+        </SelectItem>
         {environments.map((env) => (
           <SelectItem key={env.id} value={String(env.id)}>
             {env.name}
@@ -57,7 +65,11 @@ export default function ScheduleEnvironmentSelect({
         ))}
         {unknownLegacyName && (
           <SelectItem value={unknownLegacyName}>
-            {t('scheduleEnvironment.unknown', '{{name}} — not an environment of this organization; nothing is loaded', { name: unknownLegacyName })}
+            {t(
+              'scheduleEnvironment.unknown',
+              '{{name}} — not an environment of this organization; nothing is loaded',
+              { name: unknownLegacyName },
+            )}
           </SelectItem>
         )}
       </SelectContent>

@@ -49,20 +49,55 @@ export default function SsoSignIn({ open: openAtStart = false }: { open?: boolea
   });
 
   const messages: Record<(typeof SSO_ERRORS)[number], string> = {
-    unknown_domain: t('sso.errors.unknown_domain', 'No organization here signs in that address with single sign-on. Check it, or sign in with your password.'),
-    provider_unreachable: t('sso.errors.provider_unreachable', "Your organization's identity provider could not be reached. Try again, or ask an owner to check the single sign-on settings."),
-    expired: t('sso.errors.expired', 'The sign-in took too long, or was started in another window. Try again.'),
-    provider_error: t('sso.errors.provider_error', 'Your identity provider did not complete the sign-in. Try again; if it keeps happening, an owner will find the reason in the server log.'),
-    no_email: t('sso.errors.no_email', 'Your identity provider did not send your e-mail address. An owner has to add the email claim to the application there.'),
-    email_unverified: t('sso.errors.email_unverified', 'Your identity provider says your e-mail address is not verified.'),
-    domain_not_allowed: t('sso.errors.domain_not_allowed', 'Your e-mail address is not in a domain your organization signs in.'),
-    account_elsewhere: t('sso.errors.account_elsewhere', 'An account with your address belongs to another organization on this installation.'),
+    unknown_domain: t(
+      'sso.errors.unknown_domain',
+      'No organization here signs in that address with single sign-on. Check it, or sign in with your password.',
+    ),
+    provider_unreachable: t(
+      'sso.errors.provider_unreachable',
+      "Your organization's identity provider could not be reached. Try again, or ask an owner to check the single sign-on settings.",
+    ),
+    expired: t(
+      'sso.errors.expired',
+      'The sign-in took too long, or was started in another window. Try again.',
+    ),
+    provider_error: t(
+      'sso.errors.provider_error',
+      'Your identity provider did not complete the sign-in. Try again; if it keeps happening, an owner will find the reason in the server log.',
+    ),
+    no_email: t(
+      'sso.errors.no_email',
+      'Your identity provider did not send your e-mail address. An owner has to add the email claim to the application there.',
+    ),
+    email_unverified: t(
+      'sso.errors.email_unverified',
+      'Your identity provider says your e-mail address is not verified.',
+    ),
+    domain_not_allowed: t(
+      'sso.errors.domain_not_allowed',
+      'Your e-mail address is not in a domain your organization signs in.',
+    ),
+    account_elsewhere: t(
+      'sso.errors.account_elsewhere',
+      'An account with your address belongs to another organization on this installation.',
+    ),
     account_disabled: t('sso.errors.account_disabled', 'This account is disabled.'),
-    account_linked: t('sso.errors.account_linked', 'Your address is already linked to another identity at your provider. Ask an owner of your organization.'),
-    browser_mismatch: t('sso.errors.browser_mismatch', 'This sign-in was started in another browser. Start it again here.'),
-    no_group: t('sso.errors.no_group', 'Your account at the identity provider is in none of the groups this organization lets in. Ask your administrator.'),
+    account_linked: t(
+      'sso.errors.account_linked',
+      'Your address is already linked to another identity at your provider. Ask an owner of your organization.',
+    ),
+    browser_mismatch: t(
+      'sso.errors.browser_mismatch',
+      'This sign-in was started in another browser. Start it again here.',
+    ),
+    no_group: t(
+      'sso.errors.no_group',
+      'Your account at the identity provider is in none of the groups this organization lets in. Ask your administrator.',
+    ),
   };
-  const errorMessage = error ? (messages as Record<string, string>)[error] ?? messages.provider_error : '';
+  const errorMessage = error
+    ? ((messages as Record<string, string>)[error] ?? messages.provider_error)
+    : '';
 
   const start = (event: React.FormEvent) => {
     event.preventDefault();
@@ -74,7 +109,11 @@ export default function SsoSignIn({ open: openAtStart = false }: { open?: boolea
   return (
     <div className="space-y-3" data-testid="sso-sign-in">
       {errorMessage && (
-        <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20" data-testid="sso-sign-in-error">
+        <Alert
+          variant="destructive"
+          className="bg-destructive/10 text-destructive border-destructive/20"
+          data-testid="sso-sign-in-error"
+        >
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
@@ -87,7 +126,12 @@ export default function SsoSignIn({ open: openAtStart = false }: { open?: boolea
             <div className="h-px flex-1 bg-border" />
           </div>
           {!open ? (
-            <Button type="button" variant="outline" className="w-full h-11" onClick={() => setOpen(true)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-11"
+              onClick={() => setOpen(true)}
+            >
               <KeyRound className="h-4 w-4 mr-2" />
               {t('sso.signIn', 'Sign in with SSO')}
             </Button>
@@ -107,7 +151,12 @@ export default function SsoSignIn({ open: openAtStart = false }: { open?: boolea
                   autoFocus
                 />
               </div>
-              <Button type="submit" variant="outline" className="w-full h-11" disabled={!email.includes('@')}>
+              <Button
+                type="submit"
+                variant="outline"
+                className="w-full h-11"
+                disabled={!email.includes('@')}
+              >
                 <KeyRound className="h-4 w-4 mr-2" />
                 {t('sso.continue', 'Continue to your identity provider')}
               </Button>

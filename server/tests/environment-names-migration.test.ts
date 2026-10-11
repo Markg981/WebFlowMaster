@@ -16,7 +16,10 @@ import { createTestOrganization, createTestUser } from './factories';
  * the index for a moment, inside a transaction that is rolled back.
  */
 const migration = fs.readFileSync(
-  path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../migrations/0041_environment_name_per_organization.sql'),
+  path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../migrations/0041_environment_name_per_organization.sql',
+  ),
   'utf8',
 );
 const renameStatement = migration
@@ -45,7 +48,9 @@ describe('migration 0041', () => {
             ('staging', ${otherUserId}, ${otherOrganizationId})
         `);
         await tx.execute(sql.raw(renameStatement));
-        const rows = await tx.execute(sql`SELECT id, organization_id, name FROM environments ORDER BY id`);
+        const rows = await tx.execute(
+          sql`SELECT id, organization_id, name FROM environments ORDER BY id`,
+        );
         names = rows.rows as typeof names;
         throw new Rollback();
       })
@@ -53,8 +58,12 @@ describe('migration 0041', () => {
         if (!(error instanceof Rollback)) throw error;
       });
 
-    const ours = names.filter((row) => Number(row.organization_id) === organizationId).map((row) => row.name);
-    const theirs = names.filter((row) => Number(row.organization_id) === otherOrganizationId).map((row) => row.name);
+    const ours = names
+      .filter((row) => Number(row.organization_id) === organizationId)
+      .map((row) => row.name);
+    const theirs = names
+      .filter((row) => Number(row.organization_id) === otherOrganizationId)
+      .map((row) => row.name);
     expect(ours[0]).toBe('Staging');
     expect(ours[1]).toMatch(/^staging \(\d+\)$/);
     // Another organization's "staging" was never a duplicate.

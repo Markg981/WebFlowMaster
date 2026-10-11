@@ -53,7 +53,14 @@ export function parseTotpSeed(seed: string): TotpParams | null {
     const digits = Number(url.searchParams.get('digits') ?? 6);
     const period = Number(url.searchParams.get('period') ?? 30);
     const algorithm = (url.searchParams.get('algorithm') ?? 'SHA1').toLowerCase();
-    if (!secret || ![6, 7, 8].includes(digits) || !Number.isInteger(period) || period < 1 || period > 300) return null;
+    if (
+      !secret ||
+      ![6, 7, 8].includes(digits) ||
+      !Number.isInteger(period) ||
+      period < 1 ||
+      period > 300
+    )
+      return null;
     if (algorithm !== 'sha1' && algorithm !== 'sha256' && algorithm !== 'sha512') return null;
     return { secret, digits, period, algorithm };
   }

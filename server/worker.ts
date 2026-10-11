@@ -7,12 +7,20 @@ import { SHARD_JOB, registerShardDispatcher } from './run-shards';
 import loggerPromise from './logger';
 import { correlationStore } from './middleware/correlation';
 import { closeDb, privilegedDb } from './db';
-import { TRIGGER_SCHEDULE_JOB, executeScheduledPlan, scheduledOccurrence } from './scheduler-service';
+import {
+  TRIGGER_SCHEDULE_JOB,
+  executeScheduledPlan,
+  scheduledOccurrence,
+} from './scheduler-service';
 import { testPlanSchedules, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { withJobIncidents } from './observability/taps/jobs';
 import { artifactStore } from './artifact-store';
-import { BROWSER_TASK_QUEUE_NAME, performBrowserTask, type BrowserTaskEnvelope } from './browser-tasks';
+import {
+  BROWSER_TASK_QUEUE_NAME,
+  performBrowserTask,
+  type BrowserTaskEnvelope,
+} from './browser-tasks';
 import { RunnerAgent, type PausableQueue } from './runner-registry';
 import { registerCommitStatus } from './commit-status';
 import { registerRunPromotion } from './run-promotion';
@@ -38,27 +46,35 @@ configureEgressProxy();
   // A plan with several shards asks for helpers on the same queue (server/run-shards.ts). The job id
   // makes asking twice for the same share harmless; first in the queue, since the run is under way.
   registerShardDispatcher(async ({ executionId, planId, userId, shard, updateBaselines }) => {
-    await testExecutionQueue.add(SHARD_JOB, { executionId, planId, userId, shard, updateBaselines }, { jobId: `${executionId}-shard-${shard}`, priority: 1 });
+    await testExecutionQueue.add(
+      SHARD_JOB,
+      { executionId, planId, userId, shard, updateBaselines },
+      { jobId: `${executionId}-shard-${shard}`, priority: 1 },
+    );
   });
   // Every run executes here: its log lines are stored, and relayed to the web process's sockets.
   installWorkerLogEmitter();
   // Notifications, issues and commit statuses are sent from here, and link to the report only
   // when this process knows the installation's address.
   if (!publicBaseUrl()) {
-    logger.warn('WEBFLOW_PUBLIC_URL is not set on this worker: notifications and filed issues will carry the report path, not a link to it.');
+    logger.warn(
+      'WEBFLOW_PUBLIC_URL is not set on this worker: notifications and filed issues will carry the report path, not a link to it.',
+    );
   }
 
   // Jobs in hand, on both queues, for the runner heartbeat: what a drained runner is waiting for.
   let activeJobs = 0;
   const activeJobCount = () => activeJobs;
-  const counted = <A extends unknown[], R>(handler: (...args: A) => Promise<R>) => async (...args: A): Promise<R> => {
-    activeJobs += 1;
-    try {
-      return await handler(...args);
-    } finally {
-      activeJobs -= 1;
-    }
-  };
+  const counted =
+    <A extends unknown[], R>(handler: (...args: A) => Promise<R>) =>
+    async (...args: A): Promise<R> => {
+      activeJobs += 1;
+      try {
+        return await handler(...args);
+      } finally {
+        activeJobs -= 1;
+      }
+    };
 
   // Registered before either queue is listened to, so the first run this process takes already
   // names it.
@@ -66,8 +82,14 @@ configureEgressProxy();
   const browserTaskConcurrency = Math.max(1, Number(process.env.BROWSER_TASK_CONCURRENCY) || 2);
   applicationMetrics.capacity.set({ queue: TEST_EXECUTION_QUEUE_NAME }, planConcurrency);
   applicationMetrics.capacity.set({ queue: BROWSER_TASK_QUEUE_NAME }, browserTaskConcurrency);
-  const browserMetricsQueue = process.env.WFM_METRICS_ENABLED === 'true' ? new Queue(BROWSER_TASK_QUEUE_NAME, { connection }) : undefined;
-  const metricsListener = await startMetricsServer('worker', applicationMetrics, [testExecutionQueue, ...(browserMetricsQueue ? [browserMetricsQueue] : [])]);
+  const browserMetricsQueue =
+    process.env.WFM_METRICS_ENABLED === 'true'
+      ? new Queue(BROWSER_TASK_QUEUE_NAME, { connection })
+      : undefined;
+  const metricsListener = await startMetricsServer('worker', applicationMetrics, [
+    testExecutionQueue,
+    ...(browserMetricsQueue ? [browserMetricsQueue] : []),
+  ]);
   applicationMetrics.active.set({ queue: TEST_EXECUTION_QUEUE_NAME }, 0);
   applicationMetrics.active.set({ queue: BROWSER_TASK_QUEUE_NAME }, 0);
   // The queues it pauses when drained, filled in as the workers are created below.
@@ -82,67 +104,90 @@ configureEgressProxy();
 
   const worker = new Worker(
     TEST_EXECUTION_QUEUE_NAME,
-    withJobIncidents(counted((job: Job, token?: string) => instrumentJob(TEST_EXECUTION_QUEUE_NAME, job, async () => {
-      logger.info(`Worker processing job ${job.id} of type ${job.name}`);
+    withJobIncidents(
+      counted((job: Job, token?: string) =>
+        instrumentJob(TEST_EXECUTION_QUEUE_NAME, job, async () => {
+          logger.info(`Worker processing job ${job.id} of type ${job.name}`);
 
-      if (job.name === 'execute-plan') {
-        // `executionId` from the orchestrator; `testPlanRunId` from jobs queued before it.
-        const { planId, userId, correlationId, updateBaselines } = job.data;
-        const testPlanRunId: string = job.data.executionId ?? job.data.testPlanRunId;
+          if (job.name === 'execute-plan') {
+            // `executionId` from the orchestrator; `testPlanRunId` from jobs queued before it.
+            const { planId, userId, correlationId, updateBaselines } = job.data;
+            const testPlanRunId: string = job.data.executionId ?? job.data.testPlanRunId;
 
-        // Restore the correlation context from the original HTTP request
-        // so all logs emitted during job processing share the same trace ID.
-        const cid = correlationId || `worker-${testPlanRunId.slice(0, 8)}`;
+            // Restore the correlation context from the original HTTP request
+            // so all logs emitted during job processing share the same trace ID.
+            const cid = correlationId || `worker-${testPlanRunId.slice(0, 8)}`;
 
-        const outcome = await correlationStore.run({ correlationId: cid }, async () => {
-          try {
-            return await processTestPlanJob(planId, testPlanRunId, userId, { updateBaselines: updateBaselines === true });
-          } catch (error: any) {
-            logger.error(`Job ${job.id} failed:`, error);
-            throw error; // Let BullMQ handle the failure
+            const outcome = await correlationStore.run({ correlationId: cid }, async () => {
+              try {
+                return await processTestPlanJob(planId, testPlanRunId, userId, {
+                  updateBaselines: updateBaselines === true,
+                });
+              } catch (error: any) {
+                logger.error(`Job ${job.id} failed:`, error);
+                throw error; // Let BullMQ handle the failure
+              }
+            });
+            // Its organization is at its limit of runs at once: the run stays queued and the job goes
+            // back for a while, so this worker can serve somebody else's run in the meantime.
+            if (outcome?.deferred) {
+              // Marked, so that a run of the organization ending promotes it at once (server/run-promotion.ts).
+              if (job.data.deferredForQuota !== true)
+                await job.updateData({ ...job.data, deferredForQuota: true });
+              await job.moveToDelayed(Date.now() + (outcome.retryInMs ?? 10_000), token);
+              throw new DelayedError();
+            }
+          } else if (job.name === SHARD_JOB) {
+            // A share of a run another worker took: tests from its work list until none are left.
+            const { executionId, planId, userId, shard, updateBaselines } = job.data;
+            await correlationStore.run(
+              { correlationId: `shard-${String(executionId).slice(0, 8)}-${shard}` },
+              () =>
+                processShardJob(planId, executionId, userId, Number(shard), {
+                  updateBaselines: updateBaselines === true,
+                }),
+            );
+          } else if (job.name === TRIGGER_SCHEDULE_JOB) {
+            // Fired by a BullMQ job scheduler (SCHEDULER_BACKEND=bullmq). Load the latest
+            // schedule + plan from the DB and run it via the shared execution logic.
+            const { scheduleId } = job.data;
+            const cid = `sched-${String(scheduleId).slice(0, 8)}`;
+            await correlationStore.run({ correlationId: cid }, async () => {
+              const [schedule] = await privilegedDb
+                .select()
+                .from(testPlanSchedules)
+                .where(eq(testPlanSchedules.id, scheduleId))
+                .limit(1);
+              if (!schedule) {
+                logger.warn(
+                  `Scheduled trigger for unknown/removed schedule ${scheduleId}; skipping.`,
+                );
+                return;
+              }
+              if (!schedule.isActive) {
+                logger.info(`Scheduled trigger for inactive schedule ${scheduleId}; skipping.`);
+                return;
+              }
+              const [plan] = await privilegedDb
+                .select()
+                .from(testPlans)
+                .where(eq(testPlans.id, schedule.testPlanId))
+                .limit(1);
+              if (!plan) {
+                logger.warn(
+                  `Scheduled trigger for schedule ${scheduleId}: test plan ${schedule.testPlanId} not found; skipping.`,
+                );
+                return;
+              }
+              await executeScheduledPlan(schedule, plan, scheduledOccurrence(job));
+            });
           }
-        });
-        // Its organization is at its limit of runs at once: the run stays queued and the job goes
-        // back for a while, so this worker can serve somebody else's run in the meantime.
-        if (outcome?.deferred) {
-          // Marked, so that a run of the organization ending promotes it at once (server/run-promotion.ts).
-          if (job.data.deferredForQuota !== true) await job.updateData({ ...job.data, deferredForQuota: true });
-          await job.moveToDelayed(Date.now() + (outcome.retryInMs ?? 10_000), token);
-          throw new DelayedError();
-        }
-      } else if (job.name === SHARD_JOB) {
-        // A share of a run another worker took: tests from its work list until none are left.
-        const { executionId, planId, userId, shard, updateBaselines } = job.data;
-        await correlationStore.run({ correlationId: `shard-${String(executionId).slice(0, 8)}-${shard}` }, () =>
-          processShardJob(planId, executionId, userId, Number(shard), { updateBaselines: updateBaselines === true }),
-        );
-      } else if (job.name === TRIGGER_SCHEDULE_JOB) {
-        // Fired by a BullMQ job scheduler (SCHEDULER_BACKEND=bullmq). Load the latest
-        // schedule + plan from the DB and run it via the shared execution logic.
-        const { scheduleId } = job.data;
-        const cid = `sched-${String(scheduleId).slice(0, 8)}`;
-        await correlationStore.run({ correlationId: cid }, async () => {
-          const [schedule] = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId)).limit(1);
-          if (!schedule) {
-            logger.warn(`Scheduled trigger for unknown/removed schedule ${scheduleId}; skipping.`);
-            return;
-          }
-          if (!schedule.isActive) {
-            logger.info(`Scheduled trigger for inactive schedule ${scheduleId}; skipping.`);
-            return;
-          }
-          const [plan] = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, schedule.testPlanId)).limit(1);
-          if (!plan) {
-            logger.warn(`Scheduled trigger for schedule ${scheduleId}: test plan ${schedule.testPlanId} not found; skipping.`);
-            return;
-          }
-          await executeScheduledPlan(schedule, plan, scheduledOccurrence(job));
-        });
-      }
-    }))),
+        }),
+      ),
+    ),
     // How many plan runs this worker executes at once — each is a browser, so a statement about
     // the machine. One by default, as before; the per-organization limits share out whatever it is.
-    { connection, concurrency: planConcurrency }
+    { connection, concurrency: planConcurrency },
   );
 
   /**
@@ -152,17 +197,23 @@ configureEgressProxy();
    */
   const browserTaskWorker = new Worker(
     BROWSER_TASK_QUEUE_NAME,
-    withJobIncidents(counted((job: Job) => instrumentJob(BROWSER_TASK_QUEUE_NAME, job, async () => {
-      const envelope = job.data as BrowserTaskEnvelope;
-      const cid = envelope.correlationId || `task-${String(job.id).slice(0, 8)}`;
-      return correlationStore.run({ correlationId: cid }, () => performBrowserTask(envelope));
-    }))),
+    withJobIncidents(
+      counted((job: Job) =>
+        instrumentJob(BROWSER_TASK_QUEUE_NAME, job, async () => {
+          const envelope = job.data as BrowserTaskEnvelope;
+          const cid = envelope.correlationId || `task-${String(job.id).slice(0, 8)}`;
+          return correlationStore.run({ correlationId: cid }, () => performBrowserTask(envelope));
+        }),
+      ),
+    ),
     { connection, concurrency: browserTaskConcurrency },
   );
   browserTaskWorker.on('failed', (job: Job | undefined, err: Error) => {
     logger.warn(`Browser task ${job?.id} (${job?.name}) failed: ${err.message}`);
   });
-  logger.info(`Worker listening to queue: ${BROWSER_TASK_QUEUE_NAME} (concurrency ${browserTaskConcurrency})`);
+  logger.info(
+    `Worker listening to queue: ${BROWSER_TASK_QUEUE_NAME} (concurrency ${browserTaskConcurrency})`,
+  );
 
   worker.on('completed', (job: Job) => {
     logger.info(`Job ${job.id} completed successfully`);
@@ -179,7 +230,6 @@ configureEgressProxy();
   // Drained, it pauses both queues without stopping the jobs in hand (see RunnerAgent).
   drainable.push(worker, browserTaskWorker);
   runner.start();
-
 
   // ─── Graceful shutdown ──────────────────────────────────────────────────────
   // worker.close() waits for the in-flight job to finish before resolving, so a

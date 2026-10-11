@@ -2,7 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -46,7 +53,9 @@ export default function PlanSuitesDialog({ plan, onClose }: PlanSuitesDialogProp
   const { data: included, isLoading: loadingIncluded } = useQuery<Array<{ id: number }>>({
     queryKey: ['planSuites', plan?.id],
     queryFn: async () => {
-      const response = await fetch(`/api/test-plans/${encodeURIComponent(plan!.id)}/suites`, { credentials: 'include' });
+      const response = await fetch(`/api/test-plans/${encodeURIComponent(plan!.id)}/suites`, {
+        credentials: 'include',
+      });
       if (!response.ok) throw new Error("Could not load the plan's suites");
       return response.json();
     },
@@ -57,7 +66,10 @@ export default function PlanSuitesDialog({ plan, onClose }: PlanSuitesDialogProp
     if (included) setChosen(included.map((suite) => suite.id));
   }, [included]);
 
-  const toggle = (id: number) => setChosen((current) => (current.includes(id) ? current.filter((v) => v !== id) : [...current, id]));
+  const toggle = (id: number) =>
+    setChosen((current) =>
+      current.includes(id) ? current.filter((v) => v !== id) : [...current, id],
+    );
 
   const save = async () => {
     if (!plan) return;
@@ -78,7 +90,11 @@ export default function PlanSuitesDialog({ plan, onClose }: PlanSuitesDialogProp
       toast({ title: t('planSuites.saved', 'Suites saved') });
       onClose();
     } catch (error) {
-      toast({ variant: 'destructive', title: t('planSuites.saveFailed', 'The suites were not saved'), description: (error as Error).message });
+      toast({
+        variant: 'destructive',
+        title: t('planSuites.saveFailed', 'The suites were not saved'),
+        description: (error as Error).message,
+      });
     } finally {
       setSaving(false);
     }
@@ -91,9 +107,14 @@ export default function PlanSuitesDialog({ plan, onClose }: PlanSuitesDialogProp
     <Dialog open={plan !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t('planSuites.title', 'Suites in "{{name}}"', { name: plan?.name ?? '' })}</DialogTitle>
+          <DialogTitle>
+            {t('planSuites.title', 'Suites in "{{name}}"', { name: plan?.name ?? '' })}
+          </DialogTitle>
           <DialogDescription>
-            {t('planSuites.description', "They run after the plan's own tests, in the order you tick them. A test in more than one runs once.")}
+            {t(
+              'planSuites.description',
+              "They run after the plan's own tests, in the order you tick them. A test in more than one runs once.",
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -112,13 +133,21 @@ export default function PlanSuitesDialog({ plan, onClose }: PlanSuitesDialogProp
               const order = chosen.indexOf(suite.id);
               return (
                 <label key={suite.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <Checkbox checked={order >= 0} onCheckedChange={() => toggle(suite.id)} aria-label={suite.name} />
+                  <Checkbox
+                    checked={order >= 0}
+                    onCheckedChange={() => toggle(suite.id)}
+                    aria-label={suite.name}
+                  />
                   <span className="flex-1">{suite.name}</span>
-                  <Badge variant="outline">{t(`suites.kind.${suite.kind}`, suite.kind === 'static' ? 'Static' : 'Dynamic')}</Badge>
+                  <Badge variant="outline">
+                    {t(`suites.kind.${suite.kind}`, suite.kind === 'static' ? 'Static' : 'Dynamic')}
+                  </Badge>
                   <span className="text-xs text-muted-foreground w-16 text-right">
                     {t('planSuites.tests', '{{count}} tests', { count: suite.testCount })}
                   </span>
-                  <span className="w-5 text-right text-xs font-medium">{order >= 0 ? order + 1 : ''}</span>
+                  <span className="w-5 text-right text-xs font-medium">
+                    {order >= 0 ? order + 1 : ''}
+                  </span>
                 </label>
               );
             })}

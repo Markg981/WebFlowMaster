@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -63,7 +65,10 @@ describe('RunnersCard', () => {
   });
 
   it('shows what each runner has, and drains an online one', async () => {
-    renderCard([runner({}), runner({ id: 'build-2:7:cd34', hostname: 'build-2', status: 'draining', browsers: [] })]);
+    renderCard([
+      runner({}),
+      runner({ id: 'build-2:7:cd34', hostname: 'build-2', status: 'draining', browsers: [] }),
+    ]);
 
     const first = await screen.findByTestId('runner-build-1:42:ab12');
     expect(within(first).getByText('1 / 4')).toBeInTheDocument();
@@ -76,12 +81,20 @@ describe('RunnersCard', () => {
 
     fireEvent.click(within(first).getByRole('button', { name: /Drain/ }));
     await waitFor(() =>
-      expect(fetchMock.mock.calls.some(([url, init]: any[]) => url === '/api/runners/build-1%3A42%3Aab12/drain' && init?.method === 'POST')).toBe(true),
+      expect(
+        fetchMock.mock.calls.some(
+          ([url, init]: any[]) =>
+            url === '/api/runners/build-1%3A42%3Aab12/drain' && init?.method === 'POST',
+        ),
+      ).toBe(true),
     );
   });
 
   it('shows the runners but offers no drain or resume to an owner who does not run the installation', async () => {
-    renderCard([runner({}), runner({ id: 'build-2:7:cd34', hostname: 'build-2', status: 'draining' })], false);
+    renderCard(
+      [runner({}), runner({ id: 'build-2:7:cd34', hostname: 'build-2', status: 'draining' })],
+      false,
+    );
 
     expect(await screen.findByTestId('runner-build-1:42:ab12')).toBeInTheDocument();
     expect(screen.getByTestId('runners-read-only')).toBeInTheDocument();

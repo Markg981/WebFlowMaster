@@ -8,7 +8,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) =>
       typeof fallback === 'string'
-        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+            String(options?.[name] ?? ''),
+          )
         : _key,
   }),
 }));
@@ -37,7 +39,12 @@ beforeEach(() => {
   fetchMock.mockImplementation((url: string, init?: any) => {
     const reply = (body: unknown) => Promise.resolve({ ok: true, json: async () => body });
     if (url === '/api/projects/7/access' && !init?.method) {
-      return reply({ projectId: 7, name: 'Checkout', restricted: true, members: [{ userId: 2, username: 'alice', role: 'editor' }] });
+      return reply({
+        projectId: 7,
+        name: 'Checkout',
+        restricted: true,
+        members: [{ userId: 2, username: 'alice', role: 'editor' }],
+      });
     }
     if (url === '/api/organization') {
       return reply({
@@ -63,7 +70,9 @@ describe('ProjectAccessDialog', () => {
     expect(screen.getByRole('switch')).toBeChecked();
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove alice' }));
-    expect(within(list).getByText('Nobody is listed: only owners can reach it.')).toBeInTheDocument();
+    expect(
+      within(list).getByText('Nobody is listed: only owners can reach it.'),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('switch'));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 

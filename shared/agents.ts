@@ -56,13 +56,21 @@ export interface AgentHello {
 export type ServerToAgent =
   | { type: 'welcome'; agentId: string; name: string; pool: string }
   | { type: 'refused'; reason: string }
-  | { type: 'open'; traceContext?: import('./telemetry').TraceCarrier; sessionId: string; engine: AgentEngine; channel?: string; headless: boolean; apiProtocol?: import('./agent-protocol').AgentApiProtocol; apiFeatures?: Array<import('./agent-protocol').AgentApiFeature>; bddProfile?: { id: string; revision: string } };
+  | {
+      type: 'open';
+      traceContext?: import('./telemetry').TraceCarrier;
+      sessionId: string;
+      engine: AgentEngine;
+      channel?: string;
+      headless: boolean;
+      apiProtocol?: import('./agent-protocol').AgentApiProtocol;
+      apiFeatures?: Array<import('./agent-protocol').AgentApiFeature>;
+      bddProfile?: { id: string; revision: string };
+    };
 
 /** Agent → server, after hello. */
 export type AgentToServer =
-  | AgentHello
-  | { type: 'open_failed'; sessionId: string; error: string }
-  | { type: 'draining' };
+  AgentHello | { type: 'open_failed'; sessionId: string; error: string } | { type: 'draining' };
 
 /** Whether two Playwright versions can drive each other: the wire protocol changes between minors. */
 export function playwrightCompatible(a: string, b: string): boolean {

@@ -31,7 +31,9 @@ export function usableDomain(domain: string, organizationId?: number): SQL {
 }
 
 /** For the tests: a resolver in place of the system's. */
-export const dnsDeps: { resolveTxt: (name: string) => Promise<string[][]> } = { resolveTxt: (name) => dns.resolveTxt(name) };
+export const dnsDeps: { resolveTxt: (name: string) => Promise<string[][]> } = {
+  resolveTxt: (name) => dns.resolveTxt(name),
+};
 
 /** Whether the domain's TXT record carries the token. Null when it does; otherwise what was found. */
 export async function checkDomainRecord(domain: string, token: string): Promise<string | null> {
