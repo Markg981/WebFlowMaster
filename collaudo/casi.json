@@ -5528,6 +5528,23 @@
       "title": "Documentazione"
     },
     {
+      "actor": "editor",
+      "area": "UX",
+      "detailHtml": "\n        <h4>Precondizioni</h4><p>Un editor e un viewer della stessa organizzazione; un piano di test salvato.</p>\n        <h4>Passi</h4>\n        <ol><li>Accedere come editor con almeno un piano di test.</li><li>Da una pagina qualsiasi premere Ctrl+K (⌘K su Mac), oppure il pulsante Cerca nella barra in alto.</li><li>Digitare \"report\" e scegliere Report.</li><li>Riaprire la palette, digitare il nome del piano e scegliere \"Esegui &lt;nome&gt;\".</li><li>Ripetere da viewer.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Si apre la palette dei comandi con pagine, piani e azioni. Report apre /reports; \"Esegui &lt;nome&gt;\" apre la pagina di esecuzione del piano. Al viewer la palette mostra pagine e azioni ma nessun piano da eseguire.</p>\n      ",
+      "expected": "Si apre la palette dei comandi con pagine, piani e azioni. Report apre /reports; \"Esegui <nome>\" apre la pagina di esecuzione del piano. Al viewer la palette mostra pagine e azioni ma nessun piano da eseguire.",
+      "id": "UX-07",
+      "preconditions": "Un editor e un viewer della stessa organizzazione; un piano di test salvato.",
+      "priority": "P3",
+      "steps": [
+        "Accedere come editor con almeno un piano di test.",
+        "Da una pagina qualsiasi premere Ctrl+K (⌘K su Mac), oppure il pulsante Cerca nella barra in alto.",
+        "Digitare \"report\" e scegliere Report.",
+        "Riaprire la palette, digitare il nome del piano e scegliere \"Esegui <nome>\".",
+        "Ripetere da viewer."
+      ],
+      "title": "Palette dei comandi (Ctrl+K)"
+    },
+    {
       "id": "API-22",
       "area": "API",
       "title": "Importazione WSDL",

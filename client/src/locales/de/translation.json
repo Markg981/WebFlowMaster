@@ -4579,5 +4579,16 @@
     "matched": "Übereinstimmend",
     "mismatch": "Abweichend",
     "unverified": "Nicht verifiziert"
+  },
+  "commandPalette": {
+    "open": "Befehlspalette öffnen",
+    "search": "Suchen",
+    "title": "Befehlspalette",
+    "placeholder": "Zu einer Seite wechseln, einen Plan ausführen…",
+    "empty": "Keine Treffer.",
+    "plans": "Testpläne",
+    "runPlan": "Plan ausführen",
+    "runPlanNamed": "{{name}} ausführen",
+    "actions": "Aktionen"
   }
 }
