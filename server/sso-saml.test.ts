@@ -389,6 +389,17 @@ describe('advanced SAML protocol security', () => {
     }
     await browser.get('/api/user').expect(200);
   });
+  it('refuses a logout message sent as a repeated parameter', async () => {
+    // `?SAMLRequest=a&SAMLRequest=b` parses to an array; only a single string is a message.
+    const { browser, organizationId } = await configuredSlo();
+    const encoded = Buffer.from(logoutXml(organizationId)).toString('base64');
+    await request(app)
+      .get(
+        `/api/sso/saml/${organizationId}/slo?SAMLRequest=${encodeURIComponent(encoded)}&SAMLRequest=x`,
+      )
+      .expect(400);
+    await browser.get('/api/user').expect(200);
+  });
   it('bounds compressed logout XML before library verification', async () => {
     const { organizationId } = await configuredSlo();
     const bomb = deflateRawSync(Buffer.from('x'.repeat(1_000_001))).toString('base64');
