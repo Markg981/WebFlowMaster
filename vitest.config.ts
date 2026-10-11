@@ -21,6 +21,10 @@ export default defineConfig({
     // skipped, which reads like a broken suite rather than a loaded machine. The work is
     // legitimately slow; only the ceiling was wrong.
     hookTimeout: 60_000,
+    // The same for the tests themselves. mobile-inspector and web-performance failed only in the
+    // full run, each with "Test timed out in 5000ms" while doing its work slowly, and passed
+    // alone. A test that hangs still fails, after 30s.
+    testTimeout: 30_000,
     // setupFiles: ['./server/tests/setup.ts'], // Optional: for global test setup
     // reporters: ['default', 'html'], // Optional: for UI reporting via @vitest/ui
     // coverage: { // Optional: configure coverage

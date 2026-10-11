@@ -218,7 +218,8 @@ describe('several relay instances', () => {
         url: `ws://127.0.0.1:${(target.address() as AddressInfo).port}`,
         body: '{"send":["from-private-network"],"until":1}',
         headers: {},
-        timeoutMs: 1000,
+        // Not what is under test: room for a loaded machine to relay a local echo twice.
+        timeoutMs: 10_000,
       } as const;
       const answer = await runProtocolOnAgent(
         { organizationId: 1, pool: 'native-single' },
@@ -230,7 +231,7 @@ describe('several relay instances', () => {
         { organizationId: 1, pool: 'native-single' },
         {
           ...request,
-          config: { timeoutMs: 1000 },
+          config: { timeoutMs: 10_000 },
           body: JSON.stringify({
             steps: [
               { type: 'send', message: 'remote-capture' },
@@ -277,15 +278,17 @@ describe('several relay instances', () => {
         env(a.url),
       );
       expect(second.body).toMatchObject({ count: 1 });
-      await expect.poll(() => b.relay.sessionsOf('native-single')).toBe(0);
+      await expect.poll(() => b.relay.sessionsOf('native-single'), { timeout: 10_000 }).toBe(0);
     } finally {
       target.clients.forEach((socket) => socket.terminate());
       await new Promise<void>((resolve) => target.close(() => resolve()));
     }
-  });
+  }, 60_000);
 
   it("lends a browser held by B to a runner that asked A, with the agent's second connection landing on A too", async () => {
-    expect(b.relay.sessionsOf('agent-onprem')).toBe(0);
+    // The BDD run above may still be closing its session when this starts; a full parallel run
+    // made the immediate assertion fail while the close was in flight.
+    await expect.poll(() => b.relay.sessionsOf('agent-onprem'), { timeout: 10_000 }).toBe(0);
     const browser = await connectToAgentBrowser(
       { engine: 'chromium', headless: true, agent: { organizationId: 1, pool: 'onprem' } },
       env(a.url),
@@ -297,11 +300,14 @@ describe('several relay instances', () => {
       expect(b.relay.sessionsOf('agent-onprem')).toBe(1);
       // A knows as much, from the directory.
       await expect
-        .poll(async () => {
-          await b.relay.sync();
-          await a.relay.sync();
-          return a.relay.sessionsOf('agent-onprem');
-        })
+        .poll(
+          async () => {
+            await b.relay.sync();
+            await a.relay.sync();
+            return a.relay.sessionsOf('agent-onprem');
+          },
+          { timeout: 10_000 },
+        )
         .toBe(1);
     } finally {
       await browser.close();
