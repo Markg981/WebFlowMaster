@@ -12,25 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Loader2,
-  PlusCircle,
-  XCircle,
-  History,
-  Save,
-  ListChecks,
-  CheckCircle,
-  XCircle as XCircleIcon,
-} from 'lucide-react';
+import { Loader2, History, Save, ListChecks } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
-import { CodeEditor as Editor } from '@/components/CodeEditor';
-// Bundled Monaco and its workers, instead of the CDN copy the package would load.
-import { Checkbox } from '@/components/ui/checkbox';
 import { useIsDark } from '@/hooks/use-is-dark';
 import { HistoryPanel } from '@/components/api-tester/HistoryPanel';
 import CatalogPagination from '@/components/catalog/CatalogPagination';
@@ -60,90 +47,19 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { v4 as uuidv4 } from 'uuid';
 
-// WEBSOCKET and GRPC are not HTTP methods: the runner opens a connection of that kind instead
-// (server/api-protocols.ts). The URL says where: ws(s):// or grpc(s)://host:port/package.Service/Method.
-const httpMethods = [
-  'GET',
-  'POST',
-  'PUT',
-  'PATCH',
-  'DELETE',
-  'OPTIONS',
-  'HEAD',
-  'WEBSOCKET',
-  'GRPC',
-];
-const bodyTypes = [
-  'none',
-  'form-data',
-  'x-www-form-urlencoded',
-  'raw',
-  'binary',
-  'GraphQL',
-] as const;
-type BodyType = (typeof bodyTypes)[number];
-
-const bodyTypeDisplayMap: Record<BodyType, string> = {
-  none: 'None',
-  'form-data': 'Form Data',
-  'x-www-form-urlencoded': 'x-www-form-urlencoded',
-  raw: 'Raw (JSON, XML, Text, etc.)',
-  binary: 'Binary',
-  GraphQL: 'GraphQL',
-};
-
-interface ProxyResponse {
-  success: boolean;
-  status?: number;
-  headers?: Record<string, string>;
-  body?: any;
-  duration?: number;
-  error?: string;
-  details?: any;
-  assertionResults?: Array<{
-    assertion: Assertion;
-    pass: boolean;
-    actualValue: any;
-    error?: string;
-  }>;
-  /** What this run captured, and what it looked for and did not find. */
-  extracted?: Record<string, string>;
-  extractionErrors?: Array<{ name: string; reason: string }>;
-}
-
-interface KeyValuePair {
-  id: string;
-  key: string;
-  value: string;
-  enabled: boolean;
-}
-
-interface FormDataField {
-  id: string;
-  key: string;
-  value: string | File | null; // File for type 'file', string for type 'text'
-  enabled: boolean;
-  type: 'text' | 'file';
-}
-
-/** A form-data part as the proxy receives it (server/api-test-runner.ts, MultipartPart). */
-type MultipartPart =
-  | { key: string; type: 'text'; value: string }
-  | { key: string; type: 'file'; fileName: string; contentType: string; base64: string };
-
-/** A file's bytes as base64, without the `data:…;base64,` prefix a data URL carries. */
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result ?? '');
-      resolve(result.slice(result.indexOf(',') + 1));
-    };
-    reader.onerror = () => reject(reader.error ?? new Error(`Could not read ${file.name}`));
-    reader.readAsDataURL(file);
-  });
-}
-
+import { KeyValueEditor } from '@/components/api-tester/KeyValueEditor';
+import { RequestBodyEditor } from '@/components/api-tester/RequestBodyEditor';
+import { ResponsePanel } from '@/components/api-tester/ResponsePanel';
+import {
+  httpMethods,
+  type AssertionResult,
+  type BodyType,
+  type FormDataField,
+  type KeyValuePair,
+  type MultipartPart,
+  type ProxyResponse,
+  fileToBase64,
+} from '@/components/api-tester/request-model';
 const ApiTesterForm: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -201,12 +117,7 @@ const ApiTesterForm: React.FC = () => {
   const [responseHeaders, setResponseHeaders] = useState<Record<string, string> | null>(null);
   const [responseBody, setResponseBody] = useState<any>(null);
   const [duration, setDuration] = useState<number | null>(null);
-  const [assertionResults, setAssertionResults] = useState<Array<{
-    assertion: Assertion;
-    pass: boolean;
-    actualValue: any;
-    error?: string;
-  }> | null>(null);
+  const [assertionResults, setAssertionResults] = useState<AssertionResult[] | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -1330,23 +1241,6 @@ const ApiTesterForm: React.FC = () => {
     }
   }, [t, loadTestState]);
 
-  const getResponseLanguage = (headers: Record<string, string> | null): string => {
-    if (!headers) return 'plaintext';
-    const contentType = headers['content-type'] || headers['Content-Type'] || '';
-    if (contentType.includes('application/json')) return 'json';
-    if (contentType.includes('application/xml') || contentType.includes('text/xml')) return 'xml';
-    if (contentType.includes('text/html')) return 'html';
-    if (contentType.includes('text/css')) return 'css';
-    if (contentType.includes('application/javascript') || contentType.includes('text/javascript'))
-      return 'javascript';
-    if (contentType.includes('text/plain')) return 'plaintext';
-    return 'plaintext';
-  };
-  const responseEditorLanguage = useMemo(
-    () => getResponseLanguage(responseHeaders),
-    [responseHeaders],
-  );
-
   return (
     <div className="h-full flex flex-col bg-background text-foreground">
       <header className="flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-2">
@@ -1587,52 +1481,19 @@ const ApiTesterForm: React.FC = () => {
               </TabsList>
               <TabsContent value="params">
                 <div className="p-4 border rounded-md min-h-[200px] space-y-2">
-                  {queryParams.map((param, index) => (
-                    <div key={param.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`qp-enabled-${param.id}`}
-                        checked={param.enabled}
-                        onCheckedChange={(checked) =>
-                          handleKeyValueChange(index, 'enabled', !!checked, 'query')
-                        }
-                        disabled={apiProxyMutation.isPending}
-                      />
-                      <Input
-                        placeholder={t('apiTesterPage.key.label')}
-                        value={param.key}
-                        onChange={(e) =>
-                          handleKeyValueChange(index, 'key', e.target.value, 'query')
-                        }
-                        className="flex-1"
-                        disabled={apiProxyMutation.isPending}
-                      />
-                      <Input
-                        placeholder={t('apiTesterPage.value.label')}
-                        value={param.value}
-                        onChange={(e) =>
-                          handleKeyValueChange(index, 'value', e.target.value, 'query')
-                        }
-                        className="flex-1"
-                        disabled={apiProxyMutation.isPending}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeKeyValuePair(index, 'query')}
-                        disabled={apiProxyMutation.isPending}
-                      >
-                        <XCircle className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addKeyValuePair('query')}
+                  <KeyValueEditor
+                    rows={queryParams}
+                    idPrefix="qp"
+                    keyPlaceholder={t('apiTesterPage.key.label')}
+                    valuePlaceholder={t('apiTesterPage.value.label')}
+                    addLabel={t('apiTesterPage.addParam.button')}
                     disabled={apiProxyMutation.isPending}
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" /> {t('apiTesterPage.addParam.button')}
-                  </Button>
+                    onChange={(index, field, value) =>
+                      handleKeyValueChange(index, field, value, 'query')
+                    }
+                    onAdd={() => addKeyValuePair('query')}
+                    onRemove={(index) => removeKeyValuePair(index, 'query')}
+                  />
                 </div>
               </TabsContent>
               <TabsContent value="auth">
@@ -1648,384 +1509,48 @@ const ApiTesterForm: React.FC = () => {
               </TabsContent>
               <TabsContent value="headers">
                 <div className="p-4 border rounded-md min-h-[200px] space-y-2">
-                  {requestHeaders.map((header, index) => (
-                    <div key={header.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`rh-enabled-${header.id}`}
-                        checked={header.enabled}
-                        onCheckedChange={(checked) =>
-                          handleKeyValueChange(index, 'enabled', !!checked, 'header')
-                        }
-                        disabled={apiProxyMutation.isPending}
-                      />
-                      <Input
-                        placeholder={t('apiTesterPage.headerName.label')}
-                        value={header.key}
-                        onChange={(e) =>
-                          handleKeyValueChange(index, 'key', e.target.value, 'header')
-                        }
-                        className="flex-1"
-                        disabled={apiProxyMutation.isPending}
-                      />
-                      <Input
-                        placeholder={t('apiTesterPage.headerValue.label')}
-                        value={header.value}
-                        onChange={(e) =>
-                          handleKeyValueChange(index, 'value', e.target.value, 'header')
-                        }
-                        className="flex-1"
-                        disabled={apiProxyMutation.isPending}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeKeyValuePair(index, 'header')}
-                        disabled={apiProxyMutation.isPending}
-                      >
-                        <XCircle className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addKeyValuePair('header')}
+                  <KeyValueEditor
+                    rows={requestHeaders}
+                    idPrefix="rh"
+                    keyPlaceholder={t('apiTesterPage.headerName.label')}
+                    valuePlaceholder={t('apiTesterPage.headerValue.label')}
+                    addLabel={t('apiTesterPage.addHeader.button')}
                     disabled={apiProxyMutation.isPending}
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" /> {t('apiTesterPage.addHeader.button')}
-                  </Button>
+                    onChange={(index, field, value) =>
+                      handleKeyValueChange(index, field, value, 'header')
+                    }
+                    onAdd={() => addKeyValuePair('header')}
+                    onRemove={(index) => removeKeyValuePair(index, 'header')}
+                  />
                 </div>
               </TabsContent>
               <TabsContent value="body">
-                <div className="p-4 border rounded-md min-h-[240px] space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium mb-2 block">
-                      {t('apiTesterPage.bodyType.label')}
-                    </Label>
-                    <RadioGroup
-                      value={selectedBodyType}
-                      onValueChange={(value: string) => setSelectedBodyType(value as BodyType)}
-                      className="flex flex-wrap gap-x-4 gap-y-2"
-                      disabled={apiProxyMutation.isPending}
-                    >
-                      {bodyTypes.map((type) => (
-                        <div key={type} className="flex items-center space-x-2">
-                          <RadioGroupItem
-                            value={type}
-                            id={`body-type-${type}`}
-                            disabled={apiProxyMutation.isPending}
-                          />
-                          <Label htmlFor={`body-type-${type}`} className="font-normal">
-                            {bodyTypeDisplayMap[type]}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-
-                  {/* Dynamically rendered body input area */}
-                  <div className="mt-4">
-                    {selectedBodyType === 'none' && (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        {t('apiTesterPage.thisRequestDoesNotHaveA.description')}
-                      </p>
-                    )}
-
-                    {selectedBodyType === 'raw' && (
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="raw-content-type">
-                            {t('apiTesterPage.contentType.label')}
-                          </Label>
-                          <Select
-                            value={rawContentType}
-                            onValueChange={setRawContentType}
-                            disabled={apiProxyMutation.isPending}
-                          >
-                            <SelectTrigger id="raw-content-type" className="mt-1">
-                              <SelectValue
-                                placeholder={t('apiTesterPage.selectContentType.placeholder')}
-                              />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="application/json">
-                                {t('apiTesterPage.applicationjson.text')}
-                              </SelectItem>
-                              <SelectItem value="text/plain">
-                                {t('apiTesterPage.textplain.text')}
-                              </SelectItem>
-                              <SelectItem value="application/xml">
-                                {t('apiTesterPage.applicationxml.text')}
-                              </SelectItem>
-                              <SelectItem value="text/html">
-                                {t('apiTesterPage.texthtml.text')}
-                              </SelectItem>
-                              <SelectItem value="application/javascript">
-                                {t('apiTesterPage.applicationjavascript.text')}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="requestBodyEditorRaw">
-                            {t('apiTesterPage.body.label')}
-                          </Label>
-                          <div className="mt-1 border rounded-md overflow-hidden">
-                            <Editor
-                              height="200px"
-                              language={
-                                rawContentType.includes('json')
-                                  ? 'json'
-                                  : rawContentType.includes('xml')
-                                    ? 'xml'
-                                    : rawContentType.includes('html')
-                                      ? 'html'
-                                      : 'plaintext'
-                              }
-                              theme={monacoTheme}
-                              value={requestBodyValue}
-                              onChange={(value) => setRequestBodyValue(value || '')}
-                              options={{
-                                minimap: { enabled: false },
-                                scrollBeyondLastLine: false,
-                                fontSize: 13,
-                                wordWrap: 'on',
-                                automaticLayout: true,
-                                tabSize: 2,
-                                insertSpaces: true,
-                                readOnly:
-                                  apiProxyMutation.isPending ||
-                                  method === 'GET' ||
-                                  method === 'HEAD',
-                              }}
-                              onMount={(editor, monaco) => {
-                                editor.addCommand(
-                                  monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
-                                  () => {
-                                    if (!apiProxyMutation.isPending) {
-                                      handleSendRequest();
-                                    }
-                                  },
-                                );
-                              }}
-                              className={
-                                apiProxyMutation.isPending || method === 'GET' || method === 'HEAD'
-                                  ? 'opacity-50 cursor-not-allowed'
-                                  : ''
-                              }
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedBodyType === 'binary' && (
-                      <div>
-                        <Label htmlFor="binary-file-input">
-                          {t('apiTesterPage.uploadFile.button')}
-                        </Label>
-                        <Input
-                          id="binary-file-input"
-                          type="file"
-                          onChange={(e) =>
-                            setBinaryBodyFile(e.target.files ? e.target.files[0] : null)
-                          }
-                          className="mt-1"
-                          disabled={apiProxyMutation.isPending}
-                        />
-                        {binaryBodyFile && (
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Selected file: {binaryBodyFile.name} (
-                            {Math.round(binaryBodyFile.size / 1024)} KB)
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {selectedBodyType === 'GraphQL' && (
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="graphqlQueryEditor">
-                            {t('apiTesterPage.graphqlQuery.label')}
-                          </Label>
-                          <div className="mt-1 border rounded-md overflow-hidden">
-                            <Editor
-                              height="150px"
-                              language="graphql"
-                              theme={monacoTheme}
-                              value={graphqlQuery}
-                              onChange={(value) => setGraphqlQuery(value || '')}
-                              options={{
-                                minimap: { enabled: false },
-                                scrollBeyondLastLine: false,
-                                fontSize: 13,
-                                wordWrap: 'on',
-                                automaticLayout: true,
-                                readOnly: apiProxyMutation.isPending,
-                              }}
-                              className={
-                                apiProxyMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
-                              }
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="graphqlVariablesEditor">
-                            {t('apiTesterPage.graphqlVariablesJson.label')}
-                          </Label>
-                          <div className="mt-1 border rounded-md overflow-hidden">
-                            <Editor
-                              height="100px"
-                              language="json"
-                              theme={monacoTheme}
-                              value={graphqlVariables}
-                              onChange={(value) => setGraphqlVariables(value || '')}
-                              options={{
-                                minimap: { enabled: false },
-                                scrollBeyondLastLine: false,
-                                fontSize: 13,
-                                wordWrap: 'on',
-                                automaticLayout: true,
-                                readOnly: apiProxyMutation.isPending,
-                              }}
-                              className={
-                                apiProxyMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''
-                              }
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {selectedBodyType === 'form-data' && (
-                      <div className="space-y-2">
-                        {formDataBody.map((field, index) => (
-                          <div key={field.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`fd-enabled-${field.id}`}
-                              checked={field.enabled}
-                              onCheckedChange={(checked) =>
-                                handleFormDataChange(index, 'enabled', !!checked)
-                              }
-                              disabled={apiProxyMutation.isPending}
-                            />
-                            <Input
-                              placeholder={t('apiTesterPage.key.label')}
-                              value={field.key}
-                              onChange={(e) => handleFormDataChange(index, 'key', e.target.value)}
-                              className="flex-1"
-                              disabled={apiProxyMutation.isPending}
-                            />
-                            <Select
-                              value={field.type}
-                              onValueChange={(type: 'text' | 'file') =>
-                                handleFormDataChange(index, 'type', type)
-                              }
-                              disabled={apiProxyMutation.isPending}
-                            >
-                              <SelectTrigger className="w-[100px]">
-                                <SelectValue placeholder={t('apiTesterPage.type.label')} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="text">{t('apiTesterPage.text.text')}</SelectItem>
-                                <SelectItem value="file">{t('apiTesterPage.file.text')}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {field.type === 'text' ? (
-                              <Input
-                                placeholder={t('apiTesterPage.value.label')}
-                                value={field.value as string} // Cast because type 'text' implies string value
-                                onChange={(e) =>
-                                  handleFormDataChange(index, 'value', e.target.value)
-                                }
-                                className="flex-1"
-                                disabled={apiProxyMutation.isPending}
-                              />
-                            ) : (
-                              <Input
-                                type="file"
-                                onChange={(e) =>
-                                  handleFormDataChange(
-                                    index,
-                                    'value',
-                                    e.target.files ? e.target.files[0] : null,
-                                  )
-                                }
-                                className="flex-1"
-                                disabled={apiProxyMutation.isPending}
-                              />
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeFormDataField(index)}
-                              disabled={apiProxyMutation.isPending}
-                            >
-                              <XCircle className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={addFormDataField}
-                          disabled={apiProxyMutation.isPending}
-                        >
-                          <PlusCircle className="mr-2 h-4 w-4" />{' '}
-                          {t('apiTesterPage.addField.button')}
-                        </Button>
-                      </div>
-                    )}
-                    {selectedBodyType === 'x-www-form-urlencoded' && (
-                      <div className="space-y-2">
-                        {urlEncodedBody.map((pair, index) => (
-                          <div key={pair.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`ue-enabled-${pair.id}`}
-                              checked={pair.enabled}
-                              onCheckedChange={(checked) =>
-                                handleUrlEncodedChange(index, 'enabled', !!checked)
-                              }
-                              disabled={apiProxyMutation.isPending}
-                            />
-                            <Input
-                              placeholder={t('apiTesterPage.key.label')}
-                              value={pair.key}
-                              onChange={(e) => handleUrlEncodedChange(index, 'key', e.target.value)}
-                              className="flex-1"
-                              disabled={apiProxyMutation.isPending}
-                            />
-                            <Input
-                              placeholder={t('apiTesterPage.value.label')}
-                              value={pair.value}
-                              onChange={(e) =>
-                                handleUrlEncodedChange(index, 'value', e.target.value)
-                              }
-                              className="flex-1"
-                              disabled={apiProxyMutation.isPending}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeUrlEncodedField(index)}
-                              disabled={apiProxyMutation.isPending}
-                            >
-                              <XCircle className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={addUrlEncodedField}
-                          disabled={apiProxyMutation.isPending}
-                        >
-                          <PlusCircle className="mr-2 h-4 w-4" />{' '}
-                          {t('apiTesterPage.addParam.button')}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <RequestBodyEditor
+                  bodyType={selectedBodyType}
+                  onBodyTypeChange={setSelectedBodyType}
+                  method={method}
+                  disabled={apiProxyMutation.isPending}
+                  monacoTheme={monacoTheme}
+                  onSend={handleSendRequest}
+                  rawContentType={rawContentType}
+                  onRawContentTypeChange={setRawContentType}
+                  rawBody={requestBodyValue}
+                  onRawBodyChange={setRequestBodyValue}
+                  binaryFile={binaryBodyFile}
+                  onBinaryFileChange={setBinaryBodyFile}
+                  graphqlQuery={graphqlQuery}
+                  onGraphqlQueryChange={setGraphqlQuery}
+                  graphqlVariables={graphqlVariables}
+                  onGraphqlVariablesChange={setGraphqlVariables}
+                  formData={formDataBody}
+                  onFormDataChange={handleFormDataChange}
+                  onAddFormDataField={addFormDataField}
+                  onRemoveFormDataField={removeFormDataField}
+                  urlEncoded={urlEncodedBody}
+                  onUrlEncodedChange={handleUrlEncodedChange}
+                  onAddUrlEncodedField={addUrlEncodedField}
+                  onRemoveUrlEncodedField={removeUrlEncodedField}
+                />
               </TabsContent>
               <TabsContent value="assertions">
                 <div className="p-4 border rounded-md min-h-[240px]">
@@ -2058,164 +1583,16 @@ const ApiTesterForm: React.FC = () => {
               </TabsContent>
             </Tabs>
 
-            <div>
-              <h2 className="text-xl font-semibold mb-2">{t('apiTesterPage.response.label')}</h2>
-              {isProtocol &&
-                responseBody &&
-                typeof responseBody === 'object' &&
-                Array.isArray(responseBody.messages) && (
-                  <section
-                    className="space-y-2 rounded-md border p-3"
-                    data-testid="protocol-transcript"
-                  >
-                    <h3 className="text-sm font-medium">
-                      {t('apiTester.protocol.transcript', 'Stream transcript and captures')}
-                    </h3>
-                    <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all text-xs">
-                      {JSON.stringify(
-                        { messages: responseBody.messages, captures: responseBody.captures ?? {} },
-                        null,
-                        2,
-                      )}
-                    </pre>
-                  </section>
-                )}
-              <div
-                className={`p-4 border rounded-md bg-muted min-h-[200px] ${apiProxyMutation.isPending ? 'opacity-50 animate-pulse' : ''}`}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <div>
-                    <span className="font-semibold">{t('apiTesterPage.status.label')}</span>{' '}
-                    {responseStatus !== null ? (
-                      <span
-                        className={
-                          responseStatus >= 200 && responseStatus < 300
-                            ? 'text-success font-bold'
-                            : 'text-destructive font-bold'
-                        }
-                      >
-                        {responseStatus}
-                      </span>
-                    ) : (
-                      t('apiTesterPage.text1')
-                    )}
-                  </div>
-                  <div>
-                    <span className="font-semibold">{t('apiTesterPage.time.label')}</span>{' '}
-                    {duration !== null
-                      ? `${duration} ms`
-                      : apiProxyMutation.isPending
-                        ? t('apiTesterPage.loading.button')
-                        : t('apiTesterPage.text1')}
-                  </div>
-                </div>
-                <Tabs defaultValue="responseBody" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="responseBody">{t('apiTesterPage.body.label')}</TabsTrigger>
-                    <TabsTrigger value="responseHeaders">
-                      {t('apiTesterPage.headers.label')}
-                    </TabsTrigger>
-                    <TabsTrigger value="assertionResults">
-                      {t('apiTesterPage.assertionResults.label')}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="responseBody">
-                    <div className="mt-1 border rounded-md overflow-hidden">
-                      <Editor
-                        height="250px"
-                        language={responseEditorLanguage}
-                        theme={monacoTheme}
-                        value={
-                          responseBody !== null && responseBody !== undefined
-                            ? typeof responseBody === 'string'
-                              ? responseBody
-                              : JSON.stringify(responseBody, null, 2)
-                            : ''
-                        }
-                        options={{
-                          readOnly: true,
-                          minimap: { enabled: false },
-                          scrollBeyondLastLine: false,
-                          fontSize: 13,
-                          wordWrap: 'on',
-                          automaticLayout: true,
-                        }}
-                      />
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="responseHeaders">
-                    <Textarea
-                      readOnly
-                      placeholder={
-                        apiProxyMutation.isPending
-                          ? t('apiTesterPage.loadingResponseHeaders.placeholder')
-                          : t('apiTesterPage.responseHeadersWillAppearHere.placeholder')
-                      }
-                      className="mt-1 h-[150px] bg-background font-mono text-sm"
-                      value={responseHeaders ? JSON.stringify(responseHeaders, null, 2) : ''}
-                    />
-                  </TabsContent>
-                  <TabsContent value="assertionResults">
-                    <ScrollArea className="h-[250px] mt-1 p-2 border rounded-md bg-background">
-                      {(assertionResults === null || assertionResults.length === 0) &&
-                        !apiProxyMutation.isPending && (
-                          <p className="text-sm text-muted-foreground p-4 text-center">
-                            {t('apiTesterPage.noAssertionsWereRunOrResults.description')}
-                          </p>
-                        )}
-                      {apiProxyMutation.isPending && (
-                        <p className="text-sm text-muted-foreground p-4 text-center">
-                          {t('apiTesterPage.runningAssertions.text')}
-                        </p>
-                      )}
-                      {assertionResults &&
-                        assertionResults.map((result, index) => (
-                          <div
-                            key={result.assertion.id || index}
-                            className="p-2 mb-2 border rounded-md text-xs"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="font-medium">
-                                <span className="text-muted-foreground">#{index + 1}: </span>
-                                {result.assertion.source.replace(/_/g, ' ')}
-                                {result.assertion.property && (
-                                  <span className="text-primary/80">
-                                    {' '}
-                                    "{result.assertion.property}"
-                                  </span>
-                                )}{' '}
-                                {result.assertion.comparison.replace(/_/g, ' ')}
-                                {result.assertion.targetValue !== undefined &&
-                                  result.assertion.targetValue !== '' && (
-                                    <span className="text-primary/80">
-                                      {' '}
-                                      "{result.assertion.targetValue}"
-                                    </span>
-                                  )}
-                              </div>
-                              {result.pass ? (
-                                <CheckCircle className="h-4 w-4 text-success" />
-                              ) : (
-                                <XCircleIcon className="h-4 w-4 text-destructive" />
-                              )}
-                            </div>
-                            <div className="text-muted-foreground mt-1">
-                              {result.pass
-                                ? 'Passed.'
-                                : `Failed. (Actual: ${JSON.stringify(result.actualValue)})`}
-                              {result.error && (
-                                <span className="text-destructive ml-1">
-                                  (Error: {result.error})
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                    </ScrollArea>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </div>
+            <ResponsePanel
+              isProtocol={isProtocol}
+              isPending={apiProxyMutation.isPending}
+              monacoTheme={monacoTheme}
+              status={responseStatus}
+              headers={responseHeaders}
+              body={responseBody}
+              duration={duration}
+              assertionResults={assertionResults}
+            />
           </div>
         </ScrollArea>
       </div>
