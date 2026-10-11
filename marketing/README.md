@@ -8,7 +8,7 @@ implementation walkthrough. Customer materials are separate Italian and English 
 - Complete suite handbook: [IT](../docs/it/internals/suite-handbook.md) / [EN](../docs/en/internals/suite-handbook.md).
 - Implementation walkthrough: [IT](../docs/it/internals/contributing-guide.md) / [EN](../docs/en/internals/contributing-guide.md).
 - Product and documentation audit: [IT](../docs/it/internals/product-audit.md) / [EN](../docs/en/internals/product-audit.md).
-- Generated schema catalog, 70 tables and 780 columns at this revision: [IT](../docs/it/internals/schema-catalog.md) / [EN](../docs/en/internals/schema-catalog.md).
+- Generated schema catalog, with the current table and column counts: [IT](../docs/it/internals/schema-catalog.md) / [EN](../docs/en/internals/schema-catalog.md).
 
 `npm run docs:pdf` builds the site and exports every documentation section. It also writes
 `docs/pdf/it/suite-handbook.pdf` and `docs/pdf/en/suite-handbook.pdf`, containing the overview,
