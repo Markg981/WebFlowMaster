@@ -26,18 +26,18 @@ import schedulerService, {
   assertValidTimezone,
   DEFAULT_SCHEDULE_TIMEZONE,
   firstRunAt,
-} from '../scheduler-service';
+} from '../execution/scheduler-service';
 import { runAsOrganization, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { expandPlanTests, type TestReference } from '../authoring/test-suites';
 import { requireRole } from '../middleware/require-role';
 import { asyncHandler } from '../middleware/async-handler';
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from './selected-tests';
-import { requestCancellation } from '../execution-state';
+import { requestCancellation } from '../execution/execution-state';
 import { AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, changedFields, recordAudit } from '../tenancy/audit';
-import { publicExecution, reproducibilitySummary } from '../execution-provenance';
+import { publicExecution, reproducibilitySummary } from '../execution/execution-provenance';
 import { executionArtifactAvailability } from '../tenancy/artifact-metering';
-import { readExecutionSnapshot } from '../execution-snapshot';
+import { readExecutionSnapshot } from '../execution/execution-snapshot';
 import { dedupeKeyFor } from '../issue-tracking';
 import { artifactUrl, stepsWithArtifactUrls } from './artifacts.routes';
 import { linkedIssuesFor } from './issues.routes';
@@ -554,7 +554,7 @@ router.post('/api/run-test-plan/:id', requireRole('editor'), async (req, res) =>
     }
 
     // Dynamically import runTestPlan to avoid circular dependencies if test-execution-service grows
-    const { runTestPlan } = await import('../test-execution-service');
+    const { runTestPlan } = await import('../execution/test-execution-service');
     // `updateBaselines` is how a legitimate redesign gets a visually-tested plan out of red:
     // this run's screenshots become the baselines the next one is measured against.
     const executionResult = await runTestPlan(testPlanId, userId, {

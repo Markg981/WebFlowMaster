@@ -37,7 +37,7 @@ vi.mock('./runtime/browsers', async (importOriginal) => {
   return { ...actual, launchBrowser: (...args: any[]) => launchBrowser(...(args as [any])) };
 });
 
-const { processTestPlanJob } = await import('./test-execution-service');
+const { processTestPlanJob } = await import('./execution/test-execution-service');
 
 let organizationId: number;
 let userId: number;

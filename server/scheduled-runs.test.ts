@@ -60,7 +60,7 @@ import {
   executeScheduledPlanForTest,
   occurrenceKey,
   scheduledOccurrence,
-} from './scheduler-service';
+} from './execution/scheduler-service';
 import { createTestOrganization } from './tests/factories';
 
 function rnd() {

@@ -30,8 +30,8 @@ const {
   users,
 } = await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
-const { processTestPlanJob } = await import('./test-execution-service');
-const { requestCancellation } = await import('./execution-state');
+const { processTestPlanJob } = await import('./execution/test-execution-service');
+const { requestCancellation } = await import('./execution/execution-state');
 
 const passed = {
   success: true,

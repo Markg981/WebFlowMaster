@@ -19,7 +19,7 @@ import { GitBranch, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
 /**
- * The impact map (server/test-impact.ts): which file patterns map to which tests' tags, so a run
+ * The impact map (server/execution/test-impact.ts): which file patterns map to which tests' tags, so a run
  * asked for with a commit's changed files runs the tests that change affects. And a place to try
  * it on a list of files before a pipeline relies on it.
  */

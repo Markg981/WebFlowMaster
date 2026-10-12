@@ -25,8 +25,8 @@ const scheduler = {
   addScheduleJob: vi.fn(),
   updateScheduleJob: vi.fn(),
 };
-vi.mock('../scheduler-service', async (importActual) => ({
-  ...(await importActual<typeof import('../scheduler-service')>()),
+vi.mock('../execution/scheduler-service', async (importActual) => ({
+  ...(await importActual<typeof import('../execution/scheduler-service')>()),
   default: scheduler,
 }));
 const { privilegedDb } = await import('../db');

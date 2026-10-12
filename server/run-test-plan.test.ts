@@ -12,8 +12,8 @@ const logError = vi.fn();
 
 vi.mock('./queue', () => ({ TEST_EXECUTION_QUEUE_NAME: 'test-queue', testExecutionQueue: {} }));
 vi.mock('./web/playwright-service', () => ({ playwrightService: {} }));
-vi.mock('./execution-orchestrator', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./execution-orchestrator')>();
+vi.mock('./execution/execution-orchestrator', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./execution/execution-orchestrator')>();
   return {
     ...actual,
     executionOrchestrator: { enqueue: (...args: unknown[]) => enqueue(...args) },
@@ -30,8 +30,9 @@ vi.mock('./logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 
-const { runTestPlan } = await import('./test-execution-service');
-const { ExecutionEnqueueError, QUEUE_SUBMISSION_FAILED } = await import('./execution-orchestrator');
+const { runTestPlan } = await import('./execution/test-execution-service');
+const { ExecutionEnqueueError, QUEUE_SUBMISSION_FAILED } =
+  await import('./execution/execution-orchestrator');
 
 describe('runTestPlan', () => {
   it('keeps the words and status of a failure the orchestrator classified', async () => {

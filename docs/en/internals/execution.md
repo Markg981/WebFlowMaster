@@ -28,15 +28,15 @@ quarantine, current review policy, integrations and the application under test r
 Replay reproduces retained configuration, not external state or outcomes. HTML/PDF, Allure
 attachments and JUnit suite properties include safe metadata/fingerprints without retained values.
 
-| Trigger                             | Path                                                                                                | `triggered_by`       |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------- |
-| Run button in the application       | `POST /api/test-plans/:id/run`                                                                      | `manual`             |
-| Schedule                            | `server/scheduler-service.ts` (cron in the web process, or BullMQ job schedulers fired by a worker) | `scheduled`          |
-| Pipeline                            | `POST /api/v1/plans/:planId/runs` (the CLI uses it)                                                 | `api`                |
-| CI webhook                          | `POST /api/webhooks/execute` with a webhook token                                                   | `webhook`            |
-| Retry of a failed scheduled attempt | the worker, through the orchestrator                                                                | as the first attempt |
+| Trigger                             | Path                                                                                                          | `triggered_by`       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------- |
+| Run button in the application       | `POST /api/test-plans/:id/run`                                                                                | `manual`             |
+| Schedule                            | `server/execution/scheduler-service.ts` (cron in the web process, or BullMQ job schedulers fired by a worker) | `scheduled`          |
+| Pipeline                            | `POST /api/v1/plans/:planId/runs` (the CLI uses it)                                                           | `api`                |
+| CI webhook                          | `POST /api/webhooks/execute` with a webhook token                                                             | `webhook`            |
+| Retry of a failed scheduled attempt | the worker, through the orchestrator                                                                          | as the first attempt |
 
-All of them go through one function: the **orchestrator** (`server/execution-orchestrator.ts`).
+All of them go through one function: the **orchestrator** (`server/execution/execution-orchestrator.ts`).
 
 ## 1. Creation: the orchestrator
 
@@ -57,7 +57,7 @@ flowchart TD
 2. **Queue limit.** Past the organization's `max_queued_runs` the request is refused with `429`
    rather than filling the queue for everybody ([limits](./tenancy#limits-per-organization)).
 3. **Snapshot.** Everything the runner will read is written into `configuration_snapshot`
-   (`server/execution-snapshot.ts`): the browser configuration, the selected tests (with suites
+   (`server/execution/execution-snapshot.ts`): the browser configuration, the selected tests (with suites
    already expanded into tests), visual testing, evidence capture, parallelism, timeouts, failure
    policies, re-run policy, notification settings, issue filing, and the agent pool. A plan edited
    while the run waits cannot change what the run does. A test added to the plan later is not in
@@ -71,7 +71,7 @@ flowchart TD
 
 ## 2. The state machine
 
-A run's `status` moves only through `server/execution-state.ts`. Every move is one conditional
+A run's `status` moves only through `server/execution/execution-state.ts`. Every move is one conditional
 `UPDATE … WHERE status IN (states it may follow)`: when two processes race, the database lets
 exactly one through, and a terminal state has no way out.
 
@@ -105,17 +105,17 @@ in the process (`onExecutionTransition`); the commit status module is one of the
 ## 3. The worker takes the run
 
 `server/worker.ts` consumes the plan queue with `WORKER_CONCURRENCY` jobs at a time and calls
-`processTestPlanJob` (`server/test-execution-service.ts`):
+`processTestPlanJob` (`server/execution/test-execution-service.ts`):
 
 1. **Take.** `takeExecution` counts the organization's running runs under a lock and moves the run
    to `running` only if it is under `max_concurrent_runs`. Otherwise the job is delayed by
    `RUN_DEFERRAL_MS` (10 s), marked as deferred for the limit, and the run stays `queued` — it waits,
-   it does not fail. When a run of the organization ends, `server/run-promotion.ts` promotes the
+   it does not fail. When a run of the organization ends, `server/execution/run-promotion.ts` promotes the
    delayed jobs of its oldest waiting runs, up to its free slots, so they are taken at once; the
    delay is the fallback. A run that is no
    longer `queued` (taken already, cancelled) is not taken, which is what makes a job delivered
    twice run once.
-2. **Watch.** `watchRun` (`server/run-watch.ts`) starts a heartbeat every
+2. **Watch.** `watchRun` (`server/execution/run-watch.ts`) starts a heartbeat every
    `RUN_HEARTBEAT_INTERVAL_MS` (15 s). Each beat also tells the worker whether somebody asked to
    cancel, whether the run ended elsewhere, and whether it passed `RUN_MAX_DURATION_MS` (3 h). The
    tests see it through an `AbortSignal` and stop at their next step.
@@ -127,7 +127,7 @@ in the process (`onExecutionTransition`); the commit status module is one of the
 ### The phases of a run
 
 `processTestPlanJob` only establishes the tenant context; the run itself is `runPlanJob`
-(`server/plan-run/pipeline.ts`), which calls one phase after another. Each phase is a function of its
+(`server/execution/plan-run/pipeline.ts`), which calls one phase after another. Each phase is a function of its
 own module that takes what it reads and returns what it produces, so it can be read and tested alone:
 
 | Phase                 | Module                                 | Produces                                                                    |
@@ -145,7 +145,7 @@ own module that takes what it reads and returns what it produces, so it can be r
 | Verdict and after-run | `plan-run/finalize.ts`, `after-run.ts` | the ending, retry, issues, test management, notification                    |
 
 A phase that ends the run early (no results directory, no execution row) returns `Ended` and the
-pipeline stops there. A single test outside a plan is `runTest` (`server/run-test.ts`).
+pipeline stops there. A single test outside a plan is `runTest` (`server/execution/run-test.ts`).
 
 ## 4. Running the plan
 
@@ -272,14 +272,14 @@ None of these can change the verdict: each failure is logged and reported as an 
 
 ## 6. When things go wrong
 
-| Situation                                      | What happens                                                                                                                                                                                                                                                                                                                                                               |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Somebody cancels                               | `running → cancelling`; the worker hears it at its next heartbeat, finishes the current step and ends the run `cancelled`.                                                                                                                                                                                                                                                 |
-| A step hangs                                   | The step's own timeout, then the run's maximum duration (`timed_out`).                                                                                                                                                                                                                                                                                                     |
-| The worker dies                                | Its heartbeat stops. The recovery sweep in the web process (`server/run-recovery.ts`) ends runs silent for `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. A scheduled run with attempts left gets its next attempt. It is not silently re-run: half a run may already have created data in the application under test. |
-| The worker is alive but stuck                  | Past the maximum duration plus a 5-minute grace, the sweep ends it `timed_out`.                                                                                                                                                                                                                                                                                            |
-| BullMQ delivers a job twice                    | The second `takeExecution` finds the run no longer `queued` and does nothing.                                                                                                                                                                                                                                                                                              |
-| A late write arrives from a worker given up on | The conditional update matches nothing; the recorded ending stands.                                                                                                                                                                                                                                                                                                        |
+| Situation                                      | What happens                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Somebody cancels                               | `running → cancelling`; the worker hears it at its next heartbeat, finishes the current step and ends the run `cancelled`.                                                                                                                                                                                                                                                           |
+| A step hangs                                   | The step's own timeout, then the run's maximum duration (`timed_out`).                                                                                                                                                                                                                                                                                                               |
+| The worker dies                                | Its heartbeat stops. The recovery sweep in the web process (`server/execution/run-recovery.ts`) ends runs silent for `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. A scheduled run with attempts left gets its next attempt. It is not silently re-run: half a run may already have created data in the application under test. |
+| The worker is alive but stuck                  | Past the maximum duration plus a 5-minute grace, the sweep ends it `timed_out`.                                                                                                                                                                                                                                                                                                      |
+| BullMQ delivers a job twice                    | The second `takeExecution` finds the run no longer `queued` and does nothing.                                                                                                                                                                                                                                                                                                        |
+| A late write arrives from a worker given up on | The conditional update matches nothing; the recorded ending stands.                                                                                                                                                                                                                                                                                                                  |
 
 Several web servers can sweep at the same time: every ending goes through the state machine, so each
 run is ended once.

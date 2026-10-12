@@ -1296,7 +1296,7 @@ source and exact profile revision; its binding is validated by domain logic, not
 Migration 0081 adds tenant quota metering (`quota_execution_sessions`, `quota_artifacts`).
 Migration 0082 adds `mobile_tests.device_matrix`, reusable `mobile_step_groups` and their project
 guard. Mobile matrix/group definitions are frozen for a run; inspect `shared/mobile.ts`,
-`server/mobile/mobile-plan-units.ts` and `server/execution-snapshot.ts` for the executable shape.
+`server/mobile/mobile-plan-units.ts` and `server/execution/execution-snapshot.ts` for the executable shape.
 
 The diagram below covers the new BDD/group tables. Quota reservation/commit columns and constraints
 remain defined by `shared/schema.ts` and migration 0081; see [Data model](./data-model) and

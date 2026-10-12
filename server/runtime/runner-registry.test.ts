@@ -30,7 +30,7 @@ const { auditLog, runners, testPlanExecutions, testPlans, users } = await import
 const { createTestOrganization } = await import('../tests/factories');
 const { runWithTenant, tenancyMiddleware } = await import('../middleware/tenancy');
 const registry = await import('./runner-registry');
-const { takeExecution } = await import('../execution-state');
+const { takeExecution } = await import('../execution/execution-state');
 const { default: runnersRoutes } = await import('../routes/runners.routes');
 const { default: organizationRoutes } = await import('../routes/organization.routes');
 

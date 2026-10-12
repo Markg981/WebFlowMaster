@@ -319,7 +319,7 @@ runs in progress than `--max-concurrent`, a run ending other than `completed`, o
 
 A run held back by its organization's limit starts as soon as one of the organization's runs ends:
 the end promotes the oldest waiting runs, as many as there are slots free
-(`server/run-promotion.ts`). `RUN_DEFERRAL_MS` (10 s) is only the fallback, for a promotion missed
+(`server/execution/run-promotion.ts`). `RUN_DEFERRAL_MS` (10 s) is only the fallback, for a promotion missed
 while a process restarted. In a measurement with two runs at once and runs of 2 s, eight runs per
 organization ended after 9 s, where waiting for the next look took 33 s.
 

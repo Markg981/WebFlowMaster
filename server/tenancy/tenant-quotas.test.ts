@@ -19,10 +19,10 @@ const { organizations, testPlanExecutions, testPlans, users } = await import('@s
 const { createTestOrganization } = await import('../tests/factories');
 const { runWithTenant, withTenantTransaction } = await import('../middleware/tenancy');
 const { defaultQuotas, fairPriority, liveRunCounts, quotasFor } = await import('./tenant-quotas');
-const { takeExecution, transitionExecution } = await import('../execution-state');
+const { takeExecution, transitionExecution } = await import('../execution/execution-state');
 const { createExecutionOrchestrator, ExecutionEnqueueError } =
-  await import('../execution-orchestrator');
-const { processTestPlanJob } = await import('../test-execution-service');
+  await import('../execution/execution-orchestrator');
+const { processTestPlanJob } = await import('../execution/test-execution-service');
 
 let orgA: number;
 let orgB: number;

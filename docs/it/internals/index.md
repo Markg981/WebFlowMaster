@@ -170,7 +170,7 @@ Attraversano tutto il codice; conoscerli spiega la maggior parte delle scelte.
   ricordare. Il codice che deve uscirne (tabelle dell'installazione, bootstrap, cancellazione) usa un
   handle privilegiato i cui usi sono contati da un test di architettura.
 - **I run sono record, non processi.** Lo stato di un run si muove solo attraverso
-  `server/execution-state.ts` con update condizionali, quindi duplicati, race e scritture tardive non
+  `server/execution/execution-state.ts` con update condizionali, quindi duplicati, race e scritture tardive non
   possono corromperlo.
 - **Un run è deciso quando viene richiesto.** Lo snapshot di esecuzione congela la configurazione del
   piano e l'elenco dei test al momento dell'accodamento.

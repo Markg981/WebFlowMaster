@@ -165,7 +165,7 @@ These run through the whole codebase; knowing them explains most of the code.
   every organization-scoped table, not a `WHERE` clause developers must remember. Code that has to
   step outside (installation-wide tables, bootstrap, erasure) uses a privileged handle whose uses are
   counted by an architecture test.
-- **Runs are records, not processes.** A run's state moves only through `server/execution-state.ts`
+- **Runs are records, not processes.** A run's state moves only through `server/execution/execution-state.ts`
   with conditional updates, so duplicates, races and late writes cannot corrupt it.
 - **A run is decided when it is asked for.** The execution snapshot freezes the plan's
   configuration and the resolved test list at enqueue time.

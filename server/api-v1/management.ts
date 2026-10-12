@@ -23,7 +23,7 @@ import schedulerService, {
   assertValidTimezone,
   DEFAULT_SCHEDULE_TIMEZONE,
   firstRunAt,
-} from '../scheduler-service';
+} from '../execution/scheduler-service';
 import { encryptSecret } from '../crypto';
 import { normaliseTagName } from '../authoring/test-tags';
 import {

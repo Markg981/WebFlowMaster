@@ -41,7 +41,8 @@ vi.mock('./logger', () => ({
 
 const { commitStatusFor, commitTargetOf, postCommitStatus, registerCommitStatus } =
   await import('./commit-status');
-const { announceExecution, takeExecution, transitionExecution } = await import('./execution-state');
+const { announceExecution, takeExecution, transitionExecution } =
+  await import('./execution/execution-state');
 const { runWithTenant } = await import('./middleware/tenancy');
 const { default: sourceHostsRoutes } = await import('./routes/source-hosts.routes');
 

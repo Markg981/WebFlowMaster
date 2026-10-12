@@ -435,7 +435,7 @@ export const runWorkItems = pgTable(
 export type RunWorkItem = typeof runWorkItems.$inferSelect;
 
 /**
- * Which tests a change affects (server/test-impact.ts): the files a glob pattern matches map to a
+ * Which tests a change affects (server/execution/test-impact.ts): the files a glob pattern matches map to a
  * tag. A rule without a tag marks files that affect no test (migration 0068).
  */
 export const impactRules = pgTable(

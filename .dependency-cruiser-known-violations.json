@@ -2,8 +2,8 @@
   {
     "type": "dependency",
     "from": "server/bdd/bdd-execution.ts",
-    "to": "server/test-execution-service.ts",
-    "unresolvedTo": "../test-execution-service",
+    "to": "server/execution/test-execution-service.ts",
+    "unresolvedTo": "../execution/test-execution-service",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -16,9 +16,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/plan-run/after-run.ts",
+    "from": "server/execution/plan-run/after-run.ts",
     "to": "server/issue-store.ts",
-    "unresolvedTo": "../issue-store",
+    "unresolvedTo": "../../issue-store",
     "dependencyTypes": [
       "local",
       "import"
@@ -30,9 +30,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/plan-run/after-run.ts",
+    "from": "server/execution/plan-run/after-run.ts",
     "to": "server/notifications.ts",
-    "unresolvedTo": "../notifications",
+    "unresolvedTo": "../../notifications",
     "dependencyTypes": [
       "local",
       "import"
@@ -44,9 +44,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/plan-run/after-run.ts",
+    "from": "server/execution/plan-run/after-run.ts",
     "to": "server/run-mail.ts",
-    "unresolvedTo": "../run-mail",
+    "unresolvedTo": "../../run-mail",
     "dependencyTypes": [
       "local",
       "import"
@@ -58,9 +58,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/plan-run/after-run.ts",
+    "from": "server/execution/plan-run/after-run.ts",
     "to": "server/test-management.ts",
-    "unresolvedTo": "../test-management",
+    "unresolvedTo": "../../test-management",
     "dependencyTypes": [
       "local",
       "import"
@@ -72,9 +72,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/plan-run/after-run.ts",
+    "from": "server/execution/plan-run/after-run.ts",
     "to": "server/websocket.ts",
-    "unresolvedTo": "../websocket",
+    "unresolvedTo": "../../websocket",
     "dependencyTypes": [
       "local",
       "import"
@@ -86,9 +86,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/plan-run/artifacts.ts",
+    "from": "server/execution/plan-run/artifacts.ts",
     "to": "server/websocket.ts",
-    "unresolvedTo": "../websocket",
+    "unresolvedTo": "../../websocket",
     "dependencyTypes": [
       "local",
       "import"
@@ -100,9 +100,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/plan-run/context.ts",
+    "from": "server/execution/plan-run/context.ts",
     "to": "server/websocket.ts",
-    "unresolvedTo": "../websocket",
+    "unresolvedTo": "../../websocket",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -115,9 +115,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/plan-run/finalize.ts",
+    "from": "server/execution/plan-run/finalize.ts",
     "to": "server/notifications.ts",
-    "unresolvedTo": "../notifications",
+    "unresolvedTo": "../../notifications",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -130,9 +130,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/plan-run/pipeline.ts",
+    "from": "server/execution/plan-run/pipeline.ts",
     "to": "server/websocket.ts",
-    "unresolvedTo": "../websocket",
+    "unresolvedTo": "../../websocket",
     "dependencyTypes": [
       "local",
       "import"
@@ -144,9 +144,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/run-test.ts",
+    "from": "server/execution/run-test.ts",
     "to": "server/websocket.ts",
-    "unresolvedTo": "./websocket",
+    "unresolvedTo": "../websocket",
     "dependencyTypes": [
       "local",
       "import"
@@ -244,8 +244,8 @@
   {
     "type": "dependency",
     "from": "server/runtime/run-policies.ts",
-    "to": "server/execution-snapshot.ts",
-    "unresolvedTo": "../execution-snapshot",
+    "to": "server/execution/execution-snapshot.ts",
+    "unresolvedTo": "../execution/execution-snapshot",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -386,8 +386,8 @@
   {
     "type": "cycle",
     "from": "server/bdd/bdd-execution.ts",
-    "to": "server/test-execution-service.ts",
-    "unresolvedTo": "../test-execution-service",
+    "to": "server/execution/test-execution-service.ts",
+    "unresolvedTo": "../execution/test-execution-service",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -399,7 +399,7 @@
     },
     "cycle": [
       {
-        "name": "server/test-execution-service.ts",
+        "name": "server/execution/test-execution-service.ts",
         "dependencyTypes": [
           "local",
           "type-only",
@@ -407,21 +407,21 @@
         ]
       },
       {
-        "name": "server/plan-run/pipeline.ts",
+        "name": "server/execution/plan-run/pipeline.ts",
         "dependencyTypes": [
           "local",
           "import"
         ]
       },
       {
-        "name": "server/plan-run/execute-lanes.ts",
+        "name": "server/execution/plan-run/execute-lanes.ts",
         "dependencyTypes": [
           "local",
           "import"
         ]
       },
       {
-        "name": "server/run-test.ts",
+        "name": "server/execution/run-test.ts",
         "dependencyTypes": [
           "local",
           "type-only",
@@ -463,6 +463,165 @@
         "dependencyTypes": [
           "local",
           "dynamic-import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/execution/plan-run/execute-lanes.ts",
+    "to": "server/execution/plan-run/run-unit.ts",
+    "unresolvedTo": "./run-unit",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/execution/plan-run/run-unit.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/execution/run-test.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/bdd/bdd-execution.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/execution/test-execution-service.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "server/execution/plan-run/pipeline.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/execution/plan-run/execute-lanes.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/execution/plan-run/finalize.ts",
+    "to": "server/execution/plan-run/execute-lanes.ts",
+    "unresolvedTo": "./execute-lanes",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/execution/plan-run/execute-lanes.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "server/execution/run-test.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "server/bdd/bdd-execution.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/execution/test-execution-service.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "server/execution/plan-run/pipeline.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/execution/plan-run/finalize.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/execution/run-test.ts",
+    "to": "server/bdd/bdd-execution.ts",
+    "unresolvedTo": "../bdd/bdd-execution",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/bdd/bdd-execution.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/execution/test-execution-service.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "server/execution/run-test.ts",
+        "dependencyTypes": [
+          "local",
+          "export"
         ]
       }
     ]
@@ -525,165 +684,6 @@
         "dependencyTypes": [
           "local",
           "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "server/plan-run/execute-lanes.ts",
-    "to": "server/plan-run/run-unit.ts",
-    "unresolvedTo": "./run-unit",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/plan-run/run-unit.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/run-test.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/bdd/bdd-execution.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/test-execution-service.ts",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "server/plan-run/pipeline.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/plan-run/execute-lanes.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "server/plan-run/finalize.ts",
-    "to": "server/plan-run/execute-lanes.ts",
-    "unresolvedTo": "./execute-lanes",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/plan-run/execute-lanes.ts",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "server/run-test.ts",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "server/bdd/bdd-execution.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/test-execution-service.ts",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "server/plan-run/pipeline.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/plan-run/finalize.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "server/run-test.ts",
-    "to": "server/bdd/bdd-execution.ts",
-    "unresolvedTo": "./bdd/bdd-execution",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/bdd/bdd-execution.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/test-execution-service.ts",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "server/run-test.ts",
-        "dependencyTypes": [
-          "local",
-          "export"
         ]
       }
     ]

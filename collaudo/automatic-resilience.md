@@ -28,7 +28,7 @@ Prova locale su `54c979d` con checkout modificato: report `resilience-artifacts/
 
 Il run `2b1810ec-63a9-4810-bed2-fae7289dc096` interrotto con SIGKILL del worker è terminato `error`: **la prova complessiva fallisce con exit 1**, non dimostra il recupero riuscito del run attivo. Questa è evidenza di un limite della piattaforma, da risolvere separatamente; il runner lo rileva. La successiva correzione del report separa le violazioni dello scenario corrente da quelle dello storico e marca fallite le fasi con violazioni; verificata con test mirati, senza ripetere l'intera prova Docker. Non assegnare esiti manuali da questa evidenza.
 
-Analisi successiva: `server/run-recovery.ts` applica deliberatamente `worker_lost` ai run abbandonati per evitare doppie operazioni sull'applicazione sotto test. Con la decisione dell'operatore, restart controllato e crash sono verificati separatamente come descritto sopra; non è stato introdotto replay automatico né modificata la politica di recupero della piattaforma.
+Analisi successiva: `server/execution/run-recovery.ts` applica deliberatamente `worker_lost` ai run abbandonati per evitare doppie operazioni sull'applicazione sotto test. Con la decisione dell'operatore, restart controllato e crash sono verificati separatamente come descritto sopra; non è stato introdotto replay automatico né modificata la politica di recupero della piattaforma.
 
 Verifica della scelta su due nuovi stack, baseline `5a491bd` con checkout modificato:
 

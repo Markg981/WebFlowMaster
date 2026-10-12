@@ -97,7 +97,7 @@ const isFailure = (status: string) => status === 'Failed' || status === 'Error';
  *
  * A quarantined test's failure is counted and shown, but it is not what makes a run "failed":
  * that is the whole of what quarantine changes. Every other rule for deciding a run stays where
- * it is (server/test-execution-service.ts).
+ * it is (server/execution/test-execution-service.ts).
  */
 export function failuresOf(rows: VerdictRow[]): { holding: number; quarantined: number } {
   let holding = 0;

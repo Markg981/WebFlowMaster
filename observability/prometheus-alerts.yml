@@ -7,7 +7,7 @@
 # starting points: set them from the installation's plan sizes, worker count and traffic.
 #
 # Not covered by a metric: a run that ends as `worker_lost` is a state in the database, written by
-# the recovery sweep when a run's heartbeat goes quiet (server/run-recovery.ts).
+# the recovery sweep when a run's heartbeat goes quiet (server/execution/run-recovery.ts).
 # No counter is incremented for it. The rules below alert on the cause instead: a worker whose
 # metrics listener stops answering (WfmWorkerTargetDown), no worker reachable at all
 # (WfmNoWorkerReachable) and attempts that end in an infrastructure error (WfmJobErrors).

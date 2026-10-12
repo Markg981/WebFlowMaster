@@ -145,7 +145,7 @@ describe('route modules cannot query outside the tenant context', () => {
         'stamp of the same connection. The agent reads nothing else; the runner that drives the ' +
         'browser it lends is inside its own tenant context.',
     },
-    'test-execution-service.ts': {
+    'execution/test-execution-service.ts': {
       max: 1,
       why:
         'One tenant-context boundary: organizationOfExecution reads the execution row to establish ' +
@@ -159,7 +159,7 @@ describe('route modules cannot query outside the tenant context', () => {
         'enough: it is not a request and has no tenant. It only finds them; each is marked ' +
         'under its own organization.',
     },
-    'run-recovery.ts': {
+    'execution/run-recovery.ts': {
       max: 1,
       why:
         'The recovery sweep looks across every organization for runs whose worker went quiet: it ' +
@@ -211,7 +211,7 @@ describe('route modules cannot query outside the tenant context', () => {
         'privileged read of organizations, which is not org-scoped. The message itself is written ' +
         'under that organization through withTenantTransaction.',
     },
-    'execution-orchestrator.ts': {
+    'execution/execution-orchestrator.ts': {
       max: 1,
       why:
         "Creating a run starts from nothing but a plan id, so reading that plan's organization " +

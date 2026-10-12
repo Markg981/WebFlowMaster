@@ -4,7 +4,7 @@ import { organizations, testPlanExecutions, testPlans } from '@shared/schema';
 import { privilegedDb, SESSION_TIME_ZONE } from './db';
 import { createTestOrganization, createTestUser } from './tests/factories';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
-import { transitionExecution } from './execution-state';
+import { transitionExecution } from './execution/execution-state';
 
 /**
  * The database and the application agree on what time it is.

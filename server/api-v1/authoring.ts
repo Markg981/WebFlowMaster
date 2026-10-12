@@ -55,7 +55,7 @@ import { importMobileCatalog, MOBILE_BUNDLE_FIELDS } from '../mobile/mobile-bund
 import { prepareMobileSteps, MobileDefinitionError } from '../mobile/mobile-step-groups';
 import { GherkinError } from '../bdd/gherkin';
 import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
-import schedulerService from '../scheduler-service';
+import schedulerService from '../execution/scheduler-service';
 
 const numericId = z.coerce.number().int().positive();
 export const projectCreateSchema = z.object({ name: z.string().trim().min(1).max(200) }).strict();

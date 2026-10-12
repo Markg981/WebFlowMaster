@@ -21,7 +21,7 @@ vi.mock('../../queue', () => ({
   },
 }));
 
-const { createExecutionOrchestrator } = await import('../../execution-orchestrator');
+const { createExecutionOrchestrator } = await import('../../execution/execution-orchestrator');
 const { beginExecutionUsage } = await import('../execution-usage');
 const { changeSubscription } = await import('./service');
 const { assertSubscriptionAllowsRuns, SubscriptionSuspendedError } = await import('./enforcement');

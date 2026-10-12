@@ -23,7 +23,7 @@ vi.mock('./logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 const runTestPlan = vi.fn();
-vi.mock('./test-execution-service', () => ({
+vi.mock('./execution/test-execution-service', () => ({
   runTestPlan: (...args: unknown[]) => runTestPlan(...args),
 }));
 

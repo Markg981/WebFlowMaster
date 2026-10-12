@@ -16,12 +16,12 @@ import {
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { MAX_CHANGED_FILES, selectForChanges, validatePattern } from '../test-impact';
+import { MAX_CHANGED_FILES, selectForChanges, validatePattern } from '../execution/test-impact';
 import { expandPlanTests, type TestReference } from '../authoring/test-suites';
 import logger from '../logger';
 
 /**
- * The impact map (server/test-impact.ts): which file patterns map to which tests' tags. Viewers
+ * The impact map (server/execution/test-impact.ts): which file patterns map to which tests' tags. Viewers
  * read it and try it on a list of files; editors keep it.
  */
 

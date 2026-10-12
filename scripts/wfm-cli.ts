@@ -53,7 +53,7 @@ export interface CliOptions {
   bddMode?: 'manual' | 'cucumber';
   bddProfile?: string;
   bddRevision?: string;
-  /** run: only the tests the files changed since this git ref affect (server/test-impact.ts). */
+  /** run: only the tests the files changed since this git ref affect (server/execution/test-impact.ts). */
   changedSince?: string;
   /** run: the same, from a file listing the changed files one per line. */
   changedFilesPath?: string;

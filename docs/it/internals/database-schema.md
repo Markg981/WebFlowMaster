@@ -1299,7 +1299,7 @@ sorgente e revisione esatta del profilo; il binding è validato dal dominio, non
 del test. 0081 aggiunge metering quote tenant (`quota_execution_sessions`, `quota_artifacts`).
 0082 aggiunge `mobile_tests.device_matrix`, `mobile_step_groups` riusabili e relativo vincolo di
 progetto. Matrice/gruppi mobile sono congelati per il run; la forma eseguibile è in
-`shared/mobile.ts`, `server/mobile/mobile-plan-units.ts` e `server/execution-snapshot.ts`.
+`shared/mobile.ts`, `server/mobile/mobile-plan-units.ts` e `server/execution/execution-snapshot.ts`.
 
 Il diagramma copre le nuove tabelle BDD/gruppi. Colonne e vincoli di prenotazione/conferma quote
 restano definiti da `shared/schema.ts` e migrazione 0081; vedere [Modello dati](./data-model) e

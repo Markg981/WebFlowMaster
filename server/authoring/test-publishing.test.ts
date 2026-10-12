@@ -53,7 +53,7 @@ const { createTestOrganization } = await import('../tests/factories');
 const { tenancyMiddleware } = await import('../middleware/tenancy');
 const { default: testsRoutes } = await import('../routes/tests.routes');
 const { default: publishingRoutes } = await import('../routes/test-publishing.routes');
-const { processTestPlanJob } = await import('../test-execution-service');
+const { processTestPlanJob } = await import('../execution/test-execution-service');
 
 type Person = { id: number; username: string; organizationId: number; role: string };
 let app: express.Express;

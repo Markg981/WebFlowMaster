@@ -3,7 +3,7 @@ import { mailProviderBodyParser } from './routes/mail-provider.routes';
 import { billingWebhookBodyParser } from './routes/billing-webhooks.routes';
 import { configureEgressProxy } from './egress-proxy';
 import { registerRoutes } from './routes';
-import schedulerService from './scheduler-service';
+import schedulerService from './execution/scheduler-service';
 import { apiNotFound, serveStatic } from './static';
 import 'dotenv/config';
 import logger, { applyLogSettings, flushLogs } from './logger';
@@ -197,8 +197,8 @@ app.use(express.urlencoded({ extended: false }));
   await setupAgentRelay(server);
   // Runs queued and cancelled from here report on their commit; the worker reports the rest.
   registerCommitStatus();
-  // A run that ends lets its organization's next waiting run start at once (server/run-promotion.ts).
-  const { registerRunPromotion } = await import('./run-promotion');
+  // A run that ends lets its organization's next waiting run start at once (server/execution/run-promotion.ts).
+  const { registerRunPromotion } = await import('./execution/run-promotion');
   registerRunPromotion();
 
   // Initialize the scheduler after routes are registered and DB is presumably ready
@@ -213,7 +213,7 @@ app.use(express.urlencoded({ extended: false }));
 
   // Ends runs whose worker has stopped answering — see server/run-recovery.ts. Here rather than
   // in the worker: when every worker is gone, somebody still has to say their runs are over.
-  const { startRunRecovery } = await import('./run-recovery');
+  const { startRunRecovery } = await import('./execution/run-recovery');
   const stopRunRecovery = process.env.NODE_ENV === 'test' ? () => {} : startRunRecovery();
 
   // Removes the screenshots, videos and traces of runs older than ARTIFACT_RETENTION_DAYS —

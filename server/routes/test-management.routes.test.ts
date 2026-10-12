@@ -501,7 +501,7 @@ describe('publishing a run', () => {
       .set({ testManagementId: conn.id })
       .where(eq(testPlans.id, planId));
     const [plan] = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, planId));
-    const { buildExecutionSnapshot } = await import('../execution-snapshot');
+    const { buildExecutionSnapshot } = await import('../execution/execution-snapshot');
     await privilegedDb
       .update(testPlanExecutions)
       .set({ configurationSnapshot: buildExecutionSnapshot(plan, []) as any })

@@ -35,7 +35,7 @@ vi.mock('./runtime/precondition-runner', () => ({
   runPreconditions: async () => ({ ok: true, steps: [] }),
 }));
 
-const { processTestPlanJob } = await import('./test-execution-service');
+const { processTestPlanJob } = await import('./execution/test-execution-service');
 
 const passed = {
   success: true,

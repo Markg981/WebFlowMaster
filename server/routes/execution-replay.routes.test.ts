@@ -19,7 +19,7 @@ vi.mock('../logger', () => ({
     debug: vi.fn(),
   },
 }));
-const { createExecutionOrchestrator } = await import('../execution-orchestrator');
+const { createExecutionOrchestrator } = await import('../execution/execution-orchestrator');
 const { default: routes } = await import('./reports.routes');
 const { default: planRoutes } = await import('./test-plans.routes');
 const app = express();
