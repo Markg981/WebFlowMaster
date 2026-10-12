@@ -11,6 +11,7 @@ import {
   primaryKey,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from '../locales';
@@ -235,6 +236,10 @@ export const testPlanExecutions = pgTable(
     index('test_plan_executions_status_idx').on(table.status),
     index('test_plan_executions_started_at_idx').on(table.startedAt),
     index('test_plan_executions_organization_id_idx').on(table.organizationId),
+    index('test_plan_executions_org_run_time_idx').on(
+      table.organizationId,
+      sql`(coalesce(${table.startedAt}, ${table.queuedAt})) DESC`,
+    ),
   ],
 );
 

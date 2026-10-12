@@ -67,6 +67,40 @@ With `LOAD_WORKER_CONCURRENCY=1` that stack executes three load runs at once, on
 a fourth waits as `queued` until one ends. The queue's depth and the workers' capacity are on the
 worker's metrics endpoint as `load-queue` (see [Telemetry](./telemetry)).
 
+## Volume testing
+
+`npm run volume` answers a different question from the load test: how the log and result tables behave after a year of runs. It generates months of runs, results and log lines directly in PostgreSQL, then times the hot queries with `EXPLAIN (ANALYZE, BUFFERS)` as the application role under row-level security, and probes how long deleting one month takes.
+
+```sh
+npm run volume -- --database-url postgres://postgres:PASSWORD@HOST:PORT/wfm_volume
+```
+
+Safety: the tool writes millions of rows, so it needs a dedicated scratch database, owned by a superuser or the owner of the schema, with the migrations applied. It never reads `DATABASE_URL`, because that names the installation's own database. It refuses a database that holds organizations not created by itself (named `wfm-volume-N`). Never point it at production.
+
+Options (defaults in brackets): `--months` [12], `--runs-per-day` [300], `--orgs`, `--plans`, `--tests`, `--results-per-run` [20], `--logs-per-run` [40], `--repeat` (samples per query, median reported), `--max-ms` [250] and `--seq-scan-rows` [50000] (thresholds), `--json PATH` (report file, default `.local/volume/`), `--measure-only` (skip generation), `--reset` (drop previously generated data), `--no-delete-probe`.
+
+Phases: generate, ANALYZE, measure, delete probe (one month of runs with the cascade to results and logs, in a transaction that is rolled back), report. Exit codes: `0` within thresholds, `1` a query is slower than `--max-ms` or sequentially scans more than `--seq-scan-rows` rows of a run table, `2` setup failure or refused database. Run `npx vitest run scripts/wfm-volume.test.ts` for the unit tests.
+
+### Measured results
+
+12 months, 300 runs a day over 3 organizations: 103,800 runs, 2.08 million results, 4.15 million log lines (about 1.2 GB of tables, 0.6 GB of indexes), PostgreSQL 16, median of the samples.
+
+| Query                                               |                   Before |  After |
+| --------------------------------------------------- | -----------------------: | -----: |
+| Logs console of a run (recent or 11 months old)     |                   0.1 ms | 0.1 ms |
+| Results of a run                                    |                   0.1 ms | 0.1 ms |
+| Retention sweep (partial index from migration 0026) |                   0.0 ms | 0.0 ms |
+| Run history, first page                             |                    39 ms | 0.1 ms |
+| Dashboard, 30-day totals                            |                   747 ms |  94 ms |
+| Dashboard, recent runs                              | 660 ms (sequential scan) | 1.5 ms |
+| Results of one test, last 30 days                   |                    19 ms |  24 ms |
+
+The dashboard and the run history sort by `coalesce(started_at, queued_at)` inside one organization; with no index on that expression the database read and sorted every run of the organization. Migration 0088 adds `test_plan_executions_org_run_time_idx (organization_id, coalesce(started_at, queued_at) DESC)`. The log and result lookups were already served by their indexes.
+
+### Partitioning by month
+
+Deleting one month (3,000 runs with their results and logs) takes about 1 s at this size, so dropping a monthly partition would not be a gain today. Reconsider partitioning only well beyond it, for example tens of millions of rows a month, or once row retention exists. Today only artifacts are purged by retention: `execution_logs` and `report_test_case_results` have no row retention, so they grow linearly with the number of runs.
+
 ## Automatic resilience scenarios
 
 ```sh
