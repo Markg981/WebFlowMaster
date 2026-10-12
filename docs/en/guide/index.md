@@ -5,6 +5,8 @@ steps, or by describing it in sentences; you group tests into **plans**; plans r
 schedule or from a CI pipeline, in one or more browsers; and every run leaves a **report** with
 screenshots, timings and, when you want them, a video, a Playwright trace and the network traffic.
 
+In a hurry? [Your first test in 10 minutes](../start/qa) is the short path; this page is the full one.
+
 This guide is for the people who write and run tests. Setting up an installation and managing an
 organization are in [Administration](../admin/administration). For device execution read
 [Mobile apps](./mobile-apps); for manual scenarios or dedicated Cucumber read [BDD tests](./bdd-tests).

@@ -6,6 +6,10 @@ CI — anche dentro reti che il server non raggiunge — e ogni esecuzione produ
 
 **Prima volta qui?** Leggi [WebFlowMaster in breve](./overview): cos'è, com'è fatto e dove si trova ogni cosa.
 
+**Primo giorno?** [Da dove iniziare](./start/) ha un percorso breve per ogni ruolo: il primo test in
+10 minuti per chi scrive i test, il primo run da una pipeline per chi fa DevOps, la prima
+organizzazione con single sign-on per chi amministra.
+
 **Da condividere con i colleghi:** il [manuale dell'intera suite](./internals/suite-handbook)
 collega funzionalità, flussi e architettura. Il [percorso di contribuzione](./internals/contributing-guide)
 mostra come implementare un miglioramento; l'[audit](./internals/product-audit) spiega le priorità proposte.

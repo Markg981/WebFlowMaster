@@ -6,6 +6,8 @@ su richiesta, con una pianificazione o da una pipeline di CI, in uno o più brow
 lascia un **report** con screenshot, tempi e, quando servono, un video, una trace di Playwright e
 il traffico di rete.
 
+Di fretta? [Il primo test in 10 minuti](../start/qa) è il percorso breve; questa pagina è quello completo.
+
 Questa guida è per chi scrive ed esegue i test. L'installazione e la gestione di
 un'organizzazione sono in [Amministrazione](../admin/administration). Per i dispositivi leggere
 [App mobile](./mobile-apps); per scenari manuali o Cucumber leggere [Test BDD](./bdd-tests).

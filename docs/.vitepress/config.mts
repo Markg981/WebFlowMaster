@@ -58,6 +58,30 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
   return [
     { text: t.glance, link: p('overview') },
     {
+      text: lang === 'en' ? 'Start here' : 'Da dove iniziare',
+      items: [
+        { text: lang === 'en' ? 'Paths by role' : 'Percorsi per ruolo', link: p('start/') },
+        {
+          text: lang === 'en' ? 'Tester: first test in 10 minutes' : 'Test: il primo in 10 minuti',
+          link: p('start/qa'),
+        },
+        {
+          text:
+            lang === 'en'
+              ? 'DevOps: first run from a pipeline'
+              : 'DevOps: il primo run da pipeline',
+          link: p('start/devops'),
+        },
+        {
+          text:
+            lang === 'en'
+              ? 'Admin: first organization with SSO'
+              : 'Admin: la prima organizzazione con SSO',
+          link: p('start/admin'),
+        },
+      ],
+    },
+    {
       text: t.guide,
       items: [
         { text: t.gettingStarted, link: p('guide/') },
@@ -319,6 +343,7 @@ export default withMermaid(
           nav: [
             { text: 'Home', link: '/en/' },
             { text: 'At a glance', link: '/en/overview' },
+            { text: 'Start here', link: '/en/start/' },
             { text: 'Guide', link: '/en/guide/' },
             { text: 'Administration', link: '/en/admin/installation' },
             { text: 'Security', link: '/en/security/' },
@@ -337,6 +362,7 @@ export default withMermaid(
           nav: [
             { text: 'Home', link: '/it/' },
             { text: 'In breve', link: '/it/overview' },
+            { text: 'Inizia', link: '/it/start/' },
             { text: 'Guida', link: '/it/guide/' },
             { text: 'Amministrazione', link: '/it/admin/installation' },
             { text: 'Sicurezza', link: '/it/security/' },

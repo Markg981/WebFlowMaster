@@ -13,6 +13,10 @@ including inside networks the server cannot reach — and report every run in de
 
 **New here?** Read [WebFlowMaster at a glance](./overview): what it is, how it is built, and where everything is.
 
+**First day?** [Start here](./start/) has one short path per role: a tester's first test in 10
+minutes, a DevOps engineer's first run from a pipeline, an administrator's first organization with
+single sign-on.
+
 ## User guide
 
 For the people who write and run tests:
