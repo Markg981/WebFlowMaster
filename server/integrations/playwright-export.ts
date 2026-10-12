@@ -1,11 +1,11 @@
 import type { Cleanup, Precondition } from '@shared/schema';
-import { parseMockSpec } from './authoring/network-mocks';
+import { parseMockSpec } from '../authoring/network-mocks';
 import {
   parseAssertionValue,
   parseAssignment,
   parseDialogAnswer,
   parseUploadValue,
-} from './web/step-executor';
+} from '../web/step-executor';
 
 /**
  * A web test as a Playwright Test file (`*.spec.ts`), to run without WebFlowMaster, to keep in a

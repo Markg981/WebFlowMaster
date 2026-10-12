@@ -269,11 +269,11 @@ Poi, per un run arrivato a un verdetto:
    (`max_attempts`, al massimo 5); gli altri run ne hanno uno. Issue e notifiche aspettano il tentativo
    che decide.
 2. **Issue.** Con un tracker configurato e l'apertura attiva, ogni nuovo fallimento apre una issue in
-   Jira o Azure DevOps, e un fallimento già segnalato riceve invece un commento (`server/issue-store.ts`).
+   Jira o Azure DevOps, e un fallimento già segnalato riceve invece un commento (`server/integrations/issue-store.ts`).
 3. **Notifica.** Il webhook del piano (Slack, Teams o qualsiasi cosa accetti una POST) viene avvisato,
-   secondo i suoi interruttori (`server/notifications.ts`).
+   secondo i suoi interruttori (`server/integrations/notifications.ts`).
 4. **Stato del commit.** Per un run avviato da GitHub Actions o GitLab CI, il commit riceve lo stato
-   finale con il link al report (`server/commit-status.ts`).
+   finale con il link al report (`server/integrations/commit-status.ts`).
 
 Nessuno di questi può cambiare il verdetto: ogni errore è registrato e riportato come esito.
 

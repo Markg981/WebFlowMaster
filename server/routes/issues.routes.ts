@@ -10,8 +10,8 @@ import {
 } from '@shared/schema';
 import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { fileFailure } from '../issue-store';
-import { dedupeKeyFor } from '../issue-tracking';
+import { fileFailure } from '../integrations/issue-store';
+import { dedupeKeyFor } from '../integrations/issue-tracking';
 import logger from '../logger';
 
 /**

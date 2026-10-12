@@ -7,7 +7,7 @@ import { agents, bddExecutionProfiles, projects, tests, testVersions } from '@sh
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { runWithTenant } from '../middleware/tenancy';
 import { eq } from 'drizzle-orm';
-import { exportBundle } from '../test-bundle';
+import { exportBundle } from '../integrations/test-bundle';
 vi.mock('../logger', () => ({
   default: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));

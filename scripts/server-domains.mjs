@@ -135,21 +135,7 @@ export const SERVER_DOMAINS = [
     rank: 10,
     purpose:
       'issue trackers, test management, commit status, chat notifications, webhooks, bundles',
-    modules: [
-      'issue-providers',
-      'issue-store',
-      'issue-tracking',
-      'test-management',
-      'test-management-providers',
-      'commit-status',
-      'notifications',
-      'webhooks',
-      'run-mail',
-      'excel-service',
-      'requirements',
-      'test-bundle',
-      'playwright-export',
-    ],
+    modules: ['integrations/*'],
   },
   {
     name: 'http',

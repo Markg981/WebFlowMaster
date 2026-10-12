@@ -20,7 +20,7 @@ import {
 import { caseKeyFromName, normaliseCaseKey } from '@shared/test-management';
 import { decryptSecret } from '../crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { testRailElapsed, zephyrStatusName } from '../test-management-providers';
+import { testRailElapsed, zephyrStatusName } from '../integrations/test-management-providers';
 
 vi.mock('../logger', () => ({
   default: {
@@ -512,7 +512,7 @@ describe('publishing a run', () => {
       .set({ testManagementId: null })
       .where(eq(testPlans.id, planId));
 
-    const { publishExecution } = await import('../test-management');
+    const { publishExecution } = await import('../integrations/test-management');
     const { runWithTenant } = await import('../middleware/tenancy');
     const publication = await runWithTenant(organizationId, () => publishExecution(executionId));
     expect(publication).toMatchObject({

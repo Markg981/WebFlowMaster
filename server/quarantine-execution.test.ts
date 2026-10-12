@@ -15,7 +15,7 @@ import {
 } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
 import { buildJUnitXml } from './reporting/junit';
-import { summaryLine } from './notifications';
+import { summaryLine } from './integrations/notifications';
 
 /**
  * What quarantine changes about a run, and only that.

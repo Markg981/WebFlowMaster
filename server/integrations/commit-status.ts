@@ -6,12 +6,12 @@ import {
   type TestPlanExecution,
 } from '@shared/schema';
 import type { CiContext } from '@shared/ci';
-import { decryptSecret } from './crypto';
-import { fetchTarget } from './outbound-http';
-import { onExecutionTransition } from './execution/execution-state';
-import { readExecutionSnapshot } from './execution/execution-snapshot';
-import { reportUrlFor } from './report-links';
-import { runDetachedForOrganization, withTenantTransaction } from './middleware/tenancy';
+import { decryptSecret } from '../crypto';
+import { fetchTarget } from '../outbound-http';
+import { onExecutionTransition } from '../execution/execution-state';
+import { readExecutionSnapshot } from '../execution/execution-snapshot';
+import { reportUrlFor } from '../report-links';
+import { runDetachedForOrganization, withTenantTransaction } from '../middleware/tenancy';
 
 /**
  * The run's result on the commit it tested, in GitHub or GitLab.

@@ -262,11 +262,11 @@ Then, for a run that reached a verdict:
    (30 s). Attempts come from a schedule's retry policy (`max_attempts`, at most 5); other runs have
    one. Issues and notifications wait for the attempt that decides.
 2. **Issues.** With a tracker configured and filing on, each new failure opens an issue in Jira or
-   Azure DevOps, and a failure already filed gets a comment instead (`server/issue-store.ts`).
+   Azure DevOps, and a failure already filed gets a comment instead (`server/integrations/issue-store.ts`).
 3. **Notification.** The plan's webhook (Slack, Teams, or anything that accepts a POST) is told,
-   according to its switches (`server/notifications.ts`).
+   according to its switches (`server/integrations/notifications.ts`).
 4. **Commit status.** For a run started from GitHub Actions or GitLab CI, the commit gets the final
-   status with a link to the report (`server/commit-status.ts`).
+   status with a link to the report (`server/integrations/commit-status.ts`).
 
 None of these can change the verdict: each failure is logged and reported as an outcome.
 

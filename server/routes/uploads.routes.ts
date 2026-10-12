@@ -1,7 +1,7 @@
 import { type RequestHandler } from 'express';
 import { asyncRouter } from '../middleware/async-router';
 import multer from 'multer';
-import { excelService } from '../excel-service';
+import { excelService } from '../integrations/excel-service';
 import fs from 'fs-extra';
 import logger from '../logger';
 import { excelSequencesMap, tests } from '@shared/schema';

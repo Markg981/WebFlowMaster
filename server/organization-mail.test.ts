@@ -7,7 +7,7 @@ import { createTestUser } from './tests/factories';
 import { testPlans } from '@shared/schema';
 import { mailTemplates } from '@shared/mail-templates';
 import { runWithTenant } from './middleware/tenancy';
-import { mailRunFinished } from './run-mail';
+import { mailRunFinished } from './integrations/run-mail';
 import { mailerDeps, sendMail } from './messaging/mailer';
 import { queueMail, receiveDeliveryEvent } from './messaging/mail-delivery';
 let org: number;

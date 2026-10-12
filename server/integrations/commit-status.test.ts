@@ -5,7 +5,7 @@ import express from 'express';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import {
   auditLog,
   sourceHosts,
@@ -13,10 +13,10 @@ import {
   testPlans,
   type TestPlanExecution,
 } from '@shared/schema';
-import { createTestOrganization, createTestUser } from './tests/factories';
-import { encryptSecret } from './crypto';
+import { createTestOrganization, createTestUser } from '../tests/factories';
+import { encryptSecret } from '../crypto';
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -42,9 +42,9 @@ vi.mock('./logger', () => ({
 const { commitStatusFor, commitTargetOf, postCommitStatus, registerCommitStatus } =
   await import('./commit-status');
 const { announceExecution, takeExecution, transitionExecution } =
-  await import('./execution/execution-state');
-const { runWithTenant } = await import('./middleware/tenancy');
-const { default: sourceHostsRoutes } = await import('./routes/source-hosts.routes');
+  await import('../execution/execution-state');
+const { runWithTenant } = await import('../middleware/tenancy');
+const { default: sourceHostsRoutes } = await import('../routes/source-hosts.routes');
 
 const SHA = 'a'.repeat(40);
 

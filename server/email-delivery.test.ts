@@ -13,8 +13,8 @@ import {
 } from '@shared/schema';
 import { passwordProblem } from '@shared/password-policy';
 import { mailerDeps, sendMail } from './messaging/mailer';
-import { mailRunFinished, personWantsMail } from './run-mail';
-import type { RunSummary } from './notifications';
+import { mailRunFinished, personWantsMail } from './integrations/run-mail';
+import type { RunSummary } from './integrations/notifications';
 import { mailSettings } from '@shared/mail-settings';
 import { issuePasswordReset } from './identity/password-reset';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';

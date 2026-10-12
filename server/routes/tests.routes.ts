@@ -32,8 +32,8 @@ import {
   exportBundle,
   parseBundle,
   sameAs,
-} from '../test-bundle';
-import { toPlaywright } from '../playwright-export';
+} from '../integrations/test-bundle';
+import { toPlaywright } from '../integrations/playwright-export';
 import { expandSequenceForRun } from '../authoring/step-groups';
 import { resolveSequenceForRun } from '../authoring/step-elements';
 import { GherkinError } from '../bdd/gherkin';
@@ -792,7 +792,7 @@ router.delete('/api/api-tests/:id', requireRole('editor'), async (req, res) => {
   }
 });
 
-// ─── Tests as files: a versionable bundle, and Playwright (server/test-bundle.ts, server/playwright-export.ts) ───
+// ─── Tests as files: a versionable bundle, and Playwright (server/integrations/test-bundle.ts, server/integrations/playwright-export.ts) ───
 
 /** `?projectId=12`, `?projectId=none` (tests in no project), or absent (all of them). */
 function projectFilter(

@@ -24,7 +24,7 @@ const createIssue = vi.fn();
 const addComment = vi.fn();
 const checkConnection = vi.fn();
 
-vi.mock('../issue-providers', () => ({
+vi.mock('../integrations/issue-providers', () => ({
   createIssue: (...args: any[]) => createIssue(...args),
   addComment: (...args: any[]) => addComment(...args),
   checkConnection: (...args: any[]) => checkConnection(...args),

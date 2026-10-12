@@ -18,7 +18,7 @@ import {
 } from '@shared/schema';
 import { encryptSecret } from '../crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { casesOf } from '../test-management';
+import { casesOf } from '../integrations/test-management';
 import { testsOfSuite } from '../authoring/test-suites';
 
 vi.mock('../logger', () => ({

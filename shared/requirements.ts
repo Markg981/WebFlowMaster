@@ -5,7 +5,7 @@
  * "Is SHOP-142 tested, and does it pass?" is the question a QA lead is asked before a release,
  * and the answer used to be in nobody's data: a test knew its steps and a run its results, and
  * neither knew what they were for. A requirement is typed in or imported from the organization's
- * Jira or Azure DevOps (server/issue-providers.ts); linking tests to it is its coverage.
+ * Jira or Azure DevOps (server/integrations/issue-providers.ts); linking tests to it is its coverage.
  *
  * Nothing here is stored: the state of a requirement is worked out from the latest result of each
  * test that covers it, every time it is asked, so it can never disagree with the reports.

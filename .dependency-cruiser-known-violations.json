@@ -17,8 +17,8 @@
   {
     "type": "dependency",
     "from": "server/execution/plan-run/after-run.ts",
-    "to": "server/issue-store.ts",
-    "unresolvedTo": "../../issue-store",
+    "to": "server/integrations/issue-store.ts",
+    "unresolvedTo": "../../integrations/issue-store",
     "dependencyTypes": [
       "local",
       "import"
@@ -31,8 +31,8 @@
   {
     "type": "dependency",
     "from": "server/execution/plan-run/after-run.ts",
-    "to": "server/notifications.ts",
-    "unresolvedTo": "../../notifications",
+    "to": "server/integrations/notifications.ts",
+    "unresolvedTo": "../../integrations/notifications",
     "dependencyTypes": [
       "local",
       "import"
@@ -45,8 +45,8 @@
   {
     "type": "dependency",
     "from": "server/execution/plan-run/after-run.ts",
-    "to": "server/run-mail.ts",
-    "unresolvedTo": "../../run-mail",
+    "to": "server/integrations/run-mail.ts",
+    "unresolvedTo": "../../integrations/run-mail",
     "dependencyTypes": [
       "local",
       "import"
@@ -59,8 +59,8 @@
   {
     "type": "dependency",
     "from": "server/execution/plan-run/after-run.ts",
-    "to": "server/test-management.ts",
-    "unresolvedTo": "../../test-management",
+    "to": "server/integrations/test-management.ts",
+    "unresolvedTo": "../../integrations/test-management",
     "dependencyTypes": [
       "local",
       "import"
@@ -116,8 +116,8 @@
   {
     "type": "dependency",
     "from": "server/execution/plan-run/finalize.ts",
-    "to": "server/notifications.ts",
-    "unresolvedTo": "../../notifications",
+    "to": "server/integrations/notifications.ts",
+    "unresolvedTo": "../../integrations/notifications",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -173,8 +173,8 @@
   {
     "type": "dependency",
     "from": "server/messaging/mail-messages.ts",
-    "to": "server/notifications.ts",
-    "unresolvedTo": "../notifications",
+    "to": "server/integrations/notifications.ts",
+    "unresolvedTo": "../integrations/notifications",
     "dependencyTypes": [
       "local",
       "import"

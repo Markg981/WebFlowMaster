@@ -13,10 +13,10 @@ import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { encryptSecret } from '../crypto';
-import { checkSourceHost, DEFAULT_API_URLS, hostConfig } from '../commit-status';
+import { checkSourceHost, DEFAULT_API_URLS, hostConfig } from '../integrations/commit-status';
 
 /**
- * The GitHub or GitLab a run reports its commit status to (server/commit-status.ts).
+ * The GitHub or GitLab a run reports its commit status to (server/integrations/commit-status.ts).
  *
  * An owner's business, like agents and API keys: the token can write statuses on the organization's
  * repositories. Everyone sees whether one is connected and whether the last status got through,

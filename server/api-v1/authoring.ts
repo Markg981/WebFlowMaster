@@ -50,7 +50,7 @@ import {
   keepRedactedSecrets,
   API_TEST_FIELDS,
   BundleError,
-} from '../test-bundle';
+} from '../integrations/test-bundle';
 import { importMobileCatalog, MOBILE_BUNDLE_FIELDS } from '../mobile/mobile-bundle';
 import { prepareMobileSteps, MobileDefinitionError } from '../mobile/mobile-step-groups';
 import { GherkinError } from '../bdd/gherkin';
