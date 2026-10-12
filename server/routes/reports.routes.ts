@@ -1,5 +1,5 @@
 import { asyncRouter } from '../middleware/async-router';
-import { junitReportFor } from '../junit-report';
+import { junitReportFor } from '../reporting/junit-report';
 import logger from '../logger';
 import { requireRole } from '../middleware/require-role';
 import {
@@ -8,7 +8,7 @@ import {
   REPORT_EXPORT_FORMATS,
   ReportExportError,
   sendExport,
-} from '../report-export';
+} from '../reporting/report-export';
 import { z } from 'zod';
 import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orchestrator';
 import { QuotaError, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';

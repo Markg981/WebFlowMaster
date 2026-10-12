@@ -1,9 +1,9 @@
 import { asc, eq } from 'drizzle-orm';
 import { reportTestCaseResults, testPlanExecutions, testPlans } from '@shared/schema';
 import { buildJUnitXml } from './junit';
-import { withTenantTransaction } from './middleware/tenancy';
-import { reproducibilitySummary } from './execution-provenance';
-import { readExecutionSnapshot } from './execution-snapshot';
+import { withTenantTransaction } from '../middleware/tenancy';
+import { reproducibilitySummary } from '../execution-provenance';
+import { readExecutionSnapshot } from '../execution-snapshot';
 import { readMatrixEvidence } from '@shared/matrix-evidence';
 
 /**

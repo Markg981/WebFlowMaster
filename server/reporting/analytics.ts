@@ -1,4 +1,4 @@
-import { withTenantTransaction } from './middleware/tenancy';
+import { withTenantTransaction } from '../middleware/tenancy';
 import { testPlanExecutions, testPlans, projects, testPlanSchedules } from '@shared/schema';
 import { eq, desc, asc, sql, gte, and } from 'drizzle-orm';
 import type { DashboardWidget } from '@shared/dashboard-layout';

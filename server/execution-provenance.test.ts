@@ -6,10 +6,10 @@ import {
   inputFingerprint,
   reproducibilitySummary,
 } from './execution-provenance';
-import { renderReportHtml } from './report-html';
-import { buildAllureResults } from './allure-export';
-import { buildJUnitXml } from './junit';
-import type { ReportModel } from './report-model';
+import { renderReportHtml } from './reporting/report-html';
+import { buildAllureResults } from './reporting/allure-export';
+import { buildJUnitXml } from './reporting/junit';
+import type { ReportModel } from './reporting/report-model';
 
 function frozen() {
   const snapshot = buildExecutionSnapshot({ id: 'plan', name: 'Queued plan' } as TestPlan, []);
