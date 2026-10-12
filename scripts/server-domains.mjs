@@ -224,7 +224,7 @@ export const SERVER_DOMAINS = [
     name: 'bdd',
     rank: 7,
     purpose: 'BDD tests: Gherkin sources, definitions, profiles, execution',
-    modules: ['bdd-definition', 'bdd-execution', 'bdd-profiles', 'gherkin', 'gherkin-source'],
+    modules: ['bdd/*'],
   },
   {
     name: 'execution',

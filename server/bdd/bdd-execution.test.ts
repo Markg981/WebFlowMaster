@@ -1,6 +1,6 @@
 import { beforeAll, expect, it, vi } from 'vitest';
 import { randomUUID } from 'crypto';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import {
   agents,
   bddExecutionProfiles,
@@ -12,11 +12,11 @@ import {
   testDataSets,
 } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { createTestOrganization, createTestUser } from './tests/factories';
-import { runWithTenant } from './middleware/tenancy';
-import { runTest, processTestPlanJob } from './test-execution-service';
-import * as browsers from './browsers';
-import * as agentBrowser from './agents/agent-browser';
+import { createTestOrganization, createTestUser } from '../tests/factories';
+import { runWithTenant } from '../middleware/tenancy';
+import { runTest, processTestPlanJob } from '../test-execution-service';
+import * as browsers from '../browsers';
+import * as agentBrowser from '../agents/agent-browser';
 import { runDedicatedBddTest } from './bdd-execution';
 import { BDD_MAX_OUTPUT_BYTES, BddAgentResultSchema } from '@shared/bdd-agent';
 const run = vi.fn(async (..._args: unknown[]) => ({
@@ -24,7 +24,7 @@ const run = vi.fn(async (..._args: unknown[]) => ({
   durationMs: 1,
   steps: [{ name: 'a', kind: 'step', status: 'PASSED', durationMs: 1 }],
 }));
-vi.mock('./agents/agent-bdd', () => ({ runBddOnAgent: (...args: unknown[]) => run(...args) }));
+vi.mock('../agents/agent-bdd', () => ({ runBddOnAgent: (...args: unknown[]) => run(...args) }));
 let org: number;
 let user: number;
 const id = randomUUID();
@@ -59,7 +59,7 @@ beforeAll(async () => {
 });
 const source = 'Feature: F\nScenario: S\nGiven a';
 it.each([1, 2])('keeps a missing dataset as one frozen BDD error (%s shards)', async (shards) => {
-  const { createExecutionOrchestrator } = await import('./execution-orchestrator');
+  const { createExecutionOrchestrator } = await import('../execution-orchestrator');
   run.mockClear();
   const [test] = await privilegedDb
     .insert(tests)
@@ -480,9 +480,9 @@ it.each([1, 2])(
 it.each([1, 2])(
   'uses queued BDD rows and shared variables after deletion (%s shards)',
   async (shards) => {
-    const { createExecutionOrchestrator } = await import('./execution-orchestrator');
-    const { registerShardDispatcher } = await import('./run-shards');
-    const { processShardJob } = await import('./test-execution-service');
+    const { createExecutionOrchestrator } = await import('../execution-orchestrator');
+    const { registerShardDispatcher } = await import('../run-shards');
+    const { processShardJob } = await import('../test-execution-service');
     const helpers: Promise<unknown>[] = [];
     registerShardDispatcher(async (job) => {
       helpers.push(processShardJob(job.planId, job.executionId, job.userId, job.shard));

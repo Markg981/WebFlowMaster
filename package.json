@@ -42,7 +42,7 @@
     "test:coverage": "vitest run --coverage && vitest run --config scripts/bdd-runtime.vitest.config.ts",
     "test:rls": "npm run test:rls:base && npm run test:rls:collaboration && npm run test:rls:email && npm run test:rls:bdd && npm run test:rls:authoring",
     "test:rls:authoring": "cross-env WFM_TEST_REQUIRE_POSTGRES=1 vitest run --no-file-parallelism server/api-v1/authoring.test.ts server/routes/api-v1.routes.test.ts",
-    "test:rls:bdd": "cross-env WFM_TEST_REQUIRE_POSTGRES=1 vitest run --no-file-parallelism server/tests/bdd-isolation.test.ts server/routes/bdd.routes.test.ts server/routes/bdd-tests.test.ts server/bdd-execution.test.ts",
+    "test:rls:bdd": "cross-env WFM_TEST_REQUIRE_POSTGRES=1 vitest run --no-file-parallelism server/tests/bdd-isolation.test.ts server/routes/bdd.routes.test.ts server/routes/bdd-tests.test.ts server/bdd/bdd-execution.test.ts",
     "test:rls:email": "cross-env WFM_TEST_REQUIRE_POSTGRES=1 vitest run --no-file-parallelism server/tests/organization-mail-isolation.test.ts server/routes/mail-settings.routes.test.ts server/routes/mail-templates.routes.test.ts server/routes/mail-provider.routes.test.ts",
     "test:rls:base": "cross-env WFM_TEST_REQUIRE_POSTGRES=1 vitest run --no-file-parallelism server/tests/isolation.test.ts server/tests/typed-version-isolation.test.ts server/middleware/tenancy.test.ts server/middleware/tenancy-reentrancy.test.ts server/audit.test.ts",
     "test:rls:collaboration": "cross-env WFM_TEST_REQUIRE_POSTGRES=1 vitest run --no-file-parallelism server/tests/collaboration-isolation.test.ts server/routes/comments.routes.test.ts server/routes/dashboards.routes.test.ts server/routes/analytics.routes.test.ts",

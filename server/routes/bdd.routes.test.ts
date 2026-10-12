@@ -7,7 +7,7 @@ import { createTestOrganization, createTestUser } from '../tests/factories';
 import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-import { resolveBddBinding } from '../bdd-profiles';
+import { resolveBddBinding } from '../bdd/bdd-profiles';
 import { publish, publishedContentOf } from '../test-publishing';
 import type { BddTest } from '@shared/bdd';
 

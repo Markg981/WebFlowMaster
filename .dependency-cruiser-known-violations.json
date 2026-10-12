@@ -1,9 +1,9 @@
 [
   {
     "type": "dependency",
-    "from": "server/bdd-execution.ts",
+    "from": "server/bdd/bdd-execution.ts",
     "to": "server/test-execution-service.ts",
-    "unresolvedTo": "./test-execution-service",
+    "unresolvedTo": "../test-execution-service",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -378,9 +378,9 @@
   },
   {
     "type": "cycle",
-    "from": "server/bdd-execution.ts",
+    "from": "server/bdd/bdd-execution.ts",
     "to": "server/test-execution-service.ts",
-    "unresolvedTo": "./test-execution-service",
+    "unresolvedTo": "../test-execution-service",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -422,7 +422,7 @@
         ]
       },
       {
-        "name": "server/bdd-execution.ts",
+        "name": "server/bdd/bdd-execution.ts",
         "dependencyTypes": [
           "local",
           "import"
@@ -660,7 +660,7 @@
         ]
       },
       {
-        "name": "server/bdd-execution.ts",
+        "name": "server/bdd/bdd-execution.ts",
         "dependencyTypes": [
           "local",
           "import"
@@ -722,7 +722,7 @@
         ]
       },
       {
-        "name": "server/bdd-execution.ts",
+        "name": "server/bdd/bdd-execution.ts",
         "dependencyTypes": [
           "local",
           "import"
@@ -755,8 +755,8 @@
   {
     "type": "cycle",
     "from": "server/run-test.ts",
-    "to": "server/bdd-execution.ts",
-    "unresolvedTo": "./bdd-execution",
+    "to": "server/bdd/bdd-execution.ts",
+    "unresolvedTo": "./bdd/bdd-execution",
     "dependencyTypes": [
       "local",
       "import"
@@ -767,7 +767,7 @@
     },
     "cycle": [
       {
-        "name": "server/bdd-execution.ts",
+        "name": "server/bdd/bdd-execution.ts",
         "dependencyTypes": [
           "local",
           "import"
