@@ -626,6 +626,28 @@ describe('GET /api/system-settings', () => {
     const one = await request(app).get('/api/system-settings/workspaceName').expect(200);
     expect(one.body).toMatchObject({ key: 'workspaceName', value: 'Acme QA' });
   });
+
+  it('hides every other key from non-owners as if it did not exist', async () => {
+    await privilegedDb
+      .insert(systemSettings)
+      .values([
+        { key: 'logRetentionDays', value: '30' },
+        { key: 'clientLogLevel', value: 'warn' },
+      ])
+      .onConflictDoNothing();
+
+    for (const role of ['viewer', 'editor'] as const) {
+      currentUser = { ...sessionUser, role };
+      const hidden = await request(app).get('/api/system-settings/logRetentionDays').expect(404);
+      expect(hidden.body).toEqual({ error: 'Setting not found' });
+      await request(app).get('/api/system-settings/clientLogLevel').expect(200);
+    }
+
+    // The System tab reads its keys one at a time.
+    currentUser = { ...sessionUser, role: 'owner' };
+    const shown = await request(app).get('/api/system-settings/logRetentionDays').expect(200);
+    expect(shown.body).toMatchObject({ key: 'logRetentionDays' });
+  });
 });
 
 describe('/api/settings', () => {

@@ -4,7 +4,7 @@ import { auditActor, recordAudit } from '../audit';
 import { requireInstallationAdmin } from '../installation-admin';
 import loggerPromise, { updateLogLevel } from '../logger';
 import { asyncHandler } from '../middleware/async-handler';
-import { requireRole } from '../middleware/require-role';
+import { requireRole, roleAllows } from '../middleware/require-role';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { getSystemSetting, listSystemSettings, upsertSystemSetting } from '../system-settings';
 import {
@@ -55,10 +55,19 @@ router.get(
   }),
 );
 
+// The keys any signed-in user may read: the sidebar shows workspaceName and every browser
+// reads clientLogLevel. Anything else is owners only, like the list, so a key added to this
+// global table later is not readable by every user of every organization by default. The
+// refusal is a 404, as for a missing key, so a non-owner cannot probe which keys exist.
+const PUBLIC_SYSTEM_SETTINGS = new Set(['workspaceName', 'clientLogLevel']);
+
 router.get(
   '/api/system-settings/:key',
   requireRole('viewer'),
   asyncHandler(async (req, res) => {
+    if (!PUBLIC_SYSTEM_SETTINGS.has(req.params.key) && !roleAllows(req.user!.role, 'owner')) {
+      return res.status(404).json({ error: 'Setting not found' });
+    }
     const setting = await getSystemSetting(req.params.key);
     if (!setting) return res.status(404).json({ error: 'Setting not found' });
     res.json(setting);

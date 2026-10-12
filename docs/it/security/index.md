@@ -132,7 +132,8 @@ step ne ha bisogno.
 - **Impostazioni dell'installazione** (livello e conservazione dei log, pausa dei runner): le
   cambiano solo le persone elencate in `INSTALLATION_ADMINS`, oppure un owner finché
   l'installazione ha una sola organizzazione. Gli owner delle altre organizzazioni le vedono in
-  sola lettura.
+  sola lettura. Solo gli owner possono leggerle: agli altri l'API restituisce solo il nome del
+  workspace e il livello di log del browser, e risponde `404` per ogni altra chiave.
 - **Validazione degli input**: i corpi delle richieste vengono validati con schemi prima di
   arrivare al database; le query sono parametrizzate tramite l'ORM.
 - **Dimensione delle richieste**: i corpi JSON sono limitati a 100 KB.
