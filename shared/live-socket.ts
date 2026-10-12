@@ -1,5 +1,5 @@
 /**
- * Messages on the live /ws socket: server/websocket.ts and the run console
+ * Messages on the live /ws socket: server/http/websocket.ts and the run console
  * (client/src/components/ExecutionLogConsole.tsx).
  *
  * What a browser sends is untrusted input, read through ClientSocketMessageSchema; anything

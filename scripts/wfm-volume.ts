@@ -490,7 +490,7 @@ function probes(ctx: {
      WHERE ${visiblePlan} AND ${visibleRun} AND coalesce(e.started_at, e.queued_at) >= $1`;
   return [
     {
-      // server/routes/test-plans.routes.ts, GET /api/test-plan-executions/:id/logs
+      // server/http/routes/test-plans.routes.ts, GET /api/test-plan-executions/:id/logs
       name: 'logs: console of a recent run',
       sql: `SELECT * FROM execution_logs WHERE test_plan_execution_id = $1 ORDER BY timestamp ASC`,
       params: [ctx.recentRun],
@@ -501,21 +501,21 @@ function probes(ctx: {
       params: [ctx.oldRun],
     },
     {
-      // server/routes/test-plans.routes.ts, the report's system warnings
+      // server/http/routes/test-plans.routes.ts, the report's system warnings
       name: 'logs: system warnings of a run',
       sql: `SELECT message FROM execution_logs WHERE test_plan_execution_id = $1 AND level = 'warn'
             AND source = 'system' ORDER BY timestamp ASC`,
       params: [ctx.recentRun],
     },
     {
-      // server/routes/test-plans.routes.ts, a run's report
+      // server/http/routes/test-plans.routes.ts, a run's report
       name: 'results: one run',
       sql: `SELECT * FROM report_test_case_results WHERE test_plan_execution_id = $1
             ORDER BY status DESC, test_name ASC`,
       params: [ctx.recentRun],
     },
     {
-      // server/routes/test-plans.routes.ts, GET /api/test-plan-executions
+      // server/http/routes/test-plans.routes.ts, GET /api/test-plan-executions
       name: 'runs: history, first page',
       sql: history('').replace('$OFFSET', '0'),
       params: [],

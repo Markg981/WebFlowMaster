@@ -770,7 +770,7 @@ export const AdhocTestActionSchema = z.object({
   // here because a test may hold one, and it is deliberately not in ADHOC_ACTION_IDS because
   // the step executor's exhaustive table is what guarantees every *action* has an
   // implementation — and this one is replaced by the group's own steps before the executor
-  // runs. See server/step-groups.ts.
+  // runs. See server/authoring/step-groups.ts.
   //
   // And a call to one of the organization's custom actions, `customAction:<id>`, which the
   // runner replaces with the action's script the same way (server/authoring/custom-actions.ts).

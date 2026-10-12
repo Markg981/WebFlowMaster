@@ -9,7 +9,7 @@
  * `queued` replaced `pending`, which meant two things: a run waiting for a worker, and a test row
  * the execution page has not reached yet. Only the first is a state of the run.
  *
- * Which state may follow which lives in server/execution-state.ts.
+ * Which state may follow which lives in server/execution/execution-state.ts.
  */
 export const EXECUTION_STATUSES = [
   'queued',

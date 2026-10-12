@@ -34,8 +34,8 @@ beforeAll(async () => {
   process.env.SESSION_SECRET = 'test-session-secret';
   const { setupAuth } = await import('./auth');
   const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
-  const { requireMfaEnrollment } = await import('../middleware/require-mfa-enrollment');
-  const { default: mfaRoutes } = await import('../routes/mfa.routes');
+  const { requireMfaEnrollment } = await import('../http/middleware/require-mfa-enrollment');
+  const { default: mfaRoutes } = await import('../http/routes/mfa.routes');
   app = express();
   app.use(express.json());
   setupAuth(app);

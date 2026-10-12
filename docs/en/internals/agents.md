@@ -45,7 +45,7 @@ sequenceDiagram
 | API requests   | `server/runtime/agents/agent-fetch.ts`       | `fetch` executed through a borrowed browser's request API.                          |
 | Setup          | `server/runtime/agents/setup.ts`             | Starts the relay in the web process, cluster mode from `AGENT_RELAY_ADVERTISE_URL`. |
 | Agent program  | `scripts/wfm-agent.ts`                       | Control connection, `launchServer`, session pipes, reconnect, drain.                |
-| Routes         | `server/routes/agents.routes.ts`             | List, create (token shown once), revoke; availability.                              |
+| Routes         | `server/http/routes/agents.routes.ts`        | List, create (token shown once), revoke; availability.                              |
 
 ## Credentials
 

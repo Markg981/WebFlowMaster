@@ -154,7 +154,7 @@ to make a decision explicit, not to work around it:
 | `server/tests/isolation.test.ts`               | Every table in `ORG_SCOPED_TABLES` has RLS and hides other organizations' rows.                                                                                                                                                                                               |
 | `server/authoring/test-suites.test.ts` (drift) | Every foreign key between organization tables is same-organization guarded or declared as authorship.                                                                                                                                                                         |
 | `server/execution/execution-snapshot.test.ts`  | Every column of `test_plans` is either captured in the run snapshot or declared irrelevant to a run.                                                                                                                                                                          |
-| `server/api-v1/openapi.test.ts`                | The OpenAPI document and the `/api/v1` router agree, route by route and scope by scope.                                                                                                                                                                                       |
+| `server/http/api-v1/openapi.test.ts`           | The OpenAPI document and the `/api/v1` router agree, route by route and scope by scope.                                                                                                                                                                                       |
 | `server/audit-trail.test.ts`                   | Every audit action and category has a label in all four languages.                                                                                                                                                                                                            |
 | `client/src/locales/locales.test.ts`           | Translation bundles are complete and consistent, and every key the code uses exists.                                                                                                                                                                                          |
 
@@ -230,14 +230,14 @@ Prefer **versioned** for a new object payload.
 
 ### API
 
-- Routes live in `server/routes/<area>.routes.ts` and are mounted in `server/routes.ts`.
+- Routes live in `server/http/routes/<area>.routes.ts` and are mounted in `server/routes.ts`.
 - Guard every route with `requireRole(...)`; query inside `withTenantTransaction`.
 - Validate bodies with zod and answer `400` with `details` on failure.
 - Record security-relevant changes with `recordAudit(tx, …)` in the same transaction, and add the
   action to `AUDIT_ACTIONS` with labels in the four languages.
-- The **public API** is `/api/v1` only (`server/routes/api-v1.routes.ts`): explicit response shapes,
+- The **public API** is `/api/v1` only (`server/http/routes/api-v1.routes.ts`): explicit response shapes,
   errors as `{ error: { code, message } }`, a scope on every endpoint, and the OpenAPI document in
-  `server/api-v1/openapi.ts` updated in the same change.
+  `server/http/api-v1/openapi.ts` updated in the same change.
 
 ### Client
 

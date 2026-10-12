@@ -31,7 +31,7 @@ const { AgentRelay, setAgentRelay } = await import('./relay');
 const { signTicket, verifyTicket, generateAgentToken, hashAgentToken } =
   await import('./agent-credentials');
 const { connectToAgentBrowser, RUNNER_PLAYWRIGHT_VERSION } = await import('./agent-browser');
-const { default: agentsRoutes } = await import('../../routes/agents.routes');
+const { default: agentsRoutes } = await import('../../http/routes/agents.routes');
 const { runAgent } = await import('../../../scripts/wfm-agent');
 const { AgentHttp } = await import('./agent-fetch');
 const { runApiRequest } = await import('../../api-tests/api-test-runner');

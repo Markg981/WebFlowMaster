@@ -30,7 +30,7 @@ const { reportTestCaseResults, testPlanExecutions, testPlans, users } =
   await import('@shared/schema');
 const { createTestOrganization } = await import('../tests/factories');
 const { tenancyMiddleware, runAsOrganization } = await import('../platform/middleware/tenancy');
-const { default: reportsRoutes } = await import('../routes/reports.routes');
+const { default: reportsRoutes } = await import('../http/routes/reports.routes');
 const { setArtifactStoreForTest } = await import('../tenancy/artifact-store');
 const { createZip, crc32 } = await import('../platform/zip');
 const { exportRun } = await import('./report-export');

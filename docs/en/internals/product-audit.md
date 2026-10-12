@@ -17,7 +17,7 @@ load profiles, critical E2E, local recovery and expanded WSDL import. These capa
 implemented and should not be described as missing development.
 
 - Paginated catalogs, server filters and detail on demand: `server/authoring/catalog.ts` and
-  `server/routes/catalog.routes.ts`.
+  `server/http/routes/catalog.routes.ts`.
 - UI/API/mobile definitions and datasets frozen at enqueue, hashes/provenance and historical replay:
   `server/execution/execution-definitions.ts`, `server/execution/execution-provenance.ts` and
   [execution](../guide/running). Replay uses current external systems, devices and secrets.
@@ -44,12 +44,12 @@ manual acceptance results.
 | Area                | Present capabilities                                                                                                         | Main sources                                                                                                                                             |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Authors and QA      | Web recording/building, sentence authoring, variables, groups, conditions/loops, datasets, manual tests, API, mobile and BDD | `client/src/pages/`, `server/web/step-executor.ts`, `server/mobile/mobile-runner.ts`, `server/bdd/bdd-execution.ts`                                      |
-| Catalog             | Projects, tags, suites, versions, review/publication, requirements/coverage and quarantine                                   | `shared/schema.ts`, `server/authoring/test-publishing.ts`, `server/authoring/test-version-store.ts`, `server/routes/`                                    |
+| Catalog             | Projects, tags, suites, versions, review/publication, requirements/coverage and quarantine                                   | `shared/schema.ts`, `server/authoring/test-publishing.ts`, `server/authoring/test-version-store.ts`, `server/http/routes/`                               |
 | Execution           | Plan snapshots, queues, workers, scheduling, browser/mobile matrices, grids and local agents                                 | `server/execution/execution-orchestrator.ts`, `server/execution/execution-snapshot.ts`, `server/execution/test-execution-service.ts`, `server/worker.ts` |
 | Evidence            | Per-step outcomes, configured screenshots/video/trace/HAR, visual testing, accessibility and exports                         | `server/reporting/report-model.ts`, `server/reporting/report-export.ts`, `server/tenancy/artifact-store.ts`                                              |
-| Integrations        | CI, CLI, REST v1, webhooks, trackers, commit statuses, test management and notifications                                     | `integrations/`, `server/routes/api-v1.routes.ts`, `server/integrations/commit-status.ts`, `server/integrations/test-management.ts`                      |
-| Security/governance | Tenant/RLS, roles, API scopes, OIDC/SAML SSO, MFA, SCIM, audit, quotas and retention                                         | `server/platform/middleware/tenancy.ts`, `server/routes/`, `server/tenancy/tenant-quotas.ts`                                                             |
-| Collaboration       | Comments, mentions and shared dashboards                                                                                     | `server/routes/comments.routes.ts`, `server/routes/dashboards.routes.ts`                                                                                 |
+| Integrations        | CI, CLI, REST v1, webhooks, trackers, commit statuses, test management and notifications                                     | `integrations/`, `server/http/routes/api-v1.routes.ts`, `server/integrations/commit-status.ts`, `server/integrations/test-management.ts`                 |
+| Security/governance | Tenant/RLS, roles, API scopes, OIDC/SAML SSO, MFA, SCIM, audit, quotas and retention                                         | `server/platform/middleware/tenancy.ts`, `server/http/routes/`, `server/tenancy/tenant-quotas.ts`                                                        |
+| Collaboration       | Comments, mentions and shared dashboards                                                                                     | `server/http/routes/comments.routes.ts`, `server/http/routes/dashboards.routes.ts`                                                                       |
 | Operations          | Docker, migrator, backup/verify/restore, SaaS network checks, logs, Prometheus and OpenTelemetry                             | `scripts/wfm-backup.ts`, `deployment/saas-network/`, `server/observability/`                                                                             |
 
 Mobile, BDD, backups, SCIM, quotas and telemetry should not be proposed as new features. Useful work

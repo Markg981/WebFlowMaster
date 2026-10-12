@@ -47,7 +47,7 @@ export interface CatalogueEntry {
   attributes?: Record<string, string>;
   /**
    * Set when this comes from the project's repository, and carried into the step so the test
-   * reads the shared definition instead of a copy — see server/step-elements.ts.
+   * reads the shared definition instead of a copy — see server/authoring/step-elements.ts.
    */
   elementId?: string | null;
   origin: 'repository' | 'detected';

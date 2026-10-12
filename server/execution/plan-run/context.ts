@@ -6,7 +6,7 @@
  * they produce, so each can be read, and tested, on its own; this file is the part they all hold.
  */
 import type logger from '../../platform/logger';
-import type { WsEmitter, ExecutionLogEntry } from '../../websocket';
+import type { WsEmitter, ExecutionLogEntry } from '../../http/websocket';
 import type { RunWatch } from '../run-watch';
 import type { TestPlanExecution } from '@shared/schema';
 import { recordStopReason } from '../../runtime/run-shards';

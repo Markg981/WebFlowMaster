@@ -119,9 +119,9 @@ beforeAll(async () => {
   await startProvider();
   const { setupAuth } = await import('./auth');
   const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
-  const { requireSso } = await import('../middleware/require-sso');
-  const { requireMfaEnrollment } = await import('../middleware/require-mfa-enrollment');
-  const ssoRoutes = (await import('../routes/sso.routes')).default;
+  const { requireSso } = await import('../http/middleware/require-sso');
+  const { requireMfaEnrollment } = await import('../http/middleware/require-mfa-enrollment');
+  const ssoRoutes = (await import('../http/routes/sso.routes')).default;
   app = express();
   app.use(express.json());
   setupAuth(app);

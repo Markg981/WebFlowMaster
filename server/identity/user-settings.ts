@@ -10,7 +10,7 @@ import { privilegedDb } from '../platform/db';
  * Through the privileged handle on purpose. user_settings is keyed by the user, not by an
  * organization, and app_user is not granted it at all (migration 0006), so there is no
  * tenant transaction it could run in. That is also why this lives here and not in
- * server/routes/, where no module may import the handle (server/tests/architecture.test.ts).
+ * server/http/routes/, where no module may import the handle (server/tests/architecture.test.ts).
  */
 
 export const userSettingsBodySchema = createInsertSchema(userSettings).omit({

@@ -14,7 +14,7 @@ import type { TenantTx } from '../platform/middleware/tenancy';
  *
  * A link carries 32 random bytes, stored only as their SHA-256 like an API key, lasts a day and
  * works once. Issuing another for the same person replaces the one before. Redeeming it happens
- * before anyone is signed in, in server/storage.ts.
+ * before anyone is signed in, in server/identity/storage.ts.
  */
 
 export const PASSWORD_RESET_TTL_MS = 24 * 60 * 60 * 1000;

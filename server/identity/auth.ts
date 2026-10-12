@@ -126,7 +126,7 @@ const registerSchema = z.object({
   password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
   // Optional. Present, it makes the new account a member of the inviting organization
   // instead of the owner of a brand new one. 64 hex characters — see randomBytes(32) in
-  // server/routes/organization.routes.ts.
+  // server/http/routes/organization.routes.ts.
   invitationToken: z
     .string()
     .regex(/^[0-9a-f]{64}$/)
@@ -495,7 +495,7 @@ export function setupAuth(app: Express) {
     let samlLogout: { url: string; requestId: string } | null = null;
     try {
       if (req.session.samlIdentity) {
-        const { publicBase } = await import('../routes/sso.routes');
+        const { publicBase } = await import('../http/routes/sso.routes');
         samlLogout = await startSessionSamlLogout(req, publicBase(req));
         await forgetSamlSession(sessionId);
       }
@@ -680,7 +680,7 @@ export function setupAuth(app: Express) {
             return reset;
           }),
         );
-        const { publicBase } = await import('../routes/sso.routes');
+        const { publicBase } = await import('../http/routes/sso.routes');
         const sent = await sendMail({
           ...passwordResetMail({
             base: publicBase(req),
@@ -708,7 +708,7 @@ export function setupAuth(app: Express) {
 /**
  * The exact session middleware `setupAuth` mounts on the Express app — same secret, same
  * store (Redis in real deployments, memorystore otherwise). The WebSocket upgrade handler
- * (server/websocket.ts) needs this to resolve `req.session`/`req.user` for a raw upgrade
+ * (server/http/websocket.ts) needs this to resolve `req.session`/`req.user` for a raw upgrade
  * request; building a second `session(...)` instance would use a different store connection
  * and a login made over HTTP would not be found when the socket looks up its session.
  *

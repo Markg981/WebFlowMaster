@@ -6,7 +6,7 @@ import { ORG_SCOPED_TABLES } from '@shared/schema';
 import { CLIENT_BUILD_DIRNAME } from '../static';
 
 /**
- * Governs every file directly under server/routes/ named *.routes.ts — the Express router
+ * Governs every file directly under server/http/routes/ named *.routes.ts — the Express router
  * modules mounted by server/routes.ts's registerRoutes. It does not reach server/routes.ts
  * itself (the legacy inline app.get/post/put/delete handlers there are a separate, known
  * migration gap — see the Task 6 report) or any subdirectory added later for a different
@@ -16,7 +16,7 @@ import { CLIENT_BUILD_DIRNAME } from '../static';
  * two rules and wire up a matching test if so.
  */
 const serverDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const routesDir = path.join(serverDir, 'routes');
+const routesDir = path.join(serverDir, 'http', 'routes');
 
 const routeFiles = () =>
   fs
@@ -120,7 +120,7 @@ describe('route modules cannot query outside the tenant context', () => {
       max: 0,
       why: 'Installation-wide settings: system_settings has no organization.',
     },
-    'websocket.ts': {
+    'http/websocket.ts': {
       max: 2,
       why:
         "emitExecutionLog resolves the parent execution's organization and then writes the log " +
@@ -128,7 +128,7 @@ describe('route modules cannot query outside the tenant context', () => {
         'tenant to inherit. Subscription authorisation, which IS reachable from the wire, goes ' +
         'through runWithTenant + withTenantTransaction instead.',
     },
-    'middleware/api-key-auth.ts': {
+    'http/middleware/api-key-auth.ts': {
       max: 2,
       why:
         'Authenticating an API key is the query that answers "which organization is this request ' +
@@ -254,11 +254,11 @@ describe('route modules cannot query outside the tenant context', () => {
   }
 
   /**
-   * The requireRole rule below governs only server/routes/*.routes.ts, and only mutating
+   * The requireRole rule below governs only server/http/routes/*.routes.ts, and only mutating
    * routes. server/routes.ts was outside it entirely, which once left sixteen live handlers
    * with no role check at all — a viewer could delete API-test history, drive a browser, or
    * proxy an arbitrary outbound request. The last nineteen inline handlers have since moved
-   * into server/routes/ modules, so the file is held to having none: a new one would be
+   * into server/http/routes/ modules, so the file is held to having none: a new one would be
    * outside every rule here, and would bring back the second convention for writing an
    * endpoint that the move removed.
    */
@@ -272,7 +272,9 @@ describe('route modules cannot query outside the tenant context', () => {
     const inline = routeCalls(source, 'app', ['get', 'post', 'put', 'patch', 'delete']).map(
       ({ method, paths, line }) => `${method.toUpperCase()} ${paths[0]} (line ${line})`,
     );
-    expect(inline, `move these into a server/routes/ module: ${inline.join(', ')}`).toEqual([]);
+    expect(inline, `move these into a server/http/routes/ module: ${inline.join(', ')}`).toEqual(
+      [],
+    );
   });
 
   /**
@@ -309,12 +311,12 @@ describe('route modules cannot query outside the tenant context', () => {
 
   /**
    * Scoped to route files that can reach the database at all, not to every mutating route in
-   * server/routes/ indiscriminately. "Reaches the database" is checked as "imports a table or
+   * server/http/routes/ indiscriminately. "Reaches the database" is checked as "imports a table or
    * schema type from @shared/schema", because in this codebase every query starts from a
    * table object defined there — a file with no such import has no query for a role check to
    * protect in the first place.
    *
-   * This is what keeps server/routes/observability.routes.ts out of the rule without naming
+   * This is what keeps server/http/routes/observability.routes.ts out of the rule without naming
    * it: it imports only Zod schemas from @shared/observability, never anything from
    * @shared/schema, so it never reaches an org-scoped table. Its two mutating endpoints
    * (POST /api/client-logs, POST /api/incidents) write crash/log data to disk, and are
@@ -349,7 +351,7 @@ describe('route modules cannot query outside the tenant context', () => {
           paths.every((p) => /^\/api\/sso\/saml\/:organizationId\/(acs|slo)$/.test(p))
         )
           continue;
-        // requireScope (server/middleware/require-scope.ts) is the /api/v1 form of the same check:
+        // requireScope (server/http/middleware/require-scope.ts) is the /api/v1 form of the same check:
         // it applies the minimum role its scope names before looking at the key's scopes.
         if (!chain.includes('requireRole') && !chain.includes('requireScope')) {
           offenders.push(`${name}:${line}`);

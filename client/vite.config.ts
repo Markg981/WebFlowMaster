@@ -29,7 +29,7 @@ export default defineConfig({
   server: {
     proxy: {
       // No changeOrigin: it rewrote Host to the API's own address, while the browser's Origin
-      // stayed the dev server's, so the CSRF check in server/middleware/csrf.ts saw two
+      // stayed the dev server's, so the CSRF check in server/http/middleware/csrf.ts saw two
       // different hosts and rejected every POST — registering the first account included.
       // Left as the browser sent it, Host matches Origin, as it does behind a real proxy.
       '/api': {

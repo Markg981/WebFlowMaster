@@ -32,7 +32,7 @@ import {
  * again, stop.
  *
  * The session runs where the browsers run; this reads its state every POLL_MS and sends it
- * commands (server/routes/debug-sessions.routes.ts).
+ * commands (server/http/routes/debug-sessions.routes.ts).
  */
 
 const POLL_MS = 700;

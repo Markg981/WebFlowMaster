@@ -76,8 +76,8 @@ beforeAll(async () => {
     organizationId,
     role: 'editor',
   };
-  const { default: gridRoutes } = await import('./routes/browser-grids.routes');
-  const { default: mobileRoutes } = await import('./routes/mobile-tests.routes');
+  const { default: gridRoutes } = await import('./http/routes/browser-grids.routes');
+  const { default: mobileRoutes } = await import('./http/routes/mobile-tests.routes');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {

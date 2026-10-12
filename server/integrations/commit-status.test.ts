@@ -44,7 +44,7 @@ const { commitStatusFor, commitTargetOf, postCommitStatus, registerCommitStatus 
 const { announceExecution, takeExecution, transitionExecution } =
   await import('../execution/execution-state');
 const { runWithTenant } = await import('../platform/middleware/tenancy');
-const { default: sourceHostsRoutes } = await import('../routes/source-hosts.routes');
+const { default: sourceHostsRoutes } = await import('../http/routes/source-hosts.routes');
 
 const SHA = 'a'.repeat(40);
 

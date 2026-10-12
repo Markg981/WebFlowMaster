@@ -27,7 +27,7 @@ const usage = () => asOrg(() => withTenantTransaction((tx) => quotaUsage(tx, org
 describe('retained artifact bytes', () => {
   it('filters rejected report evidence while keeping successfully committed images available', async () => {
     const { executionArtifactAvailability } = await import('./artifact-metering');
-    const { artifactUrl, stepsWithArtifactUrls } = await import('../routes/artifacts.routes');
+    const { artifactUrl, stepsWithArtifactUrls } = await import('../http/routes/artifacts.routes');
     const user = await createTestUser(org);
     const plan = 'report-plan-' + org;
     const run = 'report-run-' + org;

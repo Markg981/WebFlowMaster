@@ -51,8 +51,8 @@ const {
 } = await import('@shared/schema');
 const { createTestOrganization } = await import('../tests/factories');
 const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
-const { default: testsRoutes } = await import('../routes/tests.routes');
-const { default: publishingRoutes } = await import('../routes/test-publishing.routes');
+const { default: testsRoutes } = await import('../http/routes/tests.routes');
+const { default: publishingRoutes } = await import('../http/routes/test-publishing.routes');
 const { processTestPlanJob } = await import('../execution/test-execution-service');
 
 type Person = { id: number; username: string; organizationId: number; role: string };

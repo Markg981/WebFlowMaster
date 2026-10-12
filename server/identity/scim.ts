@@ -50,11 +50,11 @@ import type { AuditActor } from '../tenancy/audit';
  *
  * Everything runs on the privileged handle, like server/identity/sso.ts, and names the organization in
  * every statement; removing a member is the one exception, run as the organization like the owner's
- * own removal (server/routes/organization.routes.ts), since it hands the member's rows on.
+ * own removal (server/http/routes/organization.routes.ts), since it hands the member's rows on.
  * Audit entries name the actor "SCIM".
  */
 
-/** Where the API is mounted (server/routes/scim.routes.ts). */
+/** Where the API is mounted (server/http/routes/scim.routes.ts). */
 export const SCIM_BASE_PATH = '/api/scim/v2';
 export const SCIM_TOKEN_PREFIX = 'wfmscim';
 /** Enough of the token to recognise it in the settings, far too little to use. */

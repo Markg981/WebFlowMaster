@@ -45,7 +45,7 @@ sequenceDiagram
 | Richieste API         | `server/runtime/agents/agent-fetch.ts`       | `fetch` eseguita tramite l'API request di un browser in prestito.                                          |
 | Avvio                 | `server/runtime/agents/setup.ts`             | Avvia il relay nel processo web, modalità cluster da `AGENT_RELAY_ADVERTISE_URL`.                          |
 | Programma dell'agente | `scripts/wfm-agent.ts`                       | Connessione di controllo, `launchServer`, inoltro delle sessioni, riconnessione, drenaggio.                |
-| Rotte                 | `server/routes/agents.routes.ts`             | Elenco, creazione (token mostrato una volta), revoca; disponibilità.                                       |
+| Rotte                 | `server/http/routes/agents.routes.ts`        | Elenco, creazione (token mostrato una volta), revoca; disponibilità.                                       |
 
 ## Credenziali
 

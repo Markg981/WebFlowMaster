@@ -287,7 +287,7 @@ run is ended once.
 ## 7. Live progress
 
 While a run executes, the worker emits log entries (system messages, step progress, browser console)
-through `server/websocket.ts`. They are stored in `execution_logs` and pushed over WebSocket to the
+through `server/http/websocket.ts`. They are stored in `execution_logs` and pushed over WebSocket to the
 report page, which shows them live and replays them after the fact.
 
 ## 8. Browser tasks

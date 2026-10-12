@@ -51,7 +51,7 @@ vi.mock('../runtime/login-state', () => ({
   loadLoginState: mocks.loadLoginState,
   saveLoginState: vi.fn(),
 }));
-vi.mock('../websocket', () => ({ getWsEmitter: () => ({ emitExecutionLog: vi.fn() }) }));
+vi.mock('../http/websocket', () => ({ getWsEmitter: () => ({ emitExecutionLog: vi.fn() }) }));
 vi.mock('./playwright-reporter', () => ({
   PlaywrightReporter: class {
     lastActionHealed = false;

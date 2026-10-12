@@ -36,7 +36,7 @@ export default defineConfig({
       SESSION_SECRET: 'test-session-secret',
       ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000',
       // Suites register many unrelated accounts, each with its own organization. The default,
-      // invitation-only registration is tested on its own in server/registration.test.ts.
+      // invitation-only registration is tested on its own in server/identity/registration.test.ts.
       REGISTRATION: 'open',
     },
     coverage: {

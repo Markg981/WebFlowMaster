@@ -11,7 +11,7 @@ import { call, describeFailure, normaliseBaseUrl, type ProviderDeps } from './is
 /**
  * Speaking to TestRail, Xray and Zephyr Scale: publishing a run's results, and telling whether
  * the credentials work. Only the wire format lives here; which results go where, and what is
- * recorded about it, is server/test-management.ts.
+ * recorded about it, is server/integrations/test-management.ts.
  *
  * Every failure comes back as a sentence that says what the tool said, because "400" is not
  * something a QA lead can fix and "Field :case_ids contains one or more invalid case IDs" is.

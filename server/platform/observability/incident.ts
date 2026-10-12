@@ -87,7 +87,7 @@ function touchFingerprint(fingerprint: string): FingerprintState {
  * logger.error call below itself failing and re-entering) sees this store set and is
  * refused. An unrelated, concurrent recordIncident call — a second failure arriving before
  * this one reaches its first await — runs in its own context and is unaffected: mirrors the
- * AsyncLocalStorage pattern in server/middleware/correlation.ts.
+ * AsyncLocalStorage pattern in server/platform/middleware/correlation.ts.
  */
 const recordingStore = new AsyncLocalStorage<true>();
 

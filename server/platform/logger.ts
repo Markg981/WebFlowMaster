@@ -114,7 +114,7 @@ const logger = winston.createLogger({
 
 // ─── Grafana Loki transport (production / when LOKI_URL is set) ───────────────
 // Logs are batched in memory and pushed via HTTP every 5 seconds.
-// This adds zero latency to API responses. See server/loki-transport.ts.
+// This adds zero latency to API responses. See server/platform/loki-transport.ts.
 let lokiTransport: LokiTransport | undefined;
 if (process.env.LOKI_URL) {
   lokiTransport = new LokiTransport({

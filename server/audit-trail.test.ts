@@ -45,10 +45,10 @@ const { privilegedDb } = await import('./platform/db');
 const { auditLog, testPlanExecutions, testPlans, users } = await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
 const { runWithTenant } = await import('./platform/middleware/tenancy');
-const { default: testsRoutes } = await import('./routes/tests.routes');
-const { default: testPlansRoutes } = await import('./routes/test-plans.routes');
-const { default: environmentRoutes } = await import('./routes/environments.routes');
-const { default: organizationRoutes } = await import('./routes/organization.routes');
+const { default: testsRoutes } = await import('./http/routes/tests.routes');
+const { default: testPlansRoutes } = await import('./http/routes/test-plans.routes');
+const { default: environmentRoutes } = await import('./http/routes/environments.routes');
+const { default: organizationRoutes } = await import('./http/routes/organization.routes');
 
 let app: express.Express;
 let org: number;

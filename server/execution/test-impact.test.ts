@@ -70,7 +70,7 @@ describe('a run narrowed to what a change affects', () => {
       next();
     });
     app.use(tenancyMiddleware);
-    app.use((await import('../routes/impact-rules.routes')).default);
+    app.use((await import('../http/routes/impact-rules.routes')).default);
   });
 
   beforeEach(async () => {

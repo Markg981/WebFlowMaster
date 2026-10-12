@@ -222,7 +222,7 @@ worker:
     maxReplicas: 8
     targetCPUUtilizationPercentage: 70
   # KEDA (https://keda.sh) scales on the BullMQ wait list of the execution queue instead of on
-  # CPU: `bull:test-execution-queue:wait` in Redis (server/queue.ts). Do not enable both
+  # CPU: `bull:test-execution-queue:wait` in Redis (server/platform/queue.ts). Do not enable both
   # autoscaling and keda. Requires the KEDA operator in the cluster.
   keda:
     enabled: false

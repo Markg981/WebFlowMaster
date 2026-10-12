@@ -31,8 +31,8 @@ const { createTestOrganization } = await import('../tests/factories');
 const { runWithTenant, tenancyMiddleware } = await import('../platform/middleware/tenancy');
 const registry = await import('./runner-registry');
 const { takeExecution } = await import('../execution/execution-state');
-const { default: runnersRoutes } = await import('../routes/runners.routes');
-const { default: organizationRoutes } = await import('../routes/organization.routes');
+const { default: runnersRoutes } = await import('../http/routes/runners.routes');
+const { default: organizationRoutes } = await import('../http/routes/organization.routes');
 
 const description = {
   concurrency: 2,

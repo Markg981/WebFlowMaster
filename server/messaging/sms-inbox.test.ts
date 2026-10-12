@@ -62,7 +62,7 @@ describe('the inbox', () => {
   beforeAll(async () => {
     app = express();
     app.use(express.json());
-    const routes = await import('../routes/sms-inbox.routes');
+    const routes = await import('../http/routes/sms-inbox.routes');
     app.use(routes.SMS_INBOUND_PATH, routes.smsInboundRouter);
     app.use((req, _res, next) => {
       req.user = user;
