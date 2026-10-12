@@ -21,7 +21,7 @@ import {
   compileGherkinSource,
   contextOfPickle,
   exampleLineOfPickle,
-} from '../server/gherkin-source';
+} from '../server/bdd/gherkin-source';
 import { z } from 'zod';
 import { StringDecoder } from 'node:string_decoder';
 

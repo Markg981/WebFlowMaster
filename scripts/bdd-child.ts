@@ -15,7 +15,7 @@ import {
   compileGherkinSource,
   contextOfPickle,
   exampleLineOfPickle,
-} from '../server/gherkin-source';
+} from '../server/bdd/gherkin-source';
 import { OperatorBddProfileSchema, resolveProfileSupport } from './bdd-profiles';
 
 // The dedicated result descriptor cannot be confused with support-code stdout.

@@ -39,7 +39,7 @@ import {
 } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
 import { recordTestVersion, recordTypedTestVersion } from '../test-version-store';
-import { BddDefinitionError, prepareBddForSave } from '../bdd-definition';
+import { BddDefinitionError, prepareBddForSave } from '../bdd/bdd-definition';
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from '../routes/selected-tests';
 import { testsUsingSet } from '../test-data';
 import {
@@ -53,7 +53,7 @@ import {
 } from '../test-bundle';
 import { importMobileCatalog, MOBILE_BUNDLE_FIELDS } from '../mobile-bundle';
 import { prepareMobileSteps, MobileDefinitionError } from '../mobile-step-groups';
-import { GherkinError } from '../gherkin';
+import { GherkinError } from '../bdd/gherkin';
 import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 import schedulerService from '../scheduler-service';
 

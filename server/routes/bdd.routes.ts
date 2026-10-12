@@ -7,7 +7,7 @@ import { BDD_PROFILE_ID } from '@shared/bdd-agent';
 import { AGENT_POOL_PATTERN } from '@shared/agents';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
-import { advertisedBddProfiles, validateBddProfileDefinition } from '../bdd-profiles';
+import { advertisedBddProfiles, validateBddProfileDefinition } from '../bdd/bdd-profiles';
 import { auditActor, recordAudit } from '../audit';
 
 const router = asyncRouter();

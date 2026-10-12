@@ -2,8 +2,8 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { agents, bddExecutionProfiles, projects } from '@shared/schema';
 import type { BddTest } from '@shared/bdd';
 import { BddAgentProfileSchema } from '@shared/bdd-agent';
-import { agentRelay } from './agents/relay';
-import type { TenantTx } from './middleware/tenancy';
+import { agentRelay } from '../agents/relay';
+import type { TenantTx } from '../middleware/tenancy';
 
 export async function advertisedBddProfiles(tx: TenantTx) {
   const hosts = await tx

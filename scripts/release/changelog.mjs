@@ -192,7 +192,9 @@ export function releaseNotes(changelog, version) {
 }
 
 function gitMerges(all) {
-  const git = (...args) => execFileSync('git', args, { encoding: 'utf8' });
+  // stderr piped: without any v* tag, `git describe` complains and the fallback below is expected.
+  const git = (...args) =>
+    execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   let range = 'HEAD';
   if (!all) {
     try {

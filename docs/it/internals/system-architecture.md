@@ -188,6 +188,40 @@ L'applicazione React (`client/`) è una single-page app: wouter per il routing, 
 stato del server, una WebSocket per i log dei run in diretta, React Flow per il builder visuale,
 componenti Radix/shadcn, quattro bundle di traduzioni (en, it, fr, de). È descritta in [Client web](./frontend).
 
+### 3.4 Domini del server
+
+Ogni modulo del server appartiene a un dominio, elencato in `scripts/server-domains.mjs`. Un dominio ha
+un rango, e un modulo può importare solo il proprio dominio e i domini di rango inferiore; i domini
+dello stesso rango sono pari e non si importano a vicenda. Poiché gli import scendono soltanto, i
+domini non possono formare un ciclo.
+
+| Rango | Dominio                            | Cosa contiene                                                                               |
+| ----- | ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| 1     | platform                           | Database, log, crittografia, code, HTTP in uscita, contesto della richiesta, osservabilità. |
+| 2     | tenancy                            | Organizzazioni, membri, quote, fatturazione, audit, archivio degli artefatti.               |
+| 3     | messaging                          | Mail in uscita, impostazioni e provider; caselle di test per mail e SMS.                    |
+| 4     | identity                           | Accesso, sessioni, SSO, SCIM, MFA, chiavi API, impostazioni utente.                         |
+| 5     | authoring                          | Test, versioni, suite, dati, gruppi di passi, elementi, authoring con AI e registratore.    |
+| 6     | runtime                            | Ciò su cui girano tutti i tipi di test: agenti e relay, variabili, browser e griglie.       |
+| 7     | web, api-tests, mobile, bdd (pari) | Un dominio per tipo di test.                                                                |
+| 8     | execution                          | Piani ed esecuzioni: orchestrazione, pipeline del piano, stato dei run, pianificazione.     |
+| 9     | reporting                          | Report, esportazioni, analytics, analisi dei fallimenti, flakiness.                         |
+| 10    | integrations                       | Issue tracker, test management, commit status, notifiche in chat, webhook.                  |
+| 11    | http                               | Router, API pubblica, middleware delle richieste, WebSocket in diretta.                     |
+| 12    | app                                | Punti d'ingresso dei processi e collegamenti (`index.ts`, `worker.ts`, `routes.ts`).        |
+
+`npm run deps:check` (CI, job di lint) lo verifica con dependency-cruiser (`.dependency-cruiser.mjs`):
+i ranghi dei domini, nessun ciclo di import tra file, `shared/` che non importa né il server né il
+client, e il server che non importa mai il client. Contano anche gli import di soli tipi. Gli import
+che violavano una regola quando il controllo è stato introdotto sono elencati in
+`.dependency-cruiser-known-violations.json`; il controllo fallisce su una violazione nuova, e anche
+quando una viene risolta ma resta in elenco, così l'elenco può solo accorciarsi (`npm run
+deps:baseline` lo riscrive). `server/tests/domains.test.ts` fallisce quando un modulo del server non
+ha un dominio, quindi un file nuovo richiede di decidere dove sta.
+
+I moduli sono ancora in gran parte piatti sotto `server/`; si spostano in `server/<dominio>/` un
+dominio per volta, e la lista di ogni dominio nella tabella diventa allora una sola directory.
+
 ## 4. Deployment
 
 ### 4.1 Una sola macchina
