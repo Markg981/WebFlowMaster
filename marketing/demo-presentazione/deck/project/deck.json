@@ -1,0 +1,51 @@
+{
+  "v": 4,
+  "createdOnFiles": { "v": 1, "at": "2026-10-12T09:00:00Z" },
+  "lists": "css",
+  "title": "Demo WebFlowMaster",
+  "order": [
+    "cover",
+    "agenda",
+    "problema",
+    "cosa-e",
+    "ciclo",
+    "dashboard",
+    "demo-piano",
+    "demo-evidenze",
+    "demo-api",
+    "integrazioni",
+    "architettura",
+    "sicurezza",
+    "numeri",
+    "roadmap",
+    "chiusura"
+  ],
+  "sections": {
+    "s1": { "description": "Apertura e agenda", "start": "cover" },
+    "s2": {
+      "description": "Il problema: regressioni manuali, evidenze sparse, script personali",
+      "start": "problema"
+    },
+    "s3": {
+      "description": "Cos'e WebFlowMaster: quattro tipi di test, un ciclo di lavoro, una schermata",
+      "start": "cosa-e"
+    },
+    "s4": { "description": "Demo live: piano, evidenze, API", "start": "demo-piano" },
+    "s5": {
+      "description": "Sotto il cofano: integrazioni, architettura, sicurezza",
+      "start": "integrazioni"
+    },
+    "s6": { "description": "Numeri, roadmap e cosa chiedo", "start": "numeri" }
+  },
+  "faces": {
+    "dm-sans": {
+      "family": "DM Sans",
+      "href": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@300..800&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap"
+    }
+  },
+  "designSystems": []
+}

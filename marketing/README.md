@@ -9,6 +9,8 @@ implementation walkthrough. Customer materials are separate Italian and English 
 - Implementation walkthrough: [IT](../docs/it/internals/contributing-guide.md) / [EN](../docs/en/internals/contributing-guide.md).
 - Product and documentation audit: [IT](../docs/it/internals/product-audit.md) / [EN](../docs/en/internals/product-audit.md).
 - Generated schema catalog, with the current table and column counts: [IT](../docs/it/internals/schema-catalog.md) / [EN](../docs/en/internals/schema-catalog.md).
+- [Demo presentation](./demo-presentazione/README.md): 15-slide deck with speaker notes and the
+  full Italian speech with the live-demo plan, for presenting the product to colleagues and managers.
 
 `npm run docs:pdf` builds the site and exports every documentation section. It also writes
 `docs/pdf/it/suite-handbook.pdf` and `docs/pdf/en/suite-handbook.pdf`, containing the overview,

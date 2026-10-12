@@ -1,0 +1,138 @@
+<section
+  id="demo-piano"
+  data-transition="fade"
+  style="
+    background: #2563eb;
+    color: #f7f8fa;
+    font-family: 'DM Sans', Arial, sans-serif;
+    padding: 128px 128px 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+  "
+>
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <p
+      style="
+        font-size: 24px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        color: #bfdbfe;
+        font-weight: 600;
+      "
+    >
+      03 · Demo live
+    </p>
+    <h2 style="font-size: 72px; font-weight: 700; line-height: 1.1; letter-spacing: -1px">
+      Dal clic al report, su un'applicazione vera
+    </h2>
+  </div>
+  <div style="display: flex; gap: 48px">
+    <div style="flex: 3; display: flex; flex-direction: column; gap: 0">
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 28px;
+          padding: 26px 0;
+          border-top: 2px solid #60a5fa;
+        "
+      >
+        <p style="font-size: 36px; font-weight: 700; color: #bfdbfe; width: 60px">1</p>
+        <p style="font-size: 32px; font-weight: 600; flex: 1">
+          Il piano: i casi NCC che erano righe di un foglio Excel
+        </p>
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 28px;
+          padding: 26px 0;
+          border-top: 2px solid #60a5fa;
+        "
+      >
+        <p style="font-size: 36px; font-weight: 700; color: #bfdbfe; width: 60px">2</p>
+        <p style="font-size: 32px; font-weight: 600; flex: 1">
+          Registrare un controllo nuovo nel browser, senza codice
+        </p>
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 28px;
+          padding: 26px 0;
+          border-top: 2px solid #60a5fa;
+        "
+      >
+        <p style="font-size: 36px; font-weight: 700; color: #bfdbfe; width: 60px">3</p>
+        <p style="font-size: 32px; font-weight: 600; flex: 1">
+          Eseguire sull'agente locale, dentro la rete dell'applicazione
+        </p>
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 28px;
+          padding: 26px 0;
+          border-top: 2px solid #60a5fa;
+        "
+      >
+        <p style="font-size: 36px; font-weight: 700; color: #bfdbfe; width: 60px">4</p>
+        <p style="font-size: 32px; font-weight: 600; flex: 1">
+          Leggere il report: step, screenshot, video, trace, rete
+        </p>
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 28px;
+          padding: 26px 0;
+          border-top: 2px solid #60a5fa;
+          border-bottom: 2px solid #60a5fa;
+        "
+      >
+        <p style="font-size: 36px; font-weight: 700; color: #bfdbfe; width: 60px">5</p>
+        <p style="font-size: 32px; font-weight: 600; flex: 1">
+          Aprire un'issue dal fallimento e un test API nello stesso piano
+        </p>
+      </div>
+    </div>
+    <div
+      style="
+        flex: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        background: #1d4ed8;
+        padding: 40px;
+        border-radius: 20px;
+        border: 1px solid #60a5fa;
+      "
+    >
+      <h3 style="font-size: 32px; font-weight: 700; color: #bfdbfe">Cosa osservare</h3>
+      <ul style="font-size: 28px; line-height: 1.45; color: #eff6ff">
+        <li>Nessuno scrive codice durante la demo</li>
+        <li>
+          Il server è in Docker e non vede l'applicazione: ci arriva l'agente, che si collega in
+          uscita
+        </li>
+        <li>Ogni step ha la sua evidenza, senza chiedere a nessuno come riprodurre</li>
+        <li>Lo stesso piano contiene test web e test API</li>
+      </ul>
+    </div>
+  </div>
+  <p style="position: absolute; left: 128px; bottom: 64px; font-size: 24px; color: #bfdbfe">
+    Demo WebFlowMaster · 7
+  </p>
+  <aside>
+    Questo piano contiene i casi NCC che prima erano righe di un foglio Excel. Ogni caso è un test
+    registrato nel browser: niente codice, solo le azioni e le verifiche. Il run non gira sul
+    server, che è in Docker e non vede l'applicazione: gira sull'agente locale su questo portatile,
+    che si collega in uscita verso la piattaforma. È lo stesso meccanismo per un ambiente di staging
+    dietro VPN. Se la demo live fallisce: passare alla scheda con il run già completato.
+  </aside>
+</section>
