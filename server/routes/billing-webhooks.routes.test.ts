@@ -5,9 +5,9 @@ import { eq } from 'drizzle-orm';
 import { privilegedDb } from '../db';
 import { billingEvents, organizationSubscriptions } from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
-import { createPlan } from '../billing/service';
-import { signStripePayload } from '../billing/stripe';
-import { stripeFixture } from '../billing/stripe-fixtures';
+import { createPlan } from '../tenancy/billing/service';
+import { signStripePayload } from '../tenancy/billing/stripe';
+import { stripeFixture } from '../tenancy/billing/stripe-fixtures';
 import { billingWebhookBodyParser, billingWebhookRouter } from './billing-webhooks.routes';
 
 /**

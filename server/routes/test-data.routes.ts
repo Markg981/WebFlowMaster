@@ -5,7 +5,7 @@ import { AUDIT_ACTIONS, testDataSets } from '@shared/schema';
 import { testDataSetInputSchema } from '@shared/test-data';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { testsUsingSet } from '../test-data';
 import logger from '../logger';
 

@@ -9,7 +9,7 @@ import { apiRequest, errorMessage, queryClient } from '@/lib/queryClient';
 import type { SessionUser } from '@/hooks/use-auth';
 
 /**
- * A signed-in person opening an invitation link (server/organization-memberships.ts): the
+ * A signed-in person opening an invitation link (server/tenancy/organization-memberships.ts): the
  * invitation adds its organization to the ones their account belongs to, rather than creating an
  * account. They see whose invitation it is and as what before accepting, and land in the new
  * organization afterwards; every cached query is of the one just left, so the cache is cleared.

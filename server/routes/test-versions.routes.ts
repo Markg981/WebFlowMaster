@@ -8,7 +8,7 @@ import {
   testVersions,
   users,
 } from '@shared/schema';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { recordTestVersion, recordTypedTestVersion } from '../test-version-store';

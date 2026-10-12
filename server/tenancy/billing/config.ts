@@ -1,5 +1,5 @@
 import { BILLING_PROVIDERS, type BillingProviderName } from '@shared/billing';
-import { publicBaseUrl } from '../report-links';
+import { publicBaseUrl } from '../../report-links';
 
 /**
  * How billing is configured, from the environment each time it is asked: an operator's change
@@ -8,7 +8,7 @@ import { publicBaseUrl } from '../report-links';
  * - BILLING_PROVIDER: `none` (default) — the installation administrator sets plans and statuses
  *   by hand, which is what a self-hosted installation wants — or `stripe`.
  * - STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET: both required with `stripe`; the second is what
- *   makes a webhook believable (server/billing/stripe.ts).
+ *   makes a webhook believable (server/tenancy/billing/stripe.ts).
  * - BILLING_PUBLIC_BASE_URL: where the provider sends the browser back after checkout or the
  *   portal; WEBFLOW_PUBLIC_URL when unset, and with `stripe` one of them must be set — a return
  *   to `localhost` would strand the customer on the provider's page.

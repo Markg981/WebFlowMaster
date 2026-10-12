@@ -75,7 +75,7 @@ export async function runPlanJob(job: PlanJob): Promise<PlanJobResult> {
   // one worker do it: a job BullMQ delivers twice, or a run somebody cancelled while it waited,
   // gets nothing back here and stops — instead of running the whole plan a second time over the
   // results of the first. And only while its organization is within its limit of runs at once
-  // (see server/tenant-quotas.ts): past it the run stays queued and the job comes back later.
+  // (see server/tenancy/tenant-quotas.ts): past it the run stays queued and the job comes back later.
   const take = await takeExecution(executionId);
   if (take.outcome === 'over_quota') {
     log.logger.info({

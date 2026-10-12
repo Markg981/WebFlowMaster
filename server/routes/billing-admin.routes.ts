@@ -2,16 +2,16 @@ import { type Response } from 'express';
 import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { BILLING_INTERVALS, SUBSCRIPTION_STATUSES } from '@shared/billing';
-import { requireInstallationAdmin } from '../installation-admin';
-import { auditActor } from '../audit';
-import { BillingError } from '../billing/provider';
+import { requireInstallationAdmin } from '../tenancy/installation-admin';
+import { auditActor } from '../tenancy/audit';
+import { BillingError } from '../tenancy/billing/provider';
 import {
   administerSubscription,
   createPlan,
   listOrganizationBilling,
   listPlans,
   updatePlan,
-} from '../billing/service';
+} from '../tenancy/billing/service';
 
 /**
  * The installation administrator's side of billing: the plan catalogue, and every

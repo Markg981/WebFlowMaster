@@ -5,7 +5,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { testReviews, testVersions, users } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
-import { auditActor } from '../audit';
+import { auditActor } from '../tenancy/audit';
 import {
   PublishingError,
   approveReview,

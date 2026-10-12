@@ -16,13 +16,13 @@ import { privilegedDb } from './db';
 import { hashesMatch } from './api-keys';
 import { sqlState } from './db-errors';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
-import { transferMemberContent } from './member-removal';
+import { transferMemberContent } from './tenancy/member-removal';
 import {
   hasOtherMembership,
   moveToAnotherMembership,
   removeMembership,
-} from './organization-memberships';
-import type { AuditActor } from './audit';
+} from './tenancy/organization-memberships';
+import type { AuditActor } from './tenancy/audit';
 
 /**
  * Provisioning with SCIM 2.0 (RFC 7643, RFC 7644): the organization's identity provider creates,
@@ -757,7 +757,7 @@ export async function patchUser(context: ScimContext, id: string, body: unknown)
 
 /**
  * Removes the member, as an owner removing them would: what they made goes to the longest-standing
- * active owner (server/member-removal.ts), their own rows go with the account.
+ * active owner (server/tenancy/member-removal.ts), their own rows go with the account.
  */
 export async function deleteUser(context: ScimContext, id: string) {
   const target = userId(id);

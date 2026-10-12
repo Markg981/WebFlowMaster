@@ -5,7 +5,7 @@ import { mobileStepGroups } from '@shared/schema';
 import { mobileGroupSchema } from '@shared/mobile-groups';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { lockOrganizationRuns } from '../tenant-quotas';
+import { lockOrganizationRuns } from '../tenancy/tenant-quotas';
 import logger from '../logger';
 
 const router = asyncRouter();

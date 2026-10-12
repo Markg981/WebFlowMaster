@@ -21,9 +21,9 @@ import {
   type SubscriptionStatus,
 } from '@shared/billing';
 import type { AuditActor } from '../audit';
-import { privilegedDb } from '../db';
-import type { TenantTx } from '../middleware/tenancy';
-import { runDetachedForOrganization, withTenantTransaction } from '../middleware/tenancy';
+import { privilegedDb } from '../../db';
+import type { TenantTx } from '../../middleware/tenancy';
+import { runDetachedForOrganization, withTenantTransaction } from '../../middleware/tenancy';
 import { liveRunCounts, quotaUsage, quotasFor } from '../tenant-quotas';
 import { billingConfig } from './config';
 import { BillingError, type BillingProvider, type BillingWebhookEvent } from './provider';
@@ -32,7 +32,7 @@ import { billingProvider } from './providers';
 /**
  * Plans, subscriptions and the ledger (migration 0087).
  *
- * Privileged on purpose, like server/tenant-quota-admin.ts: a subscription is moved by the
+ * Privileged on purpose, like server/tenancy/tenant-quota-admin.ts: a subscription is moved by the
  * provider's webhook (no request, no tenant), by the installation administrator (acting on an
  * organization that is not theirs) and by the daily sweep. What an organization's own members
  * do here — read their plan, start a checkout — runs inside their tenant context as usual.

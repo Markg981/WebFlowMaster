@@ -10,19 +10,19 @@ import { eq } from 'drizzle-orm';
  * ahead of another's fiftieth.
  */
 
-vi.mock('./web/playwright-service', () => ({
+vi.mock('../web/playwright-service', () => ({
   playwrightService: { executeTestSequence: vi.fn() },
 }));
 
-const { privilegedDb } = await import('./db');
+const { privilegedDb } = await import('../db');
 const { organizations, testPlanExecutions, testPlans, users } = await import('@shared/schema');
-const { createTestOrganization } = await import('./tests/factories');
-const { runWithTenant, withTenantTransaction } = await import('./middleware/tenancy');
+const { createTestOrganization } = await import('../tests/factories');
+const { runWithTenant, withTenantTransaction } = await import('../middleware/tenancy');
 const { defaultQuotas, fairPriority, liveRunCounts, quotasFor } = await import('./tenant-quotas');
-const { takeExecution, transitionExecution } = await import('./execution-state');
+const { takeExecution, transitionExecution } = await import('../execution-state');
 const { createExecutionOrchestrator, ExecutionEnqueueError } =
-  await import('./execution-orchestrator');
-const { processTestPlanJob } = await import('./test-execution-service');
+  await import('../execution-orchestrator');
+const { processTestPlanJob } = await import('../test-execution-service');
 
 let orgA: number;
 let orgB: number;

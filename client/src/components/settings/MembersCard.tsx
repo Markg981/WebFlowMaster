@@ -45,7 +45,7 @@ interface Invitation {
   acceptedAt: string | null;
 }
 
-/** Whether the server mailed the link (server/mailer.ts): absent when it could not try. */
+/** Whether the server mailed the link (server/messaging/mailer.ts): absent when it could not try. */
 interface MailOutcome {
   emailed?: boolean;
   emailError?: string;
@@ -113,7 +113,7 @@ export function invitationLink(
  * to call POST /api/organization/invitations by hand, and the colleague had nowhere to put the
  * token. Owners only — the server enforces it; this card is simply not shown to anyone else.
  *
- * Removing a member hands what they made to another member (server/member-removal.ts); the
+ * Removing a member hands what they made to another member (server/tenancy/member-removal.ts); the
  * dialog says so and lets the owner choose who.
  */
 const MembersCard: React.FC = () => {

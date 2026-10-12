@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import { AUDIT_ACTIONS, auditLog, organizations, userMfa, type AuditAction } from '@shared/schema';
 import { privilegedDb } from './db';
 import { decryptSecret, encryptSecret } from './crypto';
-import type { AuditActor } from './audit';
+import type { AuditActor } from './tenancy/audit';
 
 /**
  * The second factor: TOTP codes from an authenticator app (RFC 6238), and recovery codes.

@@ -61,7 +61,7 @@ export const ADHOC_ACTION_IDS = [
   // a PDF's text, a CSV's rows. See shared/downloads.ts.
   'expectDownload',
   // A code sent by text message to a test number, read from the organization's SMS inbox
-  // (server/sms-inbox.ts) as {{sms.otp}}.
+  // (server/messaging/sms-inbox.ts) as {{sms.otp}}.
   'waitForSms',
   // Interactions a click and a typed value cannot stand in for. Without them a test could reach
   // a search box and never submit it, open a context menu only by accident, and not get past

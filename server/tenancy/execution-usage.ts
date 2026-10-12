@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import { getTenantOrgId, withTenantTransaction, type TenantTx } from './middleware/tenancy';
+import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { lockOrganizationRuns, quotaUsage, quotasFor, QuotaError } from './tenant-quotas';
 import { assertSubscriptionAllowsRuns } from './billing/enforcement';
 

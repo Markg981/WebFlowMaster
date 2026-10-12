@@ -39,8 +39,8 @@ const { apiKeyAuth } = await import('../middleware/api-key-auth');
 const { tenancyMiddleware } = await import('../middleware/tenancy');
 const { registerAuthoringRoutes } = await import('./authoring');
 const { registerManagementRoutes } = await import('./management');
-const { setArtifactStoreForTest } = await import('../artifact-store');
-type ArtifactStore = import('../artifact-store').ArtifactStore;
+const { setArtifactStoreForTest } = await import('../tenancy/artifact-store');
+type ArtifactStore = import('../tenancy/artifact-store').ArtifactStore;
 const { API_SCOPE_NAMES } = await import('@shared/api-scopes');
 
 let app: express.Express,

@@ -4,7 +4,7 @@ import { User as SelectUser, InsertUser } from '@shared/schema';
 import { getQueryFn, apiRequest, errorMessage, queryClient } from '../lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
-/** One organization the person belongs to, as /api/user lists them (server/organization-memberships.ts). */
+/** One organization the person belongs to, as /api/user lists them (server/tenancy/organization-memberships.ts). */
 export interface SessionOrganization {
   id: number;
   name: string;

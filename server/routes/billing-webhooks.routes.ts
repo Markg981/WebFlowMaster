@@ -1,16 +1,16 @@
 import express, { type RequestHandler } from 'express';
 import { asyncRouter } from '../middleware/async-router';
 import { webhookRateLimit } from '../middleware/rate-limits';
-import { billingConfig } from '../billing/config';
-import { BillingError } from '../billing/provider';
-import { billingProvider } from '../billing/providers';
-import { applyWebhookEvent } from '../billing/service';
+import { billingConfig } from '../tenancy/billing/config';
+import { BillingError } from '../tenancy/billing/provider';
+import { billingProvider } from '../tenancy/billing/providers';
+import { applyWebhookEvent } from '../tenancy/billing/service';
 import logger from '../logger';
 
 /**
  * Where the billing provider reports: `POST /api/billing/webhooks/stripe`, the address to
  * register in Stripe's dashboard. Public, like every webhook, and believed only for a body
- * whose signature the endpoint secret verifies (server/billing/stripe.ts). The body must reach
+ * whose signature the endpoint secret verifies (server/tenancy/billing/stripe.ts). The body must reach
  * the verifier byte for byte, so this router parses it raw, mounted before the JSON parser.
  */
 const webhookPath = /^\/api\/billing\/webhooks\/[a-z]+\/?$/;

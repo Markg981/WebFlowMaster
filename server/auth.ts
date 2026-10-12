@@ -18,7 +18,7 @@ import { passwordResetMail } from './messaging/mail-messages';
 import { RedisStore } from 'connect-redis';
 import { storage } from './storage';
 import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from '@shared/schema';
-import { recordAudit } from './audit';
+import { recordAudit } from './tenancy/audit';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import logger from './logger';
 import { isMfaEnabled, mfaStatus, verifySecondFactor } from './mfa';
@@ -27,9 +27,9 @@ import { sessionRedis } from './redis';
 import { sessionCookieSecure } from './config';
 import { registrationMode, registrationPolicy } from './registration';
 import { securityHeaders } from './security-headers';
-import { canManageInstallation } from './installation-admin';
+import { canManageInstallation } from './tenancy/installation-admin';
 import { ssoRequiredFor } from './sso';
-import { membershipsOf } from './organization-memberships';
+import { membershipsOf } from './tenancy/organization-memberships';
 import { requireActiveSamlSession } from './middleware/saml-session';
 import {
   forgetSamlSession,
@@ -71,7 +71,7 @@ export async function publicUser(user: SelectUser, signedInWithSso = false) {
   return {
     ...safeUser,
     // Every organization they belong to, the current one marked: the client offers a switch
-    // when there is more than one (server/organization-memberships.ts).
+    // when there is more than one (server/tenancy/organization-memberships.ts).
     organizations: await membershipsOf(user),
     mfaEnabled: status.enabled,
     // The organization's requirement is for password sign-ins; the identity provider has its own.
@@ -664,7 +664,7 @@ export function setupAuth(app: Express) {
               userId: user.id,
               createdBy: null,
             });
-            const { recordAudit } = await import('./audit');
+            const { recordAudit } = await import('./tenancy/audit');
             await recordAudit(tx, {
               action: AUDIT_ACTIONS.PASSWORD_RESET_ISSUED,
               actor: null,

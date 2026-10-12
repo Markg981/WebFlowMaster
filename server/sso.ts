@@ -13,7 +13,7 @@ import {
   type User,
 } from '@shared/schema';
 import { privilegedDb } from './db';
-import { joinOrganization } from './organization-memberships';
+import { joinOrganization } from './tenancy/organization-memberships';
 import { decryptSecret, encryptSecret, type CryptoOptions } from './crypto';
 import { sqlState } from './db-errors';
 import {
@@ -30,7 +30,7 @@ import {
   newVerificationToken,
   usableDomain,
 } from './sso-domains';
-import type { AuditActor } from './audit';
+import type { AuditActor } from './tenancy/audit';
 import { reapplyGroupRoles } from './scim';
 import {
   certificateInfo,

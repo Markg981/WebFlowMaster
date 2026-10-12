@@ -353,38 +353,6 @@
   },
   {
     "type": "cycle",
-    "from": "server/artifact-metering.ts",
-    "to": "server/artifact-store.ts",
-    "unresolvedTo": "./artifact-store",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/artifact-store.ts",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "server/artifact-metering.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
     "from": "server/auth.ts",
     "to": "server/routes/sso.routes.ts",
     "unresolvedTo": "./routes/sso.routes",
@@ -748,6 +716,38 @@
         "dependencyTypes": [
           "local",
           "export"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/tenancy/artifact-metering.ts",
+    "to": "server/tenancy/artifact-store.ts",
+    "unresolvedTo": "./artifact-store",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/tenancy/artifact-store.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "server/tenancy/artifact-metering.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
         ]
       }
     ]

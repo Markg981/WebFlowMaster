@@ -12,7 +12,7 @@ import {
 } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { testsOfSuite } from '../test-suites';
 import {
   TEST_KINDS,

@@ -4,7 +4,7 @@ import { desc, eq } from 'drizzle-orm';
 import { AUDIT_ACTIONS, testPlans, testPlanWebhooks } from '@shared/schema';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { generateWebhookToken } from '../webhook-tokens';
 import logger from '../logger';
 

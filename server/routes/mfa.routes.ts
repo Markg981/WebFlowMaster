@@ -5,7 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { users } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
-import { auditActor } from '../audit';
+import { auditActor } from '../tenancy/audit';
 import { comparePasswords } from '../auth';
 import { storage } from '../storage';
 import {

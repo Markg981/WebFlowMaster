@@ -37,7 +37,7 @@ import {
   getTenantOrgId,
   type TenantTx,
 } from '../middleware/tenancy';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { recordTestVersion, recordTypedTestVersion } from '../test-version-store';
 import { BddDefinitionError, prepareBddForSave } from '../bdd/bdd-definition';
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from '../routes/selected-tests';
@@ -54,7 +54,7 @@ import {
 import { importMobileCatalog, MOBILE_BUNDLE_FIELDS } from '../mobile/mobile-bundle';
 import { prepareMobileSteps, MobileDefinitionError } from '../mobile/mobile-step-groups';
 import { GherkinError } from '../bdd/gherkin';
-import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
+import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
 import schedulerService from '../scheduler-service';
 
 const numericId = z.coerce.number().int().positive();

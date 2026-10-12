@@ -1,6 +1,6 @@
 import { asyncRouter } from '../middleware/async-router';
 import { environments, secrets, AUDIT_ACTIONS } from '@shared/schema';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import logger from '../logger';

@@ -1,14 +1,14 @@
 import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { QUOTA_MODES } from '@shared/tenant-quotas';
-import { requireInstallationAdmin } from '../installation-admin';
-import { auditActor } from '../audit';
+import { requireInstallationAdmin } from '../tenancy/installation-admin';
+import { auditActor } from '../tenancy/audit';
 import {
   listOrganizationQuotas,
   QuotaAdminError,
   reconcileQuotaArtifacts,
   updateOrganizationQuotas,
-} from '../tenant-quota-admin';
+} from '../tenancy/tenant-quota-admin';
 
 const router = asyncRouter();
 const root = '/api/admin/organization-quotas';

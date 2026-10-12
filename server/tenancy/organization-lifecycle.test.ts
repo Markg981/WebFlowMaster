@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { ORG_SCOPED_TABLES, testPlanExecutions, testPlans } from '@shared/schema';
 import type { ArtifactStore } from './artifact-store';
 import { exportOrganization, eraseOrganization, NOT_EXPORTED } from './organization-lifecycle';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
 import { recordAudit } from './audit';
 import { AUDIT_ACTIONS } from '@shared/schema';
-import { createTestOrganization, createTestUser } from './tests/factories';
+import { createTestOrganization, createTestUser } from '../tests/factories';
 
 let orgA: number;
 let orgB: number;

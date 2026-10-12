@@ -2,7 +2,7 @@ import type { ErrorRequestHandler, Request } from 'express';
 import { getCorrelationId } from '../../middleware/correlation';
 import { recordIncident, type IncidentLogger } from '../incident';
 import { redactWebhookPath } from '../../webhook-tokens';
-import { quotaErrorBody, quotaErrorStatus } from '../../tenant-quotas';
+import { quotaErrorBody, quotaErrorStatus } from '../../tenancy/tenant-quotas';
 
 /**
  * Headers worth keeping. Everything else is either noise or a credential.

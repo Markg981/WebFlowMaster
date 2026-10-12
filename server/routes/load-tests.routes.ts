@@ -21,10 +21,10 @@ import {
 } from '@shared/load-test';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
-import { auditActor, recordAudit } from '../audit';
-import { checkExecutionBudget } from '../execution-usage';
-import { assertSubscriptionAllowsRuns } from '../billing/enforcement';
-import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
+import { auditActor, recordAudit } from '../tenancy/audit';
+import { checkExecutionBudget } from '../tenancy/execution-usage';
+import { assertSubscriptionAllowsRuns } from '../tenancy/billing/enforcement';
+import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
 import {
   enqueueLoadRun,
   loadLimits,
@@ -341,7 +341,7 @@ router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) 
     const run = await withTenantTransaction(async (tx) => {
       await lockOrganizationRuns(tx, organizationId);
       // The load enqueue point: a suspended subscription is refused before the run row exists
-      // (server/billing/enforcement.ts), so nothing is left behind as "queued" or "error".
+      // (server/tenancy/billing/enforcement.ts), so nothing is left behind as "queued" or "error".
       await assertSubscriptionAllowsRuns(tx, organizationId);
       await checkExecutionBudget(tx, organizationId);
       const test = await editableTest(tx, id);

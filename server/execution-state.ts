@@ -6,15 +6,15 @@ import {
   type TestPlanExecution,
 } from '@shared/schema';
 import { withTenantTransaction, type TenantTx } from './middleware/tenancy';
-import { liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
+import { liveRunCounts, lockOrganizationRuns, quotasFor } from './tenancy/tenant-quotas';
 import { currentRunnerId } from './runner-registry';
 import {
   beginExecutionUsage,
   checkExecutionBudget,
   finishExecutionUsage,
   heartbeatUsage,
-} from './execution-usage';
-import { QuotaError } from './tenant-quotas';
+} from './tenancy/execution-usage';
+import { QuotaError } from './tenancy/tenant-quotas';
 
 /**
  * Which way a run may move, and the only code allowed to move it.

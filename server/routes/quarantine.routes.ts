@@ -3,7 +3,7 @@ import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
-import { auditActor } from '../audit';
+import { auditActor } from '../tenancy/audit';
 import {
   QuarantineError,
   listOpenQuarantines,

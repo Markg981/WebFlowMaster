@@ -76,7 +76,7 @@ export default function SettingsPage() {
   const { t } = useTranslation();
   const { user, logoutMutation } = useAuth();
   // Installation-wide settings (log level and retention, runners) belong to the installation's
-  // administrators (server/installation-admin.ts). Unknown, from an older server, means yes.
+  // administrators (server/tenancy/installation-admin.ts). Unknown, from an older server, means yes.
   const canManageInstallation = user?.installationAdmin ?? true;
   const queryClient = useQueryClient();
   const form = useUserSettingsForm();

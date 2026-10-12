@@ -1,7 +1,7 @@
 import { asyncRouter } from '../middleware/async-router';
 import { AUDIT_ACTIONS, insertSystemSettingSchema } from '@shared/schema';
-import { auditActor, recordAudit } from '../audit';
-import { requireInstallationAdmin } from '../installation-admin';
+import { auditActor, recordAudit } from '../tenancy/audit';
+import { requireInstallationAdmin } from '../tenancy/installation-admin';
 import logger, { updateLogLevel } from '../logger';
 import { asyncHandler } from '../middleware/async-handler';
 import { requireRole, roleAllows } from '../middleware/require-role';

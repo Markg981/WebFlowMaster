@@ -1,14 +1,14 @@
 import { asyncRouter } from '../middleware/async-router';
 import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
-import { requireInstallationAdmin } from '../installation-admin';
+import { requireInstallationAdmin } from '../tenancy/installation-admin';
 import { withTenantTransaction } from '../middleware/tenancy';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { listRunners, setRunnerDesiredState, statusOf } from '../runner-registry';
 
 /**
  * The runners, for whoever keeps the installation running. Owners see them; draining and resuming
- * one is for the installation's administrators (server/installation-admin.ts), because a runner
+ * one is for the installation's administrators (server/tenancy/installation-admin.ts), because a runner
  * serves every organization and draining one is an operational decision.
  *
  * What is shown is the machine — host, version, browsers, how many jobs it has — and never whose

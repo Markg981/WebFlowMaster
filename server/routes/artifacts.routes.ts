@@ -2,7 +2,7 @@ import { asyncRouter } from '../middleware/async-router';
 import { stepListOf } from '@shared/mobile';
 
 import { eq } from 'drizzle-orm';
-import { artifactStore, assertSafeKey, RESULTS_PREFIX } from '../artifact-store';
+import { artifactStore, assertSafeKey, RESULTS_PREFIX } from '../tenancy/artifact-store';
 import { testPlanExecutions } from '@shared/schema';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
@@ -24,7 +24,7 @@ import logger from '../logger';
  * and an execution belongs to an organization, so that is what is checked: the lookup runs
  * inside the tenant context, and RLS makes another organization's run simply absent.
  *
- * The file comes from the artifact store (server/artifact-store.ts): the local disk, or a bucket
+ * The file comes from the artifact store (server/tenancy/artifact-store.ts): the local disk, or a bucket
  * every worker writes to, so a screenshot taken on another machine is served from here too.
  */
 

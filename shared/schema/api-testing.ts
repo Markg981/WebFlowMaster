@@ -38,7 +38,7 @@ export const apiTests = pgTable(
   {
     id: serial('id').primaryKey(),
     // The organization's, not the person's: a removed member's API tests are handed to another
-    // member (server/member-removal.ts), never deleted with them (migration 0040).
+    // member (server/tenancy/member-removal.ts), never deleted with them (migration 0040).
     userId: integer('user_id')
       .notNull()
       .references(() => users.id),

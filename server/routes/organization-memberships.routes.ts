@@ -10,7 +10,7 @@ import {
   describeInvitation,
   membershipsOf,
   switchOrganization,
-} from '../organization-memberships';
+} from '../tenancy/organization-memberships';
 
 /**
  * A person's organizations (migration 0086): which they belong to, moving between them, and

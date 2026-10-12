@@ -5,7 +5,7 @@ import {
   ListObjectsV2Command,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
-import type { S3Like } from '../artifact-store';
+import type { S3Like } from '../tenancy/artifact-store';
 
 /**
  * A bucket in memory that answers the two commands the artifact store sends, the way S3 does:

@@ -3,8 +3,8 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import { and, eq, sql } from 'drizzle-orm';
 import { organizations, quotaArtifacts, testPlanExecutions } from '@shared/schema';
-import { privilegedDb, withArtifactLock } from './db';
-import { getTenantOrgId, runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { privilegedDb, withArtifactLock } from '../db';
+import { getTenantOrgId, runWithTenant, withTenantTransaction } from '../middleware/tenancy';
 import { quotaUsage, quotasFor, QuotaError } from './tenant-quotas';
 import type { ArtifactStore } from './artifact-store';
 

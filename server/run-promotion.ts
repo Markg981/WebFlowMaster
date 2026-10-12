@@ -2,10 +2,10 @@ import { and, asc, eq } from 'drizzle-orm';
 import { testPlanExecutions } from '@shared/schema';
 import { isTerminalExecutionStatus, onExecutionTransition } from './execution-state';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
-import { liveRunCounts, quotasFor } from './tenant-quotas';
+import { liveRunCounts, quotasFor } from './tenancy/tenant-quotas';
 import { testExecutionQueue } from './queue';
-import { checkExecutionBudget } from './execution-usage';
-import { QuotaError } from './tenant-quotas';
+import { checkExecutionBudget } from './tenancy/execution-usage';
+import { QuotaError } from './tenancy/tenant-quotas';
 
 /**
  * Waiting runs start when a slot frees, not at the next look.

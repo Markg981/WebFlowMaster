@@ -9,7 +9,7 @@ import { recordHealedSelector } from '../step-elements';
  * service, and a failure attached a screenshot to it. That service was a stub — the step ran its
  * body and the screenshot went nowhere — so the wrapping is gone. Evidence is the runner's
  * (server/web/playwright-service.ts takes the error screenshots) and the Allure report is built from
- * the stored run (server/allure-export.ts).
+ * the stored run (server/reporting/allure-export.ts).
  */
 export class PlaywrightReporter {
   // Context for DB updates

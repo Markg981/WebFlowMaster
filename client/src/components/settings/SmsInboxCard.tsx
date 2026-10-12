@@ -8,7 +8,7 @@ import { MessageSquareText } from 'lucide-react';
 import { formatDateTime } from '@/lib/dates';
 
 /**
- * The organization's test SMS inbox (server/sms-inbox.ts): the address an SMS provider posts the
+ * The organization's test SMS inbox (server/messaging/sms-inbox.ts): the address an SMS provider posts the
  * test numbers' messages to, issued by an owner and shown once, and what arrived lately.
  */
 

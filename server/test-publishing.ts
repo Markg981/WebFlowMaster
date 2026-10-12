@@ -11,7 +11,7 @@ import {
 } from '@shared/schema';
 import { privilegedDb } from './db';
 import type { TenantTx } from './middleware/tenancy';
-import { recordAudit, type AuditActor } from './audit';
+import { recordAudit, type AuditActor } from './tenancy/audit';
 import type { VersionedTestType } from '@shared/test-versioning';
 import {
   targetColumn,

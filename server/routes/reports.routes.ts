@@ -11,7 +11,7 @@ import {
 } from '../reporting/report-export';
 import { z } from 'zod';
 import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orchestrator';
-import { QuotaError, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
+import { QuotaError, quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
 
 const router = asyncRouter();
 

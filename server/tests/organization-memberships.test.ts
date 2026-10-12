@@ -12,7 +12,11 @@ import {
   users,
 } from '@shared/schema';
 import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
-import { joinOrganization, membershipsOf, switchOrganization } from '../organization-memberships';
+import {
+  joinOrganization,
+  membershipsOf,
+  switchOrganization,
+} from '../tenancy/organization-memberships';
 import organizationRoutes from '../routes/organization.routes';
 
 /**

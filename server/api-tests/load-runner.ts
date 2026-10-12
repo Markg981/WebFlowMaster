@@ -28,7 +28,7 @@ import {
 import { failureOf } from './api-performance';
 import { runWithTenant, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { STALE_CLAIM_MS, WORK_ITEM_HEARTBEAT_MS } from '../run-shards';
-import { withExecutionUsage } from '../execution-usage';
+import { withExecutionUsage } from '../tenancy/execution-usage';
 import { resolveVariables } from '../variables';
 import logger from '../logger';
 
