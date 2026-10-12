@@ -123,7 +123,9 @@ while recording, and the value is resolved only when a step needs it.
   `Retry-After`.
 - **Installation-wide settings** (log level, log retention, draining runners) are changed only by
   the people named in `INSTALLATION_ADMINS`, or by an owner while the installation has a single
-  organization. The owners of other organizations see them read-only.
+  organization. The owners of other organizations see them read-only. Only owners can read
+  them: the API gives everyone else just the workspace name and the browser log level, and
+  answers `404` for any other key.
 - **Input validation**: request bodies are validated with schemas before they reach the
   database; queries are parameterized through the ORM.
 - **Request size**: JSON bodies are limited to 100 KB.
