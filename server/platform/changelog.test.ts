@@ -57,6 +57,15 @@ describe('parseChangelog', () => {
     ]);
   });
 
+  it('drops comments whole, including one left open to the end of the file', () => {
+    const open = parseChangelog(
+      '## [Unreleased]\n### Added\n- Kept ([#1](u))\n<!-- note\n- Hidden ([#2](u))\n',
+    );
+    expect(open[0].sections[0].entries.map((e) => e.text)).toEqual(['Kept']);
+    const nested = parseChangelog('## [1.0.0]\n### Fixed\n- A <!-- x -->fix ([#3](u))\n');
+    expect(nested[0].sections[0].entries[0].text).toBe('A fix');
+  });
+
   it('stamps the newest release with its newest change', () => {
     expect(changelogStamp(releases)).toBe('Unreleased#12');
     expect(changelogStamp([])).toBeNull();

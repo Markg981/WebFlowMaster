@@ -19,13 +19,31 @@ const RELEASE = /^## \[([^\]]+)\](?:\s*-\s*(\d{4}-\d{2}-\d{2}))?\s*$/;
 const SECTION = /^### (.+?)\s*$/;
 const PULL_REQUEST = /\s*\(\[#(\d+)\]\(([^)\s]+)\)\)\s*$/;
 
+/**
+ * The text outside `<!-- … -->`. Cut by position rather than by a regular expression, so nothing of
+ * a comment can survive (an unterminated one hides the rest of the file, as it does when rendered).
+ * The result is data shown as text, never HTML.
+ */
+function withoutComments(text: string): string {
+  let out = '';
+  let from = 0;
+  for (;;) {
+    const open = text.indexOf('<!--', from);
+    if (open < 0) return out + text.slice(from);
+    out += text.slice(from, open);
+    const close = text.indexOf('-->', open + 4);
+    if (close < 0) return out;
+    from = close + 3;
+  }
+}
+
 export function parseChangelog(markdown: string): ChangelogRelease[] {
   const releases: ChangelogRelease[] = [];
   let release: ChangelogRelease | null = null;
   let section: ChangelogSection | null = null;
   let entry: ChangelogEntry | null = null;
 
-  const text = markdown.replace(/\r\n/g, '\n').replace(/<!--[\s\S]*?-->/g, '');
+  const text = withoutComments(markdown.replace(/\r\n/g, '\n'));
   for (const line of text.split('\n')) {
     const releaseMatch = RELEASE.exec(line);
     if (releaseMatch) {
