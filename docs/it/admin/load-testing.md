@@ -71,6 +71,40 @@ worker, e una quarta aspetta `queued` finché una non finisce. La profondità de
 capacità dei worker sono sull'endpoint delle metriche del worker come `load-queue` (vedere
 [Telemetria](./telemetry)).
 
+## Test a volume
+
+`npm run volume` risponde a una domanda diversa dal test di carico: come si comportano le tabelle di log e risultati dopo un anno di esecuzioni. Genera mesi di run, risultati e righe di log direttamente in PostgreSQL, misura le query più usate con `EXPLAIN (ANALYZE, BUFFERS)` come ruolo applicativo sotto row-level security e verifica quanto costa cancellare un mese.
+
+```sh
+npm run volume -- --database-url postgres://postgres:PASSWORD@HOST:PORTA/wfm_volume
+```
+
+Sicurezza: lo strumento scrive milioni di righe, quindi richiede un database di prova dedicato, di proprietà di un superutente o del proprietario dello schema, con le migrazioni applicate. Non legge mai `DATABASE_URL`, perché indica il database dell'installazione. Rifiuta un database che contiene organizzazioni non create da lui (chiamate `wfm-volume-N`). Non puntarlo mai alla produzione.
+
+Opzioni (default tra parentesi): `--months` [12], `--runs-per-day` [300], `--orgs`, `--plans`, `--tests`, `--results-per-run` [20], `--logs-per-run` [40], `--repeat` (campioni per query, si riporta la mediana), `--max-ms` [250] e `--seq-scan-rows` [50000] (soglie), `--json PERCORSO` (file del report, default `.local/volume/`), `--measure-only` (salta la generazione), `--reset` (elimina i dati generati in precedenza), `--no-delete-probe`.
+
+Fasi: generazione, ANALYZE, misura, prova di cancellazione (un mese di run con la cascata su risultati e log, in una transazione che viene annullata), report. Codici di uscita: `0` entro le soglie, `1` una query supera `--max-ms` o legge sequenzialmente più di `--seq-scan-rows` righe di una tabella dei run, `2` errore di preparazione o database rifiutato. Per i test unitari: `npx vitest run scripts/wfm-volume.test.ts`.
+
+### Risultati misurati
+
+12 mesi, 300 run al giorno su 3 organizzazioni: 103.800 run, 2,08 milioni di risultati, 4,15 milioni di righe di log (circa 1,2 GB di tabelle, 0,6 GB di indici), PostgreSQL 16, mediana dei campioni.
+
+| Query                                                           |                          Prima |   Dopo |
+| --------------------------------------------------------------- | -----------------------------: | -----: |
+| Console dei log di un run (recente o di 11 mesi fa)             |                         0,1 ms | 0,1 ms |
+| Risultati di un run                                             |                         0,1 ms | 0,1 ms |
+| Pulizia della retention (indice parziale della migrazione 0026) |                         0,0 ms | 0,0 ms |
+| Storico dei run, prima pagina                                   |                          39 ms | 0,1 ms |
+| Dashboard, totali a 30 giorni                                   |                         747 ms |  94 ms |
+| Dashboard, ultimi run                                           | 660 ms (scansione sequenziale) | 1,5 ms |
+| Risultati di un test, ultimi 30 giorni                          |                          19 ms |  24 ms |
+
+La dashboard e lo storico ordinano per `coalesce(started_at, queued_at)` dentro una organizzazione; senza un indice su quell'espressione il database leggeva e ordinava tutti i run dell'organizzazione. La migrazione 0088 aggiunge `test_plan_executions_org_run_time_idx (organization_id, coalesce(started_at, queued_at) DESC)`. Le ricerche su log e risultati erano già servite dai loro indici.
+
+### Partizionamento per mese
+
+Cancellare un mese (3.000 run con risultati e log) richiede circa 1 s a questa dimensione, quindi eliminare una partizione mensile oggi non darebbe un vantaggio. Il partizionamento va riconsiderato solo ben oltre, ad esempio decine di milioni di righe al mese, o quando esisterà una retention sulle righe. Oggi la retention elimina solo gli artefatti: `execution_logs` e `report_test_case_results` non hanno retention sulle righe e crescono in modo lineare con il numero di run.
+
 ## Scenari automatici di resilienza
 
 ```sh
