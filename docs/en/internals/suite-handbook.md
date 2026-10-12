@@ -81,7 +81,7 @@ and publishing the affected tests. See [BDD tests](../guide/bdd-tests).
 | Cucumber BDD         | `bdd-execution.ts` calls the signed relay; agent launches `bdd-child.ts`                                              | Advertised exact profile/revision and installed support project                            | Cucumber steps/hooks/statuses and bounded text attachments                            |
 | Manual               | Run/report records the human workflow rather than launching a browser for each sentence                               | A person authorized to enter outcomes                                                      | Recorded step outcomes and supplied evidence                                          |
 
-Do not assume one browser matrix applies to all rows. `test-execution-service.ts` constructs browser
+Do not assume one browser matrix applies to all rows. `plan-run/lanes.ts` constructs browser
 lanes and independent BDD/mobile units separately. Cucumber dataset rows can become independent
 units. API extraction chains also constrain execution order: increasing concurrency must preserve
 the captured-variable contract. Read this construction before changing sharding or retry behavior.
@@ -107,8 +107,8 @@ flowchart LR
 
 `execution-orchestrator.ts` creates the request, applies queue limits/idempotency and submits work.
 `execution-snapshot.ts` captures the settings and selection the run will use. `worker.ts` consumes
-jobs; `execution-state.ts` controls conditional state transitions. `test-execution-service.ts`
-resolves typed definitions, creates run units, applies policies and persists results. Heartbeats,
+jobs; `execution-state.ts` controls conditional state transitions. `plan-run/pipeline.ts`
+runs the phases that resolve typed definitions, create run units, apply policies and persist results. Heartbeats,
 cancellation and recovery provide a durable explanation when a worker disappears. Do not set run
 status directly from a new route or duplicate this lifecycle for another protocol.
 
