@@ -7,7 +7,7 @@
  */
 import fs from 'fs-extra';
 import path from 'path';
-import type { ApiTest, Test } from '@shared/schema';
+import type { ApiTest, Assertion, Test } from '@shared/schema';
 import { isManualSequence, manualStepsOf, type ManualResultLog } from '@shared/manual-tests';
 import type { MobileResultLog } from '@shared/mobile';
 import { describeNetworkFailures } from '@shared/network';
@@ -310,13 +310,13 @@ async function runDefinition(
   const { policies } = settings;
   if (testType === 'ui') parseTextColumns(run, definition as Test);
 
-  // API tests still have their `{{KEY}}` placeholders substituted into the request
-  // object up front: the API runner has no per-field resolution step to hand a variable
-  // map to. UI tests no longer need it — the shared step executor resolves them from the
-  // same map — and doing both would hide an unresolved name instead of reporting it.
+  // The request itself (URL, query, headers, body, auth) is resolved by the API runner from
+  // the same variable map as everything else, secrets included, so captured values keep
+  // their precedence over them. Only assertion targets are compared as saved, so a secret
+  // they name is substituted here; the test's name, selectors and properties are left alone.
   const test =
     testType === 'api' && Object.keys(variables.secrets).length > 0
-      ? (injectSecretsIntoTest(definition, variables.secrets) as ApiTest)
+      ? withSecretTargets(definition as ApiTest, variables.secrets)
       : definition;
 
   const attemptOnce = () =>
@@ -497,15 +497,30 @@ function missingDefinition({ scope, unit, sink }: UnitContext): UnitOutcome {
   return { status: 'Error', failureReason };
 }
 
-/** Replaces `{{SECRET_KEY}}` in every string of a test, on a deep copy. */
-function injectSecretsIntoTest(value: unknown, secrets: Record<string, string>): unknown {
-  if (typeof value === 'string')
-    return value.replace(/\{\{([^}]+)\}\}/g, (match, keyName: string) =>
+/** An API test whose assertion targets have `{{SECRET_KEY}}` replaced, on a copy. */
+export function withSecretTargets(test: ApiTest, secrets: Record<string, string>): ApiTest {
+  const assertions = test.assertions as Assertion[] | null;
+  if (!assertions) return test;
+  const interpolate = (s: string) =>
+    s.replace(/\{\{([^}]+)\}\}/g, (match, keyName: string) =>
       secrets[keyName] !== undefined ? secrets[keyName] : match,
     );
-  if (value === null || typeof value !== 'object') return value;
-  if (Array.isArray(value)) return value.map((item) => injectSecretsIntoTest(item, secrets));
-  return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [key, injectSecretsIntoTest(item, secrets)]),
-  );
+  return {
+    ...test,
+    assertions: assertions.map((a) => ({
+      ...a,
+      targetValue: mapStrings(a.targetValue, interpolate),
+    })),
+  };
+}
+
+/** `fn` applied to every string inside `value`, on a copy that keeps its type. */
+export function mapStrings<T>(value: T, fn: (s: string) => string): T {
+  if (typeof value === 'string') return fn(value) as T;
+  if (Array.isArray(value)) return value.map((item: unknown) => mapStrings(item, fn)) as T;
+  if (value !== null && typeof value === 'object')
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, mapStrings(item, fn)]),
+    ) as T;
+  return value;
 }
