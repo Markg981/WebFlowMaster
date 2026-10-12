@@ -1,11 +1,11 @@
 import { type Request, type Response, type NextFunction } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import rateLimit from 'express-rate-limit';
-import { sharedStore } from '../middleware/rate-limit-store';
+import { sharedStore } from '../platform/middleware/rate-limit-store';
 import { z } from 'zod';
 import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
-import { getTenantOrgId } from '../middleware/tenancy';
+import { getTenantOrgId } from '../platform/middleware/tenancy';
 import { auditActor } from '../tenancy/audit';
 import { recordAuthEvent } from '../identity/auth';
 import {
@@ -25,7 +25,7 @@ import {
   type SignInError,
   type SignedIn,
 } from '../identity/sso';
-import logger from '../logger';
+import logger from '../platform/logger';
 import {
   BINDING_COOKIE,
   SLO_BINDING_COOKIE,
@@ -36,7 +36,7 @@ import {
   registerSamlSession,
   finishSamlLogout,
 } from '../identity/sso-saml';
-import { sessionCookieSecure } from '../config';
+import { sessionCookieSecure } from '../platform/config';
 import { SCIM_BASE_PATH, issueScimToken, revokeScimToken } from '../identity/scim';
 
 /**

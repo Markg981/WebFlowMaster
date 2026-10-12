@@ -3,13 +3,13 @@ import express from 'express';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import { browserGrids } from '@shared/schema';
 import { endpointProblem, GRID_FIELDS, RUNS_BROWSERS } from '@shared/browser-grids';
 import { isLocalAppPath, mobileTestSchema } from '@shared/mobile';
 import { createTestOrganization, createTestUser } from './tests/factories';
 
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -60,7 +60,7 @@ vi.mock('./runtime/agents/agent-fetch', () => ({
 const { mobileSessionRequest, performMobileTest, appiumTransport } =
   await import('./mobile/mobile-runner');
 const { gridConnection, checkRunOn, toGridConfig } = await import('./runtime/browser-grids');
-const { runWithTenant } = await import('./middleware/tenancy');
+const { runWithTenant } = await import('./platform/middleware/tenancy');
 
 type User = { id: number; username: string; organizationId: number; role: string };
 let app: express.Express;

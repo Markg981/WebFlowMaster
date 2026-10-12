@@ -1,9 +1,9 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { takeExecution, transitionExecution } from '../execution/execution-state';
 import { quotaUsage } from './tenant-quotas';
 

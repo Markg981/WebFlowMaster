@@ -6,7 +6,7 @@ import { createHmac, scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { sharedStore } from '../middleware/rate-limit-store';
+import { sharedStore } from '../platform/middleware/rate-limit-store';
 import { passwordProblem, policyFrom, PASSWORD_MAX_LENGTH } from '@shared/password-policy';
 import {
   isEmailAddress,
@@ -19,14 +19,14 @@ import { RedisStore } from 'connect-redis';
 import { storage } from './storage';
 import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from '@shared/schema';
 import { recordAudit } from '../tenancy/audit';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
-import logger from '../logger';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
+import logger from '../platform/logger';
 import { isMfaEnabled, mfaStatus, verifySecondFactor } from './mfa';
 import createMemoryStore from 'memorystore';
-import { sessionRedis } from '../redis';
-import { sessionCookieSecure } from '../config';
+import { sessionRedis } from '../platform/redis';
+import { sessionCookieSecure } from '../platform/config';
 import { registrationMode, registrationPolicy } from './registration';
-import { securityHeaders } from '../security-headers';
+import { securityHeaders } from '../platform/security-headers';
 import { canManageInstallation } from '../tenancy/installation-admin';
 import { ssoRequiredFor } from './sso';
 import { membershipsOf } from '../tenancy/organization-memberships';
@@ -170,7 +170,7 @@ const authLimiter = rateLimit({
   max: process.env.NODE_ENV === 'test' ? 100000 : Number(process.env.AUTH_RATE_LIMIT) || 20,
   standardHeaders: true,
   legacyHeaders: false,
-  // Shared by every web process (server/middleware/rate-limit-store.ts).
+  // Shared by every web process (server/platform/middleware/rate-limit-store.ts).
   store: sharedStore('auth'),
   message: { message: 'Too many attempts, please try again later.' },
 });
@@ -243,7 +243,7 @@ export function setupAuth(app: Express) {
   }
 
   // Helmet's headers, with the Content Security Policy the built client needs in production
-  // (server/security-headers.ts).
+  // (server/platform/security-headers.ts).
   app.use(securityHeaders());
 
   app.set('trust proxy', 1);
@@ -655,7 +655,8 @@ export function setupAuth(app: Express) {
         user.organizationId &&
         (await organizationMailConfigured(user.organizationId))
       ) {
-        const { runWithTenant, withTenantTransaction } = await import('../middleware/tenancy');
+        const { runWithTenant, withTenantTransaction } =
+          await import('../platform/middleware/tenancy');
         const { issuePasswordReset } = await import('./password-reset');
         const issued = await runWithTenant(user.organizationId, () =>
           withTenantTransaction(async (tx) => {

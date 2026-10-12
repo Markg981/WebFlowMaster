@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { environments, secrets } from '@shared/schema';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { resolveVariables } from './variables';
 

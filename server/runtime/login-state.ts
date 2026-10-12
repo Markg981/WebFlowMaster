@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { environments } from '@shared/schema';
-import { decryptSecret, encryptSecret } from '../crypto';
-import logger from '../logger';
+import { decryptSecret, encryptSecret } from '../platform/crypto';
+import logger from '../platform/logger';
 
 /**
  * A browser session saved against an environment, so a test can start already

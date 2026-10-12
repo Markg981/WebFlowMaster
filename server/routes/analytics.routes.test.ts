@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   mobileTests,
   reportTestCaseResults,
@@ -16,7 +16,7 @@ import {
 } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -57,7 +57,7 @@ beforeAll(async () => {
 
   app = express();
   app.use(express.json());
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
 
   app.use((req, _res, next) => {
     (req as any).user = currentUser;

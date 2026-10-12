@@ -1,5 +1,5 @@
 import type { Router } from 'express';
-import { asyncRouter } from './middleware/async-router';
+import { asyncRouter } from './platform/middleware/async-router';
 
 /**
  * Probes for whatever runs the web process: Docker's HEALTHCHECK, a load balancer, Kubernetes.

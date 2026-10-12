@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import express from 'express';
 import request from 'supertest';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   apiTests,
   mobileTests,
@@ -15,7 +15,7 @@ import {
 import { toSequence } from '@shared/manual-tests';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('../logger', () => ({ default: { error: vi.fn() } }));
+vi.mock('../platform/logger', () => ({ default: { error: vi.fn() } }));
 let app: express.Express;
 let org: number;
 let userId: number;
@@ -117,7 +117,7 @@ beforeAll(async () => {
     organizationId: org,
   });
   const { default: routes } = await import('./catalog.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
   app = express();
   app.use((req, _res, next) => {
     const requestUserId = usersByOrg.get(orgForRequest)!;

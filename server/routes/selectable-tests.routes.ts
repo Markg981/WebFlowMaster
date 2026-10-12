@@ -1,9 +1,9 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { and, ilike, inArray, sql, type SQL } from 'drizzle-orm';
 import { apiTests, mobileTests, tests } from '@shared/schema';
-import { asyncHandler } from '../middleware/async-handler';
+import { asyncHandler } from '../platform/middleware/async-handler';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { tagsOfTests, testIdsWithTags } from '../authoring/test-tags';
 
 /**

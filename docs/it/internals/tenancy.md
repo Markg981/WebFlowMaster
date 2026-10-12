@@ -110,7 +110,7 @@ sequenceDiagram
   T->>PG: COMMIT
 ```
 
-Tre dettagli reggono l'intero progetto (`server/middleware/tenancy.ts`):
+Tre dettagli reggono l'intero progetto (`server/platform/middleware/tenancy.ts`):
 
 - **`SET LOCAL ROLE app_user`**: la RLS non ha effetto su un superuser o su un ruolo con `BYPASSRLS`.
   Il ruolo della connessione possiede le tabelle e può aggirare la RLS; `app_user` no. Ogni query di un
@@ -123,7 +123,7 @@ Tre dettagli reggono l'intero progetto (`server/middleware/tenancy.ts`):
 Le chiamate annidate si uniscono alla transazione aperta invece di aprirne una seconda, e legare
 un'organizzazione diversa dentro una transazione aperta genera `TenantConflictError`.
 
-All'avvio, `assertTenancyPreconditions` (`server/db.ts`) verifica che `app_user` esista, che il ruolo
+All'avvio, `assertTenancyPreconditions` (`server/platform/db.ts`) verifica che `app_user` esista, che il ruolo
 della connessione possa passare a esso e che `app_user` non possa aggirare la RLS; altrimenti il server
 non parte.
 
@@ -203,10 +203,10 @@ query su indice e non lascia nulla da indovinare. Ognuno viene mostrato una sola
 
 I segreti degli ambienti (variabili `{{secret_…}}`), i token degli issue tracker, i token GitHub/GitLab e
 gli stati di login salvati (i cookie dell'applicazione sotto test) sono cifrati con **AES-256-GCM**
-usando la `ENCRYPTION_KEY` dell'installazione (`server/crypto.ts`), ognuno con il proprio IV e tag di
+usando la `ENCRYPTION_KEY` dell'installazione (`server/platform/crypto.ts`), ognuno con il proprio IV e tag di
 autenticazione. L'API non ne restituisce mai nessuno; un modulo di modifica che non può mostrare il
 valore attuale tratta un campo vuoto come "lascia invariato". I log passano da un redactor
-(`server/utils/log-redactor.ts`) che maschera password, token e chiavi, e le catture HAR vengono ripulite
+(`server/platform/utils/log-redactor.ts`) che maschera password, token e chiavi, e le catture HAR vengono ripulite
 prima di essere salvate.
 
 ## Audit trail

@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { eq, inArray } from 'drizzle-orm';
 import {
@@ -8,11 +8,11 @@ import {
   testPlanExecutions,
   testPlans,
 } from '@shared/schema';
-import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { fileFailure } from '../integrations/issue-store';
 import { dedupeKeyFor } from '../integrations/issue-tracking';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Filing a failure from the report, and saying what has already been filed.

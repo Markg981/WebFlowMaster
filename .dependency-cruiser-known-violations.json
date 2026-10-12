@@ -186,9 +186,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/outbound-http.ts",
+    "from": "server/platform/outbound-http.ts",
     "to": "server/runtime/generators.ts",
-    "unresolvedTo": "./runtime/generators",
+    "unresolvedTo": "../runtime/generators",
     "dependencyTypes": [
       "local",
       "import"
@@ -200,9 +200,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/outbound-http.ts",
+    "from": "server/platform/outbound-http.ts",
     "to": "server/runtime/variables.ts",
-    "unresolvedTo": "./runtime/variables",
+    "unresolvedTo": "../runtime/variables",
     "dependencyTypes": [
       "local",
       "import"
@@ -439,36 +439,6 @@
   },
   {
     "type": "cycle",
-    "from": "server/db.ts",
-    "to": "server/logger.ts",
-    "unresolvedTo": "./logger",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/logger.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/db.ts",
-        "dependencyTypes": [
-          "local",
-          "dynamic-import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
     "from": "server/execution/plan-run/execute-lanes.ts",
     "to": "server/execution/plan-run/run-unit.ts",
     "unresolvedTo": "./run-unit",
@@ -684,6 +654,36 @@
         "dependencyTypes": [
           "local",
           "import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/platform/db.ts",
+    "to": "server/platform/logger.ts",
+    "unresolvedTo": "./logger",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/platform/logger.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/platform/db.ts",
+        "dependencyTypes": [
+          "local",
+          "dynamic-import"
         ]
       }
     ]

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
-import { privilegedDb } from '../../server/db';
+import { privilegedDb } from '../../server/platform/db';
 import { users, projects, apiTests, testVersions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { resolveUserId, findOrCreateProject, importApiTests } from './importer';

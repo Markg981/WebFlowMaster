@@ -10,7 +10,7 @@ import {
 } from '@shared/load-test';
 import { runLoad, type LoadEngineDeps, type LoadPlan, type StepOutcome } from './load-runner';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

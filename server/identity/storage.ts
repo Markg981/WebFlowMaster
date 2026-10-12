@@ -17,11 +17,11 @@ import {
   type UserSettings,
   type InsertUserSettings,
 } from '@shared/schema';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { and, eq, desc, isNull, sql } from 'drizzle-orm';
 import { passwordResets } from '@shared/schema';
 import { hashResetToken, issuePasswordReset, type IssuedReset } from './password-reset';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 import session from 'express-session';
 import { randomBytes } from 'node:crypto';
 

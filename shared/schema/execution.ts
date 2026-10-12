@@ -612,7 +612,7 @@ export const loadTestRuns = pgTable(
     cancelRequested: boolean('cancel_requested').notNull().default(false),
     /** Written with every progress and heartbeat: a running run whose heartbeat stopped is lost. */
     heartbeatAt: timestamp('heartbeat_at'),
-    /** The BullMQ job on the load queue that executes it (server/queue.ts, loadQueue). */
+    /** The BullMQ job on the load queue that executes it (server/platform/queue.ts, loadQueue). */
     jobId: text('job_id'),
     /** The worker process that took it: host and pid. */
     workerId: text('worker_id'),

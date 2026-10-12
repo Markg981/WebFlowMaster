@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -6,7 +6,7 @@ import { bddExecutionProfiles } from '@shared/schema';
 import { BDD_PROFILE_ID } from '@shared/bdd-agent';
 import { AGENT_POOL_PATTERN } from '@shared/agents';
 import { requireRole } from '../middleware/require-role';
-import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
+import { getTenantOrgId, withTenantTransaction } from '../platform/middleware/tenancy';
 import { advertisedBddProfiles, validateBddProfileDefinition } from '../bdd/bdd-profiles';
 import { auditActor, recordAudit } from '../tenancy/audit';
 

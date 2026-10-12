@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 import { PNG } from 'pngjs';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import {
   reportTestCaseResults,
   testPlanExecutions,

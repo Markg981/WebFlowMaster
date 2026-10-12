@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import {
   tests,
   users,
@@ -19,7 +19,7 @@ import { eq } from 'drizzle-orm';
 import { createTestOrganization } from './tests/factories';
 
 // Mock logger
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() },
   updateLogLevel: vi.fn(),
 }));
@@ -56,10 +56,10 @@ beforeAll(async () => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const userId = req.user.id;
-    // Use the globally mocked logger. Vitest's vi.mock should ensure that any import of './logger'
+    // Use the globally mocked logger. Vitest's vi.mock should ensure that any import of './platform/logger'
     // within this test file's execution context (including this route handler) gets the mock.
     // The `default` export of the mock is a Promise that resolves to the logger object.
-    const logger = (await import('./logger')).default;
+    const logger = (await import('./platform/logger')).default;
 
     const parseResult = createTestBodySchema.safeParse(req.body);
 

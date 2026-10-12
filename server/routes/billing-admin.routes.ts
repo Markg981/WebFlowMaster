@@ -1,5 +1,5 @@
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { BILLING_INTERVALS, SUBSCRIPTION_STATUSES } from '@shared/billing';
 import { requireInstallationAdmin } from '../tenancy/installation-admin';

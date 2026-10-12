@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -8,12 +8,12 @@ import {
 } from '@shared/schema';
 import { DEBUG_COMMANDS, allowedCommands, type DebugState } from '@shared/debug-session';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { SharedDataError, expandSharedDataset } from '../authoring/test-data';
 import { sharedSetIdOf } from '@shared/test-data';
 import { browserTasks, BrowserTaskError } from '../web/browser-tasks';
 import { debugChannel } from '../web/debug-session';
-import logger from '../logger';
+import logger from '../platform/logger';
 import { quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
 
 /**

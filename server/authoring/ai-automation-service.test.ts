@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { tests, detectedElements, users } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { createTestOrganization } from '../tests/factories';
@@ -24,7 +24,7 @@ vi.mock('@google/generative-ai', () => ({
   }),
 }));
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: { info: vi.fn(), warn: mockWarn, error: vi.fn() },
 }));
 

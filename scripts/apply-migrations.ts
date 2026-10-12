@@ -1,9 +1,9 @@
 import './migrator-env'; // Before server/db: no statement timeout while migrating.
 import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import { migrate as migratePglite } from 'drizzle-orm/pglite/migrator';
-import { privilegedDb } from '../server/db'; // Reuses the driver selection logic (Postgres vs PGlite)
+import { privilegedDb } from '../server/platform/db'; // Reuses the driver selection logic (Postgres vs PGlite)
 import * as path from 'path';
-import { inspectSchemaState, describeSchemaState } from '../server/schema-state';
+import { inspectSchemaState, describeSchemaState } from '../server/platform/schema-state';
 
 // Ensure DATABASE_URL is set
 if (!process.env.DATABASE_URL) {

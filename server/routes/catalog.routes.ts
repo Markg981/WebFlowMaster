@@ -1,12 +1,12 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { eq } from 'drizzle-orm';
 import { tests } from '@shared/schema';
 import { catalogQuerySchema } from '@shared/catalog';
 import { catalogPage, type CatalogType } from '../authoring/catalog';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { tagsOfTests } from '../authoring/test-tags';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 const router = asyncRouter();
 

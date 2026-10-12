@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import request from 'supertest';
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from '../db';
-import { runWithTenant } from '../middleware/tenancy';
+import { privilegedDb } from '../platform/db';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import organizationRoutes from './organization.routes';
 
 let orgId: number;

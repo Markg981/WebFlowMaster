@@ -9,8 +9,8 @@
  * missing the row-level security migrations. This says which of the two happened.
  */
 import 'dotenv/config';
-import { inspectSchemaState, describeSchemaState } from '../server/schema-state';
-import { closeDb } from '../server/db';
+import { inspectSchemaState, describeSchemaState } from '../server/platform/schema-state';
+import { closeDb } from '../server/platform/db';
 
 if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL must be set.');

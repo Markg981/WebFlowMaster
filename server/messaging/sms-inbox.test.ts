@@ -2,14 +2,14 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application } from 'express';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { auditLog, smsMessages, users, type User } from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
-import { runWithTenant, tenancyMiddleware } from '../middleware/tenancy';
+import { runWithTenant, tenancyMiddleware } from '../platform/middleware/tenancy';
 import { normalizePhone, parseSmsQuery, readInbound, receiveSms } from './sms-inbox';
 import { executeStep } from '../web/step-executor';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

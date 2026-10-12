@@ -1,11 +1,11 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { AUDIT_ACTIONS, agents } from '@shared/schema';
 import { AGENT_POOL_PATTERN } from '@shared/agents';
 import { requireRole } from '../middleware/require-role';
-import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
+import { getTenantOrgId, withTenantTransaction } from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { generateAgentToken } from '../runtime/agents/agent-credentials';
 import { agentRelay } from '../runtime/agents/relay';

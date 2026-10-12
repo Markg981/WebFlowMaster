@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { organizations, users, userSettings } from '../../shared/schema';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { getOrCreateUserSettings, saveUserSettings } from './user-settings';
 

@@ -2,10 +2,10 @@ import express from 'express';
 import request from 'supertest';
 import { beforeAll, describe, expect, it } from 'vitest';
 import router from './mail-templates.routes';
-import { runWithTenant } from '../middleware/tenancy';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { builtInTemplates } from '../messaging/mail-templates';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { auditLog } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 

@@ -1,6 +1,6 @@
-import { resolvePort } from './config';
+import { resolvePort } from './platform/config';
 import { registrationMode } from './identity/registration';
-import { cspMode } from './security-headers';
+import { cspMode } from './platform/security-headers';
 
 /**
  * Every environment setting that can be wrong without touching the network, checked before

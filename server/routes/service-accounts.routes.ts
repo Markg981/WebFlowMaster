@@ -1,12 +1,12 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { apiKeys, users, AUDIT_ACTIONS } from '@shared/schema';
 import { storage } from '../identity/storage';
-import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
+import { withTenantTransaction, getTenantOrgId } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Accounts that are not people, for keys that must outlive whoever made them.

@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   environments,
   reportTestCaseResults,
@@ -18,7 +18,7 @@ import {
   users,
 } from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
-import { runWithTenant } from '../middleware/tenancy';
+import { runWithTenant } from '../platform/middleware/tenancy';
 
 /**
  * Creating a run: one row, one job, the configuration written down, and asking twice gets the
@@ -40,7 +40,7 @@ const productionQueueAdds: Array<{
   data: Record<string, unknown>;
   options: Record<string, unknown>;
 }> = [];
-vi.mock('../queue', () => ({
+vi.mock('../platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: {
     add: async (name: string, data: Record<string, unknown>, options: Record<string, unknown>) => {
@@ -204,7 +204,7 @@ describe('enqueue', () => {
     try {
       const { recordTypedTestVersion } = await import('../authoring/test-version-store');
       const { publish } = await import('../authoring/test-publishing');
-      const { withTenantTransaction } = await import('../middleware/tenancy');
+      const { withTenantTransaction } = await import('../platform/middleware/tenancy');
       const [api] = await privilegedDb
         .insert(apiTests)
         .values({
@@ -283,7 +283,7 @@ describe('enqueue', () => {
   it('pins the published version and content even when another publication is selected before worker start', async () => {
     const { recordTestVersion } = await import('../authoring/test-version-store');
     const { publish } = await import('../authoring/test-publishing');
-    const { withTenantTransaction } = await import('../middleware/tenancy');
+    const { withTenantTransaction } = await import('../platform/middleware/tenancy');
     const [test] = await privilegedDb
       .select()
       .from(testsTable)

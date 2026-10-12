@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { projectElements } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { asSteps, type SequenceStep } from './step-groups';
 
 /**

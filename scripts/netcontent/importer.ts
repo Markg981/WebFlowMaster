@@ -1,5 +1,5 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
-import type { privilegedDb as DbType } from '../../server/db';
+import type { privilegedDb as DbType } from '../../server/platform/db';
 import { users, projects, apiTests, testVersions, type InsertApiTest } from '@shared/schema';
 import { typedSnapshotOf, describeTypedChange } from '@shared/test-versioning';
 

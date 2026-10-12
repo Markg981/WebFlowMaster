@@ -151,7 +151,7 @@ the operator-provisioned agent. See [BDD tests](../guide/bdd-tests) and [suite h
   text for the newer ones and for anything whose id appears in a URL or a job (runs, plans,
   schedules).
 - **Timestamps** are `timestamp` without time zone, always written and read as UTC: every database
-  session sets `TIME ZONE 'UTC'` when it connects (`server/db.ts`).
+  session sets `TIME ZONE 'UTC'` when it connects (`server/platform/db.ts`).
 - **jsonb** holds structured, schema-versioned documents (steps, snapshots, CI context, summaries).
   Readers accept both parsed and text forms, because some older rows were written as strings.
 - **Deleting** is rare on purpose: tests keep their versions, runs keep their results after

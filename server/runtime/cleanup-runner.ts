@@ -1,5 +1,5 @@
 import type { Cleanup } from '@shared/schema';
-import { fetchTarget, substituteVariables } from '../outbound-http';
+import { fetchTarget, substituteVariables } from '../platform/outbound-http';
 
 /**
  * A UI test's cleanup: API calls made after the test, whatever its outcome, to remove the data it

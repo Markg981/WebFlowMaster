@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import logger from '../logger';
-import { privilegedDb } from '../db';
+import logger from '../platform/logger';
+import { privilegedDb } from '../platform/db';
 import { tests, detectedElements } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 

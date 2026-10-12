@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { userSettings, users, testPlanExecutions, testPlans } from '@shared/schema';
-import { getTenantOrgId } from '../middleware/tenancy';
+import { getTenantOrgId } from '../platform/middleware/tenancy';
 import { isEmailAddress, organizationMailConfigured, sendMail } from '../messaging/mailer';
 import { runFinishedMail } from '../messaging/mail-messages';
 import { shouldNotify, type NotificationSettings, type RunSummary } from './notifications';

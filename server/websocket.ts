@@ -3,15 +3,15 @@ import type { Server, IncomingMessage } from 'http';
 import type { Request, RequestHandler, Response } from 'express';
 import passport from 'passport';
 import { QueueEvents, Job } from 'bullmq';
-import { connection } from './redis';
-import { TEST_EXECUTION_QUEUE_NAME, testExecutionQueue } from './queue';
-import logger from './logger';
-import { privilegedDb } from './db';
+import { connection } from './platform/redis';
+import { TEST_EXECUTION_QUEUE_NAME, testExecutionQueue } from './platform/queue';
+import logger from './platform/logger';
+import { privilegedDb } from './platform/db';
 import { executionLogs, testPlanExecutions, type User as SelectUser } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { getCorrelationId } from './middleware/correlation';
+import { getCorrelationId } from './platform/middleware/correlation';
 import { getSessionMiddleware } from './identity/auth';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from './platform/middleware/tenancy';
 import { isSamlSessionActive } from './identity/sso-saml';
 import {
   ClientSocketMessageSchema,

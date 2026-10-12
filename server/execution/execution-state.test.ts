@@ -2,8 +2,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { testPlanExecutions, testPlans } from '@shared/schema';
 import { isExecutionInFlight } from '@shared/execution-status';
-import { privilegedDb } from '../db';
-import { runWithTenant } from '../middleware/tenancy';
+import { privilegedDb } from '../platform/db';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import {
   canTransitionExecution,

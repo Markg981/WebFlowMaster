@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const runApiRequest = vi.fn();
 const performMobileTest = vi.fn();
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('./web/browser-tasks', () => ({
   browserTasks: {},
   BrowserTaskError: class extends Error {},
 }));
-vi.mock('./queue', () => ({
+vi.mock('./platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'q',
   testExecutionQueue: { add: vi.fn() },
 }));
@@ -34,7 +34,7 @@ vi.mock('./mobile/mobile-runner', async (original) => ({
   performMobileTest: (...args: unknown[]) => performMobileTest(...args),
 }));
 
-const { privilegedDb } = await import('./db');
+const { privilegedDb } = await import('./platform/db');
 const {
   reportTestCaseResults,
   testPlanExecutions,
@@ -44,7 +44,7 @@ const {
   users,
 } = await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
-const { tenancyMiddleware } = await import('./middleware/tenancy');
+const { tenancyMiddleware } = await import('./platform/middleware/tenancy');
 const { default: testsRoutes } = await import('./routes/tests.routes');
 const { default: mobileRoutes } = await import('./routes/mobile-tests.routes');
 const { default: publishingRoutes } = await import('./routes/test-publishing.routes');

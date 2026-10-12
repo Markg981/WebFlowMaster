@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import type { OAuth2AuthParams } from '@shared/schema';
-import { fetchTarget, substituteVariables } from '../outbound-http';
+import { fetchTarget, substituteVariables } from '../platform/outbound-http';
 
 /**
  * Getting an OAuth 2.0 access token, so a test can authenticate the way the service it

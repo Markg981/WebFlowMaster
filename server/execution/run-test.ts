@@ -7,7 +7,7 @@ import type { Test, ApiTest, Precondition, Cleanup } from '@shared/schema';
 import { runPreconditions } from '../runtime/precondition-runner';
 import { cleanupReportStep, runCleanups } from '../runtime/cleanup-runner';
 import type { StepResult } from '../web/playwright-service';
-import logger from '../logger';
+import logger from '../platform/logger';
 import fs from 'fs-extra';
 import path from 'path';
 import { getWsEmitter } from '../websocket';

@@ -1,6 +1,6 @@
 import { quotaErrorBody } from '../tenancy/tenant-quotas';
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
@@ -22,7 +22,11 @@ import {
 import { REQUIREMENT_KEY_PATTERN, REQUIREMENT_KINDS } from '@shared/requirements';
 import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
-import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
+import {
+  withTenantTransaction,
+  getTenantOrgId,
+  type TenantTx,
+} from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import {
   fetchItemText,
@@ -39,7 +43,7 @@ import {
   wouldLoop,
   type CoverageScope,
 } from '../integrations/requirements';
-import logger from '../logger';
+import logger from '../platform/logger';
 import { aiService } from '../authoring/ai-automation-service';
 import { htmlToText } from '../messaging/email-inbox';
 import { toSequence } from '@shared/manual-tests';

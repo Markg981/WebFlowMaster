@@ -5,7 +5,7 @@ import {
   type CustomActionParameter,
 } from '@shared/custom-actions';
 import { customActions } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import type { SequenceStep } from './step-groups';
 
 /**

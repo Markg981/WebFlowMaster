@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import {
   projects,
   users,
@@ -21,7 +21,7 @@ import { eq, and } from 'drizzle-orm';
 import { createTestOrganization } from './tests/factories';
 
 // Mock logger
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() },
   updateLogLevel: vi.fn(),
 }));
@@ -35,7 +35,7 @@ let resolvedLogger: any;
 beforeAll(async () => {
   app = express();
   app.use(express.json());
-  resolvedLogger = ((await vi.importActual('./logger')) as any).default;
+  resolvedLogger = ((await vi.importActual('./platform/logger')) as any).default;
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     // For a specific test, we might want to simulate unauthenticated

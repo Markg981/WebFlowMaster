@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { AUDIT_ACTIONS, reportTestCaseResults, testPlanExecutions } from '@shared/schema';
@@ -10,7 +10,7 @@ import {
   type FailureAnalysis,
 } from '@shared/failure-analysis';
 import type { NetworkSummary } from '@shared/network';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { auditActor, recordAudit } from '../tenancy/audit';
@@ -21,7 +21,7 @@ import {
   parseFailureAnswer,
 } from '../reporting/failure-analysis';
 import { failedStepScreenshot, readScreenshot } from '../reporting/report-model';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * The AI's reading of a failed result, asked for from the report.

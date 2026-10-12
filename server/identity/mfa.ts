@@ -2,8 +2,8 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypt
 import { and, eq, sql } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { AUDIT_ACTIONS, auditLog, organizations, userMfa, type AuditAction } from '@shared/schema';
-import { privilegedDb } from '../db';
-import { decryptSecret, encryptSecret } from '../crypto';
+import { privilegedDb } from '../platform/db';
+import { decryptSecret, encryptSecret } from '../platform/crypto';
 import type { AuditActor } from '../tenancy/audit';
 
 /**
@@ -247,7 +247,7 @@ export async function confirmEnrollment(
       !row.pendingSecretAuthTag
     )
       return null;
-    // Inside a privileged transaction: the key lookup must ride on it (server/organization-keys.ts).
+    // Inside a privileged transaction: the key lookup must ride on it (server/platform/organization-keys.ts).
     const secret = await decryptSecret(
       row.pendingSecretEncrypted,
       row.pendingSecretIv,

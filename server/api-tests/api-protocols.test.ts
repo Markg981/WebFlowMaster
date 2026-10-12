@@ -10,7 +10,7 @@ import { runApiRequest } from './api-test-runner';
 import { xpathValue, readWebSocketPlan } from './api-protocols';
 import { importApiDescription } from './api-import';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

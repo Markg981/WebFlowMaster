@@ -4,7 +4,7 @@ import request from 'supertest';
 import { randomUUID } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -15,7 +15,7 @@ vi.mock('../logger', () => ({
   },
   updateLogLevel: vi.fn(),
 }));
-vi.mock('../queue', () => ({
+vi.mock('../platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: { add: vi.fn() },
 }));
@@ -29,7 +29,7 @@ vi.mock('../execution/scheduler-service', async (importActual) => ({
   ...(await importActual<typeof import('../execution/scheduler-service')>()),
   default: scheduler,
 }));
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const {
   apiKeys,
   users,
@@ -47,7 +47,7 @@ const { createTestOrganization, createTestUser } = await import('../tests/factor
 const { generateApiKey } = await import('../identity/api-keys');
 const { apiKeyAuth } = await import('../middleware/api-key-auth');
 const { tenancyMiddleware, withTenantTransaction, runWithTenant } =
-  await import('../middleware/tenancy');
+  await import('../platform/middleware/tenancy');
 const { registerAuthoringRoutes, testCreateSchema } = await import('./authoring');
 const { API_SCOPE_NAMES } = await import('@shared/api-scopes');
 

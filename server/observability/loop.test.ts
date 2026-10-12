@@ -4,9 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import request from 'supertest';
-import { configureIncidents, recordIncident } from './incident';
+import { configureIncidents, recordIncident } from '../platform/observability/incident';
 import { incidentErrorHandler } from './taps/express';
-import { IncidentStore } from './store';
+import { IncidentStore } from '../platform/observability/store';
 
 /**
  * The acceptance test for the whole mechanism.

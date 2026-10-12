@@ -50,10 +50,28 @@ describe('server domains', () => {
     for (const d of SERVER_DOMAINS) expect(Number.isInteger(d.rank)).toBe(true);
   });
 
+  it('builds rules whose exemptions do not cover every module', async () => {
+    // With every lower domain listed as a directory, the exemption list came out empty and
+    // `^server/()` matched every path: the domain rules reported nothing at all.
+    const { default: config } = await import('../../.dependency-cruiser.mjs');
+    const rules = config.forbidden.filter((r: { name: string }) => r.name.startsWith('domain-'));
+    expect(rules.length).toBeGreaterThan(0);
+    for (const rule of rules) {
+      for (const side of [rule.from, rule.to]) {
+        if (side.pathNot)
+          expect(new RegExp(side.pathNot).test('server/no-such-module.ts')).toBe(false);
+      }
+    }
+    const platform = rules.find((r: { name: string }) => r.name === 'domain-platform');
+    expect(new RegExp(platform.from.path).test('server/platform/db.ts')).toBe(true);
+    expect(new RegExp(platform.to.path).test('server/execution/run-test.ts')).toBe(true);
+    expect(new RegExp(platform.to.pathNot).test('server/execution/run-test.ts')).toBe(false);
+  });
+
   it('lets an exact entry win over a directory', () => {
-    expect(domainOf('middleware/tenancy.ts')).toBe('platform');
+    expect(domainOf('platform/middleware/tenancy.ts')).toBe('platform');
     expect(domainOf('middleware/csrf.ts')).toBe('http');
     expect(domainOf('observability/taps/express.ts')).toBe('http');
-    expect(domainOf('observability/metrics.ts')).toBe('platform');
+    expect(domainOf('platform/observability/metrics.ts')).toBe('platform');
   });
 });

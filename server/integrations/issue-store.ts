@@ -6,8 +6,8 @@ import {
   type IssueProvider,
   type IssueTracker,
 } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
-import { decryptSecret } from '../crypto';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
+import { decryptSecret } from '../platform/crypto';
 import { addComment, createIssue, type ProviderDeps, type TrackerConfig } from './issue-providers';
 import {
   dedupeKeyFor,

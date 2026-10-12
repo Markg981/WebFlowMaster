@@ -5,7 +5,7 @@ import {
   type MobileDeviceTarget,
   type MobileExecutionStep,
 } from '@shared/mobile';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 import { currentContentOf } from '../authoring/test-version-store';
 import { publishedContentOf } from '../authoring/test-publishing';
 import { prepareMobileSteps } from './mobile-step-groups';

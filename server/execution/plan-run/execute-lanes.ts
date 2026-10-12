@@ -2,7 +2,7 @@
  * Runs a run's lanes: one at a time, side by side, or shared with other workers
  * (server/runtime/run-shards.ts).
  */
-import { effectiveConcurrency, runWithConcurrency } from '../../concurrency';
+import { effectiveConcurrency, runWithConcurrency } from '../../platform/concurrency';
 import {
   claimWorkItem,
   finishWorkItem,

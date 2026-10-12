@@ -2,7 +2,7 @@ import { quotaErrorBody } from '../tenancy/tenant-quotas';
 import { mobileTests, mobileStepGroups } from '@shared/schema';
 import { importMobileCatalog, type MobileImportOutcome } from '../mobile/mobile-bundle';
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import {
   tests,
   insertTestSchema,
@@ -17,9 +17,9 @@ import {
 import { auditActor, changedFields, recordAudit } from '../tenancy/audit';
 import { eq, and, desc, getTableColumns, isNull } from 'drizzle-orm';
 import { z } from 'zod';
-import logger from '../logger';
+import logger from '../platform/logger';
 import { BrowserTaskError, browserTasks } from '../web/browser-tasks';
-import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { recordTestVersion, recordTypedTestVersion } from '../authoring/test-version-store';
 import { tagsOfTests } from '../authoring/test-tags';

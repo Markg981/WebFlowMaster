@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
-import { privilegedDb } from '../db';
+import { asyncRouter } from '../platform/middleware/async-router';
+import { privilegedDb } from '../platform/db';
 import { testPlanWebhooks, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { runTestPlan } from '../execution/test-execution-service';
-import logger from '../logger';
+import logger from '../platform/logger';
 import { hashWebhookToken, webhookTokenFromRequest } from '../identity/webhook-tokens';
 
 export const webhooksRouter = asyncRouter();

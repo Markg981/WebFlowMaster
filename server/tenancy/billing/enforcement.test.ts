@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../../db';
+import { privilegedDb } from '../../platform/db';
 import {
   organizationSubscriptions,
   testPlanExecutions,
@@ -12,9 +12,9 @@ import {
 } from '@shared/schema';
 import type { SubscriptionStatus } from '@shared/billing';
 import { createTestOrganization } from '../../tests/factories';
-import { runWithTenant, withTenantTransaction } from '../../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../../platform/middleware/tenancy';
 
-vi.mock('../../queue', () => ({
+vi.mock('../../platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: {
     add: async (_n: string, _d: unknown, o: { jobId: string }) => ({ id: o.jobId }),

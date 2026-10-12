@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 
 // How many organizations the installation has is the one thing read from the database.
 let organizationCount = 1;
-vi.mock('../db', () => ({
+vi.mock('../platform/db', () => ({
   privilegedDb: { select: () => ({ from: async () => [{ count: organizationCount }] }) },
 }));
 

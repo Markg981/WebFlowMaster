@@ -5,9 +5,9 @@ import {
   organizations,
   testPlanExecutions,
 } from '@shared/schema';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 import { quotaDefaults, type TenantQuotas, type QuotaUsage } from '@shared/tenant-quotas';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 export type { TenantQuotas } from '@shared/tenant-quotas';
 
 /**

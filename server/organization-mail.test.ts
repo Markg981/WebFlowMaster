@@ -1,12 +1,12 @@
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import { mailSettings } from '@shared/mail-settings';
 import { createTestOrganization } from './tests/factories';
 import { createTestUser } from './tests/factories';
 import { testPlans } from '@shared/schema';
 import { mailTemplates } from '@shared/mail-templates';
-import { runWithTenant } from './middleware/tenancy';
+import { runWithTenant } from './platform/middleware/tenancy';
 import { mailRunFinished } from './integrations/run-mail';
 import { mailerDeps, sendMail } from './messaging/mailer';
 import { queueMail, receiveDeliveryEvent } from './messaging/mail-delivery';

@@ -3,7 +3,7 @@ import type { Request, Response, NextFunction, RequestHandler } from 'express';
 export type Role = 'viewer' | 'editor' | 'owner';
 
 /**
- * Ascending capability. RLS (server/middleware/tenancy.ts) decides which rows a request may
+ * Ascending capability. RLS (server/platform/middleware/tenancy.ts) decides which rows a request may
  * touch; this decides which verbs it may use on them. The two never interact: a viewer and an
  * owner in the same organization see exactly the same rows.
  */

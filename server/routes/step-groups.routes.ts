@@ -1,12 +1,12 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { stepGroups, tests, AdhocTestStepSchema } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { asSteps, isGroupCall, referencedGroupIds } from '../authoring/step-groups';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * The named sequences tests call instead of repeating them.

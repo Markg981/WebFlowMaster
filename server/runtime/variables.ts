@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { secrets as secretsTable, testDataSets } from '@shared/schema';
 import { dataVariables } from '@shared/test-data';
-import { decryptSecret } from '../crypto';
-import logger from '../logger';
+import { decryptSecret } from '../platform/crypto';
+import logger from '../platform/logger';
 import { findInvalidGenerators } from './generators';
 
 /**

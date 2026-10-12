@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
 
 /**

@@ -152,7 +152,7 @@ da RLS. Il codice di supporto resta sull’agente. Vedere [Test BDD](../guide/bd
   UUID testuali per le più recenti e per tutto ciò il cui id compare in un URL o in un job (run, piani,
   schedulazioni).
 - **Timestamp** di tipo `timestamp` senza fuso, sempre scritti e letti in UTC: ogni sessione del database
-  imposta `TIME ZONE 'UTC'` alla connessione (`server/db.ts`).
+  imposta `TIME ZONE 'UTC'` alla connessione (`server/platform/db.ts`).
 - **jsonb** contiene documenti strutturati e versionati (step, snapshot, contesto CI, riepiloghi). Chi li
   legge accetta sia la forma già interpretata sia quella testuale, perché alcune righe vecchie sono state
   scritte come stringhe.

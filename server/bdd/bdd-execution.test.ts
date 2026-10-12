@@ -1,6 +1,6 @@
 import { beforeAll, expect, it, vi } from 'vitest';
 import { randomUUID } from 'crypto';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   agents,
   bddExecutionProfiles,
@@ -13,7 +13,7 @@ import {
 } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { runWithTenant } from '../middleware/tenancy';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import { runTest, processTestPlanJob } from '../execution/test-execution-service';
 import * as browsers from '../runtime/browsers';
 import * as agentBrowser from '../runtime/agents/agent-browser';

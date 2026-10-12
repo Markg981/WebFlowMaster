@@ -16,7 +16,7 @@ import { runBddOnAgent } from './agent-bdd';
  * from whichever instance holds it; and an instance that goes away stops being chosen.
  */
 
-vi.mock('../../logger', () => ({
+vi.mock('../../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

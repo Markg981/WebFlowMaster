@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   browserGrids,
   organizations,

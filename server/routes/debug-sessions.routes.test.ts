@@ -4,7 +4,7 @@ import request from 'supertest';
 import type { DebugState } from '@shared/debug-session';
 import { debugChannel } from '../web/debug-session';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

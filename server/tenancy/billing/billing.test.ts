@@ -1,9 +1,9 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
-import { privilegedDb } from '../../db';
+import { privilegedDb } from '../../platform/db';
 import { billingEvents, organizationSubscriptions, organizations, auditLog } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../../tests/factories';
-import { runWithTenant, withTenantTransaction } from '../../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../../platform/middleware/tenancy';
 import { quotasFor } from '../tenant-quotas';
 import {
   administerSubscription,

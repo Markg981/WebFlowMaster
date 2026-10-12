@@ -54,7 +54,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "webflowmaster.secretName" . }}
                   key: {{ .Values.migrations.databaseUrlKey }}
-            # Required by server/crypto.ts at import time, even though migrating encrypts nothing.
+            # Required by server/platform/crypto.ts at import time, even though migrating encrypts nothing.
             - name: ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:

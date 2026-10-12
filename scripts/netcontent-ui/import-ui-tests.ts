@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import ExcelJS from 'exceljs';
 import { and, eq, asc } from 'drizzle-orm';
-import { privilegedDb } from '../../server/db';
+import { privilegedDb } from '../../server/platform/db';
 import { users, projects, tests, apiTests } from '@shared/schema';
 import { buildViewInventory, type UiElement } from './parse-views';
 import { mapSteps, splitSteps, type MappedStep } from './map-steps';

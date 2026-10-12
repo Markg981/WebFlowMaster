@@ -2,11 +2,11 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import { users, organizations, invitations, auditLog, passwordResets } from '@shared/schema';
 import { storage } from './identity/storage';
 
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

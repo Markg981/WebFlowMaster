@@ -12,10 +12,10 @@ import {
   ssoSamlReplay,
   ssoSamlSessions,
 } from '@shared/schema';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { groupsOf } from '@shared/sso-roles';
 import { usableDomain } from './sso-domains';
-import { decryptSecret } from '../crypto';
+import { decryptSecret } from '../platform/crypto';
 
 /**
  * Single sign-on with SAML 2.0: the second language an organization's identity provider can speak,

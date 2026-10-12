@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { sql } from 'drizzle-orm';
 import { organizations } from '@shared/schema';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 
 /**
  * Who may change what belongs to the whole installation rather than to one organization: the log

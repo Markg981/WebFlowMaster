@@ -76,7 +76,7 @@ export interface Manifest {
     counts: Record<string, number>;
   };
   artifactStore: 'local' | 's3';
-  /** sha256 of the 32-byte key server/crypto.ts derives, first 16 hex characters. */
+  /** sha256 of the 32-byte key server/platform/crypto.ts derives, first 16 hex characters. */
   encryptionKeyFingerprint: string | null;
   files: BackupFile[];
 }
@@ -136,7 +136,7 @@ export function parseArgs(argv: string[]): Options | { error: string } {
   return options;
 }
 
-/** The same 32 bytes server/crypto.ts derives from ENCRYPTION_KEY, fingerprinted. */
+/** The same 32 bytes server/platform/crypto.ts derives from ENCRYPTION_KEY, fingerprinted. */
 export function keyFingerprint(keyString: string | null | undefined): string | null {
   const key = keyString?.trim();
   if (!key) return null;

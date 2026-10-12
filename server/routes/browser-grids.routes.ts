@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { asc, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,12 +10,12 @@ import {
   LOCAL_APPIUM_DEFAULT_URL,
   endpointProblem,
 } from '@shared/browser-grids';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 import { gridConnection, toGridConfig } from '../runtime/browser-grids';
 import { appiumTransport } from '../mobile/mobile-runner';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * An organization's browser grids (shared/browser-grids.ts).

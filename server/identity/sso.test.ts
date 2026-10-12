@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { createHash, generateKeyPairSync, randomBytes, sign as rsaSign } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   auditLog,
   invitations,
@@ -19,7 +19,7 @@ import { groupsOf, roleFromGroups } from '@shared/sso-roles';
 
 // Auth runs against the real (PGlite) test database; the identity provider is a small one started
 // here, which signs its ID tokens with a key of its own. Only the logger is mocked.
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -118,7 +118,7 @@ beforeAll(async () => {
   process.env.SESSION_SECRET = 'test-session-secret';
   await startProvider();
   const { setupAuth } = await import('./auth');
-  const { tenancyMiddleware } = await import('../middleware/tenancy');
+  const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
   const { requireSso } = await import('../middleware/require-sso');
   const { requireMfaEnrollment } = await import('../middleware/require-mfa-enrollment');
   const ssoRoutes = (await import('../routes/sso.routes')).default;

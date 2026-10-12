@@ -1,6 +1,6 @@
 import { desc, inArray } from 'drizzle-orm';
 import { tests, apiTests, testVersions, type Test, type ApiTest } from '@shared/schema';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 import { currentContentOf } from '../authoring/test-version-store';
 import { publishedContentOf } from '../authoring/test-publishing';
 

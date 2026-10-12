@@ -8,8 +8,8 @@ import {
   RUNS_BROWSERS,
   type BrowserGridProvider,
 } from '@shared/browser-grids';
-import { withTenantTransaction } from '../middleware/tenancy';
-import { decryptSecret } from '../crypto';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
+import { decryptSecret } from '../platform/crypto';
 import type { BrowserEngine } from './browsers';
 
 /**

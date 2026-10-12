@@ -5,7 +5,7 @@ import http from 'http';
 import type { AddressInfo } from 'net';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { apiTests, auditLog, loadTestRuns, loadTests, testDataSets } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
@@ -26,7 +26,7 @@ const queueAdd = vi.fn(async (_name: string, data: { runId: string }, opts: { jo
   queued.set(opts.jobId, job);
   return { id: opts.jobId, data };
 });
-vi.mock('../queue', () => ({
+vi.mock('../platform/queue', () => ({
   LOAD_QUEUE_NAME: 'load-queue',
   LOAD_RUN_JOB: 'load-run',
   loadQueue: {
@@ -38,7 +38,7 @@ vi.mock('../queue', () => ({
   },
 }));
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -168,7 +168,7 @@ beforeAll(async () => {
   const { default: routes } = await import('./load-tests.routes');
   const { loadRunnerDeps } = await import('../api-tests/load-runner');
   Object.assign(loadRunnerDeps, { tickMs: 50, progressMs: 200 });
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {

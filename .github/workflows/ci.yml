@@ -463,7 +463,7 @@ jobs:
       # NOT have it, which is what makes SET LOCAL ROLE app_user meaningful.
       #
       # Granting BYPASSRLS needs superuser, so a migration cannot grant it to itself: it is a
-      # deployment prerequisite. See the startup check in server/db.ts, which refuses to boot
+      # deployment prerequisite. See the startup check in server/platform/db.ts, which refuses to boot
       # rather than discovering this on the first request.
       - name: Create the non-superuser application role and its database
         run: |

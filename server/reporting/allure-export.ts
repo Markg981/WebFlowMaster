@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'crypto';
 import type { ReportModel, ReportResultModel } from './report-model';
 import { describeCi } from '@shared/ci';
-import type { ZipEntry } from '../zip';
+import type { ZipEntry } from '../platform/zip';
 
 /**
  * A run as Allure results: the files `allure generate` and every Allure server read.

@@ -1,5 +1,5 @@
 import type { Precondition, PreconditionCheck } from '@shared/schema';
-import { fetchTarget, substituteVariables as substituteVars } from '../outbound-http';
+import { fetchTarget, substituteVariables as substituteVars } from '../platform/outbound-http';
 
 /** What became of one precondition. `satisfied` is a success, not a skipped failure. */
 export type PreconditionStatus = 'applied' | 'satisfied' | 'failed';

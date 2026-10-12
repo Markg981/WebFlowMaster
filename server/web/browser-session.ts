@@ -1,6 +1,6 @@
 import type { Browser, BrowserContext, BrowserContextOptions, Page } from 'playwright';
-import { allowsSelfSignedCertificate } from '../outbound-http';
-import { guardBrowserContext } from '../egress-policy';
+import { allowsSelfSignedCertificate } from '../platform/outbound-http';
+import { guardBrowserContext } from '../platform/egress-policy';
 import {
   launchBrowser,
   resolveBrowser,

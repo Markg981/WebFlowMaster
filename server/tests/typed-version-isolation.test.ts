@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
-import { privilegedDb } from '../db';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { privilegedDb } from '../platform/db';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import {
   apiTests,
   mobileTests,

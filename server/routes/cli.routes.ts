@@ -1,7 +1,7 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import path from 'path';
 import fs from 'fs-extra';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * GET /cli/wfm.mjs — the pipeline CLI, as this server's build of it.

@@ -180,7 +180,7 @@ sull'orologio che includono l'avvio di un browser.
   area e li confronta con `scripts/any-budget.json`: la CI fallisce se il numero sale, e anche se
   scende senza aggiornare il budget (`node scripts/any-budget.mjs --update`), così il tetto segue ogni
   rimozione. Ai confini (body delle richieste, payload dei job, messaggi WebSocket) leggi il valore
-  con uno schema zod, come `server/job-payloads.ts` e `shared/live-socket.ts`, invece di castarlo.
+  con uno schema zod, come `server/platform/job-payloads.ts` e `shared/live-socket.ts`, invece di castarlo.
 - **Gli import scendono di dominio.** Un nuovo modulo del server va in un dominio di
   `scripts/server-domains.mjs` e può importare solo il proprio dominio e quelli di rango inferiore
   (`npm run deps:check`, vedi [Architettura del sistema](./system-architecture#_3-4-domini-del-server)).

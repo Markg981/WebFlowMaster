@@ -9,8 +9,8 @@ vi.mock('../runtime/browsers', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../runtime/browsers')>()),
   launchBrowser: mocks.launchBrowser,
 }));
-vi.mock('../egress-policy', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../egress-policy')>()),
+vi.mock('../platform/egress-policy', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../platform/egress-policy')>()),
   guardBrowserContext: mocks.guardBrowserContext,
 }));
 

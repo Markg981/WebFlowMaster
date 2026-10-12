@@ -3,11 +3,11 @@ import express from 'express';
 import request from 'supertest';
 import { createHmac, generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { mailSettings } from '@shared/mail-settings';
 import { mailDeliveries, mailDeliveryEvents } from '@shared/mail-delivery';
 import { createTestOrganization } from '../tests/factories';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 import * as delivery from '../messaging/mail-delivery';
 import { mailProviderBodyParser, mailProviderWebhookRouter } from './mail-provider.routes';
 

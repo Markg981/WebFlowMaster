@@ -4,12 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { testPlans, testPlanExecutions, users, tests, testPlanSelectedTests } from '@shared/schema';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { tenancyMiddleware, runAsOrganization } from '../middleware/tenancy';
+import { tenancyMiddleware, runAsOrganization } from '../platform/middleware/tenancy';
 
-vi.mock('../queue', () => ({ testExecutionQueue: { add: vi.fn(async () => ({})) } }));
-vi.mock('../logger', () => ({
+vi.mock('../platform/queue', () => ({ testExecutionQueue: { add: vi.fn(async () => ({})) } }));
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

@@ -1,5 +1,5 @@
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
@@ -14,11 +14,11 @@ import {
   tests,
 } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
-import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
+import { getTenantOrgId, withTenantTransaction } from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { MAX_CHANGED_FILES, selectForChanges, validatePattern } from '../execution/test-impact';
 import { expandPlanTests, type TestReference } from '../authoring/test-suites';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * The impact map (server/execution/test-impact.ts): which file patterns map to which tests' tags. Viewers

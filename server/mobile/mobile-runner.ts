@@ -9,11 +9,11 @@ import {
   type MobileStepResult,
   type MobileExecutionStep,
 } from '@shared/mobile';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { withExecutionUsage } from '../tenancy/execution-usage';
 import { toGridConfig, type GridConfig } from '../runtime/browser-grids';
 import { resolveVariables, findUnresolvedVariables } from '../runtime/variables';
-import { fetchTarget, substituteVariables } from '../outbound-http';
+import { fetchTarget, substituteVariables } from '../platform/outbound-http';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
 import { AgentHttp } from '../runtime/agents/agent-fetch';
 import { LOCAL_APPIUM_DEFAULT_URL } from '@shared/browser-grids';

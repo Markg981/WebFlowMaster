@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('../logger', () => ({
   },
   updateLogLevel: vi.fn(),
 }));
-vi.mock('../queue', () => ({
+vi.mock('../platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: { add: vi.fn() },
 }));

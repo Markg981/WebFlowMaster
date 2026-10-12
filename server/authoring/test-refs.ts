@@ -1,7 +1,7 @@
 import { eq, inArray, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { apiTests, mobileTests, tests } from '@shared/schema';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 
 /**
  * A test named by a link row — a suite's item, a requirement's coverage, a case link — which is a

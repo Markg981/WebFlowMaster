@@ -48,7 +48,7 @@ export const organizations = pgTable('organizations', {
  * with its active key; the key itself is stored wrapped by the master key ENCRYPTION_KEY derives,
  * so the database alone reveals nothing. One active version per organization; a retired version
  * stays until nothing it encrypted is left (scripts/wfm-rotate-key.ts). Read by
- * server/organization-keys.ts, outside any tenant transaction when there is none: the worker and
+ * server/platform/organization-keys.ts, outside any tenant transaction when there is none: the worker and
  * single sign-on decrypt before a request's organization is known. app_user may read and create
  * its own organization's keys and nothing else; retiring and deleting are the operator's.
  */

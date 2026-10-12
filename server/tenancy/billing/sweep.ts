@@ -1,4 +1,4 @@
-import logger from '../../logger';
+import logger from '../../platform/logger';
 import { sweepSubscriptions } from './service';
 
 /**

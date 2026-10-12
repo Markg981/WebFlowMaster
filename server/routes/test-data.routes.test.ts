@@ -2,12 +2,12 @@ import { describe, it, expect, beforeAll, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { and, eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { auditLog, testDataSets, tests } from '@shared/schema';
 import { sharedSetMarker } from '@shared/test-data';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -67,7 +67,7 @@ beforeAll(async () => {
     role: 'owner',
   };
   const { default: routes } = await import('./test-data.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -160,7 +160,7 @@ describe('shared test data', () => {
   it('expands many tests from one load of the sets they point at', async () => {
     const { loadSharedSets, expandWithLoadedSets, SharedDataError } =
       await import('../authoring/test-data');
-    const { withTenantTransaction, runWithTenant } = await import('../middleware/tenancy');
+    const { withTenantTransaction, runWithTenant } = await import('../platform/middleware/tenancy');
     const own = [{ email: 'own@shop.test' }];
     const sets = await runWithTenant(
       organizationId,
@@ -200,7 +200,7 @@ describe('shared test data', () => {
       } as any)
       .returning();
     const { expandSharedDataset, SharedDataError } = await import('../authoring/test-data');
-    const { withTenantTransaction, runWithTenant } = await import('../middleware/tenancy');
+    const { withTenantTransaction, runWithTenant } = await import('../platform/middleware/tenancy');
     const expanded = await runWithTenant(
       organizationId,
       () => withTenantTransaction((tx) => expandSharedDataset(tx, uiTest)),

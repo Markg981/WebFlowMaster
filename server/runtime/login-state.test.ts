@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { environments } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { createTestOrganization, createTestUser } from '../tests/factories';

@@ -1,8 +1,8 @@
 import { createHash, randomBytes } from 'crypto';
 import { and, asc, desc, eq, gte, lt } from 'drizzle-orm';
 import { organizations, smsMessages, type SmsMessage } from '@shared/schema';
-import { privilegedDb } from '../db';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { privilegedDb } from '../platform/db';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 
 /**
  * The organization's test SMS inbox: codes sent by text message, for tests of a sign-in or a

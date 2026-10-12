@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { QUOTA_MODES } from '@shared/tenant-quotas';
 import { requireInstallationAdmin } from '../tenancy/installation-admin';

@@ -19,16 +19,16 @@ description when an autocomplete creates an already existing tag.
 
 ## Trace the existing implementation before editing
 
-| Layer                | Existing file                                                             | What to learn                                                        |
-| -------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Stored contract      | `shared/schema.ts` (`tags`, `testTags`)                                   | Organization ownership, names and link types                         |
-| Pure/domain behavior | `server/authoring/test-tags.ts`                                           | Name normalization and assignment rules                              |
-| Session API          | `server/routes/tags.routes.ts`                                            | Viewer reads, editor writes, zod validation, duplicate/race handling |
-| Route assembly       | `server/routes.ts`                                                        | Existing router mounting; extending this router needs no new mount   |
-| Reusable UI          | `client/src/components/tags/TagPicker.tsx`                                | Controlled component props; it does not own all API calls            |
-| Consumers            | Search for `TagPicker` in `client/src`                                    | Actual pages/dialogs passing data and mutations                      |
-| Existing tests       | `server/routes/tags.routes.test.ts`, `server/authoring/test-tags.test.ts` | HTTP/tenant fixtures and normalization expectations                  |
-| Organization model   | `server/middleware/tenancy.ts`, `server/middleware/require-role.ts`       | Data visibility versus permission to act                             |
+| Layer                | Existing file                                                                | What to learn                                                        |
+| -------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Stored contract      | `shared/schema.ts` (`tags`, `testTags`)                                      | Organization ownership, names and link types                         |
+| Pure/domain behavior | `server/authoring/test-tags.ts`                                              | Name normalization and assignment rules                              |
+| Session API          | `server/routes/tags.routes.ts`                                               | Viewer reads, editor writes, zod validation, duplicate/race handling |
+| Route assembly       | `server/routes.ts`                                                           | Existing router mounting; extending this router needs no new mount   |
+| Reusable UI          | `client/src/components/tags/TagPicker.tsx`                                   | Controlled component props; it does not own all API calls            |
+| Consumers            | Search for `TagPicker` in `client/src`                                       | Actual pages/dialogs passing data and mutations                      |
+| Existing tests       | `server/routes/tags.routes.test.ts`, `server/authoring/test-tags.test.ts`    | HTTP/tenant fixtures and normalization expectations                  |
+| Organization model   | `server/platform/middleware/tenancy.ts`, `server/middleware/require-role.ts` | Data visibility versus permission to act                             |
 
 Use `rg -n "TagPicker|/api/tags" client/src server` to find consumers. Follow a read and a write all
 the way through; adding a schema field alone does not make it available to a component, and a new
@@ -62,7 +62,7 @@ component prop does not make it persist.
 
 A new endpoint goes in the `server/routes/*.routes.ts` module of its domain, never inline in
 `server/routes.ts`, which only mounts routers (`server/tests/architecture.test.ts` enforces it).
-Create the module's router with `asyncRouter()` (`server/middleware/async-router.ts`), not
+Create the module's router with `asyncRouter()` (`server/platform/middleware/async-router.ts`), not
 `Router()`, and write no try/catch that only logs and answers 500: an async handler that throws then
 reaches `incidentErrorHandler`, which logs it, records the incident and answers once, without the
 driver's message. Catch only what the handler can answer better itself, such as a quota refusal or a

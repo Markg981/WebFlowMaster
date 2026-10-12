@@ -8,7 +8,7 @@ import type { CiContext } from '@shared/ci';
 import type { ReproducibilitySummary } from '@shared/execution-provenance';
 import { reproducibilitySummary } from '../execution/execution-provenance';
 import { readExecutionSnapshot } from '../execution/execution-snapshot';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import {
   artifactStore,
   assertSafeKey,

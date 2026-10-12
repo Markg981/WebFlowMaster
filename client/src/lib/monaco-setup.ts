@@ -21,7 +21,7 @@ import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
  *
  * @monaco-editor/react downloads Monaco from cdn.jsdelivr.net at runtime unless told otherwise, so
  * the API tester ran third-party script in every user's session, and did not work at all on a
- * network without internet access. The Content Security Policy (server/security-headers.ts) now
+ * network without internet access. The Content Security Policy (server/platform/security-headers.ts) now
  * refuses scripts from anywhere but here, so the editor and its workers are bundled with the
  * client instead. CodeEditor (components/CodeEditor.tsx) loads this module on first use.
  *

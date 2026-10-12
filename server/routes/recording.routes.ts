@@ -1,6 +1,6 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
-import { asyncHandler } from '../middleware/async-handler';
+import { asyncHandler } from '../platform/middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
 import { playwrightService } from '../web/playwright-service';

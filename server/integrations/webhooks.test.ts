@@ -11,7 +11,7 @@ import { eq, sql } from 'drizzle-orm';
  */
 
 const warn = vi.fn();
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: (...args: unknown[]) => warn(...args),
@@ -27,7 +27,7 @@ vi.mock('../execution/test-execution-service', () => ({
   runTestPlan: (...args: unknown[]) => runTestPlan(...args),
 }));
 
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const { auditLog, testPlans, testPlanWebhooks } = await import('@shared/schema');
 const { createTestOrganization, createTestUser } = await import('../tests/factories');
 const { hashWebhookToken, redactWebhookPath, webhookTokenFromRequest } =
@@ -62,7 +62,7 @@ beforeAll(async () => {
 
   const { default: managementRoutes } = await import('../routes/webhooks.routes');
   const { webhooksRouter } = await import('./webhooks');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
 
   app = express();
   app.use(express.json());

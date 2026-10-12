@@ -4,10 +4,10 @@ import express, {
   type RequestHandler,
   type Response,
 } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import rateLimit from 'express-rate-limit';
-import { sharedStore } from '../middleware/rate-limit-store';
-import logger from '../logger';
+import { sharedStore } from '../platform/middleware/rate-limit-store';
+import logger from '../platform/logger';
 import { publicBase } from './sso.routes';
 import {
   SCHEMAS,

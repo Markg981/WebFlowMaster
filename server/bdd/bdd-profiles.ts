@@ -3,7 +3,7 @@ import { agents, bddExecutionProfiles, projects } from '@shared/schema';
 import type { BddTest } from '@shared/bdd';
 import { BddAgentProfileSchema } from '@shared/bdd-agent';
 import { agentRelay } from '../runtime/agents/relay';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 
 export async function advertisedBddProfiles(tx: TenantTx) {
   const hosts = await tx

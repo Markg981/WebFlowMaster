@@ -5,7 +5,7 @@ import {
   type InsertTestPlanExecution,
   type TestPlanExecution,
 } from '@shared/schema';
-import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { liveRunCounts, lockOrganizationRuns, quotasFor } from '../tenancy/tenant-quotas';
 import { currentRunnerId } from '../runtime/runner-registry';
 import {

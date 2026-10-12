@@ -1,6 +1,6 @@
 import { STEP_GROUP_ACTION_ID } from '@shared/recording';
 import { stepGroups } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { expandCustomActionsForRun } from './custom-actions';
 
 /**

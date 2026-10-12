@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { apiTests, projects, tags, testTags, tests as testsTable } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { normaliseTagName, setTagsForTest, tagsOfTests, testIdsWithTags } from './test-tags';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

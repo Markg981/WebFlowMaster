@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
  * while the working copy has moved on.
  */
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -29,7 +29,7 @@ vi.mock('../web/browser-tasks', () => ({
   browserTasks: {},
   BrowserTaskError: class extends Error {},
 }));
-vi.mock('../queue', () => ({
+vi.mock('../platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'q',
   testExecutionQueue: { add: vi.fn() },
 }));
@@ -38,7 +38,7 @@ vi.mock('../web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
 
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const {
   auditLog,
   reportTestCaseResults,
@@ -50,7 +50,7 @@ const {
   users,
 } = await import('@shared/schema');
 const { createTestOrganization } = await import('../tests/factories');
-const { tenancyMiddleware } = await import('../middleware/tenancy');
+const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
 const { default: testsRoutes } = await import('../routes/tests.routes');
 const { default: publishingRoutes } = await import('../routes/test-publishing.routes');
 const { processTestPlanJob } = await import('../execution/test-execution-service');

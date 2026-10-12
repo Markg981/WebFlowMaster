@@ -2,15 +2,15 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application } from 'express';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { apiTests, auditLog, users, type User } from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
-import { tenancyMiddleware } from '../middleware/tenancy';
+import { tenancyMiddleware } from '../platform/middleware/tenancy';
 import { exampleOf, importApiDescription, ImportError } from './api-import';
 import { bundle, distributedWsdl } from '../tests/soap-bundle-fixtures';
 import { expandedDocuments, expandedWsdl } from '../tests/soap-expanded-fixtures';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() },
   updateLogLevel: vi.fn(),
 }));

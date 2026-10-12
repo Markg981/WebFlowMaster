@@ -24,14 +24,14 @@
  * was done; the report names each one), 2 the command could not be carried out.
  */
 import { sql, type SQL } from 'drizzle-orm';
-import { closeDb, privilegedDb } from '../server/db';
+import { closeDb, privilegedDb } from '../server/platform/db';
 import {
   decryptSecret,
   encryptSecret,
   parseEnvelope,
   type EncryptedSecret,
-} from '../server/crypto';
-import { masterKeys } from '../server/master-keys';
+} from '../server/platform/crypto';
+import { masterKeys } from '../server/platform/master-keys';
 import {
   activeDataKey,
   dataKey,
@@ -40,7 +40,7 @@ import {
   listStoredKeys,
   rewrapStoredKey,
   rotateOrganizationKey,
-} from '../server/organization-keys';
+} from '../server/platform/organization-keys';
 
 export const EXIT_OK = 0;
 export const EXIT_UNREADABLE = 1;

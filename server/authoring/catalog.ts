@@ -10,7 +10,7 @@ import {
 } from '@shared/schema';
 import type { CatalogQuery } from '@shared/catalog';
 import { isManualSequence } from '@shared/manual-tests';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 import { tagsOfTests } from './test-tags';
 
 export type CatalogType = 'tests' | 'api-tests' | 'mobile-tests' | 'test-data';

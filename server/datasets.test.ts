@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import { tests as testsTable } from '@shared/schema';
 import { createTestOrganization, createTestUser } from './tests/factories';
 import { playwrightService } from './web/playwright-service';

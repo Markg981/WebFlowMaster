@@ -1,10 +1,10 @@
 import { RecordedActionSchema, type RecordedAction } from '@shared/recording';
 import { Browser, BrowserContext, Page } from 'playwright';
 import { v4 as uuidv4 } from 'uuid';
-import { throwIfEgressDenied } from '../../egress-policy';
+import { throwIfEgressDenied } from '../../platform/egress-policy';
 import { saveLoginState, type EnvironmentScope } from '../../runtime/login-state';
-import { recordRunnerFailure } from '../../observability/taps/runner';
-import { substituteVariables } from '../../outbound-http';
+import { recordRunnerFailure } from '../../platform/observability/taps/runner';
+import { substituteVariables } from '../../platform/outbound-http';
 import { RECORDER_SCRIPT } from '../../authoring/recorder-script';
 import { storage } from '../../identity/storage';
 

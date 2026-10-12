@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import {
   projects,
@@ -9,8 +9,8 @@ import {
 } from '@shared/schema';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
-import logger from '../logger';
-import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
+import logger from '../platform/logger';
+import { withTenantTransaction, getTenantOrgId } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 
 const router = asyncRouter();

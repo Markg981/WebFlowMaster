@@ -13,7 +13,7 @@ import {
 import { passLabel } from '@shared/locales';
 import type { NetworkSummary } from '@shared/network';
 import type { ExecutionSnapshot } from '../execution-snapshot';
-import { withTenantTransaction } from '../../middleware/tenancy';
+import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { mobileDeviceLabel } from '../../mobile/mobile-runner';
 import type { Logger } from './context';
 import { referencedId, type FrozenTests, type MobileEntry } from './definitions';

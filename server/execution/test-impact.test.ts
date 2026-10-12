@@ -3,7 +3,7 @@ import request from 'supertest';
 import express, { type Application } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   apiTests,
   auditLog,
@@ -19,15 +19,15 @@ import {
   type User,
 } from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
-import { tenancyMiddleware } from '../middleware/tenancy';
+import { tenancyMiddleware } from '../platform/middleware/tenancy';
 import { globToRegExp, validatePattern } from './test-impact';
 import { readExecutionSnapshot } from './execution-snapshot';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() },
   updateLogLevel: vi.fn(),
 }));
-vi.mock('../queue', () => ({
+vi.mock('../platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: { add: vi.fn(async () => undefined) },
 }));

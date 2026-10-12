@@ -1,10 +1,10 @@
 import { type Request, type Response, type NextFunction } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { users } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
+import { withTenantTransaction, getTenantOrgId } from '../platform/middleware/tenancy';
 import { auditActor } from '../tenancy/audit';
 import { comparePasswords } from '../identity/auth';
 import { storage } from '../identity/storage';
@@ -17,7 +17,7 @@ import {
   setMfaRequired,
   verifySecondFactor,
 } from '../identity/mfa';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * A member's second factor, and the organization's policy on it.

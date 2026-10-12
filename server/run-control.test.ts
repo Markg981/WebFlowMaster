@@ -20,7 +20,7 @@ vi.mock('./web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
 
-const { privilegedDb } = await import('./db');
+const { privilegedDb } = await import('./platform/db');
 const {
   reportTestCaseResults,
   testPlanExecutions,

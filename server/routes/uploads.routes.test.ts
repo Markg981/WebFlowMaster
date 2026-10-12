@@ -4,7 +4,7 @@ import request from 'supertest';
 import ExcelJS from 'exceljs';
 import fs from 'fs-extra';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

@@ -3,11 +3,11 @@ import express from 'express';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { mobileTests, tags, testSuites, testTags, tests } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -37,7 +37,7 @@ let webTest: number;
 let smoke: string;
 let android: string;
 
-const { runWithTenant, withTenantTransaction } = await import('../middleware/tenancy');
+const { runWithTenant, withTenantTransaction } = await import('../platform/middleware/tenancy');
 const { testIdsWithTags } = await import('../authoring/test-tags');
 const { testsOfSuite } = await import('../authoring/test-suites');
 

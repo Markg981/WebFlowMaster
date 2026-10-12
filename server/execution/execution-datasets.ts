@@ -1,7 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { testDataSets, tests } from '@shared/schema';
 import { dataVariables, sharedSetIdOf } from '@shared/test-data';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 import { publishedContentOf } from '../authoring/test-publishing';
 
 /** Data only: credentials and environment variables are deliberately not copied. */

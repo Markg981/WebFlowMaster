@@ -1,12 +1,12 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { environments, secrets, AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import logger from '../logger';
-import { withTenantTransaction } from '../middleware/tenancy';
+import logger from '../platform/logger';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 
 /**
  * Environments and their secrets.

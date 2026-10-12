@@ -1,5 +1,5 @@
 import { BILLING_PROVIDERS, type BillingProviderName } from '@shared/billing';
-import { publicBaseUrl } from '../../report-links';
+import { publicBaseUrl } from '../../platform/report-links';
 
 /**
  * How billing is configured, from the environment each time it is asked: an operator's change

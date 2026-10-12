@@ -1,11 +1,11 @@
 import express, { type RequestHandler } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { webhookRateLimit } from '../middleware/rate-limits';
 import { billingConfig } from '../tenancy/billing/config';
 import { BillingError } from '../tenancy/billing/provider';
 import { billingProvider } from '../tenancy/billing/providers';
 import { applyWebhookEvent } from '../tenancy/billing/service';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Where the billing provider reports: `POST /api/billing/webhooks/stripe`, the address to

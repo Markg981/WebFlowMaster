@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { testPlanExecutions, testPlans, users } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { announceExecution } from './execution-state';

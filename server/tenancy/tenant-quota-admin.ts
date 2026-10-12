@@ -1,8 +1,8 @@
 import { and, asc, eq, ilike, sql } from 'drizzle-orm';
 import { auditLog, organizations } from '@shared/schema';
 import type { OrganizationQuotaSummary, QuotaOverrides } from '@shared/tenant-quotas';
-import { privilegedDb, withArtifactLock } from '../db';
-import { runDetachedForOrganization, withTenantTransaction } from '../middleware/tenancy';
+import { privilegedDb, withArtifactLock } from '../platform/db';
+import { runDetachedForOrganization, withTenantTransaction } from '../platform/middleware/tenancy';
 import { defaultQuotas, liveRunCounts, quotaUsage, quotasFor } from './tenant-quotas';
 import { reconcileOrganizationArtifacts } from './artifact-metering';
 import { artifactStore } from './artifact-store';

@@ -2,7 +2,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { privilegedDb } from '../server/db';
+import { privilegedDb } from '../server/platform/db';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 import { parseControllersDir } from './netcontent/parse-controllers';

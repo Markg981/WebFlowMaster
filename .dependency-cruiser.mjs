@@ -12,7 +12,9 @@ import { SERVER_DOMAINS } from './scripts/server-domains.mjs';
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const exact = (m) => `${escape(m)}\\.ts$`;
 const entry = (m) => (m.endsWith('/*') ? escape(m.slice(0, -1)) : exact(m));
-const anyOf = (entries) => `^server/(${entries.join('|')})`;
+// An empty list has to match nothing: `^server/()` matches every module, and as a pathNot it
+// once exempted every import from the domain rules without anyone noticing.
+const anyOf = (entries) => (entries.length ? `^server/(${entries.join('|')})` : '$never^');
 
 const exactEntries = (domains) =>
   domains.flatMap((d) => d.modules.filter((m) => !m.endsWith('/*')).map(exact));

@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { desc, eq, lt } from 'drizzle-orm';
 import playwright from 'playwright';
 import { runners, type Runner } from '@shared/schema';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 
 /**
  * The worker processes that run plans, as they describe themselves.

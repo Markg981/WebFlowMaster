@@ -11,8 +11,8 @@
 import path from 'path';
 import { eq } from 'drizzle-orm';
 import { testPlanExecutions as testPlanExecutionsTable } from '@shared/schema';
-import logger from '../../logger';
-import { withTenantTransaction } from '../../middleware/tenancy';
+import logger from '../../platform/logger';
+import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { getWsEmitter } from '../../websocket';
 import { takeExecution } from '../execution-state';
 import { watchRun } from '../run-watch';

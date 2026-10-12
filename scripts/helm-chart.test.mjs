@@ -330,7 +330,11 @@ test('the migration Job is a Helm hook that runs before install and upgrade', ()
   assert.match(secret, /helm\.sh\/hook: pre-install,pre-upgrade/);
   assert.match(secret, /helm\.sh\/hook-weight: '-10'/);
   assert.match(job, /helm\.sh\/hook-weight: '0'/);
-  assert.match(job, /key: ENCRYPTION_KEY/, 'server/crypto.ts needs ENCRYPTION_KEY at import time');
+  assert.match(
+    job,
+    /key: ENCRYPTION_KEY/,
+    'server/platform/crypto.ts needs ENCRYPTION_KEY at import time',
+  );
 });
 
 test('the api probes use the paths server/health.ts serves', () => {
@@ -377,7 +381,7 @@ test('the worker is given its shutdown grace and a liveness probe on the metrics
   assert.doesNotMatch(worker, /readinessProbe/);
 });
 
-test('the metrics ports and the bind address match server/observability/metrics.ts', () => {
+test('the metrics ports and the bind address match server/platform/observability/metrics.ts', () => {
   const metrics = read(root, 'server', 'observability', 'metrics.ts');
   const ports = metrics.match(/role === 'api' \? (\d+) : (\d+)/);
   assert.equal(values.metrics.apiPort, Number(ports[1]));

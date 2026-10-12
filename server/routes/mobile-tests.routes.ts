@@ -1,5 +1,5 @@
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import os from 'os';
 import fs from 'fs';
 import multer from 'multer';
@@ -20,7 +20,11 @@ import {
   mobileDeviceTargets,
 } from '@shared/mobile';
 import { requireRole } from '../middleware/require-role';
-import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import {
+  getTenantOrgId,
+  withTenantTransaction,
+  type TenantTx,
+} from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { toGridConfig } from '../runtime/browser-grids';
 import { executeMobileRun, uploadApp, type RunDeps } from '../mobile/mobile-runner';
@@ -37,7 +41,7 @@ import {
 import { tagsOfTests } from '../authoring/test-tags';
 import { currentContentOf, recordTypedTestVersion } from '../authoring/test-version-store';
 import { typedSnapshotOf } from '@shared/test-versioning';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Tests of native mobile apps: writing them, running one on a grid's device, and uploading the

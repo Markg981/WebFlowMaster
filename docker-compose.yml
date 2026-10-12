@@ -72,7 +72,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/webflowmaster
-      # Required by server/crypto.ts at import time, even though migrating encrypts nothing.      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env (see the top of docker-compose.yml)}
+      # Required by server/platform/crypto.ts at import time, even though migrating encrypts nothing.      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env (see the top of docker-compose.yml)}
     depends_on:
       postgres:
         condition: service_healthy

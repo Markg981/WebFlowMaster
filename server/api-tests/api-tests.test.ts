@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   apiTests,
   tests,
@@ -16,11 +16,11 @@ import {
 } from '../../shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { createTestOrganization } from '../tests/factories';
-import { tenancyMiddleware } from '../middleware/tenancy';
+import { tenancyMiddleware } from '../platform/middleware/tenancy';
 // Not strictly needed for these tests but good for consistency if IDs were strings
 
 // Mock logger to prevent console output during tests, unless explicitly needed
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

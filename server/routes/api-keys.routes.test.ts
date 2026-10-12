@@ -2,12 +2,12 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { apiKeys, auditLog, users } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { hashApiKey } from '../identity/api-keys';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -38,7 +38,7 @@ beforeAll(async () => {
   otherUserId = await createTestUser(otherOrganizationId, 'other-keys-user');
 
   const { default: apiKeysRoutes } = await import('./api-keys.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
 
   app = express();
   app.use(express.json());

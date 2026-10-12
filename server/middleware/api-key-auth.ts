@@ -1,9 +1,9 @@
 import type { Request, Response, NextFunction } from 'express';
 import { eq } from 'drizzle-orm';
 import { apiKeys, users } from '@shared/schema';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { apiKeyFromRequest, hashApiKey, hashesMatch, rejectionFor } from '../identity/api-keys';
-import logger from '../logger';
+import logger from '../platform/logger';
 import { API_V1_PREFIX, type ApiScope } from '@shared/api-scopes';
 
 /** What a request authenticated by a key carries, for the audit trail and for requireScope. */

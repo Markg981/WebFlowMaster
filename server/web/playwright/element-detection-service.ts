@@ -1,7 +1,7 @@
 import { VOLATILE_ID_PATTERNS } from '@shared/selectors';
 import { Frame, Page } from 'playwright';
-import { throwIfEgressDenied } from '../../egress-policy';
-import { substituteVariables } from '../../outbound-http';
+import { throwIfEgressDenied } from '../../platform/egress-policy';
+import { substituteVariables } from '../../platform/outbound-http';
 import { storage } from '../../identity/storage';
 
 import {

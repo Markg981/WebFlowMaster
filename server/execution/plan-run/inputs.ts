@@ -12,7 +12,7 @@ import {
   type TestPlan,
   type TestPlanExecution,
 } from '@shared/schema';
-import { withTenantTransaction } from '../../middleware/tenancy';
+import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { transitionExecution } from '../execution-state';
 import { reproducibilitySummary } from '../execution-provenance';
 import {
@@ -21,7 +21,7 @@ import {
   type ExecutionSnapshot,
   type SnapshotTestReference,
 } from '../execution-snapshot';
-import { decryptSecret } from '../../crypto';
+import { decryptSecret } from '../../platform/crypto';
 import { defaultVariables } from '../../runtime/variables';
 import { loadDataVariables } from '../../authoring/test-data';
 import { ended, report, type Ended, type PlanRun } from './context';

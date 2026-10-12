@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
  * no code — not even the privileged handle — can link a row to another organization's.
  */
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -24,12 +24,12 @@ vi.mock('../logger', () => ({
   },
   updateLogLevel: vi.fn(),
 }));
-vi.mock('../queue', () => ({
+vi.mock('../platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'q',
   testExecutionQueue: { add: vi.fn() },
 }));
 
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const schema = await import('@shared/schema');
 const {
   auditLog,
@@ -45,7 +45,7 @@ const {
   users,
 } = schema;
 const { createTestOrganization } = await import('../tests/factories');
-const { tenancyMiddleware } = await import('../middleware/tenancy');
+const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
 const { default: suitesRoutes } = await import('../routes/suites.routes');
 const { createExecutionOrchestrator } = await import('../execution/execution-orchestrator');
 const { readExecutionSnapshot } = await import('../execution/execution-snapshot');
