@@ -25,7 +25,7 @@ vi.mock('@google/generative-ai', () => ({
 }));
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({ info: vi.fn(), warn: mockWarn, error: vi.fn() }),
+  default: { info: vi.fn(), warn: mockWarn, error: vi.fn() },
 }));
 
 // Import after the mocks are registered.

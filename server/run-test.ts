@@ -7,7 +7,7 @@ import type { Test, ApiTest, Precondition, Cleanup } from '@shared/schema';
 import { runPreconditions } from './precondition-runner';
 import { cleanupReportStep, runCleanups } from './cleanup-runner';
 import type { StepResult } from './playwright-service';
-import loggerPromise from './logger';
+import logger from './logger';
 import fs from 'fs-extra';
 import path from 'path';
 import { getWsEmitter } from './websocket';
@@ -101,12 +101,11 @@ export async function runTest(
   // plan, and both were collected by the product long before anything acted on them.
   options?: RunTestOptions,
 ): Promise<IndividualTestRunResult> {
-  const resolvedLogger = await loggerPromise;
   const startTime = Date.now();
   const testId = test.id;
   const testName = test.name;
 
-  resolvedLogger.info({
+  logger.info({
     message: `Starting ${testType} test execution`,
     testId,
     testName,
@@ -198,7 +197,7 @@ export async function runTest(
       } else if (!preResult.ok) {
         const durationMs = Date.now() - startTime;
         const reason = `Precondition failed at "${preResult.failedAt}": ${preResult.reason}`;
-        resolvedLogger.warn({
+        logger.warn({
           message: 'UI Test blocked: precondition failed',
           testId,
           testName,
@@ -284,7 +283,7 @@ export async function runTest(
         lastScreenshotPath = visualFailure.visual.diffImage;
       }
 
-      resolvedLogger.info({
+      logger.info({
         message: `UI Test completed`,
         testId,
         testName,
@@ -311,7 +310,7 @@ export async function runTest(
       });
     } catch (error: any) {
       const durationMs = Date.now() - startTime;
-      resolvedLogger.error({
+      logger.error({
         message: `Critical error during UI test execution`,
         testId,
         testName,
@@ -332,7 +331,7 @@ export async function runTest(
     }
   } else if (testType === 'api') {
     const apiTest = test as ApiTest; // Cast to ApiTest
-    resolvedLogger.info({
+    logger.info({
       message: `API Test execution starting`,
       testId: apiTest.id,
       testName: apiTest.name,
@@ -388,7 +387,7 @@ export async function runTest(
       ? protocolReport({ ...result, error: failure }, vars)
       : undefined;
 
-    resolvedLogger.info({
+    logger.info({
       message: `API Test completed`,
       testId: apiTest.id,
       testName: apiTest.name,
@@ -418,7 +417,7 @@ export async function runTest(
     };
   } else {
     const durationMs = Date.now() - startTime;
-    resolvedLogger.error({
+    logger.error({
       message: 'Unknown test type provided to runTest',
       testType,
       testId,

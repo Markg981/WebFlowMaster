@@ -7,7 +7,7 @@ import express, {
 import { asyncRouter } from '../middleware/async-router';
 import rateLimit from 'express-rate-limit';
 import { sharedStore } from '../middleware/rate-limit-store';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { publicBase } from './sso.routes';
 import {
   SCHEMAS,
@@ -43,7 +43,6 @@ import {
 export { SCIM_BASE_PATH };
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /** Where the provider reaches this API: the address to give it. */
 export function scimBaseUrl(req: Request, env: NodeJS.ProcessEnv = process.env): string {

@@ -1,7 +1,7 @@
 import type { Server } from 'http';
 import os from 'os';
 import { randomUUID } from 'crypto';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { authenticateAgentToken, recordAgentSeen } from './agent-auth';
 import { relaySecret } from './agent-credentials';
 import { AgentRelay, setAgentRelay, type RelayCluster } from './relay';
@@ -30,7 +30,6 @@ export async function relayCluster(
 
 /** Starts this web server's agent relay, on the same address and port as everything else. */
 export async function setupAgentRelay(server: Server): Promise<AgentRelay> {
-  const logger = await loggerPromise;
   // Throttled: a heartbeat every twenty seconds per agent does not need a write every time.
   const lastWrite = new Map<string, number>();
   const cluster = await relayCluster();

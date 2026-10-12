@@ -37,7 +37,7 @@ import { auditActor, recordAudit } from '../audit';
 import { encryptSecret } from '../crypto';
 import { checkTestManagement } from '../test-management-providers';
 import { publicationsOf, publishExecution, toConnectionConfig } from '../test-management';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * TestRail, Xray and Zephyr Scale (shared/test-management.ts): the connections, which case each
@@ -46,7 +46,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 class ConnectionError extends Error {
   constructor(

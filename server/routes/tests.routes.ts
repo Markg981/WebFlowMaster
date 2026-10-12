@@ -17,7 +17,7 @@ import {
 import { auditActor, changedFields, recordAudit } from '../audit';
 import { eq, and, desc, getTableColumns, isNull } from 'drizzle-orm';
 import { z } from 'zod';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { BrowserTaskError, browserTasks } from '../browser-tasks';
 import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
@@ -42,7 +42,6 @@ import { GherkinImportOptionsSchema } from '@shared/bdd';
 import { BddDefinitionError, prepareBddForSave } from '../bdd-definition';
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /**
  * Answers a change that touched no row: 404 when the test is not there for the requester, 403

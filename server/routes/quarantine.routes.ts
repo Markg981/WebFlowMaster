@@ -10,7 +10,7 @@ import {
   quarantineTest,
   releaseQuarantine,
 } from '../test-quarantine';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Setting unreliable tests aside, and bringing them back. What quarantine means for a run is in
@@ -18,7 +18,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 function fail(res: Response, error: unknown, what: string) {
   if (error instanceof QuarantineError)

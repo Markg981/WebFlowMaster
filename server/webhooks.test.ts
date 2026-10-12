@@ -12,14 +12,14 @@ import { eq, sql } from 'drizzle-orm';
 
 const warn = vi.fn();
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     error: vi.fn(),
     warn: (...args: unknown[]) => warn(...args),
     info: vi.fn(),
     http: vi.fn(),
     verbose: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 const runTestPlan = vi.fn();

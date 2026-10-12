@@ -30,7 +30,7 @@ import { runWithTenant, withTenantTransaction, type TenantTx } from './middlewar
 import { STALE_CLAIM_MS, WORK_ITEM_HEARTBEAT_MS } from './run-shards';
 import { withExecutionUsage } from './execution-usage';
 import { resolveVariables } from './variables';
-import loggerPromise from './logger';
+import logger from './logger';
 
 /**
  * Runs a load test (shared/load-test.ts): the engine (runLoad), and around it the service a worker
@@ -581,7 +581,6 @@ export async function executeLoadRun(
   organizationId: number,
   userId: number,
 ): Promise<void> {
-  const logger = await loggerPromise;
   const limits = loadLimits();
   await runWithTenant(
     organizationId,

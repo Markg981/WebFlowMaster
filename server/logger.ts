@@ -3,9 +3,6 @@ import 'winston-daily-rotate-file';
 import { LokiTransport } from './loki-transport';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { privilegedDb } from './db';
-import { systemSettings } from '@shared/schema';
-import { eq } from 'drizzle-orm';
 import { traceLogFields } from '../shared/telemetry';
 import { getCorrelationId } from './middleware/correlation';
 import { redactSensitiveData, scrubControlCharsFromMessage } from './utils/log-redactor';
@@ -68,141 +65,162 @@ const devConsoleFormat = winston.format.combine(
   }),
 );
 
-// ─── DB setting helpers ───────────────────────────────────────────────────────
-
-async function getLogRetentionDaysSetting(): Promise<string | null> {
-  try {
-    const setting = await privilegedDb
-      .select({ value: systemSettings.value })
-      .from(systemSettings)
-      .where(eq(systemSettings.key, 'logRetentionDays'))
-      .limit(1);
-
-    if (setting.length > 0 && setting[0].value) {
-      const dbVal = parseInt(setting[0].value, 10);
-      if (!isNaN(dbVal) && dbVal > 0) {
-        return `${dbVal}d`;
-      }
-    }
-  } catch (error) {
-    // Use console.error for this critical phase as logger might not be initialized
-    console.error('Failed to fetch logRetentionDays from DB:', error);
-  }
-  return null;
-}
+// ─── Logger ───────────────────────────────────────────────────────────────────
+//
+// Created synchronously, so any module can log from the moment it is imported — db.ts among
+// them, which loads before anything could have read a setting. It starts from the environment
+// (LOG_LEVEL, LOG_RETENTION_DAYS); applyLogSettings() then brings in the values an administrator
+// saved in system_settings, once the process has checked its database.
 
 // Valid log levels for Winston
 const VALID_LOG_LEVELS = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
 
-async function getLogLevelSetting(): Promise<string> {
-  try {
-    const setting = await privilegedDb
-      .select({ value: systemSettings.value })
-      .from(systemSettings)
-      .where(eq(systemSettings.key, 'logLevel'))
-      .limit(1);
-
-    if (setting.length > 0 && setting[0].value && VALID_LOG_LEVELS.includes(setting[0].value)) {
-      return setting[0].value;
-    }
-  } catch (error) {
-    console.error('Failed to fetch logLevel from DB:', error);
-  }
-  // Fallback to environment variable or 'info'
-  return process.env.LOG_LEVEL || 'info';
-}
-
-// ─── Logger initialization ────────────────────────────────────────────────────
-
 const isDev = process.env.NODE_ENV !== 'production';
 
+function envLogLevel(): string {
+  const level = process.env.LOG_LEVEL;
+  return level && VALID_LOG_LEVELS.includes(level) ? level : 'info';
+}
+
+function envRetention(): string {
+  return process.env.LOG_RETENTION_DAYS ? `${process.env.LOG_RETENTION_DAYS}d` : '7d';
+}
+
+function createFileTransport(
+  maxFiles: string,
+): InstanceType<typeof winston.transports.DailyRotateFile> {
+  // Always structured JSON (for machine parsing / aggregation): inherits the logger's format.
+  return new winston.transports.DailyRotateFile({
+    filename: path.join(logDir, 'app-%DATE%.log'),
+    datePattern: 'YYYY-MM-DD',
+    zippedArchive: true,
+    maxSize: '20m',
+    maxFiles,
+  });
+}
+
+let fileTransport = createFileTransport(envRetention());
+
+const logger = winston.createLogger({
+  level: envLogLevel(),
+  // Default format for all transports (structured JSON)
+  format: structuredFormat,
+  defaultMeta: { service: SERVICE_NAME },
+  transports: [
+    // Console: human-readable in dev, JSON in prod
+    new winston.transports.Console({
+      format: isDev ? devConsoleFormat : structuredFormat,
+    }),
+    fileTransport,
+  ],
+  exitOnError: false,
+});
+
+// ─── Grafana Loki transport (production / when LOKI_URL is set) ───────────────
+// Logs are batched in memory and pushed via HTTP every 5 seconds.
+// This adds zero latency to API responses. See server/loki-transport.ts.
 let lokiTransport: LokiTransport | undefined;
+if (process.env.LOKI_URL) {
+  lokiTransport = new LokiTransport({
+    host: process.env.LOKI_URL,
+    labels: { app: 'webflowmaster', service: SERVICE_NAME },
+    intervalSeconds: 5,
+  });
+  logger.add(lokiTransport);
+  logger.info(`Loki transport enabled, pushing to ${process.env.LOKI_URL}`);
+}
+
+// Create a stream object with a 'write' function that will be used by morgan
+(logger as any).stream = {
+  write: (message: string): void => {
+    logger.http(message.substring(0, message.lastIndexOf('\n')));
+  },
+};
+
+export default logger;
 
 /** Sends the lines still waiting for the next Loki push; for a shutdown, before process.exit. */
 export async function flushLogs(): Promise<void> {
   await lokiTransport?.flush();
 }
 
-export async function initializeLogger(): Promise<winston.Logger> {
-  let maxFilesSetting = process.env.LOG_RETENTION_DAYS
-    ? `${process.env.LOG_RETENTION_DAYS}d`
-    : '7d';
-
-  const dbRetentionSetting = await getLogRetentionDaysSetting();
-  if (dbRetentionSetting) {
-    maxFilesSetting = dbRetentionSetting;
-  }
-
-  const logLevelFromDb = await getLogLevelSetting();
-
-  const loggerInstance = winston.createLogger({
-    level: logLevelFromDb,
-    // Default format for all transports (structured JSON)
-    format: structuredFormat,
-    defaultMeta: { service: SERVICE_NAME },
-    transports: [
-      // Console: human-readable in dev, JSON in prod
-      new winston.transports.Console({
-        format: isDev ? devConsoleFormat : structuredFormat,
-      }),
-      // File: always structured JSON (for machine parsing / aggregation)
-      new winston.transports.DailyRotateFile({
-        filename: path.join(logDir, 'app-%DATE%.log'),
-        datePattern: 'YYYY-MM-DD',
-        zippedArchive: true,
-        maxSize: '20m',
-        maxFiles: maxFilesSetting,
-        // File transport inherits the parent structuredFormat
-      }),
-    ],
-    exitOnError: false,
-  });
-
-  // ─── Grafana Loki transport (production / when LOKI_URL is set) ───────────
-  // Logs are batched in memory and pushed via HTTP every 5 seconds.
-  // This adds zero latency to API responses. See server/loki-transport.ts.
-  if (process.env.LOKI_URL) {
-    lokiTransport = new LokiTransport({
-      host: process.env.LOKI_URL,
-      labels: { app: 'webflowmaster', service: SERVICE_NAME },
-      intervalSeconds: 5,
-    });
-    loggerInstance.add(lokiTransport);
-    loggerInstance.info(`Loki transport enabled, pushing to ${process.env.LOKI_URL}`);
-  }
-
-  // Create a stream object with a 'write' function that will be used by morgan
-  (loggerInstance as any).stream = {
-    write: (message: string): void => {
-      loggerInstance.http(message.substring(0, message.lastIndexOf('\n')));
-    },
-  };
-
-  return loggerInstance;
+/** The file transport, for the tests: its retention is what applyLogSettings may replace. */
+export function currentFileTransport(): InstanceType<typeof winston.transports.DailyRotateFile> {
+  return fileTransport;
 }
 
-// Export a promise that resolves with the logger instance
-const loggerPromise: Promise<winston.Logger> = initializeLogger();
+// ─── Settings from the database ───────────────────────────────────────────────
 
-export default loggerPromise;
+async function readSetting(key: string): Promise<string | null> {
+  // Imported here rather than at the top: db.ts logs through this module, and a static import
+  // back to it would make the two depend on each other's initialisation order.
+  const [{ privilegedDb }, { systemSettings }, { eq }] = await Promise.all([
+    import('./db'),
+    import('@shared/schema'),
+    import('drizzle-orm'),
+  ]);
+  const rows = await privilegedDb
+    .select({ value: systemSettings.value })
+    .from(systemSettings)
+    .where(eq(systemSettings.key, key))
+    .limit(1);
+  return rows[0]?.value ?? null;
+}
 
-export async function updateLogLevel(newLevel: string): Promise<void> {
+/**
+ * Applies the log level and the file retention saved in system_settings, over the environment
+ * values the logger started with. A setting that is missing, malformed or unreadable leaves the
+ * current value in place: logging must never be what stops the process starting.
+ */
+export async function applyLogSettings(): Promise<void> {
+  try {
+    const level = await readSetting('logLevel');
+    if (level && VALID_LOG_LEVELS.includes(level)) {
+      setLevel(level);
+    }
+  } catch (error) {
+    logger.error('Failed to fetch logLevel from DB:', error);
+  }
+
+  try {
+    const days = parseInt((await readSetting('logRetentionDays')) ?? '', 10);
+    if (!isNaN(days) && days > 0) {
+      setRetention(`${days}d`);
+    }
+  } catch (error) {
+    logger.error('Failed to fetch logRetentionDays from DB:', error);
+  }
+}
+
+function setLevel(level: string): void {
+  logger.level = level;
+  // Also update level on all transports
+  logger.transports.forEach((transport) => {
+    transport.level = level;
+  });
+}
+
+// DailyRotateFile takes its retention at construction only, so a different one means a new
+// transport in place of the old.
+function setRetention(maxFiles: string): void {
+  if (fileTransport.options.maxFiles === maxFiles) return;
+  const previous = fileTransport;
+  fileTransport = createFileTransport(maxFiles);
+  fileTransport.level = previous.level;
+  logger.add(fileTransport);
+  logger.remove(previous);
+  previous.close?.();
+}
+
+export function updateLogLevel(newLevel: string): void {
   if (!VALID_LOG_LEVELS.includes(newLevel)) {
-    const logger = await loggerPromise;
     logger.warn(
       `Attempted to set invalid log level: ${newLevel}. Valid levels are: ${VALID_LOG_LEVELS.join(', ')}.`,
     );
     return;
   }
 
-  const logger = await loggerPromise;
-  logger.level = newLevel;
-
-  // Also update level on all transports
-  logger.transports.forEach((transport) => {
-    transport.level = newLevel;
-  });
-
+  setLevel(newLevel);
   logger.info(`Log level updated to: ${newLevel}`);
 }
 

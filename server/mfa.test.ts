@@ -14,13 +14,13 @@ import { eq } from 'drizzle-orm';
  */
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     http: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

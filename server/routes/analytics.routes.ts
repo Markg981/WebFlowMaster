@@ -7,10 +7,9 @@ import { summariseFlakiness } from '../flaky';
 import { openQuarantinesOf, refKey } from '../test-quarantine';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /** How far back "sometimes" looks, unless the caller says otherwise. */
 const DEFAULT_WINDOW_DAYS = 30;

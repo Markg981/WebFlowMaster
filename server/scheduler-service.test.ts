@@ -16,13 +16,13 @@ vi.mock('./test-execution-service', () => ({
   runTestPlan: vi.fn().mockResolvedValue({ status: 'passed' }),
 }));
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
     http: vi.fn(),
-  }),
+  },
 }));
 
 import { privilegedDb } from './db';

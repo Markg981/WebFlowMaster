@@ -10,14 +10,14 @@ import { tenancyMiddleware, runAsOrganization } from '../middleware/tenancy';
 
 vi.mock('../queue', () => ({ testExecutionQueue: { add: vi.fn(async () => ({})) } }));
 vi.mock('../logger', () => ({
-  default: Promise.resolve({
+  default: {
     error: vi.fn(),
     warn: vi.fn(),
     info: vi.fn(),
     http: vi.fn(),
     verbose: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
 }));
 const { createExecutionOrchestrator } = await import('../execution-orchestrator');
 const { default: routes } = await import('./reports.routes');

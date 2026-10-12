@@ -17,7 +17,7 @@ vi.mock('../logger', () => {
     (message: string, meta: Record<string, unknown> = {}) =>
       logged.push({ level, message, meta });
   return {
-    default: Promise.resolve({
+    default: {
       error: record('error'),
       warn: record('warn'),
       info: record('info'),
@@ -26,7 +26,7 @@ vi.mock('../logger', () => {
       verbose: record('verbose'),
       log: (level: string, message: string, meta: Record<string, unknown> = {}) =>
         logged.push({ level, message, meta }),
-    }),
+    },
     updateLogLevel: vi.fn(),
   };
 });

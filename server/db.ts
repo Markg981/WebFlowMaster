@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { unwrapDrizzleQueryErrors } from './db-errors';
 import { readPoolSettings, sessionSetupStatements } from './db-pool-settings';
+import logger from './logger';
 
 // Before any query: failed queries surface as the driver's own error, not as drizzle's wrapper
 // carrying the SQL and its parameters (see server/db-errors.ts).
@@ -110,7 +111,7 @@ if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
   // round trip sets the time zone and both timeouts.
   pool.on('connect', (client) => {
     client.query(sessionSetup).catch((error: Error) => {
-      console.error(`Could not set up the database session: ${error.message}`);
+      logger.error(`Could not set up the database session: ${error.message}`);
     });
   });
   db = drizzlePg(pool, { schema });
@@ -125,7 +126,7 @@ if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
   // One connection, and PGlite runs statements in the order they arrive, so this lands before
   // the first query anybody else sends.
   client.exec(setSessionTimeZone).catch((error: Error) => {
-    console.error(
+    logger.error(
       `Could not set the database session time zone to ${SESSION_TIME_ZONE}: ${error.message}`,
     );
   });

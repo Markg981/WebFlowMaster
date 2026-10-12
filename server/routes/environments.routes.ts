@@ -3,7 +3,7 @@ import { environments, secrets, AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, recordAudit } from '../audit';
 import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { encryptSecret } from '../crypto';
@@ -20,7 +20,6 @@ import { encryptSecret } from '../crypto';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const environmentNameSchema = z.object({
   name: z.string().trim().min(1, 'Environment name is required').max(120),

@@ -9,12 +9,11 @@ import {
 } from '@shared/schema';
 import { auditActor, recordAudit } from '../audit';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 type Role = 'viewer' | 'editor' | 'owner';
 const RANK: Record<Role, number> = { viewer: 0, editor: 1, owner: 2 };

@@ -6,7 +6,7 @@ import { registerRoutes } from './routes';
 import schedulerService from './scheduler-service';
 import { apiNotFound, serveStatic } from './static';
 import 'dotenv/config';
-import loggerPromise, { flushLogs } from './logger';
+import logger, { applyLogSettings, flushLogs } from './logger';
 import { privilegedDb, closeDb, assertTenancyPreconditions } from './db';
 import { assertOrganizationKeysReadable } from './organization-keys';
 import { systemSettings } from '@shared/schema';
@@ -59,8 +59,6 @@ app.use(express.urlencoded({ extended: false }));
   // name instead of hiding behind whichever connection happens to fail first.
   assertStartupConfig();
 
-  const logger = await loggerPromise; // Resolve the logger promise
-
   // Before anything serves a request: confirm the database is actually configured for tenant
   // isolation. None of it can be checked by the test suite, which runs on PGlite as a
   // superuser, and a misconfiguration here does not fail loudly at the boundary — it either
@@ -76,6 +74,9 @@ app.use(express.urlencoded({ extended: false }));
   if (schemaState.kind === 'unmanaged' || schemaState.kind === 'behind') {
     throw new Error(describeSchemaState(schemaState));
   }
+
+  // The log level and retention an administrator saved, now that the table is known to exist.
+  await applyLogSettings();
 
   // And that every organization's stored encryption key opens with ENCRYPTION_KEY or one of
   // ENCRYPTION_KEY_PREVIOUS. A master key changed without the old one listed would otherwise be

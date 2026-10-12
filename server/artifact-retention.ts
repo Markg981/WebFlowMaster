@@ -3,7 +3,7 @@ import { testPlanExecutions } from '@shared/schema';
 import { privilegedDb } from './db';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { artifactStore, RESULTS_PREFIX, type ArtifactStore } from './artifact-store';
-import loggerPromise from './logger';
+import logger from './logger';
 
 /**
  * Removes the evidence of runs that ended long enough ago.
@@ -101,7 +101,6 @@ export function startArtifactRetention(intervalMs = 6 * 60 * 60_000): () => void
   const sweep = async () => {
     if (running) return;
     running = true;
-    const logger = await loggerPromise;
     try {
       const report = await purgeExpiredArtifacts();
       if (report.purgedRuns > 0 || report.failed.length > 0) {

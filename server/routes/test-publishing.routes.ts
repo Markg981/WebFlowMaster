@@ -21,7 +21,7 @@ import {
 } from '../test-publishing';
 import { targetColumn, targetTable } from '../test-version-target';
 import type { VersionedTestType } from '@shared/test-versioning';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Publishing tests, reviewing them, and rolling back. See server/test-publishing.ts for the rules;
@@ -29,7 +29,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 function idParam(value: string): number | null {
   const id = Number(value);

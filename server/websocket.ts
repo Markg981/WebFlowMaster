@@ -5,7 +5,7 @@ import passport from 'passport';
 import { QueueEvents, Job } from 'bullmq';
 import { connection } from './redis';
 import { TEST_EXECUTION_QUEUE_NAME, testExecutionQueue } from './queue';
-import loggerPromise from './logger';
+import logger from './logger';
 import { privilegedDb } from './db';
 import { executionLogs, testPlanExecutions, type User as SelectUser } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -193,7 +193,7 @@ export function persistExecutionLog(executionId: string, logEntry: ExecutionLogE
     });
   })().catch(async (err) => {
     // Don't let DB errors break log streaming
-    (await loggerPromise).error('Failed to persist execution log', {
+    logger.error('Failed to persist execution log', {
       executionId,
       error: (err as Error).message,
     });
@@ -227,7 +227,6 @@ export function installWorkerLogEmitter(): WsEmitter {
 }
 
 export async function setupWebSockets(server: Server): Promise<WsEmitter> {
-  const logger = await loggerPromise;
   const wss = new WebSocketServer({ noServer: true });
 
   // ─── Room-based subscriptions ───────────────────────────────────────────

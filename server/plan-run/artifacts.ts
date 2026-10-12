@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { testPlanExecutions as testPlanExecutionsTable } from '@shared/schema';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { getWsEmitter, type ExecutionLogEntry } from '../websocket';
 import { artifactStore } from '../artifact-store';
@@ -17,7 +17,6 @@ export async function publishArtifacts(localDir: string, executionId: string): P
   try {
     await artifactStore().publishDirectory(localDir);
   } catch (error: unknown) {
-    const resolvedLogger = await loggerPromise;
     await withTenantTransaction((tx) =>
       tx
         .update(testPlanExecutionsTable)
@@ -31,7 +30,7 @@ export async function publishArtifacts(localDir: string, executionId: string): P
       message: `Evidence in ${localDir} could not be stored: ${(error as Error)?.message ?? error}. It stays on this worker's disk.`,
       timestamp: new Date().toISOString(),
     };
-    resolvedLogger.warn(entry);
+    logger.warn(entry);
     getWsEmitter().emitExecutionLog(executionId, entry);
   }
 }

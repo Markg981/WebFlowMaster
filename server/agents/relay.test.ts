@@ -16,14 +16,14 @@ import WebSocket, { WebSocketServer } from 'ws';
  */
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({
+  default: {
     error: vi.fn(),
     warn: vi.fn(),
     info: vi.fn(),
     http: vi.fn(),
     verbose: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

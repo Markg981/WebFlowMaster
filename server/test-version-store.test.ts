@@ -6,14 +6,14 @@ import { currentVersionsOf, recordTestVersion } from './test-version-store';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     error: vi.fn(),
     warn: vi.fn(),
     info: vi.fn(),
     http: vi.fn(),
     verbose: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

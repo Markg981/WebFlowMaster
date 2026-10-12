@@ -4,7 +4,7 @@ import { privilegedDb } from './db';
 import { testPlanWebhooks, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { runTestPlan } from './test-execution-service';
-import loggerPromise from './logger';
+import logger from './logger';
 import { hashWebhookToken, webhookTokenFromRequest } from './webhook-tokens';
 
 export const webhooksRouter = asyncRouter();
@@ -18,7 +18,6 @@ export const webhooksRouter = asyncRouter();
  * The token is matched by its hash: the table no longer holds any token, only what it hashes to.
  */
 async function executeWebhook(req: Request, res: Response) {
-  const resolvedLogger = await loggerPromise;
   const token = webhookTokenFromRequest(
     req.headers as Record<string, string | string[] | undefined>,
     req.params.token,
@@ -42,7 +41,7 @@ async function executeWebhook(req: Request, res: Response) {
     if (webhookResult.length === 0) {
       // Never the token itself: a log line is not where a credential — or somebody's typo of
       // one — should be kept.
-      resolvedLogger.warn({
+      logger.warn({
         message: 'Invalid webhook token used',
         tokenPrefix: token.slice(0, 12),
       });
@@ -71,7 +70,7 @@ async function executeWebhook(req: Request, res: Response) {
     // It used to be user 1 — whoever that was, in whichever organization — which put somebody
     // else's name on the run and, now that the requester must belong to the plan's
     // organization, would refuse every webhook outside the first one.
-    resolvedLogger.info({
+    logger.info({
       message: `Triggering test plan via webhook`,
       webhookId: webhook.id,
       testPlanId: webhook.testPlanId,
@@ -102,7 +101,7 @@ async function executeWebhook(req: Request, res: Response) {
       status: executionData.status,
     });
   } catch (error: any) {
-    resolvedLogger.error({
+    logger.error({
       message: 'Webhook execution failed',
       error: error.message,
       stack: error.stack,

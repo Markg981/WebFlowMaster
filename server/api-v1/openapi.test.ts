@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({
+  default: {
     error: vi.fn(),
     warn: vi.fn(),
     info: vi.fn(),
     http: vi.fn(),
     verbose: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 vi.mock('../queue', () => ({

@@ -13,7 +13,7 @@ import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../audit';
 import { failuresOf } from '../test-quarantine';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * A person's verdict on a manual test in a run (shared/manual-tests.ts).
@@ -25,7 +25,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /** A run the runner has finished with. */
 const ENDED = new Set(['completed', 'failed', 'error', 'cancelled', 'timed_out']);

@@ -12,7 +12,7 @@ import { publish, publishedContentOf } from '../test-publishing';
 import type { BddTest } from '@shared/bdd';
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() }),
+  default: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 let app: express.Express;
 let org: number;

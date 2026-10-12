@@ -13,7 +13,7 @@ import { SharedDataError, expandSharedDataset } from '../test-data';
 import { sharedSetIdOf } from '@shared/test-data';
 import { browserTasks, BrowserTaskError } from '../browser-tasks';
 import { debugChannel } from '../debug-session';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 
 /**
@@ -26,7 +26,6 @@ import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const startSchema = z.object({
   name: z.string(),

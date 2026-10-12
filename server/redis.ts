@@ -1,6 +1,6 @@
 import { Redis } from 'ioredis';
 import { createClient } from 'redis';
-import loggerPromise from './logger';
+import logger from './logger';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -40,10 +40,8 @@ function throttledErrorLogger(prefix: string, windowMs = 30_000) {
   let suppressed = 0;
 
   // Returns void rather than a promise on purpose. An `async` listener on an 'error' event
-  // turns any failure inside it — including the logger's own import settling during a test
-  // teardown — into an unhandled rejection attributed to whatever happened to be running,
-  // which is a genuinely confusing way to lose a test run. Nothing here needs to be awaited
-  // by the emitter, so nothing here returns a promise to it.
+  // turns any failure inside it into an unhandled rejection attributed to whatever happened
+  // to be running, which is a genuinely confusing way to lose a test run.
   return (error: Error): void => {
     const detail = describeError(error);
     const key = `${error.name}:${detail}`;
@@ -59,18 +57,14 @@ function throttledErrorLogger(prefix: string, windowMs = 30_000) {
     lastKey = key;
     lastAt = now;
 
-    // Promise.resolve, not loggerPromise.then: several suites mock the logger module with a
-    // plain object rather than a promise, which `await` tolerated and a bare `.then` does not.
-    void Promise.resolve(loggerPromise)
-      .then((logger) => {
-        if (repeated > 0) {
-          logger.warn(`${prefix}: previous error repeated ${repeated} more time(s).`);
-        }
-        logger.error(`${prefix}: ${detail}`);
-      })
-      .catch(() => {
-        // Logging a connection error must never become a second failure.
-      });
+    try {
+      if (repeated > 0) {
+        logger.warn(`${prefix}: previous error repeated ${repeated} more time(s).`);
+      }
+      logger.error(`${prefix}: ${detail}`);
+    } catch {
+      // Logging a connection error must never become a second failure.
+    }
   };
 }
 
@@ -110,11 +104,8 @@ export const connection = new Redis(redisUrl, {
 
 connection.on('error', throttledErrorLogger('Redis connection error'));
 
-// Synchronous for the same reason as the error listener above.
 connection.on('ready', () => {
-  void Promise.resolve(loggerPromise)
-    .then((logger) => logger.info('Redis connection established successfully.'))
-    .catch(() => {});
+  logger.info('Redis connection established successfully.');
 });
 
 // Separate client for the express-session store: connect-redis targets node-redis
@@ -161,7 +152,6 @@ export function connectSessionRedis(timeoutMs = 5_000): Promise<void> {
             );
           }),
         ]);
-        const logger = await loggerPromise;
         logger.info('Session Redis connection established successfully.');
       } catch (error) {
         // Leave the client closed so the next call starts a fresh attempt rather than

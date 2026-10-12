@@ -20,7 +20,7 @@ import { storage } from './storage';
 import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from '@shared/schema';
 import { recordAudit } from './audit';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
-import loggerPromise from './logger';
+import logger from './logger';
 import { isMfaEnabled, mfaStatus, verifySecondFactor } from './mfa';
 import createMemoryStore from 'memorystore';
 import { sessionRedis } from './redis';
@@ -109,7 +109,6 @@ export async function recordAuthEvent(
       ),
     );
   } catch (error: any) {
-    const logger = await loggerPromise;
     logger.error({
       message: 'Could not record a sign-in event',
       action,
@@ -157,7 +156,7 @@ export function createSessionStore(): session.Store {
   }
   // Development convenience only: don't make local work depend on a running Redis. Sessions
   // live in memory (lost on restart, single-process), which is fine for one developer.
-  console.warn(
+  logger.warn(
     '[auth] Redis unavailable — using an in-memory session store for local development. ' +
       'Sessions will not persist across restarts. Start Redis to use the shared store.',
   );
@@ -222,7 +221,7 @@ export function setupAuth(app: Express) {
     // followed by silence: the browser drops the cookie and every later request is
     // anonymous, with nothing in any log connecting the two.
     if (process.env.NODE_ENV === 'production' && !sessionCookieSecure()) {
-      console.warn(
+      logger.warn(
         '[auth] SESSION_COOKIE_SECURE=false: the session cookie will be sent over plain ' +
           'HTTP. Acceptable for a local stack; put TLS in front of this before anyone else ' +
           'can reach it.',
@@ -502,7 +501,6 @@ export function setupAuth(app: Express) {
       }
     } catch (error) {
       // The provider being unavailable must not prevent local logout.
-      const logger = await loggerPromise;
       logger.warn({
         message: 'SAML provider logout could not start',
         error: error instanceof Error ? error.message : String(error),
@@ -692,7 +690,6 @@ export function setupAuth(app: Express) {
           organizationId: user.organizationId,
         });
         if (!sent.sent) {
-          const logger = await loggerPromise;
           logger.warn({
             message: 'Password reset link could not be mailed',
             userId: user.id,

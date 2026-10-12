@@ -32,7 +32,7 @@ import {
   removeQueuedLoadJob,
   snapshotOf,
 } from '../load-runner';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Load tests (shared/load-test.ts): writing them, and running them on their own — a run is queued
@@ -41,7 +41,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /** What queues a run and what takes a queued one back. Fields so the tests can stand them in. */
 export const loadRunner: {

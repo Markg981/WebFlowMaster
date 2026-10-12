@@ -37,7 +37,7 @@ import {
 import { tagsOfTests } from '../test-tags';
 import { currentContentOf, recordTypedTestVersion } from '../test-version-store';
 import { typedSnapshotOf } from '@shared/test-versioning';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Tests of native mobile apps: writing them, running one on a grid's device, and uploading the
@@ -48,7 +48,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /** What runs the runs. A field so the tests can hand the runner a stand-in grid. */
 export const mobileRunner: {

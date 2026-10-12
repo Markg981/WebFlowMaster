@@ -14,7 +14,7 @@ import { requireRole } from '../middleware/require-role';
 import { recordTestVersion, recordTypedTestVersion } from '../test-version-store';
 import { targetColumn, targetTable, auditTargetType } from '../test-version-target';
 import { typedSnapshotOf, type VersionedTestType } from '@shared/test-versioning';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * What a test used to be, and putting it back.
@@ -30,7 +30,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /** Counting steps in SQL, so listing a history never loads a sequence. */
 const stepCount = sql<number>`CASE WHEN jsonb_typeof(${testVersions.sequence}) = 'array'

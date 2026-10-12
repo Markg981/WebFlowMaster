@@ -12,7 +12,7 @@ import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { fileFailure } from '../issue-store';
 import { dedupeKeyFor } from '../issue-tracking';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Filing a failure from the report, and saying what has already been filed.
@@ -24,7 +24,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const fileSchema = z.object({
   executionId: z.string().min(1),

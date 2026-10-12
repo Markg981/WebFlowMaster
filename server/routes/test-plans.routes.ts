@@ -21,7 +21,7 @@ import {
 } from '@shared/schema';
 import { eq, desc, asc, and, or, inArray, getTableColumns, sql, type SQL } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import schedulerService, {
   assertValidTimezone,
   DEFAULT_SCHEDULE_TIMEZONE,
@@ -43,7 +43,6 @@ import { artifactUrl, stepsWithArtifactUrls } from './artifacts.routes';
 import { linkedIssuesFor } from './issues.routes';
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 // jsonb columns are stored via JSON.stringify (codebase convention) and parsed back
 // on read. Re-fetches a schedule joined with its test plan name, with JSON fields parsed.

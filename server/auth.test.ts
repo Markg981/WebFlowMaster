@@ -9,13 +9,13 @@ import { storage } from './storage';
 // Only the logger is mocked; auth runs against the real (PGlite) test database
 // with an in-memory session store (NODE_ENV=test).
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     http: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

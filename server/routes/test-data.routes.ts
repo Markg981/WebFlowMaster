@@ -7,7 +7,7 @@ import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
 import { testsUsingSet } from '../test-data';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Shared test data (shared/test-data.ts): viewers read the sets, editors keep them. A set some
@@ -29,7 +29,6 @@ class TestDataError extends Error {
 async function fail(res: Response, error: unknown, doing: string) {
   if (error instanceof TestDataError)
     return res.status(error.status).json({ error: error.message });
-  const logger = await loggerPromise;
   logger.error({ message: `Could not ${doing}`, error: (error as Error)?.message });
   res.status(500).json({ error: `Could not ${doing}.` });
 }

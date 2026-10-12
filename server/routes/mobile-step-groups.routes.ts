@@ -6,10 +6,9 @@ import { mobileGroupSchema } from '@shared/mobile-groups';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { lockOrganizationRuns } from '../tenant-quotas';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 class GroupError extends Error {
   constructor(
     readonly status: number,

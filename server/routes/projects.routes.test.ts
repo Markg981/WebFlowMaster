@@ -13,14 +13,14 @@ import { eq } from 'drizzle-orm';
  */
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({
+  default: {
     error: vi.fn(),
     warn: vi.fn(),
     info: vi.fn(),
     http: vi.fn(),
     verbose: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 vi.mock('../browser-tasks', () => ({ browserTasks: {}, BrowserTaskError: class extends Error {} }));

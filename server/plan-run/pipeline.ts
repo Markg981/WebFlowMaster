@@ -11,7 +11,7 @@
 import path from 'path';
 import { eq } from 'drizzle-orm';
 import { testPlanExecutions as testPlanExecutionsTable } from '@shared/schema';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { getWsEmitter } from '../websocket';
 import { takeExecution } from '../execution-state';
@@ -40,7 +40,7 @@ export const RUN_DEFERRAL_MS = Number(process.env.RUN_DEFERRAL_MS) || 10_000;
 export async function runPlanJob(job: PlanJob): Promise<PlanJobResult> {
   const log: RunLog = {
     executionId: job.executionId,
-    logger: await loggerPromise,
+    logger,
     emitter: getWsEmitter(),
     // A helper repeats the coordinator's setup; its informational lines would only say everything twice.
     quiet: !!job.helper,

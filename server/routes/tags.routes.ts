@@ -6,7 +6,7 @@ import { apiTests, mobileTests, tags, testTags, tests, type TaggableType } from 
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { normaliseTagName, setTagsForTest } from '../test-tags';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * The words an organization files its tests under.
@@ -18,7 +18,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const nameSchema = z.object({ name: z.string().trim().min(1, 'A tag needs a name').max(60) });
 const assignmentSchema = z.object({ tagIds: z.array(z.string()).max(50) });

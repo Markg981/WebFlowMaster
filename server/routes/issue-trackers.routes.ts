@@ -8,7 +8,7 @@ import { requireRole } from '../middleware/require-role';
 import { encryptSecret } from '../crypto';
 import { checkConnection } from '../issue-providers';
 import { toConfig } from '../issue-store';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Where an organization files its bugs.
@@ -21,7 +21,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const trackerSchema = z.object({
   name: z.string().trim().min(1, 'A name is required').max(80),

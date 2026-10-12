@@ -5,7 +5,7 @@
  * tenant context a queue job runs in and hands it over.
  */
 import type { TestPlanExecution, ExecutionTrigger } from '@shared/schema';
-import loggerPromise from './logger';
+import logger from './logger';
 import { privilegedDb } from './db';
 import { runWithTenant } from './middleware/tenancy';
 import { testPlanExecutions as testPlanExecutionsTable } from '@shared/schema';
@@ -45,7 +45,6 @@ export async function runTestPlan(
     typeof environmentIdOrOptions === 'number'
       ? { environmentId: environmentIdOrOptions }
       : (environmentIdOrOptions ?? {});
-  const resolvedLogger = await loggerPromise;
 
   try {
     const execution = await executionOrchestrator.enqueue({
@@ -56,7 +55,7 @@ export async function runTestPlan(
       updateBaselines: options.updateBaselines,
       idempotencyKey: options.idempotencyKey,
     });
-    resolvedLogger.info({
+    logger.info({
       message: 'Test plan execution enqueued',
       planId,
       testPlanRunId: execution.id,
@@ -65,7 +64,7 @@ export async function runTestPlan(
     return execution;
   } catch (error: any) {
     if (error instanceof ExecutionEnqueueError) {
-      resolvedLogger.warn({
+      logger.warn({
         message: 'Test plan execution not enqueued',
         planId,
         code: error.code,
@@ -77,7 +76,7 @@ export async function runTestPlan(
     if (quota) return { error: String(quota.error), status: quotaErrorStatus(error) };
     // The detail stays in the log: a driver's or Redis's message names hosts, ports and
     // tables, and the route forwards this string to whoever pressed Run.
-    resolvedLogger.error({
+    logger.error({
       message: 'Failed to enqueue test plan run',
       planId,
       error: error.message,
@@ -119,11 +118,10 @@ export async function processTestPlanJob(
   userId: number | null,
   jobOptions: { updateBaselines?: boolean } = {},
 ): Promise<any> {
-  const bootstrapLogger = await loggerPromise;
   const execution = await organizationOfExecution(testPlanRunId);
 
   if (!execution) {
-    bootstrapLogger.error({ message: 'Test plan execution record not found', testPlanRunId });
+    logger.error({ message: 'Test plan execution record not found', testPlanRunId });
     return { error: `Test plan execution ${testPlanRunId} not found.`, status: 500, testPlanRunId };
   }
 
