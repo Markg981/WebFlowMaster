@@ -21,6 +21,7 @@ import {
   substituteVariables,
   requestVariables,
 } from './outbound-http';
+import { guardBrowserContext, throwIfEgressDenied } from './egress-policy';
 import { executeStep } from './step-executor';
 import { FlowCursor } from './flow-cursor';
 import type { DebugHooks } from './debug-session';
@@ -791,15 +792,17 @@ export class PlaywrightService {
         userAgent,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl),
       });
+      await guardBrowserContext(context);
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
 
       await page.setViewportSize({ width: 1280, height: 720 });
 
-      await page.goto(targetUrl, {
+      const landing = await page.goto(targetUrl, {
         waitUntil: 'domcontentloaded',
         // timeout is already set by setDefaultTimeout
       });
+      throwIfEgressDenied(landing);
 
       // SPA frameworks (Angular/DevExpress, React, …) render their content after
       // domcontentloaded, so a fixed short wait captures an empty shell. Wait for the
@@ -1154,6 +1157,7 @@ export class PlaywrightService {
         viewport: null,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl),
       });
+      await guardBrowserContext(context);
 
       await this.installRecorder(context, sessionId);
 
@@ -1198,7 +1202,7 @@ export class PlaywrightService {
       });
       page.on('close', markClosedIfLastPage);
 
-      await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+      throwIfEgressDenied(await page.goto(targetUrl, { waitUntil: 'domcontentloaded' }));
       await page.waitForTimeout(specificWaitTime);
       await page.bringToFront();
 
@@ -1638,8 +1642,9 @@ export class PlaywrightService {
       const context = await browser.newContext({
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl),
       });
+      await guardBrowserContext(context);
       const page = await context.newPage();
-      await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+      throwIfEgressDenied(await page.goto(targetUrl, { waitUntil: 'domcontentloaded' }));
       await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
       const results: Array<{ selector: string; count: number }> = [];
       for (const selector of selectors) {
@@ -1886,6 +1891,7 @@ export class PlaywrightService {
         options: contextOptions,
       });
       context = await browser.newContext(contextOptions);
+      await guardBrowserContext(context);
       resolvedLogger.debug({
         message: 'PS:executeAdhocSequence - Browser context created',
         testName,
@@ -1924,7 +1930,7 @@ export class PlaywrightService {
           pageClosed: page?.isClosed(),
         });
         try {
-          await page.goto(targetUrl, gotoOptions);
+          throwIfEgressDenied(await page.goto(targetUrl, gotoOptions));
           resolvedLogger.debug({
             message: 'PS:executeAdhocSequence - Navigation complete. Attempting screenshot...',
             testName,
@@ -2410,6 +2416,7 @@ export class PlaywrightService {
         userAgent,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl),
       });
+      await guardBrowserContext(context);
 
       resolvedLogger.debug({ message: 'PS:detectElements - Attempting to create new page' });
       page = await context.newPage();
@@ -2425,7 +2432,7 @@ export class PlaywrightService {
         url: targetUrl,
         pageClosed: page?.isClosed(),
       });
-      await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+      throwIfEgressDenied(await page.goto(targetUrl, { waitUntil: 'domcontentloaded' }));
 
       // SPA content (Angular/DevExpress, React, …) mounts after domcontentloaded. Wait
       // for the network to settle so the DOM is populated before we query it; fall back
@@ -2781,6 +2788,9 @@ export class PlaywrightService {
         ...videoOptions,
         ...harOptions,
       });
+      // The runner's own browser is on the runner's network, which the policy protects. A
+      // grid's or an agent's browser is on its owner's, where the policy has no say.
+      if (!browserChoice.grid && !browserChoice.agent) await guardBrowserContext(context);
       tracing = await startTrace(context, options?.evidence);
       page = await context.newPage();
       matrix = await browserMatrixEvidence(browserChoice, browser, page);
@@ -2816,7 +2826,7 @@ export class PlaywrightService {
               metadata: { url: targetUrl },
             });
           }
-          await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+          throwIfEgressDenied(await page.goto(targetUrl, { waitUntil: 'domcontentloaded' }));
           const navBuffer = keepsScreenshot(screenshots, 'passed')
             ? await evidenceScreenshot(page, (reason) =>
                 resolvedLogger.warn({

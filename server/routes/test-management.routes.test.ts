@@ -306,7 +306,9 @@ describe('connections', () => {
       .select()
       .from(testManagementConnections)
       .where(eq(testManagementConnections.id, created.body.id));
-    expect(decryptSecret(row.encryptedToken, row.tokenIv, row.tokenAuthTag)).toBe('tr-key-123');
+    expect(
+      await decryptSecret(row.encryptedToken, row.tokenIv, row.tokenAuthTag, organizationId),
+    ).toBe('tr-key-123');
 
     expect((await connect({ ...testRailOf(), name: 'x', projectKey: 'SHOP' })).body.error).toMatch(
       /project is its number/,
@@ -344,7 +346,9 @@ describe('connections', () => {
       .from(testManagementConnections)
       .where(eq(testManagementConnections.id, created.body.id));
     expect(kept.suiteId).toBe('8');
-    expect(decryptSecret(kept.encryptedToken, kept.tokenIv, kept.tokenAuthTag)).toBe('tr-key-123');
+    expect(
+      await decryptSecret(kept.encryptedToken, kept.tokenIv, kept.tokenAuthTag, organizationId),
+    ).toBe('tr-key-123');
   });
 
   it('are checked by reading the project', async () => {

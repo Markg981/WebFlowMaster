@@ -14,7 +14,7 @@ import { sharedSetIdOf } from '@shared/test-data';
 import { browserTasks, BrowserTaskError } from '../browser-tasks';
 import { debugChannel } from '../debug-session';
 import loggerPromise from '../logger';
-import { quotaErrorBody } from '../tenant-quotas';
+import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 
 /**
  * Debug sessions from the builder (shared/debug-session.ts).
@@ -132,7 +132,7 @@ router.post('/api/debug-sessions', requireRole('editor'), async (req, res) => {
     if (error instanceof BrowserTaskError)
       return res.status(error.status).json({ error: error.message, code: error.code });
     const quota = quotaErrorBody(error);
-    if (quota) return res.status(429).json(quota);
+    if (quota) return res.status(quotaErrorStatus(error)).json(quota);
     logger.error({
       message: 'Failed to start a debug session',
       error: error?.message ?? String(error),

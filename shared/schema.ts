@@ -11,6 +11,7 @@ export * from './schema/environments';
 export * from './schema/integrations';
 export * from './schema/relations';
 export * from './schema/tenancy';
+export * from './schema/billing';
 export * from './comments';
 export * from './dashboard-layout';
 export * from './mail-delivery';

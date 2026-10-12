@@ -1,0 +1,41 @@
+{{- if and (eq .Values.artifacts.store "local") .Values.artifacts.persistence.enabled }}
+# Run evidence and visual baselines (ARTIFACT_STORE=local): the worker writes them, the api
+# serves them, so both mount the same claims. With more than one api or worker replica the
+# access mode must be ReadWriteMany, or the links in a report answer 404 from the replica that
+# did not write the file. The alternative is artifacts.store: s3.
+{{- if not .Values.artifacts.persistence.results.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-results
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.artifacts.persistence.results.accessMode }}
+  {{- if .Values.artifacts.persistence.results.storageClass }}
+  storageClassName: {{ .Values.artifacts.persistence.results.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.artifacts.persistence.results.size }}
+{{- end }}
+{{- if not .Values.artifacts.persistence.baselines.existingClaim }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-baselines
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.artifacts.persistence.baselines.accessMode }}
+  {{- if .Values.artifacts.persistence.baselines.storageClass }}
+  storageClassName: {{ .Values.artifacts.persistence.baselines.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.artifacts.persistence.baselines.size }}
+{{- end }}
+{{- end }}

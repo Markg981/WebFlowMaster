@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from './db';
+import { relocateMembersBeforeErasure } from './organization-memberships';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
 import {
   BASELINES_PREFIX,
@@ -30,8 +31,10 @@ const TABLES_TO_ERASE = [...ORG_SCOPED_TABLES, 'invitations', 'users'] as const;
 /**
  * Erased with the organization but left out of its export: one-time password reset links are a
  * credential for a day, not the organization's data, and an export is a file that gets e-mailed.
+ * The organization's wrapped encryption keys are key material, useless without the master key and
+ * not data either; a restored installation makes new ones.
  */
-export const NOT_EXPORTED = new Set<string>(['password_resets']);
+export const NOT_EXPORTED = new Set<string>(['password_resets', 'organization_keys']);
 
 /**
  * Orders the tables so children are deleted before their parents, computed from the database's
@@ -162,6 +165,10 @@ export async function eraseOrganization(
   return privilegedDb
     .transaction(async (tx) => {
       const deleted: Record<string, number> = {};
+
+      // Members who also belong elsewhere are moved there first (migration 0086): erasing an
+      // organization takes its accounts with it, not the seats those people hold in others.
+      deleted.members_relocated = await relocateMembersBeforeErasure(tx, organizationId);
 
       for (const table of order) {
         const result = await tx.execute(

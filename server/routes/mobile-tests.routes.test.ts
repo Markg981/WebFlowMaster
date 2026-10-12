@@ -175,7 +175,7 @@ const server = http.createServer(async (req, res) => {
 let base: string;
 
 async function addGrid(provider: string, name: string) {
-  const key = encryptSecret('grid-key-123');
+  const key = await encryptSecret('grid-key-123', organizationId);
   const id = uuidv4();
   await privilegedDb.insert(browserGrids).values({
     id,
@@ -250,7 +250,7 @@ beforeAll(async () => {
     ['user.email', 'ann@shop.test'],
     ['secret_password', 'S3cret!'],
   ]) {
-    const secret = encryptSecret(value);
+    const secret = await encryptSecret(value, organizationId);
     await privilegedDb.insert(secrets).values({
       environmentId: staging,
       keyName,

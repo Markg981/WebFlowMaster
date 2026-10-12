@@ -35,9 +35,11 @@ previous stage ended (0 at the start) to its **virtual users** target, over its 
 | 2     | 600 s    | 50            | hold 50 users for 10 minutes |
 | 3     | 60 s     | 0             | ramp down to 0               |
 
-Up to 10 stages, 200 virtual users and 3,600 s in all. A user above the current target stops
-at the end of its iteration, so a ramp down never cuts a scenario in half. The editor draws the
-profile as you change it.
+Up to 10 stages; 200 virtual users and 3,600 s in all unless the installation says otherwise
+(`LOAD_MAX_VIRTUAL_USERS`, `LOAD_MAX_DURATION_S`: [configuration](../admin/configuration#load-tests)).
+A test beyond the limit is refused naming it. A user above the current target stops at the end of
+its iteration, so a ramp down never cuts a scenario in half. The editor draws the profile as you
+change it.
 
 **Warm-up (s)** is the start of the run that is sent but not judged: caches, JIT compilers and
 connection pools fill up there. Its requests are counted apart and shaded on the timeline. The
@@ -68,14 +70,17 @@ Each threshold is optional and judged on the requests sent after the warm-up:
 
 A run **passes** when it reaches the end within every threshold and **fails** naming each
 threshold exceeded ("p95 412 ms > 300 ms", "throughput 38 req/s < 50 req/s"). A run that judged
-no request fails too. **Cancelled** means someone stopped it; **Could not run** means it never got
-going — an API test or the data set was deleted, the data set has too few rows — or the server
-running it stopped.
+no request fails too. **Cancelled** means someone stopped it, queued or running; **Could not run**
+means it never got going — an API test or the data set was deleted, the data set has too few rows,
+the profile is beyond the installation's limits; **Worker lost** means the worker executing it
+stopped answering (a crash, a redeploy that did not wait): its summary up to then is kept, and the
+run did not finish.
 
 ## Running and following a run
 
 Open the **runs** of a load test, choose an environment (its variables and secrets resolve the
-`{{placeholders}}` as in a plan), and **Start a run**. The page follows it while it runs, every
+`{{placeholders}}` as in a plan), and **Start a run**. The run is **Queued** until a load worker
+takes it — at once when one is free — and **Running** from then on. The page follows it, every
 2 seconds:
 
 - progress, virtual users now and at the peak;
@@ -83,20 +88,30 @@ Open the **runs** of a load test, choose an environment (its variables and secre
 - for each API test and for all requests: requests, errors, p50, p90, p95, p99 and slowest;
 - iterations completed and failed, and the first distinct errors.
 
-**Stop the run** ends it within 2 seconds; requests already in flight finish. Each load test keeps
-its last 10 runs on the page, with their summary and verdict.
+**Stop the run** ends a queued run at once and a running one within 2 seconds; requests already in
+flight finish. Each load test keeps its last 10 runs on the page, with their summary and verdict.
 
 ### Where a run runs
 
-A load run is sent **from the WebFlowMaster server**, apart from plans, runners and agents: it
-does not take a runner slot, and a plan does not slow it down. Because the load comes from the
-server's network, test from where the server can reach the system under test.
+A load run is a job on a queue of its own, executed by **one of the installation's workers**,
+apart from plans, runners and agents: it does not take a runner slot, a plan does not slow it
+down, and it survives a restart of the web server — a run that was running goes on, a run that was
+queued is still queued. Because the load comes from the worker's network, test from where the
+workers can reach the system under test.
 
-- One load run at a time per organization: two would measure each other.
-- At most two load runs per server process, all organizations together; a third gets a "try again
-  when one ends" answer.
+- One load run at a time per organization, queued or running: two would measure each other. The
+  installation may allow more (`LOAD_MAX_RUNS_PER_ORGANIZATION`); past the limit a start is
+  refused and says so.
+- A worker executes one load run at a time unless configured otherwise
+  (`LOAD_WORKER_CONCURRENCY`); with every worker busy, a run waits as **Queued**, and goes when one
+  is free. The [administrator](../admin/load-testing#sizing-a-load-worker) sizes and scales the
+  workers.
+- A run is executed by a single worker, whole: its virtual users are not split across workers.
+  Beyond what one worker can send, the way to more load is more workers running more runs — of
+  several organizations, or of one organization with its limit raised.
 - A run counts towards the organization's [execution minutes](../admin/administration#quotas) like an API test.
-- If the server stops during a run, the run is closed as **Could not run** about a minute later.
+- If the worker executing a run dies, the run ends as **Worker lost** about two minutes later,
+  and the organization may start another.
 
 Percentiles come from a uniform sample of at most 10,000 durations per test, so they are estimates
 above that; counts, errors, minimum, mean and maximum are exact. The timeline has at most 240

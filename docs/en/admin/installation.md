@@ -224,8 +224,10 @@ in the `http` block.)
 
 One web process is enough for most installations. To run several behind a load balancer:
 
-- Set `SCHEDULER_BACKEND=bullmq` on all of them. With the default `cron`, each web process runs
-  every schedule itself and a schedule starts once per process.
+- Leave `SCHEDULER_BACKEND` at its default, `bullmq`, on all of them: schedules live in Redis and
+  a worker fires each once. With `SCHEDULER_BACKEND=cron`, each web process runs every schedule
+  itself and a schedule starts once per process, so set `cron` only on a single web process with
+  no worker (PGlite local development).
 - Give every one the same `SESSION_SECRET`, `ENCRYPTION_KEY` and Redis: sessions and rate-limit
   counts are in Redis, so no sticky routing is needed and the limits hold across processes.
 - If organizations use local agents, set `AGENT_RELAY_ADVERTISE_URL` on each to an address the
@@ -247,6 +249,92 @@ plus:
   `npx playwright install --with-deps`.
 
 Each worker appears under **Settings → Runners** once it starts.
+
+## Kubernetes with Helm
+
+The chart in `deployment/helm/webflowmaster` deploys the same four pieces as the Compose file:
+the web process (`api`), the workers, a migration Job that runs before every install and
+upgrade, and the two volumes or an S3 bucket for evidence and baselines. PostgreSQL and Redis
+are yours to provide (a managed service or an operator); the chart can also start a single-pod
+PostgreSQL and Valkey for **evaluation only**, with no backups and no replication.
+
+**Prerequisites.** Kubernetes 1.25 or later and Helm 3; the two images the release workflow
+publishes (see [Reproducible releases](./releases)) reachable from the cluster; a PostgreSQL
+prepared as in [Prepare PostgreSQL](#prepare-postgresql) and a Redis or Valkey; an ingress
+controller that terminates TLS (the default annotations are the nginx controller's and keep
+the WebSockets on `/ws` and `/api/agent/v1/` open); and, for S3 evidence, a bucket.
+
+**Install.** Put the secrets in a values file kept out of version control (or create a
+Secret yourself with the keys `DATABASE_URL`, `REDIS_URL`, `SESSION_SECRET`,
+`ENCRYPTION_KEY`, `AGENT_RELAY_SECRET` and name it in `secrets.existingSecret`). The chart
+refuses to render without them, as the Compose file refuses to start:
+
+```yaml
+# my-values.yaml
+image:
+  repository: ghcr.io/OWNER/REPOSITORY-api
+  workerRepository: ghcr.io/OWNER/REPOSITORY-worker
+  tag: 1.3.0
+config:
+  publicUrl: https://webflowmaster.example.com
+secrets:
+  databaseUrl: postgres://app_user:...@database.internal:5432/webflowmaster
+  redisUrl: redis://queue.internal:6379
+  sessionSecret: '...' # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  encryptionKey: '...' # 64 hexadecimal characters; keep it with the database backups
+  agentRelaySecret: '...'
+ingress:
+  enabled: true
+  hosts:
+    - host: webflowmaster.example.com
+      paths: [{ path: /, pathType: Prefix }]
+  tls:
+    - secretName: webflowmaster-tls
+      hosts: [webflowmaster.example.com]
+```
+
+```bash
+helm install webflowmaster deployment/helm/webflowmaster -n webflowmaster --create-namespace -f my-values.yaml
+```
+
+Migrations run as a `pre-install`/`pre-upgrade` hook Job (`node dist/apply-migrations.js`,
+the api image); the release is only installed once the Job succeeds, and a failed migration
+leaves the previous release untouched. Register the first account as soon as the api is
+ready (`/readyz` answers 200): see [First sign-in](#first-sign-in). Every knob is documented
+in the chart's `values.yaml`; `values.schema.json` rejects a values file that names an unknown
+key or a value the application would refuse.
+
+**Upgrade and rollback.** `helm upgrade` with the new `image.tag` applies the migrations
+first, then rolls the api and the workers; a worker drains its runs for up to
+`config.workerShutdownGraceMs` before it stops, and the pod's grace period is derived from
+that value. `helm rollback` restores the previous manifests but **not** the schema: as in
+[Reproducible releases](./releases#upgrade-rollback-and-evidence), roll back by restoring the
+verified pre-upgrade database and artifacts during a controlled outage, unless the previous
+images are known to work with the new schema. A change to `config` rolls the pods (the
+Deployments carry a checksum of the ConfigMap); a change to the Secret requires
+`kubectl rollout restart`.
+
+**Scaling.** `worker.replicaCount`, or `worker.autoscaling` (CPU) or `worker.keda` (a KEDA
+`ScaledObject` on the Redis list `bull:test-execution-queue:wait`, the queue's backlog), scale
+the workers; `api.replicaCount` or `api.autoscaling` the web process. More than one replica of
+either needs what [Several web processes](#several-web-processes) and
+[Workers on other machines](#workers-on-other-machines) describe: `config.schedulerBackend:
+bullmq` for several api replicas, and `artifacts.store: s3` (or `ReadWriteMany` claims) so
+every replica serves the evidence the others wrote. `AGENT_RELAY_URL` and
+`WEBFLOW_PUBLIC_URL` are set by the chart. With `metrics.enabled`, `/metrics` is exposed on
+each pod and a `ServiceMonitor` (`metrics.serviceMonitor.enabled`) scrapes it under the job
+names `observability/prometheus-alerts.yml` expects; `PodDisruptionBudget`s and a default-deny
+`NetworkPolicy` are available behind `api.podDisruptionBudget`, `worker.podDisruptionBudget`
+and `networkPolicy.enabled`.
+
+**What is validated.** No cluster was used to test this chart. `npm run test:helm`
+(`scripts/helm-chart.test.mjs`) checks it statically: `Chart.yaml`, that `values.yaml`
+satisfies `values.schema.json`, that every `.Values` reference in the templates is declared,
+that the control structures balance and the YAML around them is well formed, and that the
+chart agrees with the repository (the secrets the Compose file demands, the commands the
+Dockerfiles run, the probe paths, the metrics ports, the queue name, the Prometheus job names).
+It does not render the templates with Helm: run `helm template` and `helm lint` yourself, and
+try the release in a staging namespace before relying on it.
 
 ## First sign-in
 

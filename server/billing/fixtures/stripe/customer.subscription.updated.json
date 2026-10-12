@@ -1,0 +1,36 @@
+{
+  "id": "evt_2SubscriptionUpdated",
+  "object": "event",
+  "api_version": "2025-08-27.basil",
+  "created": 1792400200,
+  "type": "customer.subscription.updated",
+  "data": {
+    "object": {
+      "id": "sub_Team001",
+      "object": "subscription",
+      "customer": "cus_Team001",
+      "status": "active",
+      "metadata": { "organizationId": "ORG_ID", "planCode": "team", "interval": "month" },
+      "trial_end": null,
+      "items": {
+        "object": "list",
+        "data": [
+          {
+            "id": "si_001",
+            "object": "subscription_item",
+            "current_period_start": 1792400000,
+            "current_period_end": 1795078400,
+            "price": {
+              "id": "price_team_month",
+              "object": "price",
+              "currency": "eur",
+              "unit_amount": 4900,
+              "recurring": { "interval": "month", "interval_count": 1 }
+            }
+          }
+        ]
+      }
+    },
+    "previous_attributes": { "status": "trialing" }
+  }
+}

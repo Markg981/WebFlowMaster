@@ -6,7 +6,13 @@ import LoadTestDialog, { type LoadTestRow } from './LoadTestDialog';
 import LoadRunView from './LoadRunView';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_key: string, fallback: string) => fallback }),
+  useTranslation: () => ({
+    // The English default, with its {{placeholders}} filled from the options as i18next would.
+    t: (_key: string, fallback: string, options?: Record<string, unknown>) =>
+      fallback.replace(/\{\{(\w+)\}\}/g, (match, name: string) =>
+        options && name in options ? String(options[name]) : match,
+      ),
+  }),
 }));
 // ResponsiveContainer measures nothing in jsdom; the chart itself is recharts' business.
 vi.mock('recharts', async (original) => ({
@@ -106,6 +112,74 @@ describe('LoadTestDialog', () => {
   });
 });
 
+describe('LoadTestDialog limits', () => {
+  const lists = (url: string, limits: unknown) =>
+    url === '/api/load-tests/limits'
+      ? limits instanceof Error
+        ? Promise.reject(limits)
+        : json(limits)
+      : url === '/api/api-tests'
+        ? json([{ id: 1, name: 'Sign in', method: 'POST', url: '/login' }])
+        : url === '/api/test-data'
+          ? json([])
+          : json({});
+  const raised = {
+    virtualUsers: 500,
+    durationSec: 7200,
+    stages: 10,
+    steps: 20,
+    thinkTimeMs: 60_000,
+    runsPerOrganization: 1,
+  };
+
+  it('lets the profile use a raised limit of the installation and sends it as typed', async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      init?.method ? json({ ...checkout }) : lists(url, raised),
+    );
+    const onSaved = vi.fn();
+    wrap(<LoadTestDialog isOpen test={checkout} onClose={() => {}} onSaved={onSaved} />);
+    const target = screen.getAllByLabelText('Virtual users')[0];
+    await waitFor(() => expect(target).toHaveAttribute('max', '500'));
+    expect(screen.getByText(/Limits: 7200 s in all, 500 virtual users/)).toBeInTheDocument();
+    fireEvent.change(target, { target: { value: '400' } });
+    fireEvent.change(screen.getAllByLabelText('Duration (s)')[1], { target: { value: '5000' } });
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
+    const [, init] = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(init.body).stages).toEqual([
+      { durationSec: 60, targetVus: 400 },
+      { durationSec: 5000, targetVus: 20 },
+    ]);
+  });
+
+  it('refuses a profile beyond a lowered limit before sending it, naming the limit', async () => {
+    fetchMock.mockImplementation((url: string) => lists(url, { ...raised, virtualUsers: 10 }));
+    wrap(<LoadTestDialog isOpen test={checkout} onClose={() => {}} onSaved={() => {}} />);
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('Virtual users')[0]).toHaveAttribute('max', '10'),
+    );
+    fireEvent.click(screen.getByText('Save'));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'A stage may ask for 10 virtual users at most (LOAD_MAX_VIRTUAL_USERS).',
+    );
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method)).toBe(false);
+  });
+
+  it('falls back to the shipped limits when the request fails', async () => {
+    fetchMock.mockImplementation((url: string) => lists(url, new Error('offline')));
+    wrap(<LoadTestDialog isOpen test={checkout} onClose={() => {}} onSaved={() => {}} />);
+    await screen.findByText('Sign in');
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => url === '/api/load-tests/limits')).toBe(true),
+    );
+    const target = screen.getAllByLabelText('Virtual users')[0];
+    expect(target).toHaveAttribute('max', '200');
+    expect(screen.getByText(/Limits: 3600 s in all, 200 virtual users/)).toBeInTheDocument();
+    fireEvent.change(target, { target: { value: '400' } });
+    expect(target).toHaveValue(200);
+  });
+});
+
 describe('LoadRunView', () => {
   const stats = {
     requests: 900,
@@ -158,6 +232,63 @@ describe('LoadRunView', () => {
     expect(screen.getByText('All requests')).toBeInTheDocument();
     expect(screen.getAllByText('480 ms')).toHaveLength(3);
     expect(screen.getByText('Sign in: status_code equals "200" — actual: 503')).toBeInTheDocument();
+    expect(screen.queryByText('Stop the run')).not.toBeInTheDocument();
+    await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
+  });
+
+  it('follows a queued run until a worker takes it, and lets it be cancelled meanwhile', async () => {
+    const run = {
+      id: 'r3',
+      loadTestId: 7,
+      status: 'queued',
+      cancelRequested: false,
+      queuedAt: '2026-10-07T10:00:00Z',
+      startedAt: '2026-10-07T10:00:00Z',
+      finishedAt: null,
+      error: null,
+      summary: null,
+    };
+    // Queued until the cancel is asked for; cancelled from then on, as the server answers.
+    let cancelled = false;
+    fetchMock.mockImplementation((_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') cancelled = true;
+      return json(cancelled ? { ...run, status: 'cancelled', cancelRequested: true } : run);
+    });
+    const onFinished = vi.fn();
+    wrap(<LoadRunView runId="r3" canEdit onFinished={onFinished} />);
+    expect(await screen.findByText('Queued')).toBeInTheDocument();
+    expect(screen.getByText('Waiting for a load worker to take it.')).toBeInTheDocument();
+    // Not over: the page keeps asking, and nothing says it finished.
+    expect(onFinished).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Stop the run'));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/load-test-runs/r3/cancel',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    );
+    expect(await screen.findByText('Cancelled')).toBeInTheDocument();
+    await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
+  });
+
+  it('shows a run whose worker was lost as over, with the reason', async () => {
+    fetchMock.mockImplementation(() =>
+      json({
+        id: 'r4',
+        loadTestId: 7,
+        status: 'worker_lost',
+        cancelRequested: false,
+        startedAt: '2026-10-07T10:00:00Z',
+        finishedAt: '2026-10-07T10:05:00Z',
+        error:
+          'The worker running this stopped answering (last heard from at 2026-10-07T10:03:00Z).',
+        summary: null,
+      }),
+    );
+    const onFinished = vi.fn();
+    wrap(<LoadRunView runId="r4" canEdit onFinished={onFinished} />);
+    expect(await screen.findByText('Worker lost')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('stopped answering');
     expect(screen.queryByText('Stop the run')).not.toBeInTheDocument();
     await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
   });

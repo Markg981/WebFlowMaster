@@ -4,6 +4,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { createPrivateKey, X509Certificate } from 'node:crypto';
 import path from 'node:path';
 import os from 'node:os';
+import net from 'node:net';
 import type { ProtocolResponse } from '@shared/agent-protocol';
 import {
   protocolLimits,
@@ -12,7 +13,8 @@ import {
   type ResolvedProtocolConfig,
 } from '@shared/api-protocol-config';
 import { readConversationPlan } from '@shared/protocol-conversation';
-import { grpcEgressTarget } from './egress-proxy';
+import { egressProxy, grpcEgressTarget } from './egress-proxy';
+import { denialForHostname, resolveVetted } from './egress-policy';
 import {
   ProtocolInbox,
   executeConversation,
@@ -105,6 +107,55 @@ export function grpcCredentials(
   }
 }
 
+/**
+ * Where the channel connects. grpc-js resolves names itself and offers no lookup hook, so
+ * without the proxy the name is resolved here through the policy first. When every answer
+ * is of one family the channel is pointed at those addresses, all of them, keeping the name
+ * for TLS identity and the :authority header: grpc-js tries them in turn, as its own resolver
+ * would, and no second resolution lets a changed answer slip through. A name that answers in
+ * both families (`localhost` on many hosts: `::1` and `127.0.0.1`, with a server listening on
+ * one of them) cannot be pinned, since a grpc-js target names one family; the vetted name is
+ * then handed to grpc-js's resolver, which tries both, with the same small window between
+ * the check and the connection as the SMTP path. A literal address is checked as it is; with
+ * the proxy the CONNECT target carries the name and the proxy decides.
+ */
+async function grpcConnection(
+  url: URL,
+): Promise<{ address: string; options: grpc.ChannelOptions }> {
+  const denial = denialForHostname(url.hostname);
+  if (denial) throw denial;
+  const direct = grpcEgressTarget(url.host, url.hostname);
+  const hostname = url.hostname.replace(/^\[|\]$/g, '');
+  if (egressProxy() || net.isIP(hostname)) return direct;
+  return pinnedGrpcTarget(url, hostname, await resolveVetted(hostname)) ?? direct;
+}
+
+/**
+ * The channel target for a name's vetted answers, or null when they cannot be pinned: no
+ * answer, or answers in both families, which one grpc-js target cannot carry.
+ */
+export function pinnedGrpcTarget(
+  url: URL,
+  hostname: string,
+  vetted: ReadonlyArray<{ address: string; family: number }>,
+): { address: string; options: grpc.ChannelOptions } | null {
+  const [first] = vetted;
+  if (!first || vetted.some((answer) => answer.family !== first.family)) return null;
+  const port = url.port || '443';
+  const endpoints = vetted
+    .map((answer) =>
+      answer.family === 6 ? `[${answer.address}]:${port}` : `${answer.address}:${port}`,
+    )
+    .join(',');
+  return {
+    address: `${first.family === 6 ? 'ipv6' : 'ipv4'}:${endpoints}`,
+    options: {
+      'grpc.ssl_target_name_override': hostname,
+      'grpc.default_authority': url.host,
+    },
+  };
+}
+
 const metadataMap = (metadata?: grpc.Metadata) =>
   Object.fromEntries(Object.entries(metadata?.getMap() ?? {}).map(([k, v]) => [k, String(v)]));
 
@@ -185,7 +236,7 @@ export async function executeGrpc(input: GrpcInput): Promise<ProtocolResponse> {
     )
       throw new Error('Client-streaming conversations cannot receive before the single response.');
     const Client = grpc.makeGenericClientConstructor({ [parts[1]]: method }, parts[0]);
-    const connection = grpcEgressTarget(input.url.host, input.url.hostname);
+    const connection = await grpcConnection(input.url);
     client = new Client(connection.address, credentials, connection.options);
     const metadata = new grpc.Metadata();
     for (const [key, value] of Object.entries(input.headers))

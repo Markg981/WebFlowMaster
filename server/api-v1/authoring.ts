@@ -1,7 +1,7 @@
 import type { Router, Request, Response, RequestHandler } from 'express';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import {
   projects,
   projectMembers,
@@ -13,6 +13,8 @@ import {
   testDataSets,
   testPlans,
   testPlanSelectedTests,
+  testPlanExecutions,
+  testPlanSchedules,
   insertTestSchema,
   insertApiTestSchema,
   insertTestPlanSchema,
@@ -52,7 +54,8 @@ import {
 import { importMobileCatalog, MOBILE_BUNDLE_FIELDS } from '../mobile-bundle';
 import { prepareMobileSteps, MobileDefinitionError } from '../mobile-step-groups';
 import { GherkinError } from '../gherkin';
-import { lockOrganizationRuns, quotaErrorBody } from '../tenant-quotas';
+import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
+import schedulerService from '../scheduler-service';
 
 const numericId = z.coerce.number().int().positive();
 export const projectCreateSchema = z.object({ name: z.string().trim().min(1).max(200) }).strict();
@@ -90,7 +93,7 @@ export const testUpdateSchema = testCreateSchema
   .partial()
   .strict()
   .refine((body) => Object.keys(body).length > 0, 'Send at least one field.');
-const atLeastOneField = (body: object) => Object.keys(body).length > 0;
+export const atLeastOneField = (body: object) => Object.keys(body).length > 0;
 export const apiTestCreateSchema = insertApiTestSchema
   .pick({
     name: true,
@@ -292,7 +295,8 @@ export function publicPlan(row: TestPlan, selectedTests: z.infer<typeof membersh
   };
 }
 
-class AuthoringError extends Error {
+/** An answer the handler decided on: `handled` turns it into the error envelope. */
+export class AuthoringError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
@@ -312,23 +316,23 @@ function requireAlso(req: Request, scope: ApiScope) {
       { requiredScope: scope },
     );
 }
-function notFound(kind: string): never {
+export function notFound(kind: string): never {
   throw new AuthoringError(
     404,
     `${kind}_not_found`,
     `There is no such ${kind.replace('api_', 'API ').replace('_', ' ')} in this organization.`,
   );
 }
-function idOf(req: Request, name: string) {
+export function idOf(req: Request, name: string) {
   const id = numericId.safeParse(req.params[name]);
   if (!id.success)
     throw new AuthoringError(400, 'invalid_request', 'The identifier must be a positive integer.');
   return id.data;
 }
-function body<T extends z.ZodTypeAny>(schema: T, req: Request): z.infer<T> {
+export function body<T extends z.ZodTypeAny>(schema: T, req: Request): z.infer<T> {
   return valid(schema, req.body);
 }
-function valid<T extends z.ZodTypeAny>(schema: T, value: unknown): z.infer<T> {
+export function valid<T extends z.ZodTypeAny>(schema: T, value: unknown): z.infer<T> {
   const result = schema.safeParse(value);
   if (!result.success)
     throw new AuthoringError(
@@ -338,7 +342,7 @@ function valid<T extends z.ZodTypeAny>(schema: T, value: unknown): z.infer<T> {
     );
   return result.data;
 }
-function page(req: Request) {
+export function page(req: Request) {
   const parsed = z
     .object({
       limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -348,7 +352,9 @@ function page(req: Request) {
   if (!parsed.success) throw new AuthoringError(400, 'invalid_request', 'Invalid pagination.');
   return parsed.data;
 }
-function handled(handler: (req: Request, res: Response) => Promise<unknown>): RequestHandler {
+export function handled(
+  handler: (req: Request, res: Response) => Promise<unknown>,
+): RequestHandler {
   return async (req, res) => {
     try {
       await handler(req, res);
@@ -359,7 +365,7 @@ function handled(handler: (req: Request, res: Response) => Promise<unknown>): Re
       }
       const quota = quotaErrorBody(error);
       if (quota) {
-        apiError(res, 429, String(quota.code), String(quota.error));
+        apiError(res, quotaErrorStatus(error), String(quota.code), String(quota.error));
         return;
       }
       if (
@@ -386,7 +392,7 @@ function handled(handler: (req: Request, res: Response) => Promise<unknown>): Re
     }
   };
 }
-async function editableProject(tx: TenantTx, req: Request, id: number | null | undefined) {
+export async function editableProject(tx: TenantTx, req: Request, id: number | null | undefined) {
   if (id == null) return;
   const [project] = await tx.select().from(projects).where(eq(projects.id, id)).limit(1);
   if (!project) notFound('project');
@@ -1387,5 +1393,180 @@ export function registerAuthoringRoutes(router: Router) {
     'SuiteImport',
     201,
     'suiteImportSchema',
+  );
+  route(
+    'delete',
+    '/api/v1/tests/:testId',
+    'tests:write',
+    async (req, res) => {
+      const id = idOf(req, 'testId');
+      await withTenantTransaction(async (tx) => {
+        const [existing] = await tx.select().from(tests).where(eq(tests.id, id)).limit(1);
+        if (!existing) notFound('test');
+        await editableProject(tx, req, existing.projectId);
+        const [row] = await tx.delete(tests).where(eq(tests.id, id)).returning();
+        if (!row)
+          throw new AuthoringError(
+            403,
+            'project_read_only',
+            'The project does not allow this change.',
+          );
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.TEST_DELETED,
+          actor: auditActor(req),
+          targetType: 'test',
+          targetId: id,
+          // The name, because once the row is gone nothing else says what it was.
+          metadata: { name: row.name },
+        });
+      });
+      res.status(204).end();
+    },
+    'Empty',
+    204,
+  );
+  route(
+    'delete',
+    '/api/v1/api-tests/:apiTestId',
+    'api-tests:write',
+    async (req, res) => {
+      const id = idOf(req, 'apiTestId');
+      await withTenantTransaction(async (tx) => {
+        const [existing] = await tx.select().from(apiTests).where(eq(apiTests.id, id)).limit(1);
+        if (!existing) notFound('api_test');
+        await editableProject(tx, req, existing.projectId);
+        const [row] = await tx.delete(apiTests).where(eq(apiTests.id, id)).returning();
+        if (!row)
+          throw new AuthoringError(
+            403,
+            'project_read_only',
+            'The project does not allow this change.',
+          );
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.API_TEST_DELETED,
+          actor: auditActor(req),
+          targetType: 'api_test',
+          targetId: id,
+          metadata: { name: row.name },
+        });
+      });
+      res.status(204).end();
+    },
+    'Empty',
+    204,
+  );
+  route(
+    'delete',
+    '/api/v1/mobile-tests/:mobileTestId',
+    'mobile-tests:write',
+    async (req, res) => {
+      const id = idOf(req, 'mobileTestId');
+      await withTenantTransaction(async (tx) => {
+        const [existing] = await tx
+          .select()
+          .from(mobileTests)
+          .where(eq(mobileTests.id, id))
+          .limit(1);
+        if (!existing) notFound('mobile_test');
+        await editableProject(tx, req, existing.projectId);
+        const [row] = await tx.delete(mobileTests).where(eq(mobileTests.id, id)).returning();
+        if (!row)
+          throw new AuthoringError(
+            403,
+            'project_read_only',
+            'The project does not allow this change.',
+          );
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.MOBILE_TEST_DELETED,
+          actor: auditActor(req),
+          targetType: 'mobile_test',
+          targetId: id,
+          metadata: { name: row.name },
+        });
+      });
+      res.status(204).end();
+    },
+    'Empty',
+    204,
+  );
+  route(
+    'delete',
+    '/api/v1/plans/:planId',
+    'plans:write',
+    async (req, res) => {
+      const id = req.params.planId;
+      const scheduleIds = await withTenantTransaction(async (tx) => {
+        const [existing] = await tx.select().from(testPlans).where(eq(testPlans.id, id)).limit(1);
+        if (!existing) notFound('plan');
+        // A run in progress would lose its plan under the worker; cancel it first.
+        const [active] = await tx
+          .select({ id: testPlanExecutions.id })
+          .from(testPlanExecutions)
+          .where(
+            and(
+              eq(testPlanExecutions.testPlanId, id),
+              inArray(testPlanExecutions.status, ['queued', 'running', 'cancelling']),
+            ),
+          )
+          .limit(1);
+        if (active)
+          throw new AuthoringError(
+            409,
+            'plan_running',
+            'The plan has a run that has not ended; cancel it first.',
+            { runId: active.id },
+          );
+        const schedules = await tx
+          .select({ id: testPlanSchedules.id })
+          .from(testPlanSchedules)
+          .where(eq(testPlanSchedules.testPlanId, id));
+        // Its schedules, webhooks, membership and run history go with it (cascade).
+        await tx.delete(testPlans).where(eq(testPlans.id, id));
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.PLAN_DELETED,
+          actor: auditActor(req),
+          targetType: 'test_plan',
+          targetId: id,
+          metadata: { name: existing.name, schedules: schedules.length },
+        });
+        return schedules.map((row) => row.id);
+      });
+      // Outside the transaction, as the schedule routes do: the scheduler has its own queries.
+      for (const scheduleId of scheduleIds) await schedulerService.removeScheduleJob(scheduleId);
+      res.status(204).end();
+    },
+    'Empty',
+    204,
+  );
+  route(
+    'delete',
+    '/api/v1/projects/:projectId',
+    'projects:write',
+    async (req, res) => {
+      const id = idOf(req, 'projectId');
+      await withTenantTransaction(async (tx) => {
+        const [existing] = await tx.select().from(projects).where(eq(projects.id, id)).limit(1);
+        if (!existing) notFound('project');
+        // The same rule as the web application: a project is deleted by the account that
+        // created it. Its tests stay, detached from any project.
+        if (existing.userId !== req.user!.id)
+          throw new AuthoringError(
+            403,
+            'project_not_owned',
+            'Only the account that created the project can delete it.',
+          );
+        await tx.delete(projects).where(eq(projects.id, id));
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.PROJECT_DELETED,
+          actor: auditActor(req),
+          targetType: 'project',
+          targetId: id,
+          metadata: { name: existing.name },
+        });
+      });
+      res.status(204).end();
+    },
+    'Empty',
+    204,
   );
 }

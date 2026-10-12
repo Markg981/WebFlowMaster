@@ -1,0 +1,20 @@
+{
+  "id": "evt_1CheckoutCompleted",
+  "object": "event",
+  "api_version": "2025-08-27.basil",
+  "created": 1792400100,
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_test_a1b2c3",
+      "object": "checkout.session",
+      "client_reference_id": "ORG_ID",
+      "customer": "cus_Team001",
+      "subscription": "sub_Team001",
+      "mode": "subscription",
+      "payment_status": "paid",
+      "status": "complete",
+      "metadata": { "organizationId": "ORG_ID", "planCode": "team", "interval": "month" }
+    }
+  }
+}

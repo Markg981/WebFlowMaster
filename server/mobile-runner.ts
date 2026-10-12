@@ -13,7 +13,7 @@ import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { withExecutionUsage } from './execution-usage';
 import { toGridConfig, type GridConfig } from './browser-grids';
 import { resolveVariables, findUnresolvedVariables } from './variables';
-import { substituteVariables } from './outbound-http';
+import { fetchTarget, substituteVariables } from './outbound-http';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
 import { AgentHttp } from './agents/agent-fetch';
 import { LOCAL_APPIUM_DEFAULT_URL } from '@shared/browser-grids';
@@ -133,7 +133,7 @@ export function appiumTransport(
     const http = new AgentHttp({ organizationId: grid.organizationId, pool: grid.agentPool });
     return { fetch: (url, init) => http.fetch(url, init), close: () => http.close() };
   }
-  return { fetch: (url, init) => fetch(url, init), close: async () => {} };
+  return { fetch: (url, init) => fetchTarget(url, init), close: async () => {} };
 }
 
 /** The key never leaves in a message, should a grid quote a capability back. */
@@ -478,7 +478,7 @@ export async function executeMobileRun(
         });
         return;
       }
-      const grid = toGridConfig(gridRow);
+      const grid = await toGridConfig(gridRow);
       try {
         if (!('executionSteps' in test)) {
           const executionSteps = await withTenantTransaction((tx) => prepareMobileSteps(tx, test));
@@ -528,7 +528,7 @@ export async function uploadApp(
   grid: GridConfig,
   filePath: string,
   fileName: string,
-  doFetch: Fetch = (url, init) => fetch(url, init),
+  doFetch: Fetch = (url, init) => fetchTarget(url, init),
 ): Promise<string> {
   const blob = await fs.openAsBlob(filePath);
   const form = new FormData();

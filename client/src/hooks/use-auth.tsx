@@ -4,8 +4,19 @@ import { User as SelectUser, InsertUser } from '@shared/schema';
 import { getQueryFn, apiRequest, errorMessage, queryClient } from '../lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
+/** One organization the person belongs to, as /api/user lists them (server/organization-memberships.ts). */
+export interface SessionOrganization {
+  id: number;
+  name: string;
+  role: string;
+  /** The one the session acts in: `organizationId` on the user. */
+  current: boolean;
+}
+
 /** The user as /api/user describes it: the row without its password, plus the second factor. */
 export type SessionUser = Omit<SelectUser, 'password'> & {
+  /** Every organization they belong to; the header offers a switch when there is more than one. */
+  organizations?: SessionOrganization[];
   mfaEnabled?: boolean;
   /** The organization requires a second factor and this user has none: nothing else works until they do. */
   mfaEnrollmentRequired?: boolean;

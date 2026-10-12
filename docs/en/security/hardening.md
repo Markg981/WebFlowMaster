@@ -20,6 +20,8 @@ people. Each item names the setting or the page that explains it. The
   ([Behind a reverse proxy](../admin/installation#behind-a-reverse-proxy)).
 - `CSRF_TRUSTED_ORIGINS` lists only your own public origins, if it is set at all.
 - `INSECURE_TLS_HOSTS` unset (it is ignored in production anyway).
+- `EGRESS_PRIVATE_TARGETS=deny` on an installation shared by several companies, with the few
+  internal addresses it must reach in `EGRESS_ALLOW_HOSTS` ([Network](#network)).
 - `MFA_ISSUER` set to a name that identifies this installation.
 - A body size limit on the reverse proxy no lower than the server's own: 24 MB for a test
   bundle import, 20 MB for the API tester's proxy, 12 MB for an API test import, 10 MB for an
@@ -32,6 +34,28 @@ It enforces an operator-managed exact domain/port allowlist, a mandatory proxy a
 API/worker namespaces. An empty allowlist denies all test destinations. The following
 checks also apply to other deployments where the operator provides equivalent controls.
 
+Where tests may connect is enforced in two layers. The proxy of the SaaS profile is the
+network's: nothing leaves the workers except through it, whatever the application does. The
+**egress policy** is the application's, and applies to every installation, with or without the
+proxy: every address a test, a webhook, an issue tracker, a browser step or an organization's
+SMTP setting makes the server connect to is checked, by name and by what the name resolves to
+at the moment of connecting, on every redirect. HTTP and WebSocket connections are opened on the
+vetted address itself; a gRPC channel is pinned to the vetted addresses when they are of one
+family, and a name answering in both (`localhost` on many hosts) is vetted and then resolved
+again by the gRPC client, like the SMTP path. Cloud metadata endpoints (`169.254.0.0/16`
+including `169.254.169.254`, `fd00:ec2::254`, `metadata.google.internal`, Alibaba's
+`100.100.100.200`, Oracle's `192.0.0.192`, Azure's `168.63.129.16`) are always refused. Private,
+loopback, link-local and unique-local addresses are reached by default
+(`EGRESS_PRIVATE_TARGETS=allow`): a self-hosted installation tests its intranet from the
+server, and nothing changes for it. `EGRESS_PRIVATE_TARGETS=deny` refuses them too, which is
+the setting for a shared installation; `EGRESS_ALLOW_HOSTS` exempts named hosts and CIDRs from
+both. A refused request fails at once, with an error that names the policy and the host as the
+test wrote it. The policy does not cover connections the server does not open itself: a local
+agent's browser and requests, a browser grid's browser, and the direct TCP protocols (database
+steps, the inbox a test reads through an agent's browser). The browsers the runner drives check
+names from the server's resolver; a name whose answer differs for the browser is the proxy's to
+catch.
+
 - PostgreSQL and Redis are not reachable from the internet; only the web process and the
   workers connect to them. Redis requires a password (`redis://:password@host:6379`).
 - The web process is the only public entry point. Workers need no inbound connections.
@@ -39,8 +63,9 @@ checks also apply to other deployments where the operator provides equivalent co
   installation shared by several companies, or with `REGISTRATION=open`, put the workers in a
   network segment that can reach the applications under test and the installation's own
   services, and nothing else. In particular:
-  - block the cloud metadata endpoint (`169.254.169.254`) from the workers, or require
-    token-based metadata access (for example IMDSv2 on AWS);
+  - block the cloud metadata endpoint (`169.254.169.254`) from the workers as well, or require
+    token-based metadata access (for example IMDSv2 on AWS), so the network does not depend on
+    the application's policy alone;
   - do not let workers reach administration interfaces of your own infrastructure;
   - let applications inside a customer's network be reached through a
     [local agent](../integrations/local-agents), not by opening routes from the workers.

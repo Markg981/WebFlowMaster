@@ -35,6 +35,10 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   'api_tests.query_params': 'migration',
   'api_tests.request_headers': 'migration',
   'audit_log.metadata': 'opaque',
+  // A provider's webhook body, kept as received for the ledger: never interpreted again.
+  'billing_events.payload': 'opaque',
+  // Provider price ids by interval; the server reads them when it opens a checkout.
+  'billing_plans.provider_price_ids': 'migration',
   'comments.mentioned_user_ids': 'migration',
   'custom_actions.parameters': 'migration',
   'dashboards.widgets': 'migration',

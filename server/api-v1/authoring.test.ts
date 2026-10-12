@@ -15,6 +15,20 @@ vi.mock('../logger', () => ({
   }),
   updateLogLevel: vi.fn(),
 }));
+vi.mock('../queue', () => ({
+  TEST_EXECUTION_QUEUE_NAME: 'test-queue',
+  testExecutionQueue: { add: vi.fn() },
+}));
+// Deleting a plan takes its schedules off the scheduler, which has its own queries and jobs.
+const scheduler = {
+  removeScheduleJob: vi.fn(),
+  addScheduleJob: vi.fn(),
+  updateScheduleJob: vi.fn(),
+};
+vi.mock('../scheduler-service', async (importActual) => ({
+  ...(await importActual<typeof import('../scheduler-service')>()),
+  default: scheduler,
+}));
 const { privilegedDb } = await import('../db');
 const {
   apiKeys,
@@ -26,6 +40,8 @@ const {
   mobileTests,
   testVersions,
   auditLog,
+  testPlanExecutions,
+  testPlanSchedules,
 } = await import('@shared/schema');
 const { createTestOrganization, createTestUser } = await import('../tests/factories');
 const { generateApiKey } = await import('../api-keys');
@@ -678,5 +694,133 @@ describe('public authoring of API and mobile tests', () => {
           .where(eq(mobileTests.name, `Broken-${suffix}`))
       ).length,
     ).toBe(0);
+  });
+});
+
+describe('public deletion of tests, plans and projects', () => {
+  it('deletes a test of each kind with an audit entry, and hides other tenants', async () => {
+    const ui = await request(app)
+      .post('/api/v1/tests')
+      .set(auth())
+      .send(definition(`Doomed-${randomUUID()}`))
+      .expect(201);
+    const api = await request(app)
+      .post('/api/v1/api-tests')
+      .set(auth())
+      .send(apiDefinition(`Doomed api-${randomUUID()}`))
+      .expect(201);
+    const mobile = await request(app)
+      .post('/api/v1/mobile-tests')
+      .set(auth())
+      .send(mobileDefinition(`Doomed mobile-${randomUUID()}`))
+      .expect(201);
+    const paths = [
+      `/api/v1/tests/${ui.body.id}`,
+      `/api/v1/api-tests/${api.body.id}`,
+      `/api/v1/mobile-tests/${mobile.body.id}`,
+    ];
+    for (const path of paths) {
+      await request(app).delete(path).set(auth(otherKey)).expect(404);
+      await request(app).delete(path).set(auth(viewerKey)).expect(403);
+      await request(app).delete(path).set(auth()).expect(204);
+      await request(app).get(path).set(auth()).expect(404);
+      await request(app).delete(path).set(auth()).expect(404);
+    }
+    const audits = await privilegedDb.select().from(auditLog);
+    for (const action of ['test.deleted', 'api_test.deleted', 'mobile_test.deleted'])
+      expect(audits.some((row) => row.action === action)).toBe(true);
+    await request(app)
+      .delete('/api/v1/tests/abc')
+      .set(auth())
+      .expect(400)
+      .expect((res) => expect(res.body.error.code).toBe('invalid_request'));
+  });
+  it('refuses to delete a test in a restricted project the key cannot edit', async () => {
+    const owner = await createTestUser(org);
+    const [project] = await privilegedDb
+      .insert(projects)
+      .values({ name: 'Locked', userId: owner, organizationId: org, restricted: true })
+      .returning();
+    await privilegedDb
+      .insert(projectMembers)
+      .values({ projectId: project.id, userId: user, organizationId: org, role: 'viewer' });
+    const [test] = await privilegedDb
+      .insert(tests)
+      .values({
+        ...definition(`Locked-${randomUUID()}`),
+        projectId: project.id,
+        userId: owner,
+        organizationId: org,
+      })
+      .returning();
+    const denied = await request(app).delete(`/api/v1/tests/${test.id}`).set(auth()).expect(403);
+    expect(denied.body.error.code).toBe('project_read_only');
+  });
+  it('deletes a plan with its schedules unless a run of it is still going', async () => {
+    const plan = await request(app)
+      .post('/api/v1/plans')
+      .set(auth())
+      .send({ name: `Doomed plan ${randomUUID()}` })
+      .expect(201);
+    const path = `/api/v1/plans/${plan.body.id}`;
+    const scheduleId = randomUUID();
+    await privilegedDb.insert(testPlanSchedules).values({
+      id: scheduleId,
+      testPlanId: plan.body.id,
+      organizationId: org,
+      userId: user,
+      scheduleName: 'Nightly',
+      frequency: 'daily',
+      nextRunAt: new Date(),
+    });
+    const runId = randomUUID();
+    await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id: runId, organizationId: org, testPlanId: plan.body.id, status: 'running' });
+    const blocked = await request(app).delete(path).set(auth()).expect(409);
+    expect(blocked.body.error).toMatchObject({ code: 'plan_running', runId });
+    await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status: 'cancelled' })
+      .where(eq(testPlanExecutions.id, runId));
+    await request(app).delete(path).set(auth(otherKey)).expect(404);
+    scheduler.removeScheduleJob.mockClear();
+    await request(app).delete(path).set(auth()).expect(204);
+    expect(scheduler.removeScheduleJob).toHaveBeenCalledWith(scheduleId);
+    await request(app).get(path).set(auth()).expect(404);
+    expect(
+      (
+        await privilegedDb
+          .select()
+          .from(testPlanSchedules)
+          .where(eq(testPlanSchedules.id, scheduleId))
+      ).length,
+    ).toBe(0);
+    const audits = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.targetId, plan.body.id));
+    expect(audits.some((row) => row.action === 'plan.deleted')).toBe(true);
+  });
+  it('deletes a project only for the account that created it, leaving its tests', async () => {
+    const project = await request(app)
+      .post('/api/v1/projects')
+      .set(auth())
+      .send({ name: `Doomed project ${randomUUID()}` })
+      .expect(201);
+    const test = await request(app)
+      .post('/api/v1/tests')
+      .set(auth())
+      .send(definition(`Orphan-${randomUUID()}`, project.body.id))
+      .expect(201);
+    const path = `/api/v1/projects/${project.body.id}`;
+    const colleague = await makeKey(await createTestUser(org), org, API_SCOPE_NAMES);
+    const denied = await request(app).delete(path).set(auth(colleague)).expect(403);
+    expect(denied.body.error.code).toBe('project_not_owned');
+    await request(app).delete(path).set(auth(otherKey)).expect(404);
+    await request(app).delete(path).set(auth()).expect(204);
+    await request(app).get(path).set(auth()).expect(404);
+    const kept = await request(app).get(`/api/v1/tests/${test.body.id}`).set(auth()).expect(200);
+    expect(kept.body.projectId).toBeNull();
   });
 });

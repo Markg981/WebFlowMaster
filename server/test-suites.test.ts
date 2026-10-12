@@ -463,6 +463,9 @@ describe('rows that point across organizations', () => {
       'mobile_test_runs.requested_by',
       'load_tests.created_by',
       'load_test_runs.requested_by',
+      // The one link that crosses organizations by design: a membership names a person whose
+      // current organization (users.organization_id) may be another one (migration 0086).
+      'organization_memberships.user_id',
     ]);
     const unguarded = (result.rows as Array<{ child: string; col: string; parent: string }>)
       .map((r) => `${r.child}.${r.col}`)

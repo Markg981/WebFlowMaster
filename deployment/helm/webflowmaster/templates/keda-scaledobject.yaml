@@ -1,0 +1,39 @@
+{{- if .Values.worker.keda.enabled }}
+# Scales the workers on the BullMQ wait list of the execution queue: Redis list
+# bull:test-execution-queue:wait (server/queue.ts, TEST_EXECUTION_QUEUE_NAME). Requires the
+# KEDA operator (https://keda.sh); the Redis scaler takes host:port and, for a password, a
+# TriggerAuthentication you create and name in worker.keda.redis.triggerAuthentication.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-worker
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "webflowmaster.fullname" . }}-worker
+  minReplicaCount: {{ .Values.worker.keda.minReplicaCount }}
+  maxReplicaCount: {{ .Values.worker.keda.maxReplicaCount }}
+  pollingInterval: {{ .Values.worker.keda.pollingInterval }}
+  cooldownPeriod: {{ .Values.worker.keda.cooldownPeriod }}
+  triggers:
+    - type: redis
+      metadata:
+        {{- if .Values.worker.keda.redis.address }}
+        address: {{ .Values.worker.keda.redis.address | quote }}
+        {{- else if .Values.redis.enabled }}
+        address: {{ printf "%s-redis:6379" (include "webflowmaster.fullname" .) | quote }}
+        {{- else }}
+        address: {{ required "worker.keda.redis.address (host:port) is required with keda.enabled" .Values.worker.keda.redis.address | quote }}
+        {{- end }}
+        listName: bull:test-execution-queue:wait
+        listLength: {{ .Values.worker.keda.listLength | quote }}
+        enableTLS: {{ .Values.worker.keda.redis.enableTLS | quote }}
+      {{- if .Values.worker.keda.redis.triggerAuthentication }}
+      authenticationRef:
+        name: {{ .Values.worker.keda.redis.triggerAuthentication }}
+      {{- end }}
+{{- end }}

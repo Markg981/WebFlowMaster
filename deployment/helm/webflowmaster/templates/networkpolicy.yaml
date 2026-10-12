@@ -1,0 +1,85 @@
+{{- if .Values.networkPolicy.enabled }}
+# Default deny for the api and worker pods, then the flows the stack needs. Modelled on
+# deployment/saas-network (Compose) and deployment/bdd-agent/network-policy.example.yml.
+# Standard NetworkPolicy has no DNS-name allowlist: egress to the applications under test is
+# by CIDR (networkPolicy.egressCidrs). Needs a CNI that enforces policies.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-api
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "webflowmaster.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # The ingress controller.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicy.ingressNamespaceSelector | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.api.port }}
+    # The workers: the agent relay (AGENT_RELAY_URL) and the WebSocket on /api/agent/v1/.
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "webflowmaster.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: worker
+      ports:
+        - protocol: TCP
+          port: {{ .Values.api.port }}
+    {{- if .Values.metrics.enabled }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicy.monitoringNamespaceSelector | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.metrics.apiPort }}
+    {{- end }}
+  egress:
+    {{- include "webflowmaster.commonEgress" . | nindent 4 }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-worker
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "webflowmaster.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  policyTypes: [Ingress, Egress]
+  {{- if .Values.metrics.enabled }}
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicy.monitoringNamespaceSelector | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.metrics.workerPort }}
+  {{- else }}
+  ingress: []
+  {{- end }}
+  egress:
+    {{- include "webflowmaster.commonEgress" . | nindent 4 }}
+    # The relay in the web process.
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "webflowmaster.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: api
+      ports:
+        - protocol: TCP
+          port: {{ .Values.api.port }}
+{{- end }}

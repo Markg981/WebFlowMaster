@@ -264,7 +264,7 @@ describe('performBrowserTask, where the browser runs', () => {
       .insert(environments)
       .values({ name: `env-${uuidv4().slice(0, 8)}`, userId, organizationId })
       .returning();
-    const sealed = encryptSecret('login');
+    const sealed = await encryptSecret('login', organizationId);
     await privilegedDb.insert(secrets).values({
       environmentId: environment.id,
       organizationId,

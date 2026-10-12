@@ -154,6 +154,8 @@
       "accountDescription": "Your username, and changing your password.",
       "runUsage": "Run usage",
       "runUsageDescription": "How many of this organization's runs are in progress or waiting, against its limits.",
+      "billing": "Billing",
+      "billingDescription": "The plan this organization is on, where its subscription stands, and what it uses of what the plan includes.",
       "auditLog": "Audit log",
       "auditLogDescription": "Who changed what, when, from where, and whether through an API key.",
       "security": "Security",
@@ -416,7 +418,7 @@
       "pending": "waiting until {{date}}",
       "revoke": "Revoke the invitation for {{username}}",
       "removeTitle": "Remove {{username}}?",
-      "removeDescription": "Their account is deleted, with their API keys and preferences. The projects, tests, plans, schedules and environments they made stay in the organization and are handed to the member you choose. The audit log keeps their name.",
+      "removeDescription": "They leave this organization, with their API keys and preferences here; the account itself is deleted only when this was their last organization. The projects, tests, plans, schedules and environments they made stay in the organization and are handed to the member you choose. The audit log keeps their name.",
       "heirLabel": "Hand what they made to",
       "heirMe": "me",
       "heirOtherOwner": "another owner",
@@ -436,7 +438,8 @@
       "revokeDialog": {
         "title": "Revoke the invitation for {{username}}?",
         "description": "The invitation link stops working. You can invite them again later."
-      }
+      },
+      "linkExistingAccount": "{{username}} already has an account: they sign in with it and open the link to join this organization as one more of theirs."
     },
     "customActions": {
       "title": "Custom actions",
@@ -1180,6 +1183,9 @@
       "label": "The address you sign in with",
       "submit": "Send me a link",
       "sent": "If an account with that address exists, a link to choose a new password is on its way. Check your mailbox."
+    },
+    "invitationExistingAccount": {
+      "description": "Already have an account with it? Sign in first, then open this link again to join."
     }
   },
   "dashboardPageNew": {
@@ -3020,6 +3026,69 @@
     "operator": "Limits are set by the administrator of this installation.",
     "noRunner": "No runner is online, so runs wait in the queue until one starts."
   },
+  "billing": {
+    "loading": "Loading…",
+    "error": "Billing information could not be loaded.",
+    "plan": "Plan",
+    "free": "Free",
+    "perMonth": "{{amount}} / month",
+    "perYear": "{{amount}} / year",
+    "period": "Current period",
+    "trialEnds": "Trial ends",
+    "usageTitle": "Usage against what the plan includes",
+    "quotaPrecedence": "A limit set by the installation administrator wins over the plan’s; the plan’s wins over the installation default.",
+    "blocked": "New runs and recordings are refused until the subscription is restored. Reports, exports and settings stay available.",
+    "graceEnds": "Payment is overdue. Runs stop on {{date}} unless it is settled.",
+    "managedByAdmin": "Billing is managed by the administrator of this installation: there is no payment provider to pay through.",
+    "changePlan": "Change plan",
+    "manageBilling": "Manage billing",
+    "redirectError": "The billing provider could not be reached. Try again.",
+    "status": {
+      "trialing": "Trial",
+      "active": "Active",
+      "past_due": "Payment overdue",
+      "suspended": "Suspended",
+      "cancelled": "Cancelled"
+    },
+    "interval": {
+      "month": "Monthly",
+      "year": "Yearly"
+    },
+    "banner": {
+      "suspended": "This organization is suspended: new runs and recordings cannot start. Reports and settings stay available.",
+      "cancelled": "This organization has no active subscription: new runs and recordings cannot start until a plan is chosen.",
+      "pastDueExpired": "Payment is overdue and the grace period has ended: new runs cannot start until it is settled.",
+      "pastDue": "Payment is overdue. Runs stop on {{date}} unless it is settled.",
+      "settings": "Billing settings"
+    },
+    "admin": {
+      "title": "Billing administration",
+      "plans": "Plans",
+      "organizations": "Organizations",
+      "loadError": "Billing data could not be loaded.",
+      "saveError": "The change could not be saved. Check the values.",
+      "saved": "Saved.",
+      "code": "Code",
+      "name": "Name",
+      "price": "Price",
+      "active": "Offered",
+      "inherit": "Inherit",
+      "yes": "Yes",
+      "no": "No",
+      "priceMonth": "Monthly price (cents)",
+      "priceYear": "Yearly price (cents)",
+      "currency": "Currency",
+      "trialDays": "Trial days",
+      "priceIdMonth": "Provider price id (monthly)",
+      "priceIdYear": "Provider price id (yearly)",
+      "create": "Add plan",
+      "status": "Status",
+      "reason": "Reason",
+      "save": "Save",
+      "blocked": "Runs blocked",
+      "help": "Suspended and cancelled organizations, and overdue ones past the grace period, cannot start runs; their reports and settings stay reachable. Every change is written to the billing ledger and the organization’s audit log."
+    }
+  },
   "auditLog": {
     "filterLabel": "Show",
     "export": "Export CSV",
@@ -3082,6 +3151,7 @@
       "mail_template_changed": "Email template changed",
       "member_role_changed": "Member role changed",
       "member_removed": "Member removed",
+      "member_joined": "Member joined the organization",
       "invitation_created": "Invitation sent",
       "invitation_revoked": "Invitation revoked",
       "invitation_accepted": "Invitation accepted",
@@ -3188,6 +3258,8 @@
       "sms_inbox_token_issued": "SMS inbound address issued",
       "sms_inbox_token_revoked": "SMS inbound address revoked",
       "organization_quotas_updated": "Organization quotas changed",
+      "organization_billing_updated": "Organization billing changed",
+      "organization_switched": "Switched organization",
       "organization_artifacts_reconciled": "Organization artifact inventory reconciled",
       "load_test_created": "Load test created",
       "load_test_updated": "Load test updated",
@@ -4821,11 +4893,13 @@
   "loadTests": {
     "profileChart": "Load profile: up to {{peak}} virtual users over {{total}} s",
     "status": {
+      "queued": "Queued",
       "running": "Running",
       "passed": "Passed",
       "failed": "Failed",
       "cancelled": "Cancelled",
-      "error": "Could not run"
+      "error": "Could not run",
+      "worker_lost": "Worker lost"
     },
     "runLoadFailed": "Could not load the run.",
     "loading": "Loading…",
@@ -4881,6 +4955,7 @@
     "addStage": "Add a stage",
     "warmUp": "Warm-up (s), not judged",
     "profileTotal": "{{total}} s in all, {{peak}} virtual users at the peak",
+    "profileLimits": "Limits: {{durationSec}} s in all, {{virtualUsers}} virtual users.",
     "data": "Data per virtual user",
     "dataSet": "Data set",
     "noData": "No data set: the same values for everyone",
@@ -4900,7 +4975,7 @@
     "environment": "Environment",
     "noEnvironment": "No environment",
     "start": "Start a run",
-    "startHelp": "The run is sent from the server, apart from plans. One load test at a time per organization.",
+    "startHelp": "The run is queued for a load worker, apart from plans, and survives a restart of the web server. One load test at a time per organization.",
     "noRuns": "No run yet.",
     "deleteFailed": "The load test was not deleted.",
     "title": "Load tests",
@@ -4915,7 +4990,8 @@
     "saved": "Load test saved",
     "deleteTitle": "Delete {{name}}?",
     "deleteBody": "Its runs go with it. The API tests stay.",
-    "delete": "Delete"
+    "delete": "Delete",
+    "queuedHelp": "Waiting for a load worker to take it."
   },
   "matrixEvidence": {
     "title": "Requested and effective matrix",
@@ -4994,5 +5070,19 @@
   "errorBoundary": {
     "title": "Something went wrong on this page.",
     "description": "The error has been recorded. Reload the page to continue."
+  },
+  "organizationSwitcher": {
+    "label": "Switch organization",
+    "yourOrganizations": "Your organizations",
+    "failed": "Could not switch organization"
+  },
+  "joinOrganization": {
+    "loading": "Reading the invitation…",
+    "title": "Join {{organization}}",
+    "description": "You were invited to join {{organization}} as {{role}}. Your account keeps its other organizations; you can switch between them from the header.",
+    "join": "Join as {{role}}",
+    "cancel": "Not now",
+    "invalid": "This invitation is not valid for your account: it may have expired, been used, or be meant for another username.",
+    "back": "Back to the app"
   }
 }

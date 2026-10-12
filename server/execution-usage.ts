@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from './middleware/tenancy';
 import { lockOrganizationRuns, quotaUsage, quotasFor, QuotaError } from './tenant-quotas';
+import { assertSubscriptionAllowsRuns } from './billing/enforcement';
 
 export type UsageKind = 'plan' | 'shard' | 'browser' | 'api' | 'mobile';
 const activeUsage = new AsyncLocalStorage<boolean>();
@@ -30,7 +31,13 @@ export async function beginExecutionUsage(
   now = new Date(),
 ): Promise<void> {
   await lockOrganizationRuns(tx, organizationId);
-  if (kind !== 'shard') await checkExecutionBudget(tx, organizationId);
+  // Every direct execution — a browser task or recording, an API or mobile run, the worker
+  // taking a plan run — begins here, so this is where a suspended subscription says no. A shard
+  // belongs to a run already admitted.
+  if (kind !== 'shard') {
+    await assertSubscriptionAllowsRuns(tx, organizationId);
+    await checkExecutionBudget(tx, organizationId);
+  }
   const limits = await quotasFor(tx, organizationId);
   if (limits.mode === 'off') return;
   const inserted =

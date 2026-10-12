@@ -394,7 +394,7 @@ async function importFrom(req: any, res: Response, keysFromExisting: boolean) {
       tx.select().from(issueTrackers).where(eq(issueTrackers.id, parsed.data.trackerId)).limit(1),
     );
     if (!tracker) throw new RequirementError(404, 'Issue tracker not found.');
-    const config = toConfig(tracker);
+    const config = await toConfig(tracker);
 
     let keys = parsed.data.keys;
     if (keysFromExisting) {
@@ -512,7 +512,7 @@ router.post(
       let source: 'tracker' | 'requirement' = 'requirement';
       if (tracker) {
         try {
-          const text = await fetchItemText(toConfig(tracker), requirement.key, htmlToText);
+          const text = await fetchItemText(await toConfig(tracker), requirement.key, htmlToText);
           if (text) {
             story = { key: requirement.key, ...text };
             source = 'tracker';

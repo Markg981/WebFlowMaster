@@ -31,6 +31,7 @@ import {
   GitBranch,
   MessageSquareText,
   Tag,
+  CreditCard,
 } from 'lucide-react';
 
 import EnvironmentsCard from '@/components/settings/EnvironmentsCard';
@@ -51,6 +52,8 @@ import AgentsCard from '@/components/settings/AgentsCard';
 import SourceHostsCard from '@/components/settings/SourceHostsCard';
 import RunUsageCard from '@/components/settings/RunUsageCard';
 import QuotaAdministrationCard from '@/components/settings/QuotaAdministrationCard';
+import BillingCard from '@/components/settings/BillingCard';
+import BillingAdministrationCard from '@/components/settings/BillingAdministrationCard';
 import AuditLogCard from '@/components/settings/AuditLogCard';
 import ExportEraseCard from '@/components/settings/ExportEraseCard';
 import SecurityCard from '@/components/settings/SecurityCard';
@@ -324,6 +327,26 @@ export default function SettingsPage() {
         </div>
       ),
     },
+    // Owners only: the plan is the organization's to pay for; everybody else sees the banner.
+    ...(user?.role === 'owner'
+      ? [
+          {
+            id: 'billing',
+            label: t('settings.sections.billing', 'Billing'),
+            description: t(
+              'settings.sections.billingDescription',
+              'The plan this organization is on, where its subscription stands, and what it uses of what the plan includes.',
+            ),
+            icon: CreditCard,
+            content: (
+              <div className="space-y-6">
+                <BillingCard />
+                {user?.installationAdmin === true && <BillingAdministrationCard />}
+              </div>
+            ),
+          },
+        ]
+      : []),
     // Owners only, like system settings: a runner serves the whole installation.
     ...(user?.role === 'owner'
       ? [

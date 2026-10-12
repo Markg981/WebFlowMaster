@@ -225,6 +225,43 @@ Stampa un link, valido un giorno e utilizzabile una volta, costruito su `WEBFLOW
 registro di audit dell'organizzazione annota che l'ha emesso l'operatore. Consegnatelo alla
 persona con un canale che ne confermi l'identità.
 
+## Ruotare la chiave di cifratura {#ruotare-la-chiave-di-cifratura}
+
+I segreti salvati sono cifrati con una chiave per organizzazione, e quelle chiavi con la chiave
+master derivata da `ENCRYPTION_KEY` ([come sono cifrati i segreti salvati](../security/data-protection#come-sono-cifrati-i-segreti-salvati)).
+Entrambe si possono sostituire senza perdere un segreto. Il comando si esegue dai sorgenti, su una
+macchina con l'ambiente dell'installazione (`DATABASE_URL`, `ENCRYPTION_KEY` e, durante il cambio
+della chiave master, `ENCRYPTION_KEY_PREVIOUS`):
+
+```bash
+npm run key:rotate                                 # dopo aver cambiato ENCRYPTION_KEY
+npm run key:rotate -- --organization 7 --prune     # una nuova chiave per l'organizzazione 7
+npm run key:rotate -- --dry-run                    # cosa cambierebbe; non scrive nulla
+```
+
+**La chiave master.** Generate un nuovo valore, impostatelo come `ENCRYPTION_KEY` e mettete quello
+che sostituisce in `ENCRYPTION_KEY_PREVIOUS` (separati da virgola se sono più d'uno), sul processo
+web, sui worker e sulla macchina che esegue il comando, poi riavviateli: un processo senza la
+chiave precedente rifiuta di partire e indica le chiavi di organizzazione che non riesce ad aprire.
+Eseguite `npm run key:rotate`. Riavvolge ogni chiave di organizzazione sotto la nuova chiave
+master, sposta sulla chiave dell'organizzazione ogni valore ancora cifrato direttamente con una
+chiave master (di prima della migrazione 0084) e stampa i conteggi; una seconda esecuzione riporta
+zero modifiche. Poi togliete `ENCRYPTION_KEY_PREVIOUS` e riavviate ancora una volta. Un valore che
+nessuna chiave configurata apre viene elencato e lasciato com'è, con codice di uscita 1:
+aggiungete la chiave con cui era stato scritto a `ENCRYPTION_KEY_PREVIOUS` ed eseguite di nuovo,
+oppure sostituite il valore.
+
+**La chiave di un'organizzazione.** `--organization <id>` dà a quell'organizzazione una nuova
+versione della chiave, ricifra con essa i suoi segreti e ritira la versione precedente, che resta
+finché qualcosa la nomina; `--prune` cancella le versioni ritirate che nessun valore nomina più. I
+processi in esecuzione usano la nuova versione entro un minuto. Le altre organizzazioni non
+vengono toccate.
+
+Tenete `ENCRYPTION_KEY` fuori dal backup del database, come dice la tabella dei [backup](#backup):
+un database ripristinato sotto una chiave master diversa, senza quella vecchia in
+`ENCRYPTION_KEY_PREVIOUS`, non può aprire le sue chiavi di organizzazione, e il processo web lo
+dice all'avvio invece di far fallire il primo run che ha bisogno di un segreto.
+
 ## Monitoraggio
 
 | Cosa                 | Segnale                                                                                                                                                                                                                                                                                                                                                                                   |

@@ -283,9 +283,9 @@ running the web process, so it only works where that machine has a display.
 A schedule (`test_plan_schedules`) names a plan, a frequency (or a cron expression) and a time zone,
 browsers, an environment, a notification override and a retry policy. Each occurrence has a stable
 idempotency key (`occurrenceKey`), so two scheduler replicas firing the same minute produce one run.
-The default backend is node-cron in the web process (one web server). `SCHEDULER_BACKEND=bullmq`
-uses Redis job schedulers instead, which survive restarts and do not duplicate across instances; a
-worker handles the trigger.
+The default backend, `bullmq`, uses Redis job schedulers, which survive restarts and do not
+duplicate across instances; a worker handles the trigger. `SCHEDULER_BACKEND=cron` fires them from
+node-cron in the web process instead, once per web process: for a single process with no worker.
 
 ## Real matrix evidence
 

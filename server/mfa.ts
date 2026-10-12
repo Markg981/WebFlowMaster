@@ -196,11 +196,12 @@ export async function isMfaEnabled(userId: number): Promise<boolean> {
  */
 export async function beginEnrollment(
   userId: number,
+  organizationId: number,
   account: string,
 ): Promise<{ secret: string; otpauthUri: string; qrDataUrl: string } | null> {
   if (await isMfaEnabled(userId)) return null;
   const secret = base32Encode(randomBytes(20));
-  const { encryptedValue, iv, authTag } = encryptSecret(secret);
+  const { encryptedValue, iv, authTag } = await encryptSecret(secret, organizationId);
   await privilegedDb
     .insert(userMfa)
     .values({
@@ -246,10 +247,13 @@ export async function confirmEnrollment(
       !row.pendingSecretAuthTag
     )
       return null;
-    const secret = decryptSecret(
+    // Inside a privileged transaction: the key lookup must ride on it (server/organization-keys.ts).
+    const secret = await decryptSecret(
       row.pendingSecretEncrypted,
       row.pendingSecretIv,
       row.pendingSecretAuthTag,
+      organizationId,
+      { tx },
     );
     const step = matchingStep(secret, code);
     if (step === null) return null;
@@ -299,7 +303,12 @@ export async function verifySecondFactor(
 
   const trimmed = input.trim();
   if (/^\d[\d\s]*$/.test(trimmed)) {
-    const secret = decryptSecret(row.secretEncrypted, row.secretIv, row.secretAuthTag);
+    const secret = await decryptSecret(
+      row.secretEncrypted,
+      row.secretIv,
+      row.secretAuthTag,
+      organizationId,
+    );
     const step = matchingStep(secret, trimmed);
     if (step === null) return null;
     const accepted = await privilegedDb

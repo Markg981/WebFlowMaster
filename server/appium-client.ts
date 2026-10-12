@@ -1,4 +1,5 @@
 import type { MobileLocator } from '@shared/mobile';
+import { fetchTarget } from './outbound-http';
 
 /**
  * The part of the W3C WebDriver protocol an Appium test needs, over fetch.
@@ -50,7 +51,7 @@ export class AppiumSession {
       Accept: 'application/json',
     };
     if (request.authorization) headers.Authorization = request.authorization;
-    const doFetch = request.fetch ?? ((url, init) => fetch(url, init));
+    const doFetch = request.fetch ?? ((url, init) => fetchTarget(url, init));
     const answer = await call(doFetch, `${base}/session`, {
       method: 'POST',
       headers,

@@ -154,6 +154,8 @@
       "accountDescription": "Votre nom d'utilisateur, et le changement de mot de passe.",
       "runUsage": "Utilisation des exécutions",
       "runUsageDescription": "Combien d'exécutions de cette organisation sont en cours ou en attente, par rapport à ses limites.",
+      "billing": "Facturation",
+      "billingDescription": "Le forfait de cette organisation, l'état de son abonnement et ce qu'elle consomme de ce que le forfait inclut.",
       "auditLog": "Journal d’audit",
       "auditLogDescription": "Qui a modifié quoi, quand, d’où, et si c’était via une clé API.",
       "security": "Sécurité",
@@ -416,7 +418,7 @@
       "pending": "en attente jusqu'au {{date}}",
       "revoke": "Révoquer l'invitation de {{username}}",
       "removeTitle": "Retirer {{username}} ?",
-      "removeDescription": "Son compte est supprimé, avec ses clés API et ses préférences. Les projets, tests, plans, planifications et environnements qu'il a créés restent dans l'organisation et sont confiés au membre que vous choisissez. Le journal d'audit conserve son nom.",
+      "removeDescription": "Il quitte cette organisation, avec ses clés API et ses préférences ici ; le compte lui-même n'est supprimé que si c'était sa dernière organisation. Les projets, tests, plans, planifications et environnements qu'il a créés restent dans l'organisation et sont confiés au membre que vous choisissez. Le journal d'audit conserve son nom.",
       "heirLabel": "Confier ce qu’il a créé à",
       "heirMe": "moi",
       "heirOtherOwner": "un autre propriétaire",
@@ -436,7 +438,8 @@
       "revokeDialog": {
         "title": "Révoquer l'invitation de {{username}} ?",
         "description": "Le lien d'invitation cesse de fonctionner. Vous pourrez inviter cette personne à nouveau plus tard."
-      }
+      },
+      "linkExistingAccount": "{{username}} a déjà un compte : il s'y connecte et ouvre le lien pour rejoindre cette organisation en plus des siennes."
     },
     "customActions": {
       "title": "Actions personnalisées",
@@ -1180,6 +1183,9 @@
       "label": "L'adresse avec laquelle vous vous connectez",
       "submit": "Envoyez-moi un lien",
       "sent": "Si un compte existe avec cette adresse, un lien pour choisir un nouveau mot de passe est en route. Consultez votre boîte de réception."
+    },
+    "invitationExistingAccount": {
+      "description": "Vous avez déjà un compte avec ce nom ? Connectez-vous d'abord, puis rouvrez ce lien pour rejoindre l'organisation."
     }
   },
   "dashboardPageNew": {
@@ -3020,6 +3026,69 @@
     "operator": "Les limites sont définies par l'administrateur de cette installation.",
     "noRunner": "Aucun runner n’est en ligne : les exécutions attendent dans la file jusqu’au démarrage d’un runner."
   },
+  "billing": {
+    "loading": "Chargement…",
+    "error": "Les informations de facturation n'ont pas pu être chargées.",
+    "plan": "Forfait",
+    "free": "Gratuit",
+    "perMonth": "{{amount}} / mois",
+    "perYear": "{{amount}} / an",
+    "period": "Période en cours",
+    "trialEnds": "Fin de l'essai",
+    "usageTitle": "Consommation par rapport à ce que le forfait inclut",
+    "quotaPrecedence": "Une limite fixée par l'administrateur de l'installation l'emporte sur celle du forfait ; celle du forfait l'emporte sur la valeur par défaut de l'installation.",
+    "blocked": "Les nouvelles exécutions et enregistrements sont refusés tant que l'abonnement n'est pas rétabli. Rapports, exports et paramètres restent disponibles.",
+    "graceEnds": "Le paiement est en retard. Les exécutions s'arrêtent le {{date}} s'il n'est pas réglé.",
+    "managedByAdmin": "La facturation est gérée par l'administrateur de cette installation : il n'y a pas de prestataire de paiement.",
+    "changePlan": "Changer de forfait",
+    "manageBilling": "Gérer la facturation",
+    "redirectError": "Le prestataire de facturation est injoignable. Réessayez.",
+    "status": {
+      "trialing": "Essai",
+      "active": "Actif",
+      "past_due": "Paiement en retard",
+      "suspended": "Suspendu",
+      "cancelled": "Annulé"
+    },
+    "interval": {
+      "month": "Mensuel",
+      "year": "Annuel"
+    },
+    "banner": {
+      "suspended": "Cette organisation est suspendue : les nouvelles exécutions et enregistrements ne peuvent pas démarrer. Rapports et paramètres restent disponibles.",
+      "cancelled": "Cette organisation n'a pas d'abonnement actif : les nouvelles exécutions et enregistrements ne peuvent pas démarrer tant qu'un forfait n'est pas choisi.",
+      "pastDueExpired": "Le paiement est en retard et le délai de grâce est écoulé : les nouvelles exécutions ne peuvent pas démarrer tant qu'il n'est pas réglé.",
+      "pastDue": "Le paiement est en retard. Les exécutions s'arrêtent le {{date}} s'il n'est pas réglé.",
+      "settings": "Paramètres de facturation"
+    },
+    "admin": {
+      "title": "Administration de la facturation",
+      "plans": "Forfaits",
+      "organizations": "Organisations",
+      "loadError": "Les données de facturation n'ont pas pu être chargées.",
+      "saveError": "La modification n'a pas pu être enregistrée. Vérifiez les valeurs.",
+      "saved": "Enregistré.",
+      "code": "Code",
+      "name": "Nom",
+      "price": "Prix",
+      "active": "Proposé",
+      "inherit": "Hériter",
+      "yes": "Oui",
+      "no": "Non",
+      "priceMonth": "Prix mensuel (centimes)",
+      "priceYear": "Prix annuel (centimes)",
+      "currency": "Devise",
+      "trialDays": "Jours d'essai",
+      "priceIdMonth": "Id de prix du prestataire (mensuel)",
+      "priceIdYear": "Id de prix du prestataire (annuel)",
+      "create": "Ajouter un forfait",
+      "status": "Statut",
+      "reason": "Motif",
+      "save": "Enregistrer",
+      "blocked": "Exécutions bloquées",
+      "help": "Les organisations suspendues ou annulées, et celles en retard au-delà du délai de grâce, ne peuvent pas démarrer d'exécutions ; leurs rapports et paramètres restent accessibles. Chaque modification est écrite dans le registre de facturation et dans le journal d'audit de l'organisation."
+    }
+  },
   "auditLog": {
     "filterLabel": "Afficher",
     "export": "Exporter en CSV",
@@ -3082,6 +3151,7 @@
       "mail_template_changed": "Modèle email modifié",
       "member_role_changed": "Rôle du membre modifié",
       "member_removed": "Membre retiré",
+      "member_joined": "Membre entré dans l'organisation",
       "invitation_created": "Invitation envoyée",
       "invitation_revoked": "Invitation révoquée",
       "invitation_accepted": "Invitation acceptée",
@@ -3188,6 +3258,8 @@
       "sms_inbox_token_issued": "Adresse SMS émise",
       "sms_inbox_token_revoked": "Adresse SMS révoquée",
       "organization_quotas_updated": "Quotas de l'organisation modifiés",
+      "organization_billing_updated": "Facturation de l'organisation modifiée",
+      "organization_switched": "Organisation changée",
       "organization_artifacts_reconciled": "Inventaire des artefacts de l'organisation réconcilié",
       "load_test_created": "Test de charge créé",
       "load_test_updated": "Test de charge modifié",
@@ -4821,11 +4893,13 @@
   "loadTests": {
     "profileChart": "Profil de charge : jusqu'à {{peak}} utilisateurs virtuels sur {{total}} s",
     "status": {
+      "queued": "En file d’attente",
       "running": "En cours",
       "passed": "Réussi",
       "failed": "Échoué",
       "cancelled": "Annulé",
-      "error": "N'a pas pu s'exécuter"
+      "error": "N'a pas pu s'exécuter",
+      "worker_lost": "Worker perdu"
     },
     "runLoadFailed": "Impossible de charger l'exécution.",
     "loading": "Chargement…",
@@ -4881,6 +4955,7 @@
     "addStage": "Ajouter un palier",
     "warmUp": "Préchauffage (s), non évalué",
     "profileTotal": "{{total}} s au total, {{peak}} utilisateurs virtuels au pic",
+    "profileLimits": "Limites : {{durationSec}} s au total, {{virtualUsers}} utilisateurs virtuels.",
     "data": "Données par utilisateur virtuel",
     "dataSet": "Jeu de données",
     "noData": "Aucun jeu de données : les mêmes valeurs pour tous",
@@ -4900,7 +4975,7 @@
     "environment": "Environnement",
     "noEnvironment": "Aucun environnement",
     "start": "Lancer une exécution",
-    "startHelp": "L'exécution part du serveur, à part des plans. Un test de charge à la fois par organisation.",
+    "startHelp": "L'exécution est mise en file d'attente pour un worker de charge, à part des plans, et survit à un redémarrage du serveur web. Un test de charge à la fois par organisation.",
     "noRuns": "Aucune exécution.",
     "deleteFailed": "Le test de charge n'a pas été supprimé.",
     "title": "Tests de charge",
@@ -4915,7 +4990,8 @@
     "saved": "Test de charge enregistré",
     "deleteTitle": "Supprimer {{name}} ?",
     "deleteBody": "Ses exécutions sont supprimées avec lui. Les tests d'API restent.",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "queuedHelp": "En attente qu’un worker de charge la prenne."
   },
   "matrixEvidence": {
     "title": "Matrice demandée et effective",
@@ -4994,5 +5070,19 @@
   "errorBoundary": {
     "title": "Une erreur s'est produite sur cette page.",
     "description": "L'erreur a été enregistrée. Rechargez la page pour continuer."
+  },
+  "organizationSwitcher": {
+    "label": "Changer d'organisation",
+    "yourOrganizations": "Vos organisations",
+    "failed": "Impossible de changer d'organisation"
+  },
+  "joinOrganization": {
+    "loading": "Lecture de l'invitation…",
+    "title": "Rejoindre {{organization}}",
+    "description": "Vous êtes invité à rejoindre {{organization}} en tant que {{role}}. Votre compte conserve ses autres organisations ; vous pouvez passer de l'une à l'autre depuis l'en-tête.",
+    "join": "Rejoindre en tant que {{role}}",
+    "cancel": "Pas maintenant",
+    "invalid": "Cette invitation n'est pas valable pour votre compte : elle a peut-être expiré, déjà été utilisée, ou est destinée à un autre nom d'utilisateur.",
+    "back": "Retour à l'application"
   }
 }

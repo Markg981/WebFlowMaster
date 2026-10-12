@@ -306,10 +306,11 @@ describe('native email provider protocols', () => {
     await expect(mailProviderDeps.fetchCertificate(url)).resolves.toBe(certificate);
     await expect(mailProviderDeps.fetchCertificate(url)).resolves.toBe(certificate);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(url, {
-      redirect: 'error',
-      signal: expect.any(AbortSignal),
-    });
+    // The dispatcher is the egress-policy connector every outbound request carries.
+    expect(fetchMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({ redirect: 'error', signal: expect.any(AbortSignal) }),
+    );
     const hugeUrl = url.replace(/1/g, '2');
     fetchMock.mockImplementationOnce(async () => new Response('x'.repeat(16385)));
     await expect(mailProviderDeps.fetchCertificate(hugeUrl)).rejects.toThrow(

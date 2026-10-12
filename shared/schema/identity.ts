@@ -43,6 +43,36 @@ export const organizations = pgTable('organizations', {
   smsInboundTokenCreatedAt: timestamp('sms_inbound_token_created_at'),
 });
 
+/**
+ * An organization's data keys (migration 0084). Every secret the organization stores is encrypted
+ * with its active key; the key itself is stored wrapped by the master key ENCRYPTION_KEY derives,
+ * so the database alone reveals nothing. One active version per organization; a retired version
+ * stays until nothing it encrypted is left (scripts/wfm-rotate-key.ts). Read by
+ * server/organization-keys.ts, outside any tenant transaction when there is none: the worker and
+ * single sign-on decrypt before a request's organization is known. app_user may read and create
+ * its own organization's keys and nothing else; retiring and deleting are the operator's.
+ */
+export const organizationKeys = pgTable(
+  'organization_keys',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    keyVersion: integer('key_version').notNull(),
+    /** Hex: 16-byte IV, 16-byte authentication tag, then the key encrypted under the master key. */
+    wrappedKey: text('wrapped_key').notNull(),
+    /** The fingerprint of the master key that wrapped it: sha256 of the key, first 16 hex characters. */
+    masterKeyId: text('master_key_id').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    retiredAt: timestamp('retired_at'),
+  },
+  (table) => [
+    uniqueIndex('organization_keys_version_unique').on(table.organizationId, table.keyVersion),
+    index('organization_keys_organization_id_idx').on(table.organizationId),
+  ],
+);
+
 export const quotaExecutionSessions = pgTable(
   'quota_execution_sessions',
   {
@@ -87,7 +117,12 @@ export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   username: text('username').notNull().unique(),
   password: text('password').notNull(),
-  // The tenancy boundary. One user belongs to exactly one organization.
+  /**
+   * The tenancy boundary: the organization this account is acting in right now. A person may be
+   * a member of several (organization_memberships, migration 0086) and switches between them;
+   * this column and `role` always mirror the membership of the current one, so every query,
+   * policy and role check that reads them keeps working unchanged.
+   */
   organizationId: integer('organization_id')
     .notNull()
     .references(() => organizations.id),
@@ -105,6 +140,40 @@ export const users = pgTable('users', {
   disabledAt: timestamp('disabled_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+/**
+ * Which organizations a person belongs to, and as what (migration 0086).
+ *
+ * `users.organization_id` and `users.role` name the organization the account is acting in and its
+ * role there; this table names every organization it may act in. Switching
+ * (`POST /api/organizations/switch`) copies one of these rows onto the user row. The row of the
+ * current organization is kept in step by a trigger on `users` (`users_sync_current_membership`),
+ * so every path that creates an account or changes its role — registration, invitations, single
+ * sign-on, SCIM — keeps its membership right without knowing about this table.
+ *
+ * Org-scoped and policed by RLS like the rest: inside an organization, its members are visible;
+ * what else a person belongs to is read on the privileged handle (server/organization-memberships.ts).
+ */
+export const organizationMemberships = pgTable(
+  'organization_memberships',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    role: text('role').notNull().default('editor'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('organization_memberships_user_org_unique').on(table.userId, table.organizationId),
+    index('organization_memberships_organization_id_idx').on(table.organizationId),
+  ],
+);
+
+export type OrganizationMembership = typeof organizationMemberships.$inferSelect;
 
 /**
  * A user's second factor. Its own table so no secret rides along on the user row, which goes
@@ -605,6 +674,9 @@ export type InsertApiKey = typeof apiKeys.$inferInsert;
 export const AUDIT_ACTIONS = {
   ORGANIZATION_QUOTAS_UPDATED: 'organization.quotas_updated',
   ORGANIZATION_ARTIFACTS_RECONCILED: 'organization.artifacts_reconciled',
+  // The organization's plan or subscription status changed: by an installation administrator, by
+  // the billing provider's webhook, or by the daily sweep (migration 0087).
+  ORGANIZATION_BILLING_UPDATED: 'organization.billing_updated',
   BDD_PROFILE_CREATED: 'bdd_profile.created',
   BDD_PROFILE_UPDATED: 'bdd_profile.updated',
   BDD_PROFILE_DELETED: 'bdd_profile.deleted',
@@ -612,6 +684,11 @@ export const AUDIT_ACTIONS = {
   MAIL_TEMPLATE_CHANGED: 'mail_template.changed',
   MEMBER_ROLE_CHANGED: 'member.role_changed',
   MEMBER_REMOVED: 'member.removed',
+  // An existing account joining this organization as one more of its organizations (migration
+  // 0086): by accepting an invitation, or through single sign-on on a verified domain.
+  MEMBER_JOINED: 'member.joined',
+  // Recorded in the organization switched to: the session started acting in it.
+  ORGANIZATION_SWITCHED: 'organization.switched',
   INVITATION_CREATED: 'invitation.created',
   INVITATION_REVOKED: 'invitation.revoked',
   INVITATION_ACCEPTED: 'invitation.accepted',

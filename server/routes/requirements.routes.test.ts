@@ -128,7 +128,7 @@ const trackerServer = http.createServer((req, res) => {
 let trackerBase: string;
 
 async function addTracker(provider: 'jira' | 'azure_devops') {
-  const encrypted = encryptSecret('token-1');
+  const encrypted = await encryptSecret('token-1', organizationId);
   const id = uuidv4();
   await privilegedDb.insert(issueTrackers).values({
     id,

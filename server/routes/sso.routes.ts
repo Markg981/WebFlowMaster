@@ -304,7 +304,9 @@ router.get('/api/sso/saml/:organizationId/metadata', async (req, res) => {
   const organizationId = Number(req.params.organizationId);
   const row = Number.isInteger(organizationId) ? await samlProviderOf(organizationId) : null;
   if (!row) return res.status(404).json({ error: 'This organization does not sign in with SAML.' });
-  res.type('application/samlmetadata+xml').send(serviceProviderMetadata(row, publicBase(req)));
+  res
+    .type('application/samlmetadata+xml')
+    .send(await serviceProviderMetadata(row, publicBase(req)));
 });
 
 // POST /api/sso/saml/:organizationId/acs — the provider POSTs the signed response here (cross-site:
@@ -343,7 +345,7 @@ function signIn(
   req: Request,
   res: Response,
   next: NextFunction,
-  { user, created, linked, samlSession }: SignedIn,
+  { user, created, linked, joined, samlSession }: SignedIn,
   protocol: 'oidc' | 'saml',
 ) {
   // req.login starts a new session: the one that carried the state does not become the signed-in one.
@@ -365,6 +367,7 @@ function signIn(
         protocol,
         ...(created ? { created } : {}),
         ...(linked ? { linked } : {}),
+        ...(joined ? { joined } : {}),
       });
       res.redirect(303, '/');
     });

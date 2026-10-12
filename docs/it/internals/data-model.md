@@ -53,6 +53,9 @@ erDiagram
 | `quota_execution_sessions`     | Sessioni di occupazione per tenant indipendenti dalla retention dei report; intervalli misurati nel mese UTC.                                                                                                                  |
 | `quota_artifacts`              | Byte conservati e prenotati per tenant, incluse baseline e screenshot mobile nel database.                                                                                                                                     |
 | `quota_installation_defaults`  | Default privati di modalità/test/spazio per i trigger; non accessibili ad `app_user`.                                                                                                                                          |
+| `billing_plans`                | Il catalogo dei piani dell'installazione: codice, prezzi, valuta, giorni di prova, le quote incluse (null eredita il default dell'installazione) e gli id prezzo del provider. `app_user` legge soltanto.                      |
+| `organization_subscriptions`   | Una riga per organizzazione: piano, stato (`trialing`/`active`/`past_due`/`suspended`/`cancelled`), periodo, fine prova, da quando è in ritardo, id del provider. Con RLS; `app_user` legge soltanto.                          |
+| `billing_events`               | Registro in sola aggiunta di webhook del provider e modifiche manuali o pianificate, unico per chiave di idempotenza. Nessun permesso per `app_user`.                                                                          |
 
 Gli override dell'organizzazione includono modalità, test salvati, byte e minuti mensili,
 con revisione e data dell'inventario. Vedere [amministrazione quote](../admin/administration#quotas).

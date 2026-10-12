@@ -44,17 +44,35 @@ volta sola. Quando l'installazione invia e-mail ([E-mail](#e-mail)) e lo usernam
 link viene anche spedito lì, e la pagina dice se è partito; altrimenti mandatelo con un canale di
 cui vi fidate. Il link apre il modulo di registrazione con invito e username già compilati; la
 persona sceglie una password (come chiede la [politica delle password](#password-policy)) ed è dentro. Un invito vale sette giorni e si
-può revocare finché è in attesa. Un account esistente non può essere spostato tra
-organizzazioni: un invito crea sempre un account nuovo.
+può revocare finché è in attesa.
 
-**Cambiare un ruolo** con il menu accanto a un membro. L'ultimo owner non può essere declassato.
+**Invitare chi ha già un account** si fa allo stesso modo, con lo username che ha già: la pagina lo
+dice quando mostra il link. La persona accede con il suo account e apre il link, che le chiede di
+entrare nella vostra organizzazione con il ruolo scelto. Il suo account appartiene allora a
+entrambe le organizzazioni, e passa dall'una all'altra dall'intestazione. Un account non viene mai
+spostato: entra in un'organizzazione accettando, e la lascia quando ne viene rimosso.
 
-**Rimuovere un membro** con l'icona del cestino. Il suo account viene cancellato, con le chiavi
-API, il secondo fattore e le preferenze. Ciò che ha creato (progetti, test, test API, piani,
-schedulazioni, gruppi di step, ambienti e i loro segreti) resta nell'organizzazione e passa a un
-altro membro: a voi, a meno che nella finestra non ne scegliate un altro. Un owner che rimuove
-se stesso lo passa a un altro owner. Il registro di audit ne conserva il nome e registra chi è
-subentrato.
+**Più organizzazioni.** Chi è membro di più di una vede un menu delle organizzazioni
+nell'intestazione, accanto alla ricerca. Il cambio apre una nuova sessione nell'organizzazione
+scelta con il ruolo che vi si ha, e tutto ciò che è sullo schermo — test, piani, run, impostazioni
+— è di quell'organizzazione. Nulla di un'organizzazione è visibile mentre si agisce in un'altra. Il
+registro di audit dell'organizzazione in cui si entra registra il cambio. Una sessione con password
+non può passare a un'organizzazione che richiede il single sign-on: accedetevi con **Accedi con
+SSO**. Con il single sign-on, una persona di un'altra organizzazione che accede tramite il vostro
+provider entra automaticamente nella vostra quando il dominio del suo indirizzo è
+[verificato](#single-sign-on) per la vostra organizzazione.
+
+**Cambiare un ruolo** con il menu accanto a un membro. Il ruolo è quello che ha qui; il ruolo che
+ha in un'altra organizzazione è di quell'organizzazione. L'ultimo owner non può essere declassato.
+
+**Rimuovere un membro** con l'icona del cestino. Lascia questa organizzazione: le chiavi API, i
+posti nei progetti e le preferenze qui se ne vanno con lui, e se questa era l'organizzazione in cui
+stava agendo, alla richiesta successiva si ritrova in un'altra delle sue. L'account in sé — con il
+secondo fattore — viene cancellato solo se questa era la sua ultima organizzazione. Ciò che ha
+creato (progetti, test, test API, piani, schedulazioni, gruppi di step, ambienti e i loro segreti)
+resta nell'organizzazione e passa a un altro membro: a voi, a meno che nella finestra non ne
+scegliate un altro. Un owner che rimuove se stesso lo passa a un altro owner. Il registro di audit
+ne conserva il nome e registra chi è subentrato.
 
 **Emettere un link di reset della password** con l'icona del link, per un membro che ha
 dimenticato la password. La pagina mostra il link una volta sola, e lo spedisce come
@@ -76,17 +94,19 @@ Ognuna di queste operazioni viene registrata nel [registro di audit](#registro-d
 ::: details Le stesse operazioni tramite l'API
 Con la chiave API ad accesso completo di un owner (`Authorization: Bearer wfm_…`):
 
-| Operazione                      | Richiesta                                                                                                                           |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Elencare i membri               | `GET /api/organization`                                                                                                             |
-| Invitare                        | `POST /api/organization/invitations` con `{"username":"maria.rossi","role":"editor"}`; la risposta contiene il token, una volta     |
-| Inviti in attesa, revocarne uno | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                                    |
-| Registrarsi con un invito       | `POST /api/register` con `{"username","password","invitationToken"}`                                                                |
-| Cambiare un ruolo               | `PATCH /api/organization/members/<userId>` con `{"role":"owner"}`                                                                   |
-| Rimuovere                       | `DELETE /api/organization/members/<userId>`, facoltativamente con `{"transferTo":<userId>}`                                         |
-| Link di reset della password    | `POST /api/organization/members/<userId>/password-reset`; la risposta contiene il token, una volta. Il link è `/auth?reset=<token>` |
-| Azzerare il secondo fattore     | `DELETE /api/organization/members/<userId>/mfa`                                                                                     |
-| :::                             |
+| Operazione                        | Richiesta                                                                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Elencare i membri                 | `GET /api/organization`                                                                                                             |
+| Invitare                          | `POST /api/organization/invitations` con `{"username":"maria.rossi","role":"editor"}`; la risposta contiene il token, una volta     |
+| Inviti in attesa, revocarne uno   | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                                    |
+| Registrarsi con un invito         | `POST /api/register` con `{"username","password","invitationToken"}`                                                                |
+| Entrare con un account esistente  | Da sessione: `GET /api/invitations/preview?token=…`, poi `POST /api/invitations/accept` con `{"token"}` (solo sessioni)             |
+| Le proprie organizzazioni, cambio | `GET /api/organizations/mine`; `POST /api/organizations/switch` con `{"organizationId"}` (solo sessioni; una chiave non cambia)     |
+| Cambiare un ruolo                 | `PATCH /api/organization/members/<userId>` con `{"role":"owner"}`                                                                   |
+| Rimuovere                         | `DELETE /api/organization/members/<userId>`, facoltativamente con `{"transferTo":<userId>}`                                         |
+| Link di reset della password      | `POST /api/organization/members/<userId>/password-reset`; la risposta contiene il token, una volta. Il link è `/auth?reset=<token>` |
+| Azzerare il secondo fattore       | `DELETE /api/organization/members/<userId>/mfa`                                                                                     |
+| :::                               |
 
 ## Progetti riservati
 
@@ -529,7 +549,8 @@ cambio, link di reset); le password già esistenti non vengono controllate.
 ## Quote e consumi {#quotas}
 
 **Impostazioni → Utilizzo run** mostra piani in corso/in coda, test salvati, byte degli artefatti
-e minuti di esecuzione nel mese solare UTC. Le quote funzionano senza pagamenti o abbonamenti.
+e minuti di esecuzione nel mese solare UTC. Le quote funzionano senza pagamenti: un piano
+([Fatturazione](#fatturazione)) può portarle, ma qui nulla addebita qualcosa a qualcuno.
 Per l'uso locale gratuito senza limiti impostare `TENANT_QUOTA_MODE=off`. `monitor` misura senza
 rifiutare operazioni; `enforce` applica i limiti. Il default `enforce` conserva i precedenti limiti
 di concorrenza/coda, con le nuove dimensioni illimitate. La modalità è configurabile per tenant.
@@ -542,7 +563,9 @@ di concorrenza/coda, con le nuove dimensioni illimitate. La modalità è configu
 | Artefatti conservati | `ORG_MAX_ARTIFACT_BYTES=0`            | Evidenze, baseline e screenshot mobile nel database, in byte                    |
 | Esecuzione mensile   | `ORG_MAX_MONTHLY_EXECUTION_MINUTES=0` | Occupazione, inclusi browser/API/mobile diretti e worker aggiuntivi degli shard |
 
-Zero significa illimitato per i tre nuovi limiti. **Eredita** elimina l'override e usa il default.
+Zero significa illimitato per i tre nuovi limiti. **Eredita** elimina l'override e usa il limite del
+piano, o il default dell'installazione dove il piano non ne ha: l'override dell'amministratore vince
+sul piano, e il piano sul default, sia nell'applicazione sia nei trigger del database.
 In `off` controllo e misurazione dei minuti sono disabilitati; conteggi dei test e contabilità degli
 artefatti restano disponibili. Capacità dei worker, timeout, rate limit e permessi mantengono la
 propria configurazione. Usare default identici su web/worker e riavviare dopo le modifiche.
@@ -565,14 +588,92 @@ modifica ed eliminazione restano disponibili. I minuti sono un budget di ammissi
 né una soglia di arresto: il lavoro ammesso può terminare oltre il limite; i piani in coda aspettano
 capacità o il prossimo mese UTC. In assenza di heartbeat il consumo orfano si ferma a due minuti
 dall'ultimo segnale. Eliminare lo storico non cancella il consumo. Evidenze omesse sono segnalate
-separatamente dal verdetto, preservando quelle precedenti. Queste quote possono supportare politiche
-commerciali ma non addebitano nulla: i pagamenti richiedono un'integrazione configurata separatamente.
+separatamente dal verdetto, preservando quelle precedenti. Queste quote non addebitano nulla: quanto
+costa un piano, e cosa succede se non viene pagato, è materia della sezione seguente.
 
 API: `GET /api/admin/organization-quotas`, `PATCH /api/admin/organization-quotas/:id` con
 `{ "revision": 1, "overrides": { "mode": "off", "maxTests": null } }`,
 `POST /api/admin/organization-quotas/:id/reconcile-artifacts`. Consumi del tenant:
 `GET /api/organization/usage`. Rifiuti: HTTP 429 con `test_quota_exceeded` oppure
 `execution_quota_exceeded`. Vedere le [procedure di accettazione](https://github.com/Markg981/WebFlowMaster/blob/main/docs/acceptance/administration-acceptance.md).
+
+## Fatturazione {#fatturazione}
+
+Ogni organizzazione ha esattamente un abbonamento a un piano. I piani sono dell'installazione
+(`billing_plans`): un codice, un nome, un prezzo mensile e uno annuale in unità minime con la valuta,
+giorni di prova facoltativi, se è offerto, e le quote che include — gli stessi cinque limiti qui
+sopra; un piano che ne lascia uno vuoto eredita il default dell'installazione. La migrazione 0087
+crea un piano `free` senza limiti propri e vi mette ogni organizzazione esistente, `active`, così
+un'installazione che non guarda mai questa sezione si comporta esattamente come prima. Una nuova
+organizzazione riceve lo stesso da un trigger del database.
+
+Un abbonamento ha uno di cinque stati:
+
+| Stato       | Significato                                                                                          | Avvio dei run                                                                                           |
+| ----------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `trialing`  | Una prova fino a `trialEndsAt`.                                                                      | Consentito                                                                                              |
+| `active`    | Pagato, o gratuito.                                                                                  | Consentito                                                                                              |
+| `past_due`  | Un pagamento è fallito, o una prova impostata a mano è scaduta.                                      | Consentito per `BILLING_PAST_DUE_GRACE_DAYS` (7) giorni da quando è diventato in ritardo, poi rifiutato |
+| `suspended` | In ritardo oltre la tolleranza, non pagato presso il provider, o sospeso a mano con un motivo.       | Rifiutato                                                                                               |
+| `cancelled` | L'abbonamento è finito e il catalogo non offre un piano gratuito su cui tornare, o annullato a mano. | Rifiutato                                                                                               |
+
+"Rifiutato" significa esattamente questo: avviare un run di piano (web, API, pianificazione,
+webhook, CLI, replay), un test di carico, un'esecuzione diretta browser, API o mobile, o una
+registrazione risponde **402 `subscription_suspended`**. Il controllo sta nei tre punti in cui il
+lavoro inizia — l'orchestratore dei run, l'avvio del test di carico e la misurazione che ogni
+esecuzione diretta attraversa — non in ogni route. Leggere report ed evidenze, esportare, ogni
+pagina delle impostazioni e l'accesso continuano a funzionare: un'organizzazione sospesa conserva i
+suoi dati e la via d'uscita. Ogni membro vede un banner sopra ogni pagina finché i run sono
+rifiutati o stanno per esserlo; gli owner vedono il dettaglio in **Impostazioni → Fatturazione**:
+il piano, il suo stato, il periodo corrente e il consumo rispetto a ciò che il piano include.
+
+Due volte al giorno una scansione porta gli abbonamenti `past_due` oltre la tolleranza a
+`suspended` e chiude le prove impostate a mano (diventano `past_due`, così l'amministratore — o un
+pagamento — ha il periodo di tolleranza per agire). Le prove tenute dal provider le chiude il
+provider con i suoi messaggi.
+
+**Modalità manuale** (`BILLING_PROVIDER=none`, il default, ciò che vuole un'installazione
+self-hosted): l'amministratore dell'installazione (vedi [sopra](#amministratori-dell-installazione))
+gestisce piani e abbonamenti in **Impostazioni → Fatturazione → Amministrazione fatturazione**,
+oppure con `GET/POST /api/installation/billing/plans`, `PATCH /api/installation/billing/plans/:code`,
+`GET /api/installation/billing/organizations` e
+`PATCH /api/installation/billing/organizations/:id` con
+`{ "planCode", "status", "suspendedReason", "trialEndsAt" }`. La scheda dell'organizzazione dice che
+la fatturazione è gestita dall'amministratore dell'installazione; non c'è nessuno a cui pagare.
+
+**Modalità Stripe** (`BILLING_PROVIDER=stripe`): impostare `STRIPE_SECRET_KEY`,
+`STRIPE_WEBHOOK_SECRET` e `BILLING_PUBLIC_BASE_URL` (o `WEBFLOW_PUBLIC_URL`); il server rifiuta di
+avviarsi se ne manca uno. In Stripe creare un prezzo ricorrente per piano e intervallo e metterne
+gli id sul piano (`providerPriceIds: { "month": "price_…", "year": "price_…" }`); un piano senza
+prezzo per un intervallo non è venduto per quell'intervallo. Registrare un endpoint webhook su
+`https://<indirizzo>/api/billing/webhooks/stripe` per gli eventi `checkout.session.completed`,
+`customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` e
+`invoice.payment_failed`, e copiare il suo segreto di firma in `STRIPE_WEBHOOK_SECRET`. Gli owner
+usano poi **Cambia piano** (una sessione Stripe Checkout, `POST /api/billing/checkout` con
+`{ "planCode", "interval" }`) e **Gestisci fatturazione** (il portale clienti di Stripe,
+`POST /api/billing/portal`). L'organizzazione viaggia sugli oggetti di Stripe come
+`client_reference_id` e metadata, così ogni messaggio successivo dice di chi è. Gli stati si
+mappano così: `trialing`, `active` di Stripe → gli stessi; `past_due`, `incomplete` → `past_due`;
+`unpaid`, `paused` → `suspended`; `canceled`, `incomplete_expired` → `cancelled`, che riporta
+l'organizzazione al piano `free` finché il catalogo lo offre. Una fattura fallita rende
+l'abbonamento `past_due`; una pagata lo riporta `active`. L'amministratore dell'installazione può
+comunque muovere a mano qualsiasi abbonamento; annullarne uno tenuto da Stripe lo annulla anche lì.
+
+Il webhook è pubblico, come ogni webhook, e non crede a nulla che `STRIPE_WEBHOOK_SECRET` non firmi:
+l'HMAC-SHA256 dell'header `Stripe-Signature` su timestamp e corpo grezzo, entro cinque minuti. Il
+segreto è sensibile quanto una password — chi lo possiede può sospendere o ripristinare qualsiasi
+organizzazione — quindi va tenuto nell'ambiente, mai in un piano o in una pagina, e ruotato dalla
+dashboard di Stripe (durante una rotazione sono accettate più firme). Ogni messaggio accettato e
+ogni modifica manuale o pianificata è scritta una sola volta in `billing_events` sotto una chiave di
+idempotenza (l'id dell'evento del provider), così un messaggio ripetuto non cambia nulla, e
+nell'audit dell'organizzazione come `organization.billing_updated`.
+
+Endpoint del tenant: `GET /api/billing` (ogni membro), `GET /api/billing/plans`,
+`POST /api/billing/checkout` e `POST /api/billing/portal` (owner, solo Stripe). L'API pubblica offre
+`GET /api/v1/billing` con lo scope `billing:read`. Nulla di questo è stato esercitato contro un
+account Stripe reale nel registro di accettazione di questo repository: l'adattatore Stripe è
+coperto da fixture di eventi registrate e richieste firmate, e una prova con un account reale resta
+un'evidenza separata.
 
 ## Limiti noti
 
@@ -584,5 +685,7 @@ API: `GET /api/admin/organization-quotas`, `PATCH /api/admin/organization-quotas
 - Il single logout SAML richiede una coppia RSA del service provider e messaggi firmati; verificare
   la compatibilità del provider prima di abilitarlo. L'accesso avviato dall'IdP manca del binding al browser.
 - L’accettazione SMTP da sola non conferma la consegna. Abilitare callback autenticati del provider per consegna e rimbalzi.
-- Fatturazione SaaS e piani a consumo sospesi per decisione del 2026-10-02: provider, listino,
-  valuta e unità fatturabile restano da definire. Le quote dei run per organizzazione sono disponibili.
+- La fatturazione copre piani in abbonamento con quote incluse, in modalità manuale e tramite Stripe
+  (checkout, portale, webhook). La fatturazione a consumo — addebitare per minuto o per test oltre il
+  piano — non è implementata: le quote rifiutano il lavoro oltre il limite, non lo prezzano.
+  L'adattatore Stripe è verificato con fixture di eventi registrate, non con un account reale.

@@ -1,0 +1,78 @@
+{{- if .Values.redis.enabled }}
+# EVALUATION ONLY. One Valkey pod with a volume and no authentication; sessions, the queue and
+# the schedules live in it, so losing it loses the queue. Production belongs on a managed
+# Redis or an operator; set secrets.redisUrl and leave this disabled.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-redis
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    {{- include "webflowmaster.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-redis
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  serviceName: {{ include "webflowmaster.fullname" . }}-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "webflowmaster.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        {{- include "webflowmaster.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: redis
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          args: ['--appendonly', 'yes']
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ['valkey-cli', 'ping']
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ['valkey-cli', 'ping']
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- if .Values.redis.persistence.storageClass }}
+        storageClassName: {{ .Values.redis.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.redis.persistence.size }}
+{{- end }}

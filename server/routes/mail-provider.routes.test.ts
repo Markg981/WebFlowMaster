@@ -115,7 +115,7 @@ describe('public organization provider callbacks', () => {
   it('keeps generic HMAC compatibility with an organization secret', async () => {
     await privilegedDb
       .update(mailSettings)
-      .set({ provider: 'generic', signingSecret: encryptSecret(secret) })
+      .set({ provider: 'generic', signingSecret: await encryptSecret(secret, organizationId) })
       .where(eq(mailSettings.organizationId, organizationId));
     const body = { eventId: 'generic-event', messageId, status: 'delivered' as const };
     const timestamp = String(Math.floor(Date.now() / 1000));
@@ -160,7 +160,7 @@ describe('public organization provider callbacks', () => {
   it('durably binds Mailgun tokens to the authenticated body while allowing identical retries', async () => {
     await privilegedDb
       .update(mailSettings)
-      .set({ provider: 'mailgun', signingSecret: encryptSecret(secret) })
+      .set({ provider: 'mailgun', signingSecret: await encryptSecret(secret, organizationId) })
       .where(eq(mailSettings.organizationId, organizationId));
     const timestamp = String(Math.floor(Date.now() / 1000)),
       token = randomUUID();

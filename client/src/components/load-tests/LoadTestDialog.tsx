@@ -21,8 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  LOAD_LIMITS,
-  loadTestSchema,
+  loadTestSchemaFor,
   peakVus,
   totalDurationSec,
   type LoadDataMode,
@@ -31,11 +30,13 @@ import {
   type LoadThresholds,
 } from '@shared/load-test';
 import { LoadProfileChart } from './LoadProfileChart';
+import { useLoadLimits } from '@/hooks/use-load-limits';
 
 /**
  * Writing a load test (shared/load-test.ts): the API tests a virtual user repeats, the stages the
  * number of users follows, the warm-up left out of the verdict, the data each user reads and the
- * thresholds the run is judged on.
+ * thresholds the run is judged on. Virtual users and duration are capped by the installation
+ * (useLoadLimits): the inputs, the check before saving and the help line follow its limits.
  */
 
 export interface LoadTestRow {
@@ -130,6 +131,7 @@ export default function LoadTestDialog({ isOpen, test, onClose, onSaved }: Props
     },
     enabled: isOpen,
   });
+  const { limits } = useLoadLimits({ enabled: isOpen });
   const nameOf = (id: number) => apiTests.find((api) => api.id === id)?.name ?? `#${id}`;
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
@@ -168,7 +170,7 @@ export default function LoadTestDialog({ isOpen, test, onClose, onSaved }: Props
   const dataSet = dataSets.find((s) => s.id === draft.dataSetId);
 
   const save = async () => {
-    const parsed = loadTestSchema.safeParse(draft);
+    const parsed = loadTestSchemaFor(limits).safeParse(draft);
     if (!parsed.success)
       return setError(
         parsed.error.issues[0]?.message ?? t('loadTests.invalid', 'The load test is not valid.'),
@@ -267,12 +269,12 @@ export default function LoadTestDialog({ isOpen, test, onClose, onSaved }: Props
                   type="number"
                   className="w-24"
                   min={0}
-                  max={LOAD_LIMITS.thinkTimeMs}
+                  max={limits.thinkTimeMs}
                   value={step.thinkTimeMs}
                   onChange={(e) =>
                     setStep(index, {
                       ...step,
-                      thinkTimeMs: int(e.target.value, 0, LOAD_LIMITS.thinkTimeMs),
+                      thinkTimeMs: int(e.target.value, 0, limits.thinkTimeMs),
                     })
                   }
                 />
@@ -311,7 +313,7 @@ export default function LoadTestDialog({ isOpen, test, onClose, onSaved }: Props
                 </Button>
               </div>
             ))}
-            {draft.steps.length < LOAD_LIMITS.steps && (
+            {draft.steps.length < limits.steps && (
               <Select
                 value=""
                 onValueChange={(id) =>
@@ -359,12 +361,12 @@ export default function LoadTestDialog({ isOpen, test, onClose, onSaved }: Props
                   type="number"
                   className="w-24"
                   min={1}
-                  max={LOAD_LIMITS.durationSec}
+                  max={limits.durationSec}
                   value={stage.durationSec}
                   onChange={(e) =>
                     setStage(index, {
                       ...stage,
-                      durationSec: int(e.target.value, 1, LOAD_LIMITS.durationSec),
+                      durationSec: int(e.target.value, 1, limits.durationSec),
                     })
                   }
                 />
@@ -376,12 +378,12 @@ export default function LoadTestDialog({ isOpen, test, onClose, onSaved }: Props
                   type="number"
                   className="w-24"
                   min={0}
-                  max={LOAD_LIMITS.virtualUsers}
+                  max={limits.virtualUsers}
                   value={stage.targetVus}
                   onChange={(e) =>
                     setStage(index, {
                       ...stage,
-                      targetVus: int(e.target.value, 0, LOAD_LIMITS.virtualUsers),
+                      targetVus: int(e.target.value, 0, limits.virtualUsers),
                     })
                   }
                 />
@@ -401,7 +403,7 @@ export default function LoadTestDialog({ isOpen, test, onClose, onSaved }: Props
                 </Button>
               </div>
             ))}
-            {draft.stages.length < LOAD_LIMITS.stages && (
+            {draft.stages.length < limits.stages && (
               <Button
                 variant="outline"
                 size="sm"
@@ -427,15 +429,20 @@ export default function LoadTestDialog({ isOpen, test, onClose, onSaved }: Props
                 type="number"
                 className="w-24"
                 min={0}
-                max={LOAD_LIMITS.durationSec}
+                max={limits.durationSec}
                 value={draft.warmUpSec}
-                onChange={(e) => set('warmUpSec', int(e.target.value, 0, LOAD_LIMITS.durationSec))}
+                onChange={(e) => set('warmUpSec', int(e.target.value, 0, limits.durationSec))}
               />
               <span className="text-xs text-muted-foreground">
                 {t(
                   'loadTests.profileTotal',
                   '{{total}} s in all, {{peak}} virtual users at the peak',
                   { total, peak },
+                )}{' '}
+                {t(
+                  'loadTests.profileLimits',
+                  'Limits: {{durationSec}} s in all, {{virtualUsers}} virtual users.',
+                  { durationSec: limits.durationSec, virtualUsers: limits.virtualUsers },
                 )}
               </span>
             </div>

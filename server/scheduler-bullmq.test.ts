@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // The BullMQ backend only talks to the queue + DB; mock those so the wiring is
 // verifiable without a running Redis. (End-to-end firing must be validated in a
@@ -23,10 +23,12 @@ vi.mock('./db', () => ({
   },
 }));
 
-import {
+import schedulerService, {
   bullmqAddScheduleJob,
   bullmqRemoveScheduleJob,
   bullmqUpdateScheduleJob,
+  resolveSchedulerBackend,
+  SCHEDULER_BACKEND,
   TRIGGER_SCHEDULE_JOB,
 } from './scheduler-service';
 import { testExecutionQueue } from './queue';
@@ -98,5 +100,52 @@ describe('BullMQ scheduler backend', () => {
     await bullmqUpdateScheduleJob(baseSchedule);
     expect(q.removeJobScheduler).toHaveBeenCalledWith('sched-1');
     expect(q.upsertJobScheduler).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('scheduler backend selection', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('is BullMQ unless SCHEDULER_BACKEND names cron', () => {
+    expect(resolveSchedulerBackend(undefined)).toBe('bullmq');
+    expect(resolveSchedulerBackend('')).toBe('bullmq');
+    expect(resolveSchedulerBackend('bullmq')).toBe('bullmq');
+    expect(resolveSchedulerBackend('cron')).toBe('cron');
+    expect(resolveSchedulerBackend(' CRON ')).toBe('cron');
+    // A value that names no backend is not a reason to fall back to the per-process engine.
+    expect(resolveSchedulerBackend('something-else')).toBe('bullmq');
+  });
+
+  it('resolves to BullMQ in this process, where nothing sets SCHEDULER_BACKEND', () => {
+    expect(process.env.SCHEDULER_BACKEND).toBeUndefined();
+    expect(SCHEDULER_BACKEND).toBe('bullmq');
+  });
+
+  it('dispatches the public API to the BullMQ backend by default', async () => {
+    await schedulerService.removeScheduleJob('sched-1');
+    expect(q.removeJobScheduler).toHaveBeenCalledWith('sched-1');
+    expect(q.remove).toHaveBeenCalledWith('once-sched-1');
+
+    await schedulerService.addScheduleJob(baseSchedule);
+    expect(q.upsertJobScheduler).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the in-process cron engine as an explicit opt-in', async () => {
+    // The variable is read once at import, so the module is loaded again under the stub — and
+    // with it a fresh instance of the mocked queue, which is the one it would talk to.
+    vi.stubEnv('SCHEDULER_BACKEND', 'cron');
+    vi.resetModules();
+    const fresh = await import('./scheduler-service');
+    const freshQueue = (await import('./queue')).testExecutionQueue as unknown as typeof q;
+    expect(fresh.SCHEDULER_BACKEND).toBe('cron');
+
+    // The cron backend's removal touches its own in-memory map, never the queue.
+    await fresh.default.removeScheduleJob('sched-1');
+    expect(freshQueue.removeJobScheduler).not.toHaveBeenCalled();
+    expect(freshQueue.remove).not.toHaveBeenCalled();
   });
 });

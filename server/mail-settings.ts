@@ -12,8 +12,10 @@ import {
 import { privilegedDb } from './db';
 import { decryptSecret, encryptSecret } from './crypto';
 
-const decrypt = (secret: EncryptedMailSecret | null | undefined) =>
-  secret ? decryptSecret(secret.encryptedValue, secret.iv, secret.authTag) : undefined;
+const decrypt = async (organizationId: number, secret: EncryptedMailSecret | null | undefined) =>
+  secret
+    ? decryptSecret(secret.encryptedValue, secret.iv, secret.authTag, organizationId)
+    : undefined;
 export class MailSettingsError extends Error {
   constructor(
     readonly status: number,
@@ -22,12 +24,12 @@ export class MailSettingsError extends Error {
     super(message);
   }
 }
-export function providerConfigFor(row: MailSettingsRow): ProviderMailConfig {
+export async function providerConfigFor(row: MailSettingsRow): Promise<ProviderMailConfig> {
   return {
     organizationId: row.organizationId,
     callbackId: row.callbackId,
     provider: row.provider,
-    signingSecret: decrypt(row.signingSecret),
+    signingSecret: await decrypt(row.organizationId, row.signingSecret),
     sendgridPublicKey: row.sendgridPublicKey ?? undefined,
     sesTopicArn: row.sesTopicArn ?? undefined,
   };
@@ -78,7 +80,7 @@ export function publicMailSettings(row?: MailSettingsRow, env: NodeJS.ProcessEnv
     trackingConfigured: trackingReady(row, env),
   };
 }
-export function buildMailSettings(
+export async function buildMailSettings(
   input: MailSettingsInput,
   organizationId: number,
   current?: MailSettingsRow,
@@ -101,12 +103,12 @@ export function buildMailSettings(
     fromAddress:
       input.fromAddress !== undefined ? input.fromAddress : (current?.fromAddress ?? null),
     smtpPassword: input.smtpPassword
-      ? encryptSecret(input.smtpPassword)
+      ? await encryptSecret(input.smtpPassword, organizationId)
       : input.clearSmtpPassword
         ? null
         : (current?.smtpPassword ?? null),
     signingSecret: input.signingSecret
-      ? encryptSecret(input.signingSecret)
+      ? await encryptSecret(input.signingSecret, organizationId)
       : input.clearSigningSecret || changedProvider
         ? null
         : (current?.signingSecret ?? null),
@@ -190,7 +192,7 @@ export async function resolveMailConfiguration(
           .from(mailSettings)
           .where(eq(mailSettings.organizationId, organizationId))
           .limit(1);
-  const provider = row ? providerConfigFor(row) : undefined;
+  const provider = row ? await providerConfigFor(row) : undefined;
   if (row?.smtpMode === 'disabled') return { configured: false, inherited: false, provider };
   if (!row || row.smtpMode === 'inherit')
     return {
@@ -211,7 +213,12 @@ export async function resolveMailConfiguration(
       secure: row.smtpSecure === 1,
       requireTLS: row.smtpSecure === 0,
       ...(row.smtpUsername
-        ? { auth: { user: row.smtpUsername, pass: decrypt(row.smtpPassword) } }
+        ? {
+            auth: {
+              user: row.smtpUsername,
+              pass: await decrypt(row.organizationId, row.smtpPassword),
+            },
+          }
         : {}),
       tls: { rejectUnauthorized: true },
     },

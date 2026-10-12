@@ -25,12 +25,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { LoadRunStatus, LoadStats, LoadSummary } from '@shared/load-test';
+import {
+  isLiveLoadRun,
+  type LoadRunStatus,
+  type LoadStats,
+  type LoadSummary,
+} from '@shared/load-test';
 import { formatDateTime } from '@/lib/dates';
 
 /**
- * One run of a load test, followed while it runs (the runner writes its summary every 2 s) and
- * kept once it is over: the timeline, the statistics per step and the verdict.
+ * One run of a load test, followed while it is queued for a load worker and while it runs (the
+ * worker writes its summary every 2 s), and kept once it is over: the timeline, the statistics per
+ * step and the verdict.
  */
 
 export interface LoadRun {
@@ -40,6 +46,7 @@ export interface LoadRun {
   summary: LoadSummary | null;
   error: string | null;
   cancelRequested: boolean;
+  queuedAt?: string | null;
   startedAt: string;
   finishedAt: string | null;
 }
@@ -48,18 +55,20 @@ export function useLoadRunStatusLabel() {
   const { t } = useTranslation();
   return (status: LoadRunStatus) =>
     ({
+      queued: t('loadTests.status.queued', 'Queued'),
       running: t('loadTests.status.running', 'Running'),
       passed: t('loadTests.status.passed', 'Passed'),
       failed: t('loadTests.status.failed', 'Failed'),
       cancelled: t('loadTests.status.cancelled', 'Cancelled'),
       error: t('loadTests.status.error', 'Could not run'),
+      worker_lost: t('loadTests.status.worker_lost', 'Worker lost'),
     })[status];
 }
 
 export const statusVariant = (status: LoadRunStatus) =>
   status === 'passed'
     ? 'default'
-    : status === 'failed' || status === 'error'
+    : status === 'failed' || status === 'error' || status === 'worker_lost'
       ? 'destructive'
       : 'secondary';
 
@@ -81,11 +90,11 @@ export default function LoadRunView({ runId, canEdit, onFinished }: Props) {
       return response.json();
     },
     refetchInterval: (query) =>
-      query.state.data && query.state.data.status !== 'running' ? false : 2000,
+      query.state.data && !isLiveLoadRun(query.state.data.status) ? false : 2000,
   });
 
   React.useEffect(() => {
-    if (run && run.status !== 'running' && !finishedOnce.current) {
+    if (run && !isLiveLoadRun(run.status) && !finishedOnce.current) {
       finishedOnce.current = true;
       onFinished?.();
     }
@@ -132,7 +141,12 @@ export default function LoadRunView({ runId, canEdit, onFinished }: Props) {
             )}
           </span>
         )}
-        {canEdit && run.status === 'running' && (
+        {run.status === 'queued' && (
+          <span className="text-sm text-muted-foreground">
+            {t('loadTests.queuedHelp', 'Waiting for a load worker to take it.')}
+          </span>
+        )}
+        {canEdit && isLiveLoadRun(run.status) && (
           <Button
             variant="outline"
             size="sm"

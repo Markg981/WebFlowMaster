@@ -1,0 +1,27 @@
+{
+  "id": "evt_4PaymentFailed",
+  "object": "event",
+  "api_version": "2025-08-27.basil",
+  "created": 1792400400,
+  "type": "invoice.payment_failed",
+  "data": {
+    "object": {
+      "id": "in_0001",
+      "object": "invoice",
+      "customer": "cus_Team001",
+      "status": "open",
+      "attempt_count": 1,
+      "parent": {
+        "type": "subscription_details",
+        "subscription_details": {
+          "subscription": "sub_Team001",
+          "metadata": { "organizationId": "ORG_ID", "planCode": "team", "interval": "month" }
+        }
+      },
+      "lines": {
+        "object": "list",
+        "data": [{ "id": "il_0001", "period": { "start": 1795078400, "end": 1797756800 } }]
+      }
+    }
+  }
+}

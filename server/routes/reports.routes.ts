@@ -11,7 +11,7 @@ import {
 } from '../report-export';
 import { z } from 'zod';
 import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orchestrator';
-import { QuotaError, quotaErrorBody } from '../tenant-quotas';
+import { QuotaError, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 
 const router = Router();
 const logger = await loggerPromise;
@@ -41,6 +41,8 @@ router.post(
       if (error instanceof ExecutionEnqueueError)
         return res.status(error.status).json({ error: error.message, code: error.code });
       if (error instanceof QuotaError) return res.status(error.status).json(quotaErrorBody(error));
+      const refusal = quotaErrorBody(error);
+      if (refusal) return res.status(quotaErrorStatus(error)).json(refusal);
       logger.error({
         message: 'Could not replay execution',
         executionId: id.data,

@@ -232,8 +232,10 @@ nel blocco `http`.)
 Un processo web basta alla maggior parte delle installazioni. Per averne più d'uno dietro un
 load balancer:
 
-- Impostate `SCHEDULER_BACKEND=bullmq` su tutti. Con il default `cron` ogni processo web esegue
-  ogni schedulazione per conto suo, e una schedulazione parte una volta per processo.
+- Lasciate `SCHEDULER_BACKEND` al suo default, `bullmq`, su tutti: le schedulazioni stanno in
+  Redis e un worker avvia ciascuna una volta sola. Con `SCHEDULER_BACKEND=cron` ogni processo web
+  esegue ogni schedulazione per conto suo, e una schedulazione parte una volta per processo:
+  impostate `cron` solo su un unico processo web senza worker (sviluppo locale con PGlite).
 - Date a tutti gli stessi `SESSION_SECRET`, `ENCRYPTION_KEY` e Redis: sessioni e conteggi dei
   limiti di frequenza stanno in Redis, quindi non serve il routing sticky e i limiti valgono fra i processi.
 - Se le organizzazioni usano agenti locali, impostate su ciascuno `AGENT_RELAY_ADVERTISE_URL` con
@@ -258,6 +260,95 @@ web, e inoltre di:
   `npx playwright install --with-deps`.
 
 Ogni worker compare in **Impostazioni → Runner** appena parte.
+
+## Kubernetes con Helm
+
+Il chart in `deployment/helm/webflowmaster` distribuisce gli stessi quattro pezzi del file
+Compose: il processo web (`api`), i worker, un Job di migrazione che gira prima di ogni
+installazione e aggiornamento, e i due volumi o un bucket S3 per evidenze e baseline.
+PostgreSQL e Redis li fornite voi (un servizio gestito o un operator); il chart può anche
+avviare un PostgreSQL e un Valkey a pod singolo **solo per valutazione**, senza backup né
+replica.
+
+**Prerequisiti.** Kubernetes 1.25 o successivo e Helm 3; le due immagini pubblicate dal
+workflow di release (vedi [Release riproducibili](./releases)) raggiungibili dal cluster; un
+PostgreSQL preparato come in [Preparare PostgreSQL](#preparare-postgresql) e un Redis o
+Valkey; un ingress controller che termina TLS (le annotazioni predefinite sono quelle del
+controller nginx e tengono aperti i WebSocket su `/ws` e `/api/agent/v1/`); e, per le evidenze
+su S3, un bucket.
+
+**Installazione.** Mettete i segreti in un file di valori tenuto fuori dal controllo di
+versione (oppure create voi un Secret con le chiavi `DATABASE_URL`, `REDIS_URL`,
+`SESSION_SECRET`, `ENCRYPTION_KEY`, `AGENT_RELAY_SECRET` e indicatelo in
+`secrets.existingSecret`). Senza, il chart rifiuta di generare i manifest, come il file Compose
+rifiuta di partire:
+
+```yaml
+# my-values.yaml
+image:
+  repository: ghcr.io/OWNER/REPOSITORY-api
+  workerRepository: ghcr.io/OWNER/REPOSITORY-worker
+  tag: 1.3.0
+config:
+  publicUrl: https://webflowmaster.example.com
+secrets:
+  databaseUrl: postgres://app_user:...@database.internal:5432/webflowmaster
+  redisUrl: redis://queue.internal:6379
+  sessionSecret: '...' # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  encryptionKey: '...' # 64 caratteri esadecimali; conservatela insieme ai backup del database
+  agentRelaySecret: '...'
+ingress:
+  enabled: true
+  hosts:
+    - host: webflowmaster.example.com
+      paths: [{ path: /, pathType: Prefix }]
+  tls:
+    - secretName: webflowmaster-tls
+      hosts: [webflowmaster.example.com]
+```
+
+```bash
+helm install webflowmaster deployment/helm/webflowmaster -n webflowmaster --create-namespace -f my-values.yaml
+```
+
+Le migrazioni girano come Job hook `pre-install`/`pre-upgrade` (`node dist/apply-migrations.js`,
+con l'immagine dell'api); la release viene installata solo quando il Job riesce, e una
+migrazione fallita lascia intatta la release precedente. Registrate il primo account appena
+l'api è pronta (`/readyz` risponde 200): vedi [Primo accesso](#primo-accesso). Ogni parametro è
+documentato nel `values.yaml` del chart; `values.schema.json` rifiuta un file di valori che
+nomina una chiave sconosciuta o un valore che l'applicazione rifiuterebbe.
+
+**Aggiornamento e rollback.** `helm upgrade` con il nuovo `image.tag` applica prima le
+migrazioni, poi sostituisce api e worker; un worker porta a termine i suoi run per al massimo
+`config.workerShutdownGraceMs` prima di fermarsi, e il periodo di grazia del pod deriva da quel
+valore. `helm rollback` ripristina i manifest precedenti ma **non** lo schema: come in
+[Release riproducibili](./releases#aggiornamento-rollback-ed-evidenze), si torna indietro
+ripristinando il database e gli artefatti verificati prima dell'aggiornamento durante un fermo
+controllato, a meno che le immagini precedenti non siano note per funzionare con il nuovo
+schema. Una modifica a `config` riavvia i pod (i Deployment portano un checksum della
+ConfigMap); una modifica al Secret richiede `kubectl rollout restart`.
+
+**Scalabilità.** `worker.replicaCount`, oppure `worker.autoscaling` (CPU) o `worker.keda` (un
+`ScaledObject` KEDA sulla lista Redis `bull:test-execution-queue:wait`, l'arretrato della coda),
+scalano i worker; `api.replicaCount` o `api.autoscaling` il processo web. Più di una replica di
+uno dei due richiede quanto descritto in [Più processi web](#piu-processi-web) e
+[Worker su altre macchine](#worker-su-altre-macchine): `config.schedulerBackend: bullmq` con più
+repliche api, e `artifacts.store: s3` (o claim `ReadWriteMany`) perché ogni replica serva le
+evidenze scritte dalle altre. `AGENT_RELAY_URL` e `WEBFLOW_PUBLIC_URL` li imposta il chart. Con
+`metrics.enabled`, `/metrics` è esposto su ogni pod e un `ServiceMonitor`
+(`metrics.serviceMonitor.enabled`) lo raccoglie con i nomi di job che
+`observability/prometheus-alerts.yml` si aspetta; i `PodDisruptionBudget` e una `NetworkPolicy`
+a negazione predefinita sono disponibili dietro `api.podDisruptionBudget`,
+`worker.podDisruptionBudget` e `networkPolicy.enabled`.
+
+**Cosa è verificato.** Nessun cluster è stato usato per provare questo chart. `npm run test:helm`
+(`scripts/helm-chart.test.mjs`) lo verifica staticamente: `Chart.yaml`, che `values.yaml`
+rispetti `values.schema.json`, che ogni riferimento `.Values` nei template sia dichiarato, che le
+strutture di controllo siano bilanciate e lo YAML intorno sia ben formato, e che il chart
+concordi con il repository (i segreti richiesti dal file Compose, i comandi dei Dockerfile, i
+percorsi delle probe, le porte delle metriche, il nome della coda, i nomi dei job Prometheus).
+Non esegue il rendering con Helm: lanciate voi `helm template` e `helm lint`, e provate la
+release in un namespace di staging prima di farci affidamento.
 
 ## Primo accesso {#primo-accesso}
 

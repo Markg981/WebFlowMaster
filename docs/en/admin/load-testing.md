@@ -26,6 +26,47 @@ Readers and concurrency must be positive integers; runs must be an integer from 
 
 Exit codes: `0` within thresholds, `1` breaches, `2` tool/setup failure. Run `npx vitest run scripts/wfm-load.test.ts` for virtual-clock coverage. Simulations do not establish live platform endurance. Record a real run's report, environment/version, organization limits and runner/worker logs before making that claim.
 
+## Sizing a load worker
+
+The [load tests](../guide/load-tests) users run from the **Load tests** page are not the script
+above: each run is a `load-run` job on the `load-queue`, and a worker executes it with the engine
+in `server/load-runner.ts`. The web process only queues the run (`queued`), and the worker that
+takes it marks it `running` with its name, writes the summary every two seconds and beats every
+`WORK_ITEM_HEARTBEAT_MS`; a run whose worker goes quiet for `STALE_CLAIM_MS` ends as
+`worker_lost`. A web restart changes nothing for a run; a worker restart with
+`WORKER_SHUTDOWN_GRACE_MS` long enough lets its run finish first.
+
+A load run is HTTP traffic, not a browser: a worker sending 200 virtual users through a scenario
+of a few requests uses one CPU core in part and a few hundred megabytes, far less than one plan
+run. What limits it is the network between the worker and the system under test, and the
+system's own capacity — a worker that saturates its own uplink measures the uplink. Keep it on
+the same network as the system under test, or at least on one with a known, stable latency, and
+not on the host serving the web process.
+
+- `LOAD_WORKER_CONCURRENCY` (default `1`) is how many load runs one worker executes at once. One
+  is the honest value: two runs on one worker share its CPU and uplink and measure each other.
+  `0` makes a worker take no load runs, for workers kept for plans.
+- `LOAD_MAX_VIRTUAL_USERS` and `LOAD_MAX_DURATION_S` (defaults `200` and `3600`) cap what a run
+  may ask for; the web process refuses a test or a run beyond them, naming the limit, and the
+  worker caps the run at its own value. Raise them once the workers and the network have shown
+  they can carry it. The editor's fields stop at the shipped defaults; higher values go through
+  the API.
+- `LOAD_MAX_RUNS_PER_ORGANIZATION` (default `1`) is how many runs of one organization may be
+  queued or running at once. Several organizations each get their own.
+
+A run is executed by one worker, whole: its virtual users are not split across workers. The way
+beyond what one worker can send is several workers running several runs — of several
+organizations, or of one with its limit raised — each measuring its own scenario. Every worker
+listens to the load queue, so scaling the workers scales the load runs with the plan runs:
+
+```sh
+docker compose up -d --scale worker=3
+```
+
+With `LOAD_WORKER_CONCURRENCY=1` that stack executes three load runs at once, one per worker, and
+a fourth waits as `queued` until one ends. The queue's depth and the workers' capacity are on the
+worker's metrics endpoint as `load-queue` (see [Telemetry](./telemetry)).
+
 ## Automatic resilience scenarios
 
 ```sh

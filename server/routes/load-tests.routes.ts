@@ -1,7 +1,7 @@
 import { Router, type Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
   AUDIT_ACTIONS,
   apiTests,
@@ -10,34 +10,45 @@ import {
   loadTests,
   testDataSets,
 } from '@shared/schema';
-import { dataSetProblem, loadTestSchema, type LoadTestDefinition } from '@shared/load-test';
+import {
+  LOAD_LIMITS,
+  LOAD_LIVE_RUN_STATUSES,
+  dataSetProblem,
+  loadTestSchemaFor,
+  profileProblem,
+  type LoadTestDefinition,
+} from '@shared/load-test';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
 import { checkExecutionBudget } from '../execution-usage';
-import { lockOrganizationRuns, quotaErrorBody } from '../tenant-quotas';
+import { assertSubscriptionAllowsRuns } from '../billing/enforcement';
+import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 import {
-  LOAD_HEARTBEAT_STALE_MS,
-  executeLoadRun,
-  releaseLoadSlot,
-  reserveLoadSlot,
+  enqueueLoadRun,
+  loadLimits,
+  recoverLostLoadRuns,
+  removeQueuedLoadJob,
   snapshotOf,
 } from '../load-runner';
 import loggerPromise from '../logger';
 
 /**
- * Load tests (shared/load-test.ts): writing them, and running them on their own — a run is started
- * here and followed from the page, which reads its summary as the runner writes it.
+ * Load tests (shared/load-test.ts): writing them, and running them on their own — a run is queued
+ * here for a load worker (server/load-runner.ts) and followed from the page, which reads its
+ * summary as the worker writes it.
  */
 
 const router = Router();
 const logger = await loggerPromise;
 
-/** What starts a run. A field so the tests can wait for the run they started. */
+/** What queues a run and what takes a queued one back. Fields so the tests can stand them in. */
 export const loadRunner: {
-  start: (runId: string, organizationId: number, userId: number) => Promise<void>;
+  enqueue: (runId: string, organizationId: number, userId: number) => Promise<string>;
+  dequeue: (jobId: string | null) => Promise<boolean>;
 } = {
-  start: executeLoadRun,
+  enqueue: enqueueLoadRun,
+  dequeue: removeQueuedLoadJob,
 };
 
 class LoadError extends Error {
@@ -51,7 +62,7 @@ class LoadError extends Error {
 
 function fail(res: Response, error: unknown, what: string) {
   const quota = quotaErrorBody(error);
-  if (quota) return res.status(429).json(quota);
+  if (quota) return res.status(quotaErrorStatus(error)).json(quota);
   if (error instanceof LoadError) return res.status(error.status).json({ error: error.message });
   const message = (error as Error)?.message ?? '';
   if (/unique|duplicate/i.test(message))
@@ -112,22 +123,10 @@ async function checkReferences(
   }
 }
 
-/** Runs left "running" by a process that stopped (restart, crash) are over: they say so. */
+/** Runs whose worker stopped answering are over: they say so (server/load-runner.ts). */
 async function settleInterrupted(tx: TenantTx) {
-  const staleBefore = new Date(Date.now() - LOAD_HEARTBEAT_STALE_MS);
-  await tx
-    .update(loadTestRuns)
-    .set({
-      status: 'error',
-      error: 'Interrupted: the server running it stopped.',
-      finishedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(loadTestRuns.status, 'running'),
-        lt(sql`coalesce(${loadTestRuns.heartbeatAt}, ${loadTestRuns.startedAt})`, staleBefore),
-      ),
-    );
+  const lost = await recoverLostLoadRuns(tx);
+  if (lost.length) logger.warn({ message: 'Ended load runs nobody was running any more', lost });
 }
 
 /** A run as the page reads it: not the definition it keeps for itself. */
@@ -137,6 +136,8 @@ const shownRun = ({
   definition: _definition,
   requestedBy: _by,
   heartbeatAt: _beat,
+  jobId: _job,
+  workerId: _worker,
   ...shown
 }: typeof loadTestRuns.$inferSelect) => shown;
 
@@ -148,9 +149,27 @@ const runColumns = {
   summary: loadTestRuns.summary,
   error: loadTestRuns.error,
   cancelRequested: loadTestRuns.cancelRequested,
+  queuedAt: loadTestRuns.queuedAt,
   startedAt: loadTestRuns.startedAt,
   finishedAt: loadTestRuns.finishedAt,
 };
+
+/** The limits of this installation, for whoever writes a load test against them. */
+router.get('/api/load-tests/limits', requireRole('viewer'), (_req, res) => {
+  try {
+    const limits = loadLimits();
+    res.json({
+      virtualUsers: limits.virtualUsers,
+      durationSec: limits.durationSec,
+      stages: LOAD_LIMITS.stages,
+      steps: LOAD_LIMITS.steps,
+      thinkTimeMs: LOAD_LIMITS.thinkTimeMs,
+      runsPerOrganization: limits.runsPerOrganization,
+    });
+  } catch (error) {
+    fail(res, error, 'read the load limits');
+  }
+});
 
 router.get('/api/load-tests', requireRole('viewer'), async (_req, res) => {
   try {
@@ -210,7 +229,7 @@ const valuesOf = (data: LoadTestDefinition) => ({
 });
 
 router.post('/api/load-tests', requireRole('editor'), async (req, res) => {
-  const parsed = loadTestSchema.safeParse(req.body);
+  const parsed = loadTestSchemaFor(loadLimits()).safeParse(req.body);
   if (!parsed.success)
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid load test' });
   try {
@@ -241,7 +260,7 @@ router.post('/api/load-tests', requireRole('editor'), async (req, res) => {
 });
 
 router.put('/api/load-tests/:id', requireRole('editor'), async (req, res) => {
-  const parsed = loadTestSchema.safeParse(req.body);
+  const parsed = loadTestSchemaFor(loadLimits()).safeParse(req.body);
   if (!parsed.success)
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid load test' });
   try {
@@ -275,12 +294,17 @@ router.delete('/api/load-tests/:id', requireRole('editor'), async (req, res) => 
     const id = idOf(req.params.id);
     await withTenantTransaction(async (tx) => {
       const test = await editableTest(tx, id);
-      const [running] = await tx
+      const [live] = await tx
         .select({ id: loadTestRuns.id })
         .from(loadTestRuns)
-        .where(and(eq(loadTestRuns.loadTestId, id), eq(loadTestRuns.status, 'running')))
+        .where(
+          and(
+            eq(loadTestRuns.loadTestId, id),
+            inArray(loadTestRuns.status, [...LOAD_LIVE_RUN_STATUSES]),
+          ),
+        )
         .limit(1);
-      if (running) throw new LoadError(409, 'The load test is running: cancel the run first.');
+      if (live) throw new LoadError(409, 'The load test is running: cancel the run first.');
       await tx.delete(loadTests).where(eq(loadTests.id, id));
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.LOAD_TEST_DELETED,
@@ -301,27 +325,29 @@ const runSchema = z
   .strict();
 
 /**
- * POST /api/load-tests/:id/runs — { environmentId? }: starts a run in this server process and
- * answers it at once (202); the page follows it. One load run at a time per organization.
+ * POST /api/load-tests/:id/runs — { environmentId? }: queues a run for a load worker and answers
+ * it at once (202, status `queued`); the page follows it. LOAD_MAX_RUNS_PER_ORGANIZATION (one by
+ * default) runs of an organization may be queued or running at once: two would measure each
+ * other. The worker checks the limit again when it takes the run.
  */
 router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) => {
   const parsed = runSchema.safeParse(req.body ?? {});
   if (!parsed.success)
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid run' });
-  if (!reserveLoadSlot()) {
-    return res.status(503).json({
-      error:
-        'This server is already running as many load tests as it may. Try again when one ends.',
-    });
-  }
-  let started = false;
   try {
     const id = idOf(req.params.id);
     const organizationId = getTenantOrgId()!;
+    const limits = loadLimits();
     const run = await withTenantTransaction(async (tx) => {
       await lockOrganizationRuns(tx, organizationId);
+      // The load enqueue point: a suspended subscription is refused before the run row exists
+      // (server/billing/enforcement.ts), so nothing is left behind as "queued" or "error".
+      await assertSubscriptionAllowsRuns(tx, organizationId);
       await checkExecutionBudget(tx, organizationId);
       const test = await editableTest(tx, id);
+      // A test saved under a higher limit than today's is refused here, naming the limit.
+      const beyond = profileProblem(test.stages, limits);
+      if (beyond) throw new LoadError(400, beyond);
       await checkReferences(tx, test);
       if (parsed.data.environmentId) {
         const [environment] = await tx
@@ -332,17 +358,19 @@ router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) 
         if (!environment) throw new LoadError(404, 'Environment not found.');
       }
       await settleInterrupted(tx);
-      // Two load tests at once would measure each other.
-      const [busy] = await tx
-        .select({ id: loadTestRuns.id })
+      const [{ live }] = await tx
+        .select({ live: count() })
         .from(loadTestRuns)
-        .where(eq(loadTestRuns.status, 'running'))
-        .limit(1);
-      if (busy)
+        .where(inArray(loadTestRuns.status, [...LOAD_LIVE_RUN_STATUSES]));
+      if (live >= limits.runsPerOrganization) {
         throw new LoadError(
           409,
-          'Another load test of the organization is running. Wait for it to end, or cancel it.',
+          limits.runsPerOrganization === 1
+            ? 'Another load test of the organization is queued or running. Wait for it to end, or cancel it (LOAD_MAX_RUNS_PER_ORGANIZATION).'
+            : `The organization already has ${live} load runs queued or running; the limit is ${limits.runsPerOrganization} (LOAD_MAX_RUNS_PER_ORGANIZATION).`,
         );
+      }
+      const now = new Date();
       const [row] = await tx
         .insert(loadTestRuns)
         .values({
@@ -351,9 +379,11 @@ router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) 
           loadTestId: test.id,
           projectId: test.projectId,
           environmentId: parsed.data.environmentId ?? null,
-          status: 'running',
+          status: 'queued',
           definition: snapshotOf(test) as unknown as Record<string, unknown>,
           requestedBy: req.user!.id,
+          queuedAt: now,
+          startedAt: now,
         })
         .returning();
       await recordAudit(tx, {
@@ -365,18 +395,26 @@ router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) 
       });
       return shownRun(row);
     });
-    started = true;
-    // Not awaited: the page follows the run, and the runner writes whatever happens on it.
-    void loadRunner
-      .start(run.id, organizationId, req.user!.id)
-      .catch((error) =>
-        logger.error({ message: 'Load run crashed', runId: run.id, error: String(error) }),
-      );
+    // Queued once the row is committed, so a worker that takes the job at once finds it.
+    try {
+      await loadRunner.enqueue(run.id, organizationId, req.user!.id);
+    } catch (error) {
+      logger.error({
+        message: 'Load run could not be queued',
+        runId: run.id,
+        error: String(error),
+      });
+      await withTenantTransaction(async (tx) => {
+        await tx
+          .update(loadTestRuns)
+          .set({ status: 'error', error: 'The queue refused the run.', finishedAt: new Date() })
+          .where(eq(loadTestRuns.id, run.id));
+      }).catch(() => undefined);
+      return res.status(503).json({ error: 'The queue refused the run. Try again in a moment.' });
+    }
     res.status(202).json(run);
   } catch (error) {
     fail(res, error, 'start the load test');
-  } finally {
-    if (!started) releaseLoadSlot();
   }
 });
 
@@ -398,23 +436,44 @@ router.get('/api/load-test-runs/:runId', requireRole('viewer'), async (req, res)
   }
 });
 
-/** POST /api/load-test-runs/:runId/cancel — the runner stops at its next progress (2 s at most). */
+/**
+ * POST /api/load-test-runs/:runId/cancel — a queued run is taken off the queue and ends now; a
+ * running one is flagged, and the worker stops at its next progress (2 s at most).
+ */
 router.post('/api/load-test-runs/:runId/cancel', requireRole('editor'), async (req, res) => {
   try {
     const run = await withTenantTransaction(async (tx) => {
       const [current] = await tx
-        .select(runColumns)
+        .select()
         .from(loadTestRuns)
         .where(eq(loadTestRuns.id, req.params.runId))
         .limit(1);
       if (!current) throw new LoadError(404, 'Run not found.');
       await editableTest(tx, current.loadTestId);
-      if (current.status !== 'running') throw new LoadError(409, 'The run is already over.');
-      const [row] = await tx
+      if (current.status !== 'queued' && current.status !== 'running')
+        throw new LoadError(409, 'The run is already over.');
+      // The flag first, whatever the status: a worker taking the job this instant reads it.
+      await tx
         .update(loadTestRuns)
         .set({ cancelRequested: true })
+        .where(eq(loadTestRuns.id, current.id));
+      let [row] = await tx
+        .select()
+        .from(loadTestRuns)
         .where(eq(loadTestRuns.id, current.id))
-        .returning();
+        .limit(1);
+      if (current.status === 'queued') {
+        const dequeued = await loadRunner.dequeue(current.jobId);
+        // Still queued when nobody took it meanwhile: over now. Taken: the worker ends it.
+        const [ended] = await tx
+          .update(loadTestRuns)
+          .set({ status: 'cancelled', finishedAt: new Date() })
+          .where(and(eq(loadTestRuns.id, current.id), eq(loadTestRuns.status, 'queued')))
+          .returning();
+        if (ended) row = ended;
+        else if (!dequeued)
+          logger.info({ message: 'Load run taken while being cancelled', runId: current.id });
+      }
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.LOAD_TEST_CANCELLED,
         actor: auditActor(req),

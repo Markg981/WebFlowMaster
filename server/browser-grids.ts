@@ -239,7 +239,7 @@ export async function loadGridConfig(id: string): Promise<GridConfig | null> {
   return row ? toGridConfig(row) : null;
 }
 
-export function toGridConfig(row: BrowserGrid): GridConfig {
+export async function toGridConfig(row: BrowserGrid): Promise<GridConfig> {
   return {
     id: row.id,
     name: row.name,
@@ -248,7 +248,7 @@ export function toGridConfig(row: BrowserGrid): GridConfig {
     endpoint: row.endpoint,
     key:
       row.encryptedKey && row.keyIv && row.keyAuthTag
-        ? decryptSecret(row.encryptedKey, row.keyIv, row.keyAuthTag)
+        ? await decryptSecret(row.encryptedKey, row.keyIv, row.keyAuthTag, row.organizationId)
         : null,
     agentPool: row.agentPool ?? null,
     organizationId: row.organizationId,

@@ -93,7 +93,7 @@ router.post('/api/issue-trackers', requireRole('editor'), async (req, res) => {
   }
 
   try {
-    const encrypted = encryptSecret(parsed.data.token);
+    const encrypted = await encryptSecret(parsed.data.token, req.user!.organizationId);
     const created = await withTenantTransaction(async (tx) => {
       const [row] = await tx
         .insert(issueTrackers)
@@ -147,7 +147,7 @@ router.put('/api/issue-trackers/:id', requireRole('editor'), async (req, res) =>
   if (parsed.data.token) {
     // Absent means "leave it alone", which is what an edit form that cannot show the current
     // token has to mean. An empty string would be a token nobody can authenticate with.
-    const encrypted = encryptSecret(parsed.data.token);
+    const encrypted = await encryptSecret(parsed.data.token, req.user!.organizationId);
     changes.encryptedToken = encrypted.encryptedValue;
     changes.tokenIv = encrypted.iv;
     changes.tokenAuthTag = encrypted.authTag;
@@ -186,7 +186,7 @@ router.post('/api/issue-trackers/:id/test', requireRole('editor'), async (req, r
     );
     if (!tracker) return res.status(404).json({ error: 'Tracker not found.' });
 
-    const result = await checkConnection(toConfig(tracker));
+    const result = await checkConnection(await toConfig(tracker));
     res.json(result);
   } catch (error: any) {
     logger.error({ message: 'Issue tracker check failed', error: error?.message ?? String(error) });

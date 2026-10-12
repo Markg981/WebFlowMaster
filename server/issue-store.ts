@@ -42,14 +42,19 @@ export interface FileIssueOutcome {
 }
 
 /** The tracker as the provider layer needs it: same row, with the token in the clear. */
-export function toConfig(tracker: IssueTracker): TrackerConfig {
+export async function toConfig(tracker: IssueTracker): Promise<TrackerConfig> {
   return {
     provider: tracker.provider as IssueProvider,
     baseUrl: tracker.baseUrl,
     projectKey: tracker.projectKey,
     issueType: tracker.issueType,
     userEmail: tracker.userEmail,
-    token: decryptSecret(tracker.encryptedToken, tracker.tokenIv, tracker.tokenAuthTag),
+    token: await decryptSecret(
+      tracker.encryptedToken,
+      tracker.tokenIv,
+      tracker.tokenAuthTag,
+      tracker.organizationId,
+    ),
   };
 }
 
@@ -97,7 +102,7 @@ export async function fileFailure(
   const dedupeKey = dedupeKeyFor(input.failure);
 
   try {
-    const config = toConfig(input.tracker);
+    const config = await toConfig(input.tracker);
     const existing = await findLink(input.tracker.id, dedupeKey);
 
     if (existing) {
@@ -188,7 +193,7 @@ export async function markResolved(
       return { action: 'skipped', reason: 'Already reported as passing again.' };
 
     await addComment(
-      toConfig(input.tracker),
+      await toConfig(input.tracker),
       existing.issueKey,
       resolvedComment(input.failure),
       deps,

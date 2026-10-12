@@ -20,7 +20,7 @@ GitHub, never in a public issue.
 | Secrets stored for tests        | Encrypted with AES-256-GCM, never returned                                   | Keeps `ENCRYPTION_KEY` safe and backed up         | Decides which secrets to store                    |
 | Data in transit                 | Secure cookies, origin checks                                                | TLS in front of the web process, between services | —                                                 |
 | Data at rest                    | Application-level encryption of secrets                                      | Disk, database, backup and bucket encryption      | —                                                 |
-| Where tests may connect         | Nothing is blocked: reaching the application is the job                      | Network rules for the workers                     | What their tests call                             |
+| Where tests may connect         | Cloud metadata always refused; private addresses by `EGRESS_PRIVATE_TARGETS` | Network rules for the workers, the policy setting | What their tests call                             |
 | Updates                         | Releases with migrations                                                     | Applying them, patching hosts                     | —                                                 |
 
 ## Isolation between organizations
@@ -155,13 +155,29 @@ application under test and values typed into forms.
 
 ## Outbound connections
 
-Tests exist to reach other systems, so **the product does not restrict where a test connects**:
-a browser step or an API test can address any host the worker can reach. Certificate checks are
-always on in production; development exemptions are per host and ignored in production.
+Tests exist to reach other systems, so **the product restricts where a test connects only where
+a test has no business going**: a browser step or an API test can address any host the worker
+can reach, except the cloud provider's metadata service, which hands the machine's credentials
+to whoever asks from it. Certificate checks are always on in production; development exemptions
+are per host and ignored in production.
 
-This makes the workers' network position a security decision. See
+The restriction is the **egress policy**, applied by the application itself on every
+installation, and in two layers on the SaaS profile, where the [network isolation
+profile](../admin/saas-network) also forces every connection through a proxy with its own
+allowlist. The policy checks every address the server opens for a tenant — API tests, browser
+steps, webhooks, issue trackers, commit statuses, an organization's SMTP — by name and by what
+the name resolves to at the moment of connecting, on every redirect, which is what defeats a
+DNS answer that changes between the check and the connection. Cloud metadata endpoints are
+always refused. Private, loopback, link-local and unique-local addresses are reached by default
+(`EGRESS_PRIVATE_TARGETS=allow`), because a self-hosted installation tests its intranet from
+the server; `deny` refuses them too, and `EGRESS_ALLOW_HOSTS` exempts named hosts and ranges.
+A refused request fails immediately with an error that names the policy and the host as the
+test wrote it, never the address it resolved to.
+
+The workers' network position remains a security decision. See
 [Hardening](./hardening#network) for the rules an operator should apply, in particular on an
-installation where people from different companies can write tests.
+installation where people from different companies can write tests, and for what the policy
+does not cover (an agent's or a grid's browser, direct TCP protocols).
 
 **Test inboxes.** A **Wait for email** step reads a Mailpit, which by design holds the mail of
 every address sent to it and has no notion of an owner. The step returns only mail to the exact

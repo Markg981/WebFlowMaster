@@ -14,7 +14,7 @@ import { EXECUTION_STATUSES } from '@shared/execution-status';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { apiError, requireScope } from '../middleware/require-scope';
 import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orchestrator';
-import { quotaErrorBody } from '../tenant-quotas';
+import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 import { requestCancellation } from '../execution-state';
 import { junitReportFor } from '../junit-report';
 import {
@@ -29,6 +29,7 @@ import { ciContextSchema } from '@shared/ci';
 import { reportUrlFor } from '../report-links';
 import loggerPromise from '../logger';
 import { registerAuthoringRoutes } from '../api-v1/authoring';
+import { registerManagementRoutes } from '../api-v1/management';
 
 /**
  * /api/v1 — the API a pipeline is meant to use, described by /api/v1/openapi.json.
@@ -80,6 +81,7 @@ function toRun(row: TestPlanExecution & { testPlanName?: string | null }) {
     links: {
       self: `/api/v1/runs/${row.id}`,
       junit: `/api/v1/runs/${row.id}/junit`,
+      evidence: `/api/v1/runs/${row.id}/evidence`,
       /** The report page, absolute, when the installation knows its own address (APP_BASE_URL). */
       report: reportUrlFor(row.testPlanId, row.id) ?? null,
     },
@@ -188,7 +190,8 @@ router.post('/api/v1/plans/:planId/runs', requireScope('runs:write'), async (req
       );
     }
     const quota = quotaErrorBody(error);
-    if (quota) return apiError(res, 429, String(quota.code), String(quota.error), quota);
+    if (quota)
+      return apiError(res, quotaErrorStatus(error), String(quota.code), String(quota.error), quota);
     logger.error({
       message: 'Failed to start a run through /api/v1',
       planId: plan.id,
@@ -313,6 +316,7 @@ router.get('/api/v1/runs/:runId/export/:format', requireScope('runs:read'), asyn
 });
 
 registerAuthoringRoutes(router);
+registerManagementRoutes(router);
 
 // Anything else under /api/v1 is an unknown endpoint, said in this API's own words rather
 // than falling through to the web application's.

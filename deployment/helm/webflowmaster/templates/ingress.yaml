@@ -1,0 +1,38 @@
+{{- if .Values.ingress.enabled }}
+# TLS terminates here. The nginx annotations in values.yaml keep the WebSockets on /ws and
+# /api/agent/v1/ open (an idle timeout of minutes, not seconds) and raise the body size for
+# uploads; nginx forwards Upgrade/Connection by itself. One proxy hop: the server trusts one.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "webflowmaster.fullname" $ }}-api
+                port:
+                  name: http
+          {{- end }}
+    {{- end }}
+{{- end }}

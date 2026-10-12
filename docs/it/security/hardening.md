@@ -20,6 +20,8 @@ persone. Ogni punto indica l'impostazione o la pagina che lo spiega. La
   ([Dietro un reverse proxy](../admin/installation#dietro-un-reverse-proxy)).
 - `CSRF_TRUSTED_ORIGINS` elenca solo le vostre origini pubbliche, se è impostata.
 - `INSECURE_TLS_HOSTS` non impostata (in produzione viene comunque ignorata).
+- `EGRESS_PRIVATE_TARGETS=deny` su un'installazione condivisa da più aziende, con i pochi
+  indirizzi interni che deve raggiungere in `EGRESS_ALLOW_HOSTS` ([Rete](#rete)).
 - `MFA_ISSUER` impostato con un nome che identifichi questa installazione.
 - Un limite sulla dimensione delle richieste nel reverse proxy non inferiore a quello del
   server: 24 MB per l'import di un bundle di test, 20 MB per il proxy dell'API tester, 12 MB per
@@ -34,6 +36,28 @@ e namespace protetti per API e worker. Con allowlist vuota nessun target è ragg
 I controlli seguenti valgono anche per deployment con protezioni equivalenti predisposte
 dall'operatore.
 
+Dove un test può collegarsi è imposto su due livelli. Il proxy del profilo SaaS è quello della
+rete: nulla esce dai worker se non attraverso di esso, qualunque cosa faccia l'applicazione. La
+**policy di egress** è quella dell'applicazione, e vale per ogni installazione, con o senza
+proxy: ogni indirizzo a cui un test, un webhook, un tracker, uno step del browser o
+l'impostazione SMTP di un'organizzazione fa collegare il server è verificato, per nome e per
+ciò che il nome risolve al momento della connessione, a ogni redirect. Le connessioni HTTP e
+WebSocket si aprono sull'indirizzo verificato; un canale gRPC è fissato agli indirizzi verificati
+quando sono di una sola famiglia, mentre un nome che risponde in entrambe (`localhost` su molti
+host) è verificato e poi risolto di nuovo dal client gRPC, come per il percorso SMTP. Gli endpoint dei
+metadati cloud (`169.254.0.0/16` incluso `169.254.169.254`, `fd00:ec2::254`,
+`metadata.google.internal`, `100.100.100.200` di Alibaba, `192.0.0.192` di Oracle,
+`168.63.129.16` di Azure) sono sempre rifiutati. Gli indirizzi privati, loopback, link-local e
+unique-local sono raggiungibili per default (`EGRESS_PRIVATE_TARGETS=allow`): un'installazione
+self-hosted testa la propria intranet dal server, e per lei non cambia nulla.
+`EGRESS_PRIVATE_TARGETS=deny` rifiuta anche quelli, ed è l'impostazione per un'installazione
+condivisa; `EGRESS_ALLOW_HOSTS` esenta host e CIDR da entrambi. Una richiesta rifiutata fallisce
+subito, con un errore che nomina la policy e l'host come lo ha scritto il test. La policy non
+copre le connessioni che il server non apre da sé: il browser e le richieste di un agente
+locale, il browser di una griglia, e i protocolli TCP diretti (step su database, la casella che
+un test legge tramite il browser di un agente). I browser guidati dal runner verificano i nomi
+con il resolver del server; un nome la cui risposta differisce per il browser spetta al proxy.
+
 - PostgreSQL e Redis non sono raggiungibili da internet; si collegano solo il processo web e i
   worker. Redis richiede una password (`redis://:password@host:6379`).
 - Il processo web è l'unico punto di ingresso pubblico. I worker non hanno bisogno di
@@ -42,8 +66,9 @@ dall'operatore.
   Su un'installazione condivisa da più aziende, o con `REGISTRATION=open`, mettete i worker in un
   segmento di rete che raggiunga le applicazioni sotto test e i servizi dell'installazione, e
   nient'altro. In particolare:
-  - bloccate dai worker l'endpoint dei metadati cloud (`169.254.169.254`), oppure richiedete
-    l'accesso ai metadati tramite token (per esempio IMDSv2 su AWS);
+  - bloccate dai worker anche l'endpoint dei metadati cloud (`169.254.169.254`), oppure
+    richiedete l'accesso ai metadati tramite token (per esempio IMDSv2 su AWS), così la rete non
+    dipende dalla sola policy dell'applicazione;
   - non lasciate che i worker raggiungano le interfacce di amministrazione della vostra
     infrastruttura;
   - raggiungete le applicazioni dentro la rete di un cliente con un

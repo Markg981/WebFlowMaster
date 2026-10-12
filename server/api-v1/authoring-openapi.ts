@@ -1,12 +1,13 @@
 import type { ApiScope } from '@shared/api-scopes';
 
 // Explicit public contracts, independent of database columns and runtime route imports.
-const integer = { type: 'integer', minimum: 1 } as const;
-const text = { type: 'string' } as const;
-const nullableText = { type: ['string', 'null'] } as const;
-const date = { type: 'string', format: 'date-time' } as const;
-const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
-const object = (properties: Record<string, unknown>, required: string[] = []) => ({
+export const integer = { type: 'integer', minimum: 1 } as const;
+export const text = { type: 'string' } as const;
+export const nullableText = { type: ['string', 'null'] } as const;
+export const nullableDate = { type: ['string', 'null'], format: 'date-time' } as const;
+export const date = { type: 'string', format: 'date-time' } as const;
+export const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
+export const object = (properties: Record<string, unknown>, required: string[] = []) => ({
   type: 'object',
   additionalProperties: false,
   properties,
@@ -42,8 +43,8 @@ const testFields = {
   severity: nullableText,
   status: { ...text, enum: ['draft', 'ready', 'archived'] },
 };
-const anyObject = { type: 'object', additionalProperties: true } as const;
-const nullableObject = { type: ['object', 'null'], additionalProperties: true } as const;
+export const anyObject = { type: 'object', additionalProperties: true } as const;
+export const nullableObject = { type: ['object', 'null'], additionalProperties: true } as const;
 const nullableArray = { type: ['array', 'null'], items: anyObject } as const;
 const apiTestFields = {
   name: { ...text, minLength: 1, maxLength: 200 },
@@ -230,11 +231,11 @@ export const authoringSchemas = {
   ),
 };
 
-const error = (description: string) => ({
+export const error = (description: string) => ({
   description,
   content: { 'application/json': { schema: ref('Error') } },
 });
-const page = (item: string) =>
+export const page = (item: string) =>
   object(
     {
       items: { type: 'array', items: ref(item) },
@@ -243,11 +244,11 @@ const page = (item: string) =>
     },
     ['items', 'limit', 'offset'],
   );
-const pagination = [
+export const pagination = [
   { name: 'limit', in: 'query', schema: { ...integer, maximum: 100, default: 20 } },
   { name: 'offset', in: 'query', schema: { type: 'integer', minimum: 0, default: 0 } },
 ];
-type OperationOptions = {
+export type OperationOptions = {
   id: string;
   scope: ApiScope;
   response?: string;
@@ -255,9 +256,12 @@ type OperationOptions = {
   status?: number;
   parameters?: unknown[];
   summary: string;
+  description?: string;
   list?: boolean;
+  /** Answers this operation gives beyond the common ones, by status. */
+  responses?: Record<string, unknown>;
 };
-function operation({
+export function operation({
   id,
   scope,
   response,
@@ -265,11 +269,14 @@ function operation({
   status = 200,
   parameters = [],
   summary,
+  description,
   list,
+  responses = {},
 }: OperationOptions) {
   return {
     operationId: id,
     summary,
+    ...(description ? { description } : {}),
     security: [{ bearerKey: [] }, { headerKey: [] }],
     'x-required-scope': scope,
     parameters,
@@ -298,10 +305,11 @@ function operation({
       '409': error('Name conflict or dataset still in use.'),
       '429': error('Rate limit or tenant quota exceeded.'),
       '500': error('The operation failed; writes are rolled back.'),
+      ...responses,
     },
   };
 }
-const idParameter = (name: string, string = false) => [
+export const idParameter = (name: string, string = false) => [
   { name, in: 'path', required: true, schema: string ? text : integer },
 ];
 export const authoringPaths = {
@@ -339,6 +347,14 @@ export const authoringPaths = {
       parameters: idParameter('projectId'),
       summary: 'Update project name or description.',
     }),
+    delete: operation({
+      id: 'deleteProject',
+      scope: 'projects:write',
+      status: 204,
+      parameters: idParameter('projectId'),
+      summary: 'Delete a project the account created; its tests stay, detached.',
+      responses: { '403': error('Insufficient scope or role, or `project_not_owned`.') },
+    }),
   },
   '/api/v1/tests': {
     get: operation({
@@ -373,6 +389,13 @@ export const authoringPaths = {
       response: 'AuthoredTest',
       parameters: idParameter('testId'),
       summary: 'Update the working copy and record a version.',
+    }),
+    delete: operation({
+      id: 'deleteTest',
+      scope: 'tests:write',
+      status: 204,
+      parameters: idParameter('testId'),
+      summary: 'Delete a test; its versions and plan membership go with it.',
     }),
   },
   '/api/v1/api-tests': {
@@ -409,6 +432,13 @@ export const authoringPaths = {
       parameters: idParameter('apiTestId'),
       summary: 'Update an API test and record a version.',
     }),
+    delete: operation({
+      id: 'deleteApiTest',
+      scope: 'api-tests:write',
+      status: 204,
+      parameters: idParameter('apiTestId'),
+      summary: 'Delete an API test.',
+    }),
   },
   '/api/v1/mobile-tests': {
     get: operation({
@@ -443,6 +473,13 @@ export const authoringPaths = {
       response: 'AuthoredMobileTest',
       parameters: idParameter('mobileTestId'),
       summary: 'Update a mobile test, checked as a whole, and record a version.',
+    }),
+    delete: operation({
+      id: 'deleteMobileTest',
+      scope: 'mobile-tests:write',
+      status: 204,
+      parameters: idParameter('mobileTestId'),
+      summary: 'Delete a mobile test.',
     }),
   },
   '/api/v1/datasets': {
@@ -512,6 +549,16 @@ export const authoringPaths = {
       response: 'AuthoredPlan',
       parameters: idParameter('planId', true),
       summary: 'Update a plan and replace its test selection.',
+    }),
+    delete: operation({
+      id: 'deletePlan',
+      scope: 'plans:write',
+      status: 204,
+      parameters: idParameter('planId', true),
+      summary: 'Delete a plan with its schedules, webhooks and run history.',
+      responses: {
+        '409': error('`plan_running`: a run of the plan has not ended; cancel it first.'),
+      },
     }),
   },
   '/api/v1/suites/export': {

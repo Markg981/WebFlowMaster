@@ -40,12 +40,17 @@ import {
  * the run.
  */
 
-export function toConnectionConfig(row: TestManagementConnection): ConnectionConfig {
+export async function toConnectionConfig(row: TestManagementConnection): Promise<ConnectionConfig> {
   return {
     provider: row.provider as TestManagementProvider,
     baseUrl: row.baseUrl,
     username: row.username,
-    token: decryptSecret(row.encryptedToken, row.tokenIv, row.tokenAuthTag),
+    token: await decryptSecret(
+      row.encryptedToken,
+      row.tokenIv,
+      row.tokenAuthTag,
+      row.organizationId,
+    ),
     projectKey: row.projectKey,
     suiteId: row.suiteId,
     testPlanKey: row.testPlanKey,
@@ -273,7 +278,7 @@ export async function publishExecution(
 
   try {
     const outcome = await publishResults(
-      toConnectionConfig(connection),
+      await toConnectionConfig(connection),
       {
         title,
         description,

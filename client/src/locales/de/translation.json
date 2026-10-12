@@ -154,6 +154,8 @@
       "accountDescription": "Ihr Benutzername und das Ändern Ihres Passworts.",
       "runUsage": "Ausführungsauslastung",
       "runUsageDescription": "Wie viele Ausführungen dieser Organisation laufen oder warten, gemessen an ihren Limits.",
+      "billing": "Abrechnung",
+      "billingDescription": "Der Tarif dieser Organisation, der Stand ihres Abonnements und was sie von dem nutzt, was der Tarif enthält.",
       "auditLog": "Audit-Protokoll",
       "auditLogDescription": "Wer was wann und von wo geändert hat, und ob über einen API-Schlüssel.",
       "security": "Sicherheit",
@@ -416,7 +418,7 @@
       "pending": "offen bis {{date}}",
       "revoke": "Einladung für {{username}} widerrufen",
       "removeTitle": "{{username}} entfernen?",
-      "removeDescription": "Das Konto wird gelöscht, mit seinen API-Schlüsseln und Einstellungen. Projekte, Tests, Pläne, Zeitpläne und Umgebungen, die es erstellt hat, bleiben in der Organisation und gehen an das Mitglied Ihrer Wahl über. Das Audit-Protokoll behält den Namen.",
+      "removeDescription": "Die Person verlässt diese Organisation, mit ihren API-Schlüsseln und Einstellungen hier; das Konto selbst wird nur gelöscht, wenn dies ihre letzte Organisation war. Projekte, Tests, Pläne, Zeitpläne und Umgebungen, die sie erstellt hat, bleiben in der Organisation und gehen an das Mitglied Ihrer Wahl über. Das Audit-Protokoll behält den Namen.",
       "heirLabel": "Erstelltes übergeben an",
       "heirMe": "mich",
       "heirOtherOwner": "einen anderen Eigentümer",
@@ -436,7 +438,8 @@
       "revokeDialog": {
         "title": "Einladung für {{username}} widerrufen?",
         "description": "Der Einladungslink funktioniert nicht mehr. Sie können die Person später erneut einladen."
-      }
+      },
+      "linkExistingAccount": "{{username}} hat bereits ein Konto: die Person meldet sich damit an und öffnet den Link, um dieser Organisation zusätzlich beizutreten."
     },
     "customActions": {
       "title": "Eigene Aktionen",
@@ -1180,6 +1183,9 @@
       "label": "Die Adresse, mit der Sie sich anmelden",
       "submit": "Link senden",
       "sent": "Falls ein Konto mit dieser Adresse existiert, ist ein Link zum Wählen eines neuen Passworts unterwegs. Prüfen Sie Ihr Postfach."
+    },
+    "invitationExistingAccount": {
+      "description": "Sie haben bereits ein Konto mit diesem Namen? Melden Sie sich zuerst an und öffnen Sie diesen Link dann erneut, um beizutreten."
     }
   },
   "dashboardPageNew": {
@@ -3020,6 +3026,69 @@
     "operator": "Die Limits legt der Administrator dieser Installation fest.",
     "noRunner": "Kein Runner ist online, daher warten Ausführungen in der Warteschlange, bis einer startet."
   },
+  "billing": {
+    "loading": "Wird geladen…",
+    "error": "Die Abrechnungsinformationen konnten nicht geladen werden.",
+    "plan": "Tarif",
+    "free": "Kostenlos",
+    "perMonth": "{{amount}} / Monat",
+    "perYear": "{{amount}} / Jahr",
+    "period": "Aktueller Zeitraum",
+    "trialEnds": "Testphase endet",
+    "usageTitle": "Nutzung gegenüber dem, was der Tarif enthält",
+    "quotaPrecedence": "Ein vom Installationsadministrator gesetztes Limit hat Vorrang vor dem des Tarifs; das des Tarifs vor dem Standard der Installation.",
+    "blocked": "Neue Ausführungen und Aufzeichnungen werden abgelehnt, bis das Abonnement wiederhergestellt ist. Berichte, Exporte und Einstellungen bleiben verfügbar.",
+    "graceEnds": "Die Zahlung ist überfällig. Ausführungen stoppen am {{date}}, sofern sie nicht beglichen wird.",
+    "managedByAdmin": "Die Abrechnung wird vom Administrator dieser Installation verwaltet: Es gibt keinen Zahlungsanbieter.",
+    "changePlan": "Tarif wechseln",
+    "manageBilling": "Abrechnung verwalten",
+    "redirectError": "Der Abrechnungsanbieter ist nicht erreichbar. Versuchen Sie es erneut.",
+    "status": {
+      "trialing": "Testphase",
+      "active": "Aktiv",
+      "past_due": "Zahlung überfällig",
+      "suspended": "Gesperrt",
+      "cancelled": "Gekündigt"
+    },
+    "interval": {
+      "month": "Monatlich",
+      "year": "Jährlich"
+    },
+    "banner": {
+      "suspended": "Diese Organisation ist gesperrt: Neue Ausführungen und Aufzeichnungen können nicht starten. Berichte und Einstellungen bleiben verfügbar.",
+      "cancelled": "Diese Organisation hat kein aktives Abonnement: Neue Ausführungen und Aufzeichnungen können erst starten, wenn ein Tarif gewählt ist.",
+      "pastDueExpired": "Die Zahlung ist überfällig und die Nachfrist ist abgelaufen: Neue Ausführungen können erst starten, wenn sie beglichen ist.",
+      "pastDue": "Die Zahlung ist überfällig. Ausführungen stoppen am {{date}}, sofern sie nicht beglichen wird.",
+      "settings": "Abrechnungseinstellungen"
+    },
+    "admin": {
+      "title": "Abrechnungsverwaltung",
+      "plans": "Tarife",
+      "organizations": "Organisationen",
+      "loadError": "Die Abrechnungsdaten konnten nicht geladen werden.",
+      "saveError": "Die Änderung konnte nicht gespeichert werden. Prüfen Sie die Werte.",
+      "saved": "Gespeichert.",
+      "code": "Code",
+      "name": "Name",
+      "price": "Preis",
+      "active": "Angeboten",
+      "inherit": "Erben",
+      "yes": "Ja",
+      "no": "Nein",
+      "priceMonth": "Monatspreis (Cent)",
+      "priceYear": "Jahrespreis (Cent)",
+      "currency": "Währung",
+      "trialDays": "Testtage",
+      "priceIdMonth": "Preis-ID des Anbieters (monatlich)",
+      "priceIdYear": "Preis-ID des Anbieters (jährlich)",
+      "create": "Tarif hinzufügen",
+      "status": "Status",
+      "reason": "Grund",
+      "save": "Speichern",
+      "blocked": "Ausführungen blockiert",
+      "help": "Gesperrte und gekündigte Organisationen sowie überfällige nach Ablauf der Nachfrist können keine Ausführungen starten; ihre Berichte und Einstellungen bleiben erreichbar. Jede Änderung wird ins Abrechnungsprotokoll und ins Audit-Log der Organisation geschrieben."
+    }
+  },
   "auditLog": {
     "filterLabel": "Anzeigen",
     "export": "Als CSV exportieren",
@@ -3082,6 +3151,7 @@
       "mail_template_changed": "E-Mail-Vorlage geändert",
       "member_role_changed": "Rolle des Mitglieds geändert",
       "member_removed": "Mitglied entfernt",
+      "member_joined": "Mitglied der Organisation beigetreten",
       "invitation_created": "Einladung gesendet",
       "invitation_revoked": "Einladung widerrufen",
       "invitation_accepted": "Einladung angenommen",
@@ -3188,6 +3258,8 @@
       "sms_inbox_token_issued": "SMS-Empfangsadresse ausgestellt",
       "sms_inbox_token_revoked": "SMS-Empfangsadresse widerrufen",
       "organization_quotas_updated": "Organisationskontingente geändert",
+      "organization_billing_updated": "Abrechnung der Organisation geändert",
+      "organization_switched": "Organisation gewechselt",
       "organization_artifacts_reconciled": "Artefaktbestand der Organisation abgeglichen",
       "load_test_created": "Lasttest erstellt",
       "load_test_updated": "Lasttest geändert",
@@ -4821,11 +4893,13 @@
   "loadTests": {
     "profileChart": "Lastprofil: bis zu {{peak}} virtuelle Benutzer über {{total}} s",
     "status": {
+      "queued": "In der Warteschlange",
       "running": "Läuft",
       "passed": "Bestanden",
       "failed": "Fehlgeschlagen",
       "cancelled": "Abgebrochen",
-      "error": "Konnte nicht laufen"
+      "error": "Konnte nicht laufen",
+      "worker_lost": "Worker verloren"
     },
     "runLoadFailed": "Der Lauf konnte nicht geladen werden.",
     "loading": "Wird geladen…",
@@ -4881,6 +4955,7 @@
     "addStage": "Stufe hinzufügen",
     "warmUp": "Aufwärmphase (s), nicht bewertet",
     "profileTotal": "{{total}} s insgesamt, {{peak}} virtuelle Benutzer in der Spitze",
+    "profileLimits": "Grenzen: {{durationSec}} s insgesamt, {{virtualUsers}} virtuelle Nutzer.",
     "data": "Daten pro virtuellem Benutzer",
     "dataSet": "Datensatz",
     "noData": "Kein Datensatz: dieselben Werte für alle",
@@ -4900,7 +4975,7 @@
     "environment": "Umgebung",
     "noEnvironment": "Keine Umgebung",
     "start": "Lauf starten",
-    "startHelp": "Der Lauf wird vom Server gesendet, getrennt von Plänen. Ein Lasttest gleichzeitig pro Organisation.",
+    "startHelp": "Der Lauf wird für einen Last-Worker eingereiht, getrennt von Plänen, und übersteht einen Neustart des Webservers. Ein Lasttest gleichzeitig pro Organisation.",
     "noRuns": "Noch kein Lauf.",
     "deleteFailed": "Der Lasttest wurde nicht gelöscht.",
     "title": "Lasttests",
@@ -4915,7 +4990,8 @@
     "saved": "Lasttest gespeichert",
     "deleteTitle": "{{name}} löschen?",
     "deleteBody": "Seine Läufe werden mit gelöscht. Die API-Tests bleiben.",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "queuedHelp": "Wartet darauf, dass ein Last-Worker ihn übernimmt."
   },
   "matrixEvidence": {
     "title": "Angeforderte und tatsächliche Matrix",
@@ -4994,5 +5070,19 @@
   "errorBoundary": {
     "title": "Auf dieser Seite ist etwas schiefgelaufen.",
     "description": "Der Fehler wurde aufgezeichnet. Laden Sie die Seite neu, um fortzufahren."
+  },
+  "organizationSwitcher": {
+    "label": "Organisation wechseln",
+    "yourOrganizations": "Ihre Organisationen",
+    "failed": "Organisation konnte nicht gewechselt werden"
+  },
+  "joinOrganization": {
+    "loading": "Einladung wird gelesen…",
+    "title": "{{organization}} beitreten",
+    "description": "Sie wurden eingeladen, {{organization}} als {{role}} beizutreten. Ihr Konto behält seine anderen Organisationen; Sie können in der Kopfzeile zwischen ihnen wechseln.",
+    "join": "Als {{role}} beitreten",
+    "cancel": "Nicht jetzt",
+    "invalid": "Diese Einladung gilt nicht für Ihr Konto: Sie ist möglicherweise abgelaufen, bereits verwendet oder für einen anderen Benutzernamen bestimmt.",
+    "back": "Zurück zur Anwendung"
   }
 }

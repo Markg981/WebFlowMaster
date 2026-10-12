@@ -46,6 +46,33 @@ as the operator keeps them.
   artifact store, like any hosting provider. Stored secrets are encrypted with a key the
   operator also holds.
 
+## How stored secrets are encrypted {#how-stored-secrets-are-encrypted}
+
+Stored secrets — environment secrets, saved login states, browser grid keys, the tokens of issue
+trackers, source hosts and test management tools, SMTP passwords, single sign-on client secrets
+and signing keys, second-factor secrets — are encrypted with AES-256-GCM before they reach the
+database and never returned by the API.
+
+The keys form an envelope. Each organization has a data key of its own, generated the first time
+it stores a secret; its secrets are encrypted with that key, and each value is bound to its
+organization and key version, so a value copied into another organization's rows does not
+decrypt there. The data keys are stored in the database too, wrapped by one master key that
+`ENCRYPTION_KEY` derives and that lives only in the installation's environment. Values stored
+before this scheme (migration 0084) are encrypted directly with the master key and still
+decrypt; `npm run key:rotate` moves them to the organization keys.
+
+What this does and does not give:
+
+- The database alone — a dump, a backup, a copy — reveals no secret: the data keys in it are
+  wrapped.
+- The master key still protects everything. Whoever holds it together with the database can
+  unwrap every organization's key, as before; there is no key an organization has that the
+  operator does not. The gain is isolation of key material and cheap rotation, not a secret kept
+  from the operator.
+- Rotating an organization's key (`npm run key:rotate -- --organization <id>`) re-encrypts that
+  organization's secrets only; rotating the master key re-wraps the data keys and leaves the
+  secrets as they are. See [Rotating the encryption key](../admin/operations#rotating-the-encryption-key).
+
 ## Third parties
 
 The product itself sends data to third parties only where an organization or the operator

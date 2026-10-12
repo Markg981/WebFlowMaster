@@ -85,7 +85,7 @@ import { failuresOf, openQuarantinesOf, refKey } from './test-quarantine';
 import { describeNetworkFailures, type NetworkSummary } from '@shared/network';
 import { takeExecution, transitionExecution } from './execution-state';
 import { artifactStore } from './artifact-store';
-import { QuotaError, quotaErrorBody } from './tenant-quotas';
+import { QuotaError, quotaErrorBody, quotaErrorStatus } from './tenant-quotas';
 import { withExecutionUsage } from './execution-usage';
 import { watchRun } from './run-watch';
 import {
@@ -621,7 +621,7 @@ export async function runTestPlan(
       return { error: error.message, status: error.status, testPlanRunId: error.executionId };
     }
     const quota = quotaErrorBody(error);
-    if (quota) return { error: String(quota.error), status: 429 };
+    if (quota) return { error: String(quota.error), status: quotaErrorStatus(error) };
     // The detail stays in the log: a driver's or Redis's message names hosts, ports and
     // tables, and the route forwards this string to whoever pressed Run.
     resolvedLogger.error({
@@ -1104,10 +1104,11 @@ async function runTestPlanJobInTenant(
         );
         for (const secret of environmentSecrets) {
           try {
-            secretsMap[secret.keyName] = decryptSecret(
+            secretsMap[secret.keyName] = await decryptSecret(
               secret.encryptedValue,
               secret.iv,
               secret.authTag,
+              executionRecord[0].organizationId,
             );
           } catch (e) {
             resolvedLogger.warn(
@@ -1672,7 +1673,7 @@ async function runTestPlanJobInTenant(
             reportStatus = 'Error';
             failureReason = `${mobile.test.name} names no grid to run on. Choose a BrowserStack or LambdaTest grid in the test's settings.`;
           } else {
-            const grid = toGridConfig(mobile.grid);
+            const grid = await toGridConfig(mobile.grid);
             const attemptOnce = () =>
               performMobileTest(
                 mobile.test,

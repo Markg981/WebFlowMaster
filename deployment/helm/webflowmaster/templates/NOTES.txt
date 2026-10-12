@@ -1,0 +1,51 @@
+WebFlowMaster {{ default .Chart.AppVersion .Values.image.tag }} is being installed as release {{ .Release.Name }}
+in namespace {{ .Release.Namespace }}.
+
+{{- if .Values.migrations.enabled }}
+{{- if .Values.postgresql.enabled }}
+
+Migrations run as a post-install/post-upgrade Job (the evaluation PostgreSQL has to exist
+first); the api pod restarts until the schema is in place. Watch it with
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "webflowmaster.fullname" . }}-migrate
+{{- else }}
+
+Migrations ran before this release as job/{{ include "webflowmaster.fullname" . }}-migrate.
+{{- end }}
+{{- end }}
+
+Check the installation:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "webflowmaster.fullname" . }}-api
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "webflowmaster.fullname" . }}-worker
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  https://{{ .host }}/readyz
+{{- end }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward service/{{ include "webflowmaster.fullname" . }}-api 5000:{{ .Values.service.port }}
+  curl http://127.0.0.1:5000/readyz
+{{- end }}
+
+Register the first account at once: until it exists, whoever opens the registration page first
+owns the installation (docs/en/admin/installation.md, "First sign-in").
+
+{{- if or .Values.postgresql.enabled .Values.redis.enabled }}
+
+WARNING: postgresql.enabled / redis.enabled deploy single-pod stores with no backups and no
+replication. They are for evaluating the chart, not for an installation anyone relies on.
+{{- end }}
+{{- if and (eq .Values.artifacts.store "local") (or (gt (int .Values.api.replicaCount) 1) (gt (int .Values.worker.replicaCount) 1) .Values.api.autoscaling.enabled .Values.worker.autoscaling.enabled .Values.worker.keda.enabled) }}
+
+WARNING: artifacts.store is local with more than one api or worker replica. Every replica
+must mount the same ReadWriteMany claims, or report links answer 404; otherwise switch to
+artifacts.store: s3.
+{{- end }}
+{{- if and (eq .Values.config.schedulerBackend "cron") (or (gt (int .Values.api.replicaCount) 1) .Values.api.autoscaling.enabled) }}
+
+WARNING: config.schedulerBackend is cron with several api replicas: every schedule starts
+once per replica. Set it to bullmq.
+{{- end }}
+{{- if not .Values.secrets.existingSecret }}
+
+The Secret {{ include "webflowmaster.fullname" . }}-secrets is a Helm hook resource: `helm uninstall`
+leaves it in place. Delete it by hand when you remove the installation for good.
+{{- end }}

@@ -53,6 +53,9 @@ erDiagram
 | `quota_execution_sessions`     | Tenant-scoped occupancy sessions independent of report retention; overlaps measured per UTC month.                                                                                                            |
 | `quota_artifacts`              | Tenant-scoped committed and reserved retained bytes, including baseline objects and inline mobile screenshots.                                                                                                |
 | `quota_installation_defaults`  | Private installation mode/test/storage defaults used by quota triggers; unavailable to `app_user`.                                                                                                            |
+| `billing_plans`                | The installation's plan catalogue: code, prices, currency, trial days, the quotas a plan includes (null inherits the installation default) and the provider's price ids. `app_user` reads only.               |
+| `organization_subscriptions`   | One row per organization: plan, status (`trialing`/`active`/`past_due`/`suspended`/`cancelled`), period, trial end, when it became past due, provider ids. RLS-scoped; `app_user` reads only.                 |
+| `billing_events`               | Append-only ledger of provider webhooks and manual or scheduled changes, unique by idempotency key. No grant for `app_user`.                                                                                  |
 
 Organization quota overrides include mode, saved tests, artifact bytes and monthly execution minutes,
 with optimistic revision and artifact inventory timestamp. See [quota administration](../admin/administration#quotas).

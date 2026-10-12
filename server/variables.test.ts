@@ -45,7 +45,7 @@ async function makeEnvironment(name: string): Promise<number> {
 }
 
 async function addSecret(environmentId: number, keyName: string, value: string) {
-  const { encryptedValue, iv, authTag } = encryptSecret(value);
+  const { encryptedValue, iv, authTag } = await encryptSecret(value, organizationId);
   await privilegedDb
     .insert(secrets)
     .values({ environmentId, keyName, encryptedValue, iv, authTag, userId, organizationId });
@@ -88,7 +88,7 @@ describe('resolveVariables', () => {
       .insert(environments)
       .values({ name: 'Foreign', userId: otherUser, organizationId: otherOrg })
       .returning();
-    const { encryptedValue, iv, authTag } = encryptSecret('not-yours');
+    const { encryptedValue, iv, authTag } = await encryptSecret('not-yours', otherOrg);
     await privilegedDb.insert(secrets).values({
       environmentId: foreign.id,
       keyName: 'secret_password',

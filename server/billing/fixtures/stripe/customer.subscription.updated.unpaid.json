@@ -1,0 +1,18 @@
+{
+  "id": "evt_6SubscriptionUnpaid",
+  "object": "event",
+  "type": "customer.subscription.updated",
+  "data": {
+    "object": {
+      "id": "sub_Team001",
+      "object": "subscription",
+      "customer": "cus_Team001",
+      "status": "unpaid",
+      "metadata": { "organizationId": "ORG_ID", "planCode": "team", "interval": "month" },
+      "items": {
+        "object": "list",
+        "data": [{ "price": { "id": "price_team_month", "recurring": { "interval": "month" } } }]
+      }
+    }
+  }
+}

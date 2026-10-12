@@ -18,11 +18,25 @@ interface ActiveJob {
 
 const activeCronJobs: Map<string, ActiveJob> = new Map();
 
-// Scheduler backend selection. Default is the in-process node-cron engine (single
-// instance). Set SCHEDULER_BACKEND=bullmq to use Redis-backed BullMQ job schedulers,
-// which are distributed (no duplicate runs across instances) and survive restarts.
-export const SCHEDULER_BACKEND: 'cron' | 'bullmq' =
-  process.env.SCHEDULER_BACKEND === 'bullmq' ? 'bullmq' : 'cron';
+export type SchedulerBackend = 'cron' | 'bullmq';
+
+/**
+ * The scheduler backend a SCHEDULER_BACKEND value names.
+ *
+ * The default is `bullmq`: each schedule is a Redis-backed BullMQ job scheduler, so it fires once
+ * however many web processes there are and survives restarts. Redis is already required (queues,
+ * sessions), so the default costs nothing an installation does not already have. It used to be
+ * `cron`, the in-process node-cron engine, and with several web replicas every schedule fired once
+ * per process. `cron` stays as the explicit opt-in for a single process with nothing else running
+ * — PGlite local development without a worker, mostly. Anything else is read as the default.
+ */
+export function resolveSchedulerBackend(value: string | undefined): SchedulerBackend {
+  return value?.trim().toLowerCase() === 'cron' ? 'cron' : 'bullmq';
+}
+
+export const SCHEDULER_BACKEND: SchedulerBackend = resolveSchedulerBackend(
+  process.env.SCHEDULER_BACKEND,
+);
 
 // Job name used for BullMQ-triggered scheduled runs (handled by the worker).
 export const TRIGGER_SCHEDULE_JOB = 'trigger-schedule';
@@ -484,11 +498,11 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
     // node-cron doesn't directly support a "run once at this future time then stop" via cron string.
     // We can schedule it if `nextRunAt` is in the future.
     if (schedule.nextRunAt.getTime() > Date.now()) {
-      // This is a bit of a hack for 'once'. We create a cron job that runs every minute,
-      // and inside the job, it checks if the current time matches `nextRunAt`.
-      // A better way would be to use setTimeout for true 'once' tasks if they are imminent,
-      // or a more sophisticated scheduler that handles one-time future tasks.
-      // Or, if `node-cron` is used, schedule it for the specific time and ensure the job unschedules itself.
+      // node-cron has no "run once at this moment": the pattern below names the minute, hour,
+      // day and month of `nextRunAt`, so it matches that moment and would match it again a year
+      // later — but the schedule is deactivated and its job stopped after the first run
+      // (advanceSchedule), so it never gets there. Only the opt-in cron backend does this; the
+      // default BullMQ backend adds one delayed job instead (bullmqAddScheduleJob).
       const runAtDate = new Date(schedule.nextRunAt);
       // The parts are read in the schedule's own zone, because node-cron is told to
       // evaluate the pattern in that zone below. Mixing the two — UTC numbers evaluated in
@@ -645,7 +659,7 @@ export async function shutdownScheduler(): Promise<void> {
   resolvedLogger.info('[SchedulerService] All cron jobs stopped.');
 }
 
-// ─── BullMQ backend ───────────────────────────────────────────────────────────
+// ─── BullMQ backend (the default) ─────────────────────────────────────────────
 // Instead of an in-process cron, each active schedule becomes a Redis-backed BullMQ
 // Job Scheduler (recurring) or a delayed job ('once'). The worker consumes the
 // resulting 'trigger-schedule' jobs and runs executeScheduledPlan. This is
@@ -763,6 +777,8 @@ export async function bullmqShutdownScheduler(): Promise<void> {
 }
 
 // ─── Backend dispatch (public API used by index.ts / routes.ts) ─────────────────
+// Every entry point goes through SCHEDULER_BACKEND, so the startup path, the schedule CRUD and
+// the 'once' schedules all land on the same backend: BullMQ unless SCHEDULER_BACKEND=cron.
 export default {
   initializeScheduler: () =>
     SCHEDULER_BACKEND === 'bullmq' ? bullmqInitializeScheduler() : initializeScheduler(),

@@ -10,6 +10,7 @@ import { resolveMailConfiguration, type ResolvedMailConfiguration } from './mail
 import { providerHeaders } from './mail-providers';
 import { applyMailTemplate } from './mail-templates';
 import { egressProxy } from './egress-proxy';
+import { isEgressDenied, resolveVetted } from './egress-policy';
 
 /**
  * Sending e-mail: invitations, password reset links, run notifications.
@@ -124,6 +125,18 @@ function transportFor(
   return cached.transport;
 }
 
+/**
+ * An organization's own SMTP host is a tenant-chosen address, so the egress policy applies to
+ * it as to a test's target: by name, and by what the name resolves to now. Nodemailer resolves
+ * on its own and offers no hook, so this is a check before the connection rather than on it.
+ * The installation's inherited SMTP is the operator's, and the proxy decides when there is one.
+ */
+async function assertSmtpAllowed(config: ResolvedMailConfiguration, env: NodeJS.ProcessEnv) {
+  if (config.inherited || egressProxy()) return;
+  const host = smtpTransportOptions(config, env).host;
+  if (host) await resolveVetted(host);
+}
+
 /** The mail server's answer without the credentials in SMTP_URL. */
 function refusalMessage(error: unknown): string {
   // Provider/transport errors can quote credentials, message content or reset URLs. Keep
@@ -157,6 +170,7 @@ export async function sendMail(
         deliveryId,
         error: 'This recipient previously hard-bounced in this organization. Mail was not sent.',
       };
+    await assertSmtpAllowed(config, env);
     const info = await transportFor(env, config).sendMail({
       from: config.from || 'WebFlowMaster <no-reply@localhost>',
       to: message.to,
@@ -202,7 +216,7 @@ export async function sendMail(
     return {
       sent: false,
       ...(deliveryId ? { state: 'failed' as const, deliveryId } : {}),
-      error: refusalMessage(error),
+      error: isEgressDenied(error) ? error.message : refusalMessage(error),
     };
   }
 }

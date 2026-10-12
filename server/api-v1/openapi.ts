@@ -2,6 +2,7 @@ import { API_SCOPES, type ApiScope } from '@shared/api-scopes';
 import { EXECUTION_STATUSES } from '@shared/execution-status';
 import { CI_PROVIDERS } from '@shared/ci';
 import { authoringPaths, authoringSchemas } from './authoring-openapi';
+import { managementPaths, managementSchemas } from './management-openapi';
 
 /**
  * The description of /api/v1, served at /api/v1/openapi.json.
@@ -53,9 +54,10 @@ export const openApiDocument = {
   openapi: '3.1.0',
   info: {
     title: 'WebFlowMaster API',
-    version: '1.1.0',
+    version: '1.2.0',
     description:
-      'Provision projects, tests, datasets and plans, import/export suites, start runs and collect their results.\n\n' +
+      'Provision projects, tests, datasets, plans, schedules, environments, tags and webhooks, import/export suites, ' +
+      'quarantine tests, start runs and collect their results and evidence.\n\n' +
       'Authenticate with an API key, as `Authorization: Bearer <key>` or `X-API-Key: <key>`. ' +
       'A key with scopes works only here, and on each endpoint only with the scope it names:\n\n' +
       `${scopeList}\n\n` +
@@ -69,6 +71,7 @@ export const openApiDocument = {
     },
     schemas: {
       ...authoringSchemas,
+      ...managementSchemas,
       Error: {
         type: 'object',
         required: ['error'],
@@ -183,6 +186,7 @@ export const openApiDocument = {
             properties: {
               self: { type: 'string' },
               junit: { type: 'string' },
+              evidence: { type: 'string', description: 'The files the run left behind.' },
               report: {
                 type: ['string', 'null'],
                 description:
@@ -196,6 +200,7 @@ export const openApiDocument = {
   },
   paths: {
     ...authoringPaths,
+    ...managementPaths,
     '/api/v1/plans': {
       ...authoringPaths['/api/v1/plans'],
       get: {

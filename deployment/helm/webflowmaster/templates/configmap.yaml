@@ -1,0 +1,46 @@
+# Non-secret configuration shared by the api and the worker (docs/en/admin/configuration.md).
+# The Deployments carry a checksum of it, so a change here rolls the pods.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-config
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+data:
+  NODE_ENV: production
+  WEBFLOW_PUBLIC_URL: {{ required "config.publicUrl is required: the address people reach the installation at" .Values.config.publicUrl | quote }}
+  {{- if .Values.config.appBaseUrl }}
+  APP_BASE_URL: {{ .Values.config.appBaseUrl | quote }}
+  {{- end }}
+  SCHEDULER_BACKEND: {{ .Values.config.schedulerBackend | quote }}
+  WORKER_CONCURRENCY: {{ .Values.config.workerConcurrency | quote }}
+  WORKER_SHUTDOWN_GRACE_MS: {{ .Values.config.workerShutdownGraceMs | quote }}
+  REGISTRATION: {{ .Values.config.registration | quote }}
+  {{- if .Values.config.csrfTrustedOrigins }}
+  CSRF_TRUSTED_ORIGINS: {{ .Values.config.csrfTrustedOrigins | quote }}
+  {{- end }}
+  {{- if .Values.config.mailpitUrl }}
+  MAILPIT_URL: {{ .Values.config.mailpitUrl | quote }}
+  {{- end }}
+  ARTIFACT_STORE: {{ .Values.artifacts.store | quote }}
+  {{- if eq .Values.artifacts.store "s3" }}
+  S3_BUCKET: {{ required "artifacts.s3.bucket is required when artifacts.store is s3" .Values.artifacts.s3.bucket | quote }}
+  S3_REGION: {{ .Values.artifacts.s3.region | quote }}
+  {{- if .Values.artifacts.s3.endpoint }}
+  S3_ENDPOINT: {{ .Values.artifacts.s3.endpoint | quote }}
+  {{- end }}
+  {{- if .Values.artifacts.s3.forcePathStyle }}
+  S3_FORCE_PATH_STYLE: {{ .Values.artifacts.s3.forcePathStyle | quote }}
+  {{- end }}
+  {{- if .Values.artifacts.s3.prefix }}
+  S3_PREFIX: {{ .Values.artifacts.s3.prefix | quote }}
+  {{- end }}
+  {{- end }}
+  {{- if .Values.metrics.enabled }}
+  WFM_METRICS_ENABLED: 'true'
+  # The listener binds to 127.0.0.1 by default; Prometheus and the liveness probe need the pod address.
+  WFM_METRICS_HOST: '0.0.0.0'
+  {{- end }}
+  {{- range $name, $value := .Values.config.extraEnv }}
+  {{ $name }}: {{ $value | quote }}
+  {{- end }}

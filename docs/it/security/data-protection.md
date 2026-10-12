@@ -47,6 +47,34 @@ tutto il tempo in cui l'operatore li conserva.
   artefatti, come qualsiasi fornitore di hosting. I segreti salvati sono cifrati con una chiave
   che anche l'operatore possiede.
 
+## Come sono cifrati i segreti salvati {#come-sono-cifrati-i-segreti-salvati}
+
+I segreti salvati — segreti degli ambienti, stati di login, chiavi delle griglie di browser, token
+di issue tracker, source host e strumenti di test management, password SMTP, client secret e
+chiavi di firma del single sign-on, segreti del secondo fattore — sono cifrati con AES-256-GCM
+prima di arrivare nel database e mai restituiti dall'API.
+
+Le chiavi formano una busta (envelope). Ogni organizzazione ha una chiave dati propria, generata
+la prima volta che salva un segreto; i suoi segreti sono cifrati con quella chiave, e ogni valore è
+legato alla sua organizzazione e alla versione della chiave, così un valore copiato nelle righe di
+un'altra organizzazione lì non si decifra. Anche le chiavi dati sono nel database, avvolte da
+un'unica chiave master derivata da `ENCRYPTION_KEY`, che vive solo nell'ambiente
+dell'installazione. I valori salvati prima di questo schema (migrazione 0084) sono cifrati
+direttamente con la chiave master e si leggono ancora; `npm run key:rotate` li sposta sulle chiavi
+delle organizzazioni.
+
+Cosa dà e cosa non dà:
+
+- Il database da solo — un dump, un backup, una copia — non rivela alcun segreto: le chiavi dati
+  che contiene sono avvolte.
+- La chiave master protegge ancora tutto. Chi la possiede insieme al database può aprire la chiave
+  di ogni organizzazione, come prima; non esiste una chiave dell'organizzazione che l'operatore non
+  abbia. Il guadagno è l'isolamento del materiale crittografico e una rotazione economica, non un
+  segreto tenuto nascosto all'operatore.
+- Ruotare la chiave di un'organizzazione (`npm run key:rotate -- --organization <id>`) ricifra
+  solo i segreti di quella organizzazione; ruotare la chiave master riavvolge le chiavi dati e
+  lascia i segreti come sono. Vedi [Ruotare la chiave di cifratura](../admin/operations#ruotare-la-chiave-di-cifratura).
+
 ## Terze parti
 
 Il prodotto invia dati a terze parti solo dove un'organizzazione o l'operatore lo configura:

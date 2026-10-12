@@ -455,7 +455,7 @@ router.post('/api/browser-grids/:id/apps', requireRole('editor'), (req, res) => 
       }
       let app: string;
       try {
-        app = await uploadApp(toGridConfig(grid), file.path, file.originalname);
+        app = await uploadApp(await toGridConfig(grid), file.path, file.originalname);
       } catch (error: any) {
         throw new MobileError(502, String(error?.message ?? error));
       }

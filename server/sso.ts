@@ -1,9 +1,10 @@
 import * as oidc from 'openid-client';
 import { randomBytes } from 'node:crypto';
-import { and, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm';
 import {
   AUDIT_ACTIONS,
   auditLog,
+  organizationMemberships,
   organizationSso,
   ssoDomains,
   ssoIdentities,
@@ -12,7 +13,8 @@ import {
   type User,
 } from '@shared/schema';
 import { privilegedDb } from './db';
-import { decryptSecret, encryptSecret } from './crypto';
+import { joinOrganization } from './organization-memberships';
+import { decryptSecret, encryptSecret, type CryptoOptions } from './crypto';
 import { sqlState } from './db-errors';
 import {
   DEFAULT_GROUP_ATTRIBUTE,
@@ -418,10 +420,12 @@ export async function saveSsoSettings(
         existing?.samlSpPrivateKeyEncrypted &&
         existing.samlSpPrivateKeyIv &&
         existing.samlSpPrivateKeyAuthTag
-          ? decryptSecret(
+          ? await decryptSecret(
               existing.samlSpPrivateKeyEncrypted,
               existing.samlSpPrivateKeyIv,
               existing.samlSpPrivateKeyAuthTag,
+              organizationId,
+              { tx },
             )
           : '';
       const spKey = input.samlClearSpKey ? '' : keyGiven || storedKey;
@@ -446,7 +450,10 @@ export async function saveSsoSettings(
             'Supply a matching RSA private key (at least 2048 bits) and current SP X.509 certificate; signing logout and requiring encryption need this pair.',
           );
       }
-      const encryptedSpKey = keyGiven && !input.samlClearSpKey ? encryptSecret(keyGiven) : null;
+      const encryptedSpKey =
+        keyGiven && !input.samlClearSpKey
+          ? await encryptSecret(keyGiven, organizationId, { tx })
+          : null;
       const advancedSaml =
         protocol === 'saml'
           ? {
@@ -496,7 +503,7 @@ export async function saveSsoSettings(
               clientId: input.clientId!.trim(),
               samlSsoUrl: null,
               samlCertificate: null,
-              ...(secret ? secretColumns(secret) : {}),
+              ...(secret ? await secretColumns(secret, organizationId, tx) : {}),
             }
           : {
               samlSsoUrl,
@@ -596,8 +603,9 @@ export async function saveSsoSettings(
   return (await getSsoSettings(organizationId))!;
 }
 
-function secretColumns(secret: string) {
-  const { encryptedValue, iv, authTag } = encryptSecret(secret);
+/** Inside the save's privileged transaction, so the key lookup rides on it (server/organization-keys.ts). */
+async function secretColumns(secret: string, organizationId: number, tx: CryptoOptions['tx']) {
+  const { encryptedValue, iv, authTag } = await encryptSecret(secret, organizationId, { tx });
   return {
     clientSecretEncrypted: encryptedValue,
     clientSecretIv: iv,
@@ -697,17 +705,18 @@ async function providerRow(organizationId: number) {
   return row;
 }
 
-function clientFor(row: typeof organizationSso.$inferSelect): Promise<oidc.Configuration> {
+async function clientFor(row: typeof organizationSso.$inferSelect): Promise<oidc.Configuration> {
   const key = `${row.issuer}|${row.clientId}|${row.updatedAt.getTime()}`;
   const cached = discoveries.get(row.organizationId);
   if (cached && cached.key === key && Date.now() - cached.at < DISCOVERY_TTL_MS)
     return cached.config;
 
   const issuer = new URL(row.issuer);
-  const secret = decryptSecret(
+  const secret = await decryptSecret(
     row.clientSecretEncrypted!,
     row.clientSecretIv!,
     row.clientSecretAuthTag!,
+    row.organizationId,
   );
   const config = oidc.discovery(issuer, row.clientId!, undefined, oidc.ClientSecretBasic(secret), {
     timeout: 10,
@@ -835,6 +844,8 @@ export interface SignedIn {
   created: boolean;
   /** An existing account, linked to this identity for the first time. */
   linked: boolean;
+  /** An account of another organization that joined this one (verified domain, migration 0086). */
+  joined?: boolean;
   samlSession?: SamlSessionIdentity;
 }
 
@@ -1030,6 +1041,56 @@ async function resolveAccount(
       return updated;
     };
 
+    /**
+     * An account acting in another organization, met by this organization's provider. A member
+     * here already starts acting here, with the role it holds here. One that is not a member is
+     * admitted only when this organization has proven it owns the address's domain (a verified
+     * sso_domains row, whatever SSO_REQUIRE_DOMAIN_VERIFICATION says): proof of the domain is
+     * proof of the mailbox, which is the trust the password reset mail already rests on, and
+     * without it another organization's provider is not ours to believe about our members, nor
+     * ours to let in. Null means it stays where it is: `account_elsewhere`, as before.
+     */
+    const admitFromElsewhere = async (user: User): Promise<User | null> => {
+      const [membership] = await tx
+        .select({ role: organizationMemberships.role })
+        .from(organizationMemberships)
+        .where(
+          and(
+            eq(organizationMemberships.userId, user.id),
+            eq(organizationMemberships.organizationId, organizationId),
+          ),
+        );
+      if (!membership) {
+        const [verified] = await tx
+          .select({ domain: ssoDomains.domain })
+          .from(ssoDomains)
+          .where(
+            and(
+              eq(ssoDomains.organizationId, organizationId),
+              eq(ssoDomains.domain, email.split('@')[1] ?? ''),
+              isNotNull(ssoDomains.verifiedAt),
+            ),
+          );
+        if (!verified) return null;
+        await joinOrganization(tx, user.id, organizationId, defaultRole);
+        await audit(
+          tx,
+          organizationId,
+          { id: user.id, username: user.username, ipAddress: null },
+          AUDIT_ACTIONS.MEMBER_JOINED,
+          'user',
+          String(user.id),
+          { username: user.username, role: defaultRole, issuer: identity.issuer, bySso: true },
+        );
+      }
+      const [switched] = await tx
+        .update(users)
+        .set({ organizationId, role: membership?.role ?? defaultRole })
+        .where(eq(users.id, user.id))
+        .returning();
+      return switched;
+    };
+
     const [known] = await tx
       .select({ userId: ssoIdentities.userId })
       .from(ssoIdentities)
@@ -1037,9 +1098,16 @@ async function resolveAccount(
         and(eq(ssoIdentities.issuer, identity.issuer), eq(ssoIdentities.subject, identity.subject)),
       );
     if (known) {
-      const [user] = await tx.select().from(users).where(eq(users.id, known.userId));
-      if (!user || user.organizationId !== organizationId) return refuse('account_elsewhere');
+      let [user] = await tx.select().from(users).where(eq(users.id, known.userId));
+      if (!user) return refuse('account_elsewhere');
       if (!usable(user)) return refuse('account_disabled');
+      let joined = false;
+      if (user.organizationId !== organizationId) {
+        const admitted = await admitFromElsewhere(user);
+        if (!admitted) return refuse('account_elsewhere');
+        user = admitted;
+        joined = true;
+      }
       await tx
         .update(ssoIdentities)
         .set({ lastSignInAt: new Date() })
@@ -1049,24 +1117,37 @@ async function resolveAccount(
             eq(ssoIdentities.subject, identity.subject),
           ),
         );
-      return { user: await followGroups(user), created: false, linked: false };
+      return { user: await followGroups(user), created: false, linked: false, joined };
     }
 
     // First sign-in of this identity. Usernames are unique across the installation, so the
-    // address may already be somebody's account: in this organization it is linked, anywhere else
-    // it is not ours to give.
+    // address may already be somebody's account: in this organization it is linked; elsewhere it
+    // is admitted on a verified domain, or it is not ours to give.
     const [existing] = await tx
       .select()
       .from(users)
       .where(sql`lower(${users.username}) = ${email}`)
       .limit(1);
     if (existing) {
-      if (existing.organizationId !== organizationId) return refuse('account_elsewhere');
       if (!usable(existing)) return refuse('account_disabled');
       const [alreadyLinked] = await tx
         .select({ issuer: ssoIdentities.issuer })
         .from(ssoIdentities)
         .where(eq(ssoIdentities.userId, existing.id));
+      if (existing.organizationId !== organizationId) {
+        const admitted = await admitFromElsewhere(existing);
+        if (!admitted) return refuse('account_elsewhere');
+        // An account carries one identity. Linked to another organization's provider already, it
+        // signs in here on the address the verified domain vouches for; otherwise it is linked now.
+        if (!alreadyLinked)
+          await tx.insert(ssoIdentities).values({ ...identity, userId: existing.id });
+        return {
+          user: await followGroups(admitted),
+          created: false,
+          linked: !alreadyLinked,
+          joined: true,
+        };
+      }
       if (alreadyLinked) return refuse('account_linked');
       await tx.insert(ssoIdentities).values({ ...identity, userId: existing.id });
       return { user: await followGroups(existing), created: false, linked: true };

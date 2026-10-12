@@ -81,7 +81,9 @@ describe('browser grids', () => {
       .from(browserGrids)
       .where(eq(browserGrids.id, created.body.id));
     expect(row.encryptedKey).not.toContain('bs-key-123');
-    expect(decryptSecret(row.encryptedKey!, row.keyIv!, row.keyAuthTag!)).toBe('bs-key-123');
+    expect(
+      await decryptSecret(row.encryptedKey!, row.keyIv!, row.keyAuthTag!, organizationId),
+    ).toBe('bs-key-123');
 
     const listed = await request(app).get('/api/browser-grids');
     expect(JSON.stringify(listed.body)).not.toContain('bs-key-123');
@@ -144,7 +146,9 @@ describe('browser grids', () => {
       .select()
       .from(browserGrids)
       .where(eq(browserGrids.id, grid.id));
-    expect(decryptSecret(row.encryptedKey!, row.keyIv!, row.keyAuthTag!)).toBe('bs-key-123');
+    expect(
+      await decryptSecret(row.encryptedKey!, row.keyIv!, row.keyAuthTag!, organizationId),
+    ).toBe('bs-key-123');
 
     await request(app)
       .post('/api/browser-grids')

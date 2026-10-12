@@ -13,14 +13,23 @@ vi.mock('react-i18next', () => ({
 const registerMutate = vi.fn();
 /** How the last code was refused, if it was: the page reads it off verifyMfaMutation. */
 let mfaError: { message: string; code: string } | null = null;
+/** The session as the page sees it; a test changes it and renders again. */
+const auth: { user: { id: number; username: string } | null; isLoading: boolean } = {
+  user: null,
+  isLoading: false,
+};
 vi.mock('@/hooks/use-auth', () => ({
   useAuth: () => ({
-    user: null,
+    user: auth.user,
+    isLoading: auth.isLoading,
     mfaChallenge: false,
     loginMutation: { mutate: vi.fn(), isPending: false, error: null },
     verifyMfaMutation: { mutate: vi.fn(), reset: vi.fn(), isPending: false, error: mfaError },
     registerMutation: { mutate: registerMutate, isPending: false, error: null },
   }),
+}));
+vi.mock('@/components/security/JoinOrganization', () => ({
+  default: ({ token }: { token: string }) => <div data-testid="join-organization">{token}</div>,
 }));
 
 /**
@@ -43,6 +52,8 @@ function renderPage(policy: { mode: string; selfRegistration: boolean; firstAcco
 
 beforeEach(() => {
   mfaError = null;
+  auth.user = null;
+  auth.isLoading = false;
   registerMutate.mockReset();
   fetchMock.mockReset();
 });
@@ -74,6 +85,42 @@ describe('AuthPage and invitations', () => {
       password: 'password123',
       invitationToken: token,
     });
+  });
+
+  it('sends someone who registers through an invitation link to the dashboard', async () => {
+    // The token stays in the address after registering; that is not a signed-in person opening
+    // a link to join one more organization, and the page must not ask them to.
+    const token = 'c'.repeat(64);
+    window.history.replaceState(null, '', `/auth?invitation=${token}&username=maria`);
+    const policy = { mode: 'invitation', selfRegistration: false, firstAccount: false };
+    fetchMock.mockResolvedValue({ ok: true, json: async () => policy });
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const tree = (
+      <QueryClientProvider client={client}>
+        <AuthPage />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree);
+    await waitFor(() =>
+      expect((document.getElementById('register-username') as HTMLInputElement).value).toBe(
+        'maria',
+      ),
+    );
+
+    auth.user = { id: 7, username: 'maria' };
+    rerender(tree);
+    await waitFor(() => expect(window.location.pathname).toBe('/dashboard'));
+    expect(screen.queryByTestId('join-organization')).toBeNull();
+  });
+
+  it('asks a signed-in person opening an invitation link whether to join', async () => {
+    const token = 'd'.repeat(64);
+    window.history.replaceState(null, '', `/auth?invitation=${token}&username=maria`);
+    auth.user = { id: 7, username: 'maria' };
+    renderPage({ mode: 'invitation', selfRegistration: false, firstAccount: false });
+    expect(await screen.findByTestId('join-organization')).toHaveTextContent(token);
+    expect(window.location.pathname).toBe('/auth');
   });
 
   it('says accounts need an invitation, and asks for the code', async () => {

@@ -100,6 +100,10 @@ jobs:
           version: ${{ needs.validate.outputs.buildx }}
           driver-opts: image=${{ needs.validate.outputs.buildkit }}
       - run: mkdir -p release-artifacts/${{ matrix.role }}
+      # provenance/sbom stay off on both builds: the docker archive exporter used for the digest
+      # comparison carries no BuildKit attestations, and their build timestamps would differ
+      # between the two clean builds anyway. The promote job signs and attests the published
+      # digest instead (cosign: signature, CycloneDX SBOM and SLSA provenance attestations).
       - name: First clean build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -186,10 +190,18 @@ jobs:
       contents: read
       packages: write
       checks: read
+      # Keyless cosign signing only: the OIDC token binds the signature to this workflow and tag.
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
-        role: [api, worker, agent]
+        include:
+          - role: api
+            file: Dockerfile
+          - role: worker
+            file: Dockerfile.worker
+          - role: agent
+            file: Dockerfile.agent
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -214,10 +226,176 @@ jobs:
         run: node scripts/release/publish.mjs "${{ matrix.role }}"
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      # cosign 2.x: `verify --output json` exposes the Rekor bundle (log index) that the manifest records.
+      - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+        with:
+          cosign-release: 'v2.6.5'
+      - name: Sign the published digest and attest its SBOM and provenance
+        env:
+          ROLE: ${{ matrix.role }}
+          FILE: ${{ matrix.file }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          COMMIT: ${{ needs.validate.outputs.commit }}
+          EPOCH: ${{ needs.validate.outputs.epoch }}
+          PLATFORM: ${{ needs.validate.outputs.platform }}
+          CERTIFICATE_IDENTITY: ${{ github.server_url }}/${{ github.repository }}/.github/workflows/release.yml@${{ github.ref }}
+          CERTIFICATE_OIDC_ISSUER: https://token.actions.githubusercontent.com
+          TRANSPARENCY_LOG: https://rekor.sigstore.dev
+          SOURCE_URI: git+${{ github.server_url }}/${{ github.repository }}@${{ github.ref }}
+          INVOCATION: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          COSIGN_YES: 'true'
+        run: |
+          base="release-artifacts/$ROLE"
+          reference=$(node -p "require('./$base/published.json').reference")
+          # SLSA v1 provenance predicate from the inputs this workflow already verified.
+          node --input-type=module - <<'EOF' > "$base/provenance.json"
+          import { readFileSync } from 'node:fs';
+          const env = process.env;
+          const base = `release-artifacts/${env.ROLE}`;
+          const published = JSON.parse(readFileSync(`${base}/published.json`, 'utf8'));
+          const metadata = JSON.parse(readFileSync('release-artifacts/metadata.json', 'utf8'));
+          const { toolchain } = metadata.inputs;
+          const image = (name, reference) => ({
+            name,
+            uri: `pkg:docker/${reference.split('@')[0]}`,
+            digest: { sha256: reference.split('@sha256:')[1] },
+          });
+          const sha = (value) => ({ sha256: value.replace(/^sha256:/, '') });
+          const predicate = {
+            buildDefinition: {
+              buildType: 'https://actions.github.io/buildtypes/workflow/v1',
+              externalParameters: {
+                workflow: {
+                  ref: env.GITHUB_REF,
+                  repository: `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}`,
+                  path: '.github/workflows/release.yml',
+                },
+                dockerfile: env.FILE,
+                platform: env.PLATFORM,
+                buildArgs: {
+                  SOURCE_DATE_EPOCH: env.EPOCH,
+                  APP_VERSION: env.VERSION,
+                  VCS_REF: env.COMMIT,
+                },
+              },
+              internalParameters: {
+                github: {
+                  event_name: env.GITHUB_EVENT_NAME,
+                  repository_id: env.GITHUB_REPOSITORY_ID,
+                  repository_owner_id: env.GITHUB_REPOSITORY_OWNER_ID,
+                  run_id: env.GITHUB_RUN_ID,
+                  run_attempt: env.GITHUB_RUN_ATTEMPT,
+                },
+                buildx: toolchain.buildx,
+                inputHashes: metadata.inputs.hashes,
+                migrations: metadata.inputs.migrations,
+              },
+              resolvedDependencies: [
+                { uri: env.SOURCE_URI, digest: { gitCommit: env.COMMIT } },
+                image('buildkit', toolchain.buildkit),
+                image('trivy', toolchain.trivy),
+              ],
+            },
+            runDetails: {
+              builder: {
+                id: 'https://github.com/actions/runner/github-hosted',
+                version: { 'runner-image': 'ubuntu-24.04' },
+              },
+              metadata: { invocationId: env.INVOCATION },
+              byproducts: [
+                {
+                  name: 'image-config',
+                  digest: sha(published.configDigest),
+                  annotations: { reproducibility: published.reproducibility },
+                },
+                { name: 'image.tar.gz', mediaType: 'application/gzip', digest: sha(published.archiveSha256) },
+                { name: 'sbom.cdx.json', mediaType: 'application/vnd.cyclonedx+json', digest: sha(published.sbomSha256) },
+                { name: 'scan.json', mediaType: 'application/json', digest: sha(published.scanSha256) },
+                { name: 'scanner.json', mediaType: 'application/json', digest: sha(published.scannerMetadataSha256) },
+              ],
+            },
+          };
+          process.stdout.write(JSON.stringify(predicate, null, 2) + '\n');
+          EOF
+          cosign sign "$reference" 2>&1 | tee "$base/cosign-sign.log"
+          cosign attest --type cyclonedx --predicate "$base/sbom.cdx.json" "$reference" 2>&1 | tee "$base/cosign-attest-cyclonedx.log"
+          cosign attest --type slsaprovenance1 --predicate "$base/provenance.json" "$reference" 2>&1 | tee "$base/cosign-attest-slsaprovenance1.log"
+      - name: Verify the signature and attestations and record their references
+        env:
+          ROLE: ${{ matrix.role }}
+          CERTIFICATE_IDENTITY: ${{ github.server_url }}/${{ github.repository }}/.github/workflows/release.yml@${{ github.ref }}
+          CERTIFICATE_OIDC_ISSUER: https://token.actions.githubusercontent.com
+          TRANSPARENCY_LOG: https://rekor.sigstore.dev
+        run: |
+          base="release-artifacts/$ROLE"
+          reference=$(node -p "require('./$base/published.json').reference")
+          cosign verify --certificate-identity "$CERTIFICATE_IDENTITY" --certificate-oidc-issuer "$CERTIFICATE_OIDC_ISSUER" --output json "$reference" > "$base/cosign-verify.json"
+          for type in cyclonedx slsaprovenance1; do
+            cosign verify-attestation --type "$type" --certificate-identity "$CERTIFICATE_IDENTITY" --certificate-oidc-issuer "$CERTIFICATE_OIDC_ISSUER" "$reference" > "$base/cosign-verify-$type.json"
+          done
+          node --input-type=module - <<'EOF'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const env = process.env;
+          const base = `release-artifacts/${env.ROLE}`;
+          const file = `${base}/published.json`;
+          const published = JSON.parse(readFileSync(file, 'utf8'));
+          const identity = `--certificate-identity '${env.CERTIFICATE_IDENTITY}' --certificate-oidc-issuer ${env.CERTIFICATE_OIDC_ISSUER}`;
+          const logIndex = (name) => {
+            const match = readFileSync(`${base}/cosign-${name}.log`, 'utf8').match(
+              /tlog entry created with index: (\d+)/,
+            );
+            if (!match) throw new Error(`No transparency log entry recorded by cosign ${name}`);
+            return Number(match[1]);
+          };
+          const signature = JSON.parse(readFileSync(`${base}/cosign-verify.json`, 'utf8'));
+          const verified = signature.map((entry) => entry.optional?.Bundle?.Payload?.logIndex);
+          const signatureIndex = logIndex('sign');
+          if (!verified.includes(signatureIndex))
+            throw new Error('Verified signature bundle does not reference the recorded Rekor entry');
+          const digest = published.digest.replace(/^sha256:/, '');
+          const attestation = (type, predicateType) => {
+            const statements = readFileSync(`${base}/cosign-verify-${type}.json`, 'utf8')
+              .split('\n')
+              .filter(Boolean)
+              .map((line) => JSON.parse(Buffer.from(JSON.parse(line).payload, 'base64').toString()));
+            if (
+              !statements.some(
+                (statement) =>
+                  statement.predicateType === predicateType &&
+                  statement.subject?.some((subject) => subject.digest?.sha256 === digest),
+              )
+            )
+              throw new Error(`No verified ${type} attestation for ${published.reference}`);
+            return {
+              predicateType,
+              rekorLogIndex: logIndex(`attest-${type}`),
+              verify: `cosign verify-attestation --type ${type} ${identity} ${published.reference}`,
+            };
+          };
+          published.signing = {
+            method: 'sigstore-keyless',
+            certificateIdentity: env.CERTIFICATE_IDENTITY,
+            certificateOidcIssuer: env.CERTIFICATE_OIDC_ISSUER,
+            transparencyLog: env.TRANSPARENCY_LOG,
+            signature: {
+              rekorLogIndex: signatureIndex,
+              verify: `cosign verify ${identity} ${published.reference}`,
+            },
+            attestations: {
+              cyclonedx: attestation('cyclonedx', 'https://cyclonedx.org/bom'),
+              slsaprovenance1: attestation('slsaprovenance1', 'https://slsa.dev/provenance/v1'),
+            },
+          };
+          writeFileSync(file, JSON.stringify(published, null, 2) + '\n');
+          console.log(`Signed ${published.reference}: Rekor ${signatureIndex}`);
+          EOF
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-published-${{ matrix.role }}
-          path: release-artifacts/${{ matrix.role }}/published.json
+          path: |
+            release-artifacts/${{ matrix.role }}/published.json
+            release-artifacts/${{ matrix.role }}/provenance.json
+            release-artifacts/${{ matrix.role }}/cosign-*
 
   release-manifest:
     needs: [validate, promote]
@@ -249,16 +427,27 @@ jobs:
         run: |
           for role in api worker agent; do
             mkdir -p "release-artifacts/$role"
-            cp "release-artifacts/published/release-published-$role/published.json" "release-artifacts/$role/"
+            cp "release-artifacts/published/release-published-$role/"{published,provenance}.json "release-artifacts/$role/"
             cp "release-artifacts/evidence/release-evidence-$role/"*.json "release-artifacts/$role/"
           done
           node scripts/release/evidence.mjs manifest
+      - name: Require a signature and both attestations for every published image
+        run: |
+          node -e "
+            const { images } = require('./release-artifacts/release-manifest.json');
+            for (const role of ['api', 'worker', 'agent']) {
+              const signing = images[role]?.signing;
+              const entries = [signing?.signature, signing?.attestations?.cyclonedx, signing?.attestations?.slsaprovenance1];
+              if (signing?.method !== 'sigstore-keyless' || entries.some((entry) => !Number.isInteger(entry?.rekorLogIndex)))
+                throw Error('Missing signing evidence for ' + role);
+            }
+          "
       - name: Create a draft release with durable evidence
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.validate.outputs.version }}
         run: |
-          printf 'API, worker and agent: use release.env digest references. See docs/en/admin/releases.md and docs/it/admin/releases.md. HIGH/CRITICAL findings and unequal rebuilds block publication.\n' > release-artifacts/notes.md
+          printf 'API, worker and agent: use release.env digest references. Every image is signed keyless with cosign and carries CycloneDX and SLSA provenance attestations; release-manifest.json records the Rekor entries and verify commands. See docs/en/admin/releases.md and docs/it/admin/releases.md. HIGH/CRITICAL findings and unequal rebuilds block publication.\n' > release-artifacts/notes.md
           if gh release view "v$VERSION" --json isDraft > release-artifacts/existing.json 2>/dev/null; then
             node -e "if (!require('./release-artifacts/existing.json').isDraft) throw Error('Refusing to alter a published release')"
           else
@@ -266,7 +455,7 @@ jobs:
           fi
           gh release upload "v$VERSION" --clobber release-artifacts/release-manifest.json release-artifacts/release.env release-artifacts/source-scan.json release-artifacts/source-scanner.json
           for role in api worker agent; do
-            for file in sbom.cdx.json scan.json scanner.json; do
+            for file in sbom.cdx.json scan.json scanner.json provenance.json; do
               cp "release-artifacts/$role/$file" "release-artifacts/$role-$file"
               gh release upload "v$VERSION" --clobber "release-artifacts/$role-$file"
             done

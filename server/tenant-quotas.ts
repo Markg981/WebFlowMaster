@@ -1,5 +1,10 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { organizations, testPlanExecutions } from '@shared/schema';
+import {
+  billingPlans,
+  organizationSubscriptions,
+  organizations,
+  testPlanExecutions,
+} from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
 import { quotaDefaults, type TenantQuotas, type QuotaUsage } from '@shared/tenant-quotas';
 import { privilegedDb } from './db';
@@ -21,6 +26,12 @@ export type { TenantQuotas } from '@shared/tenant-quotas';
  *
  * Defaults come from the environment; an organization's row can change them. There is no grant
  * for the application to write those columns: an organization cannot raise its own limits.
+ *
+ * Since billing (migration 0087) a plan sits between the two. The precedence, the same here and
+ * in the database triggers that enforce saved tests and mobile evidence: an installation
+ * administrator's override on the organization's row wins; then the limit the subscribed plan
+ * includes; then the installation default. A plan change is in force at once — nothing is copied
+ * onto the organization's row, so an override set by hand is never overwritten by a plan.
  */
 
 export function defaultQuotas(env: NodeJS.ProcessEnv = process.env): TenantQuotas {
@@ -35,7 +46,11 @@ export async function initializeQuotaDefaults(): Promise<void> {
   );
 }
 
-/** The organization's limits: its own where it has them, the installation's otherwise. */
+/**
+ * The organization's limits: its own where it has them, its plan's where that has them, the
+ * installation's otherwise. The plan is read through organization_subscriptions, policed like
+ * the rest, so inside a tenant transaction only the organization's own row joins.
+ */
 export async function quotasFor(tx: TenantTx, organizationId: number): Promise<TenantQuotas> {
   const defaults = defaultQuotas();
   const [row] = await tx
@@ -46,19 +61,33 @@ export async function quotasFor(tx: TenantTx, organizationId: number): Promise<T
       maxTests: organizations.maxTests,
       maxArtifactBytes: organizations.maxArtifactBytes,
       maxMonthlyExecutionMinutes: organizations.maxMonthlyExecutionMinutes,
+      planMaxConcurrentRuns: billingPlans.maxConcurrentRuns,
+      planMaxQueuedRuns: billingPlans.maxQueuedRuns,
+      planMaxTests: billingPlans.maxTests,
+      planMaxArtifactBytes: billingPlans.maxArtifactBytes,
+      planMaxMonthlyExecutionMinutes: billingPlans.maxMonthlyExecutionMinutes,
     })
     .from(organizations)
+    .leftJoin(
+      organizationSubscriptions,
+      eq(organizationSubscriptions.organizationId, organizations.id),
+    )
+    .leftJoin(billingPlans, eq(billingPlans.code, organizationSubscriptions.planCode))
     // organizations has no row policy; the predicate is what keeps this to one's own.
     .where(eq(organizations.id, organizationId))
     .limit(1);
   return {
-    maxConcurrentRuns: row?.maxConcurrentRuns ?? defaults.maxConcurrentRuns,
-    maxQueuedRuns: row?.maxQueuedRuns ?? defaults.maxQueuedRuns,
+    maxConcurrentRuns:
+      row?.maxConcurrentRuns ?? row?.planMaxConcurrentRuns ?? defaults.maxConcurrentRuns,
+    maxQueuedRuns: row?.maxQueuedRuns ?? row?.planMaxQueuedRuns ?? defaults.maxQueuedRuns,
     mode: row?.mode ?? defaults.mode,
-    maxTests: row?.maxTests ?? defaults.maxTests,
-    maxArtifactBytes: row?.maxArtifactBytes ?? defaults.maxArtifactBytes,
+    maxTests: row?.maxTests ?? row?.planMaxTests ?? defaults.maxTests,
+    maxArtifactBytes:
+      row?.maxArtifactBytes ?? row?.planMaxArtifactBytes ?? defaults.maxArtifactBytes,
     maxMonthlyExecutionMinutes:
-      row?.maxMonthlyExecutionMinutes ?? defaults.maxMonthlyExecutionMinutes,
+      row?.maxMonthlyExecutionMinutes ??
+      row?.planMaxMonthlyExecutionMinutes ??
+      defaults.maxMonthlyExecutionMinutes,
   };
 }
 
@@ -105,8 +134,32 @@ export class QuotaError extends Error {
   }
 }
 
+/** The HTTP status a refusal quotaErrorBody describes answers with: 402 for a subscription, 429 for a quota. */
+export function quotaErrorStatus(error: unknown): number {
+  return isSubscriptionRefusal(error) ? 402 : 429;
+}
+
+/**
+ * A refusal because the organization's subscription allows no new work
+ * (server/billing/enforcement.ts). Matched by code rather than class: BullMQ hands a worker's
+ * error back as a plain message, and the enforcement module imports this one, not the reverse.
+ */
+function isSubscriptionRefusal(error: unknown): error is { code: string; message: string } {
+  return (
+    !!error &&
+    typeof error === 'object' &&
+    (error as { code?: unknown }).code === 'subscription_suspended'
+  );
+}
+
 /** Database triggers and application admission checks share a public, non-sensitive error shape. */
 export function quotaErrorBody(error: unknown): Record<string, unknown> | null {
+  if (isSubscriptionRefusal(error))
+    return {
+      error: error.message,
+      code: 'subscription_suspended',
+      status: (error as { subscriptionStatus?: string }).subscriptionStatus,
+    };
   if (error instanceof QuotaError)
     return {
       error: error.message,
