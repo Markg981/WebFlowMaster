@@ -144,7 +144,12 @@ in [Aggiornamento, rollback ed evidenze](#aggiornamento-rollback-ed-evidenze).
 1. Configurare i permessi Actions per creare pacchetti GHCR. Limitare tag `v*` e modifiche di main
    ai manutentori autorizzati e mantenere i controlli CI obbligatori. Scegliere esplicitamente la
    visibilità dei pacchetti; quelli privati richiedono credenziali di sola lettura sugli host.
-2. Aggiornare insieme versione del pacchetto e lockfile in una PR revisionata. Per Playwright,
+2. Aggiornare insieme versione del pacchetto e lockfile in una PR revisionata, con le note di
+   rilascio: `npm run changelog:draft` porta in `[Unreleased]` di `CHANGELOG.md` le PR unite dopo
+   l'ultimo tag `v*` con titolo `feat`, `fix`, `perf` o `security`; riscrivere le voci per chi
+   aggiorna, poi `npm run changelog:release -- VERSIONE`. Un tag senza una sezione di
+   `CHANGELOG.md` per la sua versione fallisce in `validate`, e quella sezione è il testo della
+   release su GitHub, seguita dalla nota sulle evidenze. Per Playwright,
    aggiornare tutte le basi al tag ufficiale coerente e **verificarne il digest nel registry**.
    Aggiornare toolchain e lock Lighthouse con modifiche revisionate, evitando override mobili in CI.
 3. Fare merge e attendere i quattro controlli sul commit risultante in main, poi creare e fare push

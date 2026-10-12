@@ -123,6 +123,10 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
       items: [
         { text: t.restApi, link: p('reference/api') },
         { text: t.cli, link: p('reference/cli') },
+        {
+          text: lang === 'en' ? 'Release notes' : 'Note di rilascio',
+          link: p('reference/changelog'),
+        },
       ],
     },
     {

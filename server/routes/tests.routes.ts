@@ -36,10 +36,10 @@ import {
 import { toPlaywright } from '../playwright-export';
 import { expandSequenceForRun } from '../step-groups';
 import { resolveSequenceForRun } from '../step-elements';
-import { GherkinError } from '../gherkin';
-import { compileGherkinSource, contextOfPickle, exampleLineOfPickle } from '../gherkin-source';
+import { GherkinError } from '../bdd/gherkin';
+import { compileGherkinSource, contextOfPickle, exampleLineOfPickle } from '../bdd/gherkin-source';
 import { GherkinImportOptionsSchema } from '@shared/bdd';
-import { BddDefinitionError, prepareBddForSave } from '../bdd-definition';
+import { BddDefinitionError, prepareBddForSave } from '../bdd/bdd-definition';
 
 const router = asyncRouter();
 

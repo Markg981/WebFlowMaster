@@ -13,7 +13,7 @@ import path from 'path';
 import { getWsEmitter } from './websocket';
 import { defaultVariables } from './variables';
 import { protocolReport } from './api-protocol-report';
-import { runDedicatedBddTest } from './bdd-execution';
+import { runDedicatedBddTest } from './bdd/bdd-execution';
 import { apiTestSpec, runApiRequest, type ApiRequestSpec } from './api-test-runner';
 import { runPerformance } from './api-performance';
 import type { ApiPerformance, PerformanceSummary } from '@shared/api-performance';

@@ -50,6 +50,11 @@ jobs:
         run: node scripts/release/prepare.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - name: Require a CHANGELOG.md section for the tagged version
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        env:
+          VERSION: ${{ steps.prepare.outputs.version }}
+        run: node scripts/release/changelog.mjs notes "$VERSION" > /dev/null
       - name: Install dependencies
         run: |
           npm ci --include=dev --no-audit --no-fund
@@ -447,7 +452,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.validate.outputs.version }}
         run: |
-          printf 'API, worker and agent: use release.env digest references. Every image is signed keyless with cosign and carries CycloneDX and SLSA provenance attestations; release-manifest.json records the Rekor entries and verify commands. See docs/en/admin/releases.md and docs/it/admin/releases.md. HIGH/CRITICAL findings and unequal rebuilds block publication.\n' > release-artifacts/notes.md
+          node scripts/release/changelog.mjs notes "$VERSION" > release-artifacts/notes.md
+          printf '\n---\n\n' >> release-artifacts/notes.md
+          printf 'API, worker and agent: use release.env digest references. Every image is signed keyless with cosign and carries CycloneDX and SLSA provenance attestations; release-manifest.json records the Rekor entries and verify commands. See docs/en/admin/releases.md and docs/it/admin/releases.md. HIGH/CRITICAL findings and unequal rebuilds block publication.\n' >> release-artifacts/notes.md
           if gh release view "v$VERSION" --json isDraft > release-artifacts/existing.json 2>/dev/null; then
             node -e "if (!require('./release-artifacts/existing.json').isDraft) throw Error('Refusing to alter a published release')"
           else

@@ -8,7 +8,7 @@ import { referencedGroupIds } from './step-groups';
 import { referencedCustomActionIds } from './custom-actions';
 import { referencedElementIds } from './step-elements';
 import { asSteps } from './step-groups';
-import { exportGherkin, parseGherkin, autodetectGherkin } from './gherkin';
+import { exportGherkin, parseGherkin, autodetectGherkin } from './bdd/gherkin';
 import type { GherkinImportOptions } from '@shared/bdd';
 
 /**
