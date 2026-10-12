@@ -166,7 +166,7 @@ const TestPlanExecutionPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 p-6 overflow-auto grid md:grid-cols-3 gap-6">
+      <div className="flex-1 p-6 overflow-auto grid md:grid-cols-3 gap-6">
         <div className="md:col-span-1 flex flex-col gap-6">
           <Card>
             <CardHeader>
@@ -249,7 +249,7 @@ const TestPlanExecutionPage: React.FC = () => {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 };

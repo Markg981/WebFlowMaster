@@ -2848,6 +2848,7 @@
     "save": "Save",
     "close": "Close",
     "menu": "Open menu",
+    "navigation": "Navigation",
     "expandSidebar": "Expand sidebar",
     "collapseSidebar": "Collapse sidebar",
     "lightMode": "Switch to light mode",

@@ -464,7 +464,7 @@ const TestReportPage: React.FC = () => {
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
               <div className="mb-2 md:mb-0">{/* Title moved to page header */}</div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {isExecutionInFlight(header.status) && (
                   <Button
                     variant="outline"
@@ -1329,8 +1329,10 @@ const TestReportPage: React.FC = () => {
     <div className="flex flex-col h-full bg-background text-foreground">
       {/* Simplified Header */}
       <header className="bg-card border-b border-border px-4 py-3 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between gap-2">
+          {/* min-w-0 down the row: without it the title keeps its full width and, on a phone,
+              pushes the whole page sideways instead of truncating. */}
+          <div className="flex min-w-0 items-center space-x-2">
             <Link href={backLinkHref}>
               <Button
                 variant="ghost"
@@ -1340,8 +1342,8 @@ const TestReportPage: React.FC = () => {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <FileText className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground truncate max-w-md md:max-w-lg lg:max-w-2xl">
+            <FileText className="h-6 w-6 shrink-0 text-primary" />
+            <h1 className="min-w-0 truncate text-xl font-bold text-card-foreground lg:max-w-2xl">
               {t('testReportPage.title', 'Test Report')}:{' '}
               <span className="font-normal text-muted-foreground">
                 {reportData?.header.testSuiteName || executionId}
@@ -1359,7 +1361,7 @@ const TestReportPage: React.FC = () => {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-auto p-4 md:p-6">{pageContent()}</main>
+      <div className="flex-1 overflow-auto p-4 md:p-6">{pageContent()}</div>
 
       {reportData?.header?.executionId && (
         <FailureAnalysisDialog
