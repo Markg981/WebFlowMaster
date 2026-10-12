@@ -144,7 +144,9 @@ const GeneralReportsPage: React.FC = () => {
     if (selectedPlanId) params.set('planId', selectedPlanId);
     if (selectedStatus) params.set('status', selectedStatus);
     if (searchTerm) params.set('search', searchTerm);
-    navigate(`/reports?${params.toString()}`, { replace: true });
+    // No filters, no "?": a bare /reports? is what got bookmarked and shared.
+    const query = params.toString();
+    navigate(query ? `/reports?${query}` : '/reports', { replace: true });
   }, [selectedPlanId, selectedStatus, searchTerm, navigate]);
 
   const handlePlanFilterChange = (planId: string) => {
