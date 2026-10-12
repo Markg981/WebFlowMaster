@@ -16,6 +16,7 @@ import {
   executionLogs,
   excelSequencesMap,
   systemSettings,
+  userSettings,
   type User,
 } from '../shared/schema';
 import { eq } from 'drizzle-orm';
@@ -624,5 +625,21 @@ describe('GET /api/system-settings', () => {
     currentUser = { ...sessionUser, role: 'viewer' };
     const one = await request(app).get('/api/system-settings/workspaceName').expect(200);
     expect(one.body).toMatchObject({ key: 'workspaceName', value: 'Acme QA' });
+  });
+});
+
+describe('/api/settings', () => {
+  beforeEach(async () => {
+    currentUser = { ...sessionUser, role: 'viewer' };
+    await privilegedDb.delete(userSettings).where(eq(userSettings.userId, sessionUser.id));
+  });
+
+  // The concurrent first reads are in server/user-settings.test.ts.
+  it('creates the row on the first save and updates it on the next, keeping the rest', async () => {
+    const created = await request(app).post('/api/settings').send({ theme: 'dark' }).expect(200);
+    expect(created.body).toMatchObject({ userId: sessionUser.id, theme: 'dark', language: 'en' });
+
+    const updated = await request(app).post('/api/settings').send({ language: 'it' }).expect(200);
+    expect(updated.body).toMatchObject({ theme: 'dark', language: 'it' });
   });
 });
