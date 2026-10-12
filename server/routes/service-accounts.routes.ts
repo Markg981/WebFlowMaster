@@ -2,7 +2,7 @@ import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { apiKeys, users, AUDIT_ACTIONS } from '@shared/schema';
-import { storage } from '../storage';
+import { storage } from '../identity/storage';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../tenancy/audit';

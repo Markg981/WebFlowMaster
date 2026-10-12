@@ -17,11 +17,11 @@ import {
   type UserSettings,
   type InsertUserSettings,
 } from '@shared/schema';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { and, eq, desc, isNull, sql } from 'drizzle-orm';
 import { passwordResets } from '@shared/schema';
 import { hashResetToken, issuePasswordReset, type IssuedReset } from './password-reset';
-import type { TenantTx } from './middleware/tenancy';
+import type { TenantTx } from '../middleware/tenancy';
 import session from 'express-session';
 import { randomBytes } from 'node:crypto';
 
@@ -126,7 +126,7 @@ export class DatabaseStorage implements IStorage {
 
   /**
    * The installation's first account, when registration otherwise needs an invitation
-   * (server/registration.ts). Null if somebody already has one.
+   * (server/identity/registration.ts). Null if somebody already has one.
    *
    * The check and the insert share a transaction-scoped advisory lock, so two people racing to
    * be first on a new installation cannot both win: the second waits, then finds the first.
@@ -256,7 +256,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   /**
-   * Redeems a one-time password reset link (server/password-reset.ts) and sets the new password.
+   * Redeems a one-time password reset link (server/identity/password-reset.ts) and sets the new password.
    *
    * Privileged for the same reason as accepting an invitation: nobody is signed in, so there is no
    * tenant context, and the link is the only thing that says whose password this is. The claim is

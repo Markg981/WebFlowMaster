@@ -158,9 +158,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/auth.ts",
+    "from": "server/identity/auth.ts",
     "to": "server/routes/sso.routes.ts",
-    "unresolvedTo": "./routes/sso.routes",
+    "unresolvedTo": "../routes/sso.routes",
     "dependencyTypes": [
       "local",
       "dynamic-import"
@@ -353,36 +353,6 @@
   },
   {
     "type": "cycle",
-    "from": "server/auth.ts",
-    "to": "server/routes/sso.routes.ts",
-    "unresolvedTo": "./routes/sso.routes",
-    "dependencyTypes": [
-      "local",
-      "dynamic-import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/routes/sso.routes.ts",
-        "dependencyTypes": [
-          "local",
-          "dynamic-import"
-        ]
-      },
-      {
-        "name": "server/auth.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
     "from": "server/bdd/bdd-execution.ts",
     "to": "server/test-execution-service.ts",
     "unresolvedTo": "../test-execution-service",
@@ -525,6 +495,36 @@
         "dependencyTypes": [
           "local",
           "dynamic-import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/identity/auth.ts",
+    "to": "server/routes/sso.routes.ts",
+    "unresolvedTo": "../routes/sso.routes",
+    "dependencyTypes": [
+      "local",
+      "dynamic-import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/routes/sso.routes.ts",
+        "dependencyTypes": [
+          "local",
+          "dynamic-import"
+        ]
+      },
+      {
+        "name": "server/identity/auth.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
         ]
       }
     ]

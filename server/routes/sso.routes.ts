@@ -7,7 +7,7 @@ import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId } from '../middleware/tenancy';
 import { auditActor } from '../tenancy/audit';
-import { recordAuthEvent } from '../auth';
+import { recordAuthEvent } from '../identity/auth';
 import {
   SSO_PROTOCOLS,
   SSO_ROLES,
@@ -24,7 +24,7 @@ import {
   verifySsoDomain,
   type SignInError,
   type SignedIn,
-} from '../sso';
+} from '../identity/sso';
 import logger from '../logger';
 import {
   BINDING_COOKIE,
@@ -35,12 +35,12 @@ import {
   spUrls,
   registerSamlSession,
   finishSamlLogout,
-} from '../sso-saml';
+} from '../identity/sso-saml';
 import { sessionCookieSecure } from '../config';
-import { SCIM_BASE_PATH, issueScimToken, revokeScimToken } from '../scim';
+import { SCIM_BASE_PATH, issueScimToken, revokeScimToken } from '../identity/scim';
 
 /**
- * Single sign-on (server/sso.ts): an owner's settings for the organization's identity provider,
+ * Single sign-on (server/identity/sso.ts): an owner's settings for the organization's identity provider,
  * and the two legs of signing in through it.
  *
  * The settings are for a person in a browser session, like the second-factor policy: a key that
@@ -157,7 +157,7 @@ router.delete('/api/organization/sso', requireRole('owner'), sessionOnly, async 
   res.status(204).end();
 });
 
-// POST /api/organization/sso/domains/:domain/verify — is the TXT record there? (server/sso-domains.ts)
+// POST /api/organization/sso/domains/:domain/verify — is the TXT record there? (server/identity/sso-domains.ts)
 router.post(
   '/api/organization/sso/domains/:domain/verify',
   requireRole('owner'),
@@ -174,7 +174,7 @@ router.post(
   },
 );
 
-// POST /api/organization/sso/scim-token — a new token for the provider's SCIM client (server/scim.ts),
+// POST /api/organization/sso/scim-token — a new token for the provider's SCIM client (server/identity/scim.ts),
 // replacing the one it had. Shown once.
 router.post(
   '/api/organization/sso/scim-token',
@@ -248,7 +248,7 @@ router.get('/api/sso/start', signInLimiter, async (req, res, next) => {
       return backToSignIn(res, started.error);
     }
     if (started.samlRequestId) {
-      // Binds the request to this browser (server/sso-saml.ts). Cross-site, so SameSite=None, which
+      // Binds the request to this browser (server/identity/sso-saml.ts). Cross-site, so SameSite=None, which
       // browsers accept only on a Secure cookie: without TLS the binding is not set, nor required.
       if (sessionCookieSecure()) {
         res.cookie(BINDING_COOKIE, started.samlRequestId, {

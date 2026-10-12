@@ -12,14 +12,14 @@ import {
   ssoSamlReplay,
   ssoSamlSessions,
 } from '@shared/schema';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { groupsOf } from '@shared/sso-roles';
 import { usableDomain } from './sso-domains';
-import { decryptSecret } from './crypto';
+import { decryptSecret } from '../crypto';
 
 /**
  * Single sign-on with SAML 2.0: the second language an organization's identity provider can speak,
- * next to OpenID Connect (server/sso.ts, which owns the settings and the accounts).
+ * next to OpenID Connect (server/identity/sso.ts, which owns the settings and the accounts).
  *
  * The service provider is the organization, not the installation: each organization has its own
  * entity ID, assertion consumer service (ACS) and metadata, under /api/sso/saml/<organization id>/,

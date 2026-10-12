@@ -12,22 +12,22 @@ import {
   type AuditAction,
 } from '@shared/schema';
 import { roleFromGroups, type RoleMapping } from '@shared/sso-roles';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { hashesMatch } from './api-keys';
-import { sqlState } from './db-errors';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
-import { transferMemberContent } from './tenancy/member-removal';
+import { sqlState } from '../db-errors';
+import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { transferMemberContent } from '../tenancy/member-removal';
 import {
   hasOtherMembership,
   moveToAnotherMembership,
   removeMembership,
-} from './tenancy/organization-memberships';
-import type { AuditActor } from './tenancy/audit';
+} from '../tenancy/organization-memberships';
+import type { AuditActor } from '../tenancy/audit';
 
 /**
  * Provisioning with SCIM 2.0 (RFC 7643, RFC 7644): the organization's identity provider creates,
  * changes, deactivates and removes accounts, and pushes its groups, as they change there — not at
- * the person's next sign-in, which is all single sign-on alone can do (server/sso.ts).
+ * the person's next sign-in, which is all single sign-on alone can do (server/identity/sso.ts).
  *
  * The provider authenticates with a bearer token an owner issues under Settings → Single sign-on;
  * the token names the organization. What it may do:
@@ -48,7 +48,7 @@ import type { AuditActor } from './tenancy/audit';
  * The organization's last active owner is never deactivated, demoted or removed this way: a
  * provider misconfigured must not lock everyone out.
  *
- * Everything runs on the privileged handle, like server/sso.ts, and names the organization in
+ * Everything runs on the privileged handle, like server/identity/sso.ts, and names the organization in
  * every statement; removing a member is the one exception, run as the organization like the owner's
  * own removal (server/routes/organization.routes.ts), since it hands the member's rows on.
  * Audit entries name the actor "SCIM".

@@ -6,7 +6,7 @@ import { saveLoginState, type EnvironmentScope } from '../../login-state';
 import { recordRunnerFailure } from '../../observability/taps/runner';
 import { substituteVariables } from '../../outbound-http';
 import { RECORDER_SCRIPT } from '../../recorder-script';
-import { storage } from '../../storage';
+import { storage } from '../../identity/storage';
 
 import {
   AUTHORING_USER_AGENT,

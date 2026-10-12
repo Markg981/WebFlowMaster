@@ -2,9 +2,9 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypt
 import { and, eq, sql } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { AUDIT_ACTIONS, auditLog, organizations, userMfa, type AuditAction } from '@shared/schema';
-import { privilegedDb } from './db';
-import { decryptSecret, encryptSecret } from './crypto';
-import type { AuditActor } from './tenancy/audit';
+import { privilegedDb } from '../db';
+import { decryptSecret, encryptSecret } from '../crypto';
+import type { AuditActor } from '../tenancy/audit';
 
 /**
  * The second factor: TOTP codes from an authenticator app (RFC 6238), and recovery codes.

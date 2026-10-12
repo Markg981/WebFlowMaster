@@ -16,7 +16,7 @@ import { mailerDeps, sendMail } from './messaging/mailer';
 import { mailRunFinished, personWantsMail } from './run-mail';
 import type { RunSummary } from './notifications';
 import { mailSettings } from '@shared/mail-settings';
-import { issuePasswordReset } from './password-reset';
+import { issuePasswordReset } from './identity/password-reset';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 
 vi.mock('./logger', () => ({
@@ -49,7 +49,7 @@ const transport = {
 let app: Express;
 
 beforeAll(async () => {
-  const { setupAuth } = await import('./auth');
+  const { setupAuth } = await import('./identity/auth');
   app = express();
   app.use(express.json());
   setupAuth(app);

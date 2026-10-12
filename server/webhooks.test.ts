@@ -31,7 +31,7 @@ const { privilegedDb } = await import('./db');
 const { auditLog, testPlans, testPlanWebhooks } = await import('@shared/schema');
 const { createTestOrganization, createTestUser } = await import('./tests/factories');
 const { hashWebhookToken, redactWebhookPath, webhookTokenFromRequest } =
-  await import('./webhook-tokens');
+  await import('./identity/webhook-tokens');
 
 let app: express.Express;
 let organizationId: number;

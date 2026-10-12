@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { privilegedDb } from '../db';
 import { apiKeys } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { generateApiKey } from '../api-keys';
+import { generateApiKey } from '../identity/api-keys';
 import { apiKeyAuth, resetApiKeyUsageThrottle } from './api-key-auth';
 
 vi.mock('../logger', () => ({

@@ -110,7 +110,7 @@ describe('createSessionStore after a failed Redis connection', () => {
     const { connectSessionRedis, sessionRedis } = await import('./redis');
     await connectSessionRedis().catch(() => {});
 
-    const { createSessionStore } = await import('./auth');
+    const { createSessionStore } = await import('./identity/auth');
     const store = createSessionStore();
 
     // `isOpen` is true here — node-redis sets it on entry to connect(), before a socket
@@ -127,7 +127,7 @@ describe('createSessionStore after a failed Redis connection', () => {
     const { connectSessionRedis } = await import('./redis');
     await connectSessionRedis().catch(() => {});
 
-    const { createSessionStore } = await import('./auth');
+    const { createSessionStore } = await import('./identity/auth');
 
     expect(() => createSessionStore()).toThrow(/shared session store/i);
   }, 30_000);

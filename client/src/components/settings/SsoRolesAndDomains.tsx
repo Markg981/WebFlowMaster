@@ -16,7 +16,7 @@ import { CheckCircle2, Loader2, PlusCircle, XCircle } from 'lucide-react';
 
 /**
  * Two parts of the single sign-on card (shared/sso-roles.ts):
- * - DomainVerification: each domain's TXT record, and a Verify button (server/sso-domains.ts);
+ * - DomainVerification: each domain's TXT record, and a Verify button (server/identity/sso-domains.ts);
  * - RoleMappingEditor: the provider's groups → roles, applied at every sign-in.
  */
 

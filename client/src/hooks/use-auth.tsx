@@ -22,7 +22,7 @@ export type SessionUser = Omit<SelectUser, 'password'> & {
   mfaEnrollmentRequired?: boolean;
   /** Whether installation-wide settings (log level, runners) are this person's to change. */
   installationAdmin?: boolean;
-  /** This session was opened through the organization's identity provider (server/sso.ts). */
+  /** This session was opened through the organization's identity provider (server/identity/sso.ts). */
   signedInWithSso?: boolean;
 };
 
@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    // With an invitation's token the account joins the inviting organization (see server/auth.ts).
+    // With an invitation's token the account joins the inviting organization (see server/identity/auth.ts).
     mutationFn: async (credentials: InsertUser & { invitationToken?: string }) => {
       const res = await apiRequest('POST', '/api/register', credentials);
       return await res.json();

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { mustEnrol } from '../mfa';
+import { mustEnrol } from '../identity/mfa';
 
 /**
  * Where an organization requires a second factor, a member without one can do nothing but set

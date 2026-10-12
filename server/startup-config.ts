@@ -1,5 +1,5 @@
 import { resolvePort } from './config';
-import { registrationMode } from './registration';
+import { registrationMode } from './identity/registration';
 import { cspMode } from './security-headers';
 
 /**

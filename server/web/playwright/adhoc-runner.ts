@@ -13,7 +13,7 @@ import { runPreconditions } from '../../precondition-runner';
 import { resolveSequenceForRun } from '../../step-elements';
 import { executeStep } from '../step-executor';
 import { expandSequenceForRun } from '../../step-groups';
-import { storage } from '../../storage';
+import { storage } from '../../identity/storage';
 import { resolveVariables } from '../../variables';
 
 import {

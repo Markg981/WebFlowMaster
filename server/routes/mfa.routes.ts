@@ -6,8 +6,8 @@ import { users } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
 import { auditActor } from '../tenancy/audit';
-import { comparePasswords } from '../auth';
-import { storage } from '../storage';
+import { comparePasswords } from '../identity/auth';
+import { storage } from '../identity/storage';
 import {
   beginEnrollment,
   confirmEnrollment,
@@ -16,7 +16,7 @@ import {
   regenerateRecoveryCodes,
   setMfaRequired,
   verifySecondFactor,
-} from '../mfa';
+} from '../identity/mfa';
 import logger from '../logger';
 
 /**

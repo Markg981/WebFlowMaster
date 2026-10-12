@@ -4,7 +4,7 @@ import { hashApiKey } from './api-keys';
 /**
  * The secret a CI system uses to start a plan through its webhook.
  *
- * Kept like an API key, for the same reason (see server/api-keys.ts): 32 random bytes have
+ * Kept like an API key, for the same reason (see server/identity/api-keys.ts): 32 random bytes have
  * nothing to guess, so a single SHA-256 is the right primitive, and it makes the lookup one
  * indexed query. The token leaves the server once, when the webhook is created; the row holds
  * its hash and the first few characters to tell webhooks apart.

@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
  * The signed-in person's account: who they are, and changing their password.
  *
  * Nobody could change a password before. The current one is asked again, and the new one ends
- * every other session of this person (server/auth.ts), which the card says, so someone who changes
+ * every other session of this person (server/identity/auth.ts), which the card says, so someone who changes
  * it because it leaked knows the leak is closed.
  */
 const ChangePasswordCard: React.FC = () => {

@@ -78,7 +78,7 @@ describe('route modules cannot query outside the tenant context', () => {
 
   /**
    * user_settings and system_settings are reached through privilegedDb on purpose, by
-   * server/user-settings.ts and server/system-settings.ts: neither table is org-scoped and
+   * server/identity/user-settings.ts and server/system-settings.ts: neither table is org-scoped and
    * app_user is not even granted them any more (migration 0006). They used to be queried
    * inline in server/routes.ts, the legacy file of inline handlers outside routeFiles().
    *
@@ -112,7 +112,7 @@ describe('route modules cannot query outside the tenant context', () => {
       max: 0,
       why: 'Every handler here is inside a request, so it always has an ambient organization.',
     },
-    'user-settings.ts': {
+    'identity/user-settings.ts': {
       max: 0,
       why: "A person's own settings, keyed by the user: user_settings has no organization.",
     },
@@ -166,7 +166,7 @@ describe('route modules cannot query outside the tenant context', () => {
         'is not a request and has no tenant. It only finds them; each is ended under its own ' +
         'organization through the state machine.',
     },
-    'sso.ts': {
+    'identity/sso.ts': {
       max: 0,
       why:
         "Single sign-on finds an organization's identity provider from an e-mail domain before anyone " +
@@ -174,7 +174,7 @@ describe('route modules cannot query outside the tenant context', () => {
         'sso_domains, sso_identities) and users. Its audit entries are written through the transaction ' +
         'of the change they describe, never through the handle directly.',
     },
-    'scim.ts': {
+    'identity/scim.ts': {
       max: 0,
       why:
         "SCIM finds the organization from the provider's bearer token before any tenant exists, so it holds " +

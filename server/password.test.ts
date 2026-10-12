@@ -4,7 +4,7 @@ import express, { type Express } from 'express';
 import { eq } from 'drizzle-orm';
 import { privilegedDb } from './db';
 import { users, organizations, invitations, auditLog, passwordResets } from '@shared/schema';
-import { storage } from './storage';
+import { storage } from './identity/storage';
 
 vi.mock('./logger', () => ({
   default: {
@@ -28,7 +28,7 @@ vi.mock('./logger', () => ({
 let app: Express;
 
 beforeAll(async () => {
-  const { setupAuth } = await import('./auth');
+  const { setupAuth } = await import('./identity/auth');
   app = express();
   app.use(express.json());
   setupAuth(app);

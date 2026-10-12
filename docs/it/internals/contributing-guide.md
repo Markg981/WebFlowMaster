@@ -68,7 +68,7 @@ Creare il router del modulo con `asyncRouter()` (`server/middleware/async-router
 handler asincrono che lancia arriva così a `incidentErrorHandler`, che lo registra, salva
 l'incidente e risponde una volta sola, senza il messaggio del driver. Intercettare solo ciò a cui
 l'handler sa rispondere meglio, come un rifiuto di quota o un `BrowserTaskError`, e rilanciare il
-resto. `req.user` è tipizzato (`Express.User` in `server/auth.ts`): dopo `requireRole` si legge
+resto. `req.user` è tipizzato (`Express.User` in `server/identity/auth.ts`): dopo `requireRole` si legge
 `req.user!.id`, mai `(req.user as any)`.
 
 In questo esempio lo snapshot del piano e le unità non richiedono il nuovo campo: la descrizione

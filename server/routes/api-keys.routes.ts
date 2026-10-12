@@ -7,7 +7,7 @@ import { API_SCOPE_NAMES, type ApiScope } from '@shared/api-scopes';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole, roleAllows } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { generateApiKey } from '../api-keys';
+import { generateApiKey } from '../identity/api-keys';
 import logger from '../logger';
 
 /**

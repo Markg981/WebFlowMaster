@@ -31,10 +31,10 @@ import {
   scimTokenFromHeader,
   serviceProviderConfig,
   type ScimContext,
-} from '../scim';
+} from '../identity/scim';
 
 /**
- * SCIM 2.0 (server/scim.ts), mounted at /api/scim/v2: the organization's identity provider
+ * SCIM 2.0 (server/identity/scim.ts), mounted at /api/scim/v2: the organization's identity provider
  * provisions accounts and groups. No session and no role: the provider's bearer token is the
  * credential, and it names the organization — every handler acts for that organization only.
  * Answers are SCIM's own JSON (application/scim+json), errors included.

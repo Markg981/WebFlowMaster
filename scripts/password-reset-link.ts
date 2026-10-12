@@ -1,5 +1,5 @@
-import { storage } from '../server/storage';
-import { passwordResetLink } from '../server/password-reset';
+import { storage } from '../server/identity/storage';
+import { passwordResetLink } from '../server/identity/password-reset';
 
 /**
  * A password reset link for any person, issued by whoever runs the installation.

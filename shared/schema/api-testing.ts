@@ -232,7 +232,7 @@ export const OAuth2AuthParamsSchema = z.object({
 export type OAuth2AuthParams = z.infer<typeof OAuth2AuthParamsSchema>;
 
 /**
- * The other schemes of the dropdown (server/api-auth.ts). Every field defaults, like OAuth 2.0's,
+ * The other schemes of the dropdown (server/identity/api-auth.ts). Every field defaults, like OAuth 2.0's,
  * so a test saved while they were only names — `{ type: 'digest' }` — still loads; the runner
  * says which field is missing when it is sent.
  */
@@ -366,7 +366,7 @@ export type AuthParams = z.infer<typeof AuthParamsSchema>;
  * The schemes the runner can actually satisfy.
  *
  * All fourteen the enum lists, since the eight that had only ever been names in the dropdown
- * were implemented (server/api-auth.ts). The list stays so that a scheme added to the enum
+ * were implemented (server/identity/api-auth.ts). The list stays so that a scheme added to the enum
  * later is shown as unavailable, and refused by the runner, until it does something.
  *
  * Shared so those two cannot disagree about which is which; an architecture test pins the

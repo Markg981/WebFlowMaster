@@ -2,11 +2,11 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { auditLog, invitations, organizations, scimGroups, tests, users } from '@shared/schema';
 
 // SCIM against the real (PGlite) test database, as Entra ID and Okta talk to it. Only the logger is mocked.
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -21,9 +21,9 @@ let app: Express;
 
 beforeAll(async () => {
   const { setupAuth } = await import('./auth');
-  const { tenancyMiddleware } = await import('./middleware/tenancy');
-  const ssoRoutes = (await import('./routes/sso.routes')).default;
-  const { default: scimRoutes, exceptScim, SCIM_BASE_PATH } = await import('./routes/scim.routes');
+  const { tenancyMiddleware } = await import('../middleware/tenancy');
+  const ssoRoutes = (await import('../routes/sso.routes')).default;
+  const { default: scimRoutes, exceptScim, SCIM_BASE_PATH } = await import('../routes/scim.routes');
   app = express();
   // As server/index.ts mounts it: the general parser, stepping aside for SCIM.
   app.use(exceptScim(express.json()));

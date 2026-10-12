@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { passwordResets } from '@shared/schema';
-import type { TenantTx } from './middleware/tenancy';
+import type { TenantTx } from '../middleware/tenancy';
 
 /**
  * One-time links to choose a new password.

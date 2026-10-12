@@ -66,7 +66,7 @@ Create the module's router with `asyncRouter()` (`server/middleware/async-router
 `Router()`, and write no try/catch that only logs and answers 500: an async handler that throws then
 reaches `incidentErrorHandler`, which logs it, records the incident and answers once, without the
 driver's message. Catch only what the handler can answer better itself, such as a quota refusal or a
-`BrowserTaskError`, and rethrow the rest. `req.user` is typed (`Express.User` in `server/auth.ts`):
+`BrowserTaskError`, and rethrow the rest. `req.user` is typed (`Express.User` in `server/identity/auth.ts`):
 after `requireRole`, read `req.user!.id`, never `(req.user as any)`.
 
 For this example, plan snapshots and execution units need no new description field because it

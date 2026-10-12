@@ -21,8 +21,8 @@ import {
   signJwt,
   type Clock,
 } from './api-auth';
-import { runApiRequest } from './api-tests/api-test-runner';
-import { fetchThroughBrowser } from './agents/agent-fetch';
+import { runApiRequest } from '../api-tests/api-test-runner';
+import { fetchThroughBrowser } from '../agents/agent-fetch';
 import {
   AkamaiEdgeGridAuthParamsSchema,
   AsapAuthParamsSchema,

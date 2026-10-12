@@ -28,7 +28,7 @@ import { keepsScreenshot } from '../../run-policies';
 import { elementIdOfStep, resolveSequenceForRun } from '../../step-elements';
 import { executeStep } from '../step-executor';
 import { expandSequenceForRun, type SequenceStep } from '../../step-groups';
-import { storage } from '../../storage';
+import { storage } from '../../identity/storage';
 import { compareStepScreenshot, isVisualFailure, stableScreenshot } from '../visual-testing';
 import { getWsEmitter } from '../../websocket';
 

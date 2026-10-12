@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { users, organizations, invitations, auditLog } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { storage } from './storage';
 
 // Only the logger is mocked; auth runs against the real (PGlite) test database
 // with an in-memory session store (NODE_ENV=test).
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

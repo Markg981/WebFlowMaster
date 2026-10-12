@@ -5,7 +5,7 @@ import { testPlanWebhooks, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { runTestPlan } from './test-execution-service';
 import logger from './logger';
-import { hashWebhookToken, webhookTokenFromRequest } from './webhook-tokens';
+import { hashWebhookToken, webhookTokenFromRequest } from './identity/webhook-tokens';
 
 export const webhooksRouter = asyncRouter();
 

@@ -32,7 +32,7 @@ import {
   quarantineTest,
   releaseQuarantine,
 } from '../test-quarantine';
-import { generateWebhookToken } from '../webhook-tokens';
+import { generateWebhookToken } from '../identity/webhook-tokens';
 import {
   artifactStore,
   assertSafeKey,

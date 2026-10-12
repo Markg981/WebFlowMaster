@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 
 /**
  * "Forgot your password?" on the sign-in page: a reset link mailed to the address one signs in
- * with (server/auth.ts, POST /api/password-reset/request). Offered only where the installation
+ * with (server/identity/auth.ts, POST /api/password-reset/request). Offered only where the installation
  * sends e-mail; the answer is the same whether or not the account exists.
  */
 export default function ForgotPassword({ username }: { username: string }) {

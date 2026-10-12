@@ -50,10 +50,10 @@ organization are privileged reads and writes of the same shape as a session look
 New members join by **invitation** (`invitations` table): an owner invites a username with a role.
 A username that does not exist yet registers with the token and the account is created inside the
 inviting organization — a privileged operation, because the user does not exist yet
-(`server/storage.ts`). A username that exists signs in and accepts the link
+(`server/identity/storage.ts`). A username that exists signs in and accepts the link
 (`POST /api/invitations/accept`), which adds a membership and makes the new organization the
 current one. Without an invitation only the installation's first account may register, unless
-`REGISTRATION=open` (`server/registration.ts`); "is it the first?" and the insert share an advisory
+`REGISTRATION=open` (`server/identity/registration.ts`); "is it the first?" and the insert share an advisory
 lock. Single sign-on admits an account of another organization the same way, but only on a domain
 the organization has **verified** (`sso_domains.verified_at`), whatever
 `SSO_REQUIRE_DOMAIN_VERIFICATION` says: proof of the domain is proof of the mailbox, which is the
@@ -174,7 +174,7 @@ interface, so it does not offer an edit the database would refuse.
   not elsewhere; `SESSION_COOKIE_SECURE=true|false` overrides that (the shipped docker-compose stack
   serves plain HTTP on localhost and sets it to `false`).
 - **Second factor**: TOTP (RFC 6238) from an authenticator app, plus one-time recovery codes
-  (`server/mfa.ts`). A password accepted with a second factor still owed is not a login. An owner can
+  (`server/identity/mfa.ts`). A password accepted with a second factor still owed is not a login. An owner can
   require MFA for the organization; `requireMfaEnrollment` then lets a member without it do nothing
   but enrol, on every request, so the policy applies to sessions already open.
 - **CSRF**: a state-changing request that carries an `Origin` or `Referer` must name the

@@ -13,7 +13,7 @@ import { eq } from 'drizzle-orm';
  * it to setting it up, while keys are unaffected.
  */
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('./logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 
-const { privilegedDb } = await import('./db');
+const { privilegedDb } = await import('../db');
 const { auditLog, invitations, organizations, userMfa, users } = await import('@shared/schema');
 const { base32Decode, base32Encode, currentStep, matchingStep, totpAt } = await import('./mfa');
 
@@ -33,9 +33,9 @@ let app: Express;
 beforeAll(async () => {
   process.env.SESSION_SECRET = 'test-session-secret';
   const { setupAuth } = await import('./auth');
-  const { tenancyMiddleware } = await import('./middleware/tenancy');
-  const { requireMfaEnrollment } = await import('./middleware/require-mfa-enrollment');
-  const { default: mfaRoutes } = await import('./routes/mfa.routes');
+  const { tenancyMiddleware } = await import('../middleware/tenancy');
+  const { requireMfaEnrollment } = await import('../middleware/require-mfa-enrollment');
+  const { default: mfaRoutes } = await import('../routes/mfa.routes');
   app = express();
   app.use(express.json());
   setupAuth(app);

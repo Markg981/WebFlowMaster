@@ -12,10 +12,10 @@ import {
   type AuditAction,
   type User,
 } from '@shared/schema';
-import { privilegedDb } from './db';
-import { joinOrganization } from './tenancy/organization-memberships';
-import { decryptSecret, encryptSecret, type CryptoOptions } from './crypto';
-import { sqlState } from './db-errors';
+import { privilegedDb } from '../db';
+import { joinOrganization } from '../tenancy/organization-memberships';
+import { decryptSecret, encryptSecret, type CryptoOptions } from '../crypto';
+import { sqlState } from '../db-errors';
 import {
   DEFAULT_GROUP_ATTRIBUTE,
   domainVerificationRecord,
@@ -30,7 +30,7 @@ import {
   newVerificationToken,
   usableDomain,
 } from './sso-domains';
-import type { AuditActor } from './tenancy/audit';
+import type { AuditActor } from '../tenancy/audit';
 import { reapplyGroupRoles } from './scim';
 import {
   certificateInfo,
@@ -63,10 +63,10 @@ import {
  *
  * The provider decides who gets in, and that includes people removed here: removing a member
  * deletes their account, and their next sign-in through the provider creates a new one. Access is
- * ended at the provider — at once when it provisions through SCIM (server/scim.ts), which
+ * ended at the provider — at once when it provisions through SCIM (server/identity/scim.ts), which
  * deactivates the account.
  *
- * Everything runs on the privileged handle, like server/mfa.ts: the provider for a domain has to
+ * Everything runs on the privileged handle, like server/identity/mfa.ts: the provider for a domain has to
  * be found before anyone is signed in. Every statement names the organization it is about.
  */
 
@@ -91,7 +91,7 @@ export interface SsoSettings {
   samlSpCertificate: string | null;
   samlSpPrivateKeyConfigured: boolean;
   domains: string[];
-  /** Each domain with its DNS proof (server/sso-domains.ts). */
+  /** Each domain with its DNS proof (server/identity/sso-domains.ts). */
   domainStatus: Array<{
     domain: string;
     verified: boolean;
@@ -106,7 +106,7 @@ export interface SsoSettings {
   groupAttribute: string;
   roleMappings: RoleMapping[];
   requireGroup: boolean;
-  /** The provider's SCIM token (server/scim.ts), never the token itself. Null: no provisioning. */
+  /** The provider's SCIM token (server/identity/scim.ts), never the token itself. Null: no provisioning. */
   scimToken: { prefix: string; createdAt: Date | null; lastUsedAt: Date | null } | null;
   updatedAt: Date;
 }
@@ -910,7 +910,7 @@ function publicBaseOf(redirectUri: string): string {
 }
 
 /**
- * The provider POSTed a SAML response to an organization's ACS: check it (server/sso-saml.ts) and find
+ * The provider POSTed a SAML response to an organization's ACS: check it (server/identity/sso-saml.ts) and find
  * or create the account, exactly as for OpenID Connect.
  */
 export async function finishSamlSignIn(

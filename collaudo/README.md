@@ -341,7 +341,7 @@ alla volta: per tornare ai casi OIDC, rimettere Protocollo **OpenID Connect** e 
 solo nome del gruppo. `anna` è in `wfm-editor`, `marco` in nessun gruppo; per spostare qualcuno
 fra i gruppi: console di Keycloak → Users → l'utente → Groups. I domini `.test` non hanno un DNS
 pubblico: nel collaudo il pulsante **Verifica** può solo dire che il record TXT manca, e la
-verifica riuscita è coperta dai test automatici (`server/sso.test.ts`).
+verifica riuscita è coperta dai test automatici (`server/identity/sso.test.ts`).
 
 **Provisioning SCIM (SSO-23…SSO-26).** Keycloak non ha un client SCIM: fa da provider lo script
 `npm run collaudo:scim`, che parla come Entra ID e Okta. Richiede il single sign-on di Acme

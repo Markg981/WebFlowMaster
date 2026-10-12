@@ -6,30 +6,30 @@ import { createHmac, scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { sharedStore } from './middleware/rate-limit-store';
+import { sharedStore } from '../middleware/rate-limit-store';
 import { passwordProblem, policyFrom, PASSWORD_MAX_LENGTH } from '@shared/password-policy';
 import {
   isEmailAddress,
   mailAvailableOnInstallation,
   organizationMailConfigured,
   sendMail,
-} from './messaging/mailer';
-import { passwordResetMail } from './messaging/mail-messages';
+} from '../messaging/mailer';
+import { passwordResetMail } from '../messaging/mail-messages';
 import { RedisStore } from 'connect-redis';
 import { storage } from './storage';
 import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from '@shared/schema';
-import { recordAudit } from './tenancy/audit';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
-import logger from './logger';
+import { recordAudit } from '../tenancy/audit';
+import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import logger from '../logger';
 import { isMfaEnabled, mfaStatus, verifySecondFactor } from './mfa';
 import createMemoryStore from 'memorystore';
-import { sessionRedis } from './redis';
-import { sessionCookieSecure } from './config';
+import { sessionRedis } from '../redis';
+import { sessionCookieSecure } from '../config';
 import { registrationMode, registrationPolicy } from './registration';
-import { securityHeaders } from './security-headers';
-import { canManageInstallation } from './tenancy/installation-admin';
+import { securityHeaders } from '../security-headers';
+import { canManageInstallation } from '../tenancy/installation-admin';
 import { ssoRequiredFor } from './sso';
-import { membershipsOf } from './tenancy/organization-memberships';
+import { membershipsOf } from '../tenancy/organization-memberships';
 import { requireActiveSamlSession } from './middleware/saml-session';
 import {
   forgetSamlSession,
@@ -289,7 +289,7 @@ export function setupAuth(app: Express) {
       if (!stamped || typeof stamped !== 'object' || typeof stamped.id !== 'number')
         return done(null, false);
       const user = await storage.getUser(stamped.id);
-      // A disabled account's sessions end with it (an identity provider deactivating someone, server/scim.ts).
+      // A disabled account's sessions end with it (an identity provider deactivating someone, server/identity/scim.ts).
       if (!user || stamped.pw !== passwordStamp(user.password) || user.disabledAt)
         return done(null, false);
       done(null, user);
@@ -349,7 +349,7 @@ export function setupAuth(app: Express) {
       } else if (registrationMode() === 'open') {
         user = await storage.createUser(credentials);
       } else {
-        // Invitation only (server/registration.ts): without one, only the installation's first
+        // Invitation only (server/identity/registration.ts): without one, only the installation's first
         // account may be created, and createFirstUser decides that under a lock.
         const first = await storage.createFirstUser(credentials);
         if (!first) {
@@ -495,7 +495,7 @@ export function setupAuth(app: Express) {
     let samlLogout: { url: string; requestId: string } | null = null;
     try {
       if (req.session.samlIdentity) {
-        const { publicBase } = await import('./routes/sso.routes');
+        const { publicBase } = await import('../routes/sso.routes');
         samlLogout = await startSessionSamlLogout(req, publicBase(req));
         await forgetSamlSession(sessionId);
       }
@@ -584,7 +584,7 @@ export function setupAuth(app: Express) {
 
   /**
    * Choosing a new password with a one-time link an owner or the operator issued
-   * (server/password-reset.ts). Nobody is signed in; the link is the credential. The person then
+   * (server/identity/password-reset.ts). Nobody is signed in; the link is the credential. The person then
    * signs in as usual — with their second factor, if they have one.
    */
   app.post('/api/password-reset', authLimiter, async (req, res, next) => {
@@ -655,7 +655,7 @@ export function setupAuth(app: Express) {
         user.organizationId &&
         (await organizationMailConfigured(user.organizationId))
       ) {
-        const { runWithTenant, withTenantTransaction } = await import('./middleware/tenancy');
+        const { runWithTenant, withTenantTransaction } = await import('../middleware/tenancy');
         const { issuePasswordReset } = await import('./password-reset');
         const issued = await runWithTenant(user.organizationId, () =>
           withTenantTransaction(async (tx) => {
@@ -664,7 +664,7 @@ export function setupAuth(app: Express) {
               userId: user.id,
               createdBy: null,
             });
-            const { recordAudit } = await import('./tenancy/audit');
+            const { recordAudit } = await import('../tenancy/audit');
             await recordAudit(tx, {
               action: AUDIT_ACTIONS.PASSWORD_RESET_ISSUED,
               actor: null,
@@ -679,7 +679,7 @@ export function setupAuth(app: Express) {
             return reset;
           }),
         );
-        const { publicBase } = await import('./routes/sso.routes');
+        const { publicBase } = await import('../routes/sso.routes');
         const sent = await sendMail({
           ...passwordResetMail({
             base: publicBase(req),
