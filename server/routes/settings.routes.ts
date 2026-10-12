@@ -3,6 +3,7 @@ import { AUDIT_ACTIONS, insertSystemSettingSchema } from '@shared/schema';
 import { auditActor, recordAudit } from '../audit';
 import { requireInstallationAdmin } from '../installation-admin';
 import loggerPromise, { updateLogLevel } from '../logger';
+import { asyncHandler } from '../middleware/async-handler';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { getSystemSetting, listSystemSettings, upsertSystemSetting } from '../system-settings';
@@ -22,31 +23,47 @@ import {
 const router = asyncRouter();
 const logger = await loggerPromise;
 
-router.get('/api/settings', requireRole('viewer'), async (req, res) => {
-  res.json(await getOrCreateUserSettings(req.user!.id));
-});
+router.get(
+  '/api/settings',
+  requireRole('viewer'),
+  asyncHandler(async (req, res) => {
+    res.json(await getOrCreateUserSettings(req.user!.id));
+  }),
+);
 
-router.post('/api/settings', requireRole('viewer'), async (req, res) => {
-  const parseResult = userSettingsBodySchema.safeParse(req.body);
-  if (!parseResult.success) {
-    return res
-      .status(400)
-      .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
-  }
-  res.json(await saveUserSettings(req.user!.id, parseResult.data));
-});
+router.post(
+  '/api/settings',
+  requireRole('viewer'),
+  asyncHandler(async (req, res) => {
+    const parseResult = userSettingsBodySchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
+    }
+    res.json(await saveUserSettings(req.user!.id, parseResult.data));
+  }),
+);
 
 // Owners only, like changing them: nothing in the client lists them, and the keys everyone
 // needs (workspaceName, clientLogLevel) are read one at a time below.
-router.get('/api/system-settings', requireRole('owner'), async (_req, res) => {
-  res.json(await listSystemSettings());
-});
+router.get(
+  '/api/system-settings',
+  requireRole('owner'),
+  asyncHandler(async (_req, res) => {
+    res.json(await listSystemSettings());
+  }),
+);
 
-router.get('/api/system-settings/:key', requireRole('viewer'), async (req, res) => {
-  const setting = await getSystemSetting(req.params.key);
-  if (!setting) return res.status(404).json({ error: 'Setting not found' });
-  res.json(setting);
-});
+router.get(
+  '/api/system-settings/:key',
+  requireRole('viewer'),
+  asyncHandler(async (req, res) => {
+    const setting = await getSystemSetting(req.params.key);
+    if (!setting) return res.status(404).json({ error: 'Setting not found' });
+    res.json(setting);
+  }),
+);
 
 // system_settings is deliberately global (logRetentionDays, logLevel, clientLogLevel), so
 // this is gated to owners rather than any authenticated user of any organization: a viewer
@@ -55,7 +72,7 @@ router.post(
   '/api/system-settings',
   requireRole('owner'),
   requireInstallationAdmin,
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     const parseResult = insertSystemSettingSchema.safeParse(req.body);
     if (!parseResult.success) {
       return res
@@ -96,7 +113,7 @@ router.post(
         });
       }
     }
-  },
+  }),
 );
 
 export default router;

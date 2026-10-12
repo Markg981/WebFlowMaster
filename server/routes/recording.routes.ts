@@ -1,5 +1,6 @@
 import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
+import { asyncHandler } from '../middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
 import { playwrightService } from '../playwright-service';
@@ -40,19 +41,27 @@ router.get('/api/recording-capability', requireRole('viewer'), (_req, res) => {
   });
 });
 
-router.post('/api/start-recording', requireRole('editor'), heavyLimit, async (req, res) => {
-  const parseResult = startRecordingSchema.safeParse(req.body);
-  if (!parseResult.success) return res.status(400).json(invalidRequest(parseResult.error));
+router.post(
+  '/api/start-recording',
+  requireRole('editor'),
+  heavyLimit,
+  asyncHandler(async (req, res) => {
+    const parseResult = startRecordingSchema.safeParse(req.body);
+    if (!parseResult.success) return res.status(400).json(invalidRequest(parseResult.error));
 
-  const result = await playwrightService.startRecordingSession(parseResult.data.url, req.user!.id);
-  if (!result.success) {
-    return res.status(500).json({
-      success: false,
-      error: result.error || 'Failed to start recording session',
-    });
-  }
-  res.json({ success: true, sessionId: result.sessionId });
-});
+    const result = await playwrightService.startRecordingSession(
+      parseResult.data.url,
+      req.user!.id,
+    );
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: result.error || 'Failed to start recording session',
+      });
+    }
+    res.json({ success: true, sessionId: result.sessionId });
+  }),
+);
 
 /**
  * Saves the recorder browser's current session against an environment.
@@ -60,68 +69,80 @@ router.post('/api/start-recording', requireRole('editor'), heavyLimit, async (re
  * Called after the tester has signed in inside the recorder window, so runs against that
  * environment start authenticated instead of replaying the login every time.
  */
-router.post('/api/recording-login-state', requireRole('editor'), async (req, res) => {
-  const parseResult = loginStateSchema.safeParse(req.body);
-  if (!parseResult.success) return res.status(400).json(invalidRequest(parseResult.error));
+router.post(
+  '/api/recording-login-state',
+  requireRole('editor'),
+  asyncHandler(async (req, res) => {
+    const parseResult = loginStateSchema.safeParse(req.body);
+    if (!parseResult.success) return res.status(400).json(invalidRequest(parseResult.error));
 
-  const { sessionId, environmentId } = parseResult.data;
-  // organizationId comes from the session: the environment written to has to be one
-  // this caller's tenant owns, whatever id the body names.
-  const saved = await playwrightService.captureLoginState(sessionId, {
-    environmentId,
-    organizationId: req.user!.organizationId,
-  });
-  if (!saved) {
-    return res.status(404).json({
-      success: false,
-      error: 'That recording session is not open, so there was no browser session to save.',
+    const { sessionId, environmentId } = parseResult.data;
+    // organizationId comes from the session: the environment written to has to be one
+    // this caller's tenant owns, whatever id the body names.
+    const saved = await playwrightService.captureLoginState(sessionId, {
+      environmentId,
+      organizationId: req.user!.organizationId,
     });
-  }
-  res.json({ success: true });
-});
+    if (!saved) {
+      return res.status(404).json({
+        success: false,
+        error: 'That recording session is not open, so there was no browser session to save.',
+      });
+    }
+    res.json({ success: true });
+  }),
+);
 
-router.post('/api/stop-recording', requireRole('editor'), async (req, res) => {
-  const parseResult = sessionSchema.safeParse(req.body);
-  if (!parseResult.success) return res.status(400).json(invalidRequest(parseResult.error));
+router.post(
+  '/api/stop-recording',
+  requireRole('editor'),
+  asyncHandler(async (req, res) => {
+    const parseResult = sessionSchema.safeParse(req.body);
+    if (!parseResult.success) return res.status(400).json(invalidRequest(parseResult.error));
 
-  const result = await playwrightService.stopRecordingSession(
-    parseResult.data.sessionId,
-    req.user!.id,
-  );
-  if (!result.success) {
-    return res.status(404).json({
-      success: false,
-      error: result.error || 'Recording session not found',
-    });
-  }
-  res.json({ success: true, sequence: result.sequence || [] });
-});
+    const result = await playwrightService.stopRecordingSession(
+      parseResult.data.sessionId,
+      req.user!.id,
+    );
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        error: result.error || 'Recording session not found',
+      });
+    }
+    res.json({ success: true, sequence: result.sequence || [] });
+  }),
+);
 
-router.get('/api/get-recorded-actions', requireRole('editor'), async (req, res) => {
-  const parseResult = sessionSchema.safeParse(req.query);
-  if (!parseResult.success) return res.status(400).json(invalidRequest(parseResult.error));
+router.get(
+  '/api/get-recorded-actions',
+  requireRole('editor'),
+  asyncHandler(async (req, res) => {
+    const parseResult = sessionSchema.safeParse(req.query);
+    if (!parseResult.success) return res.status(400).json(invalidRequest(parseResult.error));
 
-  const result = await playwrightService.getRecordedActions(
-    parseResult.data.sessionId,
-    req.user!.id,
-  );
-  // The field is `sequence` on every recording endpoint — start, stop and poll — so the
-  // client has one shape to parse. It used to be `actions` only here, which is why the
-  // live action list stayed empty for the whole recording.
-  if (!result.success) {
-    return res.status(404).json({
-      success: false,
-      sequence: [],
+    const result = await playwrightService.getRecordedActions(
+      parseResult.data.sessionId,
+      req.user!.id,
+    );
+    // The field is `sequence` on every recording endpoint — start, stop and poll — so the
+    // client has one shape to parse. It used to be `actions` only here, which is why the
+    // live action list stayed empty for the whole recording.
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        sequence: [],
+        sessionEnded: result.sessionEnded || false,
+        error: result.error || 'Recording session not found',
+      });
+    }
+    res.json({
+      success: true,
+      sequence: result.sequence || [],
       sessionEnded: result.sessionEnded || false,
-      error: result.error || 'Recording session not found',
+      error: result.error,
     });
-  }
-  res.json({
-    success: true,
-    sequence: result.sequence || [],
-    sessionEnded: result.sessionEnded || false,
-    error: result.error,
-  });
-});
+  }),
+);
 
 export default router;
