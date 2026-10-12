@@ -132,7 +132,7 @@ describe('the test file', () => {
       next();
     });
     app.use(tenancyMiddleware);
-    app.use((await import('./routes/tests.routes')).default);
+    app.use((await import('./http/routes/tests.routes')).default);
   });
 
   async function organization(name: string) {

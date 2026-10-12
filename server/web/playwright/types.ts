@@ -131,7 +131,7 @@ export interface ExecuteSequenceOptions {
   /** Whether to keep a video and a trace of this run, and where to put them. */
   evidence?: EvidenceOptions;
   /**
-   * The plan's timeouts, screenshot policy and step retry — see server/run-policies.ts. Absent
+   * The plan's timeouts, screenshot policy and step retry — see server/runtime/run-policies.ts. Absent
    * for a run no plan drives, which keeps the user's own timeout and a screenshot of every step.
    */
   runtime?: StepRuntime;

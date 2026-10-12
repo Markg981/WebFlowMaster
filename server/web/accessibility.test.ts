@@ -164,7 +164,7 @@ describe('what a step keeps of a scan', () => {
   });
 
   it('reaches the report with the step, as the runner stored it', async () => {
-    const { stepsWithArtifactUrls } = await import('../routes/artifacts.routes');
+    const { stepsWithArtifactUrls } = await import('../http/routes/artifacts.routes');
     const finding = summariseAxe(run, 'serious');
     const [stored] = stepsWithArtifactUrls(
       'exec-1',

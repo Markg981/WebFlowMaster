@@ -60,7 +60,7 @@ beforeAll(async () => {
     organizationId: otherOrganizationId,
   });
 
-  const { default: managementRoutes } = await import('../routes/webhooks.routes');
+  const { default: managementRoutes } = await import('../http/routes/webhooks.routes');
   const { webhooksRouter } = await import('./webhooks');
   const { runWithTenant } = await import('../platform/middleware/tenancy');
 

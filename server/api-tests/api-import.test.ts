@@ -283,7 +283,7 @@ describe('POST /api/api-tests/import', () => {
       next();
     });
     app.use(tenancyMiddleware);
-    app.use((await import('../routes/tests.routes')).default);
+    app.use((await import('../http/routes/tests.routes')).default);
   });
 
   beforeEach(async () => {

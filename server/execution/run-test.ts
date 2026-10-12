@@ -10,7 +10,7 @@ import type { StepResult } from '../web/playwright-service';
 import logger from '../platform/logger';
 import fs from 'fs-extra';
 import path from 'path';
-import { getWsEmitter } from '../websocket';
+import { getWsEmitter } from '../http/websocket';
 import { defaultVariables } from '../runtime/variables';
 import { protocolReport } from '../api-tests/api-protocol-report';
 import { runDedicatedBddTest } from '../bdd/bdd-execution';
@@ -50,7 +50,7 @@ export interface IndividualTestRunResult {
   protocol?: ReturnType<typeof protocolReport>;
   bdd?: { runs: import('@shared/bdd-agent').BddAgentResult[] };
   screenshotPath?: string; // General screenshot for API tests if applicable, or last step for UI
-  /** Kept only when the plan asked for them — see server/run-evidence.ts. */
+  /** Kept only when the plan asked for them — see server/runtime/run-evidence.ts. */
   videoPath?: string;
   tracePath?: string;
   harPath?: string;
@@ -70,7 +70,7 @@ export interface RunTestOptions {
     trace?: EvidenceCaptureMode;
     network?: EvidenceCaptureMode;
   };
-  /** The plan's timeouts, screenshots and step retry — see server/run-policies.ts. */
+  /** The plan's timeouts, screenshots and step retry — see server/runtime/run-policies.ts. */
   runtime?: StepRuntime;
   /** What a failed precondition means for this test. Absent: it is blocked, as it always was. */
   onPreconditionFailure?: PreconditionFailurePolicy;

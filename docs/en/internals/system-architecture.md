@@ -139,12 +139,12 @@ Beside the pipeline, the process owns:
 
 | Component     | Files                                                                                                                         | Role                                                                                                                                                                                                 |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Route modules | `server/routes/*.routes.ts` (40 modules), mounted by `server/routes.ts`                                                       | One module per area: tests, plans, runs and reports, suites, requirements, mobile tests, grids, agents, issue trackers, test management, SSO, MFA, API keys, environments, analytics, observability. |
-| Public API    | `server/routes/api-v1.routes.ts`, `server/api-v1/`                                                                            | The versioned REST API and its OpenAPI document, for pipelines.                                                                                                                                      |
+| Route modules | `server/http/routes/*.routes.ts` (40 modules), mounted by `server/routes.ts`                                                  | One module per area: tests, plans, runs and reports, suites, requirements, mobile tests, grids, agents, issue trackers, test management, SSO, MFA, API keys, environments, analytics, observability. |
+| Public API    | `server/http/routes/api-v1.routes.ts`, `server/http/api-v1/`                                                                  | The versioned REST API and its OpenAPI document, for pipelines.                                                                                                                                      |
 | Orchestrator  | `server/execution/execution-orchestrator.ts`, `server/execution/execution-snapshot.ts`, `server/execution/execution-state.ts` | Creates a run (snapshot, idempotency, queue limits), submits the BullMQ job, owns every state transition.                                                                                            |
 | Scheduling    | `server/execution/scheduler-service.ts`                                                                                       | Fires schedules, with the default cron backend or the BullMQ job-scheduler backend.                                                                                                                  |
 | Agent relay   | `server/agents/`                                                                                                              | Accepts agents, runners and sessions over WebSocket and pipes the Playwright protocol between them.                                                                                                  |
-| Live channels | `server/websocket.ts`, `server/web/debug-session.ts`, `server/execution/run-watch.ts`                                         | Live run logs, the step debugger, the report page's progress.                                                                                                                                        |
+| Live channels | `server/http/websocket.ts`, `server/web/debug-session.ts`, `server/execution/run-watch.ts`                                    | Live run logs, the step debugger, the report page's progress.                                                                                                                                        |
 | Sweeps        | `server/execution/run-recovery.ts`, `server/tenancy/artifact-retention.ts`                                                    | End runs whose worker died; remove old evidence.                                                                                                                                                     |
 | Auth          | `server/identity/auth.ts`, `sso.ts`, `mfa.ts`, `totp.ts`, `api-keys.ts`, `registration.ts`, `password-reset.ts`               | Who is calling and how they proved it.                                                                                                                                                               |
 
@@ -217,8 +217,10 @@ check fails on a new one, and also when one is fixed but still listed, so the li
 (`npm run deps:baseline` rewrites it). `server/tests/domains.test.ts` fails when a server module is
 in no domain, so a new file needs a decision about where it belongs.
 
-The modules are still mostly flat under `server/`; they move into `server/<domain>/` one domain per
-change, and each domain's list in the table then becomes a single directory.
+Each domain is a folder, `server/<domain>/` (the http domain holds `routes/`, `api-v1/` and
+`middleware/`). Only the entry points of the app domain stay at the root of `server/`, next to
+`server/tests/` and the tests that drive several domains at once. A new module goes in the folder of
+its domain; `domains.test.ts` also fails if a domain starts listing loose modules again.
 
 ## 4. Deployment
 

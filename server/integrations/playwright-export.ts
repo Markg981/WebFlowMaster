@@ -12,7 +12,7 @@ import {
  * repository beside the application, or to take further by hand.
  *
  * The steps are the ones a run executes: the caller expands step groups and custom actions and
- * resolves repository elements first (server/routes/tests.routes.ts). Each action becomes the
+ * resolves repository elements first (server/http/routes/tests.routes.ts). Each action becomes the
  * Playwright calls that do what the runner does (server/web/step-executor.ts). What has no portable
  * equivalent — the test inbox, a database query, the accessibility scan, AI healing — is written
  * as a comment saying so, and counted in the file's header, so the file never claims to do more

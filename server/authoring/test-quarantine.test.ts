@@ -42,7 +42,7 @@ const {
 } = schema;
 const { createTestOrganization } = await import('../tests/factories');
 const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
-const { default: quarantineRoutes } = await import('../routes/quarantine.routes');
+const { default: quarantineRoutes } = await import('../http/routes/quarantine.routes');
 const { evidenceFrom, failuresOf } = await import('./test-quarantine');
 
 type Person = { id: number; username: string; organizationId: number; role: string };

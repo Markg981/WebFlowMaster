@@ -15,7 +15,7 @@ sola organizzazione alla volta — la sua organizzazione **corrente** — con un
 | `editor` | Creare e modificare test, piani, schedulazioni, suite, ambienti; avviare e annullare run.                                                                                |
 | `owner`  | Tutto ciò che può un editor, più membri e inviti, chiavi API altrui, service account, agenti locali, collegamenti GitHub/GitLab, policy di sicurezza, runner, audit log. |
 
-I ruoli sono controllati da `requireRole(minimo)` (`server/middleware/require-role.ts`) su ogni rotta.
+I ruoli sono controllati da `requireRole(minimo)` (`server/http/middleware/require-role.ts`) su ogni rotta.
 Decidono quali **operazioni** un utente può fare. Quali **righe** esistono per lui lo decide il
 database.
 
@@ -164,7 +164,7 @@ Anche questo è imposto dalla RLS: policy restrittive leggono `app.current_user`
 di step, elementi e suite di un progetto riservato sono invisibili ai non membri. Piani, run e report
 restano a livello di organizzazione: un piano può eseguire i test di un progetto riservato.
 
-`effectiveProjectRole` (`server/routes/projects.routes.ts`) calcola la stessa risposta per
+`effectiveProjectRole` (`server/http/routes/projects.routes.ts`) calcola la stessa risposta per
 l'interfaccia, così non propone una modifica che il database rifiuterebbe.
 
 ## Autenticazione
@@ -182,7 +182,7 @@ l'interfaccia, così non propone una modifica che il database rifiuterebbe.
   che non l'ha configurata solo la possibilità di configurarla, a ogni richiesta, così la policy vale
   anche per le sessioni già aperte.
 - **CSRF**: una richiesta che modifica dati e porta un `Origin` o un `Referer` deve indicare l'host
-  dell'applicazione (`server/middleware/csrf.ts`); le richieste senza nessuno dei due sono da server a
+  dell'applicazione (`server/http/middleware/csrf.ts`); le richieste senza nessuno dei due sono da server a
   server (CLI, webhook) e si autenticano con una chiave o un token. Un front end su un'altra origine si
   autorizza esplicitamente con `CSRF_TRUSTED_ORIGINS`.
 

@@ -12,8 +12,9 @@
  * that broke a rule when the table was written are listed in
  * `.dependency-cruiser-known-violations.json`; that list may only shrink.
  *
- * A module is named by its path under server/ without `.ts`; `dir/*` takes a whole directory.
- * Moving modules into `server/<domain>/` (one PR per domain) turns each list into one `dir/*`.
+ * Each domain lives in its own folder, `server/<domain>/`, and is listed here as `<domain>/*`.
+ * The entry points (app) are the only modules left at the root of server/ and are named one by
+ * one, by their path under server/ without `.ts`.
  */
 export const SERVER_DOMAINS = [
   {
@@ -101,7 +102,7 @@ export const SERVER_DOMAINS = [
     name: 'http',
     rank: 11,
     purpose: 'routers, the public API, request middleware, the live WebSocket',
-    modules: ['routes/*', 'api-v1/*', 'middleware/*', 'observability/taps/express', 'websocket'],
+    modules: ['http/*'],
   },
   {
     name: 'app',
@@ -115,9 +116,8 @@ export const SERVER_DOMAINS = [
 export const NOT_IN_A_DOMAIN = /(\.test\.ts|\.d\.ts)$|^tests\//;
 
 /**
- * The domain of a module, by its path relative to server/ (`auth.ts`, `billing/stripe.ts`).
- * An exact entry wins over a directory, so `middleware/tenancy` is platform while the rest of
- * `middleware/*` is http.
+ * The domain of a module, by its path relative to server/ (`index.ts`, `tenancy/billing/stripe.ts`).
+ * An exact entry wins over a directory, and the longest directory wins over a shorter one.
  */
 export function domainOf(relativePath) {
   const p = relativePath.replace(/\\/g, '/');

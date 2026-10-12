@@ -140,12 +140,12 @@ Accanto alla pipeline, il processo possiede:
 
 | Componente          | File                                                                                                                          | Ruolo                                                                                                                                                                                    |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Moduli delle rotte  | `server/routes/*.routes.ts` (40 moduli), montati da `server/routes.ts`                                                        | Un modulo per area: test, piani, run e report, suite, requisiti, test mobili, griglie, agenti, issue tracker, test management, SSO, MFA, chiavi API, ambienti, analytics, osservabilità. |
-| API pubblica        | `server/routes/api-v1.routes.ts`, `server/api-v1/`                                                                            | L'API REST versionata e il suo documento OpenAPI, per le pipeline.                                                                                                                       |
+| Moduli delle rotte  | `server/http/routes/*.routes.ts` (40 moduli), montati da `server/routes.ts`                                                   | Un modulo per area: test, piani, run e report, suite, requisiti, test mobili, griglie, agenti, issue tracker, test management, SSO, MFA, chiavi API, ambienti, analytics, osservabilità. |
+| API pubblica        | `server/http/routes/api-v1.routes.ts`, `server/http/api-v1/`                                                                  | L'API REST versionata e il suo documento OpenAPI, per le pipeline.                                                                                                                       |
 | Orchestratore       | `server/execution/execution-orchestrator.ts`, `server/execution/execution-snapshot.ts`, `server/execution/execution-state.ts` | Crea un run (snapshot, idempotenza, limiti di coda), invia il job BullMQ, possiede ogni transizione di stato.                                                                            |
 | Pianificazione      | `server/execution/scheduler-service.ts`                                                                                       | Fa partire le pianificazioni, con il backend cron predefinito o con quello dei job scheduler BullMQ.                                                                                     |
 | Relay degli agenti  | `server/agents/`                                                                                                              | Accetta agenti, runner e sessioni via WebSocket e inoltra il protocollo Playwright fra loro.                                                                                             |
-| Canali in diretta   | `server/websocket.ts`, `server/web/debug-session.ts`, `server/execution/run-watch.ts`                                         | Log dei run in diretta, debugger passo-passo, avanzamento della pagina del report.                                                                                                       |
+| Canali in diretta   | `server/http/websocket.ts`, `server/web/debug-session.ts`, `server/execution/run-watch.ts`                                    | Log dei run in diretta, debugger passo-passo, avanzamento della pagina del report.                                                                                                       |
 | Controlli periodici | `server/execution/run-recovery.ts`, `server/tenancy/artifact-retention.ts`                                                    | Chiudono i run il cui worker è morto; rimuovono le evidenze vecchie.                                                                                                                     |
 | Autenticazione      | `server/identity/auth.ts`, `sso.ts`, `mfa.ts`, `totp.ts`, `api-keys.ts`, `registration.ts`, `password-reset.ts`               | Chi chiama e come l'ha dimostrato.                                                                                                                                                       |
 
@@ -219,8 +219,10 @@ quando una viene risolta ma resta in elenco, così l'elenco può solo accorciars
 deps:baseline` lo riscrive). `server/tests/domains.test.ts` fallisce quando un modulo del server non
 ha un dominio, quindi un file nuovo richiede di decidere dove sta.
 
-I moduli sono ancora in gran parte piatti sotto `server/`; si spostano in `server/<dominio>/` un
-dominio per volta, e la lista di ogni dominio nella tabella diventa allora una sola directory.
+Ogni dominio è una cartella, `server/<dominio>/` (il dominio http contiene `routes/`, `api-v1/` e
+`middleware/`). Alla radice di `server/` restano solo i punti di ingresso del dominio app, accanto a
+`server/tests/` e ai test che coinvolgono più domini insieme. Un modulo nuovo va nella cartella del
+suo dominio; `domains.test.ts` fallisce anche se un dominio torna a elencare moduli sciolti.
 
 ## 4. Deployment
 

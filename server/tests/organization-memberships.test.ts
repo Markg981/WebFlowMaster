@@ -17,7 +17,7 @@ import {
   membershipsOf,
   switchOrganization,
 } from '../tenancy/organization-memberships';
-import organizationRoutes from '../routes/organization.routes';
+import organizationRoutes from '../http/routes/organization.routes';
 
 /**
  * A person in several organizations (migration 0086).
@@ -45,7 +45,7 @@ beforeAll(async () => {
   process.env.SESSION_SECRET = 'test-session-secret';
   const { setupAuth } = await import('../identity/auth');
   const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
-  const membershipRoutes = (await import('../routes/organization-memberships.routes')).default;
+  const membershipRoutes = (await import('../http/routes/organization-memberships.routes')).default;
   app = express();
   app.use(express.json());
   setupAuth(app);

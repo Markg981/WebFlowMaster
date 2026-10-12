@@ -27,8 +27,8 @@ vi.mock('./platform/logger', () => ({
   },
   updateLogLevel: vi.fn(),
 }));
-const { default: versionsRoutes } = await import('./routes/test-versions.routes');
-const { default: publishingRoutes } = await import('./routes/test-publishing.routes');
+const { default: versionsRoutes } = await import('./http/routes/test-versions.routes');
+const { default: publishingRoutes } = await import('./http/routes/test-publishing.routes');
 let current: typeof users.$inferSelect;
 const app = express();
 app.use(express.json());

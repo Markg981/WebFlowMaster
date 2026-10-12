@@ -8,7 +8,7 @@ const ROUTE_METHODS = ['all', 'get', 'post', 'put', 'patch', 'delete', 'options'
  *
  * Express 4 ignores what a handler returns, so in a plain Router an awaited query that throws
  * outside a try/catch is an unhandled rejection and the request hangs until the client gives
- * up. Every server/routes/ module creates its router here instead
+ * up. Every server/http/routes/ module creates its router here instead
  * (server/tests/architecture.test.ts), so a rejection reaches incidentErrorHandler, which logs
  * it, records the incident and answers once.
  *

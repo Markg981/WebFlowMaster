@@ -46,7 +46,7 @@ const {
 } = schema;
 const { createTestOrganization } = await import('../tests/factories');
 const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
-const { default: suitesRoutes } = await import('../routes/suites.routes');
+const { default: suitesRoutes } = await import('../http/routes/suites.routes');
 const { createExecutionOrchestrator } = await import('../execution/execution-orchestrator');
 const { readExecutionSnapshot } = await import('../execution/execution-snapshot');
 

@@ -3,11 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import prettier from 'prettier';
 import { API_SCOPES } from '../shared/api-scopes';
-import { openApiDocument } from '../server/api-v1/openapi';
+import { openApiDocument } from '../server/http/api-v1/openapi';
 
 /**
  * docs/{en,it}/reference/api-endpoints.md and docs/public/openapi.json, generated from the same
- * document the server serves at /api/v1/openapi.json (server/api-v1/openapi.ts, which
+ * document the server serves at /api/v1/openapi.json (server/http/api-v1/openapi.ts, which
  * openapi.test.ts holds to the router). The hand-written docs/{en,it}/reference/api.md explains
  * authentication, conventions and workflows; this page lists every operation, so it cannot drift.
  *

@@ -33,7 +33,7 @@ import {
 import { RunnerAgent, type PausableQueue } from './runtime/runner-registry';
 import { registerCommitStatus } from './integrations/commit-status';
 import { registerRunPromotion } from './execution/run-promotion';
-import { installWorkerLogEmitter } from './websocket';
+import { installWorkerLogEmitter } from './http/websocket';
 import { publicBaseUrl } from './platform/report-links';
 import 'dotenv/config';
 import { startTracing } from '../shared/telemetry';

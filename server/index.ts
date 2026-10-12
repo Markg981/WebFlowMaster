@@ -1,6 +1,6 @@
 import express from 'express';
-import { mailProviderBodyParser } from './routes/mail-provider.routes';
-import { billingWebhookBodyParser } from './routes/billing-webhooks.routes';
+import { mailProviderBodyParser } from './http/routes/mail-provider.routes';
+import { billingWebhookBodyParser } from './http/routes/billing-webhooks.routes';
 import { configureEgressProxy } from './platform/egress-proxy';
 import { registerRoutes } from './routes';
 import schedulerService from './execution/scheduler-service';
@@ -11,11 +11,11 @@ import { privilegedDb, closeDb, assertTenancyPreconditions } from './platform/db
 import { assertOrganizationKeysReadable } from './platform/organization-keys';
 import { systemSettings } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
-import { setupWebSockets } from './websocket';
+import { setupWebSockets } from './http/websocket';
 import { setupAgentRelay } from './runtime/agents/setup';
 import { registerCommitStatus } from './integrations/commit-status';
 import { correlationMiddleware } from './platform/middleware/correlation';
-import { csrfOriginCheck } from './middleware/csrf';
+import { csrfOriginCheck } from './http/middleware/csrf';
 import { connection as redisConnection, connectSessionRedis, sessionRedis } from './platform/redis';
 import { resolvePort } from './platform/config';
 import { assertStartupConfig, connectSessionStore } from './startup-config';
@@ -23,7 +23,7 @@ import { inspectSchemaState, describeSchemaState } from './platform/schema-state
 import { redactWebhookPath } from './identity/webhook-tokens';
 import { healthRouter } from './health';
 import { installProcessErrorHandlers } from './platform/process-errors';
-import scimRouter, { exceptScim, SCIM_BASE_PATH } from './routes/scim.routes';
+import scimRouter, { exceptScim, SCIM_BASE_PATH } from './http/routes/scim.routes';
 
 import { startTracing } from '../shared/telemetry';
 import { applicationMetrics, startMetricsServer } from './platform/observability/metrics';
@@ -50,7 +50,7 @@ app.use('/api/proxy-api-request', express.json({ limit: '20mb' }));
 app.use('/api/api-tests/import', express.json({ limit: '12mb' }));
 // A project's tests as a file (server/integrations/test-bundle.ts) can be large.
 app.use('/api/tests/import-bundle', express.json({ limit: '24mb' }));
-// Not for SCIM, whose router parses its own bodies, up to 1 MB (server/routes/scim.routes.ts).
+// Not for SCIM, whose router parses its own bodies, up to 1 MB (server/http/routes/scim.routes.ts).
 app.use(exceptScim(express.json()));
 app.use(express.urlencoded({ extended: false }));
 
@@ -181,11 +181,11 @@ app.use(express.urlencoded({ extended: false }));
   const server = await registerRoutes(app);
 
   const { webhooksRouter } = await import('./integrations/webhooks');
-  // Per client address (server/middleware/rate-limits.ts).
-  const { webhookRateLimit } = await import('./middleware/rate-limits');
+  // Per client address (server/http/middleware/rate-limits.ts).
+  const { webhookRateLimit } = await import('./http/middleware/rate-limits');
   app.use('/api/webhooks', webhookRateLimit(), webhooksRouter);
   // Text messages the organizations' test numbers receive, posted by their SMS provider (server/messaging/sms-inbox.ts).
-  const { smsInboundRouter, SMS_INBOUND_PATH } = await import('./routes/sms-inbox.routes');
+  const { smsInboundRouter, SMS_INBOUND_PATH } = await import('./http/routes/sms-inbox.routes');
   app.use(SMS_INBOUND_PATH, webhookRateLimit(), smsInboundRouter);
 
   // Provisioning by the organizations' identity providers, with a bearer token of their own.
@@ -193,7 +193,7 @@ app.use(express.urlencoded({ extended: false }));
 
   // Set up WebSockets for real-time logging
   await setupWebSockets(server);
-  // Local agents dial in on the same address: see server/agents/relay.ts.
+  // Local agents dial in on the same address: see server/runtime/agents/relay.ts.
   await setupAgentRelay(server);
   // Runs queued and cancelled from here report on their commit; the worker reports the rest.
   registerCommitStatus();
@@ -211,19 +211,19 @@ app.use(express.urlencoded({ extended: false }));
     // Decide if server should proceed or exit based on severity
   }
 
-  // Ends runs whose worker has stopped answering — see server/run-recovery.ts. Here rather than
+  // Ends runs whose worker has stopped answering — see server/execution/run-recovery.ts. Here rather than
   // in the worker: when every worker is gone, somebody still has to say their runs are over.
   const { startRunRecovery } = await import('./execution/run-recovery');
   const stopRunRecovery = process.env.NODE_ENV === 'test' ? () => {} : startRunRecovery();
 
   // Removes the screenshots, videos and traces of runs older than ARTIFACT_RETENTION_DAYS —
-  // see server/artifact-retention.ts.
+  // see server/tenancy/artifact-retention.ts.
   const { startArtifactRetention } = await import('./tenancy/artifact-retention');
   const stopArtifactRetention =
     process.env.NODE_ENV === 'test' ? () => {} : startArtifactRetention();
 
   // Suspends past-due subscriptions past their grace and ends hand-set trials — see
-  // server/billing/service.ts.
+  // server/tenancy/billing/service.ts.
   const { startBillingSweep } = await import('./tenancy/billing/sweep');
   const stopBillingSweep = process.env.NODE_ENV === 'test' ? () => {} : startBillingSweep();
 
@@ -233,7 +233,7 @@ app.use(express.urlencoded({ extended: false }));
   app.use('/api', apiNotFound);
 
   // Records an incident for every unhandled error, then answers as before.
-  const { incidentErrorHandler } = await import('./observability/taps/express');
+  const { incidentErrorHandler } = await import('./http/observability/taps/express');
   app.use(incidentErrorHandler(logger));
 
   // importantly only setup vite in development and after

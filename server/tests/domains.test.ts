@@ -68,10 +68,19 @@ describe('server domains', () => {
     expect(new RegExp(platform.to.pathNot).test('server/execution/run-test.ts')).toBe(false);
   });
 
-  it('lets an exact entry win over a directory', () => {
+  it('places a module by its domain folder, and an entry point by name', () => {
     expect(domainOf('platform/middleware/tenancy.ts')).toBe('platform');
-    expect(domainOf('middleware/csrf.ts')).toBe('http');
-    expect(domainOf('observability/taps/express.ts')).toBe('http');
-    expect(domainOf('platform/observability/metrics.ts')).toBe('platform');
+    expect(domainOf('http/middleware/csrf.ts')).toBe('http');
+    expect(domainOf('execution/plan-run/pipeline.ts')).toBe('execution');
+    expect(domainOf('index.ts')).toBe('app');
+    expect(domainOf('stray.ts')).toBe(null);
+  });
+
+  it('keeps every domain but the entry points in its own folder', () => {
+    // A domain that lists loose modules again is the flat server/ coming back.
+    const loose = SERVER_DOMAINS.filter(
+      (d) => d.name !== 'app' && (d.modules.length !== 1 || d.modules[0] !== `${d.name}/*`),
+    ).map((d) => d.name);
+    expect(loose).toEqual([]);
   });
 });

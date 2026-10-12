@@ -22,8 +22,12 @@ let app: Express;
 beforeAll(async () => {
   const { setupAuth } = await import('./auth');
   const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
-  const ssoRoutes = (await import('../routes/sso.routes')).default;
-  const { default: scimRoutes, exceptScim, SCIM_BASE_PATH } = await import('../routes/scim.routes');
+  const ssoRoutes = (await import('../http/routes/sso.routes')).default;
+  const {
+    default: scimRoutes,
+    exceptScim,
+    SCIM_BASE_PATH,
+  } = await import('../http/routes/scim.routes');
   app = express();
   // As server/index.ts mounts it: the general parser, stepping aside for SCIM.
   app.use(exceptScim(express.json()));

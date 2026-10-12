@@ -182,7 +182,7 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               .updateBaselines === true,
           correlationId: getCorrelationId() ?? `job-${execution.id.slice(0, 8)}`,
         },
-        // The run's fair place in the queue — see server/tenant-quotas.ts.
+        // The run's fair place in the queue — see server/tenancy/tenant-quotas.ts.
         delayMs > 0
           ? { jobId: execution.id, delay: delayMs, priority }
           : { jobId: execution.id, priority },

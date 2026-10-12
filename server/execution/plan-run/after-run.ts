@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { testPlanSchedules, type TestPlanExecution } from '@shared/schema';
 import logger from '../../platform/logger';
 import { getTenantOrgId, withTenantTransaction } from '../../platform/middleware/tenancy';
-import { getWsEmitter, type ExecutionLogEntry } from '../../websocket';
+import { getWsEmitter, type ExecutionLogEntry } from '../../http/websocket';
 import { executionOrchestrator } from '../execution-orchestrator';
 import { fileFailure, loadTracker, markResolved } from '../../integrations/issue-store';
 import { publishExecution } from '../../integrations/test-management';

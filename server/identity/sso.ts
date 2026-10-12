@@ -45,7 +45,7 @@ import {
 
 /**
  * Single sign-on, one identity provider per organization, speaking OpenID Connect or SAML 2.0.
- * This module owns the settings and the accounts; the SAML conversation is in server/sso-saml.ts.
+ * This module owns the settings and the accounts; the SAML conversation is in server/identity/sso-saml.ts.
  * What follows describes OpenID Connect; SAML differs only in how the identity is proven.
  *
  * An owner registers the application with their provider (Entra ID, Okta, Google Workspace,

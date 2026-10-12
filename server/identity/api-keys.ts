@@ -3,7 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 /**
  * Minting and recognising the credential a pipeline uses.
  *
- * Deliberately not the password machinery in server/auth.ts. A password is short, chosen by a
+ * Deliberately not the password machinery in server/identity/auth.ts. A password is short, chosen by a
  * person and therefore guessable, so it is stretched with scrypt to make each guess expensive.
  * A key is 32 random bytes: there is nothing to guess, stretching would buy nothing, and it
  * would cost a scrypt per request on a path a CI job hits in a loop. A single SHA-256 is the

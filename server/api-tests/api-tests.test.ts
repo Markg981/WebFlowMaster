@@ -67,7 +67,7 @@ beforeAll(async () => {
   // Mount the REAL router. This suite used to re-implement the handlers inline, so it
   // validated a copy: the production route could (and did) drift — silently dropping
   // projectId — while these tests stayed green.
-  const { default: testsRoutes } = await import('../routes/tests.routes');
+  const { default: testsRoutes } = await import('../http/routes/tests.routes');
   app.use(testsRoutes);
 });
 

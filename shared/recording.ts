@@ -94,7 +94,7 @@ export const ADHOC_ACTION_IDS = [
   // so it can check what no other step can express.
   'executeScript',
   // Answers the page's requests to an address for the rest of the test, instead of the server:
-  // "[METHOD ]pattern | status[ after <n>ms] | body". See server/network-mocks.ts.
+  // "[METHOD ]pattern | status[ after <n>ms] | body". See server/authoring/network-mocks.ts.
   'mockRequest',
   // Makes the page's requests to an address fail, as if the network were down: a third party
   // (analytics, chat) kept out of the run, or the screen for a backend that cannot be reached.
@@ -107,11 +107,11 @@ export const ADHOC_ACTION_IDS = [
   // Waits for the email the application sent to an address — "address", "address|subject" or
   // "address|subject|pattern" — in the environment's test inbox (Mailpit), and puts what it holds
   // in {{email.otp}}, {{email.link}}, {{email.subject}}, {{email.from}} and {{email.text}}.
-  // See server/email-inbox.ts.
+  // See server/messaging/email-inbox.ts.
   'waitForEmail',
   // A SQL statement against the environment's database (db.url, or db.<name>.url with
   // "@name SELECT…"), with the first row in {{db.value}} and {{db.<column>}}. See
-  // server/database-step.ts.
+  // server/runtime/database-step.ts.
   'queryDatabase',
   // Fails the test unless a comparison of values holds, as an `if` without an element reads
   // one: "{{db.value}} == 1", "{{total}} > 0", "{{email.subject}} contains Welcome".
@@ -143,7 +143,7 @@ export const STEP_GROUP_ACTION_ID = 'callGroup';
 export const RECORDED_ACTION_TYPES = [
   'click',
   // Recorded only when hovering something is what revealed what happens next — see the
-  // pending-hover logic in server/recorder-script.ts. DMO's navigation is a flyout that
+  // pending-hover logic in server/authoring/recorder-script.ts. DMO's navigation is a flyout that
   // opens on hover and closes when the pointer leaves, so a recording that captured only
   // clicks was missing the step that made the menu exist: replay found nothing to click and
   // timed out on the first action, whatever the selector said.

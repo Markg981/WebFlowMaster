@@ -4,7 +4,7 @@ import { queryClient } from './queryClient';
  * Noticing that the server has ended this session.
  *
  * A session can end without the page asking: an owner makes single sign-on mandatory
- * (server/middleware/require-sso.ts), removes the member, or the session simply expires. The next
+ * (server/http/middleware/require-sso.ts), removes the member, or the session simply expires. The next
  * request answers 401, but many pages call fetch themselves and only show their own error, so the
  * app would stay on a page it can no longer load. Every /api response passes through here instead,
  * and a 401 while someone is signed in clears the signed-in user: ProtectedRoute then sends them to

@@ -98,8 +98,8 @@ beforeAll(async () => {
     .values({ id: uuidv4(), organizationId, name: 'android' } as any)
     .returning();
 
-  const { default: tagRoutes } = await import('../routes/tags.routes');
-  const { default: mobileRoutes } = await import('../routes/mobile-tests.routes');
+  const { default: tagRoutes } = await import('../http/routes/tags.routes');
+  const { default: mobileRoutes } = await import('../http/routes/mobile-tests.routes');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {

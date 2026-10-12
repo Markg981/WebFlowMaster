@@ -7,7 +7,7 @@ import { privilegedDb } from './db';
  *
  * Through the privileged handle on purpose: system_settings has no organization, so there is
  * no tenant it could be read under, and app_user is not granted it (migration 0006). Kept out
- * of server/routes/ for that reason, like server/user-settings.ts.
+ * of server/http/routes/ for that reason, like server/identity/user-settings.ts.
  */
 
 export function listSystemSettings() {

@@ -79,7 +79,7 @@ beforeAll(async () => {
     { projectId: secretProject, userId: reader.id, organizationId, role: 'viewer' },
   ] as any);
 
-  const { default: routes, mobileRunner } = await import('../routes/mobile-tests.routes');
+  const { default: routes, mobileRunner } = await import('../http/routes/mobile-tests.routes');
   mobileRunner.start = async () => {};
   const { runWithTenant } = await import('../platform/middleware/tenancy');
   app = express();
@@ -93,7 +93,7 @@ beforeAll(async () => {
     });
   });
   app.use(routes);
-  app.use((await import('../routes/mobile-step-groups.routes')).default);
+  app.use((await import('../http/routes/mobile-step-groups.routes')).default);
 });
 
 beforeEach(() => {

@@ -197,7 +197,7 @@ export const testPlanExecutions = pgTable(
     failureCode: text('failure_code'),
     failureMessage: text('failure_message'),
     /**
-     * Every setting the run will use, taken when it was asked for — see server/execution-snapshot.ts.
+     * Every setting the run will use, taken when it was asked for — see server/execution/execution-snapshot.ts.
      * '{}' on rows from before this existed; the worker reads the plan for those.
      */
     configurationSnapshot: jsonb('configuration_snapshot').notNull().default({}),
@@ -362,7 +362,7 @@ export const testPlanWebhooks = pgTable(
       .notNull()
       .references(() => organizations.id),
     /**
-     * SHA-256 of the token, which is all that is kept — see server/webhook-tokens.ts. The token
+     * SHA-256 of the token, which is all that is kept — see server/identity/webhook-tokens.ts. The token
      * itself was stored as it was, so anyone who could read this table could start any plan.
      */
     tokenHash: text('token_hash').notNull().unique(),
@@ -765,7 +765,7 @@ export const updateTestPlanSchema = insertTestPlanSchema.partial();
 // Test plan create/update payloads also carry the set of tests to link, which live in a
 // separate join table (testPlanSelectedTests) rather than as a column on testPlans.
 // Shared here so every route that accepts a test-plan payload (currently
-// server/routes/test-plans.routes.ts and server/routes.ts) validates against the same
+// server/http/routes/test-plans.routes.ts and server/routes.ts) validates against the same
 // shape instead of maintaining duplicate, possibly-drifting copies.
 export const testPlanApiPayloadSchema = insertTestPlanSchema.extend({
   selectedTests: z

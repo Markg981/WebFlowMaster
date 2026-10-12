@@ -152,7 +152,7 @@ chiedendo di rendere esplicita una decisione, non di aggirarlo:
 | `server/tests/isolation.test.ts`                | Ogni tabella in `ORG_SCOPED_TABLES` ha la RLS e nasconde le righe delle altre organizzazioni.                                                                                                                                                                                                    |
 | `server/authoring/test-suites.test.ts` (deriva) | Ogni foreign key fra tabelle per organizzazione è protetta come stessa organizzazione o dichiarata come paternità.                                                                                                                                                                               |
 | `server/execution/execution-snapshot.test.ts`   | Ogni colonna di `test_plans` è catturata nello snapshot del run o dichiarata irrilevante per un run.                                                                                                                                                                                             |
-| `server/api-v1/openapi.test.ts`                 | Il documento OpenAPI e il router `/api/v1` coincidono, rotta per rotta e scope per scope.                                                                                                                                                                                                        |
+| `server/http/api-v1/openapi.test.ts`            | Il documento OpenAPI e il router `/api/v1` coincidono, rotta per rotta e scope per scope.                                                                                                                                                                                                        |
 | `server/audit-trail.test.ts`                    | Ogni azione e categoria di audit ha un'etichetta in tutte e quattro le lingue.                                                                                                                                                                                                                   |
 | `client/src/locales/locales.test.ts`            | Le traduzioni sono complete e coerenti, e ogni chiave usata dal codice esiste.                                                                                                                                                                                                                   |
 
@@ -231,14 +231,14 @@ Per un nuovo payload oggetto conviene **versioned**.
 
 ### API
 
-- Le rotte stanno in `server/routes/<area>.routes.ts` e si montano in `server/routes.ts`.
+- Le rotte stanno in `server/http/routes/<area>.routes.ts` e si montano in `server/routes.ts`.
 - Proteggi ogni rotta con `requireRole(...)`; esegui le query dentro `withTenantTransaction`.
 - Valida i body con zod e rispondi `400` con `details` in caso di errore.
 - Registra le modifiche rilevanti per la sicurezza con `recordAudit(tx, …)` nella stessa transazione, e
   aggiungi l'azione ad `AUDIT_ACTIONS` con le etichette nelle quattro lingue.
-- L'**API pubblica** è solo `/api/v1` (`server/routes/api-v1.routes.ts`): risposte con forma esplicita,
+- L'**API pubblica** è solo `/api/v1` (`server/http/routes/api-v1.routes.ts`): risposte con forma esplicita,
   errori come `{ error: { code, message } }`, uno scope su ogni endpoint, e il documento OpenAPI in
-  `server/api-v1/openapi.ts` aggiornato nella stessa modifica.
+  `server/http/api-v1/openapi.ts` aggiornato nella stessa modifica.
 
 ### Client
 

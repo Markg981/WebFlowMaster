@@ -52,8 +52,8 @@ vi.mock('./mobile-runner', async (importOriginal) => {
 
 const { processTestPlanJob } = await import('../execution/test-execution-service');
 const { buildExecutionSnapshot } = await import('../execution/execution-snapshot');
-const { assertSelectedTestsBelongTo } = await import('../routes/selected-tests');
-const { stepsWithArtifactUrls } = await import('../routes/artifacts.routes');
+const { assertSelectedTestsBelongTo } = await import('../http/routes/selected-tests');
+const { stepsWithArtifactUrls } = await import('../http/routes/artifacts.routes');
 const { evidenceSteps } = await import('../reporting/failure-analysis');
 
 // A 1×1 PNG.

@@ -14,7 +14,7 @@ import { eq } from 'drizzle-orm';
 import { createTestOrganization } from './tests/factories';
 
 /**
- * C5 from the final security review: server/routes/test-plans.routes.ts's
+ * C5 from the final security review: server/http/routes/test-plans.routes.ts's
  * PUT /api/test-plan-schedules/:id used to call schedulerService.updateScheduleJob(...)
  * *inside* the withTenantTransaction callback. That reaches scheduler-service.ts's
  * addScheduleJob, which issues its own privilegedDb.select() — a second query on the

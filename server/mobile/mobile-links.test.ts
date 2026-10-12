@@ -93,9 +93,9 @@ beforeAll(async () => {
   mobileTest = (await mobile({ name: 'Login on Android [C21]', organizationId }))[0].id;
   foreignMobileTest = (await mobile({ name: 'Theirs', organizationId: otherOrganizationId }))[0].id;
 
-  const { default: suites } = await import('../routes/suites.routes');
-  const { default: requirementRoutes } = await import('../routes/requirements.routes');
-  const { default: testManagement } = await import('../routes/test-management.routes');
+  const { default: suites } = await import('../http/routes/suites.routes');
+  const { default: requirementRoutes } = await import('../http/routes/requirements.routes');
+  const { default: testManagement } = await import('../http/routes/test-management.routes');
   const { runWithTenant } = await import('../platform/middleware/tenancy');
   app = express();
   app.use(express.json());

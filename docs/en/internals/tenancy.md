@@ -15,7 +15,7 @@ exactly one organization at a time — their **current** organization — with o
 | `editor` | Create and change tests, plans, schedules, suites, environments; start and cancel runs.                                                                                         |
 | `owner`  | Everything an editor may, plus members and invitations, API keys of others, service accounts, local agents, GitHub/GitLab connections, security policy, runners, the audit log. |
 
-Roles are checked by `requireRole(minimum)` (`server/middleware/require-role.ts`) on each route. They
+Roles are checked by `requireRole(minimum)` (`server/http/middleware/require-role.ts`) on each route. They
 decide which **verbs** a user may use. Which **rows** exist for them is decided by the database.
 
 ### Memberships and the current organization
@@ -161,7 +161,7 @@ This is also enforced by RLS: restrictive policies read `app.current_user` and
 groups, elements and suites of a restricted project are invisible to non-members. Plans, runs and
 reports stay organization-wide: a plan may run a restricted project's tests.
 
-`effectiveProjectRole` (`server/routes/projects.routes.ts`) computes the same answer for the
+`effectiveProjectRole` (`server/http/routes/projects.routes.ts`) computes the same answer for the
 interface, so it does not offer an edit the database would refuse.
 
 ## Authentication
@@ -178,7 +178,7 @@ interface, so it does not offer an edit the database would refuse.
   require MFA for the organization; `requireMfaEnrollment` then lets a member without it do nothing
   but enrol, on every request, so the policy applies to sessions already open.
 - **CSRF**: a state-changing request that carries an `Origin` or `Referer` must name the
-  application's own host (`server/middleware/csrf.ts`); requests without either are
+  application's own host (`server/http/middleware/csrf.ts`); requests without either are
   server-to-server (CLI, webhooks) and authenticate with a key or token instead. A front end on
   another origin is allowed explicitly with `CSRF_TRUSTED_ORIGINS`.
 

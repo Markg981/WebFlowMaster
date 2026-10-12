@@ -45,10 +45,10 @@ const {
 } = await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
 const { tenancyMiddleware } = await import('./platform/middleware/tenancy');
-const { default: testsRoutes } = await import('./routes/tests.routes');
-const { default: mobileRoutes } = await import('./routes/mobile-tests.routes');
-const { default: publishingRoutes } = await import('./routes/test-publishing.routes');
-const { default: versionsRoutes } = await import('./routes/test-versions.routes');
+const { default: testsRoutes } = await import('./http/routes/tests.routes');
+const { default: mobileRoutes } = await import('./http/routes/mobile-tests.routes');
+const { default: publishingRoutes } = await import('./http/routes/test-publishing.routes');
+const { default: versionsRoutes } = await import('./http/routes/test-versions.routes');
 const { processTestPlanJob } = await import('./execution/test-execution-service');
 let app: express.Express;
 let org: number;

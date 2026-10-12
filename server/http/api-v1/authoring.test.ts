@@ -1,0 +1,826 @@
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import express from 'express';
+import request from 'supertest';
+import { randomUUID } from 'node:crypto';
+import { eq, sql } from 'drizzle-orm';
+
+vi.mock('../../platform/logger', () => ({
+  default: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    http: vi.fn(),
+    verbose: vi.fn(),
+    debug: vi.fn(),
+  },
+  updateLogLevel: vi.fn(),
+}));
+vi.mock('../../platform/queue', () => ({
+  TEST_EXECUTION_QUEUE_NAME: 'test-queue',
+  testExecutionQueue: { add: vi.fn() },
+}));
+// Deleting a plan takes its schedules off the scheduler, which has its own queries and jobs.
+const scheduler = {
+  removeScheduleJob: vi.fn(),
+  addScheduleJob: vi.fn(),
+  updateScheduleJob: vi.fn(),
+};
+vi.mock('../../execution/scheduler-service', async (importActual) => ({
+  ...(await importActual<typeof import('../../execution/scheduler-service')>()),
+  default: scheduler,
+}));
+const { privilegedDb } = await import('../../platform/db');
+const {
+  apiKeys,
+  users,
+  projects,
+  projectMembers,
+  tests,
+  apiTests,
+  mobileTests,
+  testVersions,
+  auditLog,
+  testPlanExecutions,
+  testPlanSchedules,
+} = await import('@shared/schema');
+const { createTestOrganization, createTestUser } = await import('../../tests/factories');
+const { generateApiKey } = await import('../../identity/api-keys');
+const { apiKeyAuth } = await import('../middleware/api-key-auth');
+const { tenancyMiddleware, withTenantTransaction, runWithTenant } =
+  await import('../../platform/middleware/tenancy');
+const { registerAuthoringRoutes, testCreateSchema } = await import('./authoring');
+const { API_SCOPE_NAMES } = await import('@shared/api-scopes');
+
+let app: express.Express,
+  org: number,
+  user: number,
+  key: string,
+  otherKey: string,
+  viewerKey: string;
+const auth = (value = key) => ({ Authorization: `Bearer ${value}` });
+async function makeKey(userId: number, organizationId: number, scopes: string[]) {
+  const generated = generateApiKey();
+  await privilegedDb.insert(apiKeys).values({
+    id: randomUUID(),
+    organizationId,
+    userId,
+    name: 'Authoring fixture',
+    prefix: generated.prefix,
+    hashedKey: generated.hashedKey,
+    scopes,
+  });
+  return generated.key;
+}
+const definition = (name: string, projectId?: number) => ({
+  name,
+  url: 'https://example.test',
+  sequence: [],
+  elements: [],
+  ...(projectId ? { projectId } : {}),
+});
+beforeAll(async () => {
+  org = await createTestOrganization(`authoring-${randomUUID()}`);
+  user = await createTestUser(org);
+  key = await makeKey(user, org, API_SCOPE_NAMES);
+  const other = await createTestOrganization(`other-${randomUUID()}`);
+  otherKey = await makeKey(await createTestUser(other), other, API_SCOPE_NAMES);
+  const viewer = await createTestUser(org);
+  await privilegedDb.update(users).set({ role: 'viewer' }).where(eq(users.id, viewer));
+  viewerKey = await makeKey(viewer, org, API_SCOPE_NAMES);
+  app = express();
+  app.use(express.json({ limit: '3mb' }));
+  app.use((req, _res, next) => {
+    req.isAuthenticated = (() => false) as typeof req.isAuthenticated;
+    next();
+  });
+  app.use(apiKeyAuth);
+  app.use(tenancyMiddleware);
+  const router = express.Router();
+  registerAuthoringRoutes(router);
+  app.use(router);
+});
+
+describe('public authoring through API keys and tenant transactions', () => {
+  it('rejects authors, organizations, unknown fields and a viewer with write scopes', async () => {
+    expect(testCreateSchema.safeParse({ ...definition('Forbidden'), userId: user }).success).toBe(
+      false,
+    );
+    await request(app)
+      .post('/api/v1/projects')
+      .set(auth())
+      .send({ name: 'Bad', organizationId: org })
+      .expect(400);
+    await request(app)
+      .post('/api/v1/projects')
+      .set(auth(viewerKey))
+      .send({ name: 'Bad' })
+      .expect(403);
+    const readKey = await makeKey(user, org, ['projects:read']);
+    await request(app)
+      .post('/api/v1/projects')
+      .set(auth(readKey))
+      .send({ name: 'Bad' })
+      .expect(403);
+  });
+  it('runs tenant work as the non-superuser database role', async () => {
+    const result = await runWithTenant(org, () =>
+      withTenantTransaction((tx) => tx.execute(sql`select current_user as role`)),
+    );
+    expect(result.rows[0]).toMatchObject({ role: 'app_user' });
+  });
+  it('creates, reads and renames projects without exposing tenancy or author fields', async () => {
+    const created = await request(app)
+      .post('/api/v1/projects')
+      .set(auth())
+      .send({ name: 'First' })
+      .expect(201);
+    expect(created.body).not.toHaveProperty('organizationId');
+    expect(created.body).not.toHaveProperty('userId');
+    const path = `/api/v1/projects/${created.body.id}`;
+    await request(app).get(path).set(auth(otherKey)).expect(404);
+    await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ name: 'Renamed' })
+      .expect(200)
+      .expect((res) => expect(res.body.name).toBe('Renamed'));
+    await request(app)
+      .get('/api/v1/projects?limit=100')
+      .set(auth())
+      .expect(200)
+      .expect((res) =>
+        expect(res.body.items.some((row: { id: number }) => row.id === created.body.id)).toBe(true),
+      );
+  });
+  it('versions and audits test saves, and hides tests from other tenants', async () => {
+    const created = await request(app)
+      .post('/api/v1/tests')
+      .set(auth())
+      .send(definition(`Versioned-${randomUUID()}`))
+      .expect(201);
+    const path = `/api/v1/tests/${created.body.id}`;
+    await request(app).get(path).set(auth(otherKey)).expect(404);
+    await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ url: 'https://example.test/checkout' })
+      .expect(200);
+    await request(app).patch(path).set(auth()).send({ organizationId: org }).expect(400);
+    const versions = await privilegedDb
+      .select()
+      .from(testVersions)
+      .where(eq(testVersions.testId, created.body.id));
+    expect(versions.map((row) => row.version).sort()).toEqual([1, 2]);
+    const audits = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.targetId, String(created.body.id)));
+    expect(audits.some((row) => row.action === 'test.created')).toBe(true);
+    expect(audits.some((row) => row.action === 'test.updated')).toBe(true);
+  });
+  it('enforces restricted project edit rights before import preview and writes', async () => {
+    const [project] = await privilegedDb
+      .insert(projects)
+      .values({ name: 'Restricted', userId: user, organizationId: org, restricted: true })
+      .returning();
+    await privilegedDb
+      .insert(projectMembers)
+      .values({ projectId: project.id, userId: user, organizationId: org, role: 'viewer' });
+    await request(app)
+      .post('/api/v1/tests')
+      .set(auth())
+      .send(definition(`Restricted-${randomUUID()}`, project.id))
+      .expect(403);
+    const content = JSON.stringify({
+      kind: 'webflowmaster/tests',
+      version: 2,
+      tests: [definition('Restricted import')],
+      apiTests: [],
+    });
+    await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ projectId: project.id, content, dryRun: true })
+      .expect(403);
+  });
+  it('normalizes dataset rows and refuses deletion while tests use a shared dataset', async () => {
+    const input = {
+      name: `data_${randomUUID().replace(/-/g, '')}`,
+      columns: ['customer', 'region'],
+      rows: [{ customer: 'Example' }],
+    };
+    const created = await request(app).post('/api/v1/datasets').set(auth()).send(input).expect(201);
+    expect(created.body.rows).toEqual([{ customer: 'Example', region: '' }]);
+    const path = `/api/v1/datasets/${created.body.id}`;
+    await request(app).get(path).set(auth(otherKey)).expect(404);
+    await request(app)
+      .put(path)
+      .set(auth())
+      .send({ ...input, rows: [{ customer: 'Changed' }] })
+      .expect(200);
+    const test = await request(app)
+      .post('/api/v1/tests')
+      .set(auth())
+      .send({
+        ...definition(`Dataset-${randomUUID()}`),
+        dataset: [{ $sharedSet: String(created.body.id) }],
+      })
+      .expect(201);
+    await request(app).delete(path).set(auth()).expect(409);
+    await request(app)
+      .patch(`/api/v1/tests/${test.body.id}`)
+      .set(auth())
+      .send({ dataset: null })
+      .expect(200);
+    await request(app).delete(path).set(auth()).expect(204);
+  });
+  it('provisions typed plan membership atomically and refuses foreign test ids', async () => {
+    const test = await request(app)
+      .post('/api/v1/tests')
+      .set(auth())
+      .send(definition(`Plan-${randomUUID()}`))
+      .expect(201);
+    const plan = await request(app)
+      .post('/api/v1/plans')
+      .set(auth())
+      .send({ name: 'Pipeline', selectedTests: [{ type: 'ui', id: test.body.id }] })
+      .expect(201);
+    expect(plan.body.selectedTests).toEqual([{ type: 'ui', id: test.body.id }]);
+    const path = `/api/v1/plans/${plan.body.id}`;
+    await request(app).get(path).set(auth(otherKey)).expect(404);
+    const foreign = await request(app)
+      .post('/api/v1/tests')
+      .set(auth(otherKey))
+      .send(definition(`Other-${randomUUID()}`))
+      .expect(201);
+    await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ selectedTests: [{ type: 'ui', id: foreign.body.id }] })
+      .expect(400);
+    await request(app)
+      .get(path)
+      .set(auth())
+      .expect(200)
+      .expect((res) => expect(res.body.selectedTests).toEqual([{ type: 'ui', id: test.body.id }]));
+    await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ selectedTests: [] })
+      .expect(200)
+      .expect((res) => expect(res.body.selectedTests).toEqual([]));
+  });
+  it('imports atomically, previews without saves, and exports portable explicit fields', async () => {
+    const project = await request(app)
+      .post('/api/v1/projects')
+      .set(auth())
+      .send({ name: 'Portable' })
+      .expect(201);
+    const name = `Portable-${randomUUID()}`;
+    const content = JSON.stringify({
+      kind: 'webflowmaster/tests',
+      version: 2,
+      tests: [definition(name)],
+      apiTests: [],
+    });
+    const input = { projectId: project.body.id, content };
+    await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ ...input, dryRun: true })
+      .expect(200);
+    expect((await privilegedDb.select().from(tests).where(eq(tests.name, name))).length).toBe(0);
+    await request(app).post('/api/v1/suites/import').set(auth()).send(input).expect(201);
+    const exported = await request(app)
+      .post('/api/v1/suites/export')
+      .set(auth())
+      .send({ projectId: project.body.id })
+      .expect(200);
+    const bundle = JSON.parse(exported.body.content);
+    expect(bundle.tests[0]).not.toHaveProperty('userId');
+    expect(bundle.tests[0]).not.toHaveProperty('organizationId');
+    const rollbackName = `Rollback-${randomUUID()}`;
+    const invalid = JSON.stringify({
+      kind: 'webflowmaster/tests',
+      version: 2,
+      tests: [
+        definition(rollbackName),
+        {
+          ...definition('Invalid manual'),
+          sequence: [{ id: 'step', action: { id: 'manualStep' }, value: '' }],
+        },
+      ],
+      apiTests: [],
+    });
+    await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ ...input, content: invalid })
+      .expect(400);
+    expect(
+      (await privilegedDb.select().from(tests).where(eq(tests.name, rollbackName))).length,
+    ).toBe(0);
+  });
+  it('imports Gherkin as BDD and validates its source on later edits', async () => {
+    const project = await request(app)
+      .post('/api/v1/projects')
+      .set(auth())
+      .send({ name: 'BDD authoring' })
+      .expect(201);
+    const source = `Feature: Public\n  Scenario: BDD-${randomUUID()}\n    Given a greeting`;
+    const imported = await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ projectId: project.body.id, format: 'gherkin', content: source })
+      .expect(201);
+    const id = imported.body.results[0].id;
+    const saved = await request(app).get(`/api/v1/tests/${id}`).set(auth()).expect(200);
+    expect(saved.body.bdd).toMatchObject({ mode: 'manual', source });
+    await request(app).patch(`/api/v1/tests/${id}`).set(auth()).send({ sequence: [] }).expect(400);
+    await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({
+        projectId: project.body.id,
+        format: 'gherkin',
+        content: 'Feature: Invalid\nScenario: Broken\nGiven',
+      })
+      .expect(400);
+  });
+  it('rejects shared datasets from another tenant in saves and import previews', async () => {
+    const dataset = await request(app)
+      .post('/api/v1/datasets')
+      .set(auth(otherKey))
+      .send({
+        name: `foreign_${randomUUID().replace(/-/g, '')}`,
+        columns: ['value'],
+        rows: [{ value: 'hidden' }],
+      })
+      .expect(201);
+    const test = {
+      ...definition(`Foreign dataset-${randomUUID()}`),
+      dataset: [{ $sharedSet: String(dataset.body.id) }],
+    };
+    await request(app).post('/api/v1/tests').set(auth()).send(test).expect(400);
+    const project = await request(app)
+      .post('/api/v1/projects')
+      .set(auth())
+      .send({ name: 'Dataset validation' })
+      .expect(201);
+    const content = JSON.stringify({
+      kind: 'webflowmaster/tests',
+      version: 2,
+      tests: [test],
+      apiTests: [],
+    });
+    await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ projectId: project.body.id, content, dryRun: true })
+      .expect(400);
+  });
+  it('returns public request errors for invalid filters, ids and pagination', async () => {
+    for (const path of [
+      '/api/v1/tests?projectId=bad',
+      '/api/v1/projects?limit=-1',
+      '/api/v1/projects?offset=abc',
+      '/api/v1/projects/0',
+      '/api/v1/datasets/2abc',
+    ]) {
+      await request(app)
+        .get(path)
+        .set(auth())
+        .expect(400)
+        .expect((res) => expect(res.body.error.code).toBe('invalid_request'));
+    }
+  });
+  it('uses execution limits and canonical locales consistently when creating and updating plans', async () => {
+    for (const invalid of [
+      { locales: ['english'] },
+      { maxParallelTests: 17 },
+      { shards: 9 },
+      { pageLoadTimeout: 999 },
+      { elementTimeout: 600001 },
+    ]) {
+      await request(app)
+        .post('/api/v1/plans')
+        .set(auth())
+        .send({ name: 'Invalid settings', ...invalid })
+        .expect(400);
+    }
+    const created = await request(app)
+      .post('/api/v1/plans')
+      .set(auth())
+      .send({
+        name: 'Canonical locales',
+        locales: [' IT_it ', 'it-IT', 'EN_us'],
+        maxParallelTests: 16,
+        shards: 8,
+        pageLoadTimeout: 600000,
+      })
+      .expect(201);
+    expect(created.body.locales).toEqual(['it-IT', 'en-US']);
+    const path = `/api/v1/plans/${created.body.id}`;
+    await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ locales: ['english'] })
+      .expect(400);
+    const changed = await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ locales: ['ZH_hant_tw'] })
+      .expect(200);
+    expect(changed.body.locales).toEqual(['zh-Hant-TW']);
+    await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ name: 'Keep settings' })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.locales).toEqual(['zh-Hant-TW']);
+        expect(res.body.maxParallelTests).toBe(16);
+        expect(res.body.shards).toBe(8);
+      });
+  });
+  it('protects shared dataset dependencies in restricted projects without revealing test names', async () => {
+    const dataset = await request(app)
+      .post('/api/v1/datasets')
+      .set(auth())
+      .send({
+        name: `private_${randomUUID().replace(/-/g, '')}`,
+        columns: ['value'],
+        rows: [{ value: 'shared' }],
+      })
+      .expect(201);
+    const owner = await createTestUser(org);
+    const [project] = await privilegedDb
+      .insert(projects)
+      .values({ name: 'Hidden project', organizationId: org, userId: owner, restricted: true })
+      .returning();
+    await privilegedDb.insert(tests).values({
+      ...definition('Hidden dependency'),
+      projectId: project.id,
+      userId: owner,
+      organizationId: org,
+      dataset: [{ $sharedSet: String(dataset.body.id) }],
+    });
+    const result = await request(app)
+      .delete(`/api/v1/datasets/${dataset.body.id}`)
+      .set(auth())
+      .expect(409);
+    expect(result.body.error.code).toBe('dataset_in_use');
+    expect(JSON.stringify(result.body)).not.toContain('Hidden dependency');
+  });
+});
+
+const apiDefinition = (name: string, projectId?: number) => ({
+  name,
+  method: 'GET',
+  url: '{{baseUrl}}/health',
+  authType: 'bearer',
+  authParams: { type: 'bearer', params: { token: 'literal-token-123' } },
+  ...(projectId ? { projectId } : {}),
+});
+const mobileDefinition = (name: string, projectId?: number) => ({
+  name,
+  platform: 'android',
+  app: 'bs://shop-app',
+  deviceName: 'Google Pixel 8',
+  steps: [],
+  ...(projectId ? { projectId } : {}),
+});
+
+describe('public authoring of API and mobile tests', () => {
+  it('needs the API and mobile scopes, not the UI test ones', async () => {
+    const uiKey = await makeKey(user, org, ['tests:read', 'tests:write']);
+    for (const path of ['/api/v1/api-tests', '/api/v1/mobile-tests']) {
+      const denied = await request(app).get(path).set(auth(uiKey)).expect(403);
+      expect(denied.body.error.code).toBe('insufficient_scope');
+    }
+    await request(app)
+      .post('/api/v1/api-tests')
+      .set(auth(viewerKey))
+      .send(apiDefinition(`Viewer-${randomUUID()}`))
+      .expect(403);
+  });
+  it('redacts stored secrets on read and keeps them when the variable comes back', async () => {
+    const created = await request(app)
+      .post('/api/v1/api-tests')
+      .set(auth())
+      .send(apiDefinition(`Health-${randomUUID()}`))
+      .expect(201);
+    expect(created.body.authParams.params.token).toBe('{{bearer_token}}');
+    expect(created.body).not.toHaveProperty('userId');
+    expect(created.body).not.toHaveProperty('organizationId');
+    const path = `/api/v1/api-tests/${created.body.id}`;
+    await request(app).get(path).set(auth(otherKey)).expect(404);
+    const read = await request(app).get(path).set(auth()).expect(200);
+    await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ url: '{{baseUrl}}/ready', authParams: read.body.authParams })
+      .expect(200);
+    const [stored] = await privilegedDb
+      .select()
+      .from(apiTests)
+      .where(eq(apiTests.id, created.body.id));
+    expect(stored.url).toBe('{{baseUrl}}/ready');
+    expect(stored.authParams).toEqual({ type: 'bearer', params: { token: 'literal-token-123' } });
+    await request(app).patch(path).set(auth()).send({ userId: user }).expect(400);
+    await request(app)
+      .post('/api/v1/api-tests')
+      .set(auth())
+      .send(apiDefinition(created.body.name))
+      .expect(409);
+    const audits = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.targetId, String(created.body.id)));
+    expect(audits.map((row) => row.action)).toEqual(
+      expect.arrayContaining(['api_test.created', 'api_test.updated']),
+    );
+    expect(JSON.stringify(audits.map((row) => row.metadata))).not.toContain('literal-token-123');
+  });
+  it('creates mobile tests and checks a partial update as the whole test', async () => {
+    const created = await request(app)
+      .post('/api/v1/mobile-tests')
+      .set(auth())
+      .send(mobileDefinition(`Checkout-${randomUUID()}`))
+      .expect(201);
+    expect(created.body).toMatchObject({ platform: 'android', deviceMatrix: [], gridId: null });
+    const path = `/api/v1/mobile-tests/${created.body.id}`;
+    await request(app).get(path).set(auth(otherKey)).expect(404);
+    const changed = await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ deviceName: 'Samsung Galaxy S24', osVersion: '14.0' })
+      .expect(200);
+    expect(changed.body).toMatchObject({
+      name: created.body.name,
+      app: 'bs://shop-app',
+      deviceName: 'Samsung Galaxy S24',
+      osVersion: '14.0',
+    });
+    await request(app).patch(path).set(auth()).send({ app: 'not an app' }).expect(400);
+    await request(app).patch(path).set(auth()).send({ createdBy: user }).expect(400);
+    await request(app)
+      .post('/api/v1/mobile-tests')
+      .set(auth())
+      .send(mobileDefinition(created.body.name.toUpperCase()))
+      .expect(409);
+  });
+  it('exports and re-imports a whole suite, each kind behind its own scope', async () => {
+    const project = await request(app)
+      .post('/api/v1/projects')
+      .set(auth())
+      .send({ name: `Whole suite ${randomUUID()}` })
+      .expect(201);
+    const projectId = project.body.id;
+    const suffix = randomUUID();
+    await request(app)
+      .post('/api/v1/tests')
+      .set(auth())
+      .send(definition(`Web-${suffix}`, projectId))
+      .expect(201);
+    const api = await request(app)
+      .post('/api/v1/api-tests')
+      .set(auth())
+      .send(apiDefinition(`Api-${suffix}`, projectId))
+      .expect(201);
+    await request(app)
+      .post('/api/v1/mobile-tests')
+      .set(auth())
+      .send(mobileDefinition(`Mobile-${suffix}`, projectId))
+      .expect(201);
+
+    const legacy = await request(app)
+      .post('/api/v1/suites/export')
+      .set(auth())
+      .send({ projectId })
+      .expect(200);
+    const legacyBundle = JSON.parse(legacy.body.content);
+    expect(legacyBundle.tests).toHaveLength(1);
+    expect(legacyBundle.apiTests).toEqual([]);
+    expect(legacyBundle.mobileTests).toEqual([]);
+
+    const suiteKey = await makeKey(user, org, ['suites:read', 'suites:write']);
+    const include = ['tests', 'apiTests', 'mobileTests'];
+    const denied = await request(app)
+      .post('/api/v1/suites/export')
+      .set(auth(suiteKey))
+      .send({ projectId, include })
+      .expect(403);
+    expect(denied.body.error).toMatchObject({
+      code: 'insufficient_scope',
+      requiredScope: 'api-tests:read',
+    });
+    await request(app)
+      .post('/api/v1/suites/export')
+      .set(auth())
+      .send({ projectId, include, format: 'gherkin' })
+      .expect(400);
+
+    const exported = await request(app)
+      .post('/api/v1/suites/export')
+      .set(auth())
+      .send({ projectId, include })
+      .expect(200);
+    const bundle = JSON.parse(exported.body.content);
+    expect(bundle.apiTests).toEqual([
+      expect.objectContaining({
+        name: `Api-${suffix}`,
+        authParams: { type: 'bearer', params: { token: '{{bearer_token}}' } },
+      }),
+    ]);
+    expect(bundle.mobileTests).toEqual([expect.objectContaining({ name: `Mobile-${suffix}` })]);
+    expect(exported.body.secretsReplaced).toHaveLength(1);
+
+    bundle.apiTests[0].url = '{{baseUrl}}/v2/health';
+    const changed = JSON.stringify(bundle);
+    const suiteDenied = await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth(suiteKey))
+      .send({ projectId, content: changed })
+      .expect(403);
+    expect(suiteDenied.body.error.requiredScope).toBe('api-tests:write');
+
+    const preview = await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ projectId, content: changed, dryRun: true })
+      .expect(200);
+    expect(preview.body.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'test', outcome: 'updated' }),
+        expect.objectContaining({ kind: 'api_test', name: `Api-${suffix}`, outcome: 'updated' }),
+        expect.objectContaining({
+          kind: 'mobile_test',
+          name: `Mobile-${suffix}`,
+          outcome: 'unchanged',
+        }),
+      ]),
+    );
+    await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ projectId, content: changed })
+      .expect(201);
+    const [stored] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, api.body.id));
+    expect(stored.url).toBe('{{baseUrl}}/v2/health');
+    expect(stored.authParams).toEqual({ type: 'bearer', params: { token: 'literal-token-123' } });
+
+    // One invalid mobile test rolls back the API test created alongside it.
+    const created = `Rolled back-${randomUUID()}`;
+    const invalid = JSON.stringify({
+      ...bundle,
+      tests: [],
+      apiTests: [apiDefinition(created)],
+      mobileTests: [{ ...mobileDefinition(`Broken-${suffix}`), app: 'not an app' }],
+    });
+    await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ projectId, content: invalid })
+      .expect(400);
+    expect(
+      (await privilegedDb.select().from(apiTests).where(eq(apiTests.name, created))).length,
+    ).toBe(0);
+    expect(
+      (
+        await privilegedDb
+          .select()
+          .from(mobileTests)
+          .where(eq(mobileTests.name, `Broken-${suffix}`))
+      ).length,
+    ).toBe(0);
+  });
+});
+
+describe('public deletion of tests, plans and projects', () => {
+  it('deletes a test of each kind with an audit entry, and hides other tenants', async () => {
+    const ui = await request(app)
+      .post('/api/v1/tests')
+      .set(auth())
+      .send(definition(`Doomed-${randomUUID()}`))
+      .expect(201);
+    const api = await request(app)
+      .post('/api/v1/api-tests')
+      .set(auth())
+      .send(apiDefinition(`Doomed api-${randomUUID()}`))
+      .expect(201);
+    const mobile = await request(app)
+      .post('/api/v1/mobile-tests')
+      .set(auth())
+      .send(mobileDefinition(`Doomed mobile-${randomUUID()}`))
+      .expect(201);
+    const paths = [
+      `/api/v1/tests/${ui.body.id}`,
+      `/api/v1/api-tests/${api.body.id}`,
+      `/api/v1/mobile-tests/${mobile.body.id}`,
+    ];
+    for (const path of paths) {
+      await request(app).delete(path).set(auth(otherKey)).expect(404);
+      await request(app).delete(path).set(auth(viewerKey)).expect(403);
+      await request(app).delete(path).set(auth()).expect(204);
+      await request(app).get(path).set(auth()).expect(404);
+      await request(app).delete(path).set(auth()).expect(404);
+    }
+    const audits = await privilegedDb.select().from(auditLog);
+    for (const action of ['test.deleted', 'api_test.deleted', 'mobile_test.deleted'])
+      expect(audits.some((row) => row.action === action)).toBe(true);
+    await request(app)
+      .delete('/api/v1/tests/abc')
+      .set(auth())
+      .expect(400)
+      .expect((res) => expect(res.body.error.code).toBe('invalid_request'));
+  });
+  it('refuses to delete a test in a restricted project the key cannot edit', async () => {
+    const owner = await createTestUser(org);
+    const [project] = await privilegedDb
+      .insert(projects)
+      .values({ name: 'Locked', userId: owner, organizationId: org, restricted: true })
+      .returning();
+    await privilegedDb
+      .insert(projectMembers)
+      .values({ projectId: project.id, userId: user, organizationId: org, role: 'viewer' });
+    const [test] = await privilegedDb
+      .insert(tests)
+      .values({
+        ...definition(`Locked-${randomUUID()}`),
+        projectId: project.id,
+        userId: owner,
+        organizationId: org,
+      })
+      .returning();
+    const denied = await request(app).delete(`/api/v1/tests/${test.id}`).set(auth()).expect(403);
+    expect(denied.body.error.code).toBe('project_read_only');
+  });
+  it('deletes a plan with its schedules unless a run of it is still going', async () => {
+    const plan = await request(app)
+      .post('/api/v1/plans')
+      .set(auth())
+      .send({ name: `Doomed plan ${randomUUID()}` })
+      .expect(201);
+    const path = `/api/v1/plans/${plan.body.id}`;
+    const scheduleId = randomUUID();
+    await privilegedDb.insert(testPlanSchedules).values({
+      id: scheduleId,
+      testPlanId: plan.body.id,
+      organizationId: org,
+      userId: user,
+      scheduleName: 'Nightly',
+      frequency: 'daily',
+      nextRunAt: new Date(),
+    });
+    const runId = randomUUID();
+    await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id: runId, organizationId: org, testPlanId: plan.body.id, status: 'running' });
+    const blocked = await request(app).delete(path).set(auth()).expect(409);
+    expect(blocked.body.error).toMatchObject({ code: 'plan_running', runId });
+    await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status: 'cancelled' })
+      .where(eq(testPlanExecutions.id, runId));
+    await request(app).delete(path).set(auth(otherKey)).expect(404);
+    scheduler.removeScheduleJob.mockClear();
+    await request(app).delete(path).set(auth()).expect(204);
+    expect(scheduler.removeScheduleJob).toHaveBeenCalledWith(scheduleId);
+    await request(app).get(path).set(auth()).expect(404);
+    expect(
+      (
+        await privilegedDb
+          .select()
+          .from(testPlanSchedules)
+          .where(eq(testPlanSchedules.id, scheduleId))
+      ).length,
+    ).toBe(0);
+    const audits = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.targetId, plan.body.id));
+    expect(audits.some((row) => row.action === 'plan.deleted')).toBe(true);
+  });
+  it('deletes a project only for the account that created it, leaving its tests', async () => {
+    const project = await request(app)
+      .post('/api/v1/projects')
+      .set(auth())
+      .send({ name: `Doomed project ${randomUUID()}` })
+      .expect(201);
+    const test = await request(app)
+      .post('/api/v1/tests')
+      .set(auth())
+      .send(definition(`Orphan-${randomUUID()}`, project.body.id))
+      .expect(201);
+    const path = `/api/v1/projects/${project.body.id}`;
+    const colleague = await makeKey(await createTestUser(org), org, API_SCOPE_NAMES);
+    const denied = await request(app).delete(path).set(auth(colleague)).expect(403);
+    expect(denied.body.error.code).toBe('project_not_owned');
+    await request(app).delete(path).set(auth(otherKey)).expect(404);
+    await request(app).delete(path).set(auth()).expect(204);
+    await request(app).get(path).set(auth()).expect(404);
+    const kept = await request(app).get(`/api/v1/tests/${test.body.id}`).set(auth()).expect(200);
+    expect(kept.body.projectId).toBeNull();
+  });
+});

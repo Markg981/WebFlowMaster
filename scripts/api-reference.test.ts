@@ -5,11 +5,11 @@ import { constraints, inline, typeOf } from './generate-api-reference';
 
 /**
  * docs/{en,it}/reference/api-endpoints.md and docs/public/openapi.json are generated from
- * server/api-v1/openapi.ts. A route added without regenerating them fails here, not in front of a
+ * server/http/api-v1/openapi.ts. A route added without regenerating them fails here, not in front of a
  * customer reading the reference.
  */
 describe('generated API reference', () => {
-  it('matches server/api-v1/openapi.ts', () => {
+  it('matches server/http/api-v1/openapi.ts', () => {
     const root = path.resolve(__dirname, '..');
     expect(() =>
       execFileSync(

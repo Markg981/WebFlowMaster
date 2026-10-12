@@ -1,6 +1,6 @@
 {{- if .Values.worker.keda.enabled }}
 # Scales the workers on the BullMQ wait list of the execution queue: Redis list
-# bull:test-execution-queue:wait (server/queue.ts, TEST_EXECUTION_QUEUE_NAME). Requires the
+# bull:test-execution-queue:wait (server/platform/queue.ts, TEST_EXECUTION_QUEUE_NAME). Requires the
 # KEDA operator (https://keda.sh); the Redis scaler takes host:port and, for a password, a
 # TriggerAuthentication you create and name in worker.keda.redis.triggerAuthentication.
 apiVersion: keda.sh/v1alpha1

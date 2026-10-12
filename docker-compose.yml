@@ -106,7 +106,7 @@ services:
       # The test inbox for "Wait for email" steps when the environment names none (mailpit.url).
       - MAILPIT_URL=http://mailpit:8025
     # The run evidence and the visual baselines, on a volume both processes mount. The worker
-    # writes them and the web process serves them (server/routes/artifacts.routes.ts): with each
+    # writes them and the web process serves them (server/http/routes/artifacts.routes.ts): with each
     # container on its own disk every screenshot, video, trace and HAR link in the report
     # answered 404, and the files existed only inside the worker. ARTIFACT_STORE=s3 is the
     # alternative when workers run on other hosts.

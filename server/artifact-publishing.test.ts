@@ -117,7 +117,7 @@ describe('a run with a bucket for its evidence', () => {
       .select()
       .from(reportTestCaseResults)
       .where(eq(reportTestCaseResults.testPlanExecutionId, executionId));
-    const { stepsWithArtifactUrls } = await import('./routes/artifacts.routes');
+    const { stepsWithArtifactUrls } = await import('./http/routes/artifacts.routes');
     expect(stepsWithArtifactUrls(executionId, row.detailedLog)[0].screenshot).toBe(
       `/api/test-plan-executions/${executionId}/artifacts/ui_${test.id}/step_Click_1.png`,
     );

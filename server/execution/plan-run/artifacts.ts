@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { testPlanExecutions as testPlanExecutionsTable } from '@shared/schema';
 import logger from '../../platform/logger';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
-import { getWsEmitter, type ExecutionLogEntry } from '../../websocket';
+import { getWsEmitter, type ExecutionLogEntry } from '../../http/websocket';
 import { artifactStore } from '../../tenancy/artifact-store';
 import { QuotaError } from '../../tenancy/tenant-quotas';
 
@@ -37,7 +37,7 @@ export async function publishArtifacts(localDir: string, executionId: string): P
 
 /**
  * Stored the way the report reads them: the artifacts route turns one of these back into
- * something a browser can open (see server/routes/artifacts.routes.ts).
+ * something a browser can open (see server/http/routes/artifacts.routes.ts).
  */
 export const asResultsUrl = (filePath?: string): string | undefined =>
   filePath ? filePath.replace(/^\.?\/?results/, '/results').replace(/\\/g, '/') : undefined;

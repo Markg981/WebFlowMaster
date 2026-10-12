@@ -56,7 +56,7 @@ RUN mkdir -p /app/logs /app/results /app/data/visual-baselines /app/uploads /app
 RUN rm -rf /usr/lib/node_modules/npm && rm -f /usr/bin/npm /usr/bin/npx
 USER pwuser
 
-# Matches the default in server/config.ts. The compose file publishes it; PORT overrides it.
+# Matches the default in server/platform/config.ts. The compose file publishes it; PORT overrides it.
 EXPOSE 5000
 
 # Reports unhealthy until the server can serve requests (server/health.ts): PostgreSQL, Redis and

@@ -17,6 +17,20 @@
   {
     "type": "dependency",
     "from": "server/execution/plan-run/after-run.ts",
+    "to": "server/http/websocket.ts",
+    "unresolvedTo": "../../http/websocket",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "domain-execution"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "server/execution/plan-run/after-run.ts",
     "to": "server/integrations/issue-store.ts",
     "unresolvedTo": "../../integrations/issue-store",
     "dependencyTypes": [
@@ -72,23 +86,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/execution/plan-run/after-run.ts",
-    "to": "server/websocket.ts",
-    "unresolvedTo": "../../websocket",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "domain-execution"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "server/execution/plan-run/artifacts.ts",
-    "to": "server/websocket.ts",
-    "unresolvedTo": "../../websocket",
+    "to": "server/http/websocket.ts",
+    "unresolvedTo": "../../http/websocket",
     "dependencyTypes": [
       "local",
       "import"
@@ -101,8 +101,8 @@
   {
     "type": "dependency",
     "from": "server/execution/plan-run/context.ts",
-    "to": "server/websocket.ts",
-    "unresolvedTo": "../../websocket",
+    "to": "server/http/websocket.ts",
+    "unresolvedTo": "../../http/websocket",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -131,8 +131,8 @@
   {
     "type": "dependency",
     "from": "server/execution/plan-run/pipeline.ts",
-    "to": "server/websocket.ts",
-    "unresolvedTo": "../../websocket",
+    "to": "server/http/websocket.ts",
+    "unresolvedTo": "../../http/websocket",
     "dependencyTypes": [
       "local",
       "import"
@@ -145,8 +145,8 @@
   {
     "type": "dependency",
     "from": "server/execution/run-test.ts",
-    "to": "server/websocket.ts",
-    "unresolvedTo": "../websocket",
+    "to": "server/http/websocket.ts",
+    "unresolvedTo": "../http/websocket",
     "dependencyTypes": [
       "local",
       "import"
@@ -159,8 +159,8 @@
   {
     "type": "dependency",
     "from": "server/identity/auth.ts",
-    "to": "server/routes/sso.routes.ts",
-    "unresolvedTo": "../routes/sso.routes",
+    "to": "server/http/routes/sso.routes.ts",
+    "unresolvedTo": "../http/routes/sso.routes",
     "dependencyTypes": [
       "local",
       "dynamic-import"
@@ -273,8 +273,8 @@
   {
     "type": "dependency",
     "from": "server/web/playwright/test-runner.ts",
-    "to": "server/websocket.ts",
-    "unresolvedTo": "../../websocket",
+    "to": "server/http/websocket.ts",
+    "unresolvedTo": "../../http/websocket",
     "dependencyTypes": [
       "local",
       "import"
@@ -598,12 +598,12 @@
   },
   {
     "type": "cycle",
-    "from": "server/identity/auth.ts",
-    "to": "server/routes/sso.routes.ts",
-    "unresolvedTo": "../routes/sso.routes",
+    "from": "server/http/routes/sso.routes.ts",
+    "to": "server/identity/auth.ts",
+    "unresolvedTo": "../../identity/auth",
     "dependencyTypes": [
       "local",
-      "dynamic-import"
+      "import"
     ],
     "rule": {
       "severity": "error",
@@ -611,17 +611,17 @@
     },
     "cycle": [
       {
-        "name": "server/routes/sso.routes.ts",
-        "dependencyTypes": [
-          "local",
-          "dynamic-import"
-        ]
-      },
-      {
         "name": "server/identity/auth.ts",
         "dependencyTypes": [
           "local",
           "import"
+        ]
+      },
+      {
+        "name": "server/http/routes/sso.routes.ts",
+        "dependencyTypes": [
+          "local",
+          "dynamic-import"
         ]
       }
     ]

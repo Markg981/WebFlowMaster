@@ -13,7 +13,7 @@ import { eq } from 'drizzle-orm';
 import { testPlanExecutions as testPlanExecutionsTable } from '@shared/schema';
 import logger from '../../platform/logger';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
-import { getWsEmitter } from '../../websocket';
+import { getWsEmitter } from '../../http/websocket';
 import { takeExecution } from '../execution-state';
 import { watchRun } from '../run-watch';
 import { publishArtifacts } from './artifacts';
@@ -120,7 +120,7 @@ export async function runPlanJob(job: PlanJob): Promise<PlanJobResult> {
 
 /**
  * From here on the run is this worker's: it keeps a heartbeat on it, hears a cancellation, and
- * stops it at its time limit — see server/run-watch.ts. Stopped however the run ends.
+ * stops it at its time limit — see server/execution/run-watch.ts. Stopped however the run ends.
  */
 async function joinRun(job: PlanJob, log: RunLog, startedAt: number): Promise<PlanJobResult> {
   const watch = watchRun(job.executionId, {

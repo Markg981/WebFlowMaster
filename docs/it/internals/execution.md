@@ -294,7 +294,7 @@ quindi ogni run viene chiuso una sola volta.
 ## 7. Avanzamento in diretta
 
 Mentre un run gira, il worker emette voci di log (messaggi di sistema, avanzamento degli step, console
-del browser) tramite `server/websocket.ts`. Vengono salvate in `execution_logs` e inviate via WebSocket
+del browser) tramite `server/http/websocket.ts`. Vengono salvate in `execution_logs` e inviate via WebSocket
 alla pagina del report, che le mostra in diretta e le ripropone a run concluso.
 
 ## 8. Task browser

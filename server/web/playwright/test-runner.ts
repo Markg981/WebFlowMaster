@@ -30,7 +30,7 @@ import { executeStep } from '../step-executor';
 import { expandSequenceForRun, type SequenceStep } from '../../authoring/step-groups';
 import { storage } from '../../identity/storage';
 import { compareStepScreenshot, isVisualFailure, stableScreenshot } from '../visual-testing';
-import { getWsEmitter } from '../../websocket';
+import { getWsEmitter } from '../../http/websocket';
 
 import { browserForSetting, openBrowserSession, type BrowserSession } from '../browser-session';
 import { resolvedLogger } from './log';
