@@ -18,6 +18,10 @@ La descrizione leggibile dalle macchine è servita da ogni installazione a
 **`/api/v1/openapi.json`** (OpenAPI 3.1), e un test la mantiene identica a ciò che il server
 risponde. Generateci un client, o importatela in Postman o Insomnia.
 
+Ogni operazione, con parametri, corpo della richiesta, risposte e scope richiesto, è elencata in
+[Endpoint dell’API](./api-endpoints), pagina generata dallo stesso documento: questa pagina spiega
+autenticazione, convenzioni e flussi, quella non può restare indietro rispetto al server.
+
 Per la maggior parte delle pipeline la [CLI `wfm`](./cli) è più semplice che chiamare l'API
 direttamente.
 
@@ -86,7 +90,7 @@ nome.
 | `insufficient_scope`              | 403   | Alla chiave manca lo scope richiesto dall'endpoint.                          |
 | `insufficient_role`               | 403   | L'account della chiave ha un ruolo inferiore a quello richiesto dallo scope. |
 | `invalid_request`                 | 400   | Un corpo, un parametro o un header non validi.                               |
-| `invalid_format`                  | 400   | Un formato di esportazione diverso da `html`, `pdf`, `allure`.               |
+| `invalid_format`                  | 400   | Un formato di esportazione diverso da `html`, `pdf`, `allure`, `junit`.      |
 | `plan_not_found`                  | 404   | Nessun piano (o ambiente) così in questa organizzazione.                     |
 | `run_not_found`                   | 404   | Nessun run così in questa organizzazione.                                    |
 | `not_found`                       | 404   | Nessun endpoint così sotto `/api/v1`.                                        |
@@ -386,7 +390,7 @@ riportato come saltato, così non fa diventare rossa la build.
 
 `GET /api/v1/runs/{runId}/export/{format}` · scope `runs:read`
 
-`format` è `html` (un unico file autonomo), `pdf`, o `allure` (uno zip di risultati Allure). Un
+`format` è `html` (un unico file autonomo), `pdf`, `allure` (uno zip di risultati Allure) o `junit` (lo stesso XML di `/junit`). Un
 PDF richiede un browser sul server; senza, la risposta è `503` — l'HTML ha lo stesso contenuto.
 
 ### Evidenze
