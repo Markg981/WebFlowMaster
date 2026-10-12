@@ -5100,7 +5100,7 @@
       "security": "Sicurezza"
     },
     "opensInNewTab": "(si apre in una nuova scheda)",
-    "accountWithNews": "Account, nuove modifiche da leggere",
+    "unreadHint": "Nuove modifiche da leggere in Novità",
     "new": "Nuovo"
   }
 }

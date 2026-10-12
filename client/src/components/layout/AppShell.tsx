@@ -377,11 +377,10 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <DropdownMenuTrigger asChild>
                 <button
                   className="relative flex items-center gap-2 rounded-full py-1 pl-1 pr-1 transition-colors hover:bg-accent"
-                  aria-label={
-                    hasNews
-                      ? t('whatsNew.accountWithNews', 'Account, new changes to read')
-                      : t('common.account', 'Account')
-                  }
+                  // The name stays "Account" whatever the dot says, so "click Account" (speech
+                  // control, tests) always finds it; the news is its description instead.
+                  aria-label={t('common.account', 'Account')}
+                  aria-describedby={hasNews ? 'whats-new-hint' : undefined}
                 >
                   {/* The initials are the avatar, a picture of the user rather than the button's
                       label, so they are drawn by CSS: as text they would be "visible label" that
@@ -398,6 +397,11 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                       data-testid="whats-new-dot"
                       className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background"
                     />
+                  )}
+                  {hasNews && (
+                    <span id="whats-new-hint" className="sr-only">
+                      {t('whatsNew.unreadHint', 'New changes to read in What’s new')}
+                    </span>
                   )}
                 </button>
               </DropdownMenuTrigger>

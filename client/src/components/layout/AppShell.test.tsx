@@ -63,13 +63,15 @@ describe('AppShell what is new', () => {
   it('marks the account button while there are changes the member has not read', () => {
     news.hasNews = true;
     const { unmount } = renderShell();
-    expect(screen.getByRole('button', { name: 'Account, new changes to read' })).toBeTruthy();
+    // The name does not change, so "click Account" keeps working; the news is the description.
+    const account = screen.getByRole('button', { name: 'Account' });
+    expect(account).toHaveAccessibleDescription('New changes to read in What’s new');
     expect(screen.getByTestId('whats-new-dot')).toBeTruthy();
     unmount();
 
     news.hasNews = false;
     renderShell();
-    expect(screen.getByRole('button', { name: 'Account' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Account' })).not.toHaveAttribute('aria-describedby');
     expect(screen.queryByTestId('whats-new-dot')).toBeNull();
   });
 });
