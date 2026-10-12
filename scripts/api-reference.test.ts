@@ -22,7 +22,11 @@ describe('generated API reference', () => {
 
   it('keeps table cells safe for Markdown and Vue', () => {
     expect(inline('Use <key> | {{name}} or `a|b`\nnext')).toBe(
-      'Use &lt;key&gt; \\| &#123;&#123;name}} or `a\\|b` next',
+      'Use &lt;key&gt; \\| &#123;&#123;name}} or <code>a&#124;b</code> next',
+    );
+    // A backslash is escaped too, so an existing "\|" cannot turn back into a cell break.
+    expect(inline('a \\| b and `c\\d` and `plain`')).toBe(
+      'a \\\\\\| b and <code>c&#92;d</code> and `plain`',
     );
   });
 

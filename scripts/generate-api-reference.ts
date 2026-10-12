@@ -53,19 +53,26 @@ type Document = {
 
 const METHODS = ['get', 'post', 'put', 'patch', 'delete'];
 
-/** Text for Markdown outside code spans: no raw HTML, no Vue interpolation, no table breaks. */
+const html = (text: string) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\{/g, '&#123;');
+
+/**
+ * A code span safe inside a table cell. Plain spans stay Markdown; one holding `|` or `\` becomes
+ * HTML with entities, because GFM splits cells on `|` even inside backticks and a backslash there
+ * is literal, so no Markdown escape renders both right.
+ */
+function codeSpan(span: string): string {
+  const content = span.slice(1, -1);
+  if (!/[|\\]/.test(content)) return span;
+  return `<code>${html(content).replace(/\|/g, '&#124;').replace(/\\/g, '&#92;')}</code>`;
+}
+
+/** Text for a Markdown table cell: no raw HTML, no Vue interpolation, no table breaks. */
 export function inline(text: string): string {
   return text
     .split(/(`[^`]*`)/)
     .map((part, index) =>
-      index % 2
-        ? part.replace(/\|/g, '\\|')
-        : part
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\{\{/g, '&#123;&#123;')
-            .replace(/\|/g, '\\|'),
+      index % 2 ? codeSpan(part) : html(part).replace(/[\\|]/g, (character) => `\\${character}`),
     )
     .join('')
     .replace(/\r?\n+/g, ' ')

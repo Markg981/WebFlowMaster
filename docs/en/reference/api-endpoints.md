@@ -1170,10 +1170,10 @@ Set a secret (201) or rotate one that exists (200). The value is never read back
 
 Scope `secrets:write` · operation `setSecret`
 
-| Parameter       | In   | Type    | Required | Description        |
-| --------------- | ---- | ------- | -------- | ------------------ |
-| `environmentId` | path | integer | yes      | at least 1         |
-| `keyName`       | path | string  | yes      | pattern `^[\w.]+$` |
+| Parameter       | In   | Type    | Required | Description                       |
+| --------------- | ---- | ------- | -------- | --------------------------------- |
+| `environmentId` | path | integer | yes      | at least 1                        |
+| `keyName`       | path | string  | yes      | pattern <code>^[&#92;w.]+$</code> |
 
 **Request body** (`application/json`)
 
@@ -1197,10 +1197,10 @@ Delete a secret.
 
 Scope `secrets:write` · operation `deleteSecret`
 
-| Parameter       | In   | Type    | Required | Description        |
-| --------------- | ---- | ------- | -------- | ------------------ |
-| `environmentId` | path | integer | yes      | at least 1         |
-| `keyName`       | path | string  | yes      | pattern `^[\w.]+$` |
+| Parameter       | In   | Type    | Required | Description                       |
+| --------------- | ---- | ------- | -------- | --------------------------------- |
+| `environmentId` | path | integer | yes      | at least 1                        |
+| `keyName`       | path | string  | yes      | pattern <code>^[&#92;w.]+$</code> |
 
 | Status | Meaning                                          | Body                                        |
 | ------ | ------------------------------------------------ | ------------------------------------------- |
@@ -1953,13 +1953,13 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 
 ### Secret {#schema-secret}
 
-| Field           | Type               | Required | Description                              |
-| --------------- | ------------------ | -------- | ---------------------------------------- |
-| `id`            | integer            | yes      | at least 1                               |
-| `environmentId` | integer            | yes      | at least 1                               |
-| `keyName`       | string             | yes      | up to 120 characters, pattern `^[\w.]+$` |
-| `createdAt`     | string (date-time) |          |                                          |
-| `updatedAt`     | string (date-time) |          |                                          |
+| Field           | Type               | Required | Description                                             |
+| --------------- | ------------------ | -------- | ------------------------------------------------------- |
+| `id`            | integer            | yes      | at least 1                                              |
+| `environmentId` | integer            | yes      | at least 1                                              |
+| `keyName`       | string             | yes      | up to 120 characters, pattern <code>^[&#92;w.]+$</code> |
+| `createdAt`     | string (date-time) |          |                                                         |
+| `updatedAt`     | string (date-time) |          |                                                         |
 
 ### SecretValue {#schema-secretvalue}
 
