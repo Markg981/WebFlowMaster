@@ -10,7 +10,7 @@ import * as loader from '@grpc/proto-loader';
 import { chromium } from 'playwright';
 import { browserEgressOptions } from './egress-proxy';
 import { fetchTarget } from './outbound-http';
-import { runGrpc, runWebSocket } from './api-network-protocols';
+import { runGrpc, runWebSocket } from './api-tests/api-network-protocols';
 
 vi.mock('./logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },

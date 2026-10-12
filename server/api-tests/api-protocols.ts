@@ -2,11 +2,11 @@ import { DOMParser } from '@xmldom/xmldom';
 import xpath from 'xpath';
 
 /**
- * The API tests that are not one HTTP request and one JSON answer (server/api-test-runner.ts).
+ * The API tests that are not one HTTP request and one JSON answer (server/api-tests/api-test-runner.ts).
  *
  * - **SOAP** is HTTP: a POST with an XML envelope and a SOAPAction header. What it needed was a way
  *   to read XML answers — `body_xpath` assertions and captures — and a WSDL import
- *   (server/api-import.ts).
+ *   (server/api-tests/api-import.ts).
  * - **WebSocket**: connect to a ws:// or wss:// address, send messages, collect what comes back for
  *   a while, and assert on it.
  * - **gRPC**: a unary call described by the .proto the test carries, to grpc:// or grpcs://

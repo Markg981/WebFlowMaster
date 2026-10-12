@@ -9,7 +9,7 @@ import {
   insertApiTestHistorySchema,
 } from '@shared/schema';
 import { ProtocolConfigSchema } from '@shared/api-protocol-config';
-import { runApiRequest } from '../api-test-runner';
+import { runApiRequest } from '../api-tests/api-test-runner';
 import { withExecutionUsage } from '../execution-usage';
 import { redactHistoryEntry } from '../history-redaction';
 import logger from '../logger';

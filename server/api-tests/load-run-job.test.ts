@@ -1,9 +1,9 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import { and, eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { apiTests, loadTestRuns, loadTests } from '@shared/schema';
-import { createTestOrganization, createTestUser } from './tests/factories';
+import { createTestOrganization, createTestUser } from '../tests/factories';
 import {
   loadLimits,
   processLoadRunJob,
@@ -11,9 +11,9 @@ import {
   releaseLoadSlot,
   reserveLoadSlot,
 } from './load-runner';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock('./logger', () => ({
 }));
 
 /**
- * A load worker's side of a load-run job (server/load-runner.ts, processLoadRunJob), with the
+ * A load worker's side of a load-run job (server/api-tests/load-runner.ts, processLoadRunJob), with the
  * engine stood in: claiming the queued run, the heartbeat while it runs, giving it back when the
  * organization is at its limit, skipping what is no longer queued — and the sweep that ends a run
  * whose worker stopped beating.

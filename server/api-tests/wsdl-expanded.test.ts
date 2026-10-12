@@ -1,8 +1,8 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, it } from 'vitest';
 import { importApiDescription } from './api-import';
-import { expandedDocuments, expandedWsdl } from './tests/soap-expanded-fixtures';
-import { distributedWsdl, wsdl2 } from './tests/soap-bundle-fixtures';
+import { expandedDocuments, expandedWsdl } from '../tests/soap-expanded-fixtures';
+import { distributedWsdl, wsdl2 } from '../tests/soap-bundle-fixtures';
 
 const schema = (body: string) =>
   `<x:schema xmlns:x="http://www.w3.org/2001/XMLSchema" xmlns:r="urn:request" targetNamespace="urn:request" elementFormDefault="qualified"><x:element name="Order"><x:complexType>${body}</x:complexType></x:element></x:schema>`;

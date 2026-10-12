@@ -18,7 +18,7 @@ export const testExecutionQueue = new TracedQueue(TEST_EXECUTION_QUEUE_NAME, {
 });
 
 /**
- * Load runs (server/load-runner.ts) on a queue of their own: a load run lasts up to an hour and
+ * Load runs (server/api-tests/load-runner.ts) on a queue of their own: a load run lasts up to an hour and
  * sends from the process that takes it, so operators scale the workers that take them
  * (LOAD_WORKER_CONCURRENCY) apart from the plan runners, and a nightly plan never holds one up.
  */

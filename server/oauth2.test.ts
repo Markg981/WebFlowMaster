@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import http from 'http';
 import crypto from 'crypto';
 import type { AddressInfo } from 'net';
-import { runApiRequest } from './api-test-runner';
+import { runApiRequest } from './api-tests/api-test-runner';
 import { clearTokenCache } from './oauth2';
 import {
   IMPLEMENTED_AUTH_TYPES,

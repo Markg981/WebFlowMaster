@@ -6,7 +6,7 @@ import type { Assertion } from '@shared/schema';
  */
 
 // WEBSOCKET and GRPC are not HTTP methods: the runner opens a connection of that kind instead
-// (server/api-protocols.ts). The URL says where: ws(s):// or grpc(s)://host:port/package.Service/Method.
+// (server/api-tests/api-protocols.ts). The URL says where: ws(s):// or grpc(s)://host:port/package.Service/Method.
 export const httpMethods = [
   'GET',
   'POST',
@@ -74,7 +74,7 @@ export interface FormDataField {
   type: 'text' | 'file';
 }
 
-/** A form-data part as the proxy receives it (server/api-test-runner.ts, MultipartPart). */
+/** A form-data part as the proxy receives it (server/api-tests/api-test-runner.ts, MultipartPart). */
 export type MultipartPart =
   | { key: string; type: 'text'; value: string }
   | { key: string; type: 'file'; fileName: string; contentType: string; base64: string };

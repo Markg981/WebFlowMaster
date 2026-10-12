@@ -2,7 +2,7 @@ import type { Browser, BrowserContext } from 'playwright';
 import { allowsSelfSignedCertificate } from '../outbound-http';
 import { connectToAgentBrowser, type AgentTarget } from './agent-browser';
 import { runProtocolOnAgent } from './agent-protocol';
-import type { OneConnectionFetch } from '../api-test-runner';
+import type { OneConnectionFetch } from '../api-tests/api-test-runner';
 
 /**
  * HTTP requests sent from a local agent's machine, for the API tests, API preconditions and
@@ -134,7 +134,7 @@ export function fetchThroughBrowser(browser: () => Promise<Browser>): typeof fet
   return Object.assign(perRequest, {
     /**
      * Requests that share one browser context, and so the agent's connection to the target, for
-     * NTLM, whose handshake belongs to the connection (server/api-test-runner.ts).
+     * NTLM, whose handshake belongs to the connection (server/api-tests/api-test-runner.ts).
      */
     oneConnection() {
       let opening: Promise<BrowserContext> | null = null;

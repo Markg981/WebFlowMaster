@@ -22,8 +22,8 @@ vi.mock('./queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'q',
   testExecutionQueue: { add: vi.fn() },
 }));
-vi.mock('./api-test-runner', async (original) => ({
-  ...(await original<typeof import('./api-test-runner')>()),
+vi.mock('./api-tests/api-test-runner', async (original) => ({
+  ...(await original<typeof import('./api-tests/api-test-runner')>()),
   runApiRequest: (...args: unknown[]) => runApiRequest(...args),
 }));
 vi.mock('./mobile/mobile-runner', async (original) => ({

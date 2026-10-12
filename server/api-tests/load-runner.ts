@@ -26,11 +26,11 @@ import {
   type OneConnectionFetch,
 } from './api-test-runner';
 import { failureOf } from './api-performance';
-import { runWithTenant, withTenantTransaction, type TenantTx } from './middleware/tenancy';
-import { STALE_CLAIM_MS, WORK_ITEM_HEARTBEAT_MS } from './run-shards';
-import { withExecutionUsage } from './execution-usage';
-import { resolveVariables } from './variables';
-import logger from './logger';
+import { runWithTenant, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import { STALE_CLAIM_MS, WORK_ITEM_HEARTBEAT_MS } from '../run-shards';
+import { withExecutionUsage } from '../execution-usage';
+import { resolveVariables } from '../variables';
+import logger from '../logger';
 
 /**
  * Runs a load test (shared/load-test.ts): the engine (runLoad), and around it the service a worker
@@ -391,7 +391,7 @@ export async function enqueueLoadRun(
   organizationId: number,
   userId: number,
 ): Promise<string> {
-  const { LOAD_RUN_JOB, loadQueue } = await import('./queue');
+  const { LOAD_RUN_JOB, loadQueue } = await import('../queue');
   const job = await loadQueue.add(
     LOAD_RUN_JOB,
     { runId, organizationId, userId } satisfies LoadRunJob,
@@ -416,7 +416,7 @@ export async function enqueueLoadRun(
 export async function removeQueuedLoadJob(jobId: string | null): Promise<boolean> {
   if (!jobId) return false;
   try {
-    const { loadQueue } = await import('./queue');
+    const { loadQueue } = await import('../queue');
     const job = await loadQueue.getJob(jobId);
     if (!job) return false;
     const state = await job.getState();

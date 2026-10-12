@@ -16,7 +16,7 @@ import {
   resolveVetted,
   vettedLookup,
 } from './egress-policy';
-import { runGrpc, runWebSocket } from './api-network-protocols';
+import { runGrpc, runWebSocket } from './api-tests/api-network-protocols';
 
 afterEach(() => vi.unstubAllEnvs());
 

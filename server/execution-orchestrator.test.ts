@@ -191,7 +191,7 @@ describe('enqueue', () => {
   });
 
   it('pins API publication content and records the captured version', async () => {
-    const runner = await import('./api-test-runner');
+    const runner = await import('./api-tests/api-test-runner');
     const run = vi.spyOn(runner, 'runApiRequest').mockResolvedValue({
       passed: true,
       assertions: [],
@@ -391,7 +391,7 @@ describe('enqueue', () => {
   it.each(['edit', 'delete'] as const)(
     'executes the API definition captured at enqueue after %s of its working copy',
     async (change) => {
-      const runner = await import('./api-test-runner');
+      const runner = await import('./api-tests/api-test-runner');
       const request = vi.spyOn(runner, 'runApiRequest').mockResolvedValue({
         passed: true,
         assertions: [],
@@ -516,7 +516,7 @@ describe('enqueue', () => {
     ).rejects.toMatchObject({ status: 409 });
   });
   it('passes shared values frozen at enqueue to API requests', async () => {
-    const runner = await import('./api-test-runner');
+    const runner = await import('./api-tests/api-test-runner');
     const request = vi.spyOn(runner, 'runApiRequest').mockResolvedValue({
       passed: true,
       assertions: [],
