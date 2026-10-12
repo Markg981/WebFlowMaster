@@ -5085,5 +5085,22 @@
     "cancel": "Nicht jetzt",
     "invalid": "Diese Einladung gilt nicht für Ihr Konto: Sie ist möglicherweise abgelaufen, bereits verwendet oder für einen anderen Benutzernamen bestimmt.",
     "back": "Zurück zur Anwendung"
+  },
+  "whatsNew": {
+    "title": "Neuigkeiten",
+    "description": "Was sich in dieser Installation geändert hat, neueste zuerst. Jede Änderung verweist auf den Pull Request, der sie eingeführt hat.",
+    "loading": "Wird geladen…",
+    "loadFailed": "Die Liste der Änderungen konnte nicht geladen werden.",
+    "empty": "Diese Installation hat keine Liste der Änderungen.",
+    "unreleased": "Neueste Änderungen",
+    "sections": {
+      "added": "Neu",
+      "changed": "Geändert",
+      "fixed": "Behoben",
+      "security": "Sicherheit"
+    },
+    "opensInNewTab": "(öffnet in einem neuen Tab)",
+    "accountWithNews": "Konto, neue Änderungen zu lesen",
+    "new": "Neu"
   }
 }

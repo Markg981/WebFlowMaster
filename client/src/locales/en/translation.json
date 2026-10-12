@@ -5085,5 +5085,22 @@
     "cancel": "Not now",
     "invalid": "This invitation is not valid for your account: it may have expired, been used, or be meant for another username.",
     "back": "Back to the app"
+  },
+  "whatsNew": {
+    "title": "What’s new",
+    "description": "What changed in this installation, newest first. Each change links to the pull request that made it.",
+    "loading": "Loading…",
+    "loadFailed": "The list of changes could not be loaded.",
+    "empty": "This installation has no list of changes.",
+    "unreleased": "Latest changes",
+    "sections": {
+      "added": "Added",
+      "changed": "Changed",
+      "fixed": "Fixed",
+      "security": "Security"
+    },
+    "opensInNewTab": "(opens in a new tab)",
+    "accountWithNews": "Account, new changes to read",
+    "new": "New"
   }
 }

@@ -23,12 +23,14 @@ import {
   Smartphone,
   Database,
   Gauge,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { useWorkspaceName } from '@/hooks/use-workspace-name';
 import { PRODUCT_NAME } from '@/lib/brand';
 import { useTheme } from '@/hooks/use-theme';
+import { useWhatsNew } from '@/hooks/use-whats-new';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -118,6 +120,7 @@ function usePageTitle(location: string, sections: NavSection[]): string {
   if (location.includes('/executions/')) return t('nav.executionReport');
   for (const s of sections) for (const it of s.items) if (isActive(location, it)) return it.label;
   if (location.startsWith('/settings')) return t('nav.settings');
+  if (location.startsWith('/whats-new')) return t('whatsNew.title', 'What’s new');
   if (location.includes('/run')) return t('nav.runTestPlan');
   return PRODUCT_NAME;
 }
@@ -229,6 +232,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const sections = useNav();
   const workspaceName = useWorkspaceName();
   const title = usePageTitle(location, sections);
+  const { hasNews } = useWhatsNew();
 
   const [collapsed, setCollapsed] = useState<boolean>(
     () => localStorage.getItem(COLLAPSE_KEY) === '1',
@@ -372,8 +376,12 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex items-center gap-2 rounded-full py-1 pl-1 pr-1 transition-colors hover:bg-accent"
-                  aria-label={t('common.account', 'Account')}
+                  className="relative flex items-center gap-2 rounded-full py-1 pl-1 pr-1 transition-colors hover:bg-accent"
+                  aria-label={
+                    hasNews
+                      ? t('whatsNew.accountWithNews', 'Account, new changes to read')
+                      : t('common.account', 'Account')
+                  }
                 >
                   {/* The initials are the avatar, a picture of the user rather than the button's
                       label, so they are drawn by CSS: as text they would be "visible label" that
@@ -384,6 +392,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     data-initials={initials}
                     className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 font-mono text-xs font-bold text-primary after:content-[attr(data-initials)]"
                   />
+                  {hasNews && (
+                    <span
+                      aria-hidden="true"
+                      data-testid="whats-new-dot"
+                      className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background"
+                    />
+                  )}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -398,6 +413,17 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   <DropdownMenuItem className="cursor-pointer">
                     <SettingsIcon className="mr-2 h-4 w-4" />
                     {t('nav.settings')}
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/whats-new">
+                  <DropdownMenuItem className="cursor-pointer">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {t('whatsNew.title', 'What’s new')}
+                    {hasNews && (
+                      <span className="ml-auto rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                        {t('whatsNew.new', 'New')}
+                      </span>
+                    )}
                   </DropdownMenuItem>
                 </Link>
                 <DropdownMenuItem

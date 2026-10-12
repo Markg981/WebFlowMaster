@@ -5085,5 +5085,22 @@
     "cancel": "Non ora",
     "invalid": "Questo invito non è valido per il tuo account: potrebbe essere scaduto, già usato, o destinato a un altro username.",
     "back": "Torna all'applicazione"
+  },
+  "whatsNew": {
+    "title": "Novità",
+    "description": "Cosa è cambiato in questa installazione, dal più recente. Ogni modifica porta alla pull request che l’ha introdotta.",
+    "loading": "Caricamento…",
+    "loadFailed": "Non è stato possibile caricare l’elenco delle modifiche.",
+    "empty": "Questa installazione non ha un elenco delle modifiche.",
+    "unreleased": "Ultime modifiche",
+    "sections": {
+      "added": "Aggiunte",
+      "changed": "Modifiche",
+      "fixed": "Correzioni",
+      "security": "Sicurezza"
+    },
+    "opensInNewTab": "(si apre in una nuova scheda)",
+    "accountWithNews": "Account, nuove modifiche da leggere",
+    "new": "Nuovo"
   }
 }

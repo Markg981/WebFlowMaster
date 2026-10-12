@@ -58,6 +58,12 @@ The sidebar has everything:
 type part of a name to go to a page, run a test plan, switch between light and dark theme or sign out.
 Plans are offered only to editors and owners, who can start a run.
 
+**What’s new**, in the account menu (the circle with your initials, top right) and in the command
+palette, lists what changed in this installation, newest first, with a link to the pull request of
+each change: it is the `CHANGELOG.md` the installation ships, so it describes the version you use.
+A dot on the circle means there are changes you have not read; opening the page clears it, in this
+browser.
+
 On a phone the sidebar is hidden: the **menu** button (☰) at the left of the top bar opens it as a
 drawer, which closes once you pick a page or press **Esc**. The pages meant for reading — the
 dashboard, **Reports** and the report of a run — fit the width of a phone or a tablet; wide tables
