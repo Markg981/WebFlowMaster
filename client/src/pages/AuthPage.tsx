@@ -1,5 +1,5 @@
 import { PRODUCT_NAME_PREFIX, PRODUCT_NAME_SUFFIX } from '@/lib/brand';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
@@ -38,7 +38,8 @@ function resetFromUrl(): { token: string; username: string } {
 
 export default function AuthPage() {
   const { t } = useTranslation();
-  const { user, loginMutation, registerMutation, mfaChallenge, verifyMfaMutation } = useAuth();
+  const { user, isLoading, loginMutation, registerMutation, mfaChallenge, verifyMfaMutation } =
+    useAuth();
   const [, navigate] = useLocation();
   const [invited] = useState(invitationFromUrl);
   const [reset] = useState(resetFromUrl);
@@ -69,9 +70,13 @@ export default function AuthPage() {
   const invitationRequired = policy ? !policy.selfRegistration : false;
   const showInvitationField = invited.token !== '' || invitationRequired;
 
-  // Signed in and holding an invitation: the link is for joining one more organization, not for
-  // registering, so the page stays to ask (JoinOrganization) instead of going to the dashboard.
-  const joining = Boolean(user && invited.token);
+  // Who the link found. Signed in on arrival and holding an invitation: it is for joining one more
+  // organization, not for registering, so the page stays to ask (JoinOrganization). Someone who
+  // arrives signed out and registers or signs in here is signed in too, with the token still in
+  // the address: for them the invitation has just been used, and the dashboard is where they go.
+  const arrivedSignedIn = useRef<boolean | null>(null);
+  if (arrivedSignedIn.current === null && !isLoading) arrivedSignedIn.current = Boolean(user);
+  const joining = Boolean(user && invited.token && arrivedSignedIn.current);
   useEffect(() => {
     if (user && !joining) {
       navigate('/dashboard');
