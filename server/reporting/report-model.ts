@@ -6,10 +6,10 @@ import type { AccessibilityFinding } from '@shared/accessibility';
 import type { NetworkSummary } from '@shared/network';
 import type { CiContext } from '@shared/ci';
 import type { ReproducibilitySummary } from '@shared/execution-provenance';
-import { reproducibilitySummary } from './execution-provenance';
-import { readExecutionSnapshot } from './execution-snapshot';
-import { withTenantTransaction } from './middleware/tenancy';
-import { artifactStore, assertSafeKey, contentTypeFor, RESULTS_PREFIX } from './artifact-store';
+import { reproducibilitySummary } from '../execution-provenance';
+import { readExecutionSnapshot } from '../execution-snapshot';
+import { withTenantTransaction } from '../middleware/tenancy';
+import { artifactStore, assertSafeKey, contentTypeFor, RESULTS_PREFIX } from '../artifact-store';
 
 /**
  * A run as the exported reports describe it: HTML, PDF and Allure all read this one shape.
