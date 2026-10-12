@@ -68,7 +68,7 @@ npm run marketing:refresh            # from the repository root: film, voice, mu
 cd marketing/promo-video/video       # or step by step
 npm ci
 npm run voice                        # voice-over and captions (audio/narrate.mjs)
-npm run audio:generate               # the original instrumental (audio/synthesize.mjs)
+npm run music                        # the music track (audio/fetch-music.mjs)
 npm run render                       # the release set above (../render.mjs)
 node ../render.mjs it short-vertical # one language, some editions
 npm run studio                       # preview and scrub: Promo-<lang>-<cut>-<format>
@@ -93,21 +93,27 @@ one WAV per line, named `voice/<lang>/<cut>-<scene>.wav` under `video/public/`, 
 
 ### Music
 
-`audio/synthesize.mjs` composes an original 60-second stereo WAV (sine pads, arpeggio, a soft
-pulse): no samples or third-party material. It is lawful but sounds synthetic, and nobody has
-reviewed it by ear. For a **licensed track**, put it at `video/public/music.mp3` and render with
-`PROMO_MUSIC_FILE=music.mp3 npm run render`. The render trims the AAC padding to the last frame
-and writes the 60-second silent master.
+The music is a published track, [`audio/music.json`](audio/music.json): **"Inspired" by Kevin
+MacLeod** (incompetech.com), under **CC BY 4.0**, so it can be used commercially as long as the
+credit goes with the video. `npm run music` downloads it into `video/public/` (not committed);
+the render plays it at the `volume` of `music.json`, halved while the voice speaks, and appends
+the credit line to every `description.txt`. Keep that line wherever the video is published.
+
+To change it, edit `music.json` (source, credit, level) and delete `video/public/music.mp3`.
+Without the track, the render falls back to the original procedural bed of
+`audio/synthesize.mjs` (`npm run audio:generate`), which needs no credit but sounds synthetic.
+`PROMO_MUSIC_FILE` names any other file under `video/public/`. The render trims the AAC padding
+to the last frame and writes the 60-second silent master.
 
 ### Call to action
 
-The closing card shows the demo request page, `demoUrl` in [`../contact.json`](../contact.json)
-(the brochure reads the same file), above the contact. The page itself is
-[`../landing/index.html`](../landing/index.html): static, English and Italian, with a form that
-posts to a form service once one is configured and opens an email until then. The
-`description.txt` files carry the address with `utm_source`/`utm_medium`/`utm_campaign` per
-channel, and the form sends them along, so a request says which video brought it. The values are
-placeholders until the product has its own domain and mailbox.
+The closing card shows "Request a demo" over the contact of [`../contact.json`](../contact.json),
+which the brochure reads too (aveva.com). `demoUrl` there is the address of the demo request page
+once it is hosted: the card then shows it instead of the email, and the `description.txt` files
+link to it with `utm_source`/`utm_medium`/`utm_campaign` per channel, which the page's form sends
+along, so a request says which video brought it. Until then they link to a pre-filled email.
+The page is [`../landing/index.html`](../landing/index.html): static, English and Italian, with a
+form that posts to a form service once one is configured and opens an email until then.
 
 ## Filming the screens again
 

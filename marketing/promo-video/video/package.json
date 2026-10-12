@@ -5,6 +5,7 @@
   "scripts": {
     "studio": "remotion studio",
     "audio:generate": "node ../audio/synthesize.mjs",
+    "music": "node ../audio/fetch-music.mjs",
     "voice": "node ../audio/narrate.mjs",
     "captions": "node ../audio/captions.mjs",
     "render": "node ../render.mjs",

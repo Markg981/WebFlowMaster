@@ -44,7 +44,7 @@ if (!skipCapture) {
   step('Video: screens and live clips', 'node', ['marketing/promo-video/demo/capture.mjs']);
 }
 step('Video: voice-over and captions', 'node', ['marketing/promo-video/audio/narrate.mjs']);
-step('Video: music', 'node', ['marketing/promo-video/audio/synthesize.mjs']);
+step('Video: music', 'node', ['marketing/promo-video/audio/fetch-music.mjs']);
 step('Video: release set', 'node', ['marketing/promo-video/render.mjs']);
 
 const brochure = path.join(ROOT, 'marketing', 'brochure');

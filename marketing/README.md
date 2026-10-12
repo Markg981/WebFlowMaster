@@ -34,10 +34,9 @@ not a generated Drizzle listing, remain authoritative for policies, grants and l
 it: run it before each release, on the collaudo stack with the demo organization loaded.
 
 The commercial contact lives in [`contact.json`](./contact.json), read by both the brochure and the
-video. It holds placeholders (`contact@webflowmaster.example`, `www.webflowmaster.example`, no phone)
-until the product has its own domain and mailbox: replace them there (with `demoUrl`, the demo
-request page, and the email in `landing/index.html`), then regenerate the PDFs and MP4s before
-distributing anything.
+video: `marco.oliva@aveva.com` and `www.aveva.com`, no phone. `demoUrl`, the address of the demo
+request page, stays empty until that page is hosted. After changing a value, update the email in
+`landing/index.html` too, then regenerate the PDFs and MP4s before distributing anything.
 
 Generated PDFs, MP4 files and demo video inputs are local outputs, ignored by Git. The brochure
 contains its own two demonstration screenshots in `brochure/assets/`. The video README explains

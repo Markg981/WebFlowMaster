@@ -90,16 +90,28 @@ describe('promo video narration', () => {
   });
 });
 
-describe('demo request', () => {
+describe('demo request and music', () => {
   const contact = JSON.parse(fs.readFileSync(path.join(root, 'marketing/contact.json'), 'utf8'));
   const landing = fs.readFileSync(path.join(root, 'marketing/landing/index.html'), 'utf8');
 
-  it('the closing card has a short address to type', () => {
-    expect(contact.demoUrl).toMatch(/^[\w.-]+\/[\w-]+$/);
-    expect(contact.demoUrl.length).toBeLessThanOrEqual(32);
+  it('the closing card has a short address to type, or none yet', () => {
+    if (contact.demoUrl) {
+      expect(contact.demoUrl).toMatch(/^[\w.-]+\/[\w-]+$/);
+      expect(contact.demoUrl.length).toBeLessThanOrEqual(32);
+    }
+    expect(contact.email).toMatch(/^[^@\s]+@[^@\s]+\.\w+$/);
   });
 
   it('the landing page writes to the contact of the video and the brochure', () => {
     expect(landing).toContain(`data-email="${contact.email}"`);
+  });
+
+  it('the published music track names its licence and credit', () => {
+    const music = JSON.parse(fs.readFileSync(path.join(promo, 'audio/music.json'), 'utf8'));
+    expect(music.source).toMatch(/^https:\/\//);
+    expect(music.attribution).toContain(music.author);
+    expect(music.attribution).toContain(music.title);
+    expect(music.volume).toBeGreaterThan(0);
+    expect(music.volume).toBeLessThanOrEqual(0.5);
   });
 });

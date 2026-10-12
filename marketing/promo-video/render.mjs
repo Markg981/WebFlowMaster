@@ -11,12 +11,12 @@
  *   node marketing/promo-video/render.mjs it short-vertical  # a language, and some editions
  *
  * Needs the screens (demo/capture.mjs), the voice-over (audio/narrate.mjs) and the music
- * (audio/synthesize.mjs, or a licensed track: PROMO_MUSIC_FILE=music.mp3 under video/public/).
+ * (audio/fetch-music.mjs: the track of audio/music.json; without it, audio/synthesize.mjs).
  * The 16:9 editions carry captions as SRT files beside them (video/captions/); the square and
  * vertical ones, made for feeds that play muted, have them burned in.
  */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -60,9 +60,16 @@ const remotion = (command, id, file, props) => {
   if (result.status !== 0) throw new Error(`remotion ${command} ${id} failed`);
 };
 
-/** Tracked link to the demo page, so a request says which video and which channel it came from. */
+const music = JSON.parse(readFileSync(path.join(HERE, 'audio', 'music.json'), 'utf8'));
+
+/**
+ * Tracked link to the demo page, so a request says which video and which channel it came from;
+ * until there is a page, an email to the contact.
+ */
 const link = (lang, source, medium = 'video') =>
-  `https://${contact.demoUrl}?utm_source=${source}&utm_medium=${medium}&utm_campaign=promo-${lang}`;
+  contact.demoUrl
+    ? `https://${contact.demoUrl}?utm_source=${source}&utm_medium=${medium}&utm_campaign=promo-${lang}`
+    : `mailto:${contact.email}?subject=WebFlowMaster%20demo%20(${source})`;
 
 const DESCRIPTION = {
   en: (lang) => `WebFlowMaster: end-to-end testing your whole team can run.
@@ -86,7 +93,15 @@ Firma email / newsletter: ${link(lang, 'email', 'email')}
 };
 
 mkdirSync(OUT, { recursive: true });
-const musicFile = process.env.PROMO_MUSIC_FILE || 'music.wav';
+// The published track of music.json when it has been downloaded, the procedural bed otherwise.
+const track = existsSync(path.join(VIDEO, 'public', music.file));
+const musicFile = process.env.PROMO_MUSIC_FILE || (track ? music.file : 'music.wav');
+const credit =
+  musicFile === music.file
+    ? `
+${music.attribution}
+`
+    : '';
 for (const lang of languages.length ? languages : Object.keys(story.voices)) {
   for (const [cut, format] of editions) {
     const name = `webflowmaster-promo-${lang}${story.cuts[cut].suffix}${FORMAT_SUFFIX[format]}`;
@@ -96,6 +111,7 @@ for (const lang of languages.length ? languages : Object.keys(story.voices)) {
       music: true,
       voice: true,
       musicFile,
+      musicVolume: musicFile === music.file ? music.volume : 0.3,
       lang,
       cut,
       format,
@@ -126,7 +142,7 @@ for (const lang of languages.length ? languages : Object.keys(story.voices)) {
     );
     writeFileSync(
       path.join(OUT, `webflowmaster-promo-${lang}-description.txt`),
-      DESCRIPTION[lang](lang),
+      DESCRIPTION[lang](lang) + credit,
     );
   }
 }

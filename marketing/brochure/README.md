@@ -31,7 +31,6 @@ Before distributing a changed brochure, render every PDF page and inspect both l
 capabilities after product changes. Keep sample metrics labeled as demonstration values.
 
 The call to action shows the contact in [`../contact.json`](../contact.json), with a clickable link for
-each value; a value left empty (the phone, today) is omitted. The values there are placeholders
-until the product has its own domain and mailbox.
+each value; a value left empty (the phone, today) is omitted.
 The brochure is for digital distribution or ordinary A4 printing; it has no print-shop bleed or
 CMYK output profile. Request a printer-specific export if those are needed.

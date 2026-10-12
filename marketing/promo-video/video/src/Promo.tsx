@@ -37,10 +37,12 @@ import {
 import { useClip, useVoiceover, type Cue } from './media';
 
 export type PromoProps = {
-  /** Plays the original procedural public/music.wav instrumental quietly under the video. */
+  /** Plays music under the video: `musicFile`, at `musicVolume`. */
   music: boolean;
-  /** Optional licensed replacement supplied by the owner; a filename under public/. */
+  /** The track under public/: the published one of audio/music.json, or music.wav. */
   musicFile?: string;
+  /** Its level under the picture; the voice-over takes it down further while it speaks. */
+  musicVolume?: number;
   /** The voice-over of public/voice/ (audio/narrate.mjs). */
   voice?: boolean;
   /** Captions burned into the picture; on by default in the square and vertical formats. */
@@ -676,7 +678,7 @@ const Cta: React.FC<SceneProps & { cta: string }> = ({ cta }) => {
       >
         {cta} →
       </div>
-      {/* The address of the demo request page: short, so it can be read and typed. */}
+      {/* The demo request page, short so it can be read and typed; until there is one, the email. */}
       <div
         style={{
           fontFamily,
@@ -687,7 +689,7 @@ const Cta: React.FC<SceneProps & { cta: string }> = ({ cta }) => {
           opacity: button,
         }}
       >
-        {contact.demoUrl}
+        {contact.demoUrl || contact.email}
       </div>
       <div
         style={{
@@ -699,7 +701,9 @@ const Cta: React.FC<SceneProps & { cta: string }> = ({ cta }) => {
           opacity: button,
         }}
       >
-        <div style={{ color: colors.white }}>{[contact.name, contact.email].join(' · ')}</div>
+        <div style={{ color: colors.white }}>
+          {[contact.name, contact.demoUrl ? contact.email : contact.website].join(' · ')}
+        </div>
         {contact.phone ? <div>{contact.phone}</div> : null}
       </div>
     </AbsoluteFill>
@@ -767,6 +771,7 @@ export const Promo: React.FC<PromoProps> = ({
   cut = 'full',
   format = 'landscape',
   musicFile = 'music.wav',
+  musicVolume = 0.3,
 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
@@ -779,7 +784,7 @@ export const Promo: React.FC<PromoProps> = ({
     const seconds = timing?.[lang]?.[cut]?.[id];
     return voice && seconds ? [[from + lead, from + lead + s(seconds)]] : [];
   });
-  const musicVolume = (f: number) => {
+  const musicLevel = (f: number) => {
     const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
     const duck = Math.max(
       0,
@@ -791,14 +796,14 @@ export const Promo: React.FC<PromoProps> = ({
       [0, 1, 1, 0],
       clamp,
     );
-    return 0.3 * edges * (1 - 0.6 * duck);
+    return musicVolume * edges * (1 - 0.6 * duck);
   };
   return (
     <FormatContext.Provider value={format}>
       <LanguageContext.Provider value={lang}>
         <AbsoluteFill style={{ background: colors.night }}>
           <Backdrop />
-          {music && <Audio src={staticFile(musicFile)} volume={musicVolume} />}
+          {music && <Audio src={staticFile(musicFile)} volume={musicLevel} />}
           {scenes.map(({ id, from, duration, voice: line }) => {
             const Scene = SCENES[id];
             return (
