@@ -54,6 +54,11 @@ The sidebar has everything:
 type part of a name to go to a page, run a test plan, switch between light and dark theme or sign out.
 Plans are offered only to editors and owners, who can start a run.
 
+On a phone the sidebar is hidden: the **menu** button (☰) at the left of the top bar opens it as a
+drawer, which closes once you pick a page or press **Esc**. The pages meant for reading — the
+dashboard, **Reports** and the report of a run — fit the width of a phone or a tablet; wide tables
+scroll sideways inside their own box. Building tests and plans is meant for a computer.
+
 What you can do depends on your **role**: viewers read tests and results; editors also create,
 change and run them; owners also manage the organization. The buttons you cannot use are hidden or
 disabled.

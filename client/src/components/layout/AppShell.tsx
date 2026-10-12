@@ -17,7 +17,6 @@ import {
   Moon,
   LogOut,
   Menu,
-  X,
   ClipboardCheck,
   Layers,
   Target,
@@ -38,6 +37,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { CommandPalette } from './CommandPalette';
 import { OrganizationSwitcher } from './OrganizationSwitcher';
 import { SubscriptionBanner } from './SubscriptionBanner';
@@ -113,9 +113,11 @@ function isActive(location: string, item: NavItem): boolean {
  */
 function usePageTitle(location: string, sections: NavSection[]): string {
   const { t } = useTranslation();
+  // Before the nav: a run's report lives under /test-plans/…, and naming it after the plans
+  // list left a phone, where this title is all the orientation there is, saying "Test plans".
+  if (location.includes('/executions/')) return t('nav.executionReport');
   for (const s of sections) for (const it of s.items) if (isActive(location, it)) return it.label;
   if (location.startsWith('/settings')) return t('nav.settings');
-  if (location.includes('/executions/')) return t('nav.executionReport');
   if (location.includes('/run')) return t('nav.runTestPlan');
   return PRODUCT_NAME;
 }
@@ -296,27 +298,19 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         {sidebarInner}
       </aside>
 
-      {/* Mobile sidebar overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div
-            className="absolute inset-0 bg-foreground/40 backdrop-blur-xs"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="absolute inset-y-0 left-0 w-60 border-r border-border bg-card shadow-md">
-            <div className="flex justify-end p-2">
-              <button
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                onClick={() => setMobileOpen(false)}
-                aria-label={t('common.close', 'Close')}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            {sidebarInner}
-          </aside>
-        </div>
-      )}
+      {/* Phones and narrow windows: the sidebar opens as a drawer. A dialog, so it holds the
+          focus while open, closes on Escape and hands the focus back to the menu button — the
+          hand-made overlay it replaces did none of that, and Tab walked into the page behind. */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent
+          side="left"
+          aria-describedby={undefined}
+          className="w-60 border-border bg-card p-0 pt-10 md:hidden"
+        >
+          <SheetTitle className="sr-only">{t('common.navigation', 'Navigation')}</SheetTitle>
+          {sidebarInner}
+        </SheetContent>
+      </Sheet>
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">

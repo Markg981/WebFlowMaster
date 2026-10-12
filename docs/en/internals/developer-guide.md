@@ -74,7 +74,10 @@ single-use recovery code, OIDC login through an HTTPS identity provider and unkn
 two-factor requirement holding a member until they enroll. `accessibility.spec.ts` runs axe-core
 (WCAG 2.1 A and AA, serious and critical violations only) on the sign-in page and the main pages,
 contrast in the dark theme, and keyboard use of the sidebar and of a dialog; a failure lists, per
-page, every element with the reason and the start of its HTML.
+page, every element with the reason and the start of its HTML. `mobile.spec.ts` opens the
+dashboard, the reports and the report of a finished run at 375px (a phone) and 768px (a portrait
+tablet) and fails on anything sticking out past the right edge, outside boxes that scroll sideways
+on purpose; it also drives the navigation drawer (choose a page, Esc).
 Separate owner/editor/viewer sessions check permissions through the interface, including direct
 navigation to protected pages. Cancellation-plan preparation uses the real API; the actions under
 test use the UI. Product requests are not intercepted. HTTP, gRPC, WebSocket

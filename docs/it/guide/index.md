@@ -56,6 +56,12 @@ La barra laterale contiene tutto:
 comandi: digitando parte di un nome si va a una pagina, si esegue un piano di test, si passa dal tema
 chiaro a quello scuro o si esce. I piani compaiono solo a editor e owner, che possono avviare un run.
 
+Sul telefono la sidebar è nascosta: il pulsante **menu** (☰) a sinistra nella barra in alto la apre
+come cassetto, che si chiude quando scegliete una pagina o premete **Esc**. Le pagine di
+consultazione — la dashboard, **Report** e il report di un run — stanno nella larghezza di un
+telefono o di un tablet; le tabelle larghe scorrono di lato dentro il proprio riquadro. La
+costruzione di test e piani resta pensata per il computer.
+
 Cosa potete fare dipende dal **ruolo**: i viewer leggono test e risultati; gli editor li creano
 anche, li modificano e li eseguono; gli owner gestiscono anche l'organizzazione. I pulsanti che
 non potete usare sono nascosti o disattivati.
