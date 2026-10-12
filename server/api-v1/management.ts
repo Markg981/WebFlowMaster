@@ -35,6 +35,7 @@ import {
 import { generateWebhookToken } from '../webhook-tokens';
 import { artifactStore, assertSafeKey, contentTypeFor, RESULTS_PREFIX } from '../artifact-store';
 import { executionArtifactAvailability } from '../artifact-metering';
+import { billingSummary } from '../billing/service';
 import loggerPromise from '../logger';
 import { EVIDENCE_KINDS } from './management-openapi';
 import {
@@ -1131,5 +1132,16 @@ export function registerManagementRoutes(router: Router) {
     },
     'Empty',
     204,
+  );
+
+  // ─── Billing ───
+  route(
+    'get',
+    '/api/v1/billing',
+    'billing:read',
+    async (_req, res) => {
+      res.json(await billingSummary(getTenantOrgId()!));
+    },
+    'Billing',
   );
 }

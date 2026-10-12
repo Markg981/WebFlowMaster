@@ -67,7 +67,76 @@ const webhookFields = {
   lastUsedAt: nullableDate,
 };
 
+const planQuotas = {
+  maxConcurrentRuns: { type: ['integer', 'null'] },
+  maxQueuedRuns: { type: ['integer', 'null'] },
+  maxTests: { type: ['integer', 'null'] },
+  maxArtifactBytes: { type: ['integer', 'null'] },
+  maxMonthlyExecutionMinutes: { type: ['integer', 'null'] },
+};
 export const managementSchemas = {
+  BillingPlan: object(
+    {
+      code: text,
+      name: text,
+      priceMonthMinor: { type: 'integer', minimum: 0 },
+      priceYearMinor: { type: 'integer', minimum: 0 },
+      currency: { ...text, description: 'ISO 4217, lowercase.' },
+      trialDays: { type: 'integer', minimum: 0 },
+      active: { type: 'boolean' },
+      quotas: {
+        type: 'object',
+        properties: planQuotas,
+        description: 'Null: the installation default.',
+      },
+      providerPriceIds: anyObject,
+    },
+    ['code', 'name', 'quotas'],
+  ),
+  Billing: object(
+    {
+      provider: { ...text, enum: ['none', 'stripe'] },
+      plan: ref('BillingPlan'),
+      subscription: object(
+        {
+          organizationId: integer,
+          planCode: text,
+          status: { ...text, enum: ['trialing', 'active', 'past_due', 'suspended', 'cancelled'] },
+          interval: { ...nullableText, enum: ['month', 'year', null] },
+          currentPeriodStart: nullableDate,
+          currentPeriodEnd: nullableDate,
+          trialEndsAt: nullableDate,
+          pastDueSince: nullableDate,
+          provider: text,
+          providerCustomerId: nullableText,
+          providerSubscriptionId: nullableText,
+          suspendedReason: nullableText,
+          updatedAt: date,
+        },
+        ['organizationId', 'planCode', 'status'],
+      ),
+      entitlement: object(
+        {
+          runsBlocked: { type: 'boolean' },
+          reason: {
+            ...nullableText,
+            enum: ['suspended', 'cancelled', 'past_due_grace_expired', null],
+          },
+          graceEndsAt: nullableDate,
+        },
+        ['runsBlocked'],
+      ),
+      quotas: {
+        type: 'object',
+        description:
+          'The limits in force: an installation administrator’s override, else the plan’s, else the installation default.',
+        properties: { mode: { ...text, enum: ['off', 'monitor', 'enforce'] }, ...planQuotas },
+      },
+      usage: anyObject,
+      pastDueGraceDays: { type: 'integer', minimum: 0 },
+    },
+    ['provider', 'plan', 'subscription', 'entitlement', 'quotas', 'usage', 'pastDueGraceDays'],
+  ),
   ScheduleInput: object(scheduleFields, ['testPlanId', 'scheduleName', 'frequency', 'nextRunAt']),
   SchedulePatch: object(scheduleFields),
   Schedule: object({
@@ -484,6 +553,17 @@ export const managementPaths = {
       status: 204,
       parameters: idParameter('webhookId'),
       summary: 'Delete a webhook; its token stops working at once.',
+    }),
+  },
+  '/api/v1/billing': {
+    get: operation({
+      id: 'getBilling',
+      scope: 'billing:read',
+      response: 'Billing',
+      summary:
+        'The organization’s plan, subscription status, the limits in force and its usage against them.',
+      description:
+        'While `entitlement.runsBlocked` is true, starting a run answers `402 subscription_suspended`; reading runs and evidence still works.',
     }),
   },
 };

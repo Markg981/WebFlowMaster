@@ -454,6 +454,28 @@ describe('tags through /api/v1', () => {
   });
 });
 
+describe('billing through /api/v1', () => {
+  it('reads the plan, the status and the limits in force with billing:read, and nothing less', async () => {
+    const result = await request(app).get('/api/v1/billing').set(auth()).expect(200);
+    expect(result.body).toMatchObject({
+      provider: 'none',
+      plan: { code: 'free' },
+      subscription: { organizationId: org, status: 'active' },
+      entitlement: { runsBlocked: false },
+      quotas: { mode: 'enforce' },
+      usage: { running: 0, queued: 0 },
+    });
+    const narrow = await makeKey(user, org, ['runs:read']);
+    await request(app)
+      .get('/api/v1/billing')
+      .set(auth(narrow))
+      .expect(403)
+      .expect((res) => expect(res.body.error.code).toBe('insufficient_scope'));
+    // A viewer may read it: the banner is everybody's.
+    await request(app).get('/api/v1/billing').set(auth(viewerKey)).expect(200);
+  });
+});
+
 describe('quarantine through /api/v1', () => {
   it('sets a test aside once, lists it, and brings it back once', async () => {
     const testId = await createUiTest(`Flaky-${randomUUID()}`);

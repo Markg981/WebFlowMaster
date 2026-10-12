@@ -56,6 +56,7 @@ works only on `/api/v1`, and on each endpoint only if it holds the scope the end
 | `tags:read` / `tags:write`                 | viewer / editor | Read tags and their counts / create, rename and delete tags.                                                  |
 | `quarantine:read` / `quarantine:write`     | viewer / editor | List quarantined tests / quarantine and release tests.                                                        |
 | `webhooks:read` / `webhooks:write`         | editor / editor | List a plan's webhooks (token prefixes only) / create and delete them.                                        |
+| `billing:read`                             | viewer          | Read the organization's plan, subscription status, the limits in force and its usage against them.            |
 
 Provisioning needs the write scopes for the resources it creates; add the corresponding read
 scopes to inspect them, and `suites:read` / `suites:write` for export / import. Scopes never bypass
@@ -470,6 +471,20 @@ works as above. The answer is `202` with `{ "success": true, "testPlanRunId": "â
 
 Reading the run's result needs an API key: prefer the API, or the CLI, whenever the caller can
 keep one.
+
+## Billing
+
+`GET /api/v1/billing` Â· scope `billing:read`
+
+The organization's plan (`plan`: code, name, prices in minor units, currency, included `quotas`),
+its subscription (`subscription.status`: `trialing`, `active`, `past_due`, `suspended` or
+`cancelled`, with its period and trial end), what it allows now (`entitlement.runsBlocked`,
+`entitlement.reason`, `entitlement.graceEndsAt`), the limits in force (`quotas`: an installation
+administrator's override, else the plan's, else the installation default) and `usage` against them
+(`running`, `queued`, `tests`, `artifactBytes`, `executionMs` in the UTC month). While
+`entitlement.runsBlocked` is true, `POST /api/v1/runs` and every other way to start work answers
+`402 subscription_suspended`; reading runs and evidence still works. See
+[Billing](../admin/administration#billing).
 
 ## Web client catalogs
 

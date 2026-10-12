@@ -80,8 +80,10 @@ termina `worker_lost` senza replay automatico, per evitare doppie operazioni sul
 Un esito positivo della diagnosi crash non certifica la prosecuzione del run interrotto.
 
 Il registro operativo della chiusura è `collaudo/v1-closure-2026-10-08.md`; indica prove eseguite,
-prerequisiti mancanti e riferimenti alle evidenze locali. La fatturazione SaaS resta sospesa.
-Se entra nel perimetro commerciale richiede requisiti e un progetto separato.
+prerequisiti mancanti e riferimenti alle evidenze locali. La fatturazione è implementata in modalità
+manuale e tramite Stripe (piani con quote incluse, stati dell'abbonamento, checkout, portale, webhook
+firmati, periodo di tolleranza e scansione giornaliera); una prova con un account Stripe reale resta
+un'evidenza separata, perché l'adattatore è verificato con fixture di eventi registrate.
 
 ## Evoluzioni condizionate ai requisiti
 

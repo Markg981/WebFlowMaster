@@ -25,6 +25,7 @@ import {
 import { testExecutionQueue } from './queue';
 import { fairPriority, liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
 import { checkExecutionBudget } from './execution-usage';
+import { assertSubscriptionAllowsRuns } from './billing/enforcement';
 import { freezeMobilePlanDefinitions } from './mobile-plan-units';
 import { freezeExecutionDatasets } from './execution-datasets';
 import { freezeTestDefinitions } from './execution-definitions';
@@ -256,6 +257,10 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               .limit(1);
             if (existing) return { execution: existing, created: false };
           }
+
+          // Before any quota: a suspended organization is refused with 402 whatever room it has
+          // (server/billing/enforcement.ts). Here, because every plan run passes here.
+          await assertSubscriptionAllowsRuns(tx, organizationId);
 
           // Counted under the organization's lock, so two requests at the limit cannot both get
           // through, and the count also gives the run its fair place in the queue.
@@ -553,6 +558,8 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
             .where(eq(testPlanExecutions.idempotencyKey, key))
             .limit(1);
           if (existing) return { execution: existing, created: false, priority: 1 };
+          // A replay is a new run: the same subscription check as enqueue.
+          await assertSubscriptionAllowsRuns(tx, source.organizationId);
           const quotas = await quotasFor(tx, source.organizationId);
           const counts = await liveRunCounts(tx, source.organizationId);
           await checkExecutionBudget(tx, source.organizationId);

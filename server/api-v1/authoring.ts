@@ -54,7 +54,7 @@ import {
 import { importMobileCatalog, MOBILE_BUNDLE_FIELDS } from '../mobile-bundle';
 import { prepareMobileSteps, MobileDefinitionError } from '../mobile-step-groups';
 import { GherkinError } from '../gherkin';
-import { lockOrganizationRuns, quotaErrorBody } from '../tenant-quotas';
+import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 import schedulerService from '../scheduler-service';
 
 const numericId = z.coerce.number().int().positive();
@@ -365,7 +365,7 @@ export function handled(
       }
       const quota = quotaErrorBody(error);
       if (quota) {
-        apiError(res, 429, String(quota.code), String(quota.error));
+        apiError(res, quotaErrorStatus(error), String(quota.code), String(quota.error));
         return;
       }
       if (

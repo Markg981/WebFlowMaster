@@ -526,7 +526,8 @@ reset link); existing passwords are not checked.
 ## Quotas and consumption {#quotas}
 
 **Settings → Run usage** shows running/queued plans, saved tests, retained artifact bytes and
-execution minutes in the UTC calendar month. Quotas work without payment or subscriptions.
+execution minutes in the UTC calendar month. Quotas work without payment: a plan
+([Billing](#billing)) can carry them, but nothing here charges anyone.
 For free unlimited local use set `TENANT_QUOTA_MODE=off`. `monitor` measures without refusing
 operations; `enforce` applies limits. The default is `enforce`, preserving existing concurrency
 and queue behavior, with all new limits unlimited. Administrators can override mode per tenant.
@@ -539,8 +540,9 @@ and queue behavior, with all new limits unlimited. Administrators can override m
 | Retained artifacts | `ORG_MAX_ARTIFACT_BYTES=0`            | Evidence, baselines and inline mobile screenshots, in bytes                           |
 | Monthly execution  | `ORG_MAX_MONTHLY_EXECUTION_MINUTES=0` | Occupancy time, including direct browser/API/mobile work and additional shard workers |
 
-Zero means unlimited for the three new limits. **Inherit** clears an override and uses the
-installation default. In `off`, enforcement and execution metering are disabled; test counts and
+Zero means unlimited for the three new limits. **Inherit** clears an override and uses the plan's
+limit, or the installation default where the plan has none: an administrator's override wins over
+the plan, and the plan over the default, both in the application and in the database triggers. In `off`, enforcement and execution metering are disabled; test counts and
 artifact bookkeeping remain available. Worker capacity, timeouts, rate limits and access controls
 retain their own configuration. Set identical defaults on web/workers and restart after changes.
 
@@ -560,14 +562,89 @@ and deletion remain possible. Minutes are an admission budget, not CPU/RAM or a 
 admitted work can finish beyond the cap; queued plans wait for capacity or the next UTC month.
 Lost heartbeats bound orphan metering to two minutes after the last heartbeat. Removing history does
 not erase consumption. Omitted evidence is reported separately from the verdict, preserving previous
-evidence. These quota controls can support commercial policies but never charge anyone: actual
-payment activation requires a separately configured billing integration.
+evidence. These quota controls never charge anyone: what a plan costs, and what happens when it
+is not paid, is the next section's.
 
 API: `GET /api/admin/organization-quotas`, `PATCH /api/admin/organization-quotas/:id` with
 `{ "revision": 1, "overrides": { "mode": "off", "maxTests": null } }`, and
 `POST /api/admin/organization-quotas/:id/reconcile-artifacts`. Tenant usage:
 `GET /api/organization/usage`. Quota refusals return HTTP 429 with `test_quota_exceeded` or
 `execution_quota_exceeded`. See [acceptance procedures](https://github.com/Markg981/WebFlowMaster/blob/main/docs/acceptance/administration-acceptance.md).
+
+## Billing {#billing}
+
+Every organization has exactly one subscription to one plan. Plans are the installation's
+(`billing_plans`): a code, a name, a monthly and a yearly price in minor units with a currency,
+optional trial days, whether it is offered, and the quotas it includes — the same five limits as
+above; a plan that leaves one empty inherits the installation default. Migration 0087 seeds a
+`free` plan with no limits of its own and puts every existing organization on it, `active`, so an
+installation that never looks at this section behaves exactly as before. A new organization gets
+the same by a database trigger.
+
+A subscription has one of five statuses:
+
+| Status      | Meaning                                                                                             | Starting runs                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `trialing`  | A trial until `trialEndsAt`.                                                                        | Allowed                                                                                  |
+| `active`    | Paid, or free.                                                                                      | Allowed                                                                                  |
+| `past_due`  | A payment failed, or a hand-set trial ran out.                                                      | Allowed for `BILLING_PAST_DUE_GRACE_DAYS` (7) from when it became past due, then refused |
+| `suspended` | Overdue beyond the grace, unpaid at the provider, or suspended by hand with a reason.               | Refused                                                                                  |
+| `cancelled` | The subscription ended and the catalogue offers no free plan to fall back to, or cancelled by hand. | Refused                                                                                  |
+
+"Refused" means exactly this: starting a plan run (web, API, schedule, webhook, CLI, replay), a
+load test, a direct browser, API or mobile execution, or a recording answers **402
+`subscription_suspended`**. The check sits at the three places work starts — the run
+orchestrator, the load-test start and the execution metering every direct execution passes through
+— not in each route. Reading reports and evidence, exporting, every settings page and signing in
+keep working: a suspended organization keeps its data and its way out. Every member sees a banner
+above every page while runs are refused or about to be; owners see the detail under **Settings →
+Billing**: the plan, its status, the current period, and usage against what the plan includes.
+
+Twice a day a sweep moves `past_due` subscriptions past their grace to `suspended`, and ends trials
+set by hand (they become `past_due`, so the administrator — or a payment — has the grace period to
+act). Trials the provider holds are ended by the provider's own messages.
+
+**Manual mode** (`BILLING_PROVIDER=none`, the default, and what a self-hosted installation wants):
+the installation administrator (see [above](#installation-administrators)) manages plans and
+subscriptions under **Settings → Billing → Billing administration**, or with
+`GET/POST /api/installation/billing/plans`, `PATCH /api/installation/billing/plans/:code`,
+`GET /api/installation/billing/organizations` and
+`PATCH /api/installation/billing/organizations/:id` with
+`{ "planCode", "status", "suspendedReason", "trialEndsAt" }`. The organization's own card says
+that billing is managed by the installation administrator; there is nobody to pay through.
+
+**Stripe mode** (`BILLING_PROVIDER=stripe`): set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and
+`BILLING_PUBLIC_BASE_URL` (or `WEBFLOW_PUBLIC_URL`); the server refuses to start with any of them
+missing. In Stripe, create a recurring price per plan and interval and put their ids on the plan
+(`providerPriceIds: { "month": "price_…", "year": "price_…" }`); a plan without a price for an
+interval is not sold for it. Register a webhook endpoint at
+`https://<your address>/api/billing/webhooks/stripe` for the events `checkout.session.completed`,
+`customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid` and
+`invoice.payment_failed`, and copy its signing secret into `STRIPE_WEBHOOK_SECRET`. Owners then
+**Change plan** (a Stripe Checkout session, `POST /api/billing/checkout` with
+`{ "planCode", "interval" }`) and **Manage billing** (the Stripe customer portal,
+`POST /api/billing/portal`). The organization travels on Stripe's objects as `client_reference_id`
+and metadata, so every later message says whose it is. Statuses map as Stripe's `trialing`,
+`active` → the same; `past_due`, `incomplete` → `past_due`; `unpaid`, `paused` → `suspended`;
+`canceled`, `incomplete_expired` → `cancelled`, which returns the organization to the `free` plan
+while the catalogue still offers one. A failed invoice makes the subscription `past_due`; a paid
+one makes it `active` again. The installation administrator can still move any subscription by
+hand; cancelling one Stripe holds cancels it at Stripe too.
+
+The webhook is public, like every webhook, and believes nothing that `STRIPE_WEBHOOK_SECRET` does
+not sign: the `Stripe-Signature` header's HMAC-SHA256 over the timestamp and the raw body, within
+five minutes. The secret is as sensitive as a password — whoever holds it can suspend or restore
+any organization — so keep it in the environment, never in a plan or a page, and rotate it from
+Stripe's dashboard (several signatures are accepted during a rotation). Every accepted message and
+every manual or scheduled change is written once to `billing_events` under an idempotency key
+(the provider's event id), so a replayed message changes nothing, and to the organization's audit
+log as `organization.billing_updated`.
+
+Tenant endpoints: `GET /api/billing` (any member), `GET /api/billing/plans`,
+`POST /api/billing/checkout` and `POST /api/billing/portal` (owners, Stripe only). The public API
+offers `GET /api/v1/billing` with the `billing:read` scope. Nothing here has been exercised against
+a live Stripe account in this repository's acceptance record: the Stripe adapter is covered by
+recorded event fixtures and signed requests, and a real account run remains separate evidence.
 
 ## Known limitations
 
@@ -579,5 +656,7 @@ API: `GET /api/admin/organization-quotas`, `PATCH /api/admin/organization-quotas
 - SAML single logout requires a configured SP RSA key pair and signed protocol messages; provider
   compatibility must be verified before enabling it. IdP-initiated sign-in lacks request/browser binding.
 - SMTP acceptance alone cannot confirm delivery. Enable authenticated provider callbacks for delivery/bounce tracking.
-- SaaS billing and consumption plans are deferred by decision on 2026-10-02. Provider, pricing,
-  currency and the billable unit remain to be defined; organization execution quotas remain available.
+- Billing covers subscription plans with included quotas, in manual mode and through Stripe
+  (checkout, portal, webhooks). Metered usage billing — charging per minute or per test beyond the
+  plan — is not implemented: quotas refuse work past the limit, they do not price it. The Stripe
+  adapter has been verified against recorded event fixtures, not against a live account.

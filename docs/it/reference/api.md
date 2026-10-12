@@ -57,6 +57,7 @@ richiede:
 | `secrets:write`                            | editor          | Impostare, ruotare ed eliminare i segreti di un ambiente; i valori non si rileggono mai.                                          |
 | `tags:read` / `tags:write`                 | viewer / editor | Leggere i tag e i loro conteggi / creare, rinominare ed eliminare tag.                                                            |
 | `quarantine:read` / `quarantine:write`     | viewer / editor | Elencare i test in quarantena / mettere in quarantena e rilasciare test.                                                          |
+| `billing:read`                             | viewer          | Leggere il piano dell'organizzazione, lo stato dell'abbonamento, i limiti in vigore e il consumo rispetto a essi.                 |
 | `webhooks:read` / `webhooks:write`         | editor / editor | Elencare i webhook di un piano (solo prefissi dei token) / crearli ed eliminarli.                                                 |
 
 Il provisioning richiede gli scope di scrittura delle risorse create; aggiungere i corrispondenti
@@ -458,6 +459,20 @@ suoi fallimenti vengono ancora riportati ma non decidono più lo stato di un run
 se lo è già, `403 project_read_only` per un progetto riservato. L'elenco mostra ogni test in
 quarantena con il nome, chi lo ha messo da parte e come è andato da allora. `release` con un
 `{ "note" }` facoltativo lo fa rientrare (`200`); di nuovo, `409 already_released`.
+
+## Fatturazione
+
+`GET /api/v1/billing` · scope `billing:read`
+
+Il piano dell'organizzazione (`plan`: codice, nome, prezzi in unità minime, valuta, `quotas`
+incluse), il suo abbonamento (`subscription.status`: `trialing`, `active`, `past_due`, `suspended` o
+`cancelled`, con periodo e fine della prova), cosa consente ora (`entitlement.runsBlocked`,
+`entitlement.reason`, `entitlement.graceEndsAt`), i limiti in vigore (`quotas`: l'override
+dell'amministratore dell'installazione, altrimenti quelli del piano, altrimenti il default) e il
+consumo rispetto a essi (`usage`: `running`, `queued`, `tests`, `artifactBytes`, `executionMs` nel
+mese UTC). Finché `entitlement.runsBlocked` è vero, `POST /api/v1/runs` e ogni altro modo di avviare
+lavoro risponde `402 subscription_suspended`; leggere run ed evidenze continua a funzionare. Vedi
+[Fatturazione](../admin/administration#fatturazione).
 
 ## Webhook dei piani
 

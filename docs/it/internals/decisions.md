@@ -193,3 +193,25 @@ l'altro per ogni run.
 
 **Conseguenze.** Ogni percorso che sposta un run (annullamento, timeout, recupero) viene riportato senza
 collegarlo uno per uno; i test spostano i run senza inviare nulla, a meno che non si registrino.
+
+## 21. La fatturazione è uno stato che l'applicazione interpreta, non il provider
+
+**Contesto.** Le quote esistevano senza alcuna nozione di piano, prezzo o organizzazione non pagante,
+e la fatturazione era deliberatamente sospesa. Implementarla come funzionalità a forma di Stripe
+avrebbe lasciato un'installazione self-hosted senza nulla, e messo nelle mani del provider ciò che uno
+stato consente.
+
+**Decisione.** Un solo modello indipendente dal provider (migrazione 0087): piani dell'installazione
+con quote incluse, un abbonamento per organizzazione con cinque stati, e un registro in sola aggiunta
+sotto chiavi di idempotenza. L'applicazione decide cosa consente ogni stato — avviare lavoro è
+rifiutato nei tre punti in cui il lavoro inizia, leggere mai — e le quote di un piano stanno tra
+l'override dell'amministratore e il default dell'installazione, nell'applicazione come nei trigger
+del database. Il provider è un'interfaccia con quattro operazioni (checkout, portale, webhook,
+annullamento); quello manuale, che non fa nulla, è il default, e quello Stripe è l'API REST chiamata
+con fetch, con lo schema di firma scritto per esteso e verificato su fixture registrate.
+
+**Conseguenze.** Ogni organizzazione esistente è sul piano gratuito e nulla cambia finché qualcuno
+non ne crea un altro. Chi gestisce un'installazione self-hosted amministra la fatturazione a mano con
+gli stessi endpoint che usa il webhook di Stripe. Cambiare provider, o provare senza, sostituisce un
+solo oggetto. La fatturazione a consumo non è nel modello: le quote rifiutano il lavoro, non lo
+prezzano.

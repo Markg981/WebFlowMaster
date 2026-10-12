@@ -1,5 +1,6 @@
 import express from 'express';
 import { mailProviderBodyParser } from './routes/mail-provider.routes';
+import { billingWebhookBodyParser } from './routes/billing-webhooks.routes';
 import { configureEgressProxy } from './egress-proxy';
 import { registerRoutes } from './routes';
 import schedulerService from './scheduler-service';
@@ -40,6 +41,7 @@ app.use(
 );
 app.use(applicationMetrics.middleware);
 app.use(mailProviderBodyParser);
+app.use(billingWebhookBodyParser);
 // The API tester sends form-data files and binary bodies inside its JSON, as base64, so its
 // proxy gets a larger allowance than the 100KB default everything else keeps. Mounted first:
 // the general parser below skips a body that has already been read.
@@ -84,6 +86,9 @@ app.use(express.urlencoded({ extended: false }));
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.
   const { initializeQuotaDefaults } = await import('./tenant-quotas');
   await initializeQuotaDefaults();
+  // A half-configured billing provider is refused here, not at a customer's first checkout.
+  const { assertBillingConfigured } = await import('./billing/config');
+  logger.info(`Billing provider: ${assertBillingConfigured().provider}`);
   const { artifactStore } = await import('./artifact-store');
   logger.info(`Artifact store: ${artifactStore().kind}`);
 
@@ -216,6 +221,11 @@ app.use(express.urlencoded({ extended: false }));
   const stopArtifactRetention =
     process.env.NODE_ENV === 'test' ? () => {} : startArtifactRetention();
 
+  // Suspends past-due subscriptions past their grace and ends hand-set trials — see
+  // server/billing/service.ts.
+  const { startBillingSweep } = await import('./billing/sweep');
+  const stopBillingSweep = process.env.NODE_ENV === 'test' ? () => {} : startBillingSweep();
+
   // An /api path nothing above answered is not a client route: without this the catch-all
   // below handed back index.html with 200, so a removed endpoint looked alive and a caller
   // parsing JSON got HTML (collaudo SEC-17).
@@ -273,6 +283,7 @@ app.use(express.urlencoded({ extended: false }));
         await schedulerService.shutdownScheduler();
         stopRunRecovery();
         stopArtifactRetention();
+        stopBillingSweep();
         const { closeBrowserTasks } = await import('./browser-tasks');
         await closeBrowserTasks();
         await redisConnection.quit();

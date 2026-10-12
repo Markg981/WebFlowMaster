@@ -90,6 +90,9 @@ import analyticsRoutes from './routes/analytics.routes';
 import organizationRoutes from './routes/organization.routes';
 import organizationMembershipsRoutes from './routes/organization-memberships.routes';
 import tenantQuotaAdminRoutes from './routes/tenant-quota-admin.routes';
+import billingRoutes from './routes/billing.routes';
+import billingAdminRoutes from './routes/billing-admin.routes';
+import { billingWebhookRouter } from './routes/billing-webhooks.routes';
 import { tenancyMiddleware, withTenantTransaction } from './middleware/tenancy';
 import { SharedDataError, expandSharedDataset } from './test-data';
 import { sharedSetIdOf } from '@shared/test-data';
@@ -98,7 +101,7 @@ import { apiRateLimit, sharedHeavyRateLimit } from './middleware/rate-limits';
 import { requireInstallationAdmin } from './installation-admin';
 import { runApiRequest } from './api-test-runner';
 import { withExecutionUsage } from './execution-usage';
-import { quotaErrorBody } from './tenant-quotas';
+import { quotaErrorBody, quotaErrorStatus } from './tenant-quotas';
 import { ProtocolConfigSchema } from '@shared/api-protocol-config';
 import { defaultVariables, resolveVariables } from './variables';
 import { redactHistoryEntry } from './history-redaction';
@@ -186,6 +189,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app); // Attaches passport strategies
   app.use(mailDeliveryWebhookRouter);
   app.use(mailProviderWebhookRouter);
+  // The billing provider's messages, authenticated by their signature, not by a session.
+  app.use(billingWebhookRouter);
 
   // A request may authenticate as a person (the session passport just attached) or as a
   // pipeline (an API key). This turns the second into the first, so everything after it —
@@ -219,6 +224,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(organizationRoutes);
   app.use(organizationMembershipsRoutes);
   app.use(tenantQuotaAdminRoutes);
+  app.use(billingRoutes);
+  app.use(billingAdminRoutes);
   app.use(projectsRoutes);
   app.use(testsRoutes);
   app.use(catalogRoutes);
@@ -325,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       const quota = quotaErrorBody(error);
-      if (quota) return res.status(429).json(quota);
+      if (quota) return res.status(quotaErrorStatus(error)).json(quota);
       if (error instanceof BrowserTaskError) {
         return res
           .status(error.status)
@@ -407,7 +414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
     } catch (error) {
       const quota = quotaErrorBody(error);
-      if (quota) return res.status(429).json(quota);
+      if (quota) return res.status(quotaErrorStatus(error)).json(quota);
       resolvedLogger.error({
         message: 'Direct API execution failed',
         error: (error as Error).message,
@@ -499,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       const quota = quotaErrorBody(error);
-      if (quota) return res.status(429).json(quota);
+      if (quota) return res.status(quotaErrorStatus(error)).json(quota);
       if (error instanceof BrowserTaskError) {
         return res
           .status(error.status)
@@ -699,7 +706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       const quota = quotaErrorBody(error);
-      if (quota) return res.status(429).json(quota);
+      if (quota) return res.status(quotaErrorStatus(error)).json(quota);
       if (error instanceof BrowserTaskError && !res.headersSent) {
         res
           .status(error.status)

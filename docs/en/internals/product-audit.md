@@ -79,8 +79,10 @@ SIGTERM is tested as controlled recovery; after SIGKILL, the identified run ends
 A passing crash diagnosis does not certify continuation of the interrupted run.
 
 The operational acceptance record is `collaudo/v1-closure-2026-10-08.md`, listing executed checks,
-missing prerequisites and local evidence references. SaaS billing remains suspended; including it
-in the commercial scope requires separate requirements and implementation.
+missing prerequisites and local evidence references. Billing is implemented in manual mode and
+through Stripe (plans with included quotas, subscription statuses, checkout, portal, signed
+webhooks, a grace period and a daily sweep); a run against a real Stripe account is still separate
+evidence, as the adapter is verified with recorded event fixtures.
 
 ## Requirement-dependent extensions
 

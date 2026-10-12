@@ -4,7 +4,7 @@ Generato da `shared/schema/` (un file per dominio) con `node scripts/generate-sc
 
 Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le relazioni, poi cercare qui la tabella. Ogni riga riporta la proprietà TypeScript, il nome SQL e il builder completo: tipo, nullabilità, default e riferimenti dichiarati nella colonna. I vincoli definiti nel callback della tabella non sono espansi qui.
 
-**74 tabelle / 823 colonne dichiarate.**
+**77 tabelle / 863 colonne dichiarate.**
 
 ## Indice
 
@@ -84,6 +84,9 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | [test_management_publications](#test-management-publications) | `testManagementPublications` | 14      |
 | [requirement_tests](#requirement-tests)                       | `requirementTests`           | 9       |
 | [issue_links](#issue-links)                                   | `issueLinks`                 | 16      |
+| [billing_plans](#billing-plans)                               | `billingPlans`               | 16      |
+| [organization_subscriptions](#organization-subscriptions)     | `organizationSubscriptions`  | 15      |
+| [billing_events](#billing-events)                             | `billingEvents`              | 9       |
 
 ## organizations {#organizations}
 
@@ -456,7 +459,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:830`
+`sessions` — `shared/schema/identity.ts:833`
 
 | Proprietà TS | Colonna SQL | Dichiarazione                   |
 | ------------ | ----------- | ------------------------------- |
@@ -1425,3 +1428,64 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `resolvedAt`       | `resolved_at`        | `timestamp('resolved_at')`                                                                      |
 | `createdAt`        | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                                                |
 | `updatedAt`        | `updated_at`         | `timestamp('updated_at').defaultNow().notNull()`                                                |
+
+## billing_plans {#billing-plans}
+
+`billingPlans` — `shared/schema/billing.ts:23`
+
+| Proprietà TS                 | Colonna SQL                     | Dichiarazione                                                                                            |
+| ---------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `id`                         | `id`                            | `serial('id').primaryKey()`                                                                              |
+| `code`                       | `code`                          | `text('code').notNull().unique()`                                                                        |
+| `name`                       | `name`                          | `text('name').notNull()`                                                                                 |
+| `priceMonthMinor`            | `price_month_minor`             | `bigint('price_month_minor', { mode: 'number' }).notNull().default(0)`                                   |
+| `priceYearMinor`             | `price_year_minor`              | `bigint('price_year_minor', { mode: 'number' }).notNull().default(0)`                                    |
+| `currency`                   | `currency`                      | `text('currency').notNull().default('eur')`                                                              |
+| `trialDays`                  | `trial_days`                    | `integer('trial_days').notNull().default(0)`                                                             |
+| `active`                     | `active`                        | `boolean('active').notNull().default(true)`                                                              |
+| `maxConcurrentRuns`          | `max_concurrent_runs`           | `integer('max_concurrent_runs')`                                                                         |
+| `maxQueuedRuns`              | `max_queued_runs`               | `integer('max_queued_runs')`                                                                             |
+| `maxTests`                   | `max_tests`                     | `bigint('max_tests', { mode: 'number' })`                                                                |
+| `maxArtifactBytes`           | `max_artifact_bytes`            | `bigint('max_artifact_bytes', { mode: 'number' })`                                                       |
+| `maxMonthlyExecutionMinutes` | `max_monthly_execution_minutes` | `bigint('max_monthly_execution_minutes', { mode: 'number' })`                                            |
+| `providerPriceIds`           | `provider_price_ids`            | `jsonb('provider_price_ids') .$type<Partial<Record<BillingInterval, string>>>() .notNull() .default({})` |
+| `createdAt`                  | `created_at`                    | `timestamp('created_at').defaultNow().notNull()`                                                         |
+| `updatedAt`                  | `updated_at`                    | `timestamp('updated_at').defaultNow().notNull()`                                                         |
+
+## organization_subscriptions {#organization-subscriptions}
+
+`organizationSubscriptions` — `shared/schema/billing.ts:52`
+
+| Proprietà TS             | Colonna SQL                | Dichiarazione                                                                                        |
+| ------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`                     | `id`                       | `serial('id').primaryKey()`                                                                          |
+| `organizationId`         | `organization_id`          | `integer('organization_id') .notNull() .references(() => organizations.id, { onDelete: 'cascade' })` |
+| `planCode`               | `plan_code`                | `text('plan_code') .notNull() .references(() => billingPlans.code)`                                  |
+| `status`                 | `status`                   | `text('status').$type<SubscriptionStatus>().notNull().default('active')`                             |
+| `interval`               | `interval`                 | `text('interval').$type<BillingInterval>()`                                                          |
+| `currentPeriodStart`     | `current_period_start`     | `timestamp('current_period_start')`                                                                  |
+| `currentPeriodEnd`       | `current_period_end`       | `timestamp('current_period_end')`                                                                    |
+| `trialEndsAt`            | `trial_ends_at`            | `timestamp('trial_ends_at')`                                                                         |
+| `pastDueSince`           | `past_due_since`           | `timestamp('past_due_since')`                                                                        |
+| `provider`               | `provider`                 | `text('provider').$type<BillingProviderName &#124; 'manual'>().notNull().default('manual')`          |
+| `providerCustomerId`     | `provider_customer_id`     | `text('provider_customer_id')`                                                                       |
+| `providerSubscriptionId` | `provider_subscription_id` | `text('provider_subscription_id')`                                                                   |
+| `suspendedReason`        | `suspended_reason`         | `text('suspended_reason')`                                                                           |
+| `createdAt`              | `created_at`               | `timestamp('created_at').defaultNow().notNull()`                                                     |
+| `updatedAt`              | `updated_at`               | `timestamp('updated_at').defaultNow().notNull()`                                                     |
+
+## billing_events {#billing-events}
+
+`billingEvents` — `shared/schema/billing.ts:86`
+
+| Proprietà TS     | Colonna SQL       | Dichiarazione                                                                             |
+| ---------------- | ----------------- | ----------------------------------------------------------------------------------------- |
+| `id`             | `id`              | `serial('id').primaryKey()`                                                               |
+| `organizationId` | `organization_id` | `integer('organization_id').references(() => organizations.id, { onDelete: 'cascade', })` |
+| `idempotencyKey` | `idempotency_key` | `text('idempotency_key').notNull().unique()`                                              |
+| `source`         | `source`          | `text('source').notNull()`                                                                |
+| `provider`       | `provider`        | `text('provider').notNull()`                                                              |
+| `type`           | `type`            | `text('type').notNull()`                                                                  |
+| `actor`          | `actor`           | `text('actor')`                                                                           |
+| `payload`        | `payload`         | `jsonb('payload').$type<Record<string, unknown>>().notNull().default({})`                 |
+| `createdAt`      | `created_at`      | `timestamp('created_at').defaultNow().notNull()`                                          |

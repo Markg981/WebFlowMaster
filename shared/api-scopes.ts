@@ -83,6 +83,11 @@ export const API_SCOPES = {
     minimumRole: 'editor',
     description: 'Create and delete plan webhooks; the token is shown once, on creation.',
   },
+  'billing:read': {
+    minimumRole: 'viewer',
+    description:
+      "Read the organization's plan, subscription status, limits in force and usage against them.",
+  },
 } as const;
 
 export type ApiScope = keyof typeof API_SCOPES;

@@ -674,6 +674,9 @@ export type InsertApiKey = typeof apiKeys.$inferInsert;
 export const AUDIT_ACTIONS = {
   ORGANIZATION_QUOTAS_UPDATED: 'organization.quotas_updated',
   ORGANIZATION_ARTIFACTS_RECONCILED: 'organization.artifacts_reconciled',
+  // The organization's plan or subscription status changed: by an installation administrator, by
+  // the billing provider's webhook, or by the daily sweep (migration 0087).
+  ORGANIZATION_BILLING_UPDATED: 'organization.billing_updated',
   BDD_PROFILE_CREATED: 'bdd_profile.created',
   BDD_PROFILE_UPDATED: 'bdd_profile.updated',
   BDD_PROFILE_DELETED: 'bdd_profile.deleted',

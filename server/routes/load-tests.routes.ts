@@ -22,7 +22,8 @@ import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
 import { checkExecutionBudget } from '../execution-usage';
-import { lockOrganizationRuns, quotaErrorBody } from '../tenant-quotas';
+import { assertSubscriptionAllowsRuns } from '../billing/enforcement';
+import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 import {
   enqueueLoadRun,
   loadLimits,
@@ -61,7 +62,7 @@ class LoadError extends Error {
 
 function fail(res: Response, error: unknown, what: string) {
   const quota = quotaErrorBody(error);
-  if (quota) return res.status(429).json(quota);
+  if (quota) return res.status(quotaErrorStatus(error)).json(quota);
   if (error instanceof LoadError) return res.status(error.status).json({ error: error.message });
   const message = (error as Error)?.message ?? '';
   if (/unique|duplicate/i.test(message))
@@ -339,6 +340,9 @@ router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) 
     const limits = loadLimits();
     const run = await withTenantTransaction(async (tx) => {
       await lockOrganizationRuns(tx, organizationId);
+      // The load enqueue point: a suspended subscription is refused before the run row exists
+      // (server/billing/enforcement.ts), so nothing is left behind as "queued" or "error".
+      await assertSubscriptionAllowsRuns(tx, organizationId);
       await checkExecutionBudget(tx, organizationId);
       const test = await editableTest(tx, id);
       // A test saved under a higher limit than today's is refused here, naming the limit.

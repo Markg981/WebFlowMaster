@@ -184,3 +184,23 @@ other per run.
 
 **Consequences.** Every path that moves a run (cancel, timeout, recovery) is reported without being
 wired individually; tests move runs without sending anything unless they register.
+
+## 21. Billing is a status the application interprets, not the provider's
+
+**Context.** Quotas existed without any notion of a plan, a price or an unpaid organization, and
+billing was deliberately suspended. Implementing it as a Stripe-shaped feature would have left a
+self-hosted installation with nothing, and put what a status allows in the provider's hands.
+
+**Decision.** One provider-agnostic model (migration 0087): installation-wide plans with included
+quotas, one subscription per organization with five statuses, and an append-only ledger under
+idempotency keys. The application decides what each status allows — starting work is refused at the
+three places work starts, reading never is — and a plan's quotas sit between the administrator's
+override and the installation default, in the application and in the database triggers alike. The
+provider is an interface with four operations (checkout, portal, webhook, cancel); the manual
+provider, which does nothing, is the default, and the Stripe one is the REST API called with fetch,
+its signature scheme written out and tested on recorded fixtures.
+
+**Consequences.** Every existing organization is on a free plan and nothing changes until somebody
+creates another. Self-hosted operators manage billing by hand with the same endpoints Stripe's
+webhook uses. Switching provider, or testing without one, replaces one object. Metered billing is not
+in the model: quotas refuse work, they do not price it.

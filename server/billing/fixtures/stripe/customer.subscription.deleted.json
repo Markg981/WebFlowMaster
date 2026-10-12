@@ -1,0 +1,26 @@
+{
+  "id": "evt_3SubscriptionDeleted",
+  "object": "event",
+  "api_version": "2025-08-27.basil",
+  "created": 1792400300,
+  "type": "customer.subscription.deleted",
+  "data": {
+    "object": {
+      "id": "sub_Team001",
+      "object": "subscription",
+      "customer": "cus_Team001",
+      "status": "canceled",
+      "metadata": { "organizationId": "ORG_ID", "planCode": "team", "interval": "month" },
+      "items": {
+        "object": "list",
+        "data": [
+          {
+            "id": "si_001",
+            "object": "subscription_item",
+            "price": { "id": "price_team_month", "recurring": { "interval": "month" } }
+          }
+        ]
+      }
+    }
+  }
+}

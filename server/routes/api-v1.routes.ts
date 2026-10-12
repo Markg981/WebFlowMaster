@@ -14,7 +14,7 @@ import { EXECUTION_STATUSES } from '@shared/execution-status';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { apiError, requireScope } from '../middleware/require-scope';
 import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orchestrator';
-import { quotaErrorBody } from '../tenant-quotas';
+import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 import { requestCancellation } from '../execution-state';
 import { junitReportFor } from '../junit-report';
 import {
@@ -190,7 +190,8 @@ router.post('/api/v1/plans/:planId/runs', requireScope('runs:write'), async (req
       );
     }
     const quota = quotaErrorBody(error);
-    if (quota) return apiError(res, 429, String(quota.code), String(quota.error), quota);
+    if (quota)
+      return apiError(res, quotaErrorStatus(error), String(quota.code), String(quota.error), quota);
     logger.error({
       message: 'Failed to start a run through /api/v1',
       planId: plan.id,

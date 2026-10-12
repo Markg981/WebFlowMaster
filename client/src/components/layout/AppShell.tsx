@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { CommandPalette } from './CommandPalette';
 import { OrganizationSwitcher } from './OrganizationSwitcher';
+import { SubscriptionBanner } from './SubscriptionBanner';
 
 type NavItem = {
   href: string;
@@ -417,6 +418,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </header>
 
+        <SubscriptionBanner />
         <main id="main-content" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto">
           {children}
         </main>
