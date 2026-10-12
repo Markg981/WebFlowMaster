@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { relocateMembersBeforeErasure } from './organization-memberships';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
 import {

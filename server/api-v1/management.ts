@@ -18,7 +18,7 @@ import {
 import { type ApiScope } from '@shared/api-scopes';
 import { requireScope } from '../middleware/require-scope';
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
-import { auditActor, changedFields, recordAudit } from '../audit';
+import { auditActor, changedFields, recordAudit } from '../tenancy/audit';
 import schedulerService, {
   assertValidTimezone,
   DEFAULT_SCHEDULE_TIMEZONE,
@@ -33,9 +33,14 @@ import {
   releaseQuarantine,
 } from '../test-quarantine';
 import { generateWebhookToken } from '../webhook-tokens';
-import { artifactStore, assertSafeKey, contentTypeFor, RESULTS_PREFIX } from '../artifact-store';
-import { executionArtifactAvailability } from '../artifact-metering';
-import { billingSummary } from '../billing/service';
+import {
+  artifactStore,
+  assertSafeKey,
+  contentTypeFor,
+  RESULTS_PREFIX,
+} from '../tenancy/artifact-store';
+import { executionArtifactAvailability } from '../tenancy/artifact-metering';
+import { billingSummary } from '../tenancy/billing/service';
 import logger from '../logger';
 import { EVIDENCE_KINDS } from './management-openapi';
 import {

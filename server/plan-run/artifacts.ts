@@ -3,8 +3,8 @@ import { testPlanExecutions as testPlanExecutionsTable } from '@shared/schema';
 import logger from '../logger';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { getWsEmitter, type ExecutionLogEntry } from '../websocket';
-import { artifactStore } from '../artifact-store';
-import { QuotaError } from '../tenant-quotas';
+import { artifactStore } from '../tenancy/artifact-store';
+import { QuotaError } from '../tenancy/tenant-quotas';
 
 /**
  * Publishes a directory of evidence to the artifact store.

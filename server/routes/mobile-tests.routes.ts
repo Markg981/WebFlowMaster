@@ -21,11 +21,11 @@ import {
 } from '@shared/mobile';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { toGridConfig } from '../browser-grids';
 import { executeMobileRun, uploadApp, type RunDeps } from '../mobile/mobile-runner';
-import { checkExecutionBudget } from '../execution-usage';
-import { quotaErrorBody, lockOrganizationRuns } from '../tenant-quotas';
+import { checkExecutionBudget } from '../tenancy/execution-usage';
+import { quotaErrorBody, lockOrganizationRuns } from '../tenancy/tenant-quotas';
 import { prepareMobileSteps, MobileDefinitionError } from '../mobile/mobile-step-groups';
 import {
   InspectorError,

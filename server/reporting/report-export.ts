@@ -9,7 +9,7 @@ import { junitReportFor } from './junit-report';
 
 /**
  * A run as a file to hand on: HTML to read anywhere, PDF to attach or file, Allure results to load
- * where a team already keeps its history. See server/report-model.ts for why they share one model.
+ * where a team already keeps its history. See server/reporting/report-model.ts for why they share one model.
  * JUnit XML too, the same file /junit serves: every other format is under /export, and asking
  * for that one there answered "Unknown format".
  */

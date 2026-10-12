@@ -1,4 +1,4 @@
-import { quotaErrorBody } from '../tenant-quotas';
+import { quotaErrorBody } from '../tenancy/tenant-quotas';
 import { type Response } from 'express';
 import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
@@ -23,7 +23,7 @@ import { REQUIREMENT_KEY_PATTERN, REQUIREMENT_KINDS } from '@shared/requirements
 import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import {
   fetchItemText,
   fetchItems,

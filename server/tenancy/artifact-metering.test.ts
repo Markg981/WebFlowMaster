@@ -3,9 +3,9 @@ import { sql } from 'drizzle-orm';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { privilegedDb } from './db';
-import { createTestOrganization, createTestUser } from './tests/factories';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { privilegedDb } from '../db';
+import { createTestOrganization, createTestUser } from '../tests/factories';
+import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
 import { createLocalArtifactStore } from './artifact-store';
 import { quotaUsage } from './tenant-quotas';
 
@@ -27,7 +27,7 @@ const usage = () => asOrg(() => withTenantTransaction((tx) => quotaUsage(tx, org
 describe('retained artifact bytes', () => {
   it('filters rejected report evidence while keeping successfully committed images available', async () => {
     const { executionArtifactAvailability } = await import('./artifact-metering');
-    const { artifactUrl, stepsWithArtifactUrls } = await import('./routes/artifacts.routes');
+    const { artifactUrl, stepsWithArtifactUrls } = await import('../routes/artifacts.routes');
     const user = await createTestUser(org);
     const plan = 'report-plan-' + org;
     const run = 'report-run-' + org;

@@ -13,7 +13,7 @@ import type { NetworkSummary } from '@shared/network';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { aiService } from '../ai-automation-service';
 import {
   buildFailurePrompt,

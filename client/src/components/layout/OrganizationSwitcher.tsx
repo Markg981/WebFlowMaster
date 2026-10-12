@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 /**
- * Moving between the organizations one belongs to (server/organization-memberships.ts).
+ * Moving between the organizations one belongs to (server/tenancy/organization-memberships.ts).
  *
  * Shown only to a person with more than one: for everybody else the organization is simply where
  * they are. A switch starts a new session on the server and the whole client state with it — every

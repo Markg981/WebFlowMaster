@@ -23,9 +23,14 @@ import {
   type SnapshotTestReference,
 } from './execution-snapshot';
 import { testExecutionQueue } from './queue';
-import { fairPriority, liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
-import { checkExecutionBudget } from './execution-usage';
-import { assertSubscriptionAllowsRuns } from './billing/enforcement';
+import {
+  fairPriority,
+  liveRunCounts,
+  lockOrganizationRuns,
+  quotasFor,
+} from './tenancy/tenant-quotas';
+import { checkExecutionBudget } from './tenancy/execution-usage';
+import { assertSubscriptionAllowsRuns } from './tenancy/billing/enforcement';
 import { freezeMobilePlanDefinitions } from './mobile/mobile-plan-units';
 import { freezeExecutionDatasets } from './execution-datasets';
 import { freezeTestDefinitions } from './execution-definitions';
@@ -259,7 +264,7 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
           }
 
           // Before any quota: a suspended organization is refused with 402 whatever room it has
-          // (server/billing/enforcement.ts). Here, because every plan run passes here.
+          // (server/tenancy/billing/enforcement.ts). Here, because every plan run passes here.
           await assertSubscriptionAllowsRuns(tx, organizationId);
 
           // Counted under the organization's lock, so two requests at the limit cannot both get

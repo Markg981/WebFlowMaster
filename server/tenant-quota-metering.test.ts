@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { privilegedDb } from './db';
 import { createTestOrganization, createTestUser } from './tests/factories';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
-import { defaultQuotas } from './tenant-quotas';
+import { defaultQuotas } from './tenancy/tenant-quotas';
 
 let org: number;
 let user: number;

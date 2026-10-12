@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId } from '../middleware/tenancy';
-import { auditActor } from '../audit';
+import { auditActor } from '../tenancy/audit';
 import { recordAuthEvent } from '../auth';
 import {
   SSO_PROTOCOLS,

@@ -3,9 +3,9 @@ import express from 'express';
 import request from 'supertest';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { tenancyMiddleware } from '../middleware/tenancy';
-import { administerSubscription, createPlan } from '../billing/service';
-import { setBillingProviderForTest } from '../billing/providers';
-import type { BillingProvider } from '../billing/provider';
+import { administerSubscription, createPlan } from '../tenancy/billing/service';
+import { setBillingProviderForTest } from '../tenancy/billing/providers';
+import type { BillingProvider } from '../tenancy/billing/provider';
 import routes from './billing.routes';
 
 /**

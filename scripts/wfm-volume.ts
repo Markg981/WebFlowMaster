@@ -552,7 +552,7 @@ function probes(ctx: {
       params: [ctx.testId, ctx.since],
     },
     {
-      // server/artifact-retention.ts purgeExpiredArtifacts, across every organization
+      // server/tenancy/artifact-retention.ts purgeExpiredArtifacts, across every organization
       name: 'retention: expired runs',
       sql: `SELECT id, organization_id, test_plan_id FROM test_plan_executions
             WHERE artifacts_purged_at IS NULL

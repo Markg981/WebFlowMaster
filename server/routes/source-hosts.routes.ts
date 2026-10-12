@@ -11,7 +11,7 @@ import {
 } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { encryptSecret } from '../crypto';
 import { checkSourceHost, DEFAULT_API_URLS, hostConfig } from '../commit-status';
 

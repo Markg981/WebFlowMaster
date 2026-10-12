@@ -10,12 +10,12 @@ import {
   testPlans,
   type TestPlanExecution,
 } from '@shared/schema';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { EXECUTION_STATUSES } from '@shared/execution-status';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { apiError, requireScope } from '../middleware/require-scope';
 import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orchestrator';
-import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
+import { quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
 import { requestCancellation } from '../execution-state';
 import { junitReportFor } from '../reporting/junit-report';
 import {

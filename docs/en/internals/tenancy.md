@@ -29,7 +29,7 @@ A person may belong to several organizations (migration 0086). Two things carry 
   and its role there. The session, `tenancyMiddleware`, every policy's `app.current_org` binding
   and `requireRole` read these two columns and nothing else, exactly as they did when an account
   had one organization. Switching (`POST /api/organizations/switch`, owner of the switch is
-  `server/organization-memberships.ts`) copies the chosen membership onto the user row, starts a
+  `server/tenancy/organization-memberships.ts`) copies the chosen membership onto the user row, starts a
   new session (`req.login`) and records `organization.switched` in the organization entered. A
   request is therefore always bound to one organization, and nothing a membership elsewhere grants
   is visible from it.
@@ -63,7 +63,7 @@ membership only, for accounts acting in it.
 Removing a member takes the organization away from the account: their membership, keys, project
 seats and other personal rows of that organization go, and if it was their current organization
 they move to another one they belong to. The account itself is deleted only when it was their last
-organization. In both cases what they made stays: `server/member-removal.ts` hands projects,
+organization. In both cases what they made stays: `server/tenancy/member-removal.ts` hands projects,
 tests, plans, schedules, step groups, environments and secrets to another member first, and the
 constraints on those tables are `NO ACTION`, so a table the transfer forgets fails the removal
 instead of losing rows. A test checks every constraint that references `users`. An organization
@@ -138,7 +138,7 @@ transaction (the commit status notice, for example).
 `privilegedDb` connects without the role switch and therefore bypasses RLS. It exists for
 installation-wide tables (`runners`, `system_settings`, `sessions`), for bootstrap (registration,
 login, API key and agent token lookups, where the organization is not known yet), and for
-organization export and erasure (`server/organization-lifecycle.ts`). Every file allowed to use it,
+organization export and erasure (`server/tenancy/organization-lifecycle.ts`). Every file allowed to use it,
 and how many times, is listed in `PRIVILEGED_BOOTSTRAP_BUDGET` in
 `server/tests/architecture.test.ts`; a new use fails the build until someone writes down why.
 
@@ -216,12 +216,12 @@ together. Owners read it in Settings.
 
 ## Limits per organization
 
-`server/tenant-quotas.ts` keeps one organization from starving the others: a maximum of runs
+`server/tenancy/tenant-quotas.ts` keeps one organization from starving the others: a maximum of runs
 executing at once (a worker puts a run past it back for later — it waits, it does not fail), a
 maximum of runs waiting (a request past it gets `429`), and a fair place in the queue for an
 organization with fewer runs in flight. The limits are set by the operator on the `organizations`
 row; the application role has no grant to change them. Human installation administrators use
-`server/tenant-quota-admin.ts`, which writes through a privileged service with revision and audit.
+`server/tenancy/tenant-quota-admin.ts`, which writes through a privileged service with revision and audit.
 Modes off/monitor/enforce make all quota policy independent of billing. Organization-wide test,
 artifact and execution aggregates use tenant-checked security-definer SQL functions so project RLS
 cannot undercount usage. Tests are capped at insertion; artifacts use reservations/reconciliation;
@@ -229,7 +229,7 @@ monthly minutes are an admission budget. See [quota semantics](../admin/administ
 
 ## Export and erasure
 
-`server/organization-lifecycle.ts` exports an organization's data and erases an organization
+`server/tenancy/organization-lifecycle.ts` exports an organization's data and erases an organization
 completely, including rows the application itself is not allowed to delete (the audit log). It is
 the one domain module that is privileged by design, because erasing an organization is an act on
 the tenancy boundary, not within it.

@@ -76,7 +76,7 @@ flowchart LR
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **PostgreSQL 15+** | Everything durable: organizations, users, tests, plans, runs, results, audit log. Row-level security isolates organizations (see [Tenancy and access](./tenancy)). In development and tests, PGlite (Postgres compiled to WebAssembly) replaces it when `DATABASE_URL` is not a `postgres://` URL. |
 | **Redis / Valkey** | BullMQ queues (plan runs, browser tasks, BullMQ scheduler), the session store in production, and the directory the relay instances share.                                                                                                                                                          |
-| **Artifact store** | Screenshots, videos, traces, HAR files and visual baselines. Local disk by default, any S3-compatible bucket for more than one machine (`server/artifact-store.ts`).                                                                                                                               |
+| **Artifact store** | Screenshots, videos, traces, HAR files and visual baselines. Local disk by default, any S3-compatible bucket for more than one machine (`server/tenancy/artifact-store.ts`).                                                                                                                       |
 
 ## Technology
 

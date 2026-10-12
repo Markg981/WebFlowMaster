@@ -1,8 +1,8 @@
-import logger from '../logger';
+import logger from '../../logger';
 import { sweepSubscriptions } from './service';
 
 /**
- * Runs the subscription sweep (server/billing/service.ts) on an interval, the way the artifact
+ * Runs the subscription sweep (server/tenancy/billing/service.ts) on an interval, the way the artifact
  * retention sweep runs: soon after start, then every twelve hours. Started by the web server;
  * one replica sweeping twice is harmless, since every change is under an idempotency key.
  */

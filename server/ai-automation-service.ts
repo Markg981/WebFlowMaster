@@ -99,7 +99,7 @@ export class AIAutomationService {
   }
 
   /**
-   * Answers a failure analysis prompt (server/failure-analysis.ts), with the page's screenshot
+   * Answers a failure analysis prompt (server/reporting/failure-analysis.ts), with the page's screenshot
    * when there is one, or nothing. As thin as proposeTestSteps, and for the same reason.
    */
   async explainFailure(

@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { testPlanExecutions, testPlans, users } from '@shared/schema';
-import { createTestOrganization } from './tests/factories';
+import { createTestOrganization } from '../tests/factories';
 import { createS3ArtifactStore, type ArtifactStore } from './artifact-store';
-import { fakeS3 } from './tests/fake-s3';
+import { fakeS3 } from '../tests/fake-s3';
 import { purgeExpiredArtifacts, retentionDays } from './artifact-retention';
 
 /**

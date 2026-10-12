@@ -6,7 +6,7 @@ import { AUDIT_ACTIONS, customActions, stepGroups, tests } from '@shared/schema'
 import { PARAMETER_NAME_PATTERN, customActionIdOf } from '@shared/custom-actions';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { asSteps } from '../step-groups';
 import logger from '../logger';
 

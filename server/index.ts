@@ -85,12 +85,12 @@ app.use(express.urlencoded({ extended: false }));
   await assertOrganizationKeysReadable();
 
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.
-  const { initializeQuotaDefaults } = await import('./tenant-quotas');
+  const { initializeQuotaDefaults } = await import('./tenancy/tenant-quotas');
   await initializeQuotaDefaults();
   // A half-configured billing provider is refused here, not at a customer's first checkout.
-  const { assertBillingConfigured } = await import('./billing/config');
+  const { assertBillingConfigured } = await import('./tenancy/billing/config');
   logger.info(`Billing provider: ${assertBillingConfigured().provider}`);
-  const { artifactStore } = await import('./artifact-store');
+  const { artifactStore } = await import('./tenancy/artifact-store');
   logger.info(`Artifact store: ${artifactStore().kind}`);
 
   // ─── Correlation ID middleware (must be FIRST) ──────────────────────────
@@ -218,13 +218,13 @@ app.use(express.urlencoded({ extended: false }));
 
   // Removes the screenshots, videos and traces of runs older than ARTIFACT_RETENTION_DAYS —
   // see server/artifact-retention.ts.
-  const { startArtifactRetention } = await import('./artifact-retention');
+  const { startArtifactRetention } = await import('./tenancy/artifact-retention');
   const stopArtifactRetention =
     process.env.NODE_ENV === 'test' ? () => {} : startArtifactRetention();
 
   // Suspends past-due subscriptions past their grace and ends hand-set trials — see
   // server/billing/service.ts.
-  const { startBillingSweep } = await import('./billing/sweep');
+  const { startBillingSweep } = await import('./tenancy/billing/sweep');
   const stopBillingSweep = process.env.NODE_ENV === 'test' ? () => {} : startBillingSweep();
 
   // An /api path nothing above answered is not a client route: without this the catch-all

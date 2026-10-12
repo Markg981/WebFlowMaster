@@ -4,9 +4,9 @@ import { z } from 'zod';
 import { BILLING_INTERVALS } from '@shared/billing';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId } from '../middleware/tenancy';
-import { billingConfig } from '../billing/config';
-import { BillingError } from '../billing/provider';
-import { billingSummary, listPlans, openPortal, startCheckout } from '../billing/service';
+import { billingConfig } from '../tenancy/billing/config';
+import { BillingError } from '../tenancy/billing/provider';
+import { billingSummary, listPlans, openPortal, startCheckout } from '../tenancy/billing/service';
 import { publicBase } from './sso.routes';
 
 /**

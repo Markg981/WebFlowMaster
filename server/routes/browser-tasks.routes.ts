@@ -16,7 +16,7 @@ import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction } from '../middleware/tenancy';
 import type { playwrightService } from '../web/playwright-service';
 import { SharedDataError, expandSharedDataset } from '../test-data';
-import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
+import { quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
 
 /**
  * The editor's one-off browser work: loading a page to author against, surveying its

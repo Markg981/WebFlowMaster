@@ -10,7 +10,7 @@ import {
   type TestQuarantine,
 } from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
-import { recordAudit, type AuditActor } from './audit';
+import { recordAudit, type AuditActor } from './tenancy/audit';
 
 /**
  * Quarantine: a test set aside while it is unreliable.

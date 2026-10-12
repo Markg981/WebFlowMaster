@@ -1,7 +1,7 @@
 import type { Request } from 'express';
 import { auditLog, type AuditAction } from '@shared/schema';
-import type { TenantTx } from './middleware/tenancy';
-import { getTenantOrgId } from './middleware/tenancy';
+import type { TenantTx } from '../middleware/tenancy';
+import { getTenantOrgId } from '../middleware/tenancy';
 
 /** Who did something, and how they came to be able to. */
 export interface AuditActor {

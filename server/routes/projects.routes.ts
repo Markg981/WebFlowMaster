@@ -7,7 +7,7 @@ import {
   insertProjectSchema,
   AUDIT_ACTIONS,
 } from '@shared/schema';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import logger from '../logger';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';

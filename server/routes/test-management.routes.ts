@@ -33,7 +33,7 @@ import {
 import { isExecutionInFlight } from '@shared/execution-status';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import { encryptSecret } from '../crypto';
 import { checkTestManagement } from '../test-management-providers';
 import { publicationsOf, publishExecution, toConnectionConfig } from '../test-management';

@@ -5,9 +5,9 @@ import {
   organizations,
   testPlanExecutions,
 } from '@shared/schema';
-import type { TenantTx } from './middleware/tenancy';
+import type { TenantTx } from '../middleware/tenancy';
 import { quotaDefaults, type TenantQuotas, type QuotaUsage } from '@shared/tenant-quotas';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 export type { TenantQuotas } from '@shared/tenant-quotas';
 
 /**
@@ -141,7 +141,7 @@ export function quotaErrorStatus(error: unknown): number {
 
 /**
  * A refusal because the organization's subscription allows no new work
- * (server/billing/enforcement.ts). Matched by code rather than class: BullMQ hands a worker's
+ * (server/tenancy/billing/enforcement.ts). Matched by code rather than class: BullMQ hands a worker's
  * error back as a plain message, and the enforcement module imports this one, not the reverse.
  */
 function isSubscriptionRefusal(error: unknown): error is { code: string; message: string } {

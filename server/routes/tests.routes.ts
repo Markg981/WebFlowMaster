@@ -1,4 +1,4 @@
-import { quotaErrorBody } from '../tenant-quotas';
+import { quotaErrorBody } from '../tenancy/tenant-quotas';
 import { mobileTests, mobileStepGroups } from '@shared/schema';
 import { importMobileCatalog, type MobileImportOutcome } from '../mobile/mobile-bundle';
 import { type Response } from 'express';
@@ -14,7 +14,7 @@ import {
   projectMembers,
   AUDIT_ACTIONS,
 } from '@shared/schema';
-import { auditActor, changedFields, recordAudit } from '../audit';
+import { auditActor, changedFields, recordAudit } from '../tenancy/audit';
 import { eq, and, desc, getTableColumns, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import logger from '../logger';

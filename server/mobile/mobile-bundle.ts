@@ -7,8 +7,8 @@ import { mobileGroupSchema, type MobileGroupDefinition } from '@shared/mobile-gr
 import { prepareMobileSteps, expandMobileGroups } from './mobile-step-groups';
 import { getTenantOrgId, type TenantTx } from '../middleware/tenancy';
 import { recordTypedTestVersion } from '../test-version-store';
-import { recordAudit, type auditActor } from '../audit';
-import { lockOrganizationRuns } from '../tenant-quotas';
+import { recordAudit, type auditActor } from '../tenancy/audit';
+import { lockOrganizationRuns } from '../tenancy/tenant-quotas';
 
 export const MOBILE_BUNDLE_FIELDS = [
   'name',

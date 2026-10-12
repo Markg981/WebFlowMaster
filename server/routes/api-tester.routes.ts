@@ -10,14 +10,14 @@ import {
 } from '@shared/schema';
 import { ProtocolConfigSchema } from '@shared/api-protocol-config';
 import { runApiRequest } from '../api-tests/api-test-runner';
-import { withExecutionUsage } from '../execution-usage';
+import { withExecutionUsage } from '../tenancy/execution-usage';
 import { redactHistoryEntry } from '../history-redaction';
 import logger from '../logger';
 import { asyncHandler } from '../middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction } from '../middleware/tenancy';
-import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
+import { quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
 import { defaultVariables, resolveVariables } from '../variables';
 
 /**

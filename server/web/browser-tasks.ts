@@ -8,8 +8,8 @@ import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
 import { getCorrelationId } from '../middleware/correlation';
 import { connection } from '../redis';
 import { randomUUID } from 'node:crypto';
-import { checkExecutionBudget, withExecutionUsage } from '../execution-usage';
-import { QuotaError } from '../tenant-quotas';
+import { checkExecutionBudget, withExecutionUsage } from '../tenancy/execution-usage';
+import { QuotaError } from '../tenancy/tenant-quotas';
 
 /**
  * The browser work a person waits for — a preview of a sequence, a single test run, a page

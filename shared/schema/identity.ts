@@ -37,7 +37,7 @@ export const organizations = pgTable('organizations', {
   mfaRequired: boolean('mfa_required').notNull().default(false),
   /** Publishing a test needs another member's approval, and plans run published tests only. */
   testReviewRequired: boolean('test_review_required').notNull().default(false),
-  /** The test SMS inbox's inbound address token, hashed (server/sms-inbox.ts, migration 0070). */
+  /** The test SMS inbox's inbound address token, hashed (server/messaging/sms-inbox.ts, migration 0070). */
   smsInboundTokenHash: text('sms_inbound_token_hash'),
   smsInboundTokenPrefix: text('sms_inbound_token_prefix'),
   smsInboundTokenCreatedAt: timestamp('sms_inbound_token_created_at'),
@@ -152,7 +152,7 @@ export const users = pgTable('users', {
  * sign-on, SCIM — keeps its membership right without knowing about this table.
  *
  * Org-scoped and policed by RLS like the rest: inside an organization, its members are visible;
- * what else a person belongs to is read on the privileged handle (server/organization-memberships.ts).
+ * what else a person belongs to is read on the privileged handle (server/tenancy/organization-memberships.ts).
  */
 export const organizationMemberships = pgTable(
   'organization_memberships',
@@ -210,7 +210,7 @@ export const userSettings = pgTable('user_settings', {
   playwrightWaitTime: integer('playwright_wait_time').default(1000).notNull(),
   language: text('language').default('en').notNull(),
   /**
-   * E-mail about the runs this person starts (server/mail-messages.ts): the master switch, then
+   * E-mail about the runs this person starts (server/messaging/mail-messages.ts): the master switch, then
    * when. Off until the person turns it on; nothing is sent while the installation has no SMTP.
    */
   notifyByEmail: boolean('notify_by_email').default(false).notNull(),
@@ -795,7 +795,7 @@ export const AUDIT_ACTIONS = {
   // The impact map: which files map to which tests (server/test-impact.ts).
   IMPACT_RULE_CREATED: 'impact_rule.created',
   IMPACT_RULE_DELETED: 'impact_rule.deleted',
-  // The test SMS inbox's inbound address (server/sms-inbox.ts).
+  // The test SMS inbox's inbound address (server/messaging/sms-inbox.ts).
   SMS_INBOX_TOKEN_ISSUED: 'sms_inbox.token_issued',
   SMS_INBOX_TOKEN_REVOKED: 'sms_inbox.token_revoked',
   CUSTOM_ACTION_CREATED: 'custom_action.created',

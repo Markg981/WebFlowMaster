@@ -71,7 +71,7 @@ async function setState(id: string, patch: Partial<DebugState>) {
 
 describe('debug sessions', () => {
   it('ends an initialized session when execution admission is refused', async () => {
-    const { QuotaError } = await import('../tenant-quotas');
+    const { QuotaError } = await import('../tenancy/tenant-quotas');
     tasks.start.mockRejectedValue(
       new QuotaError('execution_quota_exceeded', 'execution_minutes', 1, 1),
     );

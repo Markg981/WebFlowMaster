@@ -3,7 +3,7 @@
  *
  * Asked for from the report, one result at a time, and kept on the result
  * (report_test_case_results.ai_analysis) so that looking at it again costs nothing. The model is
- * not trusted to say anything outside this shape: server/failure-analysis.ts reads its answer
+ * not trusted to say anything outside this shape: server/reporting/failure-analysis.ts reads its answer
  * into it and throws away the rest.
  */
 import { NewerPayloadError, versionedPayload } from './payload-version';

@@ -76,7 +76,7 @@ flowchart LR
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **PostgreSQL 15+**     | Tutto ciò che deve durare: organizzazioni, utenti, test, piani, run, risultati, audit log. La row-level security isola le organizzazioni (vedi [Tenancy e accessi](./tenancy)). In sviluppo e nei test lo sostituisce PGlite (Postgres compilato in WebAssembly) quando `DATABASE_URL` non è un URL `postgres://`. |
 | **Redis / Valkey**     | Code BullMQ (run dei piani, task browser, scheduler BullMQ), lo store delle sessioni in produzione e la directory condivisa dalle istanze del relay.                                                                                                                                                               |
-| **Archivio artefatti** | Screenshot, video, trace, file HAR e baseline visive. Disco locale per default, qualsiasi bucket compatibile S3 con più di una macchina (`server/artifact-store.ts`).                                                                                                                                              |
+| **Archivio artefatti** | Screenshot, video, trace, file HAR e baseline visive. Disco locale per default, qualsiasi bucket compatibile S3 con più di una macchina (`server/tenancy/artifact-store.ts`).                                                                                                                                      |
 
 ## Tecnologie
 

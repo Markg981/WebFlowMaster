@@ -1,9 +1,9 @@
 import { and, asc, inArray, isNull, lt, eq } from 'drizzle-orm';
 import { testPlanExecutions } from '@shared/schema';
-import { privilegedDb } from './db';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { privilegedDb } from '../db';
+import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
 import { artifactStore, RESULTS_PREFIX, type ArtifactStore } from './artifact-store';
-import logger from './logger';
+import logger from '../logger';
 
 /**
  * Removes the evidence of runs that ended long enough ago.

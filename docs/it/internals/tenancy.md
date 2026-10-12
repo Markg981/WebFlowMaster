@@ -30,7 +30,7 @@ Una persona può appartenere a più organizzazioni (migrazione 0086). Lo reggono
   il suo ruolo lì. La sessione, `tenancyMiddleware`, il binding `app.current_org` di ogni policy e
   `requireRole` leggono queste due colonne e nient'altro, esattamente come quando un account aveva
   una sola organizzazione. Il cambio (`POST /api/organizations/switch`, in
-  `server/organization-memberships.ts`) copia l'appartenenza scelta sulla riga dell'utente, apre una
+  `server/tenancy/organization-memberships.ts`) copia l'appartenenza scelta sulla riga dell'utente, apre una
   nuova sessione (`req.login`) e registra `organization.switched` nell'organizzazione in cui si
   entra. Una richiesta è quindi sempre legata a una sola organizzazione, e nulla di ciò che
   un'appartenenza altrove concede è visibile da lì.
@@ -65,7 +65,7 @@ account che agiscono in essa.
 Rimuovere un membro toglie l'organizzazione all'account: la sua appartenenza, le chiavi, i posti nei
 progetti e le altre righe personali di quell'organizzazione se ne vanno, e se era la sua
 organizzazione corrente passa a un'altra a cui appartiene. L'account viene cancellato solo se era la
-sua ultima organizzazione. In entrambi i casi ciò che ha creato resta: `server/member-removal.ts`
+sua ultima organizzazione. In entrambi i casi ciò che ha creato resta: `server/tenancy/member-removal.ts`
 passa prima progetti, test, piani, schedulazioni, gruppi di step, ambienti e segreti a un altro
 membro, e i vincoli su quelle tabelle sono `NO ACTION`, così una tabella dimenticata fa fallire la
 rimozione invece di perdere righe. Un test controlla ogni vincolo che punta a `users`.
@@ -140,7 +140,7 @@ unirsi alla transazione del chiamante (per esempio l'avviso di stato del commit)
 `privilegedDb` si connette senza il cambio di ruolo e quindi aggira la RLS. Esiste per le tabelle
 dell'installazione (`runners`, `system_settings`, `sessions`), per il bootstrap (registrazione, login,
 verifica di chiavi API e token degli agenti, quando l'organizzazione non è ancora nota) e per
-l'esportazione e la cancellazione di un'organizzazione (`server/organization-lifecycle.ts`). Ogni file
+l'esportazione e la cancellazione di un'organizzazione (`server/tenancy/organization-lifecycle.ts`). Ogni file
 autorizzato a usarlo, e quante volte, è elencato in `PRIVILEGED_BOOTSTRAP_BUDGET` in
 `server/tests/architecture.test.ts`; un nuovo uso fa fallire la build finché qualcuno non ne scrive il
 motivo.
@@ -221,12 +221,12 @@ insieme. Gli owner le leggono in Settings.
 
 ## Limiti per organizzazione
 
-`server/tenant-quotas.ts` impedisce a un'organizzazione di affamare le altre: un massimo di run in
+`server/tenancy/tenant-quotas.ts` impedisce a un'organizzazione di affamare le altre: un massimo di run in
 esecuzione contemporanea (un worker rimette in coda il run oltre il limite — aspetta, non fallisce), un
 massimo di run in attesa (una richiesta oltre il limite riceve `429`) e un posto equo in coda per
 l'organizzazione con meno run in corso. I limiti li imposta l'operatore sulla riga di `organizations`;
 il ruolo applicativo non ha i permessi per cambiarli. Gli amministratori umani dell'installazione
-usano `server/tenant-quota-admin.ts`, servizio privilegiato con revisione e audit. Le modalità
+usano `server/tenancy/tenant-quota-admin.ts`, servizio privilegiato con revisione e audit. Le modalità
 off/monitor/enforce rendono le quote indipendenti dai pagamenti. Aggregati dell'intera organizzazione
 usano funzioni SQL security-definer con controllo del tenant: i filtri dei progetti non riducono il
 consumo. I test sono limitati all'inserimento, gli artefatti tramite prenotazioni/riconciliazione e
@@ -234,7 +234,7 @@ i minuti tramite budget di ammissione. Vedere [semantica delle quote](../admin/a
 
 ## Esportazione e cancellazione
 
-`server/organization-lifecycle.ts` esporta i dati di un'organizzazione e la cancella completamente,
+`server/tenancy/organization-lifecycle.ts` esporta i dati di un'organizzazione e la cancella completamente,
 comprese le righe che l'applicazione stessa non può eliminare (l'audit log). È l'unico modulo di dominio
 privilegiato per progetto, perché cancellare un'organizzazione è un atto sul confine della tenancy, non
 al suo interno.

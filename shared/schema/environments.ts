@@ -93,7 +93,7 @@ export const secrets = pgTable(
   ],
 );
 
-/** Text messages the organization's test numbers received (server/sms-inbox.ts, migration 0070). */
+/** Text messages the organization's test numbers received (server/messaging/sms-inbox.ts, migration 0070). */
 export const smsMessages = pgTable(
   'sms_messages',
   {

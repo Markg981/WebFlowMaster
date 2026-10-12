@@ -7,7 +7,7 @@ have been selected. Existing organization execution quotas continue to apply.
 Run automated regressions from the repository root:
 
 ```sh
-npm test -- server/sso-saml.test.ts server/sso.test.ts server/websocket.test.ts server/email-delivery.test.ts server/messaging/mail-messages.test.ts server/routes/mail-delivery.routes.test.ts server/messaging/mail-settings.test.ts server/routes/mail-settings.routes.test.ts server/messaging/mail-providers.test.ts server/routes/mail-provider.routes.test.ts server/messaging/mail-templates.test.ts server/routes/mail-templates.routes.test.ts server/middleware/csrf.test.ts server/middleware/saml-session.test.ts server/member-removal.test.ts server/organization-lifecycle.test.ts
+npm test -- server/sso-saml.test.ts server/sso.test.ts server/websocket.test.ts server/email-delivery.test.ts server/messaging/mail-messages.test.ts server/routes/mail-delivery.routes.test.ts server/messaging/mail-settings.test.ts server/routes/mail-settings.routes.test.ts server/messaging/mail-providers.test.ts server/routes/mail-provider.routes.test.ts server/messaging/mail-templates.test.ts server/routes/mail-templates.routes.test.ts server/middleware/csrf.test.ts server/middleware/saml-session.test.ts server/tenancy/member-removal.test.ts server/tenancy/organization-lifecycle.test.ts
 npm test --prefix client -- --run src/components/settings/SsoCard.test.tsx src/components/settings/EmailDeliveryCard.test.tsx src/components/settings/EmailProviderCard.test.tsx src/components/settings/EmailTemplatesCard.test.tsx
 ```
 

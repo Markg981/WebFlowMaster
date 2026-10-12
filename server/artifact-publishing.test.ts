@@ -14,7 +14,7 @@ import {
   users,
 } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
-import { createS3ArtifactStore, setArtifactStoreForTest } from './artifact-store';
+import { createS3ArtifactStore, setArtifactStoreForTest } from './tenancy/artifact-store';
 import { fakeS3 } from './tests/fake-s3';
 
 /**

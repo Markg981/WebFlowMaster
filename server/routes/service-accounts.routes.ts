@@ -5,7 +5,7 @@ import { apiKeys, users, AUDIT_ACTIONS } from '@shared/schema';
 import { storage } from '../storage';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { auditActor, recordAudit } from '../audit';
+import { auditActor, recordAudit } from '../tenancy/audit';
 import logger from '../logger';
 
 /**

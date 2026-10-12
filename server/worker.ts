@@ -19,7 +19,7 @@ import {
 import { testPlanSchedules, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { withJobIncidents } from './observability/taps/jobs';
-import { artifactStore } from './artifact-store';
+import { artifactStore } from './tenancy/artifact-store';
 import {
   BROWSER_TASK_QUEUE_NAME,
   performBrowserTask,
@@ -54,7 +54,7 @@ configureEgressProxy();
   await assertOrganizationKeysReadable();
   // The log level and retention an administrator saved in the settings.
   await applyLogSettings();
-  const { initializeQuotaDefaults } = await import('./tenant-quotas');
+  const { initializeQuotaDefaults } = await import('./tenancy/tenant-quotas');
   await initializeQuotaDefaults();
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.
   logger.info(`Artifact store: ${artifactStore().kind}`);

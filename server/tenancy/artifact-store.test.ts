@@ -10,7 +10,7 @@ import {
   createS3ArtifactStore,
   keyForLocalPath,
 } from './artifact-store';
-import { fakeS3 } from './tests/fake-s3';
+import { fakeS3 } from '../tests/fake-s3';
 
 let cwd: string;
 const previousBaselineDir = process.env.VISUAL_BASELINE_DIR;

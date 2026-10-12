@@ -18,7 +18,7 @@ import type { BillingInterval, BillingProviderName, SubscriptionStatus } from '.
  * The installation's plan catalogue: not tenant-scoped, every organization sees the same plans.
  * The quota columns name the same limits an organization's row can override (organizations.*):
  * null means the installation default. app_user may read the catalogue and change nothing; plans
- * are the installation administrator's (server/billing/service.ts).
+ * are the installation administrator's (server/tenancy/billing/service.ts).
  */
 export const billingPlans = pgTable('billing_plans', {
   id: serial('id').primaryKey(),

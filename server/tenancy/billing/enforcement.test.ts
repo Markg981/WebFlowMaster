@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../../db';
 import {
   organizationSubscriptions,
   testPlanExecutions,
@@ -11,17 +11,17 @@ import {
   users,
 } from '@shared/schema';
 import type { SubscriptionStatus } from '@shared/billing';
-import { createTestOrganization } from '../tests/factories';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { createTestOrganization } from '../../tests/factories';
+import { runWithTenant, withTenantTransaction } from '../../middleware/tenancy';
 
-vi.mock('../queue', () => ({
+vi.mock('../../queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: {
     add: async (_n: string, _d: unknown, o: { jobId: string }) => ({ id: o.jobId }),
   },
 }));
 
-const { createExecutionOrchestrator } = await import('../execution-orchestrator');
+const { createExecutionOrchestrator } = await import('../../execution-orchestrator');
 const { beginExecutionUsage } = await import('../execution-usage');
 const { changeSubscription } = await import('./service');
 const { assertSubscriptionAllowsRuns, SubscriptionSuspendedError } = await import('./enforcement');

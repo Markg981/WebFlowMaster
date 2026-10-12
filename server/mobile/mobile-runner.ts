@@ -10,7 +10,7 @@ import {
   type MobileExecutionStep,
 } from '@shared/mobile';
 import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
-import { withExecutionUsage } from '../execution-usage';
+import { withExecutionUsage } from '../tenancy/execution-usage';
 import { toGridConfig, type GridConfig } from '../browser-grids';
 import { resolveVariables, findUnresolvedVariables } from '../variables';
 import { fetchTarget, substituteVariables } from '../outbound-http';

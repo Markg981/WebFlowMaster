@@ -128,12 +128,13 @@ describe('GET /api/test-plan-executions/:executionId/artifacts/*', () => {
 
 describe('serving from a bucket', () => {
   afterEach(async () => {
-    const { setArtifactStoreForTest } = await import('../artifact-store');
+    const { setArtifactStoreForTest } = await import('../tenancy/artifact-store');
     setArtifactStoreForTest(undefined);
   });
 
   it('serves what a worker on another machine uploaded, with its type, under the same URL', async () => {
-    const { createS3ArtifactStore, setArtifactStoreForTest } = await import('../artifact-store');
+    const { createS3ArtifactStore, setArtifactStoreForTest } =
+      await import('../tenancy/artifact-store');
     const { fakeS3 } = await import('../tests/fake-s3');
     const client = fakeS3();
     const store = createS3ArtifactStore({ client, bucket: 'evidence' });
@@ -162,7 +163,8 @@ describe('serving from a bucket', () => {
   });
 
   it('404s on an object the bucket does not have, and still refuses a climbing path', async () => {
-    const { createS3ArtifactStore, setArtifactStoreForTest } = await import('../artifact-store');
+    const { createS3ArtifactStore, setArtifactStoreForTest } =
+      await import('../tenancy/artifact-store');
     const { fakeS3 } = await import('../tests/fake-s3');
     const client = fakeS3();
     setArtifactStoreForTest(createS3ArtifactStore({ client, bucket: 'evidence' }));
@@ -179,7 +181,8 @@ describe('serving from a bucket', () => {
   });
 
   it('says the store could not be reached rather than that the file does not exist', async () => {
-    const { createS3ArtifactStore, setArtifactStoreForTest } = await import('../artifact-store');
+    const { createS3ArtifactStore, setArtifactStoreForTest } =
+      await import('../tenancy/artifact-store');
     setArtifactStoreForTest(
       createS3ArtifactStore({
         client: {

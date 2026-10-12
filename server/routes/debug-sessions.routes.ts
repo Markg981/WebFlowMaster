@@ -14,7 +14,7 @@ import { sharedSetIdOf } from '@shared/test-data';
 import { browserTasks, BrowserTaskError } from '../web/browser-tasks';
 import { debugChannel } from '../web/debug-session';
 import logger from '../logger';
-import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
+import { quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
 
 /**
  * Debug sessions from the builder (shared/debug-session.ts).

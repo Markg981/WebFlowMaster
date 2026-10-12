@@ -15,9 +15,9 @@ import { organizations, users, invitations, auditLog, AUDIT_ACTIONS } from '@sha
 import { storage } from '../storage';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
-import { auditActor, recordAudit } from '../audit';
-import { exportOrganization, eraseOrganization } from '../organization-lifecycle';
-import { transferMemberContent } from '../member-removal';
+import { auditActor, recordAudit } from '../tenancy/audit';
+import { exportOrganization, eraseOrganization } from '../tenancy/organization-lifecycle';
+import { transferMemberContent } from '../tenancy/member-removal';
 import {
   eldestOtherOwner,
   hasOtherMembership,
@@ -27,10 +27,10 @@ import {
   otherOwnerCount,
   removeMembership,
   setMemberRole,
-} from '../organization-memberships';
+} from '../tenancy/organization-memberships';
 import { issuePasswordReset } from '../password-reset';
 import logger from '../logger';
-import { liveRunCounts, quotaUsage, quotasFor } from '../tenant-quotas';
+import { liveRunCounts, quotaUsage, quotasFor } from '../tenancy/tenant-quotas';
 import { availableRunnerCount } from '../runner-registry';
 
 const router = asyncRouter();
@@ -42,7 +42,7 @@ const RoleSchema = z.enum(['viewer', 'editor', 'owner']);
  *
  * So a team whose run is "queued" for a while can see why — two already running, the limit is
  * two — instead of wondering whether the system is broken. Read-only: the limits are the
- * operator's to set (see server/tenant-quotas.ts).
+ * operator's to set (see server/tenancy/tenant-quotas.ts).
  */
 router.get(
   '/api/organization/usage',
@@ -691,7 +691,7 @@ router.delete(
           return { status: 409 as const };
       }
 
-      // Who takes over what the member made (server/member-removal.ts): the member the request
+      // Who takes over what the member made (server/tenancy/member-removal.ts): the member the request
       // names, or the owner removing them, or — when an owner removes themselves — the longest-
       // standing other owner, who exists because the check above passed.
       let heir: { id: number; username: string } | undefined;

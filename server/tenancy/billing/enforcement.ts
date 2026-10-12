@@ -1,5 +1,5 @@
 import type { SubscriptionStatus } from '@shared/billing';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../../middleware/tenancy';
 import { billingConfig } from './config';
 import { entitlementOf, subscriptionFor } from './service';
 

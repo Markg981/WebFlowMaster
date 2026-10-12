@@ -152,7 +152,7 @@ describe('route modules cannot query outside the tenant context', () => {
         'the context the rest of a plan or shard job runs in. Everything after it is under ' +
         'withTenantTransaction. Runs are created by execution-orchestrator.ts.',
     },
-    'artifact-retention.ts': {
+    'tenancy/artifact-retention.ts': {
       max: 1,
       why:
         'Retention looks across every organization for runs whose evidence has been kept long ' +
@@ -182,7 +182,7 @@ describe('route modules cannot query outside the tenant context', () => {
         'organization_sso, sso_domains and users. Its audit entries are written through the transaction of ' +
         "the change they describe; removing a member runs as the organization, like the owner's removal.",
     },
-    'organization-memberships.ts': {
+    'tenancy/organization-memberships.ts': {
       max: 10,
       why:
         'What else a person belongs to is the one question an organization cannot answer about its ' +
