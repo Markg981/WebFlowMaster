@@ -124,6 +124,29 @@ in the process (`onExecutionTransition`); the commit status module is one of the
    its decrypted secrets (`server/variables.ts`). The same resolution feeds preconditions, UI steps
    and API requests.
 
+### The phases of a run
+
+`processTestPlanJob` only establishes the tenant context; the run itself is `runPlanJob`
+(`server/plan-run/pipeline.ts`), which calls one phase after another. Each phase is a function of its
+own module that takes what it reads and returns what it produces, so it can be read and tested alone:
+
+| Phase                 | Module                                 | Produces                                                                    |
+| --------------------- | -------------------------------------- | --------------------------------------------------------------------------- |
+| Results directory     | `plan-run/inputs.ts`                   | `./results/<plan>/<run>`, or the run ends as an error                       |
+| Inputs                | `plan-run/inputs.ts`                   | the execution row and its snapshot                                          |
+| Browsers              | `plan-run/browsers.ts`                 | the passes, on a grid or an agent pool                                      |
+| Settings              | `plan-run/settings.ts`                 | evidence, policies, visual testing                                          |
+| Variables             | `plan-run/inputs.ts`                   | secrets and data variables, per pass                                        |
+| Definitions           | `plan-run/definitions.ts`              | the tests and versions that run, review policy, datasets                    |
+| Quarantine            | `plan-run/definitions.ts`              | the tests whose failures do not fail the run                                |
+| Browser probe         | `plan-run/browsers.ts`                 | the passes this runner can start                                            |
+| Lanes                 | `plan-run/lanes.ts`                    | one lane per browser and language (pure)                                    |
+| Execution             | `plan-run/execute-lanes.ts`            | every unit run through `plan-run/run-unit.ts`, alone, in parallel or shared |
+| Verdict and after-run | `plan-run/finalize.ts`, `after-run.ts` | the ending, retry, issues, test management, notification                    |
+
+A phase that ends the run early (no results directory, no execution row) returns `Ended` and the
+pipeline stops there. A single test outside a plan is `runTest` (`server/run-test.ts`).
+
 ## 4. Running the plan
 
 ### Browser passes

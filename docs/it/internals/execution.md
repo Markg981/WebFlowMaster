@@ -125,6 +125,30 @@ nel processo (`onExecutionTransition`); il modulo dello stato dei commit è uno 
    dell'ambiente e i suoi segreti decifrati (`server/variables.ts`). La stessa risoluzione alimenta
    precondizioni, step UI e richieste API.
 
+### Le fasi di un run
+
+`processTestPlanJob` stabilisce solo il contesto del tenant; il run vero e proprio è `runPlanJob`
+(`server/plan-run/pipeline.ts`), che chiama una fase dopo l'altra. Ogni fase è una funzione di un suo
+modulo che riceve ciò che legge e restituisce ciò che produce, così si legge e si testa da sola:
+
+| Fase                    | Modulo                                 | Produce                                                                          |
+| ----------------------- | -------------------------------------- | -------------------------------------------------------------------------------- |
+| Directory dei risultati | `plan-run/inputs.ts`                   | `./results/<piano>/<run>`, oppure il run termina in errore                       |
+| Input                   | `plan-run/inputs.ts`                   | la riga dell'esecuzione e il suo snapshot                                        |
+| Browser                 | `plan-run/browsers.ts`                 | i passaggi, su una grid o un pool di agent                                       |
+| Impostazioni            | `plan-run/settings.ts`                 | evidenze, policy, visual testing                                                 |
+| Variabili               | `plan-run/inputs.ts`                   | segreti e variabili dei dati, per passaggio                                      |
+| Definizioni             | `plan-run/definitions.ts`              | i test e le versioni che girano, policy di revisione, dataset                    |
+| Quarantena              | `plan-run/definitions.ts`              | i test i cui fallimenti non fanno fallire il run                                 |
+| Prova dei browser       | `plan-run/browsers.ts`                 | i passaggi che questo runner riesce ad avviare                                   |
+| Corsie                  | `plan-run/lanes.ts`                    | una corsia per browser e lingua (pura)                                           |
+| Esecuzione              | `plan-run/execute-lanes.ts`            | ogni unità tramite `plan-run/run-unit.ts`, in sequenza, in parallelo o condivisa |
+| Verdetto e dopo il run  | `plan-run/finalize.ts`, `after-run.ts` | la chiusura, il retry, le issue, il test management, la notifica                 |
+
+Una fase che chiude il run in anticipo (nessuna directory dei risultati, nessuna riga di esecuzione)
+restituisce `Ended` e la pipeline si ferma lì. Un singolo test fuori da un piano è `runTest`
+(`server/run-test.ts`).
+
 ## 4. L'esecuzione del piano
 
 ### Passaggi per browser
