@@ -15,6 +15,8 @@ import { sharedStore } from './rate-limit-store';
  *   sharing one outbound address do not share one budget. 600 a minute is far above what the CLI
  *   needs while it waits for a run (one status call every few seconds).
  * - WEBHOOK_RATE_LIMIT (default 120) for each client address on /api/webhooks.
+ * - SESSION_RATE_LIMIT (default 1200) for each signed-in user, on every route: see
+ *   sessionRateLimit below.
  * - HEAVY_RATE_LIMIT (default 30) for each signed-in user on the expensive routes: see
  *   heavyRateLimit below.
  *
@@ -34,6 +36,7 @@ function perMinute(value: string | undefined, fallback: number): number {
 
 const passThrough: RequestHandler = (_req, _res, next) => next();
 const apiKeyOf = (req: Request) => (req as Request & { apiKeyId?: string }).apiKeyId;
+const userIdOf = (req: Request) => req.user?.id;
 
 export function apiRateLimit(env: NodeJS.ProcessEnv = process.env): RequestHandler {
   const limit = perMinute(env.API_RATE_LIMIT, 600);
@@ -81,6 +84,35 @@ export function webhookRateLimit(env: NodeJS.ProcessEnv = process.env): RequestH
 }
 
 /**
+ * How often a signed-in person may call at all.
+ *
+ * apiRateLimit counts keys and the anonymous public API; a browser session was counted nowhere
+ * outside the expensive routes, so a script holding a session cookie could read every list as
+ * fast as it liked. SESSION_RATE_LIMIT (default 1200 a minute, twenty a second) is far above
+ * what the UI asks for, polling included, and stops that script. Counted for each user, so a
+ * team behind one address does not share a budget. A request carrying an API key is left to
+ * apiRateLimit, and one with no user to the limits of the route it reaches (sign-in has its own).
+ */
+export function sessionRateLimit(env: NodeJS.ProcessEnv = process.env): RequestHandler {
+  const limit = perMinute(env.SESSION_RATE_LIMIT, 1200);
+  if (limit === 0) return passThrough;
+  return rateLimit({
+    windowMs: 60_000,
+    limit,
+    store: sharedStore('session'),
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    skip: (req) => Boolean(apiKeyOf(req)) || !userIdOf(req),
+    keyGenerator: (req) => `user:${userIdOf(req)}`,
+    handler: (_req, res) => {
+      res
+        .status(429)
+        .json({ error: `Too many requests: at most ${limit} a minute. Wait and try again.` });
+    },
+  });
+}
+
+/**
  * How often a person may ask for the expensive things.
  *
  * apiRateLimit leaves a signed-in session alone on purpose: browsing is cheap, and a limit on it
@@ -100,7 +132,7 @@ export function heavyRateLimit(env: NodeJS.ProcessEnv = process.env): RequestHan
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator: (req) => {
-      const userId = (req.user as { id?: number } | undefined)?.id;
+      const userId = userIdOf(req);
       return userId ? `user:${userId}` : `ip:${ipKeyGenerator(req.ip ?? '')}`;
     },
     handler: (_req, res) => {
