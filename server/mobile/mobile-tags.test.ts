@@ -3,11 +3,11 @@ import express from 'express';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { mobileTests, tags, testSuites, testTags, tests } from '@shared/schema';
-import { createTestOrganization, createTestUser } from './tests/factories';
+import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -37,9 +37,9 @@ let webTest: number;
 let smoke: string;
 let android: string;
 
-const { runWithTenant, withTenantTransaction } = await import('./middleware/tenancy');
-const { testIdsWithTags } = await import('./test-tags');
-const { testsOfSuite } = await import('./test-suites');
+const { runWithTenant, withTenantTransaction } = await import('../middleware/tenancy');
+const { testIdsWithTags } = await import('../test-tags');
+const { testsOfSuite } = await import('../test-suites');
 
 beforeAll(async () => {
   organizationId = await createTestOrganization('Mobile Tags Org');
@@ -98,8 +98,8 @@ beforeAll(async () => {
     .values({ id: uuidv4(), organizationId, name: 'android' } as any)
     .returning();
 
-  const { default: tagRoutes } = await import('./routes/tags.routes');
-  const { default: mobileRoutes } = await import('./routes/mobile-tests.routes');
+  const { default: tagRoutes } = await import('../routes/tags.routes');
+  const { default: mobileRoutes } = await import('../routes/mobile-tests.routes');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {

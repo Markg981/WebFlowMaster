@@ -14,7 +14,7 @@ import { describeNetworkFailures } from '@shared/network';
 import { failedStepReason } from '../failed-step-reason';
 import { toGridConfig } from '../browser-grids';
 import { describeBrowser } from '../browsers';
-import { mobileDeviceLabel, performMobileTest, type MobileOutcome } from '../mobile-runner';
+import { mobileDeviceLabel, performMobileTest, type MobileOutcome } from '../mobile/mobile-runner';
 import { stopReasonAfter } from '../run-policies';
 import { refKey } from '../test-quarantine';
 import { runTest, type IndividualTestRunResult } from '../run-test';
@@ -199,7 +199,7 @@ function manualOutcome(
   return { status: 'Pending', detailedLog: JSON.stringify(log) };
 }
 
-/** A mobile app test: once per run, on a device of the grid it names (server/mobile-runner.ts). */
+/** A mobile app test: once per run, on a device of the grid it names (server/mobile/mobile-runner.ts). */
 async function runMobile(
   context: UnitContext,
   mobile: MobileEntry | undefined,

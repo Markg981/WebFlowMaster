@@ -41,7 +41,7 @@ export interface WorkUnit {
     browserChoice?: BrowserChoice;
     locale?: string;
     bddRowIndex?: number;
-    mobileTarget?: import('./mobile-plan-units').MobilePlanTarget;
+    mobileTarget?: import('./mobile/mobile-plan-units').MobilePlanTarget;
   }>;
   captured: Record<string, string>;
 }

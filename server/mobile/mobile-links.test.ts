@@ -3,7 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import {
   mobileTests,
   reportTestCaseResults,
@@ -16,12 +16,12 @@ import {
   testSuites,
   tests,
 } from '@shared/schema';
-import { encryptSecret } from './crypto';
-import { createTestOrganization, createTestUser } from './tests/factories';
-import { casesOf } from './test-management';
-import { testsOfSuite } from './test-suites';
+import { encryptSecret } from '../crypto';
+import { createTestOrganization, createTestUser } from '../tests/factories';
+import { casesOf } from '../test-management';
+import { testsOfSuite } from '../test-suites';
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -93,10 +93,10 @@ beforeAll(async () => {
   mobileTest = (await mobile({ name: 'Login on Android [C21]', organizationId }))[0].id;
   foreignMobileTest = (await mobile({ name: 'Theirs', organizationId: otherOrganizationId }))[0].id;
 
-  const { default: suites } = await import('./routes/suites.routes');
-  const { default: requirementRoutes } = await import('./routes/requirements.routes');
-  const { default: testManagement } = await import('./routes/test-management.routes');
-  const { runWithTenant } = await import('./middleware/tenancy');
+  const { default: suites } = await import('../routes/suites.routes');
+  const { default: requirementRoutes } = await import('../routes/requirements.routes');
+  const { default: testManagement } = await import('../routes/test-management.routes');
+  const { runWithTenant } = await import('../middleware/tenancy');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {

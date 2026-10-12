@@ -19,7 +19,7 @@ import { currentContentOf, currentVersionsOf } from '../test-version-store';
 import { publishedContentOf, reviewRequired } from '../test-publishing';
 import { openQuarantinesOf } from '../test-quarantine';
 import { SharedDataError, expandWithLoadedSets, loadSharedSets } from '../test-data';
-import { freezeMobilePlanDefinitions } from '../mobile-plan-units';
+import { freezeMobilePlanDefinitions } from '../mobile/mobile-plan-units';
 import type { SnapshotTestReference } from '../execution-snapshot';
 import { emit, type PlanRun } from './context';
 import type { RunInputs } from './inputs';

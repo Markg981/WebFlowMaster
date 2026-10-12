@@ -58,7 +58,7 @@ vi.mock('./agents/agent-fetch', () => ({
 }));
 
 const { mobileSessionRequest, performMobileTest, appiumTransport } =
-  await import('./mobile-runner');
+  await import('./mobile/mobile-runner');
 const { gridConnection, checkRunOn, toGridConfig } = await import('./browser-grids');
 const { runWithTenant } = await import('./middleware/tenancy');
 

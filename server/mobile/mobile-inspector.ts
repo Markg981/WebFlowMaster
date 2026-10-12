@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { MobileStep } from '@shared/mobile';
 import type { MobileTest } from '@shared/schema';
 import { parsePageSource, type InspectorNode } from '@shared/mobile-inspector';
-import type { GridConfig } from './browser-grids';
+import type { GridConfig } from '../browser-grids';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
 import {
   appiumTransport,

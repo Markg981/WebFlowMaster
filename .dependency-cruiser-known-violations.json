@@ -259,8 +259,8 @@
   {
     "type": "dependency",
     "from": "server/run-shards.ts",
-    "to": "server/mobile-plan-units.ts",
-    "unresolvedTo": "./mobile-plan-units",
+    "to": "server/mobile/mobile-plan-units.ts",
+    "unresolvedTo": "./mobile/mobile-plan-units",
     "dependencyTypes": [
       "local",
       "type-import"
