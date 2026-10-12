@@ -1,0 +1,179 @@
+<section
+  id="demo-evidenze"
+  data-transition="fade"
+  style="
+    background: #f7f8fa;
+    color: #14213d;
+    font-family: 'DM Sans', Arial, sans-serif;
+    padding: 128px 128px 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+  "
+>
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <p
+      style="
+        font-size: 24px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        color: #2563eb;
+        font-weight: 600;
+      "
+    >
+      03 · Leggere il risultato
+    </p>
+    <h2 style="font-size: 72px; font-weight: 700; line-height: 1.1; letter-spacing: -1px">
+      Cosa torna da un run, per ogni step
+    </h2>
+  </div>
+  <div style="display: flex; gap: 24px">
+    <div
+      style="
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        background: #ffffff;
+        padding: 32px 28px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Check" style="width: 44px; height: 44px; color: #16a34a"></x-icon>
+      <h3 style="font-size: 34px; font-weight: 700">Screenshot</h3>
+      <p style="font-size: 25px; line-height: 1.35; color: #4a5568">
+        Lo stato della pagina al momento di ogni step e del fallimento.
+      </p>
+    </div>
+    <div
+      style="
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        background: #ffffff;
+        padding: 32px 28px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Play" style="width: 44px; height: 44px; color: #2563eb"></x-icon>
+      <h3 style="font-size: 34px; font-weight: 700">Video</h3>
+      <p style="font-size: 25px; line-height: 1.35; color: #4a5568">
+        La registrazione intera dell'esecuzione, da riguardare con chi ha segnalato il bug.
+      </p>
+    </div>
+    <div
+      style="
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        background: #ffffff;
+        padding: 32px 28px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Activity" style="width: 44px; height: 44px; color: #2563eb"></x-icon>
+      <h3 style="font-size: 34px; font-weight: 700">Trace</h3>
+      <p style="font-size: 25px; line-height: 1.35; color: #4a5568">
+        La trace Playwright da riaprire passo per passo, con DOM e console.
+      </p>
+    </div>
+    <div
+      style="
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        background: #ffffff;
+        padding: 32px 28px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Cloud" style="width: 44px; height: 44px; color: #2563eb"></x-icon>
+      <h3 style="font-size: 34px; font-weight: 700">Rete</h3>
+      <p style="font-size: 25px; line-height: 1.35; color: #4a5568">
+        La cattura HAR delle chiamate: cosa ha risposto il backend e in quanto tempo.
+      </p>
+    </div>
+    <div
+      style="
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        background: #ffffff;
+        padding: 32px 28px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Lightbulb" style="width: 44px; height: 44px; color: #d97706"></x-icon>
+      <h3 style="font-size: 34px; font-weight: 700">Diagnosi</h3>
+      <p style="font-size: 25px; line-height: 1.35; color: #4a5568">
+        Confronto visivo, accessibilità, test instabili in quarantena, spiegazione AI opzionale.
+      </p>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 24px">
+    <p style="font-size: 28px; font-weight: 600; color: #4a5568">Export del report</p>
+    <p
+      style="
+        font-size: 26px;
+        font-weight: 600;
+        background: #e2e8f0;
+        padding: 12px 28px;
+        border-radius: 999px;
+      "
+    >
+      HTML
+    </p>
+    <p
+      style="
+        font-size: 26px;
+        font-weight: 600;
+        background: #e2e8f0;
+        padding: 12px 28px;
+        border-radius: 999px;
+      "
+    >
+      PDF
+    </p>
+    <p
+      style="
+        font-size: 26px;
+        font-weight: 600;
+        background: #e2e8f0;
+        padding: 12px 28px;
+        border-radius: 999px;
+      "
+    >
+      JUnit
+    </p>
+    <p
+      style="
+        font-size: 26px;
+        font-weight: 600;
+        background: #e2e8f0;
+        padding: 12px 28px;
+        border-radius: 999px;
+      "
+    >
+      Allure
+    </p>
+    <p style="font-size: 26px; color: #6b7280">· issue in Jira o Azure DevOps dal fallimento</p>
+  </div>
+  <p style="position: absolute; left: 128px; bottom: 64px; font-size: 24px; color: #6b7280">
+    Demo WebFlowMaster · 8
+  </p>
+  <aside>
+    Ecco cosa torna da un fallimento: lo screenshot del momento, il video, la trace Playwright da
+    riaprire passo per passo e la cattura di rete. Non serve chiedere a nessuno come riprodurlo. Il
+    report si esporta in HTML, PDF, JUnit e Allure, e dal fallimento si apre un'issue in Jira o
+    Azure DevOps.
+  </aside>
+</section>

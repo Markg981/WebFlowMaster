@@ -1,0 +1,149 @@
+<section
+  id="sicurezza"
+  data-transition="fade"
+  style="
+    background: #f7f8fa;
+    color: #14213d;
+    font-family: 'DM Sans', Arial, sans-serif;
+    padding: 128px 128px 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  "
+>
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <p
+      style="
+        font-size: 24px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        color: #2563eb;
+        font-weight: 600;
+      "
+    >
+      04 · Sicurezza
+    </p>
+    <h2 style="font-size: 72px; font-weight: 700; line-height: 1.1; letter-spacing: -1px">
+      Installato da noi, i dati restano da noi
+    </h2>
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px">
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #ffffff;
+        padding: 32px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Database" style="width: 44px; height: 44px; color: #2563eb"></x-icon>
+      <h3 style="font-size: 30px; font-weight: 700">Isolamento</h3>
+      <p style="font-size: 26px; line-height: 1.4; color: #4a5568">
+        Le organizzazioni sono separate dal database con la row-level security, non dalle clausole
+        dell'applicazione.
+      </p>
+    </div>
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #ffffff;
+        padding: 32px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Key" style="width: 44px; height: 44px; color: #2563eb"></x-icon>
+      <h3 style="font-size: 30px; font-weight: 700">Identità</h3>
+      <p style="font-size: 26px; line-height: 1.4; color: #4a5568">
+        Password con scrypt, MFA TOTP, SSO OpenID Connect e SAML, SCIM, chiavi API con ambito e
+        service account.
+      </p>
+    </div>
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #ffffff;
+        padding: 32px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Lock" style="width: 44px; height: 44px; color: #2563eb"></x-icon>
+      <h3 style="font-size: 30px; font-weight: 700">Segreti</h3>
+      <p style="font-size: 26px; line-height: 1.4; color: #4a5568">
+        Cifrati con AES-256-GCM, mostrati una volta sola. Lo stack rifiuta di partire con i valori
+        di esempio.
+      </p>
+    </div>
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #ffffff;
+        padding: 32px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Book" style="width: 44px; height: 44px; color: #2563eb"></x-icon>
+      <h3 style="font-size: 30px; font-weight: 700">Audit</h3>
+      <p style="font-size: 26px; line-height: 1.4; color: #4a5568">
+        Registro append-only di accessi, modifiche e configurazioni. Quote e retention per
+        organizzazione.
+      </p>
+    </div>
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #ffffff;
+        padding: 32px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Link" style="width: 44px; height: 44px; color: #2563eb"></x-icon>
+      <h3 style="font-size: 30px; font-weight: 700">Agenti</h3>
+      <p style="font-size: 26px; line-height: 1.4; color: #4a5568">
+        Solo connessioni in uscita dalla rete privata. Nessuna porta da aprire, nessun browser
+        esposto.
+      </p>
+    </div>
+    <div
+      style="
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #ffffff;
+        padding: 32px;
+        border: 1px solid #d7dce3;
+        border-radius: 20px;
+      "
+    >
+      <x-icon name="Verified" style="width: 44px; height: 44px; color: #2563eb"></x-icon>
+      <h3 style="font-size: 30px; font-weight: 700">Supply chain</h3>
+      <p style="font-size: 26px; line-height: 1.4; color: #4a5568">
+        Immagini non-root con base fissata per digest, SBOM e scansione Trivy a ogni release, CodeQL
+        e Dependabot in CI.
+      </p>
+    </div>
+  </div>
+  <p style="position: absolute; left: 128px; bottom: 64px; font-size: 24px; color: #6b7280">
+    Checklist di hardening nella documentazione, sezione Sicurezza · Demo WebFlowMaster · 12
+  </p>
+  <aside>
+    L'isolamento fra organizzazioni è imposto dal database con la row-level security, non dalle
+    clausole dell'applicazione. I segreti sono cifrati con AES-256-GCM e mostrati una volta sola. Il
+    registro di audit è append-only. Le immagini Docker girano non-root, con SBOM e scansione Trivy
+    a ogni release. Tutto installato nella nostra infrastruttura: i dati non escono.
+  </aside>
+</section>
