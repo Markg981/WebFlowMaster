@@ -77,13 +77,13 @@ describe('route modules cannot query outside the tenant context', () => {
   });
 
   /**
-   * server/routes.ts is the legacy file of inline handlers, and it is deliberately outside
-   * routeFiles() above: it still reaches privilegedDb on purpose for user_settings and
-   * system_settings, neither of which is org-scoped and neither of which app_user is even
-   * granted access to any more (migration 0006).
+   * user_settings and system_settings are reached through privilegedDb on purpose, by
+   * server/user-settings.ts and server/system-settings.ts: neither table is org-scoped and
+   * app_user is not even granted them any more (migration 0006). They used to be queried
+   * inline in server/routes.ts, the legacy file of inline handlers outside routeFiles().
    *
    * That exemption must not become a hiding place. Every cross-tenant leak the final review
-   * found lived in this file — five of them, all reading or deleting another tenant's rows
+   * found lived in server/routes.ts — five of them, all reading or deleting another tenant's rows
    * through an unscoped privilegedDb query, in the one file the rule above cannot see. So
    * rather than exempt the file wholesale, forbid the thing that actually went wrong: an
    * org-scoped table reached through the privileged handle.
@@ -111,6 +111,14 @@ describe('route modules cannot query outside the tenant context', () => {
     'routes.ts': {
       max: 0,
       why: 'Every handler here is inside a request, so it always has an ambient organization.',
+    },
+    'user-settings.ts': {
+      max: 0,
+      why: "A person's own settings, keyed by the user: user_settings has no organization.",
+    },
+    'system-settings.ts': {
+      max: 0,
+      why: 'Installation-wide settings: system_settings has no organization.',
     },
     'websocket.ts': {
       max: 2,
@@ -246,28 +254,25 @@ describe('route modules cannot query outside the tenant context', () => {
   }
 
   /**
-   * The requireRole rule above governs only server/routes/*.routes.ts, and only mutating
-   * routes. server/routes.ts was outside it entirely, which left sixteen live handlers with no
-   * role check at all — a viewer could delete API-test history, drive a browser, or proxy an
-   * arbitrary outbound request.
-   *
-   * Every route in this file is checked, reads included. A read is not automatically harmless:
-   * GET /api/selectable-tests enumerates an organization's tests, and the audit trail is
-   * owner-only precisely because reading who-did-what is a privilege. Deciding a role for a new
-   * handler is a two-second judgement; forgetting to decide one is how this happened.
+   * The requireRole rule below governs only server/routes/*.routes.ts, and only mutating
+   * routes. server/routes.ts was outside it entirely, which once left sixteen live handlers
+   * with no role check at all — a viewer could delete API-test history, drive a browser, or
+   * proxy an arbitrary outbound request. The last nineteen inline handlers have since moved
+   * into server/routes/ modules, so the file is held to having none: a new one would be
+   * outside every rule here, and would bring back the second convention for writing an
+   * endpoint that the move removed.
    */
-  it('every route in server/routes.ts declares a required role', () => {
+  it('server/routes.ts only mounts routers and defines no handler of its own', () => {
     const source = fs.readFileSync(path.join(serverDir, 'routes.ts'), 'utf8');
-    const calls = routeCalls(source, 'app', ['get', 'post', 'put', 'patch', 'delete']);
-    // Guards the guard: if the parser stops recognising routes, the rule below passes vacuously.
-    // The number falls as handlers move into server/routes/*.routes.ts; lower it with them.
-    expect(calls.length).toBeGreaterThanOrEqual(15);
+    // Guards the guard: the parser must still recognise a route, or the rule passes vacuously.
+    expect(routeCalls("app.get('/api/x', async (req, res) => {});", 'app', ['get'])).toHaveLength(
+      1,
+    );
 
-    const offenders = calls
-      .filter(({ chain }) => !chain.includes('requireRole'))
-      .map(({ method, paths, line }) => `${method.toUpperCase()} ${paths[0]} (line ${line})`);
-
-    expect(offenders, `routes with no requireRole: ${offenders.join(', ')}`).toEqual([]);
+    const inline = routeCalls(source, 'app', ['get', 'post', 'put', 'patch', 'delete']).map(
+      ({ method, paths, line }) => `${method.toUpperCase()} ${paths[0]} (line ${line})`,
+    );
+    expect(inline, `move these into a server/routes/ module: ${inline.join(', ')}`).toEqual([]);
   });
 
   it.each(Object.entries(PRIVILEGED_BOOTSTRAP_BUDGET))(

@@ -2,7 +2,7 @@ import type { ErrorRequestHandler, Request } from 'express';
 import { getCorrelationId } from '../../middleware/correlation';
 import { recordIncident, type IncidentLogger } from '../incident';
 import { redactWebhookPath } from '../../webhook-tokens';
-import { quotaErrorBody } from '../../tenant-quotas';
+import { quotaErrorBody, quotaErrorStatus } from '../../tenant-quotas';
 
 /**
  * Headers worth keeping. Everything else is either noise or a credential.
@@ -47,7 +47,7 @@ export function incidentErrorHandler(logger: IncidentLogger): ErrorRequestHandle
   return (err, req, res, _next) => {
     const quota = quotaErrorBody(err);
     if (quota && !res.headersSent) {
-      res.status(429).json(quota);
+      res.status(quotaErrorStatus(err)).json(quota);
       return;
     }
     const status = err?.status || err?.statusCode || 500;
@@ -72,7 +72,12 @@ export function incidentErrorHandler(logger: IncidentLogger): ErrorRequestHandle
     logger.error('Unhandled request error', { status, message, stack: err?.stack });
 
     if (!res.headersSent) {
-      res.status(status).json({ message });
+      // A 5xx is a fault, and its message is whatever the driver or library said (a SQL
+      // error, a stack-bound TypeError), which is for the log above, not the caller. A 4xx
+      // was raised on purpose to tell the caller something. `error` as well as `message`,
+      // because that is the field every route answers its own failures in.
+      const answer = status >= 500 ? 'Internal Server Error' : message;
+      res.status(status).json({ message: answer, error: answer });
     }
   };
 }
