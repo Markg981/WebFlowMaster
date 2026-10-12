@@ -18,7 +18,7 @@ import { withTenantTransaction } from '../middleware/tenancy';
 import { currentContentOf, currentVersionsOf } from '../test-version-store';
 import { publishedContentOf, reviewRequired } from '../test-publishing';
 import { openQuarantinesOf } from '../test-quarantine';
-import { SharedDataError, expandSharedDataset } from '../test-data';
+import { SharedDataError, expandWithLoadedSets, loadSharedSets } from '../test-data';
 import { freezeMobilePlanDefinitions } from '../mobile-plan-units';
 import type { SnapshotTestReference } from '../execution-snapshot';
 import { emit, type PlanRun } from './context';
@@ -283,9 +283,13 @@ async function applyDatasets(
     }
   } else if (tests.size > 0) {
     await withTenantTransaction(async (tx) => {
+      const sets = await loadSharedSets(
+        tx,
+        Array.from(tests.values(), (test) => test.dataset),
+      );
       for (const [testId, test] of Array.from(tests)) {
         try {
-          tests.set(testId, await expandSharedDataset(tx, test));
+          tests.set(testId, expandWithLoadedSets(test, sets));
         } catch (error) {
           if (!(error instanceof SharedDataError)) throw error;
           errors.set(testId, error.message);
