@@ -1,6 +1,6 @@
 import type { ApiRunResult } from './api-test-runner';
 import { redactHistoryEntry } from '../runtime/history-redaction';
-import { isSensitiveKey } from '../utils/log-redactor';
+import { isSensitiveKey } from '../platform/utils/log-redactor';
 
 /** Keep live captures for the next request, but persist only redacted protocol evidence. */
 export function protocolReport(result: ApiRunResult, variables: Record<string, string>) {

@@ -108,7 +108,7 @@ sequenceDiagram
   T->>PG: COMMIT
 ```
 
-Three details carry the whole design (`server/middleware/tenancy.ts`):
+Three details carry the whole design (`server/platform/middleware/tenancy.ts`):
 
 - **`SET LOCAL ROLE app_user`**: RLS does nothing for a superuser or a role with `BYPASSRLS`. The
   connection role owns the tables and may bypass RLS; `app_user` may not. Every tenant query runs as
@@ -121,7 +121,7 @@ Three details carry the whole design (`server/middleware/tenancy.ts`):
 Nested calls join the open transaction rather than opening a second one, and binding a different
 organization inside an open transaction throws `TenantConflictError`.
 
-At startup, `assertTenancyPreconditions` (`server/db.ts`) checks that `app_user` exists, that the
+At startup, `assertTenancyPreconditions` (`server/platform/db.ts`) checks that `app_user` exists, that the
 connection role may switch to it, and that `app_user` cannot bypass RLS, and refuses to start
 otherwise.
 
@@ -199,9 +199,9 @@ leaves nothing to guess. Every one of them is shown once, when it is created.
 
 Environment secrets (`{{secret_…}}` variables), issue tracker tokens, GitHub/GitLab tokens and saved
 login states (cookies of the application under test) are encrypted with **AES-256-GCM** using the
-installation's `ENCRYPTION_KEY` (`server/crypto.ts`), each with its own IV and authentication tag.
+installation's `ENCRYPTION_KEY` (`server/platform/crypto.ts`), each with its own IV and authentication tag.
 None of them is ever returned by the API; an edit form that cannot show the current value treats an
-empty field as "leave it unchanged". Logs pass through a redactor (`server/utils/log-redactor.ts`)
+empty field as "leave it unchanged". Logs pass through a redactor (`server/platform/utils/log-redactor.ts`)
 that masks passwords, tokens and keys, and HAR captures are sanitised before they are stored.
 
 ## Audit trail

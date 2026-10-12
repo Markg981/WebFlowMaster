@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { findInvalidGenerators, generate, substituteGenerators } from './generators';
-import { substituteVariables } from '../outbound-http';
+import { substituteVariables } from '../platform/outbound-http';
 import { findUnresolvedVariables } from './variables';
 
 describe('generators', () => {

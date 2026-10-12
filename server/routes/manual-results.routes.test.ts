@@ -3,7 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { auditLog, reportTestCaseResults, testPlanExecutions, testPlans } from '@shared/schema';
 import {
   isManualSequence,
@@ -14,7 +14,7 @@ import {
 } from '@shared/manual-tests';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -52,7 +52,7 @@ beforeAll(async () => {
   otherUserId = await createTestUser(otherOrganizationId, 'other-manual-user');
 
   const { default: routes } = await import('./manual-results.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {

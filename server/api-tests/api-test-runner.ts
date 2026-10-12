@@ -1,6 +1,6 @@
 import { AuthParamsSchema, type ApiTest, type Assertion, type AuthParams } from '@shared/schema';
 import { runGrpc, runWebSocket, xpathValue, type ProtocolResponse } from './api-protocols';
-import { fetchTarget, substituteInValues, substituteVariables } from '../outbound-http';
+import { fetchTarget, substituteInValues, substituteVariables } from '../platform/outbound-http';
 import { findUnresolvedVariables } from '../runtime/variables';
 import {
   ProtocolConfigSchema,
@@ -442,7 +442,7 @@ async function applyAuth(
 /**
  * A fetch whose requests all travel on one connection, for the schemes whose handshake belongs
  * to the connection rather than to a request — NTLM. Offered by both transports: this server's
- * (server/outbound-http.ts) and a local agent's (server/runtime/agents/agent-fetch.ts).
+ * (server/platform/outbound-http.ts) and a local agent's (server/runtime/agents/agent-fetch.ts).
  */
 export type OneConnectionFetch = typeof fetch & {
   oneConnection?: () => { fetch: typeof fetch; close: () => Promise<void> };

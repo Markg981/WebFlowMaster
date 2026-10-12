@@ -2,11 +2,11 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { getTableColumns, getTableName, is, sql } from 'drizzle-orm';
 import { PgTable } from 'drizzle-orm/pg-core';
 import * as schema from '@shared/schema';
-import { privilegedDb } from '../server/db';
+import { privilegedDb } from '../server/platform/db';
 import { createTestOrganization, createTestUser } from '../server/tests/factories';
-import { decryptSecret, encryptWithMasterKey, parseEnvelope } from '../server/crypto';
-import { forgetCachedKeys, listStoredKeys } from '../server/organization-keys';
-import { deriveMasterKey, seal } from '../server/master-keys';
+import { decryptSecret, encryptWithMasterKey, parseEnvelope } from '../server/platform/crypto';
+import { forgetCachedKeys, listStoredKeys } from '../server/platform/organization-keys';
+import { deriveMasterKey, seal } from '../server/platform/master-keys';
 import { ENCRYPTED_COLUMNS, parseArgs, rotateKeys } from './wfm-rotate-key';
 
 const FIRST_KEY = '0'.repeat(64);

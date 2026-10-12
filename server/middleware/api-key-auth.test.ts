@@ -3,13 +3,13 @@ import express from 'express';
 import request from 'supertest';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { apiKeys } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { generateApiKey } from '../identity/api-keys';
 import { apiKeyAuth, resetApiKeyUsageThrottle } from './api-key-auth';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

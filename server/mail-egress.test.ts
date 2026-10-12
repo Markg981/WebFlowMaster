@@ -2,7 +2,7 @@ import { createServer as httpServer } from 'node:http';
 import { createServer as tcpServer } from 'node:net';
 import { type AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import { mailSettings } from '@shared/mail-settings';
 import { createTestOrganization } from './tests/factories';
 import { mailerDeps, sendMail, smtpTransportOptions } from './messaging/mailer';

@@ -47,9 +47,9 @@ From 0.45 a failed query throws `DrizzleQueryError`, whose message is "Failed qu
 the SQL text and its parameter values, with the driver's error as `cause`. The application told a duplicate (409) from a
 missing reference (400) by the database error, so those turned into 500s; and every log line and
 error answer carrying `error.message` would have carried the query's parameters (password hashes,
-encrypted secrets, test data). `server/db-errors.ts` removes the wrapper at the one method every
+encrypted secrets, test data). `server/platform/db-errors.ts` removes the wrapper at the one method every
 Postgres query goes through, so the application sees the driver's error as before; the server
-refuses to start if a later drizzle-orm version moves that method, and `server/db-errors.test.ts`
+refuses to start if a later drizzle-orm version moves that method, and `server/platform/db-errors.test.ts`
 checks both the SQLSTATE and that no SQL or parameter reaches a message.
 
 #### Installing drizzle-orm 0.45 on Windows

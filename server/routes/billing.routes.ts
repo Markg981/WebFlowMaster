@@ -1,9 +1,9 @@
 import { type Request, type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { BILLING_INTERVALS } from '@shared/billing';
 import { requireRole } from '../middleware/require-role';
-import { getTenantOrgId } from '../middleware/tenancy';
+import { getTenantOrgId } from '../platform/middleware/tenancy';
 import { billingConfig } from '../tenancy/billing/config';
 import { BillingError } from '../tenancy/billing/provider';
 import { billingSummary, listPlans, openPortal, startCheckout } from '../tenancy/billing/service';

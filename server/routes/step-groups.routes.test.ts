@@ -2,12 +2,12 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { stepGroups, tests as testsTable } from '@shared/schema';
 import { STEP_GROUP_ACTION_ID } from '@shared/recording';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -48,7 +48,7 @@ beforeAll(async () => {
   otherUserId = await createTestUser(otherOrganizationId, 'other-groups-user');
 
   const { default: stepGroupsRoutes } = await import('./step-groups.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
 
   app = express();
   app.use(express.json());

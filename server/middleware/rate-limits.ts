@@ -1,7 +1,7 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import type { Request, RequestHandler } from 'express';
 import { apiError } from './require-scope';
-import { sharedStore } from './rate-limit-store';
+import { sharedStore } from '../platform/middleware/rate-limit-store';
 
 /**
  * How often a machine may call.

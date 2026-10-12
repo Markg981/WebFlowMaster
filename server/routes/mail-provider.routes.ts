@@ -1,5 +1,5 @@
 import express, { type RequestHandler } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { getProviderMailConfiguration, registerMailgunRequest } from '../messaging/mail-settings';
 import { receiveDeliveryEvent } from '../messaging/mail-delivery';

@@ -9,7 +9,7 @@ export default defineConfig({
     // Real child-process acceptance runs separately with its own deadline and no database setup.
     exclude: ['scripts/bdd-runtime.test.ts'],
     // Each test file gets its own in-memory PGlite database — see server/tests/setup.ts, which
-    // assigns DATABASE_URL before server/db.ts is ever imported. That is what makes parallelism
+    // assigns DATABASE_URL before server/platform/db.ts is ever imported. That is what makes parallelism
     // safe: PGlite is a single-writer WASM instance, so sharing one database across workers
     // corrupts it, which is why this used to be singleFork + fileParallelism:false. Separate
     // instances in separate forks have nothing to contend over.

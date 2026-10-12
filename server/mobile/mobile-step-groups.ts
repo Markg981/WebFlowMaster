@@ -2,7 +2,7 @@ import { inArray } from 'drizzle-orm';
 import { mobileStepGroups } from '@shared/schema';
 import { mobileGroupSchema, type MobileGroupDefinition } from '@shared/mobile-groups';
 import { type MobileStep, type MobilePlatform, type MobileExecutionStep } from '@shared/mobile';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 import { validateMobileExecution } from './mobile-flow';
 
 export class MobileDefinitionError extends Error {

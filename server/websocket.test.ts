@@ -5,10 +5,10 @@ import express, { type Express } from 'express';
 import request from 'supertest';
 import { WebSocket } from 'ws';
 import { inArray } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import { organizations, testPlans, testPlanExecutions, executionLogs, users } from '@shared/schema';
 
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

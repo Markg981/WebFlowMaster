@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 
 /**
  * Creates an organization and returns its id.

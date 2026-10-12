@@ -1,9 +1,9 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { requireRole } from '../middleware/require-role';
 import { webhookRateLimit } from '../middleware/rate-limits';
 import { organizationMailConfigured } from '../messaging/mailer';
-import { getTenantOrgId } from '../middleware/tenancy';
+import { getTenantOrgId } from '../platform/middleware/tenancy';
 import { getOrganizationTrackingStatus } from '../messaging/mail-settings';
 import {
   deliveryEventSchema,

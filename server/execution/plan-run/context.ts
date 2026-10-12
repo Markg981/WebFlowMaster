@@ -5,7 +5,7 @@
  * an earlier part had computed. The phases now take what they read as arguments and return what
  * they produce, so each can be read, and tested, on its own; this file is the part they all hold.
  */
-import type logger from '../../logger';
+import type logger from '../../platform/logger';
 import type { WsEmitter, ExecutionLogEntry } from '../../websocket';
 import type { RunWatch } from '../run-watch';
 import type { TestPlanExecution } from '@shared/schema';

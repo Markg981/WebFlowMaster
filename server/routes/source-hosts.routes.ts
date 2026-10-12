@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { asc, eq } from 'drizzle-orm';
@@ -10,9 +10,9 @@ import {
   type SourceHostProvider,
 } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
-import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
+import { getTenantOrgId, withTenantTransaction } from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 import { checkSourceHost, DEFAULT_API_URLS, hostConfig } from '../integrations/commit-status';
 
 /**

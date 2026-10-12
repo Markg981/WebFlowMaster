@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // The BullMQ backend only talks to the queue + DB; mock those so the wiring is
 // verifiable without a running Redis. (End-to-end firing must be validated in a
 // Redis environment — see the E2E checklist in the PR/commit.)
-vi.mock('./queue', () => ({
+vi.mock('./platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: {
     upsertJobScheduler: vi.fn().mockResolvedValue(undefined),
@@ -14,10 +14,10 @@ vi.mock('./queue', () => ({
   },
 }));
 vi.mock('./execution/test-execution-service', () => ({ runTestPlan: vi.fn() }));
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
-vi.mock('./db', () => ({
+vi.mock('./platform/db', () => ({
   privilegedDb: {
     update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn().mockResolvedValue(undefined) })) })),
   },
@@ -31,7 +31,7 @@ import schedulerService, {
   SCHEDULER_BACKEND,
   TRIGGER_SCHEDULE_JOB,
 } from './execution/scheduler-service';
-import { testExecutionQueue } from './queue';
+import { testExecutionQueue } from './platform/queue';
 
 const q = testExecutionQueue as unknown as {
   upsertJobScheduler: ReturnType<typeof vi.fn>;
@@ -140,7 +140,7 @@ describe('scheduler backend selection', () => {
     vi.stubEnv('SCHEDULER_BACKEND', 'cron');
     vi.resetModules();
     const fresh = await import('./execution/scheduler-service');
-    const freshQueue = (await import('./queue')).testExecutionQueue as unknown as typeof q;
+    const freshQueue = (await import('./platform/queue')).testExecutionQueue as unknown as typeof q;
     expect(fresh.SCHEDULER_BACKEND).toBe('cron');
 
     // The cron backend's removal touches its own in-memory map, never the queue.

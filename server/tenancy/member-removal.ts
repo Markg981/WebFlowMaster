@@ -17,7 +17,7 @@ import {
   userDashboardLayouts,
   userDashboardPreferences,
 } from '@shared/schema';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 
 /**
  * What happens to what a member made when the member is removed.

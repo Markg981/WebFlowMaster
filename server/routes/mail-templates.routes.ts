@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, eq, sql } from 'drizzle-orm';
 import {
@@ -9,7 +9,7 @@ import {
 } from '@shared/mail-templates';
 import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
-import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
+import { getTenantOrgId, withTenantTransaction } from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import {
   builtInTemplates,

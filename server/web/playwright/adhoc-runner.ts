@@ -5,10 +5,10 @@ import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performa
 import { Page } from 'playwright';
 import { cleanupReportStep, runCleanups } from '../../runtime/cleanup-runner';
 import type { DebugHooks } from '../debug-session';
-import { throwIfEgressDenied } from '../../egress-policy';
+import { throwIfEgressDenied } from '../../platform/egress-policy';
 import { FlowCursor } from '../../runtime/flow-cursor';
-import { recordRunnerFailure } from '../../observability/taps/runner';
-import { requestVariables, substituteVariables } from '../../outbound-http';
+import { recordRunnerFailure } from '../../platform/observability/taps/runner';
+import { requestVariables, substituteVariables } from '../../platform/outbound-http';
 import { runPreconditions } from '../../runtime/precondition-runner';
 import { resolveSequenceForRun } from '../../authoring/step-elements';
 import { executeStep } from '../step-executor';

@@ -3,11 +3,11 @@ import express from 'express';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { testPlans, testPlanExecutions } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -39,7 +39,7 @@ beforeAll(async () => {
     .values({ id: planId, name: 'Cancel plan', userId, organizationId });
 
   const { default: testPlanRoutes } = await import('./test-plans.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {

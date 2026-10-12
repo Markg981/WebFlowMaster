@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from '../db';
-import { withTenantTransaction, runWithTenant } from '../middleware/tenancy';
+import { privilegedDb } from '../platform/db';
+import { withTenantTransaction, runWithTenant } from '../platform/middleware/tenancy';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
 import { projects } from '@shared/schema';
 import { createTestOrganization, createTestUser } from './factories';

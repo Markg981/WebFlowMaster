@@ -1,9 +1,9 @@
 import { beforeAll, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { createTestOrganization, createTestUser } from './factories';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 let org: number, foreign: number, owner: number, other: number;
 const id = randomUUID();
 beforeAll(async () => {

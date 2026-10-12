@@ -14,7 +14,7 @@ import {
   type MobileTest,
   type Test,
 } from '@shared/schema';
-import { withTenantTransaction } from '../../middleware/tenancy';
+import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { currentContentOf, currentVersionsOf } from '../../authoring/test-version-store';
 import { publishedContentOf, reviewRequired } from '../../authoring/test-publishing';
 import { openQuarantinesOf } from '../../authoring/test-quarantine';

@@ -1,12 +1,12 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
 import { AUDIT_ACTIONS, testPlans, testPlanWebhooks } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { generateWebhookToken } from '../identity/webhook-tokens';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Creating, listing and deleting the webhooks that start a plan from CI.

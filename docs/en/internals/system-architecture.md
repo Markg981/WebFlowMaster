@@ -301,5 +301,5 @@ What scaling needs (details in [Installation](../admin/installation) and [Operat
 | 443 → 5000   | Reverse proxy                                                            | In; the proxy must pass WebSocket upgrades on `/ws` and `/api/agent/v1/*` |
 | Outbound 443 | Trackers, SCM, notifiers, grids, Gemini, S3, the applications under test | Out, from web and workers; from agents to the web process                 |
 
-Outbound HTTP from the server goes through `server/outbound-http.ts`, which keeps a deliberate
+Outbound HTTP from the server goes through `server/platform/outbound-http.ts`, which keeps a deliberate
 allowlist for self-signed certificates (`INSECURE_TLS_HOSTS`) and substitutes `{{variables}}`.

@@ -15,7 +15,7 @@ vi.mock('node-cron', () => ({
 vi.mock('./test-execution-service', () => ({
   runTestPlan: vi.fn().mockResolvedValue({ status: 'passed' }),
 }));
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('../logger', () => ({
   },
 }));
 
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   users,
   testPlans,

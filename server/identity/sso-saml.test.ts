@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import { deflateRawSync, inflateRawSync } from 'node:zlib';
 import { eq } from 'drizzle-orm';
 import { SignedXml } from 'xml-crypto';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   auditLog,
   invitations,
@@ -29,7 +29,7 @@ import {
 // SAML sign-in against the real (PGlite) test database. The identity provider is this file: it reads
 // the AuthnRequest the product sends and answers with a Response whose assertion it signs with a test
 // key (server/tests/fixtures). Only the logger is mocked.
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -54,7 +54,7 @@ let app: Express;
 beforeAll(async () => {
   process.env.SESSION_SECRET = 'test-session-secret';
   const { setupAuth } = await import('./auth');
-  const { tenancyMiddleware } = await import('../middleware/tenancy');
+  const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
   const { requireSso } = await import('../middleware/require-sso');
   const { csrfOriginCheck } = await import('../middleware/csrf');
   const ssoRoutes = (await import('../routes/sso.routes')).default;

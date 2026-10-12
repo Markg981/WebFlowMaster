@@ -418,7 +418,7 @@ export function debugChannel(): Promise<DebugChannel> {
   defaultChannel ??= (async () => {
     const { browserTaskMode } = await import('./browser-tasks');
     if (browserTaskMode() === 'inline') return memoryDebugChannel();
-    const { connection } = await import('../redis');
+    const { connection } = await import('../platform/redis');
     return redisDebugChannel(connection);
   })();
   return defaultChannel;

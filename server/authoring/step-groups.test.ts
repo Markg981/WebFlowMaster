@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import { STEP_GROUP_ACTION_ID } from '@shared/recording';
 import { stepGroups } from '@shared/schema';
-import { privilegedDb } from '../db';
-import { runWithTenant } from '../middleware/tenancy';
+import { privilegedDb } from '../platform/db';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import {
   expandSequenceForRun,

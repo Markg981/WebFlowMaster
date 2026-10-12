@@ -3,10 +3,10 @@ import express from 'express';
 import request from 'supertest';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { mailDeliveries, mailDeliveryEvents } from '@shared/mail-delivery';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { runWithTenant } from '../middleware/tenancy';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import { mailerDeps, sendMail } from '../messaging/mailer';
 import {
   deliverySignature,

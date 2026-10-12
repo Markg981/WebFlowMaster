@@ -15,7 +15,7 @@ import WebSocket, { WebSocketServer } from 'ws';
  * sent through a borrowed browser behave like fetch, from the agent's side.
  */
 
-vi.mock('../../logger', () => ({
+vi.mock('../../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

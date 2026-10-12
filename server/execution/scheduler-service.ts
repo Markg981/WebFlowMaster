@@ -2,14 +2,14 @@ import * as cron from 'node-cron';
 // cron-parser v4 is CommonJS; under Node ESM (tsx) only the default import exposes
 // its members — a named `{ parseExpression }` import throws at runtime.
 import cronParser from 'cron-parser';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { environments, testPlanSchedules, testPlans } from '@shared/schema';
 import type { TestPlanSchedule, TestPlanExecution, TestPlan } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import logger from '../logger';
+import logger from '../platform/logger';
 import { ExecutionEnqueueError, executionOrchestrator } from './execution-orchestrator';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
-import { testExecutionQueue } from '../queue';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
+import { testExecutionQueue } from '../platform/queue';
 
 interface ActiveJob {
   job: any; // cron.ScheduledTask

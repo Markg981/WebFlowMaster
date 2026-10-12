@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const queued: Array<{ options: { jobId: string } }> = [];
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('../logger', () => ({
   },
   updateLogLevel: vi.fn(),
 }));
-vi.mock('../queue', () => ({
+vi.mock('../platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: {
     add: vi.fn(async (_name: string, _data: unknown, options: { jobId: string }) => {
@@ -35,12 +35,12 @@ vi.mock('../queue', () => ({
   },
 }));
 
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const { apiKeys, testPlanExecutions, testPlans, users } = await import('@shared/schema');
 const { createTestOrganization, createTestUser } = await import('../tests/factories');
 const { generateApiKey } = await import('../identity/api-keys');
 const { apiKeyAuth, resetApiKeyUsageThrottle } = await import('../middleware/api-key-auth');
-const { tenancyMiddleware } = await import('../middleware/tenancy');
+const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
 const { default: apiV1Routes } = await import('./api-v1.routes');
 const { default: apiKeysRoutes } = await import('./api-keys.routes');
 

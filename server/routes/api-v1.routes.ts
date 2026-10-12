@@ -1,5 +1,5 @@
 import { type Request } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { readExecutionSnapshot } from '../execution/execution-snapshot';
 import { MAX_CHANGED_FILES } from '../execution/test-impact';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ import {
 } from '@shared/schema';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { EXECUTION_STATUSES } from '@shared/execution-status';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { apiError, requireScope } from '../middleware/require-scope';
 import { executionOrchestrator, ExecutionEnqueueError } from '../execution/execution-orchestrator';
 import { quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
@@ -27,8 +27,8 @@ import {
 } from '../reporting/report-export';
 import { openApiDocument } from '../api-v1/openapi';
 import { ciContextSchema } from '@shared/ci';
-import { reportUrlFor } from '../report-links';
-import logger from '../logger';
+import { reportUrlFor } from '../platform/report-links';
+import logger from '../platform/logger';
 import { registerAuthoringRoutes } from '../api-v1/authoring';
 import { registerManagementRoutes } from '../api-v1/management';
 

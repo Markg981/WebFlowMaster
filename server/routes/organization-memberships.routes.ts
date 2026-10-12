@@ -1,5 +1,5 @@
 import { type Request, type Response, type NextFunction } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { AUDIT_ACTIONS, type User as SelectUser } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';

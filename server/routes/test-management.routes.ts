@@ -1,5 +1,5 @@
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -32,16 +32,16 @@ import {
 } from '@shared/test-management';
 import { isExecutionInFlight } from '@shared/execution-status';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
+import { withTenantTransaction, getTenantOrgId } from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 import { checkTestManagement } from '../integrations/test-management-providers';
 import {
   publicationsOf,
   publishExecution,
   toConnectionConfig,
 } from '../integrations/test-management';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * TestRail, Xray and Zephyr Scale (shared/test-management.ts): the connections, which case each

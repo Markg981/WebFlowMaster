@@ -64,7 +64,7 @@ describe('route modules cannot query outside the tenant context', () => {
    */
   it('no route module imports the privileged database handle', () => {
     // Any import form, not just a braced one: a namespace import (`import * as dbmod from
-    // '../db'`) and a dynamic `import('../db')` both reach privilegedDb, and an earlier
+    // '../platform/db'`) and a dynamic `import('../platform/db')` both reach privilegedDb, and an earlier
     // version of this rule matched only `import { ... } from '...db'` — verified by adding a
     // namespace import to a route file and watching the rule still pass.
     const reachesDbModule = /(?:from|import)\s*\(?\s*['"][^'"]*\/db['"]/;
@@ -78,7 +78,7 @@ describe('route modules cannot query outside the tenant context', () => {
 
   /**
    * user_settings and system_settings are reached through privilegedDb on purpose, by
-   * server/identity/user-settings.ts and server/system-settings.ts: neither table is org-scoped and
+   * server/identity/user-settings.ts and server/platform/system-settings.ts: neither table is org-scoped and
    * app_user is not even granted them any more (migration 0006). They used to be queried
    * inline in server/routes.ts, the legacy file of inline handlers outside routeFiles().
    *
@@ -116,7 +116,7 @@ describe('route modules cannot query outside the tenant context', () => {
       max: 0,
       why: "A person's own settings, keyed by the user: user_settings has no organization.",
     },
-    'system-settings.ts': {
+    'platform/system-settings.ts': {
       max: 0,
       why: 'Installation-wide settings: system_settings has no organization.',
     },
@@ -194,7 +194,7 @@ describe('route modules cannot query outside the tenant context', () => {
         "lookup. Everything inside an organization — listing, re-roling, removing — takes the caller's " +
         'tenant transaction.',
     },
-    'organization-keys.ts': {
+    'platform/organization-keys.ts': {
       max: 7,
       why:
         'The per-organization data keys are what every decrypt starts from, and a decrypt happens ' +

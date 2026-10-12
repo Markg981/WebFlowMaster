@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   tests,
   projects,
@@ -13,7 +13,7 @@ import {
   reportTestCaseResults,
 } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 
 let app: express.Express;
 let current: any;

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import { createTestOrganization, createTestUser } from './tests/factories';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from './platform/middleware/tenancy';
 import { defaultQuotas } from './tenancy/tenant-quotas';
 
 let org: number;

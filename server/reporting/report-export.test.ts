@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
  * another organization's run is not there.
  */
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -25,14 +25,14 @@ vi.mock('../logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const { reportTestCaseResults, testPlanExecutions, testPlans, users } =
   await import('@shared/schema');
 const { createTestOrganization } = await import('../tests/factories');
-const { tenancyMiddleware, runAsOrganization } = await import('../middleware/tenancy');
+const { tenancyMiddleware, runAsOrganization } = await import('../platform/middleware/tenancy');
 const { default: reportsRoutes } = await import('../routes/reports.routes');
 const { setArtifactStoreForTest } = await import('../tenancy/artifact-store');
-const { createZip, crc32 } = await import('../zip');
+const { createZip, crc32 } = await import('../platform/zip');
 const { exportRun } = await import('./report-export');
 const { historyIdFor } = await import('./allure-export');
 

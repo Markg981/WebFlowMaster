@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
 import type { z } from 'zod';
 import { userSettings } from '@shared/schema';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 
 /**
  * A person's own preferences: theme, language, the browser the recorder opens.

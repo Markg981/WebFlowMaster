@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
  * smuggle a formula into a spreadsheet.
  */
 
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -30,7 +30,7 @@ vi.mock('./web/browser-tasks', () => ({
   browserTasks: {},
   BrowserTaskError: class extends Error {},
 }));
-vi.mock('./queue', () => ({
+vi.mock('./platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: { add: vi.fn() },
 }));
@@ -41,10 +41,10 @@ vi.mock('./execution/scheduler-service', () => ({
   DEFAULT_SCHEDULE_TIMEZONE: 'UTC',
 }));
 
-const { privilegedDb } = await import('./db');
+const { privilegedDb } = await import('./platform/db');
 const { auditLog, testPlanExecutions, testPlans, users } = await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
-const { runWithTenant } = await import('./middleware/tenancy');
+const { runWithTenant } = await import('./platform/middleware/tenancy');
 const { default: testsRoutes } = await import('./routes/tests.routes');
 const { default: testPlansRoutes } = await import('./routes/test-plans.routes');
 const { default: environmentRoutes } = await import('./routes/environments.routes');

@@ -1,12 +1,16 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { mobileStepGroups } from '@shared/schema';
 import { mobileGroupSchema } from '@shared/mobile-groups';
-import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import {
+  getTenantOrgId,
+  withTenantTransaction,
+  type TenantTx,
+} from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { lockOrganizationRuns } from '../tenancy/tenant-quotas';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 const router = asyncRouter();
 class GroupError extends Error {

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { billingEvents, organizationSubscriptions } from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
 import { createPlan } from '../tenancy/billing/service';

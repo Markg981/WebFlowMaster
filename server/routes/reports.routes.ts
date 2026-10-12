@@ -1,6 +1,6 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { junitReportFor } from '../reporting/junit-report';
-import logger from '../logger';
+import logger from '../platform/logger';
 import { requireRole } from '../middleware/require-role';
 import {
   exportRun,

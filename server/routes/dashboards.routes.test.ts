@@ -2,10 +2,10 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { runWithTenant } from '../middleware/tenancy';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import { DEFAULT_DASHBOARD_WIDGETS } from '@shared/dashboard-layout';
 import { userDashboardLayouts } from '@shared/dashboard-layout';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 const commitProbe = vi.hoisted(() => ({
   enabled: false,
   committed: false,
@@ -13,8 +13,8 @@ const commitProbe = vi.hoisted(() => ({
   response: undefined as express.Response | undefined,
   pending: undefined as Promise<unknown> | undefined,
 }));
-vi.mock('../middleware/tenancy', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../middleware/tenancy')>();
+vi.mock('../platform/middleware/tenancy', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../platform/middleware/tenancy')>();
   return {
     ...actual,
     withTenantTransaction: async (fn: Parameters<typeof actual.withTenantTransaction>[0]) => {

@@ -12,7 +12,7 @@ import { eq } from 'drizzle-orm';
  * that it does not exist.
  */
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -27,15 +27,15 @@ vi.mock('../web/browser-tasks', () => ({
   browserTasks: {},
   BrowserTaskError: class extends Error {},
 }));
-vi.mock('../queue', () => ({
+vi.mock('../platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'q',
   testExecutionQueue: { add: vi.fn() },
 }));
 
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const { auditLog, projects, tests, users } = await import('@shared/schema');
 const { createTestOrganization } = await import('../tests/factories');
-const { tenancyMiddleware } = await import('../middleware/tenancy');
+const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
 const { default: projectsRoutes, effectiveProjectRole } = await import('./projects.routes');
 const { default: testsRoutes } = await import('./tests.routes');
 

@@ -1,5 +1,5 @@
 import { type Request, type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import {
   isEmailAddress,
   organizationMailConfigured,
@@ -14,7 +14,7 @@ import { and, desc, eq, gte, like, lte, type SQL } from 'drizzle-orm';
 import { organizations, users, invitations, auditLog, AUDIT_ACTIONS } from '@shared/schema';
 import { storage } from '../identity/storage';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
+import { withTenantTransaction, getTenantOrgId } from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { exportOrganization, eraseOrganization } from '../tenancy/organization-lifecycle';
 import { transferMemberContent } from '../tenancy/member-removal';
@@ -29,7 +29,7 @@ import {
   setMemberRole,
 } from '../tenancy/organization-memberships';
 import { issuePasswordReset } from '../identity/password-reset';
-import logger from '../logger';
+import logger from '../platform/logger';
 import { liveRunCounts, quotaUsage, quotasFor } from '../tenancy/tenant-quotas';
 import { availableRunnerCount } from '../runtime/runner-registry';
 

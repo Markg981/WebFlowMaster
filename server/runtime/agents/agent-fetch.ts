@@ -1,5 +1,5 @@
 import type { Browser, BrowserContext } from 'playwright';
-import { allowsSelfSignedCertificate } from '../../outbound-http';
+import { allowsSelfSignedCertificate } from '../../platform/outbound-http';
 import { connectToAgentBrowser, type AgentTarget } from './agent-browser';
 import { runProtocolOnAgent } from './agent-protocol';
 import type { OneConnectionFetch } from '../../api-tests/api-test-runner';

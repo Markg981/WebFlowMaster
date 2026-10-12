@@ -1,5 +1,5 @@
 import type { MobileLocator } from '@shared/mobile';
-import { fetchTarget } from '../outbound-http';
+import { fetchTarget } from '../platform/outbound-http';
 
 /**
  * The part of the W3C WebDriver protocol an Appium test needs, over fetch.

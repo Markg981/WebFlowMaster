@@ -36,7 +36,7 @@ import {
   runAsOrganization,
   getTenantOrgId,
   type TenantTx,
-} from '../middleware/tenancy';
+} from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { recordTestVersion, recordTypedTestVersion } from '../authoring/test-version-store';
 import { BddDefinitionError, prepareBddForSave } from '../bdd/bdd-definition';

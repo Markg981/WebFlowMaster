@@ -3,8 +3,12 @@ import express from 'express';
 import request from 'supertest';
 import { eq } from 'drizzle-orm';
 import { apiTests, mobileTests, projects, projectMembers, users } from '@shared/schema';
-import { privilegedDb } from './db';
-import { tenancyMiddleware, runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { privilegedDb } from './platform/db';
+import {
+  tenancyMiddleware,
+  runWithTenant,
+  withTenantTransaction,
+} from './platform/middleware/tenancy';
 import { createTestOrganization } from './tests/factories';
 import {
   recordTypedTestVersion,
@@ -12,7 +16,7 @@ import {
   currentVersionsOf,
 } from './authoring/test-version-store';
 import { publishedContentOf } from './authoring/test-publishing';
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

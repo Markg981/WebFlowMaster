@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { users, organizations, invitations, auditLog } from '@shared/schema';
 import { registrationMode } from './registration';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

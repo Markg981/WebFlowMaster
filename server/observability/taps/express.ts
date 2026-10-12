@@ -1,6 +1,6 @@
 import type { ErrorRequestHandler, Request } from 'express';
-import { getCorrelationId } from '../../middleware/correlation';
-import { recordIncident, type IncidentLogger } from '../incident';
+import { getCorrelationId } from '../../platform/middleware/correlation';
+import { recordIncident, type IncidentLogger } from '../../platform/observability/incident';
 import { redactWebhookPath } from '../../identity/webhook-tokens';
 import { quotaErrorBody, quotaErrorStatus } from '../../tenancy/tenant-quotas';
 

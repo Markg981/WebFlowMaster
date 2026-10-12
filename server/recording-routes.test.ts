@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import { users } from '../shared/schema';
 import type { RecordedAction } from '../shared/recording';
 import { createTestOrganization } from './tests/factories';

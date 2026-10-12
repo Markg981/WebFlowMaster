@@ -1,14 +1,14 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { apiKeys, users, AUDIT_ACTIONS } from '@shared/schema';
 import { API_SCOPE_NAMES, type ApiScope } from '@shared/api-scopes';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole, roleAllows } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { generateApiKey } from '../identity/api-keys';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Creating, listing and revoking the credentials a pipeline authenticates with.

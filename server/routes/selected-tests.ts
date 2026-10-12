@@ -1,6 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { tests, apiTests, mobileTests } from '@shared/schema';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 
 /** Matches the error assertSelectedTestsBelongTo throws, so a caller can map it to a 400. */
 export const SELECTED_TESTS_NOT_FOUND = /selected tests do not exist/i;

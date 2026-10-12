@@ -9,7 +9,7 @@ import {
   users,
   type TestQuarantine,
 } from '@shared/schema';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 import { recordAudit, type AuditActor } from '../tenancy/audit';
 
 /**

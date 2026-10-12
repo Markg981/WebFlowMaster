@@ -1,8 +1,8 @@
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
+import { withTenantTransaction, getTenantOrgId } from '../platform/middleware/tenancy';
 import { auditActor } from '../tenancy/audit';
 import {
   QuarantineError,
@@ -10,7 +10,7 @@ import {
   quarantineTest,
   releaseQuarantine,
 } from '../authoring/test-quarantine';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Setting unreliable tests aside, and bringing them back. What quarantine means for a run is in

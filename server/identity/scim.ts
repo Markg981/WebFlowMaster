@@ -12,10 +12,10 @@ import {
   type AuditAction,
 } from '@shared/schema';
 import { roleFromGroups, type RoleMapping } from '@shared/sso-roles';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { hashesMatch } from './api-keys';
-import { sqlState } from '../db-errors';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { sqlState } from '../platform/db-errors';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { transferMemberContent } from '../tenancy/member-removal';
 import {
   hasOtherMembership,

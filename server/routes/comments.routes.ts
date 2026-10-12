@@ -1,5 +1,5 @@
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
@@ -20,7 +20,11 @@ import {
   projectMembers,
 } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
+import {
+  withTenantTransaction,
+  getTenantOrgId,
+  type TenantTx,
+} from '../platform/middleware/tenancy';
 
 const router = asyncRouter();
 class CommentError extends Error {

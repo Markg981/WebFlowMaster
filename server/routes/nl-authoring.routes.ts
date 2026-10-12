@@ -1,13 +1,13 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { projectElements, projects } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { aiService } from '../authoring/ai-automation-service';
 import { authorSteps } from '../authoring/nl-authoring';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Turning what a test is supposed to do into the steps that do it.

@@ -3,9 +3,9 @@ import { sql } from 'drizzle-orm';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { createLocalArtifactStore } from './artifact-store';
 import { quotaUsage } from './tenant-quotas';
 

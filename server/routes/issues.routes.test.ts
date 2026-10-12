@@ -3,12 +3,12 @@ import express from 'express';
 import request from 'supertest';
 import { sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { issueLinks, issueTrackers, reportTestCaseResults } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -82,7 +82,7 @@ beforeAll(async () => {
 
   const { default: trackerRoutes } = await import('./issue-trackers.routes');
   const { default: issuesRoutes } = await import('./issues.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
 
   app = express();
   app.use(express.json());

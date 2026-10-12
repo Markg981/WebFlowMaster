@@ -1,13 +1,13 @@
 import { type RequestHandler } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import multer from 'multer';
 import { excelService } from '../integrations/excel-service';
 import fs from 'fs-extra';
-import logger from '../logger';
+import logger from '../platform/logger';
 import { excelSequencesMap, tests } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 
 /**

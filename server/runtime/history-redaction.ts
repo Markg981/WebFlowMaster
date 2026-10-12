@@ -1,4 +1,4 @@
-import { isSensitiveKey, redactString } from '../utils/log-redactor';
+import { isSensitiveKey, redactString } from '../platform/utils/log-redactor';
 
 /**
  * What the API tester's history may keep of an exchange.

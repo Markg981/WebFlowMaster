@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express, type Request, type Response, type NextFunction } from 'express';
 import { eq, sql } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   auditLog,
   invitations,
@@ -11,7 +11,7 @@ import {
   projects,
   users,
 } from '@shared/schema';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import {
   joinOrganization,
   membershipsOf,
@@ -28,7 +28,7 @@ import organizationRoutes from '../routes/organization.routes';
  * the last-owner rule follow memberships rather than the user row.
  */
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -44,7 +44,7 @@ let app: Express;
 beforeAll(async () => {
   process.env.SESSION_SECRET = 'test-session-secret';
   const { setupAuth } = await import('../identity/auth');
-  const { tenancyMiddleware } = await import('../middleware/tenancy');
+  const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
   const membershipRoutes = (await import('../routes/organization-memberships.routes')).default;
   app = express();
   app.use(express.json());

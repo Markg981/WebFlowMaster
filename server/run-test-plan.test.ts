@@ -10,7 +10,10 @@ import { describe, it, expect, vi } from 'vitest';
 const enqueue = vi.fn();
 const logError = vi.fn();
 
-vi.mock('./queue', () => ({ TEST_EXECUTION_QUEUE_NAME: 'test-queue', testExecutionQueue: {} }));
+vi.mock('./platform/queue', () => ({
+  TEST_EXECUTION_QUEUE_NAME: 'test-queue',
+  testExecutionQueue: {},
+}));
 vi.mock('./web/playwright-service', () => ({ playwrightService: {} }));
 vi.mock('./execution/execution-orchestrator', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./execution/execution-orchestrator')>();
@@ -19,7 +22,7 @@ vi.mock('./execution/execution-orchestrator', async (importOriginal) => {
     executionOrchestrator: { enqueue: (...args: unknown[]) => enqueue(...args) },
   };
 });
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

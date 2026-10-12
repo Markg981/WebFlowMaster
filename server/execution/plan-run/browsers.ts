@@ -5,7 +5,7 @@
 import { eq } from 'drizzle-orm';
 import { browserGrids } from '@shared/schema';
 import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-grids';
-import { withTenantTransaction } from '../../middleware/tenancy';
+import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { AgentHttp } from '../../runtime/agents/agent-fetch';
 import { gridWarnings } from '../../runtime/browser-grids';
 import {

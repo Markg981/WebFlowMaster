@@ -1,7 +1,7 @@
 # Prometheus alerting rules for WebFlowMaster. How to load them: docs/en/admin/telemetry.md,
 # section "Alerting".
 #
-# Every expression uses a metric the processes export (server/observability/metrics.ts) or one
+# Every expression uses a metric the processes export (server/platform/observability/metrics.ts) or one
 # Prometheus produces itself (`up`, one series per scrape target). Job names follow the scrape
 # configuration shown in the documentation: `wfm-api` and `wfm-worker`. Thresholds and windows are
 # starting points: set them from the installation's plan sizes, worker count and traffic.

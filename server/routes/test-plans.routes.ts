@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { checkRunOn } from '../runtime/browser-grids';
 import {
   testPlans,
@@ -21,16 +21,20 @@ import {
 } from '@shared/schema';
 import { eq, desc, asc, and, or, inArray, getTableColumns, sql, type SQL } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import logger from '../logger';
+import logger from '../platform/logger';
 import schedulerService, {
   assertValidTimezone,
   DEFAULT_SCHEDULE_TIMEZONE,
   firstRunAt,
 } from '../execution/scheduler-service';
-import { runAsOrganization, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import {
+  runAsOrganization,
+  withTenantTransaction,
+  type TenantTx,
+} from '../platform/middleware/tenancy';
 import { expandPlanTests, type TestReference } from '../authoring/test-suites';
 import { requireRole } from '../middleware/require-role';
-import { asyncHandler } from '../middleware/async-handler';
+import { asyncHandler } from '../platform/middleware/async-handler';
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from './selected-tests';
 import { requestCancellation } from '../execution/execution-state';
 import { AUDIT_ACTIONS } from '@shared/schema';

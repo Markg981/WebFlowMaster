@@ -12,7 +12,7 @@ import { promisify } from 'util';
  * it (downloaded to a file, then `node wfm.mjs`), with nothing else installed next to it.
  */
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

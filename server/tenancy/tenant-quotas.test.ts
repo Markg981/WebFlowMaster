@@ -14,10 +14,10 @@ vi.mock('../web/playwright-service', () => ({
   playwrightService: { executeTestSequence: vi.fn() },
 }));
 
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const { organizations, testPlanExecutions, testPlans, users } = await import('@shared/schema');
 const { createTestOrganization } = await import('../tests/factories');
-const { runWithTenant, withTenantTransaction } = await import('../middleware/tenancy');
+const { runWithTenant, withTenantTransaction } = await import('../platform/middleware/tenancy');
 const { defaultQuotas, fairPriority, liveRunCounts, quotasFor } = await import('./tenant-quotas');
 const { takeExecution, transitionExecution } = await import('../execution/execution-state');
 const { createExecutionOrchestrator, ExecutionEnqueueError } =

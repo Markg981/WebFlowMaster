@@ -11,11 +11,11 @@ import { eq } from 'drizzle-orm';
  * the requester cannot edit.
  */
 
-const { privilegedDb } = await import('./db');
+const { privilegedDb } = await import('./platform/db');
 const { projectMembers, projects, tags, testTags, testVersions, tests, users } =
   await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
-const { runWithTenant, withTenantTransaction } = await import('./middleware/tenancy');
+const { runWithTenant, withTenantTransaction } = await import('./platform/middleware/tenancy');
 
 let org: number;
 let owner: number;

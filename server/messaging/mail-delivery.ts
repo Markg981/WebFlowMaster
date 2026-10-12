@@ -1,14 +1,14 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   mailDeliveries,
   mailDeliveryEvents,
   type MailPurpose,
   type MailState,
 } from '@shared/mail-delivery';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 
 /** System mail and signed provider callbacks run before a browser tenant exists. Every row
  * names its organization explicitly; owner reads use ordinary tenant RLS. Content, tokens,

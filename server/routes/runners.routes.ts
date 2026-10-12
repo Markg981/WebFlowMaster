@@ -1,8 +1,8 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { requireInstallationAdmin } from '../tenancy/installation-admin';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { listRunners, setRunnerDesiredState, statusOf } from '../runtime/runner-registry';
 

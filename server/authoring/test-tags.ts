@@ -1,6 +1,6 @@
 import { and, eq, inArray, or, type SQL } from 'drizzle-orm';
 import { tags, testTags, type TaggableType } from '@shared/schema';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 
 /**
  * What a test is for, in the organization's own words.

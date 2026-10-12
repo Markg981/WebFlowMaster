@@ -16,7 +16,7 @@ import {
   type CoverageTest,
   type RequirementCoverage,
 } from '@shared/requirements';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 import type { TrackedItem } from './issue-providers';
 
 /**

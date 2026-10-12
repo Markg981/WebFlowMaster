@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { tests, testDataSets, testVersions } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { runAsOrganization, withTenantTransaction } from '../middleware/tenancy';
+import { runAsOrganization, withTenantTransaction } from '../platform/middleware/tenancy';
 import { freezeExecutionDatasets } from './execution-datasets';
 
 async function fixture() {

@@ -26,16 +26,20 @@ import {
   type OneConnectionFetch,
 } from './api-test-runner';
 import { failureOf } from './api-performance';
-import { runWithTenant, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import {
+  runWithTenant,
+  withTenantTransaction,
+  type TenantTx,
+} from '../platform/middleware/tenancy';
 import { STALE_CLAIM_MS, WORK_ITEM_HEARTBEAT_MS } from '../runtime/run-shards';
 import { withExecutionUsage } from '../tenancy/execution-usage';
 import { resolveVariables } from '../runtime/variables';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Runs a load test (shared/load-test.ts): the engine (runLoad), and around it the service a worker
  * executes a run with (processLoadRunJob) and the web process asks for one with (enqueueLoadRun).
- * A run is a BullMQ job on the load queue (server/queue.ts), apart from plans and their runners:
+ * A run is a BullMQ job on the load queue (server/platform/queue.ts), apart from plans and their runners:
  * it survives a web restart, and the limits are the installation's (loadLimits).
  *
  * A scheduler follows the stage profile: every tick it starts virtual users up to the number the
@@ -369,7 +373,7 @@ export function releaseLoadSlot(): void {
 
 // ─── The job ───────────────────────────────────────────────────────────────────
 
-/** What a load-run job carries (server/queue.ts, LOAD_RUN_JOB). Read as untrusted input. */
+/** What a load-run job carries (server/platform/queue.ts, LOAD_RUN_JOB). Read as untrusted input. */
 export const LoadRunJobSchema = z
   .object({
     runId: z.string().min(1),
@@ -391,7 +395,7 @@ export async function enqueueLoadRun(
   organizationId: number,
   userId: number,
 ): Promise<string> {
-  const { LOAD_RUN_JOB, loadQueue } = await import('../queue');
+  const { LOAD_RUN_JOB, loadQueue } = await import('../platform/queue');
   const job = await loadQueue.add(
     LOAD_RUN_JOB,
     { runId, organizationId, userId } satisfies LoadRunJob,
@@ -416,7 +420,7 @@ export async function enqueueLoadRun(
 export async function removeQueuedLoadJob(jobId: string | null): Promise<boolean> {
   if (!jobId) return false;
   try {
-    const { loadQueue } = await import('../queue');
+    const { loadQueue } = await import('../platform/queue');
     const job = await loadQueue.getJob(jobId);
     if (!job) return false;
     const state = await job.getState();

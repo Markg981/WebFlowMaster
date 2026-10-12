@@ -9,7 +9,7 @@ import {
   egressPolicy,
   egressPolicyDeps,
   guardBrowserContext,
-} from './egress-policy';
+} from './platform/egress-policy';
 
 /**
  * The browser a test drives must not read the metadata service either: a page can fetch()

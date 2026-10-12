@@ -11,7 +11,7 @@ import type { AppiumSession } from './appium-client';
 import { FlowCursor } from '../runtime/flow-cursor';
 import { compareValues } from '../runtime/value-comparison';
 import { findUnresolvedVariables } from '../runtime/variables';
-import { substituteVariables } from '../outbound-http';
+import { substituteVariables } from '../platform/outbound-http';
 
 interface Context {
   steps: MobileExecutionStep[];

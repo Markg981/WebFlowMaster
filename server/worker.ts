@@ -1,16 +1,21 @@
 import { DelayedError, Worker, type Job } from 'bullmq';
-import { configureEgressProxy } from './egress-proxy';
-import { connection } from './redis';
-import { LOAD_QUEUE_NAME, TEST_EXECUTION_QUEUE_NAME, loadQueue, testExecutionQueue } from './queue';
+import { configureEgressProxy } from './platform/egress-proxy';
+import { connection } from './platform/redis';
+import {
+  LOAD_QUEUE_NAME,
+  TEST_EXECUTION_QUEUE_NAME,
+  loadQueue,
+  testExecutionQueue,
+} from './platform/queue';
 import { processShardJob, processTestPlanJob } from './execution/test-execution-service';
 import { SHARD_JOB, registerShardDispatcher } from './runtime/run-shards';
 import { LoadRunJobSchema, loadLimits, processLoadRunJob } from './api-tests/load-runner';
-import logger, { applyLogSettings } from './logger';
-import { installProcessErrorHandlers } from './process-errors';
-import { resolveWorkerShutdownGraceMs } from './config';
-import { correlationStore } from './middleware/correlation';
-import { closeDb, privilegedDb } from './db';
-import { assertOrganizationKeysReadable } from './organization-keys';
+import logger, { applyLogSettings } from './platform/logger';
+import { installProcessErrorHandlers } from './platform/process-errors';
+import { resolveWorkerShutdownGraceMs } from './platform/config';
+import { correlationStore } from './platform/middleware/correlation';
+import { closeDb, privilegedDb } from './platform/db';
+import { assertOrganizationKeysReadable } from './platform/organization-keys';
 import {
   TRIGGER_SCHEDULE_JOB,
   executeScheduledPlan,
@@ -18,7 +23,7 @@ import {
 } from './execution/scheduler-service';
 import { testPlanSchedules, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { withJobIncidents } from './observability/taps/jobs';
+import { withJobIncidents } from './platform/observability/taps/jobs';
 import { artifactStore } from './tenancy/artifact-store';
 import {
   BROWSER_TASK_QUEUE_NAME,
@@ -29,17 +34,21 @@ import { RunnerAgent, type PausableQueue } from './runtime/runner-registry';
 import { registerCommitStatus } from './integrations/commit-status';
 import { registerRunPromotion } from './execution/run-promotion';
 import { installWorkerLogEmitter } from './websocket';
-import { publicBaseUrl } from './report-links';
+import { publicBaseUrl } from './platform/report-links';
 import 'dotenv/config';
 import { startTracing } from '../shared/telemetry';
-import { applicationMetrics, instrumentJob, startMetricsServer } from './observability/metrics';
+import {
+  applicationMetrics,
+  instrumentJob,
+  startMetricsServer,
+} from './platform/observability/metrics';
 import { Queue } from 'bullmq';
 import {
   ExecutePlanJobSchema,
   ShardJobSchema,
   TriggerScheduleJobSchema,
   readJob,
-} from './job-payloads';
+} from './platform/job-payloads';
 
 const stopTracing = startTracing('worker');
 configureEgressProxy();
@@ -299,7 +308,7 @@ configureEgressProxy();
   // ─── Graceful shutdown ──────────────────────────────────────────────────────
   // worker.close() waits for the in-flight job to finish before resolving, so a
   // redeploy doesn't kill a running test execution mid-flight — for as long as
-  // WORKER_SHUTDOWN_GRACE_MS allows (server/config.ts), since a run can last hours.
+  // WORKER_SHUTDOWN_GRACE_MS allows (server/platform/config.ts), since a run can last hours.
   let shuttingDown = false;
   const shutdown = async (signal: string, exitCode = 0) => {
     if (shuttingDown) return;
@@ -336,6 +345,6 @@ configureEgressProxy();
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
   // What nothing caught: logged with its stack, and an exception takes the same way out as
-  // SIGTERM, ending non-zero (server/process-errors.ts).
+  // SIGTERM, ending non-zero (server/platform/process-errors.ts).
   installProcessErrorHandlers(logger, shutdown);
 })();

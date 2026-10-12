@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import request from 'supertest';
 import express, { type Express } from 'express';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import {
   auditLog,
   invitations,
@@ -17,9 +17,9 @@ import { mailRunFinished, personWantsMail } from './integrations/run-mail';
 import type { RunSummary } from './integrations/notifications';
 import { mailSettings } from '@shared/mail-settings';
 import { issuePasswordReset } from './identity/password-reset';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from './platform/middleware/tenancy';
 
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

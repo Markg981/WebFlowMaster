@@ -2,13 +2,13 @@ import type { Test, Precondition, Cleanup } from '@shared/schema';
 import { BDD_MAX_OUTPUT_BYTES, BddAgentResultSchema, type BddAgentResult } from '@shared/bdd-agent';
 import { validateBddTest } from './gherkin';
 import { resolveBddBinding } from './bdd-profiles';
-import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
+import { getTenantOrgId, withTenantTransaction } from '../platform/middleware/tenancy';
 import { runBddOnAgent } from '../runtime/agents/agent-bdd';
 import { AgentHttp } from '../runtime/agents/agent-fetch';
 import { runPreconditions } from '../runtime/precondition-runner';
 import { runCleanups } from '../runtime/cleanup-runner';
 import { redactHistoryEntry } from '../runtime/history-redaction';
-import { redactString } from '../utils/log-redactor';
+import { redactString } from '../platform/utils/log-redactor';
 import type { IndividualTestRunResult, RunTestOptions } from '../execution/test-execution-service';
 
 export async function runDedicatedBddTest(

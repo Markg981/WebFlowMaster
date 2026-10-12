@@ -5,7 +5,7 @@ import playwright, { type Browser, type BrowserContext } from 'playwright';
 import { PlaywrightService } from '../web/playwright-service';
 import { mapRecordedSequence, type RecordedAction } from '../../shared/recording';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

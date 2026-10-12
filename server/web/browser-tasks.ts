@@ -1,12 +1,12 @@
 import { Queue, QueueEvents } from 'bullmq';
-import { TracedQueue } from '../observability/queue';
+import { TracedQueue } from '../platform/observability/queue';
 import { eq } from 'drizzle-orm';
 import { tests } from '@shared/schema';
 import { playwrightService, type AdhocSequencePayload } from './playwright-service';
 import { resolveVariables } from '../runtime/variables';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
-import { getCorrelationId } from '../middleware/correlation';
-import { connection } from '../redis';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
+import { getCorrelationId } from '../platform/middleware/correlation';
+import { connection } from '../platform/redis';
 import { randomUUID } from 'node:crypto';
 import { checkExecutionBudget, withExecutionUsage } from '../tenancy/execution-usage';
 import { QuotaError } from '../tenancy/tenant-quotas';

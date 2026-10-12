@@ -13,7 +13,7 @@
   //
   //   - `../server/**/*.ts` would drag in every server test file. The inherited
   //     `**/*.test.ts` exclude is resolved relative to THIS directory, so it does not match
-  //     anything reached through `../`. Naming ../server/db.ts pulls in only its own
+  //     anything reached through `../`. Naming ../server/platform/db.ts pulls in only its own
   //     (non-test) transitive imports.
   //
   // Project references would express the server/shared dependency better, but
@@ -28,19 +28,21 @@
     "wfm-load.ts",
     "netcontent/**/*.ts",
     "netcontent-ui/**/*.ts",
-    "../server/db.ts",
+    "../server/platform/db.ts",
     // apply-migrations diagnoses the schema before touching it; same rule as db.ts — named
     // explicitly so only its own non-test imports come along.
-    "../server/schema-state.ts",
+    "../server/platform/schema-state.ts",
     // db.ts unwraps drizzle's query errors at startup.
-    "../server/db-errors.ts",
+    "../server/platform/db-errors.ts",
     // ...and sizes its pool from the environment.
-    "../server/db-pool-settings.ts",
+    "../server/platform/db-pool-settings.ts",
     // ...and logs through the application logger, with what that formats lines with.
-    "../server/logger.ts",
-    "../server/loki-transport.ts",
-    "../server/middleware/correlation.ts",
-    "../server/utils/log-redactor.ts",
+    "../server/platform/logger.ts",
+    "../server/platform/loki-transport.ts",
+    "../server/platform/middleware/correlation.ts",
+    "../server/platform/utils/log-redactor.ts",
+    // logger.ts and schema-state.ts find logs/ and migrations/ from the app root.
+    "../server/platform/app-root.ts",
     "../shared/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]

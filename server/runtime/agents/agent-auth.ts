@@ -1,7 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { agents, type Agent } from '@shared/schema';
 import type { AgentHello } from '@shared/agents';
-import { privilegedDb } from '../../db';
+import { privilegedDb } from '../../platform/db';
 import { hashAgentToken } from './agent-credentials';
 
 /**

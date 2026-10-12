@@ -19,16 +19,16 @@ deve sovrascrivere implicitamente la descrizione di un collega.
 
 ## Seguire l'implementazione prima di modificare
 
-| Livello            | File esistente                                                            | Cosa capire                                                         |
-| ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Contratto salvato  | `shared/schema.ts` (`tags`, `testTags`)                                   | Organizzazione, nomi e tipi dei collegamenti                        |
-| Logica di dominio  | `server/authoring/test-tags.ts`                                           | Normalizzazione nomi e assegnazioni                                 |
-| API di sessione    | `server/routes/tags.routes.ts`                                            | Lettura viewer, scrittura editor, zod, gestione duplicati e race    |
-| Assemblaggio route | `server/routes.ts`                                                        | Router già montato: estenderlo non richiede un nuovo mount          |
-| UI riusabile       | `client/src/components/tags/TagPicker.tsx`                                | Props controllate; il componente non possiede tutte le chiamate API |
-| Consumatori        | Cercare `TagPicker` in `client/src`                                       | Pagine/dialoghi che passano dati e mutazioni                        |
-| Test esistenti     | `server/routes/tags.routes.test.ts`, `server/authoring/test-tags.test.ts` | Fixture HTTP/tenant e aspettative sulla normalizzazione             |
-| Sicurezza          | `server/middleware/tenancy.ts`, `server/middleware/require-role.ts`       | Visibilità dati distinta dal permesso di agire                      |
+| Livello            | File esistente                                                               | Cosa capire                                                         |
+| ------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Contratto salvato  | `shared/schema.ts` (`tags`, `testTags`)                                      | Organizzazione, nomi e tipi dei collegamenti                        |
+| Logica di dominio  | `server/authoring/test-tags.ts`                                              | Normalizzazione nomi e assegnazioni                                 |
+| API di sessione    | `server/routes/tags.routes.ts`                                               | Lettura viewer, scrittura editor, zod, gestione duplicati e race    |
+| Assemblaggio route | `server/routes.ts`                                                           | Router già montato: estenderlo non richiede un nuovo mount          |
+| UI riusabile       | `client/src/components/tags/TagPicker.tsx`                                   | Props controllate; il componente non possiede tutte le chiamate API |
+| Consumatori        | Cercare `TagPicker` in `client/src`                                          | Pagine/dialoghi che passano dati e mutazioni                        |
+| Test esistenti     | `server/routes/tags.routes.test.ts`, `server/authoring/test-tags.test.ts`    | Fixture HTTP/tenant e aspettative sulla normalizzazione             |
+| Sicurezza          | `server/platform/middleware/tenancy.ts`, `server/middleware/require-role.ts` | Visibilità dati distinta dal permesso di agire                      |
 
 Usare `rg -n "TagPicker|/api/tags" client/src server` per trovare i consumatori. Seguire una lettura
 e una scrittura complete: aggiungere un campo allo schema non lo rende disponibile al componente,
@@ -63,7 +63,7 @@ e una nuova prop non lo rende persistente.
 
 Un nuovo endpoint va nel modulo `server/routes/*.routes.ts` del suo dominio, mai inline in
 `server/routes.ts`, che monta soltanto i router (lo verifica `server/tests/architecture.test.ts`).
-Creare il router del modulo con `asyncRouter()` (`server/middleware/async-router.ts`), non
+Creare il router del modulo con `asyncRouter()` (`server/platform/middleware/async-router.ts`), non
 `Router()`, e non scrivere try/catch che si limitano a registrare il log e rispondere 500: un
 handler asincrono che lancia arriva così a `incidentErrorHandler`, che lo registra, salva
 l'incidente e risponde una volta sola, senza il messaggio del driver. Intercettare solo ciò a cui

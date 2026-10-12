@@ -1,10 +1,10 @@
 import { and, inArray, lt, or, sql } from 'drizzle-orm';
 import { testPlanExecutions, type TestPlanExecution } from '@shared/schema';
-import { privilegedDb } from '../db';
-import { runWithTenant } from '../middleware/tenancy';
+import { privilegedDb } from '../platform/db';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import { LIVE_EXECUTION_STATUSES, transitionExecution } from './execution-state';
 import { RUN_HEARTBEAT_INTERVAL_MS, RUN_MAX_DURATION_MS } from './run-watch';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Ends the runs nobody is running any more.

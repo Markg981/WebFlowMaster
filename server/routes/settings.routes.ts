@@ -1,12 +1,16 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { AUDIT_ACTIONS, insertSystemSettingSchema } from '@shared/schema';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { requireInstallationAdmin } from '../tenancy/installation-admin';
-import logger, { updateLogLevel } from '../logger';
-import { asyncHandler } from '../middleware/async-handler';
+import logger, { updateLogLevel } from '../platform/logger';
+import { asyncHandler } from '../platform/middleware/async-handler';
 import { requireRole, roleAllows } from '../middleware/require-role';
-import { withTenantTransaction } from '../middleware/tenancy';
-import { getSystemSetting, listSystemSettings, upsertSystemSetting } from '../system-settings';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
+import {
+  getSystemSetting,
+  listSystemSettings,
+  upsertSystemSetting,
+} from '../platform/system-settings';
 import {
   getOrCreateUserSettings,
   saveUserSettings,
@@ -16,7 +20,7 @@ import {
 /**
  * The two kinds of settings: a person's own (/api/settings) and the installation's
  * (/api/system-settings). Neither belongs to an organization, so both are read and written
- * by server/identity/user-settings.ts and server/system-settings.ts, which hold the privileged handle
+ * by server/identity/user-settings.ts and server/platform/system-settings.ts, which hold the privileged handle
  * this module may not.
  */
 

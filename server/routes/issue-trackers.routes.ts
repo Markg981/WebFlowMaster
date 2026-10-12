@@ -1,14 +1,14 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { ISSUE_PROVIDERS, issueTrackers } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 import { checkConnection } from '../integrations/issue-providers';
 import { toConfig } from '../integrations/issue-store';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Where an organization files its bugs.

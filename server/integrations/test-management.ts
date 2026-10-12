@@ -16,10 +16,10 @@ import {
   type PublishedOutcome,
   type TestManagementProvider,
 } from '@shared/test-management';
-import { withTenantTransaction } from '../middleware/tenancy';
-import { decryptSecret } from '../crypto';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
+import { decryptSecret } from '../platform/crypto';
 import { readExecutionSnapshot } from '../execution/execution-snapshot';
-import { reportReferenceFor } from '../report-links';
+import { reportReferenceFor } from '../platform/report-links';
 import type { ProviderDeps } from './issue-providers';
 import {
   publishResults,

@@ -5,9 +5,9 @@ import path from 'node:path';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import request from 'supertest';
 import { incidentErrorHandler, buildServerApiTrigger } from './express';
-import { configureIncidents } from '../incident';
-import * as incidentModule from '../incident';
-import { IncidentStore } from '../store';
+import { configureIncidents } from '../../platform/observability/incident';
+import * as incidentModule from '../../platform/observability/incident';
+import { IncidentStore } from '../../platform/observability/store';
 
 let root: string;
 // generateRepro writes under repoRoot, not rootDir. Without its own temp directory

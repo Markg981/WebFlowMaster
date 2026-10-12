@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
@@ -12,11 +12,11 @@ import { ProtocolConfigSchema } from '@shared/api-protocol-config';
 import { runApiRequest } from '../api-tests/api-test-runner';
 import { withExecutionUsage } from '../tenancy/execution-usage';
 import { redactHistoryEntry } from '../runtime/history-redaction';
-import logger from '../logger';
-import { asyncHandler } from '../middleware/async-handler';
+import logger from '../platform/logger';
+import { asyncHandler } from '../platform/middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
 import { defaultVariables, resolveVariables } from '../runtime/variables';
 

@@ -1,5 +1,5 @@
-import { fetchTarget } from '../outbound-http';
-import { reportPathFor, reportUrlFor } from '../report-links';
+import { fetchTarget } from '../platform/outbound-http';
+import { reportPathFor, reportUrlFor } from '../platform/report-links';
 import { describeCi, type CiContext } from '@shared/ci';
 
 /**
@@ -292,7 +292,7 @@ function teamsMessage(summary: RunSummary, url: string | undefined): Record<stri
 /**
  * A link back to the run, when this installation has been told its own address.
  *
- * Built by server/report-links.ts, which owns the one path the client actually serves. This
+ * Built by server/platform/report-links.ts, which owns the one path the client actually serves. This
  * used to compose `/test-plan-executions/{id}` here, which no route has ever matched: every
  * notification sent since has carried a link to a page that does not exist.
  */

@@ -54,8 +54,8 @@ import {
   allowsSelfSignedCertificate,
   requestVariables,
   substituteVariables,
-} from '../outbound-http';
-import { assertEgressAllowed, throwIfEgressDenied } from '../egress-policy';
+} from '../platform/outbound-http';
+import { assertEgressAllowed, throwIfEgressDenied } from '../platform/egress-policy';
 import {
   EMAIL_TIMEOUT_MS,
   findOtp,

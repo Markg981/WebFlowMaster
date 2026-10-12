@@ -21,9 +21,12 @@ import {
   type SubscriptionStatus,
 } from '@shared/billing';
 import type { AuditActor } from '../audit';
-import { privilegedDb } from '../../db';
-import type { TenantTx } from '../../middleware/tenancy';
-import { runDetachedForOrganization, withTenantTransaction } from '../../middleware/tenancy';
+import { privilegedDb } from '../../platform/db';
+import type { TenantTx } from '../../platform/middleware/tenancy';
+import {
+  runDetachedForOrganization,
+  withTenantTransaction,
+} from '../../platform/middleware/tenancy';
 import { liveRunCounts, quotaUsage, quotasFor } from '../tenant-quotas';
 import { billingConfig } from './config';
 import { BillingError, type BillingProvider, type BillingWebhookEvent } from './provider';

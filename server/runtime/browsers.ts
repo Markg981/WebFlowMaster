@@ -1,6 +1,6 @@
 import playwright, { type Browser } from 'playwright';
-import { browserEgressOptions } from '../egress-proxy';
-import { assertEgressAllowed } from '../egress-policy';
+import { browserEgressOptions } from '../platform/egress-proxy';
+import { assertEgressAllowed } from '../platform/egress-policy';
 import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-grids';
 import { canEmulateDevice, isMobileDevice } from '@shared/devices';
 

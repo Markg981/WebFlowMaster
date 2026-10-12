@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { stepListOf } from '@shared/mobile';
 
 import { eq } from 'drizzle-orm';
@@ -7,9 +7,9 @@ import { testPlanExecutions } from '@shared/schema';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
 import type { DownloadFinding } from '@shared/downloads';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Serving what a run produced: screenshots, and the three images of a visual comparison.

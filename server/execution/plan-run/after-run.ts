@@ -4,8 +4,8 @@
  */
 import { eq } from 'drizzle-orm';
 import { testPlanSchedules, type TestPlanExecution } from '@shared/schema';
-import logger from '../../logger';
-import { getTenantOrgId, withTenantTransaction } from '../../middleware/tenancy';
+import logger from '../../platform/logger';
+import { getTenantOrgId, withTenantTransaction } from '../../platform/middleware/tenancy';
 import { getWsEmitter, type ExecutionLogEntry } from '../../websocket';
 import { executionOrchestrator } from '../execution-orchestrator';
 import { fileFailure, loadTracker, markResolved } from '../../integrations/issue-store';

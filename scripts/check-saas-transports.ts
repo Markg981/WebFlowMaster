@@ -6,7 +6,7 @@ import { WebSocketServer } from 'ws';
 import * as grpc from '@grpc/grpc-js';
 import * as loader from '@grpc/proto-loader';
 import { chromium, firefox, webkit } from 'playwright';
-import { browserEgressOptions, targetEgressDispatcher } from '../server/egress-proxy';
+import { browserEgressOptions, targetEgressDispatcher } from '../server/platform/egress-proxy';
 import { runGrpc, runWebSocket } from '../server/api-tests/api-network-protocols';
 
 const proto =

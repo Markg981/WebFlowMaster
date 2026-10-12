@@ -1,4 +1,4 @@
-import { fetchTarget } from '../outbound-http';
+import { fetchTarget } from '../platform/outbound-http';
 import type { IssueProvider } from '@shared/schema';
 
 /**

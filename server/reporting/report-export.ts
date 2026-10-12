@@ -1,10 +1,10 @@
 import type { Response } from 'express';
-import { browserEgressOptions } from '../egress-proxy';
+import { browserEgressOptions } from '../platform/egress-proxy';
 import { loadReportModel, readScreenshot, type ReportModel } from './report-model';
 import { renderReportHtml } from './report-html';
 import { buildAllureResults } from './allure-export';
-import { createZip } from '../zip';
-import { reportUrlFor } from '../report-links';
+import { createZip } from '../platform/zip';
+import { reportUrlFor } from '../platform/report-links';
 import { junitReportFor } from './junit-report';
 
 /**

@@ -2,13 +2,13 @@ import { beforeAll, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { agents, bddExecutionProfiles, projects, tests, testVersions } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { runWithTenant } from '../middleware/tenancy';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import { eq } from 'drizzle-orm';
 import { exportBundle } from '../integrations/test-bundle';
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 let app: express.Express;

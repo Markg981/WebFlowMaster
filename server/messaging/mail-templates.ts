@@ -1,6 +1,6 @@
 import sanitizeHtml from 'sanitize-html';
 import { and, eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import type { MailMessage } from './mailer';
 import {
   mailTemplates,

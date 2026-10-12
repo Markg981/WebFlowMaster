@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { environments, secrets } from '@shared/schema';
-import { decryptSecret } from '../crypto';
+import { decryptSecret } from '../platform/crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -46,7 +46,7 @@ beforeAll(async () => {
   otherUserId = await createTestUser(otherOrganizationId, 'other-env-user');
 
   const { default: environmentRoutes } = await import('./environments.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
 
   app = express();
   app.use(express.json());

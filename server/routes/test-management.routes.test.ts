@@ -5,7 +5,7 @@ import http from 'http';
 import type { AddressInfo } from 'net';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   apiTests,
   auditLog,
@@ -18,11 +18,11 @@ import {
   tests,
 } from '@shared/schema';
 import { caseKeyFromName, normaliseCaseKey } from '@shared/test-management';
-import { decryptSecret } from '../crypto';
+import { decryptSecret } from '../platform/crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { testRailElapsed, zephyrStatusName } from '../integrations/test-management-providers';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -228,7 +228,7 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${(tools.address() as AddressInfo).port}`;
 
   const { default: routes } = await import('./test-management.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -513,7 +513,7 @@ describe('publishing a run', () => {
       .where(eq(testPlans.id, planId));
 
     const { publishExecution } = await import('../integrations/test-management');
-    const { runWithTenant } = await import('../middleware/tenancy');
+    const { runWithTenant } = await import('../platform/middleware/tenancy');
     const publication = await runWithTenant(organizationId, () => publishExecution(executionId));
     expect(publication).toMatchObject({
       status: 'published',

@@ -1,14 +1,14 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AUDIT_ACTIONS, customActions, stepGroups, tests } from '@shared/schema';
 import { PARAMETER_NAME_PATTERN, customActionIdOf } from '@shared/custom-actions';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { asSteps } from '../authoring/step-groups';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * The organization's own steps (shared/custom-actions.ts).

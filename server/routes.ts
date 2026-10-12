@@ -67,7 +67,7 @@ import browserTasksRoutes from './routes/browser-tasks.routes';
 import recordingRoutes from './routes/recording.routes';
 import selectableTestsRoutes from './routes/selectable-tests.routes';
 import settingsRoutes from './routes/settings.routes';
-import { tenancyMiddleware } from './middleware/tenancy';
+import { tenancyMiddleware } from './platform/middleware/tenancy';
 import { apiKeyAuth } from './middleware/api-key-auth';
 import { apiRateLimit, sessionRateLimit } from './middleware/rate-limits';
 

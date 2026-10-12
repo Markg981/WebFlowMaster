@@ -77,7 +77,7 @@ describe('parseArgs', () => {
 });
 
 describe('keyFingerprint', () => {
-  it('fingerprints the key server/crypto.ts derives, not the string', () => {
+  it('fingerprints the key server/platform/crypto.ts derives, not the string', () => {
     const hex = 'ab'.repeat(32);
     const expected = createHash('sha256')
       .update(Buffer.from(hex, 'hex'))

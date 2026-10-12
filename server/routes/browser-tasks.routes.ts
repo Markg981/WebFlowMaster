@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { type Response } from 'express';
 import { z } from 'zod';
 import {
@@ -9,11 +9,11 @@ import {
 } from '@shared/schema';
 import { sharedSetIdOf } from '@shared/test-data';
 import { BrowserTaskError, browserTasks } from '../web/browser-tasks';
-import logger from '../logger';
-import { asyncHandler } from '../middleware/async-handler';
+import logger from '../platform/logger';
+import { asyncHandler } from '../platform/middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import type { playwrightService } from '../web/playwright-service';
 import { SharedDataError, expandSharedDataset } from '../authoring/test-data';
 import { quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';

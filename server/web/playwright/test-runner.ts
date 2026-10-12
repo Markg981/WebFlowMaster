@@ -11,11 +11,11 @@ import path from 'path';
 import { BrowserContext, Page } from 'playwright';
 import { markGridSession } from '../../runtime/browser-grids';
 import { describeBrowser, deviceContextOptions } from '../../runtime/browsers';
-import { throwIfEgressDenied } from '../../egress-policy';
+import { throwIfEgressDenied } from '../../platform/egress-policy';
 import { FlowCursor } from '../../runtime/flow-cursor';
 import { loadLoginState, type EnvironmentScope, type LoginState } from '../../runtime/login-state';
 import { browserMatrixEvidence } from '../../runtime/matrix-evidence';
-import { requestVariables, substituteVariables } from '../../outbound-http';
+import { requestVariables, substituteVariables } from '../../platform/outbound-http';
 import { PlaywrightReporter } from '../playwright-reporter';
 import {
   captureRunEvidence,

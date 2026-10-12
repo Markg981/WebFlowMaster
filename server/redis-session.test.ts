@@ -14,7 +14,7 @@ const UNREACHABLE = 'redis://127.0.0.1:1';
 // binds a fresh database on construction to read its level from `system_settings` — a table
 // that per-file database has no migrations for. Stubbing it keeps the run's output to the
 // assertions rather than a Postgres stack per test.
-vi.mock('./logger', () => {
+vi.mock('./platform/logger', () => {
   const noop = () => undefined;
   return {
     default: {
@@ -49,7 +49,7 @@ afterEach(() => {
 describe('connectSessionRedis with an unreachable Redis', () => {
   it('rejects instead of staying pending forever', async () => {
     process.env.REDIS_URL = UNREACHABLE;
-    const { connectSessionRedis } = await import('./redis');
+    const { connectSessionRedis } = await import('./platform/redis');
 
     // The failure mode being pinned: the promise never settles, so `await` in index.ts
     // never returns and server.listen() is never reached.
@@ -65,7 +65,7 @@ describe('connectSessionRedis with an unreachable Redis', () => {
 
   it('lets a later call retry rather than caching the failure', async () => {
     process.env.REDIS_URL = UNREACHABLE;
-    const { connectSessionRedis } = await import('./redis');
+    const { connectSessionRedis } = await import('./platform/redis');
 
     await expect(connectSessionRedis()).rejects.toThrow();
     // A second attempt must reach the driver again, not hand back the settled rejection.
@@ -75,14 +75,14 @@ describe('connectSessionRedis with an unreachable Redis', () => {
 
 describe('reconnectDecision', () => {
   it('gives up on the initial connection so connect() can reject', async () => {
-    const { reconnectDecision } = await import('./redis');
+    const { reconnectDecision } = await import('./platform/redis');
 
     expect(reconnectDecision(0, false)).toEqual(expect.any(Number));
     expect(reconnectDecision(99, false)).toBeInstanceOf(Error);
   });
 
   it('never gives up once a connection has been established', async () => {
-    const { reconnectDecision } = await import('./redis');
+    const { reconnectDecision } = await import('./platform/redis');
 
     // Losing Redis at runtime must not kill the process, so there is no attempt ceiling
     // here — only a capped backoff.
@@ -91,7 +91,7 @@ describe('reconnectDecision', () => {
   });
 
   it('backs off progressively but stays bounded', async () => {
-    const { reconnectDecision } = await import('./redis');
+    const { reconnectDecision } = await import('./platform/redis');
 
     const first = reconnectDecision(0, true) as number;
     const later = reconnectDecision(5, true) as number;
@@ -107,7 +107,7 @@ describe('createSessionStore after a failed Redis connection', () => {
     process.env.REDIS_URL = UNREACHABLE;
     process.env.NODE_ENV = 'development';
 
-    const { connectSessionRedis, sessionRedis } = await import('./redis');
+    const { connectSessionRedis, sessionRedis } = await import('./platform/redis');
     await connectSessionRedis().catch(() => {});
 
     const { createSessionStore } = await import('./identity/auth');
@@ -124,7 +124,7 @@ describe('createSessionStore after a failed Redis connection', () => {
     process.env.REDIS_URL = UNREACHABLE;
     process.env.NODE_ENV = 'production';
 
-    const { connectSessionRedis } = await import('./redis');
+    const { connectSessionRedis } = await import('./platform/redis');
     await connectSessionRedis().catch(() => {});
 
     const { createSessionStore } = await import('./identity/auth');

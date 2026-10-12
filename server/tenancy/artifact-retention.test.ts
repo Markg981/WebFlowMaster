@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { testPlanExecutions, testPlans, users } from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
 import { createS3ArtifactStore, type ArtifactStore } from './artifact-store';

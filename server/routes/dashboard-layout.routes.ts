@@ -1,11 +1,11 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { and, eq } from 'drizzle-orm';
 import {
   DEFAULT_DASHBOARD_LAYOUT,
   dashboardLayoutSchema,
   userDashboardLayouts,
 } from '@shared/dashboard-layout';
-import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
+import { getTenantOrgId, withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 
 const router = asyncRouter();

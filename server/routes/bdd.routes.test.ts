@@ -1,17 +1,17 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { agents, bddExecutionProfiles } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { resolveBddBinding } from '../bdd/bdd-profiles';
 import { publish, publishedContentOf } from '../authoring/test-publishing';
 import type { BddTest } from '@shared/bdd';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 let app: express.Express;

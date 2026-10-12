@@ -1,10 +1,10 @@
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { testReviews, testVersions, users } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
+import { withTenantTransaction, getTenantOrgId } from '../platform/middleware/tenancy';
 import { auditActor } from '../tenancy/audit';
 import {
   PublishingError,
@@ -21,7 +21,7 @@ import {
 } from '../authoring/test-publishing';
 import { targetColumn, targetTable } from '../authoring/test-version-target';
 import type { VersionedTestType } from '@shared/test-versioning';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Publishing tests, reviewing them, and rolling back. See server/authoring/test-publishing.ts for the rules;

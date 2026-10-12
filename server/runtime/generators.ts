@@ -1,5 +1,5 @@
 import { randomInt, randomUUID } from 'crypto';
-import { parseTotpSeed, totpAt } from '../totp';
+import { parseTotpSeed, totpAt } from '../platform/totp';
 
 /**
  * Values made up at run time: `{{$randomEmail}}`, `{{$randomInt(1,100)}}`, `{{$today(+7)}}`.
@@ -13,7 +13,7 @@ import { parseTotpSeed, totpAt } from '../totp';
  * Each placeholder is a fresh value. To use the same one twice, `setVariable` it first.
  *
  * `{{$totp(name)}}` is the one that reads a variable: the authenticator code for the seed held in
- * `{{name}}` (server/totp.ts). The argument is the name, not the seed, so the seed stays an
+ * `{{name}}` (server/platform/totp.ts). The argument is the name, not the seed, so the seed stays an
  * environment secret instead of being written into the step.
  */
 

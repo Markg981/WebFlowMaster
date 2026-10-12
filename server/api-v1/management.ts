@@ -17,14 +17,18 @@ import {
 } from '@shared/schema';
 import { type ApiScope } from '@shared/api-scopes';
 import { requireScope } from '../middleware/require-scope';
-import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
+import {
+  withTenantTransaction,
+  getTenantOrgId,
+  type TenantTx,
+} from '../platform/middleware/tenancy';
 import { auditActor, changedFields, recordAudit } from '../tenancy/audit';
 import schedulerService, {
   assertValidTimezone,
   DEFAULT_SCHEDULE_TIMEZONE,
   firstRunAt,
 } from '../execution/scheduler-service';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 import { normaliseTagName } from '../authoring/test-tags';
 import {
   QuarantineError,
@@ -41,7 +45,7 @@ import {
 } from '../tenancy/artifact-store';
 import { executionArtifactAvailability } from '../tenancy/artifact-metering';
 import { billingSummary } from '../tenancy/billing/service';
-import logger from '../logger';
+import logger from '../platform/logger';
 import { EVIDENCE_KINDS } from './management-openapi';
 import {
   AuthoringError,

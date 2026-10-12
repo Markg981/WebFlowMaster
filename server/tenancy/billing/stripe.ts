@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { BillingInterval, SubscriptionStatus } from '@shared/billing';
-import { fetchTarget } from '../../outbound-http';
+import { fetchTarget } from '../../platform/outbound-http';
 import {
   BillingError,
   type BillingProvider,

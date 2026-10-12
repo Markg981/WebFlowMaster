@@ -7,11 +7,11 @@ import request from 'supertest';
 // configureIncidents is imported dynamically inside beforeEach, not here — see the comment
 // there. IncidentStore is safe to import statically: it holds no module-level state, taking
 // its root directory as a constructor argument.
-import { IncidentStore } from '../observability/store';
+import { IncidentStore } from '../platform/observability/store';
 
 const logged: { level: string; message: string; meta: Record<string, unknown> }[] = [];
 
-vi.mock('../logger', () => {
+vi.mock('../platform/logger', () => {
   const record =
     (level: string) =>
     (message: string, meta: Record<string, unknown> = {}) =>
@@ -57,7 +57,7 @@ beforeEach(async () => {
   // this dynamic import yields a fresh module graph; a statically imported
   // configureIncidents would point at the stale instance and the route would write
   // incidents into the real .observability/ instead of this test's temp directory.
-  const { configureIncidents } = await import('../observability/incident');
+  const { configureIncidents } = await import('../platform/observability/incident');
   configureIncidents({ rootDir: root, repoRoot: reproRoot, logger: { error: () => {} } });
 
   app.use(router);

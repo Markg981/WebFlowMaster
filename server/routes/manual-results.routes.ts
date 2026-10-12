@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { AUDIT_ACTIONS, reportTestCaseResults, testPlanExecutions } from '@shared/schema';
@@ -9,11 +9,11 @@ import {
   readManualLog,
   type ManualResultLog,
 } from '@shared/manual-tests';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { failuresOf } from '../authoring/test-quarantine';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * A person's verdict on a manual test in a run (shared/manual-tests.ts).

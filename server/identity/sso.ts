@@ -12,10 +12,10 @@ import {
   type AuditAction,
   type User,
 } from '@shared/schema';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { joinOrganization } from '../tenancy/organization-memberships';
-import { decryptSecret, encryptSecret, type CryptoOptions } from '../crypto';
-import { sqlState } from '../db-errors';
+import { decryptSecret, encryptSecret, type CryptoOptions } from '../platform/crypto';
+import { sqlState } from '../platform/db-errors';
 import {
   DEFAULT_GROUP_ATTRIBUTE,
   domainVerificationRecord,
@@ -603,7 +603,7 @@ export async function saveSsoSettings(
   return (await getSsoSettings(organizationId))!;
 }
 
-/** Inside the save's privileged transaction, so the key lookup rides on it (server/organization-keys.ts). */
+/** Inside the save's privileged transaction, so the key lookup rides on it (server/platform/organization-keys.ts). */
 async function secretColumns(secret: string, organizationId: number, tx: CryptoOptions['tx']) {
   const { encryptedValue, iv, authTag } = await encryptSecret(secret, organizationId, { tx });
   return {

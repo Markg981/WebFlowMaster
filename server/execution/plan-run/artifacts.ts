@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { testPlanExecutions as testPlanExecutionsTable } from '@shared/schema';
-import logger from '../../logger';
-import { withTenantTransaction } from '../../middleware/tenancy';
+import logger from '../../platform/logger';
+import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { getWsEmitter, type ExecutionLogEntry } from '../../websocket';
 import { artifactStore } from '../../tenancy/artifact-store';
 import { QuotaError } from '../../tenancy/tenant-quotas';

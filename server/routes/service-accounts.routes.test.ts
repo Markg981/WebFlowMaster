@@ -3,7 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { and, eq } from 'drizzle-orm';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -22,10 +22,10 @@ vi.mock('../logger', () => ({
  * in; it is not listed or managed as a member; and disabling it stops every key it holds.
  */
 
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const { apiKeys, auditLog, users } = await import('@shared/schema');
 const { createTestOrganization, createTestUser } = await import('../tests/factories');
-const { runWithTenant } = await import('../middleware/tenancy');
+const { runWithTenant } = await import('../platform/middleware/tenancy');
 const { storage } = await import('../identity/storage');
 const { default: serviceAccountsRoutes } = await import('./service-accounts.routes');
 const { default: apiKeysRoutes } = await import('./api-keys.routes');

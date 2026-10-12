@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import {
   AUDIT_ACTIONS,
@@ -9,12 +9,12 @@ import {
   users,
 } from '@shared/schema';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { recordTestVersion, recordTypedTestVersion } from '../authoring/test-version-store';
 import { targetColumn, targetTable, auditTargetType } from '../authoring/test-version-target';
 import { typedSnapshotOf, type VersionedTestType } from '@shared/test-versioning';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * What a test used to be, and putting it back.

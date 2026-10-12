@@ -1,4 +1,4 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import type { User as SelectUser } from '@shared/schema';
 
 // Sign-in, sign-out and registration are in server/identity/auth.ts (setupAuth), which the passport setup

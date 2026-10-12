@@ -5,7 +5,7 @@ import http from 'http';
 import type { AddressInfo } from 'net';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   auditLog,
   browserGrids,
@@ -16,11 +16,11 @@ import {
   secrets,
 } from '@shared/schema';
 import { mobileStepProblem, parseMobileLocator } from '@shared/mobile';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { mobileEndpoints, mobileSessionRequest } from '../mobile/mobile-runner';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -266,7 +266,7 @@ beforeAll(async () => {
   mobileRunner.deps = { elementTimeoutMs: 600 };
   const { inspectorDeps } = await import('../mobile/mobile-inspector');
   inspectorDeps.elementTimeoutMs = 600;
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {

@@ -1,12 +1,12 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { projectElements, projects, tests } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { referencedElementIds } from '../authoring/step-elements';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * The elements of an application, kept once instead of once per test.

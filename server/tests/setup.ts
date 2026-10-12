@@ -47,9 +47,9 @@ if (!isDirectRun && !isPostgres) {
 
 async function applyMigrations() {
   // Imported dynamically, and only after DATABASE_URL is settled above: a static import would
-  // bind server/db.ts's singleton to whatever the variable held at module-evaluation time,
+  // bind server/platform/db.ts's singleton to whatever the variable held at module-evaluation time,
   // which is the shared file database this setup exists to stop using.
-  const { privilegedDb } = await import('../db');
+  const { privilegedDb } = await import('../platform/db');
 
   const migrationsPath = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),

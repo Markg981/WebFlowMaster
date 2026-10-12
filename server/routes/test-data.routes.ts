@@ -1,13 +1,17 @@
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { and, asc, eq, ne } from 'drizzle-orm';
 import { AUDIT_ACTIONS, testDataSets } from '@shared/schema';
 import { testDataSetInputSchema } from '@shared/test-data';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
+import {
+  withTenantTransaction,
+  getTenantOrgId,
+  type TenantTx,
+} from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { testsUsingSet } from '../authoring/test-data';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Shared test data (shared/test-data.ts): viewers read the sets, editors keep them. A set some

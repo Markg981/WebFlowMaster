@@ -181,7 +181,7 @@ browser.
   `scripts/any-budget.json`: CI fails when a count goes up, and also when it goes down without the
   budget being updated (`node scripts/any-budget.mjs --update`), so the ceiling follows every
   removal. At a boundary (request body, job payload, WebSocket message) read the value through a zod
-  schema, as `server/job-payloads.ts` and `shared/live-socket.ts` do, instead of casting it.
+  schema, as `server/platform/job-payloads.ts` and `shared/live-socket.ts` do, instead of casting it.
 - **Imports go down a domain.** A new server module goes into a domain in
   `scripts/server-domains.mjs`, and may import only its own domain and lower-ranked ones
   (`npm run deps:check`, see [System architecture](./system-architecture#_3-4-server-domains)). When

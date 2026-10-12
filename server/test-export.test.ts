@@ -3,7 +3,7 @@ import request from 'supertest';
 import express, { type Application } from 'express';
 import { eq } from 'drizzle-orm';
 import { parse as parseYaml } from 'yaml';
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import {
   apiTests,
   auditLog,
@@ -17,11 +17,11 @@ import {
   type User,
 } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
-import { tenancyMiddleware } from './middleware/tenancy';
+import { tenancyMiddleware } from './platform/middleware/tenancy';
 import { envName, toPlaywright } from './integrations/playwright-export';
 import { parseBundle, BundleError } from './integrations/test-bundle';
 
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() },
   updateLogLevel: vi.fn(),
 }));

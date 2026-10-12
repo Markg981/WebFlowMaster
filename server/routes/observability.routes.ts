@@ -1,10 +1,10 @@
 import { type Request, type Response, type NextFunction } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import rateLimit from 'express-rate-limit';
-import { sharedStore } from '../middleware/rate-limit-store';
-import logger from '../logger';
+import { sharedStore } from '../platform/middleware/rate-limit-store';
+import logger from '../platform/logger';
 import { ClientLogBatchSchema, ClientIncidentReportSchema } from '@shared/observability';
-import { recordIncident } from '../observability/incident';
+import { recordIncident } from '../platform/observability/incident';
 
 const router = asyncRouter();
 

@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { eq, sql } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { billingEvents } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { tenancyMiddleware } from '../middleware/tenancy';
+import { tenancyMiddleware } from '../platform/middleware/tenancy';
 import routes from './billing-admin.routes';
 
 /**

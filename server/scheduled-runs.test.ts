@@ -21,7 +21,7 @@ vi.mock('node-cron', () => ({
     validate: vi.fn(() => true),
   },
 }));
-vi.mock('./logger', () => ({
+vi.mock('./platform/logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -30,7 +30,7 @@ vi.mock('./logger', () => ({
     http: vi.fn(),
   },
 }));
-vi.mock('./queue', () => ({
+vi.mock('./platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: {
     add: vi.fn(
@@ -46,7 +46,7 @@ vi.mock('./queue', () => ({
   },
 }));
 
-import { privilegedDb } from './db';
+import { privilegedDb } from './platform/db';
 import {
   environments,
   testPlanExecutions,

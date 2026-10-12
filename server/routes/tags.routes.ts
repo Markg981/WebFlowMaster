@@ -1,12 +1,12 @@
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { asc, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { apiTests, mobileTests, tags, testTags, tests, type TaggableType } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { normaliseTagName, setTagsForTest } from '../authoring/test-tags';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * The words an organization files its tests under.

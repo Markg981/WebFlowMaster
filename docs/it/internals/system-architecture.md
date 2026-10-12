@@ -303,5 +303,5 @@ Cosa serve per scalare (dettagli in [Installazione](../admin/installation) e [Op
 | 443 → 5000    | Reverse proxy                                                               | In ingresso; il proxy deve lasciar passare gli upgrade WebSocket su `/ws` e `/api/agent/v1/*` |
 | 443 in uscita | Tracker, SCM, notificatori, griglie, Gemini, S3, le applicazioni sotto test | In uscita, da web e worker; dagli agenti verso il processo web                                |
 
-Le chiamate HTTP in uscita dal server passano da `server/outbound-http.ts`, che mantiene un elenco
+Le chiamate HTTP in uscita dal server passano da `server/platform/outbound-http.ts`, che mantiene un elenco
 volutamente stretto per i certificati self-signed (`INSECURE_TLS_HOSTS`) e sostituisce le `{{variabili}}`.

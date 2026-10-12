@@ -1,5 +1,5 @@
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import {
@@ -11,7 +11,11 @@ import {
   testSuites,
 } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
-import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
+import {
+  withTenantTransaction,
+  getTenantOrgId,
+  type TenantTx,
+} from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { testsOfSuite } from '../authoring/test-suites';
 import {
@@ -23,7 +27,7 @@ import {
   namedItems,
   type TestItem,
 } from '../authoring/test-refs';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Suites, and which plans include them. The rules for what a suite runs are in

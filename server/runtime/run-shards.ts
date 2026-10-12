@@ -2,7 +2,7 @@ import os from 'os';
 import { randomUUID } from 'crypto';
 import { and, asc, eq, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import { runWorkItems, testPlanExecutions } from '@shared/schema';
-import { withTenantTransaction } from '../middleware/tenancy';
+import { withTenantTransaction } from '../platform/middleware/tenancy';
 import type { BrowserChoice } from './browsers';
 
 /**

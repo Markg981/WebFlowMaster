@@ -6,7 +6,7 @@ import {
   testPlanExecutions,
   testTags,
 } from '@shared/schema';
-import type { TenantTx } from '../middleware/tenancy';
+import type { TenantTx } from '../platform/middleware/tenancy';
 import type { TestReference } from '../authoring/test-suites';
 
 /**

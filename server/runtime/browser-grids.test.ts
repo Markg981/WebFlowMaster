@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { chromium, type BrowserServer } from 'playwright';
 import { v4 as uuidv4 } from 'uuid';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { browserGrids, updateTestPlanApiPayloadSchema } from '@shared/schema';
-import { encryptSecret } from '../crypto';
+import { encryptSecret } from '../platform/crypto';
 import {
   checkRunOn,
   gridConnection,
@@ -12,10 +12,10 @@ import {
   type GridMachine,
 } from './browser-grids';
 import { browsersForRun, describeBrowser, launchBrowser, onGrid } from './browsers';
-import { runWithTenant } from '../middleware/tenancy';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import { createTestOrganization } from '../tests/factories';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

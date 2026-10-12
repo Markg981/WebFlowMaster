@@ -1,12 +1,12 @@
 import type { Server } from 'http';
 import os from 'os';
 import { randomUUID } from 'crypto';
-import logger from '../../logger';
+import logger from '../../platform/logger';
 import { authenticateAgentToken, recordAgentSeen } from './agent-auth';
 import { relaySecret } from './agent-credentials';
 import { AgentRelay, setAgentRelay, type RelayCluster } from './relay';
 import { RedisRelayDirectory } from './relay-directory';
-import { applicationMetrics } from '../../observability/metrics';
+import { applicationMetrics } from '../../platform/observability/metrics';
 
 /**
  * Whether this web server is one of several relay instances, and how the others reach it.
@@ -20,7 +20,7 @@ export async function relayCluster(
 ): Promise<RelayCluster | undefined> {
   const url = env.AGENT_RELAY_ADVERTISE_URL?.trim();
   if (!url) return undefined;
-  const { connection } = await import('../../redis');
+  const { connection } = await import('../../platform/redis');
   return {
     directory: new RedisRelayDirectory(connection),
     instanceId: `${os.hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`,

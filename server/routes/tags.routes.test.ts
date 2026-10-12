@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import {
   apiTests,
   projectMembers,
@@ -12,7 +12,7 @@ import {
 } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -54,7 +54,7 @@ beforeAll(async () => {
   projectId = project.id;
 
   const { default: tagsRoutes } = await import('./tags.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
 
   app = express();
   app.use(express.json());

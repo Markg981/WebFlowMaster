@@ -11,9 +11,9 @@ import {
   type TestPlanExecution,
 } from '@shared/schema';
 import type { CiContext } from '@shared/ci';
-import { privilegedDb } from '../db';
-import { getCorrelationId } from '../middleware/correlation';
-import { runAsOrganization, withTenantTransaction } from '../middleware/tenancy';
+import { privilegedDb } from '../platform/db';
+import { getCorrelationId } from '../platform/middleware/correlation';
+import { runAsOrganization, withTenantTransaction } from '../platform/middleware/tenancy';
 import { expandPlanTests, type TestReference } from '../authoring/test-suites';
 import { selectForChanges } from './test-impact';
 import { announceExecution, transitionExecution } from './execution-state';
@@ -22,7 +22,7 @@ import {
   readExecutionSnapshot,
   type SnapshotTestReference,
 } from './execution-snapshot';
-import { testExecutionQueue } from '../queue';
+import { testExecutionQueue } from '../platform/queue';
 import {
   fairPriority,
   liveRunCounts,

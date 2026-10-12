@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { organizations, testPlanExecutions, testPlans } from '@shared/schema';
-import { privilegedDb, SESSION_TIME_ZONE } from './db';
+import { privilegedDb, SESSION_TIME_ZONE } from './platform/db';
 import { createTestOrganization, createTestUser } from './tests/factories';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from './platform/middleware/tenancy';
 import { transitionExecution } from './execution/execution-state';
 
 /**

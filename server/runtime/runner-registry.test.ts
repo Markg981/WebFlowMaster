@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
  * owner sees them or drains one, which is recorded.
  */
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -25,10 +25,10 @@ vi.mock('../logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const { auditLog, runners, testPlanExecutions, testPlans, users } = await import('@shared/schema');
 const { createTestOrganization } = await import('../tests/factories');
-const { runWithTenant, tenancyMiddleware } = await import('../middleware/tenancy');
+const { runWithTenant, tenancyMiddleware } = await import('../platform/middleware/tenancy');
 const registry = await import('./runner-registry');
 const { takeExecution } = await import('../execution/execution-state');
 const { default: runnersRoutes } = await import('../routes/runners.routes');

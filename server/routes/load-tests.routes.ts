@@ -1,5 +1,5 @@
 import { type Response } from 'express';
-import { asyncRouter } from '../middleware/async-router';
+import { asyncRouter } from '../platform/middleware/async-router';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
@@ -20,7 +20,11 @@ import {
   type LoadTestDefinition,
 } from '@shared/load-test';
 import { requireRole } from '../middleware/require-role';
-import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
+import {
+  getTenantOrgId,
+  withTenantTransaction,
+  type TenantTx,
+} from '../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { checkExecutionBudget } from '../tenancy/execution-usage';
 import { assertSubscriptionAllowsRuns } from '../tenancy/billing/enforcement';
@@ -32,7 +36,7 @@ import {
   removeQueuedLoadJob,
   snapshotOf,
 } from '../api-tests/load-runner';
-import logger from '../logger';
+import logger from '../platform/logger';
 
 /**
  * Load tests (shared/load-test.ts): writing them, and running them on their own — a run is queued

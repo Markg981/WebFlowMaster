@@ -5,9 +5,9 @@
  * tenant context a queue job runs in and hands it over.
  */
 import type { TestPlanExecution, ExecutionTrigger } from '@shared/schema';
-import logger from '../logger';
-import { privilegedDb } from '../db';
-import { runWithTenant } from '../middleware/tenancy';
+import logger from '../platform/logger';
+import { privilegedDb } from '../platform/db';
+import { runWithTenant } from '../platform/middleware/tenancy';
 import { testPlanExecutions as testPlanExecutionsTable } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';

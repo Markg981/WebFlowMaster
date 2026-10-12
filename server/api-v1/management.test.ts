@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { eq } from 'drizzle-orm';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('../logger', () => ({
   },
   updateLogLevel: vi.fn(),
 }));
-vi.mock('../queue', () => ({
+vi.mock('../platform/queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: { add: vi.fn() },
 }));
@@ -30,13 +30,13 @@ vi.mock('../execution/scheduler-service', async (importActual) => ({
   ...(await importActual<typeof import('../execution/scheduler-service')>()),
   default: scheduler,
 }));
-const { privilegedDb } = await import('../db');
+const { privilegedDb } = await import('../platform/db');
 const { apiKeys, users, auditLog, secrets, testPlanExecutions, testTags } =
   await import('@shared/schema');
 const { createTestOrganization, createTestUser } = await import('../tests/factories');
 const { generateApiKey } = await import('../identity/api-keys');
 const { apiKeyAuth } = await import('../middleware/api-key-auth');
-const { tenancyMiddleware } = await import('../middleware/tenancy');
+const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
 const { registerAuthoringRoutes } = await import('./authoring');
 const { registerManagementRoutes } = await import('./management');
 const { setArtifactStoreForTest } = await import('../tenancy/artifact-store');

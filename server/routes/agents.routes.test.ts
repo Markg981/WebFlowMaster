@@ -2,12 +2,12 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vites
 import express from 'express';
 import request from 'supertest';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from '../db';
+import { privilegedDb } from '../platform/db';
 import { agents, auditLog } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { hashAgentToken } from '../runtime/agents/agent-credentials';
 
-vi.mock('../logger', () => ({
+vi.mock('../platform/logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -43,7 +43,7 @@ beforeAll(async () => {
   otherOwnerId = await createTestUser(otherOrganizationId, 'other-agents-owner');
 
   const { default: agentsRoutes } = await import('./agents.routes');
-  const { runWithTenant } = await import('../middleware/tenancy');
+  const { runWithTenant } = await import('../platform/middleware/tenancy');
 
   app = express();
   app.use(express.json());
