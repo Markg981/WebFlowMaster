@@ -36,6 +36,11 @@
     "../server/db-errors.ts",
     // ...and sizes its pool from the environment.
     "../server/db-pool-settings.ts",
+    // ...and logs through the application logger, with what that formats lines with.
+    "../server/logger.ts",
+    "../server/loki-transport.ts",
+    "../server/middleware/correlation.ts",
+    "../server/utils/log-redactor.ts",
     "../shared/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]

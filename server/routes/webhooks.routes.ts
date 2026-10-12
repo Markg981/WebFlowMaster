@@ -6,7 +6,7 @@ import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../audit';
 import { generateWebhookToken } from '../webhook-tokens';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Creating, listing and deleting the webhooks that start a plan from CI.
@@ -20,7 +20,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const createWebhookSchema = z.object({
   name: z.string().trim().min(1, 'A name is required').max(80),

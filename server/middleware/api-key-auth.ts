@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { apiKeys, users } from '@shared/schema';
 import { privilegedDb } from '../db';
 import { apiKeyFromRequest, hashApiKey, hashesMatch, rejectionFor } from '../api-keys';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { API_V1_PREFIX, type ApiScope } from '@shared/api-scopes';
 
 /** What a request authenticated by a key carries, for the audit trail and for requireScope. */
@@ -57,7 +57,6 @@ export async function apiKeyAuth(req: Request, _res: Response, next: NextFunctio
   // not: there the key the caller chose to send is what they are asking with.
   if (req.isAuthenticated?.() && req.user && !isScopedApiPath(req.path)) return next();
 
-  const logger = await loggerPromise;
   try {
     const hashed = hashApiKey(presented);
     const rows = await privilegedDb

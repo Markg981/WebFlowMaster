@@ -15,7 +15,7 @@ import {
 import { toSequence } from '@shared/manual-tests';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('../logger', () => ({ default: Promise.resolve({ error: vi.fn() }) }));
+vi.mock('../logger', () => ({ default: { error: vi.fn() } }));
 let app: express.Express;
 let org: number;
 let userId: number;

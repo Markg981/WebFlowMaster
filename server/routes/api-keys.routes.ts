@@ -8,7 +8,7 @@ import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole, roleAllows } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../audit';
 import { generateApiKey } from '../api-keys';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Creating, listing and revoking the credentials a pipeline authenticates with.
@@ -20,7 +20,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const createApiKeySchema = z.object({
   name: z.string().trim().min(1, 'A name is required').max(80),

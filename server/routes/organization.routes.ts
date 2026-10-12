@@ -24,7 +24,7 @@ import {
   setMemberRole,
 } from '../organization-memberships';
 import { issuePasswordReset } from '../password-reset';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { liveRunCounts, quotaUsage, quotasFor } from '../tenant-quotas';
 import { availableRunnerCount } from '../runner-registry';
 
@@ -263,7 +263,6 @@ router.delete('/api/organization', requireRole('owner'), async (req: Request, re
     return res.status(400).json({ error: "confirmName does not match the organization's name." });
   }
 
-  const logger = await loggerPromise;
   logger.warn({
     message: 'Organization erased',
     organizationId,

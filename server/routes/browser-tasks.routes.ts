@@ -9,7 +9,7 @@ import {
 } from '@shared/schema';
 import { sharedSetIdOf } from '@shared/test-data';
 import { BrowserTaskError, browserTasks } from '../browser-tasks';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { asyncHandler } from '../middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
@@ -25,7 +25,6 @@ import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 // After requireRole, so it counts for the user the role check has already established.
 const heavyLimit = sharedHeavyRateLimit();
 

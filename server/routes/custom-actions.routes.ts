@@ -8,7 +8,7 @@ import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../audit';
 import { asSteps } from '../step-groups';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * The organization's own steps (shared/custom-actions.ts).
@@ -19,7 +19,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /** Long enough for a real helper, short enough that nobody pastes a library into a step. */
 const MAX_SCRIPT_LENGTH = 20_000;

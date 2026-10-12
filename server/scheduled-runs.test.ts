@@ -22,13 +22,13 @@ vi.mock('node-cron', () => ({
   },
 }));
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
     http: vi.fn(),
-  }),
+  },
 }));
 vi.mock('./queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',

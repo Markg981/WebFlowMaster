@@ -15,7 +15,7 @@ import { requireRole } from '../middleware/require-role';
 import { encryptSecret } from '../crypto';
 import { gridConnection, toGridConfig } from '../browser-grids';
 import { appiumTransport } from '../mobile-runner';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * An organization's browser grids (shared/browser-grids.ts).
@@ -26,7 +26,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const gridSchema = z.object({
   name: z.string().trim().min(1, 'A name is required').max(80),

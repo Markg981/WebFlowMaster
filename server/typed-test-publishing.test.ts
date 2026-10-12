@@ -9,14 +9,14 @@ import { createTestOrganization } from './tests/factories';
 import { recordTypedTestVersion, currentContentOf, currentVersionsOf } from './test-version-store';
 import { publishedContentOf } from './test-publishing';
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     error: vi.fn(),
     warn: vi.fn(),
     info: vi.fn(),
     debug: vi.fn(),
     http: vi.fn(),
     verbose: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 const { default: versionsRoutes } = await import('./routes/test-versions.routes');

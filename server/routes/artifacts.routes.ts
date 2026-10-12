@@ -9,7 +9,7 @@ import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performa
 import type { DownloadFinding } from '@shared/downloads';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Serving what a run produced: screenshots, and the three images of a visual comparison.
@@ -29,7 +29,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /**
  * The URL that serves a stored artifact path, or null when the path is not one.

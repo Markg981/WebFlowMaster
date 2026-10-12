@@ -3,7 +3,7 @@ import { privilegedDb } from './db';
 import { secrets as secretsTable, testDataSets } from '@shared/schema';
 import { dataVariables } from '@shared/test-data';
 import { decryptSecret } from './crypto';
-import loggerPromise from './logger';
+import logger from './logger';
 import { findInvalidGenerators } from './generators';
 
 /**
@@ -53,8 +53,6 @@ export async function resolveVariables(scope: VariableScope): Promise<Record<str
     .where(eq(testDataSets.organizationId, scope.organizationId));
   const vars = { ...defaultVariables(), ...dataVariables(sets) };
   if (!scope.environmentId) return vars;
-
-  const logger = await loggerPromise;
 
   // Scoped by organization as well as environment: an environment id is caller-supplied,
   // and without the organization predicate one tenant could read another's secrets by

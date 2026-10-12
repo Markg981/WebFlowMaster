@@ -39,7 +39,7 @@ import {
   wouldLoop,
   type CoverageScope,
 } from '../requirements';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { aiService } from '../ai-automation-service';
 import { htmlToText } from '../email-inbox';
 import { toSequence } from '@shared/manual-tests';
@@ -60,7 +60,6 @@ import {
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 class RequirementError extends Error {
   constructor(

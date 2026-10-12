@@ -1,6 +1,6 @@
 import { asyncRouter } from '../middleware/async-router';
 import { junitReportFor } from '../junit-report';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { requireRole } from '../middleware/require-role';
 import {
   exportRun,
@@ -14,7 +14,6 @@ import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orche
 import { QuotaError, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 router.post(
   '/api/test-plan-executions/:executionId/replay',

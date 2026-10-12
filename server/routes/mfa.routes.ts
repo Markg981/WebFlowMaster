@@ -17,7 +17,7 @@ import {
   setMfaRequired,
   verifySecondFactor,
 } from '../mfa';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * A member's second factor, and the organization's policy on it.
@@ -28,7 +28,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 function sessionOnly(req: Request, res: Response, next: NextFunction) {
   if ((req as Request & { apiKeyId?: string }).apiKeyId) {

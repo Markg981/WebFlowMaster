@@ -4,7 +4,7 @@ import { privilegedDb } from './db';
 import { runWithTenant } from './middleware/tenancy';
 import { LIVE_EXECUTION_STATUSES, transitionExecution } from './execution-state';
 import { RUN_HEARTBEAT_INTERVAL_MS, RUN_MAX_DURATION_MS } from './run-watch';
-import loggerPromise from './logger';
+import logger from './logger';
 
 /**
  * Ends the runs nobody is running any more.
@@ -125,11 +125,9 @@ export function startRunRecovery(intervalMs = 60_000): () => void {
       });
       const total = report.lost.length + report.cancelled.length + report.timedOut.length;
       if (total > 0) {
-        const logger = await loggerPromise;
         logger.warn({ message: 'Ended runs nobody was running any more', ...report });
       }
     } catch (error: any) {
-      const logger = await loggerPromise;
       logger.error({ message: 'The run recovery sweep failed', error: error?.message });
     } finally {
       running = false;

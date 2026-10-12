@@ -1,7 +1,7 @@
 import { asyncRouter } from '../middleware/async-router';
 import path from 'path';
 import fs from 'fs-extra';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * GET /cli/wfm.mjs — the pipeline CLI, as this server's build of it.
@@ -19,7 +19,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /**
  * What is handed out: the pipeline CLI, and the local agent (server/agents/relay.ts), which needs

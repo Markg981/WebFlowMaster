@@ -3,7 +3,7 @@ import { asyncRouter } from '../middleware/async-router';
 import multer from 'multer';
 import { excelService } from '../excel-service';
 import fs from 'fs-extra';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { excelSequencesMap, tests } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -20,7 +20,6 @@ const excelMappingSchema = z.object({
 });
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 /** Larger than any sheet of test cases; small enough that no account can fill the disk with them. */
 export const EXCEL_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 

@@ -25,7 +25,7 @@ import {
   type SignInError,
   type SignedIn,
 } from '../sso';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import {
   BINDING_COOKIE,
   SLO_BINDING_COOKIE,
@@ -48,7 +48,6 @@ import { SCIM_BASE_PATH, issueScimToken, revokeScimToken } from '../scim';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 function sessionOnly(req: Request, res: Response, next: NextFunction) {
   if ((req as Request & { apiKeyId?: string }).apiKeyId) {

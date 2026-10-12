@@ -36,7 +36,7 @@ import { generateWebhookToken } from '../webhook-tokens';
 import { artifactStore, assertSafeKey, contentTypeFor, RESULTS_PREFIX } from '../artifact-store';
 import { executionArtifactAvailability } from '../artifact-metering';
 import { billingSummary } from '../billing/service';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { EVIDENCE_KINDS } from './management-openapi';
 import {
   AuthoringError,
@@ -59,8 +59,6 @@ import {
  * and audit entries, and answers in this API's shapes: written out, so a column added for a page
  * does not become part of the contract.
  */
-
-const logger = await loggerPromise;
 
 const scheduleFields = {
   testPlanId: z.string().min(1).max(100),

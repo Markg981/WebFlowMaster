@@ -1,73 +1,129 @@
 import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
-import { initializeLogger } from './logger';
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
+import logger, { applyLogSettings, currentFileTransport } from './logger';
 import { privilegedDb } from './db';
 import { systemSettings } from '@shared/schema';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// These tests exercise logger initialization against the REAL (PGlite) test database.
-// Instead of mocking `privilegedDb`, we seed the `system_settings` table to control what the
-// logger reads — this keeps the tests aligned with production behaviour and avoids
-// brittle mocks that inspect Drizzle internals.
+// The settings tests run against the REAL (PGlite) test database: we seed the `system_settings`
+// table to control what the logger reads, instead of mocking `privilegedDb`.
 
-function getDailyRotateFileTransport(logger: Awaited<ReturnType<typeof initializeLogger>>) {
-  return logger.transports.find((t) => t instanceof DailyRotateFile) as DailyRotateFile | undefined;
+function fileTransports(instance: typeof logger) {
+  return instance.transports.filter((t) => t instanceof DailyRotateFile) as DailyRotateFile[];
 }
 
-describe('Logger Configuration', () => {
-  const originalRetention = process.env.LOG_RETENTION_DAYS;
+/** A fresh copy of the module, so it is created again from the current environment. */
+async function freshLogger() {
+  vi.resetModules();
+  return (await import('./logger')).default;
+}
+
+// Before the environment tests: those reset the module registry, after which applyLogSettings'
+// own import of ./db would open a second database rather than the one seeded here.
+describe('applyLogSettings', () => {
+  const levelBefore = logger.level;
 
   beforeEach(async () => {
-    // Start each test from a clean settings table and env.
     await privilegedDb.delete(systemSettings);
-    delete process.env.LOG_RETENTION_DAYS;
   });
 
   afterAll(async () => {
     await privilegedDb.delete(systemSettings);
-    if (originalRetention === undefined) {
-      delete process.env.LOG_RETENTION_DAYS;
-    } else {
-      process.env.LOG_RETENTION_DAYS = originalRetention;
+    logger.level = levelBefore;
+    logger.transports.forEach((t) => {
+      t.level = undefined;
+    });
+  });
+
+  it('replaces the file transport with the retention saved in the DB', async () => {
+    const before = currentFileTransport();
+    await privilegedDb.insert(systemSettings).values({ key: 'logRetentionDays', value: '15' });
+
+    await applyLogSettings();
+
+    const transports = fileTransports(logger);
+    expect(transports).toHaveLength(1);
+    expect(transports[0]).toBe(currentFileTransport());
+    expect(transports[0]).not.toBe(before);
+    expect(transports[0].options.maxFiles).toBe('15d');
+  });
+
+  it('applies the log level saved in the DB to the logger and its transports', async () => {
+    await privilegedDb.insert(systemSettings).values({ key: 'logLevel', value: 'warn' });
+
+    await applyLogSettings();
+
+    expect(logger.level).toBe('warn');
+    expect(logger.transports.every((t) => t.level === 'warn')).toBe(true);
+  });
+
+  it('leaves the current values when the DB has none or malformed ones', async () => {
+    const transport = currentFileTransport();
+    const level = logger.level;
+    await privilegedDb.insert(systemSettings).values([
+      { key: 'logRetentionDays', value: 'forever' },
+      { key: 'logLevel', value: 'loud' },
+    ]);
+
+    await applyLogSettings();
+
+    expect(currentFileTransport()).toBe(transport);
+    expect(logger.level).toBe(level);
+  });
+});
+
+describe('Logger configuration from the environment', () => {
+  const originalRetention = process.env.LOG_RETENTION_DAYS;
+  const originalLevel = process.env.LOG_LEVEL;
+
+  afterEach(() => {
+    for (const [key, value] of [
+      ['LOG_RETENTION_DAYS', originalRetention],
+      ['LOG_LEVEL', originalLevel],
+    ] as const) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
     }
   });
 
-  it('uses the default (7d) retention when neither env var nor DB setting is present', async () => {
-    const logger = await initializeLogger();
-    const transport = getDailyRotateFileTransport(logger);
+  it('is usable synchronously, without awaiting anything', () => {
+    expect(typeof logger.info).toBe('function');
+    expect(fileTransports(logger)).toHaveLength(1);
+  });
 
-    expect(transport).toBeInstanceOf(DailyRotateFile);
-    const options = transport!.options;
+  it('uses the default (7d) retention and info level when no env var is set', async () => {
+    delete process.env.LOG_RETENTION_DAYS;
+    delete process.env.LOG_LEVEL;
+    const instance = await freshLogger();
+    const [transport] = fileTransports(instance);
+
+    const options = transport.options;
     const expectedLogDir = path.join(__dirname, '../logs');
     expect(options.filename).toBe(path.join(expectedLogDir, 'app-%DATE%.log'));
     expect(options.datePattern).toBe('YYYY-MM-DD');
     expect(options.zippedArchive).toBe(true);
     expect(options.maxSize).toBe('20m');
     expect(options.maxFiles).toBe('7d');
+    expect(instance.level).toBe('info');
   });
 
-  it('uses the LOG_RETENTION_DAYS env var when no DB setting is found', async () => {
+  it('uses LOG_RETENTION_DAYS and LOG_LEVEL', async () => {
     process.env.LOG_RETENTION_DAYS = '10';
+    process.env.LOG_LEVEL = 'debug';
+    const instance = await freshLogger();
 
-    const logger = await initializeLogger();
-    const transport = getDailyRotateFileTransport(logger);
-
-    expect(transport).toBeInstanceOf(DailyRotateFile);
-    expect(transport!.options.maxFiles).toBe('10d');
+    expect(fileTransports(instance)[0].options.maxFiles).toBe('10d');
+    expect(instance.level).toBe('debug');
   });
 
-  it('uses the DB setting for logRetentionDays, overriding the env var', async () => {
-    process.env.LOG_RETENTION_DAYS = '5'; // should be overridden by the DB value
-    await privilegedDb.insert(systemSettings).values({ key: 'logRetentionDays', value: '15' });
+  it('ignores an unknown LOG_LEVEL', async () => {
+    process.env.LOG_LEVEL = 'loud';
+    const instance = await freshLogger();
 
-    const logger = await initializeLogger();
-    const transport = getDailyRotateFileTransport(logger);
-
-    expect(transport).toBeInstanceOf(DailyRotateFile);
-    expect(transport!.options.maxFiles).toBe('15d');
+    expect(instance.level).toBe('info');
   });
 });

@@ -1,4 +1,4 @@
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { sweepSubscriptions } from './service';
 
 /**
@@ -11,7 +11,6 @@ export function startBillingSweep(intervalMs = 12 * 60 * 60_000): () => void {
   const sweep = async () => {
     if (running) return;
     running = true;
-    const logger = await loggerPromise;
     try {
       const report = await sweepSubscriptions();
       if (report.suspended.length > 0 || report.trialsEnded.length > 0)

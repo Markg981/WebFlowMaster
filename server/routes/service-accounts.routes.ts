@@ -6,7 +6,7 @@ import { storage } from '../storage';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../audit';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Accounts that are not people, for keys that must outlive whoever made them.
@@ -24,7 +24,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const createSchema = z.object({
   name: z.string().trim().min(1, 'A name is required').max(80),

@@ -20,13 +20,13 @@ import { groupsOf, roleFromGroups } from '@shared/sso-roles';
 // Auth runs against the real (PGlite) test database; the identity provider is a small one started
 // here, which signs its ID tokens with a key of its own. Only the logger is mocked.
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     http: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

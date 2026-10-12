@@ -10,14 +10,14 @@ import { generateApiKey } from '../api-keys';
 import { apiKeyAuth, resetApiKeyUsageThrottle } from './api-key-auth';
 
 vi.mock('../logger', () => ({
-  default: Promise.resolve({
+  default: {
     error: vi.fn(),
     warn: vi.fn(),
     info: vi.fn(),
     http: vi.fn(),
     verbose: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

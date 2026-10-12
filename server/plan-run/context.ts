@@ -5,13 +5,13 @@
  * an earlier part had computed. The phases now take what they read as arguments and return what
  * they produce, so each can be read, and tested, on its own; this file is the part they all hold.
  */
-import type loggerPromise from '../logger';
+import type logger from '../logger';
 import type { WsEmitter, ExecutionLogEntry } from '../websocket';
 import type { RunWatch } from '../run-watch';
 import type { TestPlanExecution } from '@shared/schema';
 import { recordStopReason } from '../run-shards';
 
-export type Logger = Awaited<typeof loggerPromise>;
+export type Logger = typeof logger;
 
 /** A plan run as the queue asked for it. */
 export interface PlanJob {

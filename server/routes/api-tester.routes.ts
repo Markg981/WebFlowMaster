@@ -12,7 +12,7 @@ import { ProtocolConfigSchema } from '@shared/api-protocol-config';
 import { runApiRequest } from '../api-test-runner';
 import { withExecutionUsage } from '../execution-usage';
 import { redactHistoryEntry } from '../history-redaction';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { asyncHandler } from '../middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
@@ -26,7 +26,6 @@ import { defaultVariables, resolveVariables } from '../variables';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 // After requireRole, so it counts for the user the role check has already established.
 const heavyLimit = sharedHeavyRateLimit();
 

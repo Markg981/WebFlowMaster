@@ -18,7 +18,7 @@ import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
 import { MAX_CHANGED_FILES, selectForChanges, validatePattern } from '../test-impact';
 import { expandPlanTests, type TestReference } from '../test-suites';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * The impact map (server/test-impact.ts): which file patterns map to which tests' tags. Viewers
@@ -38,7 +38,6 @@ class ImpactError extends Error {
 
 async function fail(res: Response, error: unknown, doing: string) {
   if (error instanceof ImpactError) return res.status(error.status).json({ error: error.message });
-  const logger = await loggerPromise;
   logger.error({ message: `Could not ${doing}`, error: (error as Error)?.message });
   res.status(500).json({ error: `Could not ${doing}.` });
 }

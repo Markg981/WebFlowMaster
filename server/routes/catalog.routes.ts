@@ -6,7 +6,7 @@ import { catalogPage, type CatalogType } from '../catalog';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { tagsOfTests } from '../test-tags';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 const router = asyncRouter();
 
@@ -27,7 +27,7 @@ for (const type of ['tests', 'api-tests', 'mobile-tests', 'test-data'] as Catalo
     try {
       res.json(await withTenantTransaction((tx) => catalogPage(tx, type, query)));
     } catch (error) {
-      (await loggerPromise).error({
+      logger.error({
         message: 'Could not load catalog',
         catalog: type,
         error: (error as Error).message,
@@ -52,7 +52,7 @@ router.get('/api/tests/:id', requireRole('viewer'), async (req, res) => {
     if (!result) return res.status(404).json({ error: 'Test not found' });
     res.json(result);
   } catch (error) {
-    (await loggerPromise).error({
+    logger.error({
       message: 'Could not load test',
       error: (error as Error).message,
     });

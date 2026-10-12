@@ -6,7 +6,7 @@ import { projectElements, projects, tests } from '@shared/schema';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { referencedElementIds } from '../step-elements';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * The elements of an application, kept once instead of once per test.
@@ -17,7 +17,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const elementBodySchema = z.object({
   name: z.string().trim().min(1, 'A name is required').max(120),

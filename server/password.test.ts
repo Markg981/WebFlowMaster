@@ -7,13 +7,13 @@ import { users, organizations, invitations, auditLog, passwordResets } from '@sh
 import { storage } from './storage';
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     http: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

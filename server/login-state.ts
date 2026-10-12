@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { privilegedDb } from './db';
 import { environments } from '@shared/schema';
 import { decryptSecret, encryptSecret } from './crypto';
-import loggerPromise from './logger';
+import logger from './logger';
 
 /**
  * A browser session saved against an environment, so a test can start already
@@ -87,7 +87,6 @@ export async function loadLoginState(scope: EnvironmentScope): Promise<LoginStat
     // A state encrypted under a previous ENCRYPTION_KEY, or a truncated row. Running
     // unauthenticated is the honest outcome: the test then fails on its first
     // authenticated step, which is a far clearer signal than a corrupted cookie jar.
-    const logger = await loggerPromise;
     logger.warn(
       `Could not read the saved login state for environment ${scope.environmentId}; ` +
         'the run will start unauthenticated.',

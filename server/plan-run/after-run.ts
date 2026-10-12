@@ -4,7 +4,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { testPlanSchedules, type TestPlanExecution } from '@shared/schema';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { getWsEmitter, type ExecutionLogEntry } from '../websocket';
 import { executionOrchestrator } from '../execution-orchestrator';
@@ -34,8 +34,7 @@ export async function queueRetryIfAllowed(
   try {
     return await executionOrchestrator.retryFailedRun(finished, RETRY_DELAY_MS);
   } catch (error: any) {
-    const resolvedLogger = await loggerPromise;
-    resolvedLogger.error({
+    logger.error({
       message: 'Could not queue the retry of a failed run',
       executionId: finished.id,
       error: error?.message,
@@ -76,7 +75,6 @@ export async function fileFailuresIfConfigured(input: {
     quarantined?: boolean | null;
   }>;
 }): Promise<void> {
-  const resolvedLogger = await loggerPromise;
   const wsEmitter = getWsEmitter();
   const say = (level: 'info' | 'warn', message: string) => {
     const entry: ExecutionLogEntry = {
@@ -85,8 +83,8 @@ export async function fileFailuresIfConfigured(input: {
       message,
       timestamp: new Date().toISOString(),
     };
-    if (level === 'warn') resolvedLogger.warn(entry);
-    else resolvedLogger.info(entry);
+    if (level === 'warn') logger.warn(entry);
+    else logger.info(entry);
     wsEmitter.emitExecutionLog(input.executionId, entry);
   };
 
@@ -165,7 +163,6 @@ export async function fileFailuresIfConfigured(input: {
  * run and said in its log, and the report offers to publish again.
  */
 export async function publishToTestManagement(executionId: string): Promise<void> {
-  const resolvedLogger = await loggerPromise;
   const say = (level: 'info' | 'warn', message: string) => {
     const entry: ExecutionLogEntry = {
       level,
@@ -173,8 +170,8 @@ export async function publishToTestManagement(executionId: string): Promise<void
       message,
       timestamp: new Date().toISOString(),
     };
-    if (level === 'warn') resolvedLogger.warn(entry);
-    else resolvedLogger.info(entry);
+    if (level === 'warn') logger.warn(entry);
+    else logger.info(entry);
     getWsEmitter().emitExecutionLog(executionId, entry);
   };
   try {
@@ -219,7 +216,6 @@ export async function notifyRunFinished(input: {
   execution: { scheduleId?: string | null; requestedByUserId?: number | null };
   summary: RunSummary;
 }): Promise<void> {
-  const resolvedLogger = await loggerPromise;
   const wsEmitter = getWsEmitter();
   try {
     // A schedule may override the plan's settings — most usefully the destination, so a
@@ -259,7 +255,7 @@ export async function notifyRunFinished(input: {
         settings,
         await organizationMailConfigured(getTenantOrgId()),
       )) {
-        resolvedLogger.warn({ message: note, executionId: input.summary.executionId });
+        logger.warn({ message: note, executionId: input.summary.executionId });
         wsEmitter.emitExecutionLog(input.summary.executionId, {
           level: 'warn',
           source: 'system',
@@ -268,7 +264,7 @@ export async function notifyRunFinished(input: {
         });
       }
     } catch (error: any) {
-      resolvedLogger.warn({
+      logger.warn({
         message: `Run notification e-mail could not be attempted: ${error?.message ?? error}`,
         executionId: input.summary.executionId,
       });
@@ -285,7 +281,7 @@ export async function notifyRunFinished(input: {
       return;
     }
     if (result.error) {
-      resolvedLogger.warn({ message: result.error, executionId: input.summary.executionId });
+      logger.warn({ message: result.error, executionId: input.summary.executionId });
       wsEmitter.emitExecutionLog(input.summary.executionId, {
         level: 'warn',
         source: 'system',
@@ -293,10 +289,10 @@ export async function notifyRunFinished(input: {
         timestamp: new Date().toISOString(),
       });
     } else if (result.reason) {
-      resolvedLogger.debug({ message: result.reason, executionId: input.summary.executionId });
+      logger.debug({ message: result.reason, executionId: input.summary.executionId });
     }
   } catch (error: any) {
-    resolvedLogger.warn({
+    logger.warn({
       message: `Run notification could not be attempted: ${error?.message ?? error}`,
       executionId: input.summary.executionId,
     });

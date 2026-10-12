@@ -20,13 +20,13 @@ vi.mock('./execution-orchestrator', async (importOriginal) => {
   };
 });
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: (...args: unknown[]) => logError(...args),
     http: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

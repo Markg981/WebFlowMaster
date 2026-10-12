@@ -30,13 +30,13 @@ import {
 // the AuthnRequest the product sends and answers with a Response whose assertion it signs with a test
 // key (server/tests/fixtures). Only the logger is mocked.
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     http: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

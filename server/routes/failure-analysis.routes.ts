@@ -17,7 +17,7 @@ import { auditActor, recordAudit } from '../audit';
 import { aiService } from '../ai-automation-service';
 import { buildFailurePrompt, evidenceSteps, parseFailureAnswer } from '../failure-analysis';
 import { failedStepScreenshot, readScreenshot } from '../report-model';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * The AI's reading of a failed result, asked for from the report.
@@ -29,7 +29,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const bodySchema = z.object({
   language: z.enum(ANALYSIS_LANGUAGES).optional().default('en'),

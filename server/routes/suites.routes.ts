@@ -23,7 +23,7 @@ import {
   namedItems,
   type TestItem,
 } from '../test-refs';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Suites, and which plans include them. The rules for what a suite runs are in
@@ -32,7 +32,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 class SuiteError extends Error {
   constructor(

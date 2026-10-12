@@ -2,12 +2,11 @@ import { type Request, type Response, type NextFunction } from 'express';
 import { asyncRouter } from '../middleware/async-router';
 import rateLimit from 'express-rate-limit';
 import { sharedStore } from '../middleware/rate-limit-store';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { ClientLogBatchSchema, ClientIncidentReportSchema } from '@shared/observability';
 import { recordIncident } from '../observability/incident';
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 const isProduction = process.env.NODE_ENV === 'production';
 

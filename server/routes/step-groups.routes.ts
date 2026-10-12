@@ -6,7 +6,7 @@ import { stepGroups, tests, AdhocTestStepSchema } from '@shared/schema';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { asSteps, isGroupCall, referencedGroupIds } from '../step-groups';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * The named sequences tests call instead of repeating them.
@@ -18,7 +18,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /**
  * A project the group cannot go into: one that does not exist (the foreign key), or one the

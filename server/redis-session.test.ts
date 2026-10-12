@@ -17,14 +17,14 @@ const UNREACHABLE = 'redis://127.0.0.1:1';
 vi.mock('./logger', () => {
   const noop = () => undefined;
   return {
-    default: Promise.resolve({
+    default: {
       error: noop,
       warn: noop,
       info: noop,
       http: noop,
       verbose: noop,
       debug: noop,
-    }),
+    },
   };
 });
 

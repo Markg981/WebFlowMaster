@@ -9,13 +9,13 @@ import { privilegedDb } from './db';
 import { organizations, testPlans, testPlanExecutions, executionLogs, users } from '@shared/schema';
 
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     http: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

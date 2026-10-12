@@ -2,7 +2,7 @@ import { asyncRouter } from '../middleware/async-router';
 import { AUDIT_ACTIONS, insertSystemSettingSchema } from '@shared/schema';
 import { auditActor, recordAudit } from '../audit';
 import { requireInstallationAdmin } from '../installation-admin';
-import loggerPromise, { updateLogLevel } from '../logger';
+import logger, { updateLogLevel } from '../logger';
 import { asyncHandler } from '../middleware/async-handler';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction } from '../middleware/tenancy';
@@ -21,7 +21,6 @@ import {
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 router.get(
   '/api/settings',
@@ -99,7 +98,7 @@ router.post(
 
     if (saved.key === 'logLevel' && saved.value) {
       try {
-        await updateLogLevel(saved.value);
+        updateLogLevel(saved.value);
         logger.info({
           message: `Log level dynamically updated to: ${saved.value} via API`,
           userId: req.user!.id,

@@ -28,7 +28,7 @@ import {
 import { openApiDocument } from '../api-v1/openapi';
 import { ciContextSchema } from '@shared/ci';
 import { reportUrlFor } from '../report-links';
-import loggerPromise from '../logger';
+import logger from '../logger';
 import { registerAuthoringRoutes } from '../api-v1/authoring';
 import { registerManagementRoutes } from '../api-v1/management';
 
@@ -44,7 +44,6 @@ import { registerManagementRoutes } from '../api-v1/management';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /** A run as the API describes it. Written out, so a new column is absent until chosen. */
 function toRun(row: TestPlanExecution & { testPlanName?: string | null }) {

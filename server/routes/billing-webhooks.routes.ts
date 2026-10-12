@@ -5,7 +5,7 @@ import { billingConfig } from '../billing/config';
 import { BillingError } from '../billing/provider';
 import { billingProvider } from '../billing/providers';
 import { applyWebhookEvent } from '../billing/service';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Where the billing provider reports: `POST /api/billing/webhooks/stripe`, the address to
@@ -26,7 +26,6 @@ billingWebhookRouter.post('/api/billing/webhooks/stripe', webhookRateLimit(), as
   // An installation that does not use Stripe has no endpoint here: nothing for a scanner to probe.
   if (config.provider !== 'stripe') return res.status(404).json({ error: 'Not found' });
   if (!Buffer.isBuffer(req.body)) return res.status(400).json({ error: 'Invalid webhook body' });
-  const logger = await loggerPromise;
   try {
     const headers = Object.fromEntries(
       Object.entries(req.headers).map(([key, value]) => [

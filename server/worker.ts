@@ -5,7 +5,7 @@ import { LOAD_QUEUE_NAME, TEST_EXECUTION_QUEUE_NAME, loadQueue, testExecutionQue
 import { processShardJob, processTestPlanJob } from './test-execution-service';
 import { SHARD_JOB, registerShardDispatcher } from './run-shards';
 import { LoadRunJobSchema, loadLimits, processLoadRunJob } from './load-runner';
-import loggerPromise from './logger';
+import logger, { applyLogSettings } from './logger';
 import { installProcessErrorHandlers } from './process-errors';
 import { resolveWorkerShutdownGraceMs } from './config';
 import { correlationStore } from './middleware/correlation';
@@ -45,7 +45,6 @@ const stopTracing = startTracing('worker');
 configureEgressProxy();
 
 (async () => {
-  const logger = await loggerPromise;
   // Read first, so a malformed value is reported by name instead of at the first SIGTERM.
   const shutdownGraceMs = resolveWorkerShutdownGraceMs();
   // Likewise the load limits: a malformed LOAD_WORKER_CONCURRENCY stops the worker here, by name.
@@ -53,6 +52,8 @@ configureEgressProxy();
   // Every secret a run needs is under an organization key: refuse to start if one of them cannot
   // be opened with the configured master keys, rather than failing each run that reaches it.
   await assertOrganizationKeysReadable();
+  // The log level and retention an administrator saved in the settings.
+  await applyLogSettings();
   const { initializeQuotaDefaults } = await import('./tenant-quotas');
   await initializeQuotaDefaults();
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.

@@ -7,7 +7,7 @@ import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { aiService } from '../ai-automation-service';
 import { authorSteps } from '../nl-authoring';
-import loggerPromise from '../logger';
+import logger from '../logger';
 
 /**
  * Turning what a test is supposed to do into the steps that do it.
@@ -22,7 +22,6 @@ import loggerPromise from '../logger';
  */
 
 const router = asyncRouter();
-const logger = await loggerPromise;
 
 /**
  * Lenient on purpose. These are the elements the builder has detected on the page it is

@@ -7,13 +7,13 @@ import { auditLog, invitations, organizations, scimGroups, tests, users } from '
 
 // SCIM against the real (PGlite) test database, as Entra ID and Okta talk to it. Only the logger is mocked.
 vi.mock('./logger', () => ({
-  default: Promise.resolve({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     http: vi.fn(),
     debug: vi.fn(),
-  }),
+  },
   updateLogLevel: vi.fn(),
 }));
 

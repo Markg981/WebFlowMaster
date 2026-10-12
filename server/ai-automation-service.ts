@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import loggerPromise from './logger';
+import logger from './logger';
 import { privilegedDb } from './db';
 import { tests, detectedElements } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
@@ -33,17 +33,14 @@ export class AIAutomationService {
   }
 
   private async logInfo(message: string, meta?: any) {
-    const logger = await loggerPromise;
     logger.info(message, meta);
   }
 
   private async logWarn(message: string, meta?: any) {
-    const logger = await loggerPromise;
     logger.warn(message, meta);
   }
 
   private async logError(message: string, meta?: any) {
-    const logger = await loggerPromise;
     logger.error(message, meta);
   }
 
