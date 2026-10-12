@@ -1,4 +1,5 @@
-import { Router, type Request, type Response, type NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import rateLimit from 'express-rate-limit';
 import { sharedStore } from '../middleware/rate-limit-store';
 import { z } from 'zod';
@@ -46,7 +47,7 @@ import { SCIM_BASE_PATH, issueScimToken, revokeScimToken } from '../scim';
  * could point the organization's sign-in at another provider would be a key to every account.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 function sessionOnly(req: Request, res: Response, next: NextFunction) {

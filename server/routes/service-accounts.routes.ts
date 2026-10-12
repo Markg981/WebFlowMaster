@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { apiKeys, users, AUDIT_ACTIONS } from '@shared/schema';
@@ -23,7 +23,7 @@ import loggerPromise from '../logger';
  * organization explicitly.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 const createSchema = z.object({

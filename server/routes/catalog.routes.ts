@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { eq } from 'drizzle-orm';
 import { tests } from '@shared/schema';
 import { catalogQuerySchema } from '@shared/catalog';
@@ -8,7 +8,7 @@ import { withTenantTransaction } from '../middleware/tenancy';
 import { tagsOfTests } from '../test-tags';
 import loggerPromise from '../logger';
 
-const router = Router();
+const router = asyncRouter();
 
 for (const type of ['tests', 'api-tests', 'mobile-tests', 'test-data'] as CatalogType[]) {
   router.get(`/api/catalog/${type}`, requireRole('viewer'), async (req, res) => {

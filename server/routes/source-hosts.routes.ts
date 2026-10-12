@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { asc, eq } from 'drizzle-orm';
@@ -24,7 +24,7 @@ import { checkSourceHost, DEFAULT_API_URLS, hostConfig } from '../commit-status'
  * gets the token back, not even its owner.
  */
 
-const router = Router();
+const router = asyncRouter();
 
 function view(row: SourceHost) {
   return {

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { requireInstallationAdmin } from '../installation-admin';
@@ -15,7 +15,7 @@ import { listRunners, setRunnerDesiredState, statusOf } from '../runner-registry
  * jobs they are.
  */
 
-const router = Router();
+const router = asyncRouter();
 
 router.get('/api/runners', requireRole('owner'), async (_req, res) => {
   res.json(await listRunners());

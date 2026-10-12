@@ -1,4 +1,5 @@
-import { Router, type RequestHandler } from 'express';
+import { type RequestHandler } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import multer from 'multer';
 import { excelService } from '../excel-service';
 import fs from 'fs-extra';
@@ -18,7 +19,7 @@ const excelMappingSchema = z.object({
   testId: z.coerce.number().int().positive(),
 });
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 /** Larger than any sheet of test cases; small enough that no account can fill the disk with them. */
 export const EXCEL_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;

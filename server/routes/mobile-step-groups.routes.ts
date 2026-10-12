@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { mobileStepGroups } from '@shared/schema';
@@ -8,7 +8,7 @@ import { requireRole } from '../middleware/require-role';
 import { lockOrganizationRuns } from '../tenant-quotas';
 import loggerPromise from '../logger';
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 class GroupError extends Error {
   constructor(

@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
@@ -21,7 +22,7 @@ import {
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
 
-const router = Router();
+const router = asyncRouter();
 class CommentError extends Error {
   constructor(
     readonly status: number,

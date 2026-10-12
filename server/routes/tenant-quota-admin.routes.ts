@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { QUOTA_MODES } from '@shared/tenant-quotas';
 import { requireInstallationAdmin } from '../installation-admin';
@@ -10,7 +10,7 @@ import {
   updateOrganizationQuotas,
 } from '../tenant-quota-admin';
 
-const router = Router();
+const router = asyncRouter();
 const root = '/api/admin/organization-quotas';
 router.use(
   root,

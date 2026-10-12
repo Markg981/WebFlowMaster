@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { requireRole } from '../middleware/require-role';
 import { webhookRateLimit } from '../middleware/rate-limits';
@@ -16,7 +16,7 @@ import {
 /** The public router is mounted before session authorization. Its credential is the HMAC,
  * checked before lookup; no browser session authorizes a delivery event. Limited per client
  * address like the other public webhooks, so signatures cannot be tried at any speed. */
-export const mailDeliveryWebhookRouter = Router();
+export const mailDeliveryWebhookRouter = asyncRouter();
 mailDeliveryWebhookRouter.post(
   '/api/mail-deliveries/events',
   webhookRateLimit(),
@@ -42,7 +42,7 @@ mailDeliveryWebhookRouter.post(
     }
   },
 );
-const router = Router();
+const router = asyncRouter();
 router.get('/api/mail-deliveries', requireRole('owner'), async (req, res) => {
   const limit = z.coerce
     .number()

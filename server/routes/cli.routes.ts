@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import path from 'path';
 import fs from 'fs-extra';
 import loggerPromise from '../logger';
@@ -18,7 +18,7 @@ import loggerPromise from '../logger';
  * a key.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /**

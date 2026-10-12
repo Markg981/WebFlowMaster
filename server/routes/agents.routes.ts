@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { and, asc, eq, isNull } from 'drizzle-orm';
@@ -19,7 +19,7 @@ import { RUNNER_PLAYWRIGHT_VERSION } from '../agents/agent-browser';
  * "run on" choice names a pool from it.
  */
 
-const router = Router();
+const router = asyncRouter();
 
 /** An agent as the pages see it: never the token, not even its hash. */
 function view(row: typeof agents.$inferSelect) {

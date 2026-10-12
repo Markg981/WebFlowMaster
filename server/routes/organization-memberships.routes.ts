@@ -1,4 +1,5 @@
-import { Router, type Request, type Response, type NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { AUDIT_ACTIONS, type User as SelectUser } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
@@ -19,7 +20,7 @@ import {
  * key that could act anywhere its owner may would be a wider credential than the one that was
  * issued. The switch starts a new session (req.login regenerates it), as a sign-in does.
  */
-const router = Router();
+const router = asyncRouter();
 
 function sessionOnly(req: Request, res: Response, next: NextFunction) {
   if ((req as Request & { apiKeyId?: string }).apiKeyId) {

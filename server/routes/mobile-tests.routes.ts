@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import os from 'os';
 import fs from 'fs';
 import multer from 'multer';
@@ -46,7 +47,7 @@ import loggerPromise from '../logger';
  * followed from the page, which reads its steps as they are written.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /** What runs the runs. A field so the tests can hand the runner a stand-in grid. */

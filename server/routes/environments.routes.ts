@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { environments, secrets, AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, recordAudit } from '../audit';
 import { and, asc, eq } from 'drizzle-orm';
@@ -19,7 +19,7 @@ import { encryptSecret } from '../crypto';
  * nowhere to attach.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 const environmentNameSchema = z.object({

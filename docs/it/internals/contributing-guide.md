@@ -63,12 +63,13 @@ e una nuova prop non lo rende persistente.
 
 Un nuovo endpoint va nel modulo `server/routes/*.routes.ts` del suo dominio, mai inline in
 `server/routes.ts`, che monta soltanto i router (lo verifica `server/tests/architecture.test.ts`).
-Avvolgere un handler asincrono in `asyncHandler` (`server/middleware/async-handler.ts`) invece di
-scrivere un try/catch che registra il log e risponde 500: un errore inatteso arriva così a
-`incidentErrorHandler`, che lo registra, salva l'incidente e risponde una volta sola, senza il
-messaggio del driver. Intercettare solo ciò a cui l'handler sa rispondere meglio, come un rifiuto
-di quota o un `BrowserTaskError`, e rilanciare il resto. `req.user` è tipizzato (`Express.User` in
-`server/auth.ts`): dopo `requireRole` si legge `req.user!.id`, mai `(req.user as any)`.
+Creare il router del modulo con `asyncRouter()` (`server/middleware/async-router.ts`), non
+`Router()`, e non scrivere try/catch che si limitano a registrare il log e rispondere 500: un
+handler asincrono che lancia arriva così a `incidentErrorHandler`, che lo registra, salva
+l'incidente e risponde una volta sola, senza il messaggio del driver. Intercettare solo ciò a cui
+l'handler sa rispondere meglio, come un rifiuto di quota o un `BrowserTaskError`, e rilanciare il
+resto. `req.user` è tipizzato (`Express.User` in `server/auth.ts`): dopo `requireRole` si legge
+`req.user!.id`, mai `(req.user as any)`.
 
 In questo esempio lo snapshot del piano e le unità non richiedono il nuovo campo: la descrizione
 non influenza il verdetto. È una decisione di progetto esplicita, non un'esenzione dal controllo

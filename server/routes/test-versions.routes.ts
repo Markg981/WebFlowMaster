@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import {
   AUDIT_ACTIONS,
@@ -29,7 +29,7 @@ import loggerPromise from '../logger';
  * cannot rewrite its own history, which is the only reason a history is worth reading.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /** Counting steps in SQL, so listing a history never loads a sequence. */

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { AUDIT_ACTIONS, reportTestCaseResults, testPlanExecutions } from '@shared/schema';
@@ -28,7 +28,7 @@ import loggerPromise from '../logger';
  * a slow answer must not hold a connection — and the result is read again before it is written.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 const bodySchema = z.object({

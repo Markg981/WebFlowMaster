@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { eq, inArray } from 'drizzle-orm';
 import {
@@ -23,7 +23,7 @@ import loggerPromise from '../logger';
  * again.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 const fileSchema = z.object({

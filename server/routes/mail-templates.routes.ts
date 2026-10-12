@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { and, eq, sql } from 'drizzle-orm';
 import {
@@ -13,7 +13,7 @@ import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
 import { builtInTemplates, previewMailTemplate, validateMailTemplate } from '../mail-templates';
 
-const router = Router();
+const router = asyncRouter();
 const purposeSchema = z.enum(TEMPLATE_PURPOSES);
 const revision = z.object({ version: z.number().int().min(0) }).strict();
 const edit = revision

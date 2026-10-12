@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import type { User as SelectUser } from '@shared/schema';
 
 // Sign-in, sign-out and registration are in server/auth.ts (setupAuth), which the passport setup
 // ties to the app itself; this router holds what reads the signed-in user.
 
-const router = Router();
+const router = asyncRouter();
 
 // GET /api/user/profile — the signed-in user, without the password hash.
 router.get('/api/user/profile', (req, res) => {

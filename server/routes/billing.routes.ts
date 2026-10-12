@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import { type Request, type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { BILLING_INTERVALS } from '@shared/billing';
 import { requireRole } from '../middleware/require-role';
@@ -13,7 +14,7 @@ import { publicBase } from './sso.routes';
  * — and, with a provider configured, the way to pay. Reading is every member's: the banner that
  * says the organization is suspended is for everybody. Paying is an owner's.
  */
-const router = Router();
+const router = asyncRouter();
 
 function fail(res: Response, error: unknown) {
   if (error instanceof BillingError)

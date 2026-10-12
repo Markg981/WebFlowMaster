@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -44,7 +45,7 @@ import loggerPromise from '../logger';
  * never comes out; an edit that leaves it out keeps the saved one.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 class ConnectionError extends Error {

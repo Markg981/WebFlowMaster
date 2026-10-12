@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { eq } from 'drizzle-orm';
 import { mailSettings, mailSettingsInputSchema } from '@shared/mail-settings';
 import { AUDIT_ACTIONS } from '@shared/schema';
@@ -7,7 +7,7 @@ import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
 import { buildMailSettings, MailSettingsError, publicMailSettings } from '../mail-settings';
 
-const router = Router();
+const router = asyncRouter();
 router.get('/api/mail-settings', requireRole('owner'), async (_req, res) => {
   try {
     const row = await withTenantTransaction(

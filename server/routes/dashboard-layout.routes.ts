@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { and, eq } from 'drizzle-orm';
 import {
   DEFAULT_DASHBOARD_LAYOUT,
@@ -8,7 +8,7 @@ import {
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 
-const router = Router();
+const router = asyncRouter();
 router.use('/api/dashboard/layout', requireRole('viewer'));
 
 router.get('/api/dashboard/layout', async (req, res) => {

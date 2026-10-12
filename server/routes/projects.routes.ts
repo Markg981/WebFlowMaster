@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import {
   projects,
@@ -13,7 +13,7 @@ import loggerPromise from '../logger';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 type Role = 'viewer' | 'editor' | 'owner';

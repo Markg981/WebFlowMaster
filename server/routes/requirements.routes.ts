@@ -1,5 +1,6 @@
 import { quotaErrorBody } from '../tenant-quotas';
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
@@ -58,7 +59,7 @@ import {
  * organization's Jira or Azure DevOps through its issue tracker; nothing is written back there.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 class RequirementError extends Error {

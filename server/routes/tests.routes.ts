@@ -1,7 +1,8 @@
 import { quotaErrorBody } from '../tenant-quotas';
 import { mobileTests, mobileStepGroups } from '@shared/schema';
 import { importMobileCatalog, type MobileImportOutcome } from '../mobile-bundle';
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import {
   tests,
   insertTestSchema,
@@ -40,7 +41,7 @@ import { compileGherkinSource, contextOfPickle, exampleLineOfPickle } from '../g
 import { GherkinImportOptionsSchema } from '@shared/bdd';
 import { BddDefinitionError, prepareBddForSave } from '../bdd-definition';
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /**

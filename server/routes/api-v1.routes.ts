@@ -1,4 +1,5 @@
-import { Router, type Request } from 'express';
+import { type Request } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { readExecutionSnapshot } from '../execution-snapshot';
 import { MAX_CHANGED_FILES } from '../test-impact';
 import { z } from 'zod';
@@ -42,7 +43,7 @@ import { registerManagementRoutes } from '../api-v1/management';
  * OpenAPI test holds the document to.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /** A run as the API describes it. Written out, so a new column is absent until chosen. */

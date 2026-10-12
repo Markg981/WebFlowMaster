@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { projectElements, projects } from '@shared/schema';
@@ -21,7 +21,7 @@ import loggerPromise from '../logger';
  * quietly becoming a test that passes for the wrong reason.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /**
