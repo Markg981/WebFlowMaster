@@ -83,7 +83,7 @@ Vedere [test BDD](../guide/bdd-tests).
 | BDD Cucumber          | `bdd-execution.ts` chiama il relay firmato; l'agente avvia `bdd-child.ts`                      | Profilo/revisione esatti annunciati e progetto di supporto installato                 | Step, hook e stati Cucumber, allegati testuali limitati                       |
 | Manuale               | Run/report registrano il percorso umano invece di aprire un browser per ogni frase             | Persona autorizzata a registrare gli esiti                                            | Esiti dei passi ed evidenze fornite                                           |
 
-Non applicare una sola matrice browser a tutte le righe. `test-execution-service.ts` costruisce
+Non applicare una sola matrice browser a tutte le righe. `plan-run/lanes.ts` costruisce
 separatamente corsie browser e unità indipendenti BDD/mobile. Le righe dataset Cucumber possono
 diventare unità indipendenti. Anche le catene di estrazioni API vincolano l'ordine: aumentare la
 concorrenza deve conservare il contratto delle variabili catturate. Leggere questa costruzione
@@ -110,8 +110,8 @@ flowchart LR
 
 `execution-orchestrator.ts` crea la richiesta, applica limiti di coda/idempotenza e invia il job.
 `execution-snapshot.ts` cattura impostazioni e selezione del run. `worker.ts` consuma i job;
-`execution-state.ts` controlla le transizioni condizionali. `test-execution-service.ts` risolve
-definizioni tipizzate, crea unità, applica policy e salva risultati. Heartbeat, cancellazione e
+`execution-state.ts` controlla le transizioni condizionali. `plan-run/pipeline.ts` esegue
+le fasi che risolvono definizioni tipizzate, creano unità, applicano policy e salvano risultati. Heartbeat, cancellazione e
 recovery spiegano in modo durevole cosa accade quando un worker scompare. Non impostare direttamente
 lo stato da una nuova route e non duplicare il ciclo di vita per un nuovo protocollo.
 
