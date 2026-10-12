@@ -17,7 +17,7 @@ const startRecordingSession = vi.fn();
 const stopRecordingSession = vi.fn();
 const getRecordedActions = vi.fn();
 
-vi.mock('./playwright-service', () => ({
+vi.mock('./web/playwright-service', () => ({
   playwrightService: {
     startRecordingSession: (...args: unknown[]) => startRecordingSession(...args),
     stopRecordingSession: (...args: unknown[]) => stopRecordingSession(...args),

@@ -3,9 +3,9 @@ import type { DownloadFinding } from '@shared/downloads';
 import { type MatrixEvidence } from '@shared/matrix-evidence';
 import type { Cleanup, Precondition } from '@shared/schema';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
-import { type BrowserChoice } from '../browsers';
-import { type EvidenceOptions } from '../run-evidence';
-import { type StepRuntime } from '../run-policies';
+import { type BrowserChoice } from '../../browsers';
+import { type EvidenceOptions } from '../../run-evidence';
+import { type StepRuntime } from '../../run-policies';
 import { type VisualContext } from '../visual-testing';
 
 // Default settings if not found or incomplete

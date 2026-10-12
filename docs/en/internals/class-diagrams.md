@@ -411,7 +411,7 @@ classDiagram
 Notes:
 
 - `PlaywrightService` is a facade that keeps the API the routes and the runner call. The work is in four
-  services under `server/playwright/`, and each one opens its browser through `openBrowserSession`
+  services under `server/web/playwright/`, and each one opens its browser through `openBrowserSession`
   (`browser-session.ts`): one launch, one set of context options (egress proxy, self-signed certificates,
   window size), whether the browser is local, on a grid or on an agent. There is no browser pool: every
   session launches its own browser and closes it.

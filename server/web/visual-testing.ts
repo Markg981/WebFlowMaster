@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
-import { artifactStore, baselineRoot, BASELINES_PREFIX } from './artifact-store';
+import { artifactStore, baselineRoot, BASELINES_PREFIX } from '../artifact-store';
 
 /**
  * Comparing what a step looks like now against what it looked like when it was accepted.

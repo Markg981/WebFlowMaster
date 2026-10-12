@@ -37,7 +37,7 @@ COPY . .
 # they are produced by one esbuild invocation. Dev dependencies go once it is done.
 RUN npm run build && npm ci --omit=dev --workspaces=false --no-audit --no-fund && node scripts/release/runtime-tools.mjs && rm -rf /root/.npm /tmp/node-compile-cache
 
-# Lighthouse, for the auditLighthouse step (server/web-performance.ts). Installed as a program on
+# Lighthouse, for the auditLighthouse step (server/web/web-performance.ts). Installed as a program on
 # its own rather than as a dependency of the application: it brings a browser driver and a
 # telemetry SDK the application has no use for, and it runs as a separate process anyway. It uses
 # the image's Playwright Chromium. Lighthouse 13 requires Node 22.19+; the pinned base provides Node 24.

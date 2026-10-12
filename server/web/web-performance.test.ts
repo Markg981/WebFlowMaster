@@ -11,7 +11,7 @@ import {
 } from '@shared/web-performance';
 import { executeStep } from './step-executor';
 
-/** How fast a page is, as a test step sees it (shared/web-performance.ts, server/web-performance.ts). */
+/** How fast a page is, as a test step sees it (shared/web-performance.ts, server/web/web-performance.ts). */
 
 describe('limits', () => {
   it('reads times, sizes and scores, with their units', () => {

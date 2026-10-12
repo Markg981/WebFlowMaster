@@ -16,7 +16,7 @@ process.env.RUN_MAX_DURATION_MS = '500';
  */
 
 const executeTestSequence = vi.fn();
-vi.mock('./playwright-service', () => ({
+vi.mock('./web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
 

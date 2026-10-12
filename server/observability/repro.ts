@@ -123,7 +123,7 @@ describe(${describeTitle(incident)}, () => {
   it.todo('completes the runner phase that failed');
 
   it('keeps the captured context available while the reproduction is written', async () => {
-    const { PlaywrightService } = await import('../playwright-service');
+    const { PlaywrightService } = await import('../web/playwright-service');
 
     expect(new PlaywrightService()).toBeDefined();
     expect(context.phase).toBeTruthy();

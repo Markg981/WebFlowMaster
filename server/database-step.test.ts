@@ -14,7 +14,7 @@ import {
   sqlServerConfig,
   type DatabaseRunner,
 } from './database-step';
-import { executeStep, type ExecutableStep } from './step-executor';
+import { executeStep, type ExecutableStep } from './web/step-executor';
 
 /**
  * The queryDatabase step: a statement against the environment's database, its first row in

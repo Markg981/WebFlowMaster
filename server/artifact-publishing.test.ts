@@ -25,12 +25,12 @@ import { fakeS3 } from './tests/fake-s3';
  */
 
 const executeTestSequence = vi.fn();
-vi.mock('./playwright-service', () => ({
+vi.mock('./web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
 
 const { processTestPlanJob } = await import('./test-execution-service');
-const { compareStepScreenshot } = await import('./visual-testing');
+const { compareStepScreenshot } = await import('./web/visual-testing');
 
 let organizationId: number;
 let userId: number;

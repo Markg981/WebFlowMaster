@@ -10,7 +10,7 @@ import {
   stableScreenshot,
   type VisualContext,
 } from './visual-testing';
-import { createTestOrganization } from './tests/factories';
+import { createTestOrganization } from '../tests/factories';
 
 /**
  * `visual_testing_enabled` was a column and a switch in the wizard with nothing behind it.

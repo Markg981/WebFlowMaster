@@ -10,7 +10,9 @@ import { eq } from 'drizzle-orm';
  * ahead of another's fiftieth.
  */
 
-vi.mock('./playwright-service', () => ({ playwrightService: { executeTestSequence: vi.fn() } }));
+vi.mock('./web/playwright-service', () => ({
+  playwrightService: { executeTestSequence: vi.fn() },
+}));
 
 const { privilegedDb } = await import('./db');
 const { organizations, testPlanExecutions, testPlans, users } = await import('@shared/schema');

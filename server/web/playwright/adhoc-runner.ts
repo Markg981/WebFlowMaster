@@ -3,18 +3,18 @@ import type { DownloadFinding } from '@shared/downloads';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
 import { Page } from 'playwright';
-import { cleanupReportStep, runCleanups } from '../cleanup-runner';
+import { cleanupReportStep, runCleanups } from '../../cleanup-runner';
 import type { DebugHooks } from '../debug-session';
-import { throwIfEgressDenied } from '../egress-policy';
-import { FlowCursor } from '../flow-cursor';
-import { recordRunnerFailure } from '../observability/taps/runner';
-import { requestVariables, substituteVariables } from '../outbound-http';
-import { runPreconditions } from '../precondition-runner';
-import { resolveSequenceForRun } from '../step-elements';
+import { throwIfEgressDenied } from '../../egress-policy';
+import { FlowCursor } from '../../flow-cursor';
+import { recordRunnerFailure } from '../../observability/taps/runner';
+import { requestVariables, substituteVariables } from '../../outbound-http';
+import { runPreconditions } from '../../precondition-runner';
+import { resolveSequenceForRun } from '../../step-elements';
 import { executeStep } from '../step-executor';
-import { expandSequenceForRun } from '../step-groups';
-import { storage } from '../storage';
-import { resolveVariables } from '../variables';
+import { expandSequenceForRun } from '../../step-groups';
+import { storage } from '../../storage';
+import { resolveVariables } from '../../variables';
 
 import {
   AUTHORING_USER_AGENT,
@@ -22,7 +22,7 @@ import {
   openBrowserSession,
   type BrowserSession,
 } from '../browser-session';
-import { describeBrowser } from '../browsers';
+import { describeBrowser } from '../../browsers';
 import type { ElementDetectionService } from './element-detection-service';
 import { resolvedLogger } from './log';
 import { datasetRows, evidenceScreenshot, runOverDataset } from './run-helpers';
@@ -311,7 +311,7 @@ export class AdhocRunner {
           testName,
         });
         const cursor = new FlowCursor(adhocSequence, adhocFlow.blocks, vars);
-        // Debugging (server/debug-session.ts): a step corrected where it failed runs again as
+        // Debugging (server/web/debug-session.ts): a step corrected where it failed runs again as
         // corrected, and is not stopped at again on its way back in.
         const corrections = new Map<number, TestStep>();
         let retrying = false;

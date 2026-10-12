@@ -1,5 +1,5 @@
 /**
- * How fast a page is, as a test step sees it (server/web-performance.ts).
+ * How fast a page is, as a test step sees it (server/web/web-performance.ts).
  *
  * Two steps. `measurePerformance` reads what the browser itself recorded about the page the test
  * is on — the Core Web Vitals and the timings around them — and checks them against limits.

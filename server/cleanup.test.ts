@@ -27,7 +27,7 @@ import { describeChange } from './test-versions';
 
 const executeTestSequence = vi.fn();
 const runPreconditions = vi.fn();
-vi.mock('./playwright-service', () => ({
+vi.mock('./web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
 vi.mock('./precondition-runner', () => ({

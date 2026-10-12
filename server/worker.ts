@@ -24,7 +24,7 @@ import {
   BROWSER_TASK_QUEUE_NAME,
   performBrowserTask,
   type BrowserTaskEnvelope,
-} from './browser-tasks';
+} from './web/browser-tasks';
 import { RunnerAgent, type PausableQueue } from './runner-registry';
 import { registerCommitStatus } from './commit-status';
 import { registerRunPromotion } from './run-promotion';

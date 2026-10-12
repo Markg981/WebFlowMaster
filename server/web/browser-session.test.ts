@@ -5,12 +5,12 @@ const mocks = vi.hoisted(() => ({
   guardBrowserContext: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('./browsers', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./browsers')>()),
+vi.mock('../browsers', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../browsers')>()),
   launchBrowser: mocks.launchBrowser,
 }));
-vi.mock('./egress-policy', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./egress-policy')>()),
+vi.mock('../egress-policy', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../egress-policy')>()),
   guardBrowserContext: mocks.guardBrowserContext,
 }));
 

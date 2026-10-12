@@ -28,7 +28,7 @@ import { runWithTenant } from './middleware/tenancy';
 const executeTestSequence = vi.fn();
 const launchBrowser = vi.fn(async () => ({ close: async () => {} }) as any);
 
-vi.mock('./playwright-service', () => ({
+vi.mock('./web/playwright-service', () => ({
   playwrightService: {
     executeTestSequence: (...args: any[]) => executeTestSequence(...args),
   },

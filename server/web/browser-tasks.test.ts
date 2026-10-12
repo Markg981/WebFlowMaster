@@ -19,10 +19,10 @@ vi.mock('./playwright-service', () => ({
   },
 }));
 
-const { privilegedDb } = await import('./db');
+const { privilegedDb } = await import('../db');
 const { environments, secrets, tests, users } = await import('@shared/schema');
-const { createTestOrganization } = await import('./tests/factories');
-const { encryptSecret } = await import('./crypto');
+const { createTestOrganization } = await import('../tests/factories');
+const { encryptSecret } = await import('../crypto');
 const { BrowserTaskError, browserTaskMode, createBrowserTaskRunner, performBrowserTask } =
   await import('./browser-tasks');
 

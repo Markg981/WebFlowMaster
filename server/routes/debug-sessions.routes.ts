@@ -11,8 +11,8 @@ import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { SharedDataError, expandSharedDataset } from '../test-data';
 import { sharedSetIdOf } from '@shared/test-data';
-import { browserTasks, BrowserTaskError } from '../browser-tasks';
-import { debugChannel } from '../debug-session';
+import { browserTasks, BrowserTaskError } from '../web/browser-tasks';
+import { debugChannel } from '../web/debug-session';
 import logger from '../logger';
 import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 

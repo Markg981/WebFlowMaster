@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Test } from '@shared/schema';
-import type { StepRuntime } from './run-policies';
+import type { StepRuntime } from '../run-policies';
 
 /**
  * What the browser part of a run does with a plan's settings: which timeouts the page gets,
@@ -18,8 +18,8 @@ const mocks = vi.hoisted(() => ({
   loadLoginState: vi.fn(),
 }));
 
-vi.mock('./browsers', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./browsers')>();
+vi.mock('../browsers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../browsers')>();
   const page = {
     setDefaultTimeout: mocks.setDefaultTimeout,
     setDefaultNavigationTimeout: mocks.setDefaultNavigationTimeout,
@@ -45,10 +45,13 @@ vi.mock('./browsers', async (importOriginal) => {
     })),
   };
 });
-vi.mock('./storage', () => ({ storage: { getUserSettings: mocks.getUserSettings } }));
+vi.mock('../storage', () => ({ storage: { getUserSettings: mocks.getUserSettings } }));
 vi.mock('./step-executor', () => ({ executeStep: mocks.executeStep }));
-vi.mock('./login-state', () => ({ loadLoginState: mocks.loadLoginState, saveLoginState: vi.fn() }));
-vi.mock('./websocket', () => ({ getWsEmitter: () => ({ emitExecutionLog: vi.fn() }) }));
+vi.mock('../login-state', () => ({
+  loadLoginState: mocks.loadLoginState,
+  saveLoginState: vi.fn(),
+}));
+vi.mock('../websocket', () => ({ getWsEmitter: () => ({ emitExecutionLog: vi.fn() }) }));
 vi.mock('./playwright-reporter', () => ({
   PlaywrightReporter: class {
     lastActionHealed = false;

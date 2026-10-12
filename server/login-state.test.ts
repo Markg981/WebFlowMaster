@@ -131,7 +131,7 @@ describe('saving and loading a login state', () => {
 
 describe('running a test with a saved login state', () => {
   it('arrives at the page already authenticated', async () => {
-    const { playwrightService } = await import('./playwright-service');
+    const { playwrightService } = await import('./web/playwright-service');
     const environmentId = await makeEnvironment();
     await saveLoginState({ environmentId, organizationId }, sessionState('127.0.0.1'));
 
@@ -189,7 +189,7 @@ describe('running a test with a saved login state', () => {
   }, 60_000);
 
   it('still runs unauthenticated when the environment has no saved session', async () => {
-    const { playwrightService } = await import('./playwright-service');
+    const { playwrightService } = await import('./web/playwright-service');
     const environmentId = await makeEnvironment();
 
     const result = await playwrightService.executeTestSequence(
@@ -246,7 +246,7 @@ describe('running a test with a saved login state', () => {
 
 describe('capturing a login state from a recording session', () => {
   it('takes the session out of the live recording browser', async () => {
-    const { playwrightService } = await import('./playwright-service');
+    const { playwrightService } = await import('./web/playwright-service');
     const environmentId = await makeEnvironment('Capture env');
 
     const started = await playwrightService.startRecordingSession(baseUrl, userId);
@@ -284,7 +284,7 @@ describe('capturing a login state from a recording session', () => {
   }, 90_000);
 
   it('reports an unknown session rather than saving an empty state', async () => {
-    const { playwrightService } = await import('./playwright-service');
+    const { playwrightService } = await import('./web/playwright-service');
     const environmentId = await makeEnvironment('No session env');
 
     const saved = await playwrightService.captureLoginState('no-such-session', {

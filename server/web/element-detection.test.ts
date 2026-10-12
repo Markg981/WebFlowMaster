@@ -226,7 +226,7 @@ describe('the name of a field without text', () => {
 
   it('lets a sentence name the field the way the page labels it', async () => {
     const { playwrightService } = await import('./playwright-service');
-    const { buildCatalogue, resolveTarget } = await import('./nl-authoring');
+    const { buildCatalogue, resolveTarget } = await import('../nl-authoring');
     const { elements } = await playwrightService.detectElements(formUrl);
 
     const resolved = resolveTarget(

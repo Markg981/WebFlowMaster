@@ -8,20 +8,20 @@ import {
   PreconditionSchema,
 } from '@shared/schema';
 import { sharedSetIdOf } from '@shared/test-data';
-import { BrowserTaskError, browserTasks } from '../browser-tasks';
+import { BrowserTaskError, browserTasks } from '../web/browser-tasks';
 import logger from '../logger';
 import { asyncHandler } from '../middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction } from '../middleware/tenancy';
-import type { playwrightService } from '../playwright-service';
+import type { playwrightService } from '../web/playwright-service';
 import { SharedDataError, expandSharedDataset } from '../test-data';
 import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 
 /**
  * The editor's one-off browser work: loading a page to author against, surveying its
  * elements, and running the sequence being written. Each goes through the browser task
- * queue (server/browser-tasks.ts), which decides where the browser runs.
+ * queue (server/web/browser-tasks.ts), which decides where the browser runs.
  */
 
 const router = asyncRouter();

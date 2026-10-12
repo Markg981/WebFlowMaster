@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import type { DebugState } from '@shared/debug-session';
-import { debugChannel } from '../debug-session';
+import { debugChannel } from '../web/debug-session';
 
 vi.mock('../logger', () => ({
   default: {
@@ -17,8 +17,8 @@ vi.mock('../logger', () => ({
 }));
 
 const tasks = vi.hoisted(() => ({ start: vi.fn() }));
-vi.mock('../browser-tasks', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../browser-tasks')>()),
+vi.mock('../web/browser-tasks', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../web/browser-tasks')>()),
   browserTasks: { run: vi.fn(), start: tasks.start },
 }));
 

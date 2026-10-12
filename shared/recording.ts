@@ -133,7 +133,7 @@ export type AdhocActionId = (typeof ADHOC_ACTION_IDS)[number];
  * The step that calls a step group.
  *
  * Deliberately NOT one of ADHOC_ACTION_IDS. Those are the things the step executor knows how
- * to do to a page, and the exhaustive record in server/step-executor.ts is what stops an
+ * to do to a page, and the exhaustive record in server/web/step-executor.ts is what stops an
  * action existing with no implementation. This one is not done to a page at all: the runner
  * replaces it with the group’s own steps before the executor sees a thing.
  */
