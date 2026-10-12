@@ -18,7 +18,7 @@ import { isManualSequence, manualStepsOf } from '@shared/manual-tests';
 import { encryptSecret } from '../crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { buildStoryPrompt, parseProposals } from '../authoring/story-tests';
-import { jiraText } from '../issue-providers';
+import { jiraText } from '../integrations/issue-providers';
 
 vi.mock('../logger', () => ({
   default: {

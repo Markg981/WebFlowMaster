@@ -1,5 +1,5 @@
-import { fetchTarget } from './outbound-http';
-import { reportPathFor, reportUrlFor } from './report-links';
+import { fetchTarget } from '../outbound-http';
+import { reportPathFor, reportUrlFor } from '../report-links';
 import { describeCi, type CiContext } from '@shared/ci';
 
 /**
@@ -34,7 +34,7 @@ export interface NotificationSettings {
   onSuccess?: boolean;
   onFailure?: boolean;
   webhookUrl?: string | null;
-  /** Mailed when the installation has SMTP (server/run-mail.ts); otherwise reported — see `describeUnsupported`. */
+  /** Mailed when the installation has SMTP (server/integrations/run-mail.ts); otherwise reported — see `describeUnsupported`. */
   emails?: string[] | null;
 }
 

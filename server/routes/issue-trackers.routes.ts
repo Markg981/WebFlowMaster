@@ -6,8 +6,8 @@ import { ISSUE_PROVIDERS, issueTrackers } from '@shared/schema';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { encryptSecret } from '../crypto';
-import { checkConnection } from '../issue-providers';
-import { toConfig } from '../issue-store';
+import { checkConnection } from '../integrations/issue-providers';
+import { toConfig } from '../integrations/issue-store';
 import logger from '../logger';
 
 /**

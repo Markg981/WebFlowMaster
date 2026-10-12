@@ -25,7 +25,7 @@ import { Download, FileUp, Loader2 } from 'lucide-react';
 import { bddRequest, type BddProfile } from '@/lib/api/bdd';
 
 /**
- * The organization's tests as a file (server/test-bundle.ts): export a project's web and API tests to
+ * The organization's tests as a file (server/integrations/test-bundle.ts): export a project's web and API tests to
  * keep under version control, and import such a file back — same names are updated, with a new
  * version each, the others created.
  */

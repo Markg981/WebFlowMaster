@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { snapshotOf, describeChange } from '../authoring/test-versions';
-import { exportBundle, parseBundle } from '../test-bundle';
+import { exportBundle, parseBundle } from '../integrations/test-bundle';
 const bdd = {
   language: 'en',
   source: 'Feature: F\nScenario: S\nGiven a',

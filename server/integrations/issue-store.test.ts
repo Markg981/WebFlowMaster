@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import { sql } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { issueLinks, issueTrackers } from '@shared/schema';
-import { createTestOrganization, createTestUser } from './tests/factories';
-import { encryptSecret } from './crypto';
+import { createTestOrganization, createTestUser } from '../tests/factories';
+import { encryptSecret } from '../crypto';
 import { fileFailure, markResolved, toConfig } from './issue-store';
-import { runWithTenant } from './middleware/tenancy';
+import { runWithTenant } from '../middleware/tenancy';
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),

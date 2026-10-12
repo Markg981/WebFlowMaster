@@ -4,7 +4,7 @@ import {
   reportTestCaseResults as reportTestCaseResultsTable,
   type TestPlanExecution,
 } from '@shared/schema';
-import type { RunSummary } from '../../notifications';
+import type { RunSummary } from '../../integrations/notifications';
 import { withTenantTransaction } from '../../middleware/tenancy';
 import { transitionExecution } from '../execution-state';
 import { failuresOf, type VerdictRow } from '../../authoring/test-quarantine';

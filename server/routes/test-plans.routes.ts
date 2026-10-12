@@ -38,7 +38,7 @@ import { auditActor, changedFields, recordAudit } from '../tenancy/audit';
 import { publicExecution, reproducibilitySummary } from '../execution/execution-provenance';
 import { executionArtifactAvailability } from '../tenancy/artifact-metering';
 import { readExecutionSnapshot } from '../execution/execution-snapshot';
-import { dedupeKeyFor } from '../issue-tracking';
+import { dedupeKeyFor } from '../integrations/issue-tracking';
 import { artifactUrl, stepsWithArtifactUrls } from './artifacts.routes';
 import { linkedIssuesFor } from './issues.routes';
 

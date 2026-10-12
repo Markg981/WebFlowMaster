@@ -13,7 +13,7 @@ import { systemSettings } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { setupWebSockets } from './websocket';
 import { setupAgentRelay } from './runtime/agents/setup';
-import { registerCommitStatus } from './commit-status';
+import { registerCommitStatus } from './integrations/commit-status';
 import { correlationMiddleware } from './middleware/correlation';
 import { csrfOriginCheck } from './middleware/csrf';
 import { connection as redisConnection, connectSessionRedis, sessionRedis } from './redis';
@@ -48,7 +48,7 @@ app.use(billingWebhookBodyParser);
 app.use('/api/proxy-api-request', express.json({ limit: '20mb' }));
 // An OpenAPI description or a Postman collection can be several megabytes (server/api-tests/api-import.ts).
 app.use('/api/api-tests/import', express.json({ limit: '12mb' }));
-// A project's tests as a file (server/test-bundle.ts) can be large.
+// A project's tests as a file (server/integrations/test-bundle.ts) can be large.
 app.use('/api/tests/import-bundle', express.json({ limit: '24mb' }));
 // Not for SCIM, whose router parses its own bodies, up to 1 MB (server/routes/scim.routes.ts).
 app.use(exceptScim(express.json()));
@@ -180,7 +180,7 @@ app.use(express.urlencoded({ extended: false }));
 
   const server = await registerRoutes(app);
 
-  const { webhooksRouter } = await import('./webhooks');
+  const { webhooksRouter } = await import('./integrations/webhooks');
   // Per client address (server/middleware/rate-limits.ts).
   const { webhookRateLimit } = await import('./middleware/rate-limits');
   app.use('/api/webhooks', webhookRateLimit(), webhooksRouter);

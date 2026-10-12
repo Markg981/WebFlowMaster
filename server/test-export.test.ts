@@ -18,8 +18,8 @@ import {
 } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
 import { tenancyMiddleware } from './middleware/tenancy';
-import { envName, toPlaywright } from './playwright-export';
-import { parseBundle, BundleError } from './test-bundle';
+import { envName, toPlaywright } from './integrations/playwright-export';
+import { parseBundle, BundleError } from './integrations/test-bundle';
 
 vi.mock('./logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() },

@@ -80,7 +80,7 @@ const TestLibraryPage: React.FC = () => {
   /** The manual test being written or edited: null closed, 'new' for a new one. */
   const [manualEditing, setManualEditing] = useState<LibraryTest | 'new' | null>(null);
   const [bddEditing, setBddEditing] = useState<BddDraftSource | null>(null);
-  /** Export and import of the tests as a file (server/test-bundle.ts). */
+  /** Export and import of the tests as a file (server/integrations/test-bundle.ts). */
   const [filesOpen, setFilesOpen] = useState(false);
   const [commentsFor, setCommentsFor] = useState<LibraryTest | null>(null);
 

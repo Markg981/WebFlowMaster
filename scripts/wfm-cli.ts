@@ -43,7 +43,7 @@ export interface CliOptions {
   idempotencyKey?: string;
   /** Send the build, commit and branch read from the CI's environment. On unless --no-ci. */
   ci: boolean;
-  /** `wfm tests export|import`: the tests as a file (server/test-bundle.ts). */
+  /** `wfm tests export|import`: the tests as a file (server/integrations/test-bundle.ts). */
   testsAction?: 'export' | 'import';
   /** A project id, or `none` for tests in no project. */
   project?: string;

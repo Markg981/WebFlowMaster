@@ -1,5 +1,5 @@
 import type { MailMessage } from './mailer';
-import { summaryLine, type RunSummary } from '../notifications';
+import { summaryLine, type RunSummary } from '../integrations/notifications';
 import { reportUrlFor } from '../report-links';
 
 /**

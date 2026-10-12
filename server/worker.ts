@@ -26,7 +26,7 @@ import {
   type BrowserTaskEnvelope,
 } from './web/browser-tasks';
 import { RunnerAgent, type PausableQueue } from './runtime/runner-registry';
-import { registerCommitStatus } from './commit-status';
+import { registerCommitStatus } from './integrations/commit-status';
 import { registerRunPromotion } from './execution/run-promotion';
 import { installWorkerLogEmitter } from './websocket';
 import { publicBaseUrl } from './report-links';

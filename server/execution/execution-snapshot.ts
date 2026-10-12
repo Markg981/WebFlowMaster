@@ -82,7 +82,7 @@ export interface ExecutionSnapshot {
   /** Languages every test runs in (shared/locales.ts). Absent on older snapshots: none. */
   locales?: string[];
   /**
-   * The TestRail, Xray or Zephyr Scale the finished run is published to (server/test-management.ts).
+   * The TestRail, Xray or Zephyr Scale the finished run is published to (server/integrations/test-management.ts).
    * Absent on older snapshots: published nowhere.
    */
   testManagement?: { connectionId: string | null };

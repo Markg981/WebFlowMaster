@@ -1,4 +1,4 @@
-import { reportReferenceFor } from './report-links';
+import { reportReferenceFor } from '../report-links';
 import type { IssueDraft } from './issue-providers';
 
 /**

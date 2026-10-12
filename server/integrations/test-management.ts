@@ -10,16 +10,16 @@ import {
   type TestManagementPublication,
 } from '@shared/schema';
 import { outcomeOf } from '@shared/requirements';
-import { itemKey, itemOf, type TestKind } from './authoring/test-refs';
+import { itemKey, itemOf, type TestKind } from '../authoring/test-refs';
 import {
   caseKeyFromName,
   type PublishedOutcome,
   type TestManagementProvider,
 } from '@shared/test-management';
-import { withTenantTransaction } from './middleware/tenancy';
-import { decryptSecret } from './crypto';
-import { readExecutionSnapshot } from './execution/execution-snapshot';
-import { reportReferenceFor } from './report-links';
+import { withTenantTransaction } from '../middleware/tenancy';
+import { decryptSecret } from '../crypto';
+import { readExecutionSnapshot } from '../execution/execution-snapshot';
+import { reportReferenceFor } from '../report-links';
 import type { ProviderDeps } from './issue-providers';
 import {
   publishResults,

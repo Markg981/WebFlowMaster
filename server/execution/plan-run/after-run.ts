@@ -8,16 +8,16 @@ import logger from '../../logger';
 import { getTenantOrgId, withTenantTransaction } from '../../middleware/tenancy';
 import { getWsEmitter, type ExecutionLogEntry } from '../../websocket';
 import { executionOrchestrator } from '../execution-orchestrator';
-import { fileFailure, loadTracker, markResolved } from '../../issue-store';
-import { publishExecution } from '../../test-management';
-import { mailRunFinished } from '../../run-mail';
+import { fileFailure, loadTracker, markResolved } from '../../integrations/issue-store';
+import { publishExecution } from '../../integrations/test-management';
+import { mailRunFinished } from '../../integrations/run-mail';
 import { organizationMailConfigured } from '../../messaging/mailer';
 import {
   describeUnsupported,
   mergeNotificationSettings,
   sendRunNotification,
   type RunSummary,
-} from '../../notifications';
+} from '../../integrations/notifications';
 
 /** How long a failed scheduled attempt waits before the next: long enough for a blip to pass. */
 export const RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 30_000;
@@ -157,7 +157,7 @@ export async function fileFailuresIfConfigured(input: {
 }
 
 /**
- * Sends the finished run to the plan's TestRail, Xray or Zephyr Scale (server/test-management.ts).
+ * Sends the finished run to the plan's TestRail, Xray or Zephyr Scale (server/integrations/test-management.ts).
  *
  * Like issue filing, it cannot fail the run: whatever the tool answered is recorded against the
  * run and said in its log, and the report offers to publish again.
@@ -235,7 +235,7 @@ export async function notifyRunFinished(input: {
     const settings = mergeNotificationSettings(input.plan?.notificationSettings, override);
 
     // E-mail first, on its own: the plan's addresses and the person who started the run
-    // (server/run-mail.ts). A mail server that refuses is said on the run's console.
+    // (server/integrations/run-mail.ts). A mail server that refuses is said on the run's console.
     try {
       for (const outcome of await mailRunFinished(
         settings,

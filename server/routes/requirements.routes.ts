@@ -29,8 +29,8 @@ import {
   fetchItems,
   MAX_IMPORTED_ITEMS,
   type TrackedItem,
-} from '../issue-providers';
-import { toConfig } from '../issue-store';
+} from '../integrations/issue-providers';
+import { toConfig } from '../integrations/issue-store';
 import {
   describeScope,
   loadCoverage,
@@ -38,7 +38,7 @@ import {
   upsertTrackedItems,
   wouldLoop,
   type CoverageScope,
-} from '../requirements';
+} from '../integrations/requirements';
 import logger from '../logger';
 import { aiService } from '../authoring/ai-automation-service';
 import { htmlToText } from '../messaging/email-inbox';

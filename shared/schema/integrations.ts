@@ -17,7 +17,7 @@ import { mobileTests, tests } from './authoring';
 import { testPlanExecutions, testPlans } from './execution';
 import { organizations, users } from './identity';
 
-/** Where an organization's code lives, for the commit statuses a run reports (server/commit-status.ts). */
+/** Where an organization's code lives, for the commit statuses a run reports (server/integrations/commit-status.ts). */
 export const SOURCE_HOST_PROVIDERS = ['github', 'gitlab'] as const;
 export type SourceHostProvider = (typeof SOURCE_HOST_PROVIDERS)[number];
 

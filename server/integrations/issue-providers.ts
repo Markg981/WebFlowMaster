@@ -1,4 +1,4 @@
-import { fetchTarget } from './outbound-http';
+import { fetchTarget } from '../outbound-http';
 import type { IssueProvider } from '@shared/schema';
 
 /**
@@ -6,7 +6,7 @@ import type { IssueProvider } from '@shared/schema';
  *
  * Only the wire format lives here: how an issue is created, how a comment is added, and how to
  * tell whether the credentials work at all. What a failure is, whether it has been filed
- * before, and whether filing is wanted are decided in server/issue-tracking.ts, which has no
+ * before, and whether filing is wanted are decided in server/integrations/issue-tracking.ts, which has no
  * network in it and can be tested without one.
  *
  * Every call has a timeout and every failure comes back as a readable sentence. The callers
