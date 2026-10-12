@@ -23,13 +23,21 @@ not a generated Drizzle listing, remain authoritative for policies, grants and l
 ## For customers / Per i clienti
 
 - [Brochure](./brochure/README.md): six-page A4 PDF in each language, editable copy and renderer.
-- [Presentation video](./promo-video/README.md): 60-second Full HD MP4 in each language, original
-  instrumental bed, matching silent masters, SRT captions and editable Remotion source.
+- [Presentation video](./promo-video/README.md): 60-second Full HD MP4 in each language with a
+  neural voice-over, the product's UI in that language and live recordings of the recorder, a run
+  and the mobile inspector; 30 and 15-second cuts in 16:9, 1:1 and 9:16, a thumbnail, SRT captions
+  transcribing the voice, and editable Remotion source.
+- [Demo request page](./landing/index.html): the static page the video and the brochure point to
+  (`demoUrl`), English and Italian, with tracked links.
+
+`npm run marketing:refresh` films the product again and rebuilds the video and the brochure from
+it: run it before each release, on the collaudo stack with the demo organization loaded.
 
 The commercial contact lives in [`contact.json`](./contact.json), read by both the brochure and the
 video. It holds placeholders (`contact@webflowmaster.example`, `www.webflowmaster.example`, no phone)
-until the product has its own domain and mailbox: replace them there, update the two caption files
-in `promo-video/video/captions/`, and regenerate the PDFs and MP4s before distributing anything.
+until the product has its own domain and mailbox: replace them there (with `demoUrl`, the demo
+request page, and the email in `landing/index.html`), then regenerate the PDFs and MP4s before
+distributing anything.
 
 Generated PDFs, MP4 files and demo video inputs are local outputs, ignored by Git. The brochure
 contains its own two demonstration screenshots in `brochure/assets/`. The video README explains

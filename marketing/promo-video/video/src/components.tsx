@@ -4,6 +4,7 @@ import {
   Easing,
   Img,
   interpolate,
+  OffthreadVideo,
   spring,
   staticFile,
   useCurrentFrame,
@@ -188,23 +189,46 @@ export interface Camera {
   y: number;
 }
 
+/** A live clip in a Screen: where in it to start, and how fast to play it. */
+export interface Footage {
+  src: string;
+  /** Seconds into the clip at which the Screen starts showing it. */
+  from: number;
+  rate?: number;
+}
+
 /**
  * A real screen of the product in a browser window, filmed by a camera that eases between
- * positions — the moves that make a screenshot read as a product being used.
+ * positions — the moves that make a screenshot read as a product being used. `src` is a still
+ * under public/; `footage` a live clip, played instead of it.
  */
 export const Screen: React.FC<{
-  src: string;
+  src?: string;
+  footage?: Footage | null;
   url: string;
   cameras: Camera[];
   width?: number;
+  /** Height of the picture over its width; 16:9 unless the capture had another shape. */
+  aspect?: number;
   enter?: number;
   tilt?: boolean;
   style?: React.CSSProperties;
   children?: React.ReactNode;
-}> = ({ src, url, cameras, width = 1500, enter = 0, tilt = true, style, children }) => {
+}> = ({
+  src,
+  footage,
+  url,
+  cameras,
+  width = 1500,
+  aspect = 9 / 16,
+  enter = 0,
+  tilt = true,
+  style,
+  children,
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const height = (width * 9) / 16;
+  const height = width * aspect;
   const inP = spring({ frame: frame - enter, fps, config: { damping: 20, mass: 0.9 } });
 
   const at = (key: 'zoom' | 'x' | 'y') =>
@@ -272,17 +296,43 @@ export const Screen: React.FC<{
         </div>
       </div>
       <div style={{ position: 'relative', width, height, overflow: 'hidden' }}>
-        <Img
-          src={staticFile(`shots/${src}`)}
+        {footage ? (
+          <OffthreadVideo
+            src={footage.src}
+            muted
+            startFrom={Math.round(footage.from * fps)}
+            playbackRate={footage.rate ?? 1}
+            style={{
+              position: 'absolute',
+              width,
+              height,
+              transform: `translate(${tx}px, ${ty}px) scale(${zoom})`,
+              transformOrigin: '50% 50%',
+            }}
+          />
+        ) : src ? (
+          <Img
+            src={staticFile(src)}
+            style={{
+              position: 'absolute',
+              width,
+              height,
+              transform: `translate(${tx}px, ${ty}px) scale(${zoom})`,
+              transformOrigin: '50% 50%',
+            }}
+          />
+        ) : null}
+        {/* Overlays share the camera, so they stay on what they point at. */}
+        <div
           style={{
             position: 'absolute',
-            width,
-            height,
+            inset: 0,
             transform: `translate(${tx}px, ${ty}px) scale(${zoom})`,
             transformOrigin: '50% 50%',
           }}
-        />
-        {children}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -349,5 +399,56 @@ export const SceneFade: React.FC<{
   const scale = interpolate(frame, [duration - fade, duration], [1, 1.03], clamp);
   return (
     <AbsoluteFill style={{ opacity: o, transform: `scale(${scale})` }}>{children}</AbsoluteFill>
+  );
+};
+
+/**
+ * A mouse pointer over a clip that has none (noVNC draws the remote screen without it): it
+ * glides to each point (fractions of the picture) and clicks there at the given frame.
+ */
+export const Pointer: React.FC<{
+  width: number;
+  height: number;
+  clicks: Array<{ at: number; x: number; y: number }>;
+}> = ({ width, height, clicks }) => {
+  const frame = useCurrentFrame();
+  if (!clicks.length) return null;
+  const travel = 14;
+  const times = clicks.flatMap((c) => [c.at - travel, c.at]);
+  const xs = clicks.flatMap((c, i) => [i ? clicks[i - 1].x : c.x + 0.08, c.x]);
+  const ys = clicks.flatMap((c, i) => [i ? clicks[i - 1].y : c.y + 0.12, c.y]);
+  const pos = (values: number[]) =>
+    interpolate(frame, times, values, { ...clamp, easing: Easing.inOut(Easing.cubic) });
+  const x = pos(xs) * width;
+  const y = pos(ys) * height;
+  const last = clicks.filter((c) => c.at <= frame).pop();
+  const ring = last ? interpolate(frame - last.at, [0, 12], [0, 1], clamp) : 1;
+  const size = width / 40;
+  return (
+    <div style={{ position: 'absolute', left: 0, top: 0, width, height, pointerEvents: 'none' }}>
+      {last && ring < 1 && (
+        <div
+          style={{
+            position: 'absolute',
+            left: last.x * width - size,
+            top: last.y * height - size,
+            width: size * 2,
+            height: size * 2,
+            borderRadius: '50%',
+            border: `${size / 6}px solid ${colors.blue}`,
+            opacity: 1 - ring,
+            transform: `scale(${0.4 + ring})`,
+          }}
+        />
+      )}
+      <svg
+        width={size}
+        height={size * 1.5}
+        viewBox="0 0 16 24"
+        style={{ position: 'absolute', left: x, top: y, filter: 'drop-shadow(0 2px 3px #0006)' }}
+      >
+        <path d="M1 1v19l5-5 3.5 8 3-1.4L9 13.8h7z" fill="#111" stroke="#fff" strokeWidth={1.5} />
+      </svg>
+    </div>
   );
 };

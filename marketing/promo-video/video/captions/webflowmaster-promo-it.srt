@@ -1,54 +1,56 @@
 1
-00:00:00,000 --> 00:00:05,000
+00:00:00,350 --> 00:00:03,640
 Ogni rilascio. Ogni browser.
-Ogni clic, a mano?
+Ogni clic... a mano?
 
 2
-00:00:05,000 --> 00:00:08,500
-WebFlowMaster.
-Test end-to-end per tutto il team.
+00:00:04,850 --> 00:00:06,230
+Ecco WebFlowMaster.
 
 3
-00:00:08,500 --> 00:00:16,500
-Descrivi i passi e validali sulla pagina.
-Oppure usa scenari Gherkin con BDD.
+00:00:07,850 --> 00:00:11,611
+Registra un flusso cliccando sul
+sito, oppure descrivilo a parole.
 
 4
-00:00:16,500 --> 00:00:20,500
-Eseguilo. Guarda il risultato.
-Senza codice né script di registrazione da mantenere.
+00:00:11,611 --> 00:00:14,860
+Eseguilo, e guardalo passare.
+Nessun codice da mantenere.
 
 5
-00:00:20,500 --> 00:00:25,500
-Testa le API. Verifica, cattura e collega.
-Passa i valori da una richiesta alla successiva.
+00:00:18,850 --> 00:00:20,382
+Porta i tuoi scenari Gherkin,
 
 6
-00:00:25,500 --> 00:00:33,500
-Chromium, Firefox e WebKit. Mobile nativo con Appium.
-Runner dedicati per web, mobile e BDD.
+00:00:20,382 --> 00:00:23,340
+e testa le app native Android
+e iOS, dallo stesso posto.
 
 7
-00:00:33,500 --> 00:00:41,500
-Scopri perché è fallito.
-Screenshot, video, traccia Playwright e log di rete.
+00:00:25,850 --> 00:00:28,040
+Testa anche le API dietro le schermate.
 
 8
-00:00:41,500 --> 00:00:47,500
-La qualità, a colpo d’occhio.
-Successi, trend e pianificazioni per tutto il team.
+00:00:30,350 --> 00:00:34,220
+Esegui su Chromium, Firefox e WebKit,
+in parallelo, su runner dedicati.
 
 9
-00:00:47,500 --> 00:00:53,500
-CI/CD, GitHub, GitLab, Jira e Azure DevOps.
-Webhook, agenti privati, SSO, MFA e audit log.
+00:00:37,350 --> 00:00:42,760
+Quando qualcosa si rompe, vedi il perché:
+il passo fallito, il video, la traccia.
 
 10
-00:00:53,500 --> 00:00:56,500
-WebFlowMaster. Ogni rilascio, con fiducia.
-Richiedi una demo.
+00:00:44,350 --> 00:00:47,100
+E tutto il team vede la
+qualità a colpo d'occhio.
 
 11
-00:00:56,500 --> 00:01:00,000
-Marco Oliva · contact@webflowmaster.example
-www.webflowmaster.example
+00:00:49,350 --> 00:00:52,360
+Si integra con la tua pipeline,
+i repository e il tracker.
+
+12
+00:00:54,350 --> 00:00:56,990
+Ogni rilascio, con fiducia.
+Richiedi una demo.

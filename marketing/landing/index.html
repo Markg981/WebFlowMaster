@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebFlowMaster · Request a demo</title>
+    <meta
+      name="description"
+      content="End-to-end testing your whole team can run. Request a demo of WebFlowMaster."
+    />
+    <!--
+      The page the promo video and the brochure send people to (contact.json: demoUrl).
+      Static: host it as is at that address. Set data-endpoint on the form to a form service
+      that accepts a POST (Formspree, a Power Automate flow, your CRM); without one the form
+      opens an email to data-email instead. The utm_* parameters of the link that brought the
+      visitor travel with the request, so you know which video and which channel it came from.
+      Italian with ?lang=it, or by browser language.
+    -->
+    <style>
+      :root {
+        --night: #070b1a;
+        --navy: #0e1530;
+        --blue: #3b67ff;
+        --blue-deep: #2647c9;
+        --sky: #8fb0ff;
+        --muted: #8a94ad;
+        --white: #ffffff;
+        --line: #ffffff26;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, 'Segoe UI', system-ui, sans-serif;
+        color: var(--white);
+        background:
+          radial-gradient(60% 50% at 70% 20%, #3b67ff44 0%, transparent 70%),
+          radial-gradient(45% 40% at 20% 80%, #7c4dff2a 0%, transparent 70%), var(--night);
+      }
+      main {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 56px 16px;
+        display: grid;
+        gap: 48px;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 860px) {
+        main {
+          grid-template-columns: 1.1fr 1fr;
+          align-items: center;
+          padding-top: 96px;
+        }
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+      .brand span {
+        color: var(--sky);
+      }
+      h1 {
+        font-size: clamp(34px, 5vw, 52px);
+        line-height: 1.08;
+        letter-spacing: -0.035em;
+        margin: 28px 0 18px;
+      }
+      p,
+      li {
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.55;
+      }
+      ul {
+        padding-left: 20px;
+      }
+      form {
+        background: #ffffff0d;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 28px;
+        display: grid;
+        gap: 16px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      input,
+      textarea {
+        font: inherit;
+        font-weight: 400;
+        color: var(--white);
+        background: var(--navy);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+      input:focus-visible,
+      textarea:focus-visible,
+      button:focus-visible {
+        outline: 3px solid var(--sky);
+        outline-offset: 2px;
+      }
+      button {
+        font: inherit;
+        font-weight: 700;
+        font-size: 18px;
+        color: var(--white);
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 28px;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--blue), var(--blue-deep));
+      }
+      .note {
+        font-size: 14px;
+        margin: 0;
+      }
+      .done {
+        color: var(--white);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <div class="brand">
+          <svg width="44" height="44" viewBox="0 0 32 32" aria-hidden="true">
+            <defs>
+              <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#3B67FF" />
+                <stop offset="1" stop-color="#2647C9" />
+              </linearGradient>
+            </defs>
+            <rect width="32" height="32" rx="7" fill="url(#lg)" />
+            <path
+              d="M7 21a9 9 0 0 1 18 0"
+              fill="none"
+              stroke="#fff"
+              stroke-opacity=".5"
+              stroke-width="2.1"
+              stroke-linecap="round"
+            />
+            <path d="M16 21 21.5 12.8" stroke="#fff" stroke-width="2.6" stroke-linecap="round" />
+            <circle cx="16" cy="21" r="2.4" fill="#fff" />
+          </svg>
+          <div>WebFlow<span>Master</span></div>
+        </div>
+        <h1 data-i18n="title">End-to-end testing your whole team can run.</h1>
+        <p data-i18n="lead">
+          Thirty minutes, on your own application if you like: we record a flow, run it on every
+          browser and open the evidence of a failure together.
+        </p>
+        <ul>
+          <li data-i18n="point1">Record by clicking, or describe the steps in plain words</li>
+          <li data-i18n="point2">Web, APIs, Gherkin scenarios and native Android and iOS apps</li>
+          <li data-i18n="point3">Self-hosted, with CI/CD, issue trackers, SSO and MFA</li>
+        </ul>
+      </section>
+      <form id="demo" data-endpoint="" data-email="contact@webflowmaster.example">
+        <label
+          ><span data-i18n="name">Name</span> <input name="name" autocomplete="name" required
+        /></label>
+        <label
+          ><span data-i18n="email">Work email</span>
+          <input name="email" type="email" autocomplete="email" required
+        /></label>
+        <label
+          ><span data-i18n="company">Company</span>
+          <input name="company" autocomplete="organization"
+        /></label>
+        <label
+          ><span data-i18n="message">What would you like to test?</span>
+          <textarea name="message" rows="4"></textarea>
+        </label>
+        <input type="hidden" name="source" />
+        <button type="submit" data-i18n="submit">Request a demo</button>
+        <p class="note" data-i18n="privacy" role="status">
+          We use these details only to arrange the demo.
+        </p>
+      </form>
+    </main>
+    <script>
+      const IT = {
+        title: 'Test end-to-end per tutto il team.',
+        lead: 'Trenta minuti, anche sulla vostra applicazione: registriamo un flusso, lo eseguiamo su ogni browser e apriamo insieme le evidenze di un errore.',
+        point1: 'Registra cliccando, o descrivi i passi a parole',
+        point2: 'Web, API, scenari Gherkin e app native Android e iOS',
+        point3: 'Nella vostra infrastruttura, con CI/CD, issue tracker, SSO e MFA',
+        name: 'Nome',
+        email: 'Email di lavoro',
+        company: 'Azienda',
+        message: 'Cosa vorreste testare?',
+        submit: 'Richiedi una demo',
+        privacy: 'Usiamo questi dati solo per organizzare la demo.',
+        sent: 'Grazie: vi scriviamo entro due giorni lavorativi.',
+        subject: 'Richiesta demo WebFlowMaster',
+      };
+      const EN = {
+        sent: 'Thank you: we will write to you within two working days.',
+        subject: 'WebFlowMaster demo request',
+      };
+      const params = new URLSearchParams(location.search);
+      const lang = params.get('lang') || (navigator.language.startsWith('it') ? 'it' : 'en');
+      const text = lang === 'it' ? IT : EN;
+      if (lang === 'it') {
+        document.documentElement.lang = 'it';
+        document.title = 'WebFlowMaster · Richiedi una demo';
+        for (const el of document.querySelectorAll('[data-i18n]')) {
+          if (IT[el.dataset.i18n]) el.textContent = IT[el.dataset.i18n];
+        }
+      }
+      const form = document.getElementById('demo');
+      form.source.value = ['utm_source', 'utm_medium', 'utm_campaign']
+        .map((key) => params.get(key))
+        .filter(Boolean)
+        .join(' / ');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(form));
+        const status = form.querySelector('[role=status]');
+        if (form.dataset.endpoint) {
+          const res = await fetch(form.dataset.endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(data),
+          }).catch(() => null);
+          if (res?.ok) {
+            form.querySelectorAll('input, textarea, button').forEach((el) => (el.disabled = true));
+            status.textContent = text.sent;
+            status.classList.add('done');
+            return;
+          }
+        }
+        const body = Object.entries(data)
+          .filter(([, value]) => value)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('\n');
+        location.href = `mailto:${form.dataset.email}?subject=${encodeURIComponent(text.subject)}&body=${encodeURIComponent(body)}`;
+      });
+    </script>
+  </body>
+</html>

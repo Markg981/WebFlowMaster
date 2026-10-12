@@ -1,54 +1,60 @@
 # WebFlowMaster promo video
 
-A 60-second, 16:9 promo (1920×1080, 30 fps), in **English and Italian editions**, made with
-[Remotion](https://www.remotion.dev): the video is React code in `video/`, rendered to MP4.
-Every screen in it is the real product, captured in a demo organization on the collaudo stack.
-The editions use separate localized editorial overlays and calls to action; the captured
-product UI remains English in both. The animations pan and zoom real screenshots, rather
-than presenting a newly recorded live product session.
+The promo in **English and Italian**, made with [Remotion](https://www.remotion.dev): the video
+is React code in `video/`, rendered to MP4. Every screen in it is the real product, filmed in a
+demo organization on the collaudo stack, **in the edition's own language**: the Italian edition
+shows the product's Italian UI. Three moments are live recordings rather than stills: the
+recorder capturing clicks in the shop, a plan run streaming its log, and the mobile inspector
+tapping an Android emulator.
 
 ## Deliverables / Consegna
 
-| Edition  | Video                                  | Optional captions                           |
-| -------- | -------------------------------------- | ------------------------------------------- |
-| English  | `video/out/webflowmaster-promo-en.mp4` | `video/captions/webflowmaster-promo-en.srt` |
-| Italiano | `video/out/webflowmaster-promo-it.mp4` | `video/captions/webflowmaster-promo-it.srt` |
+`npm run render` (in `video/`) writes, for `en` and `it`, into `video/out/`:
 
-Both MP4 files include a quiet, original procedural instrumental and animated text.
-Matching silent versions are `video/out/webflowmaster-promo-en-silent.mp4` and
-`video/out/webflowmaster-promo-it-silent.mp4`. No voice-over is included.
-SRT files provide timed summaries of the on-screen story, not a
-transcript of spoken narration. Video outputs and screenshot inputs remain ignored by Git.
+| File                                         | Length | Shape    | For                                  |
+| -------------------------------------------- | ------ | -------- | ------------------------------------ |
+| `webflowmaster-promo-<lang>.mp4`             | 60 s   | 16:9     | site, YouTube, presentations         |
+| `webflowmaster-promo-<lang>-silent.mp4`      | 60 s   | 16:9     | the picture only, to re-voice        |
+| `webflowmaster-promo-<lang>-30s.mp4`         | 30 s   | 16:9     | pre-roll, email                      |
+| `webflowmaster-promo-<lang>-15s.mp4`         | 15 s   | 16:9     | bumper                               |
+| `…-30s-square.mp4`, `…-15s-square.mp4`       | 30/15  | 1:1      | LinkedIn and feeds (captions burned) |
+| `…-30s-vertical.mp4`, `…-15s-vertical.mp4`   | 30/15  | 9:16     | stories, shorts (captions burned)    |
+| `webflowmaster-promo-<lang>-thumbnail.png`   |        | 1280×720 | cover before playback                |
+| `webflowmaster-promo-<lang>-description.txt` |        |          | post text with tracked demo links    |
 
-Entrambe le edizioni durano 60 secondi, con testi animati nella rispettiva lingua.
-Le schermate del prodotto restano in inglese. I video hanno una base strumentale
-originale generata, senza voce narrante; sono disponibili anche le versioni senza musica.
-i file SRT contengono il riepilogo temporizzato dei messaggi a schermo.
+Captions are in `video/captions/` (`webflowmaster-promo-<lang>[-30s|-15s].srt`): they are the
+**transcript of the voice-over**, timed on the spoken audio, so they serve as accessibility
+captions. Video outputs and their inputs (screens, clips, voice, music) are ignored by Git.
 
-### Capture provenance and scope
+Ogni edizione ha la voce narrante nella propria lingua, i sottotitoli sono la trascrizione di
+quello che dice la voce, e le schermate del prodotto sono nella lingua dell'edizione. I tagli da
+30 e 15 secondi esistono anche quadrati e verticali, con i sottotitoli impressi nell'immagine
+perché i feed partono senza audio.
 
-Reused local assets in `video/public/shots/` from **30 September 2026**, from the
-Northwind Commerce demo on the collaudo stack. This refresh does **not** claim a new
-live capture or a current full acceptance run. The storefront is staged, the banner
-assertion fails intentionally, and the historical dates were spread in the original
-demo dataset. The generic browser address is an editorial overlay for a self-hosted product.
+## The story
 
-Native mobile through Appium and Gherkin/BDD are mentioned in the editorial copy.
-Their runners are separate from browser execution; the video does not show or imply
-new captures of an Appium device or BDD editor. The evidence scene frames the actual
-trace, HAR and assertion-error modal, excluding the old report's background chart placeholders.
+[`narration.json`](narration.json) tells every cut: its scenes, how long each lasts, and the
+line the voice says over it, in both languages. The video, the voice-over and the captions all
+read it. The 60-second cut:
 
-| Scene          | Seconds   | Shows                                                                                  |
-| -------------- | --------- | -------------------------------------------------------------------------------------- |
-| Hook           | 0–5       | "Every release. Every browser. Every click, by hand?"                                  |
-| Logo           | 5–8.5     | The mark and the tagline                                                               |
-| Build          | 8.5–20.5  | Plain-language test creation and validation; editorial mention of Gherkin/BDD          |
-| APIs           | 20.5–25.5 | The API tester: request, assertions, captures                                          |
-| Run            | 25.5–33.5 | Browser execution log; editorial mention of native mobile/Appium and dedicated runners |
-| Understand     | 33.5–41.5 | The evidence of a failed step: video, trace, network, the error                        |
-| Measure        | 41.5–47.5 | The dashboard: success rate, 30-day trend, schedules                                   |
-| Connect        | 47.5–53.5 | CI/CD, GitHub/GitLab, Jira/Azure DevOps, webhooks, agents, SSO/MFA/audit               |
-| Call to action | 53.5–60   | Localized CTA, Marco Oliva and the supplied commercial contacts                        |
+| Scene      | Seconds   | Shows                                                                  |
+| ---------- | --------- | ---------------------------------------------------------------------- |
+| Hook       | 0–4.5     | "Every release. Every browser. Every click, by hand?"                  |
+| Logo       | 4.5–7.5   | The mark and the tagline                                               |
+| Build      | 7.5–18.5  | Live: the recorder capturing a sign-in; steps from a description; pass |
+| Beyond     | 18.5–25.5 | A Gherkin feature; live: the mobile inspector on the Android emulator  |
+| APIs       | 25.5–30   | The API tester: request, assertions, captures                          |
+| Run        | 30–37     | Live: a plan running on Chromium, Firefox and WebKit, log streaming    |
+| Understand | 37–44     | The evidence of a failed step: video, trace, network, the error        |
+| Measure    | 44–49     | The dashboard: success rate, trend, schedules                          |
+| Connect    | 49–54     | CI/CD, GitHub/GitLab, Jira/Azure DevOps, webhooks, agents, SSO/MFA     |
+| CTA        | 54–60     | "Request a demo", the demo page address, the contact                   |
+
+The 30-second cut keeps hook, build, beyond, run, report and CTA; the 15-second one hook, build,
+report and CTA. Each scene lays out its shots in proportion to its length, so a cut is only a
+list of scenes and seconds. The on-screen copy is in `video/src/Promo.tsx`, its Italian in
+`video/src/copy.tsx`; `scripts/promo-video.test.ts` fails if an overlay has no Italian, a cut
+does not last what its name says, or the committed captions no longer match the narration.
 
 ## Render
 
@@ -57,60 +63,56 @@ root `npm ci`, `npm audit` and Dependabot do not cover it. It is a local authori
 ships in the product images; run `npm audit` inside `video/` before rendering a release cut.
 
 ```bash
-cd marketing/promo-video/video
-npm install
-npm run studio            # preview and scrub in the browser
-npm run render:all:music  # generate original WAV and render both editions with music
-npm run render:all        # both localized editions without audio
-npm run render:en         # out/webflowmaster-promo-en-silent.mp4
-npm run render:it         # out/webflowmaster-promo-it-silent.mp4
+npm run marketing:refresh            # from the repository root: film, voice, music, render, brochure
+
+cd marketing/promo-video/video       # or step by step
+npm ci
+npm run voice                        # voice-over and captions (audio/narrate.mjs)
+npm run audio:generate               # the original instrumental (audio/synthesize.mjs)
+npm run render                       # the release set above (../render.mjs)
+node ../render.mjs it short-vertical # one language, some editions
+npm run studio                       # preview and scrub: Promo-<lang>-<cut>-<format>
 ```
 
-The call to action is a prop: `npx remotion render PromoEN out/promo.mp4 --props='{"cta":"Book a demo"}'`.
-`PromoEN` and `PromoIT` use the same scene timing and camera moves. `Promo` remains a
-compatible English default. Change localized copy in `video/src/copy.tsx` and the matching
-SRT file when changing the story. `npm run render` still produces the legacy English filename.
+Run `npm run marketing:refresh` before each release, so the materials show the release being
+sold. `-- --skip-capture` rebuilds from the screens already filmed.
 
-### Verification (6 October 2026)
+### Voice-over
 
-Both compositions rendered successfully. Bundled FFprobe confirmed H.264 video,
-1920×1080, 30 fps, exactly 1,800 frames / 60.000 seconds. Representative frames
-from both editions were visually inspected, including Italian build/integrations copy,
-the mobile/BDD overlay, the real assertion error and the closing English CTA.
-`tsc --noEmit` passed; both SRT files contain eleven sequential cues covering the full minute.
-Final music editions contain AAC stereo at 48 kHz; both video and audio streams and
-the MP4 container are exactly 60.000 seconds. Decoding the final English audio confirmed
-zero clipped samples and a peak of -15.00 dBFS. Both closing cards were visually checked
-with the supplied email, website and telephone. Matching silent masters have no audio stream.
+[`audio/narrate.mjs`](audio/narrate.mjs) speaks each line with [Piper](https://github.com/OHF-Voice/piper1-gpl),
+a neural text-to-speech that runs offline. The first run creates a Python virtual environment in
+`.local/piper` (Python 3.10+ needed; `PIPER_PYTHON` points at another interpreter) and downloads
+the voices `en_US-joe-medium` and `it_IT-paola-medium`, both trained on **CC0** recordings, so
+the audio can be used commercially. (Avoid `en_US-ryan`: its dataset is CC BY-NC-SA.) A line that
+would still be speaking when its scene ends stops the script: shorten it in `narration.json`, or
+lower the voice's `lengthScale`. While the voice speaks, the music dips to 40%.
 
-### Original instrumental and optional replacement
+This is a first pass, as the improvement plan allows. For the final version, record a real voice:
+one WAV per line, named `voice/<lang>/<cut>-<scene>.wav` under `video/public/`, then
+`npm run captions` after updating `voice/timing.json` with their lengths.
 
-`audio/synthesize.mjs` composes a reproducible 60-second stereo WAV at 48 kHz,
-16-bit PCM: original sine-based pad voicings and arpeggio, a subtle pulse at 96 BPM,
-and smooth attacks/fades. All notes and oscillators are generated procedurally.
-There are no downloaded tracks, third-party samples, or sampled melodies requiring
-a third-party track license. The generated `video/public/music.wav` is ignored by Git.
-Regenerate it with `npm run audio:generate`, then run `npm run render:en:music` and
-`npm run render:it:music`. The source WAV has peak 0.60 (-4.44 dBFS) and no clipping;
-the promo mixes it at 30% with additional entrance/exit fades. This is an automatically
-generated bed; no professional listening review is claimed. Silent masters remain available.
-The music render scripts call `audio/finalize.mjs`: it trims AAC encoder padding to
-60 seconds, preserves the video stream without re-encoding, enables fast-start playback
-and exports matching silent masters. It uses the bundled Windows FFmpeg, or `ffmpeg`
-on PATH elsewhere; set `PROMO_FFMPEG_PATH` to override the executable location.
+### Music
 
-For an owner-supplied **licensed replacement**, place the track at `video/public/music.mp3`
-and render with `--props='{"music":true,"musicFile":"music.mp3"}'`.
-That override is distinct from the included original procedural music.
+`audio/synthesize.mjs` composes an original 60-second stereo WAV (sine pads, arpeggio, a soft
+pulse): no samples or third-party material. It is lawful but sounds synthetic, and nobody has
+reviewed it by ear. For a **licensed track**, put it at `video/public/music.mp3` and render with
+`PROMO_MUSIC_FILE=music.mp3 npm run render`. The render trims the AAC padding to the last frame
+and writes the 60-second silent master.
 
-The closing contact card shows [`../contact.json`](../contact.json), the file the brochure reads too;
-an empty phone is omitted. The captions repeat the same lines and are edited by hand. The values
-are placeholders until the product has its own domain and mailbox.
+### Call to action
+
+The closing card shows the demo request page, `demoUrl` in [`../contact.json`](../contact.json)
+(the brochure reads the same file), above the contact. The page itself is
+[`../landing/index.html`](../landing/index.html): static, English and Italian, with a form that
+posts to a form service once one is configured and opens an email until then. The
+`description.txt` files carry the address with `utm_source`/`utm_medium`/`utm_campaign` per
+channel, and the form sends them along, so a request says which video brought it. The values are
+placeholders until the product has its own domain and mailbox.
 
 ## Filming the screens again
 
-Needed after a UI change. The screenshots (`video/public/shots/`, not committed) come from
-the collaudo stack (`collaudo/README.md`), in an organization of its own.
+The screens (`video/public/shots/<lang>/`) and clips (`video/public/clips/<lang>/`) come from the
+collaudo stack (`collaudo/README.md`), in an organization of their own.
 
 ```bash
 # 1. The demo storefront the tests run against, inside the stack
@@ -130,22 +132,25 @@ ONLY_PLANS="Nightly regression,Checkout smoke,Orders API contract" node marketin
 docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
   exec -T api node --input-type=module < marketing/promo-video/demo/spread-history.mjs
 
-# 5. The screenshots, at 2x
-node marketing/promo-video/demo/capture.mjs           # SHOTS=builder,report for a few
-
-# 6. The same frames, smaller, for the user guides (docs/public/screenshots, committed)
-npm run docs:screenshots
+# 5. The screens and clips, in both languages
+npm run collaudo:mobile                              # the Android emulator, for the mobile clip
+node marketing/promo-video/demo/capture.mjs          # LANGS=it SHOTS=recorder,run for a few
 ```
 
-The user guides show 13 of these frames as 1600-pixel WebP images; `scripts/docs-screenshots.mjs`
-lists which, and `scripts/docs-screenshots.test.ts` fails when a page shows an image that does not
-exist or an image is not shown anywhere. Refilm after a UI change on a screen the guides show.
+The recorder clip needs the stack's virtual screen (the `display` service: noVNC on
+`localhost:6080`), where the recording window opens; the script clicks there and films the
+screen and the builder together. The mobile clip needs the emulator and the "Lab" local Appium
+grid of organization Acme (collaudo area MOB). The clips are filmed from Chromium's screencast
+(and the noVNC canvas) and encoded with the FFmpeg that Remotion bundles; `PROMO_FFMPEG_PATH`
+points at another one.
 
 To start over: delete the organization as maya (`DELETE /api/organization` with
 `{"confirmName":"Northwind Commerce"}`) and repeat from step 2.
 
 **What is staged, and what is not.** The storefront (`demo/shop`) is a demo app built for the
 video; one of its tests fails on purpose (the promo banner) so there is a failure to explain.
-Every test, run, result, log, video and trace on screen is real. Only the dates of the runs are
-moved (step 4), so the trend covers two weeks instead of one afternoon. The address in the
-browser bar is a generic one (`webflowmaster.your-company.com`): the product is self-hosted.
+Every test, run, result, log, video and trace on screen is real, and the live clips are real
+sessions, sped up to fit their scene. Only the dates of the runs are moved (step 4), so the trend
+covers two weeks instead of one afternoon. The address in the browser bar is a generic one
+(`webflowmaster.your-company.com`): the product is self-hosted. The pointer in the recorder clip
+is drawn by the video where the script clicked: noVNC does not show the remote cursor.

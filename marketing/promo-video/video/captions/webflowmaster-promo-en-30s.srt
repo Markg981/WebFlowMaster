@@ -1,0 +1,24 @@
+1
+00:00:00,350 --> 00:00:02,320
+Still testing every click by hand?
+
+2
+00:00:03,850 --> 00:00:08,200
+Record a flow, or describe it in
+plain words, and watch it pass.
+
+3
+00:00:11,350 --> 00:00:13,700
+Gherkin scenarios and native apps, too.
+
+4
+00:00:15,850 --> 00:00:17,920
+On every browser, in parallel.
+
+5
+00:00:20,350 --> 00:00:22,510
+And when it fails, you see why.
+
+6
+00:00:25,350 --> 00:00:27,900
+WebFlowMaster. Request a demo.

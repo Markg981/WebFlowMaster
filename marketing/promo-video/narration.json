@@ -1,0 +1,179 @@
+{
+  "_comment": "The story of every cut of the promo: its scenes, how long each lasts and what the voice says over it. The video (video/src/cuts.ts), the voice-over (audio/narrate.mjs) and the captions (audio/captions.mjs) all read this file. Change a line here, then run npm run voice in video/. A line must end before its scene does: narrate.mjs stops on one that does not.",
+  "voices": {
+    "en": { "model": "en_US-joe-medium", "lengthScale": 1 },
+    "it": { "model": "it_IT-paola-medium", "lengthScale": 0.92 }
+  },
+  "lead": 0.35,
+  "cuts": {
+    "full": {
+      "title": "60 seconds",
+      "suffix": "",
+      "scenes": [
+        {
+          "scene": "hook",
+          "seconds": 4.5,
+          "voice": {
+            "en": "Every release. Every browser. Every click... by hand?",
+            "it": "Ogni rilascio. Ogni browser. Ogni clic... a mano?"
+          }
+        },
+        {
+          "scene": "logo",
+          "seconds": 3,
+          "voice": { "en": "Meet WebFlowMaster.", "it": "Ecco WebFlowMaster." }
+        },
+        {
+          "scene": "build",
+          "seconds": 11,
+          "voice": {
+            "en": "Record a flow by clicking through your site, or describe it in plain words. Run it, and watch it pass. No code to maintain.",
+            "it": "Registra un flusso cliccando sul sito, oppure descrivilo a parole. Eseguilo, e guardalo passare. Nessun codice da mantenere."
+          }
+        },
+        {
+          "scene": "beyond",
+          "seconds": 7,
+          "voice": {
+            "en": "Bring your Gherkin scenarios, and test native Android and iOS apps, from the same place.",
+            "it": "Porta i tuoi scenari Gherkin, e testa le app native Android e iOS, dallo stesso posto."
+          }
+        },
+        {
+          "scene": "api",
+          "seconds": 4.5,
+          "voice": {
+            "en": "Test the APIs behind the screens, too.",
+            "it": "Testa anche le API dietro le schermate."
+          }
+        },
+        {
+          "scene": "run",
+          "seconds": 7,
+          "voice": {
+            "en": "Run on Chromium, Firefox and WebKit, in parallel, on dedicated runners.",
+            "it": "Esegui su Chromium, Firefox e WebKit, in parallelo, su runner dedicati."
+          }
+        },
+        {
+          "scene": "report",
+          "seconds": 7,
+          "voice": {
+            "en": "When something breaks, you see why: the failing step, the video, the trace.",
+            "it": "Quando qualcosa si rompe, vedi il perché: il passo fallito, il video, la traccia."
+          }
+        },
+        {
+          "scene": "dashboard",
+          "seconds": 5,
+          "voice": {
+            "en": "And the whole team sees quality at a glance.",
+            "it": "E tutto il team vede la qualità a colpo d'occhio."
+          }
+        },
+        {
+          "scene": "integrations",
+          "seconds": 5,
+          "voice": {
+            "en": "It fits your pipeline, your repos and your issue tracker.",
+            "it": "Si integra con la tua pipeline, i repository e il tracker."
+          }
+        },
+        {
+          "scene": "cta",
+          "seconds": 6,
+          "voice": {
+            "en": "Ship every release with confidence. Request a demo.",
+            "it": "Ogni rilascio, con fiducia. Richiedi una demo."
+          }
+        }
+      ]
+    },
+    "short": {
+      "title": "30 seconds",
+      "suffix": "-30s",
+      "scenes": [
+        {
+          "scene": "hook",
+          "seconds": 3.5,
+          "voice": {
+            "en": "Still testing every click by hand?",
+            "it": "Testi ancora ogni clic a mano?"
+          }
+        },
+        {
+          "scene": "build",
+          "seconds": 7.5,
+          "voice": {
+            "en": "Record a flow, or describe it in plain words, and watch it pass.",
+            "it": "Registra un flusso, o descrivilo a parole, e guardalo passare."
+          }
+        },
+        {
+          "scene": "beyond",
+          "seconds": 4.5,
+          "voice": {
+            "en": "Gherkin scenarios and native apps, too.",
+            "it": "Anche scenari Gherkin e app native."
+          }
+        },
+        {
+          "scene": "run",
+          "seconds": 4.5,
+          "voice": {
+            "en": "On every browser, in parallel.",
+            "it": "Su ogni browser, in parallelo."
+          }
+        },
+        {
+          "scene": "report",
+          "seconds": 5,
+          "voice": {
+            "en": "And when it fails, you see why.",
+            "it": "E quando fallisce, vedi perché."
+          }
+        },
+        {
+          "scene": "cta",
+          "seconds": 5,
+          "voice": {
+            "en": "WebFlowMaster. Request a demo.",
+            "it": "WebFlowMaster. Richiedi una demo."
+          }
+        }
+      ]
+    },
+    "teaser": {
+      "title": "15 seconds",
+      "suffix": "-15s",
+      "scenes": [
+        {
+          "scene": "hook",
+          "seconds": 3,
+          "voice": {
+            "en": "Still testing every click by hand?",
+            "it": "Testi ancora ogni clic a mano?"
+          }
+        },
+        {
+          "scene": "build",
+          "seconds": 5,
+          "voice": {
+            "en": "Record it, or describe it. WebFlowMaster runs it.",
+            "it": "Registralo, o descrivilo. WebFlowMaster lo esegue."
+          }
+        },
+        {
+          "scene": "report",
+          "seconds": 3.5,
+          "voice": { "en": "And shows you why it failed.", "it": "E ti mostra il perché." }
+        },
+        {
+          "scene": "cta",
+          "seconds": 3.5,
+          "voice": { "en": "Request a demo.", "it": "Richiedi una demo." }
+        }
+      ]
+    }
+  }
+}

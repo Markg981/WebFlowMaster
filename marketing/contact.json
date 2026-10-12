@@ -1,7 +1,8 @@
 {
-  "_comment": "The commercial contact on the brochure and the video. Placeholders until the product has its own domain and mailbox: replace them here, then regenerate both (see README.md). An empty phone is left out.",
+  "_comment": "The commercial contact on the brochure and the video. Placeholders until the product has its own domain and mailbox: replace them here, then regenerate both (see README.md). An empty phone is left out. demoUrl is the demo request page (marketing/landing/), short enough to read off the video's closing card.",
   "name": "Marco Oliva",
   "email": "contact@webflowmaster.example",
   "website": "www.webflowmaster.example",
+  "demoUrl": "webflowmaster.example/demo",
   "phone": ""
 }

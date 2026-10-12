@@ -150,7 +150,9 @@ what an installation runs, so reconcile installed digests as described under
    `vVERSION` tag. If CI is pending or failed, the release must wait; rerun after checks pass.
 4. Inspect the draft, reports, rebuild evidence and manifest. Confirm all roles refer to the intended
    commit and migration journal, and run the verify commands recorded under `images.<role>.signing`,
-   before publishing. Retain the previous release's manifest.
+   before publishing. Retain the previous release's manifest. Once it is published, rebuild the
+   customer materials from it on the collaudo stack: `npm run marketing:refresh` films the product
+   again and renders the promo video and the brochure (`marketing/promo-video/README.md`).
 5. Download `release.env` from that verified release. Supply installation secrets and database URLs
    in a protected `installation.env` (never commit it). `MIGRATION_DATABASE_URL` uses the migration
    owner; `DATABASE_URL` uses the non-superuser app role, preserving PostgreSQL RLS.
