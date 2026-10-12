@@ -23,17 +23,17 @@ import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
 import { toGridConfig } from '../browser-grids';
-import { executeMobileRun, uploadApp, type RunDeps } from '../mobile-runner';
+import { executeMobileRun, uploadApp, type RunDeps } from '../mobile/mobile-runner';
 import { checkExecutionBudget } from '../execution-usage';
 import { quotaErrorBody, lockOrganizationRuns } from '../tenant-quotas';
-import { prepareMobileSteps, MobileDefinitionError } from '../mobile-step-groups';
+import { prepareMobileSteps, MobileDefinitionError } from '../mobile/mobile-step-groups';
 import {
   InspectorError,
   closeInspector,
   inspectorAct,
   inspectorSnapshot,
   openInspector,
-} from '../mobile-inspector';
+} from '../mobile/mobile-inspector';
 import { tagsOfTests } from '../test-tags';
 import { currentContentOf, recordTypedTestVersion } from '../test-version-store';
 import { typedSnapshotOf } from '@shared/test-versioning';
@@ -41,7 +41,7 @@ import logger from '../logger';
 
 /**
  * Tests of native mobile apps: writing them, running one on a grid's device, and uploading the
- * app it runs (shared/mobile.ts, server/mobile-runner.ts).
+ * app it runs (shared/mobile.ts, server/mobile/mobile-runner.ts).
  *
  * A run takes minutes — the grid finds a device and installs the app — so it is started here and
  * followed from the page, which reads its steps as they are written.
@@ -477,7 +477,7 @@ router.post('/api/browser-grids/:id/apps', requireRole('editor'), (req, res) => 
   });
 });
 
-// ─── The inspector (server/mobile-inspector.ts) ──────────────────────────────
+// ─── The inspector (server/mobile/mobile-inspector.ts) ──────────────────────────────
 
 const inspectSchema = mobileTestSchema
   .innerType()

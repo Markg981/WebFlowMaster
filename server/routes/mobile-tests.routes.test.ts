@@ -18,7 +18,7 @@ import {
 import { mobileStepProblem, parseMobileLocator } from '@shared/mobile';
 import { encryptSecret } from '../crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { mobileEndpoints, mobileSessionRequest } from '../mobile-runner';
+import { mobileEndpoints, mobileSessionRequest } from '../mobile/mobile-runner';
 
 vi.mock('../logger', () => ({
   default: {
@@ -264,7 +264,7 @@ beforeAll(async () => {
 
   const { default: routes, mobileRunner } = await import('./mobile-tests.routes');
   mobileRunner.deps = { elementTimeoutMs: 600 };
-  const { inspectorDeps } = await import('../mobile-inspector');
+  const { inspectorDeps } = await import('../mobile/mobile-inspector');
   inspectorDeps.elementTimeoutMs = 600;
   const { runWithTenant } = await import('../middleware/tenancy');
   app = express();

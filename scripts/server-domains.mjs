@@ -210,15 +210,7 @@ export const SERVER_DOMAINS = [
     name: 'mobile',
     rank: 7,
     purpose: 'mobile tests: Appium, flows, inspector, bundles',
-    modules: [
-      'appium-client',
-      'mobile-bundle',
-      'mobile-flow',
-      'mobile-inspector',
-      'mobile-plan-units',
-      'mobile-runner',
-      'mobile-step-groups',
-    ],
+    modules: ['mobile/*'],
   },
   {
     name: 'bdd',

@@ -51,8 +51,8 @@ import {
   API_TEST_FIELDS,
   BundleError,
 } from '../test-bundle';
-import { importMobileCatalog, MOBILE_BUNDLE_FIELDS } from '../mobile-bundle';
-import { prepareMobileSteps, MobileDefinitionError } from '../mobile-step-groups';
+import { importMobileCatalog, MOBILE_BUNDLE_FIELDS } from '../mobile/mobile-bundle';
+import { prepareMobileSteps, MobileDefinitionError } from '../mobile/mobile-step-groups';
 import { GherkinError } from '../bdd/gherkin';
 import { lockOrganizationRuns, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 import schedulerService from '../scheduler-service';

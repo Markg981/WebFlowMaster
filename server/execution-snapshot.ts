@@ -37,7 +37,7 @@ export interface ExecutionSnapshot {
   replayOf?: { executionId: string; requestedAt: string };
   /** Absent on historical runs; present even when there are no shared values or rows. */
   datasets?: import('./execution-datasets').FrozenExecutionDatasets;
-  mobileDefinitions?: import('./mobile-plan-units').FrozenMobileDefinition[];
+  mobileDefinitions?: import('./mobile/mobile-plan-units').FrozenMobileDefinition[];
   version: typeof EXECUTION_SNAPSHOT_VERSION;
   capturedAt: string;
   plan: { id: string; name: string; updatedAt: string | null };

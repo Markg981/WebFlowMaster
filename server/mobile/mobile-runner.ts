@@ -9,15 +9,15 @@ import {
   type MobileStepResult,
   type MobileExecutionStep,
 } from '@shared/mobile';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
-import { withExecutionUsage } from './execution-usage';
-import { toGridConfig, type GridConfig } from './browser-grids';
-import { resolveVariables, findUnresolvedVariables } from './variables';
-import { fetchTarget, substituteVariables } from './outbound-http';
+import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { withExecutionUsage } from '../execution-usage';
+import { toGridConfig, type GridConfig } from '../browser-grids';
+import { resolveVariables, findUnresolvedVariables } from '../variables';
+import { fetchTarget, substituteVariables } from '../outbound-http';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
-import { AgentHttp } from './agents/agent-fetch';
+import { AgentHttp } from '../agents/agent-fetch';
 import { LOCAL_APPIUM_DEFAULT_URL } from '@shared/browser-grids';
-import { appiumMatrixEvidence } from './matrix-evidence';
+import { appiumMatrixEvidence } from '../matrix-evidence';
 import { matrixEvidence, type MatrixEvidence } from '@shared/matrix-evidence';
 import { executeMobileFlow, validateMobileExecution } from './mobile-flow';
 import { prepareMobileSteps } from './mobile-step-groups';

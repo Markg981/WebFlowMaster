@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import {
   browserGrids,
   organizations,
@@ -18,7 +18,7 @@ import {
   users,
 } from '@shared/schema';
 import { isMobileResultLog, type MobileResultLog } from '@shared/mobile';
-import { createTestOrganization } from './tests/factories';
+import { createTestOrganization } from '../tests/factories';
 import type { MobileOutcome } from './mobile-runner';
 
 /**
@@ -28,21 +28,21 @@ import type { MobileOutcome } from './mobile-runner';
  * language of the plan — and its result is a row of the report like any other: the device as
  * its "browser", the steps and the grid's session page in its log, the device's last screen as
  * its screenshot. The device itself is not reached here: `performMobileTest` is what
- * server/mobile-runner.test covers through the routes; what is under test is the plan's wiring.
+ * server/mobile/mobile-runner.test covers through the routes; what is under test is the plan's wiring.
  */
 
 const executeTestSequence = vi.fn();
 const launchBrowser = vi.fn(async () => ({ close: async () => {} }) as any);
 const performMobileTest = vi.fn<(...args: any[]) => Promise<MobileOutcome>>();
 
-vi.mock('./playwright-service', () => ({
+vi.mock('../playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
-vi.mock('./precondition-runner', () => ({
+vi.mock('../precondition-runner', () => ({
   runPreconditions: async () => ({ ok: true, steps: [] }),
 }));
-vi.mock('./browsers', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./browsers')>();
+vi.mock('../browsers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../browsers')>();
   return { ...actual, launchBrowser: (...args: any[]) => launchBrowser(...(args as [any])) };
 });
 vi.mock('./mobile-runner', async (importOriginal) => {
@@ -50,11 +50,11 @@ vi.mock('./mobile-runner', async (importOriginal) => {
   return { ...actual, performMobileTest: (...args: any[]) => performMobileTest(...args) };
 });
 
-const { processTestPlanJob } = await import('./test-execution-service');
-const { buildExecutionSnapshot } = await import('./execution-snapshot');
-const { assertSelectedTestsBelongTo } = await import('./routes/selected-tests');
-const { stepsWithArtifactUrls } = await import('./routes/artifacts.routes');
-const { evidenceSteps } = await import('./failure-analysis');
+const { processTestPlanJob } = await import('../test-execution-service');
+const { buildExecutionSnapshot } = await import('../execution-snapshot');
+const { assertSelectedTestsBelongTo } = await import('../routes/selected-tests');
+const { stepsWithArtifactUrls } = await import('../routes/artifacts.routes');
+const { evidenceSteps } = await import('../failure-analysis');
 
 // A 1×1 PNG.
 const PIXEL =
@@ -191,7 +191,7 @@ afterEach(async () => {
 describe('a mobile test in a plan', () => {
   it('uses shared variables frozen at enqueue after the set is deleted', async () => {
     await seedPlan();
-    const { createExecutionOrchestrator } = await import('./execution-orchestrator');
+    const { createExecutionOrchestrator } = await import('../execution-orchestrator');
     const [set] = await privilegedDb
       .insert(testDataSets)
       .values({
@@ -250,7 +250,7 @@ describe('a mobile test in a plan', () => {
       .set({ testReviewRequired: true })
       .where(eq(organizations.id, organizationId));
     // Mimic a live publication via the same lookup the worker consumes.
-    const { recordTypedTestVersion } = await import('./test-version-store');
+    const { recordTypedTestVersion } = await import('../test-version-store');
     await recordTypedTestVersion(privilegedDb as any, {
       testType: 'mobile',
       testId: mobileTestId,

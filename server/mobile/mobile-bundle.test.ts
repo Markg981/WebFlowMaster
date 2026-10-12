@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { exportBundle, parseBundle, BUNDLE_KIND } from './test-bundle';
+import { exportBundle, parseBundle, BUNDLE_KIND } from '../test-bundle';
 import type { MobileTest } from '@shared/schema';
 describe('portable native catalog', () => {
   it('reads old bundles without native sections', () => {

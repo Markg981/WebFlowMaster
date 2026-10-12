@@ -3,7 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import {
   browserGrids,
   mobileTestRuns,
@@ -11,9 +11,9 @@ import {
   projectMembers,
   projects,
 } from '@shared/schema';
-import { createTestOrganization, createTestUser } from './tests/factories';
+import { createTestOrganization, createTestUser } from '../tests/factories';
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -79,9 +79,9 @@ beforeAll(async () => {
     { projectId: secretProject, userId: reader.id, organizationId, role: 'viewer' },
   ] as any);
 
-  const { default: routes, mobileRunner } = await import('./routes/mobile-tests.routes');
+  const { default: routes, mobileRunner } = await import('../routes/mobile-tests.routes');
   mobileRunner.start = async () => {};
-  const { runWithTenant } = await import('./middleware/tenancy');
+  const { runWithTenant } = await import('../middleware/tenancy');
   app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -93,7 +93,7 @@ beforeAll(async () => {
     });
   });
   app.use(routes);
-  app.use((await import('./routes/mobile-step-groups.routes')).default);
+  app.use((await import('../routes/mobile-step-groups.routes')).default);
 });
 
 beforeEach(() => {
