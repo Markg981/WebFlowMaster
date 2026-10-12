@@ -6,8 +6,8 @@ import { eq } from 'drizzle-orm';
 import { browserGrids } from '@shared/schema';
 import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-grids';
 import { withTenantTransaction } from '../middleware/tenancy';
-import { AgentHttp } from '../agents/agent-fetch';
-import { gridWarnings } from '../browser-grids';
+import { AgentHttp } from '../runtime/agents/agent-fetch';
+import { gridWarnings } from '../runtime/browser-grids';
 import {
   browsersForRun,
   describeBrowser,
@@ -16,7 +16,7 @@ import {
   onAgents,
   onGrid,
   type BrowserChoice,
-} from '../browsers';
+} from '../runtime/browsers';
 import { emit, report, type PlanRun } from './context';
 import type { RunInputs } from './inputs';
 

@@ -1,6 +1,6 @@
 /**
  * Runs a run's lanes: one at a time, side by side, or shared with other workers
- * (server/run-shards.ts).
+ * (server/runtime/run-shards.ts).
  */
 import { effectiveConcurrency, runWithConcurrency } from '../concurrency';
 import {
@@ -17,7 +17,7 @@ import {
   WORK_ITEM_HEARTBEAT_MS,
   WORK_POLL_MS,
   type WorkUnit,
-} from '../run-shards';
+} from '../runtime/run-shards';
 import type { IndividualTestRunResult } from '../run-test';
 import { emit, report, type PlanRun } from './context';
 import { lanesAreChained, type Lane, type RunUnit } from './lanes';
@@ -115,7 +115,7 @@ export async function collectSharedResults(run: PlanRun, results: LaneResults): 
 }
 
 /**
- * Shares the run's work with other workers (server/run-shards.ts): the coordinator writes it
+ * Shares the run's work with other workers (server/runtime/run-shards.ts): the coordinator writes it
  * down and asks for helpers; then everyone, the coordinator included, takes items until none
  * are left. The coordinator also waits for the items others hold, and takes back any whose
  * worker stopped answering.

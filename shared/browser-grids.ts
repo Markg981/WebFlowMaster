@@ -1,6 +1,6 @@
 /**
  * Browser grids: where a plan's browsers can come from when the runners do not have the OS, the
- * browser or the version it asks for (server/browser-grids.ts).
+ * browser or the version it asks for (server/runtime/browser-grids.ts).
  *
  * - BrowserStack and LambdaTest run Playwright on their machines: Windows and macOS, branded
  *   Chrome and Edge, older versions. The plan's OS, OS version and browser version are honoured.

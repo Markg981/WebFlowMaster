@@ -1,7 +1,12 @@
 import type { Browser, BrowserContext, BrowserContextOptions, Page } from 'playwright';
 import { allowsSelfSignedCertificate } from '../outbound-http';
 import { guardBrowserContext } from '../egress-policy';
-import { launchBrowser, resolveBrowser, type BrowserChoice, type BrowserEngine } from '../browsers';
+import {
+  launchBrowser,
+  resolveBrowser,
+  type BrowserChoice,
+  type BrowserEngine,
+} from '../runtime/browsers';
 
 /**
  * The one way the server opens a browser: launch, context, page.

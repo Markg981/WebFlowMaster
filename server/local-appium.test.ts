@@ -23,7 +23,7 @@ vi.mock('./logger', () => ({
 
 /**
  * A local Appium (shared/browser-grids.ts): a "grid" that is an Appium server next to a local
- * agent, reached through the agent's own HTTP (server/agents/agent-fetch.ts) — so the server
+ * agent, reached through the agent's own HTTP (server/runtime/agents/agent-fetch.ts) — so the server
  * needs no way into that network. It runs mobile app tests and nothing else.
  *
  * The agent is stood in for: what is checked is that every request to Appium goes through the
@@ -38,7 +38,7 @@ const agentRequests: Array<{
 const agentsClosed: string[] = [];
 let appiumAnswers: (url: string, init: RequestInit) => unknown = () => null;
 
-vi.mock('./agents/agent-fetch', () => ({
+vi.mock('./runtime/agents/agent-fetch', () => ({
   AgentHttp: class {
     readonly fetch: (url: string, init: RequestInit) => Promise<Response>;
     constructor(readonly agent: { organizationId: number; pool: string }) {
@@ -59,7 +59,7 @@ vi.mock('./agents/agent-fetch', () => ({
 
 const { mobileSessionRequest, performMobileTest, appiumTransport } =
   await import('./mobile/mobile-runner');
-const { gridConnection, checkRunOn, toGridConfig } = await import('./browser-grids');
+const { gridConnection, checkRunOn, toGridConfig } = await import('./runtime/browser-grids');
 const { runWithTenant } = await import('./middleware/tenancy');
 
 type User = { id: number; username: string; organizationId: number; role: string };

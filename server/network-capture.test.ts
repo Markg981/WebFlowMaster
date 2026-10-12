@@ -12,7 +12,7 @@ import {
   summariseHar,
   type HarLike,
 } from '@shared/network';
-import { captureRunEvidence, harContextOptions } from './run-evidence';
+import { captureRunEvidence, harContextOptions } from './runtime/run-evidence';
 
 /**
  * Network capture: a HAR of each test's requests, and what the report reads out of it.

@@ -1,7 +1,7 @@
 /** How a run behaves around its tests: what it records, its policies, and visual comparison. */
 import type { EvidenceCaptureMode } from '@shared/schema';
-import { shouldRecord } from '../run-evidence';
-import { describePolicies, runPoliciesFrom, type RunPolicies } from '../run-policies';
+import { shouldRecord } from '../runtime/run-evidence';
+import { describePolicies, runPoliciesFrom, type RunPolicies } from '../runtime/run-policies';
 import { emit, type PlanRun } from './context';
 import type { RunInputs } from './inputs';
 

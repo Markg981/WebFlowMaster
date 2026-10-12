@@ -1,5 +1,5 @@
 # The local agent: runs inside a customer's network and lends its browsers to the server
-# (scripts/wfm-agent.ts, server/agents/relay.ts). It only connects out, to WFM_URL.
+# (scripts/wfm-agent.ts, server/runtime/agents/relay.ts). It only connects out, to WFM_URL.
 #
 #   docker build -f Dockerfile.agent -t webflowmaster-agent .
 #   docker run -d --restart unless-stopped \

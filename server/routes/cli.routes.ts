@@ -21,7 +21,7 @@ import logger from '../logger';
 const router = asyncRouter();
 
 /**
- * What is handed out: the pipeline CLI, and the local agent (server/agents/relay.ts), which needs
+ * What is handed out: the pipeline CLI, and the local agent (server/runtime/agents/relay.ts), which needs
  * the playwright and ws packages next to it and so imports them rather than bundling them.
  */
 const PROGRAMS = {

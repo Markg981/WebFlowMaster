@@ -7,9 +7,9 @@ import { AGENT_POOL_PATTERN } from '@shared/agents';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { generateAgentToken } from '../agents/agent-credentials';
-import { agentRelay } from '../agents/relay';
-import { RUNNER_PLAYWRIGHT_VERSION } from '../agents/agent-browser';
+import { generateAgentToken } from '../runtime/agents/agent-credentials';
+import { agentRelay } from '../runtime/agents/relay';
+import { RUNNER_PLAYWRIGHT_VERSION } from '../runtime/agents/agent-browser';
 
 /**
  * Local agents: which exist, which are connected now, and creating and revoking them.

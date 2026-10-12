@@ -2,7 +2,7 @@ import { describe, it, expect, afterAll } from 'vitest';
 import { chromium, devices, webkit, type Browser } from 'playwright';
 import { MOBILE_DEVICES } from '@shared/devices';
 import { insertTestPlanSchema } from '@shared/schema';
-import { browsersForRun, deviceContextOptions, onGrid } from './browsers';
+import { browsersForRun, deviceContextOptions, onGrid } from './runtime/browsers';
 
 /**
  * Phones and tablets in a plan's browser matrix: each row may emulate a device, which changes the

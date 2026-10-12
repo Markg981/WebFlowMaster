@@ -34,18 +34,18 @@ sequenceDiagram
 
 ## Components
 
-| Piece          | File                                 | Role                                                                                |
-| -------------- | ------------------------------------ | ----------------------------------------------------------------------------------- |
-| Protocol types | `shared/agents.ts`                   | Paths, protocol version, message shapes, pool name rule, Playwright compatibility.  |
-| Credentials    | `server/agents/agent-credentials.ts` | Agent tokens (`wfa_…`, stored as SHA-256), relay tickets (HMAC, 60 s).              |
-| Token lookup   | `server/agents/agent-auth.ts`        | Which agent a token belongs to (privileged: the token names the organization).      |
-| Relay          | `server/agents/relay.ts`             | Accepts agents, runners and sessions; chooses an agent; pipes the protocol.         |
-| Directory      | `server/agents/relay-directory.ts`   | What each relay instance holds, when there are several web servers.                 |
-| Runner side    | `server/agents/agent-browser.ts`     | Signs a ticket, asks availability, connects.                                        |
-| API requests   | `server/agents/agent-fetch.ts`       | `fetch` executed through a borrowed browser's request API.                          |
-| Setup          | `server/agents/setup.ts`             | Starts the relay in the web process, cluster mode from `AGENT_RELAY_ADVERTISE_URL`. |
-| Agent program  | `scripts/wfm-agent.ts`               | Control connection, `launchServer`, session pipes, reconnect, drain.                |
-| Routes         | `server/routes/agents.routes.ts`     | List, create (token shown once), revoke; availability.                              |
+| Piece          | File                                         | Role                                                                                |
+| -------------- | -------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Protocol types | `shared/agents.ts`                           | Paths, protocol version, message shapes, pool name rule, Playwright compatibility.  |
+| Credentials    | `server/runtime/agents/agent-credentials.ts` | Agent tokens (`wfa_…`, stored as SHA-256), relay tickets (HMAC, 60 s).              |
+| Token lookup   | `server/runtime/agents/agent-auth.ts`        | Which agent a token belongs to (privileged: the token names the organization).      |
+| Relay          | `server/runtime/agents/relay.ts`             | Accepts agents, runners and sessions; chooses an agent; pipes the protocol.         |
+| Directory      | `server/runtime/agents/relay-directory.ts`   | What each relay instance holds, when there are several web servers.                 |
+| Runner side    | `server/runtime/agents/agent-browser.ts`     | Signs a ticket, asks availability, connects.                                        |
+| API requests   | `server/runtime/agents/agent-fetch.ts`       | `fetch` executed through a borrowed browser's request API.                          |
+| Setup          | `server/runtime/agents/setup.ts`             | Starts the relay in the web process, cluster mode from `AGENT_RELAY_ADVERTISE_URL`. |
+| Agent program  | `scripts/wfm-agent.ts`                       | Control connection, `launchServer`, session pipes, reconnect, drain.                |
+| Routes         | `server/routes/agents.routes.ts`             | List, create (token shown once), revoke; availability.                              |
 
 ## Credentials
 

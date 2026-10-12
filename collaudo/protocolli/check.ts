@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { AgentHttp } from '../../server/agents/agent-fetch';
-import { runProtocolOnAgent } from '../../server/agents/agent-protocol';
+import { AgentHttp } from '../../server/runtime/agents/agent-fetch';
+import { runProtocolOnAgent } from '../../server/runtime/agents/agent-protocol';
 import { runApiRequest } from '../../server/api-tests/api-test-runner';
 import type { Assertion } from '../../shared/schema';
 

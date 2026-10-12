@@ -6,7 +6,7 @@ import type {
   AgentProtocolReply,
 } from '../shared/agent-protocol';
 import { ResolvedProtocolConfigSchema } from '../shared/api-protocol-config';
-import { requiredApiFeatures } from '../server/agents/api-protocol-features';
+import { requiredApiFeatures } from '../server/runtime/agents/api-protocol-features';
 import { runGrpc, runWebSocket } from '../server/api-tests/api-network-protocols';
 
 /** One native request on a session the authenticated relay assigned to this agent. */

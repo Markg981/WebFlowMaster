@@ -7,7 +7,7 @@ import {
 } from '@shared/schema';
 import { withTenantTransaction, type TenantTx } from './middleware/tenancy';
 import { liveRunCounts, lockOrganizationRuns, quotasFor } from './tenancy/tenant-quotas';
-import { currentRunnerId } from './runner-registry';
+import { currentRunnerId } from './runtime/runner-registry';
 import {
   beginExecutionUsage,
   checkExecutionBudget,

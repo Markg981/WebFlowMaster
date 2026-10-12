@@ -13,7 +13,7 @@ import {
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { encryptSecret } from '../crypto';
-import { gridConnection, toGridConfig } from '../browser-grids';
+import { gridConnection, toGridConfig } from '../runtime/browser-grids';
 import { appiumTransport } from '../mobile/mobile-runner';
 import logger from '../logger';
 

@@ -9,7 +9,7 @@ import type logger from '../logger';
 import type { WsEmitter, ExecutionLogEntry } from '../websocket';
 import type { RunWatch } from '../run-watch';
 import type { TestPlanExecution } from '@shared/schema';
-import { recordStopReason } from '../run-shards';
+import { recordStopReason } from '../runtime/run-shards';
 
 export type Logger = typeof logger;
 
@@ -19,7 +19,7 @@ export interface PlanJob {
   executionId: string;
   userId: number | null;
   options: { updateBaselines?: boolean };
-  /** Set for a helper sharing a run another worker took (server/run-shards.ts). */
+  /** Set for a helper sharing a run another worker took (server/runtime/run-shards.ts). */
   helper?: { shard: number };
 }
 

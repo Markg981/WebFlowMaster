@@ -61,7 +61,7 @@ export const PreconditionsPanel: React.FC<PreconditionsPanelProps> = ({
 );
 
 /**
- * Cleanup (server/cleanup-runner.ts): API calls made after the test, whatever its outcome, to remove
+ * Cleanup (server/runtime/cleanup-runner.ts): API calls made after the test, whatever its outcome, to remove
  * the data it created. Every one is attempted; 404 counts as already gone.
  */
 export const CleanupPanel: React.FC<{

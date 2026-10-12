@@ -2,7 +2,7 @@ import { afterAll, expect, it, vi } from 'vitest';
 import { SpanKind } from '@opentelemetry/api';
 import { InMemorySpanExporter } from '@opentelemetry/sdk-trace-base';
 import { captureTrace, startTracing, withSpan } from '../../shared/telemetry';
-import { signTicket, verifyTicket } from '../agents/agent-credentials';
+import { signTicket, verifyTicket } from '../runtime/agents/agent-credentials';
 
 // Redis persistence is a boundary here; inspect exactly the envelope the real Queue receives.
 const add = vi.hoisted(() =>

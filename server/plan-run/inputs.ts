@@ -22,7 +22,7 @@ import {
   type SnapshotTestReference,
 } from '../execution-snapshot';
 import { decryptSecret } from '../crypto';
-import { defaultVariables } from '../variables';
+import { defaultVariables } from '../runtime/variables';
 import { loadDataVariables } from '../authoring/test-data';
 import { ended, report, type Ended, type PlanRun } from './context';
 

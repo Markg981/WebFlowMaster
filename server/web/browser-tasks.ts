@@ -3,7 +3,7 @@ import { TracedQueue } from '../observability/queue';
 import { eq } from 'drizzle-orm';
 import { tests } from '@shared/schema';
 import { playwrightService, type AdhocSequencePayload } from './playwright-service';
-import { resolveVariables } from '../variables';
+import { resolveVariables } from '../runtime/variables';
 import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
 import { getCorrelationId } from '../middleware/correlation';
 import { connection } from '../redis';

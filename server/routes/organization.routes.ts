@@ -31,7 +31,7 @@ import {
 import { issuePasswordReset } from '../identity/password-reset';
 import logger from '../logger';
 import { liveRunCounts, quotaUsage, quotasFor } from '../tenancy/tenant-quotas';
-import { availableRunnerCount } from '../runner-registry';
+import { availableRunnerCount } from '../runtime/runner-registry';
 
 const router = asyncRouter();
 

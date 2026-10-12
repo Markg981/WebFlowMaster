@@ -140,7 +140,7 @@ function CreateTestPage() {
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
   const [testSequence, setTestSequence] = useState<DragDropTestStep[]>([]);
   const [preconditions, setPreconditions] = useState<Precondition[]>([]);
-  // API calls after the test that remove what it created (server/cleanup-runner.ts).
+  // API calls after the test that remove what it created (server/runtime/cleanup-runner.ts).
   const [cleanups, setCleanups] = useState<Cleanup[]>([]);
   // Rows this test runs over, one run each. Empty means a single run, which is what every
   // test did before datasets existed.

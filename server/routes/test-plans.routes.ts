@@ -1,5 +1,5 @@
 import { asyncRouter } from '../middleware/async-router';
-import { checkRunOn } from '../browser-grids';
+import { checkRunOn } from '../runtime/browser-grids';
 import {
   testPlans,
   testPlanSchedules,
@@ -98,7 +98,7 @@ router.post('/api/test-plans', requireRole('editor'), async (req, res) => {
   // column on testPlans, so it is inserted separately below — not dropped. It used to be
   // destructured away and discarded here, which meant every plan created from the UI had
   // zero linked tests: CreateTestPlanWizard always sends this field.
-  // Agents or a grid, never both, and only a grid of this organization (server/browser-grids.ts).
+  // Agents or a grid, never both, and only a grid of this organization (server/runtime/browser-grids.ts).
   const runOn = await checkRunOn(parseResult.data);
   if (!runOn.ok) return res.status(400).json({ error: runOn.error });
   const { selectedTests, ...planData } = { ...parseResult.data, ...runOn.changes };
@@ -315,7 +315,7 @@ router.put('/api/test-plans/:id', requireRole('editor'), async (req, res) => {
       .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
   }
 
-  // Agents or a grid, never both, and only a grid of this organization (server/browser-grids.ts).
+  // Agents or a grid, never both, and only a grid of this organization (server/runtime/browser-grids.ts).
   const runOn = await checkRunOn(parseResult.data);
   if (!runOn.ok) return res.status(400).json({ error: runOn.error });
 

@@ -44,7 +44,7 @@ export interface ExecutionSnapshot {
   environmentId: number | null;
   /**
    * The two sources the browser matrix is derived from, kept as they were rather than resolved:
-   * the worker resolves them with server/browsers.ts, so which browsers exist on the runner is
+   * the worker resolves them with server/runtime/browsers.ts, so which browsers exist on the runner is
    * decided where the browsers are, and the request still cannot be changed after the fact.
    */
   browsers: { requested: unknown; testMachines: unknown };
@@ -58,10 +58,10 @@ export interface ExecutionSnapshot {
     network?: EvidenceCaptureMode;
   };
   maxParallelTests: number;
-  /** Workers sharing the run (server/run-shards.ts); absent on snapshots from before it existed, read as 1. */
+  /** Workers sharing the run (server/runtime/run-shards.ts); absent on snapshots from before it existed, read as 1. */
   shards?: number;
   captureScreenshots: string;
-  /** As the plan stored them; server/run-policies.ts reads them, units and all. */
+  /** As the plan stored them; server/runtime/run-policies.ts reads them, units and all. */
   timeouts: { pageLoadMs: number; elementMs: number };
   failurePolicies: {
     onMajorStepFailure: string;

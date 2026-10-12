@@ -39,7 +39,7 @@ const executeDirectTestSchema = z.object({
   // ad-hoc preview must accept and run them too — otherwise "Execute Test" exercises a
   // different setup than the real run.
   preconditions: z.array(PreconditionSchema).optional().nullable(),
-  // And cleaned up after, as a saved run is (server/cleanup-runner.ts).
+  // And cleaned up after, as a saved run is (server/runtime/cleanup-runner.ts).
   cleanups: z.array(CleanupSchema).max(50).optional().nullable(),
   // Which environment resolves `{{name}}` placeholders. The organization it must belong
   // to is taken from the session, so naming another tenant's environment resolves nothing.

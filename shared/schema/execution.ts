@@ -86,7 +86,7 @@ export const testPlans = pgTable(
      */
     maxParallelTests: integer('max_parallel_tests').default(1).notNull(),
     /**
-     * How many workers may share one run of this plan (server/run-shards.ts), each running
+     * How many workers may share one run of this plan (server/runtime/run-shards.ts), each running
      * `maxParallelTests` at a time. 1 is one worker, as before this existed (migration 0067).
      */
     shards: integer('shards').default(1).notNull(),
@@ -403,7 +403,7 @@ export const testPlanSelectedTests = pgTable(
 );
 
 /**
- * The work of a run shared by several workers (server/run-shards.ts): one item per test of a
+ * The work of a run shared by several workers (server/runtime/run-shards.ts): one item per test of a
  * browser and language, or per browser and language when its API tests pass values on. Claimed
  * one at a time; a claim whose heartbeat stops is taken back (migration 0067).
  */
@@ -630,7 +630,7 @@ export const loadTestRuns = pgTable(
 
 export type LoadTestRun = typeof loadTestRuns.$inferSelect;
 
-// OS and versions are optional: the runners cannot choose them (server/browsers.ts says so in
+// OS and versions are optional: the runners cannot choose them (server/runtime/browsers.ts says so in
 // the run's log), and the plan settings dialog sends only what applies — a browser grid is where
 // they mean something. Required, they made the dialog's every save of its browsers a 400.
 const TestMachineConfigSchema = z

@@ -22,7 +22,7 @@ import {
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { toGridConfig } from '../browser-grids';
+import { toGridConfig } from '../runtime/browser-grids';
 import { executeMobileRun, uploadApp, type RunDeps } from '../mobile/mobile-runner';
 import { checkExecutionBudget } from '../tenancy/execution-usage';
 import { quotaErrorBody, lockOrganizationRuns } from '../tenancy/tenant-quotas';

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { decodeBase32, parseTotpSeed, totpAt } from './totp';
 import { substituteVariables } from './outbound-http';
-import { findUnresolvedVariables } from './variables';
+import { findUnresolvedVariables } from './runtime/variables';
 
 /** {{$totp(name)}}: the code an authenticator app would show for the seed in {{name}}. */
 

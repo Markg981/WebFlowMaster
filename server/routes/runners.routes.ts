@@ -4,7 +4,7 @@ import { requireRole } from '../middleware/require-role';
 import { requireInstallationAdmin } from '../tenancy/installation-admin';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { listRunners, setRunnerDesiredState, statusOf } from '../runner-registry';
+import { listRunners, setRunnerDesiredState, statusOf } from '../runtime/runner-registry';
 
 /**
  * The runners, for whoever keeps the installation running. Owners see them; draining and resuming
