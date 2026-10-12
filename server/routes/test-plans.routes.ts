@@ -30,6 +30,7 @@ import schedulerService, {
 import { runAsOrganization, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { expandPlanTests, type TestReference } from '../test-suites';
 import { requireRole } from '../middleware/require-role';
+import { asyncHandler } from '../middleware/async-handler';
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from './selected-tests';
 import { requestCancellation } from '../execution-state';
 import { AUDIT_ACTIONS } from '@shared/schema';
@@ -602,8 +603,6 @@ router.post('/api/run-test-plan/:id', requireRole('editor'), async (req, res) =>
   }
 });
 
-// GET /api/selectable-tests - List UI, API and mobile app tests for selection in Test Plans
-
 // --- Schedules ---
 
 router.get('/api/test-plan-schedules', requireRole('viewer'), async (req, res) => {
@@ -633,6 +632,38 @@ router.get('/api/test-plan-schedules', requireRole('viewer'), async (req, res) =
 
   res.json(parsed);
 });
+
+// The schedules of one plan.
+router.get(
+  '/api/test-plan-schedules/plan/:planId',
+  requireRole('viewer'),
+  asyncHandler(async (req, res) => {
+    // Scoped to the ambient tenant transaction rather than privilegedDb: RLS is silently
+    // inert under a superuser, so an unscoped privilegedDb query here returned every
+    // organization's schedules for any plan id, including another tenant's.
+    const results = await withTenantTransaction((tx) =>
+      tx
+        .select({
+          ...getTableColumns(testPlanSchedules),
+          testPlanName: testPlans.name,
+        })
+        .from(testPlanSchedules)
+        .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
+        .where(eq(testPlanSchedules.testPlanId, req.params.planId))
+        .orderBy(desc(testPlanSchedules.createdAt)),
+    );
+
+    const parseJson = <T>(value: T) => (typeof value === 'string' ? JSON.parse(value) : value);
+    res.json(
+      results.map((schedule) => ({
+        ...schedule,
+        browsers: parseJson(schedule.browsers),
+        notificationConfigOverride: parseJson(schedule.notificationConfigOverride),
+        executionParameters: parseJson(schedule.executionParameters),
+      })),
+    );
+  }),
+);
 
 router.post('/api/test-plan-schedules', requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });

@@ -114,6 +114,41 @@ describe('incidentErrorHandler', () => {
 
     recordIncidentSpy.mockRestore();
   });
+
+  it("does not hand a fault's own message to the caller", async () => {
+    const response = await request(appThatThrows()).post('/api/boom').send({});
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      message: 'Internal Server Error',
+      error: 'Internal Server Error',
+    });
+  });
+
+  it('keeps the message of an error raised with a client status', async () => {
+    const app = express();
+    app.get('/api/missing', () => {
+      throw Object.assign(new Error('No such plan'), { status: 404 });
+    });
+    app.use(incidentErrorHandler({ error: () => {} }));
+
+    const response = await request(app).get('/api/missing');
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toBe('No such plan');
+  });
+
+  it('answers a suspended subscription with 402, as the routes that catch it do', async () => {
+    const app = express();
+    app.get('/api/run', () => {
+      throw Object.assign(new Error('Suspended'), { code: 'subscription_suspended' });
+    });
+    app.use(incidentErrorHandler({ error: () => {} }));
+
+    const response = await request(app).get('/api/run');
+
+    expect(response.status).toBe(402);
+  });
 });
 
 describe('buildServerApiTrigger', () => {

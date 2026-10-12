@@ -60,6 +60,15 @@ component prop does not make it persist.
    behavior. Add a Collaudo case for create → assign → reload → rename → read as viewer and an
    isolation case using a second organization. Record actual results after execution.
 
+A new endpoint goes in the `server/routes/*.routes.ts` module of its domain, never inline in
+`server/routes.ts`, which only mounts routers (`server/tests/architecture.test.ts` enforces it).
+Wrap an async handler in `asyncHandler` (`server/middleware/async-handler.ts`) instead of writing a
+try/catch that logs and answers 500: an unexpected error then reaches `incidentErrorHandler`, which
+logs it, records the incident and answers once, without the driver's message. Catch only what the
+handler can answer better itself, such as a quota refusal or a `BrowserTaskError`, and rethrow the
+rest. `req.user` is typed (`Express.User` in `server/auth.ts`): after `requireRole`, read
+`req.user!.id`, never `(req.user as any)`.
+
 For this example, plan snapshots and execution units need no new description field because it
 does not affect a verdict. That is a deliberate design decision, not permission to skip the
 snapshot check for fields the runner does read.
