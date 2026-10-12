@@ -1,6 +1,6 @@
 import { quotaErrorBody } from '../tenant-quotas';
 import { mobileTests, mobileStepGroups } from '@shared/schema';
-import { importMobileCatalog, type MobileImportOutcome } from '../mobile-bundle';
+import { importMobileCatalog, type MobileImportOutcome } from '../mobile/mobile-bundle';
 import { type Response } from 'express';
 import { asyncRouter } from '../middleware/async-router';
 import {
@@ -24,7 +24,7 @@ import { requireRole } from '../middleware/require-role';
 import { recordTestVersion, recordTypedTestVersion } from '../test-version-store';
 import { tagsOfTests } from '../test-tags';
 import { manualSequenceProblem } from '@shared/manual-tests';
-import { ImportError, MAX_IMPORTED_TESTS, importApiDescription } from '../api-import';
+import { ImportError, MAX_IMPORTED_TESTS, importApiDescription } from '../api-tests/api-import';
 import {
   API_TEST_FIELDS,
   BundleError,
@@ -446,7 +446,7 @@ const importSchema = z.object({
 });
 
 // POST /api/api-tests/import — tests from an OpenAPI description or a Postman collection
-// (server/api-import.ts): a preview with dryRun, then the ones kept, saved in one transaction.
+// (server/api-tests/api-import.ts): a preview with dryRun, then the ones kept, saved in one transaction.
 router.post('/api/api-tests/import', requireRole('editor'), async (req, res) => {
   const parsed = importSchema.safeParse(req.body);
   if (!parsed.success)

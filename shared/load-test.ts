@@ -7,7 +7,7 @@ import { percentile } from './api-performance';
  *
  * The performance check of an API test (shared/api-performance.ts) repeats one request inside a
  * functional run, so it is capped to what a functional run can afford. A load test is run on its
- * own (server/load-runner.ts), never as part of a plan: it takes minutes and it is meant to stress
+ * own (server/api-tests/load-runner.ts), never as part of a plan: it takes minutes and it is meant to stress
  * the system the functional tests are checking.
  *
  * - Stages: each one moves the number of virtual users linearly from where the previous one ended
@@ -21,7 +21,7 @@ import { percentile } from './api-performance';
 
 /**
  * The limits as shipped. Virtual users and duration are configuration on the server
- * (LOAD_MAX_VIRTUAL_USERS, LOAD_MAX_DURATION_S: server/load-runner.ts, loadLimits), and these are
+ * (LOAD_MAX_VIRTUAL_USERS, LOAD_MAX_DURATION_S: server/api-tests/load-runner.ts, loadLimits), and these are
  * their defaults; stages, steps and think time are fixed, and the database checks the first two.
  */
 export const LOAD_LIMITS = {
@@ -118,7 +118,7 @@ export type LoadThresholds = z.infer<typeof loadThresholdsSchema>;
 
 /**
  * The definition schema under `limits`: the client checks with the shipped LOAD_LIMITS, the
- * server with the installation's (server/load-runner.ts, loadLimits).
+ * server with the installation's (server/api-tests/load-runner.ts, loadLimits).
  */
 export const loadTestSchemaFor = (limits: LoadLimits) =>
   z

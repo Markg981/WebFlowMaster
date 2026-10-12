@@ -26,7 +26,7 @@ import {
 import { FileUp, Loader2 } from 'lucide-react';
 
 /**
- * API tests from an OpenAPI 3 / Swagger 2 description or a Postman collection (server/api-import.ts):
+ * API tests from an OpenAPI 3 / Swagger 2 description or a Postman collection (server/api-tests/api-import.ts):
  * paste or open the file, see what it makes, keep what you want, import.
  */
 

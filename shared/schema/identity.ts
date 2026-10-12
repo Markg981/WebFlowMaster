@@ -713,7 +713,7 @@ export const AUDIT_ACTIONS = {
   API_TEST_CREATED: 'api_test.created',
   API_TEST_UPDATED: 'api_test.updated',
   API_TEST_DELETED: 'api_test.deleted',
-  // Tests made from an OpenAPI description or a Postman collection, in one entry (server/api-import.ts).
+  // Tests made from an OpenAPI description or a Postman collection, in one entry (server/api-tests/api-import.ts).
   API_TESTS_IMPORTED: 'api_test.imported',
   PLAN_CREATED: 'plan.created',
   PLAN_UPDATED: 'plan.updated',

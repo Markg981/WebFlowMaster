@@ -30,7 +30,7 @@ Codici di uscita: `0` soglie rispettate, `1` violazioni, `2` errore di strumento
 
 I [test di carico](../guide/load-tests) che gli utenti avviano dalla pagina **Test di carico** non
 sono lo script qui sopra: ogni esecuzione è un job `load-run` sulla coda `load-queue`, e un worker
-lo esegue con il motore di `server/load-runner.ts`. Il processo web si limita a metterla in coda
+lo esegue con il motore di `server/api-tests/load-runner.ts`. Il processo web si limita a metterla in coda
 (`queued`); il worker che la prende la segna `running` con il proprio nome, scrive il riepilogo
 ogni due secondi e batte ogni `WORK_ITEM_HEARTBEAT_MS`; un'esecuzione il cui worker tace per
 `STALE_CLAIM_MS` termina come `worker_lost`. Un riavvio del web non cambia nulla per

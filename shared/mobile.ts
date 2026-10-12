@@ -3,7 +3,7 @@ import { analyseFlow, MAX_LOOP_ITERATIONS } from './flow';
 
 /**
  * Tests of native mobile apps: an Android or iOS app on a real device of a cloud grid, driven
- * through Appium (server/mobile-runner.ts).
+ * through Appium (server/mobile/mobile-runner.ts).
  *
  * A test of its own kind, not a web test with extra steps: a native screen has no CSS and no DOM,
  * and a step names an element the way the app's view tree knows it — its accessibility id, its

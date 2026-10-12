@@ -11,7 +11,7 @@ import type { BrowserContext, Response as PlaywrightResponse, Route } from 'play
  * the machine's credentials to anyone who asks from the machine, and — on an installation shared
  * by several companies — the private network the server sits in. This module decides, and every
  * transport that opens a tenant-chosen address asks it: Node's fetch (server/outbound-http.ts),
- * WebSocket and gRPC (server/api-network-protocols.ts, server/grpc-protocol.ts), SMTP
+ * WebSocket and gRPC (server/api-tests/api-network-protocols.ts, server/api-tests/grpc-protocol.ts), SMTP
  * (server/mailer.ts) and the browsers the runner drives (server/playwright-service.ts).
  *
  * Two layers. The hardened SaaS deployment (docs/en/admin/saas-network.md) forces everything

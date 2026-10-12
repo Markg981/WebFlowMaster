@@ -4,7 +4,7 @@ import { connection } from './redis';
 import { LOAD_QUEUE_NAME, TEST_EXECUTION_QUEUE_NAME, loadQueue, testExecutionQueue } from './queue';
 import { processShardJob, processTestPlanJob } from './test-execution-service';
 import { SHARD_JOB, registerShardDispatcher } from './run-shards';
-import { LoadRunJobSchema, loadLimits, processLoadRunJob } from './load-runner';
+import { LoadRunJobSchema, loadLimits, processLoadRunJob } from './api-tests/load-runner';
 import logger, { applyLogSettings } from './logger';
 import { installProcessErrorHandlers } from './process-errors';
 import { resolveWorkerShutdownGraceMs } from './config';
@@ -240,7 +240,7 @@ configureEgressProxy();
   );
 
   /**
-   * Load runs (server/load-runner.ts), on their own queue: each one sends from this process for up
+   * Load runs (server/api-tests/load-runner.ts), on their own queue: each one sends from this process for up
    * to an hour, so LOAD_WORKER_CONCURRENCY says how many this worker takes at once, and 0 says it
    * takes none — a worker kept for plans. The run is claimed and heart-beaten in
    * processLoadRunJob; an organization at its limit gets its run back on the queue for a while.

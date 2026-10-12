@@ -26,7 +26,7 @@ import { testExecutionQueue } from './queue';
 import { fairPriority, liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
 import { checkExecutionBudget } from './execution-usage';
 import { assertSubscriptionAllowsRuns } from './billing/enforcement';
-import { freezeMobilePlanDefinitions } from './mobile-plan-units';
+import { freezeMobilePlanDefinitions } from './mobile/mobile-plan-units';
 import { freezeExecutionDatasets } from './execution-datasets';
 import { freezeTestDefinitions } from './execution-definitions';
 import { buildExecutionProvenance, reproducibilitySummary } from './execution-provenance';

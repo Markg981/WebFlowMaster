@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { AgentHttp } from '../../server/agents/agent-fetch';
 import { runProtocolOnAgent } from '../../server/agents/agent-protocol';
-import { runApiRequest } from '../../server/api-test-runner';
+import { runApiRequest } from '../../server/api-tests/api-test-runner';
 import type { Assertion } from '../../shared/schema';
 
 const agent = { organizationId: Number(process.argv[2]), pool: process.argv[3] };

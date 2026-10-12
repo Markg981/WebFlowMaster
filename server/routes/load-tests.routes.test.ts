@@ -11,7 +11,7 @@ import { createTestOrganization, createTestUser } from '../tests/factories';
 
 /**
  * The load queue stood in: the route queues a job and the test executes it, the way the worker
- * does (server/load-runner.ts, processLoadRunJob), so what is checked is the contract between
+ * does (server/api-tests/load-runner.ts, processLoadRunJob), so what is checked is the contract between
  * the two, without Redis.
  */
 const queued = new Map<string, { id: string; state: string; remove: () => Promise<void> }>();
@@ -166,7 +166,7 @@ beforeAll(async () => {
     .returning();
 
   const { default: routes } = await import('./load-tests.routes');
-  const { loadRunnerDeps } = await import('../load-runner');
+  const { loadRunnerDeps } = await import('../api-tests/load-runner');
   Object.assign(loadRunnerDeps, { tickMs: 50, progressMs: 200 });
   const { runWithTenant } = await import('../middleware/tenancy');
   app = express();
@@ -203,7 +203,7 @@ beforeEach(async () => {
 /** What the load worker does with the job the route queued: claims the run and executes it. */
 function work(runId: string) {
   const run = (async () => {
-    const { processLoadRunJob } = await import('../load-runner');
+    const { processLoadRunJob } = await import('../api-tests/load-runner');
     const job = queueAdd.mock.calls.find(([, data]) => data.runId === runId);
     expect(job, `job of run ${runId}`).toBeDefined();
     const [, data] = job!;

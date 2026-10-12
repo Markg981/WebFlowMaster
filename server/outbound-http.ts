@@ -157,7 +157,7 @@ export const fetchTarget: typeof fetch & {
   {
     /**
      * Requests that all travel on one connection, for NTLM, whose handshake belongs to the
-     * connection (server/api-test-runner.ts). Closed by the caller when the exchange is over.
+     * connection (server/api-tests/api-test-runner.ts). Closed by the caller when the exchange is over.
      */
     oneConnection() {
       let agent: Agent | ProxyAgent | undefined;

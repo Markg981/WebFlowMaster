@@ -18,6 +18,10 @@ The machine-readable description is served by every installation at
 **`/api/v1/openapi.json`** (OpenAPI 3.1), and a test keeps it identical to what the server
 answers. Generate a client from it, or import it into Postman or Insomnia.
 
+Every operation, with its parameters, request body, responses and required scope, is listed in
+[API endpoints](./api-endpoints), a page generated from the same document: this page explains
+authentication, conventions and workflows, that one cannot fall behind the server.
+
 For most pipelines the [`wfm` CLI](./cli) is simpler than calling the API directly.
 
 ## Authentication
@@ -76,22 +80,22 @@ A pipeline needs `runs:write` and `runs:read`; add `plans:read` if it looks plan
 - **Idempotency**: starting a run accepts an `Idempotency-Key` header (up to 255 characters). The
   same key returns the same run, so a retried request never starts a second one. Use the build id.
 
-| Code                              | Status | Meaning                                                  |
-| --------------------------------- | ------ | -------------------------------------------------------- |
-| `unauthenticated`                 | 401    | No key, or a key that is unknown, revoked or expired.    |
-| `insufficient_scope`              | 403    | The key lacks the scope this endpoint needs.             |
-| `insufficient_role`               | 403    | The key's account has a role below what the scope needs. |
-| `invalid_request`                 | 400    | A body, parameter or header that is not valid.           |
-| `invalid_format`                  | 400    | An export format other than `html`, `pdf`, `allure`.     |
-| `plan_not_found`                  | 404    | No such plan (or environment) in this organization.      |
-| `run_not_found`                   | 404    | No such run in this organization.                        |
-| `not_found`                       | 404    | No such endpoint under `/api/v1`.                        |
-| `run_already_ended`               | 409    | Cancelling a run that has already finished.              |
-| `artifact_not_found`              | 404    | No such evidence file in the run's directory.            |
-| `artifact_store_unavailable`      | 502    | The artifact store could not be reached.                 |
-| `queue_quota_exceeded`            | 429    | The organization's queue of waiting runs is full.        |
-| `rate_limited`                    | 429    | Too many requests from this key in the last minute.      |
-| `export_failed`, `internal_error` | 500    | Something went wrong on the server; the log has it.      |
+| Code                              | Status | Meaning                                                       |
+| --------------------------------- | ------ | ------------------------------------------------------------- |
+| `unauthenticated`                 | 401    | No key, or a key that is unknown, revoked or expired.         |
+| `insufficient_scope`              | 403    | The key lacks the scope this endpoint needs.                  |
+| `insufficient_role`               | 403    | The key's account has a role below what the scope needs.      |
+| `invalid_request`                 | 400    | A body, parameter or header that is not valid.                |
+| `invalid_format`                  | 400    | An export format other than `html`, `pdf`, `allure`, `junit`. |
+| `plan_not_found`                  | 404    | No such plan (or environment) in this organization.           |
+| `run_not_found`                   | 404    | No such run in this organization.                             |
+| `not_found`                       | 404    | No such endpoint under `/api/v1`.                             |
+| `run_already_ended`               | 409    | Cancelling a run that has already finished.                   |
+| `artifact_not_found`              | 404    | No such evidence file in the run's directory.                 |
+| `artifact_store_unavailable`      | 502    | The artifact store could not be reached.                      |
+| `queue_quota_exceeded`            | 429    | The organization's queue of waiting runs is full.             |
+| `rate_limited`                    | 429    | Too many requests from this key in the last minute.           |
+| `export_failed`, `internal_error` | 500    | Something went wrong on the server; the log has it.           |
 
 ## Authoring resources
 
@@ -378,7 +382,7 @@ it does not turn the build red.
 
 `GET /api/v1/runs/{runId}/export/{format}` · scope `runs:read`
 
-`format` is `html` (one self-contained file), `pdf`, or `allure` (a zip of Allure results). A PDF
+`format` is `html` (one self-contained file), `pdf`, `allure` (a zip of Allure results) or `junit` (the same XML as `/junit`). A PDF
 needs a browser on the server; without one the answer is `503` — the HTML has the same content.
 
 ### Evidence

@@ -122,6 +122,10 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
       text: t.reference,
       items: [
         { text: t.restApi, link: p('reference/api') },
+        {
+          text: lang === 'en' ? 'API endpoints (generated)' : 'Endpoint dell’API (generati)',
+          link: p('reference/api-endpoints'),
+        },
         { text: t.cli, link: p('reference/cli') },
         {
           text: lang === 'en' ? 'Release notes' : 'Note di rilascio',

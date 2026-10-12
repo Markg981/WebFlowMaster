@@ -226,7 +226,7 @@ With `shards = 1` none of this runs.
   baselines when visual testing is on; accessibility findings for `assertAccessible` steps; Web
   Vitals for `measurePerformance` and scores plus the HTML report for `auditLighthouse`
   (`server/web-performance.ts`, Lighthouse run as a separate process).
-- **API tests** run through `server/api-test-runner.ts`: variables substituted, authentication
+- **API tests** run through `server/api-tests/api-test-runner.ts`: variables substituted, authentication
   applied (Bearer, Basic, API key, OAuth 2.0 client credentials or password grant, and the
   signing and challenge schemes of `server/api-auth.ts`: JWT, OAuth 1.0, Hawk, AWS SigV4, Akamai
   EdgeGrid, ASAP, Digest and NTLM — the last two answering the server's 401, NTLM on one
