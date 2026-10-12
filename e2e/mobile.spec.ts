@@ -136,4 +136,13 @@ test('the report of a run fits a phone and a tablet', async ({ page }) => {
       `/reports?planId=${plan.id}`,
     ]),
   ).toEqual({});
+  // With a run to show, both dashboard charts are drawn with a real height. Inside a
+  // configurable widget the card is not stretched by a grid row, and a chart sized to 100% of a
+  // min-height alone was 0 pixels tall: present in the DOM, invisible on screen.
+  await page.goto('/dashboard');
+  const charts = page.locator('.recharts-wrapper > svg.recharts-surface');
+  await expect(charts).toHaveCount(2);
+  for (const chart of await charts.all()) {
+    expect((await chart.boundingBox())?.height ?? 0).toBeGreaterThan(150);
+  }
 });
