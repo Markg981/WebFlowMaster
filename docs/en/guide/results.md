@@ -27,7 +27,11 @@ the most recent reports and the next scheduled runs.
 count of passed, failed and skipped tests, and who or what started it (a person, a schedule, a
 pipeline). Filter by plan and status, and open a run with **View Report**.
 
+![Reports: every finished run](/screenshots/reports.webp)
+
 ## A run's report
+
+![A run report: totals, duration and results by module](/screenshots/run-report.webp)
 
 The report lists each test in each browser with its result, and its steps with their timings.
 Around it:
@@ -39,6 +43,8 @@ Around it:
 - **Quarantine**: failures of tests in quarantine are shown but did not fail the run.
 - How a run ended when it did not finish: **Cancelled**, **Timed out** or **Did not finish** (the
   runner stopped).
+
+![Failed tests in the report, with browser, reason and evidence](/screenshots/run-report-failure.webp)
 
 The **charts** show how the run split — passed, failed and skipped, with the pass rate — and the
 same split for each priority and each severity; hover a bar for its count. The **filters** narrow

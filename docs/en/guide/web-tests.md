@@ -11,6 +11,8 @@ into a field, click, check what appears. You build it in **Create Test**.
    into or checked on the page — buttons, fields, links, dropdowns — each with the selector the
    test will use to find it.
 
+![Create Test with the page loaded: available actions, website preview and detected elements](/screenshots/builder-detected.webp)
+
 Only what is visible when the page is loaded is detected. For an element that appears later (a
 menu that opens, a second page), add steps that get there, execute them, and detect again.
 
@@ -19,6 +21,8 @@ menu that opens, a second page), add steps that get there, execute them, and det
 Drag an action from **Available Actions** into the **Test Sequence**, then drop a detected element
 on it (or use **Set Element**). Fill in the value the action needs: the text to type, the option to
 choose, the text to expect.
+
+![Steps in the test sequence below the preview](/screenshots/builder-sequence.webp)
 
 | Action                                       | What it does                                                                                                                                                                                                            |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -102,6 +106,8 @@ pass of a loop is compared with its own baseline.
 step in the preview, with a screenshot of each step. A failed step says why. Nothing is saved by
 running.
 
+![A test executed in the builder, every step passed](/screenshots/builder-passed.webp)
+
 ## Debugging {#debugging}
 
 **Debug** runs the sequence so that it can stop, be corrected and go on, while the browser is
@@ -150,6 +156,8 @@ Passwords typed while recording are not stored in the test: they become
 <code v-pre>{{secret&#95;…}}</code> placeholders, which you define as secrets of an environment.
 
 ## Describing a test in sentences
+
+![The Describe dialog with a test written in sentences](/screenshots/builder-describe.webp)
 
 **Describe** turns plain instructions into steps, one per line, in the words a ticket uses:
 

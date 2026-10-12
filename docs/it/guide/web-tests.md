@@ -12,6 +12,8 @@ Test**.
    compilare o verificare nella pagina — pulsanti, campi, link, menu — ognuno con il selettore
    che il test userà per trovarlo.
 
+![Crea Test con la pagina caricata: azioni disponibili, anteprima del sito ed elementi rilevati](/screenshots/builder-detected.webp)
+
 Viene rilevato solo ciò che è visibile quando la pagina è caricata. Per un elemento che compare
 dopo (un menu che si apre, una seconda pagina), aggiungete gli step che ci arrivano, eseguiteli e
 rilevate di nuovo.
@@ -21,6 +23,8 @@ rilevate di nuovo.
 Trascinate un'azione da **Azioni Disponibili** nella **Sequenza del test**, poi rilasciateci
 sopra un elemento rilevato (oppure usate **Imposta elemento**). Compilate il valore che l'azione
 richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
+
+![I passi nella sequenza del test sotto l’anteprima](/screenshots/builder-sequence.webp)
 
 | Azione                                          | Cosa fa                                                                                                                                                                                                                      |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -106,6 +110,8 @@ Con il test visuale, ogni passata di un ciclo è confrontata con la propria base
 step nell'anteprima, con uno screenshot di ogni step. Uno step fallito dice perché. Eseguire non
 salva nulla.
 
+![Un test eseguito nel builder, tutti i passi superati](/screenshots/builder-passed.webp)
+
 ## Debug {#debug}
 
 **Debug** esegue la sequenza in modo che possa fermarsi, essere corretta e ripartire, con il
@@ -156,6 +162,8 @@ Le password scritte durante la registrazione non vengono salvate nel test: diven
 <code v-pre>{{secret&#95;…}}</code>, che definite come segreti di un ambiente.
 
 ## Descrivere un test a frasi
+
+![La finestra Describe con un test scritto a frasi](/screenshots/builder-describe.webp)
 
 **Descrivi** trasforma istruzioni in linguaggio naturale in step, una per riga, con le parole di
 un ticket:

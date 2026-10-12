@@ -38,6 +38,8 @@ fa entrare.
 
 ## Orientarsi
 
+![La dashboard: run, andamento e pianificazioni, con la barra laterale a sinistra](/screenshots/dashboard.webp)
+
 La barra laterale contiene tutto:
 
 | Sezione               | A cosa serve                                                                                                     |

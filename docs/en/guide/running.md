@@ -26,6 +26,8 @@ relying on this behavior during a rolling deployment.
 
 ## Creating a plan
 
+![The test plans page](/screenshots/test-plans.webp)
+
 **Test plans → + Test Plan** opens a wizard in three steps:
 
 1. **Name** and description.
@@ -153,6 +155,8 @@ visual testing each language is compared with its own baselines.
 **Run** on the plan's row starts a run and opens its page: the progress, each test's status, and
 the log as the run writes it. **View detailed report** opens the report.
 
+![A plan running: each test and browser as it progresses](/screenshots/run-in-progress.webp)
+
 A run waits in a queue when your organization is running as many plans as its limit allows, or
 when no runner is online: **Settings → Run usage** says which.
 
@@ -165,6 +169,8 @@ With **Re-Run On Failure** set, a failed test is run again, up to three times. A
 only on a later attempt is marked **flaky** in the report, and still counts as passed.
 
 ## Scheduling
+
+![The scheduling page with a nightly plan](/screenshots/scheduling.webp)
 
 **Scheduling → Create Schedule** runs a plan by itself:
 

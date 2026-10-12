@@ -6,6 +6,8 @@
 salvato l'ultima volta. Cercate per nome, o filtrate cliccando un tag. Da ogni riga si apre la
 **Cronologia**, si cambiano i tag o si **Elimina** il test (con la sua cronologia).
 
+![La libreria dei test con tag, tipi e ultimi risultati](/screenshots/test-library.webp)
+
 La libreria carica 25 riepiloghi per pagina e mostra il totale che corrisponde ai filtri.
 Usate **Precedente** e **Successiva** per sfogliare. La ricerca per nome ignora maiuscole e
 minuscole e cerca testo letterale (anche `%` e `_`); più tag selezionati richiedono tutti i

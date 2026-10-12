@@ -6,6 +6,8 @@ valori al successivo. Si costruiscono in **Tester API**.
 
 ## La richiesta
 
+![L’API Tester con una richiesta inviata e la sua risposta](/screenshots/api-tester.webp)
+
 - **Metodo** e **URL di base**; i **Parametri query** si aggiungono sotto e si vedono
   nell'**URL effettivo**. L'indirizzo può iniziare con una variabile —
   <code v-pre>{{baseUrl}}/orders</code> — così un test segue il server di ogni ambiente.
