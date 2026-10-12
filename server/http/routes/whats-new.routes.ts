@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import rateLimit from 'express-rate-limit';
+import { sharedStore } from '../../platform/middleware/rate-limit-store';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { requireRole } from '../middleware/require-role';
 import { APP_ROOT } from '../../platform/app-root';
@@ -33,7 +35,21 @@ function loadReleases(): ChangelogRelease[] {
 const releases = loadReleases();
 const stamp = changelogStamp(releases);
 
-router.get('/api/whats-new', requireRole('viewer'), (_req, res) => {
+/**
+ * The page asks once an hour at most (the client keeps the answer); 60 a minute for each member is
+ * far above that and below the global session limit, which counts every other request too.
+ */
+const whatsNewLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: process.env.NODE_ENV === 'test' ? 100_000 : 60,
+  store: sharedStore('whats-new'),
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => `user:${(req.user as { id?: number } | undefined)?.id ?? 'anonymous'}`,
+  message: { error: 'Too many requests, slow down.' },
+});
+
+router.get('/api/whats-new', whatsNewLimiter, requireRole('viewer'), (_req, res) => {
   res.json({ stamp, releases });
 });
 
