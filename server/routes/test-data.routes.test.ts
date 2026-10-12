@@ -157,6 +157,34 @@ describe('shared test data', () => {
     expect(others['data.customers.email']).toBeUndefined();
   });
 
+  it('expands many tests from one load of the sets they point at', async () => {
+    const { loadSharedSets, expandWithLoadedSets, SharedDataError } = await import('../test-data');
+    const { withTenantTransaction, runWithTenant } = await import('../middleware/tenancy');
+    const own = [{ email: 'own@shop.test' }];
+    const sets = await runWithTenant(
+      organizationId,
+      () =>
+        withTenantTransaction((tx) =>
+          loadSharedSets(tx, [
+            sharedSetMarker(id),
+            sharedSetMarker(id),
+            own,
+            null,
+            sharedSetMarker(999_999),
+          ]),
+        ),
+      { userId: editor.id, role: 'editor' },
+    );
+    expect([...sets.keys()]).toEqual([id]);
+    expect(expandWithLoadedSets({ name: 'a', dataset: sharedSetMarker(id) }, sets).dataset).toEqual(
+      customers.rows,
+    );
+    expect(expandWithLoadedSets({ name: 'b', dataset: own }, sets).dataset).toBe(own);
+    expect(() =>
+      expandWithLoadedSets({ name: 'c', dataset: sharedSetMarker(999_999) }, sets),
+    ).toThrow(SharedDataError);
+  });
+
   it('gives its rows to a UI test that points at it, and cannot be deleted while one does', async () => {
     const [uiTest] = await privilegedDb
       .insert(tests)
