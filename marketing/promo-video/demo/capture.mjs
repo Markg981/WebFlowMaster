@@ -144,7 +144,7 @@ const SHOTS = {
     await shot('api');
   },
   async plans() {
-    await page.goto(`${BASE}/test-suites`);
+    await page.goto(`${BASE}/test-plans`);
     await settle();
     await shot('plans');
   },
@@ -177,7 +177,13 @@ const SHOTS = {
     await settle();
     await page.waitForTimeout(1500);
     await shot('report');
-    await page.getByText('Failed Tests').first().scrollIntoViewIfNeeded();
+    // The failed tests at the top of the screen, with the results by module under them: brought
+    // only into view, the frame was mostly the environment table above, which differs per host.
+    await page
+      .getByText('Failed Tests')
+      .first()
+      .evaluate((heading) => heading.scrollIntoView({ block: 'start' }));
+    await page.evaluate(() => document.querySelector('main')?.scrollBy(0, -90));
     await page.waitForTimeout(800);
     await shot('report-failure');
     // The evidence of the first failed row: its screenshot, then its step log.

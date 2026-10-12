@@ -132,7 +132,14 @@ docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compos
 
 # 5. The screenshots, at 2x
 node marketing/promo-video/demo/capture.mjs           # SHOTS=builder,report for a few
+
+# 6. The same frames, smaller, for the user guides (docs/public/screenshots, committed)
+npm run docs:screenshots
 ```
+
+The user guides show 13 of these frames as 1600-pixel WebP images; `scripts/docs-screenshots.mjs`
+lists which, and `scripts/docs-screenshots.test.ts` fails when a page shows an image that does not
+exist or an image is not shown anywhere. Refilm after a UI change on a screen the guides show.
 
 To start over: delete the organization as maya (`DELETE /api/organization` with
 `{"confirmName":"Northwind Commerce"}`) and repeat from step 2.

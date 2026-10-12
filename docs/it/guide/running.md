@@ -27,6 +27,8 @@ su questo comportamento durante un rilascio graduale.
 
 ## Creare un piano
 
+![La pagina dei piani di test](/screenshots/test-plans.webp)
+
 **Piani di test → + Piano di test** apre una procedura in tre passi:
 
 1. **Nome** e descrizione.
@@ -156,6 +158,8 @@ visivi, ogni lingua è confrontata con le proprie baseline.
 **Esegui** sulla riga del piano avvia un run e ne apre la pagina: l'avanzamento, lo stato di ogni
 test e il log man mano che il run lo scrive. **Apri il report dettagliato** apre il report.
 
+![Un piano in esecuzione: ogni test e browser mentre avanza](/screenshots/run-in-progress.webp)
+
 Un run resta in coda quando l'organizzazione sta già eseguendo tanti piani quanti ne consente il
 suo limite, o quando nessun runner è online: **Impostazioni → Utilizzo dei run** dice quale dei
 due.
@@ -170,6 +174,8 @@ tre volte. Un test che passa solo a un tentativo successivo viene segnato come *
 report, e conta comunque come passato.
 
 ## Pianificazione
+
+![La pagina di schedulazione con un piano notturno](/screenshots/scheduling.webp)
 
 **Schedulazione → Crea pianificazione** esegue un piano da solo:
 

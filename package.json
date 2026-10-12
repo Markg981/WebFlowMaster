@@ -58,6 +58,7 @@
     "docs:build": "vitepress build docs",
     "docs:schema-catalog": "node scripts/generate-schema-catalog.mjs",
     "docs:api-reference": "tsx scripts/generate-api-reference.ts",
+    "docs:screenshots": "node scripts/docs-screenshots.mjs",
     "docs:preview": "vitepress preview docs",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "any-budget": "node scripts/any-budget.mjs",

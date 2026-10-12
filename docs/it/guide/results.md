@@ -27,7 +27,11 @@ giorni, i report più recenti e i prossimi run pianificati.
 conteggio dei test passati, falliti e saltati, e chi o cosa l'ha avviato (una persona, una
 pianificazione, una pipeline). Filtrate per piano e stato, e aprite un run con **Apri report**.
 
+![Report: tutti i run conclusi](/screenshots/reports.webp)
+
 ## Il report di un run
+
+![Il report di un run: totali, durata e risultati per modulo](/screenshots/run-report.webp)
 
 Il report elenca ogni test in ogni browser con il suo esito, e i suoi step con i tempi. Intorno:
 
@@ -39,6 +43,8 @@ Il report elenca ogni test in ogni browser con il suo esito, e i suoi step con i
   run.
 - Come è finito un run che non si è concluso: **Annullato**, **Tempo scaduto** o **Non
   completato** (il runner si è fermato).
+
+![I test falliti nel report, con browser, motivo ed evidenze](/screenshots/run-report-failure.webp)
 
 I **grafici** mostrano come si è diviso il run — superati, falliti e saltati, con la percentuale di
 successo — e la stessa divisione per ogni priorità e ogni gravità; passando sopra una barra se ne

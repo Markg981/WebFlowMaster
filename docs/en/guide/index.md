@@ -35,6 +35,8 @@ signing in through that organization's provider joins you to it as well.
 
 ## Finding your way around
 
+![The dashboard: runs, trends and schedules, with the sidebar on the left](/screenshots/dashboard.webp)
+
 The sidebar has everything:
 
 | Section          | What it is for                                                                                                  |

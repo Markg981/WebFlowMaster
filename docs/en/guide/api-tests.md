@@ -6,6 +6,8 @@ You build them in **API Tester**.
 
 ## The request
 
+![The API Tester with a request sent and its response](/screenshots/api-tester.webp)
+
 - **Method** and **Base URL**; **Query Params** are added below and shown in the **Effective URL**.
   The address may start with a variable — <code v-pre>{{baseUrl}}/orders</code> — so one test
   follows each environment's server.

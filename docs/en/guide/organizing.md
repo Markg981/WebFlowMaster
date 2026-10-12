@@ -6,6 +6,8 @@
 Search by name, or filter by clicking a tag. From each row you can open its **History**, change its
 tags, or **Delete** it (with its history).
 
+![The test library with tags, types and last results](/screenshots/test-library.webp)
+
 The library loads 25 summaries per page and shows the total matching your filters. Use
 **Previous** and **Next** to browse. Name search ignores letter case and matches literal text
 (including `%` and `_`); multiple selected tags require every tag. Project and status filters
