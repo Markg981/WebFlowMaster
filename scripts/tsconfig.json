@@ -23,6 +23,7 @@
   "include": [
     "import-netcontent-api.ts",
     "apply-migrations.ts",
+    "migrator-env.ts",
     "schema-doctor.ts",
     "wfm-load.ts",
     "netcontent/**/*.ts",
@@ -33,6 +34,8 @@
     "../server/schema-state.ts",
     // db.ts unwraps drizzle's query errors at startup.
     "../server/db-errors.ts",
+    // ...and sizes its pool from the environment.
+    "../server/db-pool-settings.ts",
     "../shared/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]

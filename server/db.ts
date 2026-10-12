@@ -6,6 +6,7 @@ import * as schema from '@shared/schema';
 import fs from 'fs';
 import path from 'path';
 import { unwrapDrizzleQueryErrors } from './db-errors';
+import { readPoolSettings, sessionSetupStatements } from './db-pool-settings';
 
 // Before any query: failed queries surface as the driver's own error, not as drizzle's wrapper
 // carrying the SQL and its parameters (see server/db-errors.ts).
@@ -95,14 +96,21 @@ const setSessionTimeZone = `SET TIME ZONE '${SESSION_TIME_ZONE}'`;
 
 if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
   // Real PostgreSQL
-  const pool = new Pool({ connectionString: dbUrl });
+  // Sized and bounded from the environment (see server/db-pool-settings.ts).
+  const poolSettings = readPoolSettings();
+  const pool = new Pool({
+    connectionString: dbUrl,
+    max: poolSettings.max,
+    connectionTimeoutMillis: poolSettings.connectionTimeoutMillis,
+    idleTimeoutMillis: poolSettings.idleTimeoutMillis,
+  });
+  const sessionSetup = sessionSetupStatements(poolSettings, SESSION_TIME_ZONE);
   // Runs on every new pooled connection, before the pool hands it to anyone: a client's queries
-  // run in the order they were issued, so this is the first thing each connection does.
+  // run in the order they were issued, so this is the first thing each connection does. One
+  // round trip sets the time zone and both timeouts.
   pool.on('connect', (client) => {
-    client.query(setSessionTimeZone).catch((error: Error) => {
-      console.error(
-        `Could not set the database session time zone to ${SESSION_TIME_ZONE}: ${error.message}`,
-      );
+    client.query(sessionSetup).catch((error: Error) => {
+      console.error(`Could not set up the database session: ${error.message}`);
     });
   });
   db = drizzlePg(pool, { schema });
