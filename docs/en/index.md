@@ -26,6 +26,9 @@ For the people who write and run tests:
   [Organizing tests](./guide/organizing) · [Running tests](./guide/running) ·
   [Results](./guide/results)
 
+The user guide also exists in [French](/fr/) and [German](/de/), the other two languages of the
+interface; the rest of the documentation is in English and Italian.
+
 ## Install and administer
 
 For the people who run an installation and the owners of an organization:
@@ -71,5 +74,5 @@ For the people who build and maintain the product:
 
 ## PDF
 
-`npm run docs:pdf` writes each section of this documentation as a PDF, in English and Italian, to
-`docs/pdf/` — for an audit file or a reader offline.
+`npm run docs:pdf` writes each section of this documentation as a PDF, in English and Italian (the
+user guide in French and German too), to `docs/pdf/` — for an audit file or a reader offline.

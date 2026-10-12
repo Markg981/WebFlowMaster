@@ -11,4 +11,10 @@ hero:
     - theme: alt
       text: Italiano
       link: /it/
+    - theme: alt
+      text: Français
+      link: /fr/
+    - theme: alt
+      text: Deutsch
+      link: /de/
 ---
