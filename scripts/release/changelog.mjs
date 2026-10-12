@@ -149,12 +149,26 @@ export function addToUnreleased(changelog, merges, repositoryUrl = REPOSITORY_UR
   return { changelog: `${head}${unreleased}${tail}`.trimEnd() + '\n', added };
 }
 
+/**
+ * Offset of the line that opens the section of `version` (`## [1.2.0] - …`), or -1. A plain string
+ * comparison: the version comes from the command line and is never turned into a pattern.
+ */
+function sectionStart(changelog, version) {
+  const heading = `## [${version}]`;
+  let offset = 0;
+  for (const line of changelog.split('\n')) {
+    if (line.startsWith(heading)) return offset;
+    offset += line.length + 1;
+  }
+  return -1;
+}
+
 /** Turns [Unreleased] into a dated version section and opens a new empty [Unreleased]. */
 export function release(changelog, version, date) {
   changelog = lf(changelog);
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version))
     throw new Error(`Not a semantic version: ${version}`);
-  if (new RegExp(`^## \\[${version.replace(/\./g, '\\.')}\\]`, 'm').test(changelog))
+  if (sectionStart(changelog, version) !== -1)
     throw new Error(`CHANGELOG.md already has a section for ${version}`);
   const { head, body, tail } = splitUnreleased(changelog);
   if (!body.trim()) throw new Error('[Unreleased] is empty: nothing to release');
@@ -167,10 +181,10 @@ export function release(changelog, version, date) {
 /** The body of one version section: the text of the GitHub release. */
 export function releaseNotes(changelog, version) {
   changelog = lf(changelog);
-  const heading = new RegExp(`^## \\[${version.replace(/\./g, '\\.')}\\][^\\n]*\\n`, 'm');
-  const match = heading.exec(changelog);
-  if (!match) throw new Error(`CHANGELOG.md has no section for ${version}`);
-  const rest = changelog.slice(match.index + match[0].length);
+  const start = sectionStart(changelog, version);
+  if (start === -1) throw new Error(`CHANGELOG.md has no section for ${version}`);
+  const lineEnd = changelog.indexOf('\n', start);
+  const rest = lineEnd === -1 ? '' : changelog.slice(lineEnd + 1);
   const next = rest.search(/^## \[/m);
   const notes = (next === -1 ? rest : rest.slice(0, next)).trim();
   if (!notes) throw new Error(`The ${version} section of CHANGELOG.md is empty`);

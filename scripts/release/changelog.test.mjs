@@ -133,6 +133,8 @@ test('release dates [Unreleased], reopens it, and its notes become the GitHub re
   assert.throws(() => release(released, '1.2.0', '2026-10-13'), /empty/);
   assert.throws(() => release(draft, 'v1', '2026-10-13'), /semantic version/);
   assert.throws(() => releaseNotes(released, '9.9.9'), /no section/);
+  // The version is compared as text: dots are not "any character".
+  assert.throws(() => releaseNotes('## [1x1x0] - 2026-01-01\n\n- A\n', '1.1.0'), /no section/);
 });
 
 test('the repository CHANGELOG.md parses and names each PR once', () => {
