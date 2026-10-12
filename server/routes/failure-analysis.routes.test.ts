@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 import { privilegedDb } from '../db';
 import { auditLog, reportTestCaseResults, testPlanExecutions, testPlans } from '@shared/schema';
-import { buildFailurePrompt, parseFailureAnswer, promptValue } from '../failure-analysis';
+import { buildFailurePrompt, parseFailureAnswer, promptValue } from '../reporting/failure-analysis';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({

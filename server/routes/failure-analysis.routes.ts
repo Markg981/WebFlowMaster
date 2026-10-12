@@ -15,8 +15,12 @@ import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { auditActor, recordAudit } from '../audit';
 import { aiService } from '../ai-automation-service';
-import { buildFailurePrompt, evidenceSteps, parseFailureAnswer } from '../failure-analysis';
-import { failedStepScreenshot, readScreenshot } from '../report-model';
+import {
+  buildFailurePrompt,
+  evidenceSteps,
+  parseFailureAnswer,
+} from '../reporting/failure-analysis';
+import { failedStepScreenshot, readScreenshot } from '../reporting/report-model';
 import logger from '../logger';
 
 /**
