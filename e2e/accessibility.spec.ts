@@ -10,7 +10,7 @@ import { register } from './helpers';
  * without a label), where minor ones are matters of polish.
  *
  * axe is injected from the installed axe-core, the same build and the same way as
- * server/accessibility.ts.
+ * server/web/accessibility.ts.
  */
 const axeSource = (createRequire(import.meta.url)('axe-core') as { source: string }).source;
 

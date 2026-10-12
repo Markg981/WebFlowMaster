@@ -179,7 +179,7 @@ export type DebugDecision<S extends DebugStep = DebugStep> =
   | { kind: 'skip' }
   | { kind: 'stop'; reason: string };
 
-/** What the runner asks the session between steps (server/playwright-service.ts). */
+/** What the runner asks the session between steps (server/web/playwright-service.ts). */
 export interface DebugHooks {
   /** The run's variables, handed over once the run has them, and read as they change. */
   watch(vars: Record<string, string>): void;
@@ -418,7 +418,7 @@ export function debugChannel(): Promise<DebugChannel> {
   defaultChannel ??= (async () => {
     const { browserTaskMode } = await import('./browser-tasks');
     if (browserTaskMode() === 'inline') return memoryDebugChannel();
-    const { connection } = await import('./redis');
+    const { connection } = await import('../redis');
     return redisDebugChannel(connection);
   })();
   return defaultChannel;

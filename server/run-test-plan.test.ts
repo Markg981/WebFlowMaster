@@ -11,7 +11,7 @@ const enqueue = vi.fn();
 const logError = vi.fn();
 
 vi.mock('./queue', () => ({ TEST_EXECUTION_QUEUE_NAME: 'test-queue', testExecutionQueue: {} }));
-vi.mock('./playwright-service', () => ({ playwrightService: {} }));
+vi.mock('./web/playwright-service', () => ({ playwrightService: {} }));
 vi.mock('./execution-orchestrator', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./execution-orchestrator')>();
   return {

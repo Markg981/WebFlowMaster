@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { asyncHandler } from '../middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
-import { playwrightService } from '../playwright-service';
+import { playwrightService } from '../web/playwright-service';
 
 /**
  * Recording a test: a visible browser window on the machine running this server, whose

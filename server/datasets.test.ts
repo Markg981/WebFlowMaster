@@ -4,7 +4,7 @@ import type { AddressInfo } from 'net';
 import { privilegedDb } from './db';
 import { tests as testsTable } from '@shared/schema';
 import { createTestOrganization, createTestUser } from './tests/factories';
-import { playwrightService } from './playwright-service';
+import { playwrightService } from './web/playwright-service';
 
 /**
  * Running one test over several rows of data.

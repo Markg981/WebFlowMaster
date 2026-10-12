@@ -1,15 +1,15 @@
 import { Queue, QueueEvents } from 'bullmq';
-import { TracedQueue } from './observability/queue';
+import { TracedQueue } from '../observability/queue';
 import { eq } from 'drizzle-orm';
 import { tests } from '@shared/schema';
 import { playwrightService, type AdhocSequencePayload } from './playwright-service';
-import { resolveVariables } from './variables';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
-import { getCorrelationId } from './middleware/correlation';
-import { connection } from './redis';
+import { resolveVariables } from '../variables';
+import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
+import { getCorrelationId } from '../middleware/correlation';
+import { connection } from '../redis';
 import { randomUUID } from 'node:crypto';
-import { checkExecutionBudget, withExecutionUsage } from './execution-usage';
-import { QuotaError } from './tenant-quotas';
+import { checkExecutionBudget, withExecutionUsage } from '../execution-usage';
+import { QuotaError } from '../tenant-quotas';
 
 /**
  * The browser work a person waits for — a preview of a sequence, a single test run, a page
@@ -31,7 +31,7 @@ export const BROWSER_TASK_QUEUE_NAME = 'browser-tasks';
 
 export type BrowserTask =
   | { kind: 'adhoc-sequence'; payload: Omit<AdhocSequencePayload, 'organizationId'> }
-  /** A preview that can pause, be corrected and resume — see server/debug-session.ts. */
+  /** A preview that can pause, be corrected and resume — see server/web/debug-session.ts. */
   | {
       kind: 'debug-sequence';
       sessionId: string;

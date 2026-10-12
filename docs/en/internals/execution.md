@@ -212,7 +212,7 @@ With `shards = 1` none of this runs.
   groups are expanded (a group call becomes the group's current steps) and repository elements are
   resolved (a step naming a shared element uses the element's current selector). A test with a
   **dataset** runs once per row, each row adding its own `{{variables}}`.
-- Each step runs through `server/step-executor.ts`, the single implementation of every action:
+- Each step runs through `server/web/step-executor.ts`, the single implementation of every action:
   `navigate`, `click`, `input`, `select`, `selectByText`, `hover`, `scroll`, `wait`, conditional
   waits (`waitForElement`, `waitForText`, `waitForNetworkIdle`), assertions (`assert`,
   `assertTextContains`, `assertElementCount`, `assertState`, `assertAccessible`) and `ensureState`.
@@ -225,7 +225,7 @@ With `shards = 1` none of this runs.
   per the evidence settings (`never`, `on_failure`, `always`); visual comparison against per-step
   baselines when visual testing is on; accessibility findings for `assertAccessible` steps; Web
   Vitals for `measurePerformance` and scores plus the HTML report for `auditLighthouse`
-  (`server/web-performance.ts`, Lighthouse run as a separate process).
+  (`server/web/web-performance.ts`, Lighthouse run as a separate process).
 - **API tests** run through `server/api-tests/api-test-runner.ts`: variables substituted, authentication
   applied (Bearer, Basic, API key, OAuth 2.0 client credentials or password grant, and the
   signing and challenge schemes of `server/api-auth.ts`: JWT, OAuth 1.0, Hawk, AWS SigV4, Akamai
@@ -293,7 +293,7 @@ report page, which shows them live and replays them after the fact.
 ## 8. Browser tasks
 
 Not every browser session is a plan run. A preview of a sequence, a single test run from the builder
-and a page survey for its elements are **browser tasks** (`server/browser-tasks.ts`): the web route
+and a page survey for its elements are **browser tasks** (`server/web/browser-tasks.ts`): the web route
 puts the task on its own BullMQ queue, a worker runs it, and the route answers with the result — so a
 person does not wait behind a forty-minute nightly run, and the web process never holds a browser.
 `BROWSER_TASKS=inline` runs them in the web process instead (tests, single-machine development).

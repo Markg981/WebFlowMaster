@@ -58,7 +58,7 @@ vi.mock('./test-execution-service', () => ({
   runTestPlan: vi.fn().mockResolvedValue({ id: 'mock-execution', status: 'pending' }),
 }));
 
-vi.mock('./playwright-service', () => ({
+vi.mock('./web/playwright-service', () => ({
   playwrightService: {
     loadWebsite: vi.fn(),
     detectElements: vi.fn(),

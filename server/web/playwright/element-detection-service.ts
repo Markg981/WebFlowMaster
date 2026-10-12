@@ -1,8 +1,8 @@
 import { VOLATILE_ID_PATTERNS } from '@shared/selectors';
 import { Frame, Page } from 'playwright';
-import { throwIfEgressDenied } from '../egress-policy';
-import { substituteVariables } from '../outbound-http';
-import { storage } from '../storage';
+import { throwIfEgressDenied } from '../../egress-policy';
+import { substituteVariables } from '../../outbound-http';
+import { storage } from '../../storage';
 
 import {
   AUTHORING_USER_AGENT,
@@ -10,7 +10,7 @@ import {
   browserForSetting,
   openBrowserSession,
 } from '../browser-session';
-import { describeBrowser } from '../browsers';
+import { describeBrowser } from '../../browsers';
 import { resolvedLogger } from './log';
 import { scopeFor } from './run-helpers';
 import {

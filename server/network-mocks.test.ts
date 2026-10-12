@@ -3,7 +3,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { chromium, type Browser, type Page } from 'playwright';
 import type { AdhocActionId } from '@shared/recording';
-import { executeStep } from './step-executor';
+import { executeStep } from './web/step-executor';
 import { parseMockSpec } from './network-mocks';
 
 /**

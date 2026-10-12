@@ -83,7 +83,7 @@ describe('a test run in a language', () => {
   });
 
   const run = async (locale?: string) => {
-    const { playwrightService } = await import('./playwright-service');
+    const { playwrightService } = await import('./web/playwright-service');
     return playwrightService.executeTestSequence(
       {
         id: 1,

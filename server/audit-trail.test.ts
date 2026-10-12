@@ -26,7 +26,10 @@ vi.mock('./logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 // Nothing here runs a browser or queues a run; without these the imports open Redis connections.
-vi.mock('./browser-tasks', () => ({ browserTasks: {}, BrowserTaskError: class extends Error {} }));
+vi.mock('./web/browser-tasks', () => ({
+  browserTasks: {},
+  BrowserTaskError: class extends Error {},
+}));
 vi.mock('./queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: { add: vi.fn() },

@@ -9,13 +9,13 @@ import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performa
 import fs from 'fs-extra';
 import path from 'path';
 import { BrowserContext, Page } from 'playwright';
-import { markGridSession } from '../browser-grids';
-import { describeBrowser, deviceContextOptions } from '../browsers';
-import { throwIfEgressDenied } from '../egress-policy';
-import { FlowCursor } from '../flow-cursor';
-import { loadLoginState, type EnvironmentScope, type LoginState } from '../login-state';
-import { browserMatrixEvidence } from '../matrix-evidence';
-import { requestVariables, substituteVariables } from '../outbound-http';
+import { markGridSession } from '../../browser-grids';
+import { describeBrowser, deviceContextOptions } from '../../browsers';
+import { throwIfEgressDenied } from '../../egress-policy';
+import { FlowCursor } from '../../flow-cursor';
+import { loadLoginState, type EnvironmentScope, type LoginState } from '../../login-state';
+import { browserMatrixEvidence } from '../../matrix-evidence';
+import { requestVariables, substituteVariables } from '../../outbound-http';
 import { PlaywrightReporter } from '../playwright-reporter';
 import {
   captureRunEvidence,
@@ -23,14 +23,14 @@ import {
   startTrace,
   videoContextOptions,
   type CapturedEvidence,
-} from '../run-evidence';
-import { keepsScreenshot } from '../run-policies';
-import { elementIdOfStep, resolveSequenceForRun } from '../step-elements';
+} from '../../run-evidence';
+import { keepsScreenshot } from '../../run-policies';
+import { elementIdOfStep, resolveSequenceForRun } from '../../step-elements';
 import { executeStep } from '../step-executor';
-import { expandSequenceForRun, type SequenceStep } from '../step-groups';
-import { storage } from '../storage';
+import { expandSequenceForRun, type SequenceStep } from '../../step-groups';
+import { storage } from '../../storage';
 import { compareStepScreenshot, isVisualFailure, stableScreenshot } from '../visual-testing';
-import { getWsEmitter } from '../websocket';
+import { getWsEmitter } from '../../websocket';
 
 import { browserForSetting, openBrowserSession, type BrowserSession } from '../browser-session';
 import { resolvedLogger } from './log';

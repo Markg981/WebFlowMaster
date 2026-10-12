@@ -216,7 +216,7 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
   elementi del repository (uno step che nomina un elemento condiviso usa il selettore attuale
   dell'elemento). Un test con un **dataset** gira una volta per riga, e ogni riga aggiunge le proprie
   `{{variabili}}`.
-- Ogni step passa da `server/step-executor.ts`, l'unica implementazione di ogni azione: `navigate`,
+- Ogni step passa da `server/web/step-executor.ts`, l'unica implementazione di ogni azione: `navigate`,
   `click`, `input`, `select`, `selectByText`, `hover`, `scroll`, `wait`, attese condizionali
   (`waitForElement`, `waitForText`, `waitForNetworkIdle`), asserzioni (`assert`, `assertTextContains`,
   `assertElementCount`, `assertState`, `assertAccessible`) ed `ensureState`. Le asserzioni aspettano
@@ -230,7 +230,7 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
   secondo le impostazioni (`never`, `on_failure`, `always`); confronto visivo con le baseline per step
   quando i test visivi sono attivi; risultati di accessibilità per gli step `assertAccessible`; Web
   Vitals per `measurePerformance` e punteggi più il report HTML per `auditLighthouse`
-  (`server/web-performance.ts`, Lighthouse eseguito come processo separato).
+  (`server/web/web-performance.ts`, Lighthouse eseguito come processo separato).
 - I **test API** girano tramite `server/api-tests/api-test-runner.ts`: variabili sostituite, autenticazione
   applicata (Bearer, Basic, chiave API, OAuth 2.0 client credentials o password grant, e gli schemi
   di firma e di challenge di `server/api-auth.ts`: JWT, OAuth 1.0, Hawk, AWS SigV4, Akamai EdgeGrid,
@@ -301,7 +301,7 @@ alla pagina del report, che le mostra in diretta e le ripropone a run concluso.
 
 Non ogni sessione di browser è un run di un piano. L'anteprima di una sequenza, l'esecuzione di un
 singolo test dal builder e la rilevazione degli elementi di una pagina sono **task browser**
-(`server/browser-tasks.ts`): la rotta web mette il task nella sua coda BullMQ, un worker lo esegue e la
+(`server/web/browser-tasks.ts`): la rotta web mette il task nella sua coda BullMQ, un worker lo esegue e la
 rotta risponde con il risultato — così una persona non aspetta dietro un run notturno di quaranta
 minuti, e il processo web non tiene mai un browser. `BROWSER_TASKS=inline` li esegue invece nel processo
 web (test, sviluppo su una sola macchina).

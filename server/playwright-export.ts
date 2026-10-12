@@ -5,7 +5,7 @@ import {
   parseAssignment,
   parseDialogAnswer,
   parseUploadValue,
-} from './step-executor';
+} from './web/step-executor';
 
 /**
  * A web test as a Playwright Test file (`*.spec.ts`), to run without WebFlowMaster, to keep in a
@@ -13,7 +13,7 @@ import {
  *
  * The steps are the ones a run executes: the caller expands step groups and custom actions and
  * resolves repository elements first (server/routes/tests.routes.ts). Each action becomes the
- * Playwright calls that do what the runner does (server/step-executor.ts). What has no portable
+ * Playwright calls that do what the runner does (server/web/step-executor.ts). What has no portable
  * equivalent — the test inbox, a database query, the accessibility scan, AI healing — is written
  * as a comment saying so, and counted in the file's header, so the file never claims to do more
  * than it does.

@@ -18,7 +18,7 @@ vi.mock('../logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 
-vi.mock('../playwright-service', () => ({
+vi.mock('../web/playwright-service', () => ({
   playwrightService: { executeAdhocSequence: vi.fn(), executeTestSequence: vi.fn() },
 }));
 

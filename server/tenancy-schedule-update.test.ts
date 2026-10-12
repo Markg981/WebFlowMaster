@@ -33,7 +33,7 @@ import { createTestOrganization } from './tests/factories';
  */
 process.env.SCHEDULER_BACKEND = 'cron';
 
-vi.mock('./playwright-service', () => ({
+vi.mock('./web/playwright-service', () => ({
   playwrightService: {
     loadWebsite: vi.fn(),
     detectElements: vi.fn(),

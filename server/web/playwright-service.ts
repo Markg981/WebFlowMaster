@@ -7,7 +7,7 @@ import { TestRunner } from './playwright/test-runner';
  * The browser side of the product, behind the API the routes and the runner have always used.
  *
  * This used to be one class doing four jobs. Each job is now its own service under
- * server/playwright/, and every browser any of them opens comes from server/browser-session.ts:
+ * server/web/playwright/, and every browser any of them opens comes from server/web/browser-session.ts:
  *   - RecordingService: the headed recorder window, its buffered actions and the idle sweeper
  *   - ElementDetectionService: loading a page, listing its elements, counting selector matches
  *   - AdhocRunner: the builder's "Execute Test" preview

@@ -28,7 +28,7 @@ import { summaryLine } from './notifications';
 
 const executeTestSequence = vi.fn();
 
-vi.mock('./playwright-service', () => ({
+vi.mock('./web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
 vi.mock('./precondition-runner', () => ({

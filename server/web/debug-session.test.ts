@@ -4,7 +4,7 @@ import type { AddressInfo } from 'net';
 import { allowedCommands, type DebugState } from '@shared/debug-session';
 import { applyPatch, debugChannel, memoryDebugChannel, DebugController } from './debug-session';
 import { performBrowserTask } from './browser-tasks';
-import { createTestOrganization, createTestUser } from './tests/factories';
+import { createTestOrganization, createTestUser } from '../tests/factories';
 
 /**
  * Debugging a test from the builder: stopping before a step, one step at a time, where a step

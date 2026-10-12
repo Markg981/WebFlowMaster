@@ -1,6 +1,6 @@
 import { Page } from 'playwright';
-import { aiService } from './ai-automation-service';
-import { recordHealedSelector } from './step-elements';
+import { aiService } from '../ai-automation-service';
+import { recordHealedSelector } from '../step-elements';
 
 /**
  * Drives a page on behalf of a step, with AI self-healing of the selector when the step fails.
@@ -8,7 +8,7 @@ import { recordHealedSelector } from './step-elements';
  * Its name is from a time it also reported: every action was wrapped in a "step" of a reporting
  * service, and a failure attached a screenshot to it. That service was a stub — the step ran its
  * body and the screenshot went nowhere — so the wrapping is gone. Evidence is the runner's
- * (server/playwright-service.ts takes the error screenshots) and the Allure report is built from
+ * (server/web/playwright-service.ts takes the error screenshots) and the Allure report is built from
  * the stored run (server/allure-export.ts).
  */
 export class PlaywrightReporter {

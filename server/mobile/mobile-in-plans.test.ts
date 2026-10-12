@@ -35,7 +35,7 @@ const executeTestSequence = vi.fn();
 const launchBrowser = vi.fn(async () => ({ close: async () => {} }) as any);
 const performMobileTest = vi.fn<(...args: any[]) => Promise<MobileOutcome>>();
 
-vi.mock('../playwright-service', () => ({
+vi.mock('../web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
 vi.mock('../precondition-runner', () => ({

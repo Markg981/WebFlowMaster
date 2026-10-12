@@ -7,7 +7,7 @@ import type { AddressInfo } from 'net';
 import type { Browser } from 'playwright';
 import { parseDownloadChecks, parseGeolocation } from '@shared/downloads';
 import { parseCsv } from './download-check';
-import { executeStep } from './step-executor';
+import { executeStep } from './web/step-executor';
 
 /** Checking what a test downloads, and where the browser says it is (shared/downloads.ts). */
 
@@ -148,7 +148,7 @@ describe('in a real browser', () => {
     const page = await (await browser.newContext({ acceptDownloads: true })).newPage();
     await page.goto(base);
     page.setDefaultTimeout(1500);
-    const { executeStep: run } = await import('./step-executor');
+    const { executeStep: run } = await import('./web/step-executor');
     const outcome = await Promise.race([
       run({ page, vars: {} }, step('expectDownload', '', '#none')),
       new Promise((r) => setTimeout(() => r('slow'), 20_000)),

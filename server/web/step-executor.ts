@@ -1,7 +1,7 @@
-import { compareValues } from './value-comparison';
-export { compareValues } from './value-comparison';
+import { compareValues } from '../value-comparison';
+export { compareValues } from '../value-comparison';
 import type { Locator, Page } from 'playwright';
-import { clearMocks, installBlock, installMock, parseMockSpec } from './network-mocks';
+import { clearMocks, installBlock, installMock, parseMockSpec } from '../network-mocks';
 import type { PlaywrightReporter } from './playwright-reporter';
 import {
   ADHOC_ACTION_IDS,
@@ -29,8 +29,8 @@ import {
   SMS_TIMEOUT_MS,
   waitForSms as waitForSmsInInbox,
   type SmsQuery,
-} from './sms-inbox';
-import { inspectDownload } from './download-check';
+} from '../sms-inbox';
+import { inspectDownload } from '../download-check';
 import {
   parseDownloadChecks,
   parseGeolocation,
@@ -54,8 +54,8 @@ import {
   allowsSelfSignedCertificate,
   requestVariables,
   substituteVariables,
-} from './outbound-http';
-import { assertEgressAllowed, throwIfEgressDenied } from './egress-policy';
+} from '../outbound-http';
+import { assertEgressAllowed, throwIfEgressDenied } from '../egress-policy';
 import {
   EMAIL_TIMEOUT_MS,
   findOtp,
@@ -63,7 +63,7 @@ import {
   parseEmailQuery,
   waitForEmail,
   type InboxGet,
-} from './email-inbox';
+} from '../email-inbox';
 import {
   DATABASE_TIMEOUT_MS,
   connectionVariable,
@@ -73,8 +73,8 @@ import {
   resultVariables,
   runDatabaseQuery,
   type DatabaseRunner,
-} from './database-step';
-import { findUnresolvedVariables } from './variables';
+} from '../database-step';
+import { findUnresolvedVariables } from '../variables';
 
 /**
  * The single implementation of "run one step of a test sequence".
@@ -322,7 +322,7 @@ interface StepRuntime {
   inboxGet: InboxGet;
   /** See StepContext.database. */
   database: DatabaseRunner;
-  /** The browser's own measurements of the page (server/web-performance.ts). */
+  /** The browser's own measurements of the page (server/web/web-performance.ts). */
   measurePerformance: () => Promise<{
     url: string;
     metrics: Record<PerformanceMetric, number | null>;

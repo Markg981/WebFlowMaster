@@ -285,7 +285,7 @@ app.use(express.urlencoded({ extended: false }));
         stopRunRecovery();
         stopArtifactRetention();
         stopBillingSweep();
-        const { closeBrowserTasks } = await import('./browser-tasks');
+        const { closeBrowserTasks } = await import('./web/browser-tasks');
         await closeBrowserTasks();
         await redisConnection.quit();
         if (sessionRedis.isOpen) await sessionRedis.quit();

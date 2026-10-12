@@ -7,7 +7,7 @@ import { auditLog, smsMessages, users, type User } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
 import { runWithTenant, tenancyMiddleware } from './middleware/tenancy';
 import { normalizePhone, parseSmsQuery, readInbound, receiveSms } from './sms-inbox';
-import { executeStep } from './step-executor';
+import { executeStep } from './web/step-executor';
 
 vi.mock('./logger', () => ({
   default: {

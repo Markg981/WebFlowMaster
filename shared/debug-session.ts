@@ -2,9 +2,9 @@
  * A test run from the builder that can stop: at a breakpoint, one step at a time, or where a
  * step fails — and there be corrected and taken up again.
  *
- * The browser runs where every preview runs (server/browser-tasks.ts), usually the worker. The
+ * The browser runs where every preview runs (server/web/browser-tasks.ts), usually the worker. The
  * builder does not talk to it: it sends commands and reads the session's state through a channel
- * both sides can reach (server/debug-session.ts), and this is the shape of both.
+ * both sides can reach (server/web/debug-session.ts), and this is the shape of both.
  */
 
 export const DEBUG_COMMANDS = [

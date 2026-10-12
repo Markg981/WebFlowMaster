@@ -18,7 +18,7 @@ import { auditActor, changedFields, recordAudit } from '../audit';
 import { eq, and, desc, getTableColumns, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import logger from '../logger';
-import { BrowserTaskError, browserTasks } from '../browser-tasks';
+import { BrowserTaskError, browserTasks } from '../web/browser-tasks';
 import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { recordTestVersion, recordTypedTestVersion } from '../test-version-store';

@@ -1,12 +1,12 @@
 import { RecordedActionSchema, type RecordedAction } from '@shared/recording';
 import { Browser, BrowserContext, Page } from 'playwright';
 import { v4 as uuidv4 } from 'uuid';
-import { throwIfEgressDenied } from '../egress-policy';
-import { saveLoginState, type EnvironmentScope } from '../login-state';
-import { recordRunnerFailure } from '../observability/taps/runner';
-import { substituteVariables } from '../outbound-http';
-import { RECORDER_SCRIPT } from '../recorder-script';
-import { storage } from '../storage';
+import { throwIfEgressDenied } from '../../egress-policy';
+import { saveLoginState, type EnvironmentScope } from '../../login-state';
+import { recordRunnerFailure } from '../../observability/taps/runner';
+import { substituteVariables } from '../../outbound-http';
+import { RECORDER_SCRIPT } from '../../recorder-script';
+import { storage } from '../../storage';
 
 import {
   AUTHORING_USER_AGENT,
@@ -15,7 +15,7 @@ import {
   openBrowserSession,
   type BrowserSession,
 } from '../browser-session';
-import { describeBrowser } from '../browsers';
+import { describeBrowser } from '../../browsers';
 import { resolvedLogger } from './log';
 import { DEFAULT_TIMEOUT, DEFAULT_WAIT_TIME } from './types';
 

@@ -23,7 +23,10 @@ vi.mock('../logger', () => ({
   },
   updateLogLevel: vi.fn(),
 }));
-vi.mock('../browser-tasks', () => ({ browserTasks: {}, BrowserTaskError: class extends Error {} }));
+vi.mock('../web/browser-tasks', () => ({
+  browserTasks: {},
+  BrowserTaskError: class extends Error {},
+}));
 vi.mock('../queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'q',
   testExecutionQueue: { add: vi.fn() },

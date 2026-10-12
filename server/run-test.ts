@@ -2,11 +2,11 @@
  * One UI or API test, run once: what a plan run (server/plan-run/run-unit.ts) calls for each test,
  * browser and language.
  */
-import { playwrightService } from './playwright-service';
+import { playwrightService } from './web/playwright-service';
 import type { Test, ApiTest, Precondition, Cleanup } from '@shared/schema';
 import { runPreconditions } from './precondition-runner';
 import { cleanupReportStep, runCleanups } from './cleanup-runner';
-import type { StepResult } from './playwright-service';
+import type { StepResult } from './web/playwright-service';
 import logger from './logger';
 import fs from 'fs-extra';
 import path from 'path';
@@ -19,7 +19,7 @@ import { runPerformance } from './api-tests/api-performance';
 import type { ApiPerformance, PerformanceSummary } from '@shared/api-performance';
 import { type BrowserChoice } from './browsers';
 import { isManualSequence } from '@shared/manual-tests';
-import type { VisualContext } from './visual-testing';
+import type { VisualContext } from './web/visual-testing';
 import type { EvidenceCaptureMode } from '@shared/schema';
 import { type NetworkSummary } from '@shared/network';
 import { type PreconditionFailurePolicy, type StepRuntime } from './run-policies';

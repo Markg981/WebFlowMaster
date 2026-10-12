@@ -272,9 +272,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/playwright/test-runner.ts",
+    "from": "server/web/playwright/test-runner.ts",
     "to": "server/websocket.ts",
-    "unresolvedTo": "../websocket",
+    "unresolvedTo": "../../websocket",
     "dependencyTypes": [
       "local",
       "import"
@@ -492,81 +492,6 @@
       },
       {
         "name": "server/browser-grids.ts",
-        "dependencyTypes": [
-          "local",
-          "dynamic-import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "server/browser-tasks.ts",
-    "to": "server/debug-session.ts",
-    "unresolvedTo": "./debug-session",
-    "dependencyTypes": [
-      "local",
-      "dynamic-import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/debug-session.ts",
-        "dependencyTypes": [
-          "local",
-          "dynamic-import"
-        ]
-      },
-      {
-        "name": "server/browser-tasks.ts",
-        "dependencyTypes": [
-          "local",
-          "dynamic-import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "server/browser-tasks.ts",
-    "to": "server/playwright-service.ts",
-    "unresolvedTo": "./playwright-service",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/playwright-service.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/playwright/adhoc-runner.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/debug-session.ts",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "server/browser-tasks.ts",
         "dependencyTypes": [
           "local",
           "dynamic-import"
@@ -823,6 +748,81 @@
         "dependencyTypes": [
           "local",
           "export"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/web/browser-tasks.ts",
+    "to": "server/web/debug-session.ts",
+    "unresolvedTo": "./debug-session",
+    "dependencyTypes": [
+      "local",
+      "dynamic-import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/web/debug-session.ts",
+        "dependencyTypes": [
+          "local",
+          "dynamic-import"
+        ]
+      },
+      {
+        "name": "server/web/browser-tasks.ts",
+        "dependencyTypes": [
+          "local",
+          "dynamic-import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/web/browser-tasks.ts",
+    "to": "server/web/playwright-service.ts",
+    "unresolvedTo": "./playwright-service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/web/playwright-service.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/web/playwright/adhoc-runner.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/web/debug-session.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "server/web/browser-tasks.ts",
+        "dependencyTypes": [
+          "local",
+          "dynamic-import"
         ]
       }
     ]

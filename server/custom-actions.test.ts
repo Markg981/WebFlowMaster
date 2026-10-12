@@ -95,7 +95,7 @@ describe('expandCustomActions', () => {
 describe('running a custom action', () => {
   it('hands the script its arguments, resolved and serialised, and its element', async () => {
     const { chromium } = await import('playwright');
-    const { executeStep } = await import('./step-executor');
+    const { executeStep } = await import('./web/step-executor');
     const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
     await page.setContent('<button id="b" data-code="4711">Order</button>');
