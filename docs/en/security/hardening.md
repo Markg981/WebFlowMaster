@@ -39,7 +39,10 @@ network's: nothing leaves the workers except through it, whatever the applicatio
 **egress policy** is the application's, and applies to every installation, with or without the
 proxy: every address a test, a webhook, an issue tracker, a browser step or an organization's
 SMTP setting makes the server connect to is checked, by name and by what the name resolves to
-at the moment of connecting, on every redirect. Cloud metadata endpoints (`169.254.0.0/16`
+at the moment of connecting, on every redirect. HTTP and WebSocket connections are opened on the
+vetted address itself; a gRPC channel is pinned to the vetted addresses when they are of one
+family, and a name answering in both (`localhost` on many hosts) is vetted and then resolved
+again by the gRPC client, like the SMTP path. Cloud metadata endpoints (`169.254.0.0/16`
 including `169.254.169.254`, `fd00:ec2::254`, `metadata.google.internal`, Alibaba's
 `100.100.100.200`, Oracle's `192.0.0.192`, Azure's `168.63.129.16`) are always refused. Private,
 loopback, link-local and unique-local addresses are reached by default

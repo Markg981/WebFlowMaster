@@ -41,7 +41,10 @@ rete: nulla esce dai worker se non attraverso di esso, qualunque cosa faccia l'a
 **policy di egress** è quella dell'applicazione, e vale per ogni installazione, con o senza
 proxy: ogni indirizzo a cui un test, un webhook, un tracker, uno step del browser o
 l'impostazione SMTP di un'organizzazione fa collegare il server è verificato, per nome e per
-ciò che il nome risolve al momento della connessione, a ogni redirect. Gli endpoint dei
+ciò che il nome risolve al momento della connessione, a ogni redirect. Le connessioni HTTP e
+WebSocket si aprono sull'indirizzo verificato; un canale gRPC è fissato agli indirizzi verificati
+quando sono di una sola famiglia, mentre un nome che risponde in entrambe (`localhost` su molti
+host) è verificato e poi risolto di nuovo dal client gRPC, come per il percorso SMTP. Gli endpoint dei
 metadati cloud (`169.254.0.0/16` incluso `169.254.169.254`, `fd00:ec2::254`,
 `metadata.google.internal`, `100.100.100.200` di Alibaba, `192.0.0.192` di Oracle,
 `168.63.129.16` di Azure) sono sempre rifiutati. Gli indirizzi privati, loopback, link-local e

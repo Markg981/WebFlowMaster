@@ -109,10 +109,15 @@ export function grpcCredentials(
 
 /**
  * Where the channel connects. grpc-js resolves names itself and offers no lookup hook, so
- * without the proxy the name is resolved here through the policy and the channel is pointed
- * at the vetted address, keeping the name for TLS identity and the :authority header: there
- * is then no second resolution for a changed answer to slip through. A literal address is
- * checked as it is; with the proxy the CONNECT target carries the name and the proxy decides.
+ * without the proxy the name is resolved here through the policy first. When every answer
+ * is of one family the channel is pointed at those addresses, all of them, keeping the name
+ * for TLS identity and the :authority header: grpc-js tries them in turn, as its own resolver
+ * would, and no second resolution lets a changed answer slip through. A name that answers in
+ * both families (`localhost` on many hosts: `::1` and `127.0.0.1`, with a server listening on
+ * one of them) cannot be pinned, since a grpc-js target names one family; the vetted name is
+ * then handed to grpc-js's resolver, which tries both, with the same small window between
+ * the check and the connection as the SMTP path. A literal address is checked as it is; with
+ * the proxy the CONNECT target carries the name and the proxy decides.
  */
 async function grpcConnection(
   url: URL,
@@ -122,12 +127,28 @@ async function grpcConnection(
   const direct = grpcEgressTarget(url.host, url.hostname);
   const hostname = url.hostname.replace(/^\[|\]$/g, '');
   if (egressProxy() || net.isIP(hostname)) return direct;
-  const [vetted] = await resolveVetted(hostname);
-  if (!vetted) return direct;
+  return pinnedGrpcTarget(url, hostname, await resolveVetted(hostname)) ?? direct;
+}
+
+/**
+ * The channel target for a name's vetted answers, or null when they cannot be pinned: no
+ * answer, or answers in both families, which one grpc-js target cannot carry.
+ */
+export function pinnedGrpcTarget(
+  url: URL,
+  hostname: string,
+  vetted: ReadonlyArray<{ address: string; family: number }>,
+): { address: string; options: grpc.ChannelOptions } | null {
+  const [first] = vetted;
+  if (!first || vetted.some((answer) => answer.family !== first.family)) return null;
   const port = url.port || '443';
+  const endpoints = vetted
+    .map((answer) =>
+      answer.family === 6 ? `[${answer.address}]:${port}` : `${answer.address}:${port}`,
+    )
+    .join(',');
   return {
-    address:
-      vetted.family === 6 ? `ipv6:[${vetted.address}]:${port}` : `ipv4:${vetted.address}:${port}`,
+    address: `${first.family === 6 ? 'ipv6' : 'ipv4'}:${endpoints}`,
     options: {
       'grpc.ssl_target_name_override': hostname,
       'grpc.default_authority': url.host,
