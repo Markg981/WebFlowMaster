@@ -1,5 +1,5 @@
 import type { BddTest } from '@shared/bdd';
-import type { TenantTx } from './middleware/tenancy';
+import type { TenantTx } from '../middleware/tenancy';
 import { parseGherkin, validateBddTest } from './gherkin';
 import { resolveBddBinding } from './bdd-profiles';
 
