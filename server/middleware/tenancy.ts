@@ -197,15 +197,17 @@ export async function withTenantTransaction<T>(fn: (tx: TenantTx) => Promise<T>)
 
   return privilegedDb.transaction(async (tx) => {
     await tx.execute(sql`SET LOCAL ROLE app_user`);
-    await tx.execute(sql`SELECT set_config('app.current_org', ${String(organizationId)}, true)`);
-    // Who is asking, for the project policies (migration 0031). Left unset for the system.
+    // One round trip for the whole binding: a plan run opens one of these per test. Who is
+    // asking, for the project policies (migration 0031), is left unset for the system rather
+    // than set to an empty string.
     if (store?.principal) {
       await tx.execute(
-        sql`SELECT set_config('app.current_user', ${String(store.principal.userId)}, true)`,
+        sql`SELECT set_config('app.current_org', ${String(organizationId)}, true),
+                   set_config('app.current_user', ${String(store.principal.userId)}, true),
+                   set_config('app.current_user_role', ${store.principal.role}, true)`,
       );
-      await tx.execute(
-        sql`SELECT set_config('app.current_user_role', ${store.principal.role}, true)`,
-      );
+    } else {
+      await tx.execute(sql`SELECT set_config('app.current_org', ${String(organizationId)}, true)`);
     }
     // Bind the transaction into context for the duration of fn so a nested
     // withTenantTransaction call (e.g. once Task 5 wraps handlers that already contain their

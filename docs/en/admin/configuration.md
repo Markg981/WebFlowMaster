@@ -21,6 +21,18 @@ harm.
 | `ENCRYPTION_KEY_PREVIOUS` | both, and `key:rotate` | none                                               | While `ENCRYPTION_KEY` is being replaced: the keys it replaced, comma-separated. What they wrapped or encrypted still reads; a process that cannot open a stored organization key with these refuses to start, naming it. Remove the list once `npm run key:rotate` has run.                                                                                                                        |
 | `NODE_ENV`                | both                   | unset                                              | `production` in any real installation: secure cookies, JSON logs, closed diagnostic endpoints, and no TLS exemptions.                                                                                                                                                                                                                                                                               |
 
+## Database connections
+
+Only for a `postgres://` `DATABASE_URL`; PGlite has one connection and ignores them. Every value is a whole number, and a value that is not is refused at startup. A timeout of `0` turns it off.
+
+| Variable                            | Read by | Default | Description                                                                                                                                                                                                                |
+| ----------------------------------- | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PG_POOL_MAX`                       | both    | `10`    | Connections each process may hold. The web process and every worker have their own pool, so the sum, plus a few for the migrator and two per process for artifact locks, must stay under the database's `max_connections`. |
+| `PG_CONNECTION_TIMEOUT_MS`          | both    | `5000`  | How long a query waits for a free connection when all of them are busy before it fails with a timeout, instead of queueing for ever.                                                                                       |
+| `PG_IDLE_TIMEOUT_MS`                | both    | `30000` | How long an unused connection stays open before the pool closes it.                                                                                                                                                        |
+| `PG_STATEMENT_TIMEOUT_MS`           | both    | `30000` | PostgreSQL cancels a statement that runs longer than this, so a slow query cannot hold a connection for ever. The migrator runs with `0` unless this is set explicitly.                                                    |
+| `PG_IDLE_IN_TRANSACTION_TIMEOUT_MS` | both    | `60000` | PostgreSQL ends a session that sits idle inside an open transaction for this long, which gives back the connection and the locks of a transaction nobody will finish.                                                      |
+
 ## Web server and security
 
 | Variable                          | Read by     | Default                                               | Description                                                                                                                                                                                                                                                                                                                                               |
