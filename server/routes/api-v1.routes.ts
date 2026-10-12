@@ -17,14 +17,14 @@ import { apiError, requireScope } from '../middleware/require-scope';
 import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orchestrator';
 import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 import { requestCancellation } from '../execution-state';
-import { junitReportFor } from '../junit-report';
+import { junitReportFor } from '../reporting/junit-report';
 import {
   exportRun,
   isReportExportFormat,
   REPORT_EXPORT_FORMATS,
   ReportExportError,
   sendExport,
-} from '../report-export';
+} from '../reporting/report-export';
 import { openApiDocument } from '../api-v1/openapi';
 import { ciContextSchema } from '@shared/ci';
 import { reportUrlFor } from '../report-links';

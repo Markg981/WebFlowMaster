@@ -54,7 +54,7 @@ const { processTestPlanJob } = await import('../test-execution-service');
 const { buildExecutionSnapshot } = await import('../execution-snapshot');
 const { assertSelectedTestsBelongTo } = await import('../routes/selected-tests');
 const { stepsWithArtifactUrls } = await import('../routes/artifacts.routes');
-const { evidenceSteps } = await import('../failure-analysis');
+const { evidenceSteps } = await import('../reporting/failure-analysis');
 
 // A 1×1 PNG.
 const PIXEL =

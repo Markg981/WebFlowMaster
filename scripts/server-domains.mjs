@@ -220,17 +220,7 @@ export const SERVER_DOMAINS = [
     name: 'reporting',
     rank: 9,
     purpose: 'reports, exports, analytics, failure analysis, flakiness',
-    modules: [
-      'analytics',
-      'allure-export',
-      'junit',
-      'junit-report',
-      'report-export',
-      'report-html',
-      'report-model',
-      'failure-analysis',
-      'flaky',
-    ],
+    modules: ['reporting/*'],
   },
   {
     name: 'integrations',

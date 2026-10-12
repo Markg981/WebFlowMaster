@@ -531,7 +531,7 @@ function probes(ctx: {
       params: [ctx.planId],
     },
     {
-      // server/analytics.ts getDashboardMetrics, totals of the last 30 days
+      // server/reporting/analytics.ts getDashboardMetrics, totals of the last 30 days
       name: 'dashboard: 30-day totals',
       sql: `SELECT count(*), count(*) FILTER (WHERE e.status = 'completed'),
               count(*) FILTER (WHERE e.status IN ('failed', 'error')),

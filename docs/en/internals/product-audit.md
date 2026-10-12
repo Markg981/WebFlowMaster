@@ -34,7 +34,7 @@ implemented and should not be described as missing development.
 - [Releases](../admin/releases): digest-pinned bases, non-root runtime, reproducible builds,
   SBOMs and security gates are implemented. Publication and upgrade need separate evidence.
 
-The current source catalog is `collaudo/casi.json`: protocol 51, 592 cases. The local 27 September
+The current source catalog is `collaudo/casi.json`: protocol 52, 593 cases. The local 27 September
 cycle holds 299 outcomes (290 pass, 8 blocked, 1 N/A) with its frozen catalog. Local alignment
 loads the current catalog and opens a new pending cycle; automated outcomes do not become
 manual acceptance results.
@@ -46,7 +46,7 @@ manual acceptance results.
 | Authors and QA      | Web recording/building, sentence authoring, variables, groups, conditions/loops, datasets, manual tests, API, mobile and BDD | `client/src/pages/`, `server/web/step-executor.ts`, `server/mobile/mobile-runner.ts`, `server/bdd/bdd-execution.ts`        |
 | Catalog             | Projects, tags, suites, versions, review/publication, requirements/coverage and quarantine                                   | `shared/schema.ts`, `server/test-publishing.ts`, `server/test-version-store.ts`, `server/routes/`                          |
 | Execution           | Plan snapshots, queues, workers, scheduling, browser/mobile matrices, grids and local agents                                 | `server/execution-orchestrator.ts`, `server/execution-snapshot.ts`, `server/test-execution-service.ts`, `server/worker.ts` |
-| Evidence            | Per-step outcomes, configured screenshots/video/trace/HAR, visual testing, accessibility and exports                         | `server/report-model.ts`, `server/report-export.ts`, `server/artifact-store.ts`                                            |
+| Evidence            | Per-step outcomes, configured screenshots/video/trace/HAR, visual testing, accessibility and exports                         | `server/reporting/report-model.ts`, `server/reporting/report-export.ts`, `server/artifact-store.ts`                        |
 | Integrations        | CI, CLI, REST v1, webhooks, trackers, commit statuses, test management and notifications                                     | `integrations/`, `server/routes/api-v1.routes.ts`, `server/commit-status.ts`, `server/test-management.ts`                  |
 | Security/governance | Tenant/RLS, roles, API scopes, OIDC/SAML SSO, MFA, SCIM, audit, quotas and retention                                         | `server/middleware/tenancy.ts`, `server/routes/`, `server/tenant-quotas.ts`                                                |
 | Collaboration       | Comments, mentions and shared dashboards                                                                                     | `server/routes/comments.routes.ts`, `server/routes/dashboards.routes.ts`                                                   |

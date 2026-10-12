@@ -14,7 +14,7 @@ import {
   users,
 } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
-import { buildJUnitXml } from './junit';
+import { buildJUnitXml } from './reporting/junit';
 import { summaryLine } from './notifications';
 
 /**

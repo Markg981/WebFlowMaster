@@ -35,7 +35,7 @@ implementate e non devono essere riproposte come sviluppo mancante.
 - [Release](../admin/releases): basi per digest, runtime non-root, build riproducibili,
   SBOM e gate di sicurezza già implementati. Pubblicazione e upgrade restano prove distinte.
 
-Il catalogo corrente è `collaudo/casi.json`: protocollo 51, 592 casi. Lo storico locale del
+Il catalogo corrente è `collaudo/casi.json`: protocollo 52, 593 casi. Lo storico locale del
 27 settembre contiene 299 esiti (290 pass, 8 bloccati, 1 N/A) e conserva il proprio catalogo.
 L'allineamento locale applica il catalogo corrente e crea un nuovo ciclo Da eseguire;
 non assegna esiti manuali dai risultati automatici.
@@ -47,7 +47,7 @@ non assegna esiti manuali dai risultati automatici.
 | Autori e QA         | Recorder e builder web, descrizione in frasi, variabili, gruppi, condizioni/cicli, dataset, test manuali, API, mobile e BDD | `client/src/pages/`, `server/web/step-executor.ts`, `server/mobile/mobile-runner.ts`, `server/bdd/bdd-execution.ts`        |
 | Catalogo            | Progetti, tag, suite, versioni, review/pubblicazione, requisiti e copertura, quarantena                                     | `shared/schema.ts`, `server/test-publishing.ts`, `server/test-version-store.ts`, `server/routes/`                          |
 | Esecuzione          | Snapshot del piano, code, worker, scheduler, matrice browser/mobile, griglie e agenti locali                                | `server/execution-orchestrator.ts`, `server/execution-snapshot.ts`, `server/test-execution-service.ts`, `server/worker.ts` |
-| Evidenze            | Risultati per step, screenshot/video/trace/HAR secondo modalità, visual testing, accessibilità, export                      | `server/report-model.ts`, `server/report-export.ts`, `server/artifact-store.ts`                                            |
+| Evidenze            | Risultati per step, screenshot/video/trace/HAR secondo modalità, visual testing, accessibilità, export                      | `server/reporting/report-model.ts`, `server/reporting/report-export.ts`, `server/artifact-store.ts`                        |
 | Integrazioni        | CI, CLI, REST v1, webhook, tracker, commit status, test management, notifiche                                               | `integrations/`, `server/routes/api-v1.routes.ts`, `server/commit-status.ts`, `server/test-management.ts`                  |
 | Sicurezza e governo | Tenant/RLS, ruoli, scope API, SSO OIDC/SAML, MFA, SCIM, audit, quote e retention                                            | `server/middleware/tenancy.ts`, `server/routes/`, `server/tenant-quotas.ts`                                                |
 | Collaborazione      | Commenti, menzioni e dashboard condivise                                                                                    | `server/routes/comments.routes.ts`, `server/routes/dashboards.routes.ts`                                                   |
