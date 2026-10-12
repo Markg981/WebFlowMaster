@@ -84,6 +84,8 @@
     "test:network:production": "node deployment/saas-network/production-check.mjs",
     "build:network-probe": "esbuild scripts/check-saas-transports.ts --platform=node --packages=external --bundle --format=esm --outfile=.local/tmp/saas-transports.mjs",
     "test:release": "node --test scripts/release/*.test.mjs",
+    "changelog:draft": "node scripts/release/changelog.mjs draft",
+    "changelog:release": "node scripts/release/changelog.mjs release",
     "test:security": "node --test scripts/security/*.test.mjs",
     "test:matrix:certify": "playwright test --config=e2e/matrix-certification.config.ts"
   },

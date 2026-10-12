@@ -138,7 +138,12 @@ what an installation runs, so reconcile installed digests as described under
 1. Configure repository Actions permissions for GHCR package creation. Restrict `v*` tag creation
    and main changes to authorized maintainers; retain required CI branch checks. Set package
    visibility deliberately. Private packages require a read-only pull credential on deployment hosts.
-2. Update root package and lock versions together in a reviewed PR. On Playwright upgrades, update
+2. Update root package and lock versions together in a reviewed PR, with the release notes: run
+   `npm run changelog:draft` (merged PRs since the last `v*` tag whose titles are `feat`, `fix`,
+   `perf` or `security` land in `[Unreleased]` of `CHANGELOG.md`), reword the entries for a reader
+   who upgrades, then `npm run changelog:release -- VERSION`. A tag without a `CHANGELOG.md`
+   section for its version fails in `validate`, and that section is the text of the GitHub release,
+   followed by the evidence note. On Playwright upgrades, update
    all Docker bases to the matching official tag **and verify its registry digest**. Update the
    toolchain and Lighthouse lock through reviewed changes, never through a floating CI override.
 3. Merge, wait for the four required checks on the resulting main commit, create and push its
