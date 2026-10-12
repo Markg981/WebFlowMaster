@@ -187,6 +187,39 @@ The React application (`client/`) is a single-page app: wouter for routing, TanS
 state, a WebSocket for live run logs, React Flow for the visual builder, Radix/shadcn components,
 four translation bundles (en, it, fr, de). It is described in [Web client](./frontend).
 
+### 3.4 Server domains
+
+Every server module belongs to one domain, listed in `scripts/server-domains.mjs`. A domain has a
+rank, and a module may import its own domain and domains of a lower rank only; domains of the same
+rank are peers and do not import each other. Because imports only go down, the domains cannot form
+a cycle.
+
+| Rank | Domain                              | What it holds                                                                     |
+| ---- | ----------------------------------- | --------------------------------------------------------------------------------- |
+| 1    | platform                            | Database, logging, crypto, queues, outbound HTTP, request context, observability. |
+| 2    | tenancy                             | Organizations, memberships, quotas, billing, audit, artifact storage.             |
+| 3    | messaging                           | Outgoing mail, its settings and providers; test inboxes for mail and SMS.         |
+| 4    | identity                            | Sign-in, sessions, SSO, SCIM, MFA, API keys, user settings.                       |
+| 5    | authoring                           | Tests, versions, suites, data, step groups, elements, AI and recorder authoring.  |
+| 6    | runtime                             | What every test type runs on: agents and relay, variables, browsers and grids.    |
+| 7    | web, api-tests, mobile, bdd (peers) | One domain per test type.                                                         |
+| 8    | execution                           | Plans and runs: orchestration, the plan pipeline, run state, scheduling.          |
+| 9    | reporting                           | Reports, exports, analytics, failure analysis, flakiness.                         |
+| 10   | integrations                        | Issue trackers, test management, commit status, chat notifications, webhooks.     |
+| 11   | http                                | Routers, the public API, request middleware, the live WebSocket.                  |
+| 12   | app                                 | Process entry points and wiring (`index.ts`, `worker.ts`, `routes.ts`).           |
+
+`npm run deps:check` (CI, lint job) checks this with dependency-cruiser (`.dependency-cruiser.mjs`):
+the domain ranks, no import cycles between files, `shared/` importing neither the server nor the
+client, and the server never importing the client. Type-only imports count. The imports that broke a
+rule when the check was introduced are listed in `.dependency-cruiser-known-violations.json`; the
+check fails on a new one, and also when one is fixed but still listed, so the list only shrinks
+(`npm run deps:baseline` rewrites it). `server/tests/domains.test.ts` fails when a server module is
+in no domain, so a new file needs a decision about where it belongs.
+
+The modules are still mostly flat under `server/`; they move into `server/<domain>/` one domain per
+change, and each domain's list in the table then becomes a single directory.
+
 ## 4. Deployment
 
 ### 4.1 One machine

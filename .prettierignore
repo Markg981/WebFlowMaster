@@ -23,3 +23,6 @@ collaudo/casi.json
 
 # Helm templates carry Go template actions, which are not YAML until rendered
 deployment/helm/**/templates/**
+
+# Written by `npm run deps:baseline`.
+.dependency-cruiser-known-violations.json

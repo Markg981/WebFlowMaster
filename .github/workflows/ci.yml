@@ -123,6 +123,11 @@ jobs:
       - name: any budget
         run: npm run any-budget
 
+      # Imports between server domains only go down a rank (scripts/server-domains.mjs); the
+      # known violations in .dependency-cruiser-known-violations.json may only shrink.
+      - name: Domain dependencies
+        run: npm run deps:check
+
       # `npm run format` fixes what this reports. The whole tree was formatted in one commit,
       # listed in .git-blame-ignore-revs so `git blame` skips it.
       - name: Format check
