@@ -2,10 +2,10 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { apiTests, testPlans, testPlanSelectedTests, testPlanExecutions } from '@shared/schema';
-import { createTestOrganization, createTestUser } from './tests/factories';
-import { processTestPlanJob } from './test-execution-service';
+import { createTestOrganization, createTestUser } from '../tests/factories';
+import { processTestPlanJob } from '../test-execution-service';
 
 /**
  * A plan of API tests, run as a flow.

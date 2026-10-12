@@ -10,7 +10,7 @@ import * as loader from '@grpc/proto-loader';
 import { AgentRelay } from './relay';
 import { AgentHttp } from './agent-fetch';
 import { runAgent } from '../../scripts/wfm-agent';
-import { runApiRequest } from '../api-test-runner';
+import { runApiRequest } from '../api-tests/api-test-runner';
 import { signTicket } from './agent-credentials';
 import { AGENT_PROTOCOL_VERSION } from '@shared/agents';
 import { runProtocolOnAgent } from './agent-protocol';

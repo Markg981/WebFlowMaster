@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { importApiDescription } from './api-import';
 import { looksLikeWsdl } from './wsdl-import';
-import { baseXsd, bundle, distributedWsdl, requestXsd, wsdl2 } from './tests/soap-bundle-fixtures';
+import { baseXsd, bundle, distributedWsdl, requestXsd, wsdl2 } from '../tests/soap-bundle-fixtures';
 
 describe('offline SOAP document bundles', () => {
   it('resolves nested relative schemas, inherited types and element refs', () => {

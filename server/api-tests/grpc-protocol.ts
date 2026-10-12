@@ -13,8 +13,8 @@ import {
   type ResolvedProtocolConfig,
 } from '@shared/api-protocol-config';
 import { readConversationPlan } from '@shared/protocol-conversation';
-import { egressProxy, grpcEgressTarget } from './egress-proxy';
-import { denialForHostname, resolveVetted } from './egress-policy';
+import { egressProxy, grpcEgressTarget } from '../egress-proxy';
+import { denialForHostname, resolveVetted } from '../egress-policy';
 import {
   ProtocolInbox,
   executeConversation,

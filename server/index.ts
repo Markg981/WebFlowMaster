@@ -46,7 +46,7 @@ app.use(billingWebhookBodyParser);
 // proxy gets a larger allowance than the 100KB default everything else keeps. Mounted first:
 // the general parser below skips a body that has already been read.
 app.use('/api/proxy-api-request', express.json({ limit: '20mb' }));
-// An OpenAPI description or a Postman collection can be several megabytes (server/api-import.ts).
+// An OpenAPI description or a Postman collection can be several megabytes (server/api-tests/api-import.ts).
 app.use('/api/api-tests/import', express.json({ limit: '12mb' }));
 // A project's tests as a file (server/test-bundle.ts) can be large.
 app.use('/api/tests/import-bundle', express.json({ limit: '24mb' }));

@@ -74,7 +74,7 @@ export const apiTests = pgTable(
     bodyUrlEncoded: jsonb('body_url_encoded'),
     bodyGraphqlQuery: text('body_graphql_query'),
     bodyGraphqlVariables: text('body_graphql_variables'),
-    /** A gRPC test's .proto (server/api-protocols.ts, migration 0069). */
+    /** A gRPC test's .proto (server/api-tests/api-protocols.ts, migration 0069). */
     protoDefinition: text('proto_definition'),
     protocolConfig: jsonb('protocol_config').$type<ProtocolConfig>(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -102,7 +102,7 @@ export const AssertionSourceSchema = z.enum([
   'body_json_path',
   'body_text',
   'response_time',
-  // An XML answer, such as SOAP's (server/api-protocols.ts).
+  // An XML answer, such as SOAP's (server/api-tests/api-protocols.ts).
   'body_xpath',
 ]);
 export const AssertionComparisonSchema = z.enum([
@@ -443,7 +443,7 @@ export type InsertApiTestHistoryPayload = z.infer<typeof insertApiTestHistorySch
 
 /**
  * A request's address: absolute, or made absolute by its {{variables}} — `{{baseUrl}}/orders`,
- * `https://{{host}}/api` — which the runner fills in from the environment (server/api-test-runner.ts).
+ * `https://{{host}}/api` — which the runner fills in from the environment (server/api-tests/api-test-runner.ts).
  * A plain `.url()` refused those, so a test could not follow an environment's base address.
  */
 export function isRequestUrl(value: string): boolean {

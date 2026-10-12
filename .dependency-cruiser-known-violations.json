@@ -215,8 +215,8 @@
   {
     "type": "dependency",
     "from": "server/agents/agent-fetch.ts",
-    "to": "server/api-test-runner.ts",
-    "unresolvedTo": "../api-test-runner",
+    "to": "server/api-tests/api-test-runner.ts",
+    "unresolvedTo": "../api-tests/api-test-runner",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -230,8 +230,8 @@
   {
     "type": "dependency",
     "from": "server/agents/api-protocol-features.ts",
-    "to": "server/grpc-protocol.ts",
-    "unresolvedTo": "../grpc-protocol",
+    "to": "server/api-tests/grpc-protocol.ts",
+    "unresolvedTo": "../api-tests/grpc-protocol",
     "dependencyTypes": [
       "local",
       "import"
@@ -286,8 +286,8 @@
   },
   {
     "type": "cycle",
-    "from": "server/api-import.ts",
-    "to": "server/wsdl-import.ts",
+    "from": "server/api-tests/api-import.ts",
+    "to": "server/api-tests/wsdl-import.ts",
     "unresolvedTo": "./wsdl-import",
     "dependencyTypes": [
       "local",
@@ -299,14 +299,51 @@
     },
     "cycle": [
       {
-        "name": "server/wsdl-import.ts",
+        "name": "server/api-tests/wsdl-import.ts",
         "dependencyTypes": [
           "local",
           "import"
         ]
       },
       {
-        "name": "server/api-import.ts",
+        "name": "server/api-tests/api-import.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/api-tests/soap-document-bundle.ts",
+    "to": "server/api-tests/api-import.ts",
+    "unresolvedTo": "./api-import",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/api-tests/api-import.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/api-tests/wsdl-import.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "server/api-tests/soap-document-bundle.ts",
         "dependencyTypes": [
           "local",
           "import"
@@ -786,43 +823,6 @@
         "dependencyTypes": [
           "local",
           "export"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "server/soap-document-bundle.ts",
-    "to": "server/api-import.ts",
-    "unresolvedTo": "./api-import",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/api-import.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/wsdl-import.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "server/soap-document-bundle.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
         ]
       }
     ]

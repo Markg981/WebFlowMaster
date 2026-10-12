@@ -9,4 +9,4 @@ Aggiornare API e client; usare un editor con accesso ai test API. Caricare i tre
 - API-63: sostituire il riferimento Identity con Missing; poi rendere Address ricorsivo riferendolo a Identity. L’import deve fallire senza salvare nuovi test. Provare minOccurs 5001/maxOccurs unbounded e un minOccurs negativo.
 - API-64: cambiare il binding in style rpc o use encoded: entrambi devono fallire. Con ripristino document/literal, import valido. Le restriction complesse restano rifiutate.
 
-Test automatici: `server/wsdl-expanded.test.ts`, `server/wsdl-import.test.ts`, `server/api-import.test.ts` e il percorso UI in `e2e/installation.spec.ts`. L’accettazione sui WSDL/XSD reali dei clienti resta da eseguire quando saranno disponibili; RPC/encoded richiede una richiesta cliente dedicata.
+Test automatici: `server/api-tests/wsdl-expanded.test.ts`, `server/api-tests/wsdl-import.test.ts`, `server/api-tests/api-import.test.ts` e il percorso UI in `e2e/installation.spec.ts`. L’accettazione sui WSDL/XSD reali dei clienti resta da eseguire quando saranno disponibili; RPC/encoded richiede una richiesta cliente dedicata.

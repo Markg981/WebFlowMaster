@@ -34,7 +34,7 @@ const { connectToAgentBrowser, RUNNER_PLAYWRIGHT_VERSION } = await import('./age
 const { default: agentsRoutes } = await import('../routes/agents.routes');
 const { runAgent } = await import('../../scripts/wfm-agent');
 const { AgentHttp } = await import('./agent-fetch');
-const { runApiRequest } = await import('../api-test-runner');
+const { runApiRequest } = await import('../api-tests/api-test-runner');
 const { runPreconditions } = await import('../precondition-runner');
 
 const SECRET = 'relay-test-secret';

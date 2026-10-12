@@ -13,7 +13,7 @@ import type {
 
 /**
  * The authentication schemes beyond Basic, Bearer, API key and OAuth 2.0: how each one signs,
- * or answers the server's challenge (server/api-test-runner.ts applies them).
+ * or answers the server's challenge (server/api-tests/api-test-runner.ts applies them).
  *
  * Everything here is a pure function of the request and the time, so each scheme is tested
  * against its published vectors rather than against a live service.

@@ -1,5 +1,5 @@
 import type { AgentApiFeature, AgentProtocolRequest } from '@shared/agent-protocol';
-import { grpcModeFor } from '../grpc-protocol';
+import { grpcModeFor } from '../api-tests/grpc-protocol';
 
 /** Signed capability requirements contain feature names, never target credentials. */
 export async function requiredApiFeatures(

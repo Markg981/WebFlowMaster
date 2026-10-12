@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import {
   apiTests,
   tests,
@@ -13,14 +13,14 @@ import {
   type Project,
   type InsertUser,
   type InsertProject,
-} from '../shared/schema';
+} from '../../shared/schema';
 import { eq, and } from 'drizzle-orm';
-import { createTestOrganization } from './tests/factories';
-import { tenancyMiddleware } from './middleware/tenancy';
+import { createTestOrganization } from '../tests/factories';
+import { tenancyMiddleware } from '../middleware/tenancy';
 // Not strictly needed for these tests but good for consistency if IDs were strings
 
 // Mock logger to prevent console output during tests, unless explicitly needed
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -67,7 +67,7 @@ beforeAll(async () => {
   // Mount the REAL router. This suite used to re-implement the handlers inline, so it
   // validated a copy: the production route could (and did) drift — silently dropping
   // projectId — while these tests stayed green.
-  const { default: testsRoutes } = await import('./routes/tests.routes');
+  const { default: testsRoutes } = await import('../routes/tests.routes');
   app.use(testsRoutes);
 });
 

@@ -31,12 +31,12 @@ import {
   recoverLostLoadRuns,
   removeQueuedLoadJob,
   snapshotOf,
-} from '../load-runner';
+} from '../api-tests/load-runner';
 import logger from '../logger';
 
 /**
  * Load tests (shared/load-test.ts): writing them, and running them on their own — a run is queued
- * here for a load worker (server/load-runner.ts) and followed from the page, which reads its
+ * here for a load worker (server/api-tests/load-runner.ts) and followed from the page, which reads its
  * summary as the worker writes it.
  */
 
@@ -123,7 +123,7 @@ async function checkReferences(
   }
 }
 
-/** Runs whose worker stopped answering are over: they say so (server/load-runner.ts). */
+/** Runs whose worker stopped answering are over: they say so (server/api-tests/load-runner.ts). */
 async function settleInterrupted(tx: TenantTx) {
   const lost = await recoverLostLoadRuns(tx);
   if (lost.length) logger.warn({ message: 'Ended load runs nobody was running any more', lost });

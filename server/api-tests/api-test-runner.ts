@@ -1,13 +1,13 @@
 import { AuthParamsSchema, type ApiTest, type Assertion, type AuthParams } from '@shared/schema';
 import { runGrpc, runWebSocket, xpathValue, type ProtocolResponse } from './api-protocols';
-import { fetchTarget, substituteInValues, substituteVariables } from './outbound-http';
-import { findUnresolvedVariables } from './variables';
+import { fetchTarget, substituteInValues, substituteVariables } from '../outbound-http';
+import { findUnresolvedVariables } from '../variables';
 import {
   ProtocolConfigSchema,
   type ProtocolConfig,
   type ResolvedProtocolConfig,
 } from '@shared/api-protocol-config';
-import { accessTokenFor } from './oauth2';
+import { accessTokenFor } from '../oauth2';
 import {
   akamaiEdgeGrid,
   asapToken,
@@ -23,7 +23,7 @@ import {
   systemClock,
   type DigestParams,
   type NtlmParams,
-} from './api-auth';
+} from '../api-auth';
 
 /**
  * Running one API request, with its assertions and its extractions.
@@ -86,7 +86,7 @@ export interface ApiRequestSpec {
   multipart?: MultipartPart[] | null;
   /** A file sent as the whole body, in place of `body` — base64 for the same reason. */
   binary?: { contentType?: string | null; base64: string } | null;
-  /** A gRPC test's service definition (server/api-protocols.ts). */
+  /** A gRPC test's service definition (server/api-tests/api-protocols.ts). */
   protoDefinition?: string | null;
   protocolConfig?: ProtocolConfig | null;
 }
@@ -570,7 +570,7 @@ export async function runApiRequest(
   for (const forbidden of ['host', 'Host', 'content-length', 'Content-Length'])
     delete headers[forbidden];
 
-  // WebSocket and gRPC: a connection of their own rather than one request (server/api-protocols.ts).
+  // WebSocket and gRPC: a connection of their own rather than one request (server/api-tests/api-protocols.ts).
   if (
     /^(wss?|grpcs?):$/.test(targetUrl.protocol) ||
     spec.method === 'WEBSOCKET' ||

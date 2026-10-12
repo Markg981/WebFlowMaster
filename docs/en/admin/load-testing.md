@@ -30,7 +30,7 @@ Exit codes: `0` within thresholds, `1` breaches, `2` tool/setup failure. Run `np
 
 The [load tests](../guide/load-tests) users run from the **Load tests** page are not the script
 above: each run is a `load-run` job on the `load-queue`, and a worker executes it with the engine
-in `server/load-runner.ts`. The web process only queues the run (`queued`), and the worker that
+in `server/api-tests/load-runner.ts`. The web process only queues the run (`queued`), and the worker that
 takes it marks it `running` with its name, writes the summary every two seconds and beats every
 `WORK_ITEM_HEARTBEAT_MS`; a run whose worker goes quiet for `STALE_CLAIM_MS` ends as
 `worker_lost`. A web restart changes nothing for a run; a worker restart with

@@ -82,7 +82,7 @@ export function importApiDescription(content: string, options: ImportOptions = {
   let doc: unknown;
   const text = content.trim();
   if (!text) throw new ImportError('The file is empty.');
-  // A SOAP service's WSDL (server/wsdl-import.ts).
+  // A SOAP service's WSDL (server/api-tests/wsdl-import.ts).
   if (text.startsWith('<')) {
     if (looksLikeWsdl(text)) return fromWsdl(text, options);
     throw new ImportError('An XML file, but not a WSDL 1.1 or 2.0 document.');

@@ -10,7 +10,7 @@ import { runApiRequest } from './api-test-runner';
 import { xpathValue, readWebSocketPlan } from './api-protocols';
 import { importApiDescription } from './api-import';
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock('./logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 
-/** SOAP, WebSocket and gRPC API tests (server/api-protocols.ts), against real servers on this machine. */
+/** SOAP, WebSocket and gRPC API tests (server/api-tests/api-protocols.ts), against real servers on this machine. */
 
 const assertion = (source: string, comparison: string, targetValue?: string, property?: string) =>
   ({ id: randomUUID(), source, comparison, targetValue, property, enabled: true }) as any;

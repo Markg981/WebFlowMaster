@@ -7,7 +7,7 @@ import * as grpc from '@grpc/grpc-js';
 import * as loader from '@grpc/proto-loader';
 import { chromium, firefox, webkit } from 'playwright';
 import { browserEgressOptions, targetEgressDispatcher } from '../server/egress-proxy';
-import { runGrpc, runWebSocket } from '../server/api-network-protocols';
+import { runGrpc, runWebSocket } from '../server/api-tests/api-network-protocols';
 
 const proto =
   'syntax = "proto3"; package egress; service Echo { rpc Say (Message) returns (Message); } message Message { string text = 1; }';

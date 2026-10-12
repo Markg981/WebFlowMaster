@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { runTest } from './test-execution-service';
+import { runTest } from '../test-execution-service';
 import { protocolReport } from './api-protocol-report';
 import type { ApiTest } from '@shared/schema';
 
