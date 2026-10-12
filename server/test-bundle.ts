@@ -4,10 +4,10 @@ import { isDeepStrictEqual } from 'node:util';
 import type { ApiTest, Test, MobileTest } from '@shared/schema';
 import type { MobileGroupDefinition } from '@shared/mobile-groups';
 import { exportMobileCatalog } from './mobile/mobile-bundle';
-import { referencedGroupIds } from './step-groups';
-import { referencedCustomActionIds } from './custom-actions';
-import { referencedElementIds } from './step-elements';
-import { asSteps } from './step-groups';
+import { referencedGroupIds } from './authoring/step-groups';
+import { referencedCustomActionIds } from './authoring/custom-actions';
+import { referencedElementIds } from './authoring/step-elements';
+import { asSteps } from './authoring/step-groups';
 import { exportGherkin, parseGherkin, autodetectGherkin } from './bdd/gherkin';
 import type { GherkinImportOptions } from '@shared/bdd';
 

@@ -16,7 +16,7 @@ import { toGridConfig } from '../browser-grids';
 import { describeBrowser } from '../browsers';
 import { mobileDeviceLabel, performMobileTest, type MobileOutcome } from '../mobile/mobile-runner';
 import { stopReasonAfter } from '../run-policies';
-import { refKey } from '../test-quarantine';
+import { refKey } from '../authoring/test-quarantine';
 import { runTest, type IndividualTestRunResult } from '../run-test';
 import type { AgentHttp } from '../agents/agent-fetch';
 import { asResultsUrl, publishArtifacts } from './artifacts';

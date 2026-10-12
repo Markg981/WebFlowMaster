@@ -21,7 +21,7 @@ vi.mock('../logger', () => ({
 const proposeTestSteps = vi.fn();
 const isAvailable = vi.fn();
 
-vi.mock('../ai-automation-service', () => ({
+vi.mock('../authoring/ai-automation-service', () => ({
   aiService: {
     isAvailable: () => isAvailable(),
     proposeTestSteps: (prompt: string) => proposeTestSteps(prompt),

@@ -16,7 +16,7 @@ The 6 October baseline is superseded for pagination, snapshots/replay, API/mobil
 load profiles, critical E2E, local recovery and expanded WSDL import. These capabilities are
 implemented and should not be described as missing development.
 
-- Paginated catalogs, server filters and detail on demand: `server/catalog.ts` and
+- Paginated catalogs, server filters and detail on demand: `server/authoring/catalog.ts` and
   `server/routes/catalog.routes.ts`.
 - UI/API/mobile definitions and datasets frozen at enqueue, hashes/provenance and historical replay:
   `server/execution-definitions.ts`, `server/execution-provenance.ts` and
@@ -44,7 +44,7 @@ manual acceptance results.
 | Area                | Present capabilities                                                                                                         | Main sources                                                                                                               |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Authors and QA      | Web recording/building, sentence authoring, variables, groups, conditions/loops, datasets, manual tests, API, mobile and BDD | `client/src/pages/`, `server/web/step-executor.ts`, `server/mobile/mobile-runner.ts`, `server/bdd/bdd-execution.ts`        |
-| Catalog             | Projects, tags, suites, versions, review/publication, requirements/coverage and quarantine                                   | `shared/schema.ts`, `server/test-publishing.ts`, `server/test-version-store.ts`, `server/routes/`                          |
+| Catalog             | Projects, tags, suites, versions, review/publication, requirements/coverage and quarantine                                   | `shared/schema.ts`, `server/authoring/test-publishing.ts`, `server/authoring/test-version-store.ts`, `server/routes/`      |
 | Execution           | Plan snapshots, queues, workers, scheduling, browser/mobile matrices, grids and local agents                                 | `server/execution-orchestrator.ts`, `server/execution-snapshot.ts`, `server/test-execution-service.ts`, `server/worker.ts` |
 | Evidence            | Per-step outcomes, configured screenshots/video/trace/HAR, visual testing, accessibility and exports                         | `server/reporting/report-model.ts`, `server/reporting/report-export.ts`, `server/tenancy/artifact-store.ts`                |
 | Integrations        | CI, CLI, REST v1, webhooks, trackers, commit statuses, test management and notifications                                     | `integrations/`, `server/routes/api-v1.routes.ts`, `server/commit-status.ts`, `server/test-management.ts`                  |

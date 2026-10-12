@@ -145,7 +145,7 @@ and how many times, is listed in `PRIVILEGED_BOOTSTRAP_BUDGET` in
 ### Links between rows of the same organization
 
 A foreign key from a row in organization A to a row in organization B would be a leak through a
-join. A drift test in `server/test-suites.test.ts` lists every foreign key between organization
+join. A drift test in `server/authoring/test-suites.test.ts` lists every foreign key between organization
 tables and requires each to be guarded by a same-organization constraint, or to be declared as an
 authorship link (`created_by` and similar, pointing at users).
 

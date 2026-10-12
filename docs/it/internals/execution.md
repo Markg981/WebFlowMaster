@@ -202,7 +202,7 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
 
 - **Quale versione.** I piani eseguono la **versione pubblicata** di un test web, API o mobile quando esiste; se
   l'organizzazione richiede la revisione, un test non pubblicato viene saltato invece di essere eseguito
-  senza revisione (`server/test-publishing.ts`).
+  senza revisione (`server/authoring/test-publishing.ts`).
 - Le **precondizioni** (chiamate API che preparano lo stato) girano per prime; ciascuna può essere
   saltata quando un controllo mostra che lo stato esiste già. Cosa significhi una precondizione fallita
   lo decide la policy del piano: bloccare il test (`error`), saltarlo o proseguire comunque.

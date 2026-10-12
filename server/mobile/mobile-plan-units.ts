@@ -6,8 +6,8 @@ import {
   type MobileExecutionStep,
 } from '@shared/mobile';
 import type { TenantTx } from '../middleware/tenancy';
-import { currentContentOf } from '../test-version-store';
-import { publishedContentOf } from '../test-publishing';
+import { currentContentOf } from '../authoring/test-version-store';
+import { publishedContentOf } from '../authoring/test-publishing';
 import { prepareMobileSteps } from './mobile-step-groups';
 
 export type MobilePlanTarget = MobileDeviceTarget & { key: string };

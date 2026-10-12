@@ -3,7 +3,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 import { executeStep } from './web/step-executor';
-import { installMock, parseMockSpec } from './network-mocks';
+import { installMock, parseMockSpec } from './authoring/network-mocks';
 import {
   EGRESS_POLICY_HEADER,
   egressPolicy,

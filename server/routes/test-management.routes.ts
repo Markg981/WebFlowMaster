@@ -11,7 +11,7 @@ import {
   linkColumns,
   linkWhere,
   type TestKind,
-} from '../test-refs';
+} from '../authoring/test-refs';
 import {
   AUDIT_ACTIONS,
   apiTests,

@@ -6,8 +6,12 @@ import { apiTests, mobileTests, projects, projectMembers, users } from '@shared/
 import { privilegedDb } from './db';
 import { tenancyMiddleware, runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { createTestOrganization } from './tests/factories';
-import { recordTypedTestVersion, currentContentOf, currentVersionsOf } from './test-version-store';
-import { publishedContentOf } from './test-publishing';
+import {
+  recordTypedTestVersion,
+  currentContentOf,
+  currentVersionsOf,
+} from './authoring/test-version-store';
+import { publishedContentOf } from './authoring/test-publishing';
 vi.mock('./logger', () => ({
   default: {
     error: vi.fn(),

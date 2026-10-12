@@ -25,9 +25,9 @@ import {
   type CapturedEvidence,
 } from '../../run-evidence';
 import { keepsScreenshot } from '../../run-policies';
-import { elementIdOfStep, resolveSequenceForRun } from '../../step-elements';
+import { elementIdOfStep, resolveSequenceForRun } from '../../authoring/step-elements';
 import { executeStep } from '../step-executor';
-import { expandSequenceForRun, type SequenceStep } from '../../step-groups';
+import { expandSequenceForRun, type SequenceStep } from '../../authoring/step-groups';
 import { storage } from '../../identity/storage';
 import { compareStepScreenshot, isVisualFailure, stableScreenshot } from '../visual-testing';
 import { getWsEmitter } from '../../websocket';

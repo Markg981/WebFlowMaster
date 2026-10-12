@@ -202,8 +202,8 @@ describe('enqueue', () => {
       duration: 1,
     } as any);
     try {
-      const { recordTypedTestVersion } = await import('./test-version-store');
-      const { publish } = await import('./test-publishing');
+      const { recordTypedTestVersion } = await import('./authoring/test-version-store');
+      const { publish } = await import('./authoring/test-publishing');
       const { withTenantTransaction } = await import('./middleware/tenancy');
       const [api] = await privilegedDb
         .insert(apiTests)
@@ -281,8 +281,8 @@ describe('enqueue', () => {
     }
   });
   it('pins the published version and content even when another publication is selected before worker start', async () => {
-    const { recordTestVersion } = await import('./test-version-store');
-    const { publish } = await import('./test-publishing');
+    const { recordTestVersion } = await import('./authoring/test-version-store');
+    const { publish } = await import('./authoring/test-publishing');
     const { withTenantTransaction } = await import('./middleware/tenancy');
     const [test] = await privilegedDb
       .select()

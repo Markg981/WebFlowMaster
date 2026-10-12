@@ -1,5 +1,5 @@
 import type { Cleanup, Precondition } from '@shared/schema';
-import { parseMockSpec } from './network-mocks';
+import { parseMockSpec } from './authoring/network-mocks';
 import {
   parseAssertionValue,
   parseAssignment,

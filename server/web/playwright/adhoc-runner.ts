@@ -10,9 +10,9 @@ import { FlowCursor } from '../../flow-cursor';
 import { recordRunnerFailure } from '../../observability/taps/runner';
 import { requestVariables, substituteVariables } from '../../outbound-http';
 import { runPreconditions } from '../../precondition-runner';
-import { resolveSequenceForRun } from '../../step-elements';
+import { resolveSequenceForRun } from '../../authoring/step-elements';
 import { executeStep } from '../step-executor';
-import { expandSequenceForRun } from '../../step-groups';
+import { expandSequenceForRun } from '../../authoring/step-groups';
 import { storage } from '../../identity/storage';
 import { resolveVariables } from '../../variables';
 

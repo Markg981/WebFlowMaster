@@ -12,7 +12,7 @@ import type { NetworkSummary } from '@shared/network';
 /**
  * The prompt for a failure analysis, and the reading of its answer.
  *
- * Kept apart from the model call (server/ai-automation-service.ts) so that what is sent and what
+ * Kept apart from the model call (server/authoring/ai-automation-service.ts) so that what is sent and what
  * is believed can be tested without a network. What is sent is what the report already shows:
  * the reason, the steps with their errors, the requests that failed. Values that look like
  * secrets never leave — the model does not need a password to see that a login failed.

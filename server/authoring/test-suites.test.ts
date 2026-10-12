@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
  * no code — not even the privileged handle — can link a row to another organization's.
  */
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -24,12 +24,12 @@ vi.mock('./logger', () => ({
   },
   updateLogLevel: vi.fn(),
 }));
-vi.mock('./queue', () => ({
+vi.mock('../queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'q',
   testExecutionQueue: { add: vi.fn() },
 }));
 
-const { privilegedDb } = await import('./db');
+const { privilegedDb } = await import('../db');
 const schema = await import('@shared/schema');
 const {
   auditLog,
@@ -44,11 +44,11 @@ const {
   tests,
   users,
 } = schema;
-const { createTestOrganization } = await import('./tests/factories');
-const { tenancyMiddleware } = await import('./middleware/tenancy');
-const { default: suitesRoutes } = await import('./routes/suites.routes');
-const { createExecutionOrchestrator } = await import('./execution-orchestrator');
-const { readExecutionSnapshot } = await import('./execution-snapshot');
+const { createTestOrganization } = await import('../tests/factories');
+const { tenancyMiddleware } = await import('../middleware/tenancy');
+const { default: suitesRoutes } = await import('../routes/suites.routes');
+const { createExecutionOrchestrator } = await import('../execution-orchestrator');
+const { readExecutionSnapshot } = await import('../execution-snapshot');
 
 type Person = { id: number; username: string; organizationId: number; role: string };
 let app: express.Express;

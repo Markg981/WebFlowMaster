@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { projects, projectElements } from '@shared/schema';
-import { runWithTenant } from './middleware/tenancy';
-import { createTestOrganization, createTestUser } from './tests/factories';
+import { runWithTenant } from '../middleware/tenancy';
+import { createTestOrganization, createTestUser } from '../tests/factories';
 import {
   elementIdOfStep,
   recordHealedSelector,

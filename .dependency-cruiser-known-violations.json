@@ -353,6 +353,38 @@
   },
   {
     "type": "cycle",
+    "from": "server/authoring/custom-actions.ts",
+    "to": "server/authoring/step-groups.ts",
+    "unresolvedTo": "./step-groups",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/authoring/step-groups.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "server/authoring/custom-actions.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
     "from": "server/bdd/bdd-execution.ts",
     "to": "server/test-execution-service.ts",
     "unresolvedTo": "../test-execution-service",
@@ -433,38 +465,6 @@
         "dependencyTypes": [
           "local",
           "dynamic-import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "server/custom-actions.ts",
-    "to": "server/step-groups.ts",
-    "unresolvedTo": "./step-groups",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/step-groups.ts",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "server/custom-actions.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
         ]
       }
     ]

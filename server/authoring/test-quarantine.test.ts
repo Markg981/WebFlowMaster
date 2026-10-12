@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
  * rules apply to its tests' quarantines; and no row can point at another organization's test.
  */
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('./logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 
-const { privilegedDb } = await import('./db');
+const { privilegedDb } = await import('../db');
 const schema = await import('@shared/schema');
 const {
   apiTests,
@@ -40,9 +40,9 @@ const {
   tests,
   users,
 } = schema;
-const { createTestOrganization } = await import('./tests/factories');
-const { tenancyMiddleware } = await import('./middleware/tenancy');
-const { default: quarantineRoutes } = await import('./routes/quarantine.routes');
+const { createTestOrganization } = await import('../tests/factories');
+const { tenancyMiddleware } = await import('../middleware/tenancy');
+const { default: quarantineRoutes } = await import('../routes/quarantine.routes');
 const { evidenceFrom, failuresOf } = await import('./test-quarantine');
 
 type Person = { id: number; username: string; organizationId: number; role: string };

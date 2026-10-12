@@ -1,6 +1,6 @@
 import { Page } from 'playwright';
-import { aiService } from '../ai-automation-service';
-import { recordHealedSelector } from '../step-elements';
+import { aiService } from '../authoring/ai-automation-service';
+import { recordHealedSelector } from '../authoring/step-elements';
 
 /**
  * Drives a page on behalf of a step, with AI self-healing of the selector when the step fails.

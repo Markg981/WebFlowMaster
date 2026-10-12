@@ -545,7 +545,7 @@ function probes(ctx: {
       params: [ctx.since],
     },
     {
-      // server/test-quarantine.ts, a quarantined test's results since it was quarantined
+      // server/authoring/test-quarantine.ts, a quarantined test's results since it was quarantined
       name: 'results: one test, last 30 days',
       sql: `SELECT status, started_at FROM report_test_case_results
             WHERE ui_test_id = $1 AND started_at >= $2 ORDER BY started_at ASC`,

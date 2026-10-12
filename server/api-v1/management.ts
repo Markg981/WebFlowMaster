@@ -25,13 +25,13 @@ import schedulerService, {
   firstRunAt,
 } from '../scheduler-service';
 import { encryptSecret } from '../crypto';
-import { normaliseTagName } from '../test-tags';
+import { normaliseTagName } from '../authoring/test-tags';
 import {
   QuarantineError,
   listOpenQuarantines,
   quarantineTest,
   releaseQuarantine,
-} from '../test-quarantine';
+} from '../authoring/test-quarantine';
 import { generateWebhookToken } from '../identity/webhook-tokens';
 import {
   artifactStore,

@@ -6,7 +6,7 @@ import { mobileTestSchema, type MobileStep } from '@shared/mobile';
 import { mobileGroupSchema, type MobileGroupDefinition } from '@shared/mobile-groups';
 import { prepareMobileSteps, expandMobileGroups } from './mobile-step-groups';
 import { getTenantOrgId, type TenantTx } from '../middleware/tenancy';
-import { recordTypedTestVersion } from '../test-version-store';
+import { recordTypedTestVersion } from '../authoring/test-version-store';
 import { recordAudit, type auditActor } from '../tenancy/audit';
 import { lockOrganizationRuns } from '../tenancy/tenant-quotas';
 

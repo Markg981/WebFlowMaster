@@ -15,10 +15,10 @@ import {
   type Test,
 } from '@shared/schema';
 import { withTenantTransaction } from '../middleware/tenancy';
-import { currentContentOf, currentVersionsOf } from '../test-version-store';
-import { publishedContentOf, reviewRequired } from '../test-publishing';
-import { openQuarantinesOf } from '../test-quarantine';
-import { SharedDataError, expandWithLoadedSets, loadSharedSets } from '../test-data';
+import { currentContentOf, currentVersionsOf } from '../authoring/test-version-store';
+import { publishedContentOf, reviewRequired } from '../authoring/test-publishing';
+import { openQuarantinesOf } from '../authoring/test-quarantine';
+import { SharedDataError, expandWithLoadedSets, loadSharedSets } from '../authoring/test-data';
 import { freezeMobilePlanDefinitions } from '../mobile/mobile-plan-units';
 import type { SnapshotTestReference } from '../execution-snapshot';
 import { emit, type PlanRun } from './context';
@@ -349,7 +349,7 @@ export type Quarantined = Awaited<ReturnType<typeof openQuarantinesOf>>;
 
 /**
  * Tests in quarantine run like the rest; their failures are recorded and do not count against
- * the run (server/test-quarantine.ts). Read as the run starts, like the published versions above.
+ * the run (server/authoring/test-quarantine.ts). Read as the run starts, like the published versions above.
  */
 export async function readQuarantine(run: PlanRun, tests: FrozenTests): Promise<Quarantined> {
   const kinds: TestKind[] = ['ui', 'api', 'mobile'];

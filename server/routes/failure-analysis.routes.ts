@@ -14,7 +14,7 @@ import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { aiService } from '../ai-automation-service';
+import { aiService } from '../authoring/ai-automation-service';
 import {
   buildFailurePrompt,
   evidenceSteps,

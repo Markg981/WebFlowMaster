@@ -9,7 +9,7 @@ import {
   tests,
   type TestSuite,
 } from '@shared/schema';
-import type { TenantTx } from './middleware/tenancy';
+import type { TenantTx } from '../middleware/tenancy';
 
 /**
  * Suites: a named set of tests, kept once and included by as many plans as need it.

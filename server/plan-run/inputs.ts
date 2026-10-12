@@ -23,7 +23,7 @@ import {
 } from '../execution-snapshot';
 import { decryptSecret } from '../crypto';
 import { defaultVariables } from '../variables';
-import { loadDataVariables } from '../test-data';
+import { loadDataVariables } from '../authoring/test-data';
 import { ended, report, type Ended, type PlanRun } from './context';
 
 /** Creates the run's results directory. A run that cannot write ends here, as an error. */

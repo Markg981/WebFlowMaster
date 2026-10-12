@@ -457,7 +457,7 @@ export async function fetchItems(
   return fetchAzureItems(config, request, deps);
 }
 
-/** What a story says: the text a test proposal is written from (server/story-tests.ts). */
+/** What a story says: the text a test proposal is written from (server/authoring/story-tests.ts). */
 export interface ItemText {
   title: string;
   description: string;

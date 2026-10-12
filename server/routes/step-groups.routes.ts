@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { stepGroups, tests, AdhocTestStepSchema } from '@shared/schema';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { asSteps, isGroupCall, referencedGroupIds } from '../step-groups';
+import { asSteps, isGroupCall, referencedGroupIds } from '../authoring/step-groups';
 import logger from '../logger';
 
 /**

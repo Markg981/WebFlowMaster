@@ -4,7 +4,7 @@ import { reportTestCaseResults, testPlanExecutions } from '@shared/schema';
 import { getDashboardMetrics, getDashboardSchedules } from '../reporting/analytics';
 import { dashboardWidgetSchema, widgetConfigSchema } from '@shared/dashboard-layout';
 import { summariseFlakiness } from '../reporting/flaky';
-import { openQuarantinesOf, refKey } from '../test-quarantine';
+import { openQuarantinesOf, refKey } from '../authoring/test-quarantine';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import logger from '../logger';

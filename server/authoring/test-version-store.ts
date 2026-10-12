@@ -1,6 +1,6 @@
 import { desc, eq, inArray, max } from 'drizzle-orm';
 import { testVersions } from '@shared/schema';
-import type { TenantTx } from './middleware/tenancy';
+import type { TenantTx } from '../middleware/tenancy';
 import { describeChange, snapshotOf } from './test-versions';
 import {
   typedSnapshotOf,

@@ -2,10 +2,10 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import playwright, { type Browser, type BrowserContext } from 'playwright';
-import { PlaywrightService } from './web/playwright-service';
-import { mapRecordedSequence, type RecordedAction } from '../shared/recording';
+import { PlaywrightService } from '../web/playwright-service';
+import { mapRecordedSequence, type RecordedAction } from '../../shared/recording';
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),

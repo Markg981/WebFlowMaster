@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { snapshotOf, describeChange } from '../test-versions';
+import { snapshotOf, describeChange } from '../authoring/test-versions';
 import { exportBundle, parseBundle } from '../test-bundle';
 const bdd = {
   language: 'en',

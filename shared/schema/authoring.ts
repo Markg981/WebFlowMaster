@@ -728,7 +728,7 @@ export const insertTestSchema = createInsertSchema(tests, {
   id: true,
   createdAt: true,
   updatedAt: true,
-  // Which version runs is changed only by publishing (server/test-publishing.ts), which checks
+  // Which version runs is changed only by publishing (server/authoring/test-publishing.ts), which checks
   // the review policy and writes the history. Saving a test must not be a way round it.
   publishedVersion: true,
   // The tenancy boundary: never accepted from the client, always derived server-side
@@ -773,7 +773,7 @@ export const AdhocTestActionSchema = z.object({
   // runs. See server/step-groups.ts.
   //
   // And a call to one of the organization's custom actions, `customAction:<id>`, which the
-  // runner replaces with the action's script the same way (server/custom-actions.ts).
+  // runner replaces with the action's script the same way (server/authoring/custom-actions.ts).
   id: z.union([
     z.enum(ADHOC_ACTION_IDS),
     z.literal(STEP_GROUP_ACTION_ID),

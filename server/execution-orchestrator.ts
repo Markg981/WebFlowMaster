@@ -14,7 +14,7 @@ import type { CiContext } from '@shared/ci';
 import { privilegedDb } from './db';
 import { getCorrelationId } from './middleware/correlation';
 import { runAsOrganization, withTenantTransaction } from './middleware/tenancy';
-import { expandPlanTests, type TestReference } from './test-suites';
+import { expandPlanTests, type TestReference } from './authoring/test-suites';
 import { selectForChanges } from './test-impact';
 import { announceExecution, transitionExecution } from './execution-state';
 import {

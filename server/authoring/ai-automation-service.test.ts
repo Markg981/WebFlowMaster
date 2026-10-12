@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { tests, detectedElements, users } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
-import { createTestOrganization } from './tests/factories';
+import { createTestOrganization } from '../tests/factories';
 
 // Mock only genuinely external / non-deterministic dependencies:
 //  - Google Gemini (a real network API we must not call in tests)
@@ -24,7 +24,7 @@ vi.mock('@google/generative-ai', () => ({
   }),
 }));
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: { info: vi.fn(), warn: mockWarn, error: vi.fn() },
 }));
 

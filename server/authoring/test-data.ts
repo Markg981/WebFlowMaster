@@ -1,7 +1,7 @@
 import { inArray, sql } from 'drizzle-orm';
 import { testDataSets, tests } from '@shared/schema';
 import { dataVariables, sharedSetIdOf, sharedSetMarker } from '@shared/test-data';
-import type { TenantTx } from './middleware/tenancy';
+import type { TenantTx } from '../middleware/tenancy';
 
 /**
  * Shared test data at run time (shared/test-data.ts): the {{data.…}} values, and the rows of a

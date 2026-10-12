@@ -1,6 +1,6 @@
 import { STEP_GROUP_ACTION_ID } from '@shared/recording';
 import { stepGroups } from '@shared/schema';
-import { withTenantTransaction } from './middleware/tenancy';
+import { withTenantTransaction } from '../middleware/tenancy';
 import { expandCustomActionsForRun } from './custom-actions';
 
 /**
@@ -155,7 +155,7 @@ export async function loadReferencedGroups(sequence: unknown): Promise<LoadedSte
  */
 export async function expandSequenceForRun(sequence: unknown): Promise<ExpansionResult> {
   const groups = await expandGroupsForRun(sequence);
-  // Then the organization's custom actions, including any a group uses (server/custom-actions.ts).
+  // Then the organization's custom actions, including any a group uses (server/authoring/custom-actions.ts).
   const actions = await expandCustomActionsForRun(groups.steps);
   return {
     steps: actions.steps,

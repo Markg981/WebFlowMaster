@@ -17,7 +17,7 @@ import {
 import { isManualSequence, manualStepsOf } from '@shared/manual-tests';
 import { encryptSecret } from '../crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { buildStoryPrompt, parseProposals } from '../story-tests';
+import { buildStoryPrompt, parseProposals } from '../authoring/story-tests';
 import { jiraText } from '../issue-providers';
 
 vi.mock('../logger', () => ({
@@ -33,7 +33,7 @@ vi.mock('../logger', () => ({
 }));
 
 const ai = { available: true, answer: null as string | null, prompts: [] as string[] };
-vi.mock('../ai-automation-service', () => ({
+vi.mock('../authoring/ai-automation-service', () => ({
   aiService: {
     isAvailable: () => ai.available,
     proposeTestCases: async (prompt: string) => {

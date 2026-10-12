@@ -19,7 +19,7 @@ import {
 import { encryptSecret } from '../crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { casesOf } from '../test-management';
-import { testsOfSuite } from '../test-suites';
+import { testsOfSuite } from '../authoring/test-suites';
 
 vi.mock('../logger', () => ({
   default: {

@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { apiTests, mobileTests, tags, testTags, tests, type TaggableType } from '@shared/schema';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { normaliseTagName, setTagsForTest } from '../test-tags';
+import { normaliseTagName, setTagsForTest } from '../authoring/test-tags';
 import logger from '../logger';
 
 /**

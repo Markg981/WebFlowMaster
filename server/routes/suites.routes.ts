@@ -13,7 +13,7 @@ import {
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { testsOfSuite } from '../test-suites';
+import { testsOfSuite } from '../authoring/test-suites';
 import {
   TEST_KINDS,
   firstMissingKind,
@@ -22,12 +22,12 @@ import {
   missingMessage,
   namedItems,
   type TestItem,
-} from '../test-refs';
+} from '../authoring/test-refs';
 import logger from '../logger';
 
 /**
  * Suites, and which plans include them. The rules for what a suite runs are in
- * server/test-suites.ts; RLS keeps each organization's to itself, and a suite in a restricted
+ * server/authoring/test-suites.ts; RLS keeps each organization's to itself, and a suite in a restricted
  * project to that project's members (migration 0034).
  */
 

@@ -21,8 +21,8 @@ import logger from '../logger';
 import { BrowserTaskError, browserTasks } from '../web/browser-tasks';
 import { withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { recordTestVersion, recordTypedTestVersion } from '../test-version-store';
-import { tagsOfTests } from '../test-tags';
+import { recordTestVersion, recordTypedTestVersion } from '../authoring/test-version-store';
+import { tagsOfTests } from '../authoring/test-tags';
 import { manualSequenceProblem } from '@shared/manual-tests';
 import { ImportError, MAX_IMPORTED_TESTS, importApiDescription } from '../api-tests/api-import';
 import {
@@ -34,8 +34,8 @@ import {
   sameAs,
 } from '../test-bundle';
 import { toPlaywright } from '../playwright-export';
-import { expandSequenceForRun } from '../step-groups';
-import { resolveSequenceForRun } from '../step-elements';
+import { expandSequenceForRun } from '../authoring/step-groups';
+import { resolveSequenceForRun } from '../authoring/step-elements';
 import { GherkinError } from '../bdd/gherkin';
 import { compileGherkinSource, contextOfPickle, exampleLineOfPickle } from '../bdd/gherkin-source';
 import { GherkinImportOptionsSchema } from '@shared/bdd';

@@ -4,7 +4,7 @@ import { apiTests, mobileTests, tests } from '@shared/schema';
 import { asyncHandler } from '../middleware/async-handler';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction } from '../middleware/tenancy';
-import { tagsOfTests, testIdsWithTags } from '../test-tags';
+import { tagsOfTests, testIdsWithTags } from '../authoring/test-tags';
 
 /**
  * The picker a test plan is assembled from: UI, API and mobile app tests in one list.

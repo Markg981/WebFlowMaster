@@ -11,7 +11,7 @@ import {
   linkWhere,
   missingMessage,
   namedItems,
-} from '../test-refs';
+} from '../authoring/test-refs';
 import {
   AUDIT_ACTIONS,
   issueTrackers,
@@ -40,10 +40,10 @@ import {
   type CoverageScope,
 } from '../requirements';
 import logger from '../logger';
-import { aiService } from '../ai-automation-service';
+import { aiService } from '../authoring/ai-automation-service';
 import { htmlToText } from '../messaging/email-inbox';
 import { toSequence } from '@shared/manual-tests';
-import { recordTestVersion } from '../test-version-store';
+import { recordTestVersion } from '../authoring/test-version-store';
 import {
   MAX_PROPOSALS,
   MAX_STEPS,
@@ -51,7 +51,7 @@ import {
   buildStoryPrompt,
   parseProposals,
   type ProposalLanguage,
-} from '../story-tests';
+} from '../authoring/story-tests';
 
 /**
  * Requirements traceability (shared/requirements.ts): epics, user stories and requirements, the

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import logger from './logger';
-import { privilegedDb } from './db';
+import logger from '../logger';
+import { privilegedDb } from '../db';
 import { tests, detectedElements } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 
@@ -59,7 +59,7 @@ export class AIAutomationService {
    * Answers the authoring prompt, or nothing.
    *
    * Deliberately thin: everything that decides what may be asked and what may be believed
-   * lives in server/nl-authoring.ts, where it can be tested without a network. This only
+   * lives in server/authoring/nl-authoring.ts, where it can be tested without a network. This only
    * carries the text there and back, and returns null for every failure — a model that is
    * unavailable degrades the feature to the phrasings the parser already understands.
    */
@@ -77,7 +77,7 @@ export class AIAutomationService {
   }
 
   /**
-   * Answers a story's test proposal prompt (server/story-tests.ts), or nothing. As thin as
+   * Answers a story's test proposal prompt (server/authoring/story-tests.ts), or nothing. As thin as
    * proposeTestSteps, and for the same reason.
    */
   async proposeTestCases(prompt: string): Promise<string | null> {

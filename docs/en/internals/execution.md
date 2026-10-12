@@ -199,7 +199,7 @@ With `shards = 1` none of this runs.
 
 - **Which version.** Plans run a web, API or mobile test's **published version** when it has one; with review required
   by the organization, an unpublished test is skipped rather than run unreviewed
-  (`server/test-publishing.ts`).
+  (`server/authoring/test-publishing.ts`).
 - **Preconditions** (API calls that set up state) run first; each can be skipped when a check shows
   the state already exists. What a failed precondition means is the plan's policy: block the test
   (`error`), skip it, or continue anyway.

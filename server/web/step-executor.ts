@@ -1,7 +1,7 @@
 import { compareValues } from '../value-comparison';
 export { compareValues } from '../value-comparison';
 import type { Locator, Page } from 'playwright';
-import { clearMocks, installBlock, installMock, parseMockSpec } from '../network-mocks';
+import { clearMocks, installBlock, installMock, parseMockSpec } from '../authoring/network-mocks';
 import type { PlaywrightReporter } from './playwright-reporter';
 import {
   ADHOC_ACTION_IDS,
@@ -160,7 +160,7 @@ export interface ExecutableStep {
   action?: { id?: string; name?: string } | null;
   targetElement?: { selector?: string; frameSelector?: string | null } | null;
   value?: unknown;
-  /** Set on the step a custom action call expands into (server/custom-actions.ts). */
+  /** Set on the step a custom action call expands into (server/authoring/custom-actions.ts). */
   args?: Record<string, string> | null;
 }
 
@@ -1303,7 +1303,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     return passed;
   },
 
-  /** Answers the page's requests to an address instead of the server (server/network-mocks.ts). */
+  /** Answers the page's requests to an address instead of the server (server/authoring/network-mocks.ts). */
   mockRequest: async (rt) => {
     const wanted = requireValue(rt, 'mockRequest');
     if ('error' in wanted) return failed(wanted.error);

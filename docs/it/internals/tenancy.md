@@ -148,7 +148,7 @@ motivo.
 ### Collegamenti fra righe della stessa organizzazione
 
 Una foreign key da una riga dell'organizzazione A a una dell'organizzazione B sarebbe una fuga di dati
-attraverso un join. Un test di deriva in `server/test-suites.test.ts` elenca ogni foreign key fra
+attraverso un join. Un test di deriva in `server/authoring/test-suites.test.ts` elenca ogni foreign key fra
 tabelle per organizzazione e richiede che ognuna sia protetta da un vincolo di stessa organizzazione o
 dichiarata come collegamento di paternità (`created_by` e simili, che puntano agli utenti).
 
