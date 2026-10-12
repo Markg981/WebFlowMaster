@@ -46,7 +46,7 @@ services:
       retries: 10
 
   # The test inbox: the applications under test send their mail to its SMTP port (1025), and a
-  # "Wait for email" step reads it through its API (server/email-inbox.ts). Any address has a
+  # "Wait for email" step reads it through its API (server/messaging/email-inbox.ts). Any address has a
   # mailbox, so a test signs up with a made-up one. The inbox is at http://localhost:8025.
   # It keeps mail in memory and has no password: for test environments, not for real mail.
   mailpit:

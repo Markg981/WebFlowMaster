@@ -13,8 +13,8 @@ import {
   mailAvailableOnInstallation,
   organizationMailConfigured,
   sendMail,
-} from './mailer';
-import { passwordResetMail } from './mail-messages';
+} from './messaging/mailer';
+import { passwordResetMail } from './messaging/mail-messages';
 import { RedisStore } from 'connect-redis';
 import { storage } from './storage';
 import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from '@shared/schema';

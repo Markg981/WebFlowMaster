@@ -204,7 +204,7 @@ describe('route modules cannot query outside the tenant context', () => {
         'deletes versions through it; nothing else touches organization_keys. Inside a tenant ' +
         'transaction the lookup goes through that transaction instead.',
     },
-    'sms-inbox.ts': {
+    'messaging/sms-inbox.ts': {
       max: 0,
       why:
         'An SMS provider posts with nothing but the inbound token, so finding the organization is a ' +

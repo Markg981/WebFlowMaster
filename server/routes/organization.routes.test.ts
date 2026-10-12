@@ -131,7 +131,7 @@ describe('the audit trail records what the member routes do', () => {
   });
 
   it('mails the invitation link when the username is an address and mail is configured, and says when it could not', async () => {
-    const { mailerDeps } = await import('../mailer');
+    const { mailerDeps } = await import('../messaging/mailer');
     const mails: any[] = [];
     mailerDeps.transport = {
       sendMail: async (m: any) => {

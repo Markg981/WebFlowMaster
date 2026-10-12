@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import router from './mail-templates.routes';
 import { runWithTenant } from '../middleware/tenancy';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { builtInTemplates } from '../mail-templates';
+import { builtInTemplates } from '../messaging/mail-templates';
 import { privilegedDb } from '../db';
 import { auditLog } from '@shared/schema';
 import { eq } from 'drizzle-orm';

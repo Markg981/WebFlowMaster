@@ -1,6 +1,6 @@
 import type { MailMessage } from './mailer';
-import { summaryLine, type RunSummary } from './notifications';
-import { reportUrlFor } from './report-links';
+import { summaryLine, type RunSummary } from '../notifications';
+import { reportUrlFor } from '../report-links';
 
 /**
  * Transactional HTML templates with equivalent plain text for every mail client.

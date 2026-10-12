@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { privilegedDb } from './db';
 import { mailSettings } from '@shared/mail-settings';
 import { createTestOrganization } from './tests/factories';
-import { mailerDeps, sendMail, smtpTransportOptions } from './mailer';
+import { mailerDeps, sendMail, smtpTransportOptions } from './messaging/mailer';
 
 afterEach(() => {
   delete process.env.WFM_EGRESS_PROXY;

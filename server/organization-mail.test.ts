@@ -8,8 +8,8 @@ import { testPlans } from '@shared/schema';
 import { mailTemplates } from '@shared/mail-templates';
 import { runWithTenant } from './middleware/tenancy';
 import { mailRunFinished } from './run-mail';
-import { mailerDeps, sendMail } from './mailer';
-import { queueMail, receiveDeliveryEvent } from './mail-delivery';
+import { mailerDeps, sendMail } from './messaging/mailer';
+import { queueMail, receiveDeliveryEvent } from './messaging/mail-delivery';
 let org: number;
 let foreign: number;
 beforeAll(async () => {

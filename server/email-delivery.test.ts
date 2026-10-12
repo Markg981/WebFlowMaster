@@ -12,7 +12,7 @@ import {
   users,
 } from '@shared/schema';
 import { passwordProblem } from '@shared/password-policy';
-import { mailerDeps, sendMail } from './mailer';
+import { mailerDeps, sendMail } from './messaging/mailer';
 import { mailRunFinished, personWantsMail } from './run-mail';
 import type { RunSummary } from './notifications';
 import { mailSettings } from '@shared/mail-settings';
@@ -31,7 +31,7 @@ vi.mock('./logger', () => ({
 }));
 
 /**
- * E-mail delivery (server/mailer.ts): invitations and reset links mailed, "Forgot your password?",
+ * E-mail delivery (server/messaging/mailer.ts): invitations and reset links mailed, "Forgot your password?",
  * run notifications to the plan's addresses and to the person who started the run — and the
  * password policy (shared/password-policy.ts).
  */

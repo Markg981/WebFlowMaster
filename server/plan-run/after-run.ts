@@ -11,7 +11,7 @@ import { executionOrchestrator } from '../execution-orchestrator';
 import { fileFailure, loadTracker, markResolved } from '../issue-store';
 import { publishExecution } from '../test-management';
 import { mailRunFinished } from '../run-mail';
-import { organizationMailConfigured } from '../mailer';
+import { organizationMailConfigured } from '../messaging/mailer';
 import {
   describeUnsupported,
   mergeNotificationSettings,

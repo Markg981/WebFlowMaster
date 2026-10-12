@@ -12,7 +12,7 @@ import {
   waitForEmail,
   type InboxGet,
 } from './email-inbox';
-import { executeStep } from './web/step-executor';
+import { executeStep } from '../web/step-executor';
 
 /**
  * Reading the email an application under test sends, from the environment's Mailpit: the

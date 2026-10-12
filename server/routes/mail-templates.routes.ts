@@ -11,7 +11,11 @@ import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
-import { builtInTemplates, previewMailTemplate, validateMailTemplate } from '../mail-templates';
+import {
+  builtInTemplates,
+  previewMailTemplate,
+  validateMailTemplate,
+} from '../messaging/mail-templates';
 
 const router = asyncRouter();
 const purposeSchema = z.enum(TEMPLATE_PURPOSES);

@@ -5,12 +5,12 @@ import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { parseConnectionUrl } from 'nodemailer/lib/shared/index.js';
 import { eq } from 'drizzle-orm';
 import { mailSettings } from '@shared/mail-settings';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { resolveMailConfiguration, type ResolvedMailConfiguration } from './mail-settings';
 import { providerHeaders } from './mail-providers';
 import { applyMailTemplate } from './mail-templates';
-import { egressProxy } from './egress-proxy';
-import { isEgressDenied, resolveVetted } from './egress-policy';
+import { egressProxy } from '../egress-proxy';
+import { isEgressDenied, resolveVetted } from '../egress-policy';
 
 /**
  * Sending e-mail: invitations, password reset links, run notifications.

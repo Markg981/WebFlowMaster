@@ -9,8 +9,8 @@ import {
   type ProviderMailConfig,
   type EncryptedMailSecret,
 } from '@shared/mail-settings';
-import { privilegedDb } from './db';
-import { decryptSecret, encryptSecret } from './crypto';
+import { privilegedDb } from '../db';
+import { decryptSecret, encryptSecret } from '../crypto';
 
 const decrypt = async (organizationId: number, secret: EncryptedMailSecret | null | undefined) =>
   secret
