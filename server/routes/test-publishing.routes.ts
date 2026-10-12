@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { testReviews, testVersions, users } from '@shared/schema';
@@ -27,7 +28,7 @@ import loggerPromise from '../logger';
  * these handlers only parse, call and translate.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 function idParam(value: string): number | null {

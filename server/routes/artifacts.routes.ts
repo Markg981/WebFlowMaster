@@ -1,5 +1,6 @@
+import { asyncRouter } from '../middleware/async-router';
 import { stepListOf } from '@shared/mobile';
-import { Router } from 'express';
+
 import { eq } from 'drizzle-orm';
 import { artifactStore, assertSafeKey, RESULTS_PREFIX } from '../artifact-store';
 import { testPlanExecutions } from '@shared/schema';
@@ -27,7 +28,7 @@ import loggerPromise from '../logger';
  * every worker writes to, so a screenshot taken on another machine is served from here too.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /**

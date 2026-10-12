@@ -1,4 +1,5 @@
-import express, { Router, type RequestHandler } from 'express';
+import express, { type RequestHandler } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { webhookRateLimit } from '../middleware/rate-limits';
 import { billingConfig } from '../billing/config';
 import { BillingError } from '../billing/provider';
@@ -19,7 +20,7 @@ export const billingWebhookBodyParser: RequestHandler = (req, res, next) => {
   next();
 };
 
-export const billingWebhookRouter = Router();
+export const billingWebhookRouter = asyncRouter();
 billingWebhookRouter.post('/api/billing/webhooks/stripe', webhookRateLimit(), async (req, res) => {
   const config = billingConfig();
   // An installation that does not use Stripe has no endpoint here: nothing for a scanner to probe.

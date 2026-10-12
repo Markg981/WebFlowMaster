@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import type { Router } from 'express';
+import { asyncRouter } from './middleware/async-router';
 
 /**
  * Probes for whatever runs the web process: Docker's HEALTHCHECK, a load balancer, Kubernetes.
@@ -41,7 +42,7 @@ export async function readiness(checks: Record<string, ReadinessCheck>, timeoutM
 }
 
 export function healthRouter(checks: Record<string, ReadinessCheck>, timeoutMs?: number): Router {
-  const router = Router();
+  const router = asyncRouter();
   router.get('/healthz', (_req, res) => {
     res.set('Cache-Control', 'no-store').json({ status: 'ok' });
   });

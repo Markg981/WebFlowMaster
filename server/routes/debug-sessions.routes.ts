@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -25,7 +25,7 @@ import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
  * starting another stops the first, whose browser would otherwise wait out its idle time.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 const startSchema = z.object({

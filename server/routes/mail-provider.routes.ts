@@ -1,4 +1,5 @@
-import express, { Router, type RequestHandler } from 'express';
+import express, { type RequestHandler } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { getProviderMailConfiguration, registerMailgunRequest } from '../mail-settings';
 import { receiveDeliveryEvent } from '../mail-delivery';
@@ -12,7 +13,7 @@ export const mailProviderBodyParser: RequestHandler = (req, res, next) => {
   if (req.method === 'POST' && providerPath.test(req.path)) return rawParser(req, res, next);
   next();
 };
-export const mailProviderWebhookRouter = Router();
+export const mailProviderWebhookRouter = asyncRouter();
 // Public like the other webhooks, and limited per client address the same way.
 mailProviderWebhookRouter.post(
   '/api/mail-deliveries/providers/:callbackId',

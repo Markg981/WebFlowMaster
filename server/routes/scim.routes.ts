@@ -1,10 +1,10 @@
 import express, {
-  Router,
   type NextFunction,
   type Request,
   type RequestHandler,
   type Response,
 } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import rateLimit from 'express-rate-limit';
 import { sharedStore } from '../middleware/rate-limit-store';
 import loggerPromise from '../logger';
@@ -42,7 +42,7 @@ import {
 
 export { SCIM_BASE_PATH };
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /** Where the provider reaches this API: the address to give it. */

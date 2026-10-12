@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { checkRunOn } from '../browser-grids';
 import {
   testPlans,
@@ -42,7 +42,7 @@ import { dedupeKeyFor } from '../issue-tracking';
 import { artifactUrl, stepsWithArtifactUrls } from './artifacts.routes';
 import { linkedIssuesFor } from './issues.routes';
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 // jsonb columns are stored via JSON.stringify (codebase convention) and parsed back

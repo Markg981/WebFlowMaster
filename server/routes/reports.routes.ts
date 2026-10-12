@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { junitReportFor } from '../junit-report';
 import loggerPromise from '../logger';
 import { requireRole } from '../middleware/require-role';
@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orchestrator';
 import { QuotaError, quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 router.post(

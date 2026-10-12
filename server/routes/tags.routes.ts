@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { asc, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,7 +17,7 @@ import loggerPromise from '../logger';
  * stayed that way: the test written next week is in no plan until somebody remembers it.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 const nameSchema = z.object({ name: z.string().trim().min(1, 'A tag needs a name').max(60) });

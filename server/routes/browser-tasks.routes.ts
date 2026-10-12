@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
+import { type Response } from 'express';
 import { z } from 'zod';
 import {
   AdhocDetectedElementSchema,
@@ -23,7 +24,7 @@ import { quotaErrorBody, quotaErrorStatus } from '../tenant-quotas';
  * queue (server/browser-tasks.ts), which decides where the browser runs.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 // After requireRole, so it counts for the user the role check has already established.
 const heavyLimit = sharedHeavyRateLimit();

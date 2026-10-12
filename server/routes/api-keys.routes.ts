@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -19,7 +19,7 @@ import loggerPromise from '../logger';
  * revoked and replaced, which is also the only honest thing to tell someone who lost one.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 const createApiKeySchema = z.object({

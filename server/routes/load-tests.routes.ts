@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
@@ -39,7 +40,7 @@ import loggerPromise from '../logger';
  * summary as the worker writes it.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /** What queues a run and what takes a queued one back. Fields so the tests can stand them in. */

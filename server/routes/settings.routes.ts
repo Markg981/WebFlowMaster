@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { AUDIT_ACTIONS, insertSystemSettingSchema } from '@shared/schema';
 import { auditActor, recordAudit } from '../audit';
 import { requireInstallationAdmin } from '../installation-admin';
@@ -20,7 +20,7 @@ import {
  * this module may not.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 router.get(

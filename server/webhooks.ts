@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
+import { asyncRouter } from './middleware/async-router';
 import { privilegedDb } from './db';
 import { testPlanWebhooks, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -6,7 +7,7 @@ import { runTestPlan } from './test-execution-service';
 import loggerPromise from './logger';
 import { hashWebhookToken, webhookTokenFromRequest } from './webhook-tokens';
 
-export const webhooksRouter = Router();
+export const webhooksRouter = asyncRouter();
 
 /**
  * POST /api/webhooks/execute — start a test plan from a CI system.

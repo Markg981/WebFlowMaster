@@ -1,4 +1,5 @@
-import { Router, type Request, type Response, type NextFunction } from 'express';
+import { type Request, type Response, type NextFunction } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { users } from '@shared/schema';
@@ -26,7 +27,7 @@ import loggerPromise from '../logger';
  * second factor decoration.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 function sessionOnly(req: Request, res: Response, next: NextFunction) {

@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
@@ -16,7 +17,7 @@ import loggerPromise from '../logger';
  * server/test-quarantine.ts.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 function fail(res: Response, error: unknown, what: string) {

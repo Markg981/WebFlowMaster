@@ -275,6 +275,23 @@ describe('route modules cannot query outside the tenant context', () => {
     expect(inline, `move these into a server/routes/ module: ${inline.join(', ')}`).toEqual([]);
   });
 
+  /**
+   * Express 4 ignores what a handler returns, so an async handler that throws outside a
+   * try/catch in a plain Router leaves the request hanging. asyncRouter() hands every such
+   * rejection to the error middleware; a module creating a plain Router() would bring the
+   * hang back for each of its handlers without a try/catch.
+   */
+  it('every route module creates its router with asyncRouter()', () => {
+    const files = routeFiles();
+    expect(files.length).toBeGreaterThanOrEqual(60);
+
+    const offenders = files
+      .filter(({ source }) => /(?<!\w)Router\s*\(/.test(source))
+      .map(({ name }) => name);
+
+    expect(offenders, `use asyncRouter() in: ${offenders.join(', ')}`).toEqual([]);
+  });
+
   it.each(Object.entries(PRIVILEGED_BOOTSTRAP_BUDGET))(
     'server/%s stays within its privileged-bootstrap budget',
     (file, { max, why }) => {

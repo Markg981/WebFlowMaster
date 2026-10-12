@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+import { type Request, type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { isEmailAddress, organizationMailConfigured, sendMail, type MailResult } from '../mailer';
 import { invitationMail, passwordResetMail } from '../mail-messages';
 import { publicBase } from './sso.routes';
@@ -27,7 +28,7 @@ import loggerPromise from '../logger';
 import { liveRunCounts, quotaUsage, quotasFor } from '../tenant-quotas';
 import { availableRunnerCount } from '../runner-registry';
 
-const router = Router();
+const router = asyncRouter();
 
 const RoleSchema = z.enum(['viewer', 'editor', 'owner']);
 

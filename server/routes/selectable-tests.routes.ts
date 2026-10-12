@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { and, ilike, inArray, sql, type SQL } from 'drizzle-orm';
 import { apiTests, mobileTests, tests } from '@shared/schema';
 import { asyncHandler } from '../middleware/async-handler';
@@ -13,7 +13,7 @@ import { tagsOfTests, testIdsWithTags } from '../test-tags';
  * organization's, and one built by a colleague has to be able to include anybody's tests.
  */
 
-const router = Router();
+const router = asyncRouter();
 
 router.get(
   '/api/selectable-tests',

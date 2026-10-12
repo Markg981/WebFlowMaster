@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -20,7 +20,7 @@ import loggerPromise from '../logger';
  * bug report, and in a screenshot.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 const trackerSchema = z.object({

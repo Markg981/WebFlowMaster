@@ -1,4 +1,5 @@
-import express, { Router } from 'express';
+import express from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
@@ -22,7 +23,7 @@ import { publicBase } from './sso.routes';
 export const SMS_INBOUND_PATH = '/api/sms/inbound';
 
 /** Public: the provider has no session, only the token in the address. */
-export const smsInboundRouter = Router();
+export const smsInboundRouter = asyncRouter();
 smsInboundRouter.use(express.urlencoded({ extended: false, limit: '64kb' }));
 smsInboundRouter.post('/:token', async (req, res) => {
   const sms = readInbound((req.body ?? {}) as Record<string, unknown>);
@@ -37,7 +38,7 @@ smsInboundRouter.post('/:token', async (req, res) => {
   res.status(204).end();
 });
 
-const router = Router();
+const router = asyncRouter();
 
 router.get('/api/organization/sms-inbox', requireRole('editor'), async (req, res) => {
   const status = await smsInboxStatus(getTenantOrgId()!);

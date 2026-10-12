@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { BILLING_INTERVALS, SUBSCRIPTION_STATUSES } from '@shared/billing';
 import { requireInstallationAdmin } from '../installation-admin';
@@ -18,7 +19,7 @@ import {
  * the manual override when a provider is configured. Guarded like quota administration
  * (server/routes/tenant-quota-admin.routes.ts).
  */
-const router = Router();
+const router = asyncRouter();
 const root = '/api/installation/billing';
 router.use(
   root,

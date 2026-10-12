@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -18,7 +18,7 @@ import loggerPromise from '../logger';
  * what every test that uses the action does on its next run.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /** Long enough for a real helper, short enough that nobody pastes a library into a step. */

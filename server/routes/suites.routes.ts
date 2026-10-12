@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import {
@@ -30,7 +31,7 @@ import loggerPromise from '../logger';
  * project to that project's members (migration 0034).
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 class SuiteError extends Error {

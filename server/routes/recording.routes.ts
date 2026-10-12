@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { asyncHandler } from '../middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
@@ -10,7 +10,7 @@ import { playwrightService } from '../playwright-service';
  * actions are polled back into the editor as a sequence.
  */
 
-const router = Router();
+const router = asyncRouter();
 // After requireRole, so it counts for the user the role check has already established.
 const heavyLimit = sharedHeavyRateLimit();
 

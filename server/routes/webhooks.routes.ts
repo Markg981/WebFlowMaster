@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
 import { AUDIT_ACTIONS, testPlans, testPlanWebhooks } from '@shared/schema';
@@ -19,7 +19,7 @@ import loggerPromise from '../logger';
  * the webhook and creating another.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 const createWebhookSchema = z.object({

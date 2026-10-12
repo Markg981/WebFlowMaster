@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
@@ -24,7 +25,7 @@ import loggerPromise from '../logger';
  * read it and try it on a list of files; editors keep it.
  */
 
-const router = Router();
+const router = asyncRouter();
 
 class ImpactError extends Error {
   constructor(

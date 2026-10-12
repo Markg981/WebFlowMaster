@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { and, desc, eq, gte } from 'drizzle-orm';
 import { reportTestCaseResults, testPlanExecutions } from '@shared/schema';
 import { getDashboardMetrics, getDashboardSchedules } from '../analytics';
@@ -9,7 +9,7 @@ import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import loggerPromise from '../logger';
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 
 /** How far back "sometimes" looks, unless the caller says otherwise. */

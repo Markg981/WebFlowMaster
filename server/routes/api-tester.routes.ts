@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
@@ -25,7 +25,7 @@ import { defaultVariables, resolveVariables } from '../variables';
  * history of what each person sent.
  */
 
-const router = Router();
+const router = asyncRouter();
 const logger = await loggerPromise;
 // After requireRole, so it counts for the user the role check has already established.
 const heavyLimit = sharedHeavyRateLimit();

@@ -1,4 +1,5 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { and, asc, eq, ne } from 'drizzle-orm';
 import { AUDIT_ACTIONS, testDataSets } from '@shared/schema';
 import { testDataSetInputSchema } from '@shared/test-data';
@@ -14,7 +15,7 @@ import loggerPromise from '../logger';
  * that fail later, somewhere else, for a reason nobody connects to the deletion.
  */
 
-const router = Router();
+const router = asyncRouter();
 
 class TestDataError extends Error {
   constructor(

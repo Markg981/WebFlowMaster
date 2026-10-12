@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
@@ -15,7 +15,7 @@ import { projects } from '@shared/schema';
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 
-const router = Router();
+const router = asyncRouter();
 router.use('/api/dashboards', requireRole('viewer'));
 const idSchema = z.string().uuid();
 const manage = (row: Dashboard, user: { id: number; role: string }) =>

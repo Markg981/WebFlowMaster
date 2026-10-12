@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { asyncRouter } from '../middleware/async-router';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { advertisedBddProfiles, validateBddProfileDefinition } from '../bdd-profiles';
 import { auditActor, recordAudit } from '../audit';
 
-const router = Router();
+const router = asyncRouter();
 const definition = z
   .object({
     name: z.string().trim().min(1).max(120),
