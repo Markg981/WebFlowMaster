@@ -50,7 +50,9 @@ const TestStatusPieChart: React.FC<TestStatusPieChartProps> = ({ data, isLoading
       <h3 className="mb-4 text-base font-semibold wrap-break-word">
         {t('dashboard.testStatusPieChart.testStatusOverview.title', 'Execution Status Breakdown')}
       </h3>
-      <div className="flex-1 w-full min-w-0 min-h-56">
+      {/* A definite height: ResponsiveContainer sizes to 100% of it, and a min-height alone
+          resolves 100% to 0 once the card is not stretched by a grid row (configurable dashboards). */}
+      <div className="h-64 w-full min-w-0 shrink-0">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
