@@ -4,9 +4,11 @@ import { withMermaid } from 'vitepress-plugin-mermaid';
 /**
  * The documentation site: `npm run docs:dev` to write, `npm run docs:build` to check and build.
  *
- * English and Italian live side by side in docs/en and docs/it, page for page. The build fails on a
- * dead link, which is the point of building it in the verification: a page that names another page
- * that was renamed is found here rather than by a reader.
+ * English and Italian live side by side in docs/en and docs/it, page for page. French and German
+ * (docs/fr, docs/de) carry the user guide only (the home page, the paths by role and the guide)
+ * and send the reader to the English pages for administration, security, reference and internals.
+ * The build fails on a dead link, which is the point of building it in the verification: a page
+ * that names another page that was renamed is found here rather than by a reader.
  */
 
 type Labels = {
@@ -198,6 +200,133 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
   ];
 }
 
+/** The user guide in a language that has only that part: French and German. */
+type GuideLabels = {
+  glance: string;
+  start: string;
+  paths: string;
+  qa: string;
+  devops: string;
+  admin: string;
+  guide: string;
+  gettingStarted: string;
+  webTests: string;
+  apiTests: string;
+  loadTests: string;
+  gherkinFiles: string;
+  mobileApps: string;
+  organizing: string;
+  collaboration: string;
+  running: string;
+  results: string;
+  english: string;
+  installAdmin: string;
+  security: string;
+  integrations: string;
+  reference: string;
+  releaseNotes: string;
+  internals: string;
+};
+
+function guideSidebar(lang: 'fr' | 'de', t: GuideLabels): DefaultTheme.SidebarItem[] {
+  const p = (page: string) => `/${lang}/${page}`;
+  return [
+    {
+      text: t.start,
+      items: [
+        { text: t.paths, link: p('start/') },
+        { text: t.qa, link: p('start/qa') },
+        { text: t.devops, link: p('start/devops') },
+        { text: t.admin, link: p('start/admin') },
+      ],
+    },
+    {
+      text: t.guide,
+      items: [
+        { text: t.gettingStarted, link: p('guide/') },
+        { text: t.webTests, link: p('guide/web-tests') },
+        { text: t.apiTests, link: p('guide/api-tests') },
+        { text: t.loadTests, link: p('guide/load-tests') },
+        { text: 'BDD / Cucumber', link: p('guide/bdd-tests') },
+        { text: t.gherkinFiles, link: p('guide/gherkin-files') },
+        { text: t.mobileApps, link: p('guide/mobile-apps') },
+        { text: t.organizing, link: p('guide/organizing') },
+        { text: t.collaboration, link: p('guide/collaboration') },
+        { text: t.running, link: p('guide/running') },
+        { text: t.results, link: p('guide/results') },
+      ],
+    },
+    // The rest of the documentation exists in English (and Italian) only.
+    {
+      text: t.english,
+      collapsed: true,
+      items: [
+        { text: t.glance, link: '/en/overview' },
+        { text: t.installAdmin, link: '/en/admin/installation' },
+        { text: t.security, link: '/en/security/' },
+        { text: t.integrations, link: '/en/integrations/ci' },
+        { text: t.reference, link: '/en/reference/api' },
+        { text: t.releaseNotes, link: '/en/reference/changelog' },
+        { text: t.internals, link: '/en/internals/' },
+      ],
+    },
+  ];
+}
+
+const fr: GuideLabels = {
+  glance: 'En bref',
+  start: 'Par où commencer',
+  paths: 'Parcours par rôle',
+  qa: 'Testeur : le premier test en 10 minutes',
+  devops: 'DevOps : la première exécution depuis un pipeline',
+  admin: 'Admin : la première organisation avec SSO',
+  guide: 'Guide utilisateur',
+  gettingStarted: 'Premiers pas',
+  webTests: 'Tests web',
+  apiTests: 'Tests API',
+  loadTests: 'Tests de charge',
+  gherkinFiles: 'Fichiers Gherkin',
+  mobileApps: 'Applications mobiles',
+  organizing: 'Organiser les tests',
+  collaboration: 'Conversations et tableaux de bord',
+  running: 'Exécuter les tests',
+  results: 'Résultats',
+  english: 'Documentation de référence (en anglais)',
+  installAdmin: 'Installation et administration',
+  security: 'Sécurité et conformité',
+  integrations: 'Intégrations',
+  reference: 'Référence de l’API',
+  releaseNotes: 'Notes de version',
+  internals: 'Fonctionnement interne',
+};
+
+const de: GuideLabels = {
+  glance: 'Auf einen Blick',
+  start: 'Hier beginnen',
+  paths: 'Wege nach Rolle',
+  qa: 'Tester: der erste Test in 10 Minuten',
+  devops: 'DevOps: der erste Lauf aus einer Pipeline',
+  admin: 'Admin: die erste Organisation mit SSO',
+  guide: 'Benutzerhandbuch',
+  gettingStarted: 'Einstieg',
+  webTests: 'Webtests',
+  apiTests: 'API-Tests',
+  loadTests: 'Lasttests',
+  gherkinFiles: 'Gherkin-Dateien',
+  mobileApps: 'Mobile Apps',
+  organizing: 'Tests organisieren',
+  collaboration: 'Gespräche und Dashboards',
+  running: 'Tests ausführen',
+  results: 'Ergebnisse',
+  english: 'Referenzdokumentation (auf Englisch)',
+  installAdmin: 'Installation und Verwaltung',
+  security: 'Sicherheit und Compliance',
+  integrations: 'Integrationen',
+  reference: 'API-Referenz',
+  releaseNotes: 'Versionshinweise',
+  internals: 'Interna',
+};
+
 const en: Labels = {
   guide: 'User guide',
   gettingStarted: 'Getting started',
@@ -328,6 +457,38 @@ export default withMermaid(
                 },
               },
             },
+            fr: {
+              translations: {
+                button: { buttonText: 'Rechercher', buttonAriaLabel: 'Rechercher' },
+                modal: {
+                  displayDetails: 'Afficher les détails',
+                  resetButtonTitle: 'Effacer la recherche',
+                  backButtonTitle: 'Fermer la recherche',
+                  noResultsText: 'Aucun résultat pour',
+                  footer: {
+                    selectText: 'pour sélectionner',
+                    navigateText: 'pour naviguer',
+                    closeText: 'pour fermer',
+                  },
+                },
+              },
+            },
+            de: {
+              translations: {
+                button: { buttonText: 'Suchen', buttonAriaLabel: 'Suchen' },
+                modal: {
+                  displayDetails: 'Details anzeigen',
+                  resetButtonTitle: 'Suche löschen',
+                  backButtonTitle: 'Suche schließen',
+                  noResultsText: 'Keine Ergebnisse für',
+                  footer: {
+                    selectText: 'zum Auswählen',
+                    navigateText: 'zum Navigieren',
+                    closeText: 'zum Schließen',
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -376,6 +537,61 @@ export default withMermaid(
           returnToTopLabel: 'Torna su',
           sidebarMenuLabel: 'Menu',
           darkModeSwitchLabel: 'Tema',
+        },
+      },
+      fr: {
+        label: 'Français',
+        lang: 'fr',
+        link: '/fr/',
+        themeConfig: {
+          nav: [
+            { text: 'Accueil', link: '/fr/' },
+            { text: 'Commencer', link: '/fr/start/' },
+            { text: 'Guide', link: '/fr/guide/' },
+            { text: 'Référence (EN)', link: '/en/reference/api' },
+          ],
+          sidebar: { '/fr/': guideSidebar('fr', fr) },
+          // The language menu opens the same page in French, and only the guide exists in French.
+          notFound: {
+            title: 'PAGE INTROUVABLE EN FRANÇAIS',
+            quote:
+              'Seul le guide utilisateur est traduit en français. Le reste de la documentation est en anglais : remplacez /fr/ par /en/ dans l’adresse.',
+            linkLabel: 'aller à l’accueil',
+            linkText: 'Retour à l’accueil',
+          },
+          outline: { level: [2, 3], label: 'Sur cette page' },
+          docFooter: { prev: 'Page précédente', next: 'Page suivante' },
+          lastUpdated: { text: 'Dernière mise à jour' },
+          returnToTopLabel: 'Retour en haut',
+          sidebarMenuLabel: 'Menu',
+          darkModeSwitchLabel: 'Thème',
+        },
+      },
+      de: {
+        label: 'Deutsch',
+        lang: 'de',
+        link: '/de/',
+        themeConfig: {
+          nav: [
+            { text: 'Startseite', link: '/de/' },
+            { text: 'Loslegen', link: '/de/start/' },
+            { text: 'Handbuch', link: '/de/guide/' },
+            { text: 'Referenz (EN)', link: '/en/reference/api' },
+          ],
+          sidebar: { '/de/': guideSidebar('de', de) },
+          notFound: {
+            title: 'SEITE AUF DEUTSCH NICHT GEFUNDEN',
+            quote:
+              'Nur das Benutzerhandbuch ist ins Deutsche übersetzt. Der Rest der Dokumentation ist auf Englisch: Ersetzen Sie /de/ in der Adresse durch /en/.',
+            linkLabel: 'zur Startseite',
+            linkText: 'Zur Startseite',
+          },
+          outline: { level: [2, 3], label: 'Auf dieser Seite' },
+          docFooter: { prev: 'Vorherige Seite', next: 'Nächste Seite' },
+          lastUpdated: { text: 'Zuletzt aktualisiert' },
+          returnToTopLabel: 'Nach oben',
+          sidebarMenuLabel: 'Menü',
+          darkModeSwitchLabel: 'Darstellung',
         },
       },
     },

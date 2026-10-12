@@ -114,7 +114,7 @@ Gemini for AI features; Vitest, Testing Library and supertest for tests; Docker 
 | `scripts/`       | CLI (`wfm`), local agent, migrator, schema doctor, importers                                                             |
 | `integrations/`  | GitHub Action, GitLab template, Jenkins shared library, Azure Pipelines template, Bitbucket Pipelines step, CircleCI orb |
 | `collaudo/`      | The acceptance test lab: HTTPS, Keycloak, simulators, Jenkins, Android emulator                                          |
-| `docs/`          | This documentation (VitePress, English and Italian)                                                                      |
+| `docs/`          | This documentation (VitePress, English and Italian; the user guide also in French and German)                            |
 | `observability/` | Loki and Grafana configuration                                                                                           |
 
 ## The documentation, by question
