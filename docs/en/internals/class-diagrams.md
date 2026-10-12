@@ -2,7 +2,7 @@
 
 WebFlowMaster is written mostly as modules of functions: decisions are pure functions in their own
 files, effects are in the modules that perform them. The product therefore has few classes, and the
-ones it has sit exactly where _state with a lifetime_ is needed — a WebSocket relay, a browser pool, a
+ones it has sit exactly where _state with a lifetime_ is needed — a WebSocket relay, a recording session, a
 device session, a debugger. This page draws them, and draws next to them the **domain model**: the
 types that the whole system passes around, which are interfaces and records rather than classes.
 
@@ -283,20 +283,41 @@ The run's status machine (`queued → running → completed | failed | error | t
 classDiagram
   direction TB
   class PlaywrightService {
-    <<class: playwright-service.ts>>
+    <<facade: playwright-service.ts>>
+    +recording RecordingService
+    +detection ElementDetectionService
+    +adhoc AdhocRunner
+    +tests TestRunner
+  }
+  class RecordingService {
+    <<class: playwright/recording-service.ts>>
     +startRecordingSession(url, userId)
     +stopRecordingSession(id, userId)
     +getRecordedActions(id, userId)
-    +detectElements(url, userId) DetectionResult
     +captureLoginState(sessionId, environment)
     +registerSession(id, session)
     +disposeAllRecordingSessions()
   }
-  class BrowserPool {
-    <<singleton: browser-pool.ts>>
-    +getInstance()$ BrowserPool
-    +acquire(browserType, headless) Browser
-    +release(browser)
+  class ElementDetectionService {
+    <<class: playwright/element-detection-service.ts>>
+    +loadWebsite(url, userId)
+    +detectElements(url, userId) DetectionResult
+    +countSelectorMatches(url, selectors)
+    +surveyPage(page) DetectionResult
+  }
+  class AdhocRunner {
+    <<class: playwright/adhoc-runner.ts>>
+    +executeAdhocSequence(payload, userId, debug)
+  }
+  class TestRunner {
+    <<class: playwright/test-runner.ts>>
+    +executeTestSequence(test, userId, ...)
+  }
+  class BrowserSession {
+    <<factory: browser-session.ts>>
+    +openBrowserSession(options)$ BrowserSession
+    +contextOptionsFor(options)$
+    +close()
   }
   class FlowCursor {
     <<class: flow-cursor.ts>>
@@ -369,11 +390,19 @@ classDiagram
   }
   class WebDriverError
 
-  PlaywrightService ..> BrowserPool : local browsers
-  PlaywrightService ..> FlowCursor : conditions and loops
-  PlaywrightService ..> StepResult : produces
-  PlaywrightService ..> AIAutomationService : healing, optional
-  PlaywrightService ..> DebugHooks : pauses when debugged
+  PlaywrightService *-- RecordingService
+  PlaywrightService *-- ElementDetectionService
+  PlaywrightService *-- AdhocRunner
+  PlaywrightService *-- TestRunner
+  AdhocRunner ..> ElementDetectionService : survey after the run
+  RecordingService ..> BrowserSession : every browser
+  ElementDetectionService ..> BrowserSession : every browser
+  AdhocRunner ..> BrowserSession : every browser
+  TestRunner ..> BrowserSession : every browser
+  TestRunner ..> FlowCursor : conditions and loops
+  TestRunner ..> StepResult : produces
+  TestRunner ..> AIAutomationService : healing, optional
+  AdhocRunner ..> DebugHooks : pauses when debugged
   DebugController ..|> DebugHooks
   DebugController ..> DebugChannel : state out, commands in
   AppiumSession ..> WebDriverError : throws
@@ -381,9 +410,11 @@ classDiagram
 
 Notes:
 
-- `PlaywrightService` is the largest class (recording, element detection, step execution helpers). A
-  run does not use it as a bag of methods: `test-execution-service.ts` and `step-executor.ts` use its
-  browser sessions and the pure helpers around it.
+- `PlaywrightService` is a facade that keeps the API the routes and the runner call. The work is in four
+  services under `server/playwright/`, and each one opens its browser through `openBrowserSession`
+  (`browser-session.ts`): one launch, one set of context options (egress proxy, self-signed certificates,
+  window size), whether the browser is local, on a grid or on an agent. There is no browser pool: every
+  session launches its own browser and closes it.
 - `DebugChannel` has two implementations: `memoryDebugChannel` when browser tasks run inline in the web
   process, and `redisDebugChannel` when a worker runs them, which is what makes the step debugger
   work with the browser on a worker and the person on a web server.

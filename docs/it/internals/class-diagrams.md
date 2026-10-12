@@ -2,7 +2,7 @@
 
 WebFlowMaster è scritto per lo più come moduli di funzioni: le decisioni sono funzioni pure in file propri, gli
 effetti stanno nei moduli che li eseguono. Il prodotto ha quindi poche classi, e quelle che ha stanno proprio
-dove serve _uno stato con una vita_: un relay WebSocket, un pool di browser, una sessione su un dispositivo, un
+dove serve _uno stato con una vita_: un relay WebSocket, una sessione di registrazione, una sessione su un dispositivo, un
 debugger. Questa pagina le disegna e disegna accanto il **modello di dominio**: i tipi che l'intero sistema si
 scambia, che sono interfacce e record più che classi. I diagrammi sono in inglese, come i nomi nel codice.
 
@@ -283,20 +283,41 @@ La macchina a stati del run (`queued → running → completed | failed | error 
 classDiagram
   direction TB
   class PlaywrightService {
-    <<class: playwright-service.ts>>
+    <<facade: playwright-service.ts>>
+    +recording RecordingService
+    +detection ElementDetectionService
+    +adhoc AdhocRunner
+    +tests TestRunner
+  }
+  class RecordingService {
+    <<class: playwright/recording-service.ts>>
     +startRecordingSession(url, userId)
     +stopRecordingSession(id, userId)
     +getRecordedActions(id, userId)
-    +detectElements(url, userId) DetectionResult
     +captureLoginState(sessionId, environment)
     +registerSession(id, session)
     +disposeAllRecordingSessions()
   }
-  class BrowserPool {
-    <<singleton: browser-pool.ts>>
-    +getInstance()$ BrowserPool
-    +acquire(browserType, headless) Browser
-    +release(browser)
+  class ElementDetectionService {
+    <<class: playwright/element-detection-service.ts>>
+    +loadWebsite(url, userId)
+    +detectElements(url, userId) DetectionResult
+    +countSelectorMatches(url, selectors)
+    +surveyPage(page) DetectionResult
+  }
+  class AdhocRunner {
+    <<class: playwright/adhoc-runner.ts>>
+    +executeAdhocSequence(payload, userId, debug)
+  }
+  class TestRunner {
+    <<class: playwright/test-runner.ts>>
+    +executeTestSequence(test, userId, ...)
+  }
+  class BrowserSession {
+    <<factory: browser-session.ts>>
+    +openBrowserSession(options)$ BrowserSession
+    +contextOptionsFor(options)$
+    +close()
   }
   class FlowCursor {
     <<class: flow-cursor.ts>>
@@ -369,11 +390,19 @@ classDiagram
   }
   class WebDriverError
 
-  PlaywrightService ..> BrowserPool : local browsers
-  PlaywrightService ..> FlowCursor : conditions and loops
-  PlaywrightService ..> StepResult : produces
-  PlaywrightService ..> AIAutomationService : healing, optional
-  PlaywrightService ..> DebugHooks : pauses when debugged
+  PlaywrightService *-- RecordingService
+  PlaywrightService *-- ElementDetectionService
+  PlaywrightService *-- AdhocRunner
+  PlaywrightService *-- TestRunner
+  AdhocRunner ..> ElementDetectionService : survey after the run
+  RecordingService ..> BrowserSession : every browser
+  ElementDetectionService ..> BrowserSession : every browser
+  AdhocRunner ..> BrowserSession : every browser
+  TestRunner ..> BrowserSession : every browser
+  TestRunner ..> FlowCursor : conditions and loops
+  TestRunner ..> StepResult : produces
+  TestRunner ..> AIAutomationService : healing, optional
+  AdhocRunner ..> DebugHooks : pauses when debugged
   DebugController ..|> DebugHooks
   DebugController ..> DebugChannel : state out, commands in
   AppiumSession ..> WebDriverError : throws
@@ -381,9 +410,11 @@ classDiagram
 
 Note:
 
-- `PlaywrightService` è la classe più grande (registrazione, rilevamento degli elementi, aiuti per l'esecuzione
-  degli step). Un run non la usa come un sacco di metodi: `test-execution-service.ts` e `step-executor.ts`
-  usano le sue sessioni di browser e gli aiuti puri che la circondano.
+- `PlaywrightService` è una facciata che mantiene l'API chiamata dalle route e dal runner. Il lavoro sta in
+  quattro servizi sotto `server/playwright/`, e ognuno apre il browser con `openBrowserSession`
+  (`browser-session.ts`): un solo launch, un solo insieme di opzioni di contesto (proxy di uscita, certificati
+  self-signed, dimensione della finestra), che il browser sia locale, su una grid o su un agent. Non esiste un
+  pool di browser: ogni sessione lancia il proprio browser e lo chiude.
 - `DebugChannel` ha due implementazioni: `memoryDebugChannel` quando i browser task girano inline nel processo
   web, e `redisDebugChannel` quando li esegue un worker; è ciò che fa funzionare il debugger passo-passo con il
   browser su un worker e la persona su un server web.

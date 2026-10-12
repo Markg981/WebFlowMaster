@@ -38,10 +38,13 @@ vi.mock('./browsers', async (importOriginal) => {
   mocks.newContext.mockResolvedValue(context);
   return {
     ...actual,
-    launchBrowser: vi.fn(async () => ({ newContext: mocks.newContext, isConnected: () => true })),
+    launchBrowser: vi.fn(async () => ({
+      newContext: mocks.newContext,
+      isConnected: () => true,
+      close: vi.fn().mockResolvedValue(undefined),
+    })),
   };
 });
-vi.mock('./browser-pool', () => ({ browserPool: Promise.resolve({ release: vi.fn() }) }));
 vi.mock('./storage', () => ({ storage: { getUserSettings: mocks.getUserSettings } }));
 vi.mock('./step-executor', () => ({ executeStep: mocks.executeStep }));
 vi.mock('./login-state', () => ({ loadLoginState: mocks.loadLoginState, saveLoginState: vi.fn() }));

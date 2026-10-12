@@ -158,7 +158,7 @@ flowchart TB
   PJ --> UI["UI tests<br/>PlaywrightService, step executor"]
   PJ --> API["API tests<br/>api-test-runner, auth schemes"]
   PJ --> MOBR["Mobile tests<br/>mobile-runner, AppiumSession"]
-  UI --> BP["Browser source<br/>BrowserPool, grid, or<br/>agent through the relay"]
+  UI --> BP["Browser source<br/>openBrowserSession: local,<br/>grid, or agent through the relay"]
   MOBR --> GRIDS["Grid session<br/>BrowserStack, LambdaTest,<br/>local Appium through an agent"]
   UI --> EV["Evidence<br/>screenshots, video, trace, HAR,<br/>visual, accessibility"]
   EV --> ART[("Artifact store")]
@@ -170,16 +170,16 @@ flowchart TB
 
 Worker modules, grouped by what they decide:
 
-| Area             | Files                                                                                                                                                                                                                       |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Run control      | `worker.ts`, `test-execution-service.ts`, `plan-run/`, `run-policies.ts`, `execution-state.ts`, `runner-registry.ts`, `concurrency.ts`, `tenant-quotas.ts`                                                                  |
-| UI execution     | `playwright-service.ts`, `step-executor.ts`, `flow-cursor.ts`, `browser-pool.ts`, `browsers.ts`, `variables.ts`, `custom-actions.ts`, `step-elements.ts`, `login-state.ts`, `database-step.ts`, `email-inbox.ts`, `totp.ts` |
-| API execution    | `api-test-runner.ts`, `api-auth.ts`, `oauth2.ts`, `outbound-http.ts`                                                                                                                                                        |
-| Mobile execution | `mobile-runner.ts`, `appium-client.ts`, `mobile-inspector.ts`, `browser-grids.ts`                                                                                                                                           |
-| Evidence         | `run-evidence.ts`, `visual-testing.ts`, `accessibility.ts`, `shared/network.ts`, `artifact-store.ts`                                                                                                                        |
-| Reporting        | `report-model.ts`, `report-html.ts`, `report-export.ts`, `junit.ts`, `allure-export.ts`                                                                                                                                     |
-| After the run    | `notifications.ts`, `issue-tracking.ts`, `issue-store.ts`, `issue-providers.ts`, `commit-status.ts`, `test-management.ts`, `test-management-providers.ts`                                                                   |
-| AI (optional)    | `ai-automation-service.ts`, `failure-analysis.ts`, `nl-authoring.ts`, `story-tests.ts`                                                                                                                                      |
+| Area             | Files                                                                                                                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Run control      | `worker.ts`, `test-execution-service.ts`, `plan-run/`, `run-policies.ts`, `execution-state.ts`, `runner-registry.ts`, `concurrency.ts`, `tenant-quotas.ts`                                                                                        |
+| UI execution     | `playwright-service.ts`, `playwright/*.ts`, `browser-session.ts`, `step-executor.ts`, `flow-cursor.ts`, `browsers.ts`, `variables.ts`, `custom-actions.ts`, `step-elements.ts`, `login-state.ts`, `database-step.ts`, `email-inbox.ts`, `totp.ts` |
+| API execution    | `api-test-runner.ts`, `api-auth.ts`, `oauth2.ts`, `outbound-http.ts`                                                                                                                                                                              |
+| Mobile execution | `mobile-runner.ts`, `appium-client.ts`, `mobile-inspector.ts`, `browser-grids.ts`                                                                                                                                                                 |
+| Evidence         | `run-evidence.ts`, `visual-testing.ts`, `accessibility.ts`, `shared/network.ts`, `artifact-store.ts`                                                                                                                                              |
+| Reporting        | `report-model.ts`, `report-html.ts`, `report-export.ts`, `junit.ts`, `allure-export.ts`                                                                                                                                                           |
+| After the run    | `notifications.ts`, `issue-tracking.ts`, `issue-store.ts`, `issue-providers.ts`, `commit-status.ts`, `test-management.ts`, `test-management-providers.ts`                                                                                         |
+| AI (optional)    | `ai-automation-service.ts`, `failure-analysis.ts`, `nl-authoring.ts`, `story-tests.ts`                                                                                                                                                            |
 
 ### 3.3 The client
 
