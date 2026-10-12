@@ -1,2 +1,3 @@
 /out/
-__pycache__/
+# Shots the capture could not take: a screenshot of where it stopped.
+/assets/*/_failed-*

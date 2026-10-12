@@ -1,6 +1,6 @@
 /**
  * The documentation as PDF files, one per section of the sidebar and per language, for an audit
- * file or a reader offline: `npm run docs:pdf` builds the site and writes docs/pdf/{en,it}/*.pdf.
+ * file or a reader offline: `npm run docs:pdf` builds the site and writes docs/pdf/{en,it,fr,de}/*.pdf.
  *
  * It prints the site VitePress built rather than rendering the Markdown again: the pages then look
  * as they do online, containers and tables included, and the diagrams (drawn in the browser by
@@ -113,7 +113,14 @@ async function main() {
         .find((arg) => arg.startsWith('--sections='))
         ?.slice('--sections='.length)
         .split(',');
-      const candidates = process.argv.includes('--handbook') ? [handbook] : [...sidebar, handbook];
+      // French and German carry the user guide only: their sidebar also links to English pages,
+      // which belong to the English PDFs, and they have no handbook.
+      const own = (group) =>
+        (group.items ?? [group]).every((item) => item.link.startsWith(`/${lang}/`));
+      const hasHandbook = fs.existsSync(path.join(root, 'docs', lang, 'internals'));
+      const candidates = (
+        process.argv.includes('--handbook') ? [handbook] : [...sidebar, handbook]
+      ).filter((group) => own(group) && (group !== handbook || hasHandbook));
       const groups = selectedSections
         ? candidates.filter((group) =>
             selectedSections.includes(

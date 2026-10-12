@@ -24,6 +24,9 @@ Per chi scrive ed esegue i test:
   [Organizzare i test](./guide/organizing) · [Eseguire i test](./guide/running) ·
   [Risultati](./guide/results)
 
+La guida utente esiste anche in [francese](/fr/) e in [tedesco](/de/), le altre due lingue
+dell'interfaccia; il resto della documentazione è in inglese e in italiano.
+
 ## Installazione e amministrazione
 
 Per chi gestisce un'installazione e per gli owner di un'organizzazione:
@@ -72,4 +75,5 @@ Per chi sviluppa e mantiene il prodotto:
 ## PDF
 
 `npm run docs:pdf` scrive ogni sezione di questa documentazione come PDF, in inglese e in
-italiano, in `docs/pdf/` — per un fascicolo di audit o per leggerla offline.
+italiano (la guida utente anche in francese e in tedesco), in `docs/pdf/` — per un fascicolo di
+audit o per leggerla offline.

@@ -21,13 +21,14 @@ Questa cartella è la copia versionata: dopo una modifica all'artifact, ricopiar
 
 ## Immagini
 
-Le slide 6 e 9 mostrano le schermate della brochure. Nel deck pubblicato sono caricate come asset e
-referenziate con `/_blob/<id>`; i file sorgente sono in `../brochure/assets/`:
+Le slide 6 e 9 mostrano le schermate della prima brochure (UI inglese, 30 settembre 2026); quelle
+attuali della brochure sono in `../brochure/assets/<lingua>/`. Nel deck pubblicato sono caricate come asset e
+referenziate con `/_blob/<id>`; i file sorgente sono in `assets/`:
 
-| Slide                   | Asset nel deck                            | Sorgente                           |
-| ----------------------- | ----------------------------------------- | ---------------------------------- |
-| `slides/dashboard.html` | `/_blob/1dd84be757eb6554578cdc8d76bf1688` | `../brochure/assets/dashboard.png` |
-| `slides/demo-api.html`  | `/_blob/2f2f5eebea8315dbb8e3dbee5818f1c5` | `../brochure/assets/api.png`       |
+| Slide                   | Asset nel deck                            | Sorgente               |
+| ----------------------- | ----------------------------------------- | ---------------------- |
+| `slides/dashboard.html` | `/_blob/1dd84be757eb6554578cdc8d76bf1688` | `assets/dashboard.png` |
+| `slides/demo-api.html`  | `/_blob/2f2f5eebea8315dbb8e3dbee5818f1c5` | `assets/api.png`       |
 
 ## Da aggiornare prima di presentare
 

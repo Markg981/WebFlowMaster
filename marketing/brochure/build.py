@@ -1,7 +1,8 @@
 """Build the six-page Italian and English customer brochures from editable copy.
 
 Requires reportlab and Pillow. Run from any directory: python marketing/brochure/build.py
-No network access, no customer data and no fabricated product screenshots.
+No network access, no customer data and no fabricated product screenshots: each edition shows
+the product in its own language, filmed by capture.mjs into assets/<lang>/.
 """
 from pathlib import Path
 import json
@@ -12,6 +13,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.utils import ImageReader
 from reportlab.platypus import Paragraph
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -27,11 +29,22 @@ NAVY, INK, BLUE = "#0E1530", "#101A33", "#3B67FF"
 SKY, MUTED, PAPER = "#8FB0FF", "#5B6780", "#F2F5FB"
 WHITE = "#FFFFFF"
 
+# The part of each capture worth showing, as fractions (left, top, right, bottom) of the frame.
+# What is left is cut further, from the sides or the bottom, so that it fills its frame.
+CROPS = {
+    "dashboard": (0.15, 0.08, 1, 0.83),
+    "builder": (0.16, 0.03, 1, 0.81),
+    "api": (0.15, 0.03, 0.75, 0.60),
+    "failure": (0.15, 0.37, 1, 0.86),
+    "mobile": (0, 0.07, 0.83, 0.70),
+    "bdd": (0, 0, 1, 0.62),
+}
+
 
 def fonts():
-    """Use embedded Segoe UI, or the caller's font directory on other systems."""
-    directory = Path(os.environ.get("WFM_BROCHURE_FONT_DIR", "C:/Windows/Fonts"))
-    for name, file in [("Body", "segoeui.ttf"), ("Bold", "segoeuib.ttf")]:
+    """Inter, under the SIL Open Font License, ships in fonts/: the build is the same on any OS."""
+    directory = Path(os.environ.get("WFM_BROCHURE_FONT_DIR", ROOT / "fonts"))
+    for name, file in [("Body", "Inter-Regular.ttf"), ("Bold", "Inter-Bold.ttf")]:
         candidate = directory / file
         if not candidate.exists():
             raise FileNotFoundError(f"Set WFM_BROCHURE_FONT_DIR: missing {candidate}")
@@ -87,18 +100,22 @@ def title(c, label, heading, dark=False):
     return para(c, heading, M, 115, CW, 32, WHITE if dark else INK, True, 38)
 
 
-def shot(c, name, top, height):
-    source = ASSETS / name
-    with Image.open(source) as img:
-        ratio = img.width / img.height
-    image_w = CW - 12
-    image_h = image_w / ratio
-    if image_h > height - 12:
-        image_h = height - 12
-        image_w = image_h * ratio
-    rect(c, M, top, CW, height, "#E2E8F5", 10)
-    c.drawImage(str(source), M + (CW - image_w) / 2, H - top - (height + image_h) / 2,
-                width=image_w, height=image_h, mask="auto")
+def shot(c, name, lang, top, height, x=M, width=CW):
+    """A screenshot of the product in the edition's language, cut to fill its frame."""
+    frame_w, frame_h = width - 12, height - 12
+    with Image.open(ASSETS / lang / f"{name}.jpg") as source:
+        left, upper, right, lower = CROPS[name]
+        img = source.crop((round(source.width * left), round(source.height * upper),
+                           round(source.width * right), round(source.height * lower)))
+    # Keep the top of the screen; trim the sides evenly, or the bottom.
+    if img.width / img.height > frame_w / frame_h:
+        keep = round(img.height * frame_w / frame_h)
+        img = img.crop(((img.width - keep) // 2, 0, (img.width + keep) // 2, img.height))
+    else:
+        img = img.crop((0, 0, img.width, round(img.width * frame_h / frame_w)))
+    rect(c, x, top, width, height, "#E2E8F5", 10)
+    c.drawImage(ImageReader(img.convert("RGB")), x + 6, H - top - 6 - frame_h,
+                width=frame_w, height=frame_h)
 
 
 def cards(c, pairs, top, height=154, dark=False):
@@ -118,7 +135,25 @@ def cards(c, pairs, top, height=154, dark=False):
     return top + ((len(pairs) + 1) // 2) * (height + gap) - gap
 
 
+def tiles(c, items, lang, top, height, shot_h):
+    """Two by two: a screenshot above each heading and its text."""
+    gap = 16
+    width = (CW - gap) / 2
+    for i, (name, heading, body) in enumerate(items):
+        x = M + (i % 2) * (width + gap)
+        y = top + (i // 2) * (height + gap)
+        shot(c, name, lang, y, shot_h, x, width)
+        end = para(c, heading, x + 2, y + shot_h + 11, width - 4, 13, INK, True)
+        bottom = para(c, body, x + 2, end + 4, width - 4, 9.6, MUTED)
+        if bottom > y + height:
+            raise ValueError(f"Tile overflow: {heading}")
+    return top + 2 * height + gap
+
+
 def build(lang, t):
+    for name in CROPS:
+        if not (ASSETS / lang / f"{name}.jpg").exists():
+            raise FileNotFoundError(f"Missing assets/{lang}/{name}.jpg: run capture.mjs")
     destination = OUT / f"webflowmaster-brochure-{lang}.pdf"
     c = canvas.Canvas(str(destination), pagesize=A4, pageCompression=1)
     c.setTitle(f"WebFlowMaster - {'Presentazione del prodotto' if lang == 'it' else 'Product presentation'}")
@@ -132,7 +167,7 @@ def build(lang, t):
     end = para(c, t["cover_title"], M, 128, CW - 12, 39, WHITE, True, 46)
     end = para(c, t["cover_intro"], M, end + 22, CW - 15, 14, "#C2CDDF")
     para(c, t["cover_tags"], M, end + 22, CW, 11, SKY, True)
-    shot(c, "dashboard.png", 398, 286)
+    shot(c, "dashboard", lang, 398, 286)
     para(c, t["demo_caption"], M, 696, CW, 8, "#B0BED5")
     para(c, t["cover_line"], M, 751, CW, 16, WHITE, True)
     c.showPage()
@@ -151,15 +186,16 @@ def build(lang, t):
     para(c, t["workflow_note"], M, end + 63, CW, 9, MUTED)
     c.showPage()
 
-    # 3: Four complementary testing modes.
+    # 3: Four complementary testing modes, each with its own screen.
     page(c, 3, lang)
     end = title(c, t["p3_label"], t["p3_title"])
-    end = cards(c, t["test_cards"], end + 23, 142)
-    shot(c, "api.png", end + 20, 202)
-    para(c, t["p3_note"], M, end + 234, CW, 9, MUTED)
+    end = tiles(c, [(name, heading, body) for name, (heading, body)
+                    in zip(["builder", "api", "mobile", "bdd"], t["test_cards"])],
+                lang, end + 22, 250, 148)
+    para(c, t["p3_note"], M, end + 12, CW, 9, MUTED)
     c.showPage()
 
-    # 4: Explain the result without using stale report captures.
+    # 4: From a run to the evidence of its failure.
     page(c, 4, lang)
     end = title(c, t["p4_label"], t["p4_title"])
     end = para(c, t["p4_intro"], M, end + 17, CW, 12, MUTED)
@@ -168,7 +204,7 @@ def build(lang, t):
         para(c, f"0{i + 1}", M, top, 30, 16, BLUE, True)
         bottom = para(c, heading, M + 45, top, CW - 45, 14, INK, True)
         end = para(c, body, M + 45, bottom + 7, CW - 45, 11, MUTED)
-    shot(c, "dashboard.png", end + 24, 191)
+    shot(c, "failure", lang, end + 24, 191)
     para(c, t["p4_note"], M, end + 229, CW, 9, MUTED)
     c.showPage()
 
@@ -182,7 +218,7 @@ def build(lang, t):
     para(c, t["p5_note"], M, end + 192, CW, 9, MUTED)
     c.showPage()
 
-    # 6: Pilot invitation, conditions and screenshot provenance.
+    # 6: Pilot invitation, licence, conditions and screenshot provenance.
     page(c, 6, lang, True)
     end = title(c, t["p6_label"], t["p6_title"], True)
     end = para(c, t["p6_intro"], M, end + 17, CW, 12, "#C2CDDF")
@@ -194,7 +230,8 @@ def build(lang, t):
     rect(c, M, end + 24, CW, 49, BLUE, 8)
     para(c, t["cta"], M + 19, end + 36, CW - 38, 17, WHITE, True)
     end = para(c, t["cta_note"], M, end + 88, CW, 11, "#C2CDDF")
-    end = para(c, CONTACT["name"], M, end + 18, CW, 12, WHITE, True)
+    end = para(c, t["licence"], M, end + 6, CW, 11, WHITE, True)
+    end = para(c, CONTACT["name"], M, end + 16, CW, 12, WHITE, True)
     contact_top = end + 7
     items = [(value, url) for value, url in [
         (CONTACT["email"], "mailto:" + CONTACT["email"]),
@@ -209,7 +246,8 @@ def build(lang, t):
         width = pdfmetrics.stringWidth(value, "Body", 10.2)
         c.linkURL(url, (x, H-end, x + width, H-contact_top), relative=0)
         x += width + pdfmetrics.stringWidth(separator, "Body", 10.2)
-    para(c, t["footer_note"] + "\n" + t["capture_note"], M, end + 24, CW, 8, "#A2B1CE")
+    para(c, "\n".join([t["footer_note"], t["capture_note"], t["distribution_note"]]),
+         M, end + 20, CW, 8, "#A2B1CE")
     c.showPage()
     c.save()
     print(f"Built {destination} (6 pages)")

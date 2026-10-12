@@ -189,7 +189,8 @@ See the [CI integration guide](./docs/en/integrations/ci.md) and the
 
 ## Documentation
 
-The documentation is a VitePress site in `docs/`, in English and Italian. `npm run docs:dev`
+The documentation is a VitePress site in `docs/`, in English and Italian, with the user guide also
+in French and German. `npm run docs:dev`
 serves it locally, `npm run docs:build` builds it, and `npm run docs:pdf` writes one PDF per
 section to `docs/pdf/`.
 
