@@ -69,7 +69,7 @@ import selectableTestsRoutes from './routes/selectable-tests.routes';
 import settingsRoutes from './routes/settings.routes';
 import { tenancyMiddleware } from './middleware/tenancy';
 import { apiKeyAuth } from './middleware/api-key-auth';
-import { apiRateLimit } from './middleware/rate-limits';
+import { apiRateLimit, sessionRateLimit } from './middleware/rate-limits';
 
 /**
  * Mounts the request pipeline: authentication, tenancy, then every router. No handler is
@@ -93,6 +93,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Machines are limited per minute: each API key, and anonymous calls to /api/v1
   // (server/middleware/rate-limits.ts).
   app.use(apiRateLimit());
+  // And people: each signed-in user, on /api only, so the client's own assets are not counted.
+  app.use('/api', sessionRateLimit());
 
   // Before every router: establishes the ambient organization for the request, which
   // withTenantTransaction requires and refuses to run without.
