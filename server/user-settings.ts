@@ -39,29 +39,32 @@ async function findSettings(userId: number) {
   return row;
 }
 
-/** The person's settings, created with the defaults the first time they are asked for. */
+/**
+ * The person's settings, created with the defaults the first time they are asked for.
+ *
+ * The client fires several GETs at once on the first login, so the insert gives way to a
+ * concurrent one instead of failing on the primary key; the loser reads the winner's row.
+ */
 export async function getOrCreateUserSettings(userId: number) {
   const existing = await findSettings(userId);
   if (existing) return existing;
   const [created] = await privilegedDb
     .insert(userSettings)
     .values({ ...DEFAULT_SETTINGS, userId })
+    .onConflictDoNothing({ target: userSettings.userId })
     .returning();
-  return created;
+  return created ?? (await findSettings(userId))!;
 }
 
+/** One statement, so a save racing the first GET (or another save) cannot hit the key. */
 export async function saveUserSettings(userId: number, input: UserSettingsInput) {
-  if (await findSettings(userId)) {
-    const [updated] = await privilegedDb
-      .update(userSettings)
-      .set({ ...input, updatedAt: new Date() })
-      .where(eq(userSettings.userId, userId))
-      .returning();
-    return updated;
-  }
-  const [created] = await privilegedDb
+  const [saved] = await privilegedDb
     .insert(userSettings)
     .values({ ...input, userId })
+    .onConflictDoUpdate({
+      target: userSettings.userId,
+      set: { ...input, updatedAt: new Date() },
+    })
     .returning();
-  return created;
+  return saved;
 }
