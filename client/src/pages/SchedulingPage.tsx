@@ -56,8 +56,9 @@ const SchedulingPage: React.FC = () => {
     onError: (err: Error) => {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: err.message || 'An unexpected error occurred.',
+        title: t('common.error', 'Error'),
+        description:
+          err.message || t('schedulingPage.toast.unexpected', 'An unexpected error occurred.'),
       });
     },
   };
@@ -67,7 +68,10 @@ const SchedulingPage: React.FC = () => {
     ...mutationOptions,
     onSuccess: () => {
       mutationOptions.onSuccess?.();
-      toast({ title: 'Success', description: 'Schedule created successfully.' });
+      toast({
+        title: t('schedulingPage.toast.success', 'Success'),
+        description: t('schedulingPage.toast.created', 'Schedule created successfully.'),
+      });
     },
   });
 
@@ -77,7 +81,10 @@ const SchedulingPage: React.FC = () => {
     ...mutationOptions,
     onSuccess: () => {
       mutationOptions.onSuccess?.();
-      toast({ title: 'Success', description: 'Schedule updated successfully.' });
+      toast({
+        title: t('schedulingPage.toast.success', 'Success'),
+        description: t('schedulingPage.toast.updated', 'Schedule updated successfully.'),
+      });
     },
   });
 
@@ -85,14 +92,17 @@ const SchedulingPage: React.FC = () => {
     mutationFn: (id: string) => deleteSchedule(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] });
-      toast({ title: 'Success', description: 'Schedule deleted successfully.' });
+      toast({
+        title: t('schedulingPage.toast.success', 'Success'),
+        description: t('schedulingPage.toast.deleted', 'Schedule deleted successfully.'),
+      });
       setIsConfirmDeleteDialogOpen(false);
       setScheduleToDeleteId(null);
     },
     onError: (err: Error) => {
       toast({
         variant: 'destructive',
-        title: 'Error deleting schedule',
+        title: t('schedulingPage.toast.deleteFailed', 'Error deleting schedule'),
         description: err.message,
       });
       setIsConfirmDeleteDialogOpen(false);

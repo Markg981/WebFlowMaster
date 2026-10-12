@@ -18,6 +18,8 @@ i passi o i valori dei dataset.
 
 I **tag** sono le etichette della vostra organizzazione — `smoke`, `checkout`, `nightly` — e si
 aggiungono dalla riga del test. Sono ciò con cui le [suite dinamiche](#suite) selezionano i test.
+**Impostazioni → Tag** elenca ogni tag con quanti test lo portano; un editor può rinominarlo da lì
+(ogni test segue) o eliminarlo, il che lo toglie da ogni test che lo portava.
 
 ## Test manuali {#test-manuali}
 

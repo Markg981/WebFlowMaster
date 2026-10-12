@@ -20,9 +20,10 @@ export interface EnvironmentSummary {
 /** The value the select uses for "resolve against the defaults only". */
 export const NO_ENVIRONMENT = 'none';
 
-export function useEnvironments() {
+export function useEnvironments(options: { enabled?: boolean } = {}) {
   return useQuery<EnvironmentSummary[]>({
     queryKey: ['environments'],
+    enabled: options.enabled,
     queryFn: async () => {
       const res = await apiRequest('GET', '/api/environments');
       const data = await res.json();

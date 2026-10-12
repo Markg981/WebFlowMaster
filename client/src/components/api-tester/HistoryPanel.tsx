@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { formatDateTime } from '@/lib/dates';
 
 interface HistoryPanelProps {
   historyItems: ApiTestHistoryEntry[];
@@ -58,9 +59,10 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
           )}
           <div className="space-y-2">
             {historyItems.map((item) => (
-              <div
+              <button
                 key={item.id}
-                className="p-3 border rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                type="button"
+                className="w-full text-left p-3 border rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
                 onClick={() => onLoadHistoryItem(item)}
               >
                 <div className="flex items-center justify-between">
@@ -85,9 +87,9 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {new Date(item.createdAt).toLocaleString()}
+                  {formatDateTime(item.createdAt)}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </ScrollArea>

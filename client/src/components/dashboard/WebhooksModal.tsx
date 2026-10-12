@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -17,10 +18,11 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Trash2, Copy, Plus, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { format } from 'date-fns';
+import { formatDateTime } from '@/lib/dates';
 
 interface WebhooksModalProps {
   isOpen: boolean;
@@ -45,12 +47,15 @@ interface WebhookSummary {
  * be shown again. A lost token is replaced by deleting the webhook and creating another.
  */
 export default function WebhooksModal({ isOpen, onClose, planId, planName }: WebhooksModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [newWebhookName, setNewWebhookName] = useState('');
   /** The token just created, until the dialog is closed. Never fetched again. */
   const [justCreated, setJustCreated] = useState<{ name: string; token: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  /** The webhook whose delete button was pressed, until the person confirms or backs out. */
+  const [deleting, setDeleting] = useState<WebhookSummary | null>(null);
 
   const { data: webhooks = [] } = useQuery<WebhookSummary[]>({
     queryKey: ['webhooks', planId],
@@ -73,7 +78,10 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
       setJustCreated({ name: created.name, token: created.token });
     },
     onError: () => {
-      toast({ title: 'Errore nella creazione del Webhook', variant: 'destructive' });
+      toast({
+        title: t('webhooks.toast.createFailed', 'The webhook could not be created'),
+        variant: 'destructive',
+      });
     },
   });
 
@@ -83,8 +91,9 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['webhooks', planId] });
-      toast({ title: 'Webhook eliminato' });
+      toast({ title: t('webhooks.toast.deleted', 'Webhook deleted') });
     },
+    onSettled: () => setDeleting(null),
   });
 
   const endpoint = `${window.location.origin}/api/webhooks/execute`;
@@ -93,7 +102,10 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
     setCopied(what);
     setTimeout(() => setCopied(null), 2000);
     toast({
-      title: what === 'token' ? 'Token copiato negli appunti' : 'Comando copiato negli appunti',
+      title:
+        what === 'token'
+          ? t('webhooks.toast.tokenCopied', 'Token copied to the clipboard')
+          : t('webhooks.toast.commandCopied', 'Command copied to the clipboard'),
     });
   };
 
@@ -109,16 +121,21 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Webhook CI/CD - {planName}</DialogTitle>
+          <DialogTitle>
+            {t('webhooks.title', 'CI/CD webhooks - {{plan}}', { plan: planName })}
+          </DialogTitle>
           <DialogDescription>
-            Gestisci i webhook per lanciare questo Test Plan da GitHub Actions o altri sistemi
-            CI/CD.
+            {t(
+              'webhooks.description',
+              'Manage the webhooks that start this test plan from GitHub Actions or another CI/CD system.',
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-2 items-center mt-4">
           <Input
-            placeholder="Nome Webhook (es. GitHub Actions Prod)"
+            placeholder={t('webhooks.namePlaceholder', 'Webhook name (e.g. GitHub Actions prod)')}
+            aria-label={t('webhooks.nameLabel', 'Webhook name')}
             value={newWebhookName}
             onChange={(e) => setNewWebhookName(e.target.value)}
           />
@@ -127,7 +144,7 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
             disabled={!newWebhookName || createWebhookMutation.isPending}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Crea
+            {t('webhooks.create', 'Create')}
           </Button>
         </div>
 
@@ -137,7 +154,11 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
             data-testid="new-webhook-token"
           >
             <p className="text-sm font-medium">
-              Token del webhook «{justCreated.name}»: copialo ora, non sarà più visibile.
+              {t(
+                'webhooks.shownOnce',
+                'Token for the webhook “{{name}}”: copy it now, it will not be shown again.',
+                { name: justCreated.name },
+              )}
             </p>
             <div className="flex items-center gap-2">
               <code className="flex-1 truncate text-xs bg-muted p-2 rounded">
@@ -175,8 +196,11 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Mettilo tra i segreti della pipeline e invialo nell'header{' '}
-              <code>X-Webhook-Token</code>: nell'URL finirebbe nei log dei proxy.
+              {t(
+                'webhooks.headerHint',
+                'Keep it among the pipeline’s secrets and send it in the {{header}} header: in the URL it would end up in proxy logs.',
+                { header: 'X-Webhook-Token' },
+              )}
             </p>
           </div>
         )}
@@ -185,9 +209,9 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Token</TableHead>
-                <TableHead>Ultimo Utilizzo</TableHead>
+                <TableHead>{t('webhooks.columns.name', 'Name')}</TableHead>
+                <TableHead>{t('webhooks.columns.token', 'Token')}</TableHead>
+                <TableHead>{t('webhooks.columns.lastUsed', 'Last used')}</TableHead>
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -195,7 +219,7 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
               {webhooks.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
-                    Nessun webhook configurato.
+                    {t('webhooks.empty', 'No webhooks configured.')}
                   </TableCell>
                 </TableRow>
               )}
@@ -205,20 +229,25 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
                   <TableCell>
                     <code
                       className="text-xs bg-muted p-1 rounded"
-                      title="Il token completo è visibile solo alla creazione"
+                      title={t('webhooks.tokenHint', 'The full token is shown only when created')}
                     >
                       {wh.tokenPrefix}…
                     </code>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {wh.lastUsedAt ? format(new Date(wh.lastUsedAt), 'PPp') : 'Mai usato'}
+                    {wh.lastUsedAt
+                      ? formatDateTime(wh.lastUsedAt)
+                      : t('webhooks.neverUsed', 'Never used')}
                   </TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive"
-                      onClick={() => deleteWebhookMutation.mutate(wh.id)}
+                      onClick={() => setDeleting(wh)}
+                      aria-label={t('webhooks.delete', 'Delete webhook {{name}}', {
+                        name: wh.name,
+                      })}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -228,6 +257,24 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
             </TableBody>
           </Table>
         </div>
+
+        <ConfirmDialog
+          open={deleting !== null}
+          onOpenChange={(open) => {
+            if (!open) setDeleting(null);
+          }}
+          title={t('webhooks.deleteDialog.title', 'Delete webhook “{{name}}”?', {
+            name: deleting?.name ?? '',
+          })}
+          description={t(
+            'webhooks.deleteDialog.description',
+            'Pipelines using its token can no longer start this plan. This cannot be undone.',
+          )}
+          confirmLabel={t('common.delete', 'Delete')}
+          destructive
+          pending={deleteWebhookMutation.isPending}
+          onConfirm={() => deleting && deleteWebhookMutation.mutate(deleting.id)}
+        />
       </DialogContent>
     </Dialog>
   );

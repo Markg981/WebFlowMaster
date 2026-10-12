@@ -15,6 +15,8 @@ import { sharedStore } from './rate-limit-store';
  *   sharing one outbound address do not share one budget. 600 a minute is far above what the CLI
  *   needs while it waits for a run (one status call every few seconds).
  * - WEBHOOK_RATE_LIMIT (default 120) for each client address on /api/webhooks.
+ * - HEAVY_RATE_LIMIT (default 30) for each signed-in user on the expensive routes: see
+ *   heavyRateLimit below.
  *
  * Past it the answer is 429 with Retry-After and the RateLimit headers. 0 turns a limit off.
  *
@@ -76,4 +78,42 @@ export function webhookRateLimit(env: NodeJS.ProcessEnv = process.env): RequestH
         .json({ error: `Too many requests: at most ${limit} a minute. Wait and try again.` });
     },
   });
+}
+
+/**
+ * How often a person may ask for the expensive things.
+ *
+ * apiRateLimit leaves a signed-in session alone on purpose: browsing is cheap, and a limit on it
+ * would be felt long before it protected anything. Opening a browser to load a page or survey its
+ * elements, proxying a request to somebody else's server, starting a recording, asking the model:
+ * those are not cheap, and a script holding a session could ask for them without end. So those
+ * routes carry this as well, counted for each user — by address when there is no user — so that
+ * one busy person slows nobody else. Every route shares one budget (sharedHeavyRateLimit).
+ */
+export function heavyRateLimit(env: NodeJS.ProcessEnv = process.env): RequestHandler {
+  const limit = perMinute(env.HEAVY_RATE_LIMIT, 30);
+  if (limit === 0) return passThrough;
+  return rateLimit({
+    windowMs: 60_000,
+    limit,
+    store: sharedStore('heavy'),
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const userId = (req.user as { id?: number } | undefined)?.id;
+      return userId ? `user:${userId}` : `ip:${ipKeyGenerator(req.ip ?? '')}`;
+    },
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: `Too many requests: at most ${limit} a minute of this kind. Wait and try again.`,
+      });
+    },
+  });
+}
+
+let heavy: RequestHandler | undefined;
+
+/** The one instance every expensive route mounts, so a user has one budget across them all. */
+export function sharedHeavyRateLimit(): RequestHandler {
+  return (heavy ??= heavyRateLimit());
 }

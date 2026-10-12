@@ -16,7 +16,10 @@ Una release può cambiare lo schema del database, quindi l'ordine conta.
 1. **Svuotate i runner.** In **Impostazioni → Runner** svuotate ogni runner. Un runner in
    svuotamento finisce ciò che ha e non prende altro; aspettate che i job in corso arrivino a
    zero. I run richiesti nel frattempo restano in coda e partono dopo l'aggiornamento.
-2. **Fermate i processi web e i worker.**
+2. **Fermate i processi web e i worker.** Un worker a cui è stato chiesto di fermarsi aspetta
+   fino a `WORKER_SHUTDOWN_GRACE_MS` (30 secondi di default) i run che ha ancora; con Compose,
+   impostate lo `stop_grace_period` del worker almeno altrettanto lungo, altrimenti Docker lo
+   uccide prima.
 3. **Fate il backup del database**: `npm run backup:create` (vedi [Backup](#backup)).
 4. **Applicate le migrazioni** con la nuova versione: `node dist/apply-migrations.js`, oppure il
    servizio `migrate` in Compose (`docker compose up migrate`). `npm run db:doctor` riporta lo

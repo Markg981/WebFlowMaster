@@ -89,6 +89,8 @@ describe('ServiceAccountsCard', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Disable GitHub Actions' }));
+    expect(await screen.findByText('Disable “GitHub Actions”?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Disable' }));
 
     await waitFor(() => {
       expect(

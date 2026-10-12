@@ -120,7 +120,6 @@ export default function ProjectAccessDialog({
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error ?? 'Could not save');
       queryClient.invalidateQueries({ queryKey: ['projectAccess', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       onOpenChange(false);
     } catch (e) {

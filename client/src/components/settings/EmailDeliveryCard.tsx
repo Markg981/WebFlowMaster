@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { formatDateTime } from '@/lib/dates';
 
 interface DeliveryHistory {
   configured: boolean;
@@ -113,7 +114,7 @@ export default function EmailDeliveryCard() {
                         <td className="p-2">{purposes[delivery.purpose] ?? purposes.other}</td>
                         <td className="p-2">{states[delivery.state] ?? delivery.state}</td>
                         <td className="p-2 whitespace-nowrap">
-                          {new Date(delivery.createdAt).toLocaleString()}
+                          {formatDateTime(delivery.createdAt)}
                         </td>
                       </tr>
                     ))}

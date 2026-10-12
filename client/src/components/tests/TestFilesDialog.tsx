@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { useProjects } from '@/hooks/use-projects';
 import {
   Dialog,
   DialogContent,
@@ -81,10 +82,7 @@ export function TestFilesDialog({
   onImported: () => void;
 }) {
   const { t } = useTranslation();
-  const { data: projects = [] } = useQuery<Array<{ id: number; name: string }>>({
-    queryKey: ['/api/projects'],
-    enabled: open,
-  });
+  const { data: projects = [] } = useProjects({ enabled: open });
   const [exportProject, setExportProject] = useState(ALL);
   const [format, setFormat] = useState<'yaml' | 'json' | 'gherkin'>('yaml');
   const [importFormat, setImportFormat] = useState<'bundle' | 'gherkin'>('bundle');

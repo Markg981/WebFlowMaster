@@ -5,6 +5,8 @@ import { TEST_EXECUTION_QUEUE_NAME, testExecutionQueue } from './queue';
 import { processShardJob, processTestPlanJob } from './test-execution-service';
 import { SHARD_JOB, registerShardDispatcher } from './run-shards';
 import loggerPromise from './logger';
+import { installProcessErrorHandlers } from './process-errors';
+import { resolveWorkerShutdownGraceMs } from './config';
 import { correlationStore } from './middleware/correlation';
 import { closeDb, privilegedDb } from './db';
 import {
@@ -42,6 +44,8 @@ configureEgressProxy();
 
 (async () => {
   const logger = await loggerPromise;
+  // Read first, so a malformed value is reported by name instead of at the first SIGTERM.
+  const shutdownGraceMs = resolveWorkerShutdownGraceMs();
   const { initializeQuotaDefaults } = await import('./tenant-quotas');
   await initializeQuotaDefaults();
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.
@@ -242,13 +246,21 @@ configureEgressProxy();
 
   // ─── Graceful shutdown ──────────────────────────────────────────────────────
   // worker.close() waits for the in-flight job to finish before resolving, so a
-  // redeploy doesn't kill a running test execution mid-flight.
+  // redeploy doesn't kill a running test execution mid-flight — for as long as
+  // WORKER_SHUTDOWN_GRACE_MS allows (server/config.ts), since a run can last hours.
   let shuttingDown = false;
-  const shutdown = async (signal: string) => {
+  const shutdown = async (signal: string, exitCode = 0) => {
     if (shuttingDown) return;
     shuttingDown = true;
-    logger.info(`Worker received ${signal}, shutting down gracefully...`);
-    const forceTimer = setTimeout(() => process.exit(1), 30000);
+    logger.info(
+      `Worker received ${signal}, shutting down gracefully (up to ${shutdownGraceMs} ms)...`,
+    );
+    const forceTimer = setTimeout(() => {
+      logger.error(
+        `Worker shutdown exceeded WORKER_SHUTDOWN_GRACE_MS (${shutdownGraceMs} ms); forcing exit.`,
+      );
+      process.exit(1);
+    }, shutdownGraceMs);
     forceTimer.unref();
     try {
       await worker.close(); // waits for the active job to complete
@@ -261,7 +273,7 @@ configureEgressProxy();
       await connection.quit();
       await closeDb();
       logger.info('Worker graceful shutdown complete.');
-      process.exit(0);
+      process.exit(exitCode);
     } catch (err) {
       logger.error('Error during worker graceful shutdown', err);
       process.exit(1);
@@ -270,4 +282,7 @@ configureEgressProxy();
 
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
+  // What nothing caught: logged with its stack, and an exception takes the same way out as
+  // SIGTERM, ending non-zero (server/process-errors.ts).
+  installProcessErrorHandlers(logger, shutdown);
 })();

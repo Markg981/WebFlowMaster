@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Loader2, Pause, Play } from 'lucide-react';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * The machines that run plans. Owners only (the server enforces it).
@@ -169,7 +170,7 @@ export default function RunnersCard({ canManage = true }: { canManage?: boolean 
                       )}
                     </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
-                      {new Date(runner.lastSeenAt).toLocaleString()}
+                      {formatDateTime(runner.lastSeenAt)}
                     </TableCell>
                     <TableCell className="text-right">
                       {canManage && runner.status === 'online' && (

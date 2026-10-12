@@ -622,13 +622,15 @@ export async function runTestPlan(
     }
     const quota = quotaErrorBody(error);
     if (quota) return { error: String(quota.error), status: 429 };
+    // The detail stays in the log: a driver's or Redis's message names hosts, ports and
+    // tables, and the route forwards this string to whoever pressed Run.
     resolvedLogger.error({
       message: 'Failed to enqueue test plan run',
       planId,
       error: error.message,
       stack: error.stack,
     });
-    return { error: `Failed to initialize test plan run: ${error.message}`, status: 500 };
+    return { error: 'The test plan run could not be started.', status: 500 };
   }
 }
 

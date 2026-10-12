@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -19,9 +20,10 @@ import { CalendarIcon, InfoCircledIcon } from '@radix-ui/react-icons';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
+import { dateFnsLocale } from '@/lib/dates';
 import { fetchTestPlansAPI, type TestPlanSummary } from '@/lib/api/test-plans';
 import {
-  scheduleFormSchema,
+  buildScheduleFormSchema,
   type ScheduleFormValues,
   FREQUENCY_OPTIONS,
   RETRY_ON_FAILURE_OPTIONS,
@@ -44,17 +46,36 @@ interface ScheduleFormProps {
   isSubmitting: boolean;
 }
 
+const EMPTY_VALUES: ScheduleFormValues = {
+  scheduleName: '',
+  testPlanId: '',
+  frequency: FREQUENCY_OPTIONS[0].value,
+  customCronExpression: '',
+  nextRunAt: new Date(),
+  timezone: browserTimezone(),
+  environment: '',
+  browsers: [BROWSER_OPTIONS[0].value],
+  isActive: true,
+  retryOnFailure: 'none',
+  notificationConfigOverride: '',
+  executionParameters: '',
+};
+
 const ScheduleForm: React.FC<ScheduleFormProps> = ({
   initialData,
   onSubmit,
   onCancel,
   isSubmitting,
 }) => {
+  const { t, i18n } = useTranslation();
   const isEditMode = Boolean(initialData && initialData.id);
 
   const transformedInitialData = useMemo(() => {
     return initialData ? transformApiDataToFormValues(initialData) : {};
   }, [initialData]);
+
+  // The messages come out in the form's language; see buildScheduleFormSchema.
+  const schema = useMemo(() => buildScheduleFormSchema((key, fallback) => t(key, fallback)), [t]);
 
   const {
     control,
@@ -64,41 +85,15 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
     reset,
     formState: { errors },
   } = useForm<ScheduleFormValues>({
-    resolver: zodResolver(scheduleFormSchema),
-    defaultValues: transformedInitialData || {
-      scheduleName: '',
-      testPlanId: '',
-      frequency: FREQUENCY_OPTIONS[0].value,
-      customCronExpression: '',
-      nextRunAt: new Date(),
-      timezone: browserTimezone(),
-      environment: '',
-      browsers: [BROWSER_OPTIONS[0].value],
-      isActive: true,
-      retryOnFailure: 'none',
-      notificationConfigOverride: '',
-      executionParameters: '',
-    },
+    resolver: zodResolver(schema),
+    defaultValues: transformedInitialData || { ...EMPTY_VALUES, nextRunAt: new Date() },
   });
 
   useEffect(() => {
     if (initialData) {
       reset(transformApiDataToFormValues(initialData));
     } else {
-      reset({
-        scheduleName: '',
-        testPlanId: '',
-        frequency: FREQUENCY_OPTIONS[0].value,
-        customCronExpression: '',
-        nextRunAt: new Date(),
-        timezone: browserTimezone(),
-        environment: '',
-        browsers: [BROWSER_OPTIONS[0].value],
-        isActive: true,
-        retryOnFailure: 'none',
-        notificationConfigOverride: '',
-        executionParameters: '',
-      });
+      reset({ ...EMPTY_VALUES, nextRunAt: new Date(), timezone: browserTimezone() });
     }
   }, [initialData, reset]);
 
@@ -114,10 +109,28 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
     await onSubmit(apiPayload as any); // Type assertion needed due to Omit differences
   };
 
+  const frequencyLabel = (option: (typeof FREQUENCY_OPTIONS)[number]) =>
+    t(`schedulingPage.form.frequency.${option.value}`, option.label);
+  const retryLabel = (option: (typeof RETRY_ON_FAILURE_OPTIONS)[number]) =>
+    t(`schedulingPage.form.retry.${option.value}`, option.label);
+
+  const infoButton = (label: string) => (
+    <Button
+      variant="ghost"
+      size="icon"
+      type="button"
+      className="ml-1 h-5 w-5"
+      aria-label={label}
+      title={label}
+    >
+      <InfoCircledIcon className="h-4 w-4" />
+    </Button>
+  );
+
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       <div>
-        <Label htmlFor="scheduleName">Schedule Name</Label>
+        <Label htmlFor="scheduleName">{t('schedulingPage.form.name', 'Schedule Name')}</Label>
         <Input id="scheduleName" {...register('scheduleName')} />
         {errors.scheduleName && (
           <p className="text-sm text-destructive mt-1">{errors.scheduleName.message}</p>
@@ -125,7 +138,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
       </div>
 
       <div>
-        <Label htmlFor="testPlanId">Test Plan</Label>
+        <Label htmlFor="testPlanId">{t('schedulingPage.form.testPlan', 'Test Plan')}</Label>
         <Controller
           name="testPlanId"
           control={control}
@@ -136,12 +149,17 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
               disabled={isLoadingTestPlans}
             >
               <SelectTrigger id="testPlanId">
-                <SelectValue placeholder="Select a test plan..." />
+                <SelectValue
+                  placeholder={t(
+                    'schedulingPage.form.testPlanPlaceholder',
+                    'Select a test plan...',
+                  )}
+                />
               </SelectTrigger>
               <SelectContent>
                 {isLoadingTestPlans ? (
                   <SelectItem value="loading" disabled>
-                    Loading test plans...
+                    {t('schedulingPage.form.loadingTestPlans', 'Loading test plans...')}
                   </SelectItem>
                 ) : (
                   testPlans?.map((plan) => (
@@ -161,19 +179,24 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="frequency">Frequency</Label>
+          <Label htmlFor="frequency">{t('schedulingPage.form.frequencyLabel', 'Frequency')}</Label>
           <Controller
             name="frequency"
             control={control}
             render={({ field }) => (
               <Select onValueChange={field.onChange} value={field.value}>
                 <SelectTrigger id="frequency">
-                  <SelectValue placeholder="Select frequency..." />
+                  <SelectValue
+                    placeholder={t(
+                      'schedulingPage.form.frequencyPlaceholder',
+                      'Select frequency...',
+                    )}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {FREQUENCY_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {frequencyLabel(option)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -188,18 +211,18 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
         {watchedFrequency === 'custom_cron' && (
           <div>
             <Label htmlFor="customCronExpression">
-              CRON Expression
+              {t('schedulingPage.form.cron', 'CRON Expression')}
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" type="button" className="ml-1 h-5 w-5">
-                      <InfoCircledIcon className="h-4 w-4" />
-                    </Button>
+                    {infoButton(t('schedulingPage.form.cronHelp', 'How CRON expressions work'))}
                   </TooltipTrigger>
                   <TooltipContent className="w-60">
                     <p className="text-xs">
-                      Uses standard CRON format (minute, hour, day of month, month, day of week).
-                      Example: "0 2 * * *" for 2 AM daily. Evaluated in the timezone selected below.
+                      {t(
+                        'schedulingPage.form.cronHint',
+                        'Uses standard CRON format (minute, hour, day of month, month, day of week). Example: "0 2 * * *" for 2 AM daily. Evaluated in the timezone selected below.',
+                      )}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -208,7 +231,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
             <Input
               id="customCronExpression"
               {...register('customCronExpression')}
-              placeholder="e.g., 0 0 * * *"
+              placeholder={t('schedulingPage.form.cronPlaceholder', 'e.g., 0 0 * * *')}
             />
             {errors.customCronExpression && (
               <p className="text-sm text-destructive mt-1">{errors.customCronExpression.message}</p>
@@ -218,11 +241,11 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
       </div>
 
       <div>
-        <Label htmlFor="timezone">Timezone</Label>
+        <Label htmlFor="timezone">{t('schedulingPage.form.timezone', 'Timezone')}</Label>
         <Input
           id="timezone"
           list="timezone-options"
-          placeholder="e.g. Europe/Rome"
+          placeholder={t('schedulingPage.form.timezonePlaceholder', 'e.g. Europe/Rome')}
           {...register('timezone')}
         />
         {/* A datalist rather than a select: there are ~600 IANA zones, and the handful a
@@ -233,7 +256,10 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
           ))}
         </datalist>
         <p className="text-xs text-muted-foreground mt-1">
-          The schedule runs at this local time all year — daylight saving included.
+          {t(
+            'schedulingPage.form.timezoneHint',
+            'The schedule runs at this local time all year — daylight saving included.',
+          )}
         </p>
         {errors.timezone && (
           <p className="text-sm text-destructive mt-1">{errors.timezone.message}</p>
@@ -241,7 +267,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
       </div>
 
       <div>
-        <Label htmlFor="nextRunAt">Next Run At</Label>
+        <Label htmlFor="nextRunAt">{t('schedulingPage.form.nextRunAt', 'Next Run At')}</Label>
         <Controller
           name="nextRunAt"
           control={control}
@@ -259,9 +285,9 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {field.value ? (
-                    format(field.value, 'PPP HH:mm')
+                    format(field.value, 'PPP HH:mm', { locale: dateFnsLocale(i18n.language) })
                   ) : (
-                    <span>Pick a date and time</span>
+                    <span>{t('schedulingPage.form.pickDateTime', 'Pick a date and time')}</span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -281,7 +307,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
                   autoFocus
                 />
                 <div className="p-3 border-t border-border">
-                  <Label htmlFor="time">Time</Label>
+                  <Label htmlFor="time">{t('schedulingPage.form.time', 'Time')}</Label>
                   <Input
                     type="time"
                     id="time"
@@ -309,7 +335,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
       </div>
 
       <div>
-        <Label htmlFor="environment">Environment</Label>
+        <Label htmlFor="environment">{t('schedulingPage.form.environment', 'Environment')}</Label>
         <Controller
           name="environment"
           control={control}
@@ -323,7 +349,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
       </div>
 
       <div>
-        <Label>Browsers</Label>
+        <Label>{t('schedulingPage.form.browsers', 'Browsers')}</Label>
         <Controller
           name="browsers"
           control={control}
@@ -357,19 +383,26 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
       </div>
 
       <div>
-        <Label htmlFor="retryOnFailure">Retry on Failure</Label>
+        <Label htmlFor="retryOnFailure">
+          {t('schedulingPage.form.retryOnFailure', 'Retry on Failure')}
+        </Label>
         <Controller
           name="retryOnFailure"
           control={control}
           render={({ field }) => (
             <Select onValueChange={field.onChange} value={field.value}>
               <SelectTrigger id="retryOnFailure">
-                <SelectValue placeholder="Select retry behavior..." />
+                <SelectValue
+                  placeholder={t(
+                    'schedulingPage.form.retryPlaceholder',
+                    'Select retry behavior...',
+                  )}
+                />
               </SelectTrigger>
               <SelectContent>
                 {RETRY_ON_FAILURE_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    {retryLabel(option)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -383,17 +416,20 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
 
       <div>
         <Label htmlFor="notificationConfigOverride">
-          Notification Overrides (JSON)
+          {t('schedulingPage.form.notifications', 'Notification Overrides (JSON)')}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" type="button" className="ml-1 h-5 w-5">
-                  <InfoCircledIcon className="h-4 w-4" />
-                </Button>
+                {infoButton(
+                  t('schedulingPage.form.notificationsHelp', 'About notification overrides'),
+                )}
               </TooltipTrigger>
               <TooltipContent className="w-80">
                 <p className="text-xs">
-                  Optional. Override plan-level notifications. Example:
+                  {t(
+                    'schedulingPage.form.notificationsHint',
+                    'Optional. Override plan-level notifications. Example:',
+                  )}
                   <pre>{`{\n  "emails": ["user@example.com"],\n  "onSuccess": true,\n  "onFailure": true\n}`}</pre>
                 </p>
               </TooltipContent>
@@ -415,17 +451,18 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
 
       <div>
         <Label htmlFor="executionParameters">
-          Execution Parameters (JSON)
+          {t('schedulingPage.form.parameters', 'Execution Parameters (JSON)')}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" type="button" className="ml-1 h-5 w-5">
-                  <InfoCircledIcon className="h-4 w-4" />
-                </Button>
+                {infoButton(t('schedulingPage.form.parametersHelp', 'About execution parameters'))}
               </TooltipTrigger>
               <TooltipContent className="w-80">
                 <p className="text-xs">
-                  Optional. JSON object of parameters to inject into the execution. Example:
+                  {t(
+                    'schedulingPage.form.parametersHint',
+                    'Optional. JSON object of parameters to inject into the execution. Example:',
+                  )}
                   <pre>{`{\n  "customVar": "value",\n  "anotherVar": 123\n}`}</pre>
                 </p>
               </TooltipContent>
@@ -452,7 +489,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
           )}
         />
         <Label htmlFor="isActive" className="font-normal">
-          Schedule Active
+          {t('schedulingPage.form.active', 'Schedule Active')}
         </Label>
         {errors.isActive && (
           <p className="text-sm text-destructive mt-1">{errors.isActive.message}</p>
@@ -461,10 +498,14 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
 
       <div className="flex justify-end space-x-3">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
+          {t('schedulingPage.cancel.button', 'Cancel')}
         </Button>
         <Button type="submit" disabled={isSubmitting || isLoadingTestPlans}>
-          {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Schedule'}
+          {isSubmitting
+            ? t('schedulingPage.form.saving', 'Saving...')
+            : isEditMode
+              ? t('schedulingPage.form.saveChanges', 'Save Changes')
+              : t('schedulingPage.createSchedule.button', 'Create Schedule')}
         </Button>
       </div>
     </form>

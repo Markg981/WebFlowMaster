@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { History, Loader2, RotateCcw, Undo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import PublishingPanel, { type PublishingState } from './PublishingPanel';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * What this test used to be.
@@ -240,7 +241,7 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({
                   <p className="text-xs text-muted-foreground">
                     {version.name} ·{' '}
                     {t('testHistory.steps', '{{count}} steps', { count: version.stepCount })} ·{' '}
-                    {new Date(version.createdAt).toLocaleString()} ·{' '}
+                    {formatDateTime(version.createdAt)} ·{' '}
                     {version.authorName ?? t('testHistory.unknownAuthor', 'a member who has left')}
                   </p>
                   {/* How the version did, which is what turns a list of edits into something

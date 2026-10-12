@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import MfaSetup, { RecoveryCodes } from '@/components/security/MfaSetup';
+import { formatDate } from '@/lib/dates';
 
 /**
  * The member's second factor, and — for an owner — whether everyone must have one.
@@ -122,7 +123,7 @@ export default function SecurityCard({ isOwner = false }: { isOwner?: boolean })
           <>
             <p className="text-sm" data-testid="mfa-status">
               {t('security.mfa.enabledSince', 'On since {{date}}.', {
-                date: new Date(status.enabledAt!).toLocaleDateString(),
+                date: formatDate(status.enabledAt!),
               })}{' '}
               {t('security.mfa.codesLeft', '{{count}} recovery codes left.', {
                 count: status.recoveryCodesLeft,

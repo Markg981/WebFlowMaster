@@ -63,6 +63,7 @@ import type { FailureAnalysis } from '@shared/failure-analysis';
 import { isExecutionInFlight } from '@shared/execution-status';
 import CommentsPanel from '@/components/tests/CommentsPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { formatDate, formatDateTime } from '@/lib/dates';
 
 /** The filter value that lets every result through. */
 const ALL = '__all__';
@@ -539,12 +540,12 @@ const TestReportPage: React.FC = () => {
               )}
               <p>
                 <strong>{t('testReportPage.header.started', 'Started:')}</strong>{' '}
-                {new Date(header.dateTime).toLocaleString()}
+                {formatDateTime(header.dateTime)}
               </p>
               {header.completedAt ? (
                 <p>
                   <strong>{t('testReportPage.header.completed', 'Completed:')}</strong>{' '}
-                  {new Date(header.completedAt).toLocaleString()}
+                  {formatDateTime(header.completedAt)}
                 </p>
               ) : (
                 <p>
@@ -634,7 +635,7 @@ const TestReportPage: React.FC = () => {
                   'testReportPage.purged',
                   'Screenshots, videos and traces of this run were removed on {{date}} by the retention policy. Its results are kept.',
                   {
-                    date: new Date(header.artifactsPurgedAt).toLocaleDateString(),
+                    date: formatDate(header.artifactsPurgedAt),
                   },
                 )}
               </p>
@@ -649,8 +650,7 @@ const TestReportPage: React.FC = () => {
                     'quota.executionDeferred',
                     'Monthly execution allowance exhausted; this run is waiting for capacity or the next UTC month.',
                   )}
-                  {header.quotaDeferUntil &&
-                    ` ${new Date(header.quotaDeferUntil).toLocaleString()}`}
+                  {header.quotaDeferUntil && ` ${formatDateTime(header.quotaDeferUntil)}`}
                 </p>
               )}
             {header.artifactStorageStatus && (

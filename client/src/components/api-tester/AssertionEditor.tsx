@@ -170,6 +170,7 @@ export const AssertionEditor: React.FC<AssertionEditorProps> = ({
                   size="icon"
                   onClick={() => handleRemoveAssertion(assertion.id)}
                   disabled={isExecuting}
+                  aria-label={t('apiTester.assertionEditor.remove', 'Remove assertion')}
                 >
                   <XCircle className="h-4 w-4 text-destructive" />
                 </Button>

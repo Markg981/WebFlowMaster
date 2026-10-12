@@ -35,6 +35,7 @@ import {
   type CustomActionParameter,
 } from '@shared/custom-actions';
 import SaveStepGroupModal from '@/components/SaveStepGroupModal';
+import StepGroupsManager from '@/components/StepGroupsManager';
 import KeepElementModal from '@/components/KeepElementModal';
 import AuthorStepsModal from '@/components/AuthorStepsModal';
 import { useRecordingSession } from '@/hooks/useRecordingSession';
@@ -49,6 +50,7 @@ import {
   StopCircle, // Add this if not present
   Info,
   XCircle,
+  Settings2,
 } from 'lucide-react';
 // Client-side StepResult interface matching backend
 interface StepResult {
@@ -145,6 +147,7 @@ function CreateTestPage() {
   const [dataset, setDataset] = useState<DatasetRow[]>([]);
   /** Open while naming the sequence that is about to become a reusable group. */
   const [isSaveGroupModalOpen, setIsSaveGroupModalOpen] = useState(false);
+  const [isGroupsManagerOpen, setIsGroupsManagerOpen] = useState(false);
   /** Open while a description is being read into steps. Nothing it proposes is inserted unseen. */
   const [isAuthorModalOpen, setIsAuthorModalOpen] = useState(false);
   /** The detected element about to be kept in a project's repository, if any. */
@@ -548,8 +551,11 @@ function CreateTestPage() {
         setWebsiteLoaded(true);
         setWebsiteScreenshot(data.screenshot);
         toast({
-          title: 'Website loaded',
-          description: 'Website loaded successfully in preview',
+          title: t('dashboardPageNew.toasts.websiteLoaded.title', 'Website loaded'),
+          description: t(
+            'dashboardPageNew.toasts.websiteLoaded.description',
+            'Website loaded successfully in preview',
+          ),
         });
       } else {
         throw new Error(data.error || 'Failed to load website');
@@ -559,7 +565,7 @@ function CreateTestPage() {
       setWebsiteLoaded(false);
       setWebsiteScreenshot(null);
       toast({
-        title: 'Failed to load website',
+        title: t('dashboardPageNew.toasts.websiteLoadFailed.title', 'Failed to load website'),
         description: error.message,
         variant: 'destructive',
       });
@@ -588,15 +594,23 @@ function CreateTestPage() {
       }
 
       toast({
-        title: 'Elements detected',
+        title: t('dashboardPageNew.toasts.elementsDetected.title', 'Elements detected'),
         description: data.summary?.truncated
-          ? `Showing ${data.summary.returned} of ${data.summary.totalFound} elements found on the page`
-          : `Found ${data.elements.length} elements on the page`,
+          ? t(
+              'dashboardPageNew.toasts.elementsDetected.truncated',
+              'Showing {{returned}} of {{total}} elements found on the page',
+              { returned: data.summary.returned, total: data.summary.totalFound },
+            )
+          : t(
+              'dashboardPageNew.toasts.elementsDetected.found',
+              'Found {{count}} elements on the page',
+              { count: data.elements.length },
+            ),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Failed to detect elements',
+        title: t('dashboardPageNew.toasts.detectFailed.title', 'Failed to detect elements'),
         description: error.message,
         variant: 'destructive',
       });
@@ -640,8 +654,11 @@ function CreateTestPage() {
       if (!data) return;
 
       toast({
-        title: 'Test saved',
-        description: 'Your test has been saved successfully.',
+        title: t('dashboardPageNew.toasts.testSaved.title', 'Test saved'),
+        description: t(
+          'dashboardPageNew.toasts.testSaved.description',
+          'Your test has been saved successfully.',
+        ),
       });
       setCurrentSavedTestId(data.id); // Store the ID of the saved test
       setTestName(data.name); // Update test name state
@@ -649,7 +666,7 @@ function CreateTestPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: 'Failed to save test',
+        title: t('dashboardPageNew.toasts.saveFailed.title', 'Failed to save test'),
         description: error.message,
         variant: 'destructive',
       });
@@ -669,8 +686,11 @@ function CreateTestPage() {
   const handleSaveTest = () => {
     if (testSequence.length === 0) {
       toast({
-        title: 'No test steps',
-        description: 'Add some test steps before saving',
+        title: t('dashboardPageNew.toasts.noSteps.title', 'No test steps'),
+        description: t(
+          'dashboardPageNew.toasts.noSteps.description',
+          'Add some test steps before saving',
+        ),
         variant: 'destructive',
       });
       return;
@@ -691,8 +711,11 @@ function CreateTestPage() {
     setTestName(newName); // Update the main page's testName state
     if (!projectId) {
       toast({
-        title: 'Project Not Selected',
-        description: 'Please select a project to save the test.',
+        title: t('dashboardPageNew.toasts.projectNotSelected.title', 'Project Not Selected'),
+        description: t(
+          'dashboardPageNew.toasts.projectNotSelected.description',
+          'Please select a project to save the test.',
+        ),
         variant: 'destructive',
       });
       // Re-open modal or indicate error. For now, just preventing save.
@@ -776,13 +799,16 @@ function CreateTestPage() {
       // The picker labels an environment that has one, so refresh it.
       queryClient.invalidateQueries({ queryKey: ['environments'] });
       toast({
-        title: 'Login saved',
-        description: 'Runs against this environment will start already signed in.',
+        title: t('dashboardPageNew.toasts.loginSaved.title', 'Login saved'),
+        description: t(
+          'dashboardPageNew.toasts.loginSaved.description',
+          'Runs against this environment will start already signed in.',
+        ),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Could not save the login',
+        title: t('dashboardPageNew.toasts.loginSaveFailed.title', 'Could not save the login'),
         description: error.message,
         variant: 'destructive',
       });
@@ -1298,9 +1324,23 @@ function CreateTestPage() {
                       any action; what arrives in the test is a reference, not a copy. */}
                   {stepGroupActions.length > 0 && (
                     <>
-                      <h4 className="text-sm font-semibold text-muted-foreground pt-4">
-                        {t('dashboardPageNew.stepGroups.title', 'Step groups')}
-                      </h4>
+                      <div className="flex items-center justify-between pt-4">
+                        <h4 className="text-sm font-semibold text-muted-foreground">
+                          {t('dashboardPageNew.stepGroups.title', 'Step groups')}
+                        </h4>
+                        {/* Where a group is renamed, re-stepped or deleted, and where it says
+                            which tests call it — the question to ask before any of those. */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          aria-label={t('stepGroupsManager.open', 'Manage step groups')}
+                          title={t('stepGroupsManager.open', 'Manage step groups')}
+                          onClick={() => setIsGroupsManagerOpen(true)}
+                        >
+                          <Settings2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                       {stepGroupActions.map((action) => (
                         <DraggableAction
                           key={action.id}
@@ -1619,6 +1659,17 @@ function CreateTestPage() {
         onClose={() => setIsSaveGroupModalOpen(false)}
         stepCount={testSequence.length}
         onSave={handleSaveStepGroup}
+      />
+      <StepGroupsManager
+        open={isGroupsManagerOpen}
+        onOpenChange={setIsGroupsManagerOpen}
+        groups={Array.isArray(stepGroups) ? stepGroups : []}
+        builderSequence={testSequence}
+        // A group's steps have the builder's shape: they were the builder's when it was saved.
+        onOpenInBuilder={(group) => {
+          setTestSequence(group.sequence as DragDropTestStep[]);
+          setLastTestOverallResult(null);
+        }}
       />
       <AuthorStepsModal
         isOpen={isAuthorModalOpen}

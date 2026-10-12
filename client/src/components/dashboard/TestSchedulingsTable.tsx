@@ -16,13 +16,14 @@ import { format } from 'date-fns';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { dateFnsLocale } from '@/lib/dates';
 
 const TestSchedulingsTable: React.FC<{
   data?: TestPlanScheduleEnhanced[];
   isLoading?: boolean;
   scoped?: boolean;
 }> = ({ data, isLoading: externalLoading, scoped = false }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const {
     data: fetched = [],
@@ -138,7 +139,7 @@ const TestSchedulingsTable: React.FC<{
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {schedule.nextRunAt instanceof Date
-                      ? format(schedule.nextRunAt, 'PPpp')
+                      ? format(schedule.nextRunAt, 'PPpp', { locale: dateFnsLocale(i18n.language) })
                       : t('dashboard.testSchedulingsTable.notScheduled.text')}
                   </TableCell>
                   <TableCell className="text-xs">{schedule.frequency}</TableCell>

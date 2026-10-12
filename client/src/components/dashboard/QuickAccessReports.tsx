@@ -2,11 +2,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
 import { FileText, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatusChip } from '@/components/ui/status-chip';
+import { formatDateTime } from '@/lib/dates';
 
 export interface RecentExecution {
   id: number | string;
@@ -85,7 +85,7 @@ const QuickAccessReports: React.FC<QuickAccessReportsProps> = ({ data, isLoading
                     {execution.planName || t('dashboard.quickAccessReports.unnamedPlan')}
                   </p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
-                    {startedAt ? format(startedAt, 'PPp') : '—'} ·{' '}
+                    {startedAt ? formatDateTime(startedAt) : '—'} ·{' '}
                     {formatDuration(execution.duration)}
                   </p>
                 </div>

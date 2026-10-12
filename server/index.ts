@@ -20,6 +20,8 @@ import { assertStartupConfig, connectSessionStore } from './startup-config';
 import { inspectSchemaState, describeSchemaState } from './schema-state';
 import { redactWebhookPath } from './webhook-tokens';
 import { healthRouter } from './health';
+import { installProcessErrorHandlers } from './process-errors';
+import scimRouter, { exceptScim, SCIM_BASE_PATH } from './routes/scim.routes';
 
 import { startTracing } from '../shared/telemetry';
 import { applicationMetrics, startMetricsServer } from './observability/metrics';
@@ -45,7 +47,8 @@ app.use('/api/proxy-api-request', express.json({ limit: '20mb' }));
 app.use('/api/api-tests/import', express.json({ limit: '12mb' }));
 // A project's tests as a file (server/test-bundle.ts) can be large.
 app.use('/api/tests/import-bundle', express.json({ limit: '24mb' }));
-app.use(express.json());
+// Not for SCIM, whose router parses its own bodies, up to 1 MB (server/routes/scim.routes.ts).
+app.use(exceptScim(express.json()));
 app.use(express.urlencoded({ extended: false }));
 
 (async () => {
@@ -173,7 +176,6 @@ app.use(express.urlencoded({ extended: false }));
   app.use(SMS_INBOUND_PATH, webhookRateLimit(), smsInboundRouter);
 
   // Provisioning by the organizations' identity providers, with a bearer token of their own.
-  const { default: scimRouter, SCIM_BASE_PATH } = await import('./routes/scim.routes');
   app.use(SCIM_BASE_PATH, scimRouter);
 
   // Set up WebSockets for real-time logging
@@ -247,7 +249,7 @@ app.use(express.urlencoded({ extended: false }));
   // Stop accepting new connections, stop cron jobs, then close Redis and DB so
   // a redeploy/termination doesn't sever in-flight work or leak connections.
   let shuttingDown = false;
-  const shutdown = async (signal: string) => {
+  const shutdown = async (signal: string, exitCode = 0) => {
     if (shuttingDown) return;
     shuttingDown = true;
     logger.info(`Received ${signal}, shutting down gracefully...`);
@@ -273,7 +275,7 @@ app.use(express.urlencoded({ extended: false }));
         await stopTracing();
         logger.info('Graceful shutdown complete.');
         await flushLogs();
-        process.exit(0);
+        process.exit(exitCode);
       } catch (err) {
         logger.error('Error during graceful shutdown', err);
         process.exit(1);
@@ -283,6 +285,9 @@ app.use(express.urlencoded({ extended: false }));
 
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
+  // What nothing caught: logged with its stack, and an exception takes the same way out as
+  // SIGTERM, ending non-zero (server/process-errors.ts).
+  installProcessErrorHandlers(logger, shutdown);
 })().catch((error) => {
   // Exit rather than linger: the Redis client retries forever, which would keep a process that
   // failed to start alive and printing connection errors over the one message that matters.

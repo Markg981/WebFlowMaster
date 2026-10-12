@@ -12,6 +12,7 @@ import {
 import type { NetworkSummary } from '@shared/network';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
+import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { auditActor, recordAudit } from '../audit';
 import { aiService } from '../ai-automation-service';
 import { buildFailurePrompt, evidenceSteps, parseFailureAnswer } from '../failure-analysis';
@@ -41,6 +42,7 @@ const ANALYSABLE = new Set<string>(ANALYSABLE_STATUSES);
 router.post(
   '/api/test-plan-executions/:executionId/results/:resultId/ai-analysis',
   requireRole('editor'),
+  sharedHeavyRateLimit(),
   async (req, res) => {
     const parsed = bodySchema.safeParse(req.body ?? {});
     if (!parsed.success)

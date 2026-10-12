@@ -1,25 +1,35 @@
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import loggerPromise from './logger';
 import { privilegedDb } from './db';
 import { tests, detectedElements } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 
+/**
+ * The Gemini model every AI feature asks: authoring, failure analysis and selector healing.
+ * GEMINI_MODEL overrides the default. One resolution, so the three never drift again — healing
+ * was pinned to "gemini-pro", which Google has retired, while the others followed this variable.
+ */
+export function geminiModel(env: NodeJS.ProcessEnv = process.env): string {
+  return env.GEMINI_MODEL || 'gemini-2.0-flash';
+}
+
 export class AIAutomationService {
-  private genAI: GoogleGenerativeAI;
-  private model: GenerativeModel;
-  private apiKey: string | undefined;
+  /** The client, or nothing: without a key there is no Google to call, and nothing here tries. */
+  private genAI: GoogleGenerativeAI | null;
   /** GEMINI_BASE_URL: another endpoint for the same API, such as a test double in the collaudo stack. */
   private readonly requestOptions = process.env.GEMINI_BASE_URL
     ? { baseUrl: process.env.GEMINI_BASE_URL }
     : undefined;
 
   constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY;
-    if (!this.apiKey) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      // Said once, here, rather than on every call that then quietly does nothing.
       this.logWarn('GEMINI_API_KEY not set. AI features disabled.');
+      this.genAI = null;
+    } else {
+      this.genAI = new GoogleGenerativeAI(apiKey);
     }
-    this.genAI = new GoogleGenerativeAI(this.apiKey || 'dummy_key');
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' }, this.requestOptions);
   }
 
   private async logInfo(message: string, meta?: any) {
@@ -38,7 +48,14 @@ export class AIAutomationService {
   }
 
   isAvailable(): boolean {
-    return !!this.apiKey;
+    return this.genAI !== null;
+  }
+
+  /** A model handle, or nothing when the service is disabled. */
+  private model() {
+    return (
+      this.genAI?.getGenerativeModel({ model: this.analysisModel }, this.requestOptions) ?? null
+    );
   }
 
   /**
@@ -48,19 +65,12 @@ export class AIAutomationService {
    * lives in server/nl-authoring.ts, where it can be tested without a network. This only
    * carries the text there and back, and returns null for every failure — a model that is
    * unavailable degrades the feature to the phrasings the parser already understands.
-   *
-   * It does not reuse the model above. That one is pinned to "gemini-pro" for the healing
-   * pass, and quietly moving it would change a behaviour nothing here is asking to change;
-   * GEMINI_MODEL overrides the one used for authoring.
    */
   async proposeTestSteps(prompt: string): Promise<string | null> {
-    if (!this.isAvailable()) return null;
+    const model = this.model();
+    if (!model) return null;
 
     try {
-      const model = this.genAI.getGenerativeModel(
-        { model: process.env.GEMINI_MODEL || 'gemini-2.0-flash' },
-        this.requestOptions,
-      );
       const result = await model.generateContent(prompt);
       return result.response.text();
     } catch (e: any) {
@@ -74,13 +84,10 @@ export class AIAutomationService {
    * proposeTestSteps, and for the same reason.
    */
   async proposeTestCases(prompt: string): Promise<string | null> {
-    if (!this.isAvailable()) return null;
+    const model = this.model();
+    if (!model) return null;
 
     try {
-      const model = this.genAI.getGenerativeModel(
-        { model: this.analysisModel },
-        this.requestOptions,
-      );
       const result = await model.generateContent(prompt);
       return result.response.text();
     } catch (e: any) {
@@ -91,7 +98,7 @@ export class AIAutomationService {
 
   /** The model a failure analysis is asked of, as the analysis records it. */
   get analysisModel(): string {
-    return process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+    return geminiModel();
   }
 
   /**
@@ -102,13 +109,10 @@ export class AIAutomationService {
     prompt: string,
     screenshot?: { bytes: Buffer; contentType: string } | null,
   ): Promise<string | null> {
-    if (!this.isAvailable()) return null;
+    const model = this.model();
+    if (!model) return null;
 
     try {
-      const model = this.genAI.getGenerativeModel(
-        { model: this.analysisModel },
-        this.requestOptions,
-      );
       const parts: any[] = [{ text: prompt }];
       if (screenshot)
         parts.push({
@@ -133,7 +137,8 @@ export class AIAutomationService {
     pageSource: string,
     error: string,
   ): Promise<string | null> {
-    if (!this.isAvailable()) return null;
+    const model = this.model();
+    if (!model) return null;
 
     try {
       this.logInfo('Attempting AI Self-Healing', { originalSelector });
@@ -155,7 +160,7 @@ export class AIAutomationService {
         Return ONLY the new CSS or XPath selector string. Do not add markdown blocks or explanations.
       `;
 
-      const result = await this.model.generateContent(prompt);
+      const result = await model.generateContent(prompt);
       const response = result.response;
       let newSelector = response.text().trim();
 

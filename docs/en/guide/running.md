@@ -30,14 +30,16 @@ relying on this behavior during a rolling deployment.
 
 1. **Name** and description.
 2. **Browsers and tests**. Each machine configuration adds a browser — Chrome, Edge, Firefox or
-   WebKit (Safari's engine), shown or headless; Chrome and Edge must be installed on the runner. **Add Test Suites** picks the plan's tests (search by name
+   WebKit (Safari's engine), shown or headless, on the desktop or as a phone or tablet
+   ([devices](#mobile-devices)); Chrome and Edge must be installed on the runner. **Add Test Suites** picks the plan's tests (search by name
    or tag). The operating system and browser version fields are recorded but not applied: tests
    run on the runner's own system, with the browsers installed there, and the report says so.
    [Mobile app tests](./mobile-apps#in-a-test-plan) can be picked too: they run once per run, on
    the device and grid they name, whatever the browsers.
-3. **Settings**: screenshots (on failed steps by default, always, or never), timeouts, what to do
-   when a step or a prerequisite fails, how many times to re-run a failed test, and
-   notifications.
+3. **Settings**: screenshots (on failed steps by default, always, or never), a **video** of each
+   run (never, when the test fails, or always), how many tests may **run at once**, timeouts, what
+   to do when a step or a prerequisite fails, how many times to re-run a failed test, and
+   notifications. The same choices can be changed later under [Plan settings](#plan-settings).
 
 ## Plan settings
 
@@ -116,7 +118,7 @@ desktop and Chromium as a Pixel 7 are two results per test, and the report says 
 
 Choose the engine the device's own browser is built on — **WebKit** for an iPhone or an iPad,
 **Chromium** or **Chrome** for Android — for the closest result. **Firefox** cannot emulate a device;
-the choice is not offered for it. Devices are set in the plan's settings (not in the plan wizard),
+the choice is not offered for it. Devices are chosen in the plan wizard or in the plan's settings,
 and work on the server's runners, on [local agents](../integrations/local-agents) and on a [browser grid](#browser-grids),
 whose desktop browser then shows the device.
 

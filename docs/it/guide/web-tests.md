@@ -490,6 +490,12 @@ Una sequenza usata da molti test — l'accesso, la scelta di un cliente — si p
 includerla. Un test esegue il gruppo com'è al momento del run, quindi modificare il gruppo cambia
 ogni test che lo usa.
 
+L'ingranaggio accanto a **Gruppi di step** nella palette apre la loro gestione: **Dove è usato**
+nomina i test che richiamano un gruppo, **Modifica** ne cambia nome e descrizione — e, con la
+casella spuntata, ne sostituisce gli step con quelli ora nel costruttore, dopo che **Apri nel
+costruttore** ce li ha messi per modificarli — ed **Elimina** rimuove un gruppo che nessun test
+richiama; uno ancora richiamato viene rifiutato, con i nomi dei test.
+
 ## Azioni personalizzate {#azioni-personalizzate}
 
 Quando nessuna azione predefinita fa ciò che serve a un test, un editor può scriverne una:

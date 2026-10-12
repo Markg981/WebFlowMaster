@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolvePort, sessionCookieSecure } from './config';
+import { resolvePort, resolveWorkerShutdownGraceMs, sessionCookieSecure } from './config';
 
 /**
  * The port the server listens on.
@@ -75,5 +75,23 @@ describe('sessionCookieSecure', () => {
     expect(sessionCookieSecure({ NODE_ENV: 'development', SESSION_COOKIE_SECURE: 'yes' })).toBe(
       false,
     );
+  });
+});
+
+describe('resolveWorkerShutdownGraceMs', () => {
+  it('defaults to the 30 seconds the worker always waited', () => {
+    expect(resolveWorkerShutdownGraceMs({})).toBe(30_000);
+    expect(resolveWorkerShutdownGraceMs({ WORKER_SHUTDOWN_GRACE_MS: '' })).toBe(30_000);
+  });
+
+  it('takes WORKER_SHUTDOWN_GRACE_MS, so a run of hours can be waited for', () => {
+    expect(resolveWorkerShutdownGraceMs({ WORKER_SHUTDOWN_GRACE_MS: '10800000' })).toBe(10_800_000);
+  });
+
+  it('refuses a value that is not a usable number of milliseconds', () => {
+    for (const bad of ['soon', '-1', '0', '500', '1.5'])
+      expect(() => resolveWorkerShutdownGraceMs({ WORKER_SHUTDOWN_GRACE_MS: bad })).toThrow(
+        /WORKER_SHUTDOWN_GRACE_MS/,
+      );
   });
 });

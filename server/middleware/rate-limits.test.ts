@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import express, { type Request } from 'express';
-import { apiRateLimit, webhookRateLimit } from './rate-limits';
+import { apiRateLimit, heavyRateLimit, webhookRateLimit } from './rate-limits';
 
 /** An app where the x-test-key header stands in for a valid API key (see api-key-auth). */
 function apiApp(env: NodeJS.ProcessEnv) {
@@ -62,5 +62,47 @@ describe('webhookRateLimit', () => {
     await request(app).post('/api/webhooks/github').expect(200);
     const res = await request(app).post('/api/webhooks/github').expect(429);
     expect(res.body.error).toMatch(/Too many requests/);
+  });
+});
+
+describe('heavyRateLimit', () => {
+  /** An app where the x-test-user header stands in for a signed-in session. */
+  function heavyApp(env: NodeJS.ProcessEnv) {
+    const app = express();
+    app.use((req, _res, next) => {
+      const id = req.header('x-test-user');
+      if (id) req.user = { id: Number(id) } as Express.User;
+      next();
+    });
+    app.post('/api/load-website', heavyRateLimit(env), (_req, res) => res.json({ ok: true }));
+    return app;
+  }
+
+  it('stops a signed-in user past the limit, whatever apiRateLimit lets through', async () => {
+    const app = heavyApp({ HEAVY_RATE_LIMIT: '2' });
+    await request(app).post('/api/load-website').set('x-test-user', '1').expect(200);
+    await request(app).post('/api/load-website').set('x-test-user', '1').expect(200);
+    const res = await request(app).post('/api/load-website').set('x-test-user', '1').expect(429);
+    expect(res.body.error).toMatch(/Too many requests/);
+    expect(res.headers['retry-after']).toBeDefined();
+  });
+
+  it('counts each user on its own, and anonymous calls by address', async () => {
+    const app = heavyApp({ HEAVY_RATE_LIMIT: '1' });
+    await request(app).post('/api/load-website').set('x-test-user', '1').expect(200);
+    await request(app).post('/api/load-website').set('x-test-user', '2').expect(200);
+    await request(app).post('/api/load-website').set('x-test-user', '1').expect(429);
+    await request(app).post('/api/load-website').expect(200);
+    await request(app).post('/api/load-website').expect(429);
+  });
+
+  it('is off at 0 and defaults to 30 a minute', async () => {
+    const app = heavyApp({ HEAVY_RATE_LIMIT: '0' });
+    for (let i = 0; i < 3; i++)
+      await request(app).post('/api/load-website').set('x-test-user', '1').expect(200);
+    const defaults = heavyApp({});
+    const res = await request(defaults).post('/api/load-website').set('x-test-user', '1');
+    expect(res.headers['ratelimit-policy']).toMatch(/^30;/);
+    expect(() => heavyRateLimit({ HEAVY_RATE_LIMIT: 'many' })).toThrow(/whole numbers/);
   });
 });

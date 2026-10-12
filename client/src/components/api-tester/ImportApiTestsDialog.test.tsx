@@ -52,8 +52,10 @@ beforeEach(() => {
 
 function renderDialog() {
   const client = new QueryClient({
-    defaultOptions: { queries: { retry: false, queryFn: async () => [] } },
+    defaultOptions: { queries: { retry: false, staleTime: Infinity, queryFn: async () => [] } },
   });
+  // The project picker reads the shared 'projects' cache; seeded so it never touches fetch here.
+  client.setQueryData(['projects'], []);
   render(
     <QueryClientProvider client={client}>
       <ImportApiTestsDialog open onOpenChange={() => {}} />

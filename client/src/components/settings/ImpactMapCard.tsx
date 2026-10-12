@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTags } from '@/hooks/use-tags';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,10 +29,6 @@ interface Rule {
   pattern: string;
   tagId: string | null;
   tagName: string | null;
-}
-interface TagRow {
-  id: string;
-  name: string;
 }
 interface PlanRow {
   id: string;
@@ -84,10 +81,7 @@ const ImpactMapCard: React.FC = () => {
     queryKey: ['/api/impact-rules'],
     queryFn: () => getJson('/api/impact-rules'),
   });
-  const { data: tags = [] } = useQuery<TagRow[]>({
-    queryKey: ['/api/tags'],
-    queryFn: () => getJson('/api/tags'),
-  });
+  const { data: tags = [] } = useTags();
   const { data: plans = [] } = useQuery<PlanRow[]>({
     queryKey: ['/api/test-plans'],
     queryFn: () => getJson('/api/test-plans'),

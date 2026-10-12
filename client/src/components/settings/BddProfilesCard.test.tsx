@@ -10,6 +10,7 @@ it('creates a binding using only an advertised support target', async () => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity, queryFn: async () => [] } },
   });
+  client.setQueryData(['projects'], []);
   client.setQueryData(['/api/bdd/profiles/available'], {
     profiles: [
       {

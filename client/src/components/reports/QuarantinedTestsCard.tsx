@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldAlert } from 'lucide-react';
+import { formatDate } from '@/lib/dates';
 
 /**
  * The tests in quarantine, and what each has done since.
@@ -151,7 +152,7 @@ export default function QuarantinedTestsCard() {
                       </TableCell>
                       <TableCell className="text-xs max-w-xs">{row.reason}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap">
-                        {new Date(row.quarantinedAt).toLocaleDateString()}
+                        {formatDate(row.quarantinedAt)}
                         {row.quarantinedBy && (
                           <div className="text-muted-foreground">{row.quarantinedBy}</div>
                         )}

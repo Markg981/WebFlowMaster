@@ -143,6 +143,7 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
           className="h-6 w-6 text-muted-foreground hover:text-destructive"
           onClick={() => data.onDeleteNode(id)}
           disabled={data.isRecordingActive}
+          aria-label={t('testNode.deleteStep', 'Delete step')}
         >
           <Trash2 className="h-3 w-3" />
         </Button>

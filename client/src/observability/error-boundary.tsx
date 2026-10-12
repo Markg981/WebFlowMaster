@@ -1,4 +1,5 @@
 import React from 'react';
+import i18n from 'i18next';
 import { reportClientIncident } from './install';
 
 interface Props {
@@ -39,8 +40,15 @@ export class ObservabilityErrorBoundary extends React.Component<Props, State> {
         role="alert"
         className="m-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-destructive"
       >
-        <p className="font-semibold">Something went wrong on this page.</p>
-        <p className="mt-1 text-sm">The error has been recorded. Reload the page to continue.</p>
+        <p className="font-semibold">
+          {i18n.t('errorBoundary.title', 'Something went wrong on this page.')}
+        </p>
+        <p className="mt-1 text-sm">
+          {i18n.t(
+            'errorBoundary.description',
+            'The error has been recorded. Reload the page to continue.',
+          )}
+        </p>
         <pre className="mt-3 max-h-40 overflow-auto text-xs opacity-80">
           {this.state.error.message}
         </pre>

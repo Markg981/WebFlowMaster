@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
+import { useProjects } from '@/hooks/use-projects';
+import { useTags } from '@/hooks/use-tags';
 
 /**
  * Creating or changing a suite.
@@ -66,19 +68,7 @@ interface NamedRow {
   name: string;
 }
 
-interface ProjectRow {
-  id: number;
-  name: string;
-  /** What the requester may do in it: a viewer on a restricted project cannot put a suite there. */
-  access: 'viewer' | 'editor' | 'owner' | null;
-}
-
 const NO_PROJECT = 'none';
-
-interface TagRow {
-  id: string;
-  name: string;
-}
 
 async function getJson<T>(url: string, what: string): Promise<T> {
   const response = await fetch(url, { credentials: 'include' });
@@ -136,17 +126,8 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
   // A suite belongs to a project the same way a test does: in a restricted one it is seen and
   // changed only by the project's members. Without this field every suite was created outside
   // any project, and restricting a project left its suites in view of everyone.
-  const { data: projects = [] } = useQuery<ProjectRow[]>({
-    // Its own key under 'projects': the save dialog keeps only the editable ones under the bare key.
-    queryKey: ['projects', 'all'],
-    queryFn: () => getJson('/api/projects', 'the projects'),
-    enabled: isOpen,
-  });
-  const { data: allTags = [] } = useQuery<TagRow[]>({
-    queryKey: ['tags'],
-    queryFn: () => getJson('/api/tags', 'the tags'),
-    enabled: isOpen,
-  });
+  const { data: projects = [] } = useProjects({ enabled: isOpen });
+  const { data: allTags = [] } = useTags({ enabled: isOpen });
 
   const candidates = useMemo(() => {
     const needle = filter.trim().toLowerCase();

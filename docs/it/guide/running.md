@@ -31,15 +31,16 @@ su questo comportamento durante un rilascio graduale.
 
 1. **Nome** e descrizione.
 2. **Browser e test**. Ogni configurazione di macchina aggiunge un browser — Chrome, Edge,
-   Firefox o WebKit (il motore di Safari), visibile o headless; Chrome ed Edge devono essere
-   installati sul runner. **Aggiungi Suite di Test** sceglie i test del piano (ricerca per nome o
+   Firefox o WebKit (il motore di Safari), visibile o headless, sul desktop o come telefono o
+   tablet ([dispositivi](#dispositivi-mobili)); Chrome ed Edge devono essere installati sul runner. **Aggiungi Suite di Test** sceglie i test del piano (ricerca per nome o
    tag). Sistema operativo e versione del browser vengono registrati ma non applicati: i test
    girano sul sistema del runner, con i browser installati lì, e il report lo dice.
    Si possono scegliere anche i [test di app mobili](./mobile-apps#in-un-piano-di-test): girano una
    volta per esecuzione, sul dispositivo e sulla griglia che indicano, qualunque siano i browser.
-3. **Impostazioni**: screenshot (sugli step falliti di default, sempre o mai), timeout, cosa fare
-   quando falliscono uno step o un prerequisito, quante volte rieseguire un test fallito, e
-   notifiche.
+3. **Impostazioni**: screenshot (sugli step falliti di default, sempre o mai), un **video** di ogni
+   run (mai, quando il test fallisce o sempre), quanti test possono **girare insieme**, timeout,
+   cosa fare quando falliscono uno step o un prerequisito, quante volte rieseguire un test fallito,
+   e notifiche. Le stesse scelte si cambiano poi in [Impostazioni del piano](#impostazioni-del-piano).
 
 ## Impostazioni del piano {#impostazioni-del-piano}
 
@@ -119,8 +120,8 @@ risultati per test, e il report dice quale è quale (`chromium · Pixel 7`).
 
 Scegliete il motore su cui è costruito il browser del dispositivo — **WebKit** per un iPhone o un
 iPad, **Chromium** o **Chrome** per Android — per il risultato più vicino. **Firefox** non può
-emulare un dispositivo: per lui la scelta non viene offerta. I dispositivi si impostano nelle
-impostazioni del piano (non nella procedura guidata di creazione) e funzionano sui runner del
+emulare un dispositivo: per lui la scelta non viene offerta. I dispositivi si scelgono nella
+procedura guidata di creazione o nelle impostazioni del piano e funzionano sui runner del
 server, sugli [agenti locali](../integrations/local-agents) e su una [griglia di browser](#griglie-di-browser), il cui
 browser desktop mostra allora il dispositivo.
 

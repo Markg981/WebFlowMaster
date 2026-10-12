@@ -21,8 +21,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Check, Copy, KeyRound, Link2, Loader2, Mail, Trash2, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { formatDate } from '@/lib/dates';
 
 type Role = 'viewer' | 'editor' | 'owner';
 
@@ -122,6 +124,9 @@ const MembersCard: React.FC = () => {
   const [inviteError, setInviteError] = useState('');
   const [created, setCreated] = useState<CreatedInvitation | null>(null);
   const [copied, setCopied] = useState(false);
+  /** Who a reset or revoke button was pressed for, until the person confirms or backs out. */
+  const [resettingMfa, setResettingMfa] = useState<Member | null>(null);
+  const [revoking, setRevoking] = useState<Invitation | null>(null);
   const [resetShown, setResetShown] = useState<
     ({ username: string; link: string } & MailOutcome) | null
   >(null);
@@ -163,6 +168,7 @@ const MembersCard: React.FC = () => {
   const revoke = useMutation({
     mutationFn: (id: number) => send('DELETE', `/api/organization/invitations/${id}`),
     onSuccess: refresh,
+    onSettled: () => setRevoking(null),
   });
 
   const changeRole = useMutation({
@@ -182,6 +188,7 @@ const MembersCard: React.FC = () => {
         }),
       ),
     onError: (error: Error) => setNotice(error.message),
+    onSettled: () => setResettingMfa(null),
   });
 
   const issueReset = useMutation({
@@ -367,7 +374,7 @@ const MembersCard: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => resetMfa.mutate(member)}
+                      onClick={() => setResettingMfa(member)}
                       disabled={resetMfa.isPending}
                       aria-label={t(
                         'settings.members.resetMfa',
@@ -535,14 +542,14 @@ const MembersCard: React.FC = () => {
                       {expired(invitation)
                         ? t('settings.members.expired', 'expired')
                         : t('settings.members.pending', 'waiting until {{date}}', {
-                            date: new Date(invitation.expiresAt).toLocaleDateString(),
+                            date: formatDate(invitation.expiresAt),
                           })}
                     </Badge>
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => revoke.mutate(invitation.id)}
+                    onClick={() => setRevoking(invitation)}
                     disabled={revoke.isPending}
                     aria-label={t(
                       'settings.members.revoke',
@@ -614,6 +621,41 @@ const MembersCard: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={resettingMfa !== null}
+        onOpenChange={(open) => {
+          if (!open) setResettingMfa(null);
+        }}
+        title={t('settings.members.resetMfaDialog.title', 'Reset two-factor for {{username}}?', {
+          username: resettingMfa?.username ?? '',
+        })}
+        description={t(
+          'settings.members.resetMfaDialog.description',
+          'They will sign in with their password alone until they set it up again.',
+        )}
+        confirmLabel={t('common.reset', 'Reset')}
+        destructive
+        pending={resetMfa.isPending}
+        onConfirm={() => resettingMfa && resetMfa.mutate(resettingMfa)}
+      />
+      <ConfirmDialog
+        open={revoking !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevoking(null);
+        }}
+        title={t('settings.members.revokeDialog.title', 'Revoke the invitation for {{username}}?', {
+          username: revoking?.username ?? '',
+        })}
+        description={t(
+          'settings.members.revokeDialog.description',
+          'The invitation link stops working. You can invite them again later.',
+        )}
+        confirmLabel={t('common.revoke', 'Revoke')}
+        destructive
+        pending={revoke.isPending}
+        onConfirm={() => revoking && revoke.mutate(revoking.id)}
+      />
     </Card>
   );
 };

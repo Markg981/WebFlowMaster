@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useProjects } from '@/hooks/use-projects';
 import {
   Dialog,
   DialogContent,
@@ -84,10 +85,7 @@ export function ImportApiTestsDialog({
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { data: projects = [] } = useQuery<Array<{ id: number; name: string }>>({
-    queryKey: ['/api/projects'],
-    enabled: open,
-  });
+  const { data: projects = [] } = useProjects({ enabled: open });
   const [content, setContent] = useState('');
   const [preview, setPreview] = useState<Preview | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());

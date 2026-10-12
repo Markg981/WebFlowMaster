@@ -238,7 +238,8 @@ describe('route modules cannot query outside the tenant context', () => {
     const source = fs.readFileSync(path.join(serverDir, 'routes.ts'), 'utf8');
     const calls = routeCalls(source, 'app', ['get', 'post', 'put', 'patch', 'delete']);
     // Guards the guard: if the parser stops recognising routes, the rule below passes vacuously.
-    expect(calls.length).toBeGreaterThanOrEqual(20);
+    // The number falls as handlers move into server/routes/*.routes.ts; lower it with them.
+    expect(calls.length).toBeGreaterThanOrEqual(15);
 
     const offenders = calls
       .filter(({ chain }) => !chain.includes('requireRole'))

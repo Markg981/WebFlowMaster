@@ -1,4 +1,10 @@
-import express, { Router, type NextFunction, type Request, type Response } from 'express';
+import express, {
+  Router,
+  type NextFunction,
+  type Request,
+  type RequestHandler,
+  type Response,
+} from 'express';
 import rateLimit from 'express-rate-limit';
 import { sharedStore } from '../middleware/rate-limit-store';
 import loggerPromise from '../logger';
@@ -42,6 +48,19 @@ const logger = await loggerPromise;
 /** Where the provider reaches this API: the address to give it. */
 export function scimBaseUrl(req: Request, env: NodeJS.ProcessEnv = process.env): string {
   return `${publicBase(req, env)}${SCIM_BASE_PATH}`;
+}
+
+/**
+ * The application's JSON parser, for every path but this one.
+ *
+ * Express reads a body once. The general parser in server/index.ts runs before this router is
+ * reached, with the 100 KB default; a group with its members, or a large user, is more than
+ * that, and the provider was answered 413 before the 1 MB parser below ever saw the request.
+ * So the general parser steps aside here, and only here: every other route keeps its limit.
+ */
+export function exceptScim(parser: RequestHandler): RequestHandler {
+  return (req, res, next) =>
+    req.path.startsWith(SCIM_BASE_PATH) ? next() : parser(req, res, next);
 }
 
 // Providers send application/scim+json, which the application's JSON parser does not read.

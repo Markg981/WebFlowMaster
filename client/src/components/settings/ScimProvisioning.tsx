@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Copy, Loader2 } from 'lucide-react';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * Provisioning with SCIM 2.0 (server/scim.ts), part of the single sign-on card: the base URL to give
@@ -66,7 +67,7 @@ export function ScimProvisioning({
       onChanged();
     });
 
-  const date = (value: string | null) => (value ? new Date(value).toLocaleString() : '—');
+  const date = (value: string | null) => (value ? formatDateTime(value) : '—');
 
   return (
     <div className="space-y-3 rounded-md border p-3" data-testid="sso-scim">

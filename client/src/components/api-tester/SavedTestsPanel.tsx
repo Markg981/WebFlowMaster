@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useProjects } from '@/hooks/use-projects';
 import type { ApiTest } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
 import CommentsPanel from '@/components/tests/CommentsPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MessageSquare } from 'lucide-react';
+import { formatDate } from '@/lib/dates';
 
 export type ApiTestSummary = Pick<
   ApiTest,
@@ -31,11 +33,6 @@ interface SavedTestsPanelProps {
   catalogControls?: React.ReactNode;
   catalogPagination?: React.ReactNode;
   error?: string;
-}
-
-interface Project {
-  id: number;
-  name: string;
 }
 
 const NO_PROJECT = -1; // sentinel bucket for tests with no projectId
@@ -61,7 +58,7 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
   const [commentsFor, setCommentsFor] = useState<ApiTestSummary | null>(null);
 
   // Fetch project names so tests can be grouped under a readable project header.
-  const { data: projects = [] } = useQuery<Project[]>({ queryKey: ['/api/projects'] });
+  const { data: projects = [] } = useProjects();
   const projectNameById = new Map(projects.map((p) => [p.id, p.name]));
 
   // Group: project -> module -> tests.
@@ -122,8 +119,7 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
             {test.url}
           </p>
           <div className="text-xs text-muted-foreground mt-1">
-            {t('apiTester.savedTestsPanel.lastUpdated.label')}{' '}
-            {new Date(test.updatedAt).toLocaleDateString()}
+            {t('apiTester.savedTestsPanel.lastUpdated.label')} {formatDate(test.updatedAt)}
           </div>
         </div>
         {/* Icons sit inside the clickable card, so each stops the click from also loading it. */}

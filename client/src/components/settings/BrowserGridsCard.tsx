@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Cloud, Loader2, PlugZap, Trash2 } from 'lucide-react';
 import {
   BROWSER_GRID_LABELS,
@@ -61,6 +62,8 @@ const BrowserGridsCard: React.FC = () => {
   const [formError, setFormError] = useState('');
   const [checked, setChecked] = useState<{ ok: boolean; message: string } | null>(null);
   const [notice, setNotice] = useState('');
+  /** The grid whose delete button was pressed, until the person confirms or backs out. */
+  const [removing, setRemoving] = useState<BrowserGridSummary | null>(null);
   const fields = GRID_FIELDS[provider];
   const isAppium = provider === 'local_appium';
 
@@ -156,6 +159,7 @@ const BrowserGridsCard: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['browserGrids'] });
     },
     onError: (removeError: Error) => setNotice(removeError.message),
+    onSettled: () => setRemoving(null),
   });
 
   const submit = () => {
@@ -409,7 +413,7 @@ const BrowserGridsCard: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => remove.mutate(grid.id)}
+                      onClick={() => setRemoving(grid)}
                       disabled={remove.isPending}
                       title={t('browserGrids.delete', 'Delete')}
                       aria-label={t('browserGrids.delete', 'Delete')}
@@ -423,6 +427,24 @@ const BrowserGridsCard: React.FC = () => {
           </Table>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={removing !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoving(null);
+        }}
+        title={t('browserGrids.deleteDialog.title', 'Delete grid “{{name}}”?', {
+          name: removing?.name ?? '',
+        })}
+        description={t(
+          'browserGrids.deleteDialog.description',
+          "Plans that ran on it go back to the server's runners. This cannot be undone.",
+        )}
+        confirmLabel={t('common.delete', 'Delete')}
+        destructive
+        pending={remove.isPending}
+        onConfirm={() => removing && remove.mutate(removing.id)}
+      />
     </Card>
   );
 };

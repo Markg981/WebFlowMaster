@@ -82,76 +82,104 @@ export function browserTimezone(): string {
   }
 }
 
-export const scheduleFormSchema = z
-  .object({
-    scheduleName: z.string().min(1, 'Schedule name is required'),
-    testPlanId: z.string().min(1, 'Test plan is required'),
-    frequency: z.string().min(1, 'Frequency is required'),
-    customCronExpression: z.string().optional(),
-    nextRunAt: z.date({ required_error: 'Next run date and time is required' }),
-    // IANA name. Defaults to the browser's zone rather than UTC: "02:00" means 02:00 where
-    // the tester is, and making them convert it twice a year is how a nightly job ends up
-    // running an hour off for half the year.
-    timezone: z.string().min(1, 'Timezone is required').default(browserTimezone()),
-    // An environment's id, as ScheduleEnvironmentSelect saves it; a name on schedules from before.
-    environment: z.string().optional(),
-    browsers: z
-      .array(z.enum(BROWSER_OPTIONS.map((b) => b.value) as [string, ...string[]]))
-      .min(1, 'At least one browser must be selected')
-      .optional()
-      .nullable(),
-    isActive: z.boolean().default(true),
-    retryOnFailure: z
-      .enum(
-        RETRY_ON_FAILURE_OPTIONS.map((opt) => opt.value) as [
-          TestPlanSchedule['retryOnFailure'],
-          ...TestPlanSchedule['retryOnFailure'][],
-        ],
-      )
-      .default('none'),
-    notificationConfigOverride: z
-      .string()
-      .optional()
-      .refine(
-        (val) => {
-          if (!val || val.trim() === '') return true;
-          try {
-            JSON.parse(val);
-            return true;
-          } catch {
-            return false;
-          }
-        },
-        { message: 'Must be valid JSON or empty' },
-      ),
-    executionParameters: z
-      .string()
-      .optional()
-      .refine(
-        (val) => {
-          if (!val || val.trim() === '') return true;
-          try {
-            JSON.parse(val);
-            return true;
-          } catch {
-            return false;
-          }
-        },
-        { message: 'Must be valid JSON or empty' },
-      ),
-  })
-  .superRefine((data, ctx) => {
-    if (
-      data.frequency === 'custom_cron' &&
-      (!data.customCronExpression || data.customCronExpression.trim() === '')
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['customCronExpression'],
-        message: 'CRON expression is required for custom frequency.',
-      });
-    }
-  });
+/** `t(key, englishFallback)`: what react-i18next gives a component, reduced to what this needs. */
+export type Translate = (key: string, fallback: string) => string;
+
+const english: Translate = (_key, fallback) => fallback;
+
+const emptyOrJson = (val: string | undefined) => {
+  if (!val || val.trim() === '') return true;
+  try {
+    JSON.parse(val);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * The form's rules, with their messages in the language the form is shown in.
+ *
+ * A zod schema carries its messages as plain strings, so a module-level schema can only ever
+ * say "Schedule name is required" in English. The form builds its own from the `t` it has.
+ */
+export function buildScheduleFormSchema(t: Translate = english) {
+  const invalidJson = t(
+    'schedulingPage.form.validation.invalidJson',
+    'Must be valid JSON or empty',
+  );
+  return z
+    .object({
+      scheduleName: z
+        .string()
+        .min(1, t('schedulingPage.form.validation.nameRequired', 'Schedule name is required')),
+      testPlanId: z
+        .string()
+        .min(1, t('schedulingPage.form.validation.testPlanRequired', 'Test plan is required')),
+      frequency: z
+        .string()
+        .min(1, t('schedulingPage.form.validation.frequencyRequired', 'Frequency is required')),
+      customCronExpression: z.string().optional(),
+      nextRunAt: z.date({
+        required_error: t(
+          'schedulingPage.form.validation.nextRunRequired',
+          'Next run date and time is required',
+        ),
+      }),
+      // IANA name. Defaults to the browser's zone rather than UTC: "02:00" means 02:00 where
+      // the tester is, and making them convert it twice a year is how a nightly job ends up
+      // running an hour off for half the year.
+      timezone: z
+        .string()
+        .min(1, t('schedulingPage.form.validation.timezoneRequired', 'Timezone is required'))
+        .default(browserTimezone()),
+      // An environment's id, as ScheduleEnvironmentSelect saves it; a name on schedules from before.
+      environment: z.string().optional(),
+      browsers: z
+        .array(z.enum(BROWSER_OPTIONS.map((b) => b.value) as [string, ...string[]]))
+        .min(
+          1,
+          t(
+            'schedulingPage.form.validation.browsersRequired',
+            'At least one browser must be selected',
+          ),
+        )
+        .optional()
+        .nullable(),
+      isActive: z.boolean().default(true),
+      retryOnFailure: z
+        .enum(
+          RETRY_ON_FAILURE_OPTIONS.map((opt) => opt.value) as [
+            TestPlanSchedule['retryOnFailure'],
+            ...TestPlanSchedule['retryOnFailure'][],
+          ],
+        )
+        .default('none'),
+      notificationConfigOverride: z
+        .string()
+        .optional()
+        .refine(emptyOrJson, { message: invalidJson }),
+      executionParameters: z.string().optional().refine(emptyOrJson, { message: invalidJson }),
+    })
+    .superRefine((data, ctx) => {
+      if (
+        data.frequency === 'custom_cron' &&
+        (!data.customCronExpression || data.customCronExpression.trim() === '')
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['customCronExpression'],
+          message: t(
+            'schedulingPage.form.validation.cronRequired',
+            'CRON expression is required for custom frequency.',
+          ),
+        });
+      }
+    });
+}
+
+/** The rules with English messages, for code that has no `t` at hand. */
+export const scheduleFormSchema = buildScheduleFormSchema();
 
 export type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
 

@@ -30,6 +30,7 @@ import {
   ClipboardList,
   GitBranch,
   MessageSquareText,
+  Tag,
 } from 'lucide-react';
 
 import EnvironmentsCard from '@/components/settings/EnvironmentsCard';
@@ -60,6 +61,7 @@ import EmailDeliveryCard from '@/components/settings/EmailDeliveryCard';
 import RunnersCard from '@/components/settings/RunnersCard';
 import ElementRepositoryCard from '@/components/settings/ElementRepositoryCard';
 import CustomActionsCard from '@/components/settings/CustomActionsCard';
+import TagsCard from '@/components/settings/TagsCard';
 import ImpactMapCard from '@/components/settings/ImpactMapCard';
 import SmsInboxCard from '@/components/settings/SmsInboxCard';
 import IssueTrackersCard from '@/components/settings/IssueTrackersCard';
@@ -169,6 +171,22 @@ export default function SettingsPage() {
       icon: Puzzle,
       content: <CustomActionsCard />,
     },
+    // Editors and owners: renaming and deleting tags are theirs (the server answers a viewer
+    // with 403), and a viewer sees the tags on every test already.
+    ...(user?.role !== 'viewer'
+      ? [
+          {
+            id: 'tags',
+            label: t('settings.sections.tags', 'Tags'),
+            description: t(
+              'settings.sections.tagsDescription',
+              'The words tests are filed under. Rename one and every test follows; delete one and it comes off every test.',
+            ),
+            icon: Tag,
+            content: <TagsCard />,
+          },
+        ]
+      : []),
     {
       id: 'impactMap',
       label: t('settings.sections.impactMap', 'Impact map'),

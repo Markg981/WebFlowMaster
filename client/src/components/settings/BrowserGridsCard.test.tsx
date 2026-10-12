@@ -165,6 +165,8 @@ describe('BrowserGridsCard', () => {
     expect(await screen.findByText('Connected: 120.0, in 900 ms.')).toBeTruthy();
 
     fireEvent.click(screen.getByLabelText('Delete'));
+    // Asks first; the open dialog hides the rest of the page, so the name matches its button only.
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
     expect(
       await screen.findByText('2 plan(s) that used it run on the server’s runners again.'),
     ).toBeTruthy();

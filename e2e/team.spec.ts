@@ -82,6 +82,8 @@ test('an owner invites through the interface, the link joins with the chosen rol
     exact: true,
   });
   await revoke.click();
+  // Revoking asks first; the invitation goes only once the question is answered.
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Revoke', exact: true }).click();
   await expect(revoke).toHaveCount(0);
   const refused = await newSession(browser);
   try {

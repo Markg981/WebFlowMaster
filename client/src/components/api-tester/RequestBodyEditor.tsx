@@ -278,6 +278,7 @@ export function RequestBodyEditor(props: Props) {
                   size="icon"
                   onClick={() => props.onRemoveFormDataField(index)}
                   disabled={disabled}
+                  aria-label={t('apiTester.requestBodyEditor.removeField', 'Remove field')}
                 >
                   <XCircle className="h-4 w-4 text-destructive" />
                 </Button>
