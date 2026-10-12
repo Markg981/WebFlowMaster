@@ -1,9 +1,9 @@
 import express, { type RequestHandler } from 'express';
 import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
-import { getProviderMailConfiguration, registerMailgunRequest } from '../mail-settings';
-import { receiveDeliveryEvent } from '../mail-delivery';
-import { normalizeProviderRequest, ProviderProtocolError } from '../mail-providers';
+import { getProviderMailConfiguration, registerMailgunRequest } from '../messaging/mail-settings';
+import { receiveDeliveryEvent } from '../messaging/mail-delivery';
+import { normalizeProviderRequest, ProviderProtocolError } from '../messaging/mail-providers';
 import { webhookRateLimit } from '../middleware/rate-limits';
 
 const providerPath = /^\/api\/mail-deliveries\/providers\/[^/]+\/?$/;

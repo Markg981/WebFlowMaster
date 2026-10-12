@@ -1,7 +1,12 @@
 import { type Request, type Response } from 'express';
 import { asyncRouter } from '../middleware/async-router';
-import { isEmailAddress, organizationMailConfigured, sendMail, type MailResult } from '../mailer';
-import { invitationMail, passwordResetMail } from '../mail-messages';
+import {
+  isEmailAddress,
+  organizationMailConfigured,
+  sendMail,
+  type MailResult,
+} from '../messaging/mailer';
+import { invitationMail, passwordResetMail } from '../messaging/mail-messages';
 import { publicBase } from './sso.routes';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
@@ -414,7 +419,7 @@ router.post(
         return row;
       });
 
-      // Mailed when the installation can and the username is an address (server/mailer.ts); the
+      // Mailed when the installation can and the username is an address (server/messaging/mailer.ts); the
       // token is still returned, once, so the owner can hand the link over if the mail does not
       // arrive — or when there is no mail at all.
       const mail = await mailIfPossible(created.username, async () => {

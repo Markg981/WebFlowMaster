@@ -2,16 +2,16 @@ import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { requireRole } from '../middleware/require-role';
 import { webhookRateLimit } from '../middleware/rate-limits';
-import { organizationMailConfigured } from '../mailer';
+import { organizationMailConfigured } from '../messaging/mailer';
 import { getTenantOrgId } from '../middleware/tenancy';
-import { getOrganizationTrackingStatus } from '../mail-settings';
+import { getOrganizationTrackingStatus } from '../messaging/mail-settings';
 import {
   deliveryEventSchema,
   listMailDeliveries,
   receiveDeliveryEvent,
   trackingConfigured,
   verifyDeliverySignature,
-} from '../mail-delivery';
+} from '../messaging/mail-delivery';
 
 /** The public router is mounted before session authorization. Its credential is the HMAC,
  * checked before lookup; no browser session authorizes a delivery event. Limited per client

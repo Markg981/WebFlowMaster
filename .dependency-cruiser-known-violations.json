@@ -172,9 +172,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/mail-messages.ts",
+    "from": "server/messaging/mail-messages.ts",
     "to": "server/notifications.ts",
-    "unresolvedTo": "./notifications",
+    "unresolvedTo": "../notifications",
     "dependencyTypes": [
       "local",
       "import"
@@ -563,8 +563,8 @@
   },
   {
     "type": "cycle",
-    "from": "server/mail-templates.ts",
-    "to": "server/mailer.ts",
+    "from": "server/messaging/mail-templates.ts",
+    "to": "server/messaging/mailer.ts",
     "unresolvedTo": "./mailer",
     "dependencyTypes": [
       "local",
@@ -577,7 +577,7 @@
     },
     "cycle": [
       {
-        "name": "server/mailer.ts",
+        "name": "server/messaging/mailer.ts",
         "dependencyTypes": [
           "local",
           "type-only",
@@ -585,7 +585,7 @@
         ]
       },
       {
-        "name": "server/mail-templates.ts",
+        "name": "server/messaging/mail-templates.ts",
         "dependencyTypes": [
           "local",
           "import"

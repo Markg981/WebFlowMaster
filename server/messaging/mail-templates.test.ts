@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { applyMailTemplate, builtInTemplates, renderMailTemplate } from './mail-templates';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { mailTemplates } from '@shared/mail-templates';
-import { createTestOrganization } from './tests/factories';
-import { runWithTenant } from './middleware/tenancy';
+import { createTestOrganization } from '../tests/factories';
+import { runWithTenant } from '../middleware/tenancy';
 import { passwordResetMail } from './mail-messages';
 
 const variables = {

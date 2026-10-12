@@ -7,7 +7,7 @@ import { runWithTenant } from '../middleware/tenancy';
 import { privilegedDb } from '../db';
 import { mailSettings } from '@shared/mail-settings';
 import router from './mail-settings.routes';
-import { resolveMailConfiguration } from '../mail-settings';
+import { resolveMailConfiguration } from '../messaging/mail-settings';
 
 let app: express.Express;
 let owner: any;

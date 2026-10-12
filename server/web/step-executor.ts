@@ -29,7 +29,7 @@ import {
   SMS_TIMEOUT_MS,
   waitForSms as waitForSmsInInbox,
   type SmsQuery,
-} from '../sms-inbox';
+} from '../messaging/sms-inbox';
 import { inspectDownload } from '../download-check';
 import {
   parseDownloadChecks,
@@ -63,7 +63,7 @@ import {
   parseEmailQuery,
   waitForEmail,
   type InboxGet,
-} from '../email-inbox';
+} from '../messaging/email-inbox';
 import {
   DATABASE_TIMEOUT_MS,
   connectionVariable,
@@ -1477,7 +1477,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
 
   /**
    * Waits for a text message to a test number in the organization's SMS inbox
-   * (server/sms-inbox.ts), received after the test started, and reads the code in it:
+   * (server/messaging/sms-inbox.ts), received after the test started, and reads the code in it:
    * {{sms.otp}}, {{sms.text}}, {{sms.from}}. "number" or "number|pattern", like waitForEmail.
    */
   waitForSms: async (rt) => {

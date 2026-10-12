@@ -86,16 +86,7 @@ export const SERVER_DOMAINS = [
     rank: 3,
     purpose:
       'outgoing mail and its settings, templates and providers; test inboxes for mail and SMS',
-    modules: [
-      'mailer',
-      'mail-delivery',
-      'mail-messages',
-      'mail-providers',
-      'mail-settings',
-      'mail-templates',
-      'email-inbox',
-      'sms-inbox',
-    ],
+    modules: ['messaging/*'],
   },
   {
     name: 'identity',

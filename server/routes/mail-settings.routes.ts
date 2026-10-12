@@ -5,7 +5,11 @@ import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
-import { buildMailSettings, MailSettingsError, publicMailSettings } from '../mail-settings';
+import {
+  buildMailSettings,
+  MailSettingsError,
+  publicMailSettings,
+} from '../messaging/mail-settings';
 
 const router = asyncRouter();
 router.get('/api/mail-settings', requireRole('owner'), async (_req, res) => {

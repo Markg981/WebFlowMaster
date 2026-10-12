@@ -8,7 +8,7 @@ import { mailSettings } from '@shared/mail-settings';
 import { mailDeliveries, mailDeliveryEvents } from '@shared/mail-delivery';
 import { createTestOrganization } from '../tests/factories';
 import { encryptSecret } from '../crypto';
-import * as delivery from '../mail-delivery';
+import * as delivery from '../messaging/mail-delivery';
 import { mailProviderBodyParser, mailProviderWebhookRouter } from './mail-provider.routes';
 
 const app = express();

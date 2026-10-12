@@ -2,14 +2,14 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application } from 'express';
 import { eq } from 'drizzle-orm';
-import { privilegedDb } from './db';
+import { privilegedDb } from '../db';
 import { auditLog, smsMessages, users, type User } from '@shared/schema';
-import { createTestOrganization } from './tests/factories';
-import { runWithTenant, tenancyMiddleware } from './middleware/tenancy';
+import { createTestOrganization } from '../tests/factories';
+import { runWithTenant, tenancyMiddleware } from '../middleware/tenancy';
 import { normalizePhone, parseSmsQuery, readInbound, receiveSms } from './sms-inbox';
-import { executeStep } from './web/step-executor';
+import { executeStep } from '../web/step-executor';
 
-vi.mock('./logger', () => ({
+vi.mock('../logger', () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('./logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 
-/** The test SMS inbox (server/sms-inbox.ts): the provider posts, a waitForSms step reads. */
+/** The test SMS inbox (server/messaging/sms-inbox.ts): the provider posts, a waitForSms step reads. */
 
 describe('reading what providers post', () => {
   it('understands Twilio, Vonage and a plain body, and normalises numbers', () => {
@@ -62,7 +62,7 @@ describe('the inbox', () => {
   beforeAll(async () => {
     app = express();
     app.use(express.json());
-    const routes = await import('./routes/sms-inbox.routes');
+    const routes = await import('../routes/sms-inbox.routes');
     app.use(routes.SMS_INBOUND_PATH, routes.smsInboundRouter);
     app.use((req, _res, next) => {
       req.user = user;

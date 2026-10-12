@@ -184,7 +184,7 @@ app.use(express.urlencoded({ extended: false }));
   // Per client address (server/middleware/rate-limits.ts).
   const { webhookRateLimit } = await import('./middleware/rate-limits');
   app.use('/api/webhooks', webhookRateLimit(), webhooksRouter);
-  // Text messages the organizations' test numbers receive, posted by their SMS provider (server/sms-inbox.ts).
+  // Text messages the organizations' test numbers receive, posted by their SMS provider (server/messaging/sms-inbox.ts).
   const { smsInboundRouter, SMS_INBOUND_PATH } = await import('./routes/sms-inbox.routes');
   app.use(SMS_INBOUND_PATH, webhookRateLimit(), smsInboundRouter);
 

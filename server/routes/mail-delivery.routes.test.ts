@@ -7,8 +7,12 @@ import { privilegedDb } from '../db';
 import { mailDeliveries, mailDeliveryEvents } from '@shared/mail-delivery';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { runWithTenant } from '../middleware/tenancy';
-import { mailerDeps, sendMail } from '../mailer';
-import { deliverySignature, receiveDeliveryEvent, type DeliveryEvent } from '../mail-delivery';
+import { mailerDeps, sendMail } from '../messaging/mailer';
+import {
+  deliverySignature,
+  receiveDeliveryEvent,
+  type DeliveryEvent,
+} from '../messaging/mail-delivery';
 import ownerRouter, { mailDeliveryWebhookRouter } from './mail-delivery.routes';
 
 let app: express.Express;

@@ -11,11 +11,11 @@ import {
   recentSms,
   revokeSmsToken,
   smsInboxStatus,
-} from '../sms-inbox';
+} from '../messaging/sms-inbox';
 import { publicBase } from './sso.routes';
 
 /**
- * The test SMS inbox (server/sms-inbox.ts): the inbound address a provider posts to, and its
+ * The test SMS inbox (server/messaging/sms-inbox.ts): the inbound address a provider posts to, and its
  * settings. Owners issue and revoke the address; editors read what arrived, to see a number is
  * wired up.
  */

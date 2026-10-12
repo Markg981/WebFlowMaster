@@ -9,7 +9,7 @@ import {
 import { z } from 'zod';
 import type { ProviderMailConfig } from '@shared/mail-settings';
 import { deliveryEventSchema, verifyDeliverySignature, type DeliveryEvent } from './mail-delivery';
-import { fetchTarget } from './outbound-http';
+import { fetchTarget } from '../outbound-http';
 
 export class ProviderProtocolError extends Error {
   constructor(

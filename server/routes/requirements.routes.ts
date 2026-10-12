@@ -41,7 +41,7 @@ import {
 } from '../requirements';
 import logger from '../logger';
 import { aiService } from '../ai-automation-service';
-import { htmlToText } from '../email-inbox';
+import { htmlToText } from '../messaging/email-inbox';
 import { toSequence } from '@shared/manual-tests';
 import { recordTestVersion } from '../test-version-store';
 import {
