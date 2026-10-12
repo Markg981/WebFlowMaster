@@ -8,9 +8,9 @@ import {
   type MobileStepResult,
 } from '@shared/mobile';
 import type { AppiumSession } from './appium-client';
-import { FlowCursor } from '../flow-cursor';
-import { compareValues } from '../value-comparison';
-import { findUnresolvedVariables } from '../variables';
+import { FlowCursor } from '../runtime/flow-cursor';
+import { compareValues } from '../runtime/value-comparison';
+import { findUnresolvedVariables } from '../runtime/variables';
 import { substituteVariables } from '../outbound-http';
 
 interface Context {

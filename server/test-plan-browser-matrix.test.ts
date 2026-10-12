@@ -32,8 +32,8 @@ vi.mock('./web/playwright-service', () => ({
   },
 }));
 
-vi.mock('./browsers', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./browsers')>();
+vi.mock('./runtime/browsers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./runtime/browsers')>();
   return { ...actual, launchBrowser: (...args: any[]) => launchBrowser(...(args as [any])) };
 });
 

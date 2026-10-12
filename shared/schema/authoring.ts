@@ -46,7 +46,7 @@ export const tests = pgTable(
     // tare check). Nullable: existing/most tests have none. See PreconditionSchema.
     preconditions: jsonb('preconditions'),
     // API calls after the test, whatever its outcome, that remove what it created (migration 0065,
-    // server/cleanup-runner.ts). Nullable: most tests have none. See CleanupSchema.
+    // server/runtime/cleanup-runner.ts). Nullable: most tests have none. See CleanupSchema.
     cleanups: jsonb('cleanups'),
     /**
      * Rows of input this test runs over, one run each.
@@ -702,7 +702,7 @@ export type Precondition = z.infer<typeof PreconditionSchema>;
 
 /**
  * A cleanup: an API call made after the test, whatever its outcome, to remove what it created
- * (server/cleanup-runner.ts). The request shape of a precondition, without the check: 404 and 410
+ * (server/runtime/cleanup-runner.ts). The request shape of a precondition, without the check: 404 and 410
  * already mean "gone", and `satisfiedStatuses` adds others.
  */
 export const CleanupSchema = PreconditionSchema.omit({ check: true });

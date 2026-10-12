@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { ApiTest, Test } from '@shared/schema';
 import { LOCALE_VARIABLE } from '@shared/locales';
 import { MANUAL_STEP_ACTION_ID } from '@shared/manual-tests';
-import type { BrowserChoice } from '../browsers';
+import type { BrowserChoice } from '../runtime/browsers';
 import type { FrozenTests, TestLink } from './definitions';
 import { lanesAreChained, onlyBdd, planLanes } from './lanes';
 import { tallyResults, verdictOf } from './finalize';

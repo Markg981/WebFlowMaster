@@ -165,7 +165,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({
   /** How many of this plan's runs may be in flight at once. 1 is what every plan did before. */
   const [maxParallelTests, setMaxParallelTests] = useState('1');
   const [maxParallelError, setMaxParallelError] = useState('');
-  /** How many workers share one run of this plan (server/run-shards.ts). 1 is one worker, as before. */
+  /** How many workers share one run of this plan (server/runtime/run-shards.ts). 1 is one worker, as before. */
   const [shards, setShards] = useState('1');
   /** Languages, as typed: "it-IT, en-US". Empty is the browser's own. */
   const [locales, setLocales] = useState('');

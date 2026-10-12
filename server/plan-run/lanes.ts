@@ -6,7 +6,7 @@ import type { ApiTest } from '@shared/schema';
 import { LOCALE_VARIABLE } from '@shared/locales';
 import { isManualSequence } from '@shared/manual-tests';
 import { mobilePlanTargets, type MobilePlanTarget } from '../mobile/mobile-plan-units';
-import type { BrowserChoice } from '../browsers';
+import type { BrowserChoice } from '../runtime/browsers';
 import type { Pass } from './browsers';
 import type { FrozenTests, TestLink } from './definitions';
 

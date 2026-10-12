@@ -121,7 +121,7 @@ in the process (`onExecutionTransition`); the commit status module is one of the
    tests see it through an `AbortSignal` and stop at their next step.
 3. **Read the snapshot.** Runs from before snapshots existed fall back to the plan as it is now.
 4. **Resolve variables** once for the run: the installation defaults, the environment's values, and
-   its decrypted secrets (`server/variables.ts`). The same resolution feeds preconditions, UI steps
+   its decrypted secrets (`server/runtime/variables.ts`). The same resolution feeds preconditions, UI steps
    and API requests.
 
 ### The phases of a run
@@ -151,7 +151,7 @@ pipeline stops there. A single test outside a plan is `runTest` (`server/run-tes
 
 ### Browser passes
 
-`browsersForRun` (`server/browsers.ts`) turns what the plan or the schedule says ("chrome", "edge",
+`browsersForRun` (`server/runtime/browsers.ts`) turns what the plan or the schedule says ("chrome", "edge",
 "safari", headed or headless) into Playwright engines and channels, and says out loud what it cannot
 honour (an OS, a browser version, Safari itself). The schedule's browsers take precedence over the
 plan's machines. With none configured, the run uses the requesting user's default browser.
@@ -177,7 +177,7 @@ map of captured values. The plan's `max_parallel_tests` (capped by the installat
 
 ### Shards: one run on several workers
 
-A plan's `shards` (1–8, in the snapshot) lets several workers share a run (`server/run-shards.ts`).
+A plan's `shards` (1–8, in the snapshot) lets several workers share a run (`server/runtime/run-shards.ts`).
 The worker that took the run — the coordinator — writes the work to `run_work_items`: one item per
 unit, or one per lane when the lanes are chained. Each item carries the unit as the coordinator
 resolved it (browser, headless fallback, engine), so helpers do not probe browsers. It then queues
@@ -203,7 +203,7 @@ With `shards = 1` none of this runs.
 - **Preconditions** (API calls that set up state) run first; each can be skipped when a check shows
   the state already exists. What a failed precondition means is the plan's policy: block the test
   (`error`), skip it, or continue anyway.
-- **Cleanup** calls (`server/cleanup-runner.ts`) run after the test whatever its outcome, blocked by
+- **Cleanup** calls (`server/runtime/cleanup-runner.ts`) run after the test whatever its outcome, blocked by
   a precondition included, once per run of the steps (each dataset row) with the variables that run
   ended with; every call is attempted, 404/410 mean already gone, and a call naming an unset
   variable is skipped. They are the test's last step line (`type: cleanup`) and never change its
@@ -239,7 +239,7 @@ With `shards = 1` none of this runs.
 - **Re-run on failure**: the plan's re-run policy runs a failed test again; the last attempt counts,
   and the number of attempts is recorded so a test that needed two is visibly flaky.
 - **Failure policies**: a failed step can stop the test or the whole run, per the plan
-  (`server/run-policies.ts`). A quarantined test's failure never stops a run.
+  (`server/runtime/run-policies.ts`). A quarantined test's failure never stops a run.
 
 ## 5. The verdict
 

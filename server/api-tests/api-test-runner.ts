@@ -1,7 +1,7 @@
 import { AuthParamsSchema, type ApiTest, type Assertion, type AuthParams } from '@shared/schema';
 import { runGrpc, runWebSocket, xpathValue, type ProtocolResponse } from './api-protocols';
 import { fetchTarget, substituteInValues, substituteVariables } from '../outbound-http';
-import { findUnresolvedVariables } from '../variables';
+import { findUnresolvedVariables } from '../runtime/variables';
 import {
   ProtocolConfigSchema,
   type ProtocolConfig,
@@ -117,7 +117,7 @@ export type MultipartPart =
  * A form encoded to bytes, with the Content-Type that names its boundary.
  *
  * Bytes rather than the FormData itself: a request sent through a local agent carries text
- * or bytes only (server/agents/agent-fetch.ts), and the boundary has to be in the header
+ * or bytes only (server/runtime/agents/agent-fetch.ts), and the boundary has to be in the header
  * that goes with them.
  */
 async function encodeMultipart(
@@ -442,7 +442,7 @@ async function applyAuth(
 /**
  * A fetch whose requests all travel on one connection, for the schemes whose handshake belongs
  * to the connection rather than to a request — NTLM. Offered by both transports: this server's
- * (server/outbound-http.ts) and a local agent's (server/agents/agent-fetch.ts).
+ * (server/outbound-http.ts) and a local agent's (server/runtime/agents/agent-fetch.ts).
  */
 export type OneConnectionFetch = typeof fetch & {
   oneConnection?: () => { fetch: typeof fetch; close: () => Promise<void> };
@@ -520,7 +520,7 @@ async function sendWithChallenge(
 export async function runApiRequest(
   spec: ApiRequestSpec,
   vars: Record<string, string>,
-  // Where the request is sent from: this server, or a local agent (server/agents/agent-fetch.ts).
+  // Where the request is sent from: this server, or a local agent (server/runtime/agents/agent-fetch.ts).
   fetchImpl: OneConnectionFetch = fetchTarget,
 ): Promise<ApiRunResult> {
   const startTime = Date.now();

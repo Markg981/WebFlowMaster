@@ -122,7 +122,7 @@ nel processo (`onExecutionTransition`); il modulo dello stato dei commit è uno 
    ricevono tramite un `AbortSignal` e si fermano allo step successivo.
 3. **Lettura dello snapshot.** I run di prima degli snapshot ripiegano sul piano com'è ora.
 4. **Risoluzione delle variabili**, una volta per run: i default dell'installazione, i valori
-   dell'ambiente e i suoi segreti decifrati (`server/variables.ts`). La stessa risoluzione alimenta
+   dell'ambiente e i suoi segreti decifrati (`server/runtime/variables.ts`). La stessa risoluzione alimenta
    precondizioni, step UI e richieste API.
 
 ### Le fasi di un run
@@ -153,7 +153,7 @@ restituisce `Ended` e la pipeline si ferma lì. Un singolo test fuori da un pian
 
 ### Passaggi per browser
 
-`browsersForRun` (`server/browsers.ts`) trasforma ciò che il piano o la schedulazione indicano
+`browsersForRun` (`server/runtime/browsers.ts`) trasforma ciò che il piano o la schedulazione indicano
 ("chrome", "edge", "safari", visibile o headless) in motori e canali Playwright, e dichiara ciò che non
 può rispettare (un sistema operativo, una versione di browser, Safari vero e proprio). I browser della
 schedulazione prevalgono sulle macchine del piano. Se non ne è configurato nessuno, il run usa il
@@ -181,7 +181,7 @@ piano, con la propria mappa di valori catturati. `max_parallel_tests` del piano 
 ### Shard: un run su più worker
 
 `shards` del piano (1–8, nello snapshot) permette a più worker di dividersi un run
-(`server/run-shards.ts`). Il worker che ha preso il run — il coordinatore — scrive il lavoro in
+(`server/runtime/run-shards.ts`). Il worker che ha preso il run — il coordinatore — scrive il lavoro in
 `run_work_items`: un elemento per unità, o uno per corsia quando le corsie sono concatenate. Ogni
 elemento porta l'unità come l'ha risolta il coordinatore (browser, ripiego headless, motore), così gli
 aiutanti non sondano i browser. Poi accoda `shards − 1` job `execute-shard` (id `<run>-shard-<n>`).
@@ -206,7 +206,7 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
 - Le **precondizioni** (chiamate API che preparano lo stato) girano per prime; ciascuna può essere
   saltata quando un controllo mostra che lo stato esiste già. Cosa significhi una precondizione fallita
   lo decide la policy del piano: bloccare il test (`error`), saltarlo o proseguire comunque.
-- Le chiamate di **pulizia** (`server/cleanup-runner.ts`) girano dopo il test qualunque sia l'esito,
+- Le chiamate di **pulizia** (`server/runtime/cleanup-runner.ts`) girano dopo il test qualunque sia l'esito,
   anche se bloccato da una precondizione, una volta per ogni esecuzione degli step (ogni riga del
   dataset) con le variabili con cui quella esecuzione è finita; ogni chiamata viene tentata, 404/410
   significano già rimosso, e una chiamata che nomina una variabile non impostata viene saltata. Sono
@@ -245,7 +245,7 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
   tentativo, e il numero di tentativi viene registrato, così un test che ne ha richiesti due appare
   instabile.
 - **Policy di fallimento**: uno step fallito può fermare il test o l'intero run, secondo il piano
-  (`server/run-policies.ts`). Il fallimento di un test in quarantena non ferma mai un run.
+  (`server/runtime/run-policies.ts`). Il fallimento di un test in quarantena non ferma mai un run.
 
 ## 5. Il verdetto
 

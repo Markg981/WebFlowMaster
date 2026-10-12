@@ -16,7 +16,7 @@ import {
   type Cleanup,
 } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
-import { cleanupReportStep, runCleanups } from './cleanup-runner';
+import { cleanupReportStep, runCleanups } from './runtime/cleanup-runner';
 import { describeChange } from './authoring/test-versions';
 
 /**
@@ -30,7 +30,7 @@ const runPreconditions = vi.fn();
 vi.mock('./web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
-vi.mock('./precondition-runner', () => ({
+vi.mock('./runtime/precondition-runner', () => ({
   runPreconditions: (...args: any[]) => runPreconditions(...args),
 }));
 

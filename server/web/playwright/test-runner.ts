@@ -9,12 +9,12 @@ import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performa
 import fs from 'fs-extra';
 import path from 'path';
 import { BrowserContext, Page } from 'playwright';
-import { markGridSession } from '../../browser-grids';
-import { describeBrowser, deviceContextOptions } from '../../browsers';
+import { markGridSession } from '../../runtime/browser-grids';
+import { describeBrowser, deviceContextOptions } from '../../runtime/browsers';
 import { throwIfEgressDenied } from '../../egress-policy';
-import { FlowCursor } from '../../flow-cursor';
-import { loadLoginState, type EnvironmentScope, type LoginState } from '../../login-state';
-import { browserMatrixEvidence } from '../../matrix-evidence';
+import { FlowCursor } from '../../runtime/flow-cursor';
+import { loadLoginState, type EnvironmentScope, type LoginState } from '../../runtime/login-state';
+import { browserMatrixEvidence } from '../../runtime/matrix-evidence';
 import { requestVariables, substituteVariables } from '../../outbound-http';
 import { PlaywrightReporter } from '../playwright-reporter';
 import {
@@ -23,8 +23,8 @@ import {
   startTrace,
   videoContextOptions,
   type CapturedEvidence,
-} from '../../run-evidence';
-import { keepsScreenshot } from '../../run-policies';
+} from '../../runtime/run-evidence';
+import { keepsScreenshot } from '../../runtime/run-policies';
 import { elementIdOfStep, resolveSequenceForRun } from '../../authoring/step-elements';
 import { executeStep } from '../step-executor';
 import { expandSequenceForRun, type SequenceStep } from '../../authoring/step-groups';

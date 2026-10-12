@@ -28,7 +28,7 @@ const runPreconditions = vi.fn();
 vi.mock('./web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
-vi.mock('./precondition-runner', () => ({
+vi.mock('./runtime/precondition-runner', () => ({
   runPreconditions: (...args: any[]) => runPreconditions(...args),
 }));
 

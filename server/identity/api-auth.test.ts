@@ -22,7 +22,7 @@ import {
   type Clock,
 } from './api-auth';
 import { runApiRequest } from '../api-tests/api-test-runner';
-import { fetchThroughBrowser } from '../agents/agent-fetch';
+import { fetchThroughBrowser } from '../runtime/agents/agent-fetch';
 import {
   AkamaiEdgeGridAuthParamsSchema,
   AsapAuthParamsSchema,

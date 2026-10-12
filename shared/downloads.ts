@@ -1,5 +1,5 @@
 /**
- * What an `expectDownload` step checks about the file a click downloaded (server/download-check.ts).
+ * What an `expectDownload` step checks about the file a click downloaded (server/runtime/download-check.ts).
  *
  * The step's value lists the checks, one per line or separated by `;` (not commas: a text to find
  * may contain them):

@@ -187,8 +187,8 @@
   {
     "type": "dependency",
     "from": "server/outbound-http.ts",
-    "to": "server/generators.ts",
-    "unresolvedTo": "./generators",
+    "to": "server/runtime/generators.ts",
+    "unresolvedTo": "./runtime/generators",
     "dependencyTypes": [
       "local",
       "import"
@@ -201,8 +201,8 @@
   {
     "type": "dependency",
     "from": "server/outbound-http.ts",
-    "to": "server/variables.ts",
-    "unresolvedTo": "./variables",
+    "to": "server/runtime/variables.ts",
+    "unresolvedTo": "./runtime/variables",
     "dependencyTypes": [
       "local",
       "import"
@@ -214,9 +214,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/agents/agent-fetch.ts",
+    "from": "server/runtime/agents/agent-fetch.ts",
     "to": "server/api-tests/api-test-runner.ts",
-    "unresolvedTo": "../api-tests/api-test-runner",
+    "unresolvedTo": "../../api-tests/api-test-runner",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -229,9 +229,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/agents/api-protocol-features.ts",
+    "from": "server/runtime/agents/api-protocol-features.ts",
     "to": "server/api-tests/grpc-protocol.ts",
-    "unresolvedTo": "../api-tests/grpc-protocol",
+    "unresolvedTo": "../../api-tests/grpc-protocol",
     "dependencyTypes": [
       "local",
       "import"
@@ -243,9 +243,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/run-policies.ts",
+    "from": "server/runtime/run-policies.ts",
     "to": "server/execution-snapshot.ts",
-    "unresolvedTo": "./execution-snapshot",
+    "unresolvedTo": "../execution-snapshot",
     "dependencyTypes": [
       "local",
       "type-only",
@@ -258,9 +258,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/run-shards.ts",
+    "from": "server/runtime/run-shards.ts",
     "to": "server/mobile/mobile-plan-units.ts",
-    "unresolvedTo": "./mobile/mobile-plan-units",
+    "unresolvedTo": "../mobile/mobile-plan-units",
     "dependencyTypes": [
       "local",
       "type-import"
@@ -433,38 +433,6 @@
         "dependencyTypes": [
           "local",
           "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "server/browser-grids.ts",
-    "to": "server/browsers.ts",
-    "unresolvedTo": "./browsers",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/browsers.ts",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "server/browser-grids.ts",
-        "dependencyTypes": [
-          "local",
-          "dynamic-import"
         ]
       }
     ]
@@ -716,6 +684,38 @@
         "dependencyTypes": [
           "local",
           "export"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/runtime/browser-grids.ts",
+    "to": "server/runtime/browsers.ts",
+    "unresolvedTo": "./browsers",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/runtime/browsers.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "server/runtime/browser-grids.ts",
+        "dependencyTypes": [
+          "local",
+          "dynamic-import"
         ]
       }
     ]

@@ -38,11 +38,11 @@ const performMobileTest = vi.fn<(...args: any[]) => Promise<MobileOutcome>>();
 vi.mock('../web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
-vi.mock('../precondition-runner', () => ({
+vi.mock('../runtime/precondition-runner', () => ({
   runPreconditions: async () => ({ ok: true, steps: [] }),
 }));
-vi.mock('../browsers', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../browsers')>();
+vi.mock('../runtime/browsers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../runtime/browsers')>();
   return { ...actual, launchBrowser: (...args: any[]) => launchBrowser(...(args as [any])) };
 });
 vi.mock('./mobile-runner', async (importOriginal) => {

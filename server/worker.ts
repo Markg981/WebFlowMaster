@@ -3,7 +3,7 @@ import { configureEgressProxy } from './egress-proxy';
 import { connection } from './redis';
 import { LOAD_QUEUE_NAME, TEST_EXECUTION_QUEUE_NAME, loadQueue, testExecutionQueue } from './queue';
 import { processShardJob, processTestPlanJob } from './test-execution-service';
-import { SHARD_JOB, registerShardDispatcher } from './run-shards';
+import { SHARD_JOB, registerShardDispatcher } from './runtime/run-shards';
 import { LoadRunJobSchema, loadLimits, processLoadRunJob } from './api-tests/load-runner';
 import logger, { applyLogSettings } from './logger';
 import { installProcessErrorHandlers } from './process-errors';
@@ -25,7 +25,7 @@ import {
   performBrowserTask,
   type BrowserTaskEnvelope,
 } from './web/browser-tasks';
-import { RunnerAgent, type PausableQueue } from './runner-registry';
+import { RunnerAgent, type PausableQueue } from './runtime/runner-registry';
 import { registerCommitStatus } from './commit-status';
 import { registerRunPromotion } from './run-promotion';
 import { installWorkerLogEmitter } from './websocket';
@@ -61,7 +61,7 @@ configureEgressProxy();
   // A run this worker moves reports on the commit it tested, when a pipeline started it.
   registerCommitStatus();
   registerRunPromotion();
-  // A plan with several shards asks for helpers on the same queue (server/run-shards.ts). The job id
+  // A plan with several shards asks for helpers on the same queue (server/runtime/run-shards.ts). The job id
   // makes asking twice for the same share harmless; first in the queue, since the run is under way.
   registerShardDispatcher(async ({ executionId, planId, userId, shard, updateBaselines }) => {
     await testExecutionQueue.add(

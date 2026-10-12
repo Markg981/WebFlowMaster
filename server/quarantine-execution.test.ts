@@ -31,7 +31,7 @@ const executeTestSequence = vi.fn();
 vi.mock('./web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
-vi.mock('./precondition-runner', () => ({
+vi.mock('./runtime/precondition-runner', () => ({
   runPreconditions: async () => ({ ok: true, steps: [] }),
 }));
 

@@ -146,7 +146,7 @@ describe('shared test data', () => {
   });
 
   it('resolves as {{data.<set>.<column>}} from its first row, under the environment', async () => {
-    const { resolveVariables } = await import('../variables');
+    const { resolveVariables } = await import('../runtime/variables');
     const vars = await resolveVariables({ userId: editor.id, organizationId });
     expect(vars['data.customers.email']).toBe('ann@shop.test');
     expect(vars['data.customers.country']).toBe('IT');

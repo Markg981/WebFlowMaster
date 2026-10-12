@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { privilegedDb } from '../db';
 import { agents, auditLog } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { hashAgentToken } from '../agents/agent-credentials';
+import { hashAgentToken } from '../runtime/agents/agent-credentials';
 
 vi.mock('../logger', () => ({
   default: {
@@ -25,8 +25,8 @@ vi.mock('../logger', () => ({
  * revoked agent is dropped from the relay at once and can no longer authenticate.
  */
 
-const { authenticateAgentToken } = await import('../agents/agent-auth');
-const { setAgentRelay } = await import('../agents/relay');
+const { authenticateAgentToken } = await import('../runtime/agents/agent-auth');
+const { setAgentRelay } = await import('../runtime/agents/relay');
 
 let app: express.Express;
 let organizationId: number;

@@ -3,18 +3,18 @@ import type { DownloadFinding } from '@shared/downloads';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
 import { Page } from 'playwright';
-import { cleanupReportStep, runCleanups } from '../../cleanup-runner';
+import { cleanupReportStep, runCleanups } from '../../runtime/cleanup-runner';
 import type { DebugHooks } from '../debug-session';
 import { throwIfEgressDenied } from '../../egress-policy';
-import { FlowCursor } from '../../flow-cursor';
+import { FlowCursor } from '../../runtime/flow-cursor';
 import { recordRunnerFailure } from '../../observability/taps/runner';
 import { requestVariables, substituteVariables } from '../../outbound-http';
-import { runPreconditions } from '../../precondition-runner';
+import { runPreconditions } from '../../runtime/precondition-runner';
 import { resolveSequenceForRun } from '../../authoring/step-elements';
 import { executeStep } from '../step-executor';
 import { expandSequenceForRun } from '../../authoring/step-groups';
 import { storage } from '../../identity/storage';
-import { resolveVariables } from '../../variables';
+import { resolveVariables } from '../../runtime/variables';
 
 import {
   AUTHORING_USER_AGENT,
@@ -22,7 +22,7 @@ import {
   openBrowserSession,
   type BrowserSession,
 } from '../browser-session';
-import { describeBrowser } from '../../browsers';
+import { describeBrowser } from '../../runtime/browsers';
 import type { ElementDetectionService } from './element-detection-service';
 import { resolvedLogger } from './log';
 import { datasetRows, evidenceScreenshot, runOverDataset } from './run-helpers';

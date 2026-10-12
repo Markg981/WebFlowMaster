@@ -12,7 +12,7 @@ import { assertOrganizationKeysReadable } from './organization-keys';
 import { systemSettings } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { setupWebSockets } from './websocket';
-import { setupAgentRelay } from './agents/setup';
+import { setupAgentRelay } from './runtime/agents/setup';
 import { registerCommitStatus } from './commit-status';
 import { correlationMiddleware } from './middleware/correlation';
 import { csrfOriginCheck } from './middleware/csrf';

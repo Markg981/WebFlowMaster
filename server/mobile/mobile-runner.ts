@@ -11,13 +11,13 @@ import {
 } from '@shared/mobile';
 import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
 import { withExecutionUsage } from '../tenancy/execution-usage';
-import { toGridConfig, type GridConfig } from '../browser-grids';
-import { resolveVariables, findUnresolvedVariables } from '../variables';
+import { toGridConfig, type GridConfig } from '../runtime/browser-grids';
+import { resolveVariables, findUnresolvedVariables } from '../runtime/variables';
 import { fetchTarget, substituteVariables } from '../outbound-http';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
-import { AgentHttp } from '../agents/agent-fetch';
+import { AgentHttp } from '../runtime/agents/agent-fetch';
 import { LOCAL_APPIUM_DEFAULT_URL } from '@shared/browser-grids';
-import { appiumMatrixEvidence } from '../matrix-evidence';
+import { appiumMatrixEvidence } from '../runtime/matrix-evidence';
 import { matrixEvidence, type MatrixEvidence } from '@shared/matrix-evidence';
 import { executeMobileFlow, validateMobileExecution } from './mobile-flow';
 import { prepareMobileSteps } from './mobile-step-groups';
@@ -118,7 +118,7 @@ export function mobileSessionRequest(
 
 /**
  * How requests reach the grid's Appium: the clouds straight from the server; a local Appium
- * through its pool's agent (server/agents/agent-fetch.ts), from the machine it runs next to.
+ * through its pool's agent (server/runtime/agents/agent-fetch.ts), from the machine it runs next to.
  * `close` gives back what the agent lent.
  */
 export function appiumTransport(

@@ -4,25 +4,25 @@
  */
 import { playwrightService } from './web/playwright-service';
 import type { Test, ApiTest, Precondition, Cleanup } from '@shared/schema';
-import { runPreconditions } from './precondition-runner';
-import { cleanupReportStep, runCleanups } from './cleanup-runner';
+import { runPreconditions } from './runtime/precondition-runner';
+import { cleanupReportStep, runCleanups } from './runtime/cleanup-runner';
 import type { StepResult } from './web/playwright-service';
 import logger from './logger';
 import fs from 'fs-extra';
 import path from 'path';
 import { getWsEmitter } from './websocket';
-import { defaultVariables } from './variables';
+import { defaultVariables } from './runtime/variables';
 import { protocolReport } from './api-tests/api-protocol-report';
 import { runDedicatedBddTest } from './bdd/bdd-execution';
 import { apiTestSpec, runApiRequest, type ApiRequestSpec } from './api-tests/api-test-runner';
 import { runPerformance } from './api-tests/api-performance';
 import type { ApiPerformance, PerformanceSummary } from '@shared/api-performance';
-import { type BrowserChoice } from './browsers';
+import { type BrowserChoice } from './runtime/browsers';
 import { isManualSequence } from '@shared/manual-tests';
 import type { VisualContext } from './web/visual-testing';
 import type { EvidenceCaptureMode } from '@shared/schema';
 import { type NetworkSummary } from '@shared/network';
-import { type PreconditionFailurePolicy, type StepRuntime } from './run-policies';
+import { type PreconditionFailurePolicy, type StepRuntime } from './runtime/run-policies';
 
 /** Keeps a browser label from turning into a path when it names a directory. */
 function sanitizeSegment(value: string): string {
@@ -78,7 +78,7 @@ export interface RunTestOptions {
   signal?: AbortSignal;
   /**
    * Where API tests, API preconditions and OAuth token requests are sent from. Absent: this
-   * runner. For a plan on an agent pool, the agent (server/agents/agent-fetch.ts).
+   * runner. For a plan on an agent pool, the agent (server/runtime/agents/agent-fetch.ts).
    */
   http?: typeof fetch;
   /** The language the browser starts in (shared/locales.ts). Absent: the browser's default. */
@@ -135,7 +135,7 @@ export async function runTest(
     // The variables each run of the steps ended with (one per dataset row), for the cleanup.
     const variableSets: Array<Record<string, string>> = [];
     /**
-     * The test's cleanup (server/cleanup-runner.ts), after the test whatever became of it — passed,
+     * The test's cleanup (server/runtime/cleanup-runner.ts), after the test whatever became of it — passed,
      * failed, blocked by a precondition that may have created half of what it meant to. Shown as the
      * last line of its steps; it never changes the result.
      */

@@ -6,7 +6,7 @@ import fs from 'fs-extra';
 import type { AddressInfo } from 'net';
 import type { Browser } from 'playwright';
 import { parseDownloadChecks, parseGeolocation } from '@shared/downloads';
-import { parseCsv } from './download-check';
+import { parseCsv } from './runtime/download-check';
 import { executeStep } from './web/step-executor';
 
 /** Checking what a test downloads, and where the browser says it is (shared/downloads.ts). */

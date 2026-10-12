@@ -2,7 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { agents, bddExecutionProfiles, projects } from '@shared/schema';
 import type { BddTest } from '@shared/bdd';
 import { BddAgentProfileSchema } from '@shared/bdd-agent';
-import { agentRelay } from '../agents/relay';
+import { agentRelay } from '../runtime/agents/relay';
 import type { TenantTx } from '../middleware/tenancy';
 
 export async function advertisedBddProfiles(tx: TenantTx) {

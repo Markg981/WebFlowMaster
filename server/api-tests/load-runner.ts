@@ -27,9 +27,9 @@ import {
 } from './api-test-runner';
 import { failureOf } from './api-performance';
 import { runWithTenant, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
-import { STALE_CLAIM_MS, WORK_ITEM_HEARTBEAT_MS } from '../run-shards';
+import { STALE_CLAIM_MS, WORK_ITEM_HEARTBEAT_MS } from '../runtime/run-shards';
 import { withExecutionUsage } from '../tenancy/execution-usage';
-import { resolveVariables } from '../variables';
+import { resolveVariables } from '../runtime/variables';
 import logger from '../logger';
 
 /**

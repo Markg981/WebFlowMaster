@@ -1,5 +1,5 @@
-import { compareValues } from '../value-comparison';
-export { compareValues } from '../value-comparison';
+import { compareValues } from '../runtime/value-comparison';
+export { compareValues } from '../runtime/value-comparison';
 import type { Locator, Page } from 'playwright';
 import { clearMocks, installBlock, installMock, parseMockSpec } from '../authoring/network-mocks';
 import type { PlaywrightReporter } from './playwright-reporter';
@@ -30,7 +30,7 @@ import {
   waitForSms as waitForSmsInInbox,
   type SmsQuery,
 } from '../messaging/sms-inbox';
-import { inspectDownload } from '../download-check';
+import { inspectDownload } from '../runtime/download-check';
 import {
   parseDownloadChecks,
   parseGeolocation,
@@ -73,8 +73,8 @@ import {
   resultVariables,
   runDatabaseQuery,
   type DatabaseRunner,
-} from '../database-step';
-import { findUnresolvedVariables } from '../variables';
+} from '../runtime/database-step';
+import { findUnresolvedVariables } from '../runtime/variables';
 
 /**
  * The single implementation of "run one step of a test sequence".

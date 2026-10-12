@@ -131,7 +131,7 @@ export async function processTestPlanJob(
 }
 
 /**
- * A helper's share of a run on several workers (server/run-shards.ts): the job the coordinator
+ * A helper's share of a run on several workers (server/runtime/run-shards.ts): the job the coordinator
  * queued as `execute-shard`. Same boundary as processTestPlanJob: one privileged lookup of the
  * organization, everything else under it.
  */
@@ -159,7 +159,7 @@ async function runTestPlanJobInTenant(
   executionId: string,
   userId: number | null,
   options: { updateBaselines?: boolean } = {},
-  /** Set for a helper sharing a run another worker took (server/run-shards.ts). */
+  /** Set for a helper sharing a run another worker took (server/runtime/run-shards.ts). */
   helper?: { shard: number },
 ): Promise<PlanJobResult> {
   return runPlanJob({ planId, executionId, userId, options, helper });

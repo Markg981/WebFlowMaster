@@ -1,8 +1,8 @@
 import { Agent, ProxyAgent, buildConnector, type Dispatcher } from 'undici';
 import { egressProxy, targetEgressDispatcher } from './egress-proxy';
 import { denialForHostname, denialForUrl, egressDenialCause, vettedLookup } from './egress-policy';
-import { defaultVariables } from './variables';
-import { substituteGenerators } from './generators';
+import { defaultVariables } from './runtime/variables';
+import { substituteGenerators } from './runtime/generators';
 
 /**
  * Outbound HTTP for the systems under test (DMO and friends).

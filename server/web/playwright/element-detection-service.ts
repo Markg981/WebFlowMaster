@@ -10,7 +10,7 @@ import {
   browserForSetting,
   openBrowserSession,
 } from '../browser-session';
-import { describeBrowser } from '../../browsers';
+import { describeBrowser } from '../../runtime/browsers';
 import { resolvedLogger } from './log';
 import { scopeFor } from './run-helpers';
 import {

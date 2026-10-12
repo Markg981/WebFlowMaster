@@ -3,9 +3,9 @@ import type { DownloadFinding } from '@shared/downloads';
 import { type MatrixEvidence } from '@shared/matrix-evidence';
 import type { Cleanup, Precondition } from '@shared/schema';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
-import { type BrowserChoice } from '../../browsers';
-import { type EvidenceOptions } from '../../run-evidence';
-import { type StepRuntime } from '../../run-policies';
+import { type BrowserChoice } from '../../runtime/browsers';
+import { type EvidenceOptions } from '../../runtime/run-evidence';
+import { type StepRuntime } from '../../runtime/run-policies';
 import { type VisualContext } from '../visual-testing';
 
 // Default settings if not found or incomplete
@@ -144,7 +144,7 @@ export interface ExecuteSequenceOptions {
   locale?: string;
   /**
    * Told the variables of each run of the steps (one per dataset row), as the steps leave them:
-   * what they stored is there too. The cleanup after the test reads them (server/cleanup-runner.ts).
+   * what they stored is there too. The cleanup after the test reads them (server/runtime/cleanup-runner.ts).
    */
   onVariables?: (vars: Record<string, string>) => void;
 }
@@ -157,7 +157,7 @@ export interface AdhocSequencePayload {
   name?: string;
   /** Same setup calls the scheduled runner performs, so the preview matches the real run. */
   preconditions?: Precondition[] | null;
-  /** Same cleanup calls the scheduled runner makes after the test (server/cleanup-runner.ts). */
+  /** Same cleanup calls the scheduled runner makes after the test (server/runtime/cleanup-runner.ts). */
   cleanups?: Cleanup[] | null;
   /** Environment whose secrets resolve `{{name}}` placeholders, as picked in the builder. */
   environmentId?: number | null;
