@@ -35,22 +35,22 @@
     "test_cards": [
       [
         "Web",
-        "Registra i percorsi reali o componi gli step. Variabili, condizioni, cicli, dataset, confronti visivi e verifiche di accessibilità ampliano la copertura."
+        "Registra i percorsi o descrivili a parole: il builder li trasforma in step. Variabili, condizioni, cicli, dataset, confronti visivi e accessibilità."
       ],
       [
         "API",
-        "Richieste, autenticazione, asserzioni ed estrazione di valori. Concatena i controlli; importa definizioni API e verifica i servizi dietro le interfacce."
+        "Richieste, autenticazione, asserzioni ed estrazione di valori. Concatena i controlli; importa OpenAPI, Swagger e collezioni Postman."
       ],
       [
         "Mobile",
-        "App Android e iOS tramite Appium, con inspector, registrazione e matrici di dispositivi/OS. Provider cloud o infrastruttura locale da configurare."
+        "App Android e iOS tramite Appium. L'inspector mostra lo schermo del dispositivo e trasforma gli elementi in step; matrici di dispositivi/OS."
       ],
       [
         "BDD / Cucumber",
-        "Scenari Gherkin versionati ed eseguiti tramite agenti dedicati. Collega il linguaggio del comportamento ai risultati delle verifiche."
+        "Scenari Gherkin versionati, anche in italiano, eseguiti manualmente o tramite agenti Cucumber dedicati."
       ]
     ],
-    "p3_note": "Le funzioni AI richiedono un provider configurato. Dispositivi, griglie e agenti richiedono le rispettive risorse e credenziali.",
+    "p3_note": "Interfaccia reale con dati dimostrativi. Le funzioni AI richiedono un provider configurato; dispositivi, griglie e agenti richiedono le rispettive risorse e credenziali.",
     "p4_label": "03 / DALL'ESECUZIONE ALLA DIAGNOSI",
     "p4_title": "Capire il risultato.\nRipartire dall'evidenza.",
     "p4_intro": "Esegui i piani a richiesta, a orario o dalla pipeline. Segui l'avanzamento e apri il dettaglio del run per capire cosa è successo.",
@@ -68,7 +68,7 @@
         "Esporta HTML, PDF, JUnit e Allure. Collega i fallimenti ai tracker e pubblica gli esiti negli strumenti del team."
       ]
     ],
-    "p4_note": "Il dettaglio delle evidenze dipende dal tipo di test, dal provider e dalla configurazione; non tutti i formati sono disponibili per ogni modalità.",
+    "p4_note": "Nell'immagine, i test della demo che falliscono di proposito: motivo del fallimento e pulsanti per screenshot, video e log. Il dettaglio delle evidenze dipende dal tipo di test, dal provider e dalla configurazione.",
     "p5_label": "04 / INTEGRAZIONE E CONTROLLO",
     "p5_title": "Dentro il vostro\necosistema.",
     "integrations": [
@@ -119,8 +119,10 @@
     ],
     "cta": "Richiedete una demo dedicata",
     "cta_note": "Portateci il vostro percorso critico. Costruiamo insieme una prova verificabile.",
-    "footer_note": "WebFlowMaster è un prodotto proprietario. Licenza, servizi e condizioni commerciali sono definiti con accordo dedicato.",
-    "capture_note": "Schermate dalla demo di prodotto: interfaccia in inglese, dati sintetici. La brochure descrive le capacità presenti nel repository al 6 ottobre 2026."
+    "footer_note": "WebFlowMaster è un prodotto proprietario. Servizi aggiuntivi e condizioni commerciali di dettaglio sono definiti con accordo dedicato.",
+    "capture_note": "Schermate dalla demo di prodotto del 12 ottobre 2026, con l'interfaccia in italiano e dati sintetici. La brochure descrive le capacità del prodotto a quella data.",
+    "licence": "Licenza annuale per installazione, supporto incluso. Pilota di 30 giorni.",
+    "distribution_note": "Documento per la distribuzione digitale e la stampa A4 da ufficio: non è un esecutivo per tipografia (niente abbondanze né profilo CMYK)."
   },
   "en": {
     "edition": "PRODUCT PRESENTATION / OCTOBER 2026",
@@ -158,22 +160,22 @@
     "test_cards": [
       [
         "Web",
-        "Record real journeys or compose test steps. Variables, conditions, loops, datasets, visual comparisons and accessibility checks extend your coverage."
+        "Record journeys or describe them in words: the builder turns them into steps. Variables, conditions, loops, datasets, visual and accessibility checks."
       ],
       [
         "API",
-        "Requests, authentication, assertions and value extraction. Chain checks, import API definitions and test the services behind the interface."
+        "Requests, authentication, assertions and value extraction. Chain checks; import OpenAPI, Swagger and Postman collections."
       ],
       [
         "Mobile",
-        "Android and iOS through Appium, with inspection, recording and device/OS matrices. Configure a cloud provider or your local infrastructure."
+        "Android and iOS apps through Appium. The inspector shows the device screen and turns its elements into steps; device/OS matrices."
       ],
       [
         "BDD / Cucumber",
-        "Versioned Gherkin scenarios executed through dedicated agents. Connect behavioral specifications with verification results."
+        "Versioned Gherkin scenarios, in any Gherkin language, run by hand or through dedicated Cucumber agents."
       ]
     ],
-    "p3_note": "AI features require a configured provider. Devices, grids and agents require their own resources and credentials.",
+    "p3_note": "Real interface with demonstration data. AI features require a configured provider; devices, grids and agents require their own resources and credentials.",
     "p4_label": "03 / FROM EXECUTION TO DIAGNOSIS",
     "p4_title": "Understand the result.\nStart with the evidence.",
     "p4_intro": "Run plans on demand, on a schedule or from your pipeline. Follow progress and open the run details to understand what happened.",
@@ -191,7 +193,7 @@
         "Export HTML, PDF, JUnit and Allure. Link failures to issue trackers and publish outcomes in the tools your team uses."
       ]
     ],
-    "p4_note": "Available evidence depends on the test type, provider and configuration; every format is not available in every execution mode.",
+    "p4_note": "Shown: demo tests that fail on purpose, with the reason and buttons for the screenshot, video and log. Available evidence depends on the test type, provider and configuration.",
     "p5_label": "04 / INTEGRATION AND CONTROL",
     "p5_title": "Part of your\necosystem.",
     "integrations": [
@@ -238,7 +240,9 @@
     ],
     "cta": "Request a dedicated demo",
     "cta_note": "Bring your critical journey. Build a verifiable pilot with us.",
-    "footer_note": "WebFlowMaster is proprietary software. Licensing, services and commercial terms are defined in a separate agreement.",
-    "capture_note": "Product demo screenshots: English interface, synthetic data. This brochure describes capabilities present in the repository on 6 October 2026."
+    "footer_note": "WebFlowMaster is proprietary software. Additional services and detailed commercial terms are defined in a separate agreement.",
+    "capture_note": "Product demo screenshots taken on 12 October 2026, English interface and synthetic data. This brochure describes the product's capabilities on that date.",
+    "licence": "Annual licence per installation, support included. 30-day pilot.",
+    "distribution_note": "Made for digital distribution and office A4 printing: not a print-shop file (no bleed, no CMYK profile)."
   }
 }

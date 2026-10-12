@@ -32,7 +32,8 @@ until the product has its own domain and mailbox: replace them there, update the
 in `promo-video/video/captions/`, and regenerate the PDFs and MP4s before distributing anything.
 
 Generated PDFs, MP4 files and demo video inputs are local outputs, ignored by Git. The brochure
-contains its own two demonstration screenshots in `brochure/assets/`. The video README explains
+contains its own demonstration screenshots, one set per language, in `brochure/assets/`; the
+[brochure README](./brochure/README.md) explains how to film them again. The video README explains
 how to capture its full demonstration set again. No customer production data is used.
 
 ## Verification boundary
