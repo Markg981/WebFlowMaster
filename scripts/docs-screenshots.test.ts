@@ -21,7 +21,7 @@ function markdownFiles(dir: string): string[] {
 }
 
 const referenced = new Set(
-  ['en', 'it'].flatMap((lang) =>
+  ['en', 'it', 'fr', 'de'].flatMap((lang) =>
     markdownFiles(path.join(root, 'docs', lang)).flatMap((file) =>
       [...fs.readFileSync(file, 'utf8').matchAll(/\/screenshots\/([\w-]+)\.webp/g)].map(
         (match) => match[1],

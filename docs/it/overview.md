@@ -114,7 +114,7 @@ funzioni AI; Vitest, Testing Library e supertest per i test; Docker per il confe
 | `scripts/`       | CLI (`wfm`), agente locale, migratore, schema doctor, importatori                                                        |
 | `integrations/`  | GitHub Action, template GitLab, shared library Jenkins, template Azure Pipelines, step Bitbucket Pipelines, orb CircleCI |
 | `collaudo/`      | L'ambiente di collaudo: HTTPS, Keycloak, simulatori, Jenkins, emulatore Android                                          |
-| `docs/`          | Questa documentazione (VitePress, inglese e italiano)                                                                    |
+| `docs/`          | Questa documentazione (VitePress, inglese e italiano; la guida utente anche in francese e tedesco)                       |
 | `observability/` | Configurazione di Loki e Grafana                                                                                         |
 
 ## La documentazione, per domanda
