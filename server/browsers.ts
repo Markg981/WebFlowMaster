@@ -358,6 +358,8 @@ export async function launchBrowser(
   choice: BrowserChoice,
   /** How the grid's dashboard names the session: the test, and the run. */
   session?: { name: string; build: string },
+  /** Extra command-line switches for a browser launched here; a grid's or agent's ignores them. */
+  args?: string[],
 ): Promise<Browser> {
   const engine = playwright[choice.engine];
   if (!engine) throw new Error(`Invalid browser engine: ${choice.engine}`);
@@ -406,6 +408,7 @@ export async function launchBrowser(
       ...browserEgressOptions(),
       headless: choice.headless,
       ...(choice.channel ? { channel: choice.channel } : {}),
+      ...(args?.length ? { args } : {}),
     });
   } catch (error: any) {
     const what = choice.channel ? `${choice.label} (channel "${choice.channel}")` : choice.label;
