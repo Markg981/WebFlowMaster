@@ -26,11 +26,11 @@ import { ScimProvisioning, type ScimTokenStatus } from './ScimProvisioning';
 import SamlAdvancedSettings, { type SamlAdvancedForm } from './SamlAdvancedSettings';
 
 /**
- * Single sign-on with the organization's identity provider (server/sso.ts). Owners only.
+ * Single sign-on with the organization's identity provider (server/identity/sso.ts). Owners only.
  *
  * OpenID Connect: the owner registers the application with their provider, using the callback
  * address shown here, and copies back the issuer, the client id and the secret.
- * SAML 2.0 (server/sso-saml.ts): the owner gives the provider this organization's entity ID and ACS
+ * SAML 2.0 (server/identity/sso-saml.ts): the owner gives the provider this organization's entity ID and ACS
  * address (or its metadata URL), and copies back the provider's entity ID, sign-on URL and signing
  * certificate — or pastes the provider's metadata, which fills the three.
  */

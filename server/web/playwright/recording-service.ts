@@ -5,8 +5,8 @@ import { throwIfEgressDenied } from '../../egress-policy';
 import { saveLoginState, type EnvironmentScope } from '../../login-state';
 import { recordRunnerFailure } from '../../observability/taps/runner';
 import { substituteVariables } from '../../outbound-http';
-import { RECORDER_SCRIPT } from '../../recorder-script';
-import { storage } from '../../storage';
+import { RECORDER_SCRIPT } from '../../authoring/recorder-script';
+import { storage } from '../../identity/storage';
 
 import {
   AUTHORING_USER_AGENT,

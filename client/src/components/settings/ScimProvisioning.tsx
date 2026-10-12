@@ -8,7 +8,7 @@ import { Copy, Loader2 } from 'lucide-react';
 import { formatDateTime } from '@/lib/dates';
 
 /**
- * Provisioning with SCIM 2.0 (server/scim.ts), part of the single sign-on card: the base URL to give
+ * Provisioning with SCIM 2.0 (server/identity/scim.ts), part of the single sign-on card: the base URL to give
  * the identity provider, and its bearer token — issued here, shown once, revoked here.
  */
 

@@ -6,7 +6,7 @@ import {
   testPlans,
   type Requirement,
 } from '@shared/schema';
-import { itemOf, visibleNames } from './test-refs';
+import { itemOf, visibleNames } from './authoring/test-refs';
 import {
   computeCoverage,
   coverageSummary,

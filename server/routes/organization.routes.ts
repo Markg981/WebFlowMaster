@@ -12,7 +12,7 @@ import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { and, desc, eq, gte, like, lte, type SQL } from 'drizzle-orm';
 import { organizations, users, invitations, auditLog, AUDIT_ACTIONS } from '@shared/schema';
-import { storage } from '../storage';
+import { storage } from '../identity/storage';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
@@ -28,7 +28,7 @@ import {
   removeMembership,
   setMemberRole,
 } from '../tenancy/organization-memberships';
-import { issuePasswordReset } from '../password-reset';
+import { issuePasswordReset } from '../identity/password-reset';
 import logger from '../logger';
 import { liveRunCounts, quotaUsage, quotasFor } from '../tenancy/tenant-quotas';
 import { availableRunnerCount } from '../runner-registry';
@@ -90,7 +90,7 @@ router.get('/api/organization', requireRole('viewer'), async (_req: Request, res
         username,
         role,
         createdAt,
-        // Set when the identity provider deactivated them through SCIM (server/scim.ts).
+        // Set when the identity provider deactivated them through SCIM (server/identity/scim.ts).
         disabledAt,
         // Whether this organization is the one they are acting in; a member of several may not be.
         current,
@@ -541,7 +541,7 @@ router.post(
 );
 
 /**
- * A one-time link for a member to choose a new password (server/password-reset.ts), when they
+ * A one-time link for a member to choose a new password (server/identity/password-reset.ts), when they
  * cannot sign in. The link is returned once, for the owner to hand over; the application sends no
  * e-mail. A signed-in session only, as for resetting a second factor: a key that could hand out
  * passwords would be a way into every account of the organization. Never for oneself: that is

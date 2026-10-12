@@ -12,7 +12,7 @@ import {
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { failuresOf } from '../test-quarantine';
+import { failuresOf } from '../authoring/test-quarantine';
 import logger from '../logger';
 
 /**

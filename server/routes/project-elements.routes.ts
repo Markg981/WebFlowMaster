@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { projectElements, projects, tests } from '@shared/schema';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
-import { referencedElementIds } from '../step-elements';
+import { referencedElementIds } from '../authoring/step-elements';
 import logger from '../logger';
 
 /**

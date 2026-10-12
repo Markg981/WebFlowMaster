@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { ssoRequiredFor } from '../sso';
+import { ssoRequiredFor } from '../identity/sso';
 
 /**
  * Where an organization requires single sign-on, a session opened with a password ends.

@@ -10,7 +10,7 @@ import {
   type TestManagementPublication,
 } from '@shared/schema';
 import { outcomeOf } from '@shared/requirements';
-import { itemKey, itemOf, type TestKind } from './test-refs';
+import { itemKey, itemOf, type TestKind } from './authoring/test-refs';
 import {
   caseKeyFromName,
   type PublishedOutcome,

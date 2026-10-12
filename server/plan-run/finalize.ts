@@ -7,7 +7,7 @@ import {
 import type { RunSummary } from '../notifications';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { transitionExecution } from '../execution-state';
-import { failuresOf, type VerdictRow } from '../test-quarantine';
+import { failuresOf, type VerdictRow } from '../authoring/test-quarantine';
 import {
   fileFailuresIfConfigured,
   notifyRunFinished,

@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { eq } from 'drizzle-orm';
 import { apiKeys, users } from '@shared/schema';
 import { privilegedDb } from '../db';
-import { apiKeyFromRequest, hashApiKey, hashesMatch, rejectionFor } from '../api-keys';
+import { apiKeyFromRequest, hashApiKey, hashesMatch, rejectionFor } from '../identity/api-keys';
 import logger from '../logger';
 import { API_V1_PREFIX, type ApiScope } from '@shared/api-scopes';
 

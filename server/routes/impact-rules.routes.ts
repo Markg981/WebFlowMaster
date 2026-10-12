@@ -17,7 +17,7 @@ import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
 import { MAX_CHANGED_FILES, selectForChanges, validatePattern } from '../test-impact';
-import { expandPlanTests, type TestReference } from '../test-suites';
+import { expandPlanTests, type TestReference } from '../authoring/test-suites';
 import logger from '../logger';
 
 /**

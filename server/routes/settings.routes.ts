@@ -11,12 +11,12 @@ import {
   getOrCreateUserSettings,
   saveUserSettings,
   userSettingsBodySchema,
-} from '../user-settings';
+} from '../identity/user-settings';
 
 /**
  * The two kinds of settings: a person's own (/api/settings) and the installation's
  * (/api/system-settings). Neither belongs to an organization, so both are read and written
- * by server/user-settings.ts and server/system-settings.ts, which hold the privileged handle
+ * by server/identity/user-settings.ts and server/system-settings.ts, which hold the privileged handle
  * this module may not.
  */
 

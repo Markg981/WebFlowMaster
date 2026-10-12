@@ -24,7 +24,7 @@ const ai = vi.hoisted(() => ({
   available: true,
   explainFailure: vi.fn(),
 }));
-vi.mock('../ai-automation-service', () => ({
+vi.mock('../authoring/ai-automation-service', () => ({
   aiService: {
     isAvailable: () => ai.available,
     explainFailure: ai.explainFailure,

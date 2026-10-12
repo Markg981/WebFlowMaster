@@ -19,16 +19,16 @@ description when an autocomplete creates an already existing tag.
 
 ## Trace the existing implementation before editing
 
-| Layer                | Existing file                                                       | What to learn                                                        |
-| -------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Stored contract      | `shared/schema.ts` (`tags`, `testTags`)                             | Organization ownership, names and link types                         |
-| Pure/domain behavior | `server/test-tags.ts`                                               | Name normalization and assignment rules                              |
-| Session API          | `server/routes/tags.routes.ts`                                      | Viewer reads, editor writes, zod validation, duplicate/race handling |
-| Route assembly       | `server/routes.ts`                                                  | Existing router mounting; extending this router needs no new mount   |
-| Reusable UI          | `client/src/components/tags/TagPicker.tsx`                          | Controlled component props; it does not own all API calls            |
-| Consumers            | Search for `TagPicker` in `client/src`                              | Actual pages/dialogs passing data and mutations                      |
-| Existing tests       | `server/routes/tags.routes.test.ts`, `server/test-tags.test.ts`     | HTTP/tenant fixtures and normalization expectations                  |
-| Organization model   | `server/middleware/tenancy.ts`, `server/middleware/require-role.ts` | Data visibility versus permission to act                             |
+| Layer                | Existing file                                                             | What to learn                                                        |
+| -------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Stored contract      | `shared/schema.ts` (`tags`, `testTags`)                                   | Organization ownership, names and link types                         |
+| Pure/domain behavior | `server/authoring/test-tags.ts`                                           | Name normalization and assignment rules                              |
+| Session API          | `server/routes/tags.routes.ts`                                            | Viewer reads, editor writes, zod validation, duplicate/race handling |
+| Route assembly       | `server/routes.ts`                                                        | Existing router mounting; extending this router needs no new mount   |
+| Reusable UI          | `client/src/components/tags/TagPicker.tsx`                                | Controlled component props; it does not own all API calls            |
+| Consumers            | Search for `TagPicker` in `client/src`                                    | Actual pages/dialogs passing data and mutations                      |
+| Existing tests       | `server/routes/tags.routes.test.ts`, `server/authoring/test-tags.test.ts` | HTTP/tenant fixtures and normalization expectations                  |
+| Organization model   | `server/middleware/tenancy.ts`, `server/middleware/require-role.ts`       | Data visibility versus permission to act                             |
 
 Use `rg -n "TagPicker|/api/tags" client/src server` to find consumers. Follow a read and a write all
 the way through; adding a schema field alone does not make it available to a component, and a new
@@ -66,7 +66,7 @@ Create the module's router with `asyncRouter()` (`server/middleware/async-router
 `Router()`, and write no try/catch that only logs and answers 500: an async handler that throws then
 reaches `incidentErrorHandler`, which logs it, records the incident and answers once, without the
 driver's message. Catch only what the handler can answer better itself, such as a quota refusal or a
-`BrowserTaskError`, and rethrow the rest. `req.user` is typed (`Express.User` in `server/auth.ts`):
+`BrowserTaskError`, and rethrow the rest. `req.user` is typed (`Express.User` in `server/identity/auth.ts`):
 after `requireRole`, read `req.user!.id`, never `(req.user as any)`.
 
 For this example, plan snapshots and execution units need no new description field because it
@@ -109,19 +109,19 @@ Set up `.env`, secrets, Redis and Playwright using the [developer guide](./devel
 Use `db:migrate`, never `db:push`, for this migration workflow. Do not reset a colleague's shared
 database or acceptance volumes to obtain a passing test.
 
-| Command                                                                     | Evidence obtained                                                 |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `npx vitest run server/routes/tags.routes.test.ts server/test-tags.test.ts` | Focused example behavior against the configured test database     |
-| `npm run test:client -- --run`                                              | Client tests, including locale consistency                        |
-| `npm run check`                                                             | TypeScript projects, Collaudo/E2E and BDD runtime types           |
-| `npm run lint`                                                              | Repository lint rules                                             |
-| `npm run format:check`                                                      | Prettier formatting, a CI gate; `npm run format` fixes it         |
-| `npm test`                                                                  | Root Vitest suite plus separate BDD runtime suite                 |
-| `npm run test:rls`                                                          | Real PostgreSQL isolation gate; requires suitable `DATABASE_URL`  |
-| `npm run test:collaudo`                                                     | Collaudo application tests, not the complete acceptance catalogue |
-| `npm run build`                                                             | Client/server/worker/migrator/CLI/agent and BDD child bundles     |
-| `npm run docs:build`                                                        | VitePress generation and link validation                          |
-| `npm run test:e2e`                                                          | Dedicated real-installation interface smoke journeys              |
+| Command                                                                               | Evidence obtained                                                 |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `npx vitest run server/routes/tags.routes.test.ts server/authoring/test-tags.test.ts` | Focused example behavior against the configured test database     |
+| `npm run test:client -- --run`                                                        | Client tests, including locale consistency                        |
+| `npm run check`                                                                       | TypeScript projects, Collaudo/E2E and BDD runtime types           |
+| `npm run lint`                                                                        | Repository lint rules                                             |
+| `npm run format:check`                                                                | Prettier formatting, a CI gate; `npm run format` fixes it         |
+| `npm test`                                                                            | Root Vitest suite plus separate BDD runtime suite                 |
+| `npm run test:rls`                                                                    | Real PostgreSQL isolation gate; requires suitable `DATABASE_URL`  |
+| `npm run test:collaudo`                                                               | Collaudo application tests, not the complete acceptance catalogue |
+| `npm run build`                                                                       | Client/server/worker/migrator/CLI/agent and BDD child bundles     |
+| `npm run docs:build`                                                                  | VitePress generation and link validation                          |
+| `npm run test:e2e`                                                                    | Dedicated real-installation interface smoke journeys              |
 
 For E2E use the dedicated database/Redis ports and build prerequisites in the developer guide.
 For acceptance use [test lab](../admin/test-lab), with relevant providers/agents/devices provisioned.

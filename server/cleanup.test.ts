@@ -17,7 +17,7 @@ import {
 } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
 import { cleanupReportStep, runCleanups } from './cleanup-runner';
-import { describeChange } from './test-versions';
+import { describeChange } from './authoring/test-versions';
 
 /**
  * A test's cleanup: the calls after it that remove what it created. The application under test is

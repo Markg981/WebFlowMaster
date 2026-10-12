@@ -72,7 +72,7 @@ export const ORG_SCOPED_TABLES = [
   'quota_artifacts',
   'source_hosts',
   // One-time links to choose a new password (migration 0042). Redeeming one is the privileged
-  // bootstrap in server/storage.ts; issuing and listing them happen inside the organization.
+  // bootstrap in server/identity/storage.ts; issuing and listing them happen inside the organization.
   'password_resets',
   // The organization's own steps (migration 0046).
   'custom_actions',

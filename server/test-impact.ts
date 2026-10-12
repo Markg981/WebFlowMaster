@@ -7,7 +7,7 @@ import {
   testTags,
 } from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
-import type { TestReference } from './test-suites';
+import type { TestReference } from './authoring/test-suites';
 
 /**
  * Running the tests a change affects, not all of them.

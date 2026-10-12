@@ -202,7 +202,7 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
 
 - **Quale versione.** I piani eseguono la **versione pubblicata** di un test web, API o mobile quando esiste; se
   l'organizzazione richiede la revisione, un test non pubblicato viene saltato invece di essere eseguito
-  senza revisione (`server/test-publishing.ts`).
+  senza revisione (`server/authoring/test-publishing.ts`).
 - Le **precondizioni** (chiamate API che preparano lo stato) girano per prime; ciascuna può essere
   saltata quando un controllo mostra che lo stato esiste già. Cosa significhi una precondizione fallita
   lo decide la policy del piano: bloccare il test (`error`), saltarlo o proseguire comunque.
@@ -233,7 +233,7 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
   (`server/web/web-performance.ts`, Lighthouse eseguito come processo separato).
 - I **test API** girano tramite `server/api-tests/api-test-runner.ts`: variabili sostituite, autenticazione
   applicata (Bearer, Basic, chiave API, OAuth 2.0 client credentials o password grant, e gli schemi
-  di firma e di challenge di `server/api-auth.ts`: JWT, OAuth 1.0, Hawk, AWS SigV4, Akamai EdgeGrid,
+  di firma e di challenge di `server/identity/api-auth.ts`: JWT, OAuth 1.0, Hawk, AWS SigV4, Akamai EdgeGrid,
   ASAP, Digest e NTLM — gli ultimi due rispondono al 401 del server, NTLM su un'unica connessione),
   asserzioni valutate, valori estratti nella mappa della corsia per le richieste successive.
 

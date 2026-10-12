@@ -7,7 +7,7 @@ import {
   type ProtocolConfig,
   type ResolvedProtocolConfig,
 } from '@shared/api-protocol-config';
-import { accessTokenFor } from '../oauth2';
+import { accessTokenFor } from '../identity/oauth2';
 import {
   akamaiEdgeGrid,
   asapToken,
@@ -23,7 +23,7 @@ import {
   systemClock,
   type DigestParams,
   type NtlmParams,
-} from '../api-auth';
+} from '../identity/api-auth';
 
 /**
  * Running one API request, with its assertions and its extractions.
@@ -311,7 +311,7 @@ function substituted<T extends Record<string, unknown>>(
  *
  * Returns a message when the request must not be sent, a challenge scheme when it is sent by
  * `sendWithChallenge`, and null when it may be sent as it is. It runs after the body is built,
- * because OAuth 1.0, Hawk, AWS and Akamai sign the body too (server/api-auth.ts).
+ * because OAuth 1.0, Hawk, AWS and Akamai sign the body too (server/identity/api-auth.ts).
  *
  * Values go through substitution because the token usually comes from an earlier request
  * in the same plan, or from the environment.

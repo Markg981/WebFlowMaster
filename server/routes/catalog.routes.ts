@@ -2,10 +2,10 @@ import { asyncRouter } from '../middleware/async-router';
 import { eq } from 'drizzle-orm';
 import { tests } from '@shared/schema';
 import { catalogQuerySchema } from '@shared/catalog';
-import { catalogPage, type CatalogType } from '../catalog';
+import { catalogPage, type CatalogType } from '../authoring/catalog';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction } from '../middleware/tenancy';
-import { tagsOfTests } from '../test-tags';
+import { tagsOfTests } from '../authoring/test-tags';
 import logger from '../logger';
 
 const router = asyncRouter();

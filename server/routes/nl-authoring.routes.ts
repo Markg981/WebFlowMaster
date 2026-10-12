@@ -5,8 +5,8 @@ import { projectElements, projects } from '@shared/schema';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
-import { aiService } from '../ai-automation-service';
-import { authorSteps } from '../nl-authoring';
+import { aiService } from '../authoring/ai-automation-service';
+import { authorSteps } from '../authoring/nl-authoring';
 import logger from '../logger';
 
 /**

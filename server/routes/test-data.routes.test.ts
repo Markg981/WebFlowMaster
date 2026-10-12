@@ -21,7 +21,7 @@ vi.mock('../logger', () => ({
 
 /**
  * Shared test data through the API, and as tests receive it: {{data.<set>.<column>}} values and a
- * shared set's rows in place of the marker a UI test keeps (shared/test-data.ts, server/test-data.ts).
+ * shared set's rows in place of the marker a UI test keeps (shared/test-data.ts, server/authoring/test-data.ts).
  */
 
 type User = { id: number; username: string; organizationId: number; role: string };
@@ -158,7 +158,8 @@ describe('shared test data', () => {
   });
 
   it('expands many tests from one load of the sets they point at', async () => {
-    const { loadSharedSets, expandWithLoadedSets, SharedDataError } = await import('../test-data');
+    const { loadSharedSets, expandWithLoadedSets, SharedDataError } =
+      await import('../authoring/test-data');
     const { withTenantTransaction, runWithTenant } = await import('../middleware/tenancy');
     const own = [{ email: 'own@shop.test' }];
     const sets = await runWithTenant(
@@ -198,7 +199,7 @@ describe('shared test data', () => {
         organizationId,
       } as any)
       .returning();
-    const { expandSharedDataset, SharedDataError } = await import('../test-data');
+    const { expandSharedDataset, SharedDataError } = await import('../authoring/test-data');
     const { withTenantTransaction, runWithTenant } = await import('../middleware/tenancy');
     const expanded = await runWithTenant(
       organizationId,

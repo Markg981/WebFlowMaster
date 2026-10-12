@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { privilegedDb } from '../db';
 import { apiKeys, auditLog, users } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { hashApiKey } from '../api-keys';
+import { hashApiKey } from '../identity/api-keys';
 
 vi.mock('../logger', () => ({
   default: {

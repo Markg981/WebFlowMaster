@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, KeyRound } from 'lucide-react';
 
 /**
- * "Sign in with SSO" (server/sso.ts): the e-mail address picks the organization, and the browser
+ * "Sign in with SSO" (server/identity/sso.ts): the e-mail address picks the organization, and the browser
  * goes to its identity provider. A navigation, not a fetch — it ends on the provider's page, and
  * comes back to /api/sso/callback, or here with ?sso_error= when something was refused.
  */

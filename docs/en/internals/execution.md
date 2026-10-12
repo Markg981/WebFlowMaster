@@ -199,7 +199,7 @@ With `shards = 1` none of this runs.
 
 - **Which version.** Plans run a web, API or mobile test's **published version** when it has one; with review required
   by the organization, an unpublished test is skipped rather than run unreviewed
-  (`server/test-publishing.ts`).
+  (`server/authoring/test-publishing.ts`).
 - **Preconditions** (API calls that set up state) run first; each can be skipped when a check shows
   the state already exists. What a failed precondition means is the plan's policy: block the test
   (`error`), skip it, or continue anyway.
@@ -228,7 +228,7 @@ With `shards = 1` none of this runs.
   (`server/web/web-performance.ts`, Lighthouse run as a separate process).
 - **API tests** run through `server/api-tests/api-test-runner.ts`: variables substituted, authentication
   applied (Bearer, Basic, API key, OAuth 2.0 client credentials or password grant, and the
-  signing and challenge schemes of `server/api-auth.ts`: JWT, OAuth 1.0, Hawk, AWS SigV4, Akamai
+  signing and challenge schemes of `server/identity/api-auth.ts`: JWT, OAuth 1.0, Hawk, AWS SigV4, Akamai
   EdgeGrid, ASAP, Digest and NTLM — the last two answering the server's 401, NTLM on one
   connection), assertions evaluated, values extracted into the lane's captured map for later requests.
 

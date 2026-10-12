@@ -19,16 +19,16 @@ deve sovrascrivere implicitamente la descrizione di un collega.
 
 ## Seguire l'implementazione prima di modificare
 
-| Livello            | File esistente                                                      | Cosa capire                                                         |
-| ------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Contratto salvato  | `shared/schema.ts` (`tags`, `testTags`)                             | Organizzazione, nomi e tipi dei collegamenti                        |
-| Logica di dominio  | `server/test-tags.ts`                                               | Normalizzazione nomi e assegnazioni                                 |
-| API di sessione    | `server/routes/tags.routes.ts`                                      | Lettura viewer, scrittura editor, zod, gestione duplicati e race    |
-| Assemblaggio route | `server/routes.ts`                                                  | Router già montato: estenderlo non richiede un nuovo mount          |
-| UI riusabile       | `client/src/components/tags/TagPicker.tsx`                          | Props controllate; il componente non possiede tutte le chiamate API |
-| Consumatori        | Cercare `TagPicker` in `client/src`                                 | Pagine/dialoghi che passano dati e mutazioni                        |
-| Test esistenti     | `server/routes/tags.routes.test.ts`, `server/test-tags.test.ts`     | Fixture HTTP/tenant e aspettative sulla normalizzazione             |
-| Sicurezza          | `server/middleware/tenancy.ts`, `server/middleware/require-role.ts` | Visibilità dati distinta dal permesso di agire                      |
+| Livello            | File esistente                                                            | Cosa capire                                                         |
+| ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Contratto salvato  | `shared/schema.ts` (`tags`, `testTags`)                                   | Organizzazione, nomi e tipi dei collegamenti                        |
+| Logica di dominio  | `server/authoring/test-tags.ts`                                           | Normalizzazione nomi e assegnazioni                                 |
+| API di sessione    | `server/routes/tags.routes.ts`                                            | Lettura viewer, scrittura editor, zod, gestione duplicati e race    |
+| Assemblaggio route | `server/routes.ts`                                                        | Router già montato: estenderlo non richiede un nuovo mount          |
+| UI riusabile       | `client/src/components/tags/TagPicker.tsx`                                | Props controllate; il componente non possiede tutte le chiamate API |
+| Consumatori        | Cercare `TagPicker` in `client/src`                                       | Pagine/dialoghi che passano dati e mutazioni                        |
+| Test esistenti     | `server/routes/tags.routes.test.ts`, `server/authoring/test-tags.test.ts` | Fixture HTTP/tenant e aspettative sulla normalizzazione             |
+| Sicurezza          | `server/middleware/tenancy.ts`, `server/middleware/require-role.ts`       | Visibilità dati distinta dal permesso di agire                      |
 
 Usare `rg -n "TagPicker|/api/tags" client/src server` per trovare i consumatori. Seguire una lettura
 e una scrittura complete: aggiungere un campo allo schema non lo rende disponibile al componente,
@@ -68,7 +68,7 @@ Creare il router del modulo con `asyncRouter()` (`server/middleware/async-router
 handler asincrono che lancia arriva così a `incidentErrorHandler`, che lo registra, salva
 l'incidente e risponde una volta sola, senza il messaggio del driver. Intercettare solo ciò a cui
 l'handler sa rispondere meglio, come un rifiuto di quota o un `BrowserTaskError`, e rilanciare il
-resto. `req.user` è tipizzato (`Express.User` in `server/auth.ts`): dopo `requireRole` si legge
+resto. `req.user` è tipizzato (`Express.User` in `server/identity/auth.ts`): dopo `requireRole` si legge
 `req.user!.id`, mai `(req.user as any)`.
 
 In questo esempio lo snapshot del piano e le unità non richiedono il nuovo campo: la descrizione
@@ -111,19 +111,19 @@ Preparare `.env`, segreti, Redis e Playwright secondo la [guida sviluppatore](./
 Usare `db:migrate`, mai `db:push`, per questo flusso. Non azzerare database condivisi o volumi di
 accettazione dei colleghi per ottenere un test positivo.
 
-| Comando                                                                     | Evidenza ottenuta                                                       |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `npx vitest run server/routes/tags.routes.test.ts server/test-tags.test.ts` | Comportamento mirato dell'esempio sul database dei test configurato     |
-| `npm run test:client -- --run`                                              | Test client, inclusa coerenza delle traduzioni                          |
-| `npm run check`                                                             | Progetti TypeScript, tipi Collaudo/E2E e runtime BDD                    |
-| `npm run lint`                                                              | Regole lint del repository                                              |
-| `npm run format:check`                                                      | Formattazione Prettier, controllata in CI; `npm run format` la corregge |
-| `npm test`                                                                  | Suite Vitest root e suite separata runtime BDD                          |
-| `npm run test:rls`                                                          | Gate di isolamento PostgreSQL reale; richiede `DATABASE_URL` adeguato   |
-| `npm run test:collaudo`                                                     | Test dell'app Collaudo, non intero catalogo di accettazione             |
-| `npm run build`                                                             | Bundle client/server/worker/migrator/CLI/agente e child BDD             |
-| `npm run docs:build`                                                        | Generazione VitePress e validazione link                                |
-| `npm run test:e2e`                                                          | Smoke dell'interfaccia sull'installazione reale dedicata                |
+| Comando                                                                               | Evidenza ottenuta                                                       |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `npx vitest run server/routes/tags.routes.test.ts server/authoring/test-tags.test.ts` | Comportamento mirato dell'esempio sul database dei test configurato     |
+| `npm run test:client -- --run`                                                        | Test client, inclusa coerenza delle traduzioni                          |
+| `npm run check`                                                                       | Progetti TypeScript, tipi Collaudo/E2E e runtime BDD                    |
+| `npm run lint`                                                                        | Regole lint del repository                                              |
+| `npm run format:check`                                                                | Formattazione Prettier, controllata in CI; `npm run format` la corregge |
+| `npm test`                                                                            | Suite Vitest root e suite separata runtime BDD                          |
+| `npm run test:rls`                                                                    | Gate di isolamento PostgreSQL reale; richiede `DATABASE_URL` adeguato   |
+| `npm run test:collaudo`                                                               | Test dell'app Collaudo, non intero catalogo di accettazione             |
+| `npm run build`                                                                       | Bundle client/server/worker/migrator/CLI/agente e child BDD             |
+| `npm run docs:build`                                                                  | Generazione VitePress e validazione link                                |
+| `npm run test:e2e`                                                                    | Smoke dell'interfaccia sull'installazione reale dedicata                |
 
 Per E2E usare database/porte Redis dedicati e prerequisiti di build della guida sviluppatore.
 Per accettazione seguire il [laboratorio](../admin/test-lab), preparando provider/agenti/dispositivi.

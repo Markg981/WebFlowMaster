@@ -10,9 +10,9 @@ import { privilegedDb } from './db';
 import { executionLogs, testPlanExecutions, type User as SelectUser } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { getCorrelationId } from './middleware/correlation';
-import { getSessionMiddleware } from './auth';
+import { getSessionMiddleware } from './identity/auth';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
-import { isSamlSessionActive } from './sso-saml';
+import { isSamlSessionActive } from './identity/sso-saml';
 import {
   ClientSocketMessageSchema,
   type ExecutionLogEntry,
@@ -68,7 +68,7 @@ function runMiddleware(mw: RequestHandler, req: IncomingMessage, res: object): P
 /**
  * Resolves the session user for a raw WebSocket upgrade request, the same way Express
  * resolves `req.user` for an HTTP request — by running the exact session middleware
- * `setupAuth` mounted (same secret, same store; see server/auth.ts's getSessionMiddleware)
+ * `setupAuth` mounted (same secret, same store; see server/identity/auth.ts's getSessionMiddleware)
  * followed by passport's initialize/session middleware, against a minimal stub response.
  *
  * The stub response is safe here because session/passport only touch it during this call to

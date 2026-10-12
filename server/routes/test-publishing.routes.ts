@@ -18,13 +18,13 @@ import {
   setReviewRequired,
   unpublish,
   withdrawReview,
-} from '../test-publishing';
-import { targetColumn, targetTable } from '../test-version-target';
+} from '../authoring/test-publishing';
+import { targetColumn, targetTable } from '../authoring/test-version-target';
 import type { VersionedTestType } from '@shared/test-versioning';
 import logger from '../logger';
 
 /**
- * Publishing tests, reviewing them, and rolling back. See server/test-publishing.ts for the rules;
+ * Publishing tests, reviewing them, and rolling back. See server/authoring/test-publishing.ts for the rules;
  * these handlers only parse, call and translate.
  */
 

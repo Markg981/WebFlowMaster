@@ -43,7 +43,7 @@ let app: Express;
 
 beforeAll(async () => {
   process.env.SESSION_SECRET = 'test-session-secret';
-  const { setupAuth } = await import('../auth');
+  const { setupAuth } = await import('../identity/auth');
   const { tenancyMiddleware } = await import('../middleware/tenancy');
   const membershipRoutes = (await import('../routes/organization-memberships.routes')).default;
   app = express();

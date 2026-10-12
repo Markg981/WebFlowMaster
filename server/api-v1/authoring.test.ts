@@ -44,7 +44,7 @@ const {
   testPlanSchedules,
 } = await import('@shared/schema');
 const { createTestOrganization, createTestUser } = await import('../tests/factories');
-const { generateApiKey } = await import('../api-keys');
+const { generateApiKey } = await import('../identity/api-keys');
 const { apiKeyAuth } = await import('../middleware/api-key-auth');
 const { tenancyMiddleware, withTenantTransaction, runWithTenant } =
   await import('../middleware/tenancy');

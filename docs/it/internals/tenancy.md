@@ -51,10 +51,10 @@ lettura di sessione, con un budget in `server/tests/architecture.test.ts`.
 I nuovi membri entrano per **invito** (tabella `invitations`): un owner invita uno username con un
 ruolo. Uno username che non esiste ancora si registra con il token e l'account viene creato dentro
 l'organizzazione che ha invitato — un'operazione privilegiata, perché l'utente non esiste ancora
-(`server/storage.ts`). Uno username che esiste accede e accetta il link
+(`server/identity/storage.ts`). Uno username che esiste accede e accetta il link
 (`POST /api/invitations/accept`), che aggiunge un'appartenenza e rende corrente la nuova
 organizzazione. Senza invito si registra solo il primo account dell'installazione, a meno che
-`REGISTRATION=open` (`server/registration.ts`); il controllo "è il primo?" e la creazione
+`REGISTRATION=open` (`server/identity/registration.ts`); il controllo "è il primo?" e la creazione
 condividono un advisory lock. Il single sign-on ammette allo stesso modo un account di un'altra
 organizzazione, ma solo su un dominio che l'organizzazione ha **verificato**
 (`sso_domains.verified_at`), qualunque cosa dica `SSO_REQUIRE_DOMAIN_VERIFICATION`: la prova del
@@ -148,7 +148,7 @@ motivo.
 ### Collegamenti fra righe della stessa organizzazione
 
 Una foreign key da una riga dell'organizzazione A a una dell'organizzazione B sarebbe una fuga di dati
-attraverso un join. Un test di deriva in `server/test-suites.test.ts` elenca ogni foreign key fra
+attraverso un join. Un test di deriva in `server/authoring/test-suites.test.ts` elenca ogni foreign key fra
 tabelle per organizzazione e richiede che ognuna sia protetta da un vincolo di stessa organizzazione o
 dichiarata come collegamento di paternità (`created_by` e simili, che puntano agli utenti).
 
@@ -177,7 +177,7 @@ l'interfaccia, così non propone una modifica che il database rifiuterebbe.
   `SESSION_COOKIE_SECURE=true|false` lo forza (lo stack docker-compose fornito serve HTTP semplice su
   localhost e lo imposta a `false`).
 - **Secondo fattore**: TOTP (RFC 6238) da un'app di autenticazione, più codici di recupero monouso
-  (`server/mfa.ts`). Una password accettata con un secondo fattore ancora dovuto non è un login. Un owner
+  (`server/identity/mfa.ts`). Una password accettata con un secondo fattore ancora dovuto non è un login. Un owner
   può rendere obbligatoria la MFA per l'organizzazione; `requireMfaEnrollment` lascia allora a un membro
   che non l'ha configurata solo la possibilità di configurarla, a ogni richiesta, così la policy vale
   anche per le sessioni già aperte.

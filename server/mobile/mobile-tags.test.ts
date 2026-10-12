@@ -38,8 +38,8 @@ let smoke: string;
 let android: string;
 
 const { runWithTenant, withTenantTransaction } = await import('../middleware/tenancy');
-const { testIdsWithTags } = await import('../test-tags');
-const { testsOfSuite } = await import('../test-suites');
+const { testIdsWithTags } = await import('../authoring/test-tags');
+const { testsOfSuite } = await import('../authoring/test-suites');
 
 beforeAll(async () => {
   organizationId = await createTestOrganization('Mobile Tags Org');

@@ -56,7 +56,7 @@ export default function AuthPage() {
     invitationToken: invited.token,
   });
 
-  // Whether registering needs an invitation here (server/registration.ts). Until it answers, the
+  // Whether registering needs an invitation here (server/identity/registration.ts). Until it answers, the
   // form asks for one only if the link brought one.
   const { data: policy } = useQuery<RegistrationPolicy>({
     queryKey: ['/api/registration'],
@@ -83,7 +83,7 @@ export default function AuthPage() {
     }
   }, [user, joining, navigate]);
 
-  // Choosing a new password with a reset link (server/auth.ts, POST /api/password-reset). Then the
+  // Choosing a new password with a reset link (server/identity/auth.ts, POST /api/password-reset). Then the
   // person signs in as usual, with their second factor if they have one.
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();

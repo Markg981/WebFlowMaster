@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'http';
 import { Express } from 'express';
-import { setupAuth } from './auth';
+import { setupAuth } from './identity/auth';
 
 import projectsRoutes from './routes/projects.routes';
 import testsRoutes from './routes/tests.routes';

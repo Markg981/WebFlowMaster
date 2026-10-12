@@ -250,7 +250,7 @@ describe('a mobile test in a plan', () => {
       .set({ testReviewRequired: true })
       .where(eq(organizations.id, organizationId));
     // Mimic a live publication via the same lookup the worker consumes.
-    const { recordTypedTestVersion } = await import('../test-version-store');
+    const { recordTypedTestVersion } = await import('../authoring/test-version-store');
     await recordTypedTestVersion(privilegedDb as any, {
       testType: 'mobile',
       testId: mobileTestId,

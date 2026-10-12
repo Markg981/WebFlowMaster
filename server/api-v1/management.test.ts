@@ -34,7 +34,7 @@ const { privilegedDb } = await import('../db');
 const { apiKeys, users, auditLog, secrets, testPlanExecutions, testTags } =
   await import('@shared/schema');
 const { createTestOrganization, createTestUser } = await import('../tests/factories');
-const { generateApiKey } = await import('../api-keys');
+const { generateApiKey } = await import('../identity/api-keys');
 const { apiKeyAuth } = await import('../middleware/api-key-auth');
 const { tenancyMiddleware } = await import('../middleware/tenancy');
 const { registerAuthoringRoutes } = await import('./authoring');

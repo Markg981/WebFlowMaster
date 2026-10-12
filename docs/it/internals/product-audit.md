@@ -16,7 +16,7 @@ La baseline del 6 ottobre è superata per paginazione, snapshot/replay, authorin
 profili di carico, E2E critici, restore locale e import WSDL ampliato. Queste capacità sono
 implementate e non devono essere riproposte come sviluppo mancante.
 
-- Cataloghi paginati, filtri server-side e dettagli su richiesta: `server/catalog.ts` e
+- Cataloghi paginati, filtri server-side e dettagli su richiesta: `server/authoring/catalog.ts` e
   `server/routes/catalog.routes.ts`.
 - Definizioni UI/API/mobile e dataset fissati all'accodamento, hash/provenienza e replay storico:
   `server/execution-definitions.ts`, `server/execution-provenance.ts` e
@@ -45,7 +45,7 @@ non assegna esiti manuali dai risultati automatici.
 | Area                | Capacità presenti                                                                                                           | Fonti principali                                                                                                           |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Autori e QA         | Recorder e builder web, descrizione in frasi, variabili, gruppi, condizioni/cicli, dataset, test manuali, API, mobile e BDD | `client/src/pages/`, `server/web/step-executor.ts`, `server/mobile/mobile-runner.ts`, `server/bdd/bdd-execution.ts`        |
-| Catalogo            | Progetti, tag, suite, versioni, review/pubblicazione, requisiti e copertura, quarantena                                     | `shared/schema.ts`, `server/test-publishing.ts`, `server/test-version-store.ts`, `server/routes/`                          |
+| Catalogo            | Progetti, tag, suite, versioni, review/pubblicazione, requisiti e copertura, quarantena                                     | `shared/schema.ts`, `server/authoring/test-publishing.ts`, `server/authoring/test-version-store.ts`, `server/routes/`      |
 | Esecuzione          | Snapshot del piano, code, worker, scheduler, matrice browser/mobile, griglie e agenti locali                                | `server/execution-orchestrator.ts`, `server/execution-snapshot.ts`, `server/test-execution-service.ts`, `server/worker.ts` |
 | Evidenze            | Risultati per step, screenshot/video/trace/HAR secondo modalità, visual testing, accessibilità, export                      | `server/reporting/report-model.ts`, `server/reporting/report-export.ts`, `server/tenancy/artifact-store.ts`                |
 | Integrazioni        | CI, CLI, REST v1, webhook, tracker, commit status, test management, notifiche                                               | `integrations/`, `server/routes/api-v1.routes.ts`, `server/commit-status.ts`, `server/test-management.ts`                  |

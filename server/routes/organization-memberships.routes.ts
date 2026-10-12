@@ -3,8 +3,8 @@ import { asyncRouter } from '../middleware/async-router';
 import { z } from 'zod';
 import { AUDIT_ACTIONS, type User as SelectUser } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
-import { publicUser, recordAuthEvent } from '../auth';
-import { ssoRequiredFor } from '../sso';
+import { publicUser, recordAuthEvent } from '../identity/auth';
+import { ssoRequiredFor } from '../identity/sso';
 import {
   acceptInvitationAsMember,
   describeInvitation,

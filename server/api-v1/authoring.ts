@@ -38,10 +38,10 @@ import {
   type TenantTx,
 } from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../tenancy/audit';
-import { recordTestVersion, recordTypedTestVersion } from '../test-version-store';
+import { recordTestVersion, recordTypedTestVersion } from '../authoring/test-version-store';
 import { BddDefinitionError, prepareBddForSave } from '../bdd/bdd-definition';
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from '../routes/selected-tests';
-import { testsUsingSet } from '../test-data';
+import { testsUsingSet } from '../authoring/test-data';
 import {
   exportBundle,
   parseBundle,

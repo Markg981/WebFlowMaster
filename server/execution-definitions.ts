@@ -1,8 +1,8 @@
 import { desc, inArray } from 'drizzle-orm';
 import { tests, apiTests, testVersions, type Test, type ApiTest } from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
-import { currentContentOf } from './test-version-store';
-import { publishedContentOf } from './test-publishing';
+import { currentContentOf } from './authoring/test-version-store';
+import { publishedContentOf } from './authoring/test-publishing';
 
 export interface FrozenDefinition<T> {
   id: number;

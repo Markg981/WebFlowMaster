@@ -2,7 +2,7 @@ import { VOLATILE_ID_PATTERNS } from '@shared/selectors';
 import { Frame, Page } from 'playwright';
 import { throwIfEgressDenied } from '../../egress-policy';
 import { substituteVariables } from '../../outbound-http';
-import { storage } from '../../storage';
+import { storage } from '../../identity/storage';
 
 import {
   AUTHORING_USER_AGENT,

@@ -20,7 +20,7 @@ import { connection as redisConnection, connectSessionRedis, sessionRedis } from
 import { resolvePort } from './config';
 import { assertStartupConfig, connectSessionStore } from './startup-config';
 import { inspectSchemaState, describeSchemaState } from './schema-state';
-import { redactWebhookPath } from './webhook-tokens';
+import { redactWebhookPath } from './identity/webhook-tokens';
 import { healthRouter } from './health';
 import { installProcessErrorHandlers } from './process-errors';
 import scimRouter, { exceptScim, SCIM_BASE_PATH } from './routes/scim.routes';

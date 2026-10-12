@@ -34,8 +34,8 @@ import {
   inspectorSnapshot,
   openInspector,
 } from '../mobile/mobile-inspector';
-import { tagsOfTests } from '../test-tags';
-import { currentContentOf, recordTypedTestVersion } from '../test-version-store';
+import { tagsOfTests } from '../authoring/test-tags';
+import { currentContentOf, recordTypedTestVersion } from '../authoring/test-version-store';
 import { typedSnapshotOf } from '@shared/test-versioning';
 import logger from '../logger';
 

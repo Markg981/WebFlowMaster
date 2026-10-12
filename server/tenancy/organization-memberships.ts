@@ -182,7 +182,7 @@ export async function relocateMembersBeforeErasure(
 /**
  * Adds the person to an organization, on the privileged handle, before that organization is bound:
  * accepting an invitation as an existing account, or a single sign-on from a verified domain
- * (server/sso.ts). False when they were a member already; the role is then left as it was.
+ * (server/identity/sso.ts). False when they were a member already; the role is then left as it was.
  */
 export async function joinOrganization(
   tx: PrivilegedTx,
@@ -209,7 +209,7 @@ export type AcceptInvitationError = 'invalid' | 'expired' | 'used' | 'other_acco
  * the invitation's role and starts acting in it. The invitation names a username, which must be
  * this account's: a stranger with a colleague's link does not get their seat.
  *
- * Privileged, as registering with an invitation is (server/storage.ts): the organization joined is
+ * Privileged, as registering with an invitation is (server/identity/storage.ts): the organization joined is
  * not the one the session is bound to. One transaction for the checks, the membership and the
  * accepted mark, so a link cannot be spent twice.
  */

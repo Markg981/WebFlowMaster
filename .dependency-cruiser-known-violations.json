@@ -158,9 +158,9 @@
   },
   {
     "type": "dependency",
-    "from": "server/auth.ts",
+    "from": "server/identity/auth.ts",
     "to": "server/routes/sso.routes.ts",
-    "unresolvedTo": "./routes/sso.routes",
+    "unresolvedTo": "../routes/sso.routes",
     "dependencyTypes": [
       "local",
       "dynamic-import"
@@ -353,12 +353,13 @@
   },
   {
     "type": "cycle",
-    "from": "server/auth.ts",
-    "to": "server/routes/sso.routes.ts",
-    "unresolvedTo": "./routes/sso.routes",
+    "from": "server/authoring/custom-actions.ts",
+    "to": "server/authoring/step-groups.ts",
+    "unresolvedTo": "./step-groups",
     "dependencyTypes": [
       "local",
-      "dynamic-import"
+      "type-only",
+      "import"
     ],
     "rule": {
       "severity": "error",
@@ -366,14 +367,15 @@
     },
     "cycle": [
       {
-        "name": "server/routes/sso.routes.ts",
+        "name": "server/authoring/step-groups.ts",
         "dependencyTypes": [
           "local",
-          "dynamic-import"
+          "type-only",
+          "import"
         ]
       },
       {
-        "name": "server/auth.ts",
+        "name": "server/authoring/custom-actions.ts",
         "dependencyTypes": [
           "local",
           "import"
@@ -469,38 +471,6 @@
   },
   {
     "type": "cycle",
-    "from": "server/custom-actions.ts",
-    "to": "server/step-groups.ts",
-    "unresolvedTo": "./step-groups",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "server/step-groups.ts",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "server/custom-actions.ts",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
     "from": "server/db.ts",
     "to": "server/logger.ts",
     "unresolvedTo": "./logger",
@@ -525,6 +495,36 @@
         "dependencyTypes": [
           "local",
           "dynamic-import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "cycle",
+    "from": "server/identity/auth.ts",
+    "to": "server/routes/sso.routes.ts",
+    "unresolvedTo": "../routes/sso.routes",
+    "dependencyTypes": [
+      "local",
+      "dynamic-import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "server/routes/sso.routes.ts",
+        "dependencyTypes": [
+          "local",
+          "dynamic-import"
+        ]
+      },
+      {
+        "name": "server/identity/auth.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
         ]
       }
     ]

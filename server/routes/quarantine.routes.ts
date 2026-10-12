@@ -9,7 +9,7 @@ import {
   listOpenQuarantines,
   quarantineTest,
   releaseQuarantine,
-} from '../test-quarantine';
+} from '../authoring/test-quarantine';
 import logger from '../logger';
 
 /**

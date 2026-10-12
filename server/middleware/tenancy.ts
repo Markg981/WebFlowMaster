@@ -135,7 +135,7 @@ export async function runWithTenant<T>(
 }
 
 /**
- * The signed-in account, as server/auth.ts declares it on Express.User. Named here as well so
+ * The signed-in account, as server/identity/auth.ts declares it on Express.User. Named here as well so
  * this file type-checks in a project that compiles it without auth.ts (collaudo's protocol
  * check reaches it through crypto.ts).
  */
@@ -211,7 +211,7 @@ export async function withTenantTransaction<T>(fn: (tx: TenantTx) => Promise<T>)
     }
     // Bind the transaction into context for the duration of fn so a nested
     // withTenantTransaction call (e.g. once Task 5 wraps handlers that already contain their
-    // own privilegedDb.transaction calls, such as server/storage.ts's createUser) joins this
+    // own privilegedDb.transaction calls, such as server/identity/storage.ts's createUser) joins this
     // transaction instead of opening a second one.
     return tenantStore.run(
       { organizationId, principal: store?.principal, tx: tx as TenantTx },

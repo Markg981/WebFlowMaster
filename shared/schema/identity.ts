@@ -134,7 +134,7 @@ export const users = pgTable('users', {
   displayName: text('display_name'),
   /**
    * A disabled service account keeps its row, so the runs it started still name it. A person is
-   * disabled by their identity provider through SCIM (server/scim.ts): they cannot sign in, their
+   * disabled by their identity provider through SCIM (server/identity/scim.ts): they cannot sign in, their
    * sessions and keys stop working, and the account comes back as it was when they are reactivated.
    */
   disabledAt: timestamp('disabled_at'),
@@ -177,7 +177,7 @@ export type OrganizationMembership = typeof organizationMemberships.$inferSelect
 
 /**
  * A user's second factor. Its own table so no secret rides along on the user row, which goes
- * everywhere (session, /api/user, req.user). Reached only through server/mfa.ts; app_user has
+ * everywhere (session, /api/user, req.user). Reached only through server/identity/mfa.ts; app_user has
  * no grant on it. See migrations/0030_mfa_totp.sql.
  */
 export const userMfa = pgTable('user_mfa', {
@@ -327,12 +327,12 @@ export const invitations = pgTable(
 export type Invitation = typeof invitations.$inferSelect;
 
 /**
- * A one-time link that lets a member choose a new password (server/password-reset.ts).
+ * A one-time link that lets a member choose a new password (server/identity/password-reset.ts).
  *
  * The application sends no e-mail, so a forgotten password is recovered through an owner, who
  * issues one of these and hands the link over, or through the operator's command line. The token
  * is stored only as its SHA-256. Org-scoped like the rest; redeeming it is the one privileged
- * lookup, in server/storage.ts, because nobody is signed in yet.
+ * lookup, in server/identity/storage.ts, because nobody is signed in yet.
  */
 export const passwordResets = pgTable(
   'password_resets',
@@ -359,11 +359,11 @@ export const passwordResets = pgTable(
 export type PasswordReset = typeof passwordResets.$inferSelect;
 
 /**
- * Single sign-on with OpenID Connect (server/sso.ts, migrations/0043_sso.sql).
+ * Single sign-on with OpenID Connect (server/identity/sso.ts, migrations/0043_sso.sql).
  *
  * An organization's identity provider, the e-mail domains it signs in, and which account each
  * identity at a provider is. Not in ORG_SCOPED_TABLES, like user_mfa: the provider for a domain is
- * found before anyone is signed in. app_user has no grant on any of them; server/sso.ts names the
+ * found before anyone is signed in. app_user has no grant on any of them; server/identity/sso.ts names the
  * organization in every statement.
  */
 export const organizationSso = pgTable(
@@ -409,7 +409,7 @@ export const organizationSso = pgTable(
     /** With mappings, refuse a person who is in none of the mapped groups. */
     requireGroup: boolean('require_group').notNull().default(false),
     /**
-     * The bearer token the provider's SCIM client presents (server/scim.ts, migration 0064): its
+     * The bearer token the provider's SCIM client presents (server/identity/scim.ts, migration 0064): its
      * SHA-256, like an API key's, and enough of it to recognise in a list. Null: no provisioning.
      */
     scimTokenHash: text('scim_token_hash'),
@@ -422,9 +422,9 @@ export const organizationSso = pgTable(
 );
 
 /**
- * Provisioning with SCIM 2.0 (server/scim.ts, migration 0064). Not RLS-scoped, like the other
+ * Provisioning with SCIM 2.0 (server/identity/scim.ts, migration 0064). Not RLS-scoped, like the other
  * single sign-on tables: the token names the organization before any tenant exists, and every
- * statement in server/scim.ts names it.
+ * statement in server/identity/scim.ts names it.
  *
  * scim_users marks the accounts the provider manages and keeps the id it knows them by; the
  * account itself is an ordinary users row, its SCIM id the user id.

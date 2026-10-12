@@ -45,7 +45,7 @@ vi.mock('../browsers', async (importOriginal) => {
     })),
   };
 });
-vi.mock('../storage', () => ({ storage: { getUserSettings: mocks.getUserSettings } }));
+vi.mock('../identity/storage', () => ({ storage: { getUserSettings: mocks.getUserSettings } }));
 vi.mock('./step-executor', () => ({ executeStep: mocks.executeStep }));
 vi.mock('../login-state', () => ({
   loadLoginState: mocks.loadLoginState,

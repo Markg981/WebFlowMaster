@@ -28,7 +28,7 @@ import schedulerService, {
   firstRunAt,
 } from '../scheduler-service';
 import { runAsOrganization, withTenantTransaction, type TenantTx } from '../middleware/tenancy';
-import { expandPlanTests, type TestReference } from '../test-suites';
+import { expandPlanTests, type TestReference } from '../authoring/test-suites';
 import { requireRole } from '../middleware/require-role';
 import { asyncHandler } from '../middleware/async-handler';
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from './selected-tests';

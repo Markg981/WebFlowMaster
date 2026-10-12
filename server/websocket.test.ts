@@ -43,8 +43,8 @@ vi.mock('bullmq', () => {
   return { Queue: FakeQueue, QueueEvents: FakeQueueEvents, Job: FakeJob };
 });
 
-import { setupAuth } from './auth';
-import { forgetSamlSession, registerSamlSession } from './sso-saml';
+import { setupAuth } from './identity/auth';
+import { forgetSamlSession, registerSamlSession } from './identity/sso-saml';
 import { installWorkerLogEmitter, setupWebSockets, type WsEmitter } from './websocket';
 
 /**

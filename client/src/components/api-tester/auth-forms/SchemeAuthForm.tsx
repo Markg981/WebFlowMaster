@@ -16,7 +16,7 @@ import { AuthParamsSchema, JWT_ALGORITHMS, type AuthParams, type AuthType } from
 /**
  * The settings of the eight schemes that used to be names in the dropdown: JWT Bearer, Digest,
  * OAuth 1.0, Hawk, AWS Signature, NTLM, Akamai EdgeGrid and Atlassian ASAP. What each field
- * does is decided by the runner (server/api-auth.ts); this form only collects them.
+ * does is decided by the runner (server/identity/api-auth.ts); this form only collects them.
  *
  * One form described by a table rather than eight components that differ only in their
  * fields: the table is the list of what each scheme asks for, and the next scheme is a row.

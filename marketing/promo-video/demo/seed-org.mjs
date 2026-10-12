@@ -31,7 +31,7 @@ if (process.env.WEBFLOW_PUBLIC_URL !== COLLAUDO_URL) {
 const { Client } = createRequire('/app/')('pg');
 const scryptAsync = promisify(scrypt);
 
-/** The same format as server/auth.ts: hex(scrypt(password, salt, 64)).salt */
+/** The same format as server/identity/auth.ts: hex(scrypt(password, salt, 64)).salt */
 async function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
   const hash = await scryptAsync(password, salt, 64);

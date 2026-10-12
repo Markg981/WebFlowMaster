@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { isVolatileId, VOLATILE_ID_PATTERNS } from '@shared/selectors';
-import { RECORDER_SCRIPT } from './recorder-script';
+import { RECORDER_SCRIPT } from './authoring/recorder-script';
 
 /**
  * The rule that decides whether an id is worth building a selector out of.
