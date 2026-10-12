@@ -92,7 +92,7 @@ const jobData = ${json(trigger.jobData)};
 describe(${describeTitle(incident)}, () => {
   it('processes the captured job without throwing', async () => {
     // The worker dispatches on job.name; this calls the handler that job reached.
-    const { processTestPlanJob } = await import('../test-execution-service');
+    const { processTestPlanJob } = await import('../execution/test-execution-service');
     const data = jobData as { planId: string; testPlanRunId: string; userId: number };
 
     await expect(

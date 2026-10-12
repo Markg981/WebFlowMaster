@@ -29,7 +29,7 @@ vi.mock('./web/playwright-service', () => ({
   playwrightService: { executeTestSequence: (...args: any[]) => executeTestSequence(...args) },
 }));
 
-const { processTestPlanJob } = await import('./test-execution-service');
+const { processTestPlanJob } = await import('./execution/test-execution-service');
 const { compareStepScreenshot } = await import('./web/visual-testing');
 
 let organizationId: number;

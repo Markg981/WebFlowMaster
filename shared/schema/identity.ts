@@ -792,7 +792,7 @@ export const AUDIT_ACTIONS = {
   TEST_DATA_SET_CREATED: 'test_data_set.created',
   TEST_DATA_SET_UPDATED: 'test_data_set.updated',
   TEST_DATA_SET_DELETED: 'test_data_set.deleted',
-  // The impact map: which files map to which tests (server/test-impact.ts).
+  // The impact map: which files map to which tests (server/execution/test-impact.ts).
   IMPACT_RULE_CREATED: 'impact_rule.created',
   IMPACT_RULE_DELETED: 'impact_rule.deleted',
   // The test SMS inbox's inbound address (server/messaging/sms-inbox.ts).

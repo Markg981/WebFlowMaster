@@ -29,15 +29,15 @@ integrazioni e applicazione sotto test restano correnti. Il replay riproduce la 
 conservata, non lo stato esterno né l’esito. HTML/PDF, allegati Allure e proprietà JUnit riportano
 metadati e impronte sicuri, senza valori conservati.
 
-| Origine                                      | Percorso                                                                                           | `triggered_by`          |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------- |
-| Pulsante Run nell'applicazione               | `POST /api/test-plans/:id/run`                                                                     | `manual`                |
-| Schedulazione                                | `server/scheduler-service.ts` (cron nel processo web, o job scheduler BullMQ avviati da un worker) | `scheduled`             |
-| Pipeline                                     | `POST /api/v1/plans/:planId/runs` (la usa la CLI)                                                  | `api`                   |
-| Webhook CI                                   | `POST /api/webhooks/execute` con un token di webhook                                               | `webhook`               |
-| Nuovo tentativo di un run schedulato fallito | il worker, tramite l'orchestrator                                                                  | come il primo tentativo |
+| Origine                                      | Percorso                                                                                                     | `triggered_by`          |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------- |
+| Pulsante Run nell'applicazione               | `POST /api/test-plans/:id/run`                                                                               | `manual`                |
+| Schedulazione                                | `server/execution/scheduler-service.ts` (cron nel processo web, o job scheduler BullMQ avviati da un worker) | `scheduled`             |
+| Pipeline                                     | `POST /api/v1/plans/:planId/runs` (la usa la CLI)                                                            | `api`                   |
+| Webhook CI                                   | `POST /api/webhooks/execute` con un token di webhook                                                         | `webhook`               |
+| Nuovo tentativo di un run schedulato fallito | il worker, tramite l'orchestrator                                                                            | come il primo tentativo |
 
-Passano tutti da un'unica funzione: l'**orchestrator** (`server/execution-orchestrator.ts`).
+Passano tutti da un'unica funzione: l'**orchestrator** (`server/execution/execution-orchestrator.ts`).
 
 ## 1. Creazione: l'orchestrator
 
@@ -59,7 +59,7 @@ flowchart TD
 2. **Limite di coda.** Oltre `max_queued_runs` dell'organizzazione la richiesta è rifiutata con `429`
    invece di riempire la coda per tutti ([limiti](./tenancy#limiti-per-organizzazione)).
 3. **Snapshot.** Tutto ciò che il runner leggerà viene scritto in `configuration_snapshot`
-   (`server/execution-snapshot.ts`): la configurazione dei browser, i test selezionati (con le suite già
+   (`server/execution/execution-snapshot.ts`): la configurazione dei browser, i test selezionati (con le suite già
    espanse in test), i test visivi, la cattura delle evidenze, il parallelismo, i timeout, le policy di
    fallimento, la policy di riesecuzione, le notifiche, l'apertura di issue e il pool di agenti. Un piano
    modificato mentre il run aspetta non può cambiare ciò che il run fa. Un test aggiunto al piano dopo non
@@ -73,7 +73,7 @@ flowchart TD
 
 ## 2. La macchina a stati
 
-Lo `status` di un run si muove solo attraverso `server/execution-state.ts`. Ogni passaggio è un unico
+Lo `status` di un run si muove solo attraverso `server/execution/execution-state.ts`. Ogni passaggio è un unico
 `UPDATE … WHERE status IN (stati da cui può arrivare)` condizionale: quando due processi competono, il
 database ne lascia passare esattamente uno, e da uno stato finale non si esce.
 
@@ -107,16 +107,16 @@ nel processo (`onExecutionTransition`); il modulo dello stato dei commit è uno 
 ## 3. Il worker prende il run
 
 `server/worker.ts` consuma la coda dei piani con `WORKER_CONCURRENCY` job alla volta e chiama
-`processTestPlanJob` (`server/test-execution-service.ts`):
+`processTestPlanJob` (`server/execution/test-execution-service.ts`):
 
 1. **Presa.** `takeExecution` conta, sotto lock, i run in esecuzione dell'organizzazione e porta il run a
    `running` solo se è sotto `max_concurrent_runs`. Altrimenti il job è ritardato di `RUN_DEFERRAL_MS`
    (10 s), segnato come rimandato per il limite, e il run resta `queued` — aspetta, non fallisce. Quando
-   un run dell'organizzazione finisce, `server/run-promotion.ts` promuove i job ritardati dei suoi run in
+   un run dell'organizzazione finisce, `server/execution/run-promotion.ts` promuove i job ritardati dei suoi run in
    attesa più vecchi, fino ai posti liberi, così vengono presi subito; il ritardo resta come riserva. Un
    run non più `queued` (già preso, annullato)
    non viene preso, ed è questo che fa girare una sola volta un job consegnato due volte.
-2. **Sorveglianza.** `watchRun` (`server/run-watch.ts`) avvia un heartbeat ogni
+2. **Sorveglianza.** `watchRun` (`server/execution/run-watch.ts`) avvia un heartbeat ogni
    `RUN_HEARTBEAT_INTERVAL_MS` (15 s). Ogni battito dice anche al worker se qualcuno ha chiesto di
    annullare, se il run è terminato altrove e se ha superato `RUN_MAX_DURATION_MS` (3 h). I test lo
    ricevono tramite un `AbortSignal` e si fermano allo step successivo.
@@ -128,7 +128,7 @@ nel processo (`onExecutionTransition`); il modulo dello stato dei commit è uno 
 ### Le fasi di un run
 
 `processTestPlanJob` stabilisce solo il contesto del tenant; il run vero e proprio è `runPlanJob`
-(`server/plan-run/pipeline.ts`), che chiama una fase dopo l'altra. Ogni fase è una funzione di un suo
+(`server/execution/plan-run/pipeline.ts`), che chiama una fase dopo l'altra. Ogni fase è una funzione di un suo
 modulo che riceve ciò che legge e restituisce ciò che produce, così si legge e si testa da sola:
 
 | Fase                    | Modulo                                 | Produce                                                                          |
@@ -147,7 +147,7 @@ modulo che riceve ciò che legge e restituisce ciò che produce, così si legge 
 
 Una fase che chiude il run in anticipo (nessuna directory dei risultati, nessuna riga di esecuzione)
 restituisce `Ended` e la pipeline si ferma lì. Un singolo test fuori da un piano è `runTest`
-(`server/run-test.ts`).
+(`server/execution/run-test.ts`).
 
 ## 4. L'esecuzione del piano
 
@@ -279,14 +279,14 @@ Nessuno di questi può cambiare il verdetto: ogni errore è registrato e riporta
 
 ## 6. Quando qualcosa va storto
 
-| Situazione                                               | Cosa succede                                                                                                                                                                                                                                                                                                                                                                                             |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Qualcuno annulla                                         | `running → cancelling`; il worker lo sente al battito successivo, termina lo step in corso e chiude il run come `cancelled`.                                                                                                                                                                                                                                                                             |
-| Uno step si blocca                                       | Il timeout dello step, poi la durata massima del run (`timed_out`).                                                                                                                                                                                                                                                                                                                                      |
-| Il worker muore                                          | Il suo heartbeat si ferma. Lo sweep di recupero nel processo web (`server/run-recovery.ts`) chiude i run silenziosi da `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. Un run schedulato con tentativi rimasti riceve il tentativo successivo. Non viene rieseguito di nascosto: metà run potrebbe aver già creato dati nell'applicazione sotto test. |
-| Il worker è vivo ma bloccato                             | Oltre la durata massima più 5 minuti di tolleranza, lo sweep lo chiude come `timed_out`.                                                                                                                                                                                                                                                                                                                 |
-| BullMQ consegna un job due volte                         | Il secondo `takeExecution` trova il run non più `queued` e non fa nulla.                                                                                                                                                                                                                                                                                                                                 |
-| Arriva una scrittura tardiva da un worker dato per perso | L'update condizionale non trova nulla; la chiusura registrata resta valida.                                                                                                                                                                                                                                                                                                                              |
+| Situazione                                               | Cosa succede                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Qualcuno annulla                                         | `running → cancelling`; il worker lo sente al battito successivo, termina lo step in corso e chiude il run come `cancelled`.                                                                                                                                                                                                                                                                                       |
+| Uno step si blocca                                       | Il timeout dello step, poi la durata massima del run (`timed_out`).                                                                                                                                                                                                                                                                                                                                                |
+| Il worker muore                                          | Il suo heartbeat si ferma. Lo sweep di recupero nel processo web (`server/execution/run-recovery.ts`) chiude i run silenziosi da `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. Un run schedulato con tentativi rimasti riceve il tentativo successivo. Non viene rieseguito di nascosto: metà run potrebbe aver già creato dati nell'applicazione sotto test. |
+| Il worker è vivo ma bloccato                             | Oltre la durata massima più 5 minuti di tolleranza, lo sweep lo chiude come `timed_out`.                                                                                                                                                                                                                                                                                                                           |
+| BullMQ consegna un job due volte                         | Il secondo `takeExecution` trova il run non più `queued` e non fa nulla.                                                                                                                                                                                                                                                                                                                                           |
+| Arriva una scrittura tardiva da un worker dato per perso | L'update condizionale non trova nulla; la chiusura registrata resta valida.                                                                                                                                                                                                                                                                                                                                        |
 
 Più server web possono fare lo sweep contemporaneamente: ogni chiusura passa dalla macchina a stati,
 quindi ogni run viene chiuso una sola volta.

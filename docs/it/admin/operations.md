@@ -326,7 +326,7 @@ e con `0` altrimenti.
 
 Un run trattenuto dal limite della sua organizzazione parte appena finisce uno dei run
 dell'organizzazione: la fine promuove i run in attesa più vecchi, tanti quanti sono i posti liberi
-(`server/run-promotion.ts`). `RUN_DEFERRAL_MS` (10 s) resta solo come riserva, per una promozione
+(`server/execution/run-promotion.ts`). `RUN_DEFERRAL_MS` (10 s) resta solo come riserva, per una promozione
 persa mentre un processo ripartiva. In una misura con due run insieme e run di 2 s, otto run per
 organizzazione sono finiti dopo 9 s, dove aspettare il controllo successivo ne richiedeva 33.
 

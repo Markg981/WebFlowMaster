@@ -11,11 +11,11 @@ import {
 } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import schedulerService from './scheduler-service'; // Import the actual service
+import schedulerService from './execution/scheduler-service'; // Import the actual service
 import { createTestOrganization } from './tests/factories';
 
 // Mock the schedulerService
-vi.mock('./scheduler-service', () => ({
+vi.mock('./execution/scheduler-service', () => ({
   default: {
     addScheduleJob: vi.fn(),
     updateScheduleJob: vi.fn(),

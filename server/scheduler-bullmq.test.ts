@@ -13,7 +13,7 @@ vi.mock('./queue', () => ({
     getJobSchedulers: vi.fn().mockResolvedValue([]),
   },
 }));
-vi.mock('./test-execution-service', () => ({ runTestPlan: vi.fn() }));
+vi.mock('./execution/test-execution-service', () => ({ runTestPlan: vi.fn() }));
 vi.mock('./logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
@@ -30,7 +30,7 @@ import schedulerService, {
   resolveSchedulerBackend,
   SCHEDULER_BACKEND,
   TRIGGER_SCHEDULE_JOB,
-} from './scheduler-service';
+} from './execution/scheduler-service';
 import { testExecutionQueue } from './queue';
 
 const q = testExecutionQueue as unknown as {
@@ -139,7 +139,7 @@ describe('scheduler backend selection', () => {
     // with it a fresh instance of the mocked queue, which is the one it would talk to.
     vi.stubEnv('SCHEDULER_BACKEND', 'cron');
     vi.resetModules();
-    const fresh = await import('./scheduler-service');
+    const fresh = await import('./execution/scheduler-service');
     const freshQueue = (await import('./queue')).testExecutionQueue as unknown as typeof q;
     expect(fresh.SCHEDULER_BACKEND).toBe('cron');
 

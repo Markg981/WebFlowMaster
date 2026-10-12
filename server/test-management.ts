@@ -18,7 +18,7 @@ import {
 } from '@shared/test-management';
 import { withTenantTransaction } from './middleware/tenancy';
 import { decryptSecret } from './crypto';
-import { readExecutionSnapshot } from './execution-snapshot';
+import { readExecutionSnapshot } from './execution/execution-snapshot';
 import { reportReferenceFor } from './report-links';
 import type { ProviderDeps } from './issue-providers';
 import {

@@ -49,7 +49,7 @@ const { default: testsRoutes } = await import('./routes/tests.routes');
 const { default: mobileRoutes } = await import('./routes/mobile-tests.routes');
 const { default: publishingRoutes } = await import('./routes/test-publishing.routes');
 const { default: versionsRoutes } = await import('./routes/test-versions.routes');
-const { processTestPlanJob } = await import('./test-execution-service');
+const { processTestPlanJob } = await import('./execution/test-execution-service');
 let app: express.Express;
 let org: number;
 let current: { id: number; username: string; organizationId: number; role: string };

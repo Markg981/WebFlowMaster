@@ -34,7 +34,7 @@ vi.mock('./queue', () => ({
   TEST_EXECUTION_QUEUE_NAME: 'test-queue',
   testExecutionQueue: { add: vi.fn() },
 }));
-vi.mock('./scheduler-service', () => ({
+vi.mock('./execution/scheduler-service', () => ({
   default: { addScheduleJob: vi.fn(), updateScheduleJob: vi.fn(), removeScheduleJob: vi.fn() },
   assertValidTimezone: vi.fn(),
   firstRunAt: (_frequency: string, requested: Date) => requested,

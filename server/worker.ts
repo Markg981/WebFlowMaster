@@ -2,7 +2,7 @@ import { DelayedError, Worker, type Job } from 'bullmq';
 import { configureEgressProxy } from './egress-proxy';
 import { connection } from './redis';
 import { LOAD_QUEUE_NAME, TEST_EXECUTION_QUEUE_NAME, loadQueue, testExecutionQueue } from './queue';
-import { processShardJob, processTestPlanJob } from './test-execution-service';
+import { processShardJob, processTestPlanJob } from './execution/test-execution-service';
 import { SHARD_JOB, registerShardDispatcher } from './runtime/run-shards';
 import { LoadRunJobSchema, loadLimits, processLoadRunJob } from './api-tests/load-runner';
 import logger, { applyLogSettings } from './logger';
@@ -15,7 +15,7 @@ import {
   TRIGGER_SCHEDULE_JOB,
   executeScheduledPlan,
   scheduledOccurrence,
-} from './scheduler-service';
+} from './execution/scheduler-service';
 import { testPlanSchedules, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { withJobIncidents } from './observability/taps/jobs';
@@ -27,7 +27,7 @@ import {
 } from './web/browser-tasks';
 import { RunnerAgent, type PausableQueue } from './runtime/runner-registry';
 import { registerCommitStatus } from './commit-status';
-import { registerRunPromotion } from './run-promotion';
+import { registerRunPromotion } from './execution/run-promotion';
 import { installWorkerLogEmitter } from './websocket';
 import { publicBaseUrl } from './report-links';
 import 'dotenv/config';
@@ -152,7 +152,7 @@ configureEgressProxy();
             // Its organization is at its limit of runs at once: the run stays queued and the job goes
             // back for a while, so this worker can serve somebody else's run in the meantime.
             if (outcome?.deferred) {
-              // Marked, so that a run of the organization ending promotes it at once (server/run-promotion.ts).
+              // Marked, so that a run of the organization ending promotes it at once (server/execution/run-promotion.ts).
               if (data.deferredForQuota !== true)
                 await job.updateData({ ...data, deferredForQuota: true });
               await job.moveToDelayed(Date.now() + (outcome.retryInMs ?? 10_000), token);

@@ -32,7 +32,7 @@ istruzioni, ciascuno con un motivo scritto.
 **Contesto.** Le consegne duplicate dei job eseguivano i piani due volte; le scritture tardive
 riaprivano run conclusi.
 
-**Decisione.** `server/execution-state.ts` possiede ogni transizione, ciascuna un
+**Decisione.** `server/execution/execution-state.ts` possiede ogni transizione, ciascuna un
 `UPDATE … WHERE status IN (predecessori ammessi)`; gli stati finali non hanno successori.
 
 **Conseguenze.** Le race hanno esattamente un vincitore, deciso dal database. Il codice deve trattare

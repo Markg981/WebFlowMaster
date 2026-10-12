@@ -19,7 +19,7 @@ implementate e non devono essere riproposte come sviluppo mancante.
 - Cataloghi paginati, filtri server-side e dettagli su richiesta: `server/authoring/catalog.ts` e
   `server/routes/catalog.routes.ts`.
 - Definizioni UI/API/mobile e dataset fissati all'accodamento, hash/provenienza e replay storico:
-  `server/execution-definitions.ts`, `server/execution-provenance.ts` e
+  `server/execution/execution-definitions.ts`, `server/execution/execution-provenance.ts` e
   [esecuzione](../guide/running). Il replay usa sistemi esterni, dispositivi e segreti correnti.
 - Authoring pubblico e import/export UI/manuale/BDD/API/mobile con scope, versioni e audit:
   [API pubblica](../reference/api).
@@ -42,16 +42,16 @@ non assegna esiti manuali dai risultati automatici.
 
 ## Cosa esiste già
 
-| Area                | Capacità presenti                                                                                                           | Fonti principali                                                                                                           |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Autori e QA         | Recorder e builder web, descrizione in frasi, variabili, gruppi, condizioni/cicli, dataset, test manuali, API, mobile e BDD | `client/src/pages/`, `server/web/step-executor.ts`, `server/mobile/mobile-runner.ts`, `server/bdd/bdd-execution.ts`        |
-| Catalogo            | Progetti, tag, suite, versioni, review/pubblicazione, requisiti e copertura, quarantena                                     | `shared/schema.ts`, `server/authoring/test-publishing.ts`, `server/authoring/test-version-store.ts`, `server/routes/`      |
-| Esecuzione          | Snapshot del piano, code, worker, scheduler, matrice browser/mobile, griglie e agenti locali                                | `server/execution-orchestrator.ts`, `server/execution-snapshot.ts`, `server/test-execution-service.ts`, `server/worker.ts` |
-| Evidenze            | Risultati per step, screenshot/video/trace/HAR secondo modalità, visual testing, accessibilità, export                      | `server/reporting/report-model.ts`, `server/reporting/report-export.ts`, `server/tenancy/artifact-store.ts`                |
-| Integrazioni        | CI, CLI, REST v1, webhook, tracker, commit status, test management, notifiche                                               | `integrations/`, `server/routes/api-v1.routes.ts`, `server/commit-status.ts`, `server/test-management.ts`                  |
-| Sicurezza e governo | Tenant/RLS, ruoli, scope API, SSO OIDC/SAML, MFA, SCIM, audit, quote e retention                                            | `server/middleware/tenancy.ts`, `server/routes/`, `server/tenancy/tenant-quotas.ts`                                        |
-| Collaborazione      | Commenti, menzioni e dashboard condivise                                                                                    | `server/routes/comments.routes.ts`, `server/routes/dashboards.routes.ts`                                                   |
-| Esercizio           | Docker, migrator, backup/verify/restore, controllo rete SaaS, log, Prometheus e OpenTelemetry                               | `scripts/wfm-backup.ts`, `deployment/saas-network/`, `server/observability/`                                               |
+| Area                | Capacità presenti                                                                                                           | Fonti principali                                                                                                                                         |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Autori e QA         | Recorder e builder web, descrizione in frasi, variabili, gruppi, condizioni/cicli, dataset, test manuali, API, mobile e BDD | `client/src/pages/`, `server/web/step-executor.ts`, `server/mobile/mobile-runner.ts`, `server/bdd/bdd-execution.ts`                                      |
+| Catalogo            | Progetti, tag, suite, versioni, review/pubblicazione, requisiti e copertura, quarantena                                     | `shared/schema.ts`, `server/authoring/test-publishing.ts`, `server/authoring/test-version-store.ts`, `server/routes/`                                    |
+| Esecuzione          | Snapshot del piano, code, worker, scheduler, matrice browser/mobile, griglie e agenti locali                                | `server/execution/execution-orchestrator.ts`, `server/execution/execution-snapshot.ts`, `server/execution/test-execution-service.ts`, `server/worker.ts` |
+| Evidenze            | Risultati per step, screenshot/video/trace/HAR secondo modalità, visual testing, accessibilità, export                      | `server/reporting/report-model.ts`, `server/reporting/report-export.ts`, `server/tenancy/artifact-store.ts`                                              |
+| Integrazioni        | CI, CLI, REST v1, webhook, tracker, commit status, test management, notifiche                                               | `integrations/`, `server/routes/api-v1.routes.ts`, `server/commit-status.ts`, `server/test-management.ts`                                                |
+| Sicurezza e governo | Tenant/RLS, ruoli, scope API, SSO OIDC/SAML, MFA, SCIM, audit, quote e retention                                            | `server/middleware/tenancy.ts`, `server/routes/`, `server/tenancy/tenant-quotas.ts`                                                                      |
+| Collaborazione      | Commenti, menzioni e dashboard condivise                                                                                    | `server/routes/comments.routes.ts`, `server/routes/dashboards.routes.ts`                                                                                 |
+| Esercizio           | Docker, migrator, backup/verify/restore, controllo rete SaaS, log, Prometheus e OpenTelemetry                               | `scripts/wfm-backup.ts`, `deployment/saas-network/`, `server/observability/`                                                                             |
 
 Non serve proporre come nuove funzionalità mobile, BDD, backup, SCIM, quote o telemetria: sono già
 implementate. Il lavoro utile è migliorarne riproducibilità, prova operativa e fruibilità.

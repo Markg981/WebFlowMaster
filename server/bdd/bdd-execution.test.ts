@@ -14,7 +14,7 @@ import {
 import { eq } from 'drizzle-orm';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import { runWithTenant } from '../middleware/tenancy';
-import { runTest, processTestPlanJob } from '../test-execution-service';
+import { runTest, processTestPlanJob } from '../execution/test-execution-service';
 import * as browsers from '../runtime/browsers';
 import * as agentBrowser from '../runtime/agents/agent-browser';
 import { runDedicatedBddTest } from './bdd-execution';
@@ -61,7 +61,7 @@ beforeAll(async () => {
 });
 const source = 'Feature: F\nScenario: S\nGiven a';
 it.each([1, 2])('keeps a missing dataset as one frozen BDD error (%s shards)', async (shards) => {
-  const { createExecutionOrchestrator } = await import('../execution-orchestrator');
+  const { createExecutionOrchestrator } = await import('../execution/execution-orchestrator');
   run.mockClear();
   const [test] = await privilegedDb
     .insert(tests)
@@ -482,9 +482,9 @@ it.each([1, 2])(
 it.each([1, 2])(
   'uses queued BDD rows and shared variables after deletion (%s shards)',
   async (shards) => {
-    const { createExecutionOrchestrator } = await import('../execution-orchestrator');
+    const { createExecutionOrchestrator } = await import('../execution/execution-orchestrator');
     const { registerShardDispatcher } = await import('../runtime/run-shards');
-    const { processShardJob } = await import('../test-execution-service');
+    const { processShardJob } = await import('../execution/test-execution-service');
     const helpers: Promise<unknown>[] = [];
     registerShardDispatcher(async (job) => {
       helpers.push(processShardJob(job.planId, job.executionId, job.userId, job.shard));

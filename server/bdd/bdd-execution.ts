@@ -9,7 +9,7 @@ import { runPreconditions } from '../runtime/precondition-runner';
 import { runCleanups } from '../runtime/cleanup-runner';
 import { redactHistoryEntry } from '../runtime/history-redaction';
 import { redactString } from '../utils/log-redactor';
-import type { IndividualTestRunResult, RunTestOptions } from '../test-execution-service';
+import type { IndividualTestRunResult, RunTestOptions } from '../execution/test-execution-service';
 
 export async function runDedicatedBddTest(
   test: Test,

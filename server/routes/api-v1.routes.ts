@@ -1,7 +1,7 @@
 import { type Request } from 'express';
 import { asyncRouter } from '../middleware/async-router';
-import { readExecutionSnapshot } from '../execution-snapshot';
-import { MAX_CHANGED_FILES } from '../test-impact';
+import { readExecutionSnapshot } from '../execution/execution-snapshot';
+import { MAX_CHANGED_FILES } from '../execution/test-impact';
 import { z } from 'zod';
 import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
 import {
@@ -14,9 +14,9 @@ import { auditActor, recordAudit } from '../tenancy/audit';
 import { EXECUTION_STATUSES } from '@shared/execution-status';
 import { withTenantTransaction } from '../middleware/tenancy';
 import { apiError, requireScope } from '../middleware/require-scope';
-import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orchestrator';
+import { executionOrchestrator, ExecutionEnqueueError } from '../execution/execution-orchestrator';
 import { quotaErrorBody, quotaErrorStatus } from '../tenancy/tenant-quotas';
-import { requestCancellation } from '../execution-state';
+import { requestCancellation } from '../execution/execution-state';
 import { junitReportFor } from '../reporting/junit-report';
 import {
   exportRun,
@@ -127,7 +127,7 @@ const startRunSchema = z
     updateBaselines: z.boolean().optional(),
     /** The build, commit and branch asking for the run. The CLI fills it in from the CI's environment. */
     ci: ciContextSchema.optional(),
-    /** The files the change touched: the run is narrowed to the tests they affect (server/test-impact.ts). */
+    /** The files the change touched: the run is narrowed to the tests they affect (server/execution/test-impact.ts). */
     changedFiles: z.array(z.string().min(1).max(1000)).max(MAX_CHANGED_FILES).optional(),
   })
   .strict();

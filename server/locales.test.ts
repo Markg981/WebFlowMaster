@@ -3,7 +3,7 @@ import http from 'http';
 import type { AddressInfo } from 'net';
 import { canonicalLocale, normalizeLocales, passLabel } from '@shared/locales';
 import { insertTestPlanSchema } from '@shared/schema';
-import { buildExecutionSnapshot } from './execution-snapshot';
+import { buildExecutionSnapshot } from './execution/execution-snapshot';
 
 describe('language codes', () => {
   it('reads the ways people write them', () => {

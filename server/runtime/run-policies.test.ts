@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { TestPlan } from '@shared/schema';
-import { buildExecutionSnapshot } from '../execution-snapshot';
+import { buildExecutionSnapshot } from '../execution/execution-snapshot';
 import {
   DEFAULT_TIMEOUT_MS,
   describePolicies,

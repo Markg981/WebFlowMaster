@@ -17,7 +17,7 @@ import logger from '../logger';
 /**
  * Filing a failure from the report, and saying what has already been filed.
  *
- * The automatic path belongs to the run (see server/test-execution-service.ts). This is the
+ * The automatic path belongs to the run (see server/execution/test-execution-service.ts). This is the
  * other half: the person reading a report who decides this one is worth a ticket, and the
  * report itself, which should say "already filed as SHOP-412" instead of offering to file it
  * again.

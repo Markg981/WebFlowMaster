@@ -50,8 +50,8 @@ vi.mock('./mobile-runner', async (importOriginal) => {
   return { ...actual, performMobileTest: (...args: any[]) => performMobileTest(...args) };
 });
 
-const { processTestPlanJob } = await import('../test-execution-service');
-const { buildExecutionSnapshot } = await import('../execution-snapshot');
+const { processTestPlanJob } = await import('../execution/test-execution-service');
+const { buildExecutionSnapshot } = await import('../execution/execution-snapshot');
 const { assertSelectedTestsBelongTo } = await import('../routes/selected-tests');
 const { stepsWithArtifactUrls } = await import('../routes/artifacts.routes');
 const { evidenceSteps } = await import('../reporting/failure-analysis');
@@ -191,7 +191,7 @@ afterEach(async () => {
 describe('a mobile test in a plan', () => {
   it('uses shared variables frozen at enqueue after the set is deleted', async () => {
     await seedPlan();
-    const { createExecutionOrchestrator } = await import('../execution-orchestrator');
+    const { createExecutionOrchestrator } = await import('../execution/execution-orchestrator');
     const [set] = await privilegedDb
       .insert(testDataSets)
       .values({

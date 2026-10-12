@@ -21,7 +21,7 @@ import {
 } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { createTestOrganization } from './tests/factories';
-import { runTestPlan } from './test-execution-service';
+import { runTestPlan } from './execution/test-execution-service';
 
 /**
  * `organizationId` is the tenancy boundary the Row-Level Security policies key off, so it
@@ -40,7 +40,7 @@ import { runTestPlan } from './test-execution-service';
 // nothing only because 'daily@02:00' is an unparseable frequency — change the fixture to
 // 'daily' and it puts a node-cron task into activeCronJobs that nothing stops, keeping the
 // event loop alive. server/test-plan-schedules.test.ts mocks it for the same reason.
-vi.mock('./scheduler-service', () => ({
+vi.mock('./execution/scheduler-service', () => ({
   default: {
     addScheduleJob: vi.fn(),
     updateScheduleJob: vi.fn(),
@@ -54,7 +54,7 @@ vi.mock('./scheduler-service', () => ({
 // C3 (POST /api/run-test-plan/:id): the ownership gate must reject a foreign plan before
 // this is ever reached. runTestPlan itself enqueues onto testExecutionQueue (BullMQ/Redis),
 // which has no place in a unit test, so it is mocked and its call count is the observable.
-vi.mock('./test-execution-service', () => ({
+vi.mock('./execution/test-execution-service', () => ({
   runTestPlan: vi.fn().mockResolvedValue({ id: 'mock-execution', status: 'pending' }),
 }));
 

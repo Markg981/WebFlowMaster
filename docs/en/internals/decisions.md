@@ -31,7 +31,7 @@ many statements, each with a written reason.
 
 **Context.** Duplicate job deliveries ran plans twice; late writes reopened finished runs.
 
-**Decision.** `server/execution-state.ts` owns every transition, each an `UPDATE … WHERE status IN
+**Decision.** `server/execution/execution-state.ts` owns every transition, each an `UPDATE … WHERE status IN
 (allowed predecessors)`; terminal states have no successors.
 
 **Consequences.** Races have exactly one winner, decided by the database. Code must treat a `null`

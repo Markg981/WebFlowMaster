@@ -9,7 +9,7 @@ export const SELECTED_TESTS_NOT_FOUND = /selected tests do not exist/i;
  * Throws unless every selected test belongs to `organizationId`.
  *
  * The ids arrive from the request body, and nothing downstream re-checks them:
- * server/test-execution-service.ts loads them with `inArray(tests.id, ...)` and no
+ * server/execution/test-execution-service.ts loads them with `inArray(tests.id, ...)` and no
  * organization filter, so an unvalidated foreign id means the runner executes and reports on
  * another tenant's test.
  *

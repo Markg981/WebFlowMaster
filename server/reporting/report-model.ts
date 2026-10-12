@@ -6,8 +6,8 @@ import type { AccessibilityFinding } from '@shared/accessibility';
 import type { NetworkSummary } from '@shared/network';
 import type { CiContext } from '@shared/ci';
 import type { ReproducibilitySummary } from '@shared/execution-provenance';
-import { reproducibilitySummary } from '../execution-provenance';
-import { readExecutionSnapshot } from '../execution-snapshot';
+import { reproducibilitySummary } from '../execution/execution-provenance';
+import { readExecutionSnapshot } from '../execution/execution-snapshot';
 import { withTenantTransaction } from '../middleware/tenancy';
 import {
   artifactStore,

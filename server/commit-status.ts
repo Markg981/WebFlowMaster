@@ -8,8 +8,8 @@ import {
 import type { CiContext } from '@shared/ci';
 import { decryptSecret } from './crypto';
 import { fetchTarget } from './outbound-http';
-import { onExecutionTransition } from './execution-state';
-import { readExecutionSnapshot } from './execution-snapshot';
+import { onExecutionTransition } from './execution/execution-state';
+import { readExecutionSnapshot } from './execution/execution-snapshot';
 import { reportUrlFor } from './report-links';
 import { runDetachedForOrganization, withTenantTransaction } from './middleware/tenancy';
 
@@ -21,7 +21,7 @@ import { runDetachedForOrganization, withTenantTransaction } from './middleware/
  * than the build log saw nothing. Now the commit says it: "WebFlowMaster / Checkout — pending",
  * then "3 of 40 failed", with the link to the report, next to the other checks.
  *
- * It follows the run through its states (server/execution-state.ts announces every move), and only
+ * It follows the run through its states (server/execution/execution-state.ts announces every move), and only
  * for runs that name a repository and a full commit and came from a provider the organization has
  * connected. Nothing here can fail a run: a GitHub that is down costs the check, and the source
  * host records why.

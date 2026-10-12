@@ -1,4 +1,4 @@
-import type { ExecutionSnapshot } from '../execution-snapshot';
+import type { ExecutionSnapshot } from '../execution/execution-snapshot';
 
 /**
  * What a plan's execution settings mean to the runner.
