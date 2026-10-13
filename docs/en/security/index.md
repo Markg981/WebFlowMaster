@@ -58,6 +58,10 @@ sign-up, where each new account gets an organization of its own.
   require two-factor for the whole organization, which applies to sessions already open.
 - **Sessions** are server-side (Redis), for 7 days. The cookie is `HttpOnly`, `SameSite=Lax` and
   `Secure` in production. Signing in issues a new session id.
+- **The browser forgets the previous person.** Signing in, the second factor, registering,
+  signing out, a session the server ended and an organization switch all empty the web app's data
+  cache first, and a request still in flight for the previous person is dropped: someone signing in
+  after another in the same tab sees nothing of theirs, not even for a moment.
 - **Changing a password** needs the current one and a signed-in session, not an API key. A
   forgotten password is recovered with a one-time link an owner issues (or, for an organization's
   only owner, the operator), valid for a day and stored only as a hash. A session carries a stamp

@@ -62,6 +62,10 @@ registrazione pubblica, in cui ogni nuovo account ottiene una propria organizzaz
   per tutta l'organizzazione, e l'obbligo vale anche per le sessioni già aperte.
 - Le **sessioni** sono lato server (Redis) e durano 7 giorni. Il cookie è `HttpOnly`,
   `SameSite=Lax` e `Secure` in produzione. L'accesso genera un nuovo id di sessione.
+- **Il browser dimentica la persona precedente.** Accesso, secondo fattore, registrazione, uscita,
+  sessione chiusa dal server e cambio di organizzazione svuotano prima la cache dei dati della web
+  app, e una richiesta ancora in corso per la persona precedente viene scartata: chi accede dopo un
+  altro nella stessa scheda non vede nulla di suo, nemmeno per un istante.
 - **Cambiare la password** richiede quella attuale e una sessione, non una chiave API. Una
   password dimenticata si recupera con un link monouso emesso da un owner (o, per l'unico owner di
   un'organizzazione, dall'operatore), valido un giorno e salvato solo come hash. Una sessione

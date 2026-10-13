@@ -54,6 +54,13 @@ predefinita e `apiRequest`, che:
 - trasformano una risposta non 2xx in un `ApiError` che porta lo stato e il body interpretato, così chi
   chiama può reagire a un `409` o a un `403` senza analizzare stringhe.
 
+Le chiavi delle query sono URL e `staleTime` è `Infinity`, quindi la cache appartiene a chi ha
+effettuato l'accesso. Ogni cambio di sessione passa da `replaceSession` in `lib/session.ts`, che
+svuota tutta la cache (annullando le richieste in corso) prima di impostare `/api/user`: accesso,
+MFA, registrazione, uscita, il controllo dei 401 in `lib/session-expiry.ts` e il cambio di
+organizzazione. Il codice nuovo che cambia l'utente connesso deve usarla, non
+`setQueryData(['/api/user'], …)`.
+
 In alcuni punti (le card delle impostazioni) i componenti chiamano `fetch` direttamente; entrambi gli
 stili usano lo stesso cookie di sessione. Le chiavi di query prendono il nome dalla risorsa (`['agents']`,
 `['sourceHosts']`, `['/api/tests']`) e vengono invalidate dopo le mutazioni.
