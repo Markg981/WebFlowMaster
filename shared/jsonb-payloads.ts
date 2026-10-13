@@ -67,6 +67,9 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   'step_groups.sequence': 'migration',
   'test_data_sets.columns': 'migration',
   'test_data_sets.rows': 'migration',
+  // A run's job data, handed to the queue as written and deleted once it is there. Its shape is
+  // the job's, which the worker already reads compatibly across a rolling deploy.
+  'execution_outbox.payload': 'opaque',
   'test_plan_executions.browsers': 'migration',
   'test_plan_executions.ci_context': 'migration',
   'test_plan_executions.configuration_snapshot': 'snapshot',

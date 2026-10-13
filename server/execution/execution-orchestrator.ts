@@ -12,11 +12,10 @@ import {
 } from '@shared/schema';
 import type { CiContext } from '@shared/ci';
 import { privilegedDb } from '../platform/db';
-import { getCorrelationId } from '../platform/middleware/correlation';
 import { runAsOrganization, withTenantTransaction } from '../platform/middleware/tenancy';
 import { expandPlanTests, type TestReference } from '../authoring/test-suites';
 import { selectForChanges } from './test-impact';
-import { announceExecution, transitionExecution } from './execution-state';
+import { announceExecution } from './execution-state';
 import {
   buildExecutionSnapshot,
   readExecutionSnapshot,
@@ -35,6 +34,14 @@ import { freezeMobilePlanDefinitions } from '../mobile/mobile-plan-units';
 import { freezeExecutionDatasets } from './execution-datasets';
 import { freezeTestDefinitions } from './execution-definitions';
 import { buildExecutionProvenance, reproducibilitySummary } from './execution-provenance';
+import {
+  QUEUE_SUBMISSION_FAILED,
+  abandonSubmission,
+  publishPendingSubmission,
+  recordPendingSubmission,
+  type ExecutionQueuePort,
+  type OutboxTimingOptions,
+} from './execution-outbox';
 
 /**
  * The one place a run comes into existence.
@@ -50,17 +57,14 @@ import { buildExecutionProvenance, reproducibilitySummary } from './execution-pr
  *    it already holds, so even a duplicate that got past the key cannot run twice — and the
  *    worker's own guard (server/execution/execution-state.ts) is the third layer under that.
  *
- * A submission that fails leaves the run in `error` with a reason, not `queued` forever with no
- * worker ever coming for it.
+ * The job is written down in the transaction that creates the run and published from there
+ * (server/execution/execution-outbox.ts), so a process that stops after the commit leaves a job
+ * the dispatcher publishes, not a `queued` row nobody will ever come for. A submission the queue
+ * refuses leaves the run in `error` with a reason, and asking again with the key retries it.
  */
 
-export interface ExecutionQueuePort {
-  add(
-    name: string,
-    data: Record<string, unknown>,
-    options: { jobId: string; delay?: number; priority?: number },
-  ): Promise<unknown>;
-}
+export type { ExecutionQueuePort } from './execution-outbox';
+export { QUEUE_SUBMISSION_FAILED };
 
 export interface EnqueueExecutionInput {
   planId: string;
@@ -116,9 +120,6 @@ export class ExecutionEnqueueError extends Error {
   }
 }
 
-/** The failure code a run is left with when its job never reached the queue. */
-export const QUEUE_SUBMISSION_FAILED = 'queue_submission_failed';
-
 function isUniqueViolation(error: unknown): boolean {
   const record = error as { code?: string; message?: string } | null;
   return (
@@ -138,9 +139,12 @@ function isUniqueViolation(error: unknown): boolean {
  * the same key after a Redis blip gets the failed run back forever, which turns the key that was
  * meant to make retrying safe into the thing that makes it impossible.
  */
-async function reclaimUnsubmittedRun(executionId: string): Promise<TestPlanExecution | null> {
-  const [reclaimed] = await withTenantTransaction((tx) =>
-    tx
+async function reclaimUnsubmittedRun(
+  executionId: string,
+  timing: Pick<OutboxTimingOptions, 'graceMs'>,
+): Promise<TestPlanExecution | null> {
+  return withTenantTransaction(async (tx) => {
+    const [reclaimed] = await tx
       .update(testPlanExecutions)
       .set({
         status: 'queued',
@@ -156,52 +160,50 @@ async function reclaimUnsubmittedRun(executionId: string): Promise<TestPlanExecu
           eq(testPlanExecutions.failureCode, QUEUE_SUBMISSION_FAILED),
         ),
       )
-      .returning(),
-  );
-  return reclaimed ?? null;
+      .returning();
+    if (!reclaimed) return null;
+    await recordPendingSubmission(tx, reclaimed, { graceMs: timing.graceMs });
+    return reclaimed;
+  });
 }
 
-export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
-  async function submit(
-    execution: TestPlanExecution,
-    delayMs = 0,
-    priority = 1,
-  ): Promise<TestPlanExecution> {
-    try {
-      await queue.add(
-        'execute-plan',
-        {
-          executionId: execution.id,
-          // The names the worker has always read, so a worker from before this keeps working
-          // through a rolling deploy. The row, not these, is what the worker trusts.
-          testPlanRunId: execution.id,
-          planId: execution.testPlanId,
-          userId: execution.requestedByUserId,
-          updateBaselines:
-            readExecutionSnapshot(execution.configurationSnapshot)?.visualTesting
-              .updateBaselines === true,
-          correlationId: getCorrelationId() ?? `job-${execution.id.slice(0, 8)}`,
-        },
-        // The run's fair place in the queue — see server/tenancy/tenant-quotas.ts.
-        delayMs > 0
-          ? { jobId: execution.id, delay: delayMs, priority }
-          : { jobId: execution.id, priority },
-      );
-      return execution;
-    } catch (error: any) {
-      await transitionExecution(execution.id, 'error', {
-        failureCode: QUEUE_SUBMISSION_FAILED,
-        // The queue's own words stay in the log; this is what a person reading the run sees.
-        failureMessage:
-          'The run could not be handed to a worker. Asking again with the same idempotency key will retry it.',
-      });
-      throw new ExecutionEnqueueError(
-        QUEUE_SUBMISSION_FAILED,
-        `The run could not be queued: ${error?.message ?? 'the queue refused it'}`,
-        503,
-        execution.id,
-      );
+/**
+ * The orchestrator over a queue. `timing` is for tests: how long a claim and a new row's grace
+ * period last (server/execution/execution-outbox.ts).
+ */
+export function createExecutionOrchestrator(
+  queue: ExecutionQueuePort,
+  timing: Pick<OutboxTimingOptions, 'leaseMs' | 'graceMs'> = {},
+) {
+  /**
+   * Publishes the job written down with the run. Nothing to do when somebody else already has —
+   * another request with the same key, or the dispatcher.
+   */
+  async function submit(execution: TestPlanExecution): Promise<TestPlanExecution> {
+    const outcome = await publishPendingSubmission(queue, execution.id, timing);
+    if (outcome.state !== 'failed') return execution;
+    await abandonSubmission(execution.id);
+    const error = outcome.error as { message?: string } | null;
+    throw new ExecutionEnqueueError(
+      QUEUE_SUBMISSION_FAILED,
+      `The run could not be queued: ${error?.message ?? 'the queue refused it'}`,
+      503,
+      execution.id,
+    );
+  }
+
+  /**
+   * The run a repeated request found. Still waiting: its job may be one a stopped process left
+   * behind, so it is published if it is pending. Refused by the queue: it is taken back and tried
+   * again.
+   */
+  async function resubmit(existing: TestPlanExecution): Promise<TestPlanExecution> {
+    if (existing.status === 'queued') return submit(existing);
+    if (existing.status === 'error' && existing.failureCode === QUEUE_SUBMISSION_FAILED) {
+      const reclaimed = await reclaimUnsubmittedRun(existing.id, timing);
+      if (reclaimed) return submit(reclaimed);
     }
+    return existing;
   }
 
   async function enqueue(input: EnqueueExecutionInput): Promise<TestPlanExecution> {
@@ -391,6 +393,9 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               ),
             })
             .returning();
+          // In the same transaction as the run: a process that stops after the commit leaves
+          // a job for the dispatcher to publish, not a run no worker will ever come for.
+          await recordPendingSubmission(tx, inserted, { priority, graceMs: timing.graceMs });
           return { execution: inserted, created: true, priority };
         });
       } catch (error) {
@@ -405,17 +410,9 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
 
       if (outcome.created) {
         announceExecution(outcome.execution);
-        return submit(outcome.execution, 0, outcome.priority);
+        return submit(outcome.execution);
       }
-
-      if (
-        outcome.execution.status === 'error' &&
-        outcome.execution.failureCode === QUEUE_SUBMISSION_FAILED
-      ) {
-        const reclaimed = await reclaimUnsubmittedRun(outcome.execution.id);
-        if (reclaimed) return submit(reclaimed);
-      }
-      return outcome.execution;
+      return resubmit(outcome.execution);
     });
   }
 
@@ -472,8 +469,8 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
 
     let retry: TestPlanExecution;
     try {
-      [retry] = await withTenantTransaction((tx) =>
-        tx
+      retry = await withTenantTransaction(async (tx) => {
+        const [inserted] = await tx
           .insert(testPlanExecutions)
           .values({
             id: uuidv4(),
@@ -493,16 +490,23 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
             maxAttempts: failed.maxAttempts,
             retryOfExecutionId: firstAttemptId,
           })
-          .returning(),
-      );
+          .returning();
+        // A retry takes its place like any run of its organization, and its job is written down
+        // with it like any run's.
+        const counts = await liveRunCounts(tx, inserted.organizationId);
+        await recordPendingSubmission(tx, inserted, {
+          delayMs,
+          priority: fairPriority(counts),
+          graceMs: timing.graceMs,
+        });
+        return inserted;
+      });
     } catch (error) {
       if (isUniqueViolation(error)) return findByKey();
       throw error;
     }
     announceExecution(retry);
-    // A retry takes its place like any run of its organization.
-    const counts = await withTenantTransaction((tx) => liveRunCounts(tx, retry.organizationId));
-    return submit(retry, delayMs, fairPriority(counts));
+    return submit(retry);
   }
 
   /** Explicit replay reads the source under the caller's RLS; it never expands today's plan. */
@@ -604,7 +608,9 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               scheduleId: null,
             })
             .returning();
-          return { execution, created: true, priority: fairPriority(counts) };
+          const priority = fairPriority(counts);
+          await recordPendingSubmission(tx, execution, { priority, graceMs: timing.graceMs });
+          return { execution, created: true, priority };
         });
       } catch (error) {
         if (isUniqueViolation(error)) {
@@ -615,16 +621,9 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
       }
       if (outcome.created) {
         announceExecution(outcome.execution);
-        return submit(outcome.execution, 0, outcome.priority);
+        return submit(outcome.execution);
       }
-      if (
-        outcome.execution.status === 'error' &&
-        outcome.execution.failureCode === QUEUE_SUBMISSION_FAILED
-      ) {
-        const reclaimed = await reclaimUnsubmittedRun(outcome.execution.id);
-        if (reclaimed) return submit(reclaimed, 0, outcome.priority);
-      }
-      return outcome.execution;
+      return resubmit(outcome.execution);
     });
   }
 

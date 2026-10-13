@@ -47,8 +47,8 @@ flowchart TD
   K -- no --> Q{Organization's queue<br/>full?}
   Q -- yes --> E[429 — refused]
   Q -- no --> S[Build the snapshot<br/>resolve suites, published versions]
-  S --> I[INSERT run as queued<br/>+ ci_context, attempt]
-  I --> J[Submit one BullMQ job<br/>job id = run id]
+  S --> I[INSERT run as queued<br/>+ ci_context, attempt<br/>+ execution_outbox row, same transaction]
+  I --> J[Claim the outbox row, submit one BullMQ job<br/>job id = run id, then delete the row]
   J --> N[Announce 'queued'<br/>commit status: pending]
 ```
 
@@ -66,6 +66,14 @@ flowchart TD
    second job with the same id, so even a duplicate that slipped past the key cannot run twice. If
    Redis refuses the submission, the run ends as `error` with `queue_submission_failed` and can be
    reclaimed by asking again.
+   The job is first written down in `execution_outbox`, in the transaction that inserts the run
+   (`server/execution/execution-outbox.ts`): a transactional outbox. The request then claims the
+   row with a lease (`EXECUTION_OUTBOX_LEASE_MS`, default 60 s), submits the job and deletes the
+   row. A process that stops after the commit leaves the row behind; the outbox dispatcher in the
+   web process (every 5 s) publishes rows whose lease has run out and that are older than a 15 s
+   grace period, with the same job id. A request repeated with the same key publishes a pending
+   row straight away. A row the queue keeps refusing is retried with backoff and, after 10
+   attempts, the run ends as `error` with `queue_submission_failed`.
 5. **Priority.** The job's priority is fair across organizations: one with fewer runs in flight goes
    ahead of one that queued fifty.
 
@@ -278,6 +286,7 @@ None of these can change the verdict: each failure is logged and reported as an 
 | A step hangs                                   | The step's own timeout, then the run's maximum duration (`timed_out`).                                                                                                                                                                                                                                                                                                               |
 | The worker dies                                | Its heartbeat stops. The recovery sweep in the web process (`server/execution/run-recovery.ts`) ends runs silent for `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. A scheduled run with attempts left gets its next attempt. It is not silently re-run: half a run may already have created data in the application under test. |
 | The worker is alive but stuck                  | Past the maximum duration plus a 5-minute grace, the sweep ends it `timed_out`.                                                                                                                                                                                                                                                                                                      |
+| The web process stops after creating a run     | The run's job is still in `execution_outbox`. Once the lease runs out, the outbox dispatcher of any web process publishes it with the run's id as the job id; the run is never left `queued` with no job.                                                                                                                                                                            |
 | BullMQ delivers a job twice                    | The second `takeExecution` finds the run no longer `queued` and does nothing.                                                                                                                                                                                                                                                                                                        |
 | A late write arrives from a worker given up on | The conditional update matches nothing; the recorded ending stands.                                                                                                                                                                                                                                                                                                                  |
 
