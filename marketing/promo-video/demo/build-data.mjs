@@ -66,7 +66,7 @@ const ASSERT_TEXT = action('assertTextContains', 'Assert Text Contains');
 // A native <select>: 'select'. ('selectByText' is for dropdowns built from other elements.)
 const SELECT = action('select', 'Select Option');
 
-// The Northwind Shop storefront (demo/shop, docker-compose.demo.yml), served inside the stack:
+// The Northwind Shop storefront (client/public/demo-shop, docker-compose.demo.yml), served inside the stack:
 // a demo must not depend on a public practice site being up on the day it is filmed.
 const SITE = 'http://shop.northwind.test';
 

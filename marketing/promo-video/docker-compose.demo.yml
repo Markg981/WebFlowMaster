@@ -10,7 +10,7 @@ services:
   shop:
     image: nginx:1.27-alpine
     volumes:
-      - ./marketing/promo-video/demo/shop:/usr/share/nginx/html:ro
+      - ./client/public/demo-shop:/usr/share/nginx/html:ro
     networks:
       default:
         aliases:

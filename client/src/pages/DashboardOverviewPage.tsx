@@ -14,6 +14,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import ConfiguredDashboardWidget from '@/components/dashboard/ConfiguredDashboardWidget';
+import SampleProjectCard from '@/components/onboarding/SampleProjectCard';
 
 type List = {
   dashboards: Dashboard[];
@@ -109,6 +110,7 @@ export default function DashboardOverviewPage() {
         title={t('dashboardOverviewPage.dashboardOverview.title')}
         description={t('dashboardOverviewPage.description')}
       />
+      <SampleProjectCard />
       {query.isLoading && <p role="status">{t('dashboards.loading', 'Loading dashboards…')}</p>}
       {query.isError && (
         <div role="alert">

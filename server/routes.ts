@@ -68,6 +68,8 @@ import browserTasksRoutes from './http/routes/browser-tasks.routes';
 import recordingRoutes from './http/routes/recording.routes';
 import selectableTestsRoutes from './http/routes/selectable-tests.routes';
 import settingsRoutes from './http/routes/settings.routes';
+import demoShopRoutes from './http/routes/demo-shop.routes';
+import sampleProjectRoutes from './http/routes/sample-project.routes';
 import { tenancyMiddleware } from './platform/middleware/tenancy';
 import { apiKeyAuth } from './http/middleware/api-key-auth';
 import { apiRateLimit, sessionRateLimit } from './http/middleware/rate-limits';
@@ -84,6 +86,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(mailProviderWebhookRouter);
   // The billing provider's messages, authenticated by their signature, not by a session.
   app.use(billingWebhookRouter);
+  // The sample project's storefront: public pages and a stateless API, no session needed.
+  app.use(demoShopRoutes);
 
   // A request may authenticate as a person (the session passport just attached) or as a
   // pipeline (an API key). This turns the second into the first, so everything after it —
@@ -123,6 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(billingRoutes);
   app.use(billingAdminRoutes);
   app.use(projectsRoutes);
+  app.use(sampleProjectRoutes);
   app.use(testsRoutes);
   app.use(catalogRoutes);
   app.use(testPlansRoutes);
