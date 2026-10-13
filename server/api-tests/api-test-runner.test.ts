@@ -355,3 +355,81 @@ describe('the authentication a saved test carries', () => {
     expect(received).toHaveLength(0);
   }, 30_000);
 });
+
+describe('reading the response body', () => {
+  // Headers at once, the body afterwards: the cases where timing and errors used to stop
+  // at the headers.
+  let slow: http.Server;
+  let slowUrl: string;
+
+  beforeAll(async () => {
+    slow = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.flushHeaders();
+      if (req.url === '/delayed') setTimeout(() => res.end('{"ok":true}'), 300);
+      else if (req.url === '/cut') setTimeout(() => res.socket?.destroy(), 100);
+      else if (req.url === '/large') res.end('x'.repeat(4096));
+      else if (req.url === '/endless') {
+        const tick = setInterval(() => res.write('x'.repeat(1024)), 10);
+        res.on('close', () => clearInterval(tick));
+      }
+      // '/stalled': headers only, the body never comes.
+    });
+    await new Promise<void>((resolve) => slow.listen(0, '127.0.0.1', resolve));
+    slowUrl = `http://127.0.0.1:${(slow.address() as AddressInfo).port}`;
+  });
+
+  afterAll(async () => {
+    slow.closeAllConnections();
+    await new Promise<void>((resolve) => slow.close(() => resolve()));
+  });
+
+  it('measures the duration to the last byte, and the time to the headers apart', async () => {
+    const result = await runApiRequest(
+      {
+        method: 'GET',
+        url: `${slowUrl}/delayed`,
+        assertions: [
+          assertion({ source: 'response_time', comparison: 'less_than', targetValue: '200' }),
+        ],
+      } as any,
+      {},
+    );
+    expect(result.durationMs).toBeGreaterThanOrEqual(280);
+    expect(result.ttfbMs).toBeLessThan(result.durationMs);
+    expect(result.body).toEqual({ ok: true });
+    expect(result.passed).toBe(false);
+  });
+
+  it('times out a body that does not arrive in time', async () => {
+    const result = await runApiRequest(
+      { method: 'GET', url: `${slowUrl}/stalled` } as any,
+      {},
+      undefined,
+      { timeoutMs: 200 },
+    );
+    expect(result.passed).toBe(false);
+    expect(result.error).toBe('Request timed out after 200ms');
+    expect(result.status).toBe(200);
+    expect(result.durationMs).toBeGreaterThanOrEqual(190);
+  });
+
+  it('fails a body cut short instead of rejecting', async () => {
+    const result = await runApiRequest({ method: 'GET', url: `${slowUrl}/cut` } as any, {});
+    expect(result.passed).toBe(false);
+    expect(result.error).toBeTruthy();
+  });
+
+  it('stops reading a body past the byte limit', async () => {
+    for (const path of ['/large', '/endless']) {
+      const result = await runApiRequest(
+        { method: 'GET', url: `${slowUrl}${path}` } as any,
+        {},
+        undefined,
+        { maxBodyBytes: 2048, timeoutMs: 5_000 },
+      );
+      expect(result.passed).toBe(false);
+      expect(result.error).toBe('Response body larger than 2048 bytes');
+    }
+  });
+});

@@ -63,6 +63,12 @@ Confronti: equals, not equals, contains, not contains, exists, not exists, is em
 empty, greater than, less than (o uguale), matches regex, not matches regex. Un'asserzione si può
 disattivare senza cancellarla. Il test passa quando passano tutte quelle attive.
 
+Il **response time** va dall'invio della richiesta all'ultimo byte del corpo, non agli header: un
+corpo che arriva lentamente conta per intero. Anche il timeout di 30 secondi copre tutto il
+trasferimento, e un corpo interrotto fa fallire il test con il motivo. Un corpo oltre i 50 MiB fa
+fallire il test senza essere letto oltre; l'amministratore può cambiare il limite con
+[`API_RESPONSE_MAX_BYTES`](../admin/configuration.md).
+
 ## Catture: passare valori avanti {#catture}
 
 Una **cattura** prende un valore dalla risposta — un token, l'id di ciò che è stato creato — e gli
