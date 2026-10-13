@@ -1,5 +1,5 @@
 {
-  "version": 59,
+  "version": 60,
   "areas": [
     {
       "id": "ACC",
@@ -8627,6 +8627,36 @@
       ],
       "expected": "Dopo il cambio di account la libreria mostra solo i test di B, caricati con una nuova richiesta a /api/tests fatta come B; nessun test di A compare, nemmeno per un istante.",
       "detailHtml": "\n        <h4>Precondizioni</h4><p>Due account di organizzazioni diverse: owner.a (con test nella libreria) e owner.b; un solo browser, una sola scheda.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.a, aprire Libreria test e attendere l'elenco dei test di A.</li><li>Esci dal menu utente; nella stessa scheda, senza ricaricare, accedere come owner.b.</li><li>Aprire Libreria test; in DevTools → Network controllare le richieste a <code>/api/tests</code>.</li><li>Ripetere con una sessione scaduta: come owner.a aprire Libreria test, eliminare il cookie di sessione, compiere un'azione che chiama l'API, poi accedere come owner.b.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Dopo il cambio di account la libreria mostra solo i test di B, caricati con una nuova richiesta a <code>/api/tests</code> fatta come B; nessun test di A compare, nemmeno per un istante.</p>\n      "
+    },
+    {
+      "id": "SEC-49",
+      "area": "SEC",
+      "title": "Cambio organizzazione limitato alla sessione",
+      "priority": "P1",
+      "actor": "utente membro di A e B",
+      "preconditions": "Migrazione 0089 applicata; catalogo versione 60. Account con appartenenza alle organizzazioni A (owner) e B (viewer), con almeno un progetto in ciascuna.",
+      "steps": [
+        "Accedere con lo stesso account in due browser (o una finestra normale e una anonima); entrambi mostrano A.",
+        "Nel primo browser passare a B dal menu delle organizzazioni.",
+        "Nel secondo browser, senza ricaricare, creare un progetto; poi ricaricare la pagina.",
+        "Nel primo browser verificare l'elenco progetti di B; aprire un terzo browser e accedere."
+      ],
+      "expected": "Il secondo browser resta in A con ruolo owner e il progetto compare in A, non in B. Il primo browser mostra solo i progetti di B con ruolo viewer. Il nuovo accesso parte da B, l'ultima organizzazione scelta."
+    },
+    {
+      "id": "SEC-50",
+      "area": "SEC",
+      "title": "Chiave API e rimozione dall'organizzazione dopo un cambio",
+      "priority": "P1",
+      "actor": "utente membro di A e B; un owner di B",
+      "preconditions": "Migrazione 0089 applicata; catalogo versione 60. Account con appartenenza alle organizzazioni A (owner) e B (viewer), con almeno un progetto in ciascuna. Una chiave API creata dall'utente mentre agiva in A.",
+      "steps": [
+        "Passare a B dal menu delle organizzazioni.",
+        "Chiamare GET /api/v1/projects con la chiave creata in A.",
+        "In un secondo browser restare in A; come owner di B rimuovere l'utente da B.",
+        "Ricaricare il browser che agiva in B e quello che agiva in A."
+      ],
+      "expected": "Il cambio riesce anche con una chiave esistente. La chiave restituisce i progetti di A, non di B. Dopo la rimozione la sessione in B termina (torna al login), quella in A continua a funzionare."
     }
   ],
   "presentation": {

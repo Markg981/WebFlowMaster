@@ -1,6 +1,12 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
-import { userSettings, users, testPlanExecutions, testPlans } from '@shared/schema';
+import {
+  organizationMemberships,
+  userSettings,
+  users,
+  testPlanExecutions,
+  testPlans,
+} from '@shared/schema';
 import { getTenantOrgId } from '../platform/middleware/tenancy';
 import { isEmailAddress, organizationMailConfigured, sendMail } from '../messaging/mailer';
 import { runFinishedMail } from '../messaging/mail-messages';
@@ -82,9 +88,23 @@ export async function mailRunFinished(
           }
         : undefined;
     if (organizationId === null) organizationId = person?.organizationId ?? null;
+    // A member of the run's organization, whichever one they have since switched to.
+    const [membership] =
+      person && organizationId !== null
+        ? await privilegedDb
+            .select({ id: organizationMemberships.id })
+            .from(organizationMemberships)
+            .where(
+              and(
+                eq(organizationMemberships.userId, requestedByUserId),
+                eq(organizationMemberships.organizationId, organizationId),
+              ),
+            )
+            .limit(1)
+        : [];
     if (
       person &&
-      person.organizationId === organizationId &&
+      membership &&
       person.kind === 'person' &&
       isEmailAddress(person.username) &&
       personWantsMail(prefs, summary.status)

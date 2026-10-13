@@ -4,6 +4,7 @@ import { apiKeys, users } from '@shared/schema';
 import { privilegedDb } from '../../platform/db';
 import { apiKeyFromRequest, hashApiKey, hashesMatch, rejectionFor } from '../../identity/api-keys';
 import logger from '../../platform/logger';
+import { actingAs } from '../../tenancy/organization-memberships';
 import { API_V1_PREFIX, type ApiScope } from '@shared/api-scopes';
 
 /** What a request authenticated by a key carries, for the audit trail and for requireScope. */
@@ -109,11 +110,13 @@ export async function apiKeyAuth(req: Request, _res: Response, next: NextFunctio
       logger.warn({ message: 'API key names a user that no longer exists', apiKeyId: matched!.id });
       return next();
     }
-    if (user.organizationId !== matched!.organizationId) {
-      // The key was issued inside one organization and its user now belongs to another. The
-      // key does not follow them: it was granted by an organization, not by a person.
+    // The key acts in the organization that issued it, with the role its user holds there — not
+    // in whichever organization the user last switched to. When they are no longer a member there
+    // the key does not follow them: it was granted by an organization, not by a person.
+    const acting = await actingAs(user, matched!.organizationId);
+    if (!acting) {
       logger.warn({
-        message: 'API key organization no longer matches its user; refusing',
+        message: 'API key user is no longer a member of its organization; refusing',
         apiKeyId: matched!.id,
       });
       return next();
@@ -127,7 +130,7 @@ export async function apiKeyAuth(req: Request, _res: Response, next: NextFunctio
       return next();
     }
 
-    req.user = user;
+    req.user = acting;
     // Everything downstream asks passport this question, including requireRole.
     req.isAuthenticated = (() => true) as typeof req.isAuthenticated;
     // Marks the request for anything that wants to distinguish a pipeline from a person —

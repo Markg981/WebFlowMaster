@@ -52,8 +52,12 @@ added to an organization by accepting, and leaves one by being removed from it.
 **Several organizations.** A member of more than one sees an organization menu in the header,
 next to the search. Switching starts a fresh session in the chosen organization with the role held
 there, and everything on screen — tests, plans, runs, settings — is that organization's. Nothing of
-one organization is visible while acting in another. The audit log of the organization entered
-records the switch. A password session cannot switch into an organization that requires single
+one organization is visible while acting in another. The switch moves only the browser it was
+made in: another browser or device signed in to the same account stays in the organization it
+shows, and what it creates lands there. A new sign-in starts in the organization last switched to.
+An API key always acts in the organization that issued it, with the role held there. Removed from
+an organization, a person's sessions acting in it end at their next request. The audit log of the
+organization entered records the switch. A password session cannot switch into an organization that requires single
 sign-on: sign in to it with **Sign in with SSO** instead. With single sign-on, a person of another
 organization signing in through your provider joins yours automatically when the domain of their
 address is [verified](#single-sign-on) for your organization.

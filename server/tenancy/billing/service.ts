@@ -3,6 +3,7 @@ import {
   auditLog,
   billingEvents,
   billingPlans,
+  organizationMemberships,
   organizationSubscriptions,
   organizations,
   users,
@@ -603,7 +604,13 @@ export async function startCheckout(
   const [owner] = await privilegedDb
     .select({ username: users.username })
     .from(users)
-    .where(and(eq(users.id, input.userId), eq(users.organizationId, input.organizationId)));
+    .innerJoin(organizationMemberships, eq(organizationMemberships.userId, users.id))
+    .where(
+      and(
+        eq(users.id, input.userId),
+        eq(organizationMemberships.organizationId, input.organizationId),
+      ),
+    );
   const email = owner?.username.includes('@') ? owner.username : null;
   return provider.createCheckoutSession({
     organizationId: input.organizationId,

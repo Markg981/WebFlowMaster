@@ -56,7 +56,12 @@ spostato: entra in un'organizzazione accettando, e la lascia quando ne viene rim
 nell'intestazione, accanto alla ricerca. Il cambio apre una nuova sessione nell'organizzazione
 scelta con il ruolo che vi si ha, e tutto ciò che è sullo schermo — test, piani, run, impostazioni
 — è di quell'organizzazione. Nulla di un'organizzazione è visibile mentre si agisce in un'altra. Il
-registro di audit dell'organizzazione in cui si entra registra il cambio. Una sessione con password
+cambio sposta solo il browser in cui è stato fatto: un altro browser o dispositivo collegato allo
+stesso account resta nell'organizzazione che mostra, e ciò che crea finisce lì. Un nuovo accesso
+parte dall'ultima organizzazione scelta. Una chiave API agisce sempre nell'organizzazione che l'ha
+emessa, con il ruolo che vi si ha. Chi viene rimosso da un'organizzazione vede chiudersi, alla
+richiesta successiva, le sessioni che agivano lì. Il registro di audit dell'organizzazione in cui
+si entra registra il cambio. Una sessione con password
 non può passare a un'organizzazione che richiede il single sign-on: accedetevi con **Accedi con
 SSO**. Con il single sign-on, una persona di un'altra organizzazione che accede tramite il vostro
 provider entra automaticamente nella vostra quando il dominio del suo indirizzo è

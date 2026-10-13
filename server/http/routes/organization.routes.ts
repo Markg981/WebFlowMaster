@@ -11,7 +11,14 @@ import { publicBase } from './sso.routes';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { and, desc, eq, gte, like, lte, type SQL } from 'drizzle-orm';
-import { organizations, users, invitations, auditLog, AUDIT_ACTIONS } from '@shared/schema';
+import {
+  organizations,
+  organizationMemberships,
+  users,
+  invitations,
+  auditLog,
+  AUDIT_ACTIONS,
+} from '@shared/schema';
 import { storage } from '../../identity/storage';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
@@ -566,14 +573,15 @@ router.post(
     }
 
     const issued = await withTenantTransaction(async (tx) => {
-      // users has no RLS: the organization is named explicitly.
+      // users has no RLS: the membership names the organization, whichever one they act in.
       const [member] = await tx
         .select({ id: users.id, username: users.username })
         .from(users)
+        .innerJoin(organizationMemberships, eq(organizationMemberships.userId, users.id))
         .where(
           and(
             eq(users.id, userId),
-            eq(users.organizationId, organizationId),
+            eq(organizationMemberships.organizationId, organizationId),
             eq(users.kind, 'person'),
           ),
         );

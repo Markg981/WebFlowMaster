@@ -2,7 +2,7 @@ import { type Request, type Response, type NextFunction } from 'express';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
-import { users } from '@shared/schema';
+import { organizationMemberships, users } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
 import { auditActor } from '../../tenancy/audit';
@@ -173,15 +173,17 @@ router.delete(
         .status(400)
         .json({ error: 'Turn off your own from your security settings, with a code.' });
 
-    // users has no RLS: the organization is named explicitly, so another tenant's member is not here.
+    // users has no RLS: membership here is what makes them this organization's member, whichever
+    // organization they are acting in, and another tenant's member is not here.
     const [member] = await withTenantTransaction((tx) =>
       tx
         .select({ id: users.id })
         .from(users)
+        .innerJoin(organizationMemberships, eq(organizationMemberships.userId, users.id))
         .where(
           and(
             eq(users.id, userId),
-            eq(users.organizationId, organizationId),
+            eq(organizationMemberships.organizationId, organizationId),
             eq(users.kind, 'person'),
           ),
         )

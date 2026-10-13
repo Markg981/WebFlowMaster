@@ -183,11 +183,13 @@ describe('route modules cannot query outside the tenant context', () => {
         "the change they describe; removing a member runs as the organization, like the owner's removal.",
     },
     'tenancy/organization-memberships.ts': {
-      max: 10,
+      max: 11,
       why:
         'What else a person belongs to is the one question an organization cannot answer about its ' +
         'members: the other memberships are rows of other organizations, invisible under the policy. ' +
-        'Listing them for the switcher, switching (which rewrites the user row from one of them), ' +
+        'Resolving the membership a session or an API key acts through (actingAs, on every request, ' +
+        'as deserializeUser does), listing them for the switcher, switching (which rewrites the user ' +
+        'row from one of them), ' +
         'moving someone whose current organization just removed them, admitting an account to one ' +
         'more organization (an accepted invitation, single sign-on on a verified domain) and the ' +
         'relocation before an erasure are bootstrap reads and writes of the same shape as a session ' +

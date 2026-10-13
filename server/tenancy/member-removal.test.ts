@@ -65,9 +65,9 @@ const PROVENANCE = [
 
 /**
  * The single-column constraints: they decide what a deletion does. The two-column
- * `…_same_org_fk` ones (migration 0034) only say that a row and the user it names share an
- * organization; they are NO ACTION and checked at the end of the statement, after the
- * single-column constraint has cascaded or nulled the reference.
+ * `…_same_org_fk` ones only say that the user a row names is a member of the row's organization;
+ * since migration 0089 they point at organization_memberships rather than at users, so none of
+ * them is listed here.
  */
 async function constraintsOnUsers() {
   const result = await privilegedDb.execute(sql`

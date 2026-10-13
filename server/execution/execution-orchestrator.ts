@@ -6,7 +6,7 @@ import {
   testPlanSchedules,
   testPlanSelectedTests,
   testPlans,
-  users,
+  organizationMemberships,
   type ExecutionTrigger,
   type TestPlanExecution,
 } from '@shared/schema';
@@ -236,14 +236,17 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
       let outcome: { execution: TestPlanExecution; created: boolean; priority?: number };
       try {
         outcome = await withTenantTransaction(async (tx) => {
-          // users is not org-scoped by policy, so the organization is named explicitly: a
-          // requester from another tenant would otherwise be accepted and recorded as the
-          // person who asked for this run.
+          // A member of this organization, whichever one their other sessions act in. The
+          // organization is named explicitly as well as by the policy: a requester from another
+          // tenant would otherwise be accepted and recorded as the person who asked for this run.
           const [requester] = await tx
-            .select({ id: users.id })
-            .from(users)
+            .select({ id: organizationMemberships.userId })
+            .from(organizationMemberships)
             .where(
-              and(eq(users.id, input.requestedByUserId), eq(users.organizationId, organizationId)),
+              and(
+                eq(organizationMemberships.userId, input.requestedByUserId),
+                eq(organizationMemberships.organizationId, organizationId),
+              ),
             )
             .limit(1);
           if (!requester) {
@@ -516,9 +519,14 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
         .limit(1);
       if (!row) throw new ExecutionEnqueueError('execution_not_found', 'Execution not found', 404);
       const [requester] = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(and(eq(users.id, requestedByUserId), eq(users.organizationId, row.organizationId)))
+        .select({ id: organizationMemberships.userId })
+        .from(organizationMemberships)
+        .where(
+          and(
+            eq(organizationMemberships.userId, requestedByUserId),
+            eq(organizationMemberships.organizationId, row.organizationId),
+          ),
+        )
         .limit(1);
       if (!requester)
         throw new ExecutionEnqueueError(

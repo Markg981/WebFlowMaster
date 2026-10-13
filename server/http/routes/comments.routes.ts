@@ -16,6 +16,7 @@ import {
   mobileTests,
   reportTestCaseResults,
   users,
+  organizationMemberships,
   projects,
   projectMembers,
 } from '@shared/schema';
@@ -91,18 +92,21 @@ async function assertVisible(
   }
   return projectIds;
 }
+// The organization's members, with the role each holds here — not the one of whichever
+// organization they last switched to.
 async function eligibleMembers(tx: TenantTx, projectIds: number[]) {
   return tx
     .select({ id: users.id, username: users.username })
     .from(users)
+    .innerJoin(organizationMemberships, eq(organizationMemberships.userId, users.id))
     .where(
       and(
-        eq(users.organizationId, getTenantOrgId()!),
+        eq(organizationMemberships.organizationId, getTenantOrgId()!),
         eq(users.kind, 'person'),
         isNull(users.disabledAt),
         ...projectIds.map(
           (projectId) =>
-            sql`(${users.role} = 'owner' OR EXISTS (SELECT 1 FROM ${projects} p WHERE p.id = ${projectId} AND (NOT p.restricted OR EXISTS (SELECT 1 FROM ${projectMembers} m WHERE m.project_id = p.id AND m.user_id = ${users.id} AND m.organization_id = ${getTenantOrgId()!}))))`,
+            sql`(${organizationMemberships.role} = 'owner' OR EXISTS (SELECT 1 FROM ${projects} p WHERE p.id = ${projectId} AND (NOT p.restricted OR EXISTS (SELECT 1 FROM ${projectMembers} m WHERE m.project_id = p.id AND m.user_id = ${users.id} AND m.organization_id = ${getTenantOrgId()!}))))`,
         ),
       ),
     )
@@ -176,9 +180,13 @@ router.get('/api/comments/:kind/:targetId', requireRole('viewer'), async (req, r
         .select(listColumns)
         .from(comments)
         .leftJoin(
-          users,
-          and(eq(users.id, comments.authorId), eq(users.organizationId, getTenantOrgId()!)),
+          organizationMemberships,
+          and(
+            eq(organizationMemberships.userId, comments.authorId),
+            eq(organizationMemberships.organizationId, getTenantOrgId()!),
+          ),
         )
+        .leftJoin(users, eq(users.id, organizationMemberships.userId))
         .where(eq(fields[kind] as any, id))
         .orderBy(asc(comments.createdAt), asc(comments.id));
       const cleaned = rows.map((row) =>

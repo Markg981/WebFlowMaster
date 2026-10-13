@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   projects,
   projectMembers,
+  organizationMemberships,
   users,
   insertProjectSchema,
   AUDIT_ACTIONS,
@@ -213,16 +214,18 @@ router.put('/api/projects/:id/access', requireRole('owner'), async (req, res) =>
     const before = await accessOf(tx, projectId);
     if (!before) return { status: 404 as const };
 
-    // People of this organization only. users has no RLS, so the organization is named here.
+    // People of this organization only. users has no RLS, so the organization is named here,
+    // through the membership: a member acting in another organization is still one of ours.
     const ids = parsed.data.members.map((m) => m.userId);
     const found = ids.length
       ? await tx
           .select({ id: users.id, username: users.username })
           .from(users)
+          .innerJoin(organizationMemberships, eq(organizationMemberships.userId, users.id))
           .where(
             and(
               inArray(users.id, ids),
-              eq(users.organizationId, organizationId),
+              eq(organizationMemberships.organizationId, organizationId),
               eq(users.kind, 'person'),
             ),
           )
