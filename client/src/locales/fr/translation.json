@@ -5085,5 +5085,22 @@
     "cancel": "Pas maintenant",
     "invalid": "Cette invitation n'est pas valable pour votre compte : elle a peut-être expiré, déjà été utilisée, ou est destinée à un autre nom d'utilisateur.",
     "back": "Retour à l'application"
+  },
+  "whatsNew": {
+    "title": "Nouveautés",
+    "description": "Ce qui a changé dans cette installation, du plus récent au plus ancien. Chaque changement renvoie à la pull request qui l’a introduit.",
+    "loading": "Chargement…",
+    "loadFailed": "La liste des changements n’a pas pu être chargée.",
+    "empty": "Cette installation n’a pas de liste des changements.",
+    "unreleased": "Derniers changements",
+    "sections": {
+      "added": "Ajouts",
+      "changed": "Modifications",
+      "fixed": "Corrections",
+      "security": "Sécurité"
+    },
+    "opensInNewTab": "(s’ouvre dans un nouvel onglet)",
+    "unreadHint": "Nouveaux changements à lire dans Nouveautés",
+    "new": "Nouveau"
   }
 }

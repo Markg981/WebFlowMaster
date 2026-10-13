@@ -34,6 +34,7 @@ import { requireMfaEnrollment } from './http/middleware/require-mfa-enrollment';
 import { requireSso } from './http/middleware/require-sso';
 import apiV1Routes from './http/routes/api-v1.routes';
 import cliRoutes from './http/routes/cli.routes';
+import whatsNewRoutes from './http/routes/whats-new.routes';
 import agentsRoutes from './http/routes/agents.routes';
 import bddRoutes from './http/routes/bdd.routes';
 import sourceHostsRoutes from './http/routes/source-hosts.routes';
@@ -115,6 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(sourceHostsRoutes);
   app.use(apiV1Routes);
   app.use(authRoutes);
+  app.use(whatsNewRoutes);
   app.use(organizationRoutes);
   app.use(organizationMembershipsRoutes);
   app.use(tenantQuotaAdminRoutes);

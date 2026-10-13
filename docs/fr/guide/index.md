@@ -68,6 +68,13 @@ depuis n'importe quelle page : tapez une partie d'un nom pour aller à une page,
 test, passer du thème clair au thème sombre ou vous déconnecter. Les plans ne sont proposés qu'aux
 éditeurs et aux propriétaires, qui peuvent lancer une exécution.
 
+**Nouveautés**, dans le menu du compte (le cercle avec vos initiales, en haut à droite) et dans la
+palette de commandes, liste ce qui a changé dans cette installation, du plus récent au plus ancien,
+avec un lien vers la pull request de chaque changement : c'est le `CHANGELOG.md` que contient
+l'installation, il décrit donc la version que vous utilisez. Un point sur le cercle signale des
+changements que vous n'avez pas encore lus ; ouvrir la page le fait disparaître, dans ce
+navigateur.
+
 Sur un téléphone, la barre latérale est masquée : le bouton **menu** (☰) à gauche de la barre du
 haut l'ouvre en tiroir, qui se ferme dès que vous choisissez une page ou appuyez sur **Échap**. Les
 pages faites pour être lues — le tableau de bord, **Rapports** et le rapport d'une exécution —

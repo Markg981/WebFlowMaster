@@ -32,6 +32,7 @@ const MobileTestsPage = React.lazy(() => import('./pages/MobileTestsPage'));
 const LoadTestsPage = React.lazy(() => import('./pages/LoadTestsPage'));
 const TestPlanExecutionPage = React.lazy(() => import('./pages/TestPlanExecutionPage'));
 const SchedulingPage = React.lazy(() => import('./pages/SchedulingPage'));
+const WhatsNewPage = React.lazy(() => import('./pages/WhatsNewPage'));
 const TestReportPage = React.lazy(() => import('./pages/TestReportPage'));
 const GeneralReportsPage = React.lazy(() => import('./pages/GeneralReportsPage'));
 const TestManager = React.lazy(() => import('./pages/TestManager'));
@@ -147,6 +148,7 @@ function Router() {
         component={TestReportPage}
       />
       <ProtectedRoute path="/settings" component={SettingsPage} />
+      <ProtectedRoute path="/whats-new" component={WhatsNewPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} /> {/* Catch-all for 404 */}
     </Switch>

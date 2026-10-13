@@ -2,7 +2,7 @@ import { useEffect, useState, type ElementType } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { LogOut, Moon, Play, Search, Settings as SettingsIcon, Sun } from 'lucide-react';
+import { LogOut, Moon, Play, Search, Settings as SettingsIcon, Sparkles, Sun } from 'lucide-react';
 import {
   CommandDialog,
   CommandEmpty,
@@ -117,6 +117,10 @@ export function CommandPalette({ sections, canRun, isDark, onToggleTheme, onLogo
             <CommandItem onSelect={() => run(() => navigate('/settings'))}>
               <SettingsIcon className="mr-2 h-4 w-4" />
               {t('nav.settings')}
+            </CommandItem>
+            <CommandItem onSelect={() => run(() => navigate('/whats-new'))}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {t('whatsNew.title', 'What’s new')}
             </CommandItem>
             <CommandItem onSelect={() => run(onToggleTheme)}>
               {isDark ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}

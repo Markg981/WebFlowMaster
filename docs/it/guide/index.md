@@ -60,6 +60,12 @@ La barra laterale contiene tutto:
 comandi: digitando parte di un nome si va a una pagina, si esegue un piano di test, si passa dal tema
 chiaro a quello scuro o si esce. I piani compaiono solo a editor e owner, che possono avviare un run.
 
+**Novità**, nel menu dell'account (il cerchio con le iniziali, in alto a destra) e nella palette dei
+comandi, elenca cosa è cambiato in questa installazione, dal più recente, con il link alla pull
+request di ogni modifica: è il `CHANGELOG.md` che l'installazione contiene, quindi descrive la
+versione in uso. Un punto sul cerchio segnala modifiche non ancora lette; aprire la pagina lo
+toglie, in questo browser.
+
 Sul telefono la sidebar è nascosta: il pulsante **menu** (☰) a sinistra nella barra in alto la apre
 come cassetto, che si chiude quando scegliete una pagina o premete **Esc**. Le pagine di
 consultazione — la dashboard, **Report** e il report di un run — stanno nella larghezza di un
