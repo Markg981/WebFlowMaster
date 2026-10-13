@@ -216,6 +216,11 @@ app.use(express.urlencoded({ extended: false }));
   const { startRunRecovery } = await import('./execution/run-recovery');
   const stopRunRecovery = process.env.NODE_ENV === 'test' ? () => {} : startRunRecovery();
 
+  // Publishes the jobs of runs whose request stopped between creating the run and handing it to
+  // the queue — see server/execution/execution-outbox.ts. Here for the same reason as above.
+  const { startOutboxDispatcher } = await import('./execution/execution-outbox');
+  const stopOutboxDispatcher = process.env.NODE_ENV === 'test' ? () => {} : startOutboxDispatcher();
+
   // Removes the screenshots, videos and traces of runs older than ARTIFACT_RETENTION_DAYS —
   // see server/tenancy/artifact-retention.ts.
   const { startArtifactRetention } = await import('./tenancy/artifact-retention');
@@ -286,6 +291,7 @@ app.use(express.urlencoded({ extended: false }));
       try {
         await schedulerService.shutdownScheduler();
         stopRunRecovery();
+        stopOutboxDispatcher();
         stopArtifactRetention();
         stopBillingSweep();
         const { closeBrowserTasks } = await import('./web/browser-tasks');

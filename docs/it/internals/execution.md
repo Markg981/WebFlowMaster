@@ -48,8 +48,8 @@ flowchart TD
   K -- no --> Q{Coda dell'organizzazione<br/>piena?}
   Q -- sì --> E[429 — rifiutato]
   Q -- no --> S[Costruisce lo snapshot<br/>risolve suite e versioni pubblicate]
-  S --> I[INSERT del run come queued<br/>+ ci_context, tentativo]
-  I --> J[Invia un solo job BullMQ<br/>id del job = id del run]
+  S --> I[INSERT del run come queued<br/>+ ci_context, tentativo<br/>+ riga di execution_outbox, stessa transazione]
+  I --> J[Prende la riga dell'outbox, invia un solo job BullMQ<br/>id del job = id del run, poi cancella la riga]
   J --> N[Annuncia 'queued'<br/>stato del commit: pending]
 ```
 
@@ -68,6 +68,14 @@ flowchart TD
    rifiuta un secondo job con lo stesso id, quindi anche un duplicato sfuggito alla chiave non può girare
    due volte. Se Redis rifiuta l'invio, il run termina come `error` con `queue_submission_failed` e può
    essere recuperato chiedendolo di nuovo.
+   Il job viene prima registrato in `execution_outbox`, nella stessa transazione che inserisce il run
+   (`server/execution/execution-outbox.ts`): una transactional outbox. La richiesta prende poi la riga
+   con un lease (`EXECUTION_OUTBOX_LEASE_MS`, default 60 s), invia il job e cancella la riga. Un processo
+   che si ferma dopo il commit lascia la riga; il dispatcher dell'outbox nel processo web (ogni 5 s)
+   pubblica le righe con il lease scaduto e più vecchie di 15 s di tolleranza, con lo stesso id di job.
+   Una richiesta ripetuta con la stessa chiave pubblica subito una riga in sospeso. Una riga che la coda
+   continua a rifiutare viene ritentata con backoff e, dopo 10 tentativi, il run termina come `error`
+   con `queue_submission_failed`.
 5. **Priorità.** La priorità del job è equa fra organizzazioni: quella con meno run in corso passa avanti
    a quella che ne ha accodati cinquanta.
 
@@ -287,6 +295,7 @@ Nessuno di questi può cambiare il verdetto: ogni errore è registrato e riporta
 | Uno step si blocca                                       | Il timeout dello step, poi la durata massima del run (`timed_out`).                                                                                                                                                                                                                                                                                                                                                |
 | Il worker muore                                          | Il suo heartbeat si ferma. Lo sweep di recupero nel processo web (`server/execution/run-recovery.ts`) chiude i run silenziosi da `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. Un run schedulato con tentativi rimasti riceve il tentativo successivo. Non viene rieseguito di nascosto: metà run potrebbe aver già creato dati nell'applicazione sotto test. |
 | Il worker è vivo ma bloccato                             | Oltre la durata massima più 5 minuti di tolleranza, lo sweep lo chiude come `timed_out`.                                                                                                                                                                                                                                                                                                                           |
+| Il processo web si ferma dopo aver creato un run         | Il job del run è ancora in `execution_outbox`. Scaduto il lease, il dispatcher dell'outbox di qualsiasi processo web lo pubblica con l'id del run come id del job; il run non resta mai `queued` senza job.                                                                                                                                                                                                        |
 | BullMQ consegna un job due volte                         | Il secondo `takeExecution` trova il run non più `queued` e non fa nulla.                                                                                                                                                                                                                                                                                                                                           |
 | Arriva una scrittura tardiva da un worker dato per perso | L'update condizionale non trova nulla; la chiusura registrata resta valida.                                                                                                                                                                                                                                                                                                                                        |
 
