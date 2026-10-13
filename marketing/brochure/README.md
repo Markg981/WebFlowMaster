@@ -3,8 +3,8 @@
 Two complete six-page A4 editions, Italian and English, with embedded fonts and real product
 screenshots from the synthetic demonstration environment, each in the edition's own language.
 No revenue, time-saving, performance or compliance certification claims are made. Product
-capabilities were checked against the product on 12 October 2026; cloud providers, AI and
-integrations require configuration.
+capabilities are checked against the code by `scripts/marketing-claims.test.ts`; cloud providers,
+AI and integrations require configuration.
 
 ## Files
 
@@ -52,8 +52,9 @@ The fonts ship with the brochure, so the build is the same on Windows, Linux and
 `WFM_BROCHURE_FONT_DIR` still points it at another folder with `Inter-Regular.ttf` and
 `Inter-Bold.ttf`. The build does not fetch anything from the internet.
 
-Before distributing a changed brochure, render every PDF page and inspect both languages. Recheck
-capabilities after product changes. Keep sample metrics labeled as demonstration values.
+Before distributing a changed brochure, render every PDF page and inspect both languages. Keep
+sample metrics labeled as demonstration values. The capabilities the copy names are listed in
+[`../claims.json`](../claims.json) (see [`../README.md`](../README.md#claims)).
 
 ## Commercial terms, contact and distribution
 

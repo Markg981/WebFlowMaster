@@ -160,6 +160,8 @@ in [Aggiornamento, rollback ed evidenze](#aggiornamento-rollback-ed-evidenze).
    della pubblicazione; conservare il manifest della versione precedente. Dopo la pubblicazione,
    rigenerare i materiali per i clienti sullo stack di collaudo: `npm run marketing:refresh` filma
    di nuovo il prodotto e produce video promozionale e brochure (`marketing/promo-video/README.md`).
+   Quello che i materiali dicono del prodotto è elencato in `marketing/claims.json`: una release che
+   toglie o aggiunge una funzione aggiorna insieme quel file e i materiali, altrimenti i test falliscono.
 5. Scaricare `release.env` dalla release verificata. Fornire segreti e connessioni in un file protetto
    `installation.env`, mai nel repository. `MIGRATION_DATABASE_URL` usa il proprietario delle
    migrazioni; `DATABASE_URL` usa il ruolo applicativo non-superuser per preservare RLS.
