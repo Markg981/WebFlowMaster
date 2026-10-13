@@ -54,6 +54,12 @@ and `apiRequest`, which:
 - turn a non-2xx answer into an `ApiError` carrying the status and the parsed body, so a caller can
   react to a `409` or a `403` without parsing strings.
 
+Query keys are bare URLs and `staleTime` is `Infinity`, so the cache belongs to whoever is signed
+in. Every change of session goes through `replaceSession` in `lib/session.ts`, which clears the
+whole cache (cancelling requests in flight) before setting `/api/user`: sign-in, MFA, register,
+sign-out, the 401 watcher in `lib/session-expiry.ts` and the organization switcher. New code that
+changes the signed-in user must call it rather than `setQueryData(['/api/user'], …)`.
+
 Components call `fetch` directly in a few places (settings cards); both styles use the same session
 cookie. Query keys are named after the resource (`['agents']`, `['sourceHosts']`, `['/api/tests']`)
 and invalidated after mutations.

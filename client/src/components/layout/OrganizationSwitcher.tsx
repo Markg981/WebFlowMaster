@@ -3,7 +3,8 @@ import { useLocation } from 'wouter';
 import { useTranslation } from 'react-i18next';
 import { Building2, Check, ChevronDown, Loader2 } from 'lucide-react';
 import { useAuth, type SessionUser } from '@/hooks/use-auth';
-import { apiRequest, errorMessage, queryClient } from '@/lib/queryClient';
+import { apiRequest, errorMessage } from '@/lib/queryClient';
+import { replaceSession } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -39,8 +40,7 @@ export function OrganizationSwitcher() {
     try {
       const res = await apiRequest('POST', '/api/organizations/switch', { organizationId });
       const switched = (await res.json()) as SessionUser;
-      queryClient.clear();
-      queryClient.setQueryData(['/api/user'], switched);
+      replaceSession(switched);
       navigate('/dashboard');
     } catch (error) {
       toast({

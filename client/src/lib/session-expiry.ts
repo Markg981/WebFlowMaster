@@ -1,4 +1,5 @@
 import { queryClient } from './queryClient';
+import { replaceSession } from './session';
 
 /**
  * Noticing that the server has ended this session.
@@ -7,8 +8,9 @@ import { queryClient } from './queryClient';
  * (server/http/middleware/require-sso.ts), removes the member, or the session simply expires. The next
  * request answers 401, but many pages call fetch themselves and only show their own error, so the
  * app would stay on a page it can no longer load. Every /api response passes through here instead,
- * and a 401 while someone is signed in clears the signed-in user: ProtectedRoute then sends them to
- * /auth, where the sign-in form (and for SSO, its explanation) is.
+ * and a 401 while someone is signed in ends the session here too, cached data included
+ * (lib/session.ts): ProtectedRoute then sends them to /auth, where the sign-in form (and for SSO,
+ * its explanation) is.
  */
 export function watchForEndedSession(): void {
   const originalFetch = window.fetch.bind(window);
@@ -19,7 +21,7 @@ export function watchForEndedSession(): void {
       isApiRequest(args[0]) &&
       queryClient.getQueryData(['/api/user'])
     ) {
-      queryClient.setQueryData(['/api/user'], null);
+      replaceSession(null);
     }
     return response;
   };

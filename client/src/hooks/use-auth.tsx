@@ -1,7 +1,8 @@
 import { createContext, ReactNode, useContext, useState } from 'react';
 import { useQuery, useMutation, UseMutationResult } from '@tanstack/react-query';
 import { User as SelectUser, InsertUser } from '@shared/schema';
-import { getQueryFn, apiRequest, errorMessage, queryClient } from '../lib/queryClient';
+import { getQueryFn, apiRequest, errorMessage } from '../lib/queryClient';
+import { replaceSession } from '../lib/session';
 import { useToast } from '@/hooks/use-toast';
 
 /** One organization the person belongs to, as /api/user lists them (server/tenancy/organization-memberships.ts). */
@@ -74,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setMfaChallenge(true);
         return;
       }
-      queryClient.setQueryData(['/api/user'], result);
+      replaceSession(result);
     },
     onError: (error: Error) => {
       toast({
@@ -100,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (signedIn) => {
       setMfaChallenge(false);
-      queryClient.setQueryData(['/api/user'], signedIn);
+      replaceSession(signedIn);
     },
     onError: (mfaError) => {
       if (mfaError.code === 'mfa_challenge_expired') setMfaChallenge(false);
@@ -114,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (registered: SessionUser) => {
-      queryClient.setQueryData(['/api/user'], registered);
+      replaceSession(registered);
     },
     onError: (error: Error) => {
       toast({
@@ -134,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
-      queryClient.setQueryData(['/api/user'], null);
+      replaceSession(null);
     },
     onError: (error: Error) => {
       toast({
