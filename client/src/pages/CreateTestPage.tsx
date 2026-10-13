@@ -52,6 +52,14 @@ import {
   XCircle,
   Settings2,
 } from 'lucide-react';
+import { z } from 'zod';
+
+// What the builder keeps from a save, whether the POST created the test or the PUT replaced it.
+const savedTestSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+
 // Client-side StepResult interface matching backend
 interface StepResult {
   name: string;
@@ -182,7 +190,7 @@ function CreateTestPage() {
   const [isExecutingPlayback, setIsExecutingPlayback] = useState(false);
   const [currentPlaybackStepIndex, setCurrentPlaybackStepIndex] = useState<number | null>(null);
   const [playbackSteps, setPlaybackSteps] = useState<StepResult[]>([]);
-  const [_currentSavedTestId, setCurrentSavedTestId] = useState<string | null>(null); // To store ID of saved/loaded test
+  const [_currentSavedTestId, setCurrentSavedTestId] = useState<number | null>(null); // To store ID of saved/loaded test
   const [testName, setTestName] = useState<string>(''); // To store test name
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [lastTestOverallResult, setLastTestOverallResult] = useState<boolean | null>(null);
@@ -633,8 +641,9 @@ function CreateTestPage() {
       // refining a recording left a pile of rows with one name between them. The server
       // answers 409 with the id of the one already there; the choice of what to do about it
       // belongs to the person who typed the name.
+      let response: Response;
       try {
-        return await apiRequest('POST', '/api/tests', payload);
+        response = await apiRequest('POST', '/api/tests', payload);
       } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 409) throw error;
 
@@ -644,14 +653,16 @@ function CreateTestPage() {
         );
         if (!overwrite) return null;
 
-        return apiRequest('PUT', `/api/tests/${conflict.existingTestId}`, payload);
+        response = await apiRequest('PUT', `/api/tests/${conflict.existingTestId}`, payload);
       }
+      // apiRequest hands back the Response, not the test: reading `id` off it gave undefined,
+      // so the page lost track of what it had just saved. Parsed here, for both branches.
+      return savedTestSchema.parse(await response.json());
     },
-    onSuccess: (data: any) => {
-      // data should be the saved test object
+    onSuccess: async (saved) => {
       // null means the overwrite prompt was declined: nothing was written, so nothing here
       // should claim otherwise or close the dialog the person is still looking at.
-      if (!data) return;
+      if (!saved) return;
 
       toast({
         title: t('dashboardPageNew.toasts.testSaved.title', 'Test saved'),
@@ -660,9 +671,11 @@ function CreateTestPage() {
           'Your test has been saved successfully.',
         ),
       });
-      setCurrentSavedTestId(data.id); // Store the ID of the saved test
-      setTestName(data.name); // Update test name state
-      setIsSaveModalOpen(false); // Close the modal on successful save
+      setCurrentSavedTestId(saved.id);
+      setTestName(saved.name);
+      // Every list of tests shares the prefix, so the catalog shows this save when next opened.
+      await queryClient.invalidateQueries({ queryKey: ['/api/tests'] });
+      setIsSaveModalOpen(false);
     },
     onError: (error: Error) => {
       toast({

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CreateTestPage from './CreateTestPage';
 // The real class, reached through the mock below, which spreads the original module: the
 // save path checks `instanceof`, so a stand-in would make the overwrite prompt unreachable.
-import { ApiError } from '@/lib/queryClient';
+import { ApiError, queryClient as appQueryClient } from '@/lib/queryClient';
 
 /**
  * Covers the "Create Test" page at the seam that matters: what the page hands to the API
@@ -40,6 +40,17 @@ vi.mock('react-i18next', () => ({
     t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key),
   }),
 }));
+
+/**
+ * What `apiRequest` really resolves to: a Response, not the parsed body. A new one per call,
+ * since a body can be read only once. Handing the page a bare object is how the save path came
+ * to read `id` off a Response and get undefined without any test noticing.
+ */
+const jsonResponse = (body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
 
 const SAVE_NAME = 'Checkout smoke test';
 const SAVE_PROJECT_ID = 7;
@@ -161,7 +172,7 @@ describe('DashboardPageNew — saving a test', () => {
   });
 
   it('posts the current URL, sequence and project id', async () => {
-    mockApiRequest.mockResolvedValue({ id: 12345, name: SAVE_NAME });
+    mockApiRequest.mockImplementation(async () => jsonResponse({ id: 12345, name: SAVE_NAME }));
 
     const { container } = renderPage();
 
@@ -189,6 +200,49 @@ describe('DashboardPageNew — saving a test', () => {
     });
     expect(payload.sequence).toHaveLength(1);
     expect(payload.sequence[0].targetElement.selector).toBe('#submit');
+  });
+
+  it('keeps the saved test and refreshes every list of tests', async () => {
+    const invalidate = vi.spyOn(appQueryClient, 'invalidateQueries');
+    mockApiRequest.mockImplementation(async (method: string, url: string) =>
+      method === 'POST' && url === '/api/tests'
+        ? jsonResponse({ id: 12345, name: SAVE_NAME })
+        : jsonResponse([]),
+    );
+
+    const { container } = renderPage();
+    fireEvent.change(urlInput(container), { target: { value: 'https://shop.test' } });
+    fireEvent.click(screen.getByTestId('add-step'));
+    fireEvent.click(screen.getByTestId('save-test'));
+    await screen.findByTestId('save-modal');
+    fireEvent.click(screen.getByTestId('modal-confirm'));
+
+    await waitFor(() => expect(screen.queryByTestId('save-modal')).not.toBeInTheDocument());
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Test saved' }));
+    // The shared prefix: the catalog keys its pages under it, so a page visited before the
+    // save would otherwise keep showing the list without this test.
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['/api/tests'] });
+
+    invalidate.mockRestore();
+  });
+
+  it('does not report a save whose answer is not a test', async () => {
+    mockApiRequest.mockImplementation(async (method: string, url: string) =>
+      method === 'POST' && url === '/api/tests' ? jsonResponse({ ok: true }) : jsonResponse([]),
+    );
+
+    const { container } = renderPage();
+    fireEvent.change(urlInput(container), { target: { value: 'https://shop.test' } });
+    fireEvent.click(screen.getByTestId('add-step'));
+    fireEvent.click(screen.getByTestId('save-test'));
+    await screen.findByTestId('save-modal');
+    fireEvent.click(screen.getByTestId('modal-confirm'));
+
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' })),
+    );
+    expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'Test saved' }));
+    expect(screen.getByTestId('save-modal')).toBeInTheDocument();
   });
 
   it('reports a failed save', async () => {
@@ -283,8 +337,8 @@ describe('DashboardPageNew — overwriting a test', () => {
           new ApiError(409, { existingTestId: 77, name: SAVE_NAME }, '409: conflict'),
         );
       }
-      if (method === 'PUT') return Promise.resolve({ id: 77, name: SAVE_NAME });
-      return Promise.resolve([]);
+      if (method === 'PUT') return Promise.resolve(jsonResponse({ id: 77, name: SAVE_NAME }));
+      return Promise.resolve(jsonResponse([]));
     });
   };
 
