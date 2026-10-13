@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { privilegedDb } from '../../platform/db';
-import { apiKeys } from '@shared/schema';
+import { apiKeys, organizationMemberships } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../../tests/factories';
 import { generateApiKey } from '../../identity/api-keys';
+import { joinOrganization, switchOrganization } from '../../tenancy/organization-memberships';
 import { apiKeyAuth, resetApiKeyUsageThrottle } from './api-key-auth';
 
 vi.mock('../../platform/logger', () => ({
@@ -104,6 +105,31 @@ describe('a request carrying a key', () => {
     await request(app).post('/editor-only').set('X-API-Key', key).expect(200);
   });
 
+  it('acts in the organization that issued it, with the role held there, wherever its user switched', async () => {
+    const issuer = await createTestOrganization('Key Home Org');
+    const other = await createTestOrganization('Key Other Org');
+    const traveller = await createTestUser(issuer, 'key-traveller');
+    await privilegedDb.transaction((tx) => joinOrganization(tx, traveller, other, 'editor'));
+    await privilegedDb
+      .update(organizationMemberships)
+      .set({ role: 'viewer' })
+      .where(
+        and(
+          eq(organizationMemberships.userId, traveller),
+          eq(organizationMemberships.organizationId, issuer),
+        ),
+      );
+    const { key } = await seedKey({ organizationId: issuer, userId: traveller });
+
+    // The person moves their sign-in to the other organization, where they are an editor.
+    await switchOrganization(traveller, other);
+
+    const response = await request(app).get('/whoami').set('X-API-Key', key).expect(200);
+    expect(response.body.organizationId).toBe(issuer);
+    // Still the viewer it is in the issuing organization, not the editor it is elsewhere.
+    await request(app).post('/editor-only').set('X-API-Key', key).expect(403);
+  });
+
   it('records that the key was used', async () => {
     const { id, key } = await seedKey();
 
@@ -158,6 +184,25 @@ describe('a request whose key cannot be used', () => {
 
     expect(revoked.status).toBe(none.status);
     expect(revoked.body).toEqual(none.body);
+  });
+
+  it('is refused once its user is no longer a member of the organization that issued it', async () => {
+    const issuer = await createTestOrganization('Key Issuer Org');
+    const elsewhere = await createTestOrganization('Key Elsewhere Org');
+    const leaver = await createTestUser(issuer, 'key-leaver');
+    await privilegedDb.transaction((tx) => joinOrganization(tx, leaver, elsewhere, 'editor'));
+    await switchOrganization(leaver, elsewhere);
+    const { key } = await seedKey({ organizationId: issuer, userId: leaver });
+    await privilegedDb
+      .delete(organizationMemberships)
+      .where(
+        and(
+          eq(organizationMemberships.userId, leaver),
+          eq(organizationMemberships.organizationId, issuer),
+        ),
+      );
+
+    await request(app).get('/whoami').set('X-API-Key', key).expect(401);
   });
 
   it('leaves a Bearer token that is not ours alone', async () => {

@@ -15,10 +15,15 @@ import { removePersonalRowsInOrganization } from './member-removal';
 /**
  * A person in several organizations (migration 0086).
  *
- * `users.organization_id` and `users.role` are the organization an account is acting in and its
- * role there — what the session, the tenancy middleware, every RLS policy and `requireRole` read.
- * `organization_memberships` is the set of organizations the account may act in. Switching copies
- * a membership onto the user row and starts a new session; nothing downstream has to know.
+ * `organization_memberships` is the set of organizations an account may act in, with its role in
+ * each. Which one a request acts in belongs to the request, not to the account: a session names
+ * its organization (server/identity/auth.ts), an API key is bound to the organization that issued
+ * it, and `actingAs` resolves either against the membership on every request. Two browsers of the
+ * same person can so act in two organizations without one changing what the other does.
+ *
+ * `users.organization_id` and `users.role` remain as the organization the account last switched
+ * to, and its role there: where a new sign-in starts. Switching copies a membership onto them and
+ * re-establishes the session that asked; the person's other sessions keep their own.
  *
  * Two kinds of function live here. Those taking a `TenantTx` run inside an organization and see,
  * through the policy, that organization's members only: listing, re-roling, removing. Those on
@@ -34,8 +39,32 @@ export interface MembershipSummary {
   id: number;
   name: string;
   role: string;
-  /** The organization the session acts in: `users.organization_id`. */
+  /** The organization the request acts in. */
   current: boolean;
+}
+
+/**
+ * The account acting in `organizationId`: its own row, with the organization and the role its
+ * membership there names. Null when it is not (or no longer) a member — a session that was opened
+ * in an organization the person has since been removed from ends at its next request, rather than
+ * quietly acting somewhere else.
+ *
+ * Privileged, as the session lookup it follows is: it answers which organization the request is
+ * for, so it cannot run inside one.
+ */
+export async function actingAs(user: User, organizationId: number): Promise<User | null> {
+  const [membership] = await privilegedDb
+    .select({ role: organizationMemberships.role })
+    .from(organizationMemberships)
+    .where(
+      and(
+        eq(organizationMemberships.userId, user.id),
+        eq(organizationMemberships.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!membership) return null;
+  return { ...user, organizationId, role: membership.role };
 }
 
 /** Every organization the person belongs to, for the switcher. Oldest membership first. */
@@ -300,7 +329,7 @@ export interface MemberRow {
   kind: string;
   disabledAt: Date | null;
   createdAt: Date;
-  /** Whether this organization is the one the member is acting in right now. */
+  /** Whether this organization is the one the member last switched to, where a sign-in starts. */
   current: boolean;
 }
 

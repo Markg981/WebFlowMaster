@@ -624,6 +624,13 @@
       "when": 1792400000011,
       "tag": "0088_run_history_time_index",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1792400000012,
+      "tag": "0089_session_scoped_organization",
+      "breakpoints": true
     }
   ]
 }

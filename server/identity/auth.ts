@@ -29,7 +29,7 @@ import { registrationMode, registrationPolicy } from './registration';
 import { securityHeaders } from '../platform/security-headers';
 import { canManageInstallation } from '../tenancy/installation-admin';
 import { ssoAttests, ssoRequiredFor } from './sso';
-import { membershipsOf } from '../tenancy/organization-memberships';
+import { actingAs, membershipsOf } from '../tenancy/organization-memberships';
 import { requireActiveSamlSession } from './middleware/saml-session';
 import {
   forgetSamlSession,
@@ -280,19 +280,28 @@ export function setupAuth(app: Express) {
   // changes the stamp, so every other session of that person stops being one at its next request —
   // which is the point of changing a password someone else may know. A session from before stamps
   // existed (a bare id) is not trusted either: it means signing in once more after this upgrade.
+  //
+  // It also names the organization it acts in. That is the session's, not the account's: switching
+  // in one browser must not move another browser of the same person, which would go on showing one
+  // organization while what it creates lands in the other. The membership is read again at every
+  // request, so a session in an organization the person has been removed from ends there. A session
+  // from before the organization was stamped acts in the one the account last switched to.
   passport.serializeUser((user, done) =>
-    done(null, { id: user.id, pw: passwordStamp(user.password) }),
+    done(null, { id: user.id, pw: passwordStamp(user.password), org: user.organizationId }),
   );
   passport.deserializeUser(async (payload: unknown, done) => {
     try {
-      const stamped = payload as { id?: unknown; pw?: unknown } | null;
+      const stamped = payload as { id?: unknown; pw?: unknown; org?: unknown } | null;
       if (!stamped || typeof stamped !== 'object' || typeof stamped.id !== 'number')
         return done(null, false);
       const user = await storage.getUser(stamped.id);
       // A disabled account's sessions end with it (an identity provider deactivating someone, server/identity/scim.ts).
       if (!user || stamped.pw !== passwordStamp(user.password) || user.disabledAt)
         return done(null, false);
-      done(null, user);
+      const organizationId = typeof stamped.org === 'number' ? stamped.org : user.organizationId;
+      const acting = await actingAs(user, organizationId);
+      if (!acting) return done(null, false);
+      done(null, acting);
     } catch (error) {
       done(error);
     }
@@ -573,8 +582,10 @@ export function setupAuth(app: Express) {
         await hashPassword(parsed.data.newPassword),
       );
       if (!updated) return res.sendStatus(401);
-      await recordAuthEvent(updated, AUDIT_ACTIONS.PASSWORD_CHANGED, req.ip);
-      req.login(updated, (loginError) => {
+      // The row names the organization the account last switched to; this session stays in its own.
+      const acting = { ...updated, organizationId: user.organizationId, role: user.role };
+      await recordAuthEvent(acting, AUDIT_ACTIONS.PASSWORD_CHANGED, req.ip);
+      req.login(acting, (loginError) => {
         if (loginError) return next(loginError);
         res.json({ changed: true });
       });

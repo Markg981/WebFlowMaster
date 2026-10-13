@@ -1025,13 +1025,15 @@ async function resolveAccount(
     const followGroups = async (user: User): Promise<User> => {
       if (mapped === null || user.role === mapped) return user;
       if (user.role === 'owner') {
+        // Owners by their membership here, whichever organization they are acting in.
         const [{ others }] = await tx
           .select({ others: sql<number>`count(*)::int` })
-          .from(users)
+          .from(organizationMemberships)
+          .innerJoin(users, eq(users.id, organizationMemberships.userId))
           .where(
             and(
-              eq(users.organizationId, organizationId),
-              eq(users.role, 'owner'),
+              eq(organizationMemberships.organizationId, organizationId),
+              eq(organizationMemberships.role, 'owner'),
               ne(users.id, user.id),
               sql`${users.disabledAt} IS NULL`,
             ),

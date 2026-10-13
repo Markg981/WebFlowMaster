@@ -25,14 +25,30 @@ A person may belong to several organizations (migration 0086). Two things carry 
 - `organization_memberships` (`user_id`, `organization_id`, `role`) is the set of organizations
   the account may act in, with the role it holds in each. It is org-scoped and policed by RLS like
   every other table: inside an organization, its own members are visible and nothing else.
-- `users.organization_id` and `users.role` are the organization the account is acting in **now**
-  and its role there. The session, `tenancyMiddleware`, every policy's `app.current_org` binding
-  and `requireRole` read these two columns and nothing else, exactly as they did when an account
-  had one organization. Switching (`POST /api/organizations/switch`, owner of the switch is
-  `server/tenancy/organization-memberships.ts`) copies the chosen membership onto the user row, starts a
-  new session (`req.login`) and records `organization.switched` in the organization entered. A
-  request is therefore always bound to one organization, and nothing a membership elsewhere grants
-  is visible from it.
+- The organization a request acts in belongs to the **request**, not to the account. A session
+  stores it next to the user id and the password stamp (`{ id, pw, org }`, `serializeUser` in
+  `server/identity/auth.ts`); an API key acts in the organization that issued it
+  (`server/http/middleware/api-key-auth.ts`). Either way `actingAs`
+  (`server/tenancy/organization-memberships.ts`) reads the membership again on every request and
+  puts its organization and role on `req.user`; no membership, no user: the session ends, the key
+  is refused. `tenancyMiddleware`, every policy's `app.current_org` binding and `requireRole` read
+  `req.user` as before. Two browsers of one person can so act in two organizations: switching in
+  one does not move the other, whose next project still lands where it shows.
+- `users.organization_id` and `users.role` are only where the account last switched to, and its
+  role there: where a new sign-in (password or single sign-on) starts. Switching
+  (`POST /api/organizations/switch`) copies the chosen membership onto the row, re-establishes the
+  session that asked (`req.login`) and records `organization.switched` in the organization entered.
+  A session from before the organization was stored acts in the row's organization.
+
+Nothing checks membership through the user row any more: whether someone is a member of an
+organization (a run's requester, a project seat, a mention, an owner's reset of a member's second
+factor) is a join on `organization_memberships`. The two-column `…_same_org_fk` guards on a
+person's rows (keys, project seats, reset links, dashboards, provider sessions, SCIM rows, a run's
+requester, a comment's author and resolver) reference `organization_memberships(user_id,
+organization_id)` since migration 0089, not `users(id, organization_id)`: pointing at the row, they
+refused whatever a session made outside the row's organization, and the switch itself for anyone
+with a key or a run. Removing a membership deletes the person's own rows there and forgets them as
+requester or author.
 
 The membership of the current organization is kept in step by a trigger on `users`
 (`users_sync_current_membership`): creating an account, or changing `users.role`, upserts the

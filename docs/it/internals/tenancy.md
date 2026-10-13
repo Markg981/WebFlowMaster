@@ -26,14 +26,32 @@ Una persona può appartenere a più organizzazioni (migrazione 0086). Lo reggono
 - `organization_memberships` (`user_id`, `organization_id`, `role`) è l'insieme delle organizzazioni
   in cui l'account può agire, con il ruolo che ha in ciascuna. È una tabella per organizzazione
   protetta da RLS come tutte le altre: dentro un'organizzazione si vedono i suoi membri e nient'altro.
-- `users.organization_id` e `users.role` sono l'organizzazione in cui l'account agisce **adesso** e
-  il suo ruolo lì. La sessione, `tenancyMiddleware`, il binding `app.current_org` di ogni policy e
-  `requireRole` leggono queste due colonne e nient'altro, esattamente come quando un account aveva
-  una sola organizzazione. Il cambio (`POST /api/organizations/switch`, in
-  `server/tenancy/organization-memberships.ts`) copia l'appartenenza scelta sulla riga dell'utente, apre una
-  nuova sessione (`req.login`) e registra `organization.switched` nell'organizzazione in cui si
-  entra. Una richiesta è quindi sempre legata a una sola organizzazione, e nulla di ciò che
-  un'appartenenza altrove concede è visibile da lì.
+- L'organizzazione in cui agisce una richiesta appartiene alla **richiesta**, non all'account. La
+  sessione la salva accanto all'id utente e all'impronta della password (`{ id, pw, org }`,
+  `serializeUser` in `server/identity/auth.ts`); una chiave API agisce nell'organizzazione che l'ha
+  emessa (`server/http/middleware/api-key-auth.ts`). In entrambi i casi `actingAs`
+  (`server/tenancy/organization-memberships.ts`) rilegge l'appartenenza a ogni richiesta e mette su
+  `req.user` la sua organizzazione e il suo ruolo; senza appartenenza non c'è utente: la sessione
+  termina, la chiave è rifiutata. `tenancyMiddleware`, il binding `app.current_org` di ogni policy e
+  `requireRole` leggono `req.user` come prima. Due browser della stessa persona possono così agire
+  in due organizzazioni: il cambio in uno non sposta l'altro, il cui prossimo progetto finisce dove
+  mostra.
+- `users.organization_id` e `users.role` indicano solo l'ultima organizzazione scelta dall'account e
+  il ruolo lì: da dove parte un nuovo accesso (password o single sign-on). Il cambio
+  (`POST /api/organizations/switch`) copia l'appartenenza scelta sulla riga, ristabilisce la sessione
+  che l'ha chiesto (`req.login`) e registra `organization.switched` nell'organizzazione in cui si
+  entra. Una sessione nata prima che l'organizzazione vi fosse salvata agisce in quella della riga.
+
+Nessun controllo di appartenenza passa più dalla riga dell'utente: se qualcuno è membro di
+un'organizzazione (chi ha chiesto un run, un posto in un progetto, una menzione, il reset del
+secondo fattore di un membro da parte di un owner) è un join su `organization_memberships`. I
+vincoli a due colonne `…_same_org_fk` sulle righe di una persona (chiavi, posti nei progetti, link di
+reset, dashboard, sessioni del provider, righe SCIM, richiedente di un run, autore e risolutore di
+un commento) puntano dalla migrazione 0089 a `organization_memberships(user_id, organization_id)`,
+non a `users(id, organization_id)`: puntando alla riga, rifiutavano ciò che una sessione creava
+fuori dall'organizzazione della riga, e il cambio stesso per chi aveva una chiave o un run. Rimuovere
+un'appartenenza cancella le righe proprie della persona lì e la dimentica come richiedente o
+autrice.
 
 L'appartenenza dell'organizzazione corrente è tenuta allineata da un trigger su `users`
 (`users_sync_current_membership`): creare un account, o cambiare `users.role`, fa l'upsert della

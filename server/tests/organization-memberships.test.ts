@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express, type Request, type Response, type NextFunction } from 'express';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
+import { randomUUID } from 'crypto';
+import { generateApiKey } from '../identity/api-keys';
 import {
+  apiKeys,
   auditLog,
   invitations,
   organizationMemberships,
@@ -22,10 +25,10 @@ import organizationRoutes from '../http/routes/organization.routes';
 /**
  * A person in several organizations (migration 0086).
  *
- * users.organization_id stays the organization a session acts in, so every policy keeps working;
- * organization_memberships is where else the person may act. These prove the two stay in step,
- * that a switch moves what a request can see — and nothing else — and that joining, leaving and
- * the last-owner rule follow memberships rather than the user row.
+ * organization_memberships is where the person may act; the session names which one it acts in,
+ * and users.organization_id is where the account last switched to. These prove the row and its
+ * membership stay in step, that a switch moves what that session can see — and no other session —
+ * and that joining, leaving and the last-owner rule follow memberships rather than the user row.
  */
 
 vi.mock('../platform/logger', () => ({
@@ -63,6 +66,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await privilegedDb.delete(auditLog);
+  await privilegedDb.delete(apiKeys);
   await privilegedDb.delete(projects);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(users);
@@ -181,6 +185,128 @@ describe('switching', () => {
     await alice.agent.post('/api/organizations/switch').send({ organizationId: orgC }).expect(403);
     expect((await alice.agent.get('/api/probe').expect(200)).body.names).toEqual(['b-project']);
     expect(await switchOrganization(alice.id, orgC)).toBeNull();
+  });
+
+  it('moves only the session that switched: another browser of the same person stays where it is', async () => {
+    const alice = await signedIn('alice');
+    const orgB = await organization('B');
+    await privilegedDb.transaction((tx) => joinOrganization(tx, alice.id, orgB, 'viewer'));
+    await privilegedDb.insert(projects).values([
+      { name: 'a-project', userId: alice.id, organizationId: alice.organizationId },
+      { name: 'b-project', userId: alice.id, organizationId: orgB },
+    ]);
+    const secondBrowser = request.agent(app);
+    await secondBrowser
+      .post('/api/login')
+      .send({ username: 'alice', password: 'password123' })
+      .expect(200);
+
+    await alice.agent.post('/api/organizations/switch').send({ organizationId: orgB }).expect(200);
+
+    expect((await alice.agent.get('/api/probe').expect(200)).body).toMatchObject({
+      organizationId: orgB,
+      role: 'viewer',
+      names: ['b-project'],
+    });
+    // The second browser still shows A, and still acts in A, with the role held there.
+    expect((await secondBrowser.get('/api/probe').expect(200)).body).toMatchObject({
+      organizationId: alice.organizationId,
+      role: 'owner',
+      names: ['a-project'],
+    });
+    const seen = await secondBrowser.get('/api/user').expect(200);
+    expect(seen.body).toMatchObject({ organizationId: alice.organizationId, role: 'owner' });
+    expect(seen.body.organizations.find((o: { current: boolean }) => o.current).id).toBe(
+      alice.organizationId,
+    );
+
+    // A new sign-in starts where the account last switched to.
+    const thirdBrowser = request.agent(app);
+    await thirdBrowser
+      .post('/api/login')
+      .send({ username: 'alice', password: 'password123' })
+      .expect(200);
+    expect((await thirdBrowser.get('/api/probe').expect(200)).body.organizationId).toBe(orgB);
+  });
+
+  it("ties a person's rows to their memberships, not to where the account last switched", async () => {
+    const alice = await signedIn('alice');
+    const orgB = await organization('B');
+    const orgC = await organization('C');
+    await privilegedDb.transaction((tx) => joinOrganization(tx, alice.id, orgB, 'viewer'));
+    const key = (organizationId: number) => {
+      const { hashedKey, prefix } = generateApiKey();
+      return privilegedDb.insert(apiKeys).values({
+        id: randomUUID(),
+        organizationId,
+        userId: alice.id,
+        name: 'CI',
+        prefix,
+        hashedKey,
+      });
+    };
+    await key(alice.organizationId);
+
+    // A key in A used to pin the account's row to A: the switch failed on it.
+    expect(await switchOrganization(alice.id, orgB)).toMatchObject({ organizationId: orgB });
+    // A session still acting in A goes on making rows there, and one in B makes them in B.
+    await key(alice.organizationId);
+    await key(orgB);
+    // Not in an organization the person is no member of.
+    await expect(key(orgC)).rejects.toMatchObject({
+      code: '23503',
+      constraint: 'api_keys_user_id_same_org_fk',
+    });
+
+    const pinnedToTheRow = await privilegedDb.execute(sql`
+      SELECT conname FROM pg_constraint
+      WHERE contype = 'f' AND confrelid = 'users'::regclass AND array_length(conkey, 1) = 2
+    `);
+    expect(pinnedToTheRow.rows).toEqual([]);
+  });
+
+  it('ends a session whose organization the person no longer belongs to, and only that one', async () => {
+    const alice = await signedIn('alice');
+    const orgB = await organization('B');
+    await privilegedDb.transaction((tx) => joinOrganization(tx, alice.id, orgB, 'viewer'));
+    const inA = request.agent(app);
+    await inA.post('/api/login').send({ username: 'alice', password: 'password123' }).expect(200);
+    await alice.agent.post('/api/organizations/switch').send({ organizationId: orgB }).expect(200);
+
+    await privilegedDb
+      .delete(organizationMemberships)
+      .where(
+        and(
+          eq(organizationMemberships.userId, alice.id),
+          eq(organizationMemberships.organizationId, orgB),
+        ),
+      );
+
+    // Not quietly moved somewhere else: the session acting in B is no longer one.
+    await alice.agent.get('/api/probe').expect(401);
+    expect((await inA.get('/api/probe').expect(200)).body.organizationId).toBe(
+      alice.organizationId,
+    );
+  });
+
+  it('keeps the organization of the session when its password is changed there', async () => {
+    const alice = await signedIn('alice');
+    const orgB = await organization('B');
+    await privilegedDb.transaction((tx) => joinOrganization(tx, alice.id, orgB, 'viewer'));
+    const inA = request.agent(app);
+    await inA.post('/api/login').send({ username: 'alice', password: 'password123' }).expect(200);
+    // The account's row now names B.
+    await alice.agent.post('/api/organizations/switch').send({ organizationId: orgB }).expect(200);
+
+    await inA
+      .post('/api/user/password')
+      .send({ currentPassword: 'password123', newPassword: 'a-much-longer-passphrase-42' })
+      .expect(200);
+
+    expect((await inA.get('/api/probe').expect(200)).body).toMatchObject({
+      organizationId: alice.organizationId,
+      role: 'owner',
+    });
   });
 });
 
