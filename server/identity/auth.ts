@@ -28,7 +28,7 @@ import { sessionCookieSecure } from '../platform/config';
 import { registrationMode, registrationPolicy } from './registration';
 import { securityHeaders } from '../platform/security-headers';
 import { canManageInstallation } from '../tenancy/installation-admin';
-import { ssoRequiredFor } from './sso';
+import { ssoAttests, ssoRequiredFor } from './sso';
 import { membershipsOf } from '../tenancy/organization-memberships';
 import { requireActiveSamlSession } from './middleware/saml-session';
 import {
@@ -530,7 +530,8 @@ export function setupAuth(app: Express) {
   app.get('/api/user', async (req, res, next) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      res.json(await publicUser(req.user as SelectUser, req.session.signedInWith === 'sso'));
+      const user = req.user as SelectUser;
+      res.json(await publicUser(user, ssoAttests(req.session, user.organizationId)));
     } catch (error) {
       next(error);
     }

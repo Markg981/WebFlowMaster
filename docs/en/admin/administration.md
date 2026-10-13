@@ -319,6 +319,11 @@ A session opened through the provider is not asked for the organization's
 [second factor](#two-factor-authentication): the provider is where that check belongs, so
 require it there.
 
+Both hold for the organization whose provider opened the session, and only for it. Someone who
+belongs to several organizations and switches to another one meets that organization's own rules:
+where it requires single sign-on the switch is refused until they sign in through its provider,
+and where it requires a second factor they are asked for one.
+
 ::: warning The provider decides who gets in
 Removing a member here deletes their account, but if the provider still lets them sign in,
 their next sign-in creates a new account with the default role. End people's access at the

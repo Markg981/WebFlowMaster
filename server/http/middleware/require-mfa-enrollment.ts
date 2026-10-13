@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { mustEnrol } from '../../identity/mfa';
+import { ssoAttests } from '../../identity/sso';
 
 /**
  * Where an organization requires a second factor, a member without one can do nothing but set
@@ -18,8 +19,9 @@ export async function requireMfaEnrollment(req: Request, res: Response, next: Ne
   if (!req.isAuthenticated?.() || !req.user) return next();
   if ((req as Request & { apiKeyId?: string }).apiKeyId) return next();
   // The requirement is for password sign-ins: a session from the identity provider had its
-  // second factor there.
-  if (req.session?.signedInWith === 'sso') return next();
+  // second factor there. Only for the organization whose provider it was: acting in another one,
+  // that organization's own requirement applies.
+  if (ssoAttests(req.session, req.user.organizationId)) return next();
   if (ALLOWED.some((pattern) => pattern.test(req.path))) return next();
 
   try {

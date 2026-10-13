@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { AUDIT_ACTIONS, type User as SelectUser } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { publicUser, recordAuthEvent } from '../../identity/auth';
-import { ssoRequiredFor } from '../../identity/sso';
+import { ssoAttests, ssoRequiredFor } from '../../identity/sso';
 import {
   acceptInvitationAsMember,
   describeInvitation,
@@ -51,13 +51,14 @@ router.post(
     const from = user.organizationId;
     if (parsed.data.organizationId === from) return res.json(await publicUser(user));
 
-    // Said before anything changes: a password session cannot move into an organization that
-    // signs in through its provider, since requireSso would end it on the next request.
+    // Said before anything changes: a session the target's own provider did not open (a
+    // password, or another organization's provider) cannot move into an organization that signs
+    // in through its provider, since requireSso would end it on the next request.
     const memberships = await membershipsOf(user);
     const target = memberships.find((m) => m.id === parsed.data.organizationId);
     if (!target)
       return res.status(403).json({ error: 'You are not a member of that organization.' });
-    const signedInWithSso = req.session?.signedInWith === 'sso';
+    const signedInWithSso = ssoAttests(req.session, target.id);
     if (
       !signedInWithSso &&
       (await ssoRequiredFor({ role: target.role, organizationId: target.id, kind: user.kind }))
@@ -123,7 +124,7 @@ router.post(
       // would help someone probing the token space.
       return res.status(400).json({ error: 'That invitation is not valid.' });
     }
-    const signedInWithSso = req.session?.signedInWith === 'sso';
+    const signedInWithSso = ssoAttests(req.session, result.organizationId);
     req.login(result, { session: true, keepSessionInfo: true }, async (loginError) => {
       if (loginError) return next(loginError);
       await recordAuthEvent(result, AUDIT_ACTIONS.ORGANIZATION_SWITCHED, req.ip, {
