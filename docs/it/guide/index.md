@@ -66,6 +66,11 @@ request di ogni modifica: è il `CHANGELOG.md` che l'installazione contiene, qui
 versione in uso. Un punto sul cerchio segnala modifiche non ancora lette; aprire la pagina lo
 toglie, in questo browser.
 
+Il **?** nella barra in alto apre questo manuale, in una nuova scheda, alla sezione sulla pagina in
+cui siete (**Aiuto su questa pagina** nella palette dei comandi fa lo stesso). Il manuale è nella
+vostra lingua dove è stato tradotto, in inglese altrimenti; lo serve l'installazione stessa, quindi
+descrive la versione in uso e funziona anche senza accesso a internet.
+
 Sul telefono la sidebar è nascosta: il pulsante **menu** (☰) a sinistra nella barra in alto la apre
 come cassetto, che si chiude quando scegliete una pagina o premete **Esc**. Le pagine di
 consultazione — la dashboard, **Report** e il report di un run — stanno nella larghezza di un

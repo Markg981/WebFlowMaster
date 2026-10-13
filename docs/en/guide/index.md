@@ -64,6 +64,11 @@ each change: it is the `CHANGELOG.md` the installation ships, so it describes th
 A dot on the circle means there are changes you have not read; opening the page clears it, in this
 browser.
 
+The **?** in the top bar opens this manual, in a new tab, at the section about the page you are on
+(**Help for this page** in the command palette does the same). The manual is in your language where
+it has been translated, and in English otherwise; it is served by the installation itself, so it
+describes the version you use and works without internet access.
+
 On a phone the sidebar is hidden: the **menu** button (☰) at the left of the top bar opens it as a
 drawer, which closes once you pick a page or press **Esc**. The pages meant for reading — the
 dashboard, **Reports** and the report of a run — fit the width of a phone or a tablet; wide tables

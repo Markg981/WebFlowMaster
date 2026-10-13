@@ -2865,7 +2865,9 @@
     "revoke": "Widerrufen",
     "disable": "Deaktivieren",
     "reset": "Zurücksetzen",
-    "skipToContent": "Zum Inhalt springen"
+    "skipToContent": "Zum Inhalt springen",
+    "help": "Hilfe",
+    "helpForPage": "Hilfe zu dieser Seite (öffnet das Handbuch)"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Neue Umgebung (z. B. Staging)",

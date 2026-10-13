@@ -75,6 +75,11 @@ l'installation, il décrit donc la version que vous utilisez. Un point sur le ce
 changements que vous n'avez pas encore lus ; ouvrir la page le fait disparaître, dans ce
 navigateur.
 
+Le **?** dans la barre du haut ouvre ce manuel, dans un nouvel onglet, à la section qui décrit la
+page où vous êtes (**Aide sur cette page** dans la palette de commandes fait de même). Le manuel est
+dans votre langue là où il a été traduit, en anglais sinon ; il est servi par l'installation
+elle-même, il décrit donc la version que vous utilisez et fonctionne sans accès à internet.
+
 Sur un téléphone, la barre latérale est masquée : le bouton **menu** (☰) à gauche de la barre du
 haut l'ouvre en tiroir, qui se ferme dès que vous choisissez une page ou appuyez sur **Échap**. Les
 pages faites pour être lues — le tableau de bord, **Rapports** et le rapport d'une exécution —
