@@ -333,6 +333,11 @@ A una sessione aperta tramite il provider non viene chiesto il
 [secondo fattore](#autenticazione-a-due-fattori) dell'organizzazione: quel controllo spetta al
 provider, quindi richiedetelo lì.
 
+Entrambe le cose valgono per l'organizzazione il cui provider ha aperto la sessione, e solo per
+quella. Chi appartiene a più organizzazioni e passa a un'altra ne rispetta le regole: se richiede il
+single sign-on il cambio viene rifiutato finché non si accede tramite il suo provider, e se richiede
+il secondo fattore questo viene chiesto.
+
 ::: warning È il provider a decidere chi entra
 Rimuovere un membro qui cancella il suo account, ma se il provider lo lascia ancora accedere, il
 suo accesso successivo crea un nuovo account con il ruolo predefinito. Revocate l'accesso presso

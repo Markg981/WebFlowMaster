@@ -351,7 +351,12 @@ function signIn(
   // req.login starts a new session: the one that carried the state does not become the signed-in one.
   req.login(user, async (loginError) => {
     if (loginError) return next(loginError);
-    req.session.signedInWith = 'sso';
+    // The account always comes back acting in the provider's organization (resolveAccount).
+    req.session.sso = {
+      organizationId: user.organizationId,
+      protocol,
+      authenticatedAt: Date.now(),
+    };
     if (samlSession) {
       try {
         req.session.samlIdentity = samlSession;

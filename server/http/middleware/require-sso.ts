@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { ssoRequiredFor } from '../../identity/sso';
+import { ssoAttests, ssoRequiredFor } from '../../identity/sso';
 
 /**
  * Where an organization requires single sign-on, a session opened with a password ends.
@@ -13,7 +13,8 @@ export async function requireSso(req: Request, res: Response, next: NextFunction
   if (!req.path.startsWith('/api/')) return next();
   if (!req.isAuthenticated?.() || !req.user) return next();
   if ((req as Request & { apiKeyId?: string }).apiKeyId) return next();
-  if (req.session?.signedInWith === 'sso') return next();
+  // Only this organization's provider: another one's sign-in does not carry over on a switch.
+  if (ssoAttests(req.session, req.user.organizationId)) return next();
 
   try {
     if (!(await ssoRequiredFor(req.user))) return next();

@@ -145,13 +145,32 @@ export interface SsoPending {
   expiresAt: number;
 }
 
+/**
+ * Which organization's provider opened this session. It vouches for that organization only: a
+ * person who belongs to several still meets each one's own sign-in policy (SSO required, second
+ * factor) when acting there, whatever another organization's provider said.
+ */
+export interface SsoAttestation {
+  organizationId: number;
+  protocol: 'oidc' | 'saml';
+  authenticatedAt: number;
+}
+
 declare module 'express-session' {
   interface SessionData {
     ssoPending?: SsoPending;
-    /** 'sso' when this session was opened through the organization's identity provider. */
-    signedInWith?: 'sso';
+    /** Present when this session was opened through an organization's identity provider. */
+    sso?: SsoAttestation;
     samlIdentity?: SamlSessionIdentity;
   }
+}
+
+/** Whether this session's provider sign-in counts for acting in `organizationId`. */
+export function ssoAttests(
+  session: { sso?: SsoAttestation } | undefined,
+  organizationId: number,
+): boolean {
+  return session?.sso?.organizationId === organizationId;
 }
 
 /** How long the provider has to send the browser back. */

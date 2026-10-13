@@ -16,6 +16,7 @@ import {
   users,
 } from '@shared/schema';
 import { groupsOf, roleFromGroups } from '@shared/sso-roles';
+import { joinOrganization } from '../tenancy/organization-memberships';
 
 // Auth runs against the real (PGlite) test database; the identity provider is a small one started
 // here, which signs its ID tokens with a key of its own. Only the logger is mocked.
@@ -122,6 +123,7 @@ beforeAll(async () => {
   const { requireSso } = await import('../http/middleware/require-sso');
   const { requireMfaEnrollment } = await import('../http/middleware/require-mfa-enrollment');
   const ssoRoutes = (await import('../http/routes/sso.routes')).default;
+  const membershipRoutes = (await import('../http/routes/organization-memberships.routes')).default;
   app = express();
   app.use(express.json());
   setupAuth(app);
@@ -129,6 +131,7 @@ beforeAll(async () => {
   app.use(requireSso);
   app.use(requireMfaEnrollment);
   app.use(ssoRoutes);
+  app.use(membershipRoutes);
   // Something a signed-in member reaches, to see whether they still are.
   app.get('/api/probe', (req, res) =>
     req.isAuthenticated() ? res.json({ id: req.user!.id }) : res.sendStatus(401),
@@ -546,6 +549,84 @@ describe('requiring single sign-on', () => {
     });
     expect((await browser.get('/api/user').expect(200)).body.mfaEnrollmentRequired).toBe(false);
     await browser.get('/api/probe').expect(200);
+  });
+
+  it("vouches for its own organization only: another one's provider does not meet the policy", async () => {
+    // Two organizations, each with its own provider; Ada belongs to both.
+    const a = await owner();
+    await a.agent.put('/api/organization/sso').send(settings()).expect(200);
+    const [orgB] = await privilegedDb.insert(organizations).values({ name: 'B' }).returning();
+    await member(orgB.id, 'bea@other.example', 'owner');
+    const b = request.agent(app);
+    await b
+      .post('/api/login')
+      .send({ username: 'bea@other.example', password: 'password123' })
+      .expect(200);
+    await b
+      .put('/api/organization/sso')
+      .send(settings({ domains: ['other.example'], required: true }))
+      .expect(200);
+
+    const { browser } = await ssoSignIn('ada@example.com', {
+      sub: 'ada-1',
+      email: 'ada@example.com',
+    });
+    const ada = (await browser.get('/api/user').expect(200)).body;
+    expect(ada).toMatchObject({ organizationId: a.organizationId, signedInWithSso: true });
+    await privilegedDb.transaction((tx) => joinOrganization(tx, ada.id, orgB.id, 'editor'));
+
+    // A's sign-in does not open B, which requires its own provider.
+    const refused = await browser
+      .post('/api/organizations/switch')
+      .send({ organizationId: orgB.id })
+      .expect(403);
+    expect(refused.body.code).toBe('sso_required');
+    await browser.get('/api/probe').expect(200);
+
+    // Not required at the switch, then turned on: the session acting in B ends, as a password one.
+    await b
+      .put('/api/organization/sso')
+      .send(settings({ domains: ['other.example'], clientSecret: '', required: false }))
+      .expect(200);
+    const switched = await browser
+      .post('/api/organizations/switch')
+      .send({ organizationId: orgB.id })
+      .expect(200);
+    expect(switched.body).toMatchObject({ organizationId: orgB.id, signedInWithSso: false });
+    await browser.get('/api/probe').expect(200);
+    // Back in A, its provider's sign-in counts again.
+    const back = await browser
+      .post('/api/organizations/switch')
+      .send({ organizationId: a.organizationId })
+      .expect(200);
+    expect(back.body.signedInWithSso).toBe(true);
+    await browser.post('/api/organizations/switch').send({ organizationId: orgB.id }).expect(200);
+    await b
+      .put('/api/organization/sso')
+      .send(settings({ domains: ['other.example'], clientSecret: '', required: true }))
+      .expect(200);
+    expect((await browser.get('/api/probe').expect(401)).body.code).toBe('sso_required');
+
+    // B's second factor is asked of a session A's provider opened.
+    await b
+      .put('/api/organization/sso')
+      .send(settings({ domains: ['other.example'], clientSecret: '', required: false }))
+      .expect(200);
+    await privilegedDb
+      .update(organizations)
+      .set({ mfaRequired: true })
+      .where(eq(organizations.id, orgB.id));
+    const again = await ssoSignIn('ada@example.com', { sub: 'ada-1', email: 'ada@example.com' });
+    await again.browser
+      .post('/api/organizations/switch')
+      .send({ organizationId: orgB.id })
+      .expect(200);
+    expect((await again.browser.get('/api/user').expect(200)).body.mfaEnrollmentRequired).toBe(
+      true,
+    );
+    expect((await again.browser.get('/api/probe').expect(403)).body.code).toBe(
+      'mfa_enrollment_required',
+    );
   });
 });
 
