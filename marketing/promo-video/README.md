@@ -154,7 +154,7 @@ points at another one.
 To start over: delete the organization as maya (`DELETE /api/organization` with
 `{"confirmName":"Northwind Commerce"}`) and repeat from step 2.
 
-**What is staged, and what is not.** The storefront (`demo/shop`) is a demo app built for the
+**What is staged, and what is not.** The storefront (`client/public/demo-shop`, also the sample project's) is a demo app built for the
 video; one of its tests fails on purpose (the promo banner) so there is a failure to explain.
 Every test, run, result, log, video and trace on screen is real, and the live clips are real
 sessions, sped up to fit their scene. Only the dates of the runs are moved (step 4), so the trend

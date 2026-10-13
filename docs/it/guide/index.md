@@ -88,6 +88,24 @@ Due cose conviene prepararle prima del primo test, in **Impostazioni**:
   <code v-pre>{{nome}}</code>, così lo stesso test gira su Staging o su Produzione scegliendo
   l'ambiente. Vedi [Variabili e ambienti](./web-tests#variabili-e-ambienti).
 
+## Partire da un progetto di esempio
+
+La dashboard di una nuova organizzazione propone **Parti da un progetto di esempio** a editor e
+owner finché l'organizzazione non ha test suoi. **Crea progetto di esempio** aggiunge il progetto
+_Northwind Shop (sample)_: cinque test web e tre test API su un piccolo negozio di caffè che questa
+installazione serve da sé su `/demo-shop`, e quattro piani che li eseguono. Il primo piano,
+_Sample · Checkout smoke_, parte subito e si apre il report di quel run: in un minuto vedi un run
+vero. Gli altri sono in **Test plans**: _Storefront regression_ esegue tutti i percorsi su
+Chromium, Firefox e WebKit, _Orders API contract_ crea un ordine e lo rilegge con il numero
+restituito dalla prima chiamata, e _Catalog checks (fails on purpose)_ fallisce sul controllo del
+banner, per mostrare com'è un fallimento: lo step, lo screenshot, il video e la trace.
+
+È tutto normale: modifica i test, esegui i piani, elimina progetto e test quando non servono più.
+**Non ora** nasconde la proposta, in questo browser. Se la tua organizzazione revisiona i test prima
+di eseguirli, il primo run non parte: pubblica i test di esempio, poi esegui i piani. Se i run non
+raggiungono il negozio, un amministratore imposta `DEMO_SHOP_URL`
+([Configurazione](../admin/configuration)).
+
 ## Il primo test, dall'inizio alla fine
 
 1. **Crea Test**: inserite l'indirizzo dell'applicazione e **Carica Sito**, poi **Rileva

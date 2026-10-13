@@ -5086,6 +5086,17 @@
     "invalid": "Questo invito non è valido per il tuo account: potrebbe essere scaduto, già usato, o destinato a un altro username.",
     "back": "Torna all'applicazione"
   },
+  "sampleProject": {
+    "title": "Parti da un progetto di esempio",
+    "description": "Test web e API su un negozio demo ospitato da questo server, con i piani che li eseguono. Il primo piano parte subito, così in un minuto apri un report vero. Puoi eliminarlo quando vuoi.",
+    "create": "Crea progetto di esempio",
+    "creating": "Creazione…",
+    "notNow": "Non ora",
+    "created": "Progetto di esempio creato",
+    "running": "Il suo primo piano è in esecuzione: ecco il report.",
+    "notStarted": "Il primo run non è partito: {{reason}}",
+    "failed": "Non è stato possibile creare il progetto di esempio."
+  },
   "whatsNew": {
     "title": "Novità",
     "description": "Cosa è cambiato in questa installazione, dal più recente. Ogni modifica porta alla pull request che l’ha introdotta.",

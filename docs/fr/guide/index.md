@@ -100,6 +100,25 @@ Deux choses valent la peine d'être configurées avant le premier test, dans **P
   ainsi sur Staging ou sur Production selon l'environnement choisi. Voir
   [Variables et environnements](./web-tests#variables-and-environments).
 
+## Commencer avec un projet d’exemple
+
+Le tableau de bord d’une nouvelle organisation propose **Commencer avec un projet d’exemple** aux
+éditeurs et aux propriétaires tant que l’organisation n’a pas de tests à elle. **Créer le projet
+d’exemple** ajoute le projet _Northwind Shop (sample)_ : cinq tests web et trois tests API sur une
+petite boutique de café que cette installation sert elle-même à `/demo-shop`, et quatre plans qui
+les exécutent. Le premier plan, _Sample · Checkout smoke_, démarre aussitôt et le rapport de cette
+exécution s’ouvre : en une minute, vous voyez une vraie exécution. Les autres sont dans
+**Test plans** : _Storefront regression_ exécute tous les parcours sur Chromium, Firefox et WebKit,
+_Orders API contract_ passe une commande puis la relit avec le numéro renvoyé par le premier appel,
+et _Catalog checks (fails on purpose)_ échoue sur le contrôle de la bannière, pour montrer à quoi
+ressemble un échec : l’étape, la capture d’écran, la vidéo et la trace.
+
+Tout y est ordinaire : modifiez les tests, exécutez les plans, supprimez le projet et les tests
+quand vous n’en avez plus besoin. **Plus tard** masque la proposition, dans ce navigateur. Si votre
+organisation fait relire les tests avant de les exécuter, la première exécution ne démarre pas :
+publiez les tests d’exemple, puis exécutez ses plans. Si les exécutions n’atteignent pas la
+boutique, un administrateur définit `DEMO_SHOP_URL` ([Configuration](/en/admin/configuration)).
+
 ## Votre premier test, de bout en bout
 
 1. **Créer un Test** : saisissez l'adresse de l'application, **Charger le site**, puis **Détecter
