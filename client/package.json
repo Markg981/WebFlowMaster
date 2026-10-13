@@ -73,7 +73,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@replit/vite-plugin-cartographer": "^0.2.7",
+    "@replit/vite-plugin-cartographer": "^0.6.1",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.15",
