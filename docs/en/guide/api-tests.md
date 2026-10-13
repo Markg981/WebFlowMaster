@@ -64,6 +64,12 @@ Comparisons: equals, not equals, contains, not contains, exists, not exists, is 
 empty, greater than, less than (or equal), matches regex, not matches regex. An assertion can be
 switched off without being deleted. The test passes when every enabled assertion does.
 
+The **response time** runs from sending the request to the last byte of the body, not to the
+headers: a body that trickles in counts in full. The 30-second timeout covers the whole transfer
+too, and a body cut short fails the test with the reason. A body larger than 50 MiB fails the test
+without being read further; the administrator can change the limit with
+[`API_RESPONSE_MAX_BYTES`](../admin/configuration.md).
+
 ## Captures: passing values on {#captures}
 
 A **capture** takes a value out of the answer — a token, the id of what was created — and names it.

@@ -41,6 +41,44 @@ import {
  */
 
 const REQUEST_TIMEOUT_MS = 30_000;
+/**
+ * The most of a response body a test reads before failing. The body is held in memory,
+ * parsed and stored with the result, so an endpoint streaming without end must not be able
+ * to take the server down with it. `API_RESPONSE_MAX_BYTES` overrides it.
+ */
+const RESPONSE_MAX_BYTES = Number(process.env.API_RESPONSE_MAX_BYTES) || 50 * 1024 * 1024;
+
+/** Limits of one HTTP exchange; the defaults apply when left out. */
+export interface ApiRequestLimits {
+  /** Until the last byte of the body, not only the headers. */
+  timeoutMs?: number;
+  maxBodyBytes?: number;
+}
+
+/** Reads a body up to `maxBytes`, cancelling the stream as soon as it goes beyond. */
+async function readBodyText(response: Response, maxBytes: number): Promise<string> {
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new ResponseTooLargeError(maxBytes);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+class ResponseTooLargeError extends Error {
+  constructor(maxBytes: number) {
+    super(`Response body larger than ${maxBytes} bytes`);
+  }
+}
 
 /** Where a value comes from — the same vocabulary the assertions use. */
 export type ExtractionSource =
@@ -162,7 +200,10 @@ export interface ApiRunResult {
   statusText?: string;
   headers: Record<string, string>;
   body: unknown;
+  /** From sending the request to the last byte of the response body. */
   durationMs: number;
+  /** From sending the request to the response headers (time to first byte). */
+  ttfbMs?: number;
   assertions: AssertionOutcome[];
   /** Captured values, ready to be merged into the variables of the next request. */
   extracted: Record<string, string>;
@@ -522,6 +563,7 @@ export async function runApiRequest(
   vars: Record<string, string>,
   // Where the request is sent from: this server, or a local agent (server/runtime/agents/agent-fetch.ts).
   fetchImpl: OneConnectionFetch = fetchTarget,
+  limits: ApiRequestLimits = {},
 ): Promise<ApiRunResult> {
   const startTime = Date.now();
   const empty = {
@@ -623,11 +665,19 @@ export async function runApiRequest(
     return { ...empty, passed: false, durationMs: Date.now() - startTime, error: auth };
   }
 
+  const timeoutMs = limits.timeoutMs ?? REQUEST_TIMEOUT_MS;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   options.signal = controller.signal;
 
-  let response: Response;
+  // The timeout and the error handling hold until the last byte of the body: a response
+  // whose headers arrive at once and whose body trickles in is as slow as its body, and the
+  // response_time assertions and the load statistics measure it that way.
+  let response: Response | undefined;
+  const responseHeaders: Record<string, string> = {};
+  let ttfbMs: number | undefined;
+  let text: string;
+  let durationMs: number;
   try {
     const sent = auth
       ? await sendWithChallenge(auth, fetchImpl, targetUrl, options)
@@ -636,29 +686,34 @@ export async function runApiRequest(
       return { ...empty, passed: false, durationMs: Date.now() - startTime, error: sent.error };
     }
     response = sent;
+    ttfbMs = Date.now() - startTime;
+    response.headers.forEach((value, key) => {
+      responseHeaders[key.toLowerCase()] = value;
+    });
+    text = await readBodyText(response, limits.maxBodyBytes ?? RESPONSE_MAX_BYTES);
+    durationMs = Date.now() - startTime;
   } catch (e: any) {
-    // A target that is down is a failed test, not a crashed runner: the plan has other
-    // tests to run, and this one's result is "could not reach it".
+    // A target that is down, or a body cut short, is a failed test, not a crashed runner:
+    // the plan has other tests to run, and this one's result is "could not complete it".
     return {
       ...empty,
       passed: false,
+      ...(response && {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+        ttfbMs,
+      }),
       durationMs: Date.now() - startTime,
       error:
-        e?.name === 'AbortError'
-          ? `Request timed out after ${REQUEST_TIMEOUT_MS}ms`
+        e?.name === 'AbortError' || controller.signal.aborted
+          ? `Request timed out after ${timeoutMs}ms`
           : String(e?.message ?? e),
     };
   } finally {
     clearTimeout(timeout);
   }
 
-  const durationMs = Date.now() - startTime;
-  const responseHeaders: Record<string, string> = {};
-  response.headers.forEach((value, key) => {
-    responseHeaders[key.toLowerCase()] = value;
-  });
-
-  const text = await response.text();
   let body: unknown = text;
   const contentType = response.headers.get('content-type');
   if (contentType?.includes('application/json') && text) {
@@ -677,6 +732,7 @@ export async function runApiRequest(
     headers: responseHeaders,
     body,
     durationMs,
+    ttfbMs,
   };
 }
 
