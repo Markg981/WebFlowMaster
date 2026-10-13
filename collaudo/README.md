@@ -2,7 +2,7 @@
 
 ## Pagina di collaudo locale
 
-Catalogo corrente: protocollo **59**, **600 casi** in **25 aree**. SEC-48 verifica che chi accede dopo un altro nella stessa scheda non veda i dati del precedente dalla cache. SSO-35 verifica che l'accesso
+Catalogo corrente: protocollo **60**, **602 casi** in **25 aree**. SEC-49 e SEC-50 verificano che il cambio di organizzazione valga solo per la sessione che lo fa e che una chiave API resti nella propria organizzazione. SEC-48 verifica che chi accede dopo un altro nella stessa scheda non veda i dati del precedente dalla cache. SSO-35 verifica che l'accesso
 tramite il provider di un'organizzazione non soddisfi i requisiti SSO e MFA di un'altra. AUT-01…AUT-09 coprono
 MFA, OIDC, review/pubblicazione, authoring ed eliminazione mobile, quote e annullamento,
 con verifiche dei permessi dalla UI; procedura in [critical-ui-e2e.md](./critical-ui-e2e.md).

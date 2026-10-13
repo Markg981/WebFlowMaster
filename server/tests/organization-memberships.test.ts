@@ -236,16 +236,14 @@ describe('switching', () => {
     await privilegedDb.transaction((tx) => joinOrganization(tx, alice.id, orgB, 'viewer'));
     const key = (organizationId: number) => {
       const { hashedKey, prefix } = generateApiKey();
-      return privilegedDb
-        .insert(apiKeys)
-        .values({
-          id: randomUUID(),
-          organizationId,
-          userId: alice.id,
-          name: 'CI',
-          prefix,
-          hashedKey,
-        });
+      return privilegedDb.insert(apiKeys).values({
+        id: randomUUID(),
+        organizationId,
+        userId: alice.id,
+        name: 'CI',
+        prefix,
+        hashedKey,
+      });
     };
     await key(alice.organizationId);
 
