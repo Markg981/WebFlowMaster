@@ -31,6 +31,7 @@ import {
   type BrowserTaskEnvelope,
 } from './web/browser-tasks';
 import { RunnerAgent, type PausableQueue } from './runtime/runner-registry';
+import { closeConsumers } from './runtime/worker-shutdown';
 import { registerCommitStatus } from './integrations/commit-status';
 import { registerRunPromotion } from './execution/run-promotion';
 import { installWorkerLogEmitter } from './http/websocket';
@@ -324,9 +325,8 @@ configureEgressProxy();
     }, shutdownGraceMs);
     forceTimer.unref();
     try {
-      await worker.close(); // waits for the active job to complete
-      await browserTaskWorker.close();
-      await loadWorker?.close();
+      // All three stop taking jobs at once, then wait for the ones in hand (worker-shutdown.ts).
+      await closeConsumers([worker, browserTaskWorker, ...(loadWorker ? [loadWorker] : [])]);
       // Offline at once, rather than after three missed heartbeats.
       await runner.stop();
       await metricsListener?.close();
