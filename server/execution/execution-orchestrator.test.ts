@@ -16,6 +16,7 @@ import {
   organizations,
   tests as testsTable,
   users,
+  executionOutbox,
 } from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
 import { runWithTenant } from '../platform/middleware/tenancy';
@@ -58,6 +59,8 @@ vi.mock('../runtime/browsers', async (importOriginal) => {
 const { createExecutionOrchestrator, ExecutionEnqueueError, QUEUE_SUBMISSION_FAILED } =
   await import('./execution-orchestrator');
 const { processTestPlanJob } = await import('./test-execution-service');
+const { dispatchPendingSubmissions, OUTBOX_LEASE_MS, OUTBOX_GRACE_MS } =
+  await import('./execution-outbox');
 
 interface CapturedJob {
   name: string;
@@ -917,6 +920,148 @@ describe('enqueue', () => {
   });
 });
 
+describe('a process that stops between creating a run and publishing its job', () => {
+  /**
+   * A queue whose add never returns: the process is gone at the moment it was about to hand the
+   * job over — after the run was committed, before the queue had anything.
+   */
+  function stalledQueue() {
+    let reached!: () => void;
+    const publishing = new Promise<void>((resolve) => (reached = resolve));
+    return {
+      publishing,
+      add: () => {
+        reached();
+        return new Promise<never>(() => {});
+      },
+    };
+  }
+
+  async function strandedRun(timing: { leaseMs?: number } = {}) {
+    const stalled = stalledQueue();
+    void createExecutionOrchestrator(stalled, timing).enqueue({
+      planId,
+      requestedByUserId: userId,
+      trigger: 'api',
+      idempotencyKey: 'pipeline-build-7',
+    });
+    await stalled.publishing;
+    const [run] = await privilegedDb.select().from(testPlanExecutions);
+    return run;
+  }
+
+  const pending = () => privilegedDb.select().from(executionOutbox);
+  const afterTheLease = () => new Date(Date.now() + OUTBOX_LEASE_MS + 1_000);
+
+  it('leaves the job written down with the run, and the dispatcher publishes it after a restart', async () => {
+    const run = await strandedRun();
+
+    expect(run.status).toBe('queued');
+    expect(await pending()).toMatchObject([{ executionId: run.id, organizationId }]);
+
+    // A new process: its own queue, nothing in memory from the one that stopped.
+    const queue = capturingQueue();
+    const report = await dispatchPendingSubmissions(queue, { now: afterTheLease() });
+
+    expect(report.published).toEqual([run.id]);
+    expect(queue.jobs).toHaveLength(1);
+    expect(queue.jobs[0]).toMatchObject({
+      name: 'execute-plan',
+      data: { executionId: run.id, testPlanRunId: run.id, planId },
+      options: { jobId: run.id },
+    });
+    expect(await pending()).toHaveLength(0);
+    expect(await executionRow(run.id)).toMatchObject({ status: 'queued' });
+  });
+
+  it('does not publish a row another process still holds, or one its request may still publish', async () => {
+    await strandedRun();
+    const queue = capturingQueue();
+
+    expect(await dispatchPendingSubmissions(queue)).toMatchObject({ published: [] });
+    // The lease kept the row before; once it is released, the grace period still does.
+    await privilegedDb.update(executionOutbox).set({ leaseUntil: null });
+    expect(await dispatchPendingSubmissions(queue)).toMatchObject({ published: [] });
+    expect(queue.jobs).toHaveLength(0);
+
+    const later = new Date(Date.now() + OUTBOX_GRACE_MS + 1_000);
+    expect((await dispatchPendingSubmissions(queue, { now: later })).published).toHaveLength(1);
+  });
+
+  it('publishes the stranded job when the request is repeated with its key', async () => {
+    const run = await strandedRun({ leaseMs: 0 });
+    const queue = capturingQueue();
+
+    const again = await createExecutionOrchestrator(queue).enqueue({
+      planId,
+      requestedByUserId: userId,
+      trigger: 'api',
+      idempotencyKey: 'pipeline-build-7',
+    });
+
+    expect(again.id).toBe(run.id);
+    expect(queue.jobs.map((job) => job.options.jobId)).toEqual([run.id]);
+    expect(await pending()).toHaveLength(0);
+  });
+
+  it('retries a job the queue refuses, and gives the run up after its last attempt', async () => {
+    const run = await strandedRun();
+    const refusing = {
+      add: async () => {
+        throw new Error('connect ECONNREFUSED 127.0.0.1:6379');
+      },
+    };
+    const now = afterTheLease();
+
+    // The stopped request's claim was the first attempt.
+    const first = await dispatchPendingSubmissions(refusing, { now, maxAttempts: 3 });
+    expect(first).toMatchObject({ failed: [run.id], abandoned: [] });
+    expect(await pending()).toMatchObject([{ attempts: 2, leaseUntil: null }]);
+    expect((await pending())[0].lastError).toContain('ECONNREFUSED');
+    // Backing off: not tried again straight away.
+    expect(await dispatchPendingSubmissions(refusing, { now, maxAttempts: 3 })).toMatchObject({
+      failed: [],
+    });
+
+    const muchLater = new Date(now.getTime() + 10 * 60_000);
+    const last = await dispatchPendingSubmissions(refusing, { now: muchLater, maxAttempts: 3 });
+    expect(last).toMatchObject({ abandoned: [run.id] });
+    expect(await executionRow(run.id)).toMatchObject({
+      status: 'error',
+      failureCode: QUEUE_SUBMISSION_FAILED,
+    });
+    expect(await pending()).toHaveLength(0);
+  });
+
+  it('drops the job of a run that ended while it waited', async () => {
+    const run = await strandedRun();
+    await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status: 'error', failureCode: 'plan_deleted' })
+      .where(eq(testPlanExecutions.id, run.id));
+    const queue = capturingQueue();
+
+    expect(await dispatchPendingSubmissions(queue, { now: afterTheLease() })).toMatchObject({
+      published: [],
+    });
+    expect(queue.jobs).toHaveLength(0);
+    expect(await pending()).toHaveLength(0);
+  });
+
+  it('leaves nothing pending once a run is published, or once the queue refused it', async () => {
+    const queue = capturingQueue();
+    const orchestrator = createExecutionOrchestrator(queue);
+    await orchestrator.enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    expect(await pending()).toHaveLength(0);
+
+    queue.failOnce();
+    await orchestrator
+      .enqueue({ planId, requestedByUserId: userId, trigger: 'manual' })
+      .catch(() => null);
+    expect(await pending()).toHaveLength(0);
+  });
+});
+
 describe('retrying a failed run', () => {
   async function failedRun(
     maxAttempts: number,
@@ -959,7 +1104,12 @@ describe('retrying a failed run', () => {
       requestedByUserId: userId,
     });
     expect(retry!.configurationSnapshot).toEqual(first.configurationSnapshot);
-    expect(queue.jobs.at(-1)).toMatchObject({ options: { jobId: retry!.id, delay: 30_000 } });
+    // Counted from when the retry was written down, so the publish a moment later may take a few
+    // milliseconds off it.
+    const job = queue.jobs.at(-1) as unknown as { options: { jobId: string; delay: number } };
+    expect(job.options.jobId).toBe(retry!.id);
+    expect(job.options.delay).toBeGreaterThan(29_000);
+    expect(job.options.delay).toBeLessThanOrEqual(30_000);
   });
 
   it('queues one retry however many times the same attempt is reported finished', async () => {

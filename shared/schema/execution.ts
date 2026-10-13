@@ -243,6 +243,38 @@ export const testPlanExecutions = pgTable(
   ],
 );
 
+/**
+ * A run's job that has not reached the queue yet (migration 0090) — the transactional outbox of
+ * server/execution/execution-outbox.ts. Written in the transaction that creates the run, deleted
+ * once the queue has the job, so a process that stops in between leaves a row somebody picks up.
+ */
+export const executionOutbox = pgTable(
+  'execution_outbox',
+  {
+    executionId: text('execution_id')
+      .primaryKey()
+      .references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    /** The job's data, as the worker reads it. */
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+    priority: integer('priority').notNull().default(1),
+    /** When the job should start: a retry's delay is counted from the request, not the publish. */
+    runAt: timestamp('run_at').notNull().defaultNow(),
+    /** Before this the dispatcher leaves the row alone: the request that wrote it publishes it. */
+    availableAt: timestamp('available_at').notNull().defaultNow(),
+    /** Whoever claimed the row owns it until then; after, a crashed claimer's row is free again. */
+    leaseUntil: timestamp('lease_until'),
+    attempts: integer('attempts').notNull().default(0),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [index('execution_outbox_available_at_idx').on(table.availableAt)],
+);
+
+export type ExecutionOutboxEntry = typeof executionOutbox.$inferSelect;
+
 export const reportTestCaseResults = pgTable(
   'report_test_case_results',
   {

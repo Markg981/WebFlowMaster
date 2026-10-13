@@ -16,6 +16,8 @@ export const ORG_SCOPED_TABLES = [
   'test_plans',
   'test_plan_schedules',
   'test_plan_executions',
+  // A run's job not yet handed to the queue (migration 0090), deleted once it is.
+  'execution_outbox',
   'test_plan_selected_tests',
   'test_plan_webhooks',
   'report_test_case_results',
