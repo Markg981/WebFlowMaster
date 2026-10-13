@@ -2,19 +2,19 @@ import { loader } from '@monaco-editor/react';
 // The editor and its standard features (find, folding, context menu), without the language
 // bundle: 'monaco-editor' itself brings every language Monaco ships and the TypeScript service,
 // about 3 MB the API tester never used.
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
-import 'monaco-editor/esm/vs/editor/editor.all';
+import * as monaco from 'monaco-editor/editor';
+import 'monaco-editor/features/register.all';
 // The languages the API tester shows: JSON and HTML with their language services (validation,
 // folding), XML, GraphQL, CSS and JavaScript highlighted only.
-import 'monaco-editor/esm/vs/language/json/monaco.contribution';
-import 'monaco-editor/esm/vs/language/html/monaco.contribution';
-import 'monaco-editor/esm/vs/basic-languages/xml/xml.contribution';
-import 'monaco-editor/esm/vs/basic-languages/graphql/graphql.contribution';
-import 'monaco-editor/esm/vs/basic-languages/css/css.contribution';
-import 'monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution';
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
-import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
+import 'monaco-editor/languages/features/json/register';
+import 'monaco-editor/languages/features/html/register';
+import 'monaco-editor/languages/definitions/xml/register';
+import 'monaco-editor/languages/definitions/graphql/register';
+import 'monaco-editor/languages/definitions/css/register';
+import 'monaco-editor/languages/definitions/javascript/register';
+import editorWorker from 'monaco-editor/editor/editor.worker?worker';
+import jsonWorker from 'monaco-editor/languages/features/json/json.worker?worker';
+import htmlWorker from 'monaco-editor/languages/features/html/html.worker?worker';
 
 /**
  * The code editor, served by this installation rather than fetched from a CDN.
