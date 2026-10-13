@@ -99,6 +99,25 @@ Zwei Dinge lohnen sich vor dem ersten Test, unter **Einstellungen**:
   Staging oder Produktion läuft. Siehe
   [Variablen und Umgebungen](./web-tests#variables-and-environments).
 
+## Mit einem Beispielprojekt beginnen
+
+Das Dashboard einer neuen Organisation bietet Editoren und Ownern **Mit einem Beispielprojekt
+beginnen** an, solange die Organisation keine eigenen Tests hat. **Beispielprojekt anlegen** fügt
+das Projekt _Northwind Shop (sample)_ hinzu: fünf Web-Tests und drei API-Tests gegen einen kleinen
+Kaffeeshop, den diese Installation selbst unter `/demo-shop` bereitstellt, und vier Pläne, die sie
+ausführen. Der erste Plan, _Sample · Checkout smoke_, startet sofort, und der Bericht dieses Laufs
+öffnet sich: Nach einer Minute sehen Sie einen echten Lauf. Die übrigen stehen unter
+**Test plans**: _Storefront regression_ führt alle Abläufe in Chromium, Firefox und WebKit aus,
+_Orders API contract_ legt eine Bestellung an und liest sie mit der Nummer aus dem ersten Aufruf
+wieder, und _Catalog checks (fails on purpose)_ scheitert an der Banner-Prüfung, um zu zeigen, wie
+ein Fehlschlag aussieht: der Schritt, der Screenshot, das Video und der Trace.
+
+Alles daran ist gewöhnlich: Ändern Sie die Tests, führen Sie die Pläne aus, löschen Sie Projekt und
+Tests, wenn Sie sie nicht mehr brauchen. **Später** blendet das Angebot aus, in diesem Browser. Wenn
+Ihre Organisation Tests vor der Ausführung prüft, startet der erste Lauf nicht: Veröffentlichen Sie
+die Beispieltests und führen Sie dann die Pläne aus. Erreichen die Läufe den Shop nicht, setzt ein
+Administrator `DEMO_SHOP_URL` ([Konfiguration](/en/admin/configuration)).
+
 ## Ihr erster Test, von Anfang bis Ende
 
 1. **Test erstellen**: Geben Sie die Adresse der Anwendung ein, **Website laden**, dann **Elemente

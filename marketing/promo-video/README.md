@@ -37,24 +37,25 @@ perché i feed partono senza audio.
 line the voice says over it, in both languages. The video, the voice-over and the captions all
 read it. The 60-second cut:
 
-| Scene      | Seconds   | Shows                                                                  |
-| ---------- | --------- | ---------------------------------------------------------------------- |
-| Hook       | 0–4.5     | "Every release. Every browser. Every click, by hand?"                  |
-| Logo       | 4.5–7.5   | The mark and the tagline                                               |
-| Build      | 7.5–18.5  | Live: the recorder capturing a sign-in; steps from a description; pass |
-| Beyond     | 18.5–25.5 | A Gherkin feature; live: the mobile inspector on the Android emulator  |
-| APIs       | 25.5–30   | The API tester: request, assertions, captures                          |
-| Run        | 30–37     | Live: a plan running on Chromium, Firefox and WebKit, log streaming    |
-| Understand | 37–44     | The evidence of a failed step: video, trace, network, the error        |
-| Measure    | 44–49     | The dashboard: success rate, trend, schedules                          |
-| Connect    | 49–54     | CI/CD, GitHub/GitLab, Jira/Azure DevOps, webhooks, agents, SSO/MFA     |
-| CTA        | 54–60     | "Request a demo", the demo page address, the contact                   |
+| Scene      | Seconds   | Shows                                                                          |
+| ---------- | --------- | ------------------------------------------------------------------------------ |
+| Hook       | 0–4.5     | "Every release. Every browser. Every click, by hand?"                          |
+| Logo       | 4.5–7.5   | The mark and the tagline                                                       |
+| Build      | 7.5–18.5  | Live: the recorder capturing a sign-in; steps from a description; pass         |
+| Beyond     | 18.5–25.5 | A Gherkin feature; live: the mobile inspector on the Android emulator          |
+| APIs       | 25.5–30   | The API tester: request, assertions, captures                                  |
+| Run        | 30–37     | Live: a plan running on Chromium, Firefox and WebKit, log streaming            |
+| Understand | 37–44     | The evidence of a failed step: video, trace, network, the error                |
+| Measure    | 44–49     | The dashboard: success rate, trend, schedules                                  |
+| Connect    | 49–54     | CI/CD, GitHub/GitLab, Jira/Azure DevOps, Slack/Teams/webhooks, agents, SSO/MFA |
+| CTA        | 54–60     | "Request a demo", the demo page address, the contact                           |
 
 The 30-second cut keeps hook, build, beyond, run, report and CTA; the 15-second one hook, build,
 report and CTA. Each scene lays out its shots in proportion to its length, so a cut is only a
 list of scenes and seconds. The on-screen copy is in `video/src/Promo.tsx`, its Italian in
 `video/src/copy.tsx`; `scripts/promo-video.test.ts` fails if an overlay has no Italian, a cut
 does not last what its name says, or the committed captions no longer match the narration.
+The capabilities the overlays and the voice name are listed in `../claims.json`.
 
 ## Render
 
@@ -153,7 +154,7 @@ points at another one.
 To start over: delete the organization as maya (`DELETE /api/organization` with
 `{"confirmName":"Northwind Commerce"}`) and repeat from step 2.
 
-**What is staged, and what is not.** The storefront (`demo/shop`) is a demo app built for the
+**What is staged, and what is not.** The storefront (`client/public/demo-shop`, also the sample project's) is a demo app built for the
 video; one of its tests fails on purpose (the promo banner) so there is a failure to explain.
 Every test, run, result, log, video and trace on screen is real, and the live clips are real
 sessions, sped up to fit their scene. Only the dates of the runs are moved (step 4), so the trend

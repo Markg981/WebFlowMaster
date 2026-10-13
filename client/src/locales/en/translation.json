@@ -5088,6 +5088,17 @@
     "invalid": "This invitation is not valid for your account: it may have expired, been used, or be meant for another username.",
     "back": "Back to the app"
   },
+  "sampleProject": {
+    "title": "Start with a sample project",
+    "description": "Web and API tests against a demo shop this server hosts, with plans that run them. The first plan starts right away, so you can open a real report in a minute. Delete it whenever you like.",
+    "create": "Create sample project",
+    "creating": "Creating…",
+    "notNow": "Not now",
+    "created": "Sample project created",
+    "running": "Its first plan is running: here is its report.",
+    "notStarted": "Its first run did not start: {{reason}}",
+    "failed": "The sample project could not be created."
+  },
   "whatsNew": {
     "title": "What’s new",
     "description": "What changed in this installation, newest first. Each change links to the pull request that made it.",

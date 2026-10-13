@@ -600,7 +600,7 @@ const CHIPS: Array<
   [Terminal, 'CI/CD, CLI & REST API'],
   [GitBranch, 'GitHub & GitLab checks'],
   [Ticket, 'Jira & Azure DevOps issues'],
-  [BellRing, 'Webhook notifications'],
+  [BellRing, 'Slack, Teams & webhook alerts'],
   [Radar, 'Agents for private networks'],
   [ShieldCheck, 'SSO, MFA & audit log'],
 ];

@@ -90,6 +90,24 @@ Two things are worth setting up before the first test, in **Settings**:
   <code v-pre>{{name}}</code>, so the same test runs against Staging or Production by choosing the
   environment. See [Variables and environments](./web-tests#variables-and-environments).
 
+## Starting from a sample project
+
+A new organization's dashboard offers **Start with a sample project** to editors and owners until
+the organization has tests of its own. **Create sample project** adds the project
+_Northwind Shop (sample)_: five web tests and three API tests against a small coffee shop that this
+installation serves itself at `/demo-shop`, and four plans that run them. Its first plan,
+_Sample · Checkout smoke_, starts at once and the report of that run opens, so you see a real run
+within a minute. The others are in **Test plans**: _Storefront regression_ runs every journey on
+Chromium, Firefox and WebKit, _Orders API contract_ places an order and reads it back by the number
+the first call returned, and _Catalog checks (fails on purpose)_ fails on its banner check, to show
+what a failure looks like — the step, the screenshot, the video and the trace.
+
+Everything in it is ordinary: change the tests, run the plans, delete the project and the tests when
+you no longer need them. **Not now** hides the offer, in this browser. Where your organization
+reviews tests before they run, the first run does not start: publish the sample tests, then run its
+plans. If the runs cannot reach the shop, an administrator sets `DEMO_SHOP_URL`
+([Configuration](../admin/configuration)).
+
 ## Your first test, end to end
 
 1. **Create Test**: enter the address of the application and **Load Website**, then

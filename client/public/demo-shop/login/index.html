@@ -4,13 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Sign in · Northwind Shop</title>
-    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="../style.css" />
   </head>
   <body>
     <header>
       <div class="brand">Northwind <span>Shop</span></div>
       <nav>
-        <a href="/catalog/">Catalog</a><a href="/checkout/">Cart</a><a href="/login/">Account</a>
+        <a href="../catalog/">Catalog</a><a href="../checkout/">Cart</a
+        ><a href="../login/">Account</a>
       </nav>
     </header>
     <main>
@@ -27,16 +28,6 @@
         </form>
       </div>
     </main>
-    <script>
-      document.getElementById('login-form').addEventListener('submit', function (event) {
-        event.preventDefault();
-        var ok =
-          document.getElementById('username').value === 'maya.chen' &&
-          document.getElementById('password').value === 'Coffee-2026';
-        var flash = document.getElementById('flash');
-        flash.className = 'flash ' + (ok ? 'ok' : 'err');
-        flash.textContent = ok ? 'Welcome back, Maya!' : 'Wrong username or password.';
-      });
-    </script>
+    <script src="../shop.js"></script>
   </body>
 </html>

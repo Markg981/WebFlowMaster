@@ -5088,6 +5088,17 @@
     "invalid": "Cette invitation n'est pas valable pour votre compte : elle a peut-être expiré, déjà été utilisée, ou est destinée à un autre nom d'utilisateur.",
     "back": "Retour à l'application"
   },
+  "sampleProject": {
+    "title": "Commencer avec un projet d’exemple",
+    "description": "Des tests web et API sur une boutique de démonstration hébergée par ce serveur, avec les plans qui les exécutent. Le premier plan démarre aussitôt : en une minute, vous ouvrez un vrai rapport. Supprimez-le quand vous voulez.",
+    "create": "Créer le projet d’exemple",
+    "creating": "Création…",
+    "notNow": "Plus tard",
+    "created": "Projet d’exemple créé",
+    "running": "Son premier plan s’exécute : voici son rapport.",
+    "notStarted": "Sa première exécution n’a pas démarré : {{reason}}",
+    "failed": "Le projet d’exemple n’a pas pu être créé."
+  },
   "whatsNew": {
     "title": "Nouveautés",
     "description": "Ce qui a changé dans cette installation, du plus récent au plus ancien. Chaque changement renvoie à la pull request qui l’a introduit.",

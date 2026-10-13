@@ -5088,6 +5088,17 @@
     "invalid": "Diese Einladung gilt nicht für Ihr Konto: Sie ist möglicherweise abgelaufen, bereits verwendet oder für einen anderen Benutzernamen bestimmt.",
     "back": "Zurück zur Anwendung"
   },
+  "sampleProject": {
+    "title": "Mit einem Beispielprojekt beginnen",
+    "description": "Web- und API-Tests gegen einen Demo-Shop, den dieser Server bereitstellt, mit Plänen, die sie ausführen. Der erste Plan startet sofort, sodass Sie in einer Minute einen echten Bericht öffnen. Sie können es jederzeit löschen.",
+    "create": "Beispielprojekt anlegen",
+    "creating": "Wird angelegt…",
+    "notNow": "Später",
+    "created": "Beispielprojekt angelegt",
+    "running": "Sein erster Plan läuft: hier ist der Bericht.",
+    "notStarted": "Der erste Lauf ist nicht gestartet: {{reason}}",
+    "failed": "Das Beispielprojekt konnte nicht angelegt werden."
+  },
   "whatsNew": {
     "title": "Neuigkeiten",
     "description": "Was sich in dieser Installation geändert hat, neueste zuerst. Jede Änderung verweist auf den Pull Request, der sie eingeführt hat.",
