@@ -420,6 +420,10 @@ export default withMermaid(
     title: 'WebFlowMaster',
     description: 'Documentation for WebFlowMaster, the test automation platform.',
     cleanUrls: true,
+    // `npm run build:docs` builds the copy the application serves under /docs/ (server/static.ts),
+    // which the "?" in the top bar links to; docs:dev, docs:build and the PDFs keep the root.
+    base: process.env.WFM_DOCS_BASE || '/',
+    outDir: process.env.WFM_DOCS_OUT_DIR || undefined,
     // Pages name addresses of a local stack (Mailpit at http://localhost:8025): not reachable from a build.
     ignoreDeadLinks: [/^http:\/\/localhost/],
     lastUpdated: true,

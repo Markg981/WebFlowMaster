@@ -71,6 +71,11 @@ Request jeder Änderung: Es ist die `CHANGELOG.md`, die die Installation enthäl
 die Version, die Sie verwenden. Ein Punkt auf dem Kreis zeigt Änderungen, die Sie noch nicht gelesen
 haben; das Öffnen der Seite entfernt ihn, in diesem Browser.
 
+Das **?** in der oberen Leiste öffnet dieses Handbuch in einem neuen Tab bei dem Abschnitt über die
+Seite, auf der Sie sind (**Hilfe zu dieser Seite** in der Befehlspalette tut dasselbe). Das Handbuch
+ist in Ihrer Sprache, wo es übersetzt ist, sonst auf Englisch; die Installation liefert es selbst
+aus, es beschreibt also die Version, die Sie verwenden, und funktioniert ohne Internetzugang.
+
 Auf einem Telefon ist die Seitenleiste ausgeblendet: Die Schaltfläche **Menü** (☰) links in der
 oberen Leiste öffnet sie als Schublade, die sich schließt, sobald Sie eine Seite wählen oder **Esc**
 drücken. Die Seiten zum Lesen — das Dashboard, **Berichte** und der Bericht eines Laufs — passen in

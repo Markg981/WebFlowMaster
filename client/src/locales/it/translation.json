@@ -2865,7 +2865,9 @@
     "revoke": "Revoca",
     "disable": "Disattiva",
     "reset": "Reimposta",
-    "skipToContent": "Vai al contenuto"
+    "skipToContent": "Vai al contenuto",
+    "help": "Aiuto",
+    "helpForPage": "Aiuto su questa pagina (apre il manuale)"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Nuovo ambiente (es. Staging)",

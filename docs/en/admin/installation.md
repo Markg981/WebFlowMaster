@@ -104,12 +104,13 @@ npm run db:migrate
 
 For development, start the web process and a worker in two terminals (`npm run dev`,
 `npm run dev:worker`) and the client dev server in a third (`npm run dev:client`); the
-[developer guide](../internals/developer-guide) has the details.
+[developer guide](../internals/developer-guide) has the details. The user manual the **?** in the top bar opens is served at `/docs/`;
+`npm run build:docs` builds it into `dist/docs`, which the development server serves as well.
 
 For a production build on a machine or VM:
 
 ```bash
-npm run build                   # client, server, worker, migrator, CLI and agent into dist/
+npm run build                   # client, server, worker, migrator, CLI, agent and manual into dist/
 node dist/apply-migrations.js   # apply migrations with the built migrator
 NODE_ENV=production node dist/index.js
 NODE_ENV=production node dist/worker.js   # on each worker machine

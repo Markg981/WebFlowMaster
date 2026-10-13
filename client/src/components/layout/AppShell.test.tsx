@@ -75,3 +75,13 @@ describe('AppShell what is new', () => {
     expect(screen.queryByTestId('whats-new-dot')).toBeNull();
   });
 });
+
+describe('AppShell contextual help', () => {
+  it('links the "?" to the manual section for the page, in a new tab', () => {
+    renderShell();
+    const help = screen.getByRole('link', { name: /help for this page/i });
+    // The test i18n runs in English; the language and anchor mapping is in scripts/help-links.test.ts.
+    expect(help).toHaveAttribute('href', '/docs/en/guide/results#dashboard');
+    expect(help).toHaveAttribute('target', '_blank');
+  });
+});

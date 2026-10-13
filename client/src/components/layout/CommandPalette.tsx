@@ -2,7 +2,16 @@ import { useEffect, useState, type ElementType } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { LogOut, Moon, Play, Search, Settings as SettingsIcon, Sparkles, Sun } from 'lucide-react';
+import {
+  CircleHelp,
+  LogOut,
+  Moon,
+  Play,
+  Search,
+  Settings as SettingsIcon,
+  Sparkles,
+  Sun,
+} from 'lucide-react';
 import {
   CommandDialog,
   CommandEmpty,
@@ -13,6 +22,7 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { fetchTestPlansAPI } from '@/lib/api/test-plans';
+import { helpUrl } from '@/lib/help-links';
 
 export type PaletteSection = {
   heading: string;
@@ -31,12 +41,13 @@ type Props = {
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 /**
- * Ctrl+K (⌘K on a Mac) from any page: go to a page, run a plan by name, switch theme, sign out.
+ * Ctrl+K (⌘K on a Mac) from any page: go to a page, run a plan by name, open the manual at this
+ * page, switch theme, sign out.
  * The same entries as the sidebar, so a page that disappears from it disappears from here too.
  */
 export function CommandPalette({ sections, canRun, isDark, onToggleTheme, onLogout }: Props) {
-  const { t } = useTranslation();
-  const [, navigate] = useLocation();
+  const { t, i18n } = useTranslation();
+  const [location, navigate] = useLocation();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -121,6 +132,16 @@ export function CommandPalette({ sections, canRun, isDark, onToggleTheme, onLogo
             <CommandItem onSelect={() => run(() => navigate('/whats-new'))}>
               <Sparkles className="mr-2 h-4 w-4" />
               {t('whatsNew.title', 'What’s new')}
+            </CommandItem>
+            <CommandItem
+              onSelect={() =>
+                run(() =>
+                  window.open(helpUrl(location, i18n.resolvedLanguage), '_blank', 'noopener'),
+                )
+              }
+            >
+              <CircleHelp className="mr-2 h-4 w-4" />
+              {t('common.helpForPage', 'Help for this page (opens the manual)')}
             </CommandItem>
             <CommandItem onSelect={() => run(onToggleTheme)}>
               {isDark ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}

@@ -4,7 +4,7 @@ import { billingWebhookBodyParser } from './http/routes/billing-webhooks.routes'
 import { configureEgressProxy } from './platform/egress-proxy';
 import { registerRoutes } from './routes';
 import schedulerService from './execution/scheduler-service';
-import { apiNotFound, serveStatic } from './static';
+import { apiNotFound, serveDocs, serveStatic } from './static';
 import 'dotenv/config';
 import logger, { applyLogSettings, flushLogs } from './platform/logger';
 import { privilegedDb, closeDb, assertTenancyPreconditions } from './platform/db';
@@ -235,6 +235,9 @@ app.use(express.urlencoded({ extended: false }));
   // Records an incident for every unhandled error, then answers as before.
   const { incidentErrorHandler } = await import('./http/observability/taps/express');
   app.use(incidentErrorHandler(logger));
+
+  // The user manual, before either catch-all below would answer its paths with the client.
+  serveDocs(app);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

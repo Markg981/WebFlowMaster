@@ -24,7 +24,9 @@ import {
   Database,
   Gauge,
   Sparkles,
+  CircleHelp,
 } from 'lucide-react';
+import { helpUrl } from '@/lib/help-links';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { useWorkspaceName } from '@/hooks/use-workspace-name';
@@ -226,7 +228,7 @@ const Brand: React.FC<{ collapsed: boolean; workspaceName: string }> = ({
 );
 
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const sections = useNav();
@@ -358,6 +360,17 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               onToggleTheme={toggleTheme}
               onLogout={() => logoutMutation.mutate()}
             />
+            <a
+              href={helpUrl(location, i18n.resolvedLanguage)}
+              target="_blank"
+              rel="noopener"
+              data-testid="contextual-help"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label={t('common.helpForPage', 'Help for this page (opens the manual)')}
+              title={t('common.help', 'Help')}
+            >
+              <CircleHelp className="h-[18px] w-[18px]" />
+            </a>
             <button
               onClick={toggleTheme}
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
