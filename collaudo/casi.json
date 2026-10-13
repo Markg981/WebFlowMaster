@@ -6080,7 +6080,7 @@
       "id": "SSO-35",
       "area": "SSO",
       "title": "SSO di un'organizzazione non vale per un'altra",
-      "priority": "P0",
+      "priority": "P1",
       "actor": "Persona membro di due organizzazioni A e B, ciascuna con il proprio provider",
       "preconditions": "Organizzazione A con SSO attivo sul proprio provider; organizzazione B con SSO attivo su un provider diverso. La stessa persona è membro (non owner) di A e di B.",
       "steps": [
