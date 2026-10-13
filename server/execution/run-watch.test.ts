@@ -62,6 +62,64 @@ describe('watchRun', () => {
     watch.stop();
   });
 
+  it('stops at its time limit when the heartbeat cannot be written', async () => {
+    const watch = watchRun('run-1', {
+      heartbeat: async () => {
+        throw new Error('connection reset');
+      },
+      intervalMs: quietInterval,
+      maxDurationMs: 60_000,
+      startedAt: 0,
+      now: () => 61_000,
+    });
+
+    await watch.check();
+
+    expect(watch.cause).toBe('timed_out');
+    expect(watch.signal.aborted).toBe(true);
+    watch.stop();
+  });
+
+  it('stops at its time limit while a heartbeat is still waiting on the database', async () => {
+    let clock = 0;
+    const heartbeat = vi.fn(() => new Promise<'running'>(() => {})); // never answers
+    const watch = watchRun('run-1', {
+      heartbeat,
+      intervalMs: quietInterval,
+      maxDurationMs: 60_000,
+      startedAt: 0,
+      now: () => clock,
+    });
+
+    clock = 30_000;
+    void watch.check();
+    clock = 61_000;
+    await watch.check();
+
+    expect(watch.cause).toBe('timed_out');
+    expect(watch.signal.aborted).toBe(true);
+    expect(heartbeat).toHaveBeenCalledTimes(1);
+    watch.stop();
+  });
+
+  it('keeps beating past its time limit while the run winds down', async () => {
+    const heartbeat = vi.fn(async () => 'running' as const);
+    const watch = watchRun('run-1', {
+      heartbeat,
+      intervalMs: quietInterval,
+      maxDurationMs: 60_000,
+      startedAt: 0,
+      now: () => 61_000,
+    });
+
+    await watch.check();
+    await watch.check();
+
+    expect(watch.cause).toBe('timed_out');
+    expect(heartbeat).toHaveBeenCalledTimes(2);
+    watch.stop();
+  });
+
   it('stops when the run was ended elsewhere, and stops asking', async () => {
     const heartbeat = vi.fn(async () => null);
     const watch = watchRun('run-1', { heartbeat, intervalMs: quietInterval });

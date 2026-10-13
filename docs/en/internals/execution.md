@@ -117,8 +117,9 @@ in the process (`onExecutionTransition`); the commit status module is one of the
    twice run once.
 2. **Watch.** `watchRun` (`server/execution/run-watch.ts`) starts a heartbeat every
    `RUN_HEARTBEAT_INTERVAL_MS` (15 s). Each beat also tells the worker whether somebody asked to
-   cancel, whether the run ended elsewhere, and whether it passed `RUN_MAX_DURATION_MS` (3 h). The
-   tests see it through an `AbortSignal` and stop at their next step.
+   cancel and whether the run ended elsewhere. Before writing it, the worker checks its own clock
+   against `RUN_MAX_DURATION_MS` (3 h), so a database that fails or does not answer cannot keep a
+   run going past its limit. The tests see it through an `AbortSignal` and stop at their next step.
 3. **Read the snapshot.** Runs from before snapshots existed fall back to the plan as it is now.
 4. **Resolve variables** once for the run: the installation defaults, the environment's values, and
    its decrypted secrets (`server/runtime/variables.ts`). The same resolution feeds preconditions, UI steps
