@@ -24,7 +24,7 @@
       ],
       [
         "Per IT e amministratori",
-        "Organizzazioni separate, ruoli, SSO, MFA, audit e quote. Agenti locali per raggiungere applicazioni dentro reti private."
+        "Organizzazioni separate, ruoli, SSO, MFA, audit e quote. Agenti locali per raggiungere applicazioni dentro reti private. Interfaccia in italiano, inglese, francese e tedesco."
       ]
     ],
     "workflow_title": "Il ciclo di lavoro",
@@ -65,7 +65,7 @@
       ],
       [
         "Risultati condivisibili",
-        "Esporta HTML, PDF, JUnit e Allure. Collega i fallimenti ai tracker e pubblica gli esiti negli strumenti del team."
+        "Esporta HTML, PDF, JUnit e Allure. Collega i fallimenti ai tracker e invia gli esiti su Slack, Teams e negli strumenti del team."
       ]
     ],
     "p4_note": "Nell'immagine, i test della demo che falliscono di proposito: motivo del fallimento e pulsanti per screenshot, video e log. Il dettaglio delle evidenze dipende dal tipo di test, dal provider e dalla configurazione.",
@@ -149,7 +149,7 @@
       ],
       [
         "For IT and administrators",
-        "Separate organizations, roles, SSO, MFA, audit and quotas. Local agents reach applications inside private networks."
+        "Separate organizations, roles, SSO, MFA, audit and quotas. Local agents reach applications inside private networks. Interface in English, Italian, French and German."
       ]
     ],
     "workflow_title": "The working cycle",
@@ -190,7 +190,7 @@
       ],
       [
         "Results you can share",
-        "Export HTML, PDF, JUnit and Allure. Link failures to issue trackers and publish outcomes in the tools your team uses."
+        "Export HTML, PDF, JUnit and Allure. Link failures to issue trackers and send outcomes to Slack, Teams and the tools your team uses."
       ]
     ],
     "p4_note": "Shown: demo tests that fail on purpose, with the reason and buttons for the screenshot, video and log. Available evidence depends on the test type, provider and configuration.",

@@ -1,0 +1,357 @@
+{
+  "$comment": "What the customer materials say the product does. Each claim names the code that backs it (evidence) and the words each channel must use for it (mentions). scripts/marketing-claims.test.ts checks both: a removed feature fails its evidence, a channel that stops naming a claim fails its mentions. Mentions are case-insensitive substrings; a list applies to every language of the channel, an object gives one list per language.",
+  "channels": {
+    "readme": { "en": ["README.md"] },
+    "brochure": {
+      "en": ["marketing/brochure/copy.json#en"],
+      "it": ["marketing/brochure/copy.json#it"]
+    },
+    "video": {
+      "en": [
+        "marketing/promo-video/video/src/Promo.tsx",
+        "marketing/promo-video/narration.json#en"
+      ],
+      "it": ["marketing/promo-video/video/src/copy.tsx", "marketing/promo-video/narration.json#it"]
+    },
+    "landing": { "en": ["marketing/landing/index.html"], "it": ["marketing/landing/index.html"] }
+  },
+  "inventories": [
+    { "dir": "integrations", "claim": "ci-pipelines" },
+    { "dir": "client/src/locales", "claim": "ui-languages" }
+  ],
+  "claims": [
+    {
+      "id": "web-recording",
+      "en": "Web tests recorded in a real browser or described in plain words",
+      "it": "Test web registrati nel browser o descritti a parole",
+      "evidence": [
+        { "path": "server/web/playwright/recording-service.ts" },
+        { "path": "server/authoring/nl-authoring.ts" }
+      ],
+      "mentions": {
+        "readme": ["record a flow in a real browser"],
+        "brochure": {
+          "en": ["Record journeys", "describe them in words"],
+          "it": ["Registra i percorsi", "descrivili a parole"]
+        },
+        "video": { "en": ["Record a flow", "plain words"], "it": ["Registra", "a parole"] },
+        "landing": ["Record by clicking", "plain words"]
+      }
+    },
+    {
+      "id": "browsers",
+      "en": "Chromium, Firefox and WebKit",
+      "it": "Chromium, Firefox e WebKit",
+      "evidence": [
+        { "path": "shared/agents.ts", "pattern": "'chromium' \\| 'firefox' \\| 'webkit'" }
+      ],
+      "mentions": {
+        "readme": ["Chromium", "Firefox", "WebKit"],
+        "brochure": ["Chromium", "Firefox", "WebKit"],
+        "video": ["Chromium", "Firefox", "WebKit"]
+      }
+    },
+    {
+      "id": "api-tests",
+      "en": "API tests with assertions, extracted values and OpenAPI, Swagger and Postman import",
+      "it": "Test API con asserzioni, estrazione di valori e import OpenAPI, Swagger e Postman",
+      "evidence": [
+        { "path": "server/api-tests/api-import.ts", "pattern": "postman" },
+        { "path": "server/api-tests/api-import.ts", "pattern": "swagger" }
+      ],
+      "mentions": {
+        "readme": ["API tests", "OpenAPI", "Swagger", "Postman"],
+        "brochure": ["API", "OpenAPI", "Swagger", "Postman"],
+        "video": ["API"],
+        "landing": ["APIs"]
+      }
+    },
+    {
+      "id": "mobile-appium",
+      "en": "Android and iOS apps through Appium, with a live inspector",
+      "it": "App Android e iOS tramite Appium, con inspector",
+      "evidence": [
+        { "path": "server/mobile/mobile-inspector.ts" },
+        { "path": "server/execution/plan-run/run-unit.ts", "pattern": "browserstack" },
+        { "path": "server/execution/plan-run/run-unit.ts", "pattern": "lambdatest" }
+      ],
+      "mentions": {
+        "readme": ["Android", "iOS", "Appium", "BrowserStack", "LambdaTest", "inspector"],
+        "brochure": ["Android", "iOS", "Appium", "inspector"],
+        "video": ["Android", "iOS", "Appium", "inspector"],
+        "landing": ["Android", "iOS"]
+      }
+    },
+    {
+      "id": "bdd",
+      "en": "Versioned Gherkin scenarios run with Cucumber on dedicated agents",
+      "it": "Scenari Gherkin versionati eseguiti con Cucumber su agenti dedicati",
+      "evidence": [
+        { "path": "server/runtime/agents/agent-bdd.ts" },
+        { "path": "Dockerfile.agent" }
+      ],
+      "mentions": {
+        "readme": ["Gherkin", "Cucumber"],
+        "brochure": ["Gherkin", "Cucumber"],
+        "video": ["Gherkin", "BDD"],
+        "landing": ["Gherkin"]
+      }
+    },
+    {
+      "id": "visual-accessibility",
+      "en": "Visual comparisons and accessibility checks",
+      "it": "Confronti visivi e controlli di accessibilità",
+      "evidence": [
+        { "path": "server/web/visual-testing.ts" },
+        { "path": "server/web/accessibility.ts", "pattern": "axe" }
+      ],
+      "mentions": {
+        "readme": ["visual", "accessibility"],
+        "brochure": { "en": ["visual", "accessibility"], "it": ["visivi", "accessibilità"] }
+      }
+    },
+    {
+      "id": "ai-assistance",
+      "en": "Optional AI assistance through a configured provider",
+      "it": "Assistenza AI facoltativa tramite un provider configurato",
+      "evidence": [{ "path": "server/authoring/ai-automation-service.ts", "pattern": "gemini" }],
+      "mentions": {
+        "readme": ["AI assistance", "Gemini"],
+        "brochure": {
+          "en": ["AI assistance", "configured provider"],
+          "it": ["assistenza AI", "provider configurato"]
+        }
+      }
+    },
+    {
+      "id": "plans-schedules",
+      "en": "Plans run on demand, on a schedule or from a pipeline, with retries and flaky-test quarantine",
+      "it": "Piani a richiesta, a orario o dalla pipeline, con retry e quarantena dei test instabili",
+      "evidence": [
+        { "path": "server/authoring/test-quarantine.ts" },
+        { "path": "server/runtime/run-policies.ts" }
+      ],
+      "mentions": {
+        "readme": ["schedule", "quarantine flaky tests"],
+        "brochure": { "en": ["on a schedule", "flaky-test"], "it": ["a orario", "test instabili"] },
+        "video": { "en": ["in parallel"], "it": ["in parallelo"] }
+      }
+    },
+    {
+      "id": "run-evidence",
+      "en": "Screenshots, video, Playwright traces and network captures for each step",
+      "it": "Screenshot, video, trace Playwright e catture di rete per ogni step",
+      "evidence": [
+        { "path": "server/runtime/run-evidence.ts" },
+        { "path": "server/web/playwright/test-runner.ts", "pattern": "recordHar|\\.har" }
+      ],
+      "mentions": {
+        "readme": ["screenshots", "videos", "traces", "network captures"],
+        "brochure": ["screenshot", "video", "trace", "HAR"],
+        "video": {
+          "en": ["screenshot", "video", "trace", "network log"],
+          "it": ["screenshot", "video", "traccia", "log di rete"]
+        }
+      }
+    },
+    {
+      "id": "report-exports",
+      "en": "Reports exported to HTML, PDF, JUnit and Allure",
+      "it": "Report esportati in HTML, PDF, JUnit e Allure",
+      "evidence": [
+        {
+          "path": "server/reporting/report-export.ts",
+          "pattern": "REPORT_EXPORT_FORMATS = \\['html', 'pdf', 'allure', 'junit'\\]"
+        }
+      ],
+      "mentions": {
+        "readme": ["HTML", "PDF", "JUnit", "Allure"],
+        "brochure": ["HTML", "PDF", "JUnit", "Allure"]
+      }
+    },
+    {
+      "id": "ci-pipelines",
+      "en": "GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, Bitbucket Pipelines and CircleCI",
+      "it": "GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, Bitbucket Pipelines e CircleCI",
+      "evidence": [
+        { "path": "integrations/github-action" },
+        { "path": "integrations/gitlab" },
+        { "path": "integrations/jenkins" },
+        { "path": "integrations/azure-pipelines" },
+        { "path": "integrations/bitbucket" },
+        { "path": "integrations/circleci" }
+      ],
+      "mentions": {
+        "readme": [
+          "GitHub Actions",
+          "GitLab CI",
+          "Jenkins",
+          "Azure Pipelines",
+          "Bitbucket",
+          "CircleCI"
+        ],
+        "brochure": [
+          "GitHub Actions",
+          "GitLab CI",
+          "Jenkins",
+          "Azure Pipelines",
+          "Bitbucket",
+          "CircleCI"
+        ],
+        "video": ["CI/CD"],
+        "landing": ["CI/CD"]
+      }
+    },
+    {
+      "id": "cli-api",
+      "en": "The wfm command-line tool and a public REST API",
+      "it": "Lo strumento a riga di comando wfm e una REST API pubblica",
+      "evidence": [{ "path": "scripts/wfm-cli.ts" }, { "path": "server/http/api-v1/openapi.ts" }],
+      "mentions": {
+        "readme": ["command-line tool"],
+        "brochure": ["CLI", "API"],
+        "video": ["CLI", "REST API"]
+      }
+    },
+    {
+      "id": "commit-status",
+      "en": "Run status reported back to GitHub and GitLab commits",
+      "it": "Esito dei run riportato sui commit GitHub e GitLab",
+      "evidence": [{ "path": "server/integrations/commit-status.ts", "pattern": "'gitlab'" }],
+      "mentions": {
+        "readme": ["report run status back to commits"],
+        "video": { "en": ["GitHub & GitLab checks"], "it": ["Check GitHub e GitLab"] }
+      }
+    },
+    {
+      "id": "issue-trackers",
+      "en": "Issues opened in Jira or Azure DevOps from a failure",
+      "it": "Issue aperte su Jira o Azure DevOps da un fallimento",
+      "evidence": [
+        {
+          "path": "shared/schema/integrations.ts",
+          "pattern": "ISSUE_PROVIDERS = \\['jira', 'azure_devops'\\]"
+        }
+      ],
+      "mentions": {
+        "readme": ["Jira", "Azure DevOps"],
+        "brochure": ["Jira", "Azure DevOps"],
+        "video": ["Jira", "Azure DevOps"],
+        "landing": { "en": ["issue trackers"], "it": ["issue tracker"] }
+      }
+    },
+    {
+      "id": "test-management",
+      "en": "Results published to TestRail, Xray and Zephyr Scale",
+      "it": "Risultati pubblicati su TestRail, Xray e Zephyr Scale",
+      "evidence": [
+        { "path": "server/integrations/test-management-providers.ts", "pattern": "testrail" },
+        { "path": "server/integrations/test-management-providers.ts", "pattern": "xray" },
+        { "path": "server/integrations/test-management-providers.ts", "pattern": "zephyr" }
+      ],
+      "mentions": {
+        "readme": ["TestRail", "Xray", "Zephyr Scale"],
+        "brochure": ["TestRail", "Xray", "Zephyr Scale"]
+      }
+    },
+    {
+      "id": "notifications",
+      "en": "Run notifications to Slack, Microsoft Teams and webhooks",
+      "it": "Notifiche dei run su Slack, Microsoft Teams e webhook",
+      "evidence": [
+        { "path": "server/integrations/notifications.ts", "pattern": "'slack'" },
+        { "path": "server/integrations/notifications.ts", "pattern": "'teams'" },
+        { "path": "server/integrations/webhooks.ts" }
+      ],
+      "mentions": {
+        "readme": ["Slack", "Teams", "webhook"],
+        "brochure": ["Slack", "Teams"],
+        "video": ["Slack", "Teams", "webhook"]
+      }
+    },
+    {
+      "id": "local-agents",
+      "en": "Local agents that reach applications inside private networks",
+      "it": "Agenti locali che raggiungono applicazioni in reti private",
+      "evidence": [
+        { "path": "scripts/wfm-agent.ts" },
+        { "path": "server/runtime/agents/agent-protocol.ts" }
+      ],
+      "mentions": {
+        "readme": ["Local agents"],
+        "brochure": {
+          "en": ["Local agents", "private networks"],
+          "it": ["Agenti locali", "reti private"]
+        },
+        "video": { "en": ["private networks"], "it": ["reti private"] }
+      }
+    },
+    {
+      "id": "identity",
+      "en": "Single sign-on over OpenID Connect or SAML, MFA, SCIM provisioning",
+      "it": "Single sign-on con OpenID Connect o SAML, MFA, provisioning SCIM",
+      "evidence": [
+        { "path": "server/identity/sso.ts" },
+        { "path": "server/identity/sso-saml.ts" },
+        { "path": "server/identity/mfa.ts" },
+        { "path": "server/identity/scim.ts" }
+      ],
+      "mentions": {
+        "readme": ["OpenID Connect", "SAML", "TOTP", "SCIM"],
+        "brochure": ["OIDC", "SAML", "MFA", "SCIM"],
+        "video": ["SSO", "MFA"],
+        "landing": ["SSO", "MFA"]
+      }
+    },
+    {
+      "id": "audit-log",
+      "en": "An append-only audit log",
+      "it": "Un audit log in sola aggiunta",
+      "evidence": [{ "path": "shared/schema/identity.ts", "pattern": "audit_log" }],
+      "mentions": { "readme": ["audit log"], "brochure": ["audit"], "video": ["audit log"] }
+    },
+    {
+      "id": "ui-languages",
+      "en": "The interface in English, Italian, French and German",
+      "it": "L'interfaccia in inglese, italiano, francese e tedesco",
+      "evidence": [
+        { "path": "client/src/locales/en" },
+        { "path": "client/src/locales/it" },
+        { "path": "client/src/locales/fr" },
+        { "path": "client/src/locales/de" }
+      ],
+      "mentions": {
+        "readme": ["English, Italian, French and German"],
+        "brochure": {
+          "en": ["English, Italian, French and German"],
+          "it": ["italiano, inglese, francese e tedesco"]
+        }
+      }
+    },
+    {
+      "id": "self-hosted",
+      "en": "Self-hosted in the customer's infrastructure, web and worker processes apart",
+      "it": "Installato nella vostra infrastruttura, con processi web e worker separati",
+      "evidence": [{ "path": "docker-compose.yml" }, { "path": "Dockerfile.worker" }],
+      "mentions": {
+        "readme": ["self-hosted"],
+        "brochure": { "en": ["your infrastructure"], "it": ["vostra infrastruttura"] },
+        "landing": { "en": ["Self-hosted"], "it": ["self-hosted"] }
+      }
+    },
+    {
+      "id": "operations",
+      "en": "PostgreSQL, Redis or Valkey, artifacts on disk or S3, Prometheus metrics and OpenTelemetry tracing",
+      "it": "PostgreSQL, Redis o Valkey, artefatti su disco o S3, metriche Prometheus e tracing OpenTelemetry",
+      "evidence": [
+        { "path": "server/tenancy/artifact-store.ts", "pattern": "S3Client" },
+        { "path": "server/platform/observability/metrics.ts", "pattern": "prom-client" },
+        { "path": "package.json", "pattern": "@opentelemetry/sdk-trace-node" }
+      ],
+      "mentions": {
+        "readme": ["PostgreSQL", "Valkey", "S3", "Prometheus", "OpenTelemetry"],
+        "brochure": ["PostgreSQL", "Valkey", "S3", "Prometheus", "OpenTelemetry"]
+      }
+    }
+  ]
+}

@@ -43,6 +43,23 @@ contains its own demonstration screenshots, one set per language, in `brochure/a
 [brochure README](./brochure/README.md) explains how to film them again. The video README explains
 how to capture its full demonstration set again. No customer production data is used.
 
+## Claims
+
+[`claims.json`](./claims.json) lists what the customer materials say the product does: one entry
+per capability, with its English and Italian wording, the code that backs it (`evidence`) and the
+words each channel must use for it (`mentions`). The channels are the root README, the brochure
+copy, the video's overlays and voice, and the demo request page. `scripts/marketing-claims.test.ts`
+fails when:
+
+- a claim's evidence is gone (a file removed, a provider id renamed): the feature changed, so the
+  materials must change with it;
+- a channel stops naming a claim it carries, for instance a CI integration dropped from the README;
+- a new folder in `integrations/` or a new UI language in `client/src/locales/` has no claim, so a
+  new capability cannot ship without reaching the materials.
+
+To add a capability to the materials, add its claim first, with evidence, then the words in each
+channel that should carry it. To retire one, remove the claim and the words together.
+
 ## Verification boundary
 
 Documentation build, PDF generation, catalog regeneration, brochure layout/contact links,

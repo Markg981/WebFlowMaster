@@ -152,7 +152,9 @@ what an installation runs, so reconcile installed digests as described under
    commit and migration journal, and run the verify commands recorded under `images.<role>.signing`,
    before publishing. Retain the previous release's manifest. Once it is published, rebuild the
    customer materials from it on the collaudo stack: `npm run marketing:refresh` films the product
-   again and renders the promo video and the brochure (`marketing/promo-video/README.md`).
+   again and renders the promo video and the brochure (`marketing/promo-video/README.md`). What
+   the materials say the product does is listed in `marketing/claims.json`: a release that drops
+   or adds a capability updates that file and the materials together, or the tests fail.
 5. Download `release.env` from that verified release. Supply installation secrets and database URLs
    in a protected `installation.env` (never commit it). `MIGRATION_DATABASE_URL` uses the migration
    owner; `DATABASE_URL` uses the non-superuser app role, preserving PostgreSQL RLS.

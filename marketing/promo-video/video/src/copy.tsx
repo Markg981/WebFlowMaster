@@ -43,7 +43,7 @@ export const italian: Record<string, string> = {
   'CI/CD, CLI & REST API': 'CI/CD, CLI e REST API',
   'GitHub & GitLab checks': 'Check GitHub e GitLab',
   'Jira & Azure DevOps issues': 'Issue Jira e Azure DevOps',
-  'Webhook notifications': 'Notifiche webhook',
+  'Slack, Teams & webhook alerts': 'Avvisi Slack, Teams e webhook',
   'Agents for private networks': 'Agenti su reti private',
   'SSO, MFA & audit log': 'SSO, MFA e audit log',
   'Ship every release with confidence.': 'Ogni rilascio, con fiducia.',
