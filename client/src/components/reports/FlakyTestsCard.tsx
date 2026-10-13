@@ -126,7 +126,12 @@ const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) =>
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={`${item.testName}-${item.browser ?? 'default'}`}>
+                  <TableRow
+                    key={JSON.stringify([
+                      ...(item.test ? [item.test.type, item.test.id] : ['legacy', item.testName]),
+                      item.browser ?? '',
+                    ])}
+                  >
                     <TableCell className="font-medium">
                       {item.testName}
                       {item.test?.type === 'mobile' && (

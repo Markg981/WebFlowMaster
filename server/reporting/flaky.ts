@@ -89,13 +89,28 @@ function timeOf(value: Date | string): number {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
+/** The test a result belongs to, when the result still points at one. */
+function testOf(row: FlakyInputRow): FlakySummary['test'] {
+  if (row.uiTestId != null) return { type: 'ui', id: row.uiTestId };
+  if (row.apiTestId != null) return { type: 'api', id: row.apiTestId };
+  if (row.mobileTestId != null) return { type: 'mobile', id: row.mobileTestId };
+  return null;
+}
+
 function keyOf(row: FlakyInputRow): string {
+  // The test, not its name: two tests both called "Login" — one always passing, one always
+  // failing — are two stable tests, and merging them by name reports one test that changes its
+  // mind every run. The other way round, a renamed test keeps its history.
+  // Results that no longer point at a test (written before results carried one, or whose test
+  // was deleted) only have the name left, and are kept apart from the ones that do.
+  const test = testOf(row);
+  const identity = test ? [test.type, test.id] : ['legacy', row.testName];
   // The browser is part of the identity: "fails on WebKit, passes on Chromium" is a fact about
   // the application, not a test that cannot make its mind up, and merging the two would report
   // every cross-browser difference as flakiness.
   // A mobile test's "browser" is its device, so the same holds for a test that fails on one
   // phone and passes on another.
-  return `${row.testName}\u0000${row.browser ?? ''}`;
+  return JSON.stringify([...identity, row.browser ?? '']);
 }
 
 export interface FlakyOptions {
@@ -168,18 +183,12 @@ export function summariseFlakiness(
     ).sort((left, right) => left - right);
 
     const passed = judged.filter((entry) => entry.verdict === 'passed').length;
-    const latestWithTest = [...ordered]
-      .reverse()
-      .find((row) => row.uiTestId || row.apiTestId || row.mobileTestId);
+    const latest = ordered[ordered.length - 1];
     summaries.push({
-      testName: ordered[0].testName,
-      test: latestWithTest?.uiTestId
-        ? { type: 'ui', id: latestWithTest.uiTestId }
-        : latestWithTest?.apiTestId
-          ? { type: 'api', id: latestWithTest.apiTestId }
-          : latestWithTest?.mobileTestId
-            ? { type: 'mobile', id: latestWithTest.mobileTestId }
-            : null,
+      // The name it has now: a renamed test is listed under the name people will look for.
+      testName: latest.testName,
+      // Every row in the group points at the same test, or none does.
+      test: testOf(latest),
       browser: ordered[0].browser ?? null,
       runs: judged.length,
       passed,

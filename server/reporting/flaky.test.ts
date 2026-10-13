@@ -254,6 +254,61 @@ describe('a test that changed underneath the runs', () => {
     expect(summary.versions).toEqual([]);
     expect(summary.changedDuringWindow).toBe(false);
   });
+
+  it('keeps two different tests with the same name apart', () => {
+    // API 10 always passes and API 20 always fails: merged by name, they looked like one test
+    // changing verdict on every run, and quarantine was offered on API 20.
+    const summaries = summariseFlakiness([
+      { ...run('Login', 'Passed'), apiTestId: 10 },
+      { ...run('Login', 'Failed'), apiTestId: 20 },
+      { ...run('Login', 'Passed'), apiTestId: 10 },
+      { ...run('Login', 'Failed'), apiTestId: 20 },
+      { ...run('Login', 'Passed'), apiTestId: 10 },
+      { ...run('Login', 'Failed'), apiTestId: 20 },
+    ]);
+
+    expect(summaries).toEqual([]);
+  });
+
+  it('keeps a test of one type apart from a test of another with the same id', () => {
+    const summaries = summariseFlakiness([
+      { ...run('Login', 'Passed'), uiTestId: 7 },
+      { ...run('Login', 'Failed'), apiTestId: 7 },
+      { ...run('Login', 'Passed'), uiTestId: 7 },
+      { ...run('Login', 'Failed'), apiTestId: 7 },
+      { ...run('Login', 'Passed'), uiTestId: 7 },
+      { ...run('Login', 'Failed'), apiTestId: 7 },
+    ]);
+
+    expect(summaries).toEqual([]);
+  });
+
+  it('keeps the history of a renamed test, under its current name', () => {
+    const [summary] = summariseFlakiness([
+      { ...run('Login', 'Passed'), uiTestId: 3 },
+      { ...run('Login', 'Failed'), uiTestId: 3 },
+      { ...run('Sign in', 'Passed'), uiTestId: 3 },
+      { ...run('Sign in', 'Failed'), uiTestId: 3 },
+    ]);
+
+    expect(summary.testName).toBe('Sign in');
+    expect(summary.test).toEqual({ type: 'ui', id: 3 });
+    expect(summary.runs).toBe(4);
+    expect(summary.flips).toBe(3);
+  });
+
+  it('keeps results without a test apart from the test that now has the name', () => {
+    const summaries = summariseFlakiness([
+      run('Login', 'Passed'),
+      run('Login', 'Passed'),
+      run('Login', 'Passed'),
+      { ...run('Login', 'Failed'), mobileTestId: 4 },
+      { ...run('Login', 'Failed'), mobileTestId: 4 },
+      { ...run('Login', 'Failed'), mobileTestId: 4 },
+    ]);
+
+    expect(summaries).toEqual([]);
+  });
 });
 
 describe('describeFlakiness', () => {
