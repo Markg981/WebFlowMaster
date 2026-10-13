@@ -16,7 +16,8 @@ Una release può cambiare lo schema del database, quindi l'ordine conta.
 1. **Svuotate i runner.** In **Impostazioni → Runner** svuotate ogni runner. Un runner in
    svuotamento finisce ciò che ha e non prende altro; aspettate che i job in corso arrivino a
    zero. I run richiesti nel frattempo restano in coda e partono dopo l'aggiornamento.
-2. **Fermate i processi web e i worker.** Un worker a cui è stato chiesto di fermarsi aspetta
+2. **Fermate i processi web e i worker.** Un worker a cui è stato chiesto di fermarsi non prende
+   più job da nessuna delle sue code (piani di test, task browser, run di carico) e aspetta
    fino a `WORKER_SHUTDOWN_GRACE_MS` (30 secondi di default) i run che ha ancora; con Compose,
    impostate lo `stop_grace_period` del worker almeno altrettanto lungo, altrimenti Docker lo
    uccide prima.
