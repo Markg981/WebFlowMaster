@@ -23,7 +23,13 @@ const fetchMock = vi.fn();
 
 function Catalog() {
   const { data } = useQuery<{ name: string }[]>({ queryKey: ['/api/tests'] });
-  return <ul data-testid="catalog">{data?.map((t) => <li key={t.name}>{t.name}</li>)}</ul>;
+  return (
+    <ul data-testid="catalog">
+      {data?.map((t) => (
+        <li key={t.name}>{t.name}</li>
+      ))}
+    </ul>
+  );
 }
 
 function renderCatalog() {
@@ -64,7 +70,7 @@ describe('replaceSession', () => {
     expect(queryClient.getQueryData(['/api/user'])).toEqual(bob);
   });
 
-  it("drops a response for the previous person that arrives after the switch", async () => {
+  it('drops a response for the previous person that arrives after the switch', async () => {
     replaceSession(alice);
     let answerAlice!: (response: Response) => void;
     fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (answerAlice = resolve)));
