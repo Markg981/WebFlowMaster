@@ -18,6 +18,11 @@ CREATE TABLE execution_outbox (
   created_at timestamp NOT NULL DEFAULT now()
 );
 --> statement-breakpoint
+-- The run is of the same organization as the row, as every cross-table link is.
+ALTER TABLE execution_outbox ADD CONSTRAINT execution_outbox_execution_id_same_org_fk
+  FOREIGN KEY (execution_id, organization_id) REFERENCES test_plan_executions (id, organization_id)
+  ON DELETE CASCADE;
+--> statement-breakpoint
 CREATE INDEX execution_outbox_available_at_idx ON execution_outbox(available_at);
 --> statement-breakpoint
 -- Org-scoped like the run it belongs to. The request that creates a run writes and publishes its

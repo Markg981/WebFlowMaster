@@ -161,7 +161,7 @@ export async function publishPendingSubmission(
         ? { jobId: executionId, delay, priority: claim.priority }
         : { jobId: executionId, priority: claim.priority },
     );
-  } catch (error: any) {
+  } catch (error) {
     const backoff = Math.min(1_000 * 2 ** claim.attempts, OUTBOX_MAX_BACKOFF_MS);
     await withTenantTransaction(async (tx) => {
       await tx
@@ -169,7 +169,7 @@ export async function publishPendingSubmission(
         .set({
           leaseUntil: null,
           availableAt: new Date(now.getTime() + backoff),
-          lastError: String(error?.message ?? error).slice(0, 1000),
+          lastError: String((error as Error | null)?.message ?? error).slice(0, 1000),
         })
         .where(ownedBy(executionId, leaseUntil));
     });
