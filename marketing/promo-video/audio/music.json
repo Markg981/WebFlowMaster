@@ -1,0 +1,10 @@
+{
+  "_comment": "The music under the promo: a published track, used under its licence, downloaded by fetch-music.mjs into video/public/ (not committed). CC BY asks for the attribution wherever the video is published: render.mjs appends it to every description.txt. volume is the level under the picture (the voice-over halves it while it speaks). To go back to the original procedural bed, delete video/public/music.mp3: render.mjs then uses music.wav from synthesize.mjs.",
+  "file": "music.mp3",
+  "title": "Inspired",
+  "author": "Kevin MacLeod",
+  "source": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Inspired.mp3",
+  "license": "CC BY 4.0",
+  "attribution": "Music: \"Inspired\" by Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0, https://creativecommons.org/licenses/by/4.0/",
+  "volume": 0.2
+}

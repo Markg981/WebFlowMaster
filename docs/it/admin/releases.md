@@ -157,7 +157,9 @@ in [Aggiornamento, rollback ed evidenze](#aggiornamento-rollback-ed-evidenze).
    il loro completamento.
 4. Esaminare draft, rapporti, evidenze di ricostruzione e manifest. Controllare commit e journal
    delle migrazioni ed eseguire i comandi di verifica registrati in `images.<ruolo>.signing` prima
-   della pubblicazione; conservare il manifest della versione precedente.
+   della pubblicazione; conservare il manifest della versione precedente. Dopo la pubblicazione,
+   rigenerare i materiali per i clienti sullo stack di collaudo: `npm run marketing:refresh` filma
+   di nuovo il prodotto e produce video promozionale e brochure (`marketing/promo-video/README.md`).
 5. Scaricare `release.env` dalla release verificata. Fornire segreti e connessioni in un file protetto
    `installation.env`, mai nel repository. `MIGRATION_DATABASE_URL` usa il proprietario delle
    migrazioni; `DATABASE_URL` usa il ruolo applicativo non-superuser per preservare RLS.

@@ -61,8 +61,7 @@ Page 6 states the licence model: an annual licence per installation, support inc
 30-day pilot. Change the `licence` line in `copy.json` if the terms change.
 
 The call to action shows the contact in [`../contact.json`](../contact.json), with a clickable link for
-each value; a value left empty (the phone, today) is omitted. The values there are placeholders
-until the product has its own domain and mailbox.
+each value; a value left empty (the phone, today) is omitted.
 
 The brochure is for digital distribution or ordinary A4 printing, and says so on page 6; it has no
 print-shop bleed or CMYK output profile. Request a printer-specific export if those are needed.
