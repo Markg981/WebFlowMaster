@@ -65,6 +65,14 @@ export function watchRun(executionId: string, options: RunWatchOptions = {}): Ru
   };
 
   const check = async () => {
+    // The time limit is the worker's own clock, so it is read before anything that waits on the
+    // database: a heartbeat that fails or never returns must not keep a run going past it.
+    if (now() - startedAt > maxDurationMs) {
+      stopWith(
+        'timed_out',
+        `Not run: the run went past its limit of ${Math.round(maxDurationMs / 60_000)} minutes.`,
+      );
+    }
     // An interval that fires while the last check is still waiting on the database would only
     // pile up writes behind it.
     if (checking || cause === 'lost') return;
@@ -75,11 +83,6 @@ export function watchRun(executionId: string, options: RunWatchOptions = {}): Ru
         stopWith('lost', 'Not run: this run was ended elsewhere while it was running.');
       } else if (status === 'cancelling') {
         stopWith('cancelled', 'Not run: the run was cancelled.');
-      } else if (now() - startedAt > maxDurationMs) {
-        stopWith(
-          'timed_out',
-          `Not run: the run went past its limit of ${Math.round(maxDurationMs / 60_000)} minutes.`,
-        );
       }
     } catch {
       // A heartbeat that could not be written is not a reason to stop a run; the next one may

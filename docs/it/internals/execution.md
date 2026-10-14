@@ -126,8 +126,10 @@ nel processo (`onExecutionTransition`); il modulo dello stato dei commit è uno 
    non viene preso, ed è questo che fa girare una sola volta un job consegnato due volte.
 2. **Sorveglianza.** `watchRun` (`server/execution/run-watch.ts`) avvia un heartbeat ogni
    `RUN_HEARTBEAT_INTERVAL_MS` (15 s). Ogni battito dice anche al worker se qualcuno ha chiesto di
-   annullare, se il run è terminato altrove e se ha superato `RUN_MAX_DURATION_MS` (3 h). I test lo
-   ricevono tramite un `AbortSignal` e si fermano allo step successivo.
+   annullare e se il run è terminato altrove. Prima di scriverlo, il worker confronta il proprio
+   orologio con `RUN_MAX_DURATION_MS` (3 h), così un database che fallisce o non risponde non può
+   tenere in vita un run oltre il suo limite. I test lo ricevono tramite un `AbortSignal` e si
+   fermano allo step successivo.
 3. **Lettura dello snapshot.** I run di prima degli snapshot ripiegano sul piano com'è ora.
 4. **Risoluzione delle variabili**, una volta per run: i default dell'installazione, i valori
    dell'ambiente e i suoi segreti decifrati (`server/runtime/variables.ts`). La stessa risoluzione alimenta
