@@ -402,7 +402,8 @@ describe('rows that point across organizations', () => {
     // Dedicated BDD profiles belong to a same-organization project (0080).
     // Native groups also belong to a same-organization project (0082).
     // Load tests: project and data set; their runs: test, project and environment (0083).
-    expect(rows.length).toBe(99);
+    // A run's pending job belongs to a run of the same organization (0090).
+    expect(rows.length).toBe(100);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 

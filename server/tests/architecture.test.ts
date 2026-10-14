@@ -213,6 +213,13 @@ describe('route modules cannot query outside the tenant context', () => {
         'privileged read of organizations, which is not org-scoped. The message itself is written ' +
         'under that organization through withTenantTransaction.',
     },
+    'execution/execution-outbox.ts': {
+      max: 1,
+      why:
+        'The outbox dispatcher looks across every organization for run jobs a stopped process never ' +
+        'published: it is not a request and has no tenant. It only finds them; each is claimed, ' +
+        'published and confirmed under its own organization.',
+    },
     'execution/execution-orchestrator.ts': {
       max: 1,
       why:
