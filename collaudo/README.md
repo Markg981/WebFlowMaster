@@ -2,7 +2,7 @@
 
 ## Pagina di collaudo locale
 
-Catalogo corrente: protocollo **67**, **617 casi** in **25 aree**. SEC-51…SEC-54 verificano che i browser del runner non raggiungano destinazioni vietate da nessun canale (file://, WebSocket da pagina, popup e worker, frame, service worker) e che le destinazioni private autorizzate e i browser degli agenti restino invariati. REP-33 verifica che i test instabili siano riconosciuti per test e non per nome: due test diversi con lo stesso nome restano separati, un test rinominato conserva la storia. PLN-43 verifica che il limite di durata di un run valga anche con il database non disponibile. SEC-49 e SEC-50 verificano che il cambio di organizzazione valga solo per la sessione che lo fa e che una chiave API resti nella propria organizzazione. SEC-48 verifica che chi accede dopo un altro nella stessa scheda non veda i dati del precedente dalla cache. SSO-35 verifica che l'accesso
+Catalogo corrente: protocollo **68**, **620 casi** in **25 aree**. SEC-61…SEC-63 verificano che il quick start e gli overlay locali pubblichino porte solo su 127.0.0.1, anche dopo il merge degli overlay, e che lo stack isolato funzioni su HTTP (primo accesso, worker, Mailpit). SEC-51…SEC-54 verificano che i browser del runner non raggiungano destinazioni vietate da nessun canale (file://, WebSocket da pagina, popup e worker, frame, service worker) e che le destinazioni private autorizzate e i browser degli agenti restino invariati. REP-33 verifica che i test instabili siano riconosciuti per test e non per nome: due test diversi con lo stesso nome restano separati, un test rinominato conserva la storia. PLN-43 verifica che il limite di durata di un run valga anche con il database non disponibile. SEC-49 e SEC-50 verificano che il cambio di organizzazione valga solo per la sessione che lo fa e che una chiave API resti nella propria organizzazione. SEC-48 verifica che chi accede dopo un altro nella stessa scheda non veda i dati del precedente dalla cache. SSO-35 verifica che l'accesso
 tramite il provider di un'organizzazione non soddisfi i requisiti SSO e MFA di un'altra. AUT-01…AUT-09 coprono
 MFA, OIDC, review/pubblicazione, authoring ed eliminazione mobile, quote e annullamento,
 con verifiche dei permessi dalla UI; procedura in [critical-ui-e2e.md](./critical-ui-e2e.md).
@@ -26,7 +26,7 @@ Per una porta diversa impostare `COLLAUDO_PORT` prima del comando.
   e i 46 nuovi casi delle funzionalità 6–13, più OPS-17…OPS-19 per storico e backup locali:
   più 32 casi di versioni e approvazioni API/mobile (API-29…API-36, MOB-25…MOB-32,
   LIB-27…LIB-34, SEC-37…SEC-44), più AGT-06…AGT-10 per gRPC/WebSocket sugli agenti:
-  Il catalogo attuale contiene 617 casi, 25 aree, protocollo versione 67; SEC-49 e SEC-50
+  Il catalogo attuale contiene 620 casi, 25 aree, protocollo versione 68; SEC-49 e SEC-50
   coprono il cambio di organizzazione limitato alla sessione e le chiavi API dopo un cambio;
   OPS-45 copre il run creato da un processo web fermato prima dell'invio alla coda (outbox).
   MOB-33…MOB-40 coprono flussi nativi, gruppi, matrici dispositivi e catalogo mobile.
@@ -106,7 +106,8 @@ I valori (password, segreti, chiavi) sono solo per il collaudo: non vanno mai ri
 ## 1. Requisiti
 
 - Docker Desktop (o Docker Engine con Compose 2.24 o successivo), con almeno 8 GB di memoria.
-- Le porte **80** e **443** libere, e la **55432** per l'accesso diretto al database.
+- Le porte **80** e **443** libere, e la **55432** per l'accesso diretto al database. Sono tutte
+  legate a 127.0.0.1: lo stack si usa dalla macchina su cui gira, non da altre.
 - Uscita verso internet per le immagini e per i siti di prova (the-internet.herokuapp.com,
   httpbin.org, jsonplaceholder.typicode.com).
 

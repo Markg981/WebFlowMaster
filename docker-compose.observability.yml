@@ -9,6 +9,9 @@
 #   - Grafana UI:  http://localhost:3001  (user admin, password GRAFANA_ADMIN_PASSWORD)
 #   - Loki API:    http://localhost:3100
 #
+# Both ports are bound to 127.0.0.1: Loki has no authentication, and anyone who could reach it
+# could read the application's logs or push fake ones.
+#
 # In your .env file, set:
 #   GRAFANA_ADMIN_PASSWORD=<a strong password>   # required: the stack refuses to start without it
 #   LOKI_URL=http://localhost:3100
@@ -27,7 +30,7 @@ services:
     image: grafana/loki:2.9.17
     container_name: wfm-loki
     ports:
-      - '3100:3100'
+      - '127.0.0.1:3100:3100'
     volumes:
       - ./observability/loki-config.yml:/etc/loki/local-config.yaml
       - loki-data:/loki
@@ -46,7 +49,7 @@ services:
     image: grafana/grafana:11.6.16
     container_name: wfm-grafana
     ports:
-      - '3001:3000'
+      - '127.0.0.1:3001:3000'
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env (see the top of docker-compose.observability.yml)}

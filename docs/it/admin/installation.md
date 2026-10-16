@@ -78,6 +78,11 @@ le versioni precedenti del file Compose contenevano) e indica la variabile da ca
 Aprite `http://localhost:5000` e registratevi: il primo account crea la prima organizzazione e
 ne è owner (vedi [Primo accesso](#primo-accesso)).
 
+Ogni porta che il file pubblica è legata a `127.0.0.1`: il processo web sulla 5000, PostgreSQL
+sulla 5432, Redis sulla 6379 e Mailpit sulla 8025 e sulla 1025, per un server avviato sull'host
+(`npm run dev`) e per i vostri strumenti. I container si raggiungono fra loro sulla rete di
+Compose e non ne usano nessuna. Niente dello stack è raggiungibile da un'altra macchina.
+
 Più worker, per più run contemporanei:
 
 ```bash
@@ -89,7 +94,11 @@ Serve per una prima prova su una macchina. Prima che lo stack sia raggiungibile 
 
 1. Generate i segreti in `.env` come sopra, senza copiarli da una guida o da un'altra
    installazione. Compose passa la stessa `ENCRYPTION_KEY` ad `api`, `worker` e `migrate`.
-2. Non pubblicate più le porte `5432` e `6379` sull'host.
+2. Non aprite le sue porte alla rete cambiando `127.0.0.1` in `0.0.0.0`: distribuite con
+   [`deployment/releases/compose.yml`](https://github.com/Markg981/WebFlowMaster/tree/main/deployment/releases)
+   o con il [profilo di isolamento di rete](./saas-network), che lasciano PostgreSQL, Redis e la
+   casella di posta fuori dall'host. `npm run test:security` calcola i file Compose locali con i
+   loro overlay e fallisce per ogni porta pubblicata oltre il loopback.
 3. Mettete TLS davanti alla porta 5000 e togliete `SESSION_COOKIE_SECURE=false`.
 4. Con più di un worker, o con worker su altre macchine, usate `ARTIFACT_STORE=s3`: ogni
    container ha il proprio disco, e il processo web non può servire uno screenshot che un worker

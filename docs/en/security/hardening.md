@@ -27,6 +27,28 @@ people. Each item names the setting or the page that explains it. The
   bundle import, 20 MB for the API tester's proxy, 12 MB for an API test import, 10 MB for an
   Excel upload (only `.xlsx`, removed once parsed), 100 kB for every other JSON request.
 
+## Quick start versus a shared installation {#quickstart}
+
+`docker-compose.yml` is the local quick start, for one person on one machine. It publishes
+the web process (5000), PostgreSQL (5432), Redis (6379) and Mailpit (8025, 1025) on `127.0.0.1`
+only, serves plain HTTP with `SESSION_COOKIE_SECURE=false` (a Secure cookie would be dropped
+without TLS and every request after sign-in would be anonymous), and Redis and Mailpit have no
+password. The collaudo overlay and `docker-compose.observability.yml` are held to the same rule:
+Caddy, the collaudo database on 55432, Loki and Grafana listen on the loopback.
+
+|                          | Local quick start                        | Shared installation                                                                             |
+| ------------------------ | ---------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Files                    | `docker-compose.yml` (+ local overlays)  | `deployment/releases/compose.yml`, the [network isolation profile](../admin/saas-network), Helm |
+| Published ports          | `127.0.0.1` only                         | the web process only, behind your reverse proxy                                                 |
+| PostgreSQL, Redis, inbox | on the loopback, development credentials | not published; Redis with a password                                                            |
+| Transport                | HTTP, non-Secure cookie                  | TLS, Secure cookie                                                                              |
+
+Do not turn the first into the second by changing `127.0.0.1` to `0.0.0.0`. `npm run
+test:security` runs `scripts/security/compose-bindings.test.mjs`, which renders each local
+profile with `docker compose config` (base file plus overlays, all profiles) and fails on any
+port published beyond the loopback, including a second publication an overlay adds to the base
+list instead of replacing it. CI runs it on every change.
+
 ## Network {#network}
 
 For a shared SaaS, deploy the supplied [network isolation profile](../admin/saas-network).

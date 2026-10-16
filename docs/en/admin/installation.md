@@ -73,6 +73,11 @@ shipped) and names the variable to change.
 Open `http://localhost:5000` and register: the first account creates the first organization
 and owns it (see [First sign-in](#first-sign-in)).
 
+Every port the file publishes is bound to `127.0.0.1`: the web process on 5000, PostgreSQL on
+5432, Redis on 6379 and Mailpit on 8025 and 1025, for a server started on the host
+(`npm run dev`) and for your own tools. The containers reach each other on the Compose network
+and need none of them. Nothing in the stack is reachable from another machine.
+
 More workers, for more runs at once:
 
 ```bash
@@ -84,7 +89,11 @@ It is meant for a first look on one machine. Before the stack is reachable by an
 
 1. Generate the secrets in `.env` as above; never copy them from a guide or another
    installation. Compose passes the same `ENCRYPTION_KEY` to `api`, `worker` and `migrate`.
-2. Stop publishing ports `5432` and `6379` on the host.
+2. Do not open its ports to the network by changing `127.0.0.1` to `0.0.0.0`: deploy with
+   [`deployment/releases/compose.yml`](https://github.com/Markg981/WebFlowMaster/tree/main/deployment/releases)
+   or the [network isolation profile](./saas-network) instead, which leave PostgreSQL, Redis and
+   the inbox off the host. `npm run test:security` renders the local Compose files with their
+   overlays and fails on any port published beyond the loopback.
 3. Put TLS in front of port 5000 and remove `SESSION_COOKIE_SECURE=false`.
 4. With more than one worker, or workers on other machines, use `ARTIFACT_STORE=s3`: each
    container has its own disk, and the web process cannot serve a screenshot a worker wrote

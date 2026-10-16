@@ -14,12 +14,22 @@
 # and put them in .env as POSTGRES_PASSWORD, SESSION_SECRET, ENCRYPTION_KEY and
 # AGENT_RELAY_SECRET. Use hex for POSTGRES_PASSWORD: it is also written into DATABASE_URL.
 # Keep ENCRYPTION_KEY with the database backups: the stored secrets cannot be read without it.
+#
+# This is the local quickstart: every port it publishes is bound to 127.0.0.1, so nothing here
+# is reachable from another machine. Postgres, Redis and Mailpit have no password or a
+# development one, and the app serves plain HTTP with a non-Secure session cookie. The ports
+# stay published because a server run on the host (npm run dev) and the developer's tools use
+# them; the containers talk to each other on the Compose network and need none of them.
+# scripts/security/compose-bindings.test.mjs renders this file with its overlays and fails on
+# any publication beyond the loopback. To let other people in, use deployment/ (TLS and the
+# reverse proxy in front of it are yours), not a 0.0.0.0 port here.
 
 services:
   redis:
     image: valkey/valkey:alpine
+    # The loopback only, like every port in this file (see the top).
     ports:
-      - '6379:6379'
+      - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
     # Depended on with service_healthy below, so the app is not started against a store that
@@ -36,7 +46,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see the top of docker-compose.yml)}
       - POSTGRES_DB=webflowmaster
     ports:
-      - '5432:5432'
+      - '127.0.0.1:5432:5432'
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -52,8 +62,8 @@ services:
   mailpit:
     image: axllent/mailpit:v1.31.3
     ports:
-      - '8025:8025'
-      - '1025:1025'
+      - '127.0.0.1:8025:8025'
+      - '127.0.0.1:1025:1025'
     environment:
       - MP_MAX_MESSAGES=5000
 
@@ -72,7 +82,8 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/webflowmaster
-      # Required by server/platform/crypto.ts at import time, even though migrating encrypts nothing.      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env (see the top of docker-compose.yml)}
+      # Required by server/platform/crypto.ts at import time, even though migrating encrypts nothing.
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env (see the top of docker-compose.yml)}
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,7 +94,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '5000:5000'
+      - '127.0.0.1:5000:5000'
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
