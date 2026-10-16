@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { privilegedDb } from '../platform/db';
 import { tests, detectedElements, users } from '@shared/schema';
-import { createTestOrganization } from '../tests/factories';
 
 // Mock only genuinely external / non-deterministic dependencies:
 //  - Google Gemini (a real network API we must not call in tests)
@@ -33,13 +32,11 @@ const { GoogleGenerativeAI } = await import('@google/generative-ai');
 
 describe('AIAutomationService', () => {
   let service: InstanceType<typeof AIAutomationService>;
-  let organizationId: number;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     process.env.GEMINI_API_KEY = 'test_key';
     service = new AIAutomationService();
-    organizationId = await createTestOrganization();
 
     // Clean slate (respect FK order: detected_elements -> tests -> users).
     await privilegedDb.delete(detectedElements);
