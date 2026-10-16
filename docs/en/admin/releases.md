@@ -273,7 +273,8 @@ scan read. A second lock that Dependabot does not update failed every dependency
 
 Every build/runtime stage applies `deployment/releases/harden-base.sh`. It installs
 the exact Ubuntu security versions `3.5.5-1ubuntu3.7` for libssl3t64, openssl and
-openssl-provider-legacy, removes the unused `/usr/bin/pebble` service manager,
+openssl-provider-legacy, and `8.18.0-1ubuntu2.8` for curl, libcurl4t64 and
+libcurl3t64-gnutls (CVE-2026-92392), removes the unused `/usr/bin/pebble` service manager,
 and preserves `pwuser` UID/GID 1000 for existing volumes. Global npm is removed
 only from final stages. The script removes APT indexes, caches and variable logs
 before layer export. If a pinned package disappears from the signed Ubuntu
