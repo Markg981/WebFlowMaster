@@ -21,6 +21,7 @@ import {
 import type { IndividualTestRunResult } from '../run-test';
 import { emit, report, type PlanRun } from './context';
 import { lanesAreChained, type Lane, type RunUnit } from './lanes';
+import { ReportEntryNotSavedError } from './report-entry';
 import { runUnit, type UnitScope } from './run-unit';
 
 export interface LaneResults {
@@ -48,19 +49,29 @@ export async function executeLanes(scope: UnitScope, lanes: Lane[]): Promise<Lan
     });
   }
 
-  /** Surfaced like a browser that would not start: something ran, and it was not the test. */
+  /**
+   * Surfaced like a browser that would not start: something ran, and it was not the test — or
+   * the test ran and its result could not be recorded, which the run cannot count either.
+   */
   const recordSettled = (settled: PromiseSettledResult<void>[], into: string[] = unitFailures) => {
     for (const outcome of settled) {
       if (outcome.status !== 'rejected') continue;
-      const message = `A test in this run could not be executed: ${
-        (outcome.reason as Error)?.message ?? String(outcome.reason)
-      }`;
+      const message =
+        outcome.reason instanceof ReportEntryNotSavedError
+          ? outcome.reason.message
+          : `A test in this run could not be executed: ${
+              (outcome.reason as Error)?.message ?? String(outcome.reason)
+            }`;
       into.push(message);
       report(run, { level: 'error', message });
     }
   };
+  // A result that could not be recorded is the end of that unit only: the lane goes on.
   const runOne = (unit: RunUnit, captured: Record<string, string>) =>
-    runUnit(scope, unit, captured, legacy);
+    runUnit(scope, unit, captured, legacy).catch((error: unknown) => {
+      if (!(error instanceof ReportEntryNotSavedError)) throw error;
+      recordSettled([{ status: 'rejected', reason: error }]);
+    });
 
   const shards = shardCount(scope.inputs.snapshot.shards);
   run.stop.shared = !!run.helper || shards > 1;

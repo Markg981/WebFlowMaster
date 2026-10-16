@@ -163,6 +163,10 @@ when no runner is online: **Settings → Run usage** says which.
 To stop a run, **Cancel run** on its report. Tests that have not started are reported as skipped;
 a test in progress stops at its next step.
 
+A run that cannot record a test's result ends in **error** (`run_incomplete`), never passed: its
+message names the test whose result was lost. That is not the same as the test failing — a failed
+test shows in the report with its failure, and the run is **failed**.
+
 ### Re-running failures
 
 With **Re-Run On Failure** set, a failed test is run again, up to three times. A test that passes

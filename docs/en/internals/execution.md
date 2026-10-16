@@ -261,9 +261,19 @@ store and the aggregates are computed from the result rows:
 | Past the maximum duration                                        | `timed_out` (`run_timed_out`) |
 | Any non-quarantined failure                                      | `failed`                      |
 | A browser that would not start, or a test that could not execute | `error` (`run_incomplete`)    |
+| A test whose result row could not be written                     | `error` (`run_incomplete`)    |
 | Otherwise                                                        | `completed`                   |
 
 Failures of quarantined tests are counted (`quarantined_failures`) but do not decide the run.
+
+A **failed test** and a **result that could not be recorded** are different things. A failed test
+has its row, with the failure in it, and makes the run `failed`. When the database refuses a row
+(`saveReportEntry` in `server/execution/plan-run/report-entry.ts` throws `ReportEntryNotSavedError`),
+the outcome of that test is unknown to the report: the unit is counted among the run's unit
+failures, the lane goes on with its next test, and the run cannot end `completed` on the rows that
+were saved. The failure message names the test ("The result of "Login" could not be recorded: …");
+the server log carries the run, the test's type, id, name, browser and status, and the database's
+reason, never the row's steps or evidence. A run that also has a recorded failure stays `failed`.
 
 Then, for a run that reached a verdict:
 

@@ -1,5 +1,5 @@
 {
-  "version": 64,
+  "version": 65,
   "areas": [
     {
       "id": "ACC",
@@ -8714,6 +8714,21 @@
         "Ricaricare il browser che agiva in B e quello che agiva in A."
       ],
       "expected": "Il cambio riesce anche con una chiave esistente. La chiave restituisce i progetti di A, non di B. Dopo la rimozione la sessione in B termina (torna al login), quella in A continua a funzionare."
+    },
+    {
+      "id": "PLN-44",
+      "area": "PLN",
+      "title": "Risultato non registrabile: la run non risulta superata",
+      "priority": "P1",
+      "actor": "amministratore del collaudo con accesso SQL al database locale",
+      "preconditions": "Catalogo versione 65. Ambiente locale di collaudo (mai uno condiviso o di produzione). Un piano con due test UI: il primo passa, il secondo fallisce a uno step. Webhook di notifica configurato sul piano.",
+      "steps": [
+        "Sul database locale creare un trigger BEFORE INSERT su report_test_case_results che solleva un'eccezione quando NEW.status = 'Failed'.",
+        "Eseguire il piano (da UI, o con wfm run <planId> --wait da terminale) e attendere la fine.",
+        "Aprire il report della run, leggere il messaggio di errore e il codice di uscita della CLI; controllare la notifica ricevuta.",
+        "Rimuovere il trigger ed eseguire di nuovo il piano."
+      ],
+      "expected": "Prima run: stato error con run_incomplete, un solo risultato (Passed) nel report, messaggio che nomina il secondo test (\"could not be recorded\"), CLI con uscita 1, notifica di run non riuscita; il log del server nomina il test e la causa senza step né evidenze. Seconda run: stato failed con il fallimento del secondo test visibile nel report, non error."
     }
   ],
   "presentation": {

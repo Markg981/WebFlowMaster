@@ -95,8 +95,20 @@ export function buildReportEntry(input: ReportEntryInput): InsertReportTestCaseR
 }
 
 /**
- * Saves a report row. A row that cannot be saved is logged and skipped: the result goes missing
- * from the detailed report, but the run completes.
+ * A result that ran but could not be recorded. Not a failed test: the test's outcome is unknown
+ * to the report, so the run cannot claim it — the lanes count it as a unit that did not complete.
+ */
+export class ReportEntryNotSavedError extends Error {
+  constructor(entry: InsertReportTestCaseResult, cause: string) {
+    super(`The result of "${entry.testName}" could not be recorded: ${cause}`);
+    this.name = 'ReportEntryNotSavedError';
+  }
+}
+
+/**
+ * Saves a report row. A row that cannot be saved is logged — who it was and why, never its steps
+ * or evidence — and the save throws `ReportEntryNotSavedError`: a run missing a result is not
+ * the same run with one test fewer.
  */
 export async function saveReportEntry(
   logger: Logger,
@@ -134,10 +146,17 @@ export async function saveReportEntry(
       await tx.insert(reportTestCaseResultsTable).values(entry);
     });
   } catch (dbInsertError: unknown) {
+    const cause = ((dbInsertError as Error)?.message ?? String(dbInsertError)).slice(0, 500);
     logger.error({
       message: 'Failed to insert into reportTestCaseResultsTable',
-      entry,
-      error: (dbInsertError as Error).message,
+      testPlanRunId: entry.testPlanExecutionId,
+      testType: entry.testType,
+      testId: entry.uiTestId ?? entry.apiTestId ?? entry.mobileTestId ?? null,
+      testName: entry.testName,
+      browser: entry.browser,
+      status: entry.status,
+      error: cause,
     });
+    throw new ReportEntryNotSavedError(entry, cause);
   }
 }
