@@ -63,6 +63,12 @@ Opzioni:
 
 I fallimenti dei test in quarantena non fanno fallire l'esecuzione.
 
+Un test fallito e un risultato non registrabile escono entrambi con `1`, ma non sono la stessa
+cosa. Un test fallito ha il suo risultato nel report e l'esecuzione è `failed`. Un risultato che il
+server non è riuscito a scrivere rende l'esecuzione `error` con `run_incomplete`, e il messaggio
+nomina il test: lo stato del commit è _error_, la notifica dice che l'esecuzione non è andata a
+buon fine. Un'esecuzione non risulta mai passata sui soli risultati sopravvissuti.
+
 **Da dove viene l'esecuzione.** Dentro GitHub Actions, GitLab CI, Jenkins, Azure Pipelines,
 Bitbucket Pipelines o CircleCI, la CLI legge dall'ambiente del job repository, commit, branch,
 pull request e link alla build, e li invia con l'esecuzione.

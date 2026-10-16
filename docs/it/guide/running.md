@@ -167,6 +167,10 @@ due.
 Per fermare un run, **Annulla run** nel suo report. I test non ancora partiti vengono riportati
 come saltati; un test in corso si ferma allo step successivo.
 
+Un run che non riesce a registrare il risultato di un test termina in **errore** (`run_incomplete`),
+mai come superato: il suo messaggio nomina il test il cui risultato è andato perso. Non è come un
+test fallito: un test fallito compare nel report con il suo fallimento, e il run è **fallito**.
+
 ### Rieseguire i fallimenti
 
 Con **Riesegui in Caso di Fallimento** impostato, un test fallito viene eseguito di nuovo, fino a

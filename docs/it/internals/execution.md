@@ -268,9 +268,20 @@ nell'archivio degli artefatti e gli aggregati vengono calcolati dalle righe di r
 | Oltre la durata massima                                          | `timed_out` (`run_timed_out`) |
 | Almeno un fallimento non in quarantena                           | `failed`                      |
 | Un browser che non è partito, o un test che non è stato eseguito | `error` (`run_incomplete`)    |
+| Un test la cui riga di risultato non è stata scritta             | `error` (`run_incomplete`)    |
 | Altrimenti                                                       | `completed`                   |
 
 I fallimenti dei test in quarantena vengono contati (`quarantined_failures`) ma non decidono il run.
+
+Un **test fallito** e un **risultato non registrabile** sono cose diverse. Un test fallito ha la
+sua riga, con il fallimento dentro, e rende il run `failed`. Quando il database rifiuta una riga
+(`saveReportEntry` in `server/execution/plan-run/report-entry.ts` lancia `ReportEntryNotSavedError`),
+l'esito di quel test è ignoto al report: l'unità viene contata fra i fallimenti di unità del run,
+la corsia prosegue con il test successivo, e il run non può chiudersi `completed` sulle righe che
+sono state salvate. Il messaggio di errore nomina il test ("The result of "Login" could not be
+recorded: …"); il log del server riporta il run, tipo, id, nome, browser e stato del test e il
+motivo del database, mai gli step o le evidenze della riga. Un run che ha anche un fallimento
+registrato resta `failed`.
 
 Poi, per un run arrivato a un verdetto:
 

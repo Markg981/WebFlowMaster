@@ -45,8 +45,9 @@ export type Verdict = 'completed' | 'failed' | 'error';
  *
  * `incomplete` is a browser that would not start or a test that could not be executed: a plan
  * that asked for three browsers and got two did not do what it was asked, whatever the tests
- * that did run reported — and neither did one whose test never executed at all. Saying
- * "completed" for either is how a gap in coverage comes to look like coverage.
+ * that did run reported — and neither did one whose test never executed at all, or whose result
+ * could not be written down: the rows that were saved say nothing of the one that was lost.
+ * Saying "completed" for any of these is how a gap in coverage comes to look like coverage.
  */
 export function verdictOf(tally: Tally, plannedTests: number, incomplete: boolean): Verdict {
   const verdict: Verdict =
@@ -139,7 +140,7 @@ export async function finalizeRun(
               // The reason itself when there is one: "Not every browser produced a result" sends
               // somebody looking for which, when the run already knows.
               failureMessage: [
-                'Not every browser or test in the plan produced a result.',
+                'Not every browser or test in the plan produced a recorded result.',
                 ...startupFailures,
                 ...unitFailures,
               ]

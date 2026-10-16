@@ -43,6 +43,12 @@ Options: `--url` / `$WFM_URL`, `--key` / `$WFM_API_KEY`, `--environment <id>`, `
 cancelled and timed out), `2` the step could not be carried out (no key, wrong URL, server
 unreachable, timed out waiting). Failures of tests in quarantine do not make a run fail.
 
+A failed test and a result that could not be recorded both exit `1`, but they are not the same.
+A failed test has its result in the report, and the run is `failed`. A result the server could not
+write makes the run `error` with `run_incomplete`, and its message names the test: the commit
+status is _error_, and the notification says the run did not succeed. A run is never reported as
+passed on the results that happened to survive.
+
 **Where the run came from.** Inside GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, Bitbucket
 Pipelines or CircleCI, the CLI reads the repository, commit, branch, pull request and build link
 from the job's environment and sends them with the run. The report, the notification, the HTML
