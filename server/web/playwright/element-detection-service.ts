@@ -1,6 +1,6 @@
 import { VOLATILE_ID_PATTERNS } from '@shared/selectors';
 import { Frame, Page } from 'playwright';
-import { throwIfEgressDenied } from '../../platform/egress-policy';
+import { gotoWithinPolicy } from '../../platform/egress-policy';
 import { substituteVariables } from '../../platform/outbound-http';
 import { storage } from '../../identity/storage';
 
@@ -406,7 +406,7 @@ export class ElementDetectionService {
       timeoutMs: pageTimeout,
     });
     try {
-      throwIfEgressDenied(await session.page.goto(targetUrl, { waitUntil: 'domcontentloaded' }));
+      await gotoWithinPolicy(session.page, targetUrl, { waitUntil: 'domcontentloaded' });
       // SPA frameworks (Angular/DevExpress, React, …) render their content after
       // domcontentloaded, so a fixed short wait captures an empty shell. Wait for the
       // network to go idle first; if it never settles (long-polling/websockets), fall
@@ -713,7 +713,7 @@ export class ElementDetectionService {
       url: targetUrl,
     });
     const { page } = session;
-    throwIfEgressDenied(await page.goto(targetUrl, { waitUntil: 'domcontentloaded' }));
+    await gotoWithinPolicy(page, targetUrl, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
     const results: Array<{ selector: string; count: number }> = [];
     for (const selector of selectors) {

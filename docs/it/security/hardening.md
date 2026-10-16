@@ -55,8 +55,35 @@ condivisa; `EGRESS_ALLOW_HOSTS` esenta host e CIDR da entrambi. Una richiesta ri
 subito, con un errore che nomina la policy e l'host come lo ha scritto il test. La policy non
 copre le connessioni che il server non apre da sé: il browser e le richieste di un agente
 locale, il browser di una griglia, e i protocolli TCP diretti (step su database, la casella che
-un test legge tramite il browser di un agente). I browser guidati dal runner verificano i nomi
-con il resolver del server; un nome la cui risposta differisce per il browser spetta al proxy.
+un test legge tramite il browser di un agente).
+
+**I browser del runner** (la run, l'anteprima del builder, il recorder e la detection degli
+elementi, che aprono tutti lo stesso tipo di sessione) rispettano la stessa policy su ogni
+canale. Ciascuno è verificato in un browser reale da `server/egress-policy-browser.test.ts`:
+
+| Canale                                                                      | Dove si applica la policy                                                                        |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| URL iniziale, step `navigate`, prima pagina di recorder/detection/anteprima | prima di interpellare il browser: solo `http(s)` e `about:blank`; poi la guardia delle richieste |
+| Richieste di pagine, popup, frame, worker dedicati e service worker         | guardia delle richieste nel contesto del browser (403 che nomina la policy)                      |
+| WebSocket da una pagina o da un popup                                       | guardia WebSocket nel contesto del browser (chiusa con codice 1008)                              |
+| WebSocket o richiesta da un worker, ogni connessione aperta dal browser     | proxy di guardia del runner, sull'indirizzo risolto al momento della connessione                 |
+| `file://`, `view-source:` e altre pagine non web                            | rifiutate al salvataggio del test e di nuovo quando la run naviga, in ogni profilo               |
+
+Il proxy di guardia gira nel processo del runner e i browser del runner sono avviati dietro di
+esso, loopback compreso. Apre ogni connessione da sé, con gli stessi controlli degli altri
+trasporti del server, quindi un nome che risolve verso un indirizzo vietato è rifiutato quando
+il browser si collega (DNS rebinding). Con `WFM_EGRESS_PROXY` impostato i browser passano invece
+da quel proxy, come prima, e il suo firewall è l'autorità. `file://` è rifiutato qualunque sia
+`EGRESS_PRIVATE_TARGETS`: il disco del runner contiene configurazione e chiavi, e una pagina web
+non può aprire da sola un file locale (i browser rifiutano quella navigazione). Le destinazioni
+private che servono a un'installazione on-premise restano raggiungibili con
+`EGRESS_PRIVATE_TARGETS=allow` o `EGRESS_ALLOW_HOSTS`, e i certificati self-signed seguono
+`allowsSelfSignedCertificate` come prima.
+
+**Agenti e griglie di browser** eseguono il browser sulla macchina e sulla rete del
+proprietario. Lì la policy non si applica, e il controller non promette di controllarlo tramite
+il proprio resolver: cosa può raggiungere quel browser lo decide la rete in cui gira, che
+configura il proprietario.
 
 - PostgreSQL e Redis non sono raggiungibili da internet; si collegano solo il processo web e i
   worker. Redis richiede una password (`redis://:password@host:6379`).

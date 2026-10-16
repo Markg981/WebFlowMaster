@@ -55,7 +55,7 @@ import {
   requestVariables,
   substituteVariables,
 } from '../platform/outbound-http';
-import { assertEgressAllowed, throwIfEgressDenied } from '../platform/egress-policy';
+import { assertEgressAllowed, gotoWithinPolicy } from '../platform/egress-policy';
 import {
   EMAIL_TIMEOUT_MS,
   findOtp,
@@ -599,7 +599,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if (!destination) throw new Error('URL (value) missing for navigate action.');
     const target = resolveValue(destination, rt.vars);
     if ('error' in target) return failed(target.error);
-    throwIfEgressDenied(await rt.page.goto(target.value, { waitUntil: 'domcontentloaded' }));
+    await gotoWithinPolicy(rt.page, target.value, { waitUntil: 'domcontentloaded' });
     return passed;
   },
 

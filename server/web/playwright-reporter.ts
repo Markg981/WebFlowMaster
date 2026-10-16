@@ -1,6 +1,7 @@
 import { Page } from 'playwright';
 import { aiService } from '../authoring/ai-automation-service';
 import { recordHealedSelector } from '../authoring/step-elements';
+import { gotoWithinPolicy } from '../platform/egress-policy';
 
 /**
  * Drives a page on behalf of a step, with AI self-healing of the selector when the step fails.
@@ -66,7 +67,7 @@ export class PlaywrightReporter {
 
   /** The `name` arguments are the step names callers still pass; nothing reads them here now. */
   async goto(url: string, _name?: string): Promise<void> {
-    await this.page.goto(url);
+    await gotoWithinPolicy(this.page, url);
   }
 
   async click(selector: string, _name?: string): Promise<void> {

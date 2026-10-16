@@ -1,6 +1,7 @@
 import dns from 'node:dns';
 import net from 'node:net';
-import type { BrowserContext, Response as PlaywrightResponse, Route } from 'playwright';
+import type { BrowserContext, Page, Response as PlaywrightResponse, Route } from 'playwright';
+import { forbiddenNavigationScheme } from '@shared/browser-navigation';
 
 /**
  * Where a test may make this server connect.
@@ -34,7 +35,8 @@ import type { BrowserContext, Response as PlaywrightResponse, Route } from 'play
  * user supplied, never the address a name resolved to.
  */
 
-export type EgressRule = 'metadata' | 'private';
+/** `scheme`: a page that is not on the network at all, such as `file://` (navigation only). */
+export type EgressRule = 'metadata' | 'private' | 'scheme';
 
 export class EgressDeniedError extends Error {
   override readonly name = 'EgressDeniedError';
@@ -52,6 +54,8 @@ export class EgressDeniedError extends Error {
 }
 
 function describeDenial(target: string, rule: EgressRule, resolved: boolean): string {
+  if (rule === 'scheme')
+    return `Blocked by the egress policy: ${target} pages are not web addresses, and the runner's browser opens only http(s) pages.`;
   const verb = resolved ? 'resolves to' : 'is';
   const why =
     rule === 'metadata'
@@ -445,6 +449,12 @@ async function browserDenial(
   return denial;
 }
 
+/** The contexts guardBrowserContext protects: the runner's own browsers, not a grid's or an agent's. */
+const guardedContexts = new WeakSet<BrowserContext>();
+
+/** The close code a refused WebSocket ends with: 1008, "policy violation". */
+export const EGRESS_WEBSOCKET_CLOSE_CODE = 1008;
+
 /**
  * Keeps a browser the runner drives from reaching a denied target: the test's page could
  * otherwise read the metadata service with a plain fetch(). Every request of the context
@@ -453,11 +463,43 @@ async function browserDenial(
  * the proxy's to catch, in deployments that have one). A denied request is answered with a 403
  * that names the policy, which a navigation step turns into its error. Mocks registered later
  * run first, as Playwright calls the newest route first; this one is reached by fallback.
+ *
+ * What this covers, because it was checked in a real browser (server/egress-policy-browser.test.ts):
+ * requests of every page of the context — popups included — of their frames, of dedicated
+ * workers and of service workers; WebSockets opened by any of them, which `route` never sees
+ * and which are therefore routed on their own, through the same decision; and navigations to
+ * `file://` and other non-web pages, refused by gotoWithinPolicy before the browser is asked
+ * (a page on the web cannot open one by itself: browsers refuse that navigation).
  */
 export async function guardBrowserContext(
   context: BrowserContext,
   fixed?: EgressPolicy,
 ): Promise<void> {
+  guardedContexts.add(context);
+  await context.routeWebSocket(
+    () => true,
+    async (socket) => {
+      const policy = fixed ?? egressPolicy();
+      let hostname: string;
+      try {
+        hostname = new URL(socket.url()).hostname;
+      } catch {
+        return socket.close({
+          code: EGRESS_WEBSOCKET_CLOSE_CODE,
+          reason: 'Blocked by the egress policy',
+        });
+      }
+      const denial = await browserDenial(hostname, policy);
+      if (!denial) return socket.connectToServer();
+      // A close reason is limited to 123 bytes; the page sees the rule, the log has the message.
+      await socket
+        .close({
+          code: EGRESS_WEBSOCKET_CLOSE_CODE,
+          reason: `Blocked by the egress policy (${denial.rule})`,
+        })
+        .catch(() => undefined);
+    },
+  );
   await context.route('**/*', async (route: Route) => {
     const policy = fixed ?? egressPolicy();
     let hostname: string;
@@ -503,4 +545,31 @@ export function egressDenialOfResponse(
 export function throwIfEgressDenied(response: PlaywrightResponse | null | undefined): void {
   const message = egressDenialOfResponse(response);
   if (message) throw new Error(message);
+}
+
+/** The denial a navigation earns by its scheme alone: `file://`, `view-source:`, `chrome://`… */
+export function denialForNavigation(url: string): EgressDeniedError | undefined {
+  const scheme = forbiddenNavigationScheme(url);
+  return scheme ? new EgressDeniedError(`${scheme}//`, 'scheme') : undefined;
+}
+
+/**
+ * The one way the server navigates a page it drives: the start URL, a navigate step, the
+ * recorder's, the detector's and the preview's first page. On the runner's own browser a
+ * non-web page is refused before the browser is asked, since `route` never sees one; on a
+ * grid's or an agent's the disk is its owner's, and the browser decides. A page the guard
+ * answered for is the step's error either way.
+ */
+export async function gotoWithinPolicy(
+  page: Page,
+  url: string,
+  options?: Parameters<Page['goto']>[1],
+): Promise<PlaywrightResponse | null> {
+  if (guardedContexts.has(page.context())) {
+    const denial = denialForNavigation(url);
+    if (denial) throw denial;
+  }
+  const response = await page.goto(url, options);
+  throwIfEgressDenied(response);
+  return response;
 }

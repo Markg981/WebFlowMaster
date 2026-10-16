@@ -32,9 +32,12 @@ vi.mock('../runtime/browsers', async (importOriginal) => {
   const context = {
     newPage: vi.fn().mockResolvedValue(page),
     close: vi.fn().mockResolvedValue(undefined),
-    // The egress policy routes every request of a local run's context.
+    // The egress policy routes every request and WebSocket of a local run's context.
     route: vi.fn().mockResolvedValue(undefined),
+    routeWebSocket: vi.fn().mockResolvedValue(undefined),
   };
+  // Navigation asks the page which context it is in, to apply the guarded profile.
+  Object.assign(page, { context: () => context });
   mocks.newContext.mockResolvedValue(context);
   return {
     ...actual,

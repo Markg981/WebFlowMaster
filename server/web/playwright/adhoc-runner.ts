@@ -5,7 +5,7 @@ import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performa
 import { Page } from 'playwright';
 import { cleanupReportStep, runCleanups } from '../../runtime/cleanup-runner';
 import type { DebugHooks } from '../debug-session';
-import { throwIfEgressDenied } from '../../platform/egress-policy';
+import { gotoWithinPolicy } from '../../platform/egress-policy';
 import { FlowCursor } from '../../runtime/flow-cursor';
 import { recordRunnerFailure } from '../../platform/observability/taps/runner';
 import { requestVariables, substituteVariables } from '../../platform/outbound-http';
@@ -234,7 +234,7 @@ export class AdhocRunner {
           pageClosed: page?.isClosed(),
         });
         try {
-          throwIfEgressDenied(await page.goto(targetUrl, gotoOptions));
+          await gotoWithinPolicy(page, targetUrl, gotoOptions);
           resolvedLogger.debug({
             message: 'PS:executeAdhocSequence - Navigation complete. Attempting screenshot...',
             testName,

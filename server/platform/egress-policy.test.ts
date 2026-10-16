@@ -7,6 +7,7 @@ import {
   assertEgressAllowed,
   checkAddress,
   checkHostname,
+  denialForNavigation,
   denialForUrl,
   egressDenialCause,
   egressPolicy,
@@ -17,6 +18,8 @@ import {
   vettedLookup,
 } from './egress-policy';
 import { runGrpc, runWebSocket } from '../api-tests/api-network-protocols';
+import { forbiddenNavigationScheme } from '@shared/browser-navigation';
+import { AdhocTestStepSchema, insertTestSchema } from '@shared/schema';
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -311,5 +314,52 @@ describe('other transports', () => {
       rule: 'metadata',
       resolved: true,
     });
+  });
+});
+
+describe('browser navigation policy', () => {
+  it('lets a browser test open web pages and about:blank, and nothing else', () => {
+    for (const url of ['https://app.example/x', 'http://10.0.0.5:8080/', 'about:blank'])
+      expect(denialForNavigation(url)).toBeUndefined();
+    for (const [url, scheme] of [
+      ['file:///etc/passwd', 'file://'],
+      ['FILE:///C:/Windows/win.ini', 'file://'],
+      ['view-source:file:///etc/passwd', 'view-source://'],
+      ['chrome://settings', 'chrome://'],
+      ['javascript:alert(1)', 'javascript://'],
+    ])
+      expect(denialForNavigation(url)).toMatchObject({ rule: 'scheme', target: scheme });
+    expect(denialForNavigation('file:///x')?.message).toMatch(
+      /^Blocked by the egress policy: file:\/\/ pages are not web addresses/,
+    );
+  });
+
+  it('leaves a value built from variables to the run, where it is finally known', () => {
+    expect(forbiddenNavigationScheme('{{baseUrl}}/login')).toBeUndefined();
+    expect(forbiddenNavigationScheme('')).toBeUndefined();
+    expect(forbiddenNavigationScheme(' file:///tmp/x ')).toBe('file:');
+  });
+
+  it('refuses a file:// navigate step and start URL when the test is saved', () => {
+    const step = (value: string) =>
+      AdhocTestStepSchema.safeParse({
+        id: 's',
+        action: {
+          id: 'navigate',
+          type: 'navigate',
+          name: 'Navigate',
+          icon: 'x',
+          description: 'go',
+        },
+        value,
+      });
+    expect(step('https://app.example/').success).toBe(true);
+    const refused = step('file:///etc/passwd');
+    expect(refused.success).toBe(false);
+    expect(JSON.stringify(refused.error?.issues)).toMatch(/http\(s\) address/);
+    const start = insertTestSchema.shape.url;
+    expect(start.safeParse('{{baseUrl}}/').success).toBe(true);
+    expect(start.safeParse('https://app.example/').success).toBe(true);
+    expect(start.safeParse('file:///C:/secrets.html').success).toBe(false);
   });
 });
