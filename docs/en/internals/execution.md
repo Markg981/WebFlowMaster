@@ -294,8 +294,13 @@ With `shards = 1` none of this runs.
   Assertions wait up to 5 s for the page to settle; explicit waits up to 15 s.
 - **Healing.** When a click or a fill cannot find its element and an AI key is configured, the page's
   DOM and the error go to the model, which proposes a selector. If the retry with it succeeds, the
-  step is marked _healed_ and the new selector is saved — on the shared repository element when the
-  step names one, so every test using it is fixed at once.
+  step is marked _healed_ and the selector is proposed to the step's source, taken from the
+  provenance every prepared step carries (`server/authoring/step-provenance.ts`): the shared
+  repository element, the group's step, or the test's step at its written position, never the
+  runner's position in the expanded sequence. `server/authoring/selector-healing.ts` writes it in a
+  tenant transaction, after locking the row and comparing it with the fingerprint taken when the
+  run prepared it, with a version (test step) and an audit entry in the same transaction. Otherwise
+  it reports a conflict on the step's `healing`.
 - **Evidence.** Screenshots per the plan's policy; video, Playwright trace and HAR network capture
   per the evidence settings (`never`, `on_failure`, `always`); visual comparison against per-step
   baselines when visual testing is on (`server/web/visual-testing.ts` returns `match`, `diff`,

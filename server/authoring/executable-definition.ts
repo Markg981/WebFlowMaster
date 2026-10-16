@@ -22,6 +22,7 @@ import {
   referencedCustomActionIds,
   type LoadedCustomAction,
 } from './custom-actions';
+import { canonical, withTestProvenance } from './step-provenance';
 
 /**
  * What a UI test calls, written down with the test (C04).
@@ -82,18 +83,6 @@ export type BundleRead =
   | { kind: 'legacy' }
   | { kind: 'corrupt'; reason: string }
   | { kind: 'unsupported'; protocol: unknown };
-
-function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (value && typeof value === 'object')
-    return Object.fromEntries(
-      Object.entries(value)
-        .filter(([, entry]) => entry !== undefined)
-        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-        .map(([key, entry]) => [key, canonical(entry)]),
-    );
-  return value;
-}
 
 const byId = <T extends { id: string }>(rows: T[]) =>
   [...rows].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -300,13 +289,17 @@ export function expandWithBundle(sequence: unknown, bundle: DependencyBundle): P
  * or deleted since cannot change what a queued or published definition does. Without (an ad-hoc
  * run of the working copy, or a run queued before bundles existed), from the live tables as
  * before. A definition whose recorded dependencies are unusable fails here, by name.
+ *
+ * Every step comes out with its provenance (server/authoring/step-provenance.ts): the test's or
+ * the group's sequence it is written in, and where, which is what healing writes back to.
  */
 export async function prepareSequence(
-  sequence: unknown,
+  written: unknown,
   frozen?: FrozenDependencies,
 ): Promise<PreparedSequence> {
   if (frozen && 'error' in frozen)
     return { steps: [], errors: [frozen.error], unresolved: [], expanded: false };
+  const sequence = withTestProvenance(asSteps(written));
   if (frozen) return expandWithBundle(sequence, frozen.bundle);
   const expansion = await expandSequenceForRun(sequence);
   if (expansion.errors.length > 0)

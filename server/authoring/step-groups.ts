@@ -3,6 +3,7 @@ import { STEP_GROUP_ACTION_ID } from '@shared/recording';
 import { stepGroups } from '@shared/schema';
 import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { expandCustomActionsForRun } from './custom-actions';
+import { PROVENANCE_KEY, groupStepProvenance } from './step-provenance';
 
 /**
  * Turning "call the login group" into the six steps the login group holds.
@@ -83,7 +84,7 @@ export function expandStepGroups(sequence: unknown, groups: LoadedStepGroup[]): 
   const errors: string[] = [];
   let expanded = false;
 
-  for (const step of steps) {
+  for (const [callIndex, step] of steps.entries()) {
     if (!isGroupCall(step)) {
       out.push(step);
       continue;
@@ -117,11 +118,16 @@ export function expandStepGroups(sequence: unknown, groups: LoadedStepGroup[]): 
     }
 
     expanded = true;
-    for (const innerStep of inner) {
+    for (const [index, innerStep] of inner.entries()) {
       out.push({
         ...innerStep,
         // The call it came from, so a breakpoint on the call can stop at the group's first step.
         calledFrom: step.id,
+        // Written in the group, not in the test: a repair goes to the group's step (C05).
+        [PROVENANCE_KEY]: groupStepProvenance(group.id, index, innerStep, {
+          step,
+          index: callIndex,
+        }),
         action: {
           ...(innerStep.action ?? {}),
           // Says where the step came from, so a failure in the report points at the group

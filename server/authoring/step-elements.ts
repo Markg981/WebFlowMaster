@@ -2,6 +2,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { projectElements } from '@shared/schema';
 import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { asSteps, type SequenceStep } from './step-groups';
+import { elementFingerprint, withElementProvenance } from './step-provenance';
 
 /**
  * Letting a step name an element from the project's repository instead of carrying its own copy.
@@ -79,12 +80,12 @@ export function resolveStepElements(
     const element = byId.get(id);
     if (!element) {
       if (!unresolved.includes(id)) unresolved.push(id);
-      return step;
+      return withElementProvenance(step, id, null);
     }
 
     resolved++;
     return {
-      ...step,
+      ...withElementProvenance(step, id, element),
       targetElement: {
         ...target,
         selector: element.selector,
@@ -141,22 +142,46 @@ export async function resolveSequenceForRun(sequence: unknown): Promise<Resoluti
   }
 }
 
+/** What a guarded write of a healed selector did. */
+export type GuardedSelectorWrite =
+  { status: 'applied' | 'already_applied' } | { status: 'conflict'; reason: 'absent' | 'changed' };
+
 /**
- * Records a repaired selector against the repository element a step named.
+ * Records a repaired selector against the repository element a step named, in the caller's
+ * transaction, if the element is still what the run resolved.
  *
- * This is what the repository is for. Healing used to rewrite the selector inside one test's
- * saved sequence, so the same broken button was repaired again, separately, by every test that
- * touched it — and only ever after each of them had failed once.
+ * This is what the repository is for: one row, read by every test that names it. The row is
+ * locked and compared with the fingerprint the run took of it; an element edited, healed or
+ * deleted since is left alone and the repair is reported as a conflict (C05). RLS decides which
+ * rows the transaction sees, so another tenant's element is simply absent.
  */
-export async function recordHealedSelector(elementId: string, selector: string): Promise<boolean> {
-  const updated = await withTenantTransaction((tx) =>
-    tx
-      .update(projectElements)
-      .set({ selector, healedAt: new Date(), updatedAt: new Date() })
-      .where(eq(projectElements.id, elementId))
-      .returning(),
-  );
-  return updated.length > 0;
+export async function writeHealedElementSelector(
+  tx: TenantTx,
+  input: { elementId: string; fingerprint: string; selector: string },
+): Promise<GuardedSelectorWrite> {
+  const [row] = await tx
+    .select()
+    .from(projectElements)
+    .where(eq(projectElements.id, input.elementId))
+    .for('update');
+  if (!row) return { status: 'conflict', reason: 'absent' };
+  const current = { selector: row.selector, frameSelector: row.frameSelector ?? null };
+  if (elementFingerprint(current) !== input.fingerprint) {
+    // Another run of the same repair got there first: the element already says this.
+    return current.selector === input.selector
+      ? { status: 'already_applied' }
+      : { status: 'conflict', reason: 'changed' };
+  }
+  await tx
+    .update(projectElements)
+    .set({
+      selector: input.selector,
+      originalSelector: row.originalSelector ?? row.selector,
+      healedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(projectElements.id, input.elementId));
+  return { status: 'applied' };
 }
 
 /** The repository element a step names, if it names one. */

@@ -3145,7 +3145,9 @@
       "impact_rule": "Mappa dell'impatto",
       "sms_inbox": "Casella SMS",
       "organization": "Organizzazione",
-      "load_test": "Test di carico"
+      "load_test": "Test di carico",
+      "step_group": "Gruppi di step",
+      "project_element": "Repository degli elementi"
     },
     "actions": {
       "bdd_profile_created": "Profilo BDD creato",
@@ -3269,7 +3271,10 @@
       "load_test_updated": "Test di carico modificato",
       "load_test_deleted": "Test di carico eliminato",
       "load_test_run": "Esecuzione di carico avviata",
-      "load_test_cancelled": "Esecuzione di carico fermata"
+      "load_test_cancelled": "Esecuzione di carico fermata",
+      "test_selector_healed": "Selettore del test corretto",
+      "step_group_selector_healed": "Selettore del gruppo di step corretto",
+      "project_element_selector_healed": "Selettore dell’elemento condiviso corretto"
     }
   },
   "security": {

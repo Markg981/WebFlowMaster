@@ -1,6 +1,7 @@
 import { Page } from 'playwright';
 import { aiService } from '../authoring/ai-automation-service';
-import { recordHealedSelector } from '../authoring/step-elements';
+import { applyHealedSelector, type HealingOutcome } from '../authoring/selector-healing';
+import type { StepProvenance } from '../authoring/step-provenance';
 import { gotoWithinPolicy } from '../platform/egress-policy';
 
 /**
@@ -12,22 +13,35 @@ import { gotoWithinPolicy } from '../platform/egress-policy';
  * (server/web/playwright-service.ts takes the error screenshots) and the Allure report is built from
  * the stored run (server/reporting/allure-export.ts).
  */
-export class PlaywrightReporter {
-  // Context for DB updates
-  private currentTestId?: number;
-  private currentStepIndex?: number;
+
+/** What the runner knows about the step being driven: which test, and where the step is written. */
+export interface HealingContext {
+  testId: number;
   /**
-   * The repository element this step points at, when it points at one.
-   *
-   * Healing a step used to rewrite the selector inside this one test's saved sequence, so the
-   * same moved button was repaired separately by every test that touched it — each after
-   * failing once. When the step names a shared element, the repair goes there instead, and
-   * every test that names it is fixed before it runs.
+   * Where the step is written (server/authoring/step-provenance.ts). Not the runner's position:
+   * after a group is expanded the two differ, and a repair keyed by the runner's position landed
+   * on whichever step of the test happened to be there (C05).
    */
-  private currentElementId?: string | null;
+  provenance: StepProvenance | null;
+  /**
+   * The repository element this step points at, when it points at one: a repair of a shared
+   * element goes to the element, so every test that names it is fixed before it runs.
+   */
+  elementId: string | null;
+  executionId?: string | null;
+  userId?: number | null;
+}
+
+/** How long restoring a highlight may take before it is given up: a dialog can block the page. */
+const RESTORE_MS = 1000;
+
+export class PlaywrightReporter {
+  private context: HealingContext | null = null;
 
   // State for AI Reporting
   public lastActionHealed: boolean = false;
+  /** What became of this step's healed selector: saved to its source, or kept as a proposal. */
+  public lastHealing: HealingOutcome | null = null;
 
   constructor(private page: Page) {}
 
@@ -36,33 +50,13 @@ export class PlaywrightReporter {
     this.page = page;
   }
 
-  setContext(testId: number, stepIndex: number, elementId?: string | null) {
-    this.currentTestId = testId;
-    this.currentStepIndex = stepIndex;
-    this.currentElementId = elementId ?? null;
-  }
-
-  /**
-   * Writes a repaired selector where the tests that use it will read it.
-   *
-   * The repository when the step names one — a single row, read by every test that names it —
-   * and this test's own sequence otherwise, which is what healing has always done.
-   */
-  private async persistHealedSelector(healedSelector: string): Promise<void> {
-    if (this.currentElementId) {
-      const recorded = await recordHealedSelector(this.currentElementId, healedSelector).catch(
-        () => false,
-      );
-      if (recorded) return;
-      // Fall through: an element that could not be written is no reason to lose the repair.
-    }
-    if (this.currentTestId !== undefined && this.currentStepIndex !== undefined) {
-      await aiService.updateSelectorInDb(this.currentTestId, this.currentStepIndex, healedSelector);
-    }
+  setContext(context: HealingContext) {
+    this.context = context;
   }
 
   resetStepState() {
     this.lastActionHealed = false;
+    this.lastHealing = null;
   }
 
   /** The `name` arguments are the step names callers still pass; nothing reads them here now. */
@@ -85,29 +79,38 @@ export class PlaywrightReporter {
   /**
    * Runs an action on a selector, and once more on a healed one when it fails.
    *
-   * A repaired selector that works is written where the tests will read it and marks this
-   * action healed; one that does not, or none at all, lets the original error through — the
-   * step fails with the reason it first failed for, not with the retry's.
+   * A repaired selector that works marks this action healed and is proposed to the step's
+   * source; whether it was written there is `lastHealing`. One that does not work, or none at
+   * all, lets the original error through — the step fails with the reason it first failed for,
+   * not with the retry's.
    */
   private async act(selector: string, action: (selector: string) => Promise<unknown>) {
     try {
-      await this.highlight(selector);
-      await action(selector);
+      await this.highlighted(selector, action);
     } catch (e: any) {
       const healedSelector = await this.attemptHeal(selector, e.message);
-      if (healedSelector) {
-        try {
-          await this.highlight(healedSelector);
-          await action(healedSelector);
-          await this.persistHealedSelector(healedSelector);
-        } catch {
-          throw e;
-        }
-        this.lastActionHealed = true;
-        return;
+      if (!healedSelector) throw e;
+      try {
+        await this.highlighted(healedSelector, action);
+      } catch {
+        throw e;
       }
-      throw e;
+      this.lastActionHealed = true;
+      this.lastHealing = await this.proposeToSource(healedSelector);
     }
+  }
+
+  /** Writes nothing itself: the source and the conditions are selector-healing's. */
+  private async proposeToSource(proposedSelector: string): Promise<HealingOutcome | null> {
+    if (!this.context) return null;
+    return applyHealedSelector({
+      testId: this.context.testId,
+      provenance: this.context.provenance,
+      elementId: this.context.elementId,
+      proposedSelector,
+      executionId: this.context.executionId ?? null,
+      startedBy: this.context.userId ?? null,
+    });
   }
 
   private async attemptHeal(originalSelector: string, error: string): Promise<string | null> {
@@ -120,15 +123,51 @@ export class PlaywrightReporter {
     }
   }
 
-  private async highlight(selector: string) {
+  /**
+   * The action, with its element outlined while it runs and put back as it was afterwards.
+   *
+   * The outline used to stay: the step's screenshot, its visual comparison and the DOM sent for
+   * healing all carried a red border the application never drew. Restored from the element's own
+   * `style` attribute, so an inline style it had before survives exactly.
+   */
+  private async highlighted(selector: string, action: (selector: string) => Promise<unknown>) {
+    const restore = await this.highlight(selector);
     try {
-      const locator = this.page.locator(selector).first();
-      await locator.evaluate((el: any) => {
+      await action(selector);
+    } finally {
+      await restore();
+    }
+  }
+
+  private async highlight(selector: string): Promise<() => Promise<void>> {
+    const nothing = async () => {};
+    try {
+      // Not waited for: the action waits for its element, and a highlight is not worth a timeout.
+      const handle = await this.page.$(selector);
+      if (!handle) return nothing;
+      const previous = await handle.evaluate((el) => {
+        const style = el.getAttribute('style');
         el.style.border = '2px solid red';
         el.style.backgroundColor = 'rgba(255,0,0,0.1)';
+        return style;
       });
-    } catch (e) {
+      return async () => {
+        const restoring = handle
+          .evaluate((el, style: string | null) => {
+            if (style === null) el.removeAttribute('style');
+            else el.setAttribute('style', style);
+          }, previous)
+          .catch(() => {})
+          .finally(() => handle.dispose().catch(() => {}));
+        // Gone with a navigation, or behind a dialog: nothing left to restore, or nothing to wait for.
+        await Promise.race([
+          restoring,
+          new Promise((resolve) => setTimeout(resolve, RESTORE_MS).unref()),
+        ]);
+      };
+    } catch {
       // Ignore highlighting errors
+      return nothing;
     }
   }
 

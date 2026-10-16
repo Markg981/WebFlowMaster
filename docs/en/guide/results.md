@@ -159,8 +159,21 @@ credentials or personal data: use dedicated test accounts, set **Trace** to _Nev
 to _Never_ or _When the test fails_ in the plan, and keep `ARTIFACT_RETENTION_DAYS` short.
 :::
 
+#### Healed steps {#healed-steps}
+
 A step marked **healed** found its element only after its selector was replaced (see
-[Element repository](./web-tests#element-repository)).
+[Element repository](./web-tests#element-repository)). The step's result also says what became of
+the new selector (`healing`):
+
+- **applied**: saved to where the step is written (the test's step, the group's step or the kept
+  element), with the version number for a test step;
+- **already applied**: another run saved the same repair first;
+- **conflict**: not saved, with the reason (`changed`, `absent`, `locked`, `unauthorized`,
+  `no_source`, `invalid`, `failed`). The selector is kept here as a proposal for you to apply by
+  hand, and the run's log has a warning for that step.
+
+The red outline that marks the element being acted on is removed after each action. Screenshots,
+visual comparisons and the page sent to the AI show the application as it is.
 
 #### Attempts and dataset rows {#attempts-and-rows}
 

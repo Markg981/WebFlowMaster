@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { privilegedDb } from '../platform/db';
 import { tests, detectedElements, users } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
 import { createTestOrganization } from '../tests/factories';
 
 // Mock only genuinely external / non-deterministic dependencies:
@@ -143,62 +142,16 @@ describe('AIAutomationService', () => {
     });
   });
 
-  describe('updateSelectorInDb', () => {
-    it('updates the sequence, the elements repository and upserts detected_elements', async () => {
-      // Seed a real user + test.
-      const [user] = await privilegedDb
-        .insert(users)
-        .values({ username: 'ai-heal-user', password: 'hashed', organizationId })
-        .returning();
+  describe('healSelector, a proposal only', () => {
+    it('takes a fenced answer apart without touching the selector inside it', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => '```css\n.css-button > span\n```' },
+      });
+      expect(await service.healSelector('div.old', 'html', 'error')).toBe('.css-button > span');
+    });
 
-      const sequence = [
-        {
-          targetElement: {
-            id: 'el1',
-            selector: 'div.old',
-            tag: 'div',
-            text: 'Click me',
-            attributes: { role: 'button' },
-          },
-        },
-      ];
-      const elements = [{ id: 'el1', selector: 'div.old' }];
-
-      const [seededTest] = await privilegedDb
-        .insert(tests)
-        .values({
-          userId: user.id,
-          organizationId,
-          name: 'Healing test',
-          url: 'http://example.com',
-          sequence, // jsonb column — pass the object directly (no JSON.stringify)
-          elements,
-        })
-        .returning();
-
-      await service.updateSelectorInDb(seededTest.id, 0, 'div.new');
-
-      // The sequence step and the elements repository should now carry the healed selector.
-      const [updated] = await privilegedDb
-        .select()
-        .from(tests)
-        .where(eq(tests.id, seededTest.id))
-        .limit(1);
-      const updatedSequence = updated.sequence as any[];
-      const updatedElements = updated.elements as any[];
-      expect(updatedSequence[0].targetElement.selector).toBe('div.new');
-      expect(updatedElements[0].selector).toBe('div.new');
-
-      // A normalized detected_elements row should have been inserted for the element.
-      const detected = await privilegedDb
-        .select()
-        .from(detectedElements)
-        .where(
-          and(eq(detectedElements.testId, seededTest.id), eq(detectedElements.elementId, 'el1')),
-        )
-        .limit(1);
-      expect(detected.length).toBe(1);
-      expect(detected[0].selector).toBe('div.new');
+    it('has no way to write a selector anywhere: the target is decided from provenance (C05)', () => {
+      expect('updateSelectorInDb' in service).toBe(false);
     });
   });
 });

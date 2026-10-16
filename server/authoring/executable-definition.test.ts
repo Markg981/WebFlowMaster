@@ -23,6 +23,7 @@ import {
   type DependencyBundle,
 } from './executable-definition';
 import { recordTestVersion } from './test-version-store';
+import { provenanceOf, stepFingerprint } from './step-provenance';
 
 /**
  * What a test calls, written down with it (C04): a group, element or custom action edited or
@@ -321,5 +322,81 @@ describe('versions', () => {
 
     expect(await save(plain)).toBeNull();
     expect(await save(calling)).toEqual({ version: 2, summary: 'Shared dependencies recorded.' });
+  });
+});
+
+describe('where each prepared step is written (C05)', () => {
+  const step = (id: string, selector: string) => ({ id, ...click(selector) });
+  const callAs = (id: string, groupId: string) => ({ id, ...call(groupId) });
+
+  it('a two-step group then an independent click: three steps, each pointing at its own source', async () => {
+    const login = await group([step('g1', '#user'), step('g2', '#go')], 'Login');
+    const sequence = [callAs('c1', login), step('t2', '#independent')];
+    const bundle = await capture(sequence);
+
+    for (const prepared of [
+      await runWithTenant(organizationId, () => prepareSequence(sequence)),
+      await prepareSequence(sequence, { bundle, origin: 'version' }),
+    ]) {
+      expect(prepared.errors).toEqual([]);
+      expect(prepared.steps.map((s) => provenanceOf(s))).toEqual([
+        expect.objectContaining({ source: 'group', groupId: login, index: 0, stepId: 'g1' }),
+        expect.objectContaining({
+          source: 'group',
+          groupId: login,
+          index: 1,
+          stepId: 'g2',
+          callPath: [{ index: 0, stepId: 'c1' }],
+          fingerprint: stepFingerprint(step('g2', '#go')),
+        }),
+        // The runner's third step is the test's second.
+        expect.objectContaining({
+          source: 'test',
+          groupId: null,
+          index: 1,
+          stepId: 't2',
+          callPath: [],
+          fingerprint: stepFingerprint(sequence[1]),
+        }),
+      ]);
+    }
+  });
+
+  it('a group called twice: the same group steps, reached by two calls', async () => {
+    const login = await group([step('g1', '#user')], 'Login');
+    const prepared = await runWithTenant(organizationId, () =>
+      prepareSequence([callAs('c1', login), step('t2', '#x'), callAs('c3', login)]),
+    );
+
+    expect(prepared.steps.map((s) => provenanceOf(s))).toEqual([
+      expect.objectContaining({ groupId: login, index: 0, callPath: [{ index: 0, stepId: 'c1' }] }),
+      expect.objectContaining({ source: 'test', index: 1 }),
+      expect.objectContaining({ groupId: login, index: 0, callPath: [{ index: 2, stepId: 'c3' }] }),
+    ]);
+  });
+
+  it('a nested group is refused before anything runs, so nothing is healed in its name', async () => {
+    const inner = await group([step('i1', '#inner')], 'Inner');
+    const outer = await group([step('o1', '#outer'), callAs('o2', inner)], 'Outer');
+    const prepared = await runWithTenant(organizationId, () =>
+      prepareSequence([callAs('c1', outer)]),
+    );
+
+    expect(prepared.errors).toEqual([expect.stringContaining('calls another step group')]);
+  });
+
+  it('the fingerprint is of the step as written: a stored round trip and key order do not change it', () => {
+    const written = {
+      targetElement: { selector: '#a', id: 'e1' },
+      action: { name: 'C', id: 'click' },
+    };
+    const reordered = JSON.parse(
+      JSON.stringify({
+        action: { id: 'click', name: 'C' },
+        targetElement: { id: 'e1', selector: '#a' },
+      }),
+    );
+    expect(stepFingerprint(reordered)).toBe(stepFingerprint(written));
+    expect(stepFingerprint({ ...written, value: 'x' })).not.toBe(stepFingerprint(written));
   });
 });

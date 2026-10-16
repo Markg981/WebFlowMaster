@@ -99,6 +99,11 @@ export function getTenantOrgId(): number | undefined {
   return tenantStore.getStore()?.organizationId;
 }
 
+/** Who the ambient tenant context acts for: a member, or nobody (the system, a plan run). */
+export function getTenantPrincipal(): TenantPrincipal | undefined {
+  return tenantStore.getStore()?.principal;
+}
+
 /**
  * The tenant transaction currently open, if one is: for server/platform/organization-keys.ts, which must
  * send its lookup through it rather than beside it (one connection under PGlite).

@@ -26,6 +26,7 @@ import {
 } from '../../runtime/run-evidence';
 import { keepsScreenshot } from '../../runtime/run-policies';
 import { elementIdOfStep } from '../../authoring/step-elements';
+import { provenanceOf } from '../../authoring/step-provenance';
 import { prepareSequence } from '../../authoring/executable-definition';
 import {
   executeStep,
@@ -569,9 +570,17 @@ export class TestRunner {
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
 
-          // Set context for AI Healing. The element id travels with it: when the step names a
-          // shared element, a repair belongs to that element and not to this one test's copy.
-          reporter.setContext(test.id, i, elementIdOfStep(step as unknown as SequenceStep));
+          // Set context for AI Healing: where the step is written, never `i`. After a group is
+          // expanded the runner's position is not the test's, and a repair keyed by it landed on
+          // whichever step of the test was there (C05). The element id travels with it: a step
+          // naming a shared element is repaired in the element, not in this one test's copy.
+          reporter.setContext({
+            testId: test.id,
+            provenance: provenanceOf(step as unknown as SequenceStep),
+            elementId: elementIdOfStep(step as unknown as SequenceStep),
+            executionId: executionId ?? null,
+            userId,
+          });
 
           reporter.resetStepState();
 
@@ -767,6 +776,17 @@ export class TestRunner {
           }
 
           if (stepStatus === 'failed') overallSuccess = false;
+          const healing = reporter.lastHealing;
+          if (healing?.status === 'conflict' && executionId) {
+            // The step passed on the proposal; its source keeps what it said. Somebody decides.
+            wsEmitter.emitExecutionLog(executionId, {
+              level: 'warn',
+              source: 'playwright',
+              message: `Step ${i + 1} (${actionName}): ${healing.detail}`,
+              timestamp: new Date().toISOString(),
+              metadata: { stepIndex: i, healing: healing.reason },
+            });
+          }
           stepResults.push({
             name: actionName,
             type: actionId || 'unknown',
@@ -783,6 +803,7 @@ export class TestRunner {
             error: stepError,
             details: stepStatus === 'passed' ? (stepDetail ?? 'Success') : stepError || 'Failed',
             healed: reporter.lastActionHealed,
+            ...(healing ? { healing } : {}),
             visual: stepVisual,
             accessibility: stepAccessibility,
             performance: stepPerformance,
