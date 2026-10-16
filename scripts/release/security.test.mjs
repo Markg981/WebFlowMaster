@@ -50,6 +50,7 @@ test('release inputs fingerprint the client manifests', () => {
 test('every base stage applies fixed OS packages and preserves the runtime UID', () => {
   const script = readFileSync('deployment/releases/harden-base.sh', 'utf8');
   assert.match(script, /openssl_version=3\.5\.5-1ubuntu3\.7/);
+  assert.match(script, /curl_version=8\.18\.0-1ubuntu2\.8/);
   assert.match(script, /rm -f \/usr\/bin\/pebble/);
   assert.match(script, /usermod -u 1000 pwuser/);
   assert.doesNotMatch(script, /apt-get (?:dist-)?upgrade/);
