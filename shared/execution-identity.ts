@@ -68,9 +68,49 @@ export interface UnitCoordinates {
  * - recorded: its single final result row exists.
  * - not_startable: the plan asked for it, and its browser would not start here. Expected all the
  *   same: a browser that does not start is a gap, not a smaller plan.
+ * - indeterminate: the worker running it was lost, or could not confirm in time that it still
+ *   owned the work. Terminal: whatever it did to the application may have happened, and its
+ *   result is not known (lot P11).
  */
-export const EXECUTION_UNIT_STATES = ['planned', 'running', 'recorded', 'not_startable'] as const;
+export const EXECUTION_UNIT_STATES = [
+  'planned',
+  'running',
+  'recorded',
+  'not_startable',
+  'indeterminate',
+] as const;
 export type ExecutionUnitState = (typeof EXECUTION_UNIT_STATES)[number];
+
+/** A try in progress, closed with its outcome, or left by an owner whose claim ended. */
+export const ATTEMPT_STATES = ['running', 'finished', 'abandoned'] as const;
+export type AttemptState = (typeof ATTEMPT_STATES)[number];
+
+/**
+ * A shared run's work item (server/runtime/run-shards.ts): waiting, held under a lease, done with
+ * its results, or `indeterminate` — its lease ended with work begun and nobody may run it again.
+ */
+export const WORK_ITEM_STATES = ['pending', 'claimed', 'done', 'indeterminate'] as const;
+export type WorkItemState = (typeof WORK_ITEM_STATES)[number];
+
+/**
+ * One claim on a work item: who holds it, and under which epoch. The epoch is raised by every
+ * claim, so a worker whose claim was taken over can be told from the one that took it; it is not
+ * an attempt number. `WorkClaimRef { workItemKey, owner, epoch }` of the consolidation plan.
+ */
+export interface WorkClaimRef {
+  executionId: string;
+  workItemKey: string;
+  owner: string;
+  epoch: number;
+}
+
+/**
+ * What happens to the work of a lost worker. 'indeterminate' (the default) ends it without a
+ * result. 'replay' lets another worker run it again, only for an item of one unit whose test may be
+ * run twice against the application: a plan opts in, and nothing infers it from reRunOnFailure.
+ */
+export const WORKER_LOSS_POLICIES = ['indeterminate', 'replay'] as const;
+export type WorkerLossPolicy = (typeof WORKER_LOSS_POLICIES)[number];
 
 /** Keys sorted, so the same coordinates always serialize the same way. */
 export function canonicalCoordinates(coordinates: UnitCoordinates): string {
@@ -156,7 +196,7 @@ export interface AttemptRowView extends EvidenceLinks {
 
 export interface AttemptView extends EvidenceLinks {
   attempt: number;
-  state: 'running' | 'finished';
+  state: AttemptState;
   status: string | null;
   failureReason: string | null;
   startedAt: string;

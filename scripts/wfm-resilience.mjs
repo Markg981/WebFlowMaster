@@ -12,12 +12,13 @@ import {
   reconcileScenario,
   waitForRecovery,
   retainedArtifactBreaches,
+  unitBreaches,
 } from './resilience-core.mjs';
 
 const args = process.argv.slice(2);
 if (args.includes('--help')) {
   console.log(
-    'Usage: npm run load:resilience -- [--cycles 1] [--recovery-timeout 180] [--observation-seconds 40] [--worker-restart graceful|crash]\nBuilds a disposable Docker stack; never accepts existing project, URL or credentials. Crash mode verifies worker_lost without replaying interrupted work.',
+    'Usage: npm run load:resilience -- [--cycles 1] [--recovery-timeout 180] [--observation-seconds 40] [--worker-restart graceful|crash]\nBuilds a disposable Docker stack; never accepts existing project, URL or credentials. Crash mode verifies worker_lost without replaying interrupted work, with the lost result explicit (no unit left running, no completed run missing a unit result).',
   );
   process.exit(0);
 }
@@ -163,6 +164,16 @@ async function inventory(tenant) {
     if (result.items.length < 100) return items;
     ensure(offset < 10000, 'Unexpected unbounded fixture inventory');
   }
+}
+/** Every run's units against its status (lot P11): no incomplete green, no silent loss, no unauthorized replay. */
+async function unitChecks(tenant, rows) {
+  const found = [];
+  for (const run of rows) {
+    const { items } = await json(tenant.client, 'get', `/api/test-plan-executions/${run.id}/units`);
+    found.push(...unitBreaches(run, items, [], evidence.expectedWorkerLostIds));
+  }
+  found.push(...unitBreaches({ id: '', status: '' }, [], rows, evidence.expectedWorkerLostIds));
+  return found;
 }
 async function artifacts(tenant, runId) {
   const report = await json(tenant.client, 'get', `/api/test-plan-executions/${runId}/report`);
@@ -443,6 +454,10 @@ try {
                 rows,
                 evidence.expectedWorkerLostIds,
               ),
+              ...(await unitChecks(
+                tenant,
+                rows.filter((run) => !previousIds[index].includes(run.id)),
+              )),
             );
             record.artifacts.push(
               ...(await Promise.all(
@@ -499,7 +514,10 @@ try {
     const finalBreaches = [];
     for (const tenant of tenants) {
       const rows = await inventory(tenant);
-      const found = reconcile(tenant.expected, rows, evidence.expectedWorkerLostIds);
+      const found = [
+        ...reconcile(tenant.expected, rows, evidence.expectedWorkerLostIds),
+        ...(await unitChecks(tenant, rows)),
+      ];
       evidence.breaches.push(...found);
       finalBreaches.push(...found);
       evidence.final.push({

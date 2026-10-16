@@ -68,7 +68,7 @@ export interface UnitSummary {
   unitId: string;
   position: number;
   state: ExecutionUnit['state'];
-  /** Why a not_startable unit could not start. */
+  /** Why a not_startable unit could not start, or why an indeterminate one has no result. */
   reason: string | null;
   testType: 'ui' | 'api' | 'mobile';
   testId: number | null;

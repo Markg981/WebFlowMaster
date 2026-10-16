@@ -3646,6 +3646,12 @@
     "shards": {
       "label": "Workers sharing a run",
       "help": "Splits one run across up to this many runners, each running the number above at once. Tests are handed out one at a time to whichever runner is free, and the report is one run as usual. 1 keeps the run on one runner."
+    },
+    "workerLoss": {
+      "label": "When a runner is lost mid-test",
+      "indeterminate": "Mark its result as unknown (recommended)",
+      "replay": "Run the test again on another runner",
+      "help": "A runner that stops answering may already have clicked or sent requests. By default its test ends as indeterminate and the run as incomplete. Choose to run it again only if every test in this plan can safely run twice against the application. Tests whose API requests pass values to later ones are never resumed half-way."
     }
   },
   "network": {

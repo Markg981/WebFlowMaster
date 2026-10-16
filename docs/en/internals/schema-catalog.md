@@ -4,7 +4,7 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**80 tables / 895 declared columns.**
+**80 tables / 899 declared columns.**
 
 ## Index
 
@@ -54,7 +54,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [load_tests](#load-tests)                                     | `loadTests`                  | 14      |
 | [api_test_history](#api-test-history)                         | `apiTestHistory`             | 13      |
 | [api_tests](#api-tests)                                       | `apiTests`                   | 32      |
-| [test_plans](#test-plans)                                     | `testPlans`                  | 30      |
+| [test_plans](#test-plans)                                     | `testPlans`                  | 31      |
 | [test_plan_schedules](#test-plan-schedules)                   | `testPlanSchedules`          | 16      |
 | [test_plan_executions](#test-plan-executions)                 | `testPlanExecutions`         | 35      |
 | [execution_outbox](#execution-outbox)                         | `executionOutbox`            | 10      |
@@ -62,9 +62,9 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [execution_logs](#execution-logs)                             | `executionLogs`              | 10      |
 | [test_plan_webhooks](#test-plan-webhooks)                     | `testPlanWebhooks`           | 8       |
 | [test_plan_selected_tests](#test-plan-selected-tests)         | `testPlanSelectedTests`      | 7       |
-| [run_work_items](#run-work-items)                             | `runWorkItems`               | 11      |
+| [run_work_items](#run-work-items)                             | `runWorkItems`               | 13      |
 | [execution_units](#execution-units)                           | `executionUnits`             | 9       |
-| [execution_unit_attempts](#execution-unit-attempts)           | `executionUnitAttempts`      | 11      |
+| [execution_unit_attempts](#execution-unit-attempts)           | `executionUnitAttempts`      | 12      |
 | [impact_rules](#impact-rules)                                 | `impactRules`                | 5       |
 | [test_suites](#test-suites)                                   | `testSuites`                 | 10      |
 | [test_suite_items](#test-suite-items)                         | `testSuiteItems`             | 8       |
@@ -821,7 +821,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plans {#test-plans}
 
-`testPlans` — `shared/schema/execution.ts:36`
+`testPlans` — `shared/schema/execution.ts:40`
 
 | TS property                      | SQL column                            | Declaration                                                                                                           |
 | -------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -848,6 +848,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `reRunOnFailure`                 | `re_run_on_failure`                   | `text('re_run_on_failure').default('none')`                                                                           |
 | `maxParallelTests`               | `max_parallel_tests`                  | `integer('max_parallel_tests').default(1).notNull()`                                                                  |
 | `shards`                         | `shards`                              | `integer('shards').default(1).notNull()`                                                                              |
+| `workerLossPolicy`               | `worker_loss_policy`                  | `text('worker_loss_policy') .$type<WorkerLossPolicy>() .default('indeterminate') .notNull()`                          |
 | `locales`                        | `locales`                             | `jsonb('locales').$type<string[]>().notNull().default([])`                                                            |
 | `issueTrackerId`                 | `issue_tracker_id`                    | `text('issue_tracker_id').references(() => issueTrackers.id, { onDelete: 'set null', })`                              |
 | `testManagementId`               | `test_management_id`                  | `text('test_management_id').references( (): AnyPgColumn => testManagementConnections.id, { onDelete: 'set null' }, )` |
@@ -858,7 +859,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_schedules {#test-plan-schedules}
 
-`testPlanSchedules` — `shared/schema/execution.ts:126`
+`testPlanSchedules` — `shared/schema/execution.ts:139`
 
 | TS property                  | SQL column                     | Declaration                                                                                |
 | ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
@@ -881,7 +882,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_executions {#test-plan-executions}
 
-`testPlanExecutions` — `shared/schema/execution.ts:169`
+`testPlanExecutions` — `shared/schema/execution.ts:182`
 
 | TS property             | SQL column                | Declaration                                                                                      |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -923,7 +924,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_outbox {#execution-outbox}
 
-`executionOutbox` — `shared/schema/execution.ts:256`
+`executionOutbox` — `shared/schema/execution.ts:269`
 
 | TS property      | SQL column        | Declaration                                                                                            |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------ |
@@ -940,7 +941,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## report_test_case_results {#report-test-case-results}
 
-`reportTestCaseResults` — `shared/schema/execution.ts:283`
+`reportTestCaseResults` — `shared/schema/execution.ts:296`
 
 | TS property           | SQL column               | Declaration                                                                                                   |
 | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -979,7 +980,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_logs {#execution-logs}
 
-`executionLogs` — `shared/schema/execution.ts:373`
+`executionLogs` — `shared/schema/execution.ts:386`
 
 | TS property           | SQL column               | Declaration                                                                                                   |
 | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -996,7 +997,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_webhooks {#test-plan-webhooks}
 
-`testPlanWebhooks` — `shared/schema/execution.ts:398`
+`testPlanWebhooks` — `shared/schema/execution.ts:411`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1011,7 +1012,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_selected_tests {#test-plan-selected-tests}
 
-`testPlanSelectedTests` — `shared/schema/execution.ts:425`
+`testPlanSelectedTests` — `shared/schema/execution.ts:438`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1025,25 +1026,27 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## run_work_items {#run-work-items}
 
-`runWorkItems` — `shared/schema/execution.ts:454`
+`runWorkItems` — `shared/schema/execution.ts:467`
 
-| TS property      | SQL column        | Declaration                                                                                         |
-| ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
-| `executionId`    | `execution_id`    | `text('execution_id') .notNull() .references(() => testPlanExecutions.id, { onDelete: 'cascade' })` |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`                         |
-| `key`            | `key`             | `text('key').notNull()`                                                                             |
-| `position`       | `position`        | `integer('position').notNull()`                                                                     |
-| `unit`           | `unit`            | `jsonb('unit').notNull()`                                                                           |
-| `state`          | `state`           | `text('state').$type<'pending' &#124; 'claimed' &#124; 'done'>().notNull().default('pending')`      |
-| `claimedBy`      | `claimed_by`      | `text('claimed_by')`                                                                                |
-| `heartbeatAt`    | `heartbeat_at`    | `timestamp('heartbeat_at')`                                                                         |
-| `finishedAt`     | `finished_at`     | `timestamp('finished_at')`                                                                          |
-| `error`          | `error`           | `text('error')`                                                                                     |
-| `results`        | `results`         | `jsonb('results')`                                                                                  |
+| TS property      | SQL column         | Declaration                                                                                         |
+| ---------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
+| `executionId`    | `execution_id`     | `text('execution_id') .notNull() .references(() => testPlanExecutions.id, { onDelete: 'cascade' })` |
+| `organizationId` | `organization_id`  | `integer('organization_id') .notNull() .references(() => organizations.id)`                         |
+| `key`            | `key`              | `text('key').notNull()`                                                                             |
+| `position`       | `position`         | `integer('position').notNull()`                                                                     |
+| `unit`           | `unit`             | `jsonb('unit').notNull()`                                                                           |
+| `state`          | `state`            | `text('state').$type<WorkItemState>().notNull().default('pending')`                                 |
+| `claimedBy`      | `claimed_by`       | `text('claimed_by')`                                                                                |
+| `epoch`          | `epoch`            | `integer('epoch').notNull().default(0)`                                                             |
+| `leaseExpiresAt` | `lease_expires_at` | `timestamp('lease_expires_at')`                                                                     |
+| `heartbeatAt`    | `heartbeat_at`     | `timestamp('heartbeat_at')`                                                                         |
+| `finishedAt`     | `finished_at`      | `timestamp('finished_at')`                                                                          |
+| `error`          | `error`            | `text('error')`                                                                                     |
+| `results`        | `results`          | `jsonb('results')`                                                                                  |
 
 ## execution_units {#execution-units}
 
-`executionUnits` — `shared/schema/execution.ts:486`
+`executionUnits` — `shared/schema/execution.ts:503`
 
 | TS property      | SQL column        | Declaration                                                                                         |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -1059,25 +1062,26 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_unit_attempts {#execution-unit-attempts}
 
-`executionUnitAttempts` — `shared/schema/execution.ts:514`
+`executionUnitAttempts` — `shared/schema/execution.ts:531`
 
-| TS property      | SQL column        | Declaration                                                                       |
-| ---------------- | ----------------- | --------------------------------------------------------------------------------- |
-| `executionId`    | `execution_id`    | `text('execution_id').notNull()`                                                  |
-| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)`       |
-| `unitId`         | `unit_id`         | `text('unit_id').notNull()`                                                       |
-| `attempt`        | `attempt`         | `integer('attempt').notNull()`                                                    |
-| `state`          | `state`           | `text('state').$type<'running' &#124; 'finished'>().notNull().default('running')` |
-| `status`         | `status`          | `text('status')`                                                                  |
-| `failureReason`  | `failure_reason`  | `text('failure_reason')`                                                          |
-| `evidence`       | `evidence`        | `jsonb('evidence').$type<AttemptEvidenceRecord>()`                                |
-| `worker`         | `worker`          | `text('worker')`                                                                  |
-| `startedAt`      | `started_at`      | `timestamp('started_at').notNull().defaultNow()`                                  |
-| `finishedAt`     | `finished_at`     | `timestamp('finished_at')`                                                        |
+| TS property      | SQL column        | Declaration                                                                 |
+| ---------------- | ----------------- | --------------------------------------------------------------------------- |
+| `executionId`    | `execution_id`    | `text('execution_id').notNull()`                                            |
+| `organizationId` | `organization_id` | `integer('organization_id') .notNull() .references(() => organizations.id)` |
+| `unitId`         | `unit_id`         | `text('unit_id').notNull()`                                                 |
+| `attempt`        | `attempt`         | `integer('attempt').notNull()`                                              |
+| `state`          | `state`           | `text('state').$type<AttemptState>().notNull().default('running')`          |
+| `claimEpoch`     | `claim_epoch`     | `integer('claim_epoch')`                                                    |
+| `status`         | `status`          | `text('status')`                                                            |
+| `failureReason`  | `failure_reason`  | `text('failure_reason')`                                                    |
+| `evidence`       | `evidence`        | `jsonb('evidence').$type<AttemptEvidenceRecord>()`                          |
+| `worker`         | `worker`          | `text('worker')`                                                            |
+| `startedAt`      | `started_at`      | `timestamp('started_at').notNull().defaultNow()`                            |
+| `finishedAt`     | `finished_at`     | `timestamp('finished_at')`                                                  |
 
 ## impact_rules {#impact-rules}
 
-`impactRules` — `shared/schema/execution.ts:546`
+`impactRules` — `shared/schema/execution.ts:565`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -1089,7 +1093,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_suites {#test-suites}
 
-`testSuites` — `shared/schema/execution.ts:569`
+`testSuites` — `shared/schema/execution.ts:588`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -1106,7 +1110,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_suite_items {#test-suite-items}
 
-`testSuiteItems` — `shared/schema/execution.ts:592`
+`testSuiteItems` — `shared/schema/execution.ts:611`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1121,7 +1125,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_suites {#test-plan-suites}
 
-`testPlanSuites` — `shared/schema/execution.ts:613`
+`testPlanSuites` — `shared/schema/execution.ts:632`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1132,7 +1136,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_quarantines {#test-quarantines}
 
-`testQuarantines` — `shared/schema/execution.ts:638`
+`testQuarantines` — `shared/schema/execution.ts:657`
 
 | TS property      | SQL column        | Declaration                                                                      |
 | ---------------- | ----------------- | -------------------------------------------------------------------------------- |
@@ -1151,7 +1155,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## mobile_test_runs {#mobile-test-runs}
 
-`mobileTestRuns` — `shared/schema/execution.ts:664`
+`mobileTestRuns` — `shared/schema/execution.ts:683`
 
 | TS property             | SQL column                | Declaration                                                                                       |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -1176,7 +1180,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## load_test_runs {#load-test-runs}
 
-`loadTestRuns` — `shared/schema/execution.ts:698`
+`loadTestRuns` — `shared/schema/execution.ts:717`
 
 | TS property       | SQL column         | Declaration                                                                                   |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------- |

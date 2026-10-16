@@ -1671,23 +1671,24 @@ Scope `billing:read` · operation `getBilling`
 
 ### AuthoredPlan {#schema-authoredplan}
 
-| Field                | Type                                        | Required | Description                          |
-| -------------------- | ------------------------------------------- | -------- | ------------------------------------ |
-| `id`                 | string                                      |          |                                      |
-| `name`               | string                                      |          | up to 200 characters                 |
-| `description`        | string \| null                              |          | up to 2000 characters                |
-| `selectedTests`      | object { id, type }[]                       |          | up to 2000 items                     |
-| `maxParallelTests`   | integer                                     |          | 1–16                                 |
-| `shards`             | integer                                     |          | 1–8                                  |
-| `pageLoadTimeout`    | integer                                     |          | 1000–600000                          |
-| `elementTimeout`     | integer                                     |          | 1000–600000                          |
-| `captureScreenshots` | one of `never`, `on_failed_steps`, `always` |          |                                      |
-| `captureVideo`       | one of `never`, `on_failure`, `always`      |          |                                      |
-| `captureTrace`       | one of `never`, `on_failure`, `always`      |          |                                      |
-| `agentPool`          | string \| null                              |          | pattern `^[a-z0-9][a-z0-9_-]{0,39}$` |
-| `locales`            | string[]                                    |          | up to 10 items                       |
-| `createdAt`          | string (date-time)                          |          |                                      |
-| `updatedAt`          | string (date-time)                          |          |                                      |
+| Field                | Type                                        | Required | Description                                                                                                                                                                                |
+| -------------------- | ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                 | string                                      |          |                                                                                                                                                                                            |
+| `name`               | string                                      |          | up to 200 characters                                                                                                                                                                       |
+| `description`        | string \| null                              |          | up to 2000 characters                                                                                                                                                                      |
+| `selectedTests`      | object { id, type }[]                       |          | up to 2000 items                                                                                                                                                                           |
+| `maxParallelTests`   | integer                                     |          | 1–16                                                                                                                                                                                       |
+| `shards`             | integer                                     |          | 1–8                                                                                                                                                                                        |
+| `workerLossPolicy`   | one of `indeterminate`, `replay`            |          | What a work item whose worker was lost becomes: indeterminate (default), or replayed on another worker — a single unit only, and only when its test may run twice against the application. |
+| `pageLoadTimeout`    | integer                                     |          | 1000–600000                                                                                                                                                                                |
+| `elementTimeout`     | integer                                     |          | 1000–600000                                                                                                                                                                                |
+| `captureScreenshots` | one of `never`, `on_failed_steps`, `always` |          |                                                                                                                                                                                            |
+| `captureVideo`       | one of `never`, `on_failure`, `always`      |          |                                                                                                                                                                                            |
+| `captureTrace`       | one of `never`, `on_failure`, `always`      |          |                                                                                                                                                                                            |
+| `agentPool`          | string \| null                              |          | pattern `^[a-z0-9][a-z0-9_-]{0,39}$`                                                                                                                                                       |
+| `locales`            | string[]                                    |          | up to 10 items                                                                                                                                                                             |
+| `createdAt`          | string (date-time)                          |          |                                                                                                                                                                                            |
+| `updatedAt`          | string (date-time)                          |          |                                                                                                                                                                                            |
 
 ### AuthoredTest {#schema-authoredtest}
 
@@ -1848,37 +1849,39 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 
 ### PlanInput {#schema-planinput}
 
-| Field                | Type                                        | Required | Description                          |
-| -------------------- | ------------------------------------------- | -------- | ------------------------------------ |
-| `name`               | string                                      | yes      | up to 200 characters                 |
-| `description`        | string \| null                              |          | up to 2000 characters                |
-| `selectedTests`      | object { id, type }[]                       |          | up to 2000 items                     |
-| `maxParallelTests`   | integer                                     |          | 1–16                                 |
-| `shards`             | integer                                     |          | 1–8                                  |
-| `pageLoadTimeout`    | integer                                     |          | 1000–600000                          |
-| `elementTimeout`     | integer                                     |          | 1000–600000                          |
-| `captureScreenshots` | one of `never`, `on_failed_steps`, `always` |          |                                      |
-| `captureVideo`       | one of `never`, `on_failure`, `always`      |          |                                      |
-| `captureTrace`       | one of `never`, `on_failure`, `always`      |          |                                      |
-| `agentPool`          | string \| null                              |          | pattern `^[a-z0-9][a-z0-9_-]{0,39}$` |
-| `locales`            | string[]                                    |          | up to 10 items                       |
+| Field                | Type                                        | Required | Description                                                                                                                                                                                |
+| -------------------- | ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`               | string                                      | yes      | up to 200 characters                                                                                                                                                                       |
+| `description`        | string \| null                              |          | up to 2000 characters                                                                                                                                                                      |
+| `selectedTests`      | object { id, type }[]                       |          | up to 2000 items                                                                                                                                                                           |
+| `maxParallelTests`   | integer                                     |          | 1–16                                                                                                                                                                                       |
+| `shards`             | integer                                     |          | 1–8                                                                                                                                                                                        |
+| `workerLossPolicy`   | one of `indeterminate`, `replay`            |          | What a work item whose worker was lost becomes: indeterminate (default), or replayed on another worker — a single unit only, and only when its test may run twice against the application. |
+| `pageLoadTimeout`    | integer                                     |          | 1000–600000                                                                                                                                                                                |
+| `elementTimeout`     | integer                                     |          | 1000–600000                                                                                                                                                                                |
+| `captureScreenshots` | one of `never`, `on_failed_steps`, `always` |          |                                                                                                                                                                                            |
+| `captureVideo`       | one of `never`, `on_failure`, `always`      |          |                                                                                                                                                                                            |
+| `captureTrace`       | one of `never`, `on_failure`, `always`      |          |                                                                                                                                                                                            |
+| `agentPool`          | string \| null                              |          | pattern `^[a-z0-9][a-z0-9_-]{0,39}$`                                                                                                                                                       |
+| `locales`            | string[]                                    |          | up to 10 items                                                                                                                                                                             |
 
 ### PlanPatch {#schema-planpatch}
 
-| Field                | Type                                        | Required | Description                          |
-| -------------------- | ------------------------------------------- | -------- | ------------------------------------ |
-| `name`               | string                                      |          | up to 200 characters                 |
-| `description`        | string \| null                              |          | up to 2000 characters                |
-| `selectedTests`      | object { id, type }[]                       |          | up to 2000 items                     |
-| `maxParallelTests`   | integer                                     |          | 1–16                                 |
-| `shards`             | integer                                     |          | 1–8                                  |
-| `pageLoadTimeout`    | integer                                     |          | 1000–600000                          |
-| `elementTimeout`     | integer                                     |          | 1000–600000                          |
-| `captureScreenshots` | one of `never`, `on_failed_steps`, `always` |          |                                      |
-| `captureVideo`       | one of `never`, `on_failure`, `always`      |          |                                      |
-| `captureTrace`       | one of `never`, `on_failure`, `always`      |          |                                      |
-| `agentPool`          | string \| null                              |          | pattern `^[a-z0-9][a-z0-9_-]{0,39}$` |
-| `locales`            | string[]                                    |          | up to 10 items                       |
+| Field                | Type                                        | Required | Description                                                                                                                                                                                |
+| -------------------- | ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`               | string                                      |          | up to 200 characters                                                                                                                                                                       |
+| `description`        | string \| null                              |          | up to 2000 characters                                                                                                                                                                      |
+| `selectedTests`      | object { id, type }[]                       |          | up to 2000 items                                                                                                                                                                           |
+| `maxParallelTests`   | integer                                     |          | 1–16                                                                                                                                                                                       |
+| `shards`             | integer                                     |          | 1–8                                                                                                                                                                                        |
+| `workerLossPolicy`   | one of `indeterminate`, `replay`            |          | What a work item whose worker was lost becomes: indeterminate (default), or replayed on another worker — a single unit only, and only when its test may run twice against the application. |
+| `pageLoadTimeout`    | integer                                     |          | 1000–600000                                                                                                                                                                                |
+| `elementTimeout`     | integer                                     |          | 1000–600000                                                                                                                                                                                |
+| `captureScreenshots` | one of `never`, `on_failed_steps`, `always` |          |                                                                                                                                                                                            |
+| `captureVideo`       | one of `never`, `on_failure`, `always`      |          |                                                                                                                                                                                            |
+| `captureTrace`       | one of `never`, `on_failure`, `always`      |          |                                                                                                                                                                                            |
+| `agentPool`          | string \| null                              |          | pattern `^[a-z0-9][a-z0-9_-]{0,39}$`                                                                                                                                                       |
+| `locales`            | string[]                                    |          | up to 10 items                                                                                                                                                                             |
 
 ### Project {#schema-project}
 
@@ -1965,20 +1968,20 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 
 ### RunUnit {#schema-rununit}
 
-| Field        | Type                                                               | Required | Description                                                                    |
-| ------------ | ------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------ |
-| `unitId`     | string                                                             | yes      | Opaque, scoped to its run. pattern `^u_[0-9a-f]{24}$`                          |
-| `position`   | integer                                                            | yes      | Plan order. at least 0                                                         |
-| `state`      | one of `planned`, `running`, `recorded`, `not_startable`           | yes      |                                                                                |
-| `reason`     | string \| null                                                     |          | Why a not_startable unit could not start.                                      |
-| `testType`   | one of `ui`, `api`, `mobile`                                       | yes      |                                                                                |
-| `testId`     | integer \| null                                                    |          |                                                                                |
-| `occurrence` | integer                                                            |          | Which occurrence of the test. at least 0                                       |
-| `browser`    | string \| null                                                     |          |                                                                                |
-| `locale`     | string \| null                                                     |          |                                                                                |
-| `device`     | string \| null                                                     |          |                                                                                |
-| `bddRow`     | integer \| null                                                    |          | A cucumber test’s dataset row, by index; a UI dataset’s rows are attempt rows. |
-| `result`     | object { id, testName, status, attempts, decidingAttempt } \| null | yes      | Its single final result, once written.                                         |
+| Field        | Type                                                                      | Required | Description                                                                          |
+| ------------ | ------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------ |
+| `unitId`     | string                                                                    | yes      | Opaque, scoped to its run. pattern `^u_[0-9a-f]{24}$`                                |
+| `position`   | integer                                                                   | yes      | Plan order. at least 0                                                               |
+| `state`      | one of `planned`, `running`, `recorded`, `not_startable`, `indeterminate` | yes      |                                                                                      |
+| `reason`     | string \| null                                                            |          | Why a not_startable unit could not start, or why an indeterminate one has no result. |
+| `testType`   | one of `ui`, `api`, `mobile`                                              | yes      |                                                                                      |
+| `testId`     | integer \| null                                                           |          |                                                                                      |
+| `occurrence` | integer                                                                   |          | Which occurrence of the test. at least 0                                             |
+| `browser`    | string \| null                                                            |          |                                                                                      |
+| `locale`     | string \| null                                                            |          |                                                                                      |
+| `device`     | string \| null                                                            |          |                                                                                      |
+| `bddRow`     | integer \| null                                                           |          | A cucumber test’s dataset row, by index; a UI dataset’s rows are attempt rows.       |
+| `result`     | object { id, testName, status, attempts, decidingAttempt } \| null        | yes      | Its single final result, once written.                                               |
 
 ### RunUnitDetail {#schema-rununitdetail}
 
@@ -2156,20 +2159,20 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 
 ### UnitAttempt {#schema-unitattempt}
 
-| Field           | Type                               | Required | Description                                                                   |
-| --------------- | ---------------------------------- | -------- | ----------------------------------------------------------------------------- |
-| `attempt`       | integer                            | yes      | at least 1                                                                    |
-| `state`         | one of `running`, `finished`       | yes      |                                                                               |
-| `status`        | string \| null                     |          |                                                                               |
-| `failureReason` | string \| null                     |          |                                                                               |
-| `startedAt`     | string (date-time)                 | yes      |                                                                               |
-| `finishedAt`    | string (date-time) \| null         |          |                                                                               |
-| `screenshotUrl` | string \| null                     |          |                                                                               |
-| `videoUrl`      | string \| null                     |          |                                                                               |
-| `traceUrl`      | string \| null                     |          | Raw evidence: null unless the caller has the editor role and `runs:evidence`. |
-| `harUrl`        | string \| null                     |          | Raw evidence, like the trace.                                                 |
-| `restricted`    | boolean                            | yes      | Raw evidence was kept for this slice and the caller may not open it.          |
-| `rows`          | [AttemptRow](#schema-attemptrow)[] | yes      |                                                                               |
+| Field           | Type                                      | Required | Description                                                                   |
+| --------------- | ----------------------------------------- | -------- | ----------------------------------------------------------------------------- |
+| `attempt`       | integer                                   | yes      | at least 1                                                                    |
+| `state`         | one of `running`, `finished`, `abandoned` | yes      |                                                                               |
+| `status`        | string \| null                            |          |                                                                               |
+| `failureReason` | string \| null                            |          |                                                                               |
+| `startedAt`     | string (date-time)                        | yes      |                                                                               |
+| `finishedAt`    | string (date-time) \| null                |          |                                                                               |
+| `screenshotUrl` | string \| null                            |          |                                                                               |
+| `videoUrl`      | string \| null                            |          |                                                                               |
+| `traceUrl`      | string \| null                            |          | Raw evidence: null unless the caller has the editor role and `runs:evidence`. |
+| `harUrl`        | string \| null                            |          | Raw evidence, like the trace.                                                 |
+| `restricted`    | boolean                                   | yes      | Raw evidence was kept for this slice and the caller may not open it.          |
+| `rows`          | [AttemptRow](#schema-attemptrow)[]        | yes      |                                                                               |
 
 ### Webhook {#schema-webhook}
 

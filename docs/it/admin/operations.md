@@ -32,6 +32,10 @@ Una release può cambiare lo schema del database, quindi l'ordine conta.
 Con Compose, `docker compose up -d --build` esegue i passi 2, 4 e 5 in ordine, perché `api` e
 `worker` aspettano che `migrate` finisca.
 
+Non mescolate versioni di worker a cavallo della migrazione 0093: un worker precedente prende il
+lavoro condiviso senza epoch né lease, quindi i worker nuovi non possono fermarlo. Svuotate e fermate
+ogni vecchio worker (passi 1–2) prima di avviare quelli nuovi.
+
 ### Volumi di installazioni precedenti
 
 API e worker attuali usano `pwuser` (UID 1000). Un volume creato da una vecchia immagine root
@@ -179,6 +183,40 @@ Per un PostgreSQL gestito, o un'installazione non eseguita con Compose:
    è più recente del backup.
 3. Ripristinate gli artefatti negli stessi percorsi o chiavi del bucket; i report vi fanno
    riferimento per percorso.
+
+## Worker persi {#worker-persi}
+
+Un worker che muore o viene isolato a metà esecuzione non riesce mai a scrivere un risultato che
+contraddica il verdetto dell'esecuzione (lotto P11):
+
+- **Un worker per esecuzione.** Lo sweep di recupero chiude come `error` / `worker_lost` un'esecuzione
+  il cui heartbeat tace da `RUN_STALE_AFTER_MS`. I suoi test in corso diventano _indeterminati_; ciò
+  che il worker scrive dopo viene rifiutato. L'esecuzione viene riaccodata solo quando l'impostazione
+  **Se un runner si perde durante un test** del piano è _Riesegui il test_ (`worker_loss_policy =
+replay`) e ha ancora tentativi — mai per il solo numero di tentativi o per la riesecuzione su
+  fallimento.
+- **Esecuzioni condivise.** Ogni pezzo di lavoro è tenuto sotto una lease (`WORK_CLAIM_LEASE_MS`,
+  default `STALE_CLAIM_MS`, 2 minuti) rinnovata ogni `WORK_ITEM_HEARTBEAT_MS` (15 s). Un worker che
+  non riesce a confermare la lease prima della lease meno `WORK_CLAIM_MARGIN_MS` (10 s) ferma da solo
+  il pezzo. Un pezzo la cui lease scade dopo l'inizio del test termina _indeterminato_, a meno che il
+  piano consenta di rieseguire un singolo test. Le sequenze API concatenate non vengono mai riprese a
+  metà.
+
+Tenete `WORK_ITEM_HEARTBEAT_MS` ben sotto la lease meno il margine, e l'orologio dell'host del
+database affidabile: la lease si misura con l'orologio del database, il margine con quello monotono
+del worker.
+
+Dove guardare: la console dell'esecuzione nomina ogni pezzo perso e il suo epoch; `GET
+/api/test-plan-executions/<run>/units` (o `wfm units <run>`) elenca ogni unità attesa con il suo
+stato — le unità `indeterminate` riportano il motivo, e i loro tentativi risultano `abandoned`.
+Un'esecuzione _completata_ ha sempre un risultato per ogni unità attesa.
+
+**Prova.** Solo su uno stack usa-e-getta — mai su produzione o servizi condivisi —
+`npm run load:resilience -- --cycles 1 --worker-restart crash --recovery-timeout 180 --observation-seconds 40`
+uccide un worker a metà esecuzione e verifica che l'esecuzione riporti `worker_lost` in modo esplicito,
+che nessuna esecuzione completata manchi del risultato di un'unità, che nessuna unità resti `running`
+e che nessuna esecuzione ripeta quella persa. Locking e concorrenza su un cluster PostgreSQL reale si
+verificano nel pilota (lotto P18).
 
 ## Conservazione degli artefatti
 

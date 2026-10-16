@@ -24,6 +24,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, PlusCircle, XCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestPlan } from '@shared/schema';
+import type { WorkerLossPolicy } from '@shared/execution-identity';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from '@shared/locales';
 import { MOBILE_DEVICES, canEmulateDevice } from '@shared/devices';
 import {
@@ -167,6 +168,8 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({
   const [maxParallelError, setMaxParallelError] = useState('');
   /** How many workers share one run of this plan (server/runtime/run-shards.ts). 1 is one worker, as before. */
   const [shards, setShards] = useState('1');
+  /** What a lost worker's work becomes (shared/execution-identity.ts): indeterminate unless the plan opts in. */
+  const [workerLossPolicy, setWorkerLossPolicy] = useState<WorkerLossPolicy>('indeterminate');
   /** Languages, as typed: "it-IT, en-US". Empty is the browser's own. */
   const [locales, setLocales] = useState('');
   const [localesError, setLocalesError] = useState('');
@@ -201,6 +204,11 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({
     );
     setMaxParallelTests(String(plan?.maxParallelTests ?? 1));
     setShards(String((plan as { shards?: number } | null)?.shards ?? 1));
+    setWorkerLossPolicy(
+      (plan as { workerLossPolicy?: string } | null)?.workerLossPolicy === 'replay'
+        ? 'replay'
+        : 'indeterminate',
+    );
     setLocales(normalizeLocales((plan as { locales?: unknown } | null)?.locales).join(', '));
     setLocalesError('');
     setIssueTrackerId(
@@ -373,6 +381,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({
           browserGridId: runOn.startsWith(GRID_PREFIX) ? runOn.slice(GRID_PREFIX.length) : null,
           maxParallelTests: parallel,
           shards: shardCount,
+          workerLossPolicy,
           locales: normalizeLocales(typedLocales),
           issueTrackerId: issueTrackerId === NO_TRACKER ? null : issueTrackerId,
           // Filing is off unless a tracker is named: a plan set to file into nothing would
@@ -628,6 +637,37 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({
                 {t(
                   'editTestPlanSettings.shards.help',
                   'Splits one run across up to this many runners, each running the number above at once. Tests are handed out one at a time to whichever runner is free, and the report is one run as usual. 1 keeps the run on one runner.',
+                )}
+              </p>
+              <Label htmlFor="editWorkerLoss" className="mt-3 block">
+                {t('editTestPlanSettings.workerLoss.label', 'When a runner is lost mid-test')}
+              </Label>
+              <Select
+                value={workerLossPolicy}
+                onValueChange={(value) => setWorkerLossPolicy(value as WorkerLossPolicy)}
+              >
+                <SelectTrigger id="editWorkerLoss" className="mt-1 w-[320px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="indeterminate">
+                    {t(
+                      'editTestPlanSettings.workerLoss.indeterminate',
+                      'Mark its result as unknown (recommended)',
+                    )}
+                  </SelectItem>
+                  <SelectItem value="replay">
+                    {t(
+                      'editTestPlanSettings.workerLoss.replay',
+                      'Run the test again on another runner',
+                    )}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t(
+                  'editTestPlanSettings.workerLoss.help',
+                  'A runner that stops answering may already have clicked or sent requests. By default its test ends as indeterminate and the run as incomplete. Choose to run it again only if every test in this plan can safely run twice against the application. Tests whose API requests pass values to later ones are never resumed half-way.',
                 )}
               </p>
               {maxParallelError && (

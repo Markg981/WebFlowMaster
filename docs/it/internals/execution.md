@@ -251,9 +251,19 @@ non cambiano.
 
 **Attivazione.** La migrazione è additiva, e un worker precedente continua a scrivere righe senza
 unità, che ogni lettore accetta; gli elementi di lavoro di un run condiviso portano l'id dell'unità, e
-un aiutante che non lo conosce ignora il campo. Il manifest non decide ancora il verdetto: quel
-passaggio (un'unità attesa senza risultato rende il run incompleto) arriva quando ogni worker scrive
-unità — dopo che i vecchi worker sono stati aggiornati o svuotati.
+un aiutante che non lo conosce ignora il campo.
+
+**Il verdetto viene dal manifest** (lotto P11). Un run con manifest è completo solo quando l'insieme
+delle unità attese coincide con l'insieme dei risultati autorevoli: una riga per unità, che nomina
+un'unità di questo manifest. `accountFor` conta ogni unità una volta e distingue quelle mancanti —
+**assenti** (nessun risultato registrato), **indeterminate** (il loro worker è stato perso), **non
+avviabili** (il browser non è partito) — e il messaggio `run_incomplete` dice quante per tipo. Fra
+le unità registrate conta anche le **escluse** (Skipped, di proposito: una regola del piano o un
+arresto) e le **manuali** (Pending, che per regola non fanno fallire un run). Righe verdi non
+compensano un'unità mancante; una riga che nomina un'unità fuori dal manifest non è il risultato di
+nessuno e non viene contata. Le righe senza unità (un run o un worker di prima del manifest) sono
+giudicate come prima. Aggiornate tutti i worker prima di contarci: un worker precedente a P11 non
+scrive né epoch né lease (vedi sotto).
 
 ### Shard: un run su più worker
 
@@ -264,14 +274,63 @@ elemento porta l'unità come l'ha risolta il coordinatore (browser, ripiego head
 aiutanti non sondano i browser. Poi accoda `shards − 1` job `execute-shard` (id `<run>-shard-<n>`).
 
 Ogni partecipante esegue `maxParallelTests` cicli di presa. Una presa è `SELECT … FOR UPDATE SKIP
-LOCKED` sul primo elemento `pending`, o su uno `claimed` il cui heartbeat è più vecchio di
-`STALE_CLAIM_MS` (2 minuti); le prese hanno un heartbeat ogni `WORK_ITEM_HEARTBEAT_MS`. Solo chi tiene
-un elemento può chiuderlo. Un aiutante esce quando non resta niente da prendere; il coordinatore aspetta
-che ogni elemento sia chiuso, riprendendo quelli fermi, poi chiude il run come sempre. La vecchia lista
+LOCKED` sul primo elemento `pending`, o su uno `claimed` la cui lease è scaduta. Un aiutante esce
+quando non resta niente da prendere; il coordinatore aspetta che ogni elemento sia concluso (`done` o
+`indeterminate`), poi chiude il run come sempre. La vecchia lista
 `results` e i test che non si sono potuti eseguire sono salvati su ogni elemento e uniti; l'arresto di
 una regola del piano è scritto in `test_plan_executions.stop_reason` e letto prima di ogni presa. Un
 aiutante si unisce solo a un run `running`, lo sorveglia come il coordinatore (annullamento, limite di
 tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla di questo entra in gioco.
+
+#### Fencing: epoch, lease e punto di ammissione
+
+Una presa è un `WorkClaimRef { workItemKey, owner, epoch }` (migrazione 0093). Ogni presa incrementa
+l'`epoch` dell'elemento e imposta `lease_expires_at = now() + WORK_CLAIM_LEASE_MS` secondo l'orologio
+del **database**. Ogni scrittura che un verdetto o un report legge passa da un fence
+(`server/execution/plan-run/fence.ts`), verificato dentro la transazione che scrive:
+
+- ogni run: il run è ancora `running` o `cancelling` (`FOR SHARE` sulla riga del run, così la chiusura
+  dello sweep di recupero e la scrittura avvengono una prima dell'altra);
+- in più, per un'unità di un run condiviso: l'elemento è `claimed` dallo stesso owner con lo stesso
+  epoch e la lease non è scaduta (`FOR UPDATE` sulla riga dell'elemento, così una ripresa o una
+  chiusura aspetta la scrittura).
+
+Una lease scaduta vale come persa anche se nessuno ha ancora ripreso l'elemento. Il **punto di
+ammissione** è `saveReportEntry`: in una sola transazione il fence, poi il tentativo decisivo chiuso
+con i percorsi salvati della sua evidenza, la riga del risultato, l'unità segnata `recorded` e — per
+l'ultima unità dell'elemento — l'elemento segnato `done` con i suoi risultati. Un'unità precedente di
+una corsia concatenata è ammessa da sola e l'elemento resta aperto. Anche l'apertura di un tentativo e
+la chiusura di uno non decisivo passano dallo stesso fence, e ogni tentativo registra il
+`claim_epoch` sotto cui è stato fatto. Una scrittura rifiutata solleva `OwnershipLostError` e non
+scrive nulla.
+
+I file di evidenza vengono pubblicati nello storage prima dell'ammissione; quel trasferimento non fa
+parte della transazione del database. Solo il tentativo ammesso con essi li referenzia: i file di un
+owner rifiutato o scaduto restano nella sua cartella `attempt_N`, senza riferimenti, e non compaiono
+mai come evidenza confermata.
+
+**Mantenere la lease** (`keepClaim`). Un rinnovo estende solo una lease non ancora scaduta; zero righe
+aggiornate è la perdita della presa, e il worker ferma subito l'elemento. Un rinnovo che fallisce o
+non risponde entro un heartbeat non è un rinnovo. Il worker tiene una scadenza locale prudente —
+dal momento in cui l'ultimo rinnovo confermato è stato _chiesto_, con l'orologio monotono, più la
+lease, meno `WORK_CLAIM_MARGIN_MS` perché la scrittura arrivi al database — e quando passa interrompe
+l'elemento (il segnale dell'unità è quello del run e quello della presa) e lo segnala indeterminato
+nella console del run.
+
+**Una presa scaduta** viene risolta dalla presa successiva che la trova, sotto il lock dell'elemento:
+
+- nessun tentativo era iniziato con quell'epoch — nulla ha raggiunto l'applicazione — l'elemento
+  viene ripreso con l'epoch successivo;
+- la `worker_loss_policy` del piano è `replay` e l'elemento è una sola unità: il tentativo in corso
+  viene segnato `abandoned` e l'unità ripresa, come nuovo tentativo;
+- altrimenti — il default, e **sempre** per una corsia concatenata, i cui valori catturati sono morti
+  con il worker e le cui prime richieste sono già avvenute — l'elemento termina `indeterminate`
+  (stato terminale), le sue unità non concluse `indeterminate` con il motivo, i tentativi in corso
+  `abandoned`. I risultati già ammessi per le unità precedenti della corsia restano.
+
+`openWorkItems` non conta né `done` né `indeterminate`, così il coordinatore non aspetta mai lavoro
+che nessuno farà. Nulla qui promette exactly-once: un clic o una richiesta già fatti da un worker
+perso sono avvenuti; il fencing garantisce che il worker perso non possa cambiare verdetto o evidenza.
 
 ### Un test
 
@@ -381,15 +440,15 @@ Nessuno di questi può cambiare il verdetto: ogni errore è registrato e riporta
 
 ## 6. Quando qualcosa va storto
 
-| Situazione                                               | Cosa succede                                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Qualcuno annulla                                         | `running → cancelling`; il worker lo sente al battito successivo, interrompe lo step in corso, chiude la sessione del test e chiude il run come `cancelled`.                                                                                                                                                                                                                                                       |
-| Uno step si blocca                                       | Il timeout dello step; per ciò che non ne ha (uno script che non si risolve mai), la scadenza dello step `RUN_STEP_DEADLINE_MS`; poi la durata massima del run (`timed_out`).                                                                                                                                                                                                                                      |
-| Il worker muore                                          | Il suo heartbeat si ferma. Lo sweep di recupero nel processo web (`server/execution/run-recovery.ts`) chiude i run silenziosi da `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. Un run schedulato con tentativi rimasti riceve il tentativo successivo. Non viene rieseguito di nascosto: metà run potrebbe aver già creato dati nell'applicazione sotto test. |
-| Il worker è vivo ma bloccato                             | Oltre la durata massima più 5 minuti di tolleranza, lo sweep lo chiude come `timed_out`.                                                                                                                                                                                                                                                                                                                           |
-| Il processo web si ferma dopo aver creato un run         | Il job del run è ancora in `execution_outbox`. Scaduto il lease, il dispatcher dell'outbox di qualsiasi processo web lo pubblica con l'id del run come id del job; il run non resta mai `queued` senza job.                                                                                                                                                                                                        |
-| BullMQ consegna un job due volte                         | Il secondo `takeExecution` trova il run non più `queued` e non fa nulla.                                                                                                                                                                                                                                                                                                                                           |
-| Arriva una scrittura tardiva da un worker dato per perso | L'update condizionale non trova nulla; la chiusura registrata resta valida.                                                                                                                                                                                                                                                                                                                                        |
+| Situazione                                               | Cosa succede                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Qualcuno annulla                                         | `running → cancelling`; il worker lo sente al battito successivo, interrompe lo step in corso, chiude la sessione del test e chiude il run come `cancelled`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Uno step si blocca                                       | Il timeout dello step; per ciò che non ne ha (uno script che non si risolve mai), la scadenza dello step `RUN_STEP_DEADLINE_MS`; poi la durata massima del run (`timed_out`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Il worker muore                                          | Il suo heartbeat si ferma. Lo sweep di recupero nel processo web (`server/execution/run-recovery.ts`) chiude i run silenziosi da `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. Le sue unità in corso diventano `indeterminate`, i tentativi in corso `abandoned` e gli elementi di lavoro tenuti `indeterminate`; ogni scrittura successiva del worker perso è rifiutata dal fence del run. Non viene rieseguito: metà run potrebbe aver già creato dati nell'applicazione sotto test. Solo un piano con `worker_loss_policy` `replay` riceve il tentativo successivo (se ne ha ancora); tentativi e riesecuzione su fallimento da soli non ripetono mai un run perso. |
+| Il worker è vivo ma bloccato                             | Oltre la durata massima più 5 minuti di tolleranza, lo sweep lo chiude come `timed_out`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Il processo web si ferma dopo aver creato un run         | Il job del run è ancora in `execution_outbox`. Scaduto il lease, il dispatcher dell'outbox di qualsiasi processo web lo pubblica con l'id del run come id del job; il run non resta mai `queued` senza job.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| BullMQ consegna un job due volte                         | Il secondo `takeExecution` trova il run non più `queued` e non fa nulla.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Arriva una scrittura tardiva da un worker dato per perso | L'update condizionale non trova nulla; la chiusura registrata resta valida.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 Più server web possono fare lo sweep contemporaneamente: ogni chiusura passa dalla macchina a stati,
 quindi ogni run viene chiuso una sola volta.

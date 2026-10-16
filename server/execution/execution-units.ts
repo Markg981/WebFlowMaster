@@ -7,8 +7,11 @@
  * and every try at it is an attempt assigned before the try produces anything.
  *
  * Rolling out: the tables are additive and a worker that predates them keeps writing results
- * without a unit, which every reader here accepts. Nothing decides a verdict from the manifest
- * yet; that comes once no worker without it is left (lot P11).
+ * without a unit, which every reader here accepts. A run with a manifest is judged by it (lot P11,
+ * `accountFor`): its verdict needs one authoritative result per expected unit, not a count of rows.
+ *
+ * Every write of an attempt goes through the caller's fence (server/execution/plan-run/fence.ts):
+ * a worker that no longer owns the work cannot begin a try or close one with its evidence.
  */
 import { createHash } from 'crypto';
 import os from 'os';
@@ -16,6 +19,7 @@ import { and, asc, eq, max, sql } from 'drizzle-orm';
 import {
   executionUnitAttempts,
   executionUnits,
+  runWorkItems,
   type ExecutionUnit,
   type ExecutionUnitAttempt,
   type ReportTestCaseResult,
@@ -33,6 +37,7 @@ import {
   type UnitCoordinates,
 } from '@shared/execution-identity';
 import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
+import type { UnitFence } from './plan-run/fence';
 import type { Pass, PassTarget } from './plan-run/browsers';
 import { referencedId, type FrozenTests, type TestLink } from './plan-run/definitions';
 import { planLanes, type Lane, type RunUnit } from './plan-run/lanes';
@@ -227,10 +232,15 @@ const THIS_WORKER = `${os.hostname()}:${process.pid}`;
 
 /**
  * The next attempt at a unit, assigned and validated before the try produces anything: the unit
- * must be in this run's manifest and still owe its result. Numbers only grow: 1, 2, 3…
+ * must be in this run's manifest and still owe its result, and the fence must admit the writer.
+ * Numbers only grow: 1, 2, 3… The claim epoch it is made under is recorded with it.
  */
-export async function beginAttempt(ref: ExecutionUnitRef): Promise<ExecutionAttemptRef> {
+export async function beginAttempt(
+  ref: ExecutionUnitRef,
+  fence?: UnitFence,
+): Promise<ExecutionAttemptRef> {
   return withTenantTransaction(async (tx) => {
+    await fence?.admit(tx);
     const [unit] = await tx
       .select({ state: executionUnits.state, organizationId: executionUnits.organizationId })
       .from(executionUnits)
@@ -239,7 +249,11 @@ export async function beginAttempt(ref: ExecutionUnitRef): Promise<ExecutionAtte
       )
       .for('update');
     if (!unit) throw new AttemptRefusedError(ref, 'it is not in the run’s manifest.');
-    if (unit.state === 'recorded' || unit.state === 'not_startable')
+    if (
+      unit.state === 'recorded' ||
+      unit.state === 'not_startable' ||
+      unit.state === 'indeterminate'
+    )
       throw new AttemptRefusedError(ref, `it is ${unit.state.replace('_', ' ')}.`);
     const [{ last }] = await tx
       .select({ last: max(executionUnitAttempts.attempt) })
@@ -257,6 +271,7 @@ export async function beginAttempt(ref: ExecutionUnitRef): Promise<ExecutionAtte
       unitId: ref.unitId,
       attempt,
       worker: THIS_WORKER,
+      claimEpoch: fence?.epoch ?? null,
     });
     if (unit.state !== 'running')
       await tx
@@ -281,13 +296,20 @@ export interface AttemptRecord {
 /**
  * Closes an attempt with its own outcome — its status, its reason and the stored paths of what it
  * left behind — so a try that a re-run replaces keeps its account, not only its number.
+ *
+ * Given `tx`, inside the caller's transaction: the deciding attempt is closed in the one that
+ * writes the unit's result (server/execution/plan-run/report-entry.ts), so the evidence a report
+ * links to and the result it shows are admitted together or not at all. Only a running attempt
+ * is closed: one already abandoned by a reclaim stays abandoned.
  */
 export async function finishAttempt(
   ref: ExecutionAttemptRef,
   status: string,
   record: AttemptRecord = {},
+  { tx, fence }: { tx?: TenantTx; fence?: UnitFence } = {},
 ): Promise<void> {
-  await withTenantTransaction(async (tx) => {
+  const write = async (tx: TenantTx) => {
+    if (fence) await fence.admit(tx);
     await tx
       .update(executionUnitAttempts)
       .set({
@@ -302,9 +324,107 @@ export async function finishAttempt(
           eq(executionUnitAttempts.executionId, ref.executionId),
           eq(executionUnitAttempts.unitId, ref.unitId),
           eq(executionUnitAttempts.attempt, ref.attempt),
+          eq(executionUnitAttempts.state, 'running'),
         ),
       );
-  });
+  };
+  if (tx) await write(tx);
+  else await withTenantTransaction(write);
+}
+
+/**
+ * Ends what a lost run left half-done, inside its organization: units still running become
+ * `indeterminate` with the reason, attempts still running are `abandoned`, and claimed work items
+ * end `indeterminate` — so the report says what is not known rather than leaving it running.
+ */
+export async function markRunIndeterminate(
+  tx: TenantTx,
+  executionId: string,
+  reason: string,
+): Promise<void> {
+  await tx
+    .update(executionUnits)
+    .set({ state: 'indeterminate', reason, updatedAt: sql`now()` })
+    .where(and(eq(executionUnits.executionId, executionId), eq(executionUnits.state, 'running')));
+  await tx
+    .update(executionUnitAttempts)
+    .set({ state: 'abandoned', finishedAt: sql`now()` })
+    .where(
+      and(
+        eq(executionUnitAttempts.executionId, executionId),
+        eq(executionUnitAttempts.state, 'running'),
+      ),
+    );
+  await tx
+    .update(runWorkItems)
+    .set({ state: 'indeterminate', finishedAt: sql`now()`, error: reason })
+    .where(and(eq(runWorkItems.executionId, executionId), eq(runWorkItems.state, 'claimed')));
+}
+
+/**
+ * How a run with a manifest stands against it: each expected unit counted once, by what the
+ * database holds for it. Complete is `missing === 0` — the set of expected units equals the set
+ * of authoritative results — never a count of rows reaching the plan's size.
+ */
+export interface ManifestAccount {
+  expected: number;
+  /** Units with their one result. */
+  recorded: number;
+  /** Of those, results that left the unit out on purpose (a plan policy, a stop): Skipped. */
+  excluded: number;
+  /** Of those, manual units waiting for a person's verdict: Pending, which does not fail a run. */
+  manual: number;
+  /** Units without a result, by why. */
+  absent: number;
+  indeterminate: number;
+  notStartable: number;
+  missing: number;
+}
+
+export function accountFor(
+  units: Array<Pick<ExecutionUnit, 'unitId' | 'state'>>,
+  rows: Array<Pick<ReportTestCaseResult, 'executionUnitId' | 'status'>>,
+): ManifestAccount {
+  const resultOf = new Map(
+    rows.filter((row) => row.executionUnitId).map((row) => [row.executionUnitId!, row]),
+  );
+  const account: ManifestAccount = {
+    expected: units.length,
+    recorded: 0,
+    excluded: 0,
+    manual: 0,
+    absent: 0,
+    indeterminate: 0,
+    notStartable: 0,
+    missing: 0,
+  };
+  for (const unit of units) {
+    const result = resultOf.get(unit.unitId);
+    if (result) {
+      account.recorded += 1;
+      if (result.status === 'Skipped') account.excluded += 1;
+      if (result.status === 'Pending') account.manual += 1;
+      continue;
+    }
+    account.missing += 1;
+    if (unit.state === 'indeterminate') account.indeterminate += 1;
+    else if (unit.state === 'not_startable') account.notStartable += 1;
+    else account.absent += 1;
+  }
+  return account;
+}
+
+/** What is missing, as the run's failure message says it; null when nothing is. */
+export function describeMissing(account: ManifestAccount): string | null {
+  if (account.missing === 0) return null;
+  const parts = [
+    account.indeterminate
+      ? `${account.indeterminate} indeterminate (its worker was lost: the result is not known and it was not run again)`
+      : null,
+    account.absent ? `${account.absent} without a recorded result` : null,
+    account.notStartable ? `${account.notStartable} whose browser could not start` : null,
+  ].filter(Boolean);
+  return `${account.missing} of ${account.expected} expected unit(s) have no result: ${parts.join('; ')}.`;
 }
 
 /**

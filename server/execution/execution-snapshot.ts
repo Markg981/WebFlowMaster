@@ -1,4 +1,5 @@
 import { EVIDENCE_CAPTURE_MODES, type EvidenceCaptureMode, type TestPlan } from '@shared/schema';
+import type { WorkerLossPolicy } from '@shared/execution-identity';
 import type { RunSelection } from './test-impact';
 import { normalizeLocales } from '@shared/locales';
 
@@ -60,6 +61,11 @@ export interface ExecutionSnapshot {
   maxParallelTests: number;
   /** Workers sharing the run (server/runtime/run-shards.ts); absent on snapshots from before it existed, read as 1. */
   shards?: number;
+  /**
+   * What a lost worker's work becomes (shared/execution-identity.ts). Absent on older snapshots:
+   * indeterminate, never a replay inferred from anything else.
+   */
+  workerLossPolicy?: WorkerLossPolicy;
   captureScreenshots: string;
   /** As the plan stored them; server/runtime/run-policies.ts reads them, units and all. */
   timeouts: { pageLoadMs: number; elementMs: number };
@@ -157,6 +163,7 @@ export function buildExecutionSnapshot(
     },
     maxParallelTests: plan.maxParallelTests ?? 1,
     shards: plan.shards ?? 1,
+    workerLossPolicy: plan.workerLossPolicy === 'replay' ? 'replay' : 'indeterminate',
     captureScreenshots: plan.captureScreenshots ?? 'on_failed_steps',
     timeouts: {
       pageLoadMs: plan.pageLoadTimeout ?? 30_000,

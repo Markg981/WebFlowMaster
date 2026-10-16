@@ -7,6 +7,7 @@ import {
   reconcileScenario,
   waitForRecovery,
   retainedArtifactBreaches,
+  unitBreaches,
 } from './resilience-core.mjs';
 
 const run = (id, overrides = {}) => ({
@@ -70,6 +71,41 @@ test('crash diagnostic requires worker_lost on exactly the interrupted ID and pr
   assert.match(
     reconcile(['crashed'], [{ ...interrupted, results: {} }], ['crashed']).join(),
     /partial results/,
+  );
+});
+
+test('a lost result is explicit: no green with a unit missing, no unit left running, no unauthorized replay', () => {
+  const recorded = { state: 'recorded', result: { status: 'Passed' } };
+  assert.deepEqual(unitBreaches(run('ok'), [recorded]), []);
+  assert.match(
+    unitBreaches(run('ok'), [recorded, { state: 'indeterminate', result: null }]).join(),
+    /completed with 1 unit\(s\) without a result: indeterminate/,
+  );
+  const lost = run('crashed', {
+    status: 'error',
+    failureCode: 'worker_lost',
+    failureMessage: 'The worker running this stopped answering.',
+  });
+  assert.deepEqual(
+    unitBreaches(lost, [{ state: 'indeterminate', result: null }], [], ['crashed']),
+    [],
+  );
+  assert.match(
+    unitBreaches(lost, [{ state: 'running', result: null }], [], ['crashed']).join(),
+    /still shows 1 unit\(s\) running/,
+  );
+  assert.match(
+    unitBreaches({ ...lost, failureMessage: null }, [], [], ['crashed']).join(),
+    /without saying what was lost/,
+  );
+  assert.match(
+    unitBreaches(
+      run(''),
+      [],
+      [run('retry', { retryOfExecutionId: 'crashed' })],
+      ['crashed'],
+    ).join(),
+    /replays lost run crashed without a policy/,
   );
 });
 

@@ -3646,6 +3646,12 @@
     "shards": {
       "label": "Worker pro Ausführung",
       "help": "Verteilt eine Ausführung auf bis zu so viele Runner, die jeweils die obige Anzahl gleichzeitig ausführen. Tests werden einzeln an den jeweils freien Runner vergeben; der Bericht bleibt eine Ausführung. 1 lässt die Ausführung auf einem Runner."
+    },
+    "workerLoss": {
+      "label": "Wenn ein Runner mitten im Test verloren geht",
+      "indeterminate": "Ergebnis als unbekannt markieren (empfohlen)",
+      "replay": "Test auf einem anderen Runner erneut ausführen",
+      "help": "Ein Runner, der nicht mehr antwortet, hat möglicherweise schon geklickt oder Anfragen gesendet. Standardmäßig endet sein Test als unbestimmt und der Lauf als unvollständig. Wählen Sie die erneute Ausführung nur, wenn jeder Test dieses Plans gefahrlos zweimal gegen die Anwendung laufen kann. Tests, deren API-Anfragen Werte an spätere weitergeben, werden nie mittendrin fortgesetzt."
     }
   },
   "network": {

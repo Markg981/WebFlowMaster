@@ -243,9 +243,18 @@ scope of re-runs and UI dataset rows (which stay inside their attempt) are uncha
 
 **Rollout.** The migration is additive, and a worker from before it keeps writing rows without a
 unit, which every reader accepts; a shared run's work items carry the unit id, and a helper without
-it ignores the field. The manifest does not decide the verdict yet: that switch (an expected unit
-without a result makes the run incomplete) comes once every worker writes units — after the old
-workers are upgraded or drained.
+it ignores the field.
+
+**The verdict comes from the manifest** (lot P11). A run with a manifest is complete only when the
+set of expected units equals the set of authoritative results: one row per unit, naming a unit of
+this manifest. `accountFor` counts each unit once and tells the missing ones apart — **absent** (no
+result recorded), **indeterminate** (its worker was lost), **not startable** (its browser would not
+start) — and the run's `run_incomplete` message says how many of each. Among recorded units it also
+counts the **excluded** (Skipped, on purpose: a plan policy or a stop) and the **manual** ones
+(Pending, which by policy do not fail a run). Green rows cannot make up for a missing unit; a row that
+names a unit outside the manifest is nobody's result and is not counted. Rows without a unit (a run
+or worker from before the manifest) are judged as before. Upgrade every worker before relying on
+this: a worker from before P11 writes neither epochs nor leases (see below).
 
 ### Shards: one run on several workers
 
@@ -256,10 +265,55 @@ resolved it (browser, headless fallback, engine, unit id), so helpers do not pro
 `shards − 1` jobs `execute-shard` (job id `<execution>-shard-<n>`).
 
 Every participant runs `maxParallelTests` claim loops. A claim is `SELECT … FOR UPDATE SKIP LOCKED`
-on the first `pending` item, or a `claimed` one whose heartbeat is older than `STALE_CLAIM_MS`
-(2 minutes); claims are heartbeated every `WORK_ITEM_HEARTBEAT_MS`. Only the holder can mark an item
-done. A helper leaves when nothing is left to claim; the coordinator waits until every item is done,
-taking back stale ones, then finalizes as usual. The legacy `results` list and the tests that could not
+on the first `pending` item, or a `claimed` one whose lease has ended. A helper leaves when nothing
+is left to claim; the coordinator waits until every item is over (`done` or `indeterminate`), then
+finalizes as usual.
+
+#### Fencing: epochs, leases and the admission point
+
+A claim is a `WorkClaimRef { workItemKey, owner, epoch }` (migration 0093). Every claim raises the
+item's `epoch` and sets `lease_expires_at = now() + WORK_CLAIM_LEASE_MS` by the **database's** clock.
+Every write a verdict or a report reads goes through a fence (`server/execution/plan-run/fence.ts`),
+checked inside the transaction that writes:
+
+- every run: the run is still `running` or `cancelling` (`FOR SHARE` on the run row, so the
+  recovery sweep's ending and the write happen one before the other);
+- a shared run's unit, besides: the item is `claimed` by the same owner under the same epoch and its
+  lease has not ended (`FOR UPDATE` on the item row, so a reclaim or a finish waits for the write).
+
+A lease that ended counts as lost even when nobody has taken the item since. The **admission point**
+is `saveReportEntry`: in one transaction, the fence, then the deciding attempt closed with the stored
+paths of its evidence, the result row, the unit marked `recorded` and — for the item's last unit —
+the item marked `done` with its results. An earlier unit of a chained lane is admitted on its own
+and the item stays open. Beginning an attempt and closing a non-deciding one go through the same
+fence, and each attempt records the `claim_epoch` it was made under. A refused write raises
+`OwnershipLostError` and writes nothing.
+
+Evidence files are published to storage before admission; that transfer is not part of the database
+transaction. Only the attempt admitted with them references them: files of a refused or expired
+owner stay in its own `attempt_N` directory, unreferenced, and never appear as confirmed evidence.
+
+**Keeping the lease** (`keepClaim`). A renewal extends only a lease that has not ended; zero rows
+updated is the loss of the claim, and the worker stops the item at once. A renewal that fails or does
+not answer within a heartbeat is not a renewal. The worker keeps a local, conservative deadline —
+from when the last confirmed renewal was _asked for_, by the monotonic clock, plus the lease, minus
+`WORK_CLAIM_MARGIN_MS` for the write to reach the database — and when it passes, it aborts the item
+(the unit's signal is the run's and the claim's) and reports it indeterminate on the run's console.
+
+**An expired claim** is settled by the next claim that finds it, under the item's lock:
+
+- no attempt was begun under that epoch — nothing reached the application — the item is taken again
+  with the next epoch;
+- the plan's `worker_loss_policy` is `replay` and the item is a single unit: its running attempt is
+  marked `abandoned` and the unit is taken again, as a new attempt;
+- otherwise — the default, and **always** for a chained lane, whose captured values died with the
+  worker and whose first requests already happened — the item ends `indeterminate` (terminal), its
+  unfinished units `indeterminate` with the reason, its running attempts `abandoned`. Results already
+  admitted for earlier units of the lane stay.
+
+`openWorkItems` counts neither `done` nor `indeterminate`, so the coordinator never waits for work
+nobody will do. Nothing here promises exactly-once: a click or a request a lost worker already made
+happened; what fencing guarantees is that the lost worker cannot change the verdict or the evidence. The legacy `results` list and the tests that could not
 be executed are stored on each item and merged; a plan policy's stop is written to
 `test_plan_executions.stop_reason` and read before each claim. A helper joins only a `running` run,
 watches it like the coordinator (cancel, time limit from the run's start) and never transitions it.
@@ -367,15 +421,15 @@ None of these can change the verdict: each failure is logged and reported as an 
 
 ## 6. When things go wrong
 
-| Situation                                      | What happens                                                                                                                                                                                                                                                                                                                                                                         |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Somebody cancels                               | `running → cancelling`; the worker hears it at its next heartbeat, interrupts the current step, closes the test's own session and ends the run `cancelled`.                                                                                                                                                                                                                          |
-| A step hangs                                   | The step's own timeout; for what has none (a script that never settles), the step deadline `RUN_STEP_DEADLINE_MS`; then the run's maximum duration (`timed_out`).                                                                                                                                                                                                                    |
-| The worker dies                                | Its heartbeat stops. The recovery sweep in the web process (`server/execution/run-recovery.ts`) ends runs silent for `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. A scheduled run with attempts left gets its next attempt. It is not silently re-run: half a run may already have created data in the application under test. |
-| The worker is alive but stuck                  | Past the maximum duration plus a 5-minute grace, the sweep ends it `timed_out`.                                                                                                                                                                                                                                                                                                      |
-| The web process stops after creating a run     | The run's job is still in `execution_outbox`. Once the lease runs out, the outbox dispatcher of any web process publishes it with the run's id as the job id; the run is never left `queued` with no job.                                                                                                                                                                            |
-| BullMQ delivers a job twice                    | The second `takeExecution` finds the run no longer `queued` and does nothing.                                                                                                                                                                                                                                                                                                        |
-| A late write arrives from a worker given up on | The conditional update matches nothing; the recorded ending stands.                                                                                                                                                                                                                                                                                                                  |
+| Situation                                      | What happens                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Somebody cancels                               | `running → cancelling`; the worker hears it at its next heartbeat, interrupts the current step, closes the test's own session and ends the run `cancelled`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| A step hangs                                   | The step's own timeout; for what has none (a script that never settles), the step deadline `RUN_STEP_DEADLINE_MS`; then the run's maximum duration (`timed_out`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| The worker dies                                | Its heartbeat stops. The recovery sweep in the web process (`server/execution/run-recovery.ts`) ends runs silent for `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. Its running units become `indeterminate`, its running attempts `abandoned` and its held work items `indeterminate`; any later write of the lost worker is refused by the run fence. It is not re-run: half a run may already have created data in the application under test. Only a plan whose `worker_loss_policy` is `replay` gets its next attempt (when it has attempts left); retries and re-run-on-failure alone never replay a lost run. |
+| The worker is alive but stuck                  | Past the maximum duration plus a 5-minute grace, the sweep ends it `timed_out`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| The web process stops after creating a run     | The run's job is still in `execution_outbox`. Once the lease runs out, the outbox dispatcher of any web process publishes it with the run's id as the job id; the run is never left `queued` with no job.                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| BullMQ delivers a job twice                    | The second `takeExecution` finds the run no longer `queued` and does nothing.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| A late write arrives from a worker given up on | The conditional update matches nothing; the recorded ending stands.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 Several web servers can sweep at the same time: every ending goes through the state machine, so each
 run is ended once.

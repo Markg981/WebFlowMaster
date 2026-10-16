@@ -31,6 +31,10 @@ A release can change the database schema, so the order matters.
 With Compose, `docker compose up -d --build` does steps 2, 4 and 5 in order, because `api` and
 `worker` wait for `migrate` to finish.
 
+Do not mix worker versions across migration 0093: a worker from before it claims shared work without
+an epoch or a lease, so the newer workers cannot fence it. Drain and stop every old worker (step 1–2)
+before starting new ones.
+
 ### Volumes from previous installations
 
 Current API and worker images use `pwuser` (UID 1000). A volume created by an older root image
@@ -176,6 +180,36 @@ For a managed PostgreSQL, or an installation not run with Compose:
 2. Start the processes with the same `ENCRYPTION_KEY`. `node dist/apply-migrations.js` first if the code
    is newer than the backup.
 3. Restore the artifacts to the same paths or bucket keys; the reports refer to them by path.
+
+## Lost workers {#lost-workers}
+
+A worker that dies or is cut off mid-run never gets to write a result that would contradict the
+run's verdict (lot P11):
+
+- **One worker per run.** The recovery sweep ends a run whose heartbeat has been quiet for
+  `RUN_STALE_AFTER_MS` as `error` / `worker_lost`. Its running tests become _indeterminate_; anything
+  the worker writes afterwards is refused. The run is queued again only when its plan's **When a
+  runner is lost mid-test** setting is _Run the test again_ (`worker_loss_policy = replay`) and it
+  has attempts left — never because of a retry count or re-run-on-failure alone.
+- **Shared runs.** Each piece of work is held under a lease (`WORK_CLAIM_LEASE_MS`, default
+  `STALE_CLAIM_MS`, 2 minutes) renewed every `WORK_ITEM_HEARTBEAT_MS` (15 s). A worker that cannot
+  confirm its lease before the lease less `WORK_CLAIM_MARGIN_MS` (10 s) stops the piece itself. A
+  piece whose lease ran out after its test started ends _indeterminate_, unless the plan allows a
+  replay of a single test. Chained API sequences are never resumed half-way.
+
+Keep `WORK_ITEM_HEARTBEAT_MS` well under the lease less the margin, and the clocks of the database
+host sane: the lease is measured by the database's clock, the margin by the worker's monotonic one.
+
+What to look at: the run's console names each piece lost and its claim epoch; `GET
+/api/test-plan-executions/<run>/units` (or `wfm units <run>`) lists every expected unit with its
+state — `indeterminate` units carry the reason, and their attempts show as `abandoned`. A run
+_completed_ always has a result for every expected unit.
+
+**Drill.** On a throwaway stack only — never against production or shared services —
+`npm run load:resilience -- --cycles 1 --worker-restart crash --recovery-timeout 180 --observation-seconds 40`
+kills a worker mid-run and checks that the run reports `worker_lost` explicitly, that no completed
+run is missing a unit result, that no unit is left `running`, and that no run replays the lost one.
+Locking and concurrency on a real PostgreSQL cluster are verified in the pilot (lot P18).
 
 ## Artifact retention
 
