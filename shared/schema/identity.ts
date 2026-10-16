@@ -708,6 +708,11 @@ export const AUDIT_ACTIONS = {
   TEST_UPDATED: 'test.updated',
   TEST_DELETED: 'test.deleted',
   TEST_VERSION_RESTORED: 'test.version_restored',
+  // A run's healing pass writing a repaired selector back to where the step is written (C05):
+  // the test's own step, a step group's, or a shared element. By the system, never a person.
+  TEST_SELECTOR_HEALED: 'test.selector_healed',
+  STEP_GROUP_SELECTOR_HEALED: 'step_group.selector_healed',
+  ELEMENT_SELECTOR_HEALED: 'project_element.selector_healed',
   // Tests read back from a file made by the export (server/integrations/test-bundle.ts), in one entry.
   TESTS_IMPORTED: 'test.imported',
   API_TEST_CREATED: 'api_test.created',

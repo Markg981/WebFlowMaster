@@ -3145,7 +3145,9 @@
       "impact_rule": "Auswirkungskarte",
       "sms_inbox": "SMS-Postfach",
       "organization": "Organisation",
-      "load_test": "Lasttests"
+      "load_test": "Lasttests",
+      "step_group": "Schrittgruppen",
+      "project_element": "Element-Repository"
     },
     "actions": {
       "bdd_profile_created": "BDD-Profil erstellt",
@@ -3269,7 +3271,10 @@
       "load_test_updated": "Lasttest geändert",
       "load_test_deleted": "Lasttest gelöscht",
       "load_test_run": "Lasttest-Lauf gestartet",
-      "load_test_cancelled": "Lasttest-Lauf gestoppt"
+      "load_test_cancelled": "Lasttest-Lauf gestoppt",
+      "test_selector_healed": "Testselektor repariert",
+      "step_group_selector_healed": "Selektor der Schrittgruppe repariert",
+      "project_element_selector_healed": "Selektor des gemeinsamen Elements repariert"
     }
   },
   "security": {

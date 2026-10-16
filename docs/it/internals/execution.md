@@ -303,9 +303,14 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
   fino a 5 s che la pagina si stabilizzi; le attese esplicite fino a 15 s.
 - **Correzione automatica.** Quando un clic o un inserimento non trova il proprio elemento ed è
   configurata una chiave AI, il DOM della pagina e l'errore vanno al modello, che propone un selettore.
-  Se il nuovo tentativo con quel selettore riesce, lo step è marcato _healed_ e il nuovo selettore è
-  salvato — sull'elemento condiviso del repository quando lo step ne nomina uno, così ogni test che lo
-  usa è corretto in una volta.
+  Se il nuovo tentativo con quel selettore riesce, lo step è marcato _healed_ e il selettore è
+  proposto alla sorgente dello step, presa dalla provenienza che ogni step preparato porta con sé
+  (`server/authoring/step-provenance.ts`): l'elemento condiviso del repository, lo step del gruppo
+  o lo step del test nella sua posizione scritta, mai la posizione del runner nella sequenza
+  espansa. `server/authoring/selector-healing.ts` lo scrive in una transazione del tenant, dopo
+  aver bloccato la riga e confrontato il fingerprint preso quando il run l'ha preparata, con
+  versione (step del test) e voce di audit nella stessa transazione. Altrimenti segnala un conflitto
+  nel `healing` dello step.
 - **Evidenze.** Screenshot secondo la policy del piano; video, trace di Playwright e cattura di rete HAR
   secondo le impostazioni (`never`, `on_failure`, `always`); confronto visivo con le baseline per step
   quando i test visivi sono attivi (`server/web/visual-testing.ts` restituisce `match`, `diff`,

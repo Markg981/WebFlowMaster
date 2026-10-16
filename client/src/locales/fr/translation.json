@@ -3145,7 +3145,9 @@
       "impact_rule": "Carte d'impact",
       "sms_inbox": "Boîte SMS",
       "organization": "Organisation",
-      "load_test": "Tests de charge"
+      "load_test": "Tests de charge",
+      "step_group": "Groupes d’étapes",
+      "project_element": "Référentiel d’éléments"
     },
     "actions": {
       "bdd_profile_created": "Profil BDD créé",
@@ -3269,7 +3271,10 @@
       "load_test_updated": "Test de charge modifié",
       "load_test_deleted": "Test de charge supprimé",
       "load_test_run": "Exécution de charge lancée",
-      "load_test_cancelled": "Exécution de charge arrêtée"
+      "load_test_cancelled": "Exécution de charge arrêtée",
+      "test_selector_healed": "Sélecteur du test corrigé",
+      "step_group_selector_healed": "Sélecteur du groupe d’étapes corrigé",
+      "project_element_selector_healed": "Sélecteur de l’élément partagé corrigé"
     }
   },
   "security": {

@@ -3145,7 +3145,9 @@
       "impact_rule": "Impact map",
       "sms_inbox": "SMS inbox",
       "organization": "Organization",
-      "load_test": "Load tests"
+      "load_test": "Load tests",
+      "step_group": "Step groups",
+      "project_element": "Element repository"
     },
     "actions": {
       "bdd_profile_created": "BDD profile created",
@@ -3269,7 +3271,10 @@
       "load_test_updated": "Load test updated",
       "load_test_deleted": "Load test deleted",
       "load_test_run": "Load test run started",
-      "load_test_cancelled": "Load test run stopped"
+      "load_test_cancelled": "Load test run stopped",
+      "test_selector_healed": "Test selector healed",
+      "step_group_selector_healed": "Step group selector healed",
+      "project_element_selector_healed": "Shared element selector healed"
     }
   },
   "security": {

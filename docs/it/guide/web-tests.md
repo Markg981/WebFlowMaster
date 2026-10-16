@@ -549,6 +549,25 @@ Quando uno step non trova il suo elemento e l'installazione ha una chiave AI, il
 elemento salvato che è stato corretto mostra nel repository il selettore vecchio e quello nuovo,
 da confermare.
 
+### Dove si salva un selettore corretto {#dove-si-salva-la-correzione}
+
+L'AI propone soltanto il selettore. Dove va lo decide il punto in cui lo step è scritto:
+
+| Lo step corretto              | Il selettore si salva                                              |
+| ----------------------------- | ------------------------------------------------------------------ |
+| nomina un elemento salvato    | sull'elemento del repository, per tutti i test che lo usano        |
+| fa parte di un gruppo di step | su quello step del gruppo, per tutti i test che lo chiamano        |
+| è uno step del test stesso    | su quello step del test, come nuova versione della copia di lavoro |
+
+Uno step dopo un gruppo, o un gruppo chiamato due volte, non si confondono mai: ogni correzione va
+allo step a cui appartiene e da nessun'altra parte. Si salva solo se quello step (o elemento) è
+ancora esattamente quello eseguito dal run. Se nel frattempo è stato modificato o eliminato, se il
+test è archiviato o se il run agisce per un viewer, non si scrive nulla. La proposta resta sullo
+step nel report, con il motivo (vedi [Risultati](./results#step-healed)). Uno step del test
+corretto crea una nuova versione della copia di lavoro. La versione **pubblicata** non cambia: i
+piani vedono la correzione solo quando pubblicate di nuovo. Ogni correzione salvata è nel registro
+di audit dell'organizzazione.
+
 ## Salvare
 
 **Salva test** chiede un nome e, facoltativamente, un progetto (lo si può creare lì). Salvare di

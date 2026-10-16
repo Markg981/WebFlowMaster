@@ -524,6 +524,24 @@ When a step cannot find its element and the installation has an AI key, the run 
 it asks for a new selector, retries, and marks the step _healed_ in the report. A healed kept
 element shows the old and the new selector in the repository, for you to confirm.
 
+### Where a healed selector is saved {#where-healing-saves}
+
+The AI only proposes the selector. Where it goes is decided by where the step is written:
+
+| The step that healed           | The selector is saved to                                    |
+| ------------------------------ | ----------------------------------------------------------- |
+| names a kept element           | the element in the repository, for every test that uses it  |
+| belongs to a step group        | that step of the group, for every test that calls it        |
+| is one of the test's own steps | that step of the test, as a new version of the working copy |
+
+A step after a group, or a group called twice, is never mixed up: each repair goes to the step it
+belongs to and nowhere else. A repair is saved only if that step (or element) is still exactly what
+the run executed. If it was edited in the meantime, deleted, the test is archived, or the run acts
+for a viewer, nothing is written. The proposal is kept on the step in the report, with the reason
+(see [Results](./results#healed-steps)). A healed test step creates a new version of the working
+copy. The **published** version does not change: plans pick up the repair only when you publish
+again. Each saved repair is in the organization's audit log.
+
 ## Saving
 
 **Save Test** asks for a name and, optionally, a project (you can create one there). Saving again

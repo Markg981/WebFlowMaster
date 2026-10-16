@@ -2,15 +2,16 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import { privilegedDb } from '../platform/db';
 import { projects, projectElements } from '@shared/schema';
-import { runWithTenant } from '../platform/middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 import {
   elementIdOfStep,
-  recordHealedSelector,
   referencedElementIds,
   resolveSequenceForRun,
   resolveStepElements,
+  writeHealedElementSelector,
 } from './step-elements';
+import { elementFingerprint, provenanceOf, withTestProvenance } from './step-provenance';
 
 /**
  * The same button used to be written down once per test that touched it, so the application
@@ -169,31 +170,77 @@ describe('against the database', () => {
     expect(result.steps).toHaveLength(1);
   });
 
+  const heal = (org: number, elementId: string, ran: string, selector: string) =>
+    runWithTenant(org, () =>
+      withTenantTransaction((tx) =>
+        writeHealedElementSelector(tx, {
+          elementId,
+          fingerprint: elementFingerprint({ selector: ran }),
+          selector,
+        }),
+      ),
+    );
+
   it('records a healed selector once, where every test that names it will read it', async () => {
     const id = await seedElement(organizationId, projectId, '#was-here');
 
-    const updated = await runWithTenant(organizationId, () =>
-      recordHealedSelector(id, '#is-here-now'),
-    );
+    const written = await heal(organizationId, id, '#was-here', '#is-here-now');
     const afterwards = await runWithTenant(organizationId, () =>
       resolveSequenceForRun([stepWith({ selector: '#was-here', elementId: id })]),
     );
 
-    expect(updated).toBe(true);
+    expect(written).toEqual({ status: 'applied' });
     expect((afterwards.steps[0].targetElement as any).selector).toBe('#is-here-now');
     const [row] = await privilegedDb.select().from(projectElements);
     expect(row.healedAt).not.toBeNull();
+    expect(row.originalSelector).toBe('#was-here');
+  });
+
+  it('writes only the element the run resolved: one changed since is a conflict (C05)', async () => {
+    const id = await seedElement(organizationId, projectId, '#edited-meanwhile');
+
+    // The run resolved "#was-here"; somebody has moved the element since.
+    expect(await heal(organizationId, id, '#was-here', '#proposal')).toEqual({
+      status: 'conflict',
+      reason: 'changed',
+    });
+    // Another run's identical repair got there first: nothing to write, nothing to report.
+    expect(await heal(organizationId, id, '#was-here', '#edited-meanwhile')).toEqual({
+      status: 'already_applied',
+    });
+    const [row] = await privilegedDb.select().from(projectElements);
+    expect(row.selector).toBe('#edited-meanwhile');
+    expect(row.healedAt).toBeNull();
   });
 
   it("will not heal another organization's element", async () => {
     const id = await seedElement(otherOrganizationId, otherProjectId, '#theirs');
 
-    const updated = await runWithTenant(organizationId, () =>
-      recordHealedSelector(id, '#hijacked'),
-    );
-
-    expect(updated).toBe(false);
+    expect(await heal(organizationId, id, '#theirs', '#hijacked')).toEqual({
+      status: 'conflict',
+      reason: 'absent',
+    });
     const [row] = await privilegedDb.select().from(projectElements);
     expect(row.selector).toBe('#theirs');
+  });
+
+  it('records on each step the element it named and how it was resolved', async () => {
+    const id = await seedElement(organizationId, projectId, '#shared');
+    const missing = uuidv4();
+    const sequence = withTestProvenance([
+      stepWith({ selector: '#own', elementId: id }),
+      stepWith({ selector: '#own-too', elementId: missing }),
+    ]);
+
+    const { steps } = resolveStepElements(sequence, [{ id, selector: '#shared' }]);
+
+    expect(provenanceOf(steps[0])?.element).toEqual({
+      id,
+      fingerprint: elementFingerprint({ selector: '#shared' }),
+    });
+    // Ran on its own copy: there is no element to repair.
+    expect(provenanceOf(steps[1])?.element).toEqual({ id: missing, fingerprint: null });
+    // The test's own selector is still the one written, whatever the element said.
+    expect(provenanceOf(steps[0])?.selector).toBe('#own');
   });
 });

@@ -8,6 +8,7 @@ import { type EvidenceOptions } from '../../runtime/run-evidence';
 import { type StepRuntime } from '../../runtime/run-policies';
 import { type VisualContext, type VisualErrorCause } from '../visual-testing';
 import type { FrozenDependencies } from '../../authoring/executable-definition';
+import type { HealingOutcome } from '../../authoring/selector-healing';
 
 // Default settings if not found or incomplete
 export const DEFAULT_HEADLESS = true;
@@ -94,6 +95,11 @@ export interface StepResult {
   error?: string;
   details: string;
   healed?: boolean;
+  /**
+   * What became of the healed selector: saved to where the step is written (the test's step, the
+   * group's, or the shared element), or kept here as a proposal with the reason it was not (C05).
+   */
+  healing?: HealingOutcome;
   rca?: string;
   /**
    * What the visual comparison made of this step, when the plan asked for one.

@@ -45,7 +45,9 @@ export interface AuditEntry {
     | 'load_test'
     | 'browser_grid'
     | 'test_data_set'
-    | 'impact_rule';
+    | 'impact_rule'
+    | 'step_group'
+    | 'project_element';
   /** Text because targets are variously serial ids and uuids. */
   targetId?: string | number;
   /**
