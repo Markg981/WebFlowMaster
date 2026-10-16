@@ -19,6 +19,7 @@ vi.mock('../platform/egress-policy', async (importOriginal) => ({
 const {
   BrowserSessionError,
   DESKTOP_VIEWPORT,
+  SESSION_CLOSE_STEP_MS,
   browserForSetting,
   contextOptionsFor,
   openBrowserSession,
@@ -194,5 +195,49 @@ describe('no way round the browser egress guard', () => {
       'reporting/report-export.ts',
       'runtime/browsers.ts',
     ]);
+  });
+});
+
+describe('closing a session that does not answer', () => {
+  it('goes on to close the browser when the context hangs, and both callers see one close', async () => {
+    const { browser, context } = fakeBrowser();
+    // A grid or an agent that stopped answering: the context's close never returns.
+    context.close.mockImplementation(() => new Promise(() => {}));
+    mocks.launchBrowser.mockResolvedValue(browser);
+    const session = await openBrowserSession({ browser: chromium });
+
+    vi.useFakeTimers();
+    try {
+      let closed = 0;
+      const first = session.close().then(() => closed++);
+      const second = session.close().then(() => closed++);
+      await vi.advanceTimersByTimeAsync(SESSION_CLOSE_STEP_MS - 1);
+      expect(browser.close).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      await Promise.all([first, second]);
+
+      expect(browser.close).toHaveBeenCalledTimes(1);
+      expect(context.close).toHaveBeenCalledTimes(1);
+      expect(closed).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('returns even when the browser close hangs too', async () => {
+    const { browser, context } = fakeBrowser();
+    context.close.mockImplementation(() => new Promise(() => {}));
+    browser.close.mockImplementation(() => new Promise(() => {}));
+    mocks.launchBrowser.mockResolvedValue(browser);
+    const session = await openBrowserSession({ browser: chromium });
+
+    vi.useFakeTimers();
+    try {
+      const closing = session.close();
+      await vi.advanceTimersByTimeAsync(2 * SESSION_CLOSE_STEP_MS);
+      await expect(closing).resolves.toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

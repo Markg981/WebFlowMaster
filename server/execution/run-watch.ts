@@ -15,11 +15,29 @@ import { recordHeartbeat } from './execution-state';
  * - past its maximum duration — it has run out of time.
  *
  * Any of the three stops the run the way a plan policy does: no test that has not started
- * starts, and a test in progress stops at its next step (the signal). A step is bounded by its
- * own timeouts, so that is soon.
+ * starts, and a test in progress is cut short where it is (the signal): the running step is
+ * interrupted, the test's own browser session is closed, and the next step never starts
+ * (runBounded, server/web/step-executor.ts). The interval is how soon a request is *noticed*;
+ * once the signal fires, the session is closed within seconds.
  */
 
 export type StopCause = 'cancelled' | 'timed_out' | 'lost';
+
+/**
+ * The reason the watch's signal carries: the sentence, and which of the three stops it was.
+ *
+ * A step cut short by the signal reads the cause from here, so the test reports "cancelled" or
+ * "timed out" the way the run does, rather than a bare "aborted" (server/web/step-executor.ts).
+ */
+export class RunStoppedError extends Error {
+  constructor(
+    readonly stopCause: StopCause,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'RunStoppedError';
+  }
+}
 
 export interface RunWatch {
   /** Why the run is stopping, as a sentence for the tests that will not run; null while it is not. */
@@ -60,7 +78,7 @@ export function watchRun(executionId: string, options: RunWatchOptions = {}): Ru
     if (cause) return;
     cause = why;
     stopReason = reason;
-    controller.abort(new Error(reason));
+    controller.abort(new RunStoppedError(why, reason));
     options.onStop?.(why, reason);
   };
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { watchRun } from './run-watch';
+import { RunStoppedError, watchRun } from './run-watch';
 
 /** What a worker hears while it runs: a cancellation, its own time limit, or that the run is gone. */
 
@@ -161,5 +161,33 @@ describe('watchRun', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('tells the step it interrupts which stop it was, not just that it was aborted', async () => {
+    let clock = 0;
+    const cancelled = watchRun('run-1', {
+      heartbeat: async () => 'cancelling',
+      intervalMs: quietInterval,
+    });
+    const timedOut = watchRun('run-2', {
+      heartbeat: async () => 'running',
+      intervalMs: quietInterval,
+      maxDurationMs: 60_000,
+      startedAt: 0,
+      now: () => clock,
+    });
+
+    await cancelled.check();
+    clock = 61_000;
+    await timedOut.check();
+
+    expect(cancelled.signal.reason).toBeInstanceOf(RunStoppedError);
+    expect(cancelled.signal.reason).toMatchObject({
+      stopCause: 'cancelled',
+      message: cancelled.stopReason,
+    });
+    expect(timedOut.signal.reason).toMatchObject({ stopCause: 'timed_out' });
+    cancelled.stop();
+    timedOut.stop();
   });
 });

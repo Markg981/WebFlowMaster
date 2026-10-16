@@ -276,7 +276,7 @@ A run has one of these statuses:
 | ------------ | -------- | ---------------------------------------------------------------------- |
 | `queued`     | no       | Waiting for a runner, or for the organization's limit.                 |
 | `running`    | no       | Being run.                                                             |
-| `cancelling` | no       | Asked to stop; ends at its current step.                               |
+| `cancelling` | no       | Asked to stop; the step in progress is interrupted.                    |
 | `completed`  | yes      | Every test passed (failures of tests in quarantine do not count).      |
 | `failed`     | yes      | At least one test failed.                                              |
 | `error`      | yes      | The run could not be carried out (its runner stopped, a setup failed). |
@@ -367,8 +367,8 @@ Most recent first. Filter with `planId` and `status`; paginated.
 
 `POST /api/v1/runs/{runId}/cancel` · scope `runs:write`
 
-A queued run is cancelled at once (`200`); a running one is asked to stop (`202`) and ends at its
-next step. `409 run_already_ended` if it had finished.
+A queued run is cancelled at once (`200`); a running one is asked to stop (`202`): the worker
+sees it at its next heartbeat, interrupts the step in progress and closes the test's browser. `409 run_already_ended` if it had finished.
 
 ### JUnit XML
 

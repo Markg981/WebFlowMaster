@@ -165,7 +165,11 @@ suo limite, o quando nessun runner è online: **Impostazioni → Utilizzo dei ru
 due.
 
 Per fermare un run, **Annulla run** nel suo report. I test non ancora partiti vengono riportati
-come saltati; un test in corso si ferma allo step successivo.
+come saltati. Un test in corso viene fermato dove si trova, anche a metà di uno script che non
+finisce mai: il suo browser viene chiuso entro pochi secondi e lo step risulta **Stopped**. Il
+runner rileva un annullamento al controllo successivo, ogni 15 secondi per default. Uno step che
+supera la sua scadenza (5 minuti per default) viene fermato allo stesso modo e fallisce per tempo
+scaduto.
 
 Un run che non riesce a registrare il risultato di un test termina in **errore** (`run_incomplete`),
 mai come superato: il suo messaggio nomina il test il cui risultato è andato perso. Non è come un

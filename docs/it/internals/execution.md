@@ -128,8 +128,8 @@ nel processo (`onExecutionTransition`); il modulo dello stato dei commit è uno 
    `RUN_HEARTBEAT_INTERVAL_MS` (15 s). Ogni battito dice anche al worker se qualcuno ha chiesto di
    annullare e se il run è terminato altrove. Prima di scriverlo, il worker confronta il proprio
    orologio con `RUN_MAX_DURATION_MS` (3 h), così un database che fallisce o non risponde non può
-   tenere in vita un run oltre il suo limite. I test lo ricevono tramite un `AbortSignal` e si
-   fermano allo step successivo.
+   tenere in vita un run oltre il suo limite. I test lo ricevono tramite un `AbortSignal`, che interrompe
+   lo step in corso e chiude la sessione browser del test stesso (vedi [Fermare un test](#stopping-a-test)).
 3. **Lettura dello snapshot.** I run di prima degli snapshot ripiegano sul piano com'è ora.
 4. **Risoluzione delle variabili**, una volta per run: i default dell'installazione, i valori
    dell'ambiente e i suoi segreti decifrati (`server/runtime/variables.ts`). La stessa risoluzione alimenta
@@ -302,8 +302,8 @@ Nessuno di questi può cambiare il verdetto: ogni errore è registrato e riporta
 
 | Situazione                                               | Cosa succede                                                                                                                                                                                                                                                                                                                                                                                                       |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Qualcuno annulla                                         | `running → cancelling`; il worker lo sente al battito successivo, termina lo step in corso e chiude il run come `cancelled`.                                                                                                                                                                                                                                                                                       |
-| Uno step si blocca                                       | Il timeout dello step, poi la durata massima del run (`timed_out`).                                                                                                                                                                                                                                                                                                                                                |
+| Qualcuno annulla                                         | `running → cancelling`; il worker lo sente al battito successivo, interrompe lo step in corso, chiude la sessione del test e chiude il run come `cancelled`.                                                                                                                                                                                                                                                       |
+| Uno step si blocca                                       | Il timeout dello step; per ciò che non ne ha (uno script che non si risolve mai), la scadenza dello step `RUN_STEP_DEADLINE_MS`; poi la durata massima del run (`timed_out`).                                                                                                                                                                                                                                      |
 | Il worker muore                                          | Il suo heartbeat si ferma. Lo sweep di recupero nel processo web (`server/execution/run-recovery.ts`) chiude i run silenziosi da `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. Un run schedulato con tentativi rimasti riceve il tentativo successivo. Non viene rieseguito di nascosto: metà run potrebbe aver già creato dati nell'applicazione sotto test. |
 | Il worker è vivo ma bloccato                             | Oltre la durata massima più 5 minuti di tolleranza, lo sweep lo chiude come `timed_out`.                                                                                                                                                                                                                                                                                                                           |
 | Il processo web si ferma dopo aver creato un run         | Il job del run è ancora in `execution_outbox`. Scaduto il lease, il dispatcher dell'outbox di qualsiasi processo web lo pubblica con l'id del run come id del job; il run non resta mai `queued` senza job.                                                                                                                                                                                                        |
@@ -312,6 +312,41 @@ Nessuno di questi può cambiare il verdetto: ogni errore è registrato e riporta
 
 Più server web possono fare lo sweep contemporaneamente: ogni chiusura passa dalla macchina a stati,
 quindi ogni run viene chiuso una sola volta.
+
+### Fermare un test {#stopping-a-test}
+
+Uno stop viene prima rilevato, poi eseguito; le due cose richiedono tempi diversi.
+
+| Budget                   | Default | Cosa limita                                                                                                                                                                                                    |
+| ------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Polling                  | 15 s    | `RUN_HEARTBEAT_INTERVAL_MS`: quanto può attendere un annullamento prima che il worker lo veda. Il limite di durata del run usa l'orologio del worker e scatta allo stesso controllo.                           |
+| Limite del run           | 3 h     | `RUN_MAX_DURATION_MS`: l'intero run (`timed_out`).                                                                                                                                                             |
+| Scadenza dello step      | 5 min   | `RUN_STEP_DEADLINE_MS`: uno step, tutto — l'azione, il suo retry, lo screenshot, il controllo visivo. Più lunga se il test imposta `mailpit.timeout`, `sms.timeout` o `db.timeout` oltre (quel valore + 30 s). |
+| Chiusura dopo il segnale | ≤ 5 s   | Dall'`AbortSignal` alla sessione chiusa e allo slot libero: `SESSION_CLOSE_STEP_MS` (2 s) per fase di chiusura, poi `STEP_SETTLE_MS` (3 s) perché il lavoro abbandonato termini.                               |
+
+`runBounded` (`server/web/step-executor.ts`) esegue ogni step, l'avvio del browser, la prima
+navigazione e il salvataggio delle evidenze. A uno stop non smette solo di aspettare: chiude la
+sessione del test stesso, il che fa fallire le chiamate Playwright pendenti dello step, attende che
+il lavoro abbandonato termini e solo allora riporta l'esito. Così un test non risponde mai mentre il
+suo script è ancora in esecuzione, e il test successivo può occuparne subito lo slot.
+
+- **Prima dell'avvio**: nessun browser viene aperto.
+- **Durante l'avvio**: la sessione viene chiusa appena esiste; un avvio non si può revocare.
+- **Durante uno step**: lo step risulta `Stopped: <motivo>` e lo step successivo non parte. Uno step
+  abbandonato così non viene ritentato.
+- **Fra due step**: lo step successivo risulta fermato senza essere avviato.
+- **Durante il salvataggio delle evidenze**: la sessione viene chiusa e quelle evidenze vengono
+  scartate. Un test già fermato ha `STEP_SETTLE_MS` per salvare ciò che ha.
+
+Il risultato del test riporta `interrupted: cancelled | timed_out | lost`; la chiusura del run viene
+dal watch, come sopra. Uno script bloccato in un ciclo sincrono termina allo stesso modo: un browser
+locale è un processo avviato per quel solo test, e chiuderlo termina il ciclo.
+
+**Target remoti.** Su una browser grid o su un agent il teardown riguarda solo questa sessione: il
+suo contesto viene chiuso e la sua connessione interrotta. Lì non viene fermato nient'altro — né
+l'agent, né il browser di un altro utente. Il provider può mantenere la sua parte della sessione fino
+al proprio timeout di inattività, e uno script bloccato in una pagina remota si ferma quando il
+provider chiude quella pagina.
 
 ## 7. Avanzamento in diretta
 
