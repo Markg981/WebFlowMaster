@@ -239,8 +239,9 @@
       },
       "scopes": {
         "plans_read": "Elencare i piani di test.",
-        "runs_read": "Leggere i run, il loro stato e i report JUnit.",
+        "runs_read": "Leggere i run, il loro stato, i report JUnit, gli screenshot e i video.",
         "runs_write": "Avviare i run e annullarli.",
+        "runs_evidence": "Scaricare trace e file HAR dei run: possono contenere password in chiaro. Richiede il ruolo editor.",
         "api-tests_read": "Leggere i test API, con i segreti letterali sostituiti da variabili.",
         "api-tests_write": "Creare e aggiornare i test API.",
         "mobile-tests_read": "Leggere i test mobile nativi.",
@@ -5115,5 +5116,8 @@
     "opensInNewTab": "(si apre in una nuova scheda)",
     "unreadHint": "Nuove modifiche da leggere in Novità",
     "new": "Nuovo"
+  },
+  "stepDetails": {
+    "evidenceRestricted": "Questo run ha conservato una trace Playwright o una registrazione di rete. Possono contenere password e token in chiaro, quindi solo editor e owner possono scaricarle."
   }
 }

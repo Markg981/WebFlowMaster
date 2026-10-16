@@ -50,9 +50,15 @@ export const API_SCOPES = {
   'plans:read': { minimumRole: 'viewer', description: 'List test plans.' },
   'runs:read': {
     minimumRole: 'viewer',
-    description: 'Read runs, their status, their JUnit reports and their evidence files.',
+    description:
+      'Read runs, their status, their JUnit reports and their screenshots, videos and other recognised evidence. Traces and HAR files also need runs:evidence.',
   },
   'runs:write': { minimumRole: 'editor', description: 'Start runs and cancel them.' },
+  'runs:evidence': {
+    minimumRole: 'editor',
+    description:
+      'Download raw run evidence that may hold credentials: Playwright traces, HAR files and unrecognised files.',
+  },
   'schedules:read': { minimumRole: 'viewer', description: 'Read plan schedules.' },
   'schedules:write': {
     minimumRole: 'editor',

@@ -401,7 +401,7 @@ export const managementPaths = {
       parameters: [...runId, ...pagination],
       summary: 'The files a run left behind: screenshots, videos, traces, logs and reports.',
       description:
-        'Each file carries the URL it is served from. A run whose evidence retention has removed answers an empty page with `purged: true`.',
+        'Each file carries the URL it is served from. A run whose evidence retention has removed answers an empty page with `purged: true`. Traces, HAR files and unrecognised files are listed only for a caller with the editor role and, on a scoped key, the `runs:evidence` scope; otherwise they are counted in `withheld`. Files of a test in a restricted project the caller is not on are neither listed nor counted.',
       responses: {
         '200': {
           description: 'A page of files, by path, with how many there are.',
@@ -411,6 +411,11 @@ export const managementPaths = {
                 ...withTotal('Evidence'),
                 properties: {
                   ...withTotal('Evidence').properties,
+                  withheld: {
+                    type: 'integer',
+                    description:
+                      'Raw evidence files left out because the caller may not open them (needs the editor role and `runs:evidence`).',
+                  },
                   purged: { type: 'boolean' },
                 },
               },
@@ -436,6 +441,8 @@ export const managementPaths = {
         },
       ],
       summary: 'One evidence file, streamed with its content type.',
+      description:
+        'Screenshots, videos, Lighthouse reports and downloaded files need `runs:read`. Traces, HAR files and unrecognised files are raw evidence that may hold credentials: they also need the editor role and, on a scoped key, the `runs:evidence` scope, and answer 403 otherwise.',
       responses: {
         '200': {
           description: 'The file.',

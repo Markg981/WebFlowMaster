@@ -155,6 +155,8 @@ export interface TestPlanExecutionReport {
     videoUrl: string | null;
     traceUrl: string | null;
     harUrl?: string | null;
+    /** Raw evidence was kept but this viewer may not open it (server/tenancy/artifact-access.ts). */
+    evidenceRestricted?: boolean;
     networkSummary?: NetworkSummary | null;
     aiAnalysis?: FailureAnalysis | null;
     steps: ReportStep[];
@@ -195,6 +197,8 @@ export interface TestPlanExecutionReport {
             videoUrl: string | null;
             traceUrl: string | null;
             harUrl?: string | null;
+            /** Raw evidence was kept but this viewer may not open it (server/tenancy/artifact-access.ts). */
+            evidenceRestricted?: boolean;
             networkSummary?: NetworkSummary | null;
             steps: ReportStep[];
             reasonForFailure: string | null;
@@ -241,6 +245,8 @@ const TestReportPage: React.FC = () => {
     videoUrl?: string | null;
     traceUrl?: string | null;
     harUrl?: string | null;
+    /** Raw evidence was kept but this viewer may not open it (server/tenancy/artifact-access.ts). */
+    evidenceRestricted?: boolean;
     network?: NetworkSummary | null;
     sessionUrl?: string | null;
   } | null>(null);
@@ -1046,6 +1052,7 @@ const TestReportPage: React.FC = () => {
                                 videoUrl: test.videoUrl,
                                 traceUrl: test.traceUrl,
                                 harUrl: test.harUrl,
+                                evidenceRestricted: test.evidenceRestricted,
                                 network: test.networkSummary,
                                 sessionUrl: mobileSessionUrl(test.detailedLog),
                               })
@@ -1292,6 +1299,7 @@ const TestReportPage: React.FC = () => {
                                                     videoUrl: test.videoUrl,
                                                     traceUrl: test.traceUrl,
                                                     harUrl: test.harUrl,
+                                                    evidenceRestricted: test.evidenceRestricted,
                                                     network: test.networkSummary,
                                                     sessionUrl: mobileSessionUrl(test.detailedLog),
                                                   })
@@ -1385,6 +1393,7 @@ const TestReportPage: React.FC = () => {
         videoUrl={openedSteps?.videoUrl}
         traceUrl={openedSteps?.traceUrl}
         harUrl={openedSteps?.harUrl}
+        evidenceRestricted={openedSteps?.evidenceRestricted}
         network={openedSteps?.network}
         sessionUrl={openedSteps?.sessionUrl}
       />

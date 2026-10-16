@@ -8,7 +8,9 @@ import type { AccessibilityFinding } from '@shared/accessibility';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
 import type { DownloadFinding } from '@shared/downloads';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
+import { relativeArtifactPath, runArtifactAccess } from '../../tenancy/artifact-access';
 import { requireRole } from '../middleware/require-role';
+import { evidencePrincipalOf } from '../middleware/require-scope';
 import logger from '../../platform/logger';
 
 /**
@@ -45,13 +47,8 @@ export function artifactUrl(
   if (!storedPath || typeof storedPath !== 'string') return null;
   if (storedPath.startsWith('data:image')) return storedPath;
 
-  const normalized = storedPath.replace(/\\/g, '/');
-  const marker = `/${executionId}/`;
-  const index = normalized.indexOf(marker);
-  if (index === -1) return null;
-
-  const relative = normalized.slice(index + marker.length);
-  if (!relative || relative.includes('..')) return null;
+  const relative = relativeArtifactPath(executionId, storedPath);
+  if (!relative) return null;
   if (!available(relative)) return null;
   return `/api/test-plan-executions/${executionId}/artifacts/${relative
     .split('/')
@@ -184,23 +181,31 @@ router.get(
 
     // No organization predicate: RLS supplies it, so another tenant's execution is not found
     // rather than forbidden — the id itself tells the caller nothing.
-    const execution = await withTenantTransaction((tx) =>
-      tx
+    const found = await withTenantTransaction(async (tx) => {
+      const [execution] = await tx
         .select({ testPlanId: testPlanExecutions.testPlanId })
         .from(testPlanExecutions)
         .where(eq(testPlanExecutions.id, executionId))
-        .limit(1),
-    );
-    if (execution.length === 0) {
+        .limit(1);
+      if (!execution) return null;
+      const access = await runArtifactAccess(tx, {
+        organizationId: req.user!.organizationId,
+        executionId,
+        principal: evidencePrincipalOf(req),
+      });
+      return { execution, access };
+    });
+    if (!found) {
       return res.status(404).json({ error: 'Test plan execution not found.' });
     }
 
     // The key is the run's own directory and the path below it. The check is what decides that a
     // request for ../../../.env is not a screenshot, whichever store would be asked for it.
+    const relative = requestedPath.replace(/\\/g, '/');
     let key: string;
     try {
       key = assertSafeKey(
-        `${RESULTS_PREFIX}${execution[0].testPlanId}/${executionId}/${requestedPath.replace(/\\/g, '/')}`,
+        `${RESULTS_PREFIX}${found.execution.testPlanId}/${executionId}/${relative}`,
       );
     } catch {
       logger.warn({
@@ -209,6 +214,25 @@ router.get(
         requestedPath,
       });
       return res.status(400).json({ error: 'Invalid artifact path.' });
+    }
+
+    // Decided before the store is asked: a refusal says nothing about whether the file exists.
+    const decision = found.access.decide(relative);
+    if (!decision.allowed) {
+      if (decision.reason === 'hidden')
+        return res.status(404).json({ error: 'Artifact not found.' });
+      logger.info({
+        message: 'Refused raw run evidence to a caller without the permission',
+        executionId,
+        kind: decision.classification.kind,
+        reason: decision.reason,
+        userId: req.user?.id,
+      });
+      return res.status(403).json({
+        error: 'Forbidden',
+        code: decision.reason,
+        message: 'Traces, HAR files and unrecognised run files need the editor role.',
+      });
     }
 
     let artifact;

@@ -15,6 +15,12 @@ import {
   contentTypeFor,
   RESULTS_PREFIX,
 } from '../tenancy/artifact-store';
+import {
+  classifyArtifact,
+  relativeArtifactPath,
+  runArtifactAccess,
+  type RunArtifactAccess,
+} from '../tenancy/artifact-access';
 
 /**
  * A run as the exported reports describe it: HTML, PDF and Allure all read this one shape.
@@ -148,11 +154,18 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
       .from(reportTestCaseResults)
       .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
       .orderBy(asc(reportTestCaseResults.startedAt));
-    return { ...row, results };
+    // No permission is needed for what an export embeds — screenshots only — but the caller's
+    // visibility still is: a test of a restricted project they are not on keeps its picture.
+    const access = await runArtifactAccess(tx, {
+      organizationId: row.execution.organizationId,
+      executionId,
+      principal: null,
+    });
+    return { ...row, results, access };
   });
   if (!source) return null;
 
-  const { execution, planName, results } = source;
+  const { execution, planName, results, access } = source;
   const count = (status: string) => results.filter((r) => r.status === status).length;
   return {
     executionId: execution.id,
@@ -211,9 +224,29 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
       // where it broke, for the export that embeds it.
       screenshotPath: execution.artifactsPurgedAt
         ? null
-        : (r.screenshotUrl ?? failedStepScreenshot(r.detailedLog)),
+        : embeddableScreenshot(
+            execution.id,
+            r.screenshotUrl ?? failedStepScreenshot(r.detailedLog),
+            access,
+          ),
     })),
   };
+}
+
+/**
+ * The stored path when an export may embed it: a recognised screenshot of a test the caller can
+ * see. A stored path that names a trace or anything unrecognised is not a picture, whatever the
+ * column it sits in says, and is left out (server/tenancy/artifact-access.ts).
+ */
+function embeddableScreenshot(
+  executionId: string,
+  storedPath: string | null,
+  access: RunArtifactAccess,
+): string | null {
+  const relative = relativeArtifactPath(executionId, storedPath);
+  if (!relative) return null;
+  if (classifyArtifact(relative).kind !== 'screenshot' || !access.linkable(relative)) return null;
+  return storedPath;
 }
 
 /** Largest image an export embeds; a bigger one is left out rather than bloating the file. */
@@ -229,15 +262,10 @@ export async function readScreenshot(
   model: Pick<ReportModel, 'planId' | 'executionId'>,
   storedPath: string | null,
 ): Promise<{ bytes: Buffer; contentType: string } | null> {
-  if (!storedPath || storedPath.startsWith('data:')) return null;
-  const normalized = storedPath.replace(/\\/g, '/');
-  const marker = `/${model.executionId}/`;
-  const index = normalized.indexOf(marker);
-  if (index === -1) return null;
+  const relative = relativeArtifactPath(model.executionId, storedPath);
+  if (!relative || classifyArtifact(relative).kind !== 'screenshot') return null;
   try {
-    const key = assertSafeKey(
-      `${RESULTS_PREFIX}${model.planId}/${model.executionId}/${normalized.slice(index + marker.length)}`,
-    );
+    const key = assertSafeKey(`${RESULTS_PREFIX}${model.planId}/${model.executionId}/${relative}`);
     const bytes = await artifactStore().read(key);
     if (!bytes || bytes.length > MAX_EMBEDDED_IMAGE_BYTES) return null;
     return { bytes, contentType: contentTypeFor(key) };

@@ -128,6 +128,37 @@ the **video** and the **Playwright trace** of the test. Download the trace and o
 `npx playwright show-trace` or at trace.playwright.dev: it replays every action with the page as it
 was, the console and the network.
 
+#### Who can download a trace {#who-can-download-a-trace}
+
+A trace is **raw evidence**: it keeps the page's content and every request with its body, so a
+password typed during the test is in it, in clear. Only **editors** and **owners** can download
+traces and HAR files; a viewer sees the rest of the report and a note saying that the trace exists.
+The server decides this on every download, so knowing the address does not change it. An API key
+also needs the `runs:evidence` scope.
+
+| File                                                    | Viewer | Editor, owner |
+| ------------------------------------------------------- | ------ | ------------- |
+| Screenshots, visual diffs, video                        | ✓      | ✓             |
+| Lighthouse report, files a test downloaded              | ✓      | ✓             |
+| Playwright trace, HAR                                   | —      | ✓             |
+| Any other file of the run (older or unrecognised names) | —      | ✓             |
+
+The files of a test in a **restricted project** are available only to the people on that project
+(and to owners). For everyone else they do not exist: they get the same answer as for a file that
+was never written.
+
+A test that visibly handles a credential — a `{{secret_…}}` value, or a field, selector or value
+named _password_ — **records no trace**, even when the plan asks for one; the run log says so.
+Video and screenshots are kept as asked.
+
+::: warning Screenshots, videos and traces are not cleaned
+Nothing removes a secret from a picture or from a recording. A browser draws a password field as
+dots, but an application can show a token, a personal record or a one-time code anywhere on the
+page, and that is what the screenshot and the video will contain. For flows that handle real
+credentials or personal data: use dedicated test accounts, set **Trace** to _Never_ and **Video**
+to _Never_ or _When the test fails_ in the plan, and keep `ARTIFACT_RETENTION_DAYS` short.
+:::
+
 A step marked **healed** found its element only after its selector was replaced (see
 [Element repository](./web-tests#element-repository)).
 
@@ -141,8 +172,10 @@ shows the **Baseline**, **This run** and the **Difference**.
 
 When the plan keeps the network, the report summarizes each test's traffic: how many requests,
 how many failed, how much was received, and the failed and slowest requests. **Download the HAR**
-to open the whole capture in any browser's developer tools. It never contains request or
-response bodies, cookies, tokens or passwords.
+to open the whole capture in any browser's developer tools (editors and owners). It never contains
+request or response bodies; cookies, authorization headers and query parameters with
+credential-like names are replaced by `[redacted]`. A credential in some other form — in a path, in
+a custom header — is not recognised, which is why the HAR is raw evidence like the trace.
 
 ### Accessibility
 
@@ -159,6 +192,10 @@ each is; which passed; and which need a person to check.
 | PDF                   | Attaching to a ticket or keeping for an audit.      |
 | Allure results (.zip) | `allure generate` or an Allure server.              |
 | JUnit XML             | A CI system's test report.                          |
+
+An export contains the results and the screenshots of failed tests, and nothing else of the
+run's evidence: no trace, HAR or video, and no link to one, whoever exports it. A screenshot of a
+test in a restricted project the exporting person is not on is left out.
 
 **Requirements covered** shows the [requirements](./organizing#requirements) with exactly this run's
 results, and exports them as a traceability matrix.

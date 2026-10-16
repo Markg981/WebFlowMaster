@@ -4,6 +4,8 @@ import os from 'os';
 import fs from 'fs-extra';
 import {
   captureRunEvidence,
+  isSensitiveFlow,
+  prudentEvidence,
   shouldKeep,
   shouldRecord,
   startTrace,
@@ -230,5 +232,52 @@ describe('captureRunEvidence', () => {
     expect(captured.videoPath).toBeUndefined();
     expect(captured.tracePath).toBeUndefined();
     expect(context.close).toHaveBeenCalled();
+  });
+});
+
+describe('prudent capture for sensitive flows (P03)', () => {
+  const login = [
+    { type: 'navigate', value: 'https://shop.test/login' },
+    { type: 'fill', selector: '#user', value: 'mario' },
+    { type: 'fill', selector: 'input[type=password]', value: '{{secret_password}}' },
+  ];
+
+  it('calls a flow sensitive when it types a secret or touches a password field', () => {
+    expect(isSensitiveFlow(login)).toBe(true);
+    expect(isSensitiveFlow([{ type: 'fill', selector: '#pin', value: '{{ secrets.PIN }}' }])).toBe(
+      true,
+    );
+    expect(isSensitiveFlow([{ type: 'fill', selector: '#pwd', value: 'x' }])).toBe(true);
+    expect(isSensitiveFlow([{ type: 'click', selector: '#search' }])).toBe(false);
+    expect(isSensitiveFlow(null)).toBe(false);
+  });
+
+  it('records no trace for a sensitive flow, and keeps the rest as the plan asked', () => {
+    const asked = {
+      trace: 'always',
+      video: 'on_failure',
+      network: 'always',
+      artifactDir: 'd',
+    } as const;
+    const prudent = prudentEvidence(asked, true);
+    expect(prudent.traceWithheld).toBe(true);
+    expect(prudent.options).toEqual({ ...asked, trace: 'never' });
+    expect(shouldRecord(prudent.options!.trace)).toBe(false);
+  });
+
+  it('changes nothing for an ordinary flow, or when no trace was asked for', () => {
+    const asked = { trace: 'on_failure', video: 'never' } as const;
+    expect(prudentEvidence(asked, false)).toEqual({ options: asked, traceWithheld: false });
+    const noTrace = { trace: 'never', video: 'always' } as const;
+    expect(prudentEvidence(noTrace, true)).toEqual({ options: noTrace, traceWithheld: false });
+    expect(prudentEvidence(undefined, true)).toEqual({ options: undefined, traceWithheld: false });
+  });
+
+  it('starts no tracing on a context for a sensitive flow', async () => {
+    const start = vi.fn();
+    const context = { tracing: { start } } as any;
+    const { options } = prudentEvidence({ trace: 'always' }, true);
+    expect(await startTrace(context, options)).toBe(false);
+    expect(start).not.toHaveBeenCalled();
   });
 });

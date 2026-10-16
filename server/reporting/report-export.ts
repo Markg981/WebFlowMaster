@@ -70,6 +70,13 @@ export const chromiumPdf: PdfRenderer = async (html) => {
   }
 };
 
+/**
+ * The only files an export carries: screenshots of failed results. Never a trace, a HAR, a video
+ * or an unrecognised file, whoever exports — the model hands over only paths that
+ * server/tenancy/artifact-access.ts recognises as screenshots of tests the caller can see — and no
+ * link to one either: an export is a file that leaves the application, and its reader is not a
+ * member whose role anyone can check.
+ */
 async function screenshotsOf(model: ReportModel) {
   const failing = model.results
     .filter((r) => r.status !== 'Passed' && r.screenshotPath)

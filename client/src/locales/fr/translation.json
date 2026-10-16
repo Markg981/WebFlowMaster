@@ -239,8 +239,9 @@
       },
       "scopes": {
         "plans_read": "Lister les plans de test.",
-        "runs_read": "Lire les exécutions, leur statut et leurs rapports JUnit.",
+        "runs_read": "Lire les exécutions, leur statut, leurs rapports JUnit, leurs captures et leurs vidéos.",
         "runs_write": "Lancer des exécutions et les annuler.",
+        "runs_evidence": "Télécharger les traces et les fichiers HAR des exécutions : ils peuvent contenir des mots de passe en clair. Nécessite le rôle éditeur.",
         "api-tests_read": "Lire les tests API, les secrets littéraux remplacés par des variables.",
         "api-tests_write": "Créer et mettre à jour les tests API.",
         "mobile-tests_read": "Lire les tests mobiles natifs.",
@@ -5115,5 +5116,8 @@
     "opensInNewTab": "(s’ouvre dans un nouvel onglet)",
     "unreadHint": "Nouveaux changements à lire dans Nouveautés",
     "new": "Nouveau"
+  },
+  "stepDetails": {
+    "evidenceRestricted": "Cette exécution a conservé une trace Playwright ou un enregistrement réseau. Ils peuvent contenir des mots de passe et des jetons en clair : seuls les éditeurs et les propriétaires peuvent les télécharger."
   }
 }

@@ -347,7 +347,8 @@ person's password.
 
 - **Scoped keys** (the default) work only on the public API `/api/v1`, and only for what they
   were given: `plans:read`, `runs:read`, `runs:write`. A pipeline that starts a plan and waits
-  for it needs `runs:write` and `runs:read`.
+  for it needs `runs:write` and `runs:read`. Traces and HAR files of runs also need
+  `runs:evidence`, and the editor role: they can hold passwords in clear.
 - **Full-access keys** act as their account everywhere. Use them only when a scoped key cannot do
   the job.
 - A key can have an **expiry date**. Its last use is shown, so unused keys can be found.

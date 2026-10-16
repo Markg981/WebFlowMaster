@@ -362,7 +362,8 @@ password di una persona.
 
 - Le **chiavi con scope** (il default) funzionano solo sull'API pubblica `/api/v1`, e solo per
   ciò che è stato concesso: `plans:read`, `runs:read`, `runs:write`. Una pipeline che avvia un
-  piano e ne aspetta l'esito ha bisogno di `runs:write` e `runs:read`.
+  piano e ne aspetta l'esito ha bisogno di `runs:write` e `runs:read`. Trace e file HAR dei run
+  richiedono anche `runs:evidence` e il ruolo editor: possono contenere password in chiaro.
 - Le **chiavi ad accesso completo** agiscono come il loro account ovunque. Usatele solo quando una
   chiave con scope non basta.
 - Una chiave può avere una **scadenza**. Il suo ultimo utilizzo è visibile, così si trovano le

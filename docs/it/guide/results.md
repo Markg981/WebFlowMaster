@@ -132,6 +132,37 @@ conserva — il **video** e la **trace di Playwright** del test. Scaricate la tr
 `npx playwright show-trace` o su trace.playwright.dev: riproduce ogni azione con la pagina
 com'era, la console e la rete.
 
+#### Chi può scaricare una trace {#chi-puo-scaricare-una-trace}
+
+Una trace è un'**evidenza grezza**: conserva il contenuto della pagina e ogni richiesta con il suo
+corpo, quindi una password digitata durante il test vi si trova in chiaro. Solo **editor** e
+**owner** possono scaricare trace e file HAR; un viewer vede il resto del report e una nota che
+dice che la trace esiste. Il server lo decide a ogni download, quindi conoscere l'indirizzo non
+cambia nulla. Una chiave API ha bisogno anche dello scope `runs:evidence`.
+
+| File                                                        | Viewer | Editor, owner |
+| ----------------------------------------------------------- | ------ | ------------- |
+| Screenshot, differenze visive, video                        | ✓      | ✓             |
+| Report Lighthouse, file scaricati da un test                | ✓      | ✓             |
+| Trace Playwright, HAR                                       | —      | ✓             |
+| Qualsiasi altro file del run (nomi vecchi o non conosciuti) | —      | ✓             |
+
+I file di un test in un **progetto riservato** sono disponibili solo a chi è nel progetto (e agli
+owner). Per tutti gli altri non esistono: ricevono la stessa risposta di un file mai scritto.
+
+Un test che gestisce in modo visibile una credenziale — un valore `{{secret_…}}`, oppure un campo,
+un selettore o un valore che si chiama _password_ — **non registra la trace**, anche se il piano
+la chiede; il log del run lo segnala. Video e screenshot sono conservati come richiesto.
+
+::: warning Screenshot, video e trace non vengono ripuliti
+Niente toglie un segreto da un'immagine o da una registrazione. Un browser disegna un campo password
+come puntini, ma un'applicazione può mostrare un token, una scheda personale o un codice monouso in
+qualsiasi punto della pagina, ed è quello che conterranno screenshot e video. Per i flussi che
+usano credenziali reali o dati personali: usate account di test dedicati, impostate nel piano
+**Trace** su _Mai_ e **Video** su _Mai_ o _Quando il test fallisce_, e tenete basso
+`ARTIFACT_RETENTION_DAYS`.
+:::
+
 Uno step segnato **healed** ha trovato il suo elemento solo dopo che il selettore è stato
 sostituito (vedi [Repository degli elementi](./web-tests#repository-degli-elementi)).
 
@@ -145,8 +176,11 @@ screenshot differisce mostra **Baseline**, **This run** e **Difference**.
 
 Quando il piano conserva la rete, il report riassume il traffico di ogni test: quante richieste,
 quante fallite, quanto è stato ricevuto, e le richieste fallite e le più lente. **Scaricate
-l'HAR** per aprire l'intera cattura negli strumenti per sviluppatori di qualsiasi browser. Non
-contiene mai corpi di richieste e risposte, cookie, token o password.
+l'HAR** per aprire l'intera cattura negli strumenti per sviluppatori di qualsiasi browser (editor e
+owner). Non contiene mai corpi di richieste e risposte; cookie, header di autorizzazione e parametri
+di query con nomi da credenziale sono sostituiti da `[redacted]`. Una credenziale in un'altra forma
+— in un percorso, in un header personalizzato — non viene riconosciuta: per questo l'HAR è
+un'evidenza grezza come la trace.
 
 ### Accessibilità
 
@@ -163,6 +197,10 @@ con quale gravità; quali sono state rispettate; e quali richiedono il controllo
 | PDF                     | Allegarlo a un ticket o archiviarlo per un audit.      |
 | Risultati Allure (.zip) | `allure generate` o un server Allure.                  |
 | JUnit XML               | Il report dei test di un sistema di CI.                |
+
+Un export contiene i risultati e gli screenshot dei test falliti, e nient'altro delle evidenze
+del run: nessuna trace, HAR o video, e nessun link a questi file, chiunque lo esporti. Lo screenshot
+di un test in un progetto riservato di cui chi esporta non fa parte viene omesso.
 
 **Requisiti coperti** mostra i [requisiti](./organizing#requisiti) con esattamente i risultati di
 questo run, e li esporta come matrice di tracciabilità.

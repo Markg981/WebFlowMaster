@@ -72,6 +72,8 @@ interface StepDetailsDialogProps {
   traceUrl?: string | null;
   /** The kept HAR, when the plan kept one. */
   harUrl?: string | null;
+  /** A trace or HAR was kept, and only the editor role may open it: the page says so. */
+  evidenceRestricted?: boolean;
   /** The page's failed and slowest requests, whenever the network was recorded. */
   network?: NetworkSummary | null;
   /** A mobile test's session on its grid, with the device's video and logs. */
@@ -242,6 +244,7 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
   videoUrl,
   traceUrl,
   harUrl,
+  evidenceRestricted,
   network,
   sessionUrl,
 }) => {
@@ -300,6 +303,15 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
               </p>
             )}
           </div>
+        )}
+
+        {evidenceRestricted && (
+          <p className="text-xs text-muted-foreground" data-testid="evidence-restricted">
+            {t(
+              'stepDetails.evidenceRestricted',
+              'This run kept a Playwright trace or a network recording. They can hold passwords and tokens in clear, so only editors and owners can download them.',
+            )}
+          </p>
         )}
 
         {network && <NetworkPanel summary={network} harUrl={harUrl} />}

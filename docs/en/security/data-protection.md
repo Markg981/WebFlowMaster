@@ -28,7 +28,7 @@ organization testing against production-like data should assume it does.
 | Tests and plans           | Steps, addresses, element descriptions, schedules, notification addresses, comments on reviews               | Database                                       | Until deleted, or the organization is erased                       |
 | Stored secrets            | Test account passwords, tokens                                                                               | Database, encrypted                            | Until deleted                                                      |
 | Run results               | Verdicts, step outcomes, error messages, who started the run, CI context (repository, commit, branch, build) | Database                                       | Until the organization is erased                                   |
-| Run evidence              | Screenshots, videos, Playwright traces, network captures without bodies or credentials                       | Artifact store (disk or S3)                    | `ARTIFACT_RETENTION_DAYS`, 90 days by default                      |
+| Run evidence              | Screenshots, videos, Playwright traces, network captures without bodies ([raw evidence](#raw-evidence))      | Artifact store (disk or S3)                    | `ARTIFACT_RETENTION_DAYS`, 90 days by default                      |
 | Visual baselines          | Reference screenshots                                                                                        | Artifact store                                 | Until replaced or removed                                          |
 | Password reset links      | Whose, who issued it, a hash of the token                                                                    | Database                                       | One day, or until used; not included in exports                    |
 | Invitations               | Invited username, role, who invited                                                                          | Database                                       | Until revoked; the invitation token expires after 7 days           |
@@ -42,6 +42,8 @@ as the operator keeps them.
 - Everything an organization holds is visible only to its own members, according to their roles
   and, for restricted projects, their project membership. The database enforces this.
 - The audit trail is visible to the organization's owners only.
+- Traces, HAR files and unrecognised run files are for editors and owners only
+  ([Raw evidence](#raw-evidence)).
 - The operator of the installation has technical access to the database, the logs and the
   artifact store, like any hosting provider. Stored secrets are encrypted with a key the
   operator also holds.
@@ -119,6 +121,62 @@ Erasing an organization removes all of its rows from the database at once. It do
 
 The operator completes an erasure by removing the files; the plan ids are in the export taken
 before erasing.
+
+## Raw evidence and exposed credentials {#raw-evidence}
+
+A run can keep three kinds of file that show more than a verdict: screenshots and videos (what was
+on the screen), Playwright traces (the page's content, the console and every request **with its
+body**) and HAR files (every request, without bodies, with known credential headers and parameters
+replaced by `[redacted]`).
+
+**What WebFlowMaster guarantees**
+
+- Traces, HAR files and any run file whose name it does not recognise are **raw evidence**: only
+  editors and owners can download them, and an API key also needs the `runs:evidence` scope. The
+  server decides this on every download, listing and report — the report, `/api/v1/runs/…/evidence`
+  and `/api/v1/runs/…/artifacts/…` — whether the files are on disk or in S3; it does not rely on the
+  link being hidden. Files written before this rule existed are covered by it as they are: it reads
+  the file's name, not a flag stored with it.
+- The files of a test in a restricted project are reachable only by the people on that project and
+  by owners; to anyone else in the organization they answer like a file that does not exist.
+- Exports (HTML, PDF, Allure, JUnit) contain screenshots of failed tests and no other evidence.
+- A test that visibly handles a credential (a `{{secret_…}}` value, or anything named _password_)
+  records no trace, even when its plan asks for one.
+- The migration script and `db:doctor` print the database driver, not `DATABASE_URL`.
+
+**What it does not guarantee.** Nothing removes a secret from a screenshot, a video or a trace.
+Recognising a password field is a heuristic; a token can appear anywhere on a page, in an address
+or in a custom header. Treat every kept file as potentially holding what the tested application
+showed or sent.
+
+**Prudent capture for sensitive flows.** For flows that use real credentials or personal data:
+dedicated test accounts with the least rights that work; **Trace** _Never_, **Video** _Never_ or
+_When the test fails_, **Network (HAR)** only while diagnosing; `ARTIFACT_RETENTION_DAYS` as short
+as the organization can afford.
+
+### When credentials may already be exposed {#exposed-credentials}
+
+Before this release, anyone in an organization who could see a run could download its traces, and
+the migration script printed `DATABASE_URL` — password included — to its output. A procedure for
+an installation upgraded from such a release:
+
+1. **Inventory.** List the raw evidence still kept: keys under `results/` ending in `_trace.zip`
+   or `.har` (on disk, under the results directory; in S3, a listing of the `results/` prefix). Note
+   the plans and runs they belong to and which secrets those tests use. List where migration
+   output was kept: CI job logs, deployment logs, terminal recordings.
+2. **Assess.** Within log retention, the application's request log shows who requested
+   `/artifacts/…_trace.zip` or `…_network.har` paths. Treat as exposed every secret used by a test
+   whose trace a viewer could reach, and the database password if migration output was readable by
+   people who should not hold it.
+3. **Decide — with the person responsible.** Deleting evidence and rotating credentials are the
+   decision of the organization's owner (for its test accounts) and of the operator (for the
+   database password), not of whoever runs this procedure. Record the decision.
+4. **Rotate**, once approved: change the password or token in the tested application first, then
+   the environment secret in WebFlowMaster; change the database password and `DATABASE_URL`
+   together, with the web process and the runners restarted.
+5. **Delete**, once approved: remove the trace and HAR files from the artifact store (their links
+   then answer "not found"), and the log copies where the log system allows it. Backups keep their
+   copies until they expire.
 
 ## Retention at a glance
 

@@ -15,8 +15,8 @@ import {
   type TestPlanSchedule,
   type TestQuarantine,
 } from '@shared/schema';
-import { type ApiScope } from '@shared/api-scopes';
-import { requireScope } from '../middleware/require-scope';
+import { API_SCOPES, type ApiScope } from '@shared/api-scopes';
+import { evidencePrincipalOf, requireScope } from '../middleware/require-scope';
 import {
   withTenantTransaction,
   getTenantOrgId,
@@ -44,6 +44,7 @@ import {
   RESULTS_PREFIX,
 } from '../../tenancy/artifact-store';
 import { executionArtifactAvailability } from '../../tenancy/artifact-metering';
+import { runArtifactAccess, SENSITIVE_EVIDENCE_SCOPE } from '../../tenancy/artifact-access';
 import { billingSummary } from '../../tenancy/billing/service';
 import logger from '../../platform/logger';
 import { EVIDENCE_KINDS } from './management-openapi';
@@ -767,8 +768,8 @@ export function registerManagementRoutes(router: Router) {
     'runs:read',
     async (req, res) => {
       const p = page(req);
-      const [run] = await withTenantTransaction((tx) =>
-        tx
+      const found = await withTenantTransaction(async (tx) => {
+        const [run] = await tx
           .select({
             id: testPlanExecutions.id,
             testPlanId: testPlanExecutions.testPlanId,
@@ -777,9 +778,17 @@ export function registerManagementRoutes(router: Router) {
           })
           .from(testPlanExecutions)
           .where(eq(testPlanExecutions.id, req.params.runId))
-          .limit(1),
-      );
-      if (!run) notFound('run');
+          .limit(1);
+        if (!run) return null;
+        const access = await runArtifactAccess(tx, {
+          organizationId: run.organizationId,
+          executionId: run.id,
+          principal: evidencePrincipalOf(req),
+        });
+        return { run, access };
+      });
+      if (!found) notFound('run');
+      const { run, access } = found!;
       const prefix = `${RESULTS_PREFIX}${run.testPlanId}/${run.id}/`;
       const store = artifactStore();
       let listed: Array<{ key: string; size: number }> = [];
@@ -805,9 +814,14 @@ export function registerManagementRoutes(router: Router) {
         run.testPlanId,
         run.id,
       );
-      const items = listed
+      const kept = listed
         .map((file) => ({ relative: file.key.slice(prefix.length), size: file.size }))
-        .filter((file) => file.relative && retained(file.relative))
+        .filter((file) => file.relative && retained(file.relative));
+      // Raw evidence the caller may not open is counted, not listed; a file of a test the caller
+      // cannot see is neither (server/tenancy/artifact-access.ts).
+      const withheld = kept.filter((file) => access.restricted(file.relative)).length;
+      const items = kept
+        .filter((file) => access.linkable(file.relative))
         .sort((a, b) => a.relative.localeCompare(b.relative))
         .map((file) => ({
           path: file.relative,
@@ -823,6 +837,7 @@ export function registerManagementRoutes(router: Router) {
         items: items.slice(p.offset, p.offset + p.limit),
         ...p,
         total: items.length,
+        withheld,
         purged: !!run.artifactsPurgedAt,
       });
     },
@@ -833,23 +848,54 @@ export function registerManagementRoutes(router: Router) {
     '/api/v1/runs/:runId/artifacts/:path(*)',
     'runs:read',
     async (req, res) => {
-      const [run] = await withTenantTransaction((tx) =>
-        tx
-          .select({ id: testPlanExecutions.id, testPlanId: testPlanExecutions.testPlanId })
+      const found = await withTenantTransaction(async (tx) => {
+        const [run] = await tx
+          .select({
+            id: testPlanExecutions.id,
+            testPlanId: testPlanExecutions.testPlanId,
+            organizationId: testPlanExecutions.organizationId,
+          })
           .from(testPlanExecutions)
           .where(eq(testPlanExecutions.id, req.params.runId))
-          .limit(1),
-      );
-      if (!run) notFound('run');
+          .limit(1);
+        if (!run) return null;
+        const access = await runArtifactAccess(tx, {
+          organizationId: run.organizationId,
+          executionId: run.id,
+          principal: evidencePrincipalOf(req),
+        });
+        return { run, access };
+      });
+      if (!found) notFound('run');
+      const { run, access } = found!;
       // The key is the run's own directory and the path below it. The check is what decides
       // that a request for ../../../.env is not a screenshot, whichever store would be asked.
+      const relative = String(req.params.path ?? '').replace(/\\/g, '/');
       let key: string;
       try {
-        key = assertSafeKey(
-          `${RESULTS_PREFIX}${run.testPlanId}/${run.id}/${String(req.params.path ?? '').replace(/\\/g, '/')}`,
-        );
+        key = assertSafeKey(`${RESULTS_PREFIX}${run.testPlanId}/${run.id}/${relative}`);
       } catch {
         throw new AuthoringError(400, 'invalid_request', 'The artifact path is not valid.');
+      }
+      // Decided before the store is asked: a refusal says nothing about whether the file exists.
+      const decision = access.decide(relative);
+      if (!decision.allowed) {
+        if (decision.reason === 'hidden') notFound('artifact');
+        else if (decision.reason === 'insufficient_role') {
+          throw new AuthoringError(
+            403,
+            'insufficient_role',
+            `Traces, HAR files and unrecognised run files need the ${API_SCOPES[SENSITIVE_EVIDENCE_SCOPE].minimumRole} role or higher.`,
+            { requiredRole: API_SCOPES[SENSITIVE_EVIDENCE_SCOPE].minimumRole },
+          );
+        } else {
+          throw new AuthoringError(
+            403,
+            'insufficient_scope',
+            `This API key does not have the "${SENSITIVE_EVIDENCE_SCOPE}" scope, which traces, HAR files and unrecognised run files need.`,
+            { requiredScope: SENSITIVE_EVIDENCE_SCOPE },
+          );
+        }
       }
       let artifact;
       try {

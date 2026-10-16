@@ -600,6 +600,68 @@ describe('GET /api/test-plan-executions/:executionId/report (C4)', () => {
   });
 });
 
+describe('GET /api/test-plan-executions/:id/report — links to raw evidence (P03)', () => {
+  it('gives a viewer no trace or HAR link, says why, and gives an editor both', async () => {
+    const planId = 'p03-plan';
+    const executionId = 'p03-execution';
+    await privilegedDb.insert(testPlans).values({
+      id: planId,
+      name: 'P03 plan',
+      userId: sessionUser.id,
+      organizationId: sessionOrganizationId,
+    } as any);
+    await privilegedDb.insert(testPlanExecutions).values({
+      id: executionId,
+      organizationId: sessionOrganizationId,
+      testPlanId: planId,
+      status: 'completed',
+      triggeredBy: 'manual',
+      startedAt: new Date(),
+    } as any);
+    const dir = `/results/${planId}/${executionId}/ui_7_chromium`;
+    await privilegedDb.insert(reportTestCaseResults).values({
+      id: 'p03-result',
+      testPlanExecutionId: executionId,
+      organizationId: sessionOrganizationId,
+      testType: 'ui',
+      testName: 'Login',
+      status: 'Failed',
+      startedAt: new Date(),
+      screenshotUrl: `${dir}/step_1.png`,
+      videoUrl: `${dir}/login_run.webm`,
+      traceUrl: `${dir}/login_trace.zip`,
+      harUrl: `${dir}/login_network.har`,
+    } as any);
+    const row = (body: any) => body.allTests.find((t: { id: string }) => t.id === 'p03-result');
+
+    currentUser = { ...sessionUser, role: 'viewer' };
+    const asViewer = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/report`)
+      .expect(200);
+    expect(row(asViewer.body)).toMatchObject({
+      traceUrl: null,
+      harUrl: null,
+      evidenceRestricted: true,
+    });
+    expect(row(asViewer.body).screenshotUrl).toContain('/artifacts/ui_7_chromium/step_1.png');
+    expect(row(asViewer.body).videoUrl).toContain('/artifacts/ui_7_chromium/login_run.webm');
+    // Nowhere in the page — grouped table, failure list — is a link to either file.
+    const page = JSON.stringify({ ...asViewer.body, allTests: undefined });
+    expect(page).not.toContain('/artifacts/ui_7_chromium/login_trace.zip');
+    expect(page).not.toContain('/artifacts/ui_7_chromium/login_network.har');
+
+    currentUser = { ...sessionUser, role: 'editor' };
+    const asEditor = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/report`)
+      .expect(200);
+    expect(row(asEditor.body).traceUrl).toBe(
+      `/api/test-plan-executions/${executionId}/artifacts/ui_7_chromium/login_trace.zip`,
+    );
+    expect(row(asEditor.body).harUrl).toContain('login_network.har');
+    expect(row(asEditor.body).evidenceRestricted).toBe(false);
+  });
+});
+
 describe('GET /api/system-settings', () => {
   beforeEach(async () => {
     await privilegedDb

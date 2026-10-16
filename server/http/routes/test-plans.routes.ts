@@ -41,6 +41,8 @@ import { AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, changedFields, recordAudit } from '../../tenancy/audit';
 import { publicExecution, reproducibilitySummary } from '../../execution/execution-provenance';
 import { executionArtifactAvailability } from '../../tenancy/artifact-metering';
+import { relativeArtifactPath, runArtifactAccess } from '../../tenancy/artifact-access';
+import { evidencePrincipalOf } from '../middleware/require-scope';
 import { readExecutionSnapshot } from '../../execution/execution-snapshot';
 import { dedupeKeyFor } from '../../integrations/issue-tracking';
 import { artifactUrl, stepsWithArtifactUrls } from './artifacts.routes';
@@ -1123,6 +1125,13 @@ router.get(
         // The issues already filed for these tests, so a failure offers "Open in tracker".
         const issues = (await linkedIssuesFor(tx, executionId)) ?? [];
 
+        // Which of the run's files this caller may be linked to (server/tenancy/artifact-access.ts).
+        const access = await runArtifactAccess(tx, {
+          organizationId: thisRun.organizationId,
+          executionId,
+          principal: evidencePrincipalOf(req),
+        });
+
         return {
           ...executionDetailsResult[0],
           testCaseResults,
@@ -1130,6 +1139,7 @@ router.get(
           attemptHistory,
           warnings: Array.from(new Set(warnings.map((w) => w.message))),
           issues,
+          access,
         };
       });
 
@@ -1138,8 +1148,16 @@ router.get(
         return res.status(404).json({ error: 'Test plan execution not found.' });
       }
 
-      const { execution, plan, testCaseResults, nextAttempt, attemptHistory, warnings, issues } =
-        reportSource;
+      const {
+        execution,
+        plan,
+        testCaseResults,
+        nextAttempt,
+        attemptHistory,
+        warnings,
+        issues,
+        access,
+      } = reportSource;
       const issueFor = (r: { testName: string; browser: string | null }) => {
         const key = dedupeKeyFor({
           planId: execution.testPlanId,
@@ -1165,10 +1183,20 @@ router.get(
         execution.testPlanId,
         executionId,
       );
+      // A link only to what the caller may open: hiding it in the page would protect nothing, the
+      // download route decides the same way, and this keeps the page from offering a 403.
+      const linkable = (relative: string) => retained(relative) && access.linkable(relative);
       const openable = (storedPath: string | null | undefined) =>
-        purged ? null : artifactUrl(executionId, storedPath, retained);
+        purged ? null : artifactUrl(executionId, storedPath, linkable);
+      // Kept raw evidence (a trace, a HAR) the caller may not open: the page says why it has no link.
+      const evidenceRestricted = (r: ReportTestCaseResult) =>
+        !purged &&
+        [r.traceUrl, r.harUrl, r.videoUrl, r.screenshotUrl].some((storedPath) => {
+          const relative = relativeArtifactPath(executionId, storedPath);
+          return !!relative && retained(relative) && access.restricted(relative);
+        });
       const stepsOf = (detailedLog: string | null | undefined) => {
-        const steps = stepsWithArtifactUrls(executionId, detailedLog, retained);
+        const steps = stepsWithArtifactUrls(executionId, detailedLog, linkable);
         if (!purged) return steps;
         return steps.map((step) => ({
           ...step,
@@ -1258,6 +1286,7 @@ router.get(
           traceUrl: openable(r.traceUrl),
           // The page's requests: the file, and the failed and slow ones read out of it.
           harUrl: openable(r.harUrl),
+          evidenceRestricted: evidenceRestricted(r),
           networkSummary: r.networkSummary,
           // What the AI made of this failure, when somebody asked (routes/failure-analysis.routes.ts).
           aiAnalysis: r.aiAnalysis ?? null,
@@ -1328,6 +1357,7 @@ router.get(
           videoUrl: openable(r.videoUrl),
           traceUrl: openable(r.traceUrl),
           harUrl: openable(r.harUrl),
+          evidenceRestricted: evidenceRestricted(r),
           steps: stepsOf(r.detailedLog),
         } as typeof r);
 
@@ -1444,6 +1474,7 @@ router.get(
           videoUrl: openable(r.videoUrl),
           traceUrl: openable(r.traceUrl),
           harUrl: openable(r.harUrl),
+          evidenceRestricted: evidenceRestricted(r),
           issue: issueFor(r),
         })),
         issues: issues.map((issue) => ({
