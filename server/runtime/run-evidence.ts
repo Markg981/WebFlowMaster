@@ -56,6 +56,46 @@ export function shouldKeep(mode: EvidenceCaptureMode | undefined | null, passed:
   return false;
 }
 
+/**
+ * Whether a test's steps visibly handle a credential: a `{{secret…}}` placeholder (what the
+ * recorder stores a typed password as) or anything named password — a field, a selector, a value.
+ * Errs towards "sensitive": a "Forgot password?" link costs that test its trace, nothing more.
+ *
+ * A heuristic, and meant as one. It cannot see a secret behind an ordinary variable name or inside a
+ * step group, so it narrows what is recorded for the flows that are obviously sensitive; it does not
+ * make any recording safe. Access control on the stored files (server/tenancy/artifact-access.ts) is
+ * what protects the rest.
+ */
+export function isSensitiveFlow(steps: unknown): boolean {
+  let text: string;
+  try {
+    text = JSON.stringify(steps ?? null);
+  } catch {
+    return true;
+  }
+  return /\{\{\s*secrets?[._]/i.test(text) || /pass(word|wd)|\bpwd\b/i.test(text);
+}
+
+/**
+ * The evidence settings for one test: as the plan asked, except that a sensitive flow records no
+ * trace.
+ *
+ * A Playwright trace keeps the DOM snapshots — input values included — and every request with its
+ * body, so a login recorded in a trace holds the password in clear, and nothing can clean a trace
+ * afterwards without breaking it. The video and screenshots are kept as asked: a browser draws a
+ * password field as dots, though nothing guarantees what an application draws elsewhere. The HAR
+ * is kept as asked too: it never records bodies, and its headers are cleaned (shared/network.ts).
+ */
+export function prudentEvidence(
+  options: EvidenceOptions | undefined,
+  sensitive: boolean,
+): { options: EvidenceOptions | undefined; traceWithheld: boolean } {
+  if (!options || !sensitive || !shouldRecord(options.trace)) {
+    return { options, traceWithheld: false };
+  }
+  return { options: { ...options, trace: 'never' }, traceWithheld: true };
+}
+
 /** The directory a context writes video into while the test runs. */
 export function videoScratchDir(artifactDir?: string): string {
   return artifactDir

@@ -11,6 +11,7 @@
 import 'dotenv/config';
 import { inspectSchemaState, describeSchemaState } from '../server/platform/schema-state';
 import { closeDb } from '../server/platform/db';
+import { describeDatabaseTarget } from './database-target';
 
 if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL must be set.');
@@ -19,7 +20,7 @@ if (!process.env.DATABASE_URL) {
 
 const state = await inspectSchemaState();
 
-console.log(`Database: ${process.env.DATABASE_URL}`);
+console.log(`Database: ${describeDatabaseTarget(process.env.DATABASE_URL)}`);
 console.log(`State:    ${state.kind}`);
 console.log(`Applied:  ${state.appliedMigrations} of ${state.expectedMigrations} migrations`);
 console.log('');

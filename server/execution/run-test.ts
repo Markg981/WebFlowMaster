@@ -18,6 +18,7 @@ import { apiTestSpec, runApiRequest, type ApiRequestSpec } from '../api-tests/ap
 import { runPerformance } from '../api-tests/api-performance';
 import type { ApiPerformance, PerformanceSummary } from '@shared/api-performance';
 import { type BrowserChoice } from '../runtime/browsers';
+import { isSensitiveFlow, prudentEvidence } from '../runtime/run-evidence';
 import { isManualSequence } from '@shared/manual-tests';
 import type { VisualContext } from '../web/visual-testing';
 import type { EvidenceCaptureMode } from '@shared/schema';
@@ -220,6 +221,20 @@ export async function runTest(
         });
       }
 
+      // A flow that visibly handles a credential records no trace (server/runtime/run-evidence.ts).
+      const evidence = prudentEvidence(
+        options?.evidence ? { ...options.evidence, artifactDir: screenshotBaseDir } : undefined,
+        isSensitiveFlow(uiTest.sequence),
+      );
+      if (evidence.traceWithheld) {
+        getWsEmitter().emitExecutionLog(runId, {
+          level: 'info',
+          source: 'system',
+          message: `"${uiTest.name}": no Playwright trace recorded, because the test handles a password or a secret and a trace would keep it in clear. Video, screenshots and the network summary are kept as the plan asks.`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       const result = await playwrightService.executeTestSequence(
         uiTest,
         userId,
@@ -239,9 +254,7 @@ export async function runTest(
                 artifactDir: screenshotBaseDir,
               }
             : undefined,
-          evidence: options?.evidence
-            ? { ...options.evidence, artifactDir: screenshotBaseDir }
-            : undefined,
+          evidence: evidence.options,
           runtime: options?.runtime,
           signal: options?.signal,
           locale: options?.locale,

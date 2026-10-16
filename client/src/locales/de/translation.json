@@ -239,8 +239,9 @@
       },
       "scopes": {
         "plans_read": "Testpläne auflisten.",
-        "runs_read": "Ausführungen, ihren Status und ihre JUnit-Berichte lesen.",
+        "runs_read": "Ausführungen, ihren Status, ihre JUnit-Berichte, Screenshots und Videos lesen.",
         "runs_write": "Ausführungen starten und abbrechen.",
+        "runs_evidence": "Traces und HAR-Dateien von Ausführungen herunterladen: Sie können Passwörter im Klartext enthalten. Erfordert die Rolle Editor.",
         "api-tests_read": "API-Tests lesen, wörtliche Geheimnisse durch Variablen ersetzt.",
         "api-tests_write": "API-Tests erstellen und aktualisieren.",
         "mobile-tests_read": "Native Mobile-Tests lesen.",
@@ -5115,5 +5116,8 @@
     "opensInNewTab": "(öffnet in einem neuen Tab)",
     "unreadHint": "Neue Änderungen in Neuigkeiten zu lesen",
     "new": "Neu"
+  },
+  "stepDetails": {
+    "evidenceRestricted": "Diese Ausführung hat einen Playwright-Trace oder eine Netzwerkaufzeichnung behalten. Sie können Passwörter und Tokens im Klartext enthalten, daher können nur Editoren und Eigentümer sie herunterladen."
   }
 }

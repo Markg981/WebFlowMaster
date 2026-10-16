@@ -115,7 +115,8 @@ configura il proprietario.
   il secondo fattore presso il provider. Impostate `WEBFLOW_PUBLIC_URL`, così il redirect URI
   non dipende dall'intestazione `Host` della richiesta.
 - Le pipeline usano chiavi API **con scope** su **account di servizio**, con una scadenza; chiavi
-  ad accesso completo solo per l'amministrazione, revocate subito dopo.
+  ad accesso completo solo per l'amministrazione, revocate subito dopo. Date `runs:evidence` (trace
+  e file HAR) solo a una chiave che deve scaricarli.
 - Controllate in **Impostazioni → Chiavi API** le chiavi non usate di recente, e revocatele.
 - Tenete pochi owner. Su un'installazione condivisa da più organizzazioni, impostate
   `INSTALLATION_ADMINS` con gli operatori che possono cambiare le impostazioni dei log e
@@ -132,6 +133,13 @@ configura il proprietario.
   ([Backup](../admin/operations#backup)).
 - Cifratura a riposo di dischi, database e bucket, come la offre la vostra piattaforma.
 - `ARTIFACT_RETENTION_DAYS` impostato a ciò che serve alle vostre organizzazioni, non di più.
+- Trace disattivate, e video al massimo quando il test fallisce, per i flussi che usano
+  credenziali reali o dati personali; screenshot, video e trace non vengono ripuliti dai segreti
+  ([Evidenze grezze](./data-protection#evidenze-grezze)).
+- Dopo l'aggiornamento da una release in cui i viewer potevano scaricare le trace o le migrazioni
+  stampavano `DATABASE_URL`: la
+  [procedura per le credenziali esposte](./data-protection#credenziali-esposte), con
+  cancellazione e rotazione approvate dal responsabile.
 - Conservazione dei log in **Impostazioni → Sistema** scelta consapevolmente; log inviati a un
   archivio centrale (`LOKI_URL` o il collector della vostra piattaforma) se devono sopravvivere
   alla macchina.

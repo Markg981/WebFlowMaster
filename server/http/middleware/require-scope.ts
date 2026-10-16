@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { API_SCOPES, type ApiScope } from '@shared/api-scopes';
 import { roleAllows } from './require-role';
 import type { KeyAuthenticatedRequest } from './api-key-auth';
+import type { EvidencePrincipal } from '../../tenancy/artifact-access';
 
 /** The handler, carrying the scope it checks so the OpenAPI test can read it off the route. */
 export type ScopeGuard = RequestHandler & { scope: ApiScope };
@@ -73,4 +74,13 @@ export function holdsScope(req: Request, scope: ApiScope): boolean {
   if (!req.user || !roleAllows(req.user.role, API_SCOPES[scope].minimumRole)) return false;
   const scopes = (req as KeyAuthenticatedRequest).apiKeyScopes;
   return !scopes || scopes.includes(scope);
+}
+
+/** The caller as server/tenancy/artifact-access.ts weighs them: role, and a scoped key's scopes. */
+export function evidencePrincipalOf(req: Request): EvidencePrincipal | null {
+  if (!req.user) return null;
+  return {
+    role: req.user.role,
+    scopes: (req as KeyAuthenticatedRequest).apiKeyScopes ?? null,
+  };
 }

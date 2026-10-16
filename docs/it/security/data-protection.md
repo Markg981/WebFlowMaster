@@ -29,7 +29,7 @@ presumere di sì.
 | Test e piani                 | Step, indirizzi, descrizioni degli elementi, schedulazioni, indirizzi di notifica, commenti alle revisioni             | Database                                          | Finché non vengono cancellati, o l'organizzazione cancellata                    |
 | Segreti salvati              | Password degli account di test, token                                                                                  | Database, cifrati                                 | Finché non vengono cancellati                                                   |
 | Risultati dei run            | Verdetti, esiti degli step, messaggi di errore, chi ha avviato il run, contesto CI (repository, commit, branch, build) | Database                                          | Fino alla cancellazione dell'organizzazione                                     |
-| Evidenze dei run             | Screenshot, video, trace di Playwright, catture di rete senza corpi né credenziali                                     | Archivio degli artefatti (disco o S3)             | `ARTIFACT_RETENTION_DAYS`, 90 giorni di default                                 |
+| Evidenze dei run             | Screenshot, video, trace di Playwright, catture di rete senza corpi ([evidenze grezze](#evidenze-grezze))              | Archivio degli artefatti (disco o S3)             | `ARTIFACT_RETENTION_DAYS`, 90 giorni di default                                 |
 | Baseline visive              | Screenshot di riferimento                                                                                              | Archivio degli artefatti                          | Finché non vengono sostituite o rimosse                                         |
 | Link di reset della password | Di chi è, chi l'ha emesso, un hash del token                                                                           | Database                                          | Un giorno, o fino all'uso; esclusi dalle esportazioni                           |
 | Inviti                       | Username invitato, ruolo, chi ha invitato                                                                              | Database                                          | Fino alla revoca; il token scade dopo 7 giorni                                  |
@@ -43,6 +43,8 @@ tutto il tempo in cui l'operatore li conserva.
 - Tutto ciò che un'organizzazione contiene è visibile solo ai suoi membri, secondo i loro ruoli
   e, per i progetti riservati, secondo l'appartenenza al progetto. Lo impone il database.
 - Il registro di audit è visibile solo agli owner dell'organizzazione.
+- Trace, file HAR e file del run non riconosciuti sono solo per editor e owner
+  ([Evidenze grezze](#evidenze-grezze)).
 - Chi gestisce l'installazione ha accesso tecnico al database, ai log e all'archivio degli
   artefatti, come qualsiasi fornitore di hosting. I segreti salvati sono cifrati con una chiave
   che anche l'operatore possiede.
@@ -120,6 +122,64 @@ Cancellare un'organizzazione rimuove in una volta tutte le sue righe dal databas
 
 L'operatore completa la cancellazione rimuovendo i file; gli id dei piani sono nell'esportazione
 fatta prima di cancellare.
+
+## Evidenze grezze e credenziali esposte {#evidenze-grezze}
+
+Un run può conservare tre tipi di file che mostrano più di un verdetto: screenshot e video (ciò che
+era sullo schermo), trace di Playwright (il contenuto della pagina, la console e ogni richiesta
+**con il suo corpo**) e file HAR (ogni richiesta, senza corpi, con gli header e i parametri da
+credenziale conosciuti sostituiti da `[redacted]`).
+
+**Cosa garantisce WebFlowMaster**
+
+- Trace, file HAR e qualsiasi file del run con un nome che non riconosce sono **evidenze grezze**:
+  solo editor e owner possono scaricarli, e una chiave API ha bisogno anche dello scope
+  `runs:evidence`. Il server lo decide a ogni download, elenco e report — il report,
+  `/api/v1/runs/…/evidence` e `/api/v1/runs/…/artifacts/…` — che i file siano su disco o su S3; non
+  si affida al link nascosto. I file scritti prima di questa regola ne sono coperti così come sono:
+  conta il nome del file, non un flag salvato con esso.
+- I file di un test in un progetto riservato sono raggiungibili solo da chi è nel progetto e dagli
+  owner; per chiunque altro nell'organizzazione rispondono come un file che non esiste.
+- Gli export (HTML, PDF, Allure, JUnit) contengono gli screenshot dei test falliti e nessun'altra
+  evidenza.
+- Un test che gestisce in modo visibile una credenziale (un valore `{{secret_…}}`, o qualcosa che si
+  chiama _password_) non registra la trace, anche se il piano la chiede.
+- Lo script delle migrazioni e `db:doctor` stampano il driver del database, non `DATABASE_URL`.
+
+**Cosa non garantisce.** Niente toglie un segreto da uno screenshot, da un video o da una trace.
+Riconoscere un campo password è un'euristica; un token può comparire ovunque in una pagina, in un
+indirizzo o in un header personalizzato. Ogni file conservato va trattato come se potesse contenere
+ciò che l'applicazione testata ha mostrato o inviato.
+
+**Acquisizione prudente per i flussi sensibili.** Per i flussi che usano credenziali reali o dati
+personali: account di test dedicati con i minimi diritti che funzionano; **Trace** _Mai_, **Video**
+_Mai_ o _Quando il test fallisce_, **Rete (HAR)** solo durante la diagnosi;
+`ARTIFACT_RETENTION_DAYS` più breve possibile per l'organizzazione.
+
+### Quando delle credenziali possono essere già esposte {#credenziali-esposte}
+
+Prima di questa release chiunque in un'organizzazione potesse vedere un run poteva scaricarne le
+trace, e lo script delle migrazioni stampava `DATABASE_URL` — password compresa — nel suo output.
+Procedura per un'installazione aggiornata da una release di quel tipo:
+
+1. **Inventario.** Elencate le evidenze grezze ancora conservate: le chiavi sotto `results/` che
+   finiscono in `_trace.zip` o `.har` (su disco, nella directory dei risultati; su S3, un elenco del
+   prefisso `results/`). Annotate piani e run a cui appartengono e quali segreti usano quei test.
+   Elencate dove è stato conservato l'output delle migrazioni: log dei job di CI, log di deploy,
+   registrazioni del terminale.
+2. **Valutazione.** Entro la retention dei log, il log delle richieste dell'applicazione mostra chi
+   ha richiesto percorsi `/artifacts/…_trace.zip` o `…_network.har`. Considerate esposto ogni
+   segreto usato da un test la cui trace era raggiungibile da un viewer, e la password del database
+   se l'output delle migrazioni era leggibile da persone che non dovrebbero averla.
+3. **Decisione — con il responsabile.** Cancellare le evidenze e ruotare le credenziali è una
+   decisione dell'owner dell'organizzazione (per i suoi account di test) e dell'operatore (per la
+   password del database), non di chi esegue questa procedura. Registrate la decisione.
+4. **Rotazione**, dopo l'approvazione: cambiate prima la password o il token nell'applicazione
+   testata, poi il segreto dell'ambiente in WebFlowMaster; cambiate insieme la password del
+   database e `DATABASE_URL`, riavviando il processo web e i runner.
+5. **Cancellazione**, dopo l'approvazione: rimuovete i file di trace e HAR dall'archivio degli
+   artefatti (i loro link rispondono poi "non trovato"), e le copie nei log dove il sistema di log
+   lo permette. I backup conservano le loro copie fino alla scadenza.
 
 ## Conservazione in sintesi
 

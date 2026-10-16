@@ -5,7 +5,13 @@ import path from 'path';
 import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { privilegedDb } from '../../platform/db';
-import { testPlans, testPlanExecutions } from '@shared/schema';
+import {
+  projects,
+  reportTestCaseResults,
+  testPlans,
+  testPlanExecutions,
+  tests,
+} from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../../tests/factories';
 
 vi.mock('../../platform/logger', () => ({
@@ -54,7 +60,10 @@ beforeAll(async () => {
   app.use((req, _res, next) => {
     (req as any).user = currentUser;
     (req as any).isAuthenticated = () => true;
-    runWithTenant(currentUser.organizationId, () => next());
+    runWithTenant(currentUser.organizationId, () => next(), {
+      userId: currentUser.id,
+      role: currentUser.role,
+    });
   });
   app.use(artifactsRoutes);
 });
@@ -264,5 +273,157 @@ describe('stepsWithArtifactUrls', () => {
     expect(stepsWithArtifactUrls('exec-1', null)).toEqual([]);
     expect(stepsWithArtifactUrls('exec-1', 'not json')).toEqual([]);
     expect(stepsWithArtifactUrls('exec-1', '{"not":"a list"}')).toEqual([]);
+  });
+});
+
+describe('raw evidence: one decision on the server, whoever asks and however (P03)', () => {
+  const SENTINEL = 'Sentinel-Trace-Pw-4d1e';
+  const url = (relative: string) =>
+    `/api/test-plan-executions/${executionId}/artifacts/${relative}`;
+
+  beforeEach(async () => {
+    // A trace of a login: the password typed into the form is in it, in clear.
+    await fs.writeFile(path.join(runDir, 'login_trace.zip'), `password=${SENTINEL}`);
+    await fs.writeFile(path.join(runDir, 'login_network.har'), `{"password":"${SENTINEL}"}`);
+    await fs.writeFile(path.join(runDir, 'login_run.webm'), 'video-bytes');
+    await fs.writeFile(path.join(runDir, 'legacy-dump.zip'), `password=${SENTINEL}`);
+  });
+
+  it('refuses a viewer the trace, the HAR and an unrecognised file, even with the URL in hand', async () => {
+    currentUser = { id: userId, organizationId, role: 'viewer' };
+    for (const file of ['login_trace.zip', 'login_network.har', 'legacy-dump.zip']) {
+      const response = await request(app)
+        .get(url(`ui_1_chromium/${file}`))
+        .expect(403);
+      expect(JSON.stringify(response.body)).not.toContain(SENTINEL);
+      expect(JSON.stringify(response.body)).not.toContain(file);
+      expect(response.body.code).toBe('insufficient_role');
+    }
+  });
+
+  it('answers a viewer the same for a trace that does not exist: a refusal says nothing about the file', async () => {
+    currentUser = { id: userId, organizationId, role: 'viewer' };
+    await request(app).get(url('ui_1_chromium/never_trace.zip')).expect(403);
+  });
+
+  it('keeps the recognised, non-raw evidence open to a viewer', async () => {
+    currentUser = { id: userId, organizationId, role: 'viewer' };
+    await request(app).get(url('ui_1_chromium/visual_chromium_step_000_diff.png')).expect(200);
+    await request(app).get(url('ui_1_chromium/login_run.webm')).expect(200);
+  });
+
+  it('serves the trace to an editor and an owner', async () => {
+    for (const role of ['editor', 'owner']) {
+      currentUser = { id: userId, organizationId, role };
+      const response = await request(app)
+        .get(url('ui_1_chromium/login_trace.zip'))
+        .responseType('blob')
+        .expect(200);
+      expect(Buffer.from(response.body).toString()).toContain(SENTINEL);
+    }
+  });
+
+  it("does not serve another organization's trace to its editor, and does not say it exists", async () => {
+    currentUser = { id: otherUserId, organizationId: otherOrganizationId, role: 'editor' };
+    const response = await request(app).get(url('ui_1_chromium/login_trace.zip')).expect(404);
+    expect(JSON.stringify(response.body)).not.toContain(SENTINEL);
+  });
+
+  it('treats the files of a test in a restricted project the caller is not on as absent', async () => {
+    const [secret] = await privilegedDb
+      .insert(projects)
+      .values({ name: 'Secret', userId, organizationId, restricted: true })
+      .returning();
+    const [hidden] = await privilegedDb
+      .insert(tests)
+      .values({
+        name: 'Payroll login',
+        url: 'https://x.test',
+        sequence: [],
+        elements: [],
+        userId,
+        organizationId,
+        projectId: secret.id,
+      } as any)
+      .returning();
+    await privilegedDb.insert(reportTestCaseResults).values({
+      id: uuidv4(),
+      organizationId,
+      testPlanExecutionId: executionId,
+      uiTestId: hidden.id,
+      testName: 'Payroll login',
+      testType: 'ui',
+      status: 'Failed',
+      startedAt: new Date(),
+    } as any);
+    const unit = `ui_${hidden.id}_chromium`;
+    const dir = path.resolve(process.cwd(), 'results', planId, executionId, unit);
+    await fs.ensureDir(dir);
+    await fs.writeFile(path.join(dir, 'step_1.png'), 'payroll-screen');
+    await fs.writeFile(path.join(dir, 'payroll_trace.zip'), `password=${SENTINEL}`);
+
+    // An editor of the organization who is not on the project: a 404, like a file never written.
+    const outsider = await createTestUser(organizationId, `not-on-project-${uuidv4().slice(0, 6)}`);
+    currentUser = { id: outsider, organizationId, role: 'editor' };
+    await request(app)
+      .get(url(`${unit}/step_1.png`))
+      .expect(404);
+    const trace = await request(app)
+      .get(url(`${unit}/payroll_trace.zip`))
+      .expect(404);
+    expect(trace.body).toEqual({ error: 'Artifact not found.' });
+    // A viewer not on it gets the same 404, not a 403 that would confirm the file is there.
+    currentUser = { id: outsider, organizationId, role: 'viewer' };
+    await request(app)
+      .get(url(`${unit}/payroll_trace.zip`))
+      .expect(404);
+    // The organization's owner sees every project.
+    currentUser = { id: userId, organizationId, role: 'owner' };
+    await request(app)
+      .get(url(`${unit}/payroll_trace.zip`))
+      .expect(200);
+    // The rest of the run is unaffected: a unit no hidden test owns stays open.
+    const open = path.resolve(process.cwd(), 'results', planId, executionId, 'ui_999999_chromium');
+    await fs.ensureDir(open);
+    await fs.writeFile(path.join(open, 'step_1.png'), 'public-screen');
+    currentUser = { id: outsider, organizationId, role: 'viewer' };
+    await request(app).get(url('ui_999999_chromium/step_1.png')).expect(200);
+  });
+});
+
+describe('classifyArtifact', () => {
+  it('recognises what the runner writes, and calls everything else raw', async () => {
+    const { classifyArtifact } = await import('../../tenancy/artifact-access');
+    expect(classifyArtifact('ui_1/login_trace.zip')).toEqual({ kind: 'trace', sensitive: true });
+    expect(classifyArtifact('ui_1/login_network.har')).toEqual({
+      kind: 'network',
+      sensitive: true,
+    });
+    expect(classifyArtifact('ui_1/step_1.png')).toEqual({ kind: 'screenshot', sensitive: false });
+    expect(classifyArtifact('ui_1/login_run.webm')).toEqual({ kind: 'video', sensitive: false });
+    expect(classifyArtifact('ui_1/home.report.html').sensitive).toBe(false);
+    expect(classifyArtifact('ui_1/download_1_invoice.pdf').sensitive).toBe(false);
+    // A download named like a trace is refused like one; anything unknown is raw.
+    expect(classifyArtifact('ui_1/download_1_x_trace.zip').sensitive).toBe(true);
+    expect(classifyArtifact('ui_1/old.zip').sensitive).toBe(true);
+    expect(classifyArtifact('ui_1/console.log').sensitive).toBe(true);
+    expect(classifyArtifact('ui_1/page.html').sensitive).toBe(true);
+  });
+
+  it('asks a scoped key for runs:evidence on top of the editor role', async () => {
+    const { sensitiveEvidenceRefusal } = await import('../../tenancy/artifact-access');
+    expect(sensitiveEvidenceRefusal({ role: 'viewer' })).toBe('insufficient_role');
+    expect(sensitiveEvidenceRefusal({ role: 'viewer', scopes: ['runs:evidence'] })).toBe(
+      'insufficient_role',
+    );
+    expect(sensitiveEvidenceRefusal({ role: 'editor', scopes: ['runs:read'] })).toBe(
+      'insufficient_scope',
+    );
+    expect(
+      sensitiveEvidenceRefusal({ role: 'editor', scopes: ['runs:read', 'runs:evidence'] }),
+    ).toBeNull();
+    expect(sensitiveEvidenceRefusal({ role: 'editor', scopes: null })).toBeNull();
+    expect(sensitiveEvidenceRefusal({ role: 'auditor' })).toBe('insufficient_role');
+    expect(sensitiveEvidenceRefusal(null)).toBe('insufficient_role');
   });
 });

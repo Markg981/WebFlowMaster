@@ -399,6 +399,105 @@ describe('run evidence through /api/v1', () => {
   });
 });
 
+describe('raw run evidence through /api/v1: role and scope (P03)', () => {
+  it('lists and serves traces and HAR files only to an editor whose key holds runs:evidence', async () => {
+    const SENTINEL = 'Sentinel-Trace-Pw-v1-77ab';
+    const planId = await createPlan(`Raw evidence ${randomUUID()}`);
+    const runId = randomUUID();
+    await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id: runId, organizationId: org, testPlanId: planId, status: 'completed' });
+    const files: Record<string, string> = {
+      [`results/${planId}/${runId}/ui_1/step_001.png`]: 'png bytes',
+      [`results/${planId}/${runId}/ui_1/login_trace.zip`]: `password=${SENTINEL}`,
+      [`results/${planId}/${runId}/ui_1/login_network.har`]: `{"password":"${SENTINEL}"}`,
+    };
+    setArtifactStoreForTest({
+      kind: 'local',
+      read: async () => null,
+      write: async () => {},
+      publishDirectory: async () => 0,
+      deletePrefix: async () => 0,
+      list: async (prefix) =>
+        Object.entries(files)
+          .filter(([k]) => k.startsWith(prefix))
+          .map(([k, body]) => ({ key: k, size: body.length })),
+      open: async (k) =>
+        files[k]
+          ? {
+              stream: Readable.from([Buffer.from(files[k])]),
+              contentType: 'application/octet-stream',
+              size: files[k].length,
+            }
+          : null,
+    });
+    const trace = `/api/v1/runs/${runId}/artifacts/ui_1/login_trace.zip`;
+    const har = `/api/v1/runs/${runId}/artifacts/ui_1/login_network.har`;
+    const paths = (body: { items: Array<{ path: string }> }) => body.items.map((i) => i.path);
+
+    // A viewer's key, with every scope: the role is the ceiling.
+    const asViewer = await request(app)
+      .get(`/api/v1/runs/${runId}/evidence`)
+      .set(auth(viewerKey))
+      .expect(200);
+    expect(paths(asViewer.body)).toEqual(['ui_1/step_001.png']);
+    expect(asViewer.body.withheld).toBe(2);
+    expect(JSON.stringify(asViewer.body)).not.toContain('login_trace.zip');
+    for (const url of [trace, har]) {
+      const refused = await request(app).get(url).set(auth(viewerKey)).expect(403);
+      expect(refused.body.error.code).toBe('insufficient_role');
+      expect(JSON.stringify(refused.body)).not.toContain(SENTINEL);
+    }
+
+    // An editor's key that may read runs but was not given runs:evidence.
+    const readOnly = await makeKey(user, org, ['runs:read']);
+    const listed = await request(app)
+      .get(`/api/v1/runs/${runId}/evidence`)
+      .set(auth(readOnly))
+      .expect(200);
+    expect(paths(listed.body)).toEqual(['ui_1/step_001.png']);
+    const scoped = await request(app).get(trace).set(auth(readOnly)).expect(403);
+    expect(scoped.body.error).toMatchObject({
+      code: 'insufficient_scope',
+      requiredScope: 'runs:evidence',
+    });
+
+    // The same editor with runs:evidence, and with a key from before scopes.
+    const evidence = await makeKey(user, org, ['runs:read', 'runs:evidence']);
+    const generated = generateApiKey();
+    await privilegedDb.insert(apiKeys).values({
+      id: randomUUID(),
+      organizationId: org,
+      userId: user,
+      name: 'Unscoped fixture',
+      prefix: generated.prefix,
+      hashedKey: generated.hashedKey,
+      scopes: null,
+    } as any);
+    for (const allowed of [evidence, generated.key]) {
+      const all = await request(app)
+        .get(`/api/v1/runs/${runId}/evidence`)
+        .set(auth(allowed))
+        .expect(200);
+      expect(paths(all.body)).toEqual([
+        'ui_1/login_network.har',
+        'ui_1/login_trace.zip',
+        'ui_1/step_001.png',
+      ]);
+      expect(all.body.withheld).toBe(0);
+      const served = await request(app)
+        .get(trace)
+        .set(auth(allowed))
+        .responseType('blob')
+        .expect(200);
+      expect(Buffer.from(served.body).toString()).toContain(SENTINEL);
+    }
+
+    // Another organization's key, with every scope: the run is not there.
+    await request(app).get(trace).set(auth(otherKey)).expect(404);
+  });
+});
+
 describe('tags through /api/v1', () => {
   it('creates once per name, renames, counts and deletes with how many tests carried it', async () => {
     const name = `smoke ${randomUUID().slice(0, 8)}`;

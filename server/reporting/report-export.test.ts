@@ -26,10 +26,11 @@ vi.mock('../platform/logger', () => ({
 }));
 
 const { privilegedDb } = await import('../platform/db');
-const { reportTestCaseResults, testPlanExecutions, testPlans, users } =
+const { projects, reportTestCaseResults, testPlanExecutions, testPlans, tests, users } =
   await import('@shared/schema');
 const { createTestOrganization } = await import('../tests/factories');
-const { tenancyMiddleware, runAsOrganization } = await import('../platform/middleware/tenancy');
+const { tenancyMiddleware, runAsOrganization, runWithTenant } =
+  await import('../platform/middleware/tenancy');
 const { default: reportsRoutes } = await import('../http/routes/reports.routes');
 const { setArtifactStoreForTest } = await import('../tenancy/artifact-store');
 const { createZip, crc32 } = await import('../platform/zip');
@@ -79,6 +80,8 @@ describe('the zip', () => {
 });
 
 describe('exporting a run', () => {
+  /** What a trace of a login holds: the password, in clear. */
+  const SENTINEL = 'Sentinel-Trace-Pw-91c2';
   const PNG = Buffer.from(
     '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4a00000000049454e44ae426082',
     'hex',
@@ -100,7 +103,12 @@ describe('exporting a run', () => {
     app.use(reportsRoutes);
     setArtifactStoreForTest({
       kind: 'local',
-      read: async (key: string) => (key.endsWith('/ui_2/step_fail.png') ? PNG : null),
+      read: async (key: string) =>
+        /\/ui_\d+\/step_fail\.png$/.test(key)
+          ? PNG
+          : /(_trace\.zip|\.har|\.dat)$/.test(key)
+            ? Buffer.from(`password=${SENTINEL}`)
+            : null,
       write: async () => {},
       open: async () => null,
       publishDirectory: async () => 0,
@@ -364,5 +372,116 @@ describe('exporting a run', () => {
     const other = await createTestOrganization('Other Export Org');
     current = { ...current, organizationId: other };
     await request(app).get(`/api/test-plan-executions/${executionId}/export/html`).expect(404);
+  });
+
+  describe('raw evidence and restricted projects (P03)', () => {
+    /** Every format, as the caller would download it, with the PDF's source HTML. */
+    async function everyExport() {
+      let pdfHtml = '';
+      const pdf = await exportRun(executionId, 'pdf', async (html) => {
+        pdfHtml = html;
+        return Buffer.from('%PDF-1.7');
+      });
+      const html = (await exportRun(executionId, 'html'))!.body.toString('utf8');
+      const allure = Array.from(readZip((await exportRun(executionId, 'allure'))!.body).values())
+        .map((data) => data.toString('latin1'))
+        .join('\n');
+      const junit = (await exportRun(executionId, 'junit'))!.body.toString('utf8');
+      expect(pdf!.contentType).toBe('application/pdf');
+      return { html, pdfHtml, allure, junit };
+    }
+
+    it('embeds no trace, HAR or unrecognised file in any format, whatever column names it', async () => {
+      await privilegedDb.insert(reportTestCaseResults).values({
+        organizationId: org,
+        testPlanExecutionId: executionId,
+        id: uuidv4(),
+        testType: 'ui',
+        browser: 'chromium',
+        testName: 'Login with a password',
+        status: 'Failed',
+        reasonForFailure: 'Wrong page',
+        startedAt: new Date('2026-09-24T02:01:00Z'),
+        // A legacy row whose screenshot column names a trace, next to the real trace and HAR.
+        screenshotUrl: `/results/${planId}/${executionId}/ui_3/login_trace.zip`,
+        traceUrl: `/results/${planId}/${executionId}/ui_3/login_trace.zip`,
+        harUrl: `/results/${planId}/${executionId}/ui_3/login_network.har`,
+        detailedLog: JSON.stringify([
+          {
+            name: 'Type password',
+            type: 'fill',
+            status: 'failed',
+            error: 'x',
+            screenshot: `results/${planId}/${executionId}/ui_3/legacy.dat`,
+          },
+        ]),
+      } as any);
+
+      const exported = await runWithTenant(org, everyExport, {
+        userId: current.id,
+        role: 'viewer',
+      });
+      for (const [format, body] of Object.entries(exported)) {
+        expect(body, format).not.toContain(SENTINEL);
+        expect(body, format).not.toContain(Buffer.from(`password=${SENTINEL}`).toString('base64'));
+        expect(body, format).not.toContain('login_trace.zip');
+        expect(body, format).not.toContain('login_network.har');
+      }
+      // The recognised screenshot of the other failure is still there.
+      expect(exported.html).toContain('data:image/png;base64,');
+    });
+
+    it('leaves out the screenshot of a test in a restricted project the caller is not on, and only that', async () => {
+      const [secret] = await privilegedDb
+        .insert(projects)
+        .values({ name: 'Secret', userId: current.id, organizationId: org, restricted: true })
+        .returning();
+      const [hiddenTest] = await privilegedDb
+        .insert(tests)
+        .values({
+          name: 'Payroll login',
+          url: 'https://x.test',
+          sequence: [],
+          elements: [],
+          userId: current.id,
+          organizationId: org,
+          projectId: secret.id,
+        } as any)
+        .returning();
+      await privilegedDb.insert(reportTestCaseResults).values({
+        organizationId: org,
+        testPlanExecutionId: executionId,
+        id: uuidv4(),
+        testType: 'ui',
+        browser: 'chromium',
+        uiTestId: hiddenTest.id,
+        testName: 'Payroll login',
+        status: 'Failed',
+        reasonForFailure: 'x',
+        startedAt: new Date('2026-09-24T02:02:00Z'),
+        screenshotUrl: `/results/${planId}/${executionId}/ui_${hiddenTest.id}/step_fail.png`,
+      } as any);
+      const images = (html: string) => html.split('data:image/png;base64,').length - 1;
+
+      const asViewer = await runWithTenant(org, () => exportRun(executionId, 'html'), {
+        userId: current.id,
+        role: 'viewer',
+      });
+      const owner = await privilegedDb
+        .insert(users)
+        .values({
+          username: `owner-${uuidv4().slice(0, 8)}`,
+          password: 'x',
+          organizationId: org,
+          role: 'owner',
+        })
+        .returning();
+      const asOwner = await runWithTenant(org, () => exportRun(executionId, 'html'), {
+        userId: owner[0].id,
+        role: 'owner',
+      });
+      expect(images(asOwner!.body.toString('utf8'))).toBe(2);
+      expect(images(asViewer!.body.toString('utf8'))).toBe(1);
+    });
   });
 });

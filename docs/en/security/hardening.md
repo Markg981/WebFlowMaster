@@ -107,7 +107,8 @@ what such a browser may reach is decided by the network it runs in, which its ow
   factor at the provider. Set `WEBFLOW_PUBLIC_URL`, so the redirect URI does not depend on the
   request's `Host` header.
 - Pipelines use **scoped** API keys on **service accounts**, with an expiry date; full-access
-  keys only for administration, revoked afterwards.
+  keys only for administration, revoked afterwards. Grant `runs:evidence` (traces and HAR files)
+  only to a key that must fetch them.
 - Review **Settings → API keys** for keys not used recently, and revoke them.
 - Keep owners few. On an installation shared by several organizations, set
   `INSTALLATION_ADMINS` to the operators who may change log settings and drain runners
@@ -123,6 +124,12 @@ what such a browser may reach is decided by the network it runs in, which its ow
   ([Backups](../admin/operations#backups)).
 - Disk, database and bucket encryption at rest, as offered by your platform.
 - `ARTIFACT_RETENTION_DAYS` set to what your organizations need, not more.
+- Traces off, and videos at most on failure, for flows that handle real credentials or personal
+  data; screenshots, videos and traces are not cleaned of secrets
+  ([Raw evidence](./data-protection#raw-evidence)).
+- After upgrading from a release where viewers could download traces or migrations printed
+  `DATABASE_URL`: the [exposed credentials procedure](./data-protection#exposed-credentials), with
+  deletion and rotation approved by the person responsible.
 - Log retention in **Settings → System** set deliberately; logs shipped to a central store
   (`LOKI_URL` or your platform's collector) if they must outlive the machine.
 - A procedure for completing an organization's erasure: files in the artifact store, and

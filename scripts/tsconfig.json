@@ -24,6 +24,7 @@
     "import-netcontent-api.ts",
     "apply-migrations.ts",
     "migrator-env.ts",
+    "database-target.ts",
     "schema-doctor.ts",
     "wfm-load.ts",
     "netcontent/**/*.ts",

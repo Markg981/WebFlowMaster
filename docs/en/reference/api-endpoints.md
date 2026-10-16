@@ -725,7 +725,7 @@ Scope `suites:write` · operation `importSuite`
 
 The files a run left behind: screenshots, videos, traces, logs and reports.
 
-Each file carries the URL it is served from. A run whose evidence retention has removed answers an empty page with `purged: true`.
+Each file carries the URL it is served from. A run whose evidence retention has removed answers an empty page with `purged: true`. Traces, HAR files and unrecognised files are listed only for a caller with the editor role and, on a scoped key, the `runs:evidence` scope; otherwise they are counted in `withheld`. Files of a test in a restricted project the caller is not on are neither listed nor counted.
 
 Scope `runs:read` · operation `listRunEvidence`
 
@@ -735,21 +735,23 @@ Scope `runs:read` · operation `listRunEvidence`
 | `limit`   | query | integer |          | 1–100, default `20`     |
 | `offset`  | query | integer |          | at least 0, default `0` |
 
-| Status | Meaning                                                                 | Body                                                                                                |
-| ------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| 200    | A page of files, by path, with how many there are.                      | object { items: [Evidence](#schema-evidence)[], limit, offset, total, purged } (`application/json`) |
-| 400    | Invalid body, identifier or referenced resource.                        | [Error](#schema-error) (`application/json`)                                                         |
-| 401    | No usable credential.                                                   | [Error](#schema-error) (`application/json`)                                                         |
-| 403    | Insufficient scope, role or project access.                             | [Error](#schema-error) (`application/json`)                                                         |
-| 404    | No such resource visible to this account.                               | [Error](#schema-error) (`application/json`)                                                         |
-| 409    | Name conflict or dataset still in use.                                  | [Error](#schema-error) (`application/json`)                                                         |
-| 429    | Rate limit or tenant quota exceeded.                                    | [Error](#schema-error) (`application/json`)                                                         |
-| 500    | The operation failed; writes are rolled back.                           | [Error](#schema-error) (`application/json`)                                                         |
-| 502    | The artifact store could not be reached (`artifact_store_unavailable`). | [Error](#schema-error) (`application/json`)                                                         |
+| Status | Meaning                                                                 | Body                                                                                                          |
+| ------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 200    | A page of files, by path, with how many there are.                      | object { items: [Evidence](#schema-evidence)[], limit, offset, total, withheld, purged } (`application/json`) |
+| 400    | Invalid body, identifier or referenced resource.                        | [Error](#schema-error) (`application/json`)                                                                   |
+| 401    | No usable credential.                                                   | [Error](#schema-error) (`application/json`)                                                                   |
+| 403    | Insufficient scope, role or project access.                             | [Error](#schema-error) (`application/json`)                                                                   |
+| 404    | No such resource visible to this account.                               | [Error](#schema-error) (`application/json`)                                                                   |
+| 409    | Name conflict or dataset still in use.                                  | [Error](#schema-error) (`application/json`)                                                                   |
+| 429    | Rate limit or tenant quota exceeded.                                    | [Error](#schema-error) (`application/json`)                                                                   |
+| 500    | The operation failed; writes are rolled back.                           | [Error](#schema-error) (`application/json`)                                                                   |
+| 502    | The artifact store could not be reached (`artifact_store_unavailable`). | [Error](#schema-error) (`application/json`)                                                                   |
 
 ### `GET /api/v1/runs/{runId}/artifacts/{path}` {#getRunArtifact}
 
 One evidence file, streamed with its content type.
+
+Screenshots, videos, Lighthouse reports and downloaded files need `runs:read`. Traces, HAR files and unrecognised files are raw evidence that may hold credentials: they also need the editor role and, on a scoped key, the `runs:evidence` scope, and answer 403 otherwise.
 
 Scope `runs:read` · operation `getRunArtifact`
 
