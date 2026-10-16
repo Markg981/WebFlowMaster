@@ -23,7 +23,7 @@ export const EXIT_PASSED = 0;
 export const EXIT_RUN_FAILED = 1;
 export const EXIT_TOOL_ERROR = 2;
 
-type Command = 'run' | 'status' | 'junit' | 'export' | 'tests' | 'help';
+type Command = 'run' | 'status' | 'junit' | 'export' | 'tests' | 'units' | 'help';
 
 export interface CliOptions {
   command: Command;
@@ -57,6 +57,8 @@ export interface CliOptions {
   changedSince?: string;
   /** run: the same, from a file listing the changed files one per line. */
   changedFilesPath?: string;
+  /** `wfm units <runId> <unitId>`: the unit whose attempts and rows to show. */
+  unitId?: string;
 }
 
 export interface CliIo {
@@ -83,6 +85,7 @@ Usage:
   wfm status <runId>
   wfm junit <runId> [--junit <file>]
   wfm export <runId> [--html <file>] [--pdf <file>] [--allure <file>]
+  wfm units <runId> [<unitId>] [--json]
   wfm tests export [--project <id|none>] [--format yaml|json|gherkin] [--out <file>]
   wfm tests import <file> [--project <id>] [--dry-run]
 
@@ -113,6 +116,9 @@ Options:
   --bdd-mode             tests import: manual or cucumber
   --bdd-profile          cucumber import: authorized destination profile UUID
   --bdd-revision         cucumber import: pinned destination support revision
+
+wfm units lists what a run expected — one unit per test, browser, language and device — and,
+given a unit, every attempt at it and every dataset row of each, with links to their evidence.
 
 wfm tests keeps a project's tests in a repository: export them in a pipeline and commit the file,
 or import the file a pull request changed. It needs a full-access API key (one without scopes).
@@ -146,7 +152,8 @@ export function parseArgs(
     command !== 'status' &&
     command !== 'junit' &&
     command !== 'export' &&
-    command !== 'tests'
+    command !== 'tests' &&
+    command !== 'units'
   ) {
     return { error: `Unknown command "${command}".` };
   }
@@ -271,6 +278,11 @@ export function parseArgs(
 
   options.target = positional[0];
   if (!options.target) return { error: `${command} needs an id. See --help.` };
+  if (command === 'units') {
+    if (positional[1] !== undefined && !/^u_[0-9a-f]{24}$/.test(positional[1]))
+      return { error: 'A unit id is u_ and 24 hex characters, as wfm units lists them.' };
+    options.unitId = positional[1];
+  }
   if (!Number.isFinite(options.timeoutSeconds) || options.timeoutSeconds <= 0) {
     return { error: '--timeout must be a positive number of seconds.' };
   }
@@ -528,6 +540,7 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
     if (options.command === 'export') {
       return await writeReports(options, io, call, options.target!);
     }
+    if (options.command === 'units') return await showUnits(options, io, call);
 
     let runId = options.target!;
     if (options.command === 'run') {
@@ -623,6 +636,121 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
     io.error(`Could not reach ${options.baseUrl}: ${error?.message ?? String(error)}`);
     return EXIT_TOOL_ERROR;
   }
+}
+
+/** A unit of a run as /api/v1 describes it, as far as this reads it. */
+export interface UnitRecord {
+  unitId: string;
+  state: string;
+  testType: string;
+  browser?: string | null;
+  locale?: string | null;
+  device?: string | null;
+  bddRow?: number | null;
+  result?: { testName: string; status: string; attempts: number } | null;
+}
+
+interface EvidenceSlice {
+  screenshotUrl?: string | null;
+  videoUrl?: string | null;
+  traceUrl?: string | null;
+  harUrl?: string | null;
+  restricted?: boolean;
+}
+
+/** One unit with its attempts, as /api/v1/runs/{runId}/units/{unitId} answers. */
+export interface UnitDetailRecord extends UnitRecord {
+  evidence: {
+    decidingAttempt: number | null;
+    attempts: Array<
+      EvidenceSlice & {
+        attempt: number;
+        status: string | null;
+        failureReason?: string | null;
+        rows: Array<EvidenceSlice & { datasetRow: number; status: string; error?: string | null }>;
+      }
+    >;
+  };
+}
+
+/** Where a unit ran, in a few words: browser, language, device, BDD row. */
+function unitPlace(unit: UnitRecord): string {
+  return (
+    [
+      unit.browser,
+      unit.locale,
+      unit.device,
+      unit.bddRow !== null && unit.bddRow !== undefined ? `BDD row ${unit.bddRow + 1}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ') || unit.testType
+  );
+}
+
+function sliceLinks(base: string, slice: EvidenceSlice): string {
+  const links = (['screenshotUrl', 'videoUrl', 'traceUrl', 'harUrl'] as const)
+    .filter((key) => slice[key])
+    .map((key) => `${key.replace('Url', '')} ${base}${slice[key]}`);
+  if (slice.restricted) links.push('(trace/HAR withheld: needs editor role and runs:evidence)');
+  return links.length ? `\n      ${links.join('\n      ')}` : '';
+}
+
+/** Lines describing a unit's attempts and rows, each with its own evidence. */
+export function describeUnit(detail: UnitDetailRecord, base = ''): string {
+  const lines = [
+    `${detail.result?.testName ?? detail.unitId} — ${unitPlace(detail)} (${detail.unitId})`,
+  ];
+  for (const attempt of detail.evidence.attempts) {
+    const deciding = attempt.attempt === detail.evidence.decidingAttempt ? ' [result]' : '';
+    lines.push(
+      `  attempt ${attempt.attempt}: ${attempt.status ?? 'running'}${deciding}` +
+        (attempt.failureReason ? ` — ${attempt.failureReason}` : '') +
+        sliceLinks(base, attempt),
+    );
+    for (const row of attempt.rows)
+      lines.push(
+        `    row ${row.datasetRow + 1}: ${row.status}${row.error ? ` — ${row.error}` : ''}` +
+          sliceLinks(base, row).replace(/\n {6}/g, '\n        '),
+      );
+  }
+  return lines.join('\n');
+}
+
+/** `wfm units`: a run's units, or one unit's attempts and rows with their evidence. */
+async function showUnits(options: CliOptions, io: CliIo, call: Call): Promise<number> {
+  const runPath = `/api/v1/runs/${encodeURIComponent(options.target!)}/units`;
+  const base = options.baseUrl!.replace(/\/+$/, '');
+  if (options.unitId) {
+    const response = await call(`${runPath}/${encodeURIComponent(options.unitId)}`);
+    if (!response.ok) {
+      io.error(`Could not read the unit: ${response.status} ${await errorText(response)}`);
+      return EXIT_TOOL_ERROR;
+    }
+    const detail: UnitDetailRecord = await response.json();
+    io.log(options.json ? JSON.stringify(detail, null, 2) : describeUnit(detail, base));
+    return EXIT_PASSED;
+  }
+  const units: UnitRecord[] = [];
+  for (let offset = 0; ; offset += 100) {
+    const response = await call(`${runPath}?limit=100&offset=${offset}`);
+    if (!response.ok) {
+      io.error(`Could not list the run's units: ${response.status} ${await errorText(response)}`);
+      return EXIT_TOOL_ERROR;
+    }
+    const pageOf: { items: UnitRecord[]; total: number } = await response.json();
+    units.push(...pageOf.items);
+    if (!pageOf.items.length || units.length >= pageOf.total) break;
+  }
+  if (options.json) io.log(JSON.stringify(units, null, 2));
+  else if (!units.length) io.log('This run has no units: it ran before runs kept a manifest.');
+  else
+    for (const unit of units)
+      io.log(
+        `${unit.unitId}  ${unit.result?.status ?? unit.state}` +
+          `${(unit.result?.attempts ?? 1) > 1 ? ` after ${unit.result!.attempts} attempts` : ''}` +
+          `  ${unit.result?.testName ?? unit.testType} — ${unitPlace(unit)}`,
+      );
+  return EXIT_PASSED;
 }
 
 async function waitForRun(

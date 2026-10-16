@@ -166,6 +166,38 @@ usano credenziali reali o dati personali: usate account di test dedicati, impost
 Uno step segnato **healed** ha trovato il suo elemento solo dopo che il selettore è stato
 sostituito (vedi [Repository degli elementi](./web-tests#repository-degli-elementi)).
 
+#### Tentativi e righe del dataset {#tentativi-e-righe}
+
+Ogni riga del report è un test su un browser, in una lingua (e su un dispositivo per un test mobile):
+un'**unità** del run. Le evidenze di un'unità si conservano per **tentativo** e, per un test con un
+[dataset](./web-tests#dataset), per **riga** di ogni tentativo. Una riesecuzione non sovrascrive le
+evidenze del primo tentativo, e una riga non sovrascrive quelle di un'altra.
+
+Quando un risultato ha più di un tentativo, o righe di dataset, i suoi dettagli si aprono con due
+selettori:
+
+- **Tentativi**: _Tentativo 1 · failed_, _Tentativo 2 · passed · esito_… I dettagli si aprono sul
+  tentativo su cui si basa l'esito. Scegliete un tentativo precedente per aprire le evidenze del
+  fallimento che la riesecuzione ha sostituito: screenshot, video, trace e HAR, e il motivo del
+  fallimento.
+- **Righe del dataset**: _Tutte le righe_, oppure una riga con il suo esito e il suo errore.
+  Scegliendo una riga si vedono i suoi step e i suoi video, trace e HAR, niente delle altre righe.
+
+Il report conserva gli step del tentativo su cui si basa l'esito. Un tentativo precedente mostra le
+sue evidenze e il suo motivo, e indica che i suoi step sono nella sua trace. Le regole qui sopra su
+chi può scaricare una trace valgono per ogni tentativo e ogni riga.
+
+Un link può aprire il report su una sola porzione: aggiungete `?unit=<id unità>&attempt=<n>&row=<m>`
+all'indirizzo del report (riga da 0). L'API dà la stessa vista: `GET /api/v1/runs/{runId}/units`
+elenca le unità di un run, e `GET /api/v1/runs/{runId}/units/{unitId}` restituisce ogni tentativo e
+riga con i link ai suoi file (vedi l'[API](../reference/api)). Da una pipeline,
+`wfm units <runId> [<unitId>]` li stampa.
+
+Le evidenze di un tentativo si scrivono una volta sola. Un caricamento tardivo dello stesso tentativo
+(per esempio da un worker che ha perso il suo lavoro) non sostituisce un file a cui il report già
+punta. I run precedenti a questa versione mantengono i loro link. I loro tentativi e le loro righe
+non erano conservati separatamente.
+
 ### Test visivi {#test-visivi}
 
 Con **Test visivi** attivo in un piano, lo screenshot di ogni step viene confrontato con la sua
@@ -211,6 +243,11 @@ con quale gravità; quali sono state rispettate; e quali richiedono il controllo
 Un export contiene i risultati e gli screenshot dei test falliti, e nient'altro delle evidenze
 del run: nessuna trace, HAR o video, e nessun link a questi file, chiunque lo esporti. Lo screenshot
 di un test in un progetto riservato di cui chi esporta non fa parte viene omesso.
+
+Tentativi e righe del dataset non contano mai come test a sé: un export ha un test per unità, come
+il report. Il report HTML li elenca sotto **Attempts and dataset rows**. Allure li allega al loro
+test come _Attempts and dataset rows_. JUnit tiene un `<testcase>` per unità e li mette nella
+proprietà `wfm.attempts`.
 
 **Requisiti coperti** mostra i [requisiti](./organizing#requisiti) con esattamente i risultati di
 questo run, e li esporta come matrice di tracciabilità.

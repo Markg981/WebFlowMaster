@@ -106,6 +106,34 @@ function failureSection(result: ReportResultModel, image: string | undefined): s
   </div>`;
 }
 
+/**
+ * The tries and dataset rows behind each result that had more than one of either (P08): listed
+ * under the result they belong to, so a re-run or a row is never read as one more test.
+ */
+function attemptsSection(results: ReportResultModel[]): string {
+  const detailed = results.filter(
+    (r) => r.unitAttempts.length > 1 || r.unitAttempts.some((a) => a.rows.length > 0),
+  );
+  if (!detailed.length) return '';
+  const rowList = (rows: ReportResultModel['unitAttempts'][number]['rows']) =>
+    rows.length
+      ? `<ul>${rows.map((row) => `<li>Row ${row.datasetRow + 1}: <span class="${row.status === 'passed' ? 'pass' : 'fail'}">${escapeHtml(row.status)}</span>${row.error ? ` <span class="muted">— ${escapeHtml(row.error)}</span>` : ''}</li>`).join('')}</ul>`
+      : '';
+  return `<h2>Attempts and dataset rows</h2>
+  <p class="muted">Each result above is one test on one browser and language. Its attempts and dataset rows are listed here, under it; they are not counted as tests.</p>
+  ${detailed
+    .map(
+      (r) =>
+        `<div class="failure"><h3>${escapeHtml(r.testName)} <span class="muted">${escapeHtml(r.browser ?? '')}</span></h3><ol>${r.unitAttempts
+          .map(
+            (a) =>
+              `<li>Attempt ${a.attempt}: ${escapeHtml(a.status ?? 'running')}${a.deciding ? ' <span class="tag">result</span>' : ''}${a.reason ? ` <span class="muted">— ${escapeHtml(a.reason)}</span>` : ''}${rowList(a.rows)}</li>`,
+          )
+          .join('')}</ol></div>`,
+    )
+    .join('')}`;
+}
+
 export function renderReportHtml(model: ReportModel, options: HtmlRenderOptions = {}): string {
   const images = options.images ?? new Map<string, string>();
   const failures = model.results.filter((r) => r.status === 'Failed' || r.status === 'Error');
@@ -183,6 +211,7 @@ export function renderReportHtml(model: ReportModel, options: HtmlRenderOptions 
         .join('')}
     </tbody>
   </table>
+  ${attemptsSection(model.results)}
   <div class="footer">Exported ${when(options.generatedAt ?? new Date())} by WebFlowMaster.</div>
 </body>
 </html>

@@ -21,7 +21,11 @@ import type { NetworkSummary } from '../network';
 import type { FailureAnalysis } from '../failure-analysis';
 import type { CiContext } from '../ci';
 import type { LoadRunStatus, LoadSummary } from '../load-test';
-import type { ExecutionUnitState, UnitCoordinates } from '../execution-identity';
+import type {
+  AttemptEvidenceRecord,
+  ExecutionUnitState,
+  UnitCoordinates,
+} from '../execution-identity';
 import { apiTests } from './api-testing';
 import { loadTests, mobileTests, tags, tests } from './authoring';
 import { browserGrids, environments } from './environments';
@@ -519,6 +523,9 @@ export const executionUnitAttempts = pgTable(
     state: text('state').$type<'running' | 'finished'>().notNull().default('running'),
     /** The try's own outcome, in the report's terms; the unit's verdict is the last one's. */
     status: text('status'),
+    /** Why this try did not pass, and what it left behind, recorded when it ended (migration 0092). */
+    failureReason: text('failure_reason'),
+    evidence: jsonb('evidence').$type<AttemptEvidenceRecord>(),
     /** The worker that made the try. */
     worker: text('worker'),
     startedAt: timestamp('started_at').notNull().defaultNow(),

@@ -143,6 +143,92 @@ const renderPage = () =>
     </QueryClientProvider>,
   );
 
+describe('TestReportPage: from a result to one attempt and row (P08)', () => {
+  const unitId = `u_${'a'.repeat(24)}`;
+  const at = (attempt: number, row: number) =>
+    `/api/test-plan-executions/run-1/artifacts/units/${unitId}/attempt_${attempt}/row_${row}`;
+  const unitEvidence = {
+    unitId,
+    decidingAttempt: 2,
+    attempts: [1, 2].map((attempt) => ({
+      attempt,
+      state: 'finished',
+      status: attempt === 1 ? 'failed' : 'passed',
+      failureReason: attempt === 1 ? 'Row 2 of 2: card declined' : null,
+      startedAt: '2026-09-30T10:00:00Z',
+      finishedAt: '2026-09-30T10:01:00Z',
+      screenshotUrl: null,
+      videoUrl: null,
+      traceUrl: null,
+      harUrl: null,
+      restricted: false,
+      rows: [0, 1].map((datasetRow) => ({
+        datasetRow,
+        status: attempt === 1 && datasetRow === 1 ? 'failed' : 'passed',
+        error: attempt === 1 && datasetRow === 1 ? 'card declined' : null,
+        screenshotUrl: `${at(attempt, datasetRow)}/step.png`,
+        videoUrl: null,
+        traceUrl: `${at(attempt, datasetRow)}/Pay_trace.zip`,
+        harUrl: null,
+        restricted: false,
+      })),
+    })),
+  };
+  const withUnits = () => {
+    const failed = { ...row('r3', 'Pay by card', 'Failed', 'Checkout', 'Critical'), unitEvidence };
+    return {
+      ...report,
+      failedTestDetails: [{ ...failed, testVersion: null }],
+      testGroupings: {
+        Shop: {
+          ...report.testGroupings.Shop,
+          components: {
+            ...report.testGroupings.Shop.components,
+            Checkout: { ...report.testGroupings.Shop.components.Checkout, tests: [failed] },
+          },
+        },
+      },
+    };
+  };
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) =>
+        Promise.resolve({
+          ok: true,
+          json: async () => (String(url).includes('/issues') ? [] : withUnits()),
+        }),
+      ),
+    );
+  });
+
+  it('opens a result with no recorded steps on its attempts, the first failure included', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByTestId('open-steps-r3'));
+    expect(await screen.findByTestId('slice-picker')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('attempt-1'));
+    fireEvent.click(screen.getByTestId('row-1'));
+    expect(screen.getByTestId('trace-link').getAttribute('href')).toBe(`${at(1, 1)}/Pay_trace.zip`);
+    expect(screen.getByText('card declined')).toBeTruthy();
+  });
+
+  it('opens exactly the attempt and row a link names', async () => {
+    window.history.pushState({}, '', `/report?unit=${unitId}&attempt=1&row=0`);
+    try {
+      renderPage();
+      expect(await screen.findByTestId('slice-picker')).toBeTruthy();
+      expect(screen.getByTestId('attempt-1').getAttribute('aria-pressed')).toBe('true');
+      expect(screen.getByTestId('row-0').getAttribute('aria-pressed')).toBe('true');
+      expect(screen.getByTestId('trace-link').getAttribute('href')).toBe(
+        `${at(1, 0)}/Pay_trace.zip`,
+      );
+    } finally {
+      window.history.pushState({}, '', '/');
+    }
+  });
+});
+
 describe('TestReportPage', () => {
   it('explains when queued work waits for the monthly execution budget', async () => {
     vi.stubGlobal(

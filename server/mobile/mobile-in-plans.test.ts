@@ -323,7 +323,7 @@ describe('a mobile test in a plan', () => {
     ]);
     // The device's last screen is the result's screenshot, served like a web test's.
     expect(row.screenshotUrl).toMatch(
-      new RegExp(`^/results/${planId}/[^/]+/mobile_${mobileTestId}/final\\.png$`),
+      new RegExp(`^/results/${planId}/[^/]+/units/u_[0-9a-f]{24}/attempt_1/final\\.png$`),
     );
     expect(await fs.pathExists(path.resolve(process.cwd(), row.screenshotUrl!.slice(1)))).toBe(
       true,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
 import AccessibilityPanel from './AccessibilityPanel';
 import NetworkPanel from './NetworkPanel';
 import type { NetworkSummary } from '@shared/network';
+import type { AttemptView, EvidenceLinks, UnitEvidenceView } from '@shared/execution-identity';
 
 /**
  * What a test actually did, step by step.
@@ -80,6 +81,115 @@ interface StepDetailsDialogProps {
   network?: NetworkSummary | null;
   /** A mobile test's session on its grid, with the device's video and logs. */
   sessionUrl?: string | null;
+  /**
+   * Every attempt at this result's unit and every dataset row of each, with its own evidence
+   * (shared/execution-identity.ts). Absent for a result from before runs kept a manifest.
+   */
+  unitEvidence?: UnitEvidenceView | null;
+  /** The attempt and row to open on; by default the attempt the result stands on, all rows. */
+  initialAttempt?: number | null;
+  initialRow?: number | null;
+}
+
+/** The steps of one dataset row, out of the merged list ("Row 2 of 3 — Click"). */
+function stepsOfRow(steps: ReportStep[], row: number): ReportStep[] {
+  const prefix = `Row ${row + 1} of `;
+  return steps.filter((step) => step.name.startsWith(prefix));
+}
+
+const sliceTone = (status: string | null) =>
+  status === 'passed'
+    ? 'secondary'
+    : status === 'failed' || status === 'error'
+      ? 'destructive'
+      : 'outline';
+
+/**
+ * Which attempt, and which dataset row of it, the dialog shows. Each choice opens that slice's own
+ * evidence — its screenshot, video, trace and HAR — and nothing of another attempt or row.
+ */
+function SlicePicker({
+  evidence,
+  attempt,
+  row,
+  onAttempt,
+  onRow,
+}: {
+  evidence: UnitEvidenceView;
+  attempt: AttemptView | null;
+  row: number | null;
+  onAttempt: (attempt: number) => void;
+  onRow: (row: number | null) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-2" data-testid="slice-picker">
+      <div
+        className="flex flex-wrap items-center gap-2"
+        role="group"
+        aria-label={t('stepDetails.attempts', 'Attempts')}
+      >
+        <span className="text-xs text-muted-foreground">
+          {t('stepDetails.attempts', 'Attempts')}
+        </span>
+        {evidence.attempts.map((a) => (
+          <button
+            key={a.attempt}
+            type="button"
+            data-testid={`attempt-${a.attempt}`}
+            aria-pressed={attempt?.attempt === a.attempt}
+            onClick={() => onAttempt(a.attempt)}
+            className={`rounded-md border px-2 py-0.5 text-xs ${attempt?.attempt === a.attempt ? 'border-primary ring-1 ring-primary' : 'dark:border-slate-700'}`}
+          >
+            {t('stepDetails.attemptLabel', 'Attempt {{n}}', { n: a.attempt })}{' '}
+            <Badge variant={sliceTone(a.status)} className="ml-1 text-[10px]">
+              {a.status ?? t('stepDetails.running', 'running')}
+            </Badge>
+            {a.attempt === evidence.decidingAttempt && (
+              <span className="ml-1 text-muted-foreground">
+                {t('stepDetails.deciding', '· result')}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+      {attempt && attempt.rows.length > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label={t('stepDetails.rows', 'Dataset rows')}
+        >
+          <span className="text-xs text-muted-foreground">
+            {t('stepDetails.rows', 'Dataset rows')}
+          </span>
+          <button
+            type="button"
+            data-testid="row-all"
+            aria-pressed={row === null}
+            onClick={() => onRow(null)}
+            className={`rounded-md border px-2 py-0.5 text-xs ${row === null ? 'border-primary ring-1 ring-primary' : 'dark:border-slate-700'}`}
+          >
+            {t('stepDetails.allRows', 'All rows')}
+          </button>
+          {attempt.rows.map((r) => (
+            <button
+              key={r.datasetRow}
+              type="button"
+              data-testid={`row-${r.datasetRow}`}
+              aria-pressed={row === r.datasetRow}
+              onClick={() => onRow(r.datasetRow)}
+              className={`rounded-md border px-2 py-0.5 text-xs ${row === r.datasetRow ? 'border-primary ring-1 ring-primary' : 'dark:border-slate-700'}`}
+            >
+              {t('stepDetails.rowLabel', 'Row {{n}}', { n: r.datasetRow + 1 })}{' '}
+              <Badge variant={sliceTone(r.status)} className="ml-1 text-[10px]">
+                {r.status}
+              </Badge>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** The picture and what it is a picture of, since three unlabelled images say nothing. */
@@ -254,8 +364,43 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
   evidenceRestricted,
   network,
   sessionUrl,
+  unitEvidence,
+  initialAttempt,
+  initialRow,
 }) => {
   const { t } = useTranslation();
+  const attempts = unitEvidence?.attempts ?? [];
+  const deciding = unitEvidence?.decidingAttempt ?? null;
+  const openOn = initialAttempt ?? deciding ?? attempts[attempts.length - 1]?.attempt ?? null;
+  const [attemptNo, setAttemptNo] = useState<number | null>(openOn);
+  const [rowNo, setRowNo] = useState<number | null>(initialRow ?? null);
+  // Each opening starts on the slice it was opened for, not where the last one was left.
+  useEffect(() => {
+    if (!open) return;
+    setAttemptNo(openOn);
+    setRowNo(initialRow ?? null);
+  }, [open, openOn, initialRow, unitEvidence]);
+
+  const attempt = attempts.find((a) => a.attempt === attemptNo) ?? null;
+  const row = attempt?.rows.find((r) => r.datasetRow === rowNo) ?? null;
+  // The evidence shown is the selected slice's own: a row's, else its attempt's. Without a
+  // manifest, the result's links as they always were.
+  const slice: EvidenceLinks | null = row ?? attempt;
+  const shown = slice
+    ? {
+        videoUrl: slice.videoUrl,
+        traceUrl: slice.traceUrl,
+        harUrl: slice.harUrl,
+        restricted: slice.restricted,
+        screenshotUrl: slice.screenshotUrl,
+      }
+    : { videoUrl, traceUrl, harUrl, restricted: evidenceRestricted, screenshotUrl: null };
+  // The steps were recorded for the attempt the result stands on; another attempt shows its
+  // evidence and why it ended, and says its steps are in its trace.
+  const isDeciding = !attempt || attempt.attempt === deciding;
+  const shownSteps = !isDeciding ? [] : row ? stepsOfRow(steps, row.datasetRow) : steps;
+  const sliceError = row?.error ?? (row ? null : attempt?.failureReason) ?? null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
@@ -265,6 +410,34 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
             {browser ? `Steps recorded on ${browser}.` : 'Steps recorded during this run.'}
           </DialogDescription>
         </DialogHeader>
+
+        {unitEvidence && attempts.length > 0 && (
+          <SlicePicker
+            evidence={unitEvidence}
+            attempt={attempt}
+            row={row?.datasetRow ?? null}
+            onAttempt={(n) => {
+              setAttemptNo(n);
+              setRowNo(null);
+            }}
+            onRow={setRowNo}
+          />
+        )}
+
+        {slice && (sliceError || (!isDeciding && shown.screenshotUrl)) && (
+          <div
+            className="rounded-md border p-3 space-y-2 dark:border-slate-700"
+            data-testid="slice-summary"
+          >
+            {sliceError && <p className="text-xs text-destructive">{sliceError}</p>}
+            {shown.screenshotUrl && (
+              <ImagePanel
+                label={t('stepDetails.sliceScreenshot', 'Screenshot')}
+                src={shown.screenshotUrl}
+              />
+            )}
+          </div>
+        )}
 
         {sessionUrl && (
           <p className="text-xs text-muted-foreground">
@@ -281,19 +454,19 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
           </p>
         )}
 
-        {(videoUrl || traceUrl) && (
+        {(shown.videoUrl || shown.traceUrl) && (
           <div className="rounded-md border p-3 space-y-2 dark:border-slate-700">
-            {videoUrl && (
+            {shown.videoUrl && (
               <video
-                src={videoUrl}
+                src={shown.videoUrl}
                 controls
                 className="w-full rounded max-h-72 bg-black"
                 data-testid="run-video"
               />
             )}
-            {traceUrl && (
+            {shown.traceUrl && (
               <p className="text-xs text-muted-foreground">
-                <a href={traceUrl} className="underline" download>
+                <a href={shown.traceUrl} className="underline" download data-testid="trace-link">
                   Download the Playwright trace
                 </a>{' '}
                 — it carries the DOM, the network and the console at every step. Open it with{' '}
@@ -312,7 +485,7 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
           </div>
         )}
 
-        {evidenceRestricted && (
+        {shown.restricted && (
           <p className="text-xs text-muted-foreground" data-testid="evidence-restricted">
             {t(
               'stepDetails.evidenceRestricted',
@@ -321,9 +494,23 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
           </p>
         )}
 
-        {network && <NetworkPanel summary={network} harUrl={harUrl} />}
+        {network && isDeciding && !row && <NetworkPanel summary={network} harUrl={shown.harUrl} />}
+        {slice && shown.harUrl && (!network || !isDeciding || row) && (
+          <p className="text-xs text-muted-foreground">
+            <a href={shown.harUrl} className="underline" download data-testid="har-link">
+              {t('stepDetails.downloadHar', 'Download the network recording (HAR)')}
+            </a>
+          </p>
+        )}
 
-        {steps.length === 0 ? (
+        {!isDeciding ? (
+          <p className="text-sm text-muted-foreground py-6" data-testid="steps-not-kept">
+            {t(
+              'stepDetails.stepsNotKept',
+              'The report keeps the steps of the attempt the result stands on. This attempt’s own steps are in its trace and video, when the plan kept them.',
+            )}
+          </p>
+        ) : shownSteps.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6">
             This result has no recorded steps. API tests and tests blocked by a precondition never
             reach the step runner.
@@ -331,7 +518,7 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
         ) : (
           <ScrollArea className="flex-1 pr-3">
             <ol className="space-y-3">
-              {steps.map((step, index) => (
+              {shownSteps.map((step, index) => (
                 <li
                   key={`${step.name}-${index}`}
                   className={`rounded-md border p-3 ${step.status === 'failed' ? 'border-destructive' : 'dark:border-slate-700'}`}

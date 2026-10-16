@@ -162,6 +162,35 @@ to _Never_ or _When the test fails_ in the plan, and keep `ARTIFACT_RETENTION_DA
 A step marked **healed** found its element only after its selector was replaced (see
 [Element repository](./web-tests#element-repository)).
 
+#### Attempts and dataset rows {#attempts-and-rows}
+
+Each row of the report is one test on one browser, in one language (and on one device for a mobile
+test): a **unit** of the run. A unit's evidence is kept per **attempt** and, for a test with a
+[dataset](./web-tests#datasets), per **row** of each attempt. A re-run does not overwrite the
+first attempt's evidence, and one row does not overwrite another's.
+
+When a result has more than one attempt, or dataset rows, its details open with two pickers:
+
+- **Attempts**: _Attempt 1 · failed_, _Attempt 2 · passed · result_… The details open on the
+  attempt the result stands on. Choose an earlier one to open the evidence of the failure that the
+  re-run replaced: its screenshot, video, trace and HAR, and the reason it failed.
+- **Dataset rows**: _All rows_, or one row with its own outcome and error. Choosing a row shows that
+  row's steps and its own video, trace and HAR, nothing of the other rows.
+
+The report keeps the steps of the attempt the result stands on. An earlier attempt shows its
+evidence and its reason, and says its steps are in its trace. The rules above for who can download
+a trace apply to every attempt and every row.
+
+A link can open the report on one slice: add `?unit=<unit id>&attempt=<n>&row=<m>` to the report's
+address (row from 0). The API gives the same view: `GET /api/v1/runs/{runId}/units` lists a run's
+units, and `GET /api/v1/runs/{runId}/units/{unitId}` returns each attempt and row with links to its
+files (see the [API](../reference/api)). From a pipeline, `wfm units <runId> [<unitId>]` prints
+them.
+
+Evidence of an attempt is written once. A late upload of the same attempt (for example from a
+worker that lost its work) does not replace a file the report already links to. Runs from before
+this version keep their links as they were. Their attempts and rows were not kept separately.
+
 ### Visual testing {#visual-testing}
 
 With **Visual testing** on in a plan, each step's screenshot is compared with its **baseline**. The
@@ -206,6 +235,11 @@ each is; which passed; and which need a person to check.
 An export contains the results and the screenshots of failed tests, and nothing else of the
 run's evidence: no trace, HAR or video, and no link to one, whoever exports it. A screenshot of a
 test in a restricted project the exporting person is not on is left out.
+
+Attempts and dataset rows never count as tests of their own: an export has one test per unit, as
+the report does. The HTML report lists them under **Attempts and dataset rows**. Allure attaches
+them to their test as _Attempts and dataset rows_. JUnit keeps one `<testcase>` per unit and puts
+them in the `wfm.attempts` property.
 
 **Requirements covered** shows the [requirements](./organizing#requirements) with exactly this run's
 results, and exports them as a traceability matrix.

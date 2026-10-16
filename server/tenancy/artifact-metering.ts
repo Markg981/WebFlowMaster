@@ -11,6 +11,7 @@ import {
 } from '../platform/middleware/tenancy';
 import { quotaUsage, quotasFor, QuotaError } from './tenant-quotas';
 import type { ArtifactStore } from './artifact-store';
+import { isWriteOnceKey } from './write-once';
 
 const rawStores = new WeakMap<ArtifactStore, ArtifactStore>();
 
@@ -96,12 +97,14 @@ async function meteredWrite(
   contentType?: string,
 ): Promise<void> {
   const token = randomUUID();
-  await runWithTenant(organizationId, () =>
+  const kept = await runWithTenant(organizationId, () =>
     withTenantTransaction(async (tx) => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(7304,${organizationId})`);
       const [current] = await tx.select().from(quotaArtifacts).where(eq(quotaArtifacts.key, key));
       if (current?.reservationId)
         throw new Error('An interrupted artifact write requires reconciliation before retry.');
+      // An attempt's evidence, committed already: a late write changes neither it nor its bytes.
+      if (current && isWriteOnceKey(key)) return true;
       const [limits, usage] = await Promise.all([
         quotasFor(tx, organizationId),
         quotaUsage(tx, organizationId),
@@ -128,8 +131,10 @@ async function meteredWrite(
           target: [quotaArtifacts.organizationId, quotaArtifacts.key],
           set: { reservedBytes: growth, reservationId: token, updatedAt: new Date() },
         });
+      return false;
     }),
   );
+  if (kept) return;
   // On ambiguous errors the reservation stays: the object might exist despite a lost reply.
   await raw.write(key, body, contentType);
   await runWithTenant(organizationId, () =>

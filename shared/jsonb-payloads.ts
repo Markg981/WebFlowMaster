@@ -44,6 +44,9 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   'dashboards.widgets': 'migration',
   'detected_elements.attributes': 'opaque',
   'execution_logs.metadata': 'opaque',
+  // What one attempt left behind (AttemptEvidenceRecord, migration 0092): written once when the
+  // attempt ends, read by the report and the API; a new shape needs a data migration.
+  'execution_unit_attempts.evidence': 'migration',
   // Where a unit runs (shared/execution-identity.ts): written once with the manifest and never
   // rewritten — the unit id is a hash of it.
   'execution_units.coordinates': 'snapshot',

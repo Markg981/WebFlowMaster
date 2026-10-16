@@ -51,8 +51,13 @@ describe('videoContextOptions', () => {
   it('points the recording at a scratch directory inside the run', async () => {
     const options = await videoContextOptions({ video: 'always', artifactDir: workDir });
 
-    expect(options.recordVideo?.dir).toBe(videoScratchDir(workDir));
+    expect(path.dirname(options.recordVideo!.dir)).toBe(path.join(workDir, '_video'));
     expect(await fs.pathExists(options.recordVideo!.dir)).toBe(true);
+  });
+
+  it('gives every context its own scratch directory, even in one evidence directory (P08)', async () => {
+    const dirs = new Set(Array.from({ length: 20 }, () => videoScratchDir(workDir)));
+    expect(dirs.size).toBe(20);
   });
 });
 
@@ -213,6 +218,54 @@ describe('captureRunEvidence', () => {
     expect(page.close).toHaveBeenCalled();
     expect(context.close).toHaveBeenCalled();
     expect(context.tracing.stop).not.toHaveBeenCalled();
+  });
+
+  it('cleans up only its own recording when two contexts share an evidence directory (P08)', async () => {
+    // Two languages of one test from a worker without units: one directory, two recordings at once.
+    const [first, second] = await Promise.all([
+      videoContextOptions({ video: 'always', artifactDir: workDir }),
+      videoContextOptions({ video: 'always', artifactDir: workDir }),
+    ]);
+    const secondRecording = path.join(second.recordVideo!.dir, 'in-progress.webm');
+    await fs.writeFile(secondRecording, 'still recording');
+
+    const { context, page } = fakes();
+    await captureRunEvidence({
+      context,
+      page,
+      options: { video: 'always', artifactDir: workDir },
+      tracing: false,
+      passed: false,
+      label: 'first',
+      scratchDir: first.recordVideo!.dir,
+    });
+
+    expect(await fs.pathExists(first.recordVideo!.dir)).toBe(false);
+    expect(await fs.readFile(secondRecording, 'utf8')).toBe('still recording');
+  });
+
+  it('leaves another context’s HAR being written alone (P08)', async () => {
+    const harDir = path.join(workDir, '_har');
+    await fs.ensureDir(harDir);
+    const mine = path.join(harDir, 'mine.har');
+    const theirs = path.join(harDir, 'theirs.har');
+    await fs.writeFile(mine, JSON.stringify({ log: { entries: [] } }));
+    await fs.writeFile(theirs, 'being written');
+
+    const { context, page } = fakes();
+    const captured = await captureRunEvidence({
+      context,
+      page,
+      options: { network: 'always', artifactDir: workDir },
+      tracing: false,
+      passed: false,
+      label: 'first',
+      harScratchPath: mine,
+    });
+
+    expect(captured.harPath).toBe(path.join(workDir, 'first_network.har'));
+    expect(await fs.pathExists(mine)).toBe(false);
+    expect(await fs.readFile(theirs, 'utf8')).toBe('being written');
   });
 
   it('does not let a failed save cost the run its verdict', async () => {

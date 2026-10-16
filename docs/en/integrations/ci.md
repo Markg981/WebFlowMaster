@@ -32,6 +32,7 @@ node wfm.mjs run <planId> --wait --junit junit.xml --html report.html
 | `wfm status <runId>`                              | Prints a run's state.                                                                           |
 | `wfm junit <runId> --junit <file>`                | Writes a finished run's JUnit XML.                                                              |
 | `wfm export <runId> --html/--pdf/--allure <file>` | Writes a finished run's reports.                                                                |
+| `wfm units <runId> [<unitId>]`                    | Lists a run's units; for one unit, each attempt and dataset row with links to its evidence.     |
 
 Options: `--url` / `$WFM_URL`, `--key` / `$WFM_API_KEY`, `--environment <id>`, `--timeout <seconds>`
 (default 1800), `--junit`, `--html`, `--pdf`, `--allure <file>`, `--update-baselines`,

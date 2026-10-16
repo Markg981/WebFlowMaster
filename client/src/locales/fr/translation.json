@@ -5118,6 +5118,16 @@
     "new": "Nouveau"
   },
   "stepDetails": {
-    "evidenceRestricted": "Cette exécution a conservé une trace Playwright ou un enregistrement réseau. Ils peuvent contenir des mots de passe et des jetons en clair : seuls les éditeurs et les propriétaires peuvent les télécharger."
+    "evidenceRestricted": "Cette exécution a conservé une trace Playwright ou un enregistrement réseau. Ils peuvent contenir des mots de passe et des jetons en clair : seuls les éditeurs et les propriétaires peuvent les télécharger.",
+    "attempts": "Tentatives",
+    "attemptLabel": "Tentative {{n}}",
+    "running": "en cours",
+    "deciding": "· résultat",
+    "rows": "Lignes du jeu de données",
+    "allRows": "Toutes les lignes",
+    "rowLabel": "Ligne {{n}}",
+    "sliceScreenshot": "Capture d’écran",
+    "downloadHar": "Télécharger l’enregistrement réseau (HAR)",
+    "stepsNotKept": "Le rapport conserve les étapes de la tentative qui fonde le résultat. Les étapes de cette tentative sont dans sa trace et sa vidéo, si le plan les a conservées."
   }
 }

@@ -76,22 +76,47 @@ export function datasetRows(test: { dataset?: unknown }): Array<Record<string, s
     );
 }
 
+/** One row's own result, as `once` returned it, with where it sits in the dataset. */
+export interface DatasetRowRun<T> {
+  /** The row's index, from 0: its evidence directory is `row_<index>` (shared/execution-identity.ts). */
+  index: number;
+  label: string;
+  result: T;
+}
+
+/** What a run over a dataset produced: each row's own result, and the merged view of all of them. */
+export interface DatasetRun<T> {
+  /** Every row passed. */
+  success: boolean;
+  /** Every row's steps, in row order, each named after its row. */
+  steps: StepResult[];
+  /** The first row's error that had one, named after its row: what used to be lost in the merge. */
+  error?: string;
+  rows: Array<DatasetRowRun<T>>;
+}
+
 /**
- * Runs `once` for each row, labelling and merging the results.
+ * Runs `once` for each row, labelling and merging the results — and keeping each row's own, so
+ * its evidence and its error stay with it rather than being folded into one list of steps.
  *
  * Shared by the saved-test path and the builder preview so the two cannot disagree about how
  * many times a test runs — which is precisely how the two step executors drifted.
  */
-export async function runOverDataset<T extends { success: boolean; steps?: StepResult[] }>(
+export async function runOverDataset<
+  T extends { success: boolean; steps?: StepResult[]; error?: string },
+>(
   rows: Array<Record<string, string>>,
   once: (row: Record<string, string>, index: number) => Promise<T>,
-): Promise<{ success: boolean; steps: StepResult[] }> {
+): Promise<DatasetRun<T>> {
   const allSteps: StepResult[] = [];
+  const runs: Array<DatasetRowRun<T>> = [];
   let allPassed = true;
+  let error: string | undefined;
 
   for (const [index, row] of rows.entries()) {
     const label = `Row ${index + 1} of ${rows.length}`;
     const result = await once(row, index);
+    runs.push({ index, label, result });
 
     // Prefixed, because "assertion failed" repeated twenty times says nothing about which
     // input broke it — and finding that out by rerunning the set by hand is the cost this
@@ -100,11 +125,12 @@ export async function runOverDataset<T extends { success: boolean; steps?: StepR
       allSteps.push({ ...step, name: `${label} — ${step.name}` });
     }
     if (!result.success) allPassed = false;
+    if (result.error && error === undefined) error = `${label}: ${result.error}`;
     // Deliberately no early exit: stopping at the first bad row would hide whatever else is
     // broken, and the next run would find it one row at a time.
   }
 
-  return { success: allPassed, steps: allSteps };
+  return { success: allPassed, steps: allSteps, ...(error ? { error } : {}), rows: runs };
 }
 
 export function safeParseJson(value: string): unknown {

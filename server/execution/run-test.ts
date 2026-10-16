@@ -60,6 +60,22 @@ export interface IndividualTestRunResult {
   network?: NetworkSummary;
   /** The directory this test wrote its evidence into, to be published to the artifact store. */
   artifactDir?: string;
+  /**
+   * A UI test with a dataset: each row's own outcome and evidence, from its own directory
+   * (`row_<index>`). The fields above stay the merged view the report has always read.
+   */
+  rows?: RowRunResult[];
+}
+
+/** One dataset row of a UI test run: how it ended, and the evidence it kept. */
+export interface RowRunResult {
+  datasetRow: number;
+  status: 'passed' | 'failed' | 'error';
+  error?: string;
+  screenshotPath?: string;
+  videoPath?: string;
+  tracePath?: string;
+  harPath?: string;
 }
 
 /** What the plan adds to a single test run: which browser, and whether to compare it visually. */
@@ -85,6 +101,25 @@ export interface RunTestOptions {
   http?: typeof fetch;
   /** The language the browser starts in (shared/locales.ts). Absent: the browser's default. */
   locale?: string;
+  /**
+   * Where this try writes its evidence: the attempt's own directory of the run's manifest
+   * (`results/<plan>/<run>/units/<unit>/attempt_<n>`, shared/execution-identity.ts). Absent for a
+   * unit without an id, which keeps the directory named after its test, browser and language.
+   */
+  evidenceDir?: string;
+}
+
+/** The screenshot that says most about a run of steps: a visual failure's diff, else the last one. */
+function telltaleScreenshot(steps: StepResult[] | undefined): string | undefined {
+  const visualFailure = steps?.find(
+    (step) => step.status === 'failed' && step.visual?.outcome === 'diff' && step.visual.diffImage,
+  );
+  if (visualFailure?.visual?.diffImage) return visualFailure.visual.diffImage;
+  for (let i = (steps?.length ?? 0) - 1; i >= 0; i--) {
+    const shot = steps![i].screenshot;
+    if (typeof shot === 'string' && shot && !shot.startsWith('data:image')) return shot;
+  }
+  return undefined;
 }
 
 export async function runTest(
@@ -166,14 +201,21 @@ export async function runTest(
         steps: [...(result.steps ?? []), cleanupReportStep(cleanup) as StepResult],
       };
     };
-    // One directory per browser, because a plan covering two browsers runs this test twice
-    // and the second run would otherwise overwrite the first one's evidence.
-    const screenshotBaseDir = path.join(
-      './results',
-      planId,
-      runId,
-      options?.browser ? `ui_${testId}_${sanitizeSegment(options.browser.label)}` : `ui_${testId}`,
-    );
+    // The attempt's own directory when the run's manifest named this unit: every browser,
+    // language and re-run apart. Otherwise one per browser and language, because a plan covering
+    // two of either runs this test twice and the second would overwrite the first one's evidence.
+    const screenshotBaseDir =
+      options?.evidenceDir ??
+      path.join(
+        './results',
+        planId,
+        runId,
+        [
+          `ui_${testId}`,
+          ...(options?.browser ? [sanitizeSegment(options.browser.label)] : []),
+          ...(options?.locale ? [sanitizeSegment(options.locale)] : []),
+        ].join('_'),
+      );
     try {
       await fs.ensureDir(screenshotBaseDir);
 
@@ -268,30 +310,22 @@ export async function runTest(
       // made: an unverified step is neither a pass nor a regression (visual-verdict.ts, C09).
       const finalStatus = sequenceStatus(result);
 
-      // Find the last screenshot taken, if any (especially on failure)
-      let lastScreenshotPath: string | undefined;
-      if (result.steps && result.steps.length > 0) {
-        for (let i = result.steps.length - 1; i >= 0; i--) {
-          if (
-            result.steps[i].screenshot &&
-            typeof result.steps[i].screenshot === 'string' &&
-            !result.steps[i].screenshot!.startsWith('data:image')
-          ) {
-            lastScreenshotPath = result.steps[i].screenshot;
-            break;
-          }
-        }
-      }
+      // The last screenshot taken, or — for a test that failed on a visual comparison — the
+      // diff, not the page: the page is what the report already has; the diff is the only
+      // picture that answers "what changed?".
+      const lastScreenshotPath = telltaleScreenshot(result.steps);
 
-      // A test that failed on a visual comparison shows the diff, not the page. The page is
-      // what the report already has; the diff is the only picture that answers "what changed?".
-      const visualFailure = result.steps?.find(
-        (step) =>
-          step.status === 'failed' && step.visual?.outcome === 'diff' && step.visual.diffImage,
-      );
-      if (visualFailure?.visual?.diffImage) {
-        lastScreenshotPath = visualFailure.visual.diffImage;
-      }
+      // Each dataset row as itself: its outcome, its error and its own files, which the merged
+      // steps above cannot say (a row's video and trace were never anywhere in them).
+      const rows: RowRunResult[] | undefined = result.rows?.map((row) => ({
+        datasetRow: row.index,
+        status: sequenceStatus(row),
+        ...(row.error ? { error: row.error } : {}),
+        ...(telltaleScreenshot(row.steps) ? { screenshotPath: telltaleScreenshot(row.steps) } : {}),
+        ...(row.evidence?.videoPath ? { videoPath: row.evidence.videoPath } : {}),
+        ...(row.evidence?.tracePath ? { tracePath: row.evidence.tracePath } : {}),
+        ...(row.evidence?.harPath ? { harPath: row.evidence.harPath } : {}),
+      }));
 
       logger.info({
         message: `UI Test completed`,
@@ -317,6 +351,7 @@ export async function runTest(
         harPath: result.evidence?.harPath,
         network: result.evidence?.network,
         artifactDir: screenshotBaseDir,
+        ...(rows ? { rows } : {}),
       });
     } catch (error: any) {
       const durationMs = Date.now() - startTime;

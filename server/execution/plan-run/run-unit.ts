@@ -30,7 +30,8 @@ import { referencedId, type FrozenTests, type MobileEntry, type Quarantined } fr
 import type { RunInputs, RunVariables } from './inputs';
 import type { RunUnit } from './lanes';
 import { buildReportEntry, saveReportEntry, type UnitOutcome } from './report-entry';
-import { beginAttempt, finishAttempt } from '../execution-units';
+import { beginAttempt, finishAttempt, type AttemptRecord } from '../execution-units';
+import { evidenceKey, type AttemptEvidenceRecord } from '@shared/execution-identity';
 import type { RunSettings } from './settings';
 
 /** Everything a unit reads: what the phases before execution produced. */
@@ -139,26 +140,56 @@ interface UnitContext {
 
 /**
  * One try at the unit, as an attempt of the run's manifest: assigned and validated before `once`
- * starts — so before it opens a browser or writes evidence — and closed with its own outcome. A
- * unit with no id (a work item from a worker that predates the manifest) is tried as it always was.
+ * starts — so before it opens a browser or writes evidence — and given its own evidence directory
+ * (`results/<plan>/<run>/units/<unit>/attempt_<n>`), which no other try, browser, language or row
+ * writes into. `conclude` publishes what the try left there and says how it ended; the attempt is
+ * closed with that record before the next try starts, so a re-run never costs the first failure
+ * its evidence. A unit with no id (a work item from a worker that predates the manifest) is tried
+ * as it always was, with no directory of its own.
  */
 async function attempt<T>(
   context: UnitContext,
-  once: () => Promise<T>,
-  statusOf: (result: T) => string,
+  once: (evidenceDir: string | undefined) => Promise<T>,
+  conclude: (result: T, evidenceDir: string) => Promise<{ status: string; record: AttemptRecord }>,
 ): Promise<T> {
   const { unitId } = context.unit;
-  if (!unitId) return once();
-  const ref = await beginAttempt({ executionId: context.scope.run.executionId, unitId });
+  if (!unitId) return once(undefined);
+  const { run } = context.scope;
+  const ref = await beginAttempt({ executionId: run.executionId, unitId });
   context.lastAttempt = ref.attempt;
+  const evidenceDir = path.join('.', evidenceKey(run.planId, { ...ref, datasetRow: null }));
   let status = 'error';
+  let record: AttemptRecord = {};
   try {
-    const result = await once();
-    status = statusOf(result);
+    const result = await once(evidenceDir);
+    ({ status, record } = await conclude(result, evidenceDir));
     return result;
   } finally {
-    await finishAttempt(ref, status);
+    await finishAttempt(ref, status, record);
   }
+}
+
+/** What one try of a UI or API test left behind, as its attempt records it. */
+function attemptEvidenceOf(result: IndividualTestRunResult): AttemptEvidenceRecord {
+  return {
+    screenshotUrl: asResultsUrl(result.screenshotPath) ?? null,
+    videoUrl: asResultsUrl(result.videoPath) ?? null,
+    traceUrl: asResultsUrl(result.tracePath) ?? null,
+    harUrl: asResultsUrl(result.harPath) ?? null,
+    ...(result.rows
+      ? {
+          rows: result.rows.map((row) => ({
+            datasetRow: row.datasetRow,
+            status: row.status,
+            error: row.error ?? null,
+            screenshotUrl: asResultsUrl(row.screenshotPath) ?? null,
+            videoUrl: asResultsUrl(row.videoPath) ?? null,
+            traceUrl: asResultsUrl(row.tracePath) ?? null,
+            harUrl: asResultsUrl(row.harPath) ?? null,
+          })),
+        }
+      : {}),
+  };
 }
 
 /** Runs the unit, or says why it does not run. */
@@ -254,6 +285,28 @@ async function runMobile(
     };
 
   const grid = await toGridConfig(mobile.grid);
+  /** Where the final picture was stored, when its attempt had a directory of its own. */
+  let storedScreenshot: string | undefined;
+  /** Writes a try's picture into `dir` and publishes it; never throws. */
+  const keepScreenshot = async (
+    outcome: MobileOutcome,
+    dir: string,
+  ): Promise<string | undefined> => {
+    if (!outcome.screenshot) return undefined;
+    try {
+      await fs.ensureDir(dir);
+      const file = path.join(dir, 'final.png');
+      await fs.writeFile(file, Buffer.from(outcome.screenshot, 'base64'));
+      await publishArtifacts(dir, run.executionId);
+      return asResultsUrl(file);
+    } catch (error: unknown) {
+      run.logger.warn({
+        message: 'Could not store a mobile test screenshot',
+        error: (error as Error)?.message ?? String(error),
+      });
+      return undefined;
+    }
+  };
   const attemptOnce = () =>
     attempt(
       context,
@@ -264,7 +317,16 @@ async function runMobile(
           variables.forPass(captured),
           `WebFlowMaster · ${run.planId} · ${run.executionId.slice(0, 8)}`,
         ),
-      (result) => result.status,
+      async (result, dir) => {
+        storedScreenshot = await keepScreenshot(result, dir);
+        return {
+          status: result.status,
+          record: {
+            failureReason: result.error ?? null,
+            evidence: { screenshotUrl: storedScreenshot ?? null },
+          },
+        };
+      },
     );
   let attempts = 1;
   let outcome: MobileOutcome = await attemptOnce();
@@ -291,28 +353,20 @@ async function runMobile(
     matrixEvidence: outcome.matrixEvidence,
     steps: outcome.steps,
   };
-  let screenshotUrl: string | undefined;
-  if (outcome.screenshot) {
-    const dir = path.join(
-      './results',
-      run.planId,
-      run.executionId,
-      `mobile_${mobile.test.id}`,
-      mobile.test.deviceMatrix?.length ? (unit.mobileTarget?.key ?? 'device-0') : '',
-    );
-    try {
-      await fs.ensureDir(dir);
-      const file = path.join(dir, 'final.png');
-      await fs.writeFile(file, Buffer.from(outcome.screenshot, 'base64'));
-      await publishArtifacts(dir, run.executionId);
-      screenshotUrl = asResultsUrl(file);
-    } catch (error: unknown) {
-      run.logger.warn({
-        message: 'Could not store a mobile test screenshot',
-        error: (error as Error)?.message ?? String(error),
-      });
-    }
-  }
+  // A unit's last attempt stored its own; a unit without an id keeps the directory named after
+  // its test and device, as it always did.
+  const screenshotUrl = unit.unitId
+    ? storedScreenshot
+    : await keepScreenshot(
+        outcome,
+        path.join(
+          './results',
+          run.planId,
+          run.executionId,
+          `mobile_${mobile.test.id}`,
+          mobile.test.deviceMatrix?.length ? (unit.mobileTarget?.key ?? 'device-0') : '',
+        ),
+      );
   const reasonToStop = inQuarantine
     ? null
     : stopReasonAfter(
@@ -359,12 +413,22 @@ async function runDefinition(
       : definition;
 
   const attemptOnce = () =>
-    attempt(
-      context,
-      () => runTestOnce(),
-      (result) => result.status,
-    );
-  const runTestOnce = () =>
+    attempt(context, runTestOnce, async (result) => {
+      // Published as soon as the try is over, from a directory no later try writes into: the
+      // first failure of a test that passed on its re-run is still there to open.
+      if (result.artifactDir) await publishArtifacts(result.artifactDir, run.executionId);
+      return {
+        status: result.status,
+        record: {
+          failureReason:
+            result.status === 'passed'
+              ? null
+              : (result.error ?? failedStepReason(result.status, result.steps) ?? null),
+          evidence: attemptEvidenceOf(result),
+        },
+      };
+    });
+  const runTestOnce = (evidenceDir: string | undefined) =>
     runTest(
       test,
       run.userId,
@@ -388,6 +452,7 @@ async function runDefinition(
         onPreconditionFailure: policies.onPreconditionFailure,
         signal: run.watch.signal,
         http: agentHttp?.fetch,
+        evidenceDir,
       },
     );
   let attempts = 1;
@@ -415,8 +480,9 @@ async function runDefinition(
 
   // Once its last attempt is over, the test's evidence goes where the report is served
   // from. Per test rather than at the end, so a report opened while the run goes on shows
-  // the pictures of what has finished.
-  if (result.artifactDir) await publishArtifacts(result.artifactDir, run.executionId);
+  // the pictures of what has finished. A unit of the manifest published each attempt's already.
+  if (result.artifactDir && !unit.unitId)
+    await publishArtifacts(result.artifactDir, run.executionId);
 
   // A quarantined test's failure does not stop the plan: stopping on it would be failing
   // the run by another route.

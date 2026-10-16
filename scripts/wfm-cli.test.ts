@@ -394,6 +394,103 @@ describe('runCli', () => {
   });
 });
 
+describe('wfm units (P08)', () => {
+  const unitId = `u_${'a'.repeat(24)}`;
+
+  it('reads a run id and, optionally, a unit id', () => {
+    expect(parseArgs(['units', 'run-1'], {})).toMatchObject({ command: 'units', target: 'run-1' });
+    expect(parseArgs(['units', 'run-1', unitId], {})).toMatchObject({ unitId });
+    expect(parseArgs(['units', 'run-1', '../etc'], {})).toHaveProperty('error');
+    expect(parseArgs(['units'], {})).toHaveProperty('error');
+  });
+
+  it("lists a run's units page by page, one line each", async () => {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          {
+            unitId,
+            state: 'recorded',
+            testType: 'ui',
+            browser: 'chromium',
+            locale: 'it-IT',
+            result: { testName: 'Checkout', status: 'Passed', attempts: 2 },
+          },
+        ],
+        total: 1,
+      }),
+    );
+    const context = io(fetchImpl);
+    expect(await runCli(options({ command: 'units', target: 'run-1' }), context)).toBe(EXIT_PASSED);
+    expect(fetchImpl.mock.calls[0][0]).toBe(
+      'https://wfm.test/api/v1/runs/run-1/units?limit=100&offset=0',
+    );
+    expect(context.lines).toEqual([
+      `${unitId}  Passed after 2 attempts  Checkout — chromium · it-IT`,
+    ]);
+  });
+
+  it("shows a unit's attempts and rows, each with its own evidence", async () => {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        unitId,
+        state: 'recorded',
+        testType: 'ui',
+        browser: 'chromium',
+        locale: 'en-US',
+        result: { testName: 'Checkout', status: 'Passed', attempts: 2 },
+        evidence: {
+          decidingAttempt: 2,
+          attempts: [
+            {
+              attempt: 1,
+              status: 'failed',
+              failureReason: 'Row 2 of 2: sold out',
+              restricted: false,
+              rows: [
+                { datasetRow: 0, status: 'passed', restricted: false },
+                {
+                  datasetRow: 1,
+                  status: 'failed',
+                  error: 'sold out',
+                  traceUrl: '/api/v1/runs/run-1/artifacts/units/u/attempt_1/row_1/t_trace.zip',
+                  restricted: false,
+                },
+              ],
+            },
+            { attempt: 2, status: 'passed', restricted: true, rows: [] },
+          ],
+        },
+      }),
+    );
+    const context = io(fetchImpl);
+    expect(await runCli(options({ command: 'units', target: 'run-1', unitId }), context)).toBe(
+      EXIT_PASSED,
+    );
+    const text = context.lines.join('\n');
+    expect(text).toContain('attempt 1: failed — Row 2 of 2: sold out');
+    expect(text).toContain('row 2: failed — sold out');
+    expect(text).toContain(
+      'trace https://wfm.test/api/v1/runs/run-1/artifacts/units/u/attempt_1/row_1/t_trace.zip',
+    );
+    expect(text).toContain('attempt 2: passed [result]');
+    expect(text).toContain('trace/HAR withheld');
+  });
+
+  it('says so when the unit cannot be read', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ error: { code: 'unit_not_found', message: 'x' } }, 404),
+      );
+    const context = io(fetchImpl);
+    expect(await runCli(options({ command: 'units', target: 'run-1', unitId }), context)).toBe(
+      EXIT_TOOL_ERROR,
+    );
+    expect(context.errors[0]).toMatch(/Could not read the unit: 404/);
+  });
+});
+
 describe('on GitHub Actions', () => {
   const env = {
     GITHUB_ACTIONS: 'true',

@@ -5118,6 +5118,16 @@
     "new": "New"
   },
   "stepDetails": {
-    "evidenceRestricted": "This run kept a Playwright trace or a network recording. They can hold passwords and tokens in clear, so only editors and owners can download them."
+    "evidenceRestricted": "This run kept a Playwright trace or a network recording. They can hold passwords and tokens in clear, so only editors and owners can download them.",
+    "attempts": "Attempts",
+    "attemptLabel": "Attempt {{n}}",
+    "running": "running",
+    "deciding": "· result",
+    "rows": "Dataset rows",
+    "allRows": "All rows",
+    "rowLabel": "Row {{n}}",
+    "sliceScreenshot": "Screenshot",
+    "downloadHar": "Download the network recording (HAR)",
+    "stepsNotKept": "The report keeps the steps of the attempt the result stands on. This attempt’s own steps are in its trace and video, when the plan kept them."
   }
 }

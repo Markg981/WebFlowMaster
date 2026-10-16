@@ -8,6 +8,7 @@ import type { CiContext } from '@shared/ci';
 import type { ReproducibilitySummary } from '@shared/execution-provenance';
 import { reproducibilitySummary } from '../execution/execution-provenance';
 import { readExecutionSnapshot } from '../execution/execution-snapshot';
+import { readAttempts } from '../execution/execution-units';
 import { withTenantTransaction } from '../platform/middleware/tenancy';
 import {
   artifactStore,
@@ -66,6 +67,20 @@ export interface ReportResultModel {
   network: NetworkSummary | null;
   /** The stored path of the result's screenshot, for an export that embeds it. */
   screenshotPath: string | null;
+  /**
+   * Every try at the result's unit, and the dataset rows of each, when the run kept a manifest
+   * (P08). Part of this one result: an export shows them under it and never counts them as tests.
+   */
+  unitAttempts: ReportAttemptModel[];
+}
+
+export interface ReportAttemptModel {
+  attempt: number;
+  status: string | null;
+  reason: string | null;
+  /** The attempt the result stands on. */
+  deciding: boolean;
+  rows: Array<{ datasetRow: number; status: string; error: string | null }>;
 }
 
 export interface ReportModel {
@@ -169,11 +184,24 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
       executionId,
       principal: null,
     });
-    return { ...row, results, access };
+    const attempts = await readAttempts(tx, executionId);
+    return { ...row, results, access, attempts };
   });
   if (!source) return null;
 
-  const { execution, planName, results, access } = source;
+  const { execution, planName, results, access, attempts } = source;
+  const attemptsOf = (r: (typeof results)[number]): ReportAttemptModel[] =>
+    (r.executionUnitId ? (attempts.get(r.executionUnitId) ?? []) : []).map((a) => ({
+      attempt: a.attempt,
+      status: a.status ?? null,
+      reason: a.failureReason ?? null,
+      deciding: a.attempt === r.unitAttempt,
+      rows: (a.evidence?.rows ?? []).map((row) => ({
+        datasetRow: row.datasetRow,
+        status: row.status,
+        error: row.error ?? null,
+      })),
+    }));
   const count = (status: string) => results.filter((r) => r.status === status).length;
   return {
     executionId: execution.id,
@@ -237,6 +265,7 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
             r.screenshotUrl ?? failedStepScreenshot(r.detailedLog),
             access,
           ),
+      unitAttempts: attemptsOf(r),
     })),
   };
 }

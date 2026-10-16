@@ -74,6 +74,21 @@ const planQuotas = {
   maxArtifactBytes: { type: ['integer', 'null'] },
   maxMonthlyExecutionMinutes: { type: ['integer', 'null'] },
 };
+/** Links to one slice of an attempt's evidence: only to what the caller may open. */
+const evidenceLinks = {
+  screenshotUrl: nullableText,
+  videoUrl: nullableText,
+  traceUrl: {
+    ...nullableText,
+    description: 'Raw evidence: null unless the caller has the editor role and `runs:evidence`.',
+  },
+  harUrl: { ...nullableText, description: 'Raw evidence, like the trace.' },
+  restricted: {
+    type: 'boolean',
+    description: 'Raw evidence was kept for this slice and the caller may not open it.',
+  },
+};
+
 export const managementSchemas = {
   BillingPlan: object(
     {
@@ -178,6 +193,77 @@ export const managementSchemas = {
     },
     ['path', 'kind', 'contentType', 'size', 'url'],
   ),
+  RunUnit: object(
+    {
+      unitId: { ...text, pattern: '^u_[0-9a-f]{24}$', description: 'Opaque, scoped to its run.' },
+      position: { type: 'integer', minimum: 0, description: 'Plan order.' },
+      state: { ...text, enum: ['planned', 'running', 'recorded', 'not_startable'] },
+      reason: { ...nullableText, description: 'Why a not_startable unit could not start.' },
+      testType: { ...text, enum: ['ui', 'api', 'mobile'] },
+      testId: { type: ['integer', 'null'] },
+      occurrence: { type: 'integer', minimum: 0, description: 'Which occurrence of the test.' },
+      browser: nullableText,
+      locale: nullableText,
+      device: nullableText,
+      bddRow: {
+        type: ['integer', 'null'],
+        description:
+          'A cucumber test’s dataset row, by index; a UI dataset’s rows are attempt rows.',
+      },
+      result: {
+        type: ['object', 'null'],
+        additionalProperties: false,
+        properties: {
+          id: text,
+          testName: text,
+          status: text,
+          attempts: { type: 'integer', minimum: 0 },
+          decidingAttempt: { type: ['integer', 'null'] },
+        },
+        description: 'Its single final result, once written.',
+      },
+    },
+    ['unitId', 'position', 'state', 'testType', 'result'],
+  ),
+  AttemptRow: object(
+    {
+      datasetRow: { type: 'integer', minimum: 0 },
+      status: { ...text, enum: ['passed', 'failed', 'error', 'skipped'] },
+      error: nullableText,
+      ...evidenceLinks,
+    },
+    ['datasetRow', 'status', 'restricted'],
+  ),
+  UnitAttempt: object(
+    {
+      attempt: integer,
+      state: { ...text, enum: ['running', 'finished'] },
+      status: nullableText,
+      failureReason: nullableText,
+      startedAt: date,
+      finishedAt: nullableDate,
+      ...evidenceLinks,
+      rows: { type: 'array', items: ref('AttemptRow') },
+    },
+    ['attempt', 'state', 'startedAt', 'restricted', 'rows'],
+  ),
+  RunUnitDetail: {
+    ...object(
+      {
+        evidence: object(
+          {
+            unitId: text,
+            decidingAttempt: { type: ['integer', 'null'] },
+            attempts: { type: 'array', items: ref('UnitAttempt') },
+          },
+          ['unitId', 'decidingAttempt', 'attempts'],
+        ),
+      },
+      ['evidence'],
+    ),
+    additionalProperties: true,
+    allOf: [ref('RunUnit')],
+  },
   TagInput: object({ name: { ...text, minLength: 1, maxLength: 60 } }, ['name']),
   Tag: object({ id: text, name: text, createdAt: date, ...tagCounts }, ['id', 'name']),
   TagDeletion: object(
@@ -424,6 +510,43 @@ export const managementPaths = {
         },
         '502': error('The artifact store could not be reached (`artifact_store_unavailable`).'),
       },
+    }),
+  },
+  '/api/v1/runs/{runId}/units': {
+    get: operation({
+      id: 'listRunUnits',
+      scope: 'runs:read',
+      parameters: [...runId, ...pagination],
+      summary:
+        'The units a run expected — one per test, browser, language and device — in plan order.',
+      description:
+        'Each unit carries its single final result once written. Units of a test in a restricted project the caller is not on are left out. A run from before the manifest has none.',
+      responses: {
+        '200': {
+          description: 'A page of units, with how many there are.',
+          content: { 'application/json': { schema: withTotal('RunUnit') } },
+        },
+      },
+    }),
+  },
+  '/api/v1/runs/{runId}/units/{unitId}': {
+    get: operation({
+      id: 'getRunUnit',
+      scope: 'runs:read',
+      parameters: [
+        ...runId,
+        {
+          name: 'unitId',
+          in: 'path',
+          required: true,
+          schema: { ...text, pattern: '^u_[0-9a-f]{24}$' },
+        },
+      ],
+      response: 'RunUnitDetail',
+      summary:
+        'One unit with every attempt at it and every dataset row of each, with their evidence.',
+      description:
+        'The first failure of a test that passed on a re-run keeps its own evidence, as does each dataset row. Links follow the rules of the artifacts endpoint: traces and HAR files only for the editor role and, on a scoped key, `runs:evidence`; otherwise null with `restricted: true`.',
     }),
   },
   '/api/v1/runs/{runId}/artifacts/{path}': {

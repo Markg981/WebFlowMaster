@@ -4,7 +4,7 @@ Generated from `shared/schema/` (one file per domain) with `node scripts/generat
 
 Read the [domain schema](./database-schema) for explanations and relationships, then find the table here. Each row lists the TypeScript property, SQL name and complete builder: type, nullability, default and references declared on the column. Table callback constraints are not expanded here.
 
-**80 tables / 893 declared columns.**
+**80 tables / 895 declared columns.**
 
 ## Index
 
@@ -64,7 +64,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | [test_plan_selected_tests](#test-plan-selected-tests)         | `testPlanSelectedTests`      | 7       |
 | [run_work_items](#run-work-items)                             | `runWorkItems`               | 11      |
 | [execution_units](#execution-units)                           | `executionUnits`             | 9       |
-| [execution_unit_attempts](#execution-unit-attempts)           | `executionUnitAttempts`      | 9       |
+| [execution_unit_attempts](#execution-unit-attempts)           | `executionUnitAttempts`      | 11      |
 | [impact_rules](#impact-rules)                                 | `impactRules`                | 5       |
 | [test_suites](#test-suites)                                   | `testSuites`                 | 10      |
 | [test_suite_items](#test-suite-items)                         | `testSuiteItems`             | 8       |
@@ -821,7 +821,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plans {#test-plans}
 
-`testPlans` — `shared/schema/execution.ts:32`
+`testPlans` — `shared/schema/execution.ts:36`
 
 | TS property                      | SQL column                            | Declaration                                                                                                           |
 | -------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -858,7 +858,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_schedules {#test-plan-schedules}
 
-`testPlanSchedules` — `shared/schema/execution.ts:122`
+`testPlanSchedules` — `shared/schema/execution.ts:126`
 
 | TS property                  | SQL column                     | Declaration                                                                                |
 | ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
@@ -881,7 +881,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_executions {#test-plan-executions}
 
-`testPlanExecutions` — `shared/schema/execution.ts:165`
+`testPlanExecutions` — `shared/schema/execution.ts:169`
 
 | TS property             | SQL column                | Declaration                                                                                      |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -923,7 +923,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_outbox {#execution-outbox}
 
-`executionOutbox` — `shared/schema/execution.ts:252`
+`executionOutbox` — `shared/schema/execution.ts:256`
 
 | TS property      | SQL column        | Declaration                                                                                            |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------ |
@@ -940,7 +940,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## report_test_case_results {#report-test-case-results}
 
-`reportTestCaseResults` — `shared/schema/execution.ts:279`
+`reportTestCaseResults` — `shared/schema/execution.ts:283`
 
 | TS property           | SQL column               | Declaration                                                                                                   |
 | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -979,7 +979,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_logs {#execution-logs}
 
-`executionLogs` — `shared/schema/execution.ts:369`
+`executionLogs` — `shared/schema/execution.ts:373`
 
 | TS property           | SQL column               | Declaration                                                                                                   |
 | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -996,7 +996,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_webhooks {#test-plan-webhooks}
 
-`testPlanWebhooks` — `shared/schema/execution.ts:394`
+`testPlanWebhooks` — `shared/schema/execution.ts:398`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1011,7 +1011,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_selected_tests {#test-plan-selected-tests}
 
-`testPlanSelectedTests` — `shared/schema/execution.ts:421`
+`testPlanSelectedTests` — `shared/schema/execution.ts:425`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1025,7 +1025,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## run_work_items {#run-work-items}
 
-`runWorkItems` — `shared/schema/execution.ts:450`
+`runWorkItems` — `shared/schema/execution.ts:454`
 
 | TS property      | SQL column        | Declaration                                                                                         |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -1043,7 +1043,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_units {#execution-units}
 
-`executionUnits` — `shared/schema/execution.ts:482`
+`executionUnits` — `shared/schema/execution.ts:486`
 
 | TS property      | SQL column        | Declaration                                                                                         |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -1059,7 +1059,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_unit_attempts {#execution-unit-attempts}
 
-`executionUnitAttempts` — `shared/schema/execution.ts:510`
+`executionUnitAttempts` — `shared/schema/execution.ts:514`
 
 | TS property      | SQL column        | Declaration                                                                       |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------- |
@@ -1069,13 +1069,15 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 | `attempt`        | `attempt`         | `integer('attempt').notNull()`                                                    |
 | `state`          | `state`           | `text('state').$type<'running' &#124; 'finished'>().notNull().default('running')` |
 | `status`         | `status`          | `text('status')`                                                                  |
+| `failureReason`  | `failure_reason`  | `text('failure_reason')`                                                          |
+| `evidence`       | `evidence`        | `jsonb('evidence').$type<AttemptEvidenceRecord>()`                                |
 | `worker`         | `worker`          | `text('worker')`                                                                  |
 | `startedAt`      | `started_at`      | `timestamp('started_at').notNull().defaultNow()`                                  |
 | `finishedAt`     | `finished_at`     | `timestamp('finished_at')`                                                        |
 
 ## impact_rules {#impact-rules}
 
-`impactRules` — `shared/schema/execution.ts:539`
+`impactRules` — `shared/schema/execution.ts:546`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -1087,7 +1089,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_suites {#test-suites}
 
-`testSuites` — `shared/schema/execution.ts:562`
+`testSuites` — `shared/schema/execution.ts:569`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -1104,7 +1106,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_suite_items {#test-suite-items}
 
-`testSuiteItems` — `shared/schema/execution.ts:585`
+`testSuiteItems` — `shared/schema/execution.ts:592`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1119,7 +1121,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_suites {#test-plan-suites}
 
-`testPlanSuites` — `shared/schema/execution.ts:606`
+`testPlanSuites` — `shared/schema/execution.ts:613`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1130,7 +1132,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_quarantines {#test-quarantines}
 
-`testQuarantines` — `shared/schema/execution.ts:631`
+`testQuarantines` — `shared/schema/execution.ts:638`
 
 | TS property      | SQL column        | Declaration                                                                      |
 | ---------------- | ----------------- | -------------------------------------------------------------------------------- |
@@ -1149,7 +1151,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## mobile_test_runs {#mobile-test-runs}
 
-`mobileTestRuns` — `shared/schema/execution.ts:657`
+`mobileTestRuns` — `shared/schema/execution.ts:664`
 
 | TS property             | SQL column                | Declaration                                                                                       |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -1174,7 +1176,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## load_test_runs {#load-test-runs}
 
-`loadTestRuns` — `shared/schema/execution.ts:691`
+`loadTestRuns` — `shared/schema/execution.ts:698`
 
 | TS property       | SQL column         | Declaration                                                                                   |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------- |

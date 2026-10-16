@@ -64,6 +64,45 @@ describe('keys', () => {
   });
 });
 
+describe('an attempt’s evidence is written once (P08)', () => {
+  const unitKey = 'results/p/e/units/u_0123456789abcdef01234567/attempt_1/row_0/x_trace.zip';
+
+  it('knows the units space from everything else', async () => {
+    const { isWriteOnceKey } = await import('./write-once');
+    expect(isWriteOnceKey(unitKey)).toBe(true);
+    expect(isWriteOnceKey(unitKey.replace(/\//g, '\\'))).toBe(true);
+    expect(isWriteOnceKey('results/p/e/ui_1_chromium/x_trace.zip')).toBe(false);
+    expect(isWriteOnceKey('visual-baselines/org_1/test_2/chromium/step_000.png')).toBe(false);
+    expect(isWriteOnceKey('results/p/e/units/not-a-unit/attempt_1/x.png')).toBe(false);
+  });
+
+  it('keeps the first file on the disk when a late write arrives', async () => {
+    const store = createLocalArtifactStore(cwd);
+    await store.write(unitKey, Buffer.from('first'));
+    await store.write(unitKey, Buffer.from('late'));
+    expect((await store.read(unitKey))?.toString()).toBe('first');
+    // Outside the units space, last write wins as it always did.
+    await store.write('results/p/e/ui_1/a.png', Buffer.from('first'));
+    await store.write('results/p/e/ui_1/a.png', Buffer.from('late'));
+    expect((await store.read('results/p/e/ui_1/a.png'))?.toString()).toBe('late');
+    // No staging file left behind by the refused write.
+    expect(
+      (await fs.readdir(path.dirname(path.join(cwd, unitKey)))).filter((f) => f.endsWith('.tmp')),
+    ).toEqual([]);
+  });
+
+  it('asks the bucket to create it only if absent, and keeps the first object', async () => {
+    const client = fakeS3();
+    const store = createS3ArtifactStore({ client, bucket: 'b', cwd });
+    await store.write(unitKey, Buffer.from('first'));
+    await expect(store.write(unitKey, Buffer.from('late'))).resolves.toBeUndefined();
+    expect(client.objects.get(unitKey)?.body.toString()).toBe('first');
+    await store.write('results/p/e/ui_1/a.png', Buffer.from('first'));
+    await store.write('results/p/e/ui_1/a.png', Buffer.from('late'));
+    expect(client.objects.get('results/p/e/ui_1/a.png')?.body.toString()).toBe('late');
+  });
+});
+
 describe('the local store', () => {
   it('keeps run files and baselines where they have always been', async () => {
     const store = createLocalArtifactStore(cwd);

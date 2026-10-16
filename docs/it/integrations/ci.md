@@ -35,12 +35,13 @@ curl -fsSL "$WFM_URL/cli/wfm.mjs" -o wfm.mjs
 node wfm.mjs run <planId> --wait --junit junit.xml --html report.html
 ```
 
-| Comando                                           | Cosa fa                                                                                                    |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `wfm run <planId>`                                | Avvia un'esecuzione. Con `--wait` (implicito con qualsiasi opzione di report) aspetta ed esce con l'esito. |
-| `wfm status <runId>`                              | Stampa lo stato di un'esecuzione.                                                                          |
-| `wfm junit <runId> --junit <file>`                | Scrive il JUnit XML di un'esecuzione finita.                                                               |
-| `wfm export <runId> --html/--pdf/--allure <file>` | Scrive i report di un'esecuzione finita.                                                                   |
+| Comando                                           | Cosa fa                                                                                                     |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `wfm run <planId>`                                | Avvia un'esecuzione. Con `--wait` (implicito con qualsiasi opzione di report) aspetta ed esce con l'esito.  |
+| `wfm status <runId>`                              | Stampa lo stato di un'esecuzione.                                                                           |
+| `wfm junit <runId> --junit <file>`                | Scrive il JUnit XML di un'esecuzione finita.                                                                |
+| `wfm export <runId> --html/--pdf/--allure <file>` | Scrive i report di un'esecuzione finita.                                                                    |
+| `wfm units <runId> [<unitId>]`                    | Elenca le unità di un'esecuzione; per un'unità, ogni tentativo e riga del dataset con i link alle evidenze. |
 
 Opzioni:
 
