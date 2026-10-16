@@ -168,6 +168,16 @@ With **Visual testing** on in a plan, each step's screenshot is compared with it
 first run after turning it on records the baselines. After that, a step whose screenshot differs
 shows the **Baseline**, **This run** and the **Difference**.
 
+A comparison can also fail to happen: the stored baseline is not a readable image, the artifact
+store cannot be reached, or the step's screenshot cannot be taken. That step is **not verified**,
+and the test ends as **Error** — never Passed, and never counted as a visual difference. The step
+shows the cause (`baseline-corrupt`, `storage-unavailable`, `screenshot-unavailable`,
+`comparison-failed`); the reason reads "Visual comparison could not run (…)". Exports agree: the
+JSON report keeps the cause on the step, Allure shows the test and the step as _broken_ under
+**Visual comparison errors**, and JUnit writes an `<error>`. A corrupt baseline is never replaced
+on its own: start a run with `updateBaselines: true` (see the [API](../reference/api)) to accept
+that run's screenshots as the new baselines.
+
 ### Network
 
 When the plan keeps the network, the report summarizes each test's traffic: how many requests,

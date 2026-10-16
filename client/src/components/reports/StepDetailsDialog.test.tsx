@@ -106,6 +106,31 @@ describe('StepDetailsDialog', () => {
     expect(screen.queryByAltText('Screenshot')).not.toBeInTheDocument();
   });
 
+  it('shows a comparison that could not run as not verified, with its cause and no pictures', () => {
+    const reason =
+      'Visual comparison could not run (storage-unavailable): ECONNREFUSED. The step was not verified visually.';
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Home looks right"
+        steps={[
+          {
+            name: 'Draw the page',
+            type: 'executeScript',
+            status: 'failed',
+            details: reason,
+            error: reason,
+            visual: { outcome: 'error', cause: 'storage-unavailable', detail: reason },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('not verified · storage-unavailable')).toBeInTheDocument();
+    expect(screen.queryByAltText('Difference')).not.toBeInTheDocument();
+  });
+
   it("shows a step's screenshot when there was no visual comparison", () => {
     render(
       <StepDetailsDialog

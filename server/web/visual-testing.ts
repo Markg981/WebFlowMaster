@@ -68,7 +68,52 @@ export type VisualOutcome =
       artifacts: { baseline?: string; actual?: string; diff?: string };
       detail: string;
     }
-  | { kind: 'skipped'; reason: string };
+  | {
+      /**
+       * The comparison was asked for and could not be made: the step is neither a match nor a
+       * regression, and nobody verified what it looks like (C09). The cause says which part broke.
+       */
+      kind: 'error';
+      cause: VisualErrorCause;
+      detail: string;
+    };
+
+/**
+ * Why a comparison that was asked for did not happen.
+ *
+ * - `baseline-corrupt`: the stored baseline is not a readable image. It is not replaced on its
+ *   own: only a run that accepts new baselines deliberately does that.
+ * - `storage-unavailable`: the artifact store could not read or write the baseline.
+ * - `screenshot-unavailable`: this run's picture could not be taken or is not a readable image.
+ * - `comparison-failed`: anything else that broke while comparing the two.
+ */
+export type VisualErrorCause =
+  'baseline-corrupt' | 'storage-unavailable' | 'screenshot-unavailable' | 'comparison-failed';
+
+/** Thrown inside the comparison to carry its cause out to the one place that reports it. */
+class VisualComparisonError extends Error {
+  constructor(
+    readonly visualCause: VisualErrorCause,
+    error: unknown,
+  ) {
+    super(error instanceof Error ? error.message : String(error));
+  }
+}
+
+/**
+ * The outcome of a comparison that could not be made.
+ *
+ * Its words are deliberately not "visual difference": a report or an Allure category that groups
+ * regressions by that phrase must not count an infrastructure problem among them.
+ */
+export function visualError(cause: VisualErrorCause, error: unknown): VisualOutcome {
+  const message = error instanceof Error ? error.message : String(error ?? 'unknown error');
+  return {
+    kind: 'error',
+    cause,
+    detail: `Visual comparison could not run (${cause}): ${message}. The step was not verified visually.`,
+  };
+}
 
 export { baselineRoot };
 
@@ -173,12 +218,26 @@ export async function compareStepScreenshot(
   const key = baselineKeyFor(ctx, stepIndex);
   const baselinePath = store.kind === 'local' ? baselinePathFor(ctx, stepIndex) : key;
 
+  // Each stage names its own cause, so the caller can tell a broken baseline from a store that is
+  // down and from a screenshot that is not an image.
+  const stage = async <T>(cause: VisualErrorCause, work: () => T | Promise<T>): Promise<T> => {
+    try {
+      return await work();
+    } catch (error) {
+      throw new VisualComparisonError(cause, error);
+    }
+  };
+
   try {
-    const stored = await store.read(key);
+    const stored = await stage('storage-unavailable', () => store.read(key));
     const exists = stored !== null;
 
+    // A missing baseline is recorded (the documented first-run rule) and a deliberate update
+    // replaces it. An unreadable one is neither: it falls through and is reported below.
     if (!exists || ctx.updateBaselines) {
-      await store.write(key, actual, 'image/png');
+      // Never a picture that is not one: the next run would only find it corrupt.
+      await stage('screenshot-unavailable', () => PNG.sync.read(actual));
+      await stage('storage-unavailable', () => store.write(key, actual, 'image/png'));
       return exists
         ? {
             kind: 'baseline-updated',
@@ -193,8 +252,8 @@ export async function compareStepScreenshot(
     }
 
     const baselineBuffer = stored;
-    const baselinePng = PNG.sync.read(baselineBuffer);
-    const actualPng = PNG.sync.read(actual);
+    const baselinePng = await stage('baseline-corrupt', () => PNG.sync.read(baselineBuffer));
+    const actualPng = await stage('screenshot-unavailable', () => PNG.sync.read(actual));
     const threshold = ctx.threshold ?? DEFAULT_VISUAL_THRESHOLD;
 
     if (baselinePng.width !== actualPng.width || baselinePng.height !== actualPng.height) {
@@ -249,12 +308,11 @@ export async function compareStepScreenshot(
         `(tolerance ${formatPercent(threshold)}, ${differingPixels} of ${totalPixels} pixels).`,
     };
   } catch (error: any) {
-    // A broken PNG or an unwritable directory is a problem with the comparison, not with the
-    // application under test, and must not be reported as a visual regression.
-    return {
-      kind: 'skipped',
-      reason: `Visual comparison could not run: ${error?.message ?? error}`,
-    };
+    // A broken PNG or an unreachable store is a problem with the comparison, not with the
+    // application under test: not a visual regression, and not a match either.
+    return error instanceof VisualComparisonError
+      ? visualError(error.visualCause, error)
+      : visualError('comparison-failed', error);
   }
 }
 
@@ -292,6 +350,13 @@ function formatPercent(ratio: number): string {
   if (ratio === 0) return '0%';
   const percent = ratio * 100;
   return percent < 0.01 ? '<0.01%' : `${percent.toFixed(2)}%`;
+}
+
+/** True when the comparison was asked for and not made: the test errs rather than passes. */
+export function isVisualError(
+  outcome: VisualOutcome,
+): outcome is Extract<VisualOutcome, { kind: 'error' }> {
+  return outcome.kind === 'error';
 }
 
 /** True when a visual outcome should make the step, and so the test, fail. */

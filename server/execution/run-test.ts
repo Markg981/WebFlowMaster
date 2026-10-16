@@ -21,6 +21,7 @@ import { type BrowserChoice } from '../runtime/browsers';
 import { isSensitiveFlow, prudentEvidence } from '../runtime/run-evidence';
 import { isManualSequence } from '@shared/manual-tests';
 import type { VisualContext } from '../web/visual-testing';
+import { sequenceStatus } from '../web/playwright/visual-verdict';
 import type { EvidenceCaptureMode } from '@shared/schema';
 import { type NetworkSummary } from '@shared/network';
 import { type PreconditionFailurePolicy, type StepRuntime } from '../runtime/run-policies';
@@ -263,13 +264,9 @@ export async function runTest(
       );
       const durationMs = Date.now() - startTime;
 
-      // Determine overall test status
-      let finalStatus: 'passed' | 'failed' = 'passed';
-      if (!result.success) {
-        finalStatus = 'failed';
-      } else if (result.steps?.some((step) => step.status === 'failed')) {
-        finalStatus = 'failed';
-      }
+      // Passed, failed, or in error when a visual comparison the plan asked for could not be
+      // made: an unverified step is neither a pass nor a regression (visual-verdict.ts, C09).
+      const finalStatus = sequenceStatus(result);
 
       // Find the last screenshot taken, if any (especially on failure)
       let lastScreenshotPath: string | undefined;

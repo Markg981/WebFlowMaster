@@ -233,7 +233,11 @@ With `shards = 1` none of this runs.
   step names one, so every test using it is fixed at once.
 - **Evidence.** Screenshots per the plan's policy; video, Playwright trace and HAR network capture
   per the evidence settings (`never`, `on_failure`, `always`); visual comparison against per-step
-  baselines when visual testing is on; accessibility findings for `assertAccessible` steps; Web
+  baselines when visual testing is on (`server/web/visual-testing.ts` returns `match`, `diff`,
+  `baseline-created`/`baseline-updated`, or `error` with a typed cause; `visual-verdict.ts` makes a
+  diff a failed test and an error an `error` test, whose step does not count as a step failure for
+  the stop-on-step policy; a step that changes nothing on screen is not compared, on purpose);
+  accessibility findings for `assertAccessible` steps; Web
   Vitals for `measurePerformance` and scores plus the HTML report for `auditLighthouse`
   (`server/web/web-performance.ts`, Lighthouse run as a separate process).
 - **API tests** run through `server/api-tests/api-test-runner.ts`: variables substituted, authentication

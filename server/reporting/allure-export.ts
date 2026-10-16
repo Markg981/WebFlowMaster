@@ -141,9 +141,12 @@ export function buildAllureResults(
         : [],
       steps: result.steps.map((step, index) => ({
         name: step.name,
+        // A step whose visual comparison could not run was never verified: broken, like its test.
         status:
           step.status === 'failed'
-            ? 'failed'
+            ? step.visualError
+              ? 'broken'
+              : 'failed'
             : failedStepIndex !== -1 && index > failedStepIndex
               ? 'skipped'
               : 'passed',
@@ -210,6 +213,12 @@ export function buildAllureResults(
           name: 'Visual differences',
           matchedStatuses: ['failed'],
           messageRegex: '.*[Vv]isual difference.*',
+        },
+        {
+          // Not among the visual differences: a comparison that could not run found nothing.
+          name: 'Visual comparison errors',
+          matchedStatuses: ['broken'],
+          messageRegex: '.*[Vv]isual comparison could not run.*',
         },
         {
           name: 'Precondition failures',

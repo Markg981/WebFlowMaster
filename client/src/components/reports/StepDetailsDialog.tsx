@@ -33,6 +33,8 @@ import type { NetworkSummary } from '@shared/network';
 
 export interface ReportStepVisual {
   outcome: string;
+  /** Why an `error` outcome happened (server/web/visual-testing.ts, VisualErrorCause). */
+  cause?: string;
   detail: string;
   diffRatio?: number;
   baselineImage?: string | null;
@@ -212,15 +214,20 @@ function ImagePanel({ label, src }: { label: string; src?: string | null }) {
 
 function VisualPanel({ visual }: { visual: ReportStepVisual }) {
   const isDiff = visual.outcome === 'diff';
+  // A comparison that could not run is not a regression: no red, and the cause beside it.
+  const isError = visual.outcome === 'error';
   return (
     <div
-      className={`mt-3 rounded-md border p-3 ${isDiff ? 'border-destructive/60' : 'dark:border-slate-700'}`}
+      className={`mt-3 rounded-md border p-3 ${isDiff ? 'border-destructive/60' : isError ? 'border-amber-500/60' : 'dark:border-slate-700'}`}
     >
       <div className="flex items-center gap-2 mb-2">
         <ImageIcon className="h-4 w-4" />
         <span className="text-sm font-medium">Visual check</span>
-        <Badge variant={isDiff ? 'destructive' : 'secondary'} className="whitespace-nowrap">
-          {visual.outcome}
+        <Badge
+          variant={isDiff ? 'destructive' : isError ? 'outline' : 'secondary'}
+          className="whitespace-nowrap"
+        >
+          {isError && visual.cause ? `not verified · ${visual.cause}` : visual.outcome}
         </Badge>
       </div>
       <p className="text-xs text-muted-foreground">{visual.detail}</p>
