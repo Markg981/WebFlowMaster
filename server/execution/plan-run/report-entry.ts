@@ -1,7 +1,8 @@
 /** One test's row in the run report: what it is built from, and how it is saved. */
 import { v4 as uuidv4 } from 'uuid';
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import {
+  executionUnits as executionUnitsTable,
   tests as testsTable,
   apiTests as apiTestsTable,
   mobileTests as mobileTestsTable,
@@ -44,6 +45,8 @@ export interface ReportEntryInput {
   versions: FrozenTests['versions'];
   inQuarantine: boolean;
   outcome: UnitOutcome;
+  /** The attempt whose outcome this is; null when nothing was tried (skipped, manual, unrunnable). */
+  attempt?: number | null;
   startedAt: number;
   completedAt: number;
 }
@@ -91,6 +94,10 @@ export function buildReportEntry(input: ReportEntryInput): InsertReportTestCaseR
     component: definition?.component || null,
     priority: definition?.priority || null,
     severity: definition?.severity || null, // This is designed severity. Runtime severity could differ.
+    // The unit of the manifest this row is the one final result of; none on a unit planned by a
+    // worker from before the manifest, rather than one guessed here.
+    executionUnitId: unit.unitId ?? null,
+    unitAttempt: unit.unitId ? (input.attempt ?? null) : null,
   };
 }
 
@@ -144,6 +151,18 @@ export async function saveReportEntry(
         if (!live) entry.mobileTestId = null;
       }
       await tx.insert(reportTestCaseResultsTable).values(entry);
+      // In the same transaction: a unit is recorded exactly when its row exists. A second row for
+      // the same unit is refused by the database (one final result per unit), not added.
+      if (entry.executionUnitId)
+        await tx
+          .update(executionUnitsTable)
+          .set({ state: 'recorded', updatedAt: sql`now()` })
+          .where(
+            and(
+              eq(executionUnitsTable.executionId, entry.testPlanExecutionId),
+              eq(executionUnitsTable.unitId, entry.executionUnitId),
+            ),
+          );
     });
   } catch (dbInsertError: unknown) {
     const cause = ((dbInsertError as Error)?.message ?? String(dbInsertError)).slice(0, 500);

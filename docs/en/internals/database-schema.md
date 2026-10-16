@@ -49,6 +49,9 @@ erDiagram
   api_tests |o--o{ report_test_case_results : "api_test_id"
   test_plan_executions ||--o{ execution_logs : "test_plan_execution_id"
   test_plan_executions ||--o{ run_work_items : "execution_id"
+  test_plan_executions ||--o{ execution_units : "execution_id"
+  execution_units ||--o{ execution_unit_attempts : "execution_id, unit_id"
+  execution_units ||--o| report_test_case_results : "execution_unit_id"
   tags ||--o{ impact_rules : "tag_id"
   organizations ||--o{ sms_messages : "organization_id"
   environments ||--o{ secrets : "environment_id"
@@ -561,6 +564,28 @@ erDiagram
     text error
     jsonb results
   }
+  execution_units {
+    text execution_id PK
+    text unit_id PK
+    int organization_id FK
+    int position
+    jsonb coordinates
+    text state
+    text reason
+    timestamp created_at
+    timestamp updated_at
+  }
+  execution_unit_attempts {
+    text execution_id PK
+    text unit_id PK
+    int attempt PK
+    int organization_id FK
+    text state
+    text status
+    text worker
+    timestamp started_at
+    timestamp finished_at
+  }
   api_tests {
     int id PK
     int user_id FK
@@ -870,6 +895,8 @@ erDiagram
     text component
     text priority
     text severity
+    text execution_unit_id FK
+    int unit_attempt FK
   }
   execution_logs {
     int id PK

@@ -42,6 +42,8 @@ export interface WorkUnit {
     locale?: string;
     bddRowIndex?: number;
     mobileTarget?: import('../mobile/mobile-plan-units').MobilePlanTarget;
+    /** The unit of the run's manifest (shared/execution-identity.ts); absent on items written before it. */
+    unitId?: string;
   }>;
   captured: Record<string, string>;
 }

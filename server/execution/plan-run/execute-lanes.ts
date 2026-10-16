@@ -152,6 +152,7 @@ async function runShared(
       locale: unit.locale,
       bddRowIndex: unit.bddRowIndex,
       mobileTarget: unit.mobileTarget,
+      unitId: unit.unitId,
     });
     const items: Array<{ key: string; unit: WorkUnit }> = chained
       ? lanes.map((lane, i) => ({
@@ -229,6 +230,7 @@ async function runShared(
                 link,
                 bddRowIndex: spec.bddRowIndex,
                 mobileTarget: spec.mobileTarget,
+                unitId: spec.unitId,
               },
               captured,
               legacy,

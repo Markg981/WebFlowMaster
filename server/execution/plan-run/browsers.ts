@@ -23,6 +23,13 @@ import type { RunInputs } from './inputs';
 /** A pass is the whole plan on one browser; `undefined` is "whatever the runner would have used". */
 export type Pass = BrowserChoice | undefined;
 
+/** A requested browser and what the probe made of it: the pass that starts, or null and why not. */
+export interface PassTarget {
+  requested: Pass;
+  started: Pass | null;
+  failure?: string;
+}
+
 export interface RunBrowsers {
   /** The plan's browsers, before a grid or agent pool was applied. */
   matrix: BrowserChoice[];
@@ -124,6 +131,11 @@ export async function resolveBrowsers(run: PlanRun, inputs: RunInputs): Promise<
 export interface UsableBrowsers {
   passes: Pass[];
   startupFailures: string[];
+  /**
+   * Every browser the plan asked for and what became of it, in order: the run's manifest expects
+   * the units of one that would not start too (server/execution/execution-units.ts).
+   */
+  targets: PassTarget[];
 }
 
 export async function probeBrowsers(
@@ -133,17 +145,28 @@ export async function probeBrowsers(
 ): Promise<UsableBrowsers> {
   const startupFailures: string[] = [];
   const usable: Pass[] = [];
-  if (onlyBdd) usable.push(undefined);
+  const targets: PassTarget[] = [];
+  if (onlyBdd) {
+    usable.push(undefined);
+    targets.push({ requested: undefined, started: undefined });
+  }
   // A helper runs the browsers the coordinator resolved, as its work items say.
   for (const pass of run.helper || onlyBdd ? [] : passes) {
     if (!pass) {
       usable.push(pass);
+      targets.push({ requested: pass, started: pass });
       continue;
     }
+    const failuresBefore = startupFailures.length;
     const started = await startablePass(pass);
     if (started) usable.push(started);
+    targets.push({
+      requested: pass,
+      started,
+      ...(started ? {} : { failure: startupFailures[failuresBefore] }),
+    });
   }
-  return { passes: usable, startupFailures };
+  return { passes: usable, startupFailures, targets };
 
   /** The pass as it can start here, or null after saying why it cannot. */
   async function startablePass(pass: BrowserChoice): Promise<BrowserChoice | null> {

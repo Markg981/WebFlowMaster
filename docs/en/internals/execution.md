@@ -140,19 +140,19 @@ in the process (`onExecutionTransition`); the commit status module is one of the
 (`server/execution/plan-run/pipeline.ts`), which calls one phase after another. Each phase is a function of its
 own module that takes what it reads and returns what it produces, so it can be read and tested alone:
 
-| Phase                 | Module                                 | Produces                                                                    |
-| --------------------- | -------------------------------------- | --------------------------------------------------------------------------- |
-| Results directory     | `plan-run/inputs.ts`                   | `./results/<plan>/<run>`, or the run ends as an error                       |
-| Inputs                | `plan-run/inputs.ts`                   | the execution row and its snapshot                                          |
-| Browsers              | `plan-run/browsers.ts`                 | the passes, on a grid or an agent pool                                      |
-| Settings              | `plan-run/settings.ts`                 | evidence, policies, visual testing                                          |
-| Variables             | `plan-run/inputs.ts`                   | secrets and data variables, per pass                                        |
-| Definitions           | `plan-run/definitions.ts`              | the tests and versions that run, review policy, datasets                    |
-| Quarantine            | `plan-run/definitions.ts`              | the tests whose failures do not fail the run                                |
-| Browser probe         | `plan-run/browsers.ts`                 | the passes this runner can start                                            |
-| Lanes                 | `plan-run/lanes.ts`                    | one lane per browser and language (pure)                                    |
-| Execution             | `plan-run/execute-lanes.ts`            | every unit run through `plan-run/run-unit.ts`, alone, in parallel or shared |
-| Verdict and after-run | `plan-run/finalize.ts`, `after-run.ts` | the ending, retry, issues, test management, notification                    |
+| Phase                 | Module                                    | Produces                                                                                    |
+| --------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Results directory     | `plan-run/inputs.ts`                      | `./results/<plan>/<run>`, or the run ends as an error                                       |
+| Inputs                | `plan-run/inputs.ts`                      | the execution row and its snapshot                                                          |
+| Browsers              | `plan-run/browsers.ts`                    | the passes, on a grid or an agent pool                                                      |
+| Settings              | `plan-run/settings.ts`                    | evidence, policies, visual testing                                                          |
+| Variables             | `plan-run/inputs.ts`                      | secrets and data variables, per pass                                                        |
+| Definitions           | `plan-run/definitions.ts`                 | the tests and versions that run, review policy, datasets                                    |
+| Quarantine            | `plan-run/definitions.ts`                 | the tests whose failures do not fail the run                                                |
+| Browser probe         | `plan-run/browsers.ts`                    | the passes this runner can start                                                            |
+| Lanes and manifest    | `plan-run/lanes.ts`, `execution-units.ts` | one lane per browser and language (pure); the units the run owes, written before any starts |
+| Execution             | `plan-run/execute-lanes.ts`               | every unit run through `plan-run/run-unit.ts`, alone, in parallel or shared                 |
+| Verdict and after-run | `plan-run/finalize.ts`, `after-run.ts`    | the ending, retry, issues, test management, notification                                    |
 
 A phase that ends the run early (no results directory, no execution row) returns `Ended` and the
 pipeline stops there. A single test outside a plan is `runTest` (`server/execution/run-test.ts`).
@@ -185,12 +185,49 @@ map of captured values. The plan's `max_parallel_tests` (capped by the installat
   tests in order within each lane.
 - `> 1` otherwise — any test of any lane, up to the limit.
 
+### The manifest: units and attempts
+
+Before the first test starts, the coordinator writes the run's **manifest** to `execution_units`
+(`server/execution/execution-units.ts`, migration 0091): one row per **unit** the run owes a result
+for. A unit is one test of the plan on one browser and language, one mobile device target, or one
+row of a BDD dataset. Its id (`u_` + 24 hex characters) is a hash of the run id and the unit's
+coordinates — the test, which **occurrence** of it in the plan (the same test twice is two units),
+the requested browser (name, channel, emulated device, machine), the language, the device target
+and the BDD row index. Nothing else: no dataset value, URL, secret or name. It is scoped to the run;
+it is not a fingerprint to compare runs by (`shared/execution-identity.ts`).
+
+The manifest records what the plan **asked for**, not what survived the probe: a browser that would
+not start contributes its units as `not_startable`, with the probe's reason, and a fallback (headed
+to headless, a channel to its engine) keeps the identity of the browser the plan named. Manual,
+mobile and BDD units, which run once per run, appear once. Writing the same manifest again changes
+nothing; a different one is refused.
+
+Each try at a unit is an **attempt** in `execution_unit_attempts`: assigned (1, 2, … per re-run) and
+validated — the unit must be in this run's manifest and still owe its result — before the try opens
+a browser or writes evidence, then closed with the try's own outcome. The result row in
+`report_test_case_results` stays the report's projection and now names its unit
+(`execution_unit_id`) and the attempt that decided it (`unit_attempt`; none for a unit nothing was
+tried for, such as a skipped or manual one). The database keeps **one final row per unit**; a second
+is refused and counts as a result that could not be recorded. Every link is same-organization by
+composite foreign key, and both tables are under RLS.
+
+Rows written before the manifest have no unit and keep none: nothing is backfilled from names or
+counts. `unitReport` reads both in one model — the manifest's units with their result (or none),
+then any row without a unit as `legacy`. Order, captured values between chained API tests, the
+scope of re-runs and UI dataset rows (which stay inside their attempt) are unchanged.
+
+**Rollout.** The migration is additive, and a worker from before it keeps writing rows without a
+unit, which every reader accepts; a shared run's work items carry the unit id, and a helper without
+it ignores the field. The manifest does not decide the verdict yet: that switch (an expected unit
+without a result makes the run incomplete) comes once every worker writes units — after the old
+workers are upgraded or drained.
+
 ### Shards: one run on several workers
 
 A plan's `shards` (1–8, in the snapshot) lets several workers share a run (`server/runtime/run-shards.ts`).
 The worker that took the run — the coordinator — writes the work to `run_work_items`: one item per
 unit, or one per lane when the lanes are chained. Each item carries the unit as the coordinator
-resolved it (browser, headless fallback, engine), so helpers do not probe browsers. It then queues
+resolved it (browser, headless fallback, engine, unit id), so helpers do not probe browsers. It then queues
 `shards − 1` jobs `execute-shard` (job id `<execution>-shard-<n>`).
 
 Every participant runs `maxParallelTests` claim loops. A claim is `SELECT … FOR UPDATE SKIP LOCKED`
@@ -249,8 +286,9 @@ With `shards = 1` none of this runs.
 ### After each test
 
 - The result row (`report_test_case_results`) is written with status, steps, evidence paths,
-  browser, test version, and whether the test is **quarantined**.
-- **Re-run on failure**: the plan's re-run policy runs a failed test again; the last attempt counts,
+  browser, test version, its unit and deciding attempt, and whether the test is **quarantined**.
+- **Re-run on failure**: the plan's re-run policy runs a failed test again, each time as a new
+  attempt of the same unit; the last attempt counts,
   and the number of attempts is recorded so a test that needed two is visibly flaky.
 - **Failure policies**: a failed step can stop the test or the whole run, per the plan
   (`server/runtime/run-policies.ts`). A quarantined test's failure never stops a run.

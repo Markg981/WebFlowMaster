@@ -2,7 +2,7 @@
  * A plan run, phase by phase.
  *
  *   take the run → results directory → inputs (snapshot) → browsers → settings → variables →
- *   definitions → quarantine → browser probe → lanes → execution → artifacts → verdict
+ *   definitions → quarantine → browser probe → lanes and manifest → execution → artifacts → verdict
  *
  * Each phase is a function of its own module that takes what it reads and returns what it
  * produces; this file only puts them in order. A phase that ends the run early returns `Ended`.
@@ -31,7 +31,8 @@ import { freezeDefinitions, readQuarantine } from './definitions';
 import { collectSharedResults, executeLanes } from './execute-lanes';
 import { finalizeRun } from './finalize';
 import { ensureResultsDir, loadVariables, resolveInputs } from './inputs';
-import { onlyBdd, planLanes } from './lanes';
+import { planManifest, writeManifest } from '../execution-units';
+import { onlyBdd, planLanes, type Lane } from './lanes';
 import { announceSettings } from './settings';
 
 /** How long a run over its organization's limit waits before a worker looks at it again. */
@@ -158,7 +159,16 @@ async function runPhases(run: PlanRun): Promise<PlanJobResult> {
   const tests = await freezeDefinitions(run, inputs);
   const quarantined = await readQuarantine(run, tests);
   const usable = await probeBrowsers(run, browsers.passes, { onlyBdd: onlyBdd(tests) });
-  const lanes = planLanes(tests, usable.passes, inputs.snapshot.locales);
+  // The coordinator names every unit the run owes a result for, and writes them down before any
+  // starts. A helper takes its units, ids included, from the work items the coordinator wrote.
+  let lanes: Lane[];
+  if (run.helper) {
+    lanes = planLanes(tests, usable.passes, inputs.snapshot.locales);
+  } else {
+    const manifest = planManifest(run.executionId, tests, usable.targets, inputs.snapshot.locales);
+    await writeManifest(run.executionId, inputs.organizationId, manifest.entries);
+    lanes = manifest.lanes;
+  }
 
   const results = await executeLanes(
     { run, inputs, settings, variables, tests, quarantined, agentHttp: browsers.agentHttp },

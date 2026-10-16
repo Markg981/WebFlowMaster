@@ -44,6 +44,9 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   'dashboards.widgets': 'migration',
   'detected_elements.attributes': 'opaque',
   'execution_logs.metadata': 'opaque',
+  // Where a unit runs (shared/execution-identity.ts): written once with the manifest and never
+  // rewritten — the unit id is a hash of it.
+  'execution_units.coordinates': 'snapshot',
   'load_test_runs.definition': 'snapshot',
   'load_test_runs.summary': 'migration',
   'load_tests.stages': 'migration',
