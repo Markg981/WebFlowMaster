@@ -172,6 +172,16 @@ Con **Test visivi** attivo in un piano, lo screenshot di ogni step viene confron
 **baseline**. Il primo run dopo l'attivazione registra le baseline. Da lì in poi, uno step il cui
 screenshot differisce mostra **Baseline**, **This run** e **Difference**.
 
+Il confronto può anche non avvenire: la baseline salvata non è un'immagine leggibile, lo storage
+degli artifact non risponde, oppure lo screenshot dello step non si può acquisire. Quello step è
+**non verificato** e il test termina in **Error**: mai Passed, e mai contato come differenza
+visiva. Lo step mostra la causa (`baseline-corrupt`, `storage-unavailable`,
+`screenshot-unavailable`, `comparison-failed`); il motivo riporta "Visual comparison could not run
+(…)". Gli export concordano: il report JSON conserva la causa sullo step, Allure mostra test e step
+come _broken_ sotto **Visual comparison errors**, JUnit scrive un `<error>`. Una baseline corrotta
+non viene mai sostituita da sola: avviate un run con `updateBaselines: true` (vedi l'[API](../reference/api))
+per accettare gli screenshot di quel run come nuove baseline.
+
 ### Rete
 
 Quando il piano conserva la rete, il report riassume il traffico di ogni test: quante richieste,

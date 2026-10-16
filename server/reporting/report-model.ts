@@ -37,6 +37,11 @@ export interface ReportStepModel {
   status: 'passed' | 'failed';
   message: string;
   accessibility?: AccessibilityFinding;
+  /**
+   * Why the step's visual comparison could not run, when that is what stopped it: the step was
+   * not verified, which is not the application failing (server/web/playwright/visual-verdict.ts).
+   */
+  visualError?: string;
 }
 
 export interface ReportResultModel {
@@ -111,6 +116,9 @@ function stepsOf(detailedLog: string | null): ReportStepModel[] {
           step.accessibility && Array.isArray(step.accessibility.violations)
             ? step.accessibility
             : undefined,
+        ...(step.status === 'failed' && step.visual?.outcome === 'error'
+          ? { visualError: String(step.visual.cause ?? 'comparison-failed') }
+          : {}),
       }));
   } catch {
     return [];

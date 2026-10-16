@@ -367,6 +367,86 @@ describe('exporting a run', () => {
     expect(response.text).toContain('<failure');
   });
 
+  it('shows a visual comparison that could not run as an error everywhere, never a pass or a regression (P06)', async () => {
+    const reason =
+      'Visual comparison could not run (baseline-corrupt): Invalid file signature. The step was not verified visually.';
+    await privilegedDb.insert(reportTestCaseResults).values({
+      id: uuidv4(),
+      organizationId: org,
+      testPlanExecutionId: executionId,
+      testType: 'ui',
+      browser: 'chromium',
+      startedAt: new Date('2026-09-24T02:01:00Z'),
+      completedAt: new Date('2026-09-24T02:01:05Z'),
+      durationMs: 5_000,
+      testName: 'Home looks right',
+      status: 'Error',
+      reasonForFailure: reason,
+      detailedLog: JSON.stringify([
+        { name: 'Open home', type: 'navigate', status: 'passed', details: 'ok' },
+        {
+          name: 'Draw the page',
+          type: 'executeScript',
+          status: 'failed',
+          error: reason,
+          details: reason,
+          visual: { outcome: 'error', cause: 'baseline-corrupt', detail: reason },
+        },
+      ]),
+    } as any);
+
+    // The report's JSON model, which every export reads.
+    const { loadReportModel } = await import('./report-model');
+    const model = (await runAsOrganization(org, () => loadReportModel(executionId)))!;
+    const home = model.results.find((r) => r.testName === 'Home looks right')!;
+    expect(home.status).toBe('Error');
+    expect(home.steps[1]).toMatchObject({ status: 'failed', visualError: 'baseline-corrupt' });
+    expect(model.counts).toMatchObject({ errors: 1, passed: 1 });
+
+    const html = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/export/html`)
+      .expect(200);
+    expect(html.text).toContain('Visual comparison could not run (baseline-corrupt)');
+
+    const allure = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/export/allure`)
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+    const files = readZip(allure.body as Buffer);
+    const result = [...files.entries()]
+      .filter(([name]) => name.endsWith('-result.json'))
+      .map(([, data]) => JSON.parse(data.toString()))
+      .find((r) => r.name === 'Home looks right');
+    expect(result.status).toBe('broken');
+    expect(result.steps.map((s: { status: string }) => s.status)).toEqual(['passed', 'broken']);
+    // Allure files it under its own category, and the visual-difference one does not match it.
+    const categories = JSON.parse(files.get('categories.json')!.toString()) as Array<{
+      name: string;
+      matchedStatuses: string[];
+      messageRegex?: string;
+    }>;
+    const firstMatch = categories.find(
+      (c) =>
+        c.matchedStatuses.includes(result.status) &&
+        (!c.messageRegex || new RegExp(c.messageRegex).test(reason)),
+    );
+    expect(firstMatch?.name).toBe('Visual comparison errors');
+    const differences = categories.find((c) => c.name === 'Visual differences')!;
+    expect(differences.matchedStatuses).not.toContain('broken');
+    expect(new RegExp(differences.messageRegex!).test(reason)).toBe(false);
+
+    const junit = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/export/junit`)
+      .expect(200);
+    const testcase = junit.text.slice(junit.text.indexOf('name="Home looks right"'));
+    expect(testcase.slice(0, testcase.indexOf('</testcase>'))).toMatch(/<error\b/);
+  });
+
   it("refuses a format it does not know, and does not find another organization's run", async () => {
     await request(app).get(`/api/test-plan-executions/${executionId}/export/docx`).expect(400);
     const other = await createTestOrganization('Other Export Org');

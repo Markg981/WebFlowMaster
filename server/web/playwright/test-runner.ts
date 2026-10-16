@@ -37,7 +37,14 @@ import {
 } from '../step-executor';
 import { expandSequenceForRun, type SequenceStep } from '../../authoring/step-groups';
 import { storage } from '../../identity/storage';
-import { compareStepScreenshot, isVisualFailure, stableScreenshot } from '../visual-testing';
+import {
+  compareStepScreenshot,
+  isVisualError,
+  isVisualFailure,
+  stableScreenshot,
+  visualError,
+} from '../visual-testing';
+import { stepVisualOf } from './visual-verdict';
 import { getWsEmitter } from '../../http/websocket';
 
 import { browserForSetting, openBrowserSession, type BrowserSession } from '../browser-session';
@@ -607,8 +614,8 @@ export class TestRunner {
                   !!options?.visual && stepStatus === 'passed' && capturesPage;
                 // For a comparison, a screenshot of the page once it has settled: one taken mid-load
                 // differs from the baseline by whatever had loaded by then (see stableScreenshot).
-                // Either way a picture that cannot be taken leaves the step's result as it is: a
-                // comparison without its image is skipped, not failed (see evidenceScreenshot).
+                // An evidence picture that cannot be taken leaves the step's result as it is (see
+                // evidenceScreenshot); a comparison without its image is an error (C09, P06).
                 const noPicture = (reason: string) => {
                   resolvedLogger.warn({
                     message: 'PS:executeTestSequence - No screenshot for step',
@@ -626,9 +633,10 @@ export class TestRunner {
                     });
                   }
                 };
+                let screenshotError: unknown;
                 const screenshotBuffer = comparesVisually
                   ? await stableScreenshot(page).catch((error: any) => {
-                      noPicture(error?.message ?? String(error));
+                      screenshotError = error;
                       return undefined;
                     })
                   : capturesPage && keepsScreenshot(screenshots, stepStatus)
@@ -638,7 +646,7 @@ export class TestRunner {
                   stepScreenshot = await storeScreenshot(screenshotBuffer, actionName);
                 }
 
-                if (options?.visual && screenshotBuffer && comparesVisually) {
+                if (options?.visual && comparesVisually) {
                   // Only for a step that did what it was asked. A step that already failed is
                   // being reported for that reason, and the page it left behind says nothing
                   // about whether the application looks right.
@@ -650,40 +658,28 @@ export class TestRunner {
                         variant: [options.visual.variant, iteration].filter(Boolean).join('_'),
                       }
                     : options.visual;
-                  const visualOutcome = await compareStepScreenshot(
-                    visualContext,
-                    i,
-                    screenshotBuffer,
-                  );
-                  stepVisual = {
-                    outcome: visualOutcome.kind,
-                    detail:
-                      visualOutcome.kind === 'skipped'
-                        ? visualOutcome.reason
-                        : visualOutcome.detail,
-                    ...(visualOutcome.kind === 'diff'
-                      ? {
-                          diffRatio: visualOutcome.diffRatio,
-                          baselineImage: visualOutcome.artifacts.baseline,
-                          actualImage: visualOutcome.artifacts.actual,
-                          diffImage: visualOutcome.artifacts.diff,
-                        }
-                      : {}),
-                    ...(visualOutcome.kind === 'match'
-                      ? { diffRatio: visualOutcome.diffRatio }
-                      : {}),
-                  };
-                  if (isVisualFailure(visualOutcome)) {
+                  const visualOutcome = screenshotBuffer
+                    ? await compareStepScreenshot(visualContext, i, screenshotBuffer)
+                    : visualError('screenshot-unavailable', screenshotError);
+                  stepVisual = stepVisualOf(visualOutcome);
+                  // A diff is a regression; an error is a comparison nobody made. Both stop the
+                  // step, and the test's status tells them apart (sequenceStatus).
+                  const stopsStep = isVisualFailure(visualOutcome) || isVisualError(visualOutcome);
+                  if (stopsStep) {
                     stepStatus = 'failed';
                     stepError = visualOutcome.detail;
                     // Now a failed step: kept under "on failed steps" too.
-                    if (!stepScreenshot && keepsScreenshot(screenshots, 'failed')) {
+                    if (
+                      screenshotBuffer &&
+                      !stepScreenshot &&
+                      keepsScreenshot(screenshots, 'failed')
+                    ) {
                       stepScreenshot = await storeScreenshot(screenshotBuffer, actionName);
                     }
                   }
                   if (executionId) {
                     wsEmitter.emitExecutionLog(executionId, {
-                      level: isVisualFailure(visualOutcome) ? 'error' : 'info',
+                      level: stopsStep ? 'error' : 'info',
                       source: 'playwright',
                       message: `Visual check, step ${i + 1}: ${stepVisual.detail}`,
                       timestamp: new Date().toISOString(),

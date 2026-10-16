@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
@@ -6,11 +6,13 @@ import { PNG } from 'pngjs';
 import {
   baselinePathFor,
   compareStepScreenshot,
+  isVisualError,
   isVisualFailure,
   stableScreenshot,
   type VisualContext,
 } from './visual-testing';
 import { createTestOrganization } from '../tests/factories';
+import { setArtifactStoreForTest, type ArtifactStore } from '../tenancy/artifact-store';
 
 /**
  * `visual_testing_enabled` was a column and a switch in the wizard with nothing behind it.
@@ -166,15 +168,87 @@ describe('compareStepScreenshot', () => {
     expect(afterwards.kind).toBe('match');
   });
 
-  it('reports a broken image as a comparison that could not run, not as a visual regression', async () => {
+  it('reports a corrupt baseline as an error with its cause, never as a match or a regression', async () => {
     const target = baselinePathFor(ctx(), 0);
     await fs.ensureDir(path.dirname(target));
     await fs.writeFile(target, Buffer.from('this is not a png'));
 
     const outcome = await compareStepScreenshot(ctx(), 0, png(20, 20, [255, 255, 255]));
 
-    expect(outcome.kind).toBe('skipped');
+    expect(outcome).toMatchObject({ kind: 'error', cause: 'baseline-corrupt' });
+    expect(isVisualError(outcome)).toBe(true);
     expect(isVisualFailure(outcome)).toBe(false);
+    if (outcome.kind !== 'error') throw new Error('expected an error');
+    expect(outcome.detail).toMatch(/^Visual comparison could not run \(baseline-corrupt\)/);
+    expect(outcome.detail).not.toMatch(/visual difference/i);
+    // No implicit fallback: the broken baseline stays until someone accepts a new one.
+    expect((await fs.readFile(target)).toString()).toBe('this is not a png');
+  });
+
+  it('replaces a corrupt baseline only when the run deliberately accepts new baselines', async () => {
+    const target = baselinePathFor(ctx(), 0);
+    await fs.ensureDir(path.dirname(target));
+    await fs.writeFile(target, Buffer.from('this is not a png'));
+
+    const accepted = await compareStepScreenshot(
+      ctx({ updateBaselines: true }),
+      0,
+      png(20, 20, [255, 255, 255]),
+    );
+    const afterwards = await compareStepScreenshot(ctx(), 0, png(20, 20, [255, 255, 255]));
+
+    expect(accepted.kind).toBe('baseline-updated');
+    expect(afterwards.kind).toBe('match');
+  });
+
+  it('reports a screenshot that is not an image as an error, and records no baseline from it', async () => {
+    const outcome = await compareStepScreenshot(ctx(), 0, Buffer.from('not an image'));
+
+    expect(outcome).toMatchObject({ kind: 'error', cause: 'screenshot-unavailable' });
+    expect(await fs.pathExists(baselinePathFor(ctx(), 0))).toBe(false);
+  });
+
+  describe('with the artifact store unavailable', () => {
+    afterEach(() => setArtifactStoreForTest(undefined));
+    const store = (overrides: Partial<ArtifactStore>): ArtifactStore => ({
+      kind: 's3',
+      read: async () => null,
+      write: async () => {},
+      open: async () => null,
+      publishDirectory: async () => 0,
+      deletePrefix: async () => 0,
+      ...overrides,
+    });
+
+    it('errs when the baseline cannot be read, instead of treating it as missing', async () => {
+      setArtifactStoreForTest(
+        store({
+          read: async () => {
+            throw new Error('ECONNREFUSED');
+          },
+        }),
+      );
+
+      const outcome = await compareStepScreenshot(ctx(), 0, png(20, 20, [255, 255, 255]));
+
+      expect(outcome).toMatchObject({ kind: 'error', cause: 'storage-unavailable' });
+      if (outcome.kind !== 'error') throw new Error('expected an error');
+      expect(outcome.detail).toContain('ECONNREFUSED');
+    });
+
+    it('errs when the first baseline cannot be written, rather than claiming one was recorded', async () => {
+      setArtifactStoreForTest(
+        store({
+          write: async () => {
+            throw new Error('bucket is read-only');
+          },
+        }),
+      );
+
+      const outcome = await compareStepScreenshot(ctx(), 0, png(20, 20, [255, 255, 255]));
+
+      expect(outcome).toMatchObject({ kind: 'error', cause: 'storage-unavailable' });
+    });
   });
 
   it('does not let a browser label escape the baseline directory', async () => {

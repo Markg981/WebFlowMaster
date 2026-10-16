@@ -238,7 +238,11 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
   usa è corretto in una volta.
 - **Evidenze.** Screenshot secondo la policy del piano; video, trace di Playwright e cattura di rete HAR
   secondo le impostazioni (`never`, `on_failure`, `always`); confronto visivo con le baseline per step
-  quando i test visivi sono attivi; risultati di accessibilità per gli step `assertAccessible`; Web
+  quando i test visivi sono attivi (`server/web/visual-testing.ts` restituisce `match`, `diff`,
+  `baseline-created`/`baseline-updated`, oppure `error` con una causa tipizzata; `visual-verdict.ts`
+  rende un diff un test fallito e un errore un test in `error`, il cui step non conta come fallimento
+  di step per la policy di stop; uno step che non cambia nulla a schermo non viene confrontato, per
+  scelta); risultati di accessibilità per gli step `assertAccessible`; Web
   Vitals per `measurePerformance` e punteggi più il report HTML per `auditLighthouse`
   (`server/web/web-performance.ts`, Lighthouse eseguito come processo separato).
 - I **test API** girano tramite `server/api-tests/api-test-runner.ts`: variabili sostituite, autenticazione

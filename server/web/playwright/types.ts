@@ -6,7 +6,7 @@ import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performa
 import { type BrowserChoice } from '../../runtime/browsers';
 import { type EvidenceOptions } from '../../runtime/run-evidence';
 import { type StepRuntime } from '../../runtime/run-policies';
-import { type VisualContext } from '../visual-testing';
+import { type VisualContext, type VisualErrorCause } from '../visual-testing';
 
 // Default settings if not found or incomplete
 export const DEFAULT_HEADLESS = true;
@@ -101,7 +101,13 @@ export interface StepResult {
    * baseline, the actual and the diff as three pictures instead of a sentence about them.
    */
   visual?: {
-    outcome: 'baseline-created' | 'baseline-updated' | 'match' | 'diff' | 'skipped';
+    /**
+     * `error`: the comparison was asked for and could not be made (see `cause`). `skipped` is
+     * only found in results recorded before that distinction, when it meant the same thing.
+     */
+    outcome: 'baseline-created' | 'baseline-updated' | 'match' | 'diff' | 'error' | 'skipped';
+    /** Why an `error` happened: a corrupt baseline, an unreachable store, no screenshot. */
+    cause?: VisualErrorCause;
     detail: string;
     diffRatio?: number;
     baselineImage?: string;

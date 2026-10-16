@@ -12,6 +12,7 @@ import { isManualSequence, manualStepsOf, type ManualResultLog } from '@shared/m
 import type { MobileResultLog } from '@shared/mobile';
 import { describeNetworkFailures } from '@shared/network';
 import { failedStepReason } from '../../runtime/failed-step-reason';
+import { isVisualErrorStep } from '../../web/playwright/visual-verdict';
 import { toGridConfig } from '../../runtime/browser-grids';
 import { describeBrowser } from '../../runtime/browsers';
 import {
@@ -388,7 +389,11 @@ async function runDefinition(
           cause: result.blockedByPrecondition
             ? 'precondition'
             : // The cleanup's line is not one of the test's steps: it never decides why a test stopped.
-              result.steps?.some((step) => step.status === 'failed' && step.type !== 'cleanup')
+              // Nor is a visual comparison that could not run: no step of the application failed.
+              result.steps?.some(
+                  (step) =>
+                    step.status === 'failed' && step.type !== 'cleanup' && !isVisualErrorStep(step),
+                )
               ? 'step'
               : 'other',
         },
