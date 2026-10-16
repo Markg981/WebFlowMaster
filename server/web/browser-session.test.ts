@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 
 const mocks = vi.hoisted(() => ({
   launchBrowser: vi.fn(),
@@ -111,6 +113,13 @@ describe('openBrowserSession', () => {
     expect(mocks.guardBrowserContext).not.toHaveBeenCalled();
   });
 
+  it("leaves it off for an agent's browser too: its network is its owner's", async () => {
+    const { browser } = fakeBrowser();
+    mocks.launchBrowser.mockResolvedValue(browser);
+    await openBrowserSession({ browser: { ...chromium, agent: { pool: 'p' } as any } });
+    expect(mocks.guardBrowserContext).not.toHaveBeenCalled();
+  });
+
   it('reports the stage that failed and closes the browser it launched', async () => {
     const { browser } = fakeBrowser({
       newPage: async () => {
@@ -131,5 +140,59 @@ describe('openBrowserSession', () => {
     const error = await openBrowserSession({ browser: chromium }).catch((e) => e);
     expect(error.stage).toBe('launch');
     expect(error.message).toBe('Could not start msedge on this runner');
+  });
+});
+
+/**
+ * The egress guard holds only if nothing goes round it: the recorder, detection, the preview
+ * and the run share this session, and every navigation goes through gotoWithinPolicy, which
+ * refuses file:// before the browser is asked. A new call site that opens its own context,
+ * launches its own browser or calls page.goto directly fails here rather than in an audit.
+ */
+describe('no way round the browser egress guard', () => {
+  const serverRoot = path.resolve(__dirname, '..');
+  const sources = (): { file: string; text: string }[] => {
+    const out: { file: string; text: string }[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.ts$/.test(entry.name) && !/\.test\.ts$/.test(entry.name))
+          out.push({
+            file: path.relative(serverRoot, full).split(path.sep).join('/'),
+            text: readFileSync(full, 'utf8'),
+          });
+      }
+    };
+    walk(serverRoot);
+    return out;
+  };
+  const filesMatching = (pattern: RegExp) =>
+    sources()
+      .filter(({ text }) => pattern.test(text))
+      .map(({ file }) => file)
+      .sort();
+
+  it('navigates only through gotoWithinPolicy', () => {
+    // playwright-export.ts writes `p.goto(` into the code it exports; it navigates nothing.
+    expect(filesMatching(/\.goto\(/)).toEqual([
+      'integrations/playwright-export.ts',
+      'platform/egress-policy.ts',
+    ]);
+  });
+
+  it("opens browser contexts only in the shared session (the agent's own side apart)", () => {
+    expect(filesMatching(/\.newContext\(/)).toEqual([
+      'runtime/agents/agent-fetch.ts',
+      'web/browser-session.ts',
+    ]);
+  });
+
+  it('launches local browsers only behind the egress options', () => {
+    // report-export.ts renders the server's own report HTML to PDF, behind WFM_EGRESS_PROXY.
+    expect(filesMatching(/\.launch\(\{/)).toEqual([
+      'reporting/report-export.ts',
+      'runtime/browsers.ts',
+    ]);
   });
 });

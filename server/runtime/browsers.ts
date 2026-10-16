@@ -1,5 +1,5 @@
 import playwright, { type Browser } from 'playwright';
-import { browserEgressOptions } from '../platform/egress-proxy';
+import { guardedBrowserLaunchOptions } from '../platform/egress-guard-proxy';
 import { assertEgressAllowed } from '../platform/egress-policy';
 import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-grids';
 import { canEmulateDevice, isMobileDevice } from '@shared/devices';
@@ -405,7 +405,8 @@ export async function launchBrowser(
   }
   try {
     return await engine.launch({
-      ...browserEgressOptions(),
+      // Every connection the browser opens goes through the egress policy (egress-guard-proxy.ts).
+      ...(await guardedBrowserLaunchOptions()),
       headless: choice.headless,
       ...(choice.channel ? { channel: choice.channel } : {}),
       ...(args?.length ? { args } : {}),

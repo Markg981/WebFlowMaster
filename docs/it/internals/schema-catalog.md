@@ -470,7 +470,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## tests {#tests}
 
-`tests` — `shared/schema/authoring.ts:28`
+`tests` — `shared/schema/authoring.ts:29`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                   |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -499,7 +499,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_runs {#test-runs}
 
-`testRuns` — `shared/schema/authoring.ts:83`
+`testRuns` — `shared/schema/authoring.ts:84`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -513,7 +513,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## detected_elements {#detected-elements}
 
-`detectedElements` — `shared/schema/authoring.ts:104`
+`detectedElements` — `shared/schema/authoring.ts:105`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                        |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------------ |
@@ -531,7 +531,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## excel_sequences_map {#excel-sequences-map}
 
-`excelSequencesMap` — `shared/schema/authoring.ts:131`
+`excelSequencesMap` — `shared/schema/authoring.ts:132`
 
 | Proprietà TS      | Colonna SQL          | Dichiarazione                                                                        |
 | ----------------- | -------------------- | ------------------------------------------------------------------------------------ |
@@ -543,7 +543,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## step_groups {#step-groups}
 
-`stepGroups` — `shared/schema/authoring.ts:167`
+`stepGroups` — `shared/schema/authoring.ts:168`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -559,7 +559,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## custom_actions {#custom-actions}
 
-`customActions` — `shared/schema/authoring.ts:200`
+`customActions` — `shared/schema/authoring.ts:201`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------- |
@@ -575,7 +575,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_data_sets {#test-data-sets}
 
-`testDataSets` — `shared/schema/authoring.ts:230`
+`testDataSets` — `shared/schema/authoring.ts:231`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -590,7 +590,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## project_elements {#project-elements}
 
-`projectElements` — `shared/schema/authoring.ts:263`
+`projectElements` — `shared/schema/authoring.ts:264`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                              |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------------------ |
@@ -611,7 +611,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## tags {#tags}
 
-`tags` — `shared/schema/authoring.ts:311`
+`tags` — `shared/schema/authoring.ts:312`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -622,7 +622,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_tags {#test-tags}
 
-`testTags` — `shared/schema/authoring.ts:335`
+`testTags` — `shared/schema/authoring.ts:336`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -637,7 +637,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_versions {#test-versions}
 
-`testVersions` — `shared/schema/authoring.ts:380`
+`testVersions` — `shared/schema/authoring.ts:381`
 
 | Proprietà TS          | Colonna SQL             | Dichiarazione                                                                                       |
 | --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
@@ -663,7 +663,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_publications {#test-publications}
 
-`testPublications` — `shared/schema/authoring.ts:444`
+`testPublications` — `shared/schema/authoring.ts:445`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                       |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -680,7 +680,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_reviews {#test-reviews}
 
-`testReviews` — `shared/schema/authoring.ts:487`
+`testReviews` — `shared/schema/authoring.ts:488`
 
 | Proprietà TS      | Colonna SQL        | Dichiarazione                                                                                       |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
@@ -700,7 +700,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## mobile_tests {#mobile-tests}
 
-`mobileTests` — `shared/schema/authoring.ts:534`
+`mobileTests` — `shared/schema/authoring.ts:535`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                   |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -722,7 +722,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## mobile_step_groups {#mobile-step-groups}
 
-`mobileStepGroups` — `shared/schema/authoring.ts:561`
+`mobileStepGroups` — `shared/schema/authoring.ts:562`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -739,7 +739,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## load_tests {#load-tests}
 
-`loadTests` — `shared/schema/authoring.ts:596`
+`loadTests` — `shared/schema/authoring.ts:597`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |

@@ -1,7 +1,7 @@
 import { RecordedActionSchema, type RecordedAction } from '@shared/recording';
 import { Browser, BrowserContext, Page } from 'playwright';
 import { v4 as uuidv4 } from 'uuid';
-import { throwIfEgressDenied } from '../../platform/egress-policy';
+import { gotoWithinPolicy } from '../../platform/egress-policy';
 import { saveLoginState, type EnvironmentScope } from '../../runtime/login-state';
 import { recordRunnerFailure } from '../../platform/observability/taps/runner';
 import { substituteVariables } from '../../platform/outbound-http';
@@ -383,7 +383,7 @@ export class RecordingService {
       });
       page.on('close', markClosedIfLastPage);
 
-      throwIfEgressDenied(await page.goto(targetUrl, { waitUntil: 'domcontentloaded' }));
+      await gotoWithinPolicy(page, targetUrl, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(specificWaitTime);
       await page.bringToFront();
 

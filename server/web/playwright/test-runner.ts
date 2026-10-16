@@ -11,7 +11,7 @@ import path from 'path';
 import { BrowserContext, Page } from 'playwright';
 import { markGridSession } from '../../runtime/browser-grids';
 import { describeBrowser, deviceContextOptions } from '../../runtime/browsers';
-import { throwIfEgressDenied } from '../../platform/egress-policy';
+import { gotoWithinPolicy } from '../../platform/egress-policy';
 import { FlowCursor } from '../../runtime/flow-cursor';
 import { loadLoginState, type EnvironmentScope, type LoginState } from '../../runtime/login-state';
 import { browserMatrixEvidence } from '../../runtime/matrix-evidence';
@@ -329,7 +329,7 @@ export class TestRunner {
               metadata: { url: targetUrl },
             });
           }
-          throwIfEgressDenied(await page.goto(targetUrl, { waitUntil: 'domcontentloaded' }));
+          await gotoWithinPolicy(page, targetUrl, { waitUntil: 'domcontentloaded' });
           const navBuffer = keepsScreenshot(screenshots, 'passed')
             ? await evidenceScreenshot(page, (reason) =>
                 resolvedLogger.warn({

@@ -21,6 +21,7 @@ import { CUSTOM_ACTION_STEP_ID_PATTERN, type CustomActionParameter } from '../cu
 import type { MobilePlatform, MobileStep, MobileDeviceTarget } from '../mobile';
 import type { LoadDataMode, LoadStage, LoadStep, LoadThresholds } from '../load-test';
 import { BddTestSchema, type BddTest } from '../bdd';
+import { forbiddenNavigationScheme } from '../browser-navigation';
 import { apiTests } from './api-testing';
 import { browserGrids } from './environments';
 import { organizations, projects, users } from './identity';
@@ -709,6 +710,11 @@ export const CleanupSchema = PreconditionSchema.omit({ check: true });
 export type Cleanup = z.infer<typeof CleanupSchema>;
 
 export const insertTestSchema = createInsertSchema(tests, {
+  // The page the test opens first; a {{variable}} is checked when the run resolves it.
+  url: z.string().refine((url) => !forbiddenNavigationScheme(url), {
+    message:
+      'The start URL must be an http(s) address: file:// and other local pages cannot be opened',
+  }),
   bdd: BddTestSchema.nullable().optional(),
   module: z.string().optional().nullable(), // Zod handles .nullable() correctly for optional fields
   featureArea: z.string().optional().nullable(),
@@ -869,5 +875,10 @@ export const AdhocTestStepSchema = z
       message: "For 'navigate' action, value must be an absolute URL",
       path: ['value'],
     },
-  );
+  )
+  .refine((data) => data.action.id !== 'navigate' || !forbiddenNavigationScheme(data.value), {
+    message:
+      "For 'navigate' action, value must be an http(s) address: file:// and other local pages cannot be opened",
+    path: ['value'],
+  });
 export type AdhocTestStep = z.infer<typeof AdhocTestStepSchema>;
