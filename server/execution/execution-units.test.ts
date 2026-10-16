@@ -204,9 +204,11 @@ describe('planManifest: one identity per unit', () => {
 
 describe('planManifest: what the plan asked for, not only what started', () => {
   it('expects the units of a browser that would not start, with the reason', () => {
-    const plan = frozen([ui(1), ui(2), mobile(3)], [uiTest(1), uiTest(2)], [
-      { id: 3, deviceName: 'Pixel 8' },
-    ]);
+    const plan = frozen(
+      [ui(1), ui(2), mobile(3)],
+      [uiTest(1), uiTest(2)],
+      [{ id: 3, deviceName: 'Pixel 8' }],
+    );
     const manifest = planManifest(
       'run-1',
       plan,

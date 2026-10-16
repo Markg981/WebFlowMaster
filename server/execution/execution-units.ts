@@ -28,7 +28,7 @@ import {
   type UnitCoordinates,
 } from '@shared/execution-identity';
 import { withTenantTransaction } from '../platform/middleware/tenancy';
-import type { Pass } from './plan-run/browsers';
+import type { Pass, PassTarget } from './plan-run/browsers';
 import { referencedId, type FrozenTests, type TestLink } from './plan-run/definitions';
 import { planLanes, type Lane, type RunUnit } from './plan-run/lanes';
 
@@ -56,12 +56,7 @@ export function unitIdFor(executionId: string, coordinates: UnitCoordinates): st
   );
 }
 
-/** A requested browser and what the probe made of it: the pass that starts, or null and why not. */
-export interface PassTarget {
-  requested: Pass;
-  started: Pass | null;
-  failure?: string;
-}
+export type { PassTarget };
 
 /** One row of the manifest, before it is written. */
 export interface ManifestEntry {

@@ -17,12 +17,18 @@ import {
   onGrid,
   type BrowserChoice,
 } from '../../runtime/browsers';
-import type { PassTarget } from '../execution-units';
 import { emit, report, type PlanRun } from './context';
 import type { RunInputs } from './inputs';
 
 /** A pass is the whole plan on one browser; `undefined` is "whatever the runner would have used". */
 export type Pass = BrowserChoice | undefined;
+
+/** A requested browser and what the probe made of it: the pass that starts, or null and why not. */
+export interface PassTarget {
+  requested: Pass;
+  started: Pass | null;
+  failure?: string;
+}
 
 export interface RunBrowsers {
   /** The plan's browsers, before a grid or agent pool was applied. */
