@@ -69,7 +69,7 @@ describe('the recorder and the detector use one rule', () => {
     // The call site, not the helper's definition — which sits above it and would make this
     // pass for the wrong reason.
     const testIdAt = RECORDER_SCRIPT.indexOf("getAttribute('data-testid')");
-    const ownIdAt = RECORDER_SCRIPT.indexOf('var ownId = usableId(el)');
+    const ownIdAt = RECORDER_SCRIPT.indexOf('var ownId = usableId(el, roots)');
 
     expect(testIdAt).toBeGreaterThan(-1);
     expect(ownIdAt).toBeGreaterThan(-1);

@@ -50,6 +50,12 @@
     "capturedCount_other": "{{count}} actions",
     "waitingForActions": "En attente de votre première action dans la fenêtre du navigateur…",
     "assertHint": "Utilisez le bouton « Add assert » de la barre du recorder pour enregistrer un résultat attendu.",
+    "unsupported": {
+      "badge": "Non rejouable",
+      "warning": "Certaines interactions n'ont pas pu être enregistrées de façon rejouable et ne deviendront pas des étapes : un élément dans un shadow root fermé, ou dans un frame d'une autre origine. Ajoutez ces étapes à la main.",
+      "closed-shadow-root": "shadow root fermé",
+      "unaddressable-frame": "frame d'une autre origine"
+    },
     "overwriteConfirm": "Démarrer un enregistrement remplace les étapes actuelles du test. Continuer ?",
     "sessionEnded": "Session d'enregistrement terminée",
     "pollFailed": "Contact perdu avec la session d'enregistrement",

@@ -50,6 +50,12 @@
     "capturedCount_other": "{{count}} Aktionen",
     "waitingForActions": "Warte auf Ihre erste Aktion im Browserfenster…",
     "assertHint": "Nutzen Sie die Schaltfläche „Add assert“ in der Recorder-Leiste, um ein erwartetes Ergebnis aufzuzeichnen.",
+    "unsupported": {
+      "badge": "Nicht abspielbar",
+      "warning": "Einige Interaktionen konnten nicht abspielbar aufgezeichnet werden und werden keine Schritte: ein Element in einem geschlossenen Shadow Root oder in einem Frame einer anderen Herkunft. Fügen Sie diese Schritte von Hand hinzu.",
+      "closed-shadow-root": "geschlossener Shadow Root",
+      "unaddressable-frame": "Frame einer anderen Herkunft"
+    },
     "overwriteConfirm": "Eine neue Aufzeichnung ersetzt die aktuellen Testschritte. Fortfahren?",
     "sessionEnded": "Aufzeichnungssitzung beendet",
     "pollFailed": "Verbindung zur Aufzeichnungssitzung verloren",

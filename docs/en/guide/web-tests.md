@@ -155,6 +155,30 @@ recording is not available, and you build tests by dragging steps or describing 
 Passwords typed while recording are not stored in the test: they become
 <code v-pre>{{secret&#95;…}}</code> placeholders, which you define as secrets of an environment.
 
+Ticking a checkbox or a radio button records the click and an **Ensure state** step with the state
+the control ended in (`checked` or `unchecked`), so replaying the test twice does not untick it.
+
+### Web components and frames {#recording-web-components}
+
+Fields and buttons inside a web component (an **open** shadow root, including nested and
+declarative ones and components the page adds later) are recorded like any other: each action
+once, on the element you used, with a selector that the runner resolves to that element alone.
+The selector names the component first and then the element inside it, for example
+`body > x-login input[name="q"]`. Replay finds it in Chromium, Firefox and WebKit without
+editing.
+
+An element inside an iframe is recorded with the frame it lives in: the step's element carries
+the chain of frames separately from its selector. The frame can itself sit inside a web component.
+
+Two cases cannot be replayed, and the recorder says so instead of guessing:
+
+- an element inside a **closed** shadow root, which the runner cannot see into;
+- an element inside a frame from **another origin**, which the page cannot address.
+
+These interactions appear in the recording list marked **Not replayable**, a notice says so when
+you stop recording, and they do not become steps: add those steps by hand, for example on an
+element the component exposes. The recorder never sends the value typed into a closed component.
+
 ## Describing a test in sentences
 
 ![The Describe dialog with a test written in sentences](/screenshots/builder-describe.webp)

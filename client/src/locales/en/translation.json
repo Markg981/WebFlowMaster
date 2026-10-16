@@ -50,6 +50,12 @@
     "capturedCount_other": "{{count}} actions",
     "waitingForActions": "Waiting for your first action in the browser window…",
     "assertHint": "Use the \"Add assert\" button in the recorder toolbar to record an expected result.",
+    "unsupported": {
+      "badge": "Not replayable",
+      "warning": "Some interactions could not be recorded in a replayable way and will not become steps: an element inside a closed shadow root, or inside a frame from another origin. Add those steps by hand.",
+      "closed-shadow-root": "closed shadow root",
+      "unaddressable-frame": "frame from another origin"
+    },
     "overwriteConfirm": "Starting a recording replaces the current test steps. Continue?",
     "sessionEnded": "Recording session ended",
     "pollFailed": "Lost contact with the recording session",

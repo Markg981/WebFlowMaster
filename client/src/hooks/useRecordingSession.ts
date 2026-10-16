@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import {
   mapRecordedSequence,
+  unsupportedActions,
   type MappedTestStep,
   type RecordedAction,
   type RecordingSequenceResponse,
@@ -15,6 +16,12 @@ export interface UseRecordingSessionOptions {
   onStepsChange: (steps: MappedTestStep[]) => void;
   onError: (title: string, description: string) => void;
   onNotice: (title: string, description: string) => void;
+  /**
+   * Called on stop when the recorder saw interactions it could not make replayable (a closed
+   * shadow root, a frame from another origin). They are not steps, so without this the saved
+   * test would simply be shorter than what the user did.
+   */
+  onUnsupported?: (actions: RecordedAction[]) => void;
 }
 
 export interface UseRecordingSession {
@@ -40,6 +47,7 @@ export function useRecordingSession({
   onStepsChange,
   onError,
   onNotice,
+  onUnsupported,
 }: UseRecordingSessionOptions): UseRecordingSession {
   const [isRecording, setIsRecording] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -48,8 +56,8 @@ export function useRecordingSession({
   // Callbacks are read through a ref so the polling effect depends only on the session
   // identity. Listing the callbacks would tear down and restart the interval on every
   // parent render.
-  const callbacksRef = useRef({ onStepsChange, onError, onNotice });
-  callbacksRef.current = { onStepsChange, onError, onNotice };
+  const callbacksRef = useRef({ onStepsChange, onError, onNotice, onUnsupported });
+  callbacksRef.current = { onStepsChange, onError, onNotice, onUnsupported };
 
   /** Serialized snapshot of the last buffer applied, used to skip no-op updates. */
   const lastAppliedRef = useRef<string>('');
@@ -96,7 +104,10 @@ export function useRecordingSession({
       return result;
     },
     onSuccess: (result) => {
-      applySequence(result.sequence ?? []);
+      const sequence = result.sequence ?? [];
+      applySequence(sequence);
+      const skipped = unsupportedActions(sequence);
+      if (skipped.length > 0) callbacksRef.current.onUnsupported?.(skipped);
     },
     onError: (error: Error) => {
       callbacksRef.current.onError('recording.stop.failed', error.message);
