@@ -453,6 +453,10 @@ async function runDefinition(
         signal: run.watch.signal,
         http: agentHttp?.fetch,
         evidenceDir,
+        dependencies:
+          testType === 'ui' && unit.link.testId
+            ? scope.tests.dependencies.get(unit.link.testId)
+            : undefined,
       },
     );
   let attempts = 1;

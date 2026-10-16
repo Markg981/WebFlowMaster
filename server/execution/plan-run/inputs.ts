@@ -17,7 +17,7 @@ import { transitionExecution } from '../execution-state';
 import { reproducibilitySummary } from '../execution-provenance';
 import {
   buildExecutionSnapshot,
-  readExecutionSnapshot,
+  inspectExecutionSnapshot,
   type ExecutionSnapshot,
   type SnapshotTestReference,
 } from '../execution-snapshot';
@@ -78,31 +78,56 @@ export async function resolveInputs(run: PlanRun): Promise<RunInputs | Ended> {
   }
   // What this run was asked to do, as it was asked. Everything below reads it and not the plan,
   // so a plan edited while the run waited does not change what the run does.
-  const snapshot = await snapshotForRun(run.planId, execution, run.options);
-  if (snapshot.definitions && !reproducibilitySummary(snapshot).available)
-    throw new Error(
-      'The queued execution inputs are incomplete or their fingerprints do not match.',
+  const stored = inspectExecutionSnapshot(execution.configurationSnapshot);
+  if (stored.kind === 'corrupt' || stored.kind === 'unsupported')
+    return refuse(
+      run,
+      stored.kind === 'unsupported' ? 'unsupported_snapshot' : 'corrupt_snapshot',
+      stored.kind === 'unsupported'
+        ? `This run was queued in configuration format ${JSON.stringify(stored.version)}, which this server does not support. It was not run from the current plan instead.`
+        : `This run's queued configuration is unreadable (${stored.reason}). It was not run from the current plan instead.`,
     );
+  const snapshot =
+    stored.kind === 'ok'
+      ? stored.snapshot
+      : await snapshotFromPlan(run.planId, execution, run.options);
+  if (snapshot.definitions) {
+    const retained = reproducibilitySummary(snapshot);
+    if (!retained.available)
+      return refuse(
+        run,
+        'unusable_snapshot',
+        `The queued execution inputs cannot be used: ${retained.reason} It was not run with live definitions instead.`,
+      );
+  }
   return { execution, organizationId: execution.organizationId, snapshot };
 }
 
+/** Ends a run whose queued inputs this server will not execute, saying why. */
+async function refuse(run: PlanRun, failureCode: string, message: string): Promise<Ended> {
+  run.logger.error({ message, failureCode, testPlanRunId: run.executionId });
+  if (!run.helper)
+    await transitionExecution(run.executionId, 'error', {
+      failureCode,
+      failureMessage: message,
+      results: JSON.stringify([{ error: message }]),
+      executionDurationMs: Date.now() - run.startedAt,
+    });
+  return ended({ error: message, status: 409, testPlanRunId: run.executionId });
+}
+
 /**
- * The configuration this run executes with.
- *
- * The one it was queued with, when it has one. A run without — every run queued before snapshots
- * existed, and scheduled runs until the scheduler enqueues through the orchestrator — gets the
- * plan as it is now, with the row's own environment and browsers over it, which is exactly what
- * such runs always did. A plan deleted in the meantime leaves a snapshot with no tests, and the
- * run ends saying it found none, as it did before.
+ * The configuration of a run queued without one (legacy: every run queued before snapshots
+ * existed, and runs not enqueued through the orchestrator): the plan as it is now, with the
+ * row's own environment and browsers over it, which is exactly what such runs always did. A plan
+ * deleted in the meantime leaves a snapshot with no tests, and the run ends saying it found
+ * none, as it did before. Never used for a snapshot that is corrupt or in an unknown format.
  */
-async function snapshotForRun(
+async function snapshotFromPlan(
   planId: string,
   execution: TestPlanExecution,
   jobOptions: { updateBaselines?: boolean },
 ): Promise<ExecutionSnapshot> {
-  const stored = readExecutionSnapshot(execution.configurationSnapshot);
-  if (stored) return stored;
-
   const [plan] = await withTenantTransaction((tx) =>
     tx.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1),
   );

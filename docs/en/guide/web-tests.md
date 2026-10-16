@@ -474,8 +474,9 @@ as this test's own rows** turns the link back into rows of its own.
 
 A sequence used by many tests — signing in, choosing a customer — can be saved with **Save as
 group**. It then appears under **Step groups** in the palette, and any test can include it. A test
-runs the group as it is at the time of the run, so changing the group changes every test that
-uses it.
+that is not published runs the group as it is when the run is queued, so changing the group
+changes every such test from its next run; a published version runs the group as it was when that
+version was saved (see [What a version runs](#what-a-version-runs)).
 
 The gear beside **Step groups** in the palette opens their management: **Where used** names the
 tests that call a group, **Edit** changes its name and description — and, with the box ticked,
@@ -507,7 +508,8 @@ row.querySelector('button.open').click();
 
 A custom action has the powers of a **Run JavaScript** step and no others: it runs in the
 browser page, never on the server or the runner. Tests refer to the action rather than copying
-it, so editing it changes every test that uses it on its next run; an action still used by a test
+it, so editing it changes every unpublished test that uses it on its next run (a published
+version keeps the action it was saved with); an action still used by a test
 or a step group cannot be deleted, and the message names what uses it. Creating, changing and
 deleting one is recorded in the audit log, without the script.
 
@@ -527,3 +529,20 @@ element shows the old and the new selector in the repository, for you to confirm
 **Save Test** asks for a name and, optionally, a project (you can create one there). Saving again
 under the same name offers to overwrite. Every save is a new **version** in the test's history
 (see [Organizing tests](./organizing#history-and-versions)).
+
+### What a version runs {#what-a-version-runs}
+
+A version records, besides the steps, the step groups, kept elements and custom actions the test
+calls, as they are at the moment of saving, including those a group uses. What a reviewer approves
+and what a plan runs is that version with those dependencies: editing or deleting a group after the
+review, or while a run waits in the queue, does not change what the published version does.
+
+To adopt a changed group, element or action, save the test again: the save creates a new version
+even when the steps are the same, with a summary such as _Step group "Login" changed_, and that
+version is reviewed and published like any other. A version saved before this existed records its
+dependencies on the next save; until then, a plan uses the ones current when the run is queued.
+
+A run queued from a test that is not published uses the dependencies as they are at that moment,
+and keeps them while it waits. Running the test from the builder always uses the current ones.
+Environment variables and secrets, the browser and the application itself are always current: a
+version fixes what the test does, not the world it runs against.

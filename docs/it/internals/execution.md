@@ -11,6 +11,16 @@ I nuovi run fissano definizioni UI/API e versioni all’accodamento insieme a mo
 impostazioni del piano. La pubblicazione viene risolta in quel momento: cambiarla durante l’attesa
 non cambia il run. La review obbligatoria attuale può saltare una copia di lavoro congelata.
 
+Ogni definizione UI viene congelata con il suo **bundle delle dipendenze**
+(`server/authoring/executable-definition.ts`): i gruppi di step che chiama (in modo transitivo,
+comprese le chiamate dei gruppi), gli elementi condivisi del repository e le custom action che
+usano il test e i suoi gruppi, più gli id mancanti. Una versione pubblicata esegue il bundle
+registrato con quella versione al salvataggio, cioè quello visto dalla review; una copia di lavoro,
+o una versione salvata prima dei bundle, riceve il bundle catturato nella transazione di
+accodamento. Il runner risolve un test congelato solo dal bundle e non legge mai `step_groups`,
+`project_elements` o `custom_actions` per quel test. Il bundle conserva le definizioni come scritte:
+i segnaposto `{{nome}}` restano segnaposto, quindi nessun valore segreto viene persistito.
+
 Lo snapshot è privato del runner: lista/dettaglio run e risposte di avvio/annullamento lo omettono
 e riportano provenienza sicura. SHA-256 copre JSON canonico (chiavi ordinate, array nell’ordine
 originale) di impostazioni, definizioni e dataset. La relazione di replay è esclusa dall’impronta.
@@ -130,7 +140,25 @@ nel processo (`onExecutionTransition`); il modulo dello stato dei commit è uno 
    orologio con `RUN_MAX_DURATION_MS` (3 h), così un database che fallisce o non risponde non può
    tenere in vita un run oltre il suo limite. I test lo ricevono tramite un `AbortSignal`, che interrompe
    lo step in corso e chiude la sessione browser del test stesso (vedi [Fermare un test](#stopping-a-test)).
-3. **Lettura dello snapshot.** I run di prima degli snapshot ripiegano sul piano com'è ora.
+3. **Lettura dello snapshot.** I run di prima degli snapshot (`{}`) ripiegano sul piano com'è ora. Uno
+   snapshot **corrotto** (illeggibile, o di versione nota ma incompleto), di versione **non
+   supportata**, con definizioni in un formato sconosciuto o il cui bundle delle dipendenze non
+   corrisponde più alla sua impronta viene rifiutato: il run termina in `error` con
+   `corrupt_snapshot`, `unsupported_snapshot` o `unusable_snapshot`, e non viene mai eseguito dal
+   piano attuale al suo posto.
+
+   | Dato (R1)                                    | Formati letti | Altro                     |
+   | -------------------------------------------- | ------------- | ------------------------- |
+   | `configuration_snapshot.version`             | `1`, `{}`     | rifiutato                 |
+   | `configuration_snapshot.definitions.version` | `1`, `2`      | rifiutato                 |
+   | `protocol` del bundle (run, versione)        | `1`           | il test fallisce per nome |
+
+   `definitions.version` 1 non ha bundle (run accodati prima di R1, che leggono gruppi, elementi e
+   custom action dal vivo); 2 ne porta uno per ogni definizione UI. Un worker precedente a R1
+   rifiuta un run in formato 2 invece di eseguirlo con dipendenze correnti; dopo la prima scrittura
+   in formato 2 non si torna sotto R1 (`shared/execution-provenance.ts`,
+   `SUPPORTED_EXECUTION_PROTOCOLS`).
+
 4. **Risoluzione delle variabili**, una volta per run: i default dell'installazione, i valori
    dell'ambiente e i suoi segreti decifrati (`server/runtime/variables.ts`). La stessa risoluzione alimenta
    precondizioni, step UI e richieste API.
@@ -261,10 +289,13 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
   significano già rimosso, e una chiamata che nomina una variabile non impostata viene saltata. Sono
   l'ultima riga degli step del test (`type: cleanup`) e non ne cambiano mai lo stato.
 - I **test UI** girano tramite `playwrightService.executeTestSequence`. Prima del primo step si espandono
-  i gruppi di step (la chiamata a un gruppo diventa gli step attuali del gruppo) e si risolvono gli
-  elementi del repository (uno step che nomina un elemento condiviso usa il selettore attuale
-  dell'elemento). Un test con un **dataset** gira una volta per riga, e ogni riga aggiunge le proprie
-  `{{variabili}}`.
+  i gruppi di step (la chiamata a un gruppo diventa gli step del gruppo), le custom action diventano
+  lo script che eseguono e si risolvono gli elementi del repository (uno step che nomina un elemento
+  condiviso usa il selettore dell'elemento). In un run di piano tutti e tre vengono dal bundle
+  congelato con la definizione; un run ad hoc dal builder li legge dal vivo. Una versione il cui
+  bundle registrato è corrotto o in un formato sconosciuto fallisce con un messaggio esplicito e non
+  viene mai eseguita come copia di lavoro. Un test con un **dataset** gira una volta per riga, e ogni
+  riga aggiunge le proprie `{{variabili}}`.
 - Ogni step passa da `server/web/step-executor.ts`, l'unica implementazione di ogni azione: `navigate`,
   `click`, `input`, `select`, `selectByText`, `hover`, `scroll`, `wait`, attese condizionali
   (`waitForElement`, `waitForText`, `waitForNetworkIdle`), asserzioni (`assert`, `assertTextContains`,

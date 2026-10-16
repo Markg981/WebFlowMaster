@@ -16,6 +16,12 @@ set unavailable at enqueue is recorded as that test's error; repairing the refer
 requires a new run. Requests with the same idempotency key and automatic retries reuse the
 original snapshot. A fresh run captures the current data.
 
+Web tests are fixed the same way, with the step groups, kept elements and custom actions they
+call: a published version runs the ones recorded when it was saved, a working copy the ones
+current when the run is queued ([What a version runs](./web-tests#what-a-version-runs)). A queued
+run whose stored configuration is unreadable, or written by a newer release in a format this
+one does not know, ends as an error saying so; it is never run from the plan as it is now.
+
 Historical runs without a dataset snapshot keep resolving data when the worker starts. This
 feature freezes data inputs, not every test definition or external system: environment secrets,
 captured response variables, generated values, devices and application state can still change.

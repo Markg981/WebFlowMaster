@@ -10,6 +10,15 @@ New runs freeze UI/API definitions and their exact versions at enqueue alongside
 and plan settings. Publication is resolved there. Changing a published version during the wait
 does not change the queued run. Current mandatory review can skip a frozen working copy.
 
+Each UI definition is frozen with its **dependency bundle** (`server/authoring/executable-definition.ts`):
+the step groups it calls (transitively, a group's own calls included), the shared repository elements
+and the custom actions it and its groups use, plus the ids that were missing. A published version
+runs the bundle recorded with that version when it was saved, which is the one its review saw;
+a working copy, or a version saved before bundles existed, gets the bundle captured in the enqueue
+transaction. The runner resolves a frozen test from the bundle alone and never reads
+`step_groups`, `project_elements` or `custom_actions` for it. A bundle holds definitions as written:
+`{{name}}` placeholders stay placeholders, so no secret value is persisted.
+
 Snapshots are private runner data: execution list/detail, run-start and cancellation JSON APIs
 omit them and expose safe provenance. SHA-256 covers canonical JSON (sorted keys, ordered arrays)
 for settings, definitions and datasets. Replay lineage is excluded from the input fingerprint.
@@ -129,7 +138,23 @@ in the process (`onExecutionTransition`); the commit status module is one of the
    against `RUN_MAX_DURATION_MS` (3 h), so a database that fails or does not answer cannot keep a
    run going past its limit. The tests see it through an `AbortSignal`, which interrupts the step in
    progress and closes the test's own browser session (see [Stopping a test](#stopping-a-test)).
-3. **Read the snapshot.** Runs from before snapshots existed fall back to the plan as it is now.
+3. **Read the snapshot.** Runs from before snapshots existed (`{}`) fall back to the plan as it is
+   now. A snapshot that is **corrupt** (unreadable, or a known version with parts missing), in an
+   **unsupported** version, with definitions in an unknown format, or whose dependency bundle no longer
+   matches its fingerprint is refused: the run ends as `error` with `corrupt_snapshot`,
+   `unsupported_snapshot` or `unusable_snapshot`, and is never run from the live plan instead.
+
+   | Data (R1)                                    | Formats read | Anything else      |
+   | -------------------------------------------- | ------------ | ------------------ |
+   | `configuration_snapshot.version`             | `1`, `{}`    | refused            |
+   | `configuration_snapshot.definitions.version` | `1`, `2`     | refused            |
+   | dependency bundle `protocol` (run, version)  | `1`          | test fails by name |
+
+   `definitions.version` 1 has no bundles (runs queued before R1, which read groups, elements and
+   custom actions live); 2 carries one per UI definition. A worker older than R1 refuses a
+   format-2 run instead of running it with live dependencies; after the first format-2 write, do not
+   roll back below R1 (`shared/execution-provenance.ts`, `SUPPORTED_EXECUTION_PROTOCOLS`).
+
 4. **Resolve variables** once for the run: the installation defaults, the environment's values, and
    its decrypted secrets (`server/runtime/variables.ts`). The same resolution feeds preconditions, UI steps
    and API requests.
@@ -256,8 +281,11 @@ With `shards = 1` none of this runs.
   variable is skipped. They are the test's last step line (`type: cleanup`) and never change its
   status.
 - **UI tests** run through `playwrightService.executeTestSequence`. Before the first step, step
-  groups are expanded (a group call becomes the group's current steps) and repository elements are
-  resolved (a step naming a shared element uses the element's current selector). A test with a
+  groups are expanded (a group call becomes the group's steps), custom actions become the script
+  they run, and repository elements are resolved (a step naming a shared element uses the element's
+  selector). In a plan run all three come from the definition's frozen bundle; an ad-hoc run from
+  the builder reads them live. A version whose recorded bundle is corrupt or in an unknown format
+  fails with a message that says so, and is never run as the working copy. A test with a
   **dataset** runs once per row, each row adding its own `{{variables}}`.
 - Each step runs through `server/web/step-executor.ts`, the single implementation of every action:
   `navigate`, `click`, `input`, `select`, `selectByText`, `hover`, `scroll`, `wait`, conditional

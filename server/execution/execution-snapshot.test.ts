@@ -4,6 +4,7 @@ import { testPlans, type TestPlan } from '@shared/schema';
 import {
   EXECUTION_SNAPSHOT_VERSION,
   buildExecutionSnapshot,
+  inspectExecutionSnapshot,
   readExecutionSnapshot,
 } from './execution-snapshot';
 
@@ -202,5 +203,21 @@ describe('readExecutionSnapshot', () => {
     expect(readExecutionSnapshot('not json')).toBeNull();
     const snapshot = buildExecutionSnapshot(plan, [], {}, now);
     expect(readExecutionSnapshot({ ...snapshot, version: 2 })).toBeNull();
+  });
+});
+
+describe('inspectExecutionSnapshot', () => {
+  // The worker builds a legacy run from the plan; the other two it refuses (R1, C04).
+  it('tells a run from before snapshots apart from a corrupt one and an unknown version', () => {
+    const snapshot = buildExecutionSnapshot(plan, [], {}, now);
+    expect(inspectExecutionSnapshot(snapshot)).toEqual({ kind: 'ok', snapshot });
+    for (const legacy of [null, undefined, {}, '{}', 'null'])
+      expect(inspectExecutionSnapshot(legacy)).toEqual({ kind: 'legacy' });
+    for (const corrupt of ['not json', [], 7, '"text"', { plan: {} }, { version: 1 }])
+      expect(inspectExecutionSnapshot(corrupt).kind).toBe('corrupt');
+    expect(inspectExecutionSnapshot({ ...snapshot, version: 2 })).toEqual({
+      kind: 'unsupported',
+      version: 2,
+    });
   });
 });

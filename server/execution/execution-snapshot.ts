@@ -183,17 +183,49 @@ export function buildExecutionSnapshot(
 }
 
 /**
- * The snapshot a run carries, or null when it carries none.
+ * What a run's stored configuration is.
  *
- * Null for '{}' — every row from before snapshots — and for a version this code does not know,
- * so a worker older than the snapshot it is handed reads the plan rather than half of a contract
- * it does not understand.
+ * `legacy`: null or '{}' — every run queued before snapshots — which the worker may still build
+ * from the plan, as such runs always were. `corrupt` (unparseable, not an object, a known
+ * version with parts missing) and `unsupported` (a version this code does not know) are not
+ * legacy: running them from the live plan would execute something nobody queued, so the worker
+ * refuses them (R1, C04).
+ */
+export type SnapshotRead =
+  | { kind: 'ok'; snapshot: ExecutionSnapshot }
+  | { kind: 'legacy' }
+  | { kind: 'corrupt'; reason: string }
+  | { kind: 'unsupported'; version: unknown };
+
+export function inspectExecutionSnapshot(value: unknown): SnapshotRead {
+  if (value === null || value === undefined) return { kind: 'legacy' };
+  let parsed: unknown = value;
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return { kind: 'corrupt', reason: 'The stored configuration is not valid JSON.' };
+    }
+  }
+  if (parsed === null) return { kind: 'legacy' };
+  if (typeof parsed !== 'object' || Array.isArray(parsed))
+    return { kind: 'corrupt', reason: 'The stored configuration is not an object.' };
+  const candidate = parsed as Partial<ExecutionSnapshot>;
+  if (Object.keys(candidate).length === 0) return { kind: 'legacy' };
+  if (!('version' in candidate))
+    return { kind: 'corrupt', reason: 'The stored configuration has no version.' };
+  if (candidate.version !== EXECUTION_SNAPSHOT_VERSION)
+    return { kind: 'unsupported', version: candidate.version };
+  if (!Array.isArray(candidate.selectedTests) || !candidate.plan)
+    return { kind: 'corrupt', reason: 'The stored configuration is incomplete.' };
+  return { kind: 'ok', snapshot: candidate as ExecutionSnapshot };
+}
+
+/**
+ * The snapshot a run carries, or null when it carries no usable one. For display and replay;
+ * the worker uses inspectExecutionSnapshot, which says why.
  */
 export function readExecutionSnapshot(value: unknown): ExecutionSnapshot | null {
-  const parsed = parsedJson(value);
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-  const candidate = parsed as Partial<ExecutionSnapshot>;
-  if (candidate.version !== EXECUTION_SNAPSHOT_VERSION) return null;
-  if (!Array.isArray(candidate.selectedTests) || !candidate.plan) return null;
-  return candidate as ExecutionSnapshot;
+  const read = inspectExecutionSnapshot(value);
+  return read.kind === 'ok' ? read.snapshot : null;
 }

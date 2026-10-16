@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto';
-import type { ExecutionProvenance, ReproducibilitySummary } from '@shared/execution-provenance';
+import {
+  SUPPORTED_EXECUTION_PROTOCOLS,
+  type ExecutionProvenance,
+  type ReproducibilitySummary,
+} from '@shared/execution-provenance';
 import { readExecutionSnapshot, type ExecutionSnapshot } from './execution-snapshot';
+import type { FrozenTestDefinitions } from './execution-definitions';
+import { readBundle, type FrozenDependencies } from '../authoring/executable-definition';
 
 function sorted(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sorted);
@@ -42,6 +48,8 @@ export function buildExecutionProvenance(snapshot: ExecutionSnapshot): Execution
         version: row.version,
         source: row.source,
         fingerprint: inputFingerprint(row.definition),
+        // Only when frozen: a run queued before R1 keeps the provenance it was fingerprinted with.
+        ...(row.dependencies ? { dependencies: dependencySummary(row.dependencies) } : {}),
       })),
       ...(snapshot.definitions?.api ?? []).map((row) => ({
         type: 'api' as const,
@@ -74,17 +82,67 @@ export function buildExecutionProvenance(snapshot: ExecutionSnapshot): Execution
   };
 }
 
+/** Counts and a fingerprint: report readers never see a group's steps or an action's script. */
+function dependencySummary(frozen: FrozenDependencies) {
+  if ('error' in frozen)
+    return {
+      origin: 'unusable' as const,
+      fingerprint: null,
+      groups: 0,
+      elements: 0,
+      customActions: 0,
+      missing: 0,
+    };
+  const { bundle } = frozen;
+  return {
+    origin: frozen.origin,
+    fingerprint: bundle.fingerprint,
+    groups: bundle.groups.length,
+    elements: bundle.elements.length,
+    customActions: bundle.customActions.length,
+    missing:
+      bundle.missing.groups.length +
+      bundle.missing.elements.length +
+      bundle.missing.customActions.length,
+  };
+}
+
+/**
+ * Whether every UI definition of a format-2 run carries usable or explicitly unusable
+ * dependencies. A bundle edited after enqueue no longer matches its own fingerprint.
+ */
+function dependenciesIntact(definitions: FrozenTestDefinitions): boolean {
+  if (definitions.version === 1) return true;
+  return definitions.ui.every((row) => {
+    const frozen = row.dependencies;
+    if (!frozen) return false;
+    if ('error' in frozen) return typeof frozen.error === 'string';
+    return readBundle(frozen.bundle).kind === 'ok';
+  });
+}
+
 /** No definitions, dataset values or credentials are exposed to report readers. */
 export function reproducibilitySummary(value: unknown): ReproducibilitySummary {
   const snapshot = readExecutionSnapshot(value);
   if (
+    snapshot?.definitions &&
+    !(SUPPORTED_EXECUTION_PROTOCOLS.definitions as readonly number[]).includes(
+      snapshot.definitions.version,
+    )
+  )
+    return {
+      available: false,
+      reason: `The queued definitions use format ${JSON.stringify(snapshot.definitions.version)}, which this server does not support.`,
+    };
+  if (
     !snapshot?.definitions ||
-    snapshot.definitions.version !== 1 ||
     !snapshot.datasets ||
     !snapshot.mobileDefinitions ||
     !snapshot.provenance
   )
     return { available: false, reason: 'This historical run does not retain all queued inputs.' };
+  if (!dependenciesIntact(snapshot.definitions))
+    return { available: false, reason: 'The queued test dependencies are incomplete or altered.' };
   try {
     const expected = buildExecutionProvenance(snapshot);
     const retained = snapshot.provenance;

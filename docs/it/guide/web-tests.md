@@ -495,8 +495,10 @@ this test's own rows** trasforma il collegamento in righe proprie del test.
 
 Una sequenza usata da molti test — l'accesso, la scelta di un cliente — si può salvare con
 **Salva come gruppo**. Compare allora sotto **Gruppi di step** nella palette, e qualsiasi test può
-includerla. Un test esegue il gruppo com'è al momento del run, quindi modificare il gruppo cambia
-ogni test che lo usa.
+includerla. Un test non pubblicato esegue il gruppo com'è quando il run viene accodato, quindi
+modificare il gruppo cambia ognuno di questi test dal run successivo; una versione pubblicata esegue
+il gruppo com'era quando quella versione è stata salvata (vedi
+[Che cosa esegue una versione](#che-cosa-esegue-una-versione)).
 
 L'ingranaggio accanto a **Gruppi di step** nella palette apre la loro gestione: **Dove è usato**
 nomina i test che richiamano un gruppo, **Modifica** ne cambia nome e descrizione — e, con la
@@ -530,7 +532,8 @@ riga.querySelector('button.apri').click();
 
 Un'azione personalizzata ha i poteri di uno step **Esegui JavaScript** e nessun altro: gira nella
 pagina del browser, mai sul server o sul runner. I test fanno riferimento all'azione invece di
-copiarla, quindi modificarla cambia ogni test che la usa al run successivo; un'azione ancora usata
+copiarla, quindi modificarla cambia ogni test non pubblicato che la usa al run successivo (una
+versione pubblicata conserva l'azione con cui è stata salvata); un'azione ancora usata
 da un test o da un gruppo di step non si può eliminare, e il messaggio dice chi la usa. Creazione,
 modifica ed eliminazione finiscono nel registro di audit, senza lo script.
 
@@ -552,3 +555,22 @@ da confermare.
 nuovo con lo stesso nome propone di sovrascrivere. Ogni salvataggio è una nuova **versione**
 nella cronologia del test (vedi
 [Organizzare i test](./organizing#cronologia-e-versioni)).
+
+### Che cosa esegue una versione {#che-cosa-esegue-una-versione}
+
+Oltre agli step, una versione registra i gruppi di step, gli elementi salvati e le azioni
+personalizzate che il test richiama, come sono al momento del salvataggio, compresi quelli usati da
+un gruppo. Ciò che un revisore approva e ciò che un piano esegue è quella versione con quelle
+dipendenze: modificare o eliminare un gruppo dopo la review, o mentre un run aspetta in coda, non
+cambia ciò che fa la versione pubblicata.
+
+Per adottare un gruppo, un elemento o un'azione modificati, salvate di nuovo il test: il
+salvataggio crea una nuova versione anche se gli step sono gli stessi, con un riepilogo come _Step
+group "Login" changed_, e quella versione si revisiona e si pubblica come qualsiasi altra. Una
+versione salvata prima di questa funzione registra le sue dipendenze al salvataggio successivo;
+fino ad allora un piano usa quelle correnti all'accodamento del run.
+
+Un run accodato da un test non pubblicato usa le dipendenze come sono in quel momento e le conserva
+mentre aspetta. Eseguire il test dal costruttore usa sempre quelle correnti. Variabili e segreti
+dell'ambiente, il browser e l'applicazione stessa sono sempre quelli correnti: una versione fissa ciò
+che fa il test, non il mondo contro cui gira.

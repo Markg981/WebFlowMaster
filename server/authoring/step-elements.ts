@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { projectElements } from '@shared/schema';
-import { withTenantTransaction } from '../platform/middleware/tenancy';
+import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { asSteps, type SequenceStep } from './step-groups';
 
 /**
@@ -97,6 +97,29 @@ export function resolveStepElements(
 }
 
 /**
+ * These repository elements, read in the caller's transaction.
+ *
+ * No organization predicate: RLS supplies it, so an element belonging to another tenant (or to a
+ * restricted project the caller cannot see) is simply absent and the step falls back to its own
+ * selector.
+ */
+export async function loadRepositoryElements(
+  tx: TenantTx,
+  ids: string[],
+): Promise<Array<RepositoryElement & { name: string; projectId: number; updatedAt: Date | null }>> {
+  if (ids.length === 0) return [];
+  const rows = await tx.select().from(projectElements).where(inArray(projectElements.id, ids));
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    projectId: row.projectId,
+    selector: row.selector,
+    frameSelector: row.frameSelector ?? null,
+    updatedAt: row.updatedAt ?? null,
+  }));
+}
+
+/**
  * Resolves a sequence about to be run, loading whatever elements it names.
  *
  * Returns the sequence untouched, and without a query, when no step names one — which is every
@@ -107,14 +130,10 @@ export async function resolveSequenceForRun(sequence: unknown): Promise<Resoluti
   if (ids.length === 0) return { steps: asSteps(sequence), unresolved: [], resolved: 0 };
 
   try {
-    // No organization predicate: RLS supplies it, so an element belonging to another tenant is
-    // simply absent and the step falls back to its own selector.
-    const rows = await withTenantTransaction((tx) => tx.select().from(projectElements));
+    const rows = await withTenantTransaction((tx) => loadRepositoryElements(tx, ids));
     return resolveStepElements(
       sequence,
-      rows
-        .filter((row) => ids.includes(row.id))
-        .map((row) => ({ id: row.id, selector: row.selector, frameSelector: row.frameSelector })),
+      rows.map(({ id, selector, frameSelector }) => ({ id, selector, frameSelector })),
     );
   } catch {
     // The repository being unreachable must not stop a run that has selectors of its own.

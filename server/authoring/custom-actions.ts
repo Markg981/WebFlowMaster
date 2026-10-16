@@ -4,8 +4,9 @@ import {
   parseArguments,
   type CustomActionParameter,
 } from '@shared/custom-actions';
+import { inArray } from 'drizzle-orm';
 import { customActions } from '@shared/schema';
-import { withTenantTransaction } from '../platform/middleware/tenancy';
+import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import type { SequenceStep } from './step-groups';
 
 /**
@@ -76,6 +77,25 @@ export function expandCustomActions(
   return { steps: out, errors };
 }
 
+/**
+ * These custom actions, read in the caller's transaction. No organization predicate: RLS
+ * supplies it, so another tenant's action is simply absent.
+ */
+export async function loadCustomActions(
+  tx: TenantTx,
+  ids: string[],
+): Promise<Array<LoadedCustomAction & { updatedAt: Date | null }>> {
+  if (ids.length === 0) return [];
+  const rows = await tx.select().from(customActions).where(inArray(customActions.id, ids));
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    parameters: row.parameters ?? [],
+    script: row.script,
+    updatedAt: row.updatedAt ?? null,
+  }));
+}
+
 /** Loads what a sequence calls, under the caller's organization, and expands it. */
 export async function expandCustomActionsForRun(
   steps: SequenceStep[],
@@ -83,17 +103,11 @@ export async function expandCustomActionsForRun(
   const ids = referencedCustomActionIds(steps);
   if (ids.length === 0) return { steps, errors: [] };
   try {
-    // No organization predicate: RLS supplies it, so another tenant's action is simply absent.
-    const rows = await withTenantTransaction((tx) => tx.select().from(customActions));
-    const loaded = rows
-      .filter((row) => ids.includes(row.id))
-      .map((row) => ({
-        id: row.id,
-        name: row.name,
-        parameters: row.parameters ?? [],
-        script: row.script,
-      }));
-    return expandCustomActions(steps, loaded);
+    const loaded = await withTenantTransaction((tx) => loadCustomActions(tx, ids));
+    return expandCustomActions(
+      steps,
+      loaded.map(({ id, name, parameters, script }) => ({ id, name, parameters, script })),
+    );
   } catch (error: any) {
     return {
       steps,

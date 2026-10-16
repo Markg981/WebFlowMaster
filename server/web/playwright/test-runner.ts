@@ -25,7 +25,8 @@ import {
   type CapturedEvidence,
 } from '../../runtime/run-evidence';
 import { keepsScreenshot } from '../../runtime/run-policies';
-import { elementIdOfStep, resolveSequenceForRun } from '../../authoring/step-elements';
+import { elementIdOfStep } from '../../authoring/step-elements';
+import { prepareSequence } from '../../authoring/executable-definition';
 import {
   executeStep,
   runBounded,
@@ -35,7 +36,7 @@ import {
   StepInterruptedError,
   type InterruptionKind,
 } from '../step-executor';
-import { expandSequenceForRun, type SequenceStep } from '../../authoring/step-groups';
+import { type SequenceStep } from '../../authoring/step-groups';
 import { storage } from '../../identity/storage';
 import {
   compareStepScreenshot,
@@ -175,12 +176,15 @@ export class TestRunner {
       screenshotBaseDir,
     });
 
-    // Calls to step groups become the steps those groups hold, before anything is launched.
-    // A call that cannot be expanded — a group deleted since the test was written — fails the
-    // test here rather than running a shorter test that would report as a pass.
-    const expansion = await expandSequenceForRun(test.sequence);
-    if (expansion.errors.length > 0) {
-      const message = expansion.errors.join(' ');
+    // Calls to step groups become the steps those groups hold, custom actions the script they
+    // run, and steps naming a repository element take its selector — before anything is
+    // launched. A frozen definition (a plan run queued from R1 on) resolves all three from the
+    // bundle it was queued with and reads nothing live; an ad-hoc run reads them now. A call that
+    // cannot be expanded — a group deleted since the test was written — fails the test here
+    // rather than running a shorter test that would report as a pass.
+    const resolution = await prepareSequence(test.sequence, options?.dependencies);
+    if (resolution.errors.length > 0) {
+      const message = resolution.errors.join(' ');
       resolvedLogger.warn({
         message: `PS:executeTestSequence - ${message}`,
         testName: test.name,
@@ -188,10 +192,6 @@ export class TestRunner {
       });
       return { success: false, steps: [], error: message, duration: Date.now() - startTime };
     }
-    // Then the steps that name an element from the project's repository take its current
-    // selector. A step that names none keeps its own, which is every step written before the
-    // repository existed.
-    const resolution = await resolveSequenceForRun(expansion.steps);
     const sequenceToRun = resolution.steps as unknown as TestStep[];
     // Blocks that do not close fail the test before a browser is launched, by step number.
     const flow = analyseFlow(sequenceToRun);
@@ -218,7 +218,7 @@ export class TestRunner {
         });
       }
     }
-    if (expansion.expanded && executionId) {
+    if (resolution.expanded && executionId) {
       wsEmitter.emitExecutionLog(executionId, {
         level: 'info',
         source: 'system',

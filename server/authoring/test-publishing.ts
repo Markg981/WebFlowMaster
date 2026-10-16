@@ -437,6 +437,8 @@ export interface RunnableContent {
   dataset: unknown;
   bdd?: unknown;
   snapshot?: Record<string, unknown>;
+  /** A UI version's own snapshot column: where its dependency bundle is (executable-definition.ts). */
+  versionSnapshot?: unknown;
 }
 
 /**
@@ -464,7 +466,9 @@ export async function publishedContentOf(
   for (const { testId, version } of rows) {
     content.set(testId, {
       version: version.version,
-      ...(testType !== 'ui' ? { snapshot: version.snapshot ?? {} } : {}),
+      ...(testType !== 'ui'
+        ? { snapshot: version.snapshot ?? {} }
+        : { versionSnapshot: version.snapshot ?? null }),
       name: version.name,
       url: version.url,
       sequence: version.sequence,
