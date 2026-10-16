@@ -28,6 +28,28 @@ persone. Ogni punto indica l'impostazione o la pagina che lo spiega. La
   l'import di un test API, 10 MB per un upload Excel (solo `.xlsx`, cancellato dopo la lettura),
   100 kB per ogni altra richiesta JSON.
 
+## Quick start e installazione condivisa {#quickstart}
+
+`docker-compose.yml` è il quick start locale, per una persona su una macchina. Pubblica il
+processo web (5000), PostgreSQL (5432), Redis (6379) e Mailpit (8025, 1025) solo su
+`127.0.0.1`, serve HTTP in chiaro con `SESSION_COOKIE_SECURE=false` (senza TLS un cookie Secure
+verrebbe scartato e ogni richiesta dopo l'accesso sarebbe anonima), e Redis e Mailpit non hanno
+password. L'overlay del collaudo e `docker-compose.observability.yml` seguono la stessa regola:
+Caddy, il database del collaudo sulla 55432, Loki e Grafana ascoltano sul loopback.
+
+|                                     | Quick start locale                      | Installazione condivisa                                                                            |
+| ----------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| File                                | `docker-compose.yml` (+ overlay locali) | `deployment/releases/compose.yml`, il [profilo di isolamento di rete](../admin/saas-network), Helm |
+| Porte pubblicate                    | solo `127.0.0.1`                        | solo il processo web, dietro il vostro reverse proxy                                               |
+| PostgreSQL, Redis, casella di posta | sul loopback, credenziali di sviluppo   | non pubblicati; Redis con password                                                                 |
+| Trasporto                           | HTTP, cookie non Secure                 | TLS, cookie Secure                                                                                 |
+
+Non trasformate il primo nel secondo cambiando `127.0.0.1` in `0.0.0.0`. `npm run
+test:security` esegue `scripts/security/compose-bindings.test.mjs`, che calcola ogni profilo
+locale con `docker compose config` (file base più overlay, tutti i profili) e fallisce per ogni
+porta pubblicata oltre il loopback, compresa una seconda pubblicazione che un overlay aggiunge
+alla lista del file base invece di sostituirla. La CI lo esegue a ogni modifica.
+
 ## Rete {#rete}
 
 Per un SaaS condiviso usare il [profilo di isolamento di rete](../admin/saas-network) fornito.

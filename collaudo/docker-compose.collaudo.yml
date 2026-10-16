@@ -48,8 +48,9 @@ x-collaudo-app-env: &collaudo-app-env
 services:
   postgres:
     # A DBA reaches it on 55432 for the backup and audit-log cases, without clashing with a
-    # development database on 5432.
-    ports: !override ['55432:5432']
+    # development database on 5432. The loopback only: the password is the public one of
+    # collaudo.env. !override replaces the base file's port instead of adding a second one.
+    ports: !override ['127.0.0.1:55432:5432']
 
   redis:
     ports: !reset []
@@ -101,9 +102,11 @@ services:
 
   caddy:
     image: caddy:2-alpine
+    # The loopback only: the hosts file sends wfm.collaudo.test to 127.0.0.1, and inside the
+    # stack the names below reach Caddy without a published port.
     ports:
-      - '443:443'
-      - '80:80'
+      - '127.0.0.1:443:443'
+      - '127.0.0.1:80:80'
     volumes:
       - ./collaudo/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

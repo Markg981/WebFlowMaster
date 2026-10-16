@@ -80,8 +80,15 @@ docker compose up -d --build
 
 Open http://localhost:5000 and register: the first account creates the first organization and
 becomes its owner. The stack refuses to start without the four secrets in `.env`, and the web
-process refuses the public example values in production. Put TLS in front before anyone else
-can reach it. The
+process refuses the public example values in production.
+
+This quick start is for one machine: every port it publishes (5000, PostgreSQL 5432, Redis
+6379, Mailpit 8025 and 1025) is bound to `127.0.0.1`, the app serves plain HTTP with a
+non-Secure session cookie, and Redis and Mailpit have no password. Other machines cannot reach
+it, and that is intended. To share an installation, use the
+[application-only deployment](./deployment/releases/) or the
+[network isolation profile](./docs/en/admin/saas-network.md) behind your own TLS reverse proxy,
+not a `0.0.0.0` port in `docker-compose.yml`; `npm run test:security` fails on one. The
 [installation guide](./docs/en/admin/installation.md) covers real deployments.
 
 ## Local development
