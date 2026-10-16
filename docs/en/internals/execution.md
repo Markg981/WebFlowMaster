@@ -127,7 +127,8 @@ in the process (`onExecutionTransition`); the commit status module is one of the
    `RUN_HEARTBEAT_INTERVAL_MS` (15 s). Each beat also tells the worker whether somebody asked to
    cancel and whether the run ended elsewhere. Before writing it, the worker checks its own clock
    against `RUN_MAX_DURATION_MS` (3 h), so a database that fails or does not answer cannot keep a
-   run going past its limit. The tests see it through an `AbortSignal` and stop at their next step.
+   run going past its limit. The tests see it through an `AbortSignal`, which interrupts the step in
+   progress and closes the test's own browser session (see [Stopping a test](#stopping-a-test)).
 3. **Read the snapshot.** Runs from before snapshots existed fall back to the plan as it is now.
 4. **Resolve variables** once for the run: the installation defaults, the environment's values, and
    its decrypted secrets (`server/runtime/variables.ts`). The same resolution feeds preconditions, UI steps
@@ -293,8 +294,8 @@ None of these can change the verdict: each failure is logged and reported as an 
 
 | Situation                                      | What happens                                                                                                                                                                                                                                                                                                                                                                         |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Somebody cancels                               | `running → cancelling`; the worker hears it at its next heartbeat, finishes the current step and ends the run `cancelled`.                                                                                                                                                                                                                                                           |
-| A step hangs                                   | The step's own timeout, then the run's maximum duration (`timed_out`).                                                                                                                                                                                                                                                                                                               |
+| Somebody cancels                               | `running → cancelling`; the worker hears it at its next heartbeat, interrupts the current step, closes the test's own session and ends the run `cancelled`.                                                                                                                                                                                                                          |
+| A step hangs                                   | The step's own timeout; for what has none (a script that never settles), the step deadline `RUN_STEP_DEADLINE_MS`; then the run's maximum duration (`timed_out`).                                                                                                                                                                                                                    |
 | The worker dies                                | Its heartbeat stops. The recovery sweep in the web process (`server/execution/run-recovery.ts`) ends runs silent for `RUN_STALE_AFTER_MS` (default 2 min): `running → error` (`worker_lost`), `cancelling → cancelled`. A scheduled run with attempts left gets its next attempt. It is not silently re-run: half a run may already have created data in the application under test. |
 | The worker is alive but stuck                  | Past the maximum duration plus a 5-minute grace, the sweep ends it `timed_out`.                                                                                                                                                                                                                                                                                                      |
 | The web process stops after creating a run     | The run's job is still in `execution_outbox`. Once the lease runs out, the outbox dispatcher of any web process publishes it with the run's id as the job id; the run is never left `queued` with no job.                                                                                                                                                                            |
@@ -303,6 +304,40 @@ None of these can change the verdict: each failure is logged and reported as an 
 
 Several web servers can sweep at the same time: every ending goes through the state machine, so each
 run is ended once.
+
+### Stopping a test {#stopping-a-test}
+
+A stop is noticed, then carried out; the two take different times.
+
+| Budget                   | Default | What it bounds                                                                                                                                                                                                  |
+| ------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Polling                  | 15 s    | `RUN_HEARTBEAT_INTERVAL_MS`: how long a cancellation can wait before the worker sees it. The run's time limit is the worker's own clock and fires at the same check.                                            |
+| Run limit                | 3 h     | `RUN_MAX_DURATION_MS`: the whole run (`timed_out`).                                                                                                                                                             |
+| Step deadline            | 5 min   | `RUN_STEP_DEADLINE_MS`: one step, all of it — the action, its retry, its screenshot, its visual check. Longer when the test sets `mailpit.timeout`, `sms.timeout` or `db.timeout` above it (that value + 30 s). |
+| Closing after the signal | ≤ 5 s   | From the `AbortSignal` to the session closed and the slot free: `SESSION_CLOSE_STEP_MS` (2 s) per close stage, then `STEP_SETTLE_MS` (3 s) for the abandoned work to end.                                       |
+
+`runBounded` (`server/web/step-executor.ts`) runs each step, the browser's launch, the first
+navigation and the saving of evidence. On a stop it does not just stop waiting: it closes the test's
+own session, which makes the step's pending Playwright calls reject, waits for the abandoned work to
+end, and only then reports. So a test never answers while its script is still running, and the next
+test can take its slot at once.
+
+- **Before the launch**: no browser is opened.
+- **During the launch**: the session is closed as soon as it exists; a launch cannot be called back.
+- **During a step**: the step is reported `Stopped: <reason>` and the next step does not start. A
+  step abandoned this way is not retried.
+- **Between two steps**: the next step is reported stopped without being started.
+- **While evidence is saved**: the session is closed and that evidence is dropped. A test that has
+  already stopped gets `STEP_SETTLE_MS` to save what it has.
+
+The test's result carries `interrupted: cancelled | timed_out | lost`; the run's own ending comes
+from the watch, as above. A script stuck in a synchronous loop is ended the same way: a local browser
+is a process launched for this one test, and closing it ends the loop.
+
+**Remote targets.** On a browser grid or an agent the teardown is this session's own: its context
+is closed and its connection dropped. Nothing else is stopped there — not the agent, not another
+user's browser. The provider may keep its side of the session until its own idle timeout, and a
+script stuck in a remote page stops when the provider ends that page.
 
 ## 7. Live progress
 

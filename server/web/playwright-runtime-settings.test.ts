@@ -49,7 +49,10 @@ vi.mock('../runtime/browsers', async (importOriginal) => {
   };
 });
 vi.mock('../identity/storage', () => ({ storage: { getUserSettings: mocks.getUserSettings } }));
-vi.mock('./step-executor', () => ({ executeStep: mocks.executeStep }));
+vi.mock('./step-executor', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./step-executor')>()),
+  executeStep: mocks.executeStep,
+}));
 vi.mock('../runtime/login-state', () => ({
   loadLoginState: mocks.loadLoginState,
   saveLoginState: vi.fn(),
@@ -222,8 +225,10 @@ describe('a run that is stopping', () => {
     );
 
     expect(mocks.executeStep).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
-    expect(result.steps?.[1]).toMatchObject({
+    // Stopped before it began: no browser is opened at all (server/web/playwright/cancellation.test.ts).
+    expect(mocks.newContext).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ success: false, interrupted: 'cancelled' });
+    expect(result.steps?.[0]).toMatchObject({
       status: 'failed',
       error: 'Stopped: the run was cancelled.',
     });

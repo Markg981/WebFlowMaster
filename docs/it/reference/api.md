@@ -284,7 +284,7 @@ Un run ha uno di questi stati:
 | ------------ | -------- | ------------------------------------------------------------------------------------------ |
 | `queued`     | no       | In attesa di un runner, o del limite dell'organizzazione.                                  |
 | `running`    | no       | In esecuzione.                                                                             |
-| `cancelling` | no       | Richiesto di fermarsi; termina allo step in corso.                                         |
+| `cancelling` | no       | Richiesto di fermarsi; lo step in corso viene interrotto.                                  |
 | `completed`  | sì       | Tutti i test sono passati (i fallimenti dei test in quarantena non contano).               |
 | `failed`     | sì       | Almeno un test è fallito.                                                                  |
 | `error`      | sì       | Il run non è stato portato a termine (il runner si è fermato, una preparazione è fallita). |
@@ -376,7 +376,7 @@ Dal più recente. Filtrate con `planId` e `status`; paginato.
 `POST /api/v1/runs/{runId}/cancel` · scope `runs:write`
 
 Un run in coda viene annullato subito (`200`); uno in esecuzione viene invitato a fermarsi
-(`202`) e termina allo step successivo. `409 run_already_ended` se era già concluso.
+(`202`): il worker lo vede al battito successivo, interrompe lo step in corso e chiude il browser del test. `409 run_already_ended` se era già concluso.
 
 ### JUnit XML
 

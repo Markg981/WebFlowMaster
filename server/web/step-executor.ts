@@ -1727,5 +1727,142 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
   return handler(rt);
 }
 
+/** Why a step, or the test around it, was cut short. The same three words a run ends with. */
+export type InterruptionKind = 'cancelled' | 'timed_out' | 'lost';
+
+/**
+ * A step that did not end on its own: the run was stopped, or the step ran past its deadline.
+ *
+ * Thrown by runBounded only once what the step ran in has been torn down and the abandoned work
+ * has ended (or had its chance to), so whoever records it is not recording a step still running.
+ */
+export class StepInterruptedError extends Error {
+  constructor(
+    readonly kind: InterruptionKind,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'StepInterruptedError';
+  }
+}
+
+/**
+ * How long one step may take, all of it: the action, its one retry, its screenshot and its visual
+ * comparison. The step's own timeouts are much shorter; this is the bound for what has none, a
+ * script that never settles above all (`return new Promise(() => {})`, or a loop that never
+ * yields). `RUN_STEP_DEADLINE_MS` moves it.
+ */
+export const STEP_DEADLINE_MS = Number(process.env.RUN_STEP_DEADLINE_MS) || 5 * 60_000;
+
+/**
+ * From the stop, how long the abandoned work has to end before the verdict is given anyway. It
+ * runs alongside the teardown, whose own stages are bounded by SESSION_CLOSE_STEP_MS.
+ *
+ * Closing the session makes every Playwright call in flight reject at once, so this is normally
+ * milliseconds; it bounds the rest (a poll between two calls) and keeps "closed within 5 seconds
+ * of the signal" true for the session and its slot.
+ */
+export const STEP_SETTLE_MS = 3_000;
+
+/** The waits a test can lengthen through a variable, in seconds; the deadline makes room for them. */
+const DECLARED_TIMEOUT_VARIABLES = ['mailpit.timeout', 'sms.timeout', 'db.timeout'];
+
+/**
+ * The deadline for a step in a test with these variables: STEP_DEADLINE_MS, or longer when the
+ * test asked one of its waits to be longer than that, so the deadline never cuts a wait the test
+ * declared on purpose.
+ */
+export function stepDeadlineMs(vars: Record<string, string> = {}): number {
+  const declared = DECLARED_TIMEOUT_VARIABLES.map((name) => Number(vars[name]))
+    .filter((seconds) => Number.isFinite(seconds) && seconds > 0)
+    .map((seconds) => seconds * 1000 + 30_000);
+  return Math.max(STEP_DEADLINE_MS, ...declared);
+}
+
+export interface StepBounds {
+  /** The run's signal (server/execution/run-watch.ts). Already aborted: the work never starts. */
+  signal?: AbortSignal;
+  /** The work's own deadline, from when it starts. */
+  deadlineMs?: number;
+  /**
+   * Tears down what the work runs in: the caller's own browser session. Never a browser or a
+   * process anyone else is using — on a grid or an agent that is this session's teardown alone.
+   */
+  teardown: () => Promise<void>;
+  /** See STEP_SETTLE_MS. */
+  settleMs?: number;
+}
+
+/** The interruption a signal's reason stands for: the run watch's cause, "cancelled" otherwise. */
+export function stepInterruption(reason: unknown): StepInterruptedError {
+  if (reason instanceof StepInterruptedError) return reason;
+  const stopCause = (reason as { stopCause?: InterruptionKind } | undefined)?.stopCause;
+  const message = String((reason as Error | undefined)?.message ?? 'The run was stopped.');
+  return new StepInterruptedError(stopCause ?? 'cancelled', message.replace(/^Not run: /, ''));
+}
+
+/**
+ * Runs `work`, and ends it when the run stops or the deadline passes.
+ *
+ * Racing the work against a timer is not enough: the losing promise keeps a page, a script and a
+ * browser busy after the verdict, and the slot it holds is not free. So on a stop this tears the
+ * session down — which makes the work's pending Playwright calls reject — waits for the work to
+ * end (at most settleMs), and only then throws a StepInterruptedError.
+ */
+export async function runBounded<T>(work: () => Promise<T>, bounds: StepBounds): Promise<T> {
+  const { signal, deadlineMs } = bounds;
+  if (signal?.aborted) throw stepInterruption(signal.reason);
+
+  let interrupt!: (why: StepInterruptedError) => void;
+  const interrupted = new Promise<StepInterruptedError>((resolve) => (interrupt = resolve));
+  const onAbort = () => interrupt(stepInterruption(signal!.reason));
+  signal?.addEventListener('abort', onAbort, { once: true });
+  const deadline = deadlineMs
+    ? setTimeout(
+        () =>
+          interrupt(
+            new StepInterruptedError(
+              'timed_out',
+              `the step did not finish within its deadline of ${Math.round(deadlineMs / 1000)} s.`,
+            ),
+          ),
+        deadlineMs,
+      )
+    : undefined;
+
+  const running = Promise.resolve().then(work);
+  try {
+    const first = await Promise.race([
+      running.then(
+        (value) => ({ settled: true as const, value }),
+        (error: unknown) => ({ settled: true as const, error, failed: true }),
+      ),
+      interrupted.then((why) => ({ settled: false as const, why })),
+    ]);
+    if (first.settled) {
+      if ('failed' in first) throw first.error;
+      return first.value;
+    }
+    // The settle window runs alongside the teardown, not after it: the answer comes once the
+    // session is closed and the work has ended, or its window is over — the longer of the two,
+    // not their sum.
+    let settle: ReturnType<typeof setTimeout> | undefined;
+    await Promise.all([
+      bounds.teardown().catch(() => {}),
+      Promise.race([
+        running.catch(() => {}),
+        new Promise<void>((resolve) => {
+          settle = setTimeout(resolve, bounds.settleMs ?? STEP_SETTLE_MS);
+        }),
+      ]),
+    ]);
+    clearTimeout(settle);
+    throw first.why;
+  } finally {
+    signal?.removeEventListener('abort', onAbort);
+    clearTimeout(deadline);
+  }
+}
+
 /** Every action id the engine knows, in declaration order. Re-exported for the client. */
 export { ADHOC_ACTION_IDS };

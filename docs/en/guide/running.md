@@ -160,8 +160,11 @@ the log as the run writes it. **View detailed report** opens the report.
 A run waits in a queue when your organization is running as many plans as its limit allows, or
 when no runner is online: **Settings → Run usage** says which.
 
-To stop a run, **Cancel run** on its report. Tests that have not started are reported as skipped;
-a test in progress stops at its next step.
+To stop a run, **Cancel run** on its report. Tests that have not started are reported as skipped.
+A test in progress is stopped where it is, even in the middle of a script that never ends: its
+browser is closed within a few seconds and the step reads **Stopped**. The runner notices a
+cancellation at its next check, every 15 seconds by default. A single step that runs past its
+deadline (5 minutes by default) is stopped the same way and fails as timed out.
 
 A run that cannot record a test's result ends in **error** (`run_incomplete`), never passed: its
 message names the test whose result was lost. That is not the same as the test failing — a failed

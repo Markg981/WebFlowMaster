@@ -26,7 +26,15 @@ import {
 } from '../../runtime/run-evidence';
 import { keepsScreenshot } from '../../runtime/run-policies';
 import { elementIdOfStep, resolveSequenceForRun } from '../../authoring/step-elements';
-import { executeStep } from '../step-executor';
+import {
+  executeStep,
+  runBounded,
+  stepDeadlineMs,
+  stepInterruption,
+  STEP_SETTLE_MS,
+  StepInterruptedError,
+  type InterruptionKind,
+} from '../step-executor';
 import { expandSequenceForRun, type SequenceStep } from '../../authoring/step-groups';
 import { storage } from '../../identity/storage';
 import { compareStepScreenshot, isVisualFailure, stableScreenshot } from '../visual-testing';
@@ -66,6 +74,8 @@ export class TestRunner {
     error?: string;
     duration?: number;
     evidence?: CapturedEvidence;
+    /** Set when the test was cut short: the run stopped, or a step ran past its deadline. */
+    interrupted?: InterruptionKind;
   }> {
     const startTime = Date.now();
 
@@ -180,6 +190,27 @@ export class TestRunner {
     // Same for the network: the HAR's path is fixed when the context is made.
     const harOptions = await harContextOptions(options?.evidence);
 
+    const signal = options?.signal;
+    /** Why the test was cut short, once it has been: nothing after that point starts. */
+    let interrupted: StepInterruptedError | null = null;
+    /**
+     * Set by the teardown: the step in flight has been abandoned, and whatever it still does
+     * until its calls reject (a retry, a log line) must not act as if it counted.
+     */
+    let abandoned = false;
+    /** The teardown on a stop: this test's own session, never a browser anyone else uses. */
+    const closeSession = async () => {
+      abandoned = true;
+      await session?.close();
+    };
+    const stoppedStep = (name: string, type: string, why: StepInterruptedError): StepResult => ({
+      name,
+      type,
+      status: 'failed',
+      error: `Stopped: ${why.message}`,
+      details: `Stopped during this step: ${why.message}`,
+    });
+
     /**
      * Ends the run's recording and closes what was recording it.
      *
@@ -199,26 +230,41 @@ export class TestRunner {
           });
         stepResults[0].matrixEvidence = matrix;
       }
-      if (gridProvider && page) {
-        await markGridSession(
-          page,
-          gridProvider,
-          passed,
-          stepResults.find((step) => step.status === 'failed')?.error ?? null,
-        );
-      }
-      evidence = await captureRunEvidence({
-        context,
-        page,
-        options: options?.evidence,
-        tracing,
-        passed,
-        label: `${test.name ?? 'test'}_${options?.browser?.label ?? 'default'}`,
-        scratchDir: videoOptions.recordVideo?.dir,
-        harScratchPath: harOptions.recordHar?.path,
-      });
+      const [openPage, openContext] = [page, context];
       page = null;
       context = null;
+      const capture = async () => {
+        if (gridProvider && openPage) {
+          await markGridSession(
+            openPage,
+            gridProvider,
+            passed,
+            stepResults.find((step) => step.status === 'failed')?.error ?? null,
+          );
+        }
+        return captureRunEvidence({
+          context: openContext,
+          page: openPage,
+          options: options?.evidence,
+          tracing,
+          passed,
+          label: `${test.name ?? 'test'}_${options?.browser?.label ?? 'default'}`,
+          scratchDir: videoOptions.recordVideo?.dir,
+          harScratchPath: harOptions.recordHar?.path,
+        });
+      };
+      // A stop that arrives while the evidence is being saved closes the session like any other:
+      // the test is not kept, and its slot not held, for the sake of a video. A test that has
+      // already stopped gets STEP_SETTLE_MS to save what it has.
+      evidence = await runBounded(
+        capture,
+        signal?.aborted
+          ? { deadlineMs: STEP_SETTLE_MS, teardown: closeSession }
+          : { signal, teardown: closeSession },
+      ).catch((error) => {
+        if (error instanceof StepInterruptedError) return {};
+        throw error;
+      });
     };
 
     try {
@@ -270,31 +316,47 @@ export class TestRunner {
         });
       }
 
-      session = await openBrowserSession({
-        browser: browserChoice,
-        gridSession: {
-          name: test.name ?? 'test',
-          build: executionId ? `WebFlowMaster run ${executionId}` : 'WebFlowMaster',
+      // A stop that came before the launch: no browser is opened at all. One that comes during
+      // the launch closes the session the moment it exists; the launch itself (a grid's
+      // connection above all) cannot be called back, so it gets STEP_SETTLE_MS to finish.
+      let opening: Promise<BrowserSession> | undefined;
+      session = await runBounded(
+        () =>
+          (opening = openBrowserSession({
+            browser: browserChoice,
+            gridSession: {
+              name: test.name ?? 'test',
+              build: executionId ? `WebFlowMaster run ${executionId}` : 'WebFlowMaster',
+            },
+            url: targetUrl,
+            timeoutMs: pageTimeout,
+            context: {
+              // A phone or tablet: its screen, density, touch, mobile layout and user agent, in
+              // place of the desktop window (shared/devices.ts).
+              ...deviceContextOptions(browserChoice),
+              ...(savedLogin ? { storageState: storageState as any } : {}),
+              ...(replayHeaders ? { extraHTTPHeaders: replayHeaders } : {}),
+              // Playwright sends it as Accept-Language and answers navigator.language with it.
+              ...(options?.locale ? { locale: options.locale } : {}),
+              // Recording has to be asked for when the context is made; whether the file is kept
+              // is decided when the run ends. A plan that wants neither pays for neither.
+              ...videoOptions,
+              ...harOptions,
+            },
+            beforePage: async (opened) => {
+              tracing = await startTrace(opened, options?.evidence);
+            },
+          })),
+        {
+          signal,
+          teardown: async () => {
+            void opening?.then(
+              (opened) => opened.close(),
+              () => {},
+            );
+          },
         },
-        url: targetUrl,
-        timeoutMs: pageTimeout,
-        context: {
-          // A phone or tablet: its screen, density, touch, mobile layout and user agent, in
-          // place of the desktop window (shared/devices.ts).
-          ...deviceContextOptions(browserChoice),
-          ...(savedLogin ? { storageState: storageState as any } : {}),
-          ...(replayHeaders ? { extraHTTPHeaders: replayHeaders } : {}),
-          // Playwright sends it as Accept-Language and answers navigator.language with it.
-          ...(options?.locale ? { locale: options.locale } : {}),
-          // Recording has to be asked for when the context is made; whether the file is kept
-          // is decided when the run ends. A plan that wants neither pays for neither.
-          ...videoOptions,
-          ...harOptions,
-        },
-        beforePage: async (opened) => {
-          tracing = await startTrace(opened, options?.evidence);
-        },
-      });
+      );
       gridProvider = browserChoice.grid?.provider ?? null;
       context = session.context;
       page = session.page;
@@ -329,7 +391,11 @@ export class TestRunner {
               metadata: { url: targetUrl },
             });
           }
-          await gotoWithinPolicy(page, targetUrl, { waitUntil: 'domcontentloaded' });
+          const loading = page;
+          await runBounded(
+            () => gotoWithinPolicy(loading, targetUrl, { waitUntil: 'domcontentloaded' }),
+            { signal, teardown: closeSession },
+          );
           const navBuffer = keepsScreenshot(screenshots, 'passed')
             ? await evidenceScreenshot(page, (reason) =>
                 resolvedLogger.warn({
@@ -350,6 +416,8 @@ export class TestRunner {
             details: `Successfully navigated to ${test.url}`,
           });
         } catch (e: any) {
+          // Not a page that failed to load: the test was stopped. The outer catch reports it.
+          if (e instanceof StepInterruptedError) throw e;
           overallSuccess = false;
           resolvedLogger.error({
             message: 'PS:executeTestSequence - Failed initial navigation',
@@ -419,18 +487,17 @@ export class TestRunner {
           const i = cursor.pc;
           const step = sequenceToRun[i];
           let flowOutcome: { condition?: boolean; iterations?: number } = {};
-          if (options?.signal?.aborted) {
-            // The run is stopping. The step that was going has finished; this one does not start,
-            // and the test says why it is shorter than it should be.
-            const reason = String(
-              (options.signal.reason as Error | undefined)?.message ?? 'The run was stopped.',
-            ).replace(/^Not run: /, '');
+          if (signal?.aborted) {
+            // The run is stopping between two steps. This one does not start, and the test says
+            // why it is shorter than it should be.
+            interrupted = stepInterruption(signal.reason);
             stepResults.push({
-              name: step.action?.name || 'Unnamed Action',
-              type: step.action?.id || 'unknown',
-              status: 'failed',
-              error: `Stopped: ${reason}`,
-              details: `Stopped before this step: ${reason}`,
+              ...stoppedStep(
+                step.action?.name || 'Unnamed Action',
+                step.action?.id || 'unknown',
+                interrupted,
+              ),
+              details: `Stopped before this step: ${interrupted.message}`,
             });
             overallSuccess = false;
             break;
@@ -471,144 +538,171 @@ export class TestRunner {
           try {
             if (!actionId) throw new Error('Step action ID is missing.');
 
-            let outcome: Awaited<ReturnType<typeof executeStep>>;
-            try {
-              outcome = await executeStep(
-                { page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir },
-                step,
-              );
-            } catch (firstError: any) {
-              // Retried below like a failed outcome; without the plan's retry it fails as it did.
-              if (!options?.runtime?.retryFailedStep) throw firstError;
-              outcome = {
-                status: 'failed',
-                error: firstError?.message ?? String(firstError),
-              } as typeof outcome;
-            }
-            if (outcome.status === 'failed' && options?.runtime?.retryFailedStep) {
-              // "On Major Step Failure: Retry Step" — once. What the step reports is the second
-              // try: a step that passes on it passed, and one that fails again fails with its
-              // second error, which is the one closest to the state the test is now in.
-              if (executionId) {
-                wsEmitter.emitExecutionLog(executionId, {
-                  level: 'warn',
-                  source: 'playwright',
-                  message: `Step ${i + 1} (${actionName}) failed: ${outcome.error ?? 'no reason given'}. Trying it once more.`,
-                  timestamp: new Date().toISOString(),
-                  metadata: { stepIndex: i, retry: true },
-                });
-              }
-              reporter.resetStepState();
-              outcome = await executeStep(
-                { page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir },
-                step,
-              );
-            }
-            // A step that moved the test to another tab: the steps after it, the healing pass
-            // and this step's screenshot all belong to that tab.
-            flowOutcome = outcome;
-            if (outcome.page) {
-              page = outcome.page;
-              reporter.setPage(outcome.page);
-            }
-            if (outcome.status === 'failed') {
-              stepStatus = 'failed';
-              stepError = outcome.error;
-            }
-            // See the ad-hoc path: a setup step that found the state already correct and one
-            // that changed it both pass, and the report has to tell them apart.
-            stepDetail = outcome.detail;
-            stepAccessibility = outcome.accessibility;
-            stepPerformance = outcome.performance;
-            stepLighthouse = outcome.lighthouse;
-            stepDownload = outcome.download;
-
-            // One screenshot, used twice: as the step's evidence when the plan keeps it, and —
-            // when the plan asked for visual testing — as the image compared against this
-            // step's baseline. Taken only when one of the two wants it.
-            // A condition, a loop marker or a variable changes nothing on screen: its picture
-            // would be the previous step's again, and comparing it would test that step twice.
-            const capturesPage = !leavesPageAlone(actionId) || stepStatus === 'failed';
-            const comparesVisually = !!options?.visual && stepStatus === 'passed' && capturesPage;
-            // For a comparison, a screenshot of the page once it has settled: one taken mid-load
-            // differs from the baseline by whatever had loaded by then (see stableScreenshot).
-            // Either way a picture that cannot be taken leaves the step's result as it is: a
-            // comparison without its image is skipped, not failed (see evidenceScreenshot).
-            const noPicture = (reason: string) => {
-              resolvedLogger.warn({
-                message: 'PS:executeTestSequence - No screenshot for step',
-                testName: test.name,
-                step: i + 1,
-                reason,
-              });
-              if (executionId) {
-                wsEmitter.emitExecutionLog(executionId, {
-                  level: 'warn',
-                  source: 'playwright',
-                  message: `Step ${i + 1} (${actionName}): no screenshot could be taken. The step's result stands.`,
-                  timestamp: new Date().toISOString(),
-                  metadata: { stepIndex: i },
-                });
-              }
-            };
-            const screenshotBuffer = comparesVisually
-              ? await stableScreenshot(page).catch((error: any) => {
-                  noPicture(error?.message ?? String(error));
-                  return undefined;
-                })
-              : capturesPage && keepsScreenshot(screenshots, stepStatus)
-                ? await evidenceScreenshot(page, noPicture)
-                : undefined;
-            if (screenshotBuffer && keepsScreenshot(screenshots, stepStatus)) {
-              stepScreenshot = await storeScreenshot(screenshotBuffer, actionName);
-            }
-
-            if (options?.visual && screenshotBuffer && comparesVisually) {
-              // Only for a step that did what it was asked. A step that already failed is
-              // being reported for that reason, and the page it left behind says nothing
-              // about whether the application looks right.
-              // Inside a loop, each pass has its own baseline (see FlowCursor.iterationKey).
-              const iteration = cursor.iterationKey();
-              const visualContext = iteration
-                ? {
-                    ...options.visual,
-                    variant: [options.visual.variant, iteration].filter(Boolean).join('_'),
+            // The whole step is bounded — the action, its retry, its screenshot, its visual
+            // check — by the run's signal and the step's deadline (runBounded).
+            await runBounded(
+              async () => {
+                if (!page) throw new Error('The test has no page to run the step in.');
+                let outcome: Awaited<ReturnType<typeof executeStep>>;
+                try {
+                  outcome = await executeStep(
+                    { page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir },
+                    step,
+                  );
+                } catch (firstError: any) {
+                  // Retried below like a failed outcome; without the plan's retry it fails as it did.
+                  // A step abandoned by a stop is not retried: its session is gone.
+                  if (!options?.runtime?.retryFailedStep || abandoned) throw firstError;
+                  outcome = {
+                    status: 'failed',
+                    error: firstError?.message ?? String(firstError),
+                  } as typeof outcome;
+                }
+                if (abandoned) return;
+                if (outcome.status === 'failed' && options?.runtime?.retryFailedStep) {
+                  // "On Major Step Failure: Retry Step" — once. What the step reports is the second
+                  // try: a step that passes on it passed, and one that fails again fails with its
+                  // second error, which is the one closest to the state the test is now in.
+                  if (executionId) {
+                    wsEmitter.emitExecutionLog(executionId, {
+                      level: 'warn',
+                      source: 'playwright',
+                      message: `Step ${i + 1} (${actionName}) failed: ${outcome.error ?? 'no reason given'}. Trying it once more.`,
+                      timestamp: new Date().toISOString(),
+                      metadata: { stepIndex: i, retry: true },
+                    });
                   }
-                : options.visual;
-              const visualOutcome = await compareStepScreenshot(visualContext, i, screenshotBuffer);
-              stepVisual = {
-                outcome: visualOutcome.kind,
-                detail:
-                  visualOutcome.kind === 'skipped' ? visualOutcome.reason : visualOutcome.detail,
-                ...(visualOutcome.kind === 'diff'
-                  ? {
-                      diffRatio: visualOutcome.diffRatio,
-                      baselineImage: visualOutcome.artifacts.baseline,
-                      actualImage: visualOutcome.artifacts.actual,
-                      diffImage: visualOutcome.artifacts.diff,
-                    }
-                  : {}),
-                ...(visualOutcome.kind === 'match' ? { diffRatio: visualOutcome.diffRatio } : {}),
-              };
-              if (isVisualFailure(visualOutcome)) {
-                stepStatus = 'failed';
-                stepError = visualOutcome.detail;
-                // Now a failed step: kept under "on failed steps" too.
-                if (!stepScreenshot && keepsScreenshot(screenshots, 'failed')) {
+                  reporter.resetStepState();
+                  outcome = await executeStep(
+                    { page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir },
+                    step,
+                  );
+                }
+                // A step that moved the test to another tab: the steps after it, the healing pass
+                // and this step's screenshot all belong to that tab.
+                flowOutcome = outcome;
+                if (outcome.page) {
+                  page = outcome.page;
+                  reporter.setPage(outcome.page);
+                }
+                if (outcome.status === 'failed') {
+                  stepStatus = 'failed';
+                  stepError = outcome.error;
+                }
+                // See the ad-hoc path: a setup step that found the state already correct and one
+                // that changed it both pass, and the report has to tell them apart.
+                stepDetail = outcome.detail;
+                stepAccessibility = outcome.accessibility;
+                stepPerformance = outcome.performance;
+                stepLighthouse = outcome.lighthouse;
+                stepDownload = outcome.download;
+
+                // One screenshot, used twice: as the step's evidence when the plan keeps it, and —
+                // when the plan asked for visual testing — as the image compared against this
+                // step's baseline. Taken only when one of the two wants it.
+                // A condition, a loop marker or a variable changes nothing on screen: its picture
+                // would be the previous step's again, and comparing it would test that step twice.
+                const capturesPage = !leavesPageAlone(actionId) || stepStatus === 'failed';
+                const comparesVisually =
+                  !!options?.visual && stepStatus === 'passed' && capturesPage;
+                // For a comparison, a screenshot of the page once it has settled: one taken mid-load
+                // differs from the baseline by whatever had loaded by then (see stableScreenshot).
+                // Either way a picture that cannot be taken leaves the step's result as it is: a
+                // comparison without its image is skipped, not failed (see evidenceScreenshot).
+                const noPicture = (reason: string) => {
+                  resolvedLogger.warn({
+                    message: 'PS:executeTestSequence - No screenshot for step',
+                    testName: test.name,
+                    step: i + 1,
+                    reason,
+                  });
+                  if (executionId) {
+                    wsEmitter.emitExecutionLog(executionId, {
+                      level: 'warn',
+                      source: 'playwright',
+                      message: `Step ${i + 1} (${actionName}): no screenshot could be taken. The step's result stands.`,
+                      timestamp: new Date().toISOString(),
+                      metadata: { stepIndex: i },
+                    });
+                  }
+                };
+                const screenshotBuffer = comparesVisually
+                  ? await stableScreenshot(page).catch((error: any) => {
+                      noPicture(error?.message ?? String(error));
+                      return undefined;
+                    })
+                  : capturesPage && keepsScreenshot(screenshots, stepStatus)
+                    ? await evidenceScreenshot(page, noPicture)
+                    : undefined;
+                if (screenshotBuffer && keepsScreenshot(screenshots, stepStatus)) {
                   stepScreenshot = await storeScreenshot(screenshotBuffer, actionName);
                 }
-              }
-              if (executionId) {
-                wsEmitter.emitExecutionLog(executionId, {
-                  level: isVisualFailure(visualOutcome) ? 'error' : 'info',
-                  source: 'playwright',
-                  message: `Visual check, step ${i + 1}: ${stepVisual.detail}`,
-                  timestamp: new Date().toISOString(),
-                  metadata: { stepIndex: i, visual: visualOutcome.kind },
-                });
-              }
-            }
+
+                if (options?.visual && screenshotBuffer && comparesVisually) {
+                  // Only for a step that did what it was asked. A step that already failed is
+                  // being reported for that reason, and the page it left behind says nothing
+                  // about whether the application looks right.
+                  // Inside a loop, each pass has its own baseline (see FlowCursor.iterationKey).
+                  const iteration = cursor.iterationKey();
+                  const visualContext = iteration
+                    ? {
+                        ...options.visual,
+                        variant: [options.visual.variant, iteration].filter(Boolean).join('_'),
+                      }
+                    : options.visual;
+                  const visualOutcome = await compareStepScreenshot(
+                    visualContext,
+                    i,
+                    screenshotBuffer,
+                  );
+                  stepVisual = {
+                    outcome: visualOutcome.kind,
+                    detail:
+                      visualOutcome.kind === 'skipped'
+                        ? visualOutcome.reason
+                        : visualOutcome.detail,
+                    ...(visualOutcome.kind === 'diff'
+                      ? {
+                          diffRatio: visualOutcome.diffRatio,
+                          baselineImage: visualOutcome.artifacts.baseline,
+                          actualImage: visualOutcome.artifacts.actual,
+                          diffImage: visualOutcome.artifacts.diff,
+                        }
+                      : {}),
+                    ...(visualOutcome.kind === 'match'
+                      ? { diffRatio: visualOutcome.diffRatio }
+                      : {}),
+                  };
+                  if (isVisualFailure(visualOutcome)) {
+                    stepStatus = 'failed';
+                    stepError = visualOutcome.detail;
+                    // Now a failed step: kept under "on failed steps" too.
+                    if (!stepScreenshot && keepsScreenshot(screenshots, 'failed')) {
+                      stepScreenshot = await storeScreenshot(screenshotBuffer, actionName);
+                    }
+                  }
+                  if (executionId) {
+                    wsEmitter.emitExecutionLog(executionId, {
+                      level: isVisualFailure(visualOutcome) ? 'error' : 'info',
+                      source: 'playwright',
+                      message: `Visual check, step ${i + 1}: ${stepVisual.detail}`,
+                      timestamp: new Date().toISOString(),
+                      metadata: { stepIndex: i, visual: visualOutcome.kind },
+                    });
+                  }
+                }
+              },
+              { signal, deadlineMs: stepDeadlineMs(vars), teardown: closeSession },
+            );
           } catch (e: any) {
+            if (e instanceof StepInterruptedError) {
+              // Stopped where it was: the session is already closed, and the next step does
+              // not start.
+              interrupted = e;
+              stepResults.push(stoppedStep(actionName, actionId || 'unknown', e));
+              overallSuccess = false;
+              break;
+            }
             stepStatus = 'failed';
             stepError = e.message;
             overallSuccess = false;
@@ -668,18 +762,36 @@ export class TestRunner {
         }
       }
 
-      const duration = Date.now() - startTime;
       await finishEvidence(overallSuccess);
+      const duration = Date.now() - startTime;
+      if (interrupted) {
+        return {
+          success: false,
+          steps: stepResults,
+          error: `Stopped: ${interrupted.message}`,
+          duration,
+          evidence,
+          interrupted: interrupted.kind,
+        };
+      }
       return { success: overallSuccess, steps: stepResults, duration, evidence };
     } catch (error: any) {
-      const duration = Date.now() - startTime;
+      if (error instanceof StepInterruptedError) {
+        // Stopped before the first step: while the browser opened, or while the page loaded.
+        stepResults.push(stoppedStep('Open the browser', 'setup', error));
+      }
       await finishEvidence(false);
+      const duration = Date.now() - startTime;
       return {
         success: false,
         steps: stepResults,
-        error: error.message || 'Unknown critical error',
+        error:
+          error instanceof StepInterruptedError
+            ? `Stopped: ${error.message}`
+            : error.message || 'Unknown critical error',
         duration,
         evidence,
+        ...(error instanceof StepInterruptedError ? { interrupted: error.kind } : {}),
       };
     } finally {
       // finishEvidence has normally closed the context already, since a video or a trace is only

@@ -86,7 +86,10 @@ export interface BrowserSession extends AsyncDisposable {
   browser: Browser;
   context: BrowserContext;
   page: Page;
-  /** Closes the context and the browser. Never throws, and is safe to call twice. */
+  /**
+   * Closes the context and the browser. Never throws, is safe to call twice (or concurrently:
+   * both callers wait on the same close), and is bounded by SESSION_CLOSE_STEP_MS per stage.
+   */
   close(): Promise<void>;
 }
 
@@ -99,9 +102,31 @@ export function contextOptionsFor(opts: BrowserSessionOptions): BrowserContextOp
   };
 }
 
+/**
+ * How long a close may take before the next one is tried.
+ *
+ * A context's close normally takes milliseconds, even with the page stuck in a script. A grid or
+ * an agent that has stopped answering can hold it for good, and a cancelled run must not wait on
+ * it: the browser's close goes ahead, which for a remote target ends only this session's
+ * connection and, for a local one, the process launched for this session alone.
+ */
+export const SESSION_CLOSE_STEP_MS = 2_000;
+
+/** Waits for a close, at most `ms`; neither its failure nor its hanging reaches the caller. */
+async function closeWithin(close: () => Promise<void>, ms: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([
+    close().catch(() => {}),
+    new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, ms);
+    }),
+  ]);
+  clearTimeout(timer);
+}
+
 async function closeAll(browser: Browser, context: BrowserContext | null): Promise<void> {
-  if (context) await context.close().catch(() => {});
-  if (browser.isConnected()) await browser.close().catch(() => {});
+  if (context) await closeWithin(() => context.close(), SESSION_CLOSE_STEP_MS);
+  if (browser.isConnected()) await closeWithin(() => browser.close(), SESSION_CLOSE_STEP_MS);
 }
 
 export async function openBrowserSession(opts: BrowserSessionOptions): Promise<BrowserSession> {

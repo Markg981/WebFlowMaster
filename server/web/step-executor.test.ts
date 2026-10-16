@@ -1,8 +1,18 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';
 import { ADHOC_ACTION_IDS, type AdhocActionId, type MappedTestStep } from '@shared/recording';
-import { ASSERTION_TIMEOUT_MS, DEFAULT_WAIT_TIMEOUT_MS } from './step-executor';
+import { chromium } from 'playwright';
+import { RunStoppedError } from '../execution/run-watch';
+import {
+  ASSERTION_TIMEOUT_MS,
+  DEFAULT_WAIT_TIMEOUT_MS,
+  executeStep,
+  runBounded,
+  STEP_DEADLINE_MS,
+  stepDeadlineMs,
+  StepInterruptedError,
+} from './step-executor';
 
 /**
  * The step executor, exercised through the *persisted* path.
@@ -997,5 +1007,118 @@ describe('compareValues', () => {
     expect(compareValues('true')).toEqual({ value: true });
     expect(compareValues('abc > 3')).toHaveProperty('error');
     expect(compareValues('just words')).toHaveProperty('error');
+  });
+});
+
+describe('runBounded: a step the run can stop', () => {
+  it('does not start the work when the run had already stopped', async () => {
+    const controller = new AbortController();
+    controller.abort(new RunStoppedError('cancelled', 'Not run: the run was cancelled.'));
+    const work = vi.fn(async () => 'ran');
+    const teardown = vi.fn(async () => {});
+
+    await expect(runBounded(work, { signal: controller.signal, teardown })).rejects.toMatchObject({
+      kind: 'cancelled',
+      message: 'the run was cancelled.',
+    });
+    expect(work).not.toHaveBeenCalled();
+  });
+
+  it('on a stop, tears the session down and waits for the abandoned work before answering', async () => {
+    const controller = new AbortController();
+    const order: string[] = [];
+    let release!: () => void;
+    // The work holds until the teardown, the way a page.evaluate holds until its page closes.
+    const work = () =>
+      new Promise<string>((_, reject) => {
+        release = () => {
+          order.push('work ended');
+          reject(new Error('Target page, context or browser has been closed'));
+        };
+      });
+    const teardown = vi.fn(async () => {
+      order.push('teardown');
+      setTimeout(() => release(), 20);
+    });
+
+    const bounded = runBounded(work, { signal: controller.signal, teardown });
+    setTimeout(
+      () => controller.abort(new RunStoppedError('timed_out', 'Not run: past its limit.')),
+      10,
+    );
+
+    await expect(bounded).rejects.toBeInstanceOf(StepInterruptedError);
+    await expect(bounded).rejects.toMatchObject({ kind: 'timed_out' });
+    expect(order).toEqual(['teardown', 'work ended']);
+  });
+
+  it('ends a step at its own deadline, with no run signal at all', async () => {
+    const teardown = vi.fn(async () => {});
+    const started = Date.now();
+
+    await expect(
+      runBounded(() => new Promise(() => {}), { deadlineMs: 50, teardown, settleMs: 10 }),
+    ).rejects.toMatchObject({ kind: 'timed_out', message: expect.stringMatching(/deadline/) });
+    expect(teardown).toHaveBeenCalledTimes(1);
+    // The work ignores the teardown, so the answer comes at deadline + settle, not never.
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
+
+  it('leaves a step that ends in time alone, and lets go of the signal', async () => {
+    const controller = new AbortController();
+    const teardown = vi.fn(async () => {});
+    const remove = vi.spyOn(controller.signal, 'removeEventListener');
+
+    await expect(
+      runBounded(async () => 'done', { signal: controller.signal, deadlineMs: 1_000, teardown }),
+    ).resolves.toBe('done');
+    await expect(
+      runBounded(
+        async () => {
+          throw new Error('the step failed on its own');
+        },
+        { signal: controller.signal, teardown },
+      ),
+    ).rejects.toThrow('the step failed on its own');
+    controller.abort();
+
+    expect(teardown).not.toHaveBeenCalled();
+    expect(remove).toHaveBeenCalledTimes(2);
+  });
+
+  it('makes room for a wait the test declared longer than the default deadline', () => {
+    expect(stepDeadlineMs({})).toBe(STEP_DEADLINE_MS);
+    expect(stepDeadlineMs({ 'mailpit.timeout': '30' })).toBe(STEP_DEADLINE_MS);
+    const long = STEP_DEADLINE_MS / 1000 + 600;
+    expect(stepDeadlineMs({ 'db.timeout': String(long) })).toBe(long * 1000 + 30_000);
+  });
+
+  it('ends a custom action whose script never settles by closing its own browser', async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.setContent('<p id="x">x</p>');
+      const started = Date.now();
+      // The custom-action path of executeScript: a function body with args and element.
+      const step = {
+        id: 's1',
+        action: { id: 'executeScript', name: 'Hangs' },
+        value: 'return new Promise(() => {});',
+        args: { who: 'me' },
+        targetElement: { selector: '#x' },
+      } as unknown as MappedTestStep;
+
+      await expect(
+        runBounded(() => executeStep({ page }, step), {
+          deadlineMs: 300,
+          teardown: () => browser.close(),
+        }),
+      ).rejects.toMatchObject({ kind: 'timed_out' });
+
+      expect(browser.isConnected()).toBe(false);
+      expect(Date.now() - started).toBeLessThan(5_000);
+    } finally {
+      await browser.close().catch(() => {});
+    }
   });
 });
