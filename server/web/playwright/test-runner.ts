@@ -57,6 +57,56 @@ import {
   type StepResult,
   type TestStep,
 } from './types';
+import { datasetRowSegment } from '@shared/execution-identity';
+
+/** One run of a test's steps: the whole test, or one row of its dataset. */
+export interface SequenceResult {
+  success: boolean;
+  steps?: StepResult[];
+  error?: string;
+  duration?: number;
+  evidence?: CapturedEvidence;
+  /** Set when the test was cut short: the run stopped, or a step ran past its deadline. */
+  interrupted?: InterruptionKind;
+}
+
+/** A test's run: with rows, each row's own result beside the merged one. */
+export interface SequenceRun extends SequenceResult {
+  /** One per dataset row, in order, each with its own evidence and error. Absent without rows. */
+  rows?: Array<SequenceResult & { index: number }>;
+}
+
+/**
+ * One row's options: its video, trace, HAR and visual diffs go in its own directory, and it
+ * compares against its own baselines — row two renders row two's data, and measuring it against
+ * row one's screenshot would report the dataset working. The baseline variant keeps the name it
+ * has always had (`row_<n>` from 1), so existing baselines still match.
+ */
+function rowOptions(
+  options: ExecuteSequenceOptions | undefined,
+  rowDir: string | undefined,
+  index: number,
+): ExecuteSequenceOptions | undefined {
+  if (!options) return options;
+  const evidenceDir =
+    rowDir ??
+    (options.evidence?.artifactDir
+      ? path.join(options.evidence.artifactDir, datasetRowSegment(index))
+      : undefined);
+  return {
+    ...options,
+    ...(options.evidence ? { evidence: { ...options.evidence, artifactDir: evidenceDir } } : {}),
+    ...(options.visual
+      ? {
+          visual: {
+            ...options.visual,
+            variant: `row_${index + 1}`,
+            ...(options.visual.artifactDir ? { artifactDir: evidenceDir } : {}),
+          },
+        }
+      : {}),
+  };
+}
 
 export class TestRunner {
   async executeTestSequence(
@@ -75,39 +125,37 @@ export class TestRunner {
     // to compare each step against its visual baseline. Absent means what it has always
     // meant — the user's own browser setting, and no visual comparison.
     options?: ExecuteSequenceOptions,
-  ): Promise<{
-    success: boolean;
-    steps?: StepResult[];
-    error?: string;
-    duration?: number;
-    evidence?: CapturedEvidence;
-    /** Set when the test was cut short: the run stopped, or a step ran past its deadline. */
-    interrupted?: InterruptionKind;
-  }> {
+  ): Promise<SequenceRun> {
     const startTime = Date.now();
 
     // A test with rows of input runs once per row, with that row's values layered over the
     // environment's. Each row gets its own browser rather than sharing one: a row is an
     // independent case, and one leaving a modal open or a session half-established would
-    // otherwise decide the outcome of the next.
+    // otherwise decide the outcome of the next. It gets its own evidence directory too — its
+    // screenshots, video, trace and HAR — so no row's evidence is written over by the next one.
     const rows = datasetRows(test);
     if (rows) {
-      const merged = await runOverDataset(rows, (row, index) =>
-        this.executeTestSequence(
+      const merged = await runOverDataset(rows, (row, index) => {
+        const rowDir = screenshotBaseDir
+          ? path.join(screenshotBaseDir, datasetRowSegment(index))
+          : undefined;
+        return this.executeTestSequence(
           { ...test, dataset: null } as Test,
           userId,
-          screenshotBaseDir ? path.join(screenshotBaseDir, `row_${index + 1}`) : undefined,
+          rowDir,
           executionId,
           { ...vars, ...row },
           environment,
-          // Each row compares against its own baselines: row two renders row two's data, and
-          // measuring it against row one's screenshot would report the dataset working.
-          options?.visual
-            ? { ...options, visual: { ...options.visual, variant: `row_${index + 1}` } }
-            : options,
-        ),
-      );
-      return { ...merged, duration: Date.now() - startTime };
+          rowOptions(options, rowDir, index),
+        );
+      });
+      return {
+        success: merged.success,
+        steps: merged.steps,
+        ...(merged.error ? { error: merged.error } : {}),
+        duration: Date.now() - startTime,
+        rows: merged.rows.map(({ index, result }) => ({ index, ...result })),
+      };
     }
     // This run's own copy. A `storeText` step writes into it, and the object passed in may be
     // shared with the plan's other tests, other browsers, or the process-wide defaults — a

@@ -17,17 +17,22 @@ import {
   executionUnitAttempts,
   executionUnits,
   type ExecutionUnit,
+  type ExecutionUnitAttempt,
   type ReportTestCaseResult,
 } from '@shared/schema';
 import {
   canonicalCoordinates,
+  type AttemptEvidenceRecord,
+  type AttemptView,
+  type EvidenceLinks,
+  type UnitEvidenceView,
   type ExecutionAttemptRef,
   type ExecutionUnitRef,
   type ExecutionUnitState,
   type UnitBrowser,
   type UnitCoordinates,
 } from '@shared/execution-identity';
-import { withTenantTransaction } from '../platform/middleware/tenancy';
+import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import type { Pass, PassTarget } from './plan-run/browsers';
 import { referencedId, type FrozenTests, type TestLink } from './plan-run/definitions';
 import { planLanes, type Lane, type RunUnit } from './plan-run/lanes';
@@ -267,12 +272,31 @@ export async function beginAttempt(ref: ExecutionUnitRef): Promise<ExecutionAtte
   });
 }
 
-/** Closes an attempt with its own outcome. */
-export async function finishAttempt(ref: ExecutionAttemptRef, status: string): Promise<void> {
+/** What an attempt ended with, besides its status: recorded with it, before the unit's result. */
+export interface AttemptRecord {
+  failureReason?: string | null;
+  evidence?: AttemptEvidenceRecord | null;
+}
+
+/**
+ * Closes an attempt with its own outcome — its status, its reason and the stored paths of what it
+ * left behind — so a try that a re-run replaces keeps its account, not only its number.
+ */
+export async function finishAttempt(
+  ref: ExecutionAttemptRef,
+  status: string,
+  record: AttemptRecord = {},
+): Promise<void> {
   await withTenantTransaction(async (tx) => {
     await tx
       .update(executionUnitAttempts)
-      .set({ state: 'finished', status, finishedAt: sql`now()` })
+      .set({
+        state: 'finished',
+        status,
+        failureReason: record.failureReason?.slice(0, 4000) ?? null,
+        evidence: record.evidence ?? null,
+        finishedAt: sql`now()`,
+      })
       .where(
         and(
           eq(executionUnitAttempts.executionId, ref.executionId),
@@ -332,6 +356,84 @@ export function unitReport(
 /** Units the run expected and has no result for: those that never ran, or whose result was lost. */
 export const unaccountedUnits = (report: UnitReportEntry[]): UnitReportEntry[] =>
   report.filter((entry) => entry.unitId !== null && entry.result === null);
+
+/**
+ * Every attempt of a run — or of one of its units — by unit, each unit's in order. Inside the
+ * caller's tenant transaction.
+ */
+export async function readAttempts(
+  tx: TenantTx,
+  executionId: string,
+  unitId?: string,
+): Promise<Map<string, ExecutionUnitAttempt[]>> {
+  const rows = await tx
+    .select()
+    .from(executionUnitAttempts)
+    .where(
+      unitId
+        ? and(
+            eq(executionUnitAttempts.executionId, executionId),
+            eq(executionUnitAttempts.unitId, unitId),
+          )
+        : eq(executionUnitAttempts.executionId, executionId),
+    )
+    .orderBy(asc(executionUnitAttempts.unitId), asc(executionUnitAttempts.attempt));
+  const byUnit = new Map<string, ExecutionUnitAttempt[]>();
+  for (const row of rows) byUnit.set(row.unitId, [...(byUnit.get(row.unitId) ?? []), row]);
+  return byUnit;
+}
+
+/** How a caller sees one stored path: a link it may open, and whether raw evidence was withheld. */
+export interface EvidenceLinker {
+  link(storedPath: string | null | undefined): string | null;
+  restricted(storedPath: string | null | undefined): boolean;
+}
+
+function linksOf(
+  linker: EvidenceLinker,
+  stored: Pick<AttemptEvidenceRecord, 'screenshotUrl' | 'videoUrl' | 'traceUrl' | 'harUrl'>,
+): EvidenceLinks {
+  const paths = [stored.screenshotUrl, stored.videoUrl, stored.traceUrl, stored.harUrl];
+  return {
+    screenshotUrl: linker.link(stored.screenshotUrl),
+    videoUrl: linker.link(stored.videoUrl),
+    traceUrl: linker.link(stored.traceUrl),
+    harUrl: linker.link(stored.harUrl),
+    restricted: paths.some((storedPath) => linker.restricted(storedPath)),
+  };
+}
+
+/**
+ * One unit's attempts as a caller may see them: every try in order, each with its own evidence and
+ * its dataset rows, linked only where the caller may open the file. A projection: never the
+ * database row itself, which holds the worker's name and the stored paths.
+ */
+export function unitEvidenceView(
+  unitId: string,
+  decidingAttempt: number | null,
+  attempts: ExecutionUnitAttempt[],
+  linker: EvidenceLinker,
+): UnitEvidenceView {
+  return {
+    unitId,
+    decidingAttempt,
+    attempts: attempts.map((row): AttemptView => ({
+      attempt: row.attempt,
+      state: row.state,
+      status: row.status ?? null,
+      failureReason: row.failureReason ?? null,
+      startedAt: new Date(row.startedAt).toISOString(),
+      finishedAt: row.finishedAt ? new Date(row.finishedAt).toISOString() : null,
+      ...linksOf(linker, row.evidence ?? {}),
+      rows: (row.evidence?.rows ?? []).map((slice) => ({
+        datasetRow: slice.datasetRow,
+        status: slice.status,
+        error: slice.error ?? null,
+        ...linksOf(linker, slice),
+      })),
+    })),
+  };
+}
 
 /** A run's manifest, in plan order. Empty for a run from before it existed. */
 export async function readManifest(executionId: string): Promise<ExecutionUnit[]> {

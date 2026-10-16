@@ -41,8 +41,14 @@ export function fakeS3(options: { failPutsAfter?: number } = {}) {
         return {};
       }
       if (command instanceof PutObjectCommand) {
-        const { Bucket, Key, Body, ContentType } = command.input;
+        const { Bucket, Key, Body, ContentType, IfNoneMatch } = command.input;
         client.commands.push(`put ${Bucket}/${Key}`);
+        // A conditional create, as S3 answers one for a key that exists: 412.
+        if (IfNoneMatch === '*' && objects.has(Key!))
+          throw Object.assign(new Error('At least one of the preconditions did not hold.'), {
+            name: 'PreconditionFailed',
+            $metadata: { httpStatusCode: 412 },
+          });
         puts += 1;
         if (options.failPutsAfter !== undefined && puts > options.failPutsAfter) {
           throw Object.assign(new Error('SlowDown: please reduce your request rate'), {

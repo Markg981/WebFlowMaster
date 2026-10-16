@@ -42,6 +42,8 @@ import { auditActor, changedFields, recordAudit } from '../../tenancy/audit';
 import { publicExecution, reproducibilitySummary } from '../../execution/execution-provenance';
 import { executionArtifactAvailability } from '../../tenancy/artifact-metering';
 import { relativeArtifactPath, runArtifactAccess } from '../../tenancy/artifact-access';
+import { readAttempts, unitEvidenceView } from '../../execution/execution-units';
+import { evidenceLinker } from '../../reporting/unit-evidence';
 import { evidencePrincipalOf } from '../middleware/require-scope';
 import { readExecutionSnapshot } from '../../execution/execution-snapshot';
 import { dedupeKeyFor } from '../../integrations/issue-tracking';
@@ -1131,6 +1133,8 @@ router.get(
           executionId,
           principal: evidencePrincipalOf(req),
         });
+        // Every try at each unit, with what it left behind: the report's drill-down (P08).
+        const unitAttempts = await readAttempts(tx, executionId);
 
         return {
           ...executionDetailsResult[0],
@@ -1140,6 +1144,7 @@ router.get(
           warnings: Array.from(new Set(warnings.map((w) => w.message))),
           issues,
           access,
+          unitAttempts,
         };
       });
 
@@ -1157,6 +1162,7 @@ router.get(
         warnings,
         issues,
         access,
+        unitAttempts,
       } = reportSource;
       const issueFor = (r: { testName: string; browser: string | null }) => {
         const key = dedupeKeyFor({
@@ -1195,6 +1201,18 @@ router.get(
           const relative = relativeArtifactPath(executionId, storedPath);
           return !!relative && retained(relative) && access.restricted(relative);
         });
+      // A row of a unit of the run's manifest opens on every attempt and dataset row of it, each
+      // with its own evidence; a historical row has none, and keeps the links above (P08).
+      const linker = evidenceLinker({ executionId, base: 'session', access, retained, purged });
+      const unitEvidenceOf = (r: ReportTestCaseResult) =>
+        r.executionUnitId
+          ? unitEvidenceView(
+              r.executionUnitId,
+              r.unitAttempt,
+              unitAttempts.get(r.executionUnitId) ?? [],
+              linker,
+            )
+          : null;
       const stepsOf = (detailedLog: string | null | undefined) => {
         const steps = stepsWithArtifactUrls(executionId, detailedLog, linkable);
         if (!purged) return steps;
@@ -1287,6 +1305,7 @@ router.get(
           // The page's requests: the file, and the failed and slow ones read out of it.
           harUrl: openable(r.harUrl),
           evidenceRestricted: evidenceRestricted(r),
+          unitEvidence: unitEvidenceOf(r),
           networkSummary: r.networkSummary,
           // What the AI made of this failure, when somebody asked (routes/failure-analysis.routes.ts).
           aiAnalysis: r.aiAnalysis ?? null,
@@ -1358,6 +1377,7 @@ router.get(
           traceUrl: openable(r.traceUrl),
           harUrl: openable(r.harUrl),
           evidenceRestricted: evidenceRestricted(r),
+          unitEvidence: unitEvidenceOf(r),
           steps: stepsOf(r.detailedLog),
         } as typeof r);
 

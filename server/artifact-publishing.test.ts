@@ -106,7 +106,13 @@ describe('a run with a bucket for its evidence', () => {
 
     await processTestPlanJob(planId, executionId, userId);
 
-    const key = `results/${planId}/${executionId}/ui_${test.id}/step_Click_1.png`;
+    // Under the attempt's own directory of the run's manifest (P08).
+    const key = [...client.objects.keys()].find((k) => k.endsWith('/step_Click_1.png'))!;
+    expect(key).toMatch(
+      new RegExp(
+        `^results/${planId}/${executionId}/units/u_[0-9a-f]{24}/attempt_1/step_Click_1\\.png$`,
+      ),
+    );
     expect(client.objects.get(key)?.body.toString()).toBe('png-bytes');
     expect(await fs.pathExists(path.resolve(process.cwd(), 'results', planId, executionId))).toBe(
       false,
@@ -119,7 +125,7 @@ describe('a run with a bucket for its evidence', () => {
       .where(eq(reportTestCaseResults.testPlanExecutionId, executionId));
     const { stepsWithArtifactUrls } = await import('./http/routes/artifacts.routes');
     expect(stepsWithArtifactUrls(executionId, row.detailedLog)[0].screenshot).toBe(
-      `/api/test-plan-executions/${executionId}/artifacts/ui_${test.id}/step_Click_1.png`,
+      `/api/test-plan-executions/${executionId}/artifacts/${key.split(`/${executionId}/`)[1]}`,
     );
   });
 });

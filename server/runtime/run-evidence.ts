@@ -96,11 +96,26 @@ export function prudentEvidence(
   return { options: { ...options, trace: 'never' }, traceWithheld: true };
 }
 
-/** The directory a context writes video into while the test runs. */
+/** A name no other context of this process, or of another, picks at the same moment. */
+const scratchName = () => `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+/**
+ * The directory a context writes video into while the test runs: its own, below the evidence
+ * directory's `_video`. Two contexts recording into one evidence directory (two languages of a
+ * test from a worker without units, or any two that share a directory) each clean up their own and
+ * never the other's recording in progress.
+ */
 export function videoScratchDir(artifactDir?: string): string {
   return artifactDir
-    ? path.join(artifactDir, '_video')
-    : path.join(os.tmpdir(), 'webflowmaster-video', `${process.pid}-${Date.now()}`);
+    ? path.join(artifactDir, '_video', scratchName())
+    : path.join(os.tmpdir(), 'webflowmaster-video', scratchName());
+}
+
+/** Removes a scratch directory's parent too, but only once nothing else is recording in it. */
+async function removeScratch(dir: string, parent?: string): Promise<void> {
+  await fs.remove(dir).catch(() => {});
+  // rmdir refuses a directory that is not empty: another context's scratch stays.
+  if (parent) await fs.rmdir(parent).catch(() => {});
 }
 
 /**
@@ -133,15 +148,7 @@ export async function harContextOptions(
     ? path.join(options.artifactDir, '_har')
     : path.join(os.tmpdir(), 'webflowmaster-har');
   await fs.ensureDir(dir);
-  return {
-    recordHar: {
-      path: path.join(
-        dir,
-        `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.har`,
-      ),
-      content: 'omit',
-    },
-  };
+  return { recordHar: { path: path.join(dir, `${scratchName()}.har`), content: 'omit' } };
 }
 
 /**
@@ -266,10 +273,14 @@ export async function captureRunEvidence(input: {
         stem,
       }),
     );
-    if (artifactDir) await fs.remove(path.join(artifactDir, '_har')).catch(() => {});
+    // Its own file went with collectHar; the directory only once no other HAR is being written.
+    if (artifactDir) await fs.rmdir(path.join(artifactDir, '_har')).catch(() => {});
   }
 
-  await fs.remove(scratchDir ?? videoScratchDir(artifactDir)).catch(() => {});
+  // Only the directory this context recorded into: a recomputed one would name a fresh directory
+  // and leave the real one behind, and the whole `_video` would take another context's with it.
+  if (scratchDir)
+    await removeScratch(scratchDir, artifactDir ? path.join(artifactDir, '_video') : undefined);
   return captured;
 }
 

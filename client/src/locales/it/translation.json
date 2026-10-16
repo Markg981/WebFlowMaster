@@ -5118,6 +5118,16 @@
     "new": "Nuovo"
   },
   "stepDetails": {
-    "evidenceRestricted": "Questo run ha conservato una trace Playwright o una registrazione di rete. Possono contenere password e token in chiaro, quindi solo editor e owner possono scaricarle."
+    "evidenceRestricted": "Questo run ha conservato una trace Playwright o una registrazione di rete. Possono contenere password e token in chiaro, quindi solo editor e owner possono scaricarle.",
+    "attempts": "Tentativi",
+    "attemptLabel": "Tentativo {{n}}",
+    "running": "in corso",
+    "deciding": "· esito",
+    "rows": "Righe del dataset",
+    "allRows": "Tutte le righe",
+    "rowLabel": "Riga {{n}}",
+    "sliceScreenshot": "Screenshot",
+    "downloadHar": "Scarica la registrazione di rete (HAR)",
+    "stepsNotKept": "Il report conserva gli step del tentativo su cui si basa l’esito. Gli step di questo tentativo sono nella sua trace e nel suo video, se il piano li ha conservati."
   }
 }

@@ -2,7 +2,7 @@
 
 Generated from the OpenAPI document the server serves at `/api/v1/openapi.json` (API version 1.2.0) with `npm run docs:api-reference`; do not edit it by hand. Authentication, scopes, conventions and complete workflows are explained in the [REST API guide](./api). Download the same document as [openapi.json](/openapi.json) to import it into Postman, Insomnia or a client generator.
 
-**66 operations.** Each one names the scope its API key needs; a key without it gets 403.
+**68 operations.** Each one names the scope its API key needs; a key without it gets 403.
 
 ## Projects
 
@@ -746,6 +746,55 @@ Scope `runs:read` · operation `listRunEvidence`
 | 429    | Rate limit or tenant quota exceeded.                                    | [Error](#schema-error) (`application/json`)                                                                   |
 | 500    | The operation failed; writes are rolled back.                           | [Error](#schema-error) (`application/json`)                                                                   |
 | 502    | The artifact store could not be reached (`artifact_store_unavailable`). | [Error](#schema-error) (`application/json`)                                                                   |
+
+### `GET /api/v1/runs/{runId}/units` {#listRunUnits}
+
+The units a run expected — one per test, browser, language and device — in plan order.
+
+Each unit carries its single final result once written. Units of a test in a restricted project the caller is not on are left out. A run from before the manifest has none.
+
+Scope `runs:read` · operation `listRunUnits`
+
+| Parameter | In    | Type    | Required | Description             |
+| --------- | ----- | ------- | -------- | ----------------------- |
+| `runId`   | path  | string  | yes      |                         |
+| `limit`   | query | integer |          | 1–100, default `20`     |
+| `offset`  | query | integer |          | at least 0, default `0` |
+
+| Status | Meaning                                          | Body                                                                                      |
+| ------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| 200    | A page of units, with how many there are.        | object { items: [RunUnit](#schema-rununit)[], limit, offset, total } (`application/json`) |
+| 400    | Invalid body, identifier or referenced resource. | [Error](#schema-error) (`application/json`)                                               |
+| 401    | No usable credential.                            | [Error](#schema-error) (`application/json`)                                               |
+| 403    | Insufficient scope, role or project access.      | [Error](#schema-error) (`application/json`)                                               |
+| 404    | No such resource visible to this account.        | [Error](#schema-error) (`application/json`)                                               |
+| 409    | Name conflict or dataset still in use.           | [Error](#schema-error) (`application/json`)                                               |
+| 429    | Rate limit or tenant quota exceeded.             | [Error](#schema-error) (`application/json`)                                               |
+| 500    | The operation failed; writes are rolled back.    | [Error](#schema-error) (`application/json`)                                               |
+
+### `GET /api/v1/runs/{runId}/units/{unitId}` {#getRunUnit}
+
+One unit with every attempt at it and every dataset row of each, with their evidence.
+
+The first failure of a test that passed on a re-run keeps its own evidence, as does each dataset row. Links follow the rules of the artifacts endpoint: traces and HAR files only for the editor role and, on a scoped key, `runs:evidence`; otherwise null with `restricted: true`.
+
+Scope `runs:read` · operation `getRunUnit`
+
+| Parameter | In   | Type   | Required | Description                |
+| --------- | ---- | ------ | -------- | -------------------------- |
+| `runId`   | path | string | yes      |                            |
+| `unitId`  | path | string | yes      | pattern `^u_[0-9a-f]{24}$` |
+
+| Status | Meaning                                          | Body                                                        |
+| ------ | ------------------------------------------------ | ----------------------------------------------------------- |
+| 200    | Success.                                         | [RunUnitDetail](#schema-rununitdetail) (`application/json`) |
+| 400    | Invalid body, identifier or referenced resource. | [Error](#schema-error) (`application/json`)                 |
+| 401    | No usable credential.                            | [Error](#schema-error) (`application/json`)                 |
+| 403    | Insufficient scope, role or project access.      | [Error](#schema-error) (`application/json`)                 |
+| 404    | No such resource visible to this account.        | [Error](#schema-error) (`application/json`)                 |
+| 409    | Name conflict or dataset still in use.           | [Error](#schema-error) (`application/json`)                 |
+| 429    | Rate limit or tenant quota exceeded.             | [Error](#schema-error) (`application/json`)                 |
+| 500    | The operation failed; writes are rolled back.    | [Error](#schema-error) (`application/json`)                 |
 
 ### `GET /api/v1/runs/{runId}/artifacts/{path}` {#getRunArtifact}
 
@@ -1554,6 +1603,19 @@ Scope `billing:read` · operation `getBilling`
 | `protoDefinition`      | string \| null                                         |          |                                                                                                                                      |
 | `protocolConfig`       | object \| null                                         |          |                                                                                                                                      |
 
+### AttemptRow {#schema-attemptrow}
+
+| Field           | Type                                          | Required | Description                                                                   |
+| --------------- | --------------------------------------------- | -------- | ----------------------------------------------------------------------------- |
+| `datasetRow`    | integer                                       | yes      | at least 0                                                                    |
+| `status`        | one of `passed`, `failed`, `error`, `skipped` | yes      |                                                                               |
+| `error`         | string \| null                                |          |                                                                               |
+| `screenshotUrl` | string \| null                                |          |                                                                               |
+| `videoUrl`      | string \| null                                |          |                                                                               |
+| `traceUrl`      | string \| null                                |          | Raw evidence: null unless the caller has the editor role and `runs:evidence`. |
+| `harUrl`        | string \| null                                |          | Raw evidence, like the trace.                                                 |
+| `restricted`    | boolean                                       | yes      | Raw evidence was kept for this slice and the caller may not open it.          |
+
 ### AuthoredApiTest {#schema-authoredapitest}
 
 | Field                  | Type                                                   | Required | Description                                                                                                                          |
@@ -1901,6 +1963,29 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 | `selection`     | object { mode, reason, changedFiles, affectedTags: string[], selected, total } \| null             |          | When the run was narrowed to the tests a change affects (changedFiles): what was decided and why. |
 | `links`         | object { self, junit, evidence, report }                                                           | yes      |                                                                                                   |
 
+### RunUnit {#schema-rununit}
+
+| Field        | Type                                                               | Required | Description                                                                    |
+| ------------ | ------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------ |
+| `unitId`     | string                                                             | yes      | Opaque, scoped to its run. pattern `^u_[0-9a-f]{24}$`                          |
+| `position`   | integer                                                            | yes      | Plan order. at least 0                                                         |
+| `state`      | one of `planned`, `running`, `recorded`, `not_startable`           | yes      |                                                                                |
+| `reason`     | string \| null                                                     |          | Why a not_startable unit could not start.                                      |
+| `testType`   | one of `ui`, `api`, `mobile`                                       | yes      |                                                                                |
+| `testId`     | integer \| null                                                    |          |                                                                                |
+| `occurrence` | integer                                                            |          | Which occurrence of the test. at least 0                                       |
+| `browser`    | string \| null                                                     |          |                                                                                |
+| `locale`     | string \| null                                                     |          |                                                                                |
+| `device`     | string \| null                                                     |          |                                                                                |
+| `bddRow`     | integer \| null                                                    |          | A cucumber test’s dataset row, by index; a UI dataset’s rows are attempt rows. |
+| `result`     | object { id, testName, status, attempts, decidingAttempt } \| null | yes      | Its single final result, once written.                                         |
+
+### RunUnitDetail {#schema-rununitdetail}
+
+| Field      | Type                                                                               | Required | Description |
+| ---------- | ---------------------------------------------------------------------------------- | -------- | ----------- |
+| `evidence` | object { unitId, decidingAttempt, attempts: [UnitAttempt](#schema-unitattempt)[] } | yes      |             |
+
 ### Schedule {#schema-schedule}
 
 | Field                        | Type                           | Required | Description                                                                                                                                  |
@@ -2068,6 +2153,23 @@ The build that asked for a run. The wfm CLI fills it in from the CI system's env
 | `priority`      | string \| null                      |          |                                |
 | `severity`      | string \| null                      |          |                                |
 | `status`        | one of `draft`, `ready`, `archived` |          |                                |
+
+### UnitAttempt {#schema-unitattempt}
+
+| Field           | Type                               | Required | Description                                                                   |
+| --------------- | ---------------------------------- | -------- | ----------------------------------------------------------------------------- |
+| `attempt`       | integer                            | yes      | at least 1                                                                    |
+| `state`         | one of `running`, `finished`       | yes      |                                                                               |
+| `status`        | string \| null                     |          |                                                                               |
+| `failureReason` | string \| null                     |          |                                                                               |
+| `startedAt`     | string (date-time)                 | yes      |                                                                               |
+| `finishedAt`    | string (date-time) \| null         |          |                                                                               |
+| `screenshotUrl` | string \| null                     |          |                                                                               |
+| `videoUrl`      | string \| null                     |          |                                                                               |
+| `traceUrl`      | string \| null                     |          | Raw evidence: null unless the caller has the editor role and `runs:evidence`. |
+| `harUrl`        | string \| null                     |          | Raw evidence, like the trace.                                                 |
+| `restricted`    | boolean                            | yes      | Raw evidence was kept for this slice and the caller may not open it.          |
+| `rows`          | [AttemptRow](#schema-attemptrow)[] | yes      |                                                                               |
 
 ### Webhook {#schema-webhook}
 

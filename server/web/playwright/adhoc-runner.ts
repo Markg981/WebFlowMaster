@@ -90,7 +90,8 @@ export class AdhocRunner {
     const adhocRows = datasetRows(payload);
     if (adhocRows) {
       const adhocStart = Date.now();
-      const merged = await runOverDataset(adhocRows, (row) =>
+      // A preview keeps nothing per row: the merged steps are what the builder shows.
+      const { success, steps } = await runOverDataset(adhocRows, (row) =>
         this.runAdhocSequence(
           { ...payload, dataset: null, rowVariables: row },
           userId,
@@ -98,7 +99,7 @@ export class AdhocRunner {
           variableSets,
         ),
       );
-      return { ...merged, duration: Date.now() - adhocStart };
+      return { success, steps, duration: Date.now() - adhocStart };
     }
     // The preview resolves variables the same way a scheduled run does, so a test that
     // works here is not relying on something only this path provides.

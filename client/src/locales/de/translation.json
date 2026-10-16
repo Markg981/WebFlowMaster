@@ -5118,6 +5118,16 @@
     "new": "Neu"
   },
   "stepDetails": {
-    "evidenceRestricted": "Diese Ausführung hat einen Playwright-Trace oder eine Netzwerkaufzeichnung behalten. Sie können Passwörter und Tokens im Klartext enthalten, daher können nur Editoren und Eigentümer sie herunterladen."
+    "evidenceRestricted": "Diese Ausführung hat einen Playwright-Trace oder eine Netzwerkaufzeichnung behalten. Sie können Passwörter und Tokens im Klartext enthalten, daher können nur Editoren und Eigentümer sie herunterladen.",
+    "attempts": "Versuche",
+    "attemptLabel": "Versuch {{n}}",
+    "running": "läuft",
+    "deciding": "· Ergebnis",
+    "rows": "Datensatzzeilen",
+    "allRows": "Alle Zeilen",
+    "rowLabel": "Zeile {{n}}",
+    "sliceScreenshot": "Screenshot",
+    "downloadHar": "Netzwerkaufzeichnung (HAR) herunterladen",
+    "stepsNotKept": "Der Bericht behält die Schritte des Versuchs, auf dem das Ergebnis beruht. Die Schritte dieses Versuchs stehen in seinem Trace und Video, sofern der Plan sie behalten hat."
   }
 }

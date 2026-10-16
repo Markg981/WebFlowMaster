@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import { Readable } from 'stream';
 import { randomUUID } from 'node:crypto';
 import { meterArtifactStore } from './artifact-metering';
+import { isWriteOnceKey } from './write-once';
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
@@ -150,7 +151,14 @@ export function createLocalArtifactStore(cwd: string = process.cwd()): ArtifactS
       const staging = `${file}.wfm-${randomUUID()}.tmp`;
       try {
         await fs.writeFile(staging, body);
-        await fs.rename(staging, file);
+        if (isWriteOnceKey(assertSafeKey(key))) {
+          // Created only if absent, atomically: a rename would replace a file already linked.
+          await fs.copyFile(staging, file, fs.constants.COPYFILE_EXCL).catch((error) => {
+            if ((error as NodeJS.ErrnoException)?.code !== 'EEXIST') throw error;
+          });
+        } else {
+          await fs.rename(staging, file);
+        }
       } finally {
         await fs.remove(staging);
       }
@@ -218,6 +226,18 @@ function isMissing(error: any): boolean {
   );
 }
 
+/** A conditional create refused because the object exists (412), or raced another create (409). */
+function alreadyExists(raw: unknown): boolean {
+  const error = raw as { name?: string; $metadata?: { httpStatusCode?: number } } | undefined;
+  const status = error?.$metadata?.httpStatusCode;
+  return (
+    error?.name === 'PreconditionFailed' ||
+    error?.name === 'ConditionalRequestConflict' ||
+    status === 412 ||
+    status === 409
+  );
+}
+
 async function toBuffer(body: any): Promise<Buffer> {
   if (!body) return Buffer.alloc(0);
   if (typeof body.transformToByteArray === 'function')
@@ -247,14 +267,23 @@ export function createS3ArtifactStore(options: S3StoreOptions): ArtifactStore {
       }
     },
     async write(key, body, contentType) {
-      await client.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: objectKey(key),
-          Body: body,
-          ContentType: contentType ?? contentTypeFor(key),
-        }),
-      );
+      const writeOnce = isWriteOnceKey(assertSafeKey(key));
+      try {
+        await client.send(
+          new PutObjectCommand({
+            Bucket: bucket,
+            Key: objectKey(key),
+            Body: body,
+            ContentType: contentType ?? contentTypeFor(key),
+            // Created only if absent: the store, not a read before the write, decides the race.
+            ...(writeOnce ? { IfNoneMatch: '*' } : {}),
+          }),
+        );
+      } catch (error) {
+        // Already there: the evidence a link points at stays what it was.
+        if (writeOnce && alreadyExists(error)) return;
+        throw error;
+      }
     },
     async open(key) {
       try {

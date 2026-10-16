@@ -110,6 +110,13 @@ export function buildAllureResults(
         type: 'application/json',
       });
     }
+    // The tries and dataset rows behind this one result (P08): an attachment, not result files of
+    // their own — a re-run or a row written as a result would be one more test in Allure's counts.
+    if (result.unitAttempts.length > 1 || result.unitAttempts.some((a) => a.rows.length > 0)) {
+      const source = `${id}-attempts.json`;
+      files.push({ name: source, data: Buffer.from(JSON.stringify(result.unitAttempts)) });
+      attachments.push({ name: 'Attempts and dataset rows', source, type: 'application/json' });
+    }
     const failedStepIndex = result.steps.findIndex((step) => step.status === 'failed');
     const body = {
       uuid: id,

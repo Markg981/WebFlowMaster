@@ -108,3 +108,66 @@ export function evidenceKey(planId: string, slice: EvidenceSliceRef): string {
   const row = datasetRow === null ? '' : `/row_${datasetRow}`;
   return `results/${planId}/${slice.executionId}/units/${slice.unitId}/attempt_${slice.attempt}${row}`;
 }
+
+/** The directory of one dataset row below its attempt's: `row_<index>`, the index from 0. */
+export const datasetRowSegment = (index: number): string => `row_${index}`;
+
+/** How one dataset row of an attempt ended. */
+export type EvidenceRowStatus = 'passed' | 'failed' | 'error' | 'skipped';
+
+/**
+ * What one attempt left behind, as persisted on its row of `execution_unit_attempts` (migration
+ * 0092) before the unit's final result is written: stored paths, never file contents.
+ */
+export interface AttemptEvidenceRecord {
+  screenshotUrl?: string | null;
+  videoUrl?: string | null;
+  traceUrl?: string | null;
+  harUrl?: string | null;
+  /** One entry per UI dataset row the attempt ran, in row order. Absent for a test without rows. */
+  rows?: Array<{
+    datasetRow: number;
+    status: EvidenceRowStatus;
+    error?: string | null;
+    screenshotUrl?: string | null;
+    videoUrl?: string | null;
+    traceUrl?: string | null;
+    harUrl?: string | null;
+  }>;
+}
+
+/**
+ * Links to one slice of evidence as the report and the API hand them out: only to files the caller
+ * may open, and `restricted` when raw evidence was kept that they may not.
+ */
+export interface EvidenceLinks {
+  screenshotUrl: string | null;
+  videoUrl: string | null;
+  traceUrl: string | null;
+  harUrl: string | null;
+  restricted: boolean;
+}
+
+export interface AttemptRowView extends EvidenceLinks {
+  datasetRow: number;
+  status: EvidenceRowStatus;
+  error: string | null;
+}
+
+export interface AttemptView extends EvidenceLinks {
+  attempt: number;
+  state: 'running' | 'finished';
+  status: string | null;
+  failureReason: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+  rows: AttemptRowView[];
+}
+
+/** One unit's attempts, for the drill-down from a report row (UI) or the API. */
+export interface UnitEvidenceView {
+  unitId: string;
+  /** The attempt the unit's result stands on, or null when nothing was tried. */
+  decidingAttempt: number | null;
+  attempts: AttemptView[];
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import StepDetailsDialog, { type ReportStep } from './StepDetailsDialog';
 
@@ -37,6 +37,149 @@ const steps: ReportStep[] = [
     },
   },
 ];
+
+describe('StepDetailsDialog: attempts and dataset rows (P08)', () => {
+  const base = '/api/test-plan-executions/exec-1/artifacts/units/u_x';
+  const links = (attempt: number, row: number | null, restricted = false) => {
+    const dir = `${base}/attempt_${attempt}${row === null ? '' : `/row_${row}`}`;
+    return {
+      screenshotUrl: `${dir}/step.png`,
+      videoUrl: `${dir}/Checkout_run.webm`,
+      traceUrl: restricted ? null : `${dir}/Checkout_trace.zip`,
+      harUrl: null,
+      restricted,
+    };
+  };
+  const rowsOf = (attempt: number, failing: number | null) =>
+    [0, 1, 2].map((datasetRow) => ({
+      datasetRow,
+      status: datasetRow === failing ? ('failed' as const) : ('passed' as const),
+      error: datasetRow === failing ? 'Sold out' : null,
+      ...links(attempt, datasetRow),
+    }));
+  const unitEvidence = {
+    unitId: 'u_x',
+    decidingAttempt: 2,
+    attempts: [
+      {
+        attempt: 1,
+        state: 'finished' as const,
+        status: 'failed',
+        failureReason: 'Row 3 of 3: Sold out',
+        startedAt: '2026-10-16T10:00:00Z',
+        finishedAt: '2026-10-16T10:01:00Z',
+        ...links(1, null),
+        traceUrl: null,
+        videoUrl: null,
+        screenshotUrl: null,
+        rows: rowsOf(1, 2),
+      },
+      {
+        attempt: 2,
+        state: 'finished' as const,
+        status: 'passed',
+        failureReason: null,
+        startedAt: '2026-10-16T10:01:00Z',
+        finishedAt: '2026-10-16T10:02:00Z',
+        ...links(2, null),
+        traceUrl: null,
+        videoUrl: null,
+        screenshotUrl: null,
+        rows: rowsOf(2, null),
+      },
+    ],
+  };
+  const datasetSteps: ReportStep[] = [0, 1, 2].map((row) => ({
+    name: `Row ${row + 1} of 3 — Pay`,
+    type: 'click',
+    status: 'passed',
+    details: `paid row ${row + 1}`,
+  }));
+  const dialog = (extra: Record<string, unknown> = {}) => (
+    <StepDetailsDialog
+      open
+      onOpenChange={() => {}}
+      testName="Checkout"
+      browser="chromium · it-IT"
+      steps={datasetSteps}
+      unitEvidence={unitEvidence}
+      {...extra}
+    />
+  );
+
+  it('opens on the attempt the result stands on, every row, with the recorded steps', () => {
+    render(dialog());
+    expect(screen.getByTestId('attempt-2')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('row-all')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByText(/Row \d of 3 — Pay/)).toHaveLength(3);
+  });
+
+  it("opens exactly the selected attempt's and row's evidence", () => {
+    render(dialog());
+
+    fireEvent.click(screen.getByTestId('attempt-1'));
+    fireEvent.click(screen.getByTestId('row-2'));
+
+    expect(screen.getByTestId('trace-link')).toHaveAttribute(
+      'href',
+      `${base}/attempt_1/row_2/Checkout_trace.zip`,
+    );
+    expect(screen.getByTestId('run-video')).toHaveAttribute(
+      'src',
+      `${base}/attempt_1/row_2/Checkout_run.webm`,
+    );
+    expect(screen.getByAltText('Screenshot')).toHaveAttribute(
+      'src',
+      `${base}/attempt_1/row_2/step.png`,
+    );
+    expect(screen.getByText('Sold out')).toBeInTheDocument();
+    // The steps the report kept are the deciding attempt's: this one points to its trace.
+    expect(screen.getByTestId('steps-not-kept')).toBeInTheDocument();
+
+    // Back to the deciding attempt, one row: that row's steps and that row's files only.
+    fireEvent.click(screen.getByTestId('attempt-2'));
+    fireEvent.click(screen.getByTestId('row-1'));
+    expect(screen.getByTestId('trace-link')).toHaveAttribute(
+      'href',
+      `${base}/attempt_2/row_1/Checkout_trace.zip`,
+    );
+    expect(screen.getAllByText(/Row \d of 3 — Pay/).map((el) => el.textContent)).toEqual([
+      '1. Row 2 of 3 — Pay',
+    ]);
+  });
+
+  it('opens on the slice it was asked for, and says when a trace is withheld', () => {
+    const withheld = {
+      ...unitEvidence,
+      attempts: unitEvidence.attempts.map((a) => ({
+        ...a,
+        rows: a.rows.map((r) => ({ ...r, ...links(a.attempt, r.datasetRow, true) })),
+      })),
+    };
+    render(dialog({ unitEvidence: withheld, initialAttempt: 1, initialRow: 0 }));
+    expect(screen.getByTestId('attempt-1')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('row-0')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByTestId('trace-link')).toBeNull();
+    expect(screen.getByTestId('evidence-restricted')).toBeInTheDocument();
+  });
+
+  it('shows a result from before the manifest as it always did', () => {
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Legacy"
+        steps={datasetSteps}
+        traceUrl="/api/test-plan-executions/exec-1/artifacts/ui_5_chromium/Legacy_trace.zip"
+      />,
+    );
+    expect(screen.queryByTestId('slice-picker')).toBeNull();
+    expect(screen.getByTestId('trace-link')).toHaveAttribute(
+      'href',
+      '/api/test-plan-executions/exec-1/artifacts/ui_5_chromium/Legacy_trace.zip',
+    );
+  });
+});
 
 describe('StepDetailsDialog', () => {
   it('marks omitted evidence without rendering a broken image', () => {

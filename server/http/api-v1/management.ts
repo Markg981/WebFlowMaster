@@ -45,6 +45,8 @@ import {
 } from '../../tenancy/artifact-store';
 import { executionArtifactAvailability } from '../../tenancy/artifact-metering';
 import { runArtifactAccess, SENSITIVE_EVIDENCE_SCOPE } from '../../tenancy/artifact-access';
+import { listRunUnits, runUnitDetail } from '../../reporting/unit-evidence';
+import { isUnitId } from '@shared/execution-identity';
 import { billingSummary } from '../../tenancy/billing/service';
 import logger from '../../platform/logger';
 import { EVIDENCE_KINDS } from './management-openapi';
@@ -842,6 +844,37 @@ export function registerManagementRoutes(router: Router) {
       });
     },
     'EvidencePage',
+  );
+  // The drill-down (P08): what the run expected, and each unit's attempts and rows.
+  route(
+    'get',
+    '/api/v1/runs/:runId/units',
+    'runs:read',
+    async (req, res) => {
+      const p = page(req);
+      const units = await listRunUnits(req.params.runId, evidencePrincipalOf(req));
+      if (!units) notFound('run');
+      res.json({
+        items: units!.slice(p.offset, p.offset + p.limit),
+        ...p,
+        total: units!.length,
+      });
+    },
+    'RunUnitPage',
+  );
+  route(
+    'get',
+    '/api/v1/runs/:runId/units/:unitId',
+    'runs:read',
+    async (req, res) => {
+      const { runId, unitId } = req.params;
+      const detail = isUnitId(unitId)
+        ? await runUnitDetail(runId, unitId, evidencePrincipalOf(req), 'api-v1')
+        : null;
+      if (!detail) notFound('unit');
+      res.json(detail);
+    },
+    'RunUnitDetail',
   );
   route(
     'get',

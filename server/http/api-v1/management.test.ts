@@ -498,6 +498,117 @@ describe('raw run evidence through /api/v1: role and scope (P03)', () => {
   });
 });
 
+describe("a run's units, attempts and rows through /api/v1 (P08)", () => {
+  it('lists the units and opens one unit’s attempts, with links only to what the key may open', async () => {
+    const { executionUnits, executionUnitAttempts, reportTestCaseResults } =
+      await import('@shared/schema');
+    const planId = await createPlan(`Units ${randomUUID()}`);
+    const runId = randomUUID();
+    await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id: runId, organizationId: org, testPlanId: planId, status: 'completed' });
+    const testId = await createUiTest(`Units-${randomUUID()}`);
+    const unitIds = ['u_' + 'a'.repeat(24), 'u_' + 'b'.repeat(24)];
+    for (const [position, unitId] of unitIds.entries()) {
+      await privilegedDb.insert(executionUnits).values({
+        executionId: runId,
+        organizationId: org,
+        unitId,
+        position,
+        coordinates: {
+          testType: 'ui',
+          testId,
+          occurrence: 0,
+          browser: {
+            name: 'chromium',
+            channel: null,
+            device: null,
+            os: null,
+            osVersion: null,
+            browserVersion: null,
+          },
+          locale: position === 0 ? 'en-US' : 'it-IT',
+          device: null,
+          bddRow: null,
+        },
+        state: 'recorded',
+      });
+      await privilegedDb.insert(executionUnitAttempts).values({
+        executionId: runId,
+        organizationId: org,
+        unitId,
+        attempt: 1,
+        state: 'finished',
+        status: 'failed',
+        failureReason: 'Row 2 of 2: no button',
+        worker: 'worker-host:42',
+        evidence: {
+          traceUrl: null,
+          rows: [0, 1].map((row) => ({
+            datasetRow: row,
+            status: row === 1 ? ('failed' as const) : ('passed' as const),
+            screenshotUrl: `/results/${planId}/${runId}/units/${unitId}/attempt_1/row_${row}/step.png`,
+            traceUrl: `/results/${planId}/${runId}/units/${unitId}/attempt_1/row_${row}/t_trace.zip`,
+          })),
+        },
+      });
+      await privilegedDb.insert(reportTestCaseResults).values({
+        id: randomUUID(),
+        organizationId: org,
+        testPlanExecutionId: runId,
+        uiTestId: testId,
+        testName: 'Checkout',
+        testType: 'ui',
+        status: 'Failed',
+        startedAt: new Date(),
+        executionUnitId: unitId,
+        unitAttempt: 1,
+      } as any);
+    }
+
+    const listed = await request(app).get(`/api/v1/runs/${runId}/units`).set(auth()).expect(200);
+    expect(listed.body).toMatchObject({ total: 2, offset: 0 });
+    expect(listed.body.items.map((u: { locale: string }) => u.locale)).toEqual(['en-US', 'it-IT']);
+    expect(listed.body.items[0]).toMatchObject({
+      unitId: unitIds[0],
+      browser: 'chromium',
+      result: { status: 'Failed', attempts: 1, decidingAttempt: 1 },
+    });
+    const paged = await request(app)
+      .get(`/api/v1/runs/${runId}/units?limit=1&offset=1`)
+      .set(auth())
+      .expect(200);
+    expect(paged.body.items.map((u: { unitId: string }) => u.unitId)).toEqual([unitIds[1]]);
+
+    const detailPath = `/api/v1/runs/${runId}/units/${unitIds[1]}`;
+    const evidenceKey = await makeKey(user, org, ['runs:read', 'runs:evidence']);
+    const full = await request(app).get(detailPath).set(auth(evidenceKey)).expect(200);
+    const rows = full.body.evidence.attempts[0].rows;
+    expect(rows.map((r: { datasetRow: number }) => r.datasetRow)).toEqual([0, 1]);
+    expect(rows[1].traceUrl).toBe(
+      `/api/v1/runs/${runId}/artifacts/units/${unitIds[1]}/attempt_1/row_1/t_trace.zip`,
+    );
+    // Not the database row: no worker, no stored path.
+    expect(JSON.stringify(full.body)).not.toContain('worker-host');
+    expect(JSON.stringify(full.body)).not.toContain('/results/');
+
+    // A key without runs:evidence, and a viewer: the screenshot, not the trace.
+    for (const limited of [await makeKey(user, org, ['runs:read']), viewerKey]) {
+      const seen = await request(app).get(detailPath).set(auth(limited)).expect(200);
+      const row = seen.body.evidence.attempts[0].rows[1];
+      expect(row).toMatchObject({ traceUrl: null, restricted: true });
+      expect(row.screenshotUrl).toContain('/row_1/step.png');
+    }
+
+    await request(app).get(detailPath).set(auth(otherKey)).expect(404);
+    await request(app).get(`/api/v1/runs/${runId}/units`).set(auth(otherKey)).expect(404);
+    await request(app)
+      .get(`/api/v1/runs/${runId}/units/u_${'c'.repeat(24)}`)
+      .set(auth())
+      .expect(404);
+  });
+});
+
 describe('tags through /api/v1', () => {
   it('creates once per name, renames, counts and deletes with how many tests carried it', async () => {
     const name = `smoke ${randomUUID().slice(0, 8)}`;

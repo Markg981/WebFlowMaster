@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
 import { API_SCOPES, type ApiScope } from '@shared/api-scopes';
-import { mobileTests, reportTestCaseResults, tests } from '@shared/schema';
+import { executionUnits, mobileTests, reportTestCaseResults, tests } from '@shared/schema';
 import type { TenantTx } from '../platform/middleware/tenancy';
 
 /**
@@ -27,8 +27,9 @@ import type { TenantTx } from '../platform/middleware/tenancy';
  *    one could cost a credential.
  *
  * On top of that, a file that belongs to a test of a restricted project the caller is not on is
- * absent, not forbidden: the unit directory names its test (`ui_<id>`, `mobile_<id>`), and RLS
- * already hides that test from the caller, so the file answers like a file that does not exist.
+ * absent, not forbidden: the unit directory names its test (`ui_<id>`, `mobile_<id>`), or the run's
+ * manifest does (`units/<unit>/attempt_<n>/…`, every attempt and dataset row of it), and RLS already
+ * hides that test from the caller, so the file answers like a file that does not exist.
  */
 
 export type ArtifactKind =
@@ -104,9 +105,22 @@ export function relativeArtifactPath(
   return relative;
 }
 
-/** The test a unit directory belongs to: `ui_<id>[_<browser>]/…` or `mobile_<id>/…`. */
-function ownerOf(relativePath: string): string | null {
-  const first = relativePath.replace(/\\/g, '/').split('/')[0];
+/**
+ * Marks a file of a `units/<unit>/…` directory whose unit is not in this run's manifest: a path
+ * nobody was handed, answered like one that does not exist.
+ */
+const UNKNOWN_UNIT = 'unit:unknown';
+
+/**
+ * The test a unit directory belongs to: `ui_<id>[_<browser>]/…`, `mobile_<id>/…`, or — for a run
+ * with a manifest — `units/<unit>/…`, whose test the manifest knows (shared/execution-identity.ts).
+ */
+function ownerOf(relativePath: string, unitOwners: Map<string, string | null>): string | null {
+  const [first, second] = relativePath.replace(/\\/g, '/').split('/');
+  if (first === 'units') {
+    if (!second || !unitOwners.has(second)) return UNKNOWN_UNIT;
+    return unitOwners.get(second) ?? null;
+  }
   const ui = /^ui_(\d+)(?:_|$)/.exec(first);
   if (ui) return `ui:${ui[1]}`;
   const mobile = /^mobile_(\d+)$/.exec(first);
@@ -115,21 +129,66 @@ function ownerOf(relativePath: string): string | null {
 }
 
 /**
- * The tests of this run the caller may not see, as `ui:<id>` / `mobile:<id>`.
+ * The test each unit of the run's manifest runs, as `ui:<id>` / `mobile:<id>` (null for an API
+ * test, which keeps no files, or a test that no longer exists).
+ *
+ * A unit with a result takes its test from the result row, whose id is cleared when the test is
+ * deleted — exactly as a `ui_<id>` directory is judged. A unit still without one (running, or lost)
+ * takes it from the manifest, and a hidden test's evidence stays hidden while it runs.
+ */
+async function unitOwnersOf(
+  tx: TenantTx,
+  executionId: string,
+  rows: Array<{ unit: string | null; ui: number | null; mobile: number | null }>,
+): Promise<Map<string, string | null>> {
+  const units = await tx
+    .select({ unitId: executionUnits.unitId, coordinates: executionUnits.coordinates })
+    .from(executionUnits)
+    .where(eq(executionUnits.executionId, executionId));
+  const recorded = new Map(rows.filter((r) => r.unit).map((r) => [r.unit!, r]));
+  const owners = new Map<string, string | null>();
+  for (const { unitId, coordinates } of units) {
+    const row = recorded.get(unitId);
+    if (row)
+      owners.set(unitId, row.ui ? `ui:${row.ui}` : row.mobile ? `mobile:${row.mobile}` : null);
+    else if (coordinates.testId !== null && coordinates.testType !== 'api')
+      owners.set(unitId, `${coordinates.testType}:${coordinates.testId}`);
+    else owners.set(unitId, null);
+  }
+  return owners;
+}
+
+/**
+ * The tests of this run the caller may not see, as `ui:<id>` / `mobile:<id>`, and which test each
+ * unit of its manifest runs.
  *
  * Runs inside the caller's tenant transaction, so RLS answers "visible". A UI result's test id is
  * cleared when the test is deleted (ON DELETE SET NULL), so an id still on the row names a test that
  * exists, and one RLS does not show is hidden from this caller. A mobile result's id has no such
  * key: a mobile test that is gone and one that is hidden look alike, and both are treated as hidden.
  */
-async function hiddenOwners(tx: TenantTx, executionId: string): Promise<Set<string>> {
+async function hiddenOwners(
+  tx: TenantTx,
+  executionId: string,
+): Promise<{ hidden: Set<string>; unitOwners: Map<string, string | null> }> {
   const rows = await tx
-    .select({ ui: reportTestCaseResults.uiTestId, mobile: reportTestCaseResults.mobileTestId })
+    .select({
+      unit: reportTestCaseResults.executionUnitId,
+      ui: reportTestCaseResults.uiTestId,
+      mobile: reportTestCaseResults.mobileTestId,
+    })
     .from(reportTestCaseResults)
     .where(eq(reportTestCaseResults.testPlanExecutionId, executionId));
-  const uiIds = Array.from(new Set(rows.map((r) => r.ui).filter((id): id is number => !!id)));
+  const unitOwners = await unitOwnersOf(tx, executionId, rows);
+  const owned = (kind: string) =>
+    Array.from(unitOwners.values())
+      .filter((owner): owner is string => !!owner && owner.startsWith(`${kind}:`))
+      .map((owner) => Number(owner.slice(kind.length + 1)));
+  const uiIds = Array.from(
+    new Set([...rows.map((r) => r.ui).filter((id): id is number => !!id), ...owned('ui')]),
+  );
   const mobileIds = Array.from(
-    new Set(rows.map((r) => r.mobile).filter((id): id is number => !!id)),
+    new Set([...rows.map((r) => r.mobile).filter((id): id is number => !!id), ...owned('mobile')]),
   );
   const hidden = new Set<string>();
   if (uiIds.length > 0) {
@@ -151,7 +210,8 @@ async function hiddenOwners(tx: TenantTx, executionId: string): Promise<Set<stri
     );
     for (const id of mobileIds) if (!visible.has(id)) hidden.add(`mobile:${id}`);
   }
-  return hidden;
+  hidden.add(UNKNOWN_UNIT);
+  return { hidden, unitOwners };
 }
 
 /** What the caller may do with one file of the run. */
@@ -182,11 +242,11 @@ export async function runArtifactAccess(
   tx: TenantTx,
   input: { organizationId: number; executionId: string; principal: EvidencePrincipal | null },
 ): Promise<RunArtifactAccess> {
-  const hidden = await hiddenOwners(tx, input.executionId);
+  const { hidden, unitOwners } = await hiddenOwners(tx, input.executionId);
   const refusal = sensitiveEvidenceRefusal(input.principal);
   const decide = (relativePath: string): ArtifactDecision => {
     const classification = classifyArtifact(relativePath);
-    const owner = ownerOf(relativePath);
+    const owner = ownerOf(relativePath, unitOwners);
     if (owner && hidden.has(owner)) return { allowed: false, reason: 'hidden', classification };
     if (classification.sensitive && refusal) {
       return { allowed: false, reason: refusal, classification };

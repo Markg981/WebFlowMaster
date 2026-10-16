@@ -6,6 +6,8 @@ import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { privilegedDb } from '../../platform/db';
 import {
+  executionUnitAttempts,
+  executionUnits,
   projects,
   reportTestCaseResults,
   testPlans,
@@ -388,6 +390,178 @@ describe('raw evidence: one decision on the server, whoever asks and however (P0
     await fs.writeFile(path.join(open, 'step_1.png'), 'public-screen');
     currentUser = { id: outsider, organizationId, role: 'viewer' };
     await request(app).get(url('ui_999999_chromium/step_1.png')).expect(200);
+  });
+});
+
+describe("a unit's attempts and dataset rows (P08)", () => {
+  const SENTINEL = 'Sentinel-Unit-Trace-Pw-31';
+  const unitOf = (n: number) => `u_${String(n).padStart(24, '0')}`;
+  const url = (relative: string) =>
+    `/api/test-plan-executions/${executionId}/artifacts/${relative}`;
+
+  /** A unit of the manifest, its two attempts and its result; the first attempt's files on disk. */
+  async function seedUnit(unitId: string, testId: number, position: number) {
+    await privilegedDb.insert(executionUnits).values({
+      executionId,
+      organizationId,
+      unitId,
+      position,
+      coordinates: {
+        testType: 'ui',
+        testId,
+        occurrence: 0,
+        browser: null,
+        locale: 'it-IT',
+        device: null,
+        bddRow: null,
+      },
+      state: 'recorded',
+    });
+    const stored = (attempt: number, row: number, file: string) =>
+      `/results/${planId}/${executionId}/units/${unitId}/attempt_${attempt}/row_${row}/${file}`;
+    for (const attempt of [1, 2])
+      await privilegedDb.insert(executionUnitAttempts).values({
+        executionId,
+        organizationId,
+        unitId,
+        attempt,
+        state: 'finished',
+        status: attempt === 1 ? 'failed' : 'passed',
+        failureReason: attempt === 1 ? 'Row 1 of 1: the button was not there.' : null,
+        worker: 'host-a:1234',
+        evidence: {
+          rows: [
+            {
+              datasetRow: 0,
+              status: attempt === 1 ? 'failed' : 'passed',
+              error: attempt === 1 ? 'the button was not there.' : null,
+              screenshotUrl: stored(attempt, 0, 'step_1.png'),
+              traceUrl: stored(attempt, 0, 'Checkout_trace.zip'),
+            },
+          ],
+        },
+      });
+    await privilegedDb.insert(reportTestCaseResults).values({
+      id: uuidv4(),
+      organizationId,
+      testPlanExecutionId: executionId,
+      uiTestId: testId,
+      testName: 'Checkout',
+      testType: 'ui',
+      status: 'Passed',
+      attempts: 2,
+      startedAt: new Date(),
+      executionUnitId: unitId,
+      unitAttempt: 2,
+    } as any);
+    const dir = path.resolve(
+      process.cwd(),
+      'results',
+      planId,
+      executionId,
+      'units',
+      unitId,
+      'attempt_1',
+      'row_0',
+    );
+    await fs.ensureDir(dir);
+    await fs.writeFile(path.join(dir, 'step_1.png'), 'first-failure-screen');
+    await fs.writeFile(path.join(dir, 'Checkout_trace.zip'), `password=${SENTINEL}`);
+  }
+
+  async function uiTest(name: string, projectId?: number) {
+    const [test] = await privilegedDb
+      .insert(tests)
+      .values({
+        name,
+        url: 'https://x.test',
+        sequence: [],
+        elements: [],
+        userId,
+        organizationId,
+        ...(projectId ? { projectId } : {}),
+      } as any)
+      .returning();
+    return test.id;
+  }
+
+  it('opens the first, failed attempt of a row for those who may, and only for them', async () => {
+    const unitId = unitOf(1);
+    await seedUnit(unitId, await uiTest('Checkout'), 0);
+
+    // An editor: every attempt and row, the first failure's trace linked and served.
+    const detail = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/units/${unitId}`)
+      .expect(200);
+    expect(detail.body).toMatchObject({
+      unitId,
+      locale: 'it-IT',
+      result: { status: 'Passed', attempts: 2, decidingAttempt: 2 },
+      evidence: { unitId, decidingAttempt: 2 },
+    });
+    // A projection: the worker that made the try and the stored paths stay on the server.
+    expect(JSON.stringify(detail.body)).not.toContain('host-a');
+    expect(JSON.stringify(detail.body)).not.toContain('/results/');
+    const [first, second] = detail.body.evidence.attempts;
+    expect(first).toMatchObject({ attempt: 1, status: 'failed', restricted: false });
+    expect(second).toMatchObject({ attempt: 2, status: 'passed' });
+    expect(first.rows[0].traceUrl).toBe(url(`units/${unitId}/attempt_1/row_0/Checkout_trace.zip`));
+    const trace = await request(app).get(first.rows[0].traceUrl).responseType('blob').expect(200);
+    expect(Buffer.from(trace.body).toString()).toContain(SENTINEL);
+
+    // A viewer: the screenshot, not the trace — and told it was withheld.
+    currentUser = { id: userId, organizationId, role: 'viewer' };
+    const asViewer = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/units/${unitId}`)
+      .expect(200);
+    const row = asViewer.body.evidence.attempts[0].rows[0];
+    expect(row).toMatchObject({ traceUrl: null, restricted: true });
+    expect(row.screenshotUrl).toBe(url(`units/${unitId}/attempt_1/row_0/step_1.png`));
+    await request(app).get(row.screenshotUrl).expect(200);
+    await request(app).get(first.rows[0].traceUrl).expect(403);
+
+    // Another organization: no such run, no such unit.
+    currentUser = { id: otherUserId, organizationId: otherOrganizationId, role: 'editor' };
+    await request(app).get(`/api/test-plan-executions/${executionId}/units/${unitId}`).expect(404);
+    await request(app).get(first.rows[0].traceUrl).expect(404);
+  });
+
+  it('treats a unit of a hidden test, or one the manifest does not hold, as absent', async () => {
+    const [secret] = await privilegedDb
+      .insert(projects)
+      .values({ name: 'Secret', userId, organizationId, restricted: true })
+      .returning();
+    const hidden = unitOf(2);
+    const open = unitOf(3);
+    await seedUnit(hidden, await uiTest('Payroll', secret.id), 0);
+    await seedUnit(open, await uiTest('Catalogue'), 1);
+
+    const outsider = await createTestUser(organizationId, `not-on-project-${uuidv4().slice(0, 6)}`);
+    currentUser = { id: outsider, organizationId, role: 'editor' };
+    await request(app).get(`/api/test-plan-executions/${executionId}/units/${hidden}`).expect(404);
+    await request(app)
+      .get(url(`units/${hidden}/attempt_1/row_0/step_1.png`))
+      .expect(404);
+    await request(app)
+      .get(url(`units/${hidden}/attempt_1/row_0/Checkout_trace.zip`))
+      .expect(404);
+    const listed = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/units`)
+      .expect(200);
+    expect(listed.body.items.map((u: { unitId: string }) => u.unitId)).toEqual([open]);
+    await request(app)
+      .get(url(`units/${open}/attempt_1/row_0/step_1.png`))
+      .expect(200);
+
+    // A path under units/ that names no unit of this run is answered like a file never written.
+    await request(app)
+      .get(url(`units/${unitOf(99)}/attempt_1/row_0/step_1.png`))
+      .expect(404);
+    await request(app).get(`/api/test-plan-executions/${executionId}/units/not-a-unit`).expect(404);
+
+    // The owner sees every project.
+    currentUser = { id: userId, organizationId, role: 'owner' };
+    await request(app).get(`/api/test-plan-executions/${executionId}/units/${hidden}`).expect(200);
   });
 });
 

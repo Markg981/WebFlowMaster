@@ -348,6 +348,97 @@ describe('exporting a run', () => {
     ).toContain('Accessibility violations');
   });
 
+  it('lists attempts and dataset rows under their test, never as tests of their own (P08)', async () => {
+    const { executionUnits, executionUnitAttempts } = await import('@shared/schema');
+    const { loadReportModel } = await import('./report-model');
+    const runId = uuidv4();
+    await privilegedDb.insert(testPlanExecutions).values({
+      id: runId,
+      organizationId: org,
+      testPlanId: planId,
+      status: 'completed',
+      triggeredBy: 'manual',
+      startedAt: new Date('2026-09-24T03:00:00Z'),
+    } as any);
+    // Two units (one test in two languages), each failed once and passed on its re-run, each
+    // attempt over three dataset rows: 2 tests, 4 attempts, 12 row slices.
+    for (const [position, locale] of ['en-US', 'it-IT'].entries()) {
+      const unitId = `u_${String(position + 1).padStart(24, '0')}`;
+      await privilegedDb.insert(executionUnits).values({
+        executionId: runId,
+        organizationId: org,
+        unitId,
+        position,
+        coordinates: {
+          testType: 'ui',
+          testId: null,
+          occurrence: 0,
+          browser: null,
+          locale,
+          device: null,
+          bddRow: null,
+        },
+        state: 'recorded',
+      });
+      for (const attempt of [1, 2])
+        await privilegedDb.insert(executionUnitAttempts).values({
+          executionId: runId,
+          organizationId: org,
+          unitId,
+          attempt,
+          state: 'finished',
+          status: attempt === 1 ? 'failed' : 'passed',
+          failureReason: attempt === 1 ? 'Row 3 of 3: sold out' : null,
+          evidence: {
+            rows: [0, 1, 2].map((row) => ({
+              datasetRow: row,
+              status: attempt === 1 && row === 2 ? ('failed' as const) : ('passed' as const),
+              error: attempt === 1 && row === 2 ? 'sold out' : null,
+            })),
+          },
+        });
+      await privilegedDb.insert(reportTestCaseResults).values({
+        id: uuidv4(),
+        organizationId: org,
+        testPlanExecutionId: runId,
+        testType: 'ui',
+        testName: 'Checkout',
+        browser: `chromium · ${locale}`,
+        status: 'Passed',
+        attempts: 2,
+        startedAt: new Date('2026-09-24T03:00:10Z'),
+        executionUnitId: unitId,
+        unitAttempt: 2,
+      } as any);
+    }
+
+    const model = (await runAsOrganization(org, () => loadReportModel(runId)))!;
+    expect(model.counts).toMatchObject({ total: 2, passed: 2, failed: 0, flaky: 2 });
+    expect(model.results[0].unitAttempts.map((a) => [a.attempt, a.status, a.deciding])).toEqual([
+      [1, 'failed', false],
+      [2, 'passed', true],
+    ]);
+
+    const html = (await runAsOrganization(org, () => exportRun(runId, 'html')))!.body.toString();
+    expect(html).toContain('Attempts and dataset rows');
+    expect(html).toContain('Row 3: <span class="fail">failed</span>');
+    // The table of results still has a row per test, not per attempt or per dataset row.
+    expect(html.match(/<tr><td>Checkout/g)).toHaveLength(2);
+
+    const allure = readZip((await runAsOrganization(org, () => exportRun(runId, 'allure')))!.body);
+    const results = [...allure.entries()].filter(([name]) => name.endsWith('-result.json'));
+    expect(results).toHaveLength(2);
+    const attachment = JSON.parse(results[0][1].toString()).attachments.find(
+      (a: { name: string }) => a.name === 'Attempts and dataset rows',
+    );
+    expect(JSON.parse(allure.get(attachment.source)!.toString())).toHaveLength(2);
+
+    const junit = (await runAsOrganization(org, () => exportRun(runId, 'junit')))!.body.toString();
+    expect(junit).toMatch(/<testsuites name="[^"]*" tests="2" failures="0"/);
+    expect(junit.match(/<testcase /g)).toHaveLength(2);
+    expect(junit).toContain('name="wfm.attempts"');
+  });
+
   it('as PDF, rendered by a real browser', async () => {
     const exported = await runAsOrganization(org, () => exportRun(executionId, 'pdf'));
     expect(exported!.contentType).toBe('application/pdf');

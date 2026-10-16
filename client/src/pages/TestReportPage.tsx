@@ -1,5 +1,5 @@
 // client/src/pages/TestReportPage.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRoute, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { fetchTestExecutionReport } from '@/lib/api/reports';
@@ -38,6 +38,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import StepDetailsDialog, { type ReportStep } from '@/components/reports/StepDetailsDialog';
+import type { UnitEvidenceView } from '@shared/execution-identity';
 import IssueCell, { type IssueLinkSummary } from '@/components/reports/IssueCell';
 import AttemptsBadge from '@/components/reports/AttemptsBadge';
 import QuarantinedBadge from '@/components/reports/QuarantinedBadge';
@@ -68,6 +69,15 @@ import { formatDate, formatDateTime } from '@/lib/dates';
 /** The filter value that lets every result through. */
 const ALL = '__all__';
 const NO_FILTERS = { component: ALL, severity: ALL, outcome: ALL };
+
+/**
+ * Whether a result has anything to open: its recorded steps, or the attempts of its unit — a test
+ * that passed on its re-run still has its first failure's evidence to show (P08).
+ */
+const hasDrillDown = (test: {
+  steps?: ReportStep[];
+  unitEvidence?: UnitEvidenceView | null;
+}): boolean => (test.steps?.length ?? 0) > 0 || (test.unitEvidence?.attempts.length ?? 0) > 0;
 
 /** A module's or component's counts, worked out from the tests a filter shows. */
 function countsOf(tests: Array<{ status: string }>) {
@@ -157,6 +167,8 @@ export interface TestPlanExecutionReport {
     harUrl?: string | null;
     /** Raw evidence was kept but this viewer may not open it (server/tenancy/artifact-access.ts). */
     evidenceRestricted?: boolean;
+    /** Every attempt and dataset row of this result's unit, with its own evidence (P08). */
+    unitEvidence?: UnitEvidenceView | null;
     networkSummary?: NetworkSummary | null;
     aiAnalysis?: FailureAnalysis | null;
     steps: ReportStep[];
@@ -199,6 +211,8 @@ export interface TestPlanExecutionReport {
             harUrl?: string | null;
             /** Raw evidence was kept but this viewer may not open it (server/tenancy/artifact-access.ts). */
             evidenceRestricted?: boolean;
+            /** Every attempt and dataset row of this result's unit, with its own evidence (P08). */
+            unitEvidence?: UnitEvidenceView | null;
             networkSummary?: NetworkSummary | null;
             steps: ReportStep[];
             reasonForFailure: string | null;
@@ -249,6 +263,10 @@ const TestReportPage: React.FC = () => {
     evidenceRestricted?: boolean;
     network?: NetworkSummary | null;
     sessionUrl?: string | null;
+    unitEvidence?: UnitEvidenceView | null;
+    /** The attempt and dataset row to open on, when the link named them. */
+    attempt?: number | null;
+    row?: number | null;
   } | null>(null);
   const { t } = useTranslation();
   const [, params] = useRoute<{ planId: string; executionId: string }>(
@@ -275,6 +293,40 @@ const TestReportPage: React.FC = () => {
       return isExecutionInFlight(data?.header?.status) ? 5000 : false;
     },
   });
+
+  // A link to one slice of a result — `?unit=<id>&attempt=<n>&row=<m>`, as the API and the CLI name
+  // them — opens the report on exactly that attempt and row, once the report has loaded.
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current || !reportData) return;
+    const query = new URLSearchParams(window.location.search);
+    const unit = query.get('unit');
+    if (!unit) return;
+    deepLinked.current = true;
+    const result = Object.values(reportData.testGroupings ?? {})
+      .flatMap((group) => Object.values(group.components))
+      .flatMap((component) => component.tests)
+      .find((test) => test.unitEvidence?.unitId === unit);
+    if (!result) return;
+    const number = (name: string) => {
+      const value = query.get(name);
+      return value !== null && /^\d+$/.test(value) ? Number(value) : null;
+    };
+    setOpenedSteps({
+      testName: result.testName,
+      browser: result.browser,
+      steps: result.steps,
+      videoUrl: result.videoUrl,
+      traceUrl: result.traceUrl,
+      harUrl: result.harUrl,
+      evidenceRestricted: result.evidenceRestricted,
+      network: result.networkSummary,
+      sessionUrl: mobileSessionUrl(result.detailedLog),
+      unitEvidence: result.unitEvidence,
+      attempt: number('attempt'),
+      row: number('row'),
+    });
+  }, [reportData]);
 
   /**
    * What this run's failures already are on somebody's board.
@@ -1039,11 +1091,12 @@ const TestReportPage: React.FC = () => {
                             </a>
                           </Button>
                         )}
-                        {test.steps?.length > 0 && (
+                        {hasDrillDown(test) && (
                           <Button
                             variant="ghost"
                             size="sm"
                             title={t('testReportPage.actions.steps', 'View steps')}
+                            data-testid={`open-steps-${test.id}`}
                             onClick={() =>
                               setOpenedSteps({
                                 testName: test.testName,
@@ -1055,6 +1108,7 @@ const TestReportPage: React.FC = () => {
                                 evidenceRestricted: test.evidenceRestricted,
                                 network: test.networkSummary,
                                 sessionUrl: mobileSessionUrl(test.detailedLog),
+                                unitEvidence: test.unitEvidence,
                               })
                             }
                           >
@@ -1283,7 +1337,7 @@ const TestReportPage: React.FC = () => {
                                                 </a>
                                               </Button>
                                             )}
-                                            {test.steps?.length > 0 && (
+                                            {hasDrillDown(test) && (
                                               <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -1291,6 +1345,7 @@ const TestReportPage: React.FC = () => {
                                                   'testReportPage.actions.steps',
                                                   'View steps',
                                                 )}
+                                                data-testid={`open-steps-${test.id}`}
                                                 onClick={() =>
                                                   setOpenedSteps({
                                                     testName: test.testName,
@@ -1302,6 +1357,7 @@ const TestReportPage: React.FC = () => {
                                                     evidenceRestricted: test.evidenceRestricted,
                                                     network: test.networkSummary,
                                                     sessionUrl: mobileSessionUrl(test.detailedLog),
+                                                    unitEvidence: test.unitEvidence,
                                                   })
                                                 }
                                               >
@@ -1396,6 +1452,9 @@ const TestReportPage: React.FC = () => {
         evidenceRestricted={openedSteps?.evidenceRestricted}
         network={openedSteps?.network}
         sessionUrl={openedSteps?.sessionUrl}
+        unitEvidence={openedSteps?.unitEvidence}
+        initialAttempt={openedSteps?.attempt}
+        initialRow={openedSteps?.row}
       />
       <Dialog
         open={commentsFor !== null}
