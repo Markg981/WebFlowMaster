@@ -14,6 +14,7 @@ import { evidencePrincipalOf } from '../middleware/require-scope';
 import logger from '../../platform/logger';
 import { isUnitId } from '@shared/execution-identity';
 import { listRunUnits, runUnitDetail } from '../../reporting/unit-evidence';
+import { sessionRateLimit } from '../middleware/rate-limits';
 
 /**
  * Serving what a run produced: screenshots, and the three images of a visual comparison.
@@ -274,9 +275,14 @@ router.get(
   },
 );
 
+// The drill-down reads a run's manifest and attempts on every call: bounded per user, like every
+// session route, and said here so the limit travels with the route.
+const unitsLimit = sessionRateLimit();
+
 // GET /api/test-plan-executions/:executionId/units — the run's units, in plan order (P08).
 router.get(
   '/api/test-plan-executions/:executionId/units',
+  unitsLimit,
   requireRole('viewer'),
   async (req, res) => {
     const units = await listRunUnits(req.params.executionId, evidencePrincipalOf(req));
@@ -289,6 +295,7 @@ router.get(
 // one unit, with the evidence of each that this caller may open (server/reporting/unit-evidence.ts).
 router.get(
   '/api/test-plan-executions/:executionId/units/:unitId',
+  unitsLimit,
   requireRole('viewer'),
   async (req, res) => {
     const { executionId, unitId } = req.params;
