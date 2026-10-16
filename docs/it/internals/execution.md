@@ -141,19 +141,19 @@ nel processo (`onExecutionTransition`); il modulo dello stato dei commit è uno 
 (`server/execution/plan-run/pipeline.ts`), che chiama una fase dopo l'altra. Ogni fase è una funzione di un suo
 modulo che riceve ciò che legge e restituisce ciò che produce, così si legge e si testa da sola:
 
-| Fase                    | Modulo                                 | Produce                                                                          |
-| ----------------------- | -------------------------------------- | -------------------------------------------------------------------------------- |
-| Directory dei risultati | `plan-run/inputs.ts`                   | `./results/<piano>/<run>`, oppure il run termina in errore                       |
-| Input                   | `plan-run/inputs.ts`                   | la riga dell'esecuzione e il suo snapshot                                        |
-| Browser                 | `plan-run/browsers.ts`                 | i passaggi, su una grid o un pool di agent                                       |
-| Impostazioni            | `plan-run/settings.ts`                 | evidenze, policy, visual testing                                                 |
-| Variabili               | `plan-run/inputs.ts`                   | segreti e variabili dei dati, per passaggio                                      |
-| Definizioni             | `plan-run/definitions.ts`              | i test e le versioni che girano, policy di revisione, dataset                    |
-| Quarantena              | `plan-run/definitions.ts`              | i test i cui fallimenti non fanno fallire il run                                 |
-| Prova dei browser       | `plan-run/browsers.ts`                 | i passaggi che questo runner riesce ad avviare                                   |
-| Corsie                  | `plan-run/lanes.ts`                    | una corsia per browser e lingua (pura)                                           |
-| Esecuzione              | `plan-run/execute-lanes.ts`            | ogni unità tramite `plan-run/run-unit.ts`, in sequenza, in parallelo o condivisa |
-| Verdetto e dopo il run  | `plan-run/finalize.ts`, `after-run.ts` | la chiusura, il retry, le issue, il test management, la notifica                 |
+| Fase                    | Modulo                                    | Produce                                                                                         |
+| ----------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Directory dei risultati | `plan-run/inputs.ts`                      | `./results/<piano>/<run>`, oppure il run termina in errore                                      |
+| Input                   | `plan-run/inputs.ts`                      | la riga dell'esecuzione e il suo snapshot                                                       |
+| Browser                 | `plan-run/browsers.ts`                    | i passaggi, su una grid o un pool di agent                                                      |
+| Impostazioni            | `plan-run/settings.ts`                    | evidenze, policy, visual testing                                                                |
+| Variabili               | `plan-run/inputs.ts`                      | segreti e variabili dei dati, per passaggio                                                     |
+| Definizioni             | `plan-run/definitions.ts`                 | i test e le versioni che girano, policy di revisione, dataset                                   |
+| Quarantena              | `plan-run/definitions.ts`                 | i test i cui fallimenti non fanno fallire il run                                                |
+| Prova dei browser       | `plan-run/browsers.ts`                    | i passaggi che questo runner riesce ad avviare                                                  |
+| Corsie e manifest       | `plan-run/lanes.ts`, `execution-units.ts` | una corsia per browser e lingua (pura); le unità dovute dal run, scritte prima che ne parta una |
+| Esecuzione              | `plan-run/execute-lanes.ts`               | ogni unità tramite `plan-run/run-unit.ts`, in sequenza, in parallelo o condivisa                |
+| Verdetto e dopo il run  | `plan-run/finalize.ts`, `after-run.ts`    | la chiusura, il retry, le issue, il test management, la notifica                                |
 
 Una fase che chiude il run in anticipo (nessuna directory dei risultati, nessuna riga di esecuzione)
 restituisce `Ended` e la pipeline si ferma lì. Un singolo test fuori da un piano è `runTest`
@@ -188,12 +188,51 @@ piano, con la propria mappa di valori catturati. `max_parallel_tests` del piano 
   affiancati, test in ordine dentro ogni corsia.
 - `> 1` negli altri casi — qualsiasi test di qualsiasi corsia, fino al limite.
 
+### Il manifest: unità e tentativi
+
+Prima che parta il primo test, il coordinatore scrive il **manifest** del run in `execution_units`
+(`server/execution/execution-units.ts`, migrazione 0091): una riga per ogni **unità** di cui il run
+deve un risultato. Un'unità è un test del piano su un browser e una lingua, un target di dispositivo
+mobile, o una riga di un dataset BDD. Il suo id (`u_` + 24 caratteri esadecimali) è un hash dell'id
+del run e delle coordinate dell'unità — il test, quale **occorrenza** nel piano (lo stesso test due
+volte sono due unità), il browser richiesto (nome, canale, dispositivo emulato, macchina), la lingua,
+il target del dispositivo e l'indice della riga BDD. Nient'altro: nessun valore di dataset, URL,
+segreto o nome. Vale dentro il run; non è un'impronta per confrontare run diversi
+(`shared/execution-identity.ts`).
+
+Il manifest registra ciò che il piano ha **chiesto**, non ciò che è sopravvissuto alla prova dei
+browser: un browser che non parte contribuisce le sue unità come `not_startable`, con il motivo della
+prova, e un ripiego (da visibile a headless, da canale a motore) mantiene l'identità del browser
+indicato dal piano. Le unità manuali, mobile e BDD, che girano una volta per run, compaiono una volta.
+Riscrivere lo stesso manifest non cambia nulla; uno diverso viene rifiutato.
+
+Ogni prova di un'unità è un **tentativo** in `execution_unit_attempts`: assegnato (1, 2, … per ogni
+riesecuzione) e validato — l'unità deve stare nel manifest di questo run e dovere ancora il suo
+risultato — prima che la prova apra un browser o scriva evidenze, poi chiuso con l'esito della prova.
+La riga di risultato in `report_test_case_results` resta la proiezione del report e ora indica la sua
+unità (`execution_unit_id`) e il tentativo che l'ha decisa (`unit_attempt`; nessuno per un'unità che
+non è stata provata, come una saltata o manuale). Il database tiene **una sola riga finale per
+unità**; una seconda viene rifiutata e conta come risultato non registrato. Ogni collegamento è della
+stessa organizzazione per chiave esterna composta, ed entrambe le tabelle sono sotto RLS.
+
+Le righe scritte prima del manifest non hanno unità e non ne ricevono: nulla viene ricostruito da
+nomi o conteggi. `unitReport` legge entrambe in un unico modello — le unità del manifest con il loro
+risultato (o nessuno), poi ogni riga senza unità come `legacy`. Ordine, valori catturati fra test API
+concatenati, ambito delle riesecuzioni e righe dei dataset UI (che restano dentro il loro tentativo)
+non cambiano.
+
+**Attivazione.** La migrazione è additiva, e un worker precedente continua a scrivere righe senza
+unità, che ogni lettore accetta; gli elementi di lavoro di un run condiviso portano l'id dell'unità, e
+un aiutante che non lo conosce ignora il campo. Il manifest non decide ancora il verdetto: quel
+passaggio (un'unità attesa senza risultato rende il run incompleto) arriva quando ogni worker scrive
+unità — dopo che i vecchi worker sono stati aggiornati o svuotati.
+
 ### Shard: un run su più worker
 
 `shards` del piano (1–8, nello snapshot) permette a più worker di dividersi un run
 (`server/runtime/run-shards.ts`). Il worker che ha preso il run — il coordinatore — scrive il lavoro in
 `run_work_items`: un elemento per unità, o uno per corsia quando le corsie sono concatenate. Ogni
-elemento porta l'unità come l'ha risolta il coordinatore (browser, ripiego headless, motore), così gli
+elemento porta l'unità come l'ha risolta il coordinatore (browser, ripiego headless, motore, id dell'unità), così gli
 aiutanti non sondano i browser. Poi accoda `shards − 1` job `execute-shard` (id `<run>-shard-<n>`).
 
 Ogni partecipante esegue `maxParallelTests` cicli di presa. Una presa è `SELECT … FOR UPDATE SKIP
@@ -254,8 +293,10 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
 ### Dopo ogni test
 
 - La riga di risultato (`report_test_case_results`) viene scritta con stato, step, percorsi delle
-  evidenze, browser, versione del test, e se il test è in **quarantena**.
-- **Riesecuzione in caso di fallimento**: la policy del piano riesegue un test fallito; conta l'ultimo
+  evidenze, browser, versione del test, la sua unità e il tentativo decisivo, e se il test è in
+  **quarantena**.
+- **Riesecuzione in caso di fallimento**: la policy del piano riesegue un test fallito, ogni volta come
+  nuovo tentativo della stessa unità; conta l'ultimo
   tentativo, e il numero di tentativi viene registrato, così un test che ne ha richiesti due appare
   instabile.
 - **Policy di fallimento**: uno step fallito può fermare il test o l'intero run, secondo il piano

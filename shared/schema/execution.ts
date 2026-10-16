@@ -21,6 +21,7 @@ import type { NetworkSummary } from '../network';
 import type { FailureAnalysis } from '../failure-analysis';
 import type { CiContext } from '../ci';
 import type { LoadRunStatus, LoadSummary } from '../load-test';
+import type { ExecutionUnitState, UnitCoordinates } from '../execution-identity';
 import { apiTests } from './api-testing';
 import { loadTests, mobileTests, tags, tests } from './authoring';
 import { browserGrids, environments } from './environments';
@@ -346,6 +347,13 @@ export const reportTestCaseResults = pgTable(
     component: text('component'),
     priority: text('priority'),
     severity: text('severity'),
+    /**
+     * The unit of the run's manifest this row is the final result of, and the attempt that decided
+     * it (migration 0091). At most one row per unit. Null on rows written before the manifest
+     * existed: those keep no identity rather than one guessed from their name.
+     */
+    executionUnitId: text('execution_unit_id'),
+    unitAttempt: integer('unit_attempt'),
   },
   (table) => [
     index('report_test_case_results_execution_id_idx').on(table.testPlanExecutionId),
@@ -465,6 +473,64 @@ export const runWorkItems = pgTable(
 );
 
 export type RunWorkItem = typeof runWorkItems.$inferSelect;
+
+/**
+ * The manifest of a run: every unit it expects, written once before any starts — those of a
+ * browser that would not start included (migration 0091, shared/execution-identity.ts). The
+ * same-organization foreign keys are in the migration.
+ */
+export const executionUnits = pgTable(
+  'execution_units',
+  {
+    executionId: text('execution_id')
+      .notNull()
+      .references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    unitId: text('unit_id').notNull(),
+    /** Plan order: the order the lanes were laid out in. */
+    position: integer('position').notNull(),
+    coordinates: jsonb('coordinates').$type<UnitCoordinates>().notNull(),
+    state: text('state').$type<ExecutionUnitState>().notNull().default('planned'),
+    /** Why a not_startable unit could not start. */
+    reason: text('reason'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.executionId, table.unitId] }),
+    index('execution_units_organization_id_idx').on(table.organizationId),
+  ],
+);
+
+export type ExecutionUnit = typeof executionUnits.$inferSelect;
+
+/** One try at a unit: 1, then one more per re-run. Assigned before the try produces anything. */
+export const executionUnitAttempts = pgTable(
+  'execution_unit_attempts',
+  {
+    executionId: text('execution_id').notNull(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    unitId: text('unit_id').notNull(),
+    attempt: integer('attempt').notNull(),
+    state: text('state').$type<'running' | 'finished'>().notNull().default('running'),
+    /** The try's own outcome, in the report's terms; the unit's verdict is the last one's. */
+    status: text('status'),
+    /** The worker that made the try. */
+    worker: text('worker'),
+    startedAt: timestamp('started_at').notNull().defaultNow(),
+    finishedAt: timestamp('finished_at'),
+  },
+  (table) => [
+    primaryKey({ columns: [table.executionId, table.unitId, table.attempt] }),
+    index('execution_unit_attempts_organization_id_idx').on(table.organizationId),
+  ],
+);
+
+export type ExecutionUnitAttempt = typeof executionUnitAttempts.$inferSelect;
 
 /**
  * Which tests a change affects (server/execution/test-impact.ts): the files a glob pattern matches map to a

@@ -82,6 +82,9 @@ export const ORG_SCOPED_TABLES = [
   'test_data_sets',
   // The work of a run shared by several workers (migration 0067).
   'run_work_items',
+  // A run's manifest of expected units and the attempts at each (migration 0091).
+  'execution_units',
+  'execution_unit_attempts',
   // Which files map to which tests' tags (migration 0068).
   'impact_rules',
   // Text messages the test numbers received (migration 0070).

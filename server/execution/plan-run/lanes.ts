@@ -23,6 +23,11 @@ export interface RunUnit {
   link: TestLink;
   bddRowIndex?: number;
   mobileTarget?: MobilePlanTarget;
+  /**
+   * The unit's id in the run's manifest (server/execution/execution-units.ts), set once the
+   * manifest is planned; absent on a work item written by a worker from before it.
+   */
+  unitId?: string;
 }
 
 export interface Lane {

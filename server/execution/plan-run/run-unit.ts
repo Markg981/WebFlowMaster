@@ -30,6 +30,7 @@ import { referencedId, type FrozenTests, type MobileEntry, type Quarantined } fr
 import type { RunInputs, RunVariables } from './inputs';
 import type { RunUnit } from './lanes';
 import { buildReportEntry, saveReportEntry, type UnitOutcome } from './report-entry';
+import { beginAttempt, finishAttempt } from '../execution-units';
 import type { RunSettings } from './settings';
 
 /** Everything a unit reads: what the phases before execution produced. */
@@ -99,6 +100,7 @@ export async function runUnit(
     onBrowser,
     inQuarantine,
     startedAt,
+    lastAttempt: null,
   };
   const outcome = await outcomeOf(context, { haltedBy, datasetError, definition, mobile });
 
@@ -115,6 +117,7 @@ export async function runUnit(
       versions: tests.versions,
       inQuarantine,
       outcome,
+      attempt: context.lastAttempt,
       startedAt,
       completedAt: Date.now(),
     }),
@@ -130,6 +133,32 @@ interface UnitContext {
   onBrowser: string;
   inQuarantine: boolean;
   startedAt: number;
+  /** The last attempt assigned to this unit, once one has been. */
+  lastAttempt: number | null;
+}
+
+/**
+ * One try at the unit, as an attempt of the run's manifest: assigned and validated before `once`
+ * starts — so before it opens a browser or writes evidence — and closed with its own outcome. A
+ * unit with no id (a work item from a worker that predates the manifest) is tried as it always was.
+ */
+async function attempt<T>(
+  context: UnitContext,
+  once: () => Promise<T>,
+  statusOf: (result: T) => string,
+): Promise<T> {
+  const { unitId } = context.unit;
+  if (!unitId) return once();
+  const ref = await beginAttempt({ executionId: context.scope.run.executionId, unitId });
+  context.lastAttempt = ref.attempt;
+  let status = 'error';
+  try {
+    const result = await once();
+    status = statusOf(result);
+    return result;
+  } finally {
+    await finishAttempt(ref, status);
+  }
 }
 
 /** Runs the unit, or says why it does not run. */
@@ -226,11 +255,16 @@ async function runMobile(
 
   const grid = await toGridConfig(mobile.grid);
   const attemptOnce = () =>
-    performMobileTest(
-      mobile.test,
-      grid,
-      variables.forPass(captured),
-      `WebFlowMaster · ${run.planId} · ${run.executionId.slice(0, 8)}`,
+    attempt(
+      context,
+      () =>
+        performMobileTest(
+          mobile.test,
+          grid,
+          variables.forPass(captured),
+          `WebFlowMaster · ${run.planId} · ${run.executionId.slice(0, 8)}`,
+        ),
+      (result) => result.status,
     );
   let attempts = 1;
   let outcome: MobileOutcome = await attemptOnce();
@@ -325,6 +359,12 @@ async function runDefinition(
       : definition;
 
   const attemptOnce = () =>
+    attempt(
+      context,
+      () => runTestOnce(),
+      (result) => result.status,
+    );
+  const runTestOnce = () =>
     runTest(
       test,
       run.userId,

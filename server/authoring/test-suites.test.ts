@@ -403,7 +403,9 @@ describe('rows that point across organizations', () => {
     // Native groups also belong to a same-organization project (0082).
     // Load tests: project and data set; their runs: test, project and environment (0083).
     // A run's pending job belongs to a run of the same organization (0090).
-    expect(rows.length).toBe(100);
+    // A run's manifest unit belongs to a run of the same organization (0091); its attempts and
+    // result rows are tied to it by composite keys that carry the organization.
+    expect(rows.length).toBe(101);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 
