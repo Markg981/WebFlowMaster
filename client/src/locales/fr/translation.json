@@ -3646,6 +3646,12 @@
     "shards": {
       "label": "Workers partageant une exécution",
       "help": "Répartit une exécution sur jusqu'à ce nombre de runners, chacun exécutant le nombre ci-dessus à la fois. Les tests sont distribués un par un au runner libre, et le rapport reste une seule exécution. 1 garde l'exécution sur un seul runner."
+    },
+    "workerLoss": {
+      "label": "Quand un runner est perdu en cours de test",
+      "indeterminate": "Marquer son résultat comme inconnu (recommandé)",
+      "replay": "Relancer le test sur un autre runner",
+      "help": "Un runner qui ne répond plus a peut-être déjà cliqué ou envoyé des requêtes. Par défaut, son test se termine comme indéterminé et l’exécution comme incomplète. Ne choisissez de le relancer que si chaque test de ce plan peut être exécuté deux fois sur l’application sans risque. Les tests dont les requêtes API transmettent des valeurs aux suivants ne sont jamais repris à mi-chemin."
     }
   },
   "network": {

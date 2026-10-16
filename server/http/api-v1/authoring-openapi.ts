@@ -125,6 +125,12 @@ const planFields = {
   selectedTests,
   maxParallelTests: { type: 'integer', minimum: 1, maximum: 16 },
   shards: { type: 'integer', minimum: 1, maximum: 8 },
+  workerLossPolicy: {
+    ...text,
+    enum: ['indeterminate', 'replay'],
+    description:
+      'What a work item whose worker was lost becomes: indeterminate (default), or replayed on another worker — a single unit only, and only when its test may run twice against the application.',
+  },
   pageLoadTimeout: { type: 'integer', minimum: 1000, maximum: 600000 },
   elementTimeout: { type: 'integer', minimum: 1000, maximum: 600000 },
   captureScreenshots: { ...text, enum: ['never', 'on_failed_steps', 'always'] },

@@ -165,15 +165,15 @@ describe('a run shared by several workers', () => {
     expect(run).toMatchObject({ status: 'completed', totalTests: 4 });
   });
 
-  it('takes back the work of a helper that stopped answering', async () => {
+  it('takes back the work of a helper that stopped answering before it tried anything', async () => {
     await seedPlan({ shards: 2 }, 2);
-    // A helper claims an item and dies at once: its heartbeat is long past.
+    // A helper claims an item and dies at once, before any attempt: its lease is long past.
     registerShardDispatcher(async ({ executionId }) => {
       const taken = await claimWorkItem(executionId, 'ghost');
       await privilegedDb
         .update(runWorkItems)
-        .set({ heartbeatAt: sql`now() - interval '1 hour'` })
-        .where(eq(runWorkItems.key, taken!.key));
+        .set({ leaseExpiresAt: sql`now() - interval '1 hour'` })
+        .where(eq(runWorkItems.key, taken!.workItemKey));
     });
     const executionId = await runPlan();
     const results = await privilegedDb

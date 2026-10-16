@@ -7,6 +7,12 @@ import {
 import type { RunSummary } from '../../integrations/notifications';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { transitionExecution } from '../execution-state';
+import {
+  accountFor,
+  describeMissing,
+  readManifest,
+  type ManifestAccount,
+} from '../execution-units';
 import { failuresOf, type VerdictRow } from '../../authoring/test-quarantine';
 import {
   fileFailuresIfConfigured,
@@ -61,6 +67,20 @@ export function verdictOf(tally: Tally, plannedTests: number, incomplete: boolea
   return incomplete && verdict === 'completed' ? 'error' : verdict;
 }
 
+/**
+ * The rows a verdict may read: one per expected unit of the manifest, the unit's one authoritative
+ * result, and the rows of a run or worker from before the manifest, which name no unit. A row
+ * naming a unit the manifest does not hold is nobody's result.
+ */
+export function authoritativeRows<T extends { executionUnitId?: string | null }>(
+  rows: T[],
+  manifest: Array<{ unitId: string }>,
+): T[] {
+  if (manifest.length === 0) return rows;
+  const expected = new Set(manifest.map((unit) => unit.unitId));
+  return rows.filter((row) => !row.executionUnitId || expected.has(row.executionUnitId));
+}
+
 export async function finalizeRun(
   run: PlanRun,
   inputs: RunInputs,
@@ -76,11 +96,20 @@ export async function finalizeRun(
       .from(reportTestCaseResultsTable)
       .where(eq(reportTestCaseResultsTable.testPlanExecutionId, executionId)),
   );
-  const tally = tallyResults(finalDetailedResults);
+  // A run with a manifest is complete only when every expected unit has its one result: absent,
+  // indeterminate (a lost worker) and not startable are told apart in the message, and none of
+  // them can be made up for by other rows.
+  const manifest = await readManifest(executionId);
+  const verdictRows = authoritativeRows(finalDetailedResults, manifest);
+  const account: ManifestAccount | null = manifest.length
+    ? accountFor(manifest, verdictRows)
+    : null;
+  const missing = account ? describeMissing(account) : null;
+  const tally = tallyResults(verdictRows);
   const finalOverallStatus = verdictOf(
     tally,
     snapshot.selectedTests.length,
-    startupFailures.length > 0 || unitFailures.length > 0,
+    startupFailures.length > 0 || unitFailures.length > 0 || missing !== null,
   );
 
   const overallCompletedAt = Date.now();
@@ -141,6 +170,7 @@ export async function finalizeRun(
               // somebody looking for which, when the run already knows.
               failureMessage: [
                 'Not every browser or test in the plan produced a recorded result.',
+                ...(missing ? [missing] : []),
                 ...startupFailures,
                 ...unitFailures,
               ]
@@ -201,6 +231,7 @@ export async function finalizeRun(
       testPlanRunId: executionId,
       overallStatus: finalOverallStatus,
       testsRun: tally.total,
+      ...(account ? { units: account } : {}),
     });
 
     // A failed attempt with attempts left is not the verdict yet: the next attempt is queued,
@@ -229,7 +260,7 @@ export async function finalizeRun(
       planId,
       executionId,
       organizationId: inputs.organizationId,
-      results: finalDetailedResults,
+      results: verdictRows,
     });
     if (snapshot.testManagement?.connectionId) await publishToTestManagement(executionId);
     await notifyRunFinished({

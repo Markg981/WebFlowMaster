@@ -197,8 +197,15 @@ export const managementSchemas = {
     {
       unitId: { ...text, pattern: '^u_[0-9a-f]{24}$', description: 'Opaque, scoped to its run.' },
       position: { type: 'integer', minimum: 0, description: 'Plan order.' },
-      state: { ...text, enum: ['planned', 'running', 'recorded', 'not_startable'] },
-      reason: { ...nullableText, description: 'Why a not_startable unit could not start.' },
+      state: {
+        ...text,
+        enum: ['planned', 'running', 'recorded', 'not_startable', 'indeterminate'],
+      },
+      reason: {
+        ...nullableText,
+        description:
+          'Why a not_startable unit could not start, or why an indeterminate one has no result.',
+      },
       testType: { ...text, enum: ['ui', 'api', 'mobile'] },
       testId: { type: ['integer', 'null'] },
       occurrence: { type: 'integer', minimum: 0, description: 'Which occurrence of the test.' },
@@ -237,7 +244,7 @@ export const managementSchemas = {
   UnitAttempt: object(
     {
       attempt: integer,
-      state: { ...text, enum: ['running', 'finished'] },
+      state: { ...text, enum: ['running', 'finished', 'abandoned'] },
       status: nullableText,
       failureReason: nullableText,
       startedAt: date,

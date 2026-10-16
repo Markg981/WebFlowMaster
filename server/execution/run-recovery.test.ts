@@ -2,7 +2,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
-import { testPlanExecutions, testPlans, users } from '@shared/schema';
+import {
+  executionUnitAttempts,
+  executionUnits,
+  runWorkItems,
+  testPlanExecutions,
+  testPlans,
+  users,
+} from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
 import { recoverAbandonedRuns } from './run-recovery';
 
@@ -139,21 +146,98 @@ describe('recoverAbandonedRuns', () => {
     expect((await recoverAbandonedRuns(options)).lost).toEqual([old]);
   });
 
-  it('hands each run it ended to the retry, so a scheduled run with attempts left tries again', async () => {
-    const dead = await run({
-      status: 'running',
-      startedAt: minutesAgo(10),
-      heartbeatAt: minutesAgo(5),
+  it('does not replay a run whose worker was lost, whatever its retries, unless its plan says so', async () => {
+    const lost = { status: 'running', startedAt: minutesAgo(10), heartbeatAt: minutesAgo(5) };
+    // Retries left and a re-run-on-failure policy: neither is a decision that the tests may run twice.
+    const notAllowed = await run({
+      ...lost,
+      attempt: 1,
+      maxAttempts: 3,
+      configurationSnapshot: { rerunPolicy: 'twice' },
+    });
+    const allowed = await run({
+      ...lost,
       attempt: 1,
       maxAttempts: 2,
+      configurationSnapshot: { workerLossPolicy: 'replay' },
     });
     const retry = vi.fn(async () => null);
 
     await recoverAbandonedRuns({ ...options, retry });
 
+    expect(retry).toHaveBeenCalledTimes(1);
     expect(retry).toHaveBeenCalledWith(
-      expect.objectContaining({ id: dead, status: 'error', attempt: 1, maxAttempts: 2 }),
+      expect.objectContaining({ id: allowed, status: 'error', attempt: 1, maxAttempts: 2 }),
     );
+    expect(retry).not.toHaveBeenCalledWith(expect.objectContaining({ id: notAllowed }));
+  });
+
+  it('marks what the lost run left half-done as indeterminate, not running', async () => {
+    const id = await run({
+      status: 'running',
+      startedAt: minutesAgo(10),
+      heartbeatAt: minutesAgo(5),
+    });
+    const unit = (unitId: string, state: string, position: number) => ({
+      executionId: id,
+      organizationId,
+      unitId,
+      position,
+      state,
+      coordinates: {
+        testType: 'ui',
+        testId: 1,
+        occurrence: position,
+        browser: null,
+        locale: null,
+        device: null,
+        bddRow: null,
+      },
+    });
+    await privilegedDb
+      .insert(executionUnits)
+      .values([
+        unit('u_000000000000000000000001', 'running', 0),
+        unit('u_000000000000000000000002', 'planned', 1),
+      ] as any);
+    await privilegedDb.insert(executionUnitAttempts).values({
+      executionId: id,
+      organizationId,
+      unitId: 'u_000000000000000000000001',
+      attempt: 1,
+    } as any);
+    await privilegedDb.insert(runWorkItems).values({
+      executionId: id,
+      organizationId,
+      key: '0-0',
+      position: 0,
+      unit: { units: [], captured: {} },
+      state: 'claimed',
+      claimedBy: 'gone',
+      epoch: 1,
+    } as any);
+
+    await recoverAbandonedRuns(options);
+
+    const units = await privilegedDb
+      .select()
+      .from(executionUnits)
+      .where(eq(executionUnits.executionId, id));
+    expect(Object.fromEntries(units.map((u) => [u.unitId, u.state]))).toEqual({
+      u_000000000000000000000001: 'indeterminate',
+      // Never started: absent, not indeterminate.
+      u_000000000000000000000002: 'planned',
+    });
+    const [attempt] = await privilegedDb
+      .select()
+      .from(executionUnitAttempts)
+      .where(eq(executionUnitAttempts.executionId, id));
+    expect(attempt.state).toBe('abandoned');
+    const [item] = await privilegedDb
+      .select()
+      .from(runWorkItems)
+      .where(eq(runWorkItems.executionId, id));
+    expect(item.state).toBe('indeterminate');
   });
 
   it('ends each run once, however many servers sweep at the same moment', async () => {

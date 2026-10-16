@@ -29,7 +29,14 @@ import { emit, report, type PlanRun } from './context';
 import { referencedId, type FrozenTests, type MobileEntry, type Quarantined } from './definitions';
 import type { RunInputs, RunVariables } from './inputs';
 import type { RunUnit } from './lanes';
-import { buildReportEntry, saveReportEntry, type UnitOutcome } from './report-entry';
+import {
+  buildReportEntry,
+  saveReportEntry,
+  type AdmissionOptions,
+  type DecidingAttempt,
+  type UnitOutcome,
+} from './report-entry';
+import type { UnitFence } from './fence';
 import { beginAttempt, finishAttempt, type AttemptRecord } from '../execution-units';
 import { evidenceKey, type AttemptEvidenceRecord } from '@shared/execution-identity';
 import type { RunSettings } from './settings';
@@ -43,6 +50,17 @@ export interface UnitScope {
   tests: FrozenTests;
   quarantined: Quarantined;
   agentHttp: AgentHttp | null;
+  /**
+   * Who may write this unit's attempts and result (server/execution/plan-run/fence.ts): the run's
+   * own fence, or in a shared run the claim on the work item. Absent only in tests of a phase.
+   */
+  fence?: UnitFence;
+}
+
+/** The stop of a unit: the run's, and in a shared run its claim's, whichever comes first. */
+export function unitSignal(scope: UnitScope): AbortSignal {
+  const claim = scope.fence?.signal;
+  return claim ? AbortSignal.any([scope.run.watch.signal, claim]) : scope.run.watch.signal;
 }
 
 /** Runs one unit and records its result. `sink` collects its entry of the legacy results list. */
@@ -51,8 +69,11 @@ export async function runUnit(
   unit: RunUnit,
   captured: Record<string, string>,
   sink: IndividualTestRunResult[],
+  { onAdmitted }: Pick<AdmissionOptions, 'onAdmitted'> = {},
 ): Promise<void> {
   const { run, tests } = scope;
+  // A claim already lost: nothing more of this item is this worker's to start.
+  if (scope.fence?.signal?.aborted) throw scope.fence.signal.reason;
   const { browserChoice, locale, link, mobileTarget } = unit;
   const mobileBase =
     link.testType === 'mobile' && link.mobileTestId
@@ -102,27 +123,47 @@ export async function runUnit(
     inQuarantine,
     startedAt,
     lastAttempt: null,
+    deciding: null,
   };
-  const outcome = await outcomeOf(context, { haltedBy, datasetError, definition, mobile });
+  let admitted = false;
+  try {
+    const outcome = await outcomeOf(context, { haltedBy, datasetError, definition, mobile });
+    if (scope.fence?.signal?.aborted) throw scope.fence.signal.reason;
+    await saveReportEntry(
+      run.logger,
+      scope.inputs.snapshot,
+      buildReportEntry({
+        organizationId: scope.inputs.organizationId,
+        executionId: run.executionId,
+        unit,
+        testName,
+        definition,
+        mobile,
+        versions: tests.versions,
+        inQuarantine,
+        outcome,
+        attempt: context.lastAttempt,
+        startedAt,
+        completedAt: Date.now(),
+      }),
+      { fence: scope.fence, deciding: context.deciding, onAdmitted },
+    );
+    admitted = true;
+  } finally {
+    // A unit that ended without its result still closes its last try, as history and never as
+    // the unit's verdict — when the fence still lets this worker write at all.
+    if (!admitted) await closeDeciding(context).catch(() => undefined);
+  }
+}
 
-  await saveReportEntry(
-    run.logger,
-    scope.inputs.snapshot,
-    buildReportEntry({
-      organizationId: scope.inputs.organizationId,
-      executionId: run.executionId,
-      unit,
-      testName,
-      definition,
-      mobile,
-      versions: tests.versions,
-      inQuarantine,
-      outcome,
-      attempt: context.lastAttempt,
-      startedAt,
-      completedAt: Date.now(),
-    }),
-  );
+/** Closes the attempt held open for the result, on its own: when another try follows, or none is recorded. */
+async function closeDeciding(context: UnitContext): Promise<void> {
+  const deciding = context.deciding;
+  if (!deciding) return;
+  context.deciding = null;
+  await finishAttempt(deciding.ref, deciding.status, deciding.record, {
+    fence: context.scope.fence,
+  });
 }
 
 interface UnitContext {
@@ -136,6 +177,8 @@ interface UnitContext {
   startedAt: number;
   /** The last attempt assigned to this unit, once one has been. */
   lastAttempt: number | null;
+  /** The last try, ended but not closed: closed with the result, or when another try begins. */
+  deciding: DecidingAttempt | null;
 }
 
 /**
@@ -144,8 +187,12 @@ interface UnitContext {
  * (`results/<plan>/<run>/units/<unit>/attempt_<n>`), which no other try, browser, language or row
  * writes into. `conclude` publishes what the try left there and says how it ended; the attempt is
  * closed with that record before the next try starts, so a re-run never costs the first failure
- * its evidence. A unit with no id (a work item from a worker that predates the manifest) is tried
- * as it always was, with no directory of its own.
+ * its evidence. The last try is closed in the transaction that admits the unit's result
+ * (saveReportEntry), so the evidence a report links to is that of an admitted attempt: files a
+ * refused or expired owner put in storage stay there unreferenced, never confirmed evidence —
+ * moving them to storage is not part of the database's transaction. A unit with no id (a work
+ * item from a worker that predates the manifest) is tried as it always was, with no directory of
+ * its own.
  */
 async function attempt<T>(
   context: UnitContext,
@@ -154,8 +201,9 @@ async function attempt<T>(
 ): Promise<T> {
   const { unitId } = context.unit;
   if (!unitId) return once(undefined);
-  const { run } = context.scope;
-  const ref = await beginAttempt({ executionId: run.executionId, unitId });
+  const { run, fence } = context.scope;
+  await closeDeciding(context);
+  const ref = await beginAttempt({ executionId: run.executionId, unitId }, fence);
   context.lastAttempt = ref.attempt;
   const evidenceDir = path.join('.', evidenceKey(run.planId, { ...ref, datasetRow: null }));
   let status = 'error';
@@ -165,7 +213,7 @@ async function attempt<T>(
     ({ status, record } = await conclude(result, evidenceDir));
     return result;
   } finally {
-    await finishAttempt(ref, status, record);
+    context.deciding = { ref, status, record };
   }
 }
 
@@ -333,7 +381,8 @@ async function runMobile(
   while (
     outcome.status !== 'passed' &&
     attempts <= settings.policies.testReruns &&
-    !run.watch.stopReason
+    !run.watch.stopReason &&
+    !scope.fence?.signal?.aborted
   ) {
     attempts += 1;
     emit(run, {
@@ -450,7 +499,7 @@ async function runDefinition(
         evidence: settings.evidence,
         runtime: policies.step,
         onPreconditionFailure: policies.onPreconditionFailure,
-        signal: run.watch.signal,
+        signal: unitSignal(scope),
         http: agentHttp?.fetch,
         evidenceDir,
         dependencies:
@@ -468,8 +517,9 @@ async function runDefinition(
   while (
     (result.status === 'failed' || result.status === 'error') &&
     attempts <= policies.testReruns &&
-    // A test cut short because the run is stopping is not a failure to try again.
-    !run.watch.stopReason
+    // A test cut short because the run is stopping, or its claim was lost, is not a failure to try again.
+    !run.watch.stopReason &&
+    !scope.fence?.signal?.aborted
   ) {
     attempts += 1;
     emit(run, {

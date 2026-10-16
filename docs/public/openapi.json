@@ -490,6 +490,11 @@
           },
           "maxParallelTests": { "type": "integer", "minimum": 1, "maximum": 16 },
           "shards": { "type": "integer", "minimum": 1, "maximum": 8 },
+          "workerLossPolicy": {
+            "type": "string",
+            "enum": ["indeterminate", "replay"],
+            "description": "What a work item whose worker was lost becomes: indeterminate (default), or replayed on another worker — a single unit only, and only when its test may run twice against the application."
+          },
           "pageLoadTimeout": { "type": "integer", "minimum": 1000, "maximum": 600000 },
           "elementTimeout": { "type": "integer", "minimum": 1000, "maximum": 600000 },
           "captureScreenshots": {
@@ -531,6 +536,11 @@
           },
           "maxParallelTests": { "type": "integer", "minimum": 1, "maximum": 16 },
           "shards": { "type": "integer", "minimum": 1, "maximum": 8 },
+          "workerLossPolicy": {
+            "type": "string",
+            "enum": ["indeterminate", "replay"],
+            "description": "What a work item whose worker was lost becomes: indeterminate (default), or replayed on another worker — a single unit only, and only when its test may run twice against the application."
+          },
           "pageLoadTimeout": { "type": "integer", "minimum": 1000, "maximum": 600000 },
           "elementTimeout": { "type": "integer", "minimum": 1000, "maximum": 600000 },
           "captureScreenshots": {
@@ -573,6 +583,11 @@
           },
           "maxParallelTests": { "type": "integer", "minimum": 1, "maximum": 16 },
           "shards": { "type": "integer", "minimum": 1, "maximum": 8 },
+          "workerLossPolicy": {
+            "type": "string",
+            "enum": ["indeterminate", "replay"],
+            "description": "What a work item whose worker was lost becomes: indeterminate (default), or replayed on another worker — a single unit only, and only when its test may run twice against the application."
+          },
           "pageLoadTimeout": { "type": "integer", "minimum": 1000, "maximum": 600000 },
           "elementTimeout": { "type": "integer", "minimum": 1000, "maximum": 600000 },
           "captureScreenshots": {
@@ -947,11 +962,11 @@
           "position": { "type": "integer", "minimum": 0, "description": "Plan order." },
           "state": {
             "type": "string",
-            "enum": ["planned", "running", "recorded", "not_startable"]
+            "enum": ["planned", "running", "recorded", "not_startable", "indeterminate"]
           },
           "reason": {
             "type": ["string", "null"],
-            "description": "Why a not_startable unit could not start."
+            "description": "Why a not_startable unit could not start, or why an indeterminate one has no result."
           },
           "testType": { "type": "string", "enum": ["ui", "api", "mobile"] },
           "testId": { "type": ["integer", "null"] },
@@ -1008,7 +1023,7 @@
         "additionalProperties": false,
         "properties": {
           "attempt": { "type": "integer", "minimum": 1 },
-          "state": { "type": "string", "enum": ["running", "finished"] },
+          "state": { "type": "string", "enum": ["running", "finished", "abandoned"] },
           "status": { "type": ["string", "null"] },
           "failureReason": { "type": ["string", "null"] },
           "startedAt": { "type": "string", "format": "date-time" },

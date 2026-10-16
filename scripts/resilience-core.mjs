@@ -68,6 +68,36 @@ export function retainedArtifactBreaches(runId, links, retainedLinks, report) {
   return found;
 }
 
+/**
+ * What a run's units say against its status (lot P11): a completed run has a result for every
+ * expected unit — never green with one missing; a lost run leaves no unit `running` for ever, so
+ * what it lost is explicit (indeterminate, or never started); and no run is a replay of a lost one
+ * when the fixture plan's worker-loss policy is the default, which never replays.
+ */
+export function unitBreaches(run, units, observed = [], expectedWorkerLostIds = []) {
+  const breaches = [];
+  const lost = new Set(expectedWorkerLostIds);
+  if (run.status === 'completed') {
+    const missing = units.filter((unit) => !unit.result);
+    if (missing.length)
+      breaches.push(
+        `run ${run.id} completed with ${missing.length} unit(s) without a result: ${missing.map((u) => u.state).join(', ')}`,
+      );
+  }
+  if (lost.has(run.id)) {
+    const running = units.filter((unit) => unit.state === 'running');
+    if (running.length)
+      breaches.push(`run ${run.id} was lost but still shows ${running.length} unit(s) running`);
+    if (!run.failureMessage) breaches.push(`run ${run.id} was lost without saying what was lost`);
+  }
+  for (const other of observed)
+    if (other.retryOfExecutionId && lost.has(other.retryOfExecutionId))
+      breaches.push(
+        `run ${other.id} replays lost run ${other.retryOfExecutionId} without a policy allowing it`,
+      );
+  return breaches;
+}
+
 /** Attribute new failures to this scenario; the final inventory still checks the whole history. */
 export function reconcileScenario(previousIds, expectedIds, observed, expectedWorkerLostIds = []) {
   const previous = new Set(previousIds);

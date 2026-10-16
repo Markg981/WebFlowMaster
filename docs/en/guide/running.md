@@ -59,6 +59,7 @@ relying on this behavior during a rolling deployment.
 | **Languages**                                  | Language codes such as `it-IT, en-US` (at most 10). Every test runs once per language on each browser; see [Testing in several languages](#languages). Empty: the browser's own language.                                                                                                                                                                                                                      |
 | **Run at most (tests at once)**                | 1 to 16 browser sessions at the same time. 1 runs the plan one test at a time, browser by browser.                                                                                                                                                                                                                                                                                                             |
 | **Workers sharing a run**                      | 1 to 8 runners for one run, each running the number above at once; see [One run on several runners](#shards). 1 keeps the run on one runner.                                                                                                                                                                                                                                                                   |
+| **When a runner is lost mid-test**             | **Mark its result as unknown** (default): the test ends _indeterminate_ and the run _incomplete_. **Run the test again on another runner**: only if every test of the plan can safely run twice against the application; see [A runner that stops answering](#lost-runner).                                                                                                                                    |
 | **Keep a recording of the run**                | A **video** and a Playwright **trace** of each test — never, when the test fails, or always — and the **network** traffic as a HAR file. They answer what a screenshot cannot, and use disk on every run.                                                                                                                                                                                                      |
 | **Visual testing**                             | Compares each step's screenshot with its baseline; see [Visual testing](./results#visual-testing).                                                                                                                                                                                                                                                                                                             |
 | **Run on**                                     | This server's runners, a pool of [local agents](../integrations/local-agents) inside your own network, or a [browser grid](#browser-grids).                                                                                                                                                                                                                                                                    |
@@ -79,12 +80,38 @@ nobody holds, runs it, and takes another, so a slow test never holds up a fixed 
 - The report is one run, as always: one set of results, one verdict, one notification.
 - A plan whose API tests capture values for later requests keeps them together: each browser and
   language is one piece, run in order on one runner.
-- A runner that stops while it holds a piece (a crash, a lost machine) stops answering; after two
-  minutes another runner takes that piece back and runs it.
+- A runner that stops while it holds a piece (a crash, a lost machine) stops answering; see
+  [A runner that stops answering](#lost-runner).
 - A stop policy (for example _stop the run_ on a failure) stops every runner: tests not started yet
   are recorded as skipped, with the reason.
 - Helpers are ordinary jobs on the queue: they take free runners, and only help if there are any.
   With no free runner the first one runs every test itself, and the log says so.
+
+### A runner that stops answering {#lost-runner}
+
+A runner holds each piece of work under a lease it renews while the test runs. When it stops
+renewing — a crash, a lost machine, a network cut — the lease runs out (two minutes by default), and
+from then on nothing that runner writes is accepted: not a result, not a screenshot, not a "passed"
+that arrives late. What happens to the piece depends on how far it got:
+
+- **Nothing had started** (the runner died before opening the test): another runner takes it, as if
+  nothing happened.
+- **The test had started**: it may already have clicked, created records or sent requests, so its
+  result is not known. By default the test ends **indeterminate**, the run ends with an error
+  saying how many results were lost, and nothing is run twice. With **Run the test again on another
+  runner**, another runner runs it again as a new attempt; choose it only for plans whose tests are
+  safe to repeat.
+- **API tests that pass values to later ones** are never resumed half-way, whatever the setting: the
+  values they captured were lost with the runner. Results already recorded for the earlier tests of
+  the sequence stay in the report.
+
+A runner that cannot confirm its lease in time stops its test on its own, before the lease can run
+out under it, and the run's console says so. A run on one runner that loses its runner ends with
+`worker_lost`; it is run again only with the same setting.
+
+A run is **completed** only when every expected test has its one result. The report tells apart
+tests that were lost (indeterminate), never ran, or could not start, from tests skipped on purpose
+and manual tests waiting for a person.
 
 ### Browser grids {#browser-grids}
 

@@ -14,8 +14,11 @@ import {
 import { passLabel } from '@shared/locales';
 import type { NetworkSummary } from '@shared/network';
 import type { ExecutionSnapshot } from '../execution-snapshot';
-import { withTenantTransaction } from '../../platform/middleware/tenancy';
+import type { ExecutionAttemptRef } from '@shared/execution-identity';
+import { withTenantTransaction, type TenantTx } from '../../platform/middleware/tenancy';
 import { mobileDeviceLabel } from '../../mobile/mobile-runner';
+import { finishAttempt, type AttemptRecord } from '../execution-units';
+import { OwnershipLostError, type UnitFence } from './fence';
 import type { Logger } from './context';
 import { referencedId, type FrozenTests, type MobileEntry } from './definitions';
 import type { RunUnit } from './lanes';
@@ -112,18 +115,42 @@ export class ReportEntryNotSavedError extends Error {
   }
 }
 
+/** The attempt whose outcome decides the unit, not yet closed: it is closed with the result. */
+export interface DecidingAttempt {
+  ref: ExecutionAttemptRef;
+  status: string;
+  record: AttemptRecord;
+}
+
+export interface AdmissionOptions {
+  /** Who may write (server/execution/plan-run/fence.ts); checked first, in the same transaction. */
+  fence?: UnitFence;
+  deciding?: DecidingAttempt | null;
+  /** Also in the same transaction, last: the work item's completion when this is its last unit. */
+  onAdmitted?: (tx: TenantTx) => Promise<void>;
+}
+
 /**
  * Saves a report row. A row that cannot be saved is logged — who it was and why, never its steps
  * or evidence — and the save throws `ReportEntryNotSavedError`: a run missing a result is not
  * the same run with one test fewer.
+ *
+ * This is the point a result is admitted at, all in one transaction: the fence (the run is live;
+ * in a shared run, the claim is the writer's with its lease left, its row locked so a reclaim or a
+ * finish waits), then the deciding attempt closed with the stored paths of its evidence, the row,
+ * the unit marked recorded and, for an item's last unit, the item completed. A writer the fence
+ * refuses gets `OwnershipLostError`, as it is: nothing of what it brought is written.
  */
 export async function saveReportEntry(
   logger: Logger,
   snapshot: ExecutionSnapshot,
   entry: InsertReportTestCaseResult,
+  { fence, deciding, onAdmitted }: AdmissionOptions = {},
 ): Promise<void> {
   try {
     await withTenantTransaction(async (tx) => {
+      if (fence) await fence.admit(tx);
+      if (deciding) await finishAttempt(deciding.ref, deciding.status, deciding.record, { tx });
       // A frozen test remains executable after deletion. Keep its identity in provenance,
       // but only link the result to a live row. Locks protect this check from concurrent deletes.
       if (snapshot.definitions && entry.uiTestId) {
@@ -163,8 +190,11 @@ export async function saveReportEntry(
               eq(executionUnitsTable.unitId, entry.executionUnitId),
             ),
           );
+      await onAdmitted?.(tx);
     });
   } catch (dbInsertError: unknown) {
+    // Not a result the database could not take: one this worker is no longer entitled to write.
+    if (dbInsertError instanceof OwnershipLostError) throw dbInsertError;
     const cause = ((dbInsertError as Error)?.message ?? String(dbInsertError)).slice(0, 500);
     logger.error({
       message: 'Failed to insert into reportTestCaseResultsTable',

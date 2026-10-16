@@ -40,6 +40,7 @@ const plan: TestPlan = {
   reRunOnFailure: 'once',
   maxParallelTests: 4,
   shards: 2,
+  workerLossPolicy: 'replay',
   locales: ['it-IT', 'en-US'],
   issueTrackerId: 'tracker-9',
   createIssuesOnFailure: true,
@@ -76,6 +77,7 @@ describe('buildExecutionSnapshot', () => {
       evidence: { video: 'on_failure', trace: 'always', network: 'on_failure' },
       maxParallelTests: 4,
       shards: 2,
+      workerLossPolicy: 'replay',
       captureScreenshots: 'always',
       timeouts: { pageLoadMs: 45_000, elementMs: 12_000 },
       failurePolicies: {
@@ -167,6 +169,7 @@ describe('buildExecutionSnapshot', () => {
       'reRunOnFailure',
       'maxParallelTests',
       'shards',
+      'workerLossPolicy',
       'locales',
       'issueTrackerId',
       'createIssuesOnFailure',

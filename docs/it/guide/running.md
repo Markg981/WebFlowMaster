@@ -61,6 +61,7 @@ su questo comportamento durante un rilascio graduale.
 | **Lingue**                                        | Codici di lingua come `it-IT, en-US` (al massimo 10). Ogni test gira una volta per lingua su ogni browser; vedi [Testare in più lingue](#lingue). Vuoto: la lingua predefinita del browser.                                                                                                                                                                                                                                                            |
 | **Esegui al massimo (test contemporanei)**        | Da 1 a 16 sessioni di browser contemporanee. Con 1 il piano esegue un test alla volta, browser per browser.                                                                                                                                                                                                                                                                                                                                            |
 | **Worker che si dividono un'esecuzione**          | Da 1 a 8 runner per un'esecuzione, ciascuno con il numero indicato sopra di test contemporanei; vedi [Un'esecuzione su più runner](#shard). Con 1 l'esecuzione resta su un solo runner.                                                                                                                                                                                                                                                                |
+| **Se un runner si perde durante un test**         | **Segna il risultato come sconosciuto** (default): il test termina _indeterminato_ e l'esecuzione _incompleta_. **Riesegui il test su un altro runner**: solo se ogni test del piano può essere eseguito due volte sull'applicazione senza danni; vedi [Un runner che smette di rispondere](#runner-perso).                                                                                                                                            |
 | **Conserva una registrazione del run**            | Un **video** e una **trace** di Playwright di ogni test — mai, quando il test fallisce o sempre — e il traffico di **rete** come file HAR. Rispondono a ciò che uno screenshot non dice, e occupano disco a ogni run.                                                                                                                                                                                                                                  |
 | **Test visivi**                                   | Confronta lo screenshot di ogni step con la sua baseline; vedi [Test visivi](./results#test-visivi).                                                                                                                                                                                                                                                                                                                                                   |
 | **Esegui su**                                     | I runner di questo server, un pool di [agenti locali](../integrations/local-agents) dentro la vostra rete, o una [griglia di browser](#griglie-di-browser).                                                                                                                                                                                                                                                                                            |
@@ -82,12 +83,39 @@ gruppo fisso.
 - Il report resta un'unica esecuzione: un insieme di risultati, un esito, una notifica.
 - Un piano i cui test API catturano valori per le richieste successive li tiene insieme: ogni browser
   e lingua è un unico pezzo, eseguito in ordine su un solo runner.
-- Un runner che si ferma mentre ha un pezzo (un crash, una macchina persa) smette di rispondere; dopo
-  due minuti un altro runner riprende quel pezzo e lo esegue.
+- Un runner che si ferma mentre ha un pezzo (un crash, una macchina persa) smette di rispondere; vedi
+  [Un runner che smette di rispondere](#runner-perso).
 - Una regola di arresto (per esempio _ferma l'esecuzione_ a un fallimento) ferma tutti i runner: i test
   non ancora iniziati vengono registrati come saltati, con il motivo.
 - Gli aiutanti sono normali job in coda: usano i runner liberi, e aiutano solo se ce ne sono. Senza
   runner liberi il primo esegue tutti i test da solo, e il log lo dice.
+
+### Un runner che smette di rispondere {#runner-perso}
+
+Un runner tiene ogni pezzo di lavoro sotto una lease che rinnova mentre il test gira. Quando smette di
+rinnovarla — un crash, una macchina persa, una rete interrotta — la lease scade (due minuti di
+default), e da quel momento nulla di ciò che quel runner scrive viene accettato: né un risultato, né
+uno screenshot, né un "passato" che arriva in ritardo. Che cosa succede al pezzo dipende da quanto
+era avanzato:
+
+- **Non era iniziato nulla** (il runner è morto prima di aprire il test): un altro runner lo prende,
+  come se nulla fosse.
+- **Il test era iniziato**: può aver già fatto clic, creato record o inviato richieste, quindi il suo
+  risultato non è noto. Di default il test termina **indeterminato**, l'esecuzione termina con un
+  errore che dice quanti risultati sono andati persi, e nulla viene eseguito due volte. Con
+  **Riesegui il test su un altro runner**, un altro runner lo riesegue come nuovo tentativo;
+  sceglietelo solo per piani i cui test si possono ripetere senza danni.
+- **I test API che passano valori ai successivi** non vengono mai ripresi a metà, qualunque sia
+  l'impostazione: i valori catturati sono andati persi con il runner. I risultati già registrati per i
+  test precedenti della sequenza restano nel report.
+
+Un runner che non riesce a confermare in tempo la sua lease ferma da solo il test, prima che la lease
+possa scadere sotto di lui, e la console dell'esecuzione lo dice. Un'esecuzione su un solo runner che
+perde il suo runner termina con `worker_lost`; viene rieseguita solo con la stessa impostazione.
+
+Un'esecuzione è **completata** solo quando ogni test atteso ha il suo unico risultato. Il report
+distingue i test persi (indeterminati), mai eseguiti o non avviabili dai test saltati di proposito e
+dai test manuali in attesa di una persona.
 
 ### Griglie di browser {#griglie-di-browser}
 

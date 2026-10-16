@@ -5,8 +5,9 @@
 import { effectiveConcurrency, runWithConcurrency } from '../../platform/concurrency';
 import {
   claimWorkItem,
+  completeWorkItem,
   finishWorkItem,
-  heartbeatWorkItems,
+  keepClaim,
   openWorkItems,
   shardCount,
   shardDispatcher,
@@ -14,10 +15,10 @@ import {
   workItemResults,
   workerName,
   writeWorkItems,
-  WORK_ITEM_HEARTBEAT_MS,
   WORK_POLL_MS,
   type WorkUnit,
 } from '../../runtime/run-shards';
+import { claimFence, OwnershipLostError, runFence } from './fence';
 import type { IndividualTestRunResult } from '../run-test';
 import { emit, report, type PlanRun } from './context';
 import { lanesAreChained, type Lane, type RunUnit } from './lanes';
@@ -57,7 +58,8 @@ export async function executeLanes(scope: UnitScope, lanes: Lane[]): Promise<Lan
     for (const outcome of settled) {
       if (outcome.status !== 'rejected') continue;
       const message =
-        outcome.reason instanceof ReportEntryNotSavedError
+        outcome.reason instanceof ReportEntryNotSavedError ||
+        outcome.reason instanceof OwnershipLostError
           ? outcome.reason.message
           : `A test in this run could not be executed: ${
               (outcome.reason as Error)?.message ?? String(outcome.reason)
@@ -76,6 +78,9 @@ export async function executeLanes(scope: UnitScope, lanes: Lane[]): Promise<Lan
   const shards = shardCount(scope.inputs.snapshot.shards);
   run.stop.shared = !!run.helper || shards > 1;
   run.quiet = false;
+  // One worker's run: its writes are admitted while the run is live. A shared run's units each
+  // take the fence of the claim they run under instead.
+  if (!run.stop.shared) scope = { ...scope, fence: scope.fence ?? runFence(run.executionId) };
 
   try {
     if (run.stop.shared) {
@@ -198,32 +203,44 @@ async function runShared(
       metadata: { shards, helpers: asked, items: items.length },
     });
   }
-  const beat = setInterval(
-    () => heartbeatWorkItems(run.executionId, worker).catch(() => undefined),
-    WORK_ITEM_HEARTBEAT_MS,
-  );
-  try {
-    const takeItems = async () => {
-      for (;;) {
-        if (run.watch.cause === 'lost') return;
-        const item = await claimWorkItem(run.executionId, worker);
-        if (!item) {
-          // A helper is done when nothing is left to take; the coordinator, when nothing is left at all.
-          if (run.helper || (await openWorkItems(run.executionId)) === 0) return;
-          await new Promise((resolve) => setTimeout(resolve, WORK_POLL_MS));
-          continue;
-        }
-        if (!run.stop.reason) run.stop.reason = await sharedStopReason(run.executionId);
-        // Where its entry of the legacy results list goes: a shared run keeps them with each work item.
-        const legacy: IndividualTestRunResult[] = [];
-        const failures: string[] = [];
-        const captured = { ...item.unit.captured };
-        for (const spec of item.unit.units) {
+  const policy = scope.inputs.snapshot.workerLossPolicy ?? 'indeterminate';
+  const takeItems = async () => {
+    for (;;) {
+      if (run.watch.cause === 'lost') return;
+      const claim = await claimWorkItem(run.executionId, worker, { policy });
+      if (!claim) {
+        // A helper is done when nothing is left to take; the coordinator, when nothing is left at all.
+        if (run.helper || (await openWorkItems(run.executionId)) === 0) return;
+        await new Promise((resolve) => setTimeout(resolve, WORK_POLL_MS));
+        continue;
+      }
+      if (!run.stop.reason) run.stop.reason = await sharedStopReason(run.executionId);
+      // The lease is kept while the item runs; once it cannot be, the item's work stops.
+      const keeper = keepClaim(claim);
+      const itemScope: UnitScope = { ...scope, fence: claimFence(claim, keeper.signal) };
+      // Where its entry of the legacy results list goes: a shared run keeps them with each work item.
+      const legacy: IndividualTestRunResult[] = [];
+      const failures: string[] = [];
+      const captured = { ...claim.unit.captured };
+      const specs = claim.unit.units;
+      let completed = false;
+      let lost: OwnershipLostError | null = null;
+      try {
+        for (const [index, spec] of specs.entries()) {
           const link = links[spec.link];
           if (!link) continue;
+          // The item's last unit completes the claim in the transaction that admits its result.
+          // An earlier unit of a chained lane keeps its admitted result, and the item stays open.
+          let completing = false;
+          const onAdmitted =
+            index === specs.length - 1
+              ? async (tx: Parameters<typeof completeWorkItem>[0]) => {
+                  completing = await completeWorkItem(tx, claim, { legacy, failures });
+                }
+              : undefined;
           try {
             await runUnit(
-              scope,
+              itemScope,
               {
                 browserChoice: spec.browserChoice,
                 locale: spec.locale,
@@ -234,21 +251,42 @@ async function runShared(
               },
               captured,
               legacy,
+              { onAdmitted },
             );
+            completed = completing;
           } catch (error: unknown) {
+            if (error instanceof OwnershipLostError || keeper.signal.aborted) {
+              lost =
+                error instanceof OwnershipLostError
+                  ? error
+                  : (keeper.signal.reason as OwnershipLostError);
+              break;
+            }
             recordSettled([{ status: 'rejected', reason: error }], failures);
           }
         }
-        await finishWorkItem(run.executionId, item.key, worker, { legacy, failures });
+        if (!lost && !completed && !(await finishWorkItem(claim, { legacy, failures })))
+          lost = new OwnershipLostError(
+            `The claim on "${claim.workItemKey}" ended before its results could be recorded.`,
+          );
+      } finally {
+        keeper.stop();
       }
-    };
-    recordSettled(
-      await runWithConcurrency(
-        parallelism,
-        Array.from({ length: parallelism }, () => takeItems),
-      ),
-    );
-  } finally {
-    clearInterval(beat);
-  }
+      if (lost)
+        // Nothing more of it is this worker's to write. What its units did to the application
+        // may have happened; the item ends indeterminate when its lease runs out, unless the
+        // plan's worker-loss policy lets another worker run it again.
+        report(run, {
+          level: 'warn',
+          message: `${lost.message} Its result is indeterminate.`,
+          metadata: { workItem: claim.workItemKey, epoch: claim.epoch },
+        });
+    }
+  };
+  recordSettled(
+    await runWithConcurrency(
+      parallelism,
+      Array.from({ length: parallelism }, () => takeItems),
+    ),
+  );
 }

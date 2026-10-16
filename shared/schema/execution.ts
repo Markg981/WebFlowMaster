@@ -21,10 +21,14 @@ import type { NetworkSummary } from '../network';
 import type { FailureAnalysis } from '../failure-analysis';
 import type { CiContext } from '../ci';
 import type { LoadRunStatus, LoadSummary } from '../load-test';
-import type {
-  AttemptEvidenceRecord,
-  ExecutionUnitState,
-  UnitCoordinates,
+import {
+  WORKER_LOSS_POLICIES,
+  type AttemptEvidenceRecord,
+  type AttemptState,
+  type ExecutionUnitState,
+  type UnitCoordinates,
+  type WorkItemState,
+  type WorkerLossPolicy,
 } from '../execution-identity';
 import { apiTests } from './api-testing';
 import { loadTests, mobileTests, tags, tests } from './authoring';
@@ -95,6 +99,15 @@ export const testPlans = pgTable(
      * `maxParallelTests` at a time. 1 is one worker, as before this existed (migration 0067).
      */
     shards: integer('shards').default(1).notNull(),
+    /**
+     * What a work item whose worker was lost becomes (server/runtime/run-shards.ts, migration 0093):
+     * 'indeterminate', the default, ends it without a result; 'replay' runs a single unit again on
+     * another worker. Never inferred from reRunOnFailure: a lost worker is not a failed test.
+     */
+    workerLossPolicy: text('worker_loss_policy')
+      .$type<WorkerLossPolicy>()
+      .default('indeterminate')
+      .notNull(),
     /** Languages every test runs in, one pass each; empty for the browser's default (migration 0047). */
     locales: jsonb('locales').$type<string[]>().notNull().default([]),
     /**
@@ -463,8 +476,12 @@ export const runWorkItems = pgTable(
     key: text('key').notNull(),
     position: integer('position').notNull(),
     unit: jsonb('unit').notNull(),
-    state: text('state').$type<'pending' | 'claimed' | 'done'>().notNull().default('pending'),
+    state: text('state').$type<WorkItemState>().notNull().default('pending'),
     claimedBy: text('claimed_by'),
+    /** Raised by every claim: a write is admitted only under the current one (migration 0093). */
+    epoch: integer('epoch').notNull().default(0),
+    /** When the current claim ends, by the database's clock; renewed only while it has not. */
+    leaseExpiresAt: timestamp('lease_expires_at'),
     heartbeatAt: timestamp('heartbeat_at'),
     finishedAt: timestamp('finished_at'),
     error: text('error'),
@@ -520,7 +537,9 @@ export const executionUnitAttempts = pgTable(
       .references(() => organizations.id),
     unitId: text('unit_id').notNull(),
     attempt: integer('attempt').notNull(),
-    state: text('state').$type<'running' | 'finished'>().notNull().default('running'),
+    state: text('state').$type<AttemptState>().notNull().default('running'),
+    /** The work item claim it was made under, in a shared run; null otherwise (migration 0093). */
+    claimEpoch: integer('claim_epoch'),
     /** The try's own outcome, in the report's terms; the unit's verdict is the last one's. */
     status: text('status'),
     /** Why this try did not pass, and what it left behind, recorded when it ended (migration 0092). */
@@ -814,6 +833,8 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   maxParallelTests: z.number().int().min(1).max(16).default(1),
   // Workers sharing one run; each is a runner process, so the cap is small (migration 0067).
   shards: z.number().int().min(1).max(8).default(1),
+  // A lost worker's item: ended without a result unless the plan says it may run again (migration 0093).
+  workerLossPolicy: z.enum(WORKER_LOSS_POLICIES).default('indeterminate'),
   // The languages each test runs in (shared/locales.ts). Refused by name rather than dropped:
   // "english" silently becoming no language at all would be a run in the browser's default.
   locales: z

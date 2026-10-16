@@ -1,8 +1,10 @@
 import { and, inArray, lt, or, sql } from 'drizzle-orm';
 import { testPlanExecutions, type TestPlanExecution } from '@shared/schema';
 import { privilegedDb } from '../platform/db';
-import { runWithTenant } from '../platform/middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { LIVE_EXECUTION_STATUSES, transitionExecution } from './execution-state';
+import { markRunIndeterminate } from './execution-units';
+import type { ExecutionSnapshot } from './execution-snapshot';
 import { RUN_HEARTBEAT_INTERVAL_MS, RUN_MAX_DURATION_MS } from './run-watch';
 import logger from '../platform/logger';
 
@@ -18,7 +20,11 @@ import logger from '../platform/logger';
  * live runs whose heartbeat has gone quiet for RUN_STALE_AFTER_MS and ends them:
  * - running → error, `worker_lost`. Not requeued as it stands: tests may already have created
  *   records in the application under test, and a second run on top of half a first is not the
- *   same run. A scheduled run with retries left gets its next attempt, as any failed attempt does.
+ *   same run. What it left half-done is marked so (markRunIndeterminate): its running units are
+ *   `indeterminate`, its running attempts `abandoned`, its held work items `indeterminate`. Its
+ *   next attempt is queued only when its plan's worker-loss policy says `replay` — an explicit
+ *   choice that its tests may run twice against the application; a retry count or the plan's
+ *   re-run-on-failure is not that choice (lot P11).
  * - cancelling → cancelled: somebody asked to stop it, and it has stopped.
  *
  * And, as the backstop to the worker's own limit, a run past RUN_MAX_DURATION_MS plus a grace
@@ -98,7 +104,14 @@ export async function recoverAbandonedRuns(options: RecoveryOptions = {}): Promi
         });
         if (ended) {
           report.lost.push(run.id);
-          await options.retry?.(ended);
+          await withTenantTransaction((tx) =>
+            markRunIndeterminate(
+              tx,
+              run.id,
+              'The worker running this was lost: its result is not known, and it was not run again.',
+            ),
+          );
+          if (mayReplayAfterLoss(ended)) await options.retry?.(ended);
         }
         return;
       }
@@ -110,6 +123,14 @@ export async function recoverAbandonedRuns(options: RecoveryOptions = {}): Promi
     });
   }
   return report;
+}
+
+/** Whether a run whose worker was lost may run again: only when its plan said so, at enqueue. */
+export function mayReplayAfterLoss(
+  ended: Pick<TestPlanExecution, 'configurationSnapshot'>,
+): boolean {
+  const snapshot = ended.configurationSnapshot as Partial<ExecutionSnapshot> | null;
+  return snapshot?.workerLossPolicy === 'replay';
 }
 
 /** Sweeps every intervalMs until stopped. Started by the web server, which always runs. */
