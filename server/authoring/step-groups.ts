@@ -1,6 +1,7 @@
+import { inArray } from 'drizzle-orm';
 import { STEP_GROUP_ACTION_ID } from '@shared/recording';
 import { stepGroups } from '@shared/schema';
-import { withTenantTransaction } from '../platform/middleware/tenancy';
+import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { expandCustomActionsForRun } from './custom-actions';
 
 /**
@@ -134,17 +135,32 @@ export function expandStepGroups(sequence: unknown, groups: LoadedStepGroup[]): 
   return { steps: out, errors, expanded };
 }
 
+/**
+ * These groups, read in the caller's transaction.
+ *
+ * No organization predicate: RLS supplies it, so a test that names another tenant's group finds
+ * nothing and fails as if the group had been deleted — which, for this caller, it has.
+ */
+export async function loadStepGroups(
+  tx: TenantTx,
+  ids: string[],
+): Promise<Array<LoadedStepGroup & { updatedAt: Date | null }>> {
+  if (ids.length === 0) return [];
+  const rows = await tx.select().from(stepGroups).where(inArray(stepGroups.id, ids));
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    sequence: asSteps(row.sequence),
+    updatedAt: row.updatedAt ?? null,
+  }));
+}
+
 /** Loads the groups a sequence needs, under the caller's organization. */
 export async function loadReferencedGroups(sequence: unknown): Promise<LoadedStepGroup[]> {
   const ids = referencedGroupIds(sequence);
   if (ids.length === 0) return [];
-
-  // No organization predicate: RLS supplies it, so a test that names another tenant's group
-  // finds nothing and fails as if the group had been deleted — which, for this caller, it has.
-  const rows = await withTenantTransaction((tx) => tx.select().from(stepGroups));
-  return rows
-    .filter((row) => ids.includes(row.id))
-    .map((row) => ({ id: row.id, name: row.name, sequence: asSteps(row.sequence) }));
+  const rows = await withTenantTransaction((tx) => loadStepGroups(tx, ids));
+  return rows.map(({ id, name, sequence: steps }) => ({ id, name, sequence: steps }));
 }
 
 /**

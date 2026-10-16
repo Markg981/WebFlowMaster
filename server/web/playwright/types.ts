@@ -7,6 +7,7 @@ import { type BrowserChoice } from '../../runtime/browsers';
 import { type EvidenceOptions } from '../../runtime/run-evidence';
 import { type StepRuntime } from '../../runtime/run-policies';
 import { type VisualContext, type VisualErrorCause } from '../visual-testing';
+import type { FrozenDependencies } from '../../authoring/executable-definition';
 
 // Default settings if not found or incomplete
 export const DEFAULT_HEADLESS = true;
@@ -153,6 +154,12 @@ export interface ExecuteSequenceOptions {
    * what they stored is there too. The cleanup after the test reads them (server/runtime/cleanup-runner.ts).
    */
   onVariables?: (vars: Record<string, string>) => void;
+  /**
+   * The step groups, shared elements and custom actions the test was frozen with
+   * (server/authoring/executable-definition.ts). Present: the runner reads nothing live for them.
+   * Absent: an ad-hoc run, or a run queued before R1, which reads them live.
+   */
+  dependencies?: FrozenDependencies;
 }
 
 // Interface for the ad-hoc sequence payload

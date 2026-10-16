@@ -17,6 +17,7 @@ import {
   tests as testsTable,
   users,
   executionOutbox,
+  stepGroups,
 } from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
 import { runWithTenant } from '../platform/middleware/tenancy';
@@ -59,6 +60,7 @@ vi.mock('../runtime/browsers', async (importOriginal) => {
 const { createExecutionOrchestrator, ExecutionEnqueueError, QUEUE_SUBMISSION_FAILED } =
   await import('./execution-orchestrator');
 const { processTestPlanJob } = await import('./test-execution-service');
+const { prepareSequence } = await import('../authoring/executable-definition');
 const { dispatchPendingSubmissions, OUTBOX_LEASE_MS, OUTBOX_GRACE_MS } =
   await import('./execution-outbox');
 
@@ -489,6 +491,42 @@ describe('enqueue', () => {
     ).toBe(replay.id);
     await processTestPlanJob(planId, replay.id, userId);
     expect(executeTestSequence.mock.calls[0][0].url).toBe('https://example.test/first');
+  });
+
+  it('replays the step groups frozen with the original run after the group is edited and deleted', async () => {
+    const groupId = uuidv4();
+    await privilegedDb.insert(stepGroups).values({
+      id: groupId,
+      organizationId,
+      userId,
+      name: 'Login',
+      sequence: [{ action: { id: 'click' }, targetElement: { selector: '#queued' } }],
+    });
+    await privilegedDb
+      .update(testsTable)
+      .set({ sequence: [{ action: { id: 'callGroup', name: 'Login' }, value: groupId }] })
+      .where(eq(testsTable.id, firstTestId));
+    const orchestrator = createExecutionOrchestrator(capturingQueue());
+    const first = await orchestrator.enqueue({
+      planId,
+      requestedByUserId: userId,
+      trigger: 'manual',
+    });
+    await privilegedDb
+      .update(stepGroups)
+      .set({ sequence: [{ action: { id: 'click' }, targetElement: { selector: '#edited' } }] })
+      .where(eq(stepGroups.id, groupId));
+    await processTestPlanJob(planId, first.id, userId);
+    await privilegedDb.delete(stepGroups).where(eq(stepGroups.id, groupId));
+    const replay = await runWithTenant(organizationId, () => orchestrator.replay(first.id, userId));
+    await processTestPlanJob(planId, replay.id, userId);
+
+    expect(executeTestSequence).toHaveBeenCalledTimes(2);
+    for (const [test, , , , , , options] of executeTestSequence.mock.calls) {
+      const prepared = await prepareSequence(test.sequence, options.dependencies);
+      expect(prepared.errors).toEqual([]);
+      expect((prepared.steps[0].targetElement as { selector: string }).selector).toBe('#queued');
+    }
   });
 
   it('refuses replay of legacy, tampered and foreign snapshots', async () => {

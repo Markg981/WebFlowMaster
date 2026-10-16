@@ -16,6 +16,13 @@ referenziato non è disponibile all'accodamento, lo snapshot registra un errore 
 correggere il riferimento richiede un nuovo run. Richieste con la stessa chiave di idempotenza
 e retry automatici riutilizzano lo snapshot originale. Un nuovo run acquisisce i dati correnti.
 
+Allo stesso modo si fissano i test web, con i gruppi di step, gli elementi salvati e le azioni
+personalizzate che richiamano: una versione pubblicata esegue quelli registrati al suo
+salvataggio, una copia di lavoro quelli correnti all'accodamento del run
+([Che cosa esegue una versione](./web-tests#che-cosa-esegue-una-versione)). Un run accodato la cui
+configurazione salvata è illeggibile, o scritta da un rilascio più recente in un formato che questo
+non conosce, termina in errore dicendolo; non viene mai eseguito dal piano com'è ora.
+
 I run storici senza snapshot dei dataset continuano a risolvere i dati all'avvio del worker.
 Questa funzione congela gli input dei dataset, non tutte le definizioni o i sistemi esterni:
 segreti d'ambiente, variabili catturate dalle risposte, valori generati, dispositivi e stato

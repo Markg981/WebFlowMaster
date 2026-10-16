@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -48,6 +48,8 @@ const {
   testPublications,
   tests,
   users,
+  stepGroups,
+  testVersions,
 } = await import('@shared/schema');
 const { createTestOrganization } = await import('../tests/factories');
 const { tenancyMiddleware } = await import('../platform/middleware/tenancy');
@@ -277,6 +279,38 @@ describe('under the review policy', () => {
     await as(author).post(`/api/tests/${testId}/rollback`).send({ version: 1 }).expect(200);
     const refused = await as(author).post(`/api/tests/${testId}/unpublish`).expect(409);
     expect(refused.body.code).toBe('review_required');
+  });
+
+  it('reviews and publishes the dependency bundle recorded with the version, not a later one', async () => {
+    const groupId = uuidv4();
+    await privilegedDb.insert(stepGroups).values({
+      id: groupId,
+      organizationId: org,
+      userId: author.id,
+      name: 'Login',
+      sequence: [{ action: { id: 'click' }, targetElement: { selector: '#reviewed' } }],
+    });
+    const testId = await newTest([{ id: 'c', action: { id: 'callGroup' }, value: groupId } as any]);
+    await requireReview(true);
+    const review = await as(author).post(`/api/tests/${testId}/reviews`).send({}).expect(201);
+    const recorded = async () =>
+      (
+        await privilegedDb
+          .select()
+          .from(testVersions)
+          .where(and(eq(testVersions.testId, testId), eq(testVersions.version, 1)))
+      )[0].snapshot;
+    const before = await recorded();
+
+    await privilegedDb
+      .update(stepGroups)
+      .set({ sequence: [{ action: { id: 'click' }, targetElement: { selector: '#later' } }] })
+      .where(eq(stepGroups.id, groupId));
+    await as(reviewer).post(`/api/test-reviews/${review.body.id}/approve`).send({}).expect(200);
+
+    expect(await recorded()).toEqual(before);
+    expect(JSON.stringify(before)).toContain('#reviewed');
+    expect(await state(testId)).toMatchObject({ publishedVersion: 1, latestVersion: 1 });
   });
 
   it('is changed by owners only, and recorded', async () => {

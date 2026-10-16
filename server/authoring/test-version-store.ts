@@ -8,6 +8,14 @@ import {
   type VersionedTestType,
 } from '@shared/test-versioning';
 import { targetColumn, targetValues } from './test-version-target';
+import {
+  DEPENDENCY_PROTOCOL,
+  captureDependencies,
+  dependencyFingerprint,
+  describeDependencyChange,
+  readVersionBundle,
+  versionSnapshotWith,
+} from './executable-definition';
 
 /**
  * Writing down what a test was, every time it is saved.
@@ -102,7 +110,20 @@ export async function recordTestVersion(
     .limit(1);
 
   const snapshot = snapshotOf(input.test);
-  const summary = describeChange(latest ? snapshotOf(latest) : null, snapshot);
+  // What the test calls, captured in this transaction with the version it belongs to (C04). Its
+  // fingerprint takes part in "did anything change?": a group edited since the last version is a
+  // reason for a new one when the test is saved again, and the only way a published test picks
+  // the edit up — through a new version, reviewed like any other.
+  const dependencies = await captureDependencies(tx, snapshot.sequence);
+  const previousRead = latest ? readVersionBundle(latest.snapshot) : null;
+  const previousBundle = previousRead?.kind === 'ok' ? previousRead.bundle : null;
+  const contentChange = describeChange(latest ? snapshotOf(latest) : null, snapshot);
+  // A first version says how it was created; a legacy one gains its record on the next save.
+  const dependencyChange =
+    latest && (previousBundle || dependencies.fingerprint !== emptyFingerprint())
+      ? describeDependencyChange(previousBundle, dependencies)
+      : '';
+  const summary = joinSummary(contentChange, dependencyChange);
   if (summary === '') return null;
 
   const version = (latest?.version ?? 0) + 1;
@@ -118,12 +139,33 @@ export async function recordTestVersion(
     cleanups: snapshot.cleanups ?? null,
     dataset: snapshot.dataset ?? null,
     bdd: (snapshot.bdd as import('@shared/bdd').BddTest | null) ?? null,
+    snapshot: versionSnapshotWith(dependencies),
     summary,
     restoredFromVersion: input.restoredFromVersion ?? null,
     createdBy: input.userId,
   });
 
   return { version, summary };
+}
+
+let empty: string | null = null;
+/** The fingerprint of a test that calls nothing shared. */
+function emptyFingerprint(): string {
+  empty ??= dependencyFingerprint({
+    protocol: DEPENDENCY_PROTOCOL,
+    groups: [],
+    elements: [],
+    customActions: [],
+    missing: { groups: [], elements: [], customActions: [] },
+  });
+  return empty;
+}
+
+/** "3 steps added." and "step group "Login" changed" as one sentence. */
+function joinSummary(content: string, dependencies: string): string {
+  if (!dependencies) return content;
+  const phrase = `${dependencies.charAt(0).toUpperCase()}${dependencies.slice(1)}.`;
+  return content ? `${content.replace(/\.$/, '')}; ${dependencies}.` : phrase;
 }
 
 /** Immutable latest definitions: version and execution content come from the same row. */

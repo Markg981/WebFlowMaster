@@ -25,6 +25,7 @@ import { sequenceStatus } from '../web/playwright/visual-verdict';
 import type { EvidenceCaptureMode } from '@shared/schema';
 import { type NetworkSummary } from '@shared/network';
 import { type PreconditionFailurePolicy, type StepRuntime } from '../runtime/run-policies';
+import type { FrozenDependencies } from '../authoring/executable-definition';
 
 /** Keeps a browser label from turning into a path when it names a directory. */
 function sanitizeSegment(value: string): string {
@@ -107,6 +108,11 @@ export interface RunTestOptions {
    * unit without an id, which keeps the directory named after its test, browser and language.
    */
   evidenceDir?: string;
+  /**
+   * What the UI test calls, frozen with its definition: the steps are resolved from this alone,
+   * never from the live groups, elements and custom actions. Absent: read live, as before R1.
+   */
+  dependencies?: FrozenDependencies;
 }
 
 /** The screenshot that says most about a run of steps: a visual failure's diff, else the last one. */
@@ -302,6 +308,7 @@ export async function runTest(
           signal: options?.signal,
           locale: options?.locale,
           onVariables: (set) => variableSets.push(set),
+          dependencies: options?.dependencies,
         },
       );
       const durationMs = Date.now() - startTime;

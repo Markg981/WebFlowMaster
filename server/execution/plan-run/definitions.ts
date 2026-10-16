@@ -21,6 +21,7 @@ import { openQuarantinesOf } from '../../authoring/test-quarantine';
 import { SharedDataError, expandWithLoadedSets, loadSharedSets } from '../../authoring/test-data';
 import { freezeMobilePlanDefinitions } from '../../mobile/mobile-plan-units';
 import type { SnapshotTestReference } from '../execution-snapshot';
+import type { FrozenDependencies } from '../../authoring/executable-definition';
 import { emit, type PlanRun } from './context';
 import type { RunInputs } from './inputs';
 
@@ -47,6 +48,12 @@ export interface FrozenTests {
   unpublished: Map<string, string>;
   /** UI tests whose dataset could not be resolved, with the reason. */
   datasetErrors: Map<number, string>;
+  /**
+   * What each UI test calls, frozen with its definition (server/authoring/executable-definition.ts).
+   * Empty for a run queued before R1, whose tests still resolve groups, elements and custom
+   * actions when they run.
+   */
+  dependencies: Map<number, FrozenDependencies>;
 }
 
 /** The id of the test a link refers to, whatever its kind. */
@@ -179,6 +186,11 @@ export async function freezeDefinitions(run: PlanRun, inputs: RunInputs): Promis
     versions: { ui: ui.versions, api: apiVersions, mobile: mobileVersions },
     unpublished,
     datasetErrors,
+    dependencies: new Map(
+      (snapshot.definitions?.ui ?? []).flatMap((row) =>
+        row.dependencies ? [[row.id, row.dependencies] as const] : [],
+      ),
+    ),
   };
 }
 
