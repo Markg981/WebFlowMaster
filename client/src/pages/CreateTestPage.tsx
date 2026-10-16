@@ -28,7 +28,12 @@ import SaveTestModal from '@/components/SaveTestModal';
 import { CleanupPanel, PreconditionsPanel } from '@/components/PreconditionsPanel';
 import { DatasetPanel, type DatasetRow, type SharedSetOption } from '@/components/DatasetPanel';
 import type { Cleanup, Precondition } from '@shared/schema';
-import { ACTION_I18N, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from '@shared/recording';
+import {
+  ACTION_I18N,
+  ADHOC_ACTION_IDS,
+  STEP_GROUP_ACTION_ID,
+  unsupportedActions,
+} from '@shared/recording';
 import {
   argumentsHint,
   customActionStepId,
@@ -761,6 +766,13 @@ function CreateTestPage() {
     onError: (titleKey, description) =>
       toast({ title: t(titleKey), description, variant: 'destructive' }),
     onNotice: (titleKey, description) => toast({ title: t(titleKey), description, duration: 7000 }),
+    onUnsupported: () =>
+      toast({
+        title: t('recording.unsupported.badge'),
+        description: t('recording.unsupported.warning'),
+        variant: 'destructive',
+        duration: 10000,
+      }),
   });
   const isRecording = recording.isRecording;
 
@@ -1470,6 +1482,11 @@ function CreateTestPage() {
                     <p className="text-sm text-muted-foreground mt-1 mb-3">
                       {t('recording.assertHint')}
                     </p>
+                    {unsupportedActions(recording.recordedActions).length > 0 && (
+                      <p role="status" className="text-sm text-destructive mb-3">
+                        {t('recording.unsupported.warning')}
+                      </p>
+                    )}
                     <ScrollArea className="flex-1 rounded-md border border-border bg-background/60">
                       <ol className="p-2 space-y-1">
                         {recording.recordedActions
@@ -1486,6 +1503,15 @@ function CreateTestPage() {
                               <span className="font-mono text-[11px] text-muted-foreground truncate">
                                 {action.selector ?? action.url ?? ''}
                               </span>
+                              {action.unsupported ? (
+                                <Badge
+                                  variant="destructive"
+                                  className="shrink-0 text-[10px]"
+                                  title={t(`recording.unsupported.${action.unsupported}`)}
+                                >
+                                  {t('recording.unsupported.badge')}
+                                </Badge>
+                              ) : null}
                               {action.value ? (
                                 <span className="ml-auto shrink-0 max-w-[35%] truncate text-muted-foreground">
                                   {action.masked ? '••••••' : action.value}

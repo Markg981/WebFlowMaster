@@ -50,6 +50,12 @@
     "capturedCount_other": "{{count}} azioni",
     "waitingForActions": "In attesa della prima azione nella finestra del browser…",
     "assertHint": "Usa il pulsante \"Add assert\" nella barra del recorder per registrare un risultato atteso.",
+    "unsupported": {
+      "badge": "Non riproducibile",
+      "warning": "Alcune interazioni non sono registrabili in modo riproducibile e non diventeranno passi: un elemento in uno shadow root chiuso o in un frame di un'altra origine. Aggiungi quei passi a mano.",
+      "closed-shadow-root": "shadow root chiuso",
+      "unaddressable-frame": "frame di un'altra origine"
+    },
     "overwriteConfirm": "Avviando una registrazione gli step attuali del test verranno sostituiti. Continuare?",
     "sessionEnded": "Sessione di registrazione terminata",
     "pollFailed": "Contatto perso con la sessione di registrazione",

@@ -38,6 +38,13 @@ export const RECORDER_SCRIPT = `
   }
 
   function send(action) {
+    // Where the element lives, said once for every action that targets one: the frame chain
+    // replay enters before resolving the selector, or why there is none it could enter.
+    if (action.type !== 'navigate') {
+      var where = frameContext();
+      if (where.frameSelector) action.frameSelector = where.frameSelector;
+      if (where.unsupported && !action.unsupported) action.unsupported = where.unsupported;
+    }
     actionCount++;
     updateCounter();
     if (typeof window.__wfmRecordAction === 'function') {
@@ -49,12 +56,85 @@ export const RECORDER_SCRIPT = `
     }
   }
 
+  /* -------------------------------------------------------------------- shadow DOM */
+
+  // The engine replays with Playwright's CSS engine, which pierces OPEN shadow roots and stops
+  // at closed ones. Everything below follows that rule, so what the recorder can see and what
+  // replay can resolve are the same set of elements:
+  //  - the element acted on is the first node of the composed path, not event.target, which
+  //    the browser retargets to the outermost host by the time the event reaches document;
+  //  - a selector is unique when it is unique across every open root, as the engine counts;
+  //  - an element in a shadow root is addressed as "host-selector inner-selector": the
+  //    descendant combinator crosses the boundary in the engine, so the shadow path stays one
+  //    CSS selector and never uses the ' >> ' that separates the steps of a FRAME path;
+  //  - a closed root is reported as unsupported, never recorded as a guess on its host.
+  var closedHosts = new WeakSet();
+  var hookedRoots = new WeakSet();
+  var seenChanges = new WeakSet();
+
+  function isShadowRoot(node) {
+    return !!(node && node.nodeType === 11 && node.host);
+  }
+
+  /** The parent across a shadow boundary: a root's top-level children belong to its host. */
+  function composedParent(node) {
+    var parent = node.parentNode;
+    return isShadowRoot(parent) ? parent.host : parent;
+  }
+
+  function composedContains(ancestor, node) {
+    while (node) {
+      if (node === ancestor) return true;
+      node = composedParent(node);
+    }
+    return false;
+  }
+
+  function closestComposed(el, selector) {
+    var node = el;
+    while (node) {
+      if (node.nodeType === 1 && node.matches(selector)) return node;
+      node = composedParent(node);
+    }
+    return null;
+  }
+
+  /** What was actually acted on, through any number of open roots. */
+  function deepTarget(event) {
+    var path = event.composedPath ? event.composedPath() : null;
+    var node = path && path.length ? path[0] : event.target;
+    while (node && node.nodeType !== 1) node = isShadowRoot(node) ? node.host : node.parentNode;
+    return node || null;
+  }
+
+  /** The scope itself (document or host) and every open root inside it, outermost first. */
+  function searchRoots(scope) {
+    var roots = [scope];
+    if (scope.nodeType === 1 && scope.shadowRoot) roots.push(scope.shadowRoot);
+    for (var i = 0; i < roots.length; i++) {
+      var all = roots[i].querySelectorAll('*');
+      for (var j = 0; j < all.length; j++) {
+        if (all[j].shadowRoot) roots.push(all[j].shadowRoot);
+      }
+    }
+    return roots;
+  }
+
+  function deepQueryAll(roots, selector) {
+    var out = [];
+    for (var i = 0; i < roots.length; i++) {
+      var found = roots[i].querySelectorAll(selector);
+      for (var j = 0; j < found.length; j++) out.push(found[j]);
+    }
+    return out;
+  }
+
   function isRecorderUi(el) {
-    return !!(el && el.closest && el.closest(IGNORE_SELECTOR));
+    return !!(el && el.nodeType === 1 && closestComposed(el, IGNORE_SELECTOR));
   }
 
   function isIgnored(el) {
-    return !!(el && el.closest && el.closest('[data-webtest-platform-ignore="true"]'));
+    return !!(el && el.nodeType === 1 && closestComposed(el, '[data-webtest-platform-ignore="true"]'));
   }
 
   // Values from password-like fields must never leave the browser: they would be stored in
@@ -80,18 +160,44 @@ export const RECORDER_SCRIPT = `
   }
 
   /** A unique id a developer chose. A generated one is worse than no id at all. */
-  function usableId(el) {
+  function usableId(el, roots) {
     if (!el || !el.id) return null;
     if (isVolatileId(el.id)) return null;
     try {
-      if (document.querySelectorAll('#' + CSS.escape(el.id)).length !== 1) return null;
+      if (deepQueryAll(roots, '#' + CSS.escape(el.id)).length !== 1) return null;
     } catch (e) { return null; }
     return '#' + CSS.escape(el.id);
   }
 
+  /**
+   * A selector the engine resolves to this element and nothing else.
+   *
+   * Inside an open shadow root it is the host's selector, a space, and a selector unique
+   * within that host: ids, names and positions are only meaningful inside their own root,
+   * and the engine evaluates the descendant combinator across the boundary.
+   */
   function generateSelector(el) {
     try {
-      if (!el || !(el instanceof Element)) return null;
+      if (!el || el.nodeType !== 1) return null;
+      var root = el.getRootNode ? el.getRootNode() : document;
+      if (isShadowRoot(root)) {
+        if (closedHosts.has(root.host)) return null;
+        var hostSelector = generateSelector(root.host);
+        var inner = selectorWithin(el, root.host);
+        return hostSelector && inner ? hostSelector + ' ' + inner : null;
+      }
+      return selectorWithin(el, document);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function selectorWithin(el, scope) {
+    try {
+      var roots = searchRoots(scope);
+      var unique = function (selector) {
+        return deepQueryAll(roots, selector).length === 1;
+      };
 
       // Before the id: a test id is something someone wrote down on purpose, and an id can
       // be an accident of the framework. This order used to be the other way round.
@@ -100,7 +206,7 @@ export const RECORDER_SCRIPT = `
       var testAttr = el.getAttribute('data-test');
       if (testAttr) return '[data-test="' + testAttr + '"]';
 
-      var ownId = usableId(el);
+      var ownId = usableId(el, roots);
       if (ownId) return ownId;
 
       var tagName = el.tagName.toLowerCase();
@@ -108,13 +214,13 @@ export const RECORDER_SCRIPT = `
       var nameAttr = el.getAttribute('name');
       if (nameAttr) {
         var byName = tagName + '[name="' + nameAttr + '"]';
-        if (document.querySelectorAll(byName).length === 1) return byName;
+        if (unique(byName)) return byName;
       }
 
       var ariaLabel = el.getAttribute('aria-label');
       if (ariaLabel) {
         var byAria = tagName + '[aria-label="' + ariaLabel + '"]';
-        if (document.querySelectorAll(byAria).length === 1) return byAria;
+        if (unique(byAria)) return byAria;
       }
 
       if (el.classList && el.classList.length > 0) {
@@ -127,7 +233,7 @@ export const RECORDER_SCRIPT = `
         for (var n = significant.length; n >= 1; n--) {
           var combined = tagName + '.' + significant.slice(0, n).join('.');
           try {
-            if (document.querySelectorAll(combined).length === 1) return combined;
+            if (unique(combined)) return combined;
           } catch (e) { /* invalid selector, try a shorter one */ }
         }
       }
@@ -144,7 +250,7 @@ export const RECORDER_SCRIPT = `
       var ownText = ownTextOf(el);
       if (ownText && ownText.length <= 60) {
         var matches = 0;
-        var all = document.querySelectorAll(tagName);
+        var all = deepQueryAll(roots, tagName);
         for (var t = 0; t < all.length && matches < 2; t++) {
           if (ownTextOf(all[t]) === ownText) matches++;
         }
@@ -153,22 +259,25 @@ export const RECORDER_SCRIPT = `
         if (matches === 1) return tagName + ':text-is("' + ownText.replace(/"/g, '\\\\"') + '")';
       }
 
-      // Structural fallback: nth-of-type path, stopping at the closest unique ancestor id.
+      // Structural fallback: nth-of-type path, stopping at the closest unique ancestor id —
+      // or at the top of the shadow root, whose host the caller has already addressed.
       var parts = [];
       var node = el;
       while (node && node.nodeType === 1 && node.tagName.toLowerCase() !== 'html') {
         // The anchor matters as much as the leaf: a path rooted at #cdk-overlay-0 is exactly
         // as unreplayable as a leaf selector of #cdk-overlay-0, and that is where most of
         // them came from — an overlay is where a menu or a dialog lives.
-        var anchor = usableId(node);
+        var anchor = usableId(node, roots);
         if (anchor) {
           parts.unshift(anchor);
           break;
         }
         var part = node.tagName.toLowerCase();
         var parent = node.parentElement;
-        if (parent) {
-          var sameTag = Array.prototype.filter.call(parent.children, function (c) {
+        // A root's top-level children are siblings too, though they have no parent element.
+        var siblings = parent || (isShadowRoot(node.parentNode) ? node.parentNode : null);
+        if (siblings) {
+          var sameTag = Array.prototype.filter.call(siblings.children, function (c) {
             return c.tagName === node.tagName;
           });
           if (sameTag.length > 1) part += ':nth-of-type(' + (sameTag.indexOf(node) + 1) + ')';
@@ -210,6 +319,84 @@ export const RECORDER_SCRIPT = `
       targetClass: typeof el.className === 'string' ? el.className : undefined,
       targetText: String(textContent).substring(0, 100).trim()
     };
+  }
+
+  /* ------------------------------------------------------------------------ frames */
+
+  // The parent frame's recorder builds the selector of the iframe element, because only that
+  // document can see it — including when the iframe itself sits in an open shadow root.
+  try {
+    Object.defineProperty(window, '__wfmRecorderSelectorFor', { value: generateSelector });
+  } catch (e) { /* already defined by an earlier copy: the guard at the top makes this rare */ }
+
+  var IS_TOP = (function () { try { return window === window.top; } catch (e) { return false; } })();
+
+  /**
+   * The frame path replay enters before resolving the selector: one selector per iframe,
+   * outermost first, joined with ' >> ' exactly as element detection writes frameSelector.
+   * A frame whose element its parent cannot address (cross-origin) has no such path.
+   */
+  function frameContext() {
+    if (IS_TOP) return {};
+    var chain = [];
+    try {
+      var w = window;
+      while (w !== w.top) {
+        var frameEl = w.frameElement; // null when the parent is another origin
+        var selectorFor = frameEl ? w.parent.__wfmRecorderSelectorFor : null;
+        var selector = typeof selectorFor === 'function' ? selectorFor(frameEl) : null;
+        if (!selector) return { unsupported: 'unaddressable-frame' };
+        chain.unshift(selector);
+        w = w.parent;
+      }
+    } catch (e) {
+      return { unsupported: 'unaddressable-frame' };
+    }
+    return { frameSelector: chain.join(' >> ') };
+  }
+
+  /* --------------------------------------------------------------- shadow listeners */
+
+  // change does not cross a shadow boundary (it is not composed), so a listener on document
+  // never hears it from inside a component: every root gets its own, exactly once.
+  function hookRoot(root, closed) {
+    if (!root || hookedRoots.has(root)) return;
+    hookedRoots.add(root);
+    root.addEventListener('change', closed ? onClosedRootChange : onChange, true);
+  }
+
+  // Every root the page creates, open or closed, from the moment it exists. The init script
+  // runs before any page script, so nothing is attached before this is in place.
+  try {
+    var nativeAttachShadow = Element.prototype.attachShadow;
+    if (typeof nativeAttachShadow === 'function') {
+      Element.prototype.attachShadow = function (init) {
+        var root = nativeAttachShadow.apply(this, arguments);
+        var closed = !!(init && init.mode === 'closed');
+        if (closed) closedHosts.add(this);
+        hookRoot(root, closed);
+        return root;
+      };
+    }
+  } catch (e) { /* the path hook below still covers open roots */ }
+
+  // Roots attachShadow never saw — declarative shadow DOM is built by the parser — are hooked
+  // the first time an event passes through them. Focus, pointer and key events are composed
+  // and always precede the change they lead to, so the listener is there in time.
+  function hookPath(event) {
+    var path = event.composedPath ? event.composedPath() : [];
+    for (var i = 0; i < path.length; i++) {
+      if (isShadowRoot(path[i])) hookRoot(path[i], false);
+    }
+  }
+  ['focusin', 'pointerdown', 'mousedown', 'click', 'keydown'].forEach(function (type) {
+    window.addEventListener(type, hookPath, true);
+  });
+
+  /** Marks what replay could not resolve, so it is shown rather than silently missing. */
+  function annotate(action, el) {
+    if (el && closedHosts.has(el)) action.unsupported = 'closed-shadow-root';
+    return action;
   }
 
   /* ---------------------------------------------------------------- assert overlay */
@@ -320,8 +507,10 @@ export const RECORDER_SCRIPT = `
 
     var details = getElementDetails(el);
     var elementText = (details.targetText || '').trim();
+    // Counted as the engine counts, across open roots. A selector with a shadow path or a
+    // :text-is() cannot be evaluated natively; it was built to match one element.
     var matchCount = 1;
-    try { matchCount = document.querySelectorAll(selector).length; } catch (e) { /* ignore */ }
+    try { matchCount = deepQueryAll(searchRoots(document), selector).length || 1; } catch (e) { /* ignore */ }
 
     panel = styled('div', PANEL_CSS);
     panel.setAttribute('data-wfm-recorder', 'panel');
@@ -419,7 +608,7 @@ export const RECORDER_SCRIPT = `
   // below can log it as a normal interaction step.
   document.addEventListener('click', function (event) {
     if (!assertModeOn()) return;
-    var el = event.target;
+    var el = deepTarget(event);
     if (isRecorderUi(el)) return;
     event.preventDefault();
     event.stopPropagation();
@@ -430,7 +619,7 @@ export const RECORDER_SCRIPT = `
 
   document.addEventListener('mouseover', function (event) {
     if (!assertModeOn()) return;
-    highlight(event.target);
+    highlight(deepTarget(event));
   }, true);
 
   document.addEventListener('keydown', function (event) {
@@ -458,8 +647,8 @@ export const RECORDER_SCRIPT = `
   var PENDING_HOVER_TTL_MS = 15000;
 
   document.addEventListener('mouseover', function (event) {
-    var el = event.target;
-    if (el && el instanceof Element && !isRecorderUi(el)) lastHovered = el;
+    var el = deepTarget(event);
+    if (el && !isRecorderUi(el)) lastHovered = el;
   }, true);
 
   // Observed on the Document node, NOT on document.documentElement: this script is installed
@@ -479,7 +668,7 @@ export const RECORDER_SCRIPT = `
           var node = added[a];
           if (!node || node.nodeType !== 1 || isRecorderUi(node)) continue;
           // The pointer cannot have revealed something it is already inside.
-          if (node.contains(lastHovered)) continue;
+          if (composedContains(node, lastHovered)) continue;
           pendingHovers.push({ host: lastHovered, root: node, at: now });
         }
       }
@@ -505,8 +694,8 @@ export const RECORDER_SCRIPT = `
       // A step cannot hover something that has since left the document. Without this, a menu
       // entry that was clicked and then removed still counted as the thing that revealed
       // whatever rendered next.
-      if (!document.contains(p.host)) continue;
-      if (p.root.contains(clicked) && !p.host.contains(clicked)) return p.host;
+      if (!p.host.isConnected) continue;
+      if (composedContains(p.root, clicked) && !composedContains(p.host, clicked)) return p.host;
     }
     return null;
   }
@@ -515,8 +704,8 @@ export const RECORDER_SCRIPT = `
 
   document.addEventListener('click', function (event) {
     try {
-      var el = event.target;
-      if (!el || !(el instanceof Element) || isRecorderUi(el) || isIgnored(el)) return;
+      var el = deepTarget(event);
+      if (!el || isRecorderUi(el) || isIgnored(el)) return;
 
       var selector = generateSelector(el);
       if (!selector) return;
@@ -550,14 +739,18 @@ export const RECORDER_SCRIPT = `
       };
       var details = getElementDetails(el);
       for (var k in details) action[k] = details[k];
-      send(action);
+      send(annotate(action, el));
     } catch (e) { /* never break the page under test */ }
   }, true);
 
-  document.addEventListener('change', function (event) {
+  // On document and on every open root (see hookRoot). Each change event is recorded once,
+  // whichever of them hears it first: a component may re-dispatch it as composed.
+  function onChange(event) {
     try {
-      var el = event.target;
-      if (!el || !(el instanceof Element)) return;
+      if (seenChanges.has(event)) return;
+      seenChanges.add(event);
+      var el = deepTarget(event);
+      if (!el) return;
       var tag = el.tagName.toLowerCase();
       if (['input', 'textarea', 'select'].indexOf(tag) === -1) return;
       if (el.type === 'hidden' || isRecorderUi(el) || isIgnored(el)) return;
@@ -574,6 +767,7 @@ export const RECORDER_SCRIPT = `
         selector: selector,
         value: secret ? '' : value,
         masked: secret || undefined,
+        inputType: tag === 'input' ? String(el.type || 'text').toLowerCase() : undefined,
         timestamp: Date.now(),
         url: window.location.href
       };
@@ -581,20 +775,43 @@ export const RECORDER_SCRIPT = `
       for (var k in details) action[k] = details[k];
       send(action);
     } catch (e) { /* never break the page under test */ }
-  }, true);
+  }
+  document.addEventListener('change', onChange, true);
+
+  // A value typed inside a closed root: the engine cannot reach the field, so the step is
+  // reported against its host as unsupported. The value is never read — it may be a secret.
+  function onClosedRootChange(event) {
+    try {
+      if (seenChanges.has(event)) return;
+      seenChanges.add(event);
+      var root = event.currentTarget;
+      var host = root && root.host;
+      var inner = event.composedPath ? event.composedPath()[0] : null;
+      if (!host || isRecorderUi(host) || isIgnored(host)) return;
+      send({
+        type: inner && inner.tagName && inner.tagName.toLowerCase() === 'select' ? 'select' : 'input',
+        selector: generateSelector(host),
+        value: null,
+        unsupported: 'closed-shadow-root',
+        timestamp: Date.now(),
+        url: window.location.href,
+        targetTag: host.tagName.toLowerCase()
+      });
+    } catch (e) { /* never break the page under test */ }
+  }
 
   document.addEventListener('keydown', function (event) {
     try {
       if (event.key !== 'Enter') return;
-      var el = event.target;
-      if (!el || !(el instanceof Element) || isRecorderUi(el) || isIgnored(el)) return;
-      send({
+      var el = deepTarget(event);
+      if (!el || isRecorderUi(el) || isIgnored(el)) return;
+      send(annotate({
         type: 'keypress',
         key: 'Enter',
         selector: generateSelector(el),
         timestamp: Date.now(),
         url: window.location.href
-      });
+      }, el));
     } catch (e) { /* ignore */ }
   }, true);
 
@@ -606,31 +823,40 @@ export const RECORDER_SCRIPT = `
     // the next click anywhere on the new screen produced a hover step for a menu entry that
     // had just been clicked and was already gone.
     pendingHovers = [];
+    // The blank document a new tab starts in is not a page of the test: Chromium reports it as
+    // about:blank and Firefox with an empty URL, and the engine refuses a navigate step to it.
+    if (!/^https?:/i.test(window.location.href)) return;
     send({ type: 'navigate', url: window.location.href, value: window.location.href, timestamp: Date.now() });
   }
 
-  // Full document loads: this init script runs again, so reporting here covers them.
-  reportNavigation();
+  // Only the top document navigates the test. The init script also runs in every iframe, and
+  // an iframe's own load reported as a navigation would replay as a top-level navigation to
+  // the iframe's URL.
+  if (IS_TOP) {
+    // Full document loads: this init script runs again, so reporting here covers them.
+    reportNavigation();
 
-  // SPA route changes never reload the document, so hook the History API too.
-  ['pushState', 'replaceState'].forEach(function (method) {
-    var original = history[method];
-    if (typeof original !== 'function') return;
-    history[method] = function () {
-      var result = original.apply(this, arguments);
-      setTimeout(reportNavigation, 0);
-      return result;
-    };
-  });
-  window.addEventListener('popstate', function () { setTimeout(reportNavigation, 0); }, true);
-  window.addEventListener('hashchange', function () { setTimeout(reportNavigation, 0); }, true);
+    // SPA route changes never reload the document, so hook the History API too.
+    ['pushState', 'replaceState'].forEach(function (method) {
+      var original = history[method];
+      if (typeof original !== 'function') return;
+      history[method] = function () {
+        var result = original.apply(this, arguments);
+        setTimeout(reportNavigation, 0);
+        return result;
+      };
+    });
+    window.addEventListener('popstate', function () { setTimeout(reportNavigation, 0); }, true);
+    window.addEventListener('hashchange', function () { setTimeout(reportNavigation, 0); }, true);
+  }
 
   /* -------------------------------------------------------------------- bootstrap */
 
-  if (document.body) {
+  // One toolbar, on the page the user sees, not one per iframe.
+  if (IS_TOP && document.body) {
     renderToolbar();
     if (assertModeOn()) document.documentElement.style.cursor = 'crosshair';
-  } else {
+  } else if (IS_TOP) {
     document.addEventListener('DOMContentLoaded', function () {
       renderToolbar();
       if (assertModeOn()) document.documentElement.style.cursor = 'crosshair';

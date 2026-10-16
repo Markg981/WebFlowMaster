@@ -7,6 +7,7 @@ import {
   RecordedActionSchema,
   mapRecordedActionToStep,
   mapRecordedSequence,
+  unsupportedActions,
   type RecordedAction,
 } from '../shared/recording';
 import { AdhocTestStepSchema } from '../shared/schema';
@@ -205,5 +206,81 @@ describe('RecordedActionSchema', () => {
       timestamp: Date.now(),
     });
     expect(result.success).toBe(true);
+  });
+
+  it('accepts a frame path and only the unsupported reasons it knows', () => {
+    const ok = RecordedActionSchema.safeParse({
+      type: 'click',
+      selector: 'x-field input[name="city"]',
+      frameSelector: 'x-frame-shell iframe[name="inner"]',
+      unsupported: 'closed-shadow-root',
+      timestamp: Date.now(),
+    });
+    expect(ok.success).toBe(true);
+    const invented = RecordedActionSchema.safeParse({
+      type: 'click',
+      unsupported: 'whatever',
+      timestamp: Date.now(),
+    });
+    expect(invented.success).toBe(false);
+  });
+});
+
+describe('shadow DOM and frames in the mapping (P12, C11)', () => {
+  it('carries the frame path into the step, beside the selector and not inside it', () => {
+    const step = mapRecordedActionToStep(
+      at({
+        type: 'input',
+        selector: 'body > x-field input[name="city"]',
+        frameSelector: 'body > x-frame-shell iframe[name="inner"]',
+        value: 'Torino',
+      }),
+      0,
+    );
+    expect(step?.targetElement).toMatchObject({
+      selector: 'body > x-field input[name="city"]',
+      frameSelector: 'body > x-frame-shell iframe[name="inner"]',
+    });
+    expect(AdhocTestStepSchema.safeParse(step).success).toBe(true);
+  });
+
+  it('turns no unsupported action into a step, and lists every one of them', () => {
+    const sequence = [
+      at({ type: 'click', selector: '#ok' }),
+      at({ type: 'click', selector: 'body > x-closed', unsupported: 'closed-shadow-root' }),
+      at({ type: 'input', selector: '#x', value: '1', unsupported: 'unaddressable-frame' }),
+    ];
+    expect(mapRecordedSequence(sequence).map((s) => s.targetElement?.selector)).toEqual(['#ok']);
+    expect(unsupportedActions(sequence).map((a) => a.unsupported)).toEqual([
+      'closed-shadow-root',
+      'unaddressable-frame',
+    ]);
+  });
+
+  it('replays a ticked box as the state it must end in, not as typed text', () => {
+    const on = mapRecordedActionToStep(
+      at({ type: 'input', selector: '#agree', value: 'true', inputType: 'checkbox' }),
+      0,
+    );
+    const off = mapRecordedActionToStep(
+      at({ type: 'input', selector: '#agree', value: 'false', inputType: 'checkbox' }),
+      0,
+    );
+    expect([on?.action.id, on?.value]).toEqual(['ensureState', 'checked']);
+    expect([off?.action.id, off?.value]).toEqual(['ensureState', 'unchecked']);
+    // A buffer from before the field existed maps exactly as it always did.
+    const legacy = mapRecordedActionToStep(
+      at({ type: 'input', selector: '#agree', value: 'true' }),
+      0,
+    );
+    expect(legacy?.action.id).toBe('input');
+  });
+
+  it('does not move an Enter behind a value typed in the same selector of another frame', () => {
+    const ordered = mapRecordedSequence([
+      at({ type: 'keypress', key: 'Enter', selector: 'input[name="q"]' }),
+      at({ type: 'input', selector: 'input[name="q"]', value: 'x', frameSelector: 'iframe#a' }),
+    ]);
+    expect(ordered.map((s) => s.action.id)).toEqual(['pressKey', 'input']);
   });
 });

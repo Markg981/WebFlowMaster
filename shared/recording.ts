@@ -158,6 +158,17 @@ export const RECORDED_ACTION_TYPES = [
 ] as const;
 export type RecordedActionType = (typeof RECORDED_ACTION_TYPES)[number];
 
+/**
+ * What the recorder saw but replay could not resolve.
+ *
+ * - `closed-shadow-root`: the element is inside a closed shadow root, which the engine's CSS
+ *   engine does not pierce, so there is no selector to write down;
+ * - `unaddressable-frame`: the element is in an iframe its parent cannot address (another
+ *   origin), so there is no frame path to enter.
+ */
+export const RECORDING_UNSUPPORTED_REASONS = ['closed-shadow-root', 'unaddressable-frame'] as const;
+export type RecordingUnsupportedReason = (typeof RECORDING_UNSUPPORTED_REASONS)[number];
+
 export const RecordedActionSchema = z.object({
   type: z.enum(RECORDED_ACTION_TYPES),
   selector: z.string().nullable().optional(),
@@ -173,6 +184,15 @@ export const RecordedActionSchema = z.object({
   targetText: z.string().nullable().optional(),
   /** True when the recorder redacted `value` because it came from a secret field. */
   masked: z.boolean().optional(),
+  /**
+   * The iframe chain the selector is relative to, outermost first and ' >> ' separated, as
+   * element detection writes it. A shadow path never appears here: it is inside `selector`.
+   */
+  frameSelector: z.string().nullable().optional(),
+  /** The `type` of the input acted on, so a ticked box replays as a state, not as typed text. */
+  inputType: z.string().optional(),
+  /** Why replay could not resolve this action; it is shown, never turned into a step. */
+  unsupported: z.enum(RECORDING_UNSUPPORTED_REASONS).optional(),
   /** Marks the synthetic bookkeeping actions the service itself pushes. */
   meta: z.enum(['session-started', 'session-stopped']).optional(),
 });
@@ -631,13 +651,17 @@ export interface MappedTestStep {
     text: string;
     tag: string;
     attributes: Record<string, string>;
+    /** The iframe chain the selector is relative to; absent on the top document. */
+    frameSelector?: string | null;
   };
   value?: string;
 }
 
 /**
  * Turn one recorded action into a builder step, or null when the action has no replayable
- * counterpart (`keypress`, and the synthetic session start/stop bookkeeping entries).
+ * counterpart: the synthetic session start/stop bookkeeping entries, and actions the recorder
+ * marked `unsupported` — a step whose selector replay cannot resolve would only fail later,
+ * far from where it was recorded; `unsupportedActions` is what the UI shows instead.
  *
  * `index` participates in the step id so ids are stable for a given buffer position — the
  * polling loop diffs sequences by value, and ids built from Date.now()/Math.random() made
@@ -647,9 +671,16 @@ export function mapRecordedActionToStep(
   recorded: RecordedAction,
   index: number,
 ): MappedTestStep | null {
-  if (recorded.meta) return null;
+  if (recorded.meta || recorded.unsupported) return null;
 
-  const actionId = RECORDED_TYPE_TO_ACTION_ID[recorded.type];
+  // A checkbox or radio reports its value as "true"/"false", and fill() refuses to type into
+  // either: replayed as an input step it failed on the box it had just ticked. The recorded
+  // click already toggled it, so the step that follows says which state it must end in —
+  // ensureState clicks only when the state differs, and a replay that matches costs nothing.
+  const toggled =
+    recorded.type === 'input' &&
+    (recorded.inputType === 'checkbox' || recorded.inputType === 'radio');
+  const actionId = toggled ? 'ensureState' : RECORDED_TYPE_TO_ACTION_ID[recorded.type];
   if (!actionId) return null;
 
   const meta = ACTION_I18N[actionId];
@@ -674,12 +705,15 @@ export function mapRecordedActionToStep(
       tag: recorded.targetTag || 'unknown',
       attributes: {},
     };
+    if (recorded.frameSelector) step.targetElement.frameSelector = recorded.frameSelector;
   }
 
   // A navigate step replays as `page.goto(value)`, so the URL has to live in `value`.
   if (actionId === 'navigate') {
     step.value = recorded.url ?? recorded.value ?? '';
   }
+
+  if (toggled) step.value = recorded.value === 'true' ? 'checked' : 'unchecked';
 
   // The key is what a pressKey step presses.
   if (actionId === 'pressKey') {
@@ -719,7 +753,8 @@ export function inActionOrder(sequence: RecordedAction[]): RecordedAction[] {
       key.type === 'keypress' &&
       (value.type === 'input' || value.type === 'select') &&
       !!key.selector &&
-      key.selector === value.selector
+      key.selector === value.selector &&
+      (key.frameSelector ?? null) === (value.frameSelector ?? null)
     ) {
       ordered[i] = value;
       ordered[i + 1] = key;
@@ -727,6 +762,11 @@ export function inActionOrder(sequence: RecordedAction[]): RecordedAction[] {
     }
   }
   return ordered;
+}
+
+/** The interactions the recorder saw and could not make replayable, in the order they happened. */
+export function unsupportedActions(sequence: RecordedAction[]): RecordedAction[] {
+  return sequence.filter((action) => !action.meta && !!action.unsupported);
 }
 
 /** Map a whole recorded buffer, dropping the non-replayable entries. */

@@ -161,6 +161,33 @@ gli step o descrivendoli.
 Le password scritte durante la registrazione non vengono salvate nel test: diventano segnaposto
 <code v-pre>{{secret&#95;…}}</code>, che definite come segreti di un ambiente.
 
+Spuntare una casella o un pulsante di opzione registra il clic e un passo **Ensure state** con lo
+stato in cui il controllo è rimasto (`checked` o `unchecked`): riprodurre il test due volte non la
+toglie.
+
+### Web component e frame {#recording-web-components}
+
+Campi e pulsanti dentro un web component (uno shadow root **aperto**, anche annidato, dichiarativo
+o aggiunto dalla pagina in un secondo momento) si registrano come tutti gli altri: ogni azione una
+volta sola, sull'elemento usato, con un selettore che il runner risolve in quell'elemento e in
+nessun altro. Il selettore nomina prima il componente e poi l'elemento al suo interno, per esempio
+`body > x-login input[name="q"]`. La riproduzione lo trova in Chromium, Firefox e WebKit senza
+modifiche.
+
+Un elemento dentro un iframe viene registrato insieme al frame in cui si trova: l'elemento del
+passo porta la catena dei frame separata dal selettore. Il frame può trovarsi a sua volta dentro
+un web component.
+
+Due casi non sono riproducibili, e il recorder lo dice invece di tirare a indovinare:
+
+- un elemento dentro uno shadow root **chiuso**, in cui il runner non può guardare;
+- un elemento dentro un frame di **un'altra origine**, che la pagina non può indirizzare.
+
+Queste interazioni compaiono nella lista della registrazione con l'etichetta **Non riproducibile**,
+un avviso lo ricorda quando fermate la registrazione, e non diventano passi: aggiungeteli a mano,
+per esempio su un elemento che il componente espone. Il recorder non invia mai il valore scritto in
+un componente chiuso.
+
 ## Descrivere un test a frasi
 
 ![La finestra Describe con un test scritto a frasi](/screenshots/builder-describe.webp)

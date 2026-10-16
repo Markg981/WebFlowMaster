@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import playwright, { type Browser, type BrowserContext } from 'playwright';
+import playwright, { type Browser, type BrowserContext, type Page } from 'playwright';
 import { PlaywrightService } from '../web/playwright-service';
-import { mapRecordedSequence, type RecordedAction } from '../../shared/recording';
+import { scopeFor } from '../web/playwright/run-helpers';
+import {
+  mapRecordedSequence,
+  unsupportedActions,
+  type RecordedAction,
+} from '../../shared/recording';
+import { startShadowFixture, type ShadowFixtureServer } from '../../e2e/recorder-shadow-fixture';
 
 vi.mock('../platform/logger', () => ({
   default: {
@@ -553,4 +559,324 @@ describe('after the screen changes', () => {
 
     await context.close();
   }, 60_000);
+});
+
+/**
+ * Web components (P12, C11): the recorder and the engine have to agree on the shadow DOM.
+ *
+ * The engine resolves selectors with Playwright's CSS engine, which pierces open shadow roots.
+ * The recorder used to see them through event.target — retargeted to the outermost host by
+ * the time a document listener hears it — and to count with document.querySelectorAll, which
+ * does not pierce. So a field inside a component was recorded as a click on the component,
+ * its value not at all (change is not composed), and a light-DOM selector it called unique
+ * could match a second element inside a root. The fixture is shared with
+ * e2e/recorder-shadow.spec.ts, which runs the same path on Firefox and WebKit.
+ */
+describe('shadow DOM', () => {
+  let fixture: ShadowFixtureServer;
+
+  beforeAll(async () => {
+    fixture = await startShadowFixture();
+  });
+
+  afterAll(async () => {
+    await fixture?.close();
+  });
+
+  const USER = 'x-login input[name="q"]';
+
+  /** Records `steps` on a fixture page and returns the buffer plus the page's own #echo. */
+  async function record(
+    sessionId: string,
+    path: string,
+    steps: (page: Page) => Promise<void>,
+    echoFrame?: string,
+  ): Promise<{ actions: RecordedAction[]; echo: string }> {
+    const context = await startRecording(sessionId);
+    const page = await context.newPage();
+    await page.goto(`${fixture.baseUrl}${path}`);
+    await steps(page);
+    await settle();
+    const scope = echoFrame ? page.frameLocator(echoFrame) : page;
+    const echo = (await scope.locator('#echo').textContent()) ?? '';
+    const actions = await recordedActions(sessionId);
+    await context.close();
+    return { actions, echo };
+  }
+
+  /** What the engine resolves a recorded selector to, as the data-key/name of the element. */
+  async function resolve(path: string, selector: string, frameSelector?: string | null) {
+    const page = await browser.newPage();
+    await page.goto(`${fixture.baseUrl}${path}`);
+    const scope = scopeFor(page, frameSelector);
+    const target = scope.locator(selector);
+    const count = await target.count();
+    const key =
+      count === 1
+        ? await target.evaluate(
+            (el: Element) => el.getAttribute('data-key') || el.getAttribute('name'),
+          )
+        : null;
+    await page.close();
+    return { count, key };
+  }
+
+  it('records a field inside an open root once, on the field and not on its host', async () => {
+    const { actions } = await record('shadow-open', '/', async (page) => {
+      await page.fill(USER, 'marco');
+      await page.press(USER, 'Tab');
+    });
+
+    const inputs = actions.filter((a) => a.type === 'input');
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0].value).toBe('marco');
+    expect(inputs[0].selector).toContain('x-login');
+    // A shadow path is one CSS selector. ' >> ' is how a FRAME path is separated, and the
+    // engine splits frameSelector on it; it must never appear inside a selector.
+    expect(inputs[0].selector).not.toContain('>>');
+    expect(inputs[0].frameSelector).toBeUndefined();
+    expect(await resolve('/', inputs[0].selector!)).toEqual({ count: 1, key: 'user' });
+  }, 60_000);
+
+  it('gives the light-DOM control a selector the engine does not share with the component', async () => {
+    const { actions } = await record('shadow-control', '/', async (page) => {
+      await page.fill('input[data-key="plain"]', 'light');
+      await page.press('input[data-key="plain"]', 'Tab');
+    });
+
+    const input = actions.find((a) => a.type === 'input');
+    expect(input?.value).toBe('light');
+    // input[name="q"] is unique to document.querySelectorAll and matches two elements in the
+    // engine, which acts on the first: the old check would have written a step that types
+    // into whichever of the two the engine reached first.
+    expect(input?.selector).not.toBe('input[name="q"]');
+    expect(await resolve('/', input!.selector!)).toEqual({ count: 1, key: 'plain' });
+  }, 60_000);
+
+  it('masks a password inside a root and keeps Enter behind the value it submits', async () => {
+    const { actions } = await record('shadow-secret', '/', async (page) => {
+      await page.fill('x-login input[name="pass"]', 'hunter22');
+      await page.press('x-login input[name="pass"]', 'Tab');
+      await page.fill('x-login input[name="search"]', 'orders');
+      await page.press('x-login input[name="search"]', 'Enter');
+      await page.press('x-login input[name="search"]', 'Tab');
+    });
+
+    const secret = actions.find((a) => a.type === 'input' && a.masked);
+    expect(secret?.value).toBe('');
+    expect(JSON.stringify(actions)).not.toContain('hunter22');
+
+    const steps = mapRecordedSequence(actions);
+    const search = steps.findIndex(
+      (s) => s.action.id === 'input' && !!s.targetElement?.selector.includes('search'),
+    );
+    expect(search).toBeGreaterThanOrEqual(0);
+    expect(steps[search].value).toBe('orders');
+    expect(steps[search + 1].action.id).toBe('pressKey');
+  }, 60_000);
+
+  it('reaches through two nested roots: select, checkbox and a button known by its text', async () => {
+    const { actions } = await record('shadow-nested', '/', async (page) => {
+      await page.selectOption('x-inner select[name="color"]', 'green');
+      await page.check('x-inner input[name="agree"]');
+      await page.click('x-inner button:text-is("Save")');
+    });
+
+    const select = actions.filter((a) => a.type === 'select');
+    expect(select).toHaveLength(1);
+    expect(select[0].value).toBe('green');
+    expect(await resolve('/', select[0].selector!)).toEqual({ count: 1, key: 'color' });
+
+    const save = actions.filter((a) => a.type === 'click' && a.targetText === 'Save');
+    expect(save).toHaveLength(1);
+    expect(await resolve('/', save[0].selector!)).toMatchObject({ count: 1 });
+
+    // A ticked box is a state to reach, not text to type: fill() refuses checkboxes.
+    const agree = mapRecordedSequence(actions).find(
+      (s) => !!s.targetElement?.selector.includes('agree') && s.action.id !== 'click',
+    );
+    expect(agree?.action.id).toBe('ensureState');
+    expect(agree?.value).toBe('checked');
+  }, 60_000);
+
+  it('hears a root created after load, and only once after it is removed and put back', async () => {
+    const { actions } = await record('shadow-dynamic', '/', async (page) => {
+      await page.click('#add-late');
+      await page.fill('x-late input[name="late"]', 'first');
+      await page.press('x-late input[name="late"]', 'Tab');
+      await page.click('#cycle-late');
+      await page.fill('x-late input[name="late"]', 'second');
+      await page.press('x-late input[name="late"]', 'Tab');
+    });
+
+    const late = actions.filter((a) => a.type === 'input' && !!a.selector?.includes('x-late'));
+    expect(late.map((a) => a.value)).toEqual(['first', 'second']);
+  }, 60_000);
+
+  it('hears a declarative shadow root, which no attachShadow call announced', async () => {
+    const { actions } = await record('shadow-declarative', '/', async (page) => {
+      await page.fill('x-decl input[name="decl"]', 'parsed');
+      await page.press('x-decl input[name="decl"]', 'Tab');
+    });
+
+    const decl = actions.filter((a) => a.type === 'input');
+    expect(decl.map((a) => a.value)).toEqual(['parsed']);
+    expect(await resolve('/', decl[0].selector!)).toEqual({ count: 1, key: 'decl' });
+  }, 60_000);
+
+  it('reports what happens inside a closed root as unsupported instead of guessing', async () => {
+    const { actions } = await record('shadow-closed', '/', async (page) => {
+      const box = (await page.locator('x-closed').boundingBox())!;
+      await page.mouse.click(box.x + 5, box.y + box.height / 2); // into the first field
+      await page.keyboard.type('nope');
+      await page.keyboard.press('Tab');
+    });
+
+    const closed = unsupportedActions(actions);
+    expect(closed.length).toBeGreaterThanOrEqual(2); // the click and the value
+    expect(closed.every((a) => a.unsupported === 'closed-shadow-root')).toBe(true);
+    // Never the value: a closed field may be a secret, and it is not replayable anyway.
+    expect(JSON.stringify(actions)).not.toContain('nope');
+    // Shown, and not turned into steps that would fail far from where they were recorded.
+    expect(mapRecordedSequence(actions)).toEqual(
+      mapRecordedSequence(actions.filter((a) => !a.unsupported)),
+    );
+  }, 60_000);
+
+  it('keeps the frame path and the shadow path apart for a component inside an iframe', async () => {
+    const { actions } = await record(
+      'shadow-frame',
+      '/frames',
+      async (page) => {
+        const frame = page.frameLocator('iframe[name="inner"]');
+        await frame.locator('input[name="city"]').fill('Torino');
+        await frame.locator('input[name="city"]').press('Tab');
+      },
+      'iframe[name="inner"]',
+    );
+
+    const city = actions.filter((a) => a.type === 'input');
+    expect(city).toHaveLength(1);
+    // The iframe itself lives in x-frame-shell's root: its selector carries that shadow path,
+    // and the step's selector carries the one inside the frame. ' >> ' only between frames.
+    expect(city[0].frameSelector).toContain('x-frame-shell');
+    expect(city[0].frameSelector).toContain('iframe[name="inner"]');
+    expect(city[0].selector).toContain('x-field');
+    expect(city[0].selector).not.toContain('iframe');
+    expect(await resolve('/frames', city[0].selector!, city[0].frameSelector)).toEqual({
+      count: 1,
+      key: 'city',
+    });
+    // The iframe's own load is not a navigation of the test.
+    expect(actions.filter((a) => a.type === 'navigate' && !!a.url?.includes('/inner'))).toEqual([]);
+    expect(
+      mapRecordedSequence(actions).find((s) => s.action.id === 'input')?.targetElement,
+    ).toMatchObject({ frameSelector: city[0].frameSelector });
+  }, 60_000);
+
+  describe('record, save, replay through the engine', () => {
+    /** Saved as the builder saves it (JSON), replayed by the engine, checked on #echo. */
+    async function replay(
+      path: string,
+      actions: RecordedAction[],
+      echo: string,
+      echoFrame: string | null,
+      vars: Record<string, string> = {},
+    ) {
+      const { playwrightService } = await import('../web/playwright-service');
+      const saved = JSON.parse(JSON.stringify(mapRecordedSequence(actions)));
+      saved.push({
+        id: 'check-echo',
+        action: {
+          id: 'assertTextContains',
+          type: 'assertTextContains',
+          name: 'Same values on the same targets',
+          icon: 'c',
+          description: 'x',
+        },
+        targetElement: {
+          id: 'echo',
+          type: 'p',
+          selector: '#echo',
+          text: '',
+          tag: 'p',
+          attributes: {},
+          frameSelector: echoFrame,
+        },
+        value: echo,
+      });
+      const result = await playwrightService.executeTestSequence(
+        {
+          id: 1,
+          userId: 1,
+          organizationId: 1,
+          projectId: null,
+          name: 'shadow-replay',
+          url: `${fixture.baseUrl}${path}`,
+          sequence: saved,
+          elements: [],
+          preconditions: null,
+          status: 'draft',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          module: null,
+          featureArea: null,
+          scenario: null,
+          component: null,
+          priority: 'Medium',
+          severity: 'Major',
+        } as never,
+        1,
+        undefined,
+        undefined,
+        vars,
+      );
+      return result.steps ?? [];
+    }
+
+    it('replays the components page with the recorded values on the recorded targets', async () => {
+      const { actions, echo } = await record('shadow-replay', '/', async (page) => {
+        await page.fill('input[data-key="plain"]', 'light');
+        await page.press('input[data-key="plain"]', 'Tab');
+        await page.fill(USER, 'marco');
+        await page.press(USER, 'Tab');
+        await page.fill('x-login input[name="pass"]', 'hunter22');
+        await page.press('x-login input[name="pass"]', 'Tab');
+        await page.selectOption('x-inner select[name="color"]', 'blue');
+        await page.check('x-inner input[name="agree"]');
+        await page.click('x-inner button:text-is("Save")');
+        await page.click('#add-late');
+        await page.fill('x-late input[name="late"]', 'late');
+        await page.press('x-late input[name="late"]', 'Tab');
+        await page.fill('x-login input[name="search"]', 'orders');
+        await page.press('x-login input[name="search"]', 'Enter');
+      });
+      expect(echo).toContain('user=marco');
+      expect(echo).toContain('plain=light');
+
+      const steps = await replay('/', actions, echo, null, { secret_pass: 'hunter22' });
+      const failures = steps.filter((s) => s.status === 'failed');
+      expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
+      expect(steps.length).toBeGreaterThan(5);
+    }, 120_000);
+
+    it('replays a component inside an iframe inside a component', async () => {
+      const { actions, echo } = await record(
+        'shadow-replay-frame',
+        '/frames',
+        async (page) => {
+          const frame = page.frameLocator('iframe[name="inner"]');
+          await frame.locator('input[name="city"]').fill('Torino');
+          await frame.locator('input[name="city"]').press('Tab');
+        },
+        'iframe[name="inner"]',
+      );
+      expect(echo).toBe('city=Torino');
+
+      const frameSelector = actions.find((a) => a.type === 'input')!.frameSelector!;
+      const steps = await replay('/frames', actions, echo, frameSelector);
+      const failures = steps.filter((s) => s.status === 'failed');
+      expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
+    }, 120_000);
+  });
 });

@@ -81,6 +81,7 @@
     "build:reset-link": "esbuild scripts/password-reset-link.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/password-reset-link.js",
     "dev:collaudo": "node collaudo/app/server.mjs",
     "test:collaudo": "node --test collaudo/app/server.test.mjs",
+    "fixture:shadow": "tsx -e \"import('./e2e/recorder-shadow-fixture.ts').then((m) => m.startShadowFixture(5090)).then((f) => console.log('Web component fixture on ' + f.baseUrl))\"",
     "test:collaudo:browser": "node --test collaudo/app/browser.test.mjs",
     "test:network:unit": "node --test deployment/saas-network/policy.test.mjs deployment/saas-network/wait-worker.test.mjs",
     "test:helm": "node --test scripts/helm-chart.test.mjs",

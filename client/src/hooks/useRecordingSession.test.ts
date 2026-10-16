@@ -205,4 +205,45 @@ describe('useRecordingSession', () => {
     expect(steps.map((s: any) => s.action.id)).toEqual(['click', 'assertTextContains']);
     expect(steps[1].value).toBe('Welcome');
   });
+
+  it('says so on stop when interactions could not become steps', async () => {
+    apiRequest.mockImplementation(async (_method: string, url: string) => {
+      if (url === '/api/start-recording') {
+        return jsonResponse({ success: true, sessionId: 'sess-1' });
+      }
+      if (url === '/api/stop-recording') {
+        return jsonResponse({
+          success: true,
+          sequence: [
+            recorded({ type: 'click', selector: '#ok' }),
+            recorded({ type: 'click', selector: 'x-closed', unsupported: 'closed-shadow-root' }),
+          ],
+        });
+      }
+      return jsonResponse({ success: true, sequence: [] });
+    });
+
+    const onUnsupported = vi.fn();
+    const { result } = renderHook(() =>
+      useRecordingSession({
+        onStepsChange: vi.fn(),
+        onError: vi.fn(),
+        onNotice: vi.fn(),
+        onUnsupported,
+      }),
+    );
+    await act(async () => {
+      result.current.start('https://app.test');
+    });
+    await waitFor(() => expect(result.current.isRecording).toBe(true));
+    await act(async () => {
+      result.current.stop();
+    });
+    await waitFor(() => expect(result.current.isRecording).toBe(false));
+
+    expect(onUnsupported).toHaveBeenCalledTimes(1);
+    expect(onUnsupported.mock.calls[0][0].map((a: RecordedAction) => a.selector)).toEqual([
+      'x-closed',
+    ]);
+  });
 });
