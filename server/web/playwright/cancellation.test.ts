@@ -176,7 +176,11 @@ describe('a run that stops while a test is running', () => {
   });
 
   it('ends a step stuck in a synchronous loop at its deadline, closing its own browser', async () => {
-    const started = Date.now();
+    // From the step's start: the browser's launch is not what is being measured.
+    let started = 0;
+    mocks.onLog = (message) => {
+      if (message.startsWith('Executing step 1')) started = Date.now();
+    };
 
     const result = await run(scriptTest('while (true) {}', 'return "never";'));
 

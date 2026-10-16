@@ -1755,7 +1755,8 @@ export class StepInterruptedError extends Error {
 export const STEP_DEADLINE_MS = Number(process.env.RUN_STEP_DEADLINE_MS) || 5 * 60_000;
 
 /**
- * After the teardown, how long the abandoned work has to end before the verdict is given anyway.
+ * From the stop, how long the abandoned work has to end before the verdict is given anyway. It
+ * runs alongside the teardown, whose own stages are bounded by SESSION_CLOSE_STEP_MS.
  *
  * Closing the session makes every Playwright call in flight reject at once, so this is normally
  * milliseconds; it bounds the rest (a poll between two calls) and keeps "closed within 5 seconds
@@ -1842,13 +1843,18 @@ export async function runBounded<T>(work: () => Promise<T>, bounds: StepBounds):
       if ('failed' in first) throw first.error;
       return first.value;
     }
-    await bounds.teardown().catch(() => {});
+    // The settle window runs alongside the teardown, not after it: the answer comes once the
+    // session is closed and the work has ended, or its window is over — the longer of the two,
+    // not their sum.
     let settle: ReturnType<typeof setTimeout> | undefined;
-    await Promise.race([
-      running.catch(() => {}),
-      new Promise<void>((resolve) => {
-        settle = setTimeout(resolve, bounds.settleMs ?? STEP_SETTLE_MS);
-      }),
+    await Promise.all([
+      bounds.teardown().catch(() => {}),
+      Promise.race([
+        running.catch(() => {}),
+        new Promise<void>((resolve) => {
+          settle = setTimeout(resolve, bounds.settleMs ?? STEP_SETTLE_MS);
+        }),
+      ]),
     ]);
     clearTimeout(settle);
     throw first.why;
