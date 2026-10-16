@@ -189,16 +189,18 @@ $env:ENCRYPTION_KEY='0' * 64
 **File:** script dell'audit nei file di sessione; `server/tests/factories.ts`, `server/tests/setup.ts`,
 `.github/workflows/ci.yml`, `e2e/playwright.config.ts`; nessun nuovo framework.
 
-- [ ] Concordare target iniziale, matrice obbligatoria, modello di fiducia e decisioni elencate sopra.
-- [ ] Registrare SHA, versione Node/Playwright, limiti hardware e profilo di esecuzione del collaudo.
+- [ ] Concordare target iniziale, matrice obbligatoria, modello di fiducia e decisioni elencate sopra. Proposte in baseline §5, in attesa di approvazione.
+- [x] Registrare SHA, versione Node/Playwright, limiti hardware e profilo di esecuzione del collaudo.
 - [ ] Raccogliere valuta, tariffe/costi interni, retention e volume mensile di riferimento per il modello
       economico; distinguere dati forniti dal responsabile e ipotesi di dimensionamento.
-- [ ] Preparare istanze temporanee senza credenziali reali per prove DB, rete, browser e recovery.
+- [x] Preparare istanze temporanee senza credenziali reali per prove DB, rete, browser e recovery.
 - [ ] Conservare `audit-browser-probes.mjs`, `audit-engine-probes.mjs` e `audit-durability-probes.mjs` come
       riproduttori; non scambiare il loro exit 0 per assenza dei bug.
 - [ ] Portare i casi nelle suite normali durante i lotti, sostituendo le asserzioni del difetto con quelle del
       comportamento corretto.
-- [ ] Eseguire `npm run check` e `npm run build`; risultato atteso: exit 0 sulla baseline disponibile.
+- [x] Eseguire `npm run check` e `npm run build`; risultato atteso: exit 0 sulla baseline disponibile.
+
+Esito di P00: [`collaudo/audit-c01-c11-p00-baseline.md`](../../../collaudo/audit-c01-c11-p00-baseline.md). Campi economici (§6) da fornire dal responsabile; script `audit-*-probes.mjs` non presenti nel repository (§3).
 
 **Chiusura:** ogni ID ha riproduttore, lotto, criterio di successo e ambiente autorizzato; nessun accesso a
 produzione.
