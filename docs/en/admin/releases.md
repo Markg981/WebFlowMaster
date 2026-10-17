@@ -213,6 +213,19 @@ older server never falls back to the live plan or to live step groups, elements 
 - a run already queued in an unknown snapshot or definitions format ends in `error`
   (`unsupported_snapshot`, `unusable_snapshot`) without executing anything.
 
+`deployment/releases/data-compatibility.json` declares these formats and `minimumRollbackRelease`,
+the oldest release an installation may go back to after running this one. The release workflow
+checks it with `node scripts/release/compatibility.mjs check [version]` before installing anything:
+
+- on every build, the declared formats must equal `SUPPORTED_EXECUTION_PROTOCOLS`, so a format
+  change cannot ship undeclared;
+- on a tag, `minimumRollbackRelease` must be set and not newer than the tag. When the formats differ
+  from the previous `v*` tag, or there is no previous tag, it must be the tagged release itself;
+  otherwise it keeps the previous value.
+
+The declaration is attached to the release metadata. The first tagged release is R1: set
+`minimumRollbackRelease` to its version in the same commit that prepares its CHANGELOG section.
+
 Local tooling: `npm run test:release` tests packaging and publication guards without a database.
 On a clean committed checkout, `GITHUB_REPOSITORY=owner/repository node scripts/release/prepare.mjs`
 prepares candidate metadata. Full image rebuild/scan verification runs in the release workflow.

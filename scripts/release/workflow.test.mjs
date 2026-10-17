@@ -29,6 +29,21 @@ test('release publication is tag-triggered and signs with the token of the promo
   assert.equal(jobs.promote.permissions.contents, 'read');
 });
 
+test('the rollback contract gates every build and a tag also checks its minimum release', () => {
+  const index = steps('validate').findIndex((step) =>
+    step.run?.includes('compatibility.mjs check'),
+  );
+  assert.ok(index > 0, 'compatibility gate missing');
+  const gate = steps('validate')[index];
+  assert.equal(gate.if, undefined);
+  assert.match(gate.env.VERSION, /github\.ref_type == 'tag' && steps\.prepare\.outputs\.version/);
+  assert.match(gate.run, /release-artifacts\/data-compatibility\.json/);
+  const install = steps('validate').findIndex((step) => step.name === 'Install dependencies');
+  assert.ok(index < install, 'the gate runs before any dependency is installed');
+  assert.ok(workflow.on.pull_request.paths.includes('deployment/releases/**'));
+  assert.ok(workflow.on.pull_request.paths.includes('shared/**'));
+});
+
 test('promote job signs every pushed image by digest after publication and before upload', () => {
   const roles = jobs.promote.strategy.matrix.include.map((entry) => entry.role);
   assert.deepEqual(roles, ROLES);

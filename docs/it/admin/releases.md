@@ -219,6 +219,20 @@ gruppi di step, elementi o azioni personalizzate correnti:
 - un run già accodato con uno snapshot o un formato delle definizioni sconosciuto termina in `error`
   (`unsupported_snapshot`, `unusable_snapshot`) senza eseguire nulla.
 
+`deployment/releases/data-compatibility.json` dichiara questi formati e `minimumRollbackRelease`, il
+rilascio più vecchio a cui un'installazione può tornare dopo aver eseguito questo. Il workflow di
+rilascio lo verifica con `node scripts/release/compatibility.mjs check [versione]` prima di installare
+qualsiasi cosa:
+
+- a ogni build, i formati dichiarati devono coincidere con `SUPPORTED_EXECUTION_PROTOCOLS`, quindi un
+  cambio di formato non può uscire senza essere dichiarato;
+- su un tag, `minimumRollbackRelease` deve essere valorizzato e non più recente del tag. Se i formati
+  differiscono da quelli del tag `v*` precedente, o non esiste un tag precedente, deve essere il
+  rilascio stesso; altrimenti mantiene il valore precedente.
+
+La dichiarazione viene allegata ai metadati del rilascio. Il primo rilascio con tag è R1: impostare
+`minimumRollbackRelease` alla sua versione nello stesso commit che prepara la sua sezione del CHANGELOG.
+
 `npm run test:release` verifica packaging e guardie senza database. Da checkout pulito e committato,
 `GITHUB_REPOSITORY=owner/repository node scripts/release/prepare.mjs` prepara metadati candidati.
 Il workflow esegue ricostruzioni e scansioni complete. Prima di un workflow riuscito sul tag,
