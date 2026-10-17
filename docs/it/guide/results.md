@@ -165,16 +165,24 @@ usano credenziali reali o dati personali: usate account di test dedicati, impost
 
 #### Step healed {#step-healed}
 
-Uno step segnato **healed** ha trovato il suo elemento solo dopo che il selettore è stato
-sostituito (vedi [Repository degli elementi](./web-tests#repository-degli-elementi)). Il risultato
-dello step dice anche che fine ha fatto il nuovo selettore (`healing`):
+Uno step segnato **superato dopo riparazione** è passato con un locator riparato, non con il suo
+(vedi [Uso in esecuzione, approvazione e pubblicazione](./web-tests#approvazione-riparazioni)). È
+comunque un successo, e gli step successivi sono stati eseguiti normalmente. Gli step passati con il
+proprio locator non hanno badge. I dettagli dello step mostrano:
 
-- **applied**: salvato dove lo step è scritto (step del test, step del gruppo o elemento salvato),
-  con il numero di versione per uno step del test;
-- **already applied**: un altro run ha salvato prima la stessa correzione;
-- **conflict**: non salvato, con il motivo (`changed`, `absent`, `locked`, `unauthorized`,
-  `no_source`, `invalid`, `failed`). Il selettore resta qui come proposta da applicare a mano, e il
-  log del run ha un avviso per quello step.
+- il **locator scritto** e quello **usato in questo run**;
+- chi l'ha trovato: un fallback noto o l'AI;
+- la **proposta** e il suo stato attuale: _proposta_, _approvata_ (con la versione della copia di
+  lavoro che ne è nata), _rifiutata_ o _superata_ (lo step è cambiato dopo il run e non si può più
+  approvare).
+
+Editor e owner del progetto vedono **Approva** e **Rifiuta**. Approvare scrive la riparazione dove
+lo step è scritto, sotto il fingerprint registrato dal run. Non pubblica nulla: la nuova versione va
+in linea solo con il consueto passo di pubblicazione o revisione. Il log del run ha un avviso per
+ogni step riparato. Le proposte si leggono anche da `GET /api/healing-proposals?testId=…`.
+
+I risultati registrati prima delle approvazioni mostrano cosa fece allora il run (scrisse la
+riparazione da sé).
 
 Il bordo rosso che evidenzia l'elemento su cui si agisce viene rimosso dopo ogni azione.
 Screenshot, confronti visivi e pagina inviata all'AI mostrano l'applicazione così com'è.

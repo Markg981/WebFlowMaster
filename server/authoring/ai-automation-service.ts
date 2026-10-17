@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import logger from '../platform/logger';
+import { parseLocatorAnswer } from './healing-proposals';
 
 /**
  * The Gemini model every AI feature asks: authoring, failure analysis and selector healing.
@@ -126,9 +127,11 @@ export class AIAutomationService {
   /**
    * Self-healing: proposes a selector for the element a failed one meant, from the page's DOM.
    *
-   * A proposal only. Which step, group or shared element it belongs to is never the model's to
-   * say: the runner knows where the step is written and server/authoring/selector-healing.ts
-   * decides whether the proposal may be written there.
+   * A suggestion only, asked for after the test's own known fallbacks found nothing, and with
+   * `pageSource` already stripped of form values and tokens (domForModel). Which step it belongs
+   * to is never the model's to say, and whether it is used is not either: the runner uses it only
+   * if it matches exactly one element, and it reaches the test only as a proposal a person
+   * approves (server/authoring/healing-proposals.ts).
    */
   async healSelector(
     originalSelector: string,
@@ -159,15 +162,9 @@ export class AIAutomationService {
       `;
 
       const result = await model.generateContent(prompt);
-      const response = result.response;
-      let newSelector = response.text().trim();
-
-      // A fenced answer: the fence and its language tag go, nothing inside the selector does
-      // (".css-button" stays whole).
-      newSelector = newSelector
-        .replace(/^```(?:css|xpath)?\s*/i, '')
-        .replace(/\s*```$/, '')
-        .trim();
+      // One locator or nothing: a fence around the answer goes, nothing inside the locator does
+      // ("css-grid > a" and "css=.btn" stay whole), and several lines are not one locator.
+      const newSelector = parseLocatorAnswer(result.response.text());
 
       this.logInfo('AI proposed new selector', { newSelector });
       return newSelector;

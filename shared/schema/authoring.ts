@@ -22,6 +22,7 @@ import type { MobilePlatform, MobileStep, MobileDeviceTarget } from '../mobile';
 import type { LoadDataMode, LoadStage, LoadStep, LoadThresholds } from '../load-test';
 import { BddTestSchema, type BddTest } from '../bdd';
 import { forbiddenNavigationScheme } from '../browser-navigation';
+import type { HealingOrigin, HealingProposalStatus, HealingTargetKind } from '../healing';
 import { apiTests } from './api-testing';
 import { browserGrids } from './environments';
 import { organizations, projects, users } from './identity';
@@ -296,6 +297,65 @@ export const projectElements = pgTable(
 
 export type ProjectElement = typeof projectElements.$inferSelect;
 export type InsertProjectElement = typeof projectElements.$inferInsert;
+
+/**
+ * A locator a run repaired and used, waiting for a person to approve it into its source (M02,
+ * migration 0094, shared/healing.ts). The run writes nothing else: approving writes the test's
+ * working copy, the step group or the shared element under the recorded fingerprint, and
+ * publishing stays the existing publish or review step. The attempt foreign key is in the
+ * migration.
+ */
+export const healingProposals = pgTable(
+  'healing_proposals',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+    testId: integer('test_id').notNull(),
+    executionId: text('execution_id'),
+    unitId: text('unit_id'),
+    attempt: integer('attempt'),
+    /** The runner's position, for the report: never where the repair goes. */
+    stepIndex: integer('step_index').notNull(),
+    targetKind: text('target_kind').$type<HealingTargetKind>().notNull(),
+    /** The test id, the group id or the element id. */
+    targetRef: text('target_ref').notNull(),
+    /** Position in the test's or group's sequence as written; null for an element. */
+    targetIndex: integer('target_index'),
+    stepId: text('step_id'),
+    callPath: jsonb('call_path')
+      .$type<Array<{ index: number; stepId: string | null }>>()
+      .notNull()
+      .default([]),
+    /** The step (or element) as the run read it: approval writes only over exactly this. */
+    sourceFingerprint: text('source_fingerprint').notNull(),
+    origin: text('origin').$type<HealingOrigin>().notNull(),
+    /** As written in the step: placeholders unresolved, so no secret value is ever stored here. */
+    selectorBefore: text('selector_before'),
+    selectorAfter: text('selector_after').notNull(),
+    status: text('status').$type<HealingProposalStatus>().notNull().default('proposed'),
+    reason: text('reason'),
+    decidedBy: integer('decided_by').references(() => users.id, { onDelete: 'set null' }),
+    decidedAt: timestamp('decided_at'),
+    appliedVersion: integer('applied_version'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'healing_proposals_test_id_same_org_fk',
+      columns: [table.testId, table.organizationId],
+      foreignColumns: [tests.id, tests.organizationId],
+    }).onDelete('cascade'),
+    index('healing_proposals_organization_id_idx').on(table.organizationId),
+    index('healing_proposals_test_id_idx').on(table.testId),
+    index('healing_proposals_execution_id_idx').on(table.executionId),
+  ],
+);
+
+export type HealingProposalRow = typeof healingProposals.$inferSelect;
 
 /**
  * A word an organization uses for a group of tests.

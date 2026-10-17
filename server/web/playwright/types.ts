@@ -8,7 +8,8 @@ import { type EvidenceOptions } from '../../runtime/run-evidence';
 import { type StepRuntime } from '../../runtime/run-policies';
 import { type VisualContext, type VisualErrorCause } from '../visual-testing';
 import type { FrozenDependencies } from '../../authoring/executable-definition';
-import type { HealingOutcome } from '../../authoring/selector-healing';
+import type { ExecutionAttemptRef } from '@shared/execution-identity';
+import type { StepHealing } from '@shared/healing';
 
 // Default settings if not found or incomplete
 export const DEFAULT_HEADLESS = true;
@@ -96,10 +97,11 @@ export interface StepResult {
   details: string;
   healed?: boolean;
   /**
-   * What became of the healed selector: saved to where the step is written (the test's step, the
-   * group's, or the shared element), or kept here as a proposal with the reason it was not (C05).
+   * The step passed on a repaired locator, for this run only: the locator it is written with, the
+   * one it ran with, where that came from, and the proposal a person approves or rejects (M02).
+   * Results recorded before P13 carry what the run then wrote directly (C05).
    */
-  healing?: HealingOutcome;
+  healing?: StepHealing;
   rca?: string;
   /**
    * What the visual comparison made of this step, when the plan asked for one.
@@ -166,6 +168,8 @@ export interface ExecuteSequenceOptions {
    * Absent: an ad-hoc run, or a run queued before R1, which reads them live.
    */
   dependencies?: FrozenDependencies;
+  /** The plan run's attempt this sequence runs as; a healing proposal names it. */
+  attempt?: ExecutionAttemptRef;
 }
 
 // Interface for the ad-hoc sequence payload

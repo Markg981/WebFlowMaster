@@ -1,11 +1,14 @@
 import { Page } from 'playwright';
+import type { ExecutionAttemptRef } from '@shared/execution-identity';
+import type { HealingOrigin, StepHealing } from '@shared/healing';
 import { aiService } from '../authoring/ai-automation-service';
-import { applyHealedSelector, type HealingOutcome } from '../authoring/selector-healing';
+import { domForModel, knownFallbacks, recordHealingProposal } from '../authoring/healing-proposals';
+import { storableSelector } from '../authoring/selector-healing';
 import type { StepProvenance } from '../authoring/step-provenance';
 import { gotoWithinPolicy } from '../platform/egress-policy';
 
 /**
- * Drives a page on behalf of a step, with AI self-healing of the selector when the step fails.
+ * Drives a page on behalf of a step, with healing of the selector when the step fails.
  *
  * Its name is from a time it also reported: every action was wrapped in a "step" of a reporting
  * service, and a failure attached a screenshot to it. That service was a stub — the step ran its
@@ -30,6 +33,12 @@ export interface HealingContext {
   elementId: string | null;
   executionId?: string | null;
   userId?: number | null;
+  /** The plan run's attempt this step is part of, for the proposal. */
+  attempt?: ExecutionAttemptRef | null;
+  /** The runner's position, for the proposal's report. */
+  stepIndex?: number;
+  /** What the recording kept of the element: its known fallbacks come from here. */
+  element?: { tag?: unknown; attributes?: unknown } | null;
 }
 
 /** How long restoring a highlight may take before it is given up: a dialog can block the page. */
@@ -40,8 +49,8 @@ export class PlaywrightReporter {
 
   // State for AI Reporting
   public lastActionHealed: boolean = false;
-  /** What became of this step's healed selector: saved to its source, or kept as a proposal. */
-  public lastHealing: HealingOutcome | null = null;
+  /** The locator this step ran with instead of its own, and the proposal it left. */
+  public lastHealing: StepHealing | null = null;
 
   constructor(private page: Page) {}
 
@@ -77,45 +86,82 @@ export class PlaywrightReporter {
   }
 
   /**
-   * Runs an action on a selector, and once more on a healed one when it fails.
+   * Runs an action on a selector, and once more on a repaired one when it fails.
    *
-   * A repaired selector that works marks this action healed and is proposed to the step's
-   * source; whether it was written there is `lastHealing`. One that does not work, or none at
-   * all, lets the original error through — the step fails with the reason it first failed for,
-   * not with the retry's.
+   * A repaired selector that works marks this action healed, for this run: the step passes and
+   * the steps after it, assertions included, run as they would have. The repair is recorded as a
+   * proposal (`lastHealing`) and written nowhere; a person approves it into the test, or not. No
+   * repair, or one that does not work either, lets the original error through — the step fails
+   * with the reason it first failed for, not with the retry's.
    */
   private async act(selector: string, action: (selector: string) => Promise<unknown>) {
     try {
       await this.highlighted(selector, action);
     } catch (e: any) {
-      const healedSelector = await this.attemptHeal(selector, e.message);
-      if (!healedSelector) throw e;
+      const repair = await this.findRepair(selector, e.message);
+      if (!repair) throw e;
       try {
-        await this.highlighted(healedSelector, action);
+        await this.highlighted(repair.selector, action);
       } catch {
         throw e;
       }
       this.lastActionHealed = true;
-      this.lastHealing = await this.proposeToSource(healedSelector);
+      this.lastHealing = await this.propose(repair);
     }
   }
 
-  /** Writes nothing itself: the source and the conditions are selector-healing's. */
-  private async proposeToSource(proposedSelector: string): Promise<HealingOutcome | null> {
+  /**
+   * A locator to try instead: the test's own known fallbacks first, then the AI's suggestion when
+   * the deployment has AI enabled. Either is used only if it is a valid locator that matches
+   * exactly one element now — never on how sure the model says it is.
+   */
+  private async findRepair(
+    failed: string,
+    error: string,
+  ): Promise<{ selector: string; origin: HealingOrigin } | null> {
+    for (const candidate of knownFallbacks(this.context?.element, failed))
+      if (await this.matchesOne(candidate)) return { selector: candidate, origin: 'fallback' };
+    const suggested = await this.askModel(failed, error);
+    if (suggested && suggested !== failed && (await this.matchesOne(suggested)))
+      return { selector: suggested, origin: 'ai' };
+    return null;
+  }
+
+  private async matchesOne(selector: string): Promise<boolean> {
+    if (!storableSelector(selector)) return false;
+    try {
+      return (await this.page.locator(selector).count()) === 1;
+    } catch {
+      // Not a locator Playwright can parse.
+      return false;
+    }
+  }
+
+  /** Records the repair as a proposal; without a test to belong to (a preview), says nothing. */
+  private async propose(repair: {
+    selector: string;
+    origin: HealingOrigin;
+  }): Promise<StepHealing | null> {
     if (!this.context) return null;
-    return applyHealedSelector({
-      testId: this.context.testId,
-      provenance: this.context.provenance,
-      elementId: this.context.elementId,
-      proposedSelector,
+    return recordHealingProposal({
+      step: {
+        testId: this.context.testId,
+        provenance: this.context.provenance,
+        elementId: this.context.elementId,
+      },
       executionId: this.context.executionId ?? null,
-      startedBy: this.context.userId ?? null,
+      attempt: this.context.attempt ?? null,
+      stepIndex: this.context.stepIndex ?? 0,
+      selector: repair.selector,
+      origin: repair.origin,
     });
   }
 
-  private async attemptHeal(originalSelector: string, error: string): Promise<string | null> {
+  /** The model's suggestion, only when AI is enabled, from the page without its form values. */
+  private async askModel(originalSelector: string, error: string): Promise<string | null> {
+    if (!aiService.isAvailable()) return null;
     try {
-      const pageContent = await this.page.content();
+      const pageContent = domForModel(await this.page.content());
       return await aiService.healSelector(originalSelector, pageContent, error);
     } catch (e) {
       console.error('Healing failed to run', e);

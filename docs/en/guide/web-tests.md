@@ -544,27 +544,50 @@ it to a project with a name. Tests that use it read its selector from the projec
 application changes, correcting the selector once in **Settings → Element repository** fixes every
 test.
 
-When a step cannot find its element and the installation has an AI key, the run may **heal** it:
-it asks for a new selector, retries, and marks the step _healed_ in the report. A healed kept
-element shows the old and the new selector in the repository, for you to confirm.
+When a click, fill or select cannot find its element, the run may **heal** the step: it tries
+another locator and, if that one works, the step passes and the test goes on. Assertions after it
+still run. The run tries, in this order:
 
-### Where a healed selector is saved {#where-healing-saves}
+1. **Known fallbacks**: the element's recorded test id (`data-testid`, `data-test`, `data-qa`,
+   `data-cy`), `id`, `name` or `aria-label`. A value with a `{{variable}}` is skipped.
+2. **The AI's suggestion**, only when the installation has an AI key (`GEMINI_API_KEY`). The model
+   sees the page without its scripts, styles, form values, hidden tokens or meta content.
 
-The AI only proposes the selector. Where it goes is decided by where the step is written:
+Either one is used only if it is a valid locator that matches **exactly one** element on the page.
+The model's own confidence is never used.
 
-| The step that healed           | The selector is saved to                                    |
+### Runtime use, approval and publishing {#healing-approval}
+
+Healing has three separate steps, and only the first one happens during a run:
+
+| Step            | Who       | What changes                                                                                                               |
+| --------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Runtime use** | the run   | Nothing persistent. The step passes on the repaired locator for this run, and a **proposal** is recorded.                  |
+| **Approval**    | an editor | The source the step is written in: the working copy of the test (as a new version), the step group, or the kept element.   |
+| **Publishing**  | as before | Only the existing publish (or review) step puts the new version live. Plans keep running the published version until then. |
+
+A proposal records the run, unit and attempt, where the step is written, a fingerprint of the step
+as the run read it, the locator before (as written, with `{{variables}}` unresolved) and after, and
+whether a fallback or the AI found it. Approving and rejecting are on the report's step details
+(see [Results](./results#healed-steps)) and need the editor role on the test's project.
+
+Where an approved repair goes is decided by where the step is written, never by the AI:
+
+| The step that healed           | Approval writes to                                          |
 | ------------------------------ | ----------------------------------------------------------- |
 | names a kept element           | the element in the repository, for every test that uses it  |
 | belongs to a step group        | that step of the group, for every test that calls it        |
 | is one of the test's own steps | that step of the test, as a new version of the working copy |
 
-A step after a group, or a group called twice, is never mixed up: each repair goes to the step it
-belongs to and nowhere else. A repair is saved only if that step (or element) is still exactly what
-the run executed. If it was edited in the meantime, deleted, the test is archived, or the run acts
-for a viewer, nothing is written. The proposal is kept on the step in the report, with the reason
-(see [Results](./results#healed-steps)). A healed test step creates a new version of the working
-copy. The **published** version does not change: plans pick up the repair only when you publish
-again. Each saved repair is in the organization's audit log.
+A step after a group, or a group called twice, is never mixed up. An approval writes only if that
+step (or element) is still exactly what the run read. If it was edited in the meantime, or another
+proposal for it was approved first, the proposal becomes **stale**: nothing is written, and it can
+no longer be approved. Approving twice is one approval. Each decision is in the organization's audit
+log with who made it.
+
+To take back an approved repair of a test step, restore the version before it in the test's history
+(see [Organizing tests](./organizing#history-and-versions)). For a step group or a kept element,
+edit the selector back: the proposal keeps the selector it replaced.
 
 ## Saving
 

@@ -571,29 +571,51 @@ rilevato lo salva in un progetto con un nome. I test che lo usano leggono il sel
 progetto, così quando l'applicazione cambia, correggere il selettore una volta in **Impostazioni
 → Repository degli elementi** sistema tutti i test.
 
-Quando uno step non trova il suo elemento e l'installazione ha una chiave AI, il run può
-**correggerlo**: chiede un nuovo selettore, riprova, e segna lo step come _healed_ nel report. Un
-elemento salvato che è stato corretto mostra nel repository il selettore vecchio e quello nuovo,
-da confermare.
+Quando un clic, un inserimento o una selezione non trova il suo elemento, il run può **riparare**
+lo step: prova un altro locator e, se funziona, lo step passa e il test prosegue. Le asserzioni
+successive vengono comunque eseguite. Il run prova, in quest'ordine:
 
-### Dove si salva un selettore corretto {#dove-si-salva-la-correzione}
+1. **Fallback noti**: il test id registrato dell'elemento (`data-testid`, `data-test`, `data-qa`,
+   `data-cy`), `id`, `name` o `aria-label`. Un valore con una `{{variabile}}` viene saltato.
+2. **Il suggerimento dell'AI**, solo se l'installazione ha una chiave AI (`GEMINI_API_KEY`). Il
+   modello vede la pagina senza script, stili, valori dei campi, token nascosti e contenuto dei meta.
 
-L'AI propone soltanto il selettore. Dove va lo decide il punto in cui lo step è scritto:
+Si usa l'uno o l'altro solo se è un locator valido che trova **esattamente un** elemento nella
+pagina. La sicurezza dichiarata dal modello non conta mai.
 
-| Lo step corretto              | Il selettore si salva                                              |
+### Uso in esecuzione, approvazione e pubblicazione {#approvazione-riparazioni}
+
+La riparazione ha tre passi distinti, e solo il primo avviene durante un run:
+
+| Passo                 | Chi        | Cosa cambia                                                                                                                                     |
+| --------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Uso in esecuzione** | il run     | Nulla di persistente. Lo step passa con il locator riparato per questo run, e si registra una **proposta**.                                     |
+| **Approvazione**      | un editor  | La sorgente in cui lo step è scritto: la copia di lavoro del test (come nuova versione), il gruppo di step o l'elemento salvato.                |
+| **Pubblicazione**     | come prima | Solo il consueto passo di pubblicazione (o revisione) mette in linea la nuova versione. Fino ad allora i piani eseguono la versione pubblicata. |
+
+Una proposta registra run, unità e tentativo, dove è scritto lo step, un fingerprint dello step come
+lo ha letto il run, il locator prima (come scritto, con le `{{variabili}}` non risolte) e dopo, e se
+l'ha trovato un fallback o l'AI. Approvare e rifiutare si fa dai dettagli dello step nel report
+(vedi [Risultati](./results#step-healed)) e richiede il ruolo editor sul progetto del test.
+
+Dove va una riparazione approvata lo decide il punto in cui lo step è scritto, mai l'AI:
+
+| Lo step riparato              | L'approvazione scrive                                              |
 | ----------------------------- | ------------------------------------------------------------------ |
 | nomina un elemento salvato    | sull'elemento del repository, per tutti i test che lo usano        |
 | fa parte di un gruppo di step | su quello step del gruppo, per tutti i test che lo chiamano        |
 | è uno step del test stesso    | su quello step del test, come nuova versione della copia di lavoro |
 
-Uno step dopo un gruppo, o un gruppo chiamato due volte, non si confondono mai: ogni correzione va
-allo step a cui appartiene e da nessun'altra parte. Si salva solo se quello step (o elemento) è
-ancora esattamente quello eseguito dal run. Se nel frattempo è stato modificato o eliminato, se il
-test è archiviato o se il run agisce per un viewer, non si scrive nulla. La proposta resta sullo
-step nel report, con il motivo (vedi [Risultati](./results#step-healed)). Uno step del test
-corretto crea una nuova versione della copia di lavoro. La versione **pubblicata** non cambia: i
-piani vedono la correzione solo quando pubblicate di nuovo. Ogni correzione salvata è nel registro
-di audit dell'organizzazione.
+Uno step dopo un gruppo, o un gruppo chiamato due volte, non si confondono mai. Un'approvazione
+scrive solo se quello step (o elemento) è ancora esattamente quello letto dal run. Se nel frattempo
+è stato modificato, o è stata approvata prima un'altra proposta per lo stesso step, la proposta
+diventa **superata** (stale): non si scrive nulla e non si può più approvare. Approvare due volte è
+una sola approvazione. Ogni decisione è nel registro di audit dell'organizzazione, con chi l'ha presa.
+
+Per annullare una riparazione approvata di uno step del test, ripristinate la versione precedente
+nella cronologia del test (vedi [Organizzare i test](./organizing#cronologia-e-versioni)). Per un
+gruppo di step o un elemento salvato, rimettete il selettore a mano: la proposta conserva quello
+che ha sostituito.
 
 ## Salvare
 

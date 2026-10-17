@@ -47,7 +47,8 @@ export interface AuditEntry {
     | 'test_data_set'
     | 'impact_rule'
     | 'step_group'
-    | 'project_element';
+    | 'project_element'
+    | 'healing_proposal';
   /** Text because targets are variously serial ids and uuids. */
   targetId?: string | number;
   /**
