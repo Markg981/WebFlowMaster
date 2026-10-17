@@ -1,0 +1,47 @@
+[
+  {
+    "id": "run-1",
+    "planId": "plan-login-order",
+    "status": "completed",
+    "attempt": 1,
+    "queuedAt": "2026-11-02T11:00:00Z",
+    "startedAt": "2026-11-02T11:01:00Z",
+    "completedAt": "2026-11-02T11:05:00Z",
+    "durationMs": 240000,
+    "units": [
+      {
+        "unitId": "u_000000000000000000000001",
+        "state": "done",
+        "testType": "ui",
+        "result": { "testName": "Login and order", "status": "passed", "attempts": 1 }
+      }
+    ]
+  },
+  {
+    "id": "run-2",
+    "planId": "plan-login-order",
+    "status": "failed",
+    "attempt": 1,
+    "queuedAt": "2026-11-05T09:50:00Z",
+    "startedAt": "2026-11-05T09:51:00Z",
+    "completedAt": "2026-11-05T09:57:00Z",
+    "durationMs": 360000,
+    "units": [
+      {
+        "unitId": "u_000000000000000000000002",
+        "state": "done",
+        "testType": "ui",
+        "result": { "testName": "Login and order", "status": "failed", "attempts": 2 }
+      }
+    ]
+  },
+  {
+    "id": "run-outside",
+    "planId": "plan-login-order",
+    "status": "completed",
+    "attempt": 1,
+    "startedAt": "2026-10-20T09:00:00Z",
+    "durationMs": 999999,
+    "units": []
+  }
+]

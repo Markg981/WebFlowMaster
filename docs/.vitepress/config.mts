@@ -124,6 +124,10 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
           link: p('admin/releases'),
         },
         {
+          text: lang === 'it' ? 'Pilot e decisione di adozione' : 'Pilot and adoption decision',
+          link: p('admin/pilot'),
+        },
+        {
           text:
             lang === 'en' ? 'Metrics and distributed tracing' : 'Metriche e tracing distribuito',
           link: p('admin/telemetry'),

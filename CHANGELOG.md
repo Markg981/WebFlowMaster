@@ -98,6 +98,7 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 - Command palette on Ctrl+K ([#363](https://github.com/Markg981/WebFlowMaster/pull/363))
 - Native Slack and Teams messages ([#364](https://github.com/Markg981/WebFlowMaster/pull/364))
 - Per-user rate limit for signed-in sessions on /api ([#387](https://github.com/Markg981/WebFlowMaster/pull/387))
+- Pilot measured against the team's own tool, and an adoption decision gated on its evidence ([#458](https://github.com/Markg981/WebFlowMaster/pull/458))
 
 ### Changed
 

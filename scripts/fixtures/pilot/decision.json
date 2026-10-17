@@ -1,0 +1,20 @@
+{
+  "pilot": "example-pilot",
+  "decision": "adopt_limited",
+  "decidedBy": "Product owner (example)",
+  "decidedOn": "2026-11-16",
+  "target": "Self-hosted single-tenant for teams like the pilot's",
+  "matrix": {
+    "supported": ["chromium", "firefox", "webkit", "self-hosted"],
+    "outOfScope": ["mobile", "grid"]
+  },
+  "limits": "Mobile and grid stay outside until a second pilot.",
+  "evidence": ["login-order timeToFirstGreenMin 70 vs 180", "review register empty"],
+  "support": {
+    "owner": "Support lead (example)",
+    "hoursPerWeek": 4,
+    "channel": "team chat, next business day"
+  },
+  "buildApproval": "release candidate b644779 (P18)",
+  "featureFreezeUntilGate": true
+}
