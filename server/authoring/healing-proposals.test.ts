@@ -86,16 +86,14 @@ async function seedTest(sequence: unknown[], extra: Partial<typeof tests.$inferI
 }
 async function seedGroup(sequence: unknown[]) {
   const id = uuidv4();
-  await privilegedDb
-    .insert(stepGroups)
-    .values({
-      id,
-      organizationId,
-      userId: editorId,
-      projectId,
-      name: `G ${id.slice(0, 4)}`,
-      sequence,
-    });
+  await privilegedDb.insert(stepGroups).values({
+    id,
+    organizationId,
+    userId: editorId,
+    projectId,
+    name: `G ${id.slice(0, 4)}`,
+    sequence,
+  });
   return id;
 }
 const testRow = async (id: number) =>
@@ -192,6 +190,17 @@ describe('what the model is shown', () => {
     }
     expect(shown).toContain('<button id="save">Save</button>');
     expect(shown).toContain('name="csrf"');
+  });
+
+  it('leaves no script behind odd end tags, nested pieces or a script never closed', () => {
+    const shown = domForModel(
+      '<p>a</p><script>x1</script\t\n bar><scr<script>x2</script>ipt>x3</script>' +
+        '<style>x4</style ><b>b</b><script>x5',
+    );
+    for (const value of ['x1', 'x2', 'x3', 'x4', 'x5', '<script', '<style']) {
+      expect(shown).not.toContain(value);
+    }
+    expect(shown).toBe('<p>a</p><b>b</b>');
   });
 });
 

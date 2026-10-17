@@ -107,9 +107,14 @@ export function knownFallbacks(
  * The model needs the structure and the names to find an element, not what was typed into it.
  */
 export function domForModel(html: string, limit = 30_000): string {
-  return html
-    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '')
-    .replace(/<style\b[\s\S]*?<\/style\s*>/gi, '')
+  // Until nothing changes: removing one element can join the pieces of another ("<scr<script>…").
+  // An end tag may carry anything before its ">", and an element never closed runs to the end.
+  let stripped = html;
+  for (let previous = ''; previous !== stripped;) {
+    previous = stripped;
+    stripped = stripped.replace(/<(script|style)\b[\s\S]*?(?:<\/\1\b[^>]*>|$)/gi, '');
+  }
+  return stripped
     .replace(/(<textarea\b[^>]*>)[\s\S]*?(<\/textarea\s*>)/gi, '$1$2')
     .replace(
       /(<(?:input|option|meta|button|param)\b[^>]*?\s)(value|content)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,

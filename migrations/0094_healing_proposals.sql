@@ -49,6 +49,10 @@ CREATE TABLE healing_proposals (
 ALTER TABLE healing_proposals ADD CONSTRAINT healing_proposals_test_id_same_org_fk
   FOREIGN KEY (test_id, organization_id) REFERENCES tests (id, organization_id) ON DELETE CASCADE;
 --> statement-breakpoint
+-- So is the project; deleting it still sets the column null (the single-column key above).
+ALTER TABLE healing_proposals ADD CONSTRAINT healing_proposals_project_id_same_org_fk
+  FOREIGN KEY (project_id, organization_id) REFERENCES projects (id, organization_id);
+--> statement-breakpoint
 -- An attempt named is an attempt of that run's manifest (MATCH SIMPLE: none named, none checked).
 ALTER TABLE healing_proposals ADD CONSTRAINT healing_proposals_attempt_fk
   FOREIGN KEY (execution_id, organization_id, unit_id, attempt)

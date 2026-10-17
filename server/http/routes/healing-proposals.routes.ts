@@ -5,6 +5,7 @@ import type { HealingProposalRow } from '@shared/schema';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import logger from '../../platform/logger';
 import { auditActor } from '../../tenancy/audit';
+import { sessionRateLimit } from '../middleware/rate-limits';
 import { requireRole } from '../middleware/require-role';
 import {
   HealingProposalError,
@@ -27,6 +28,10 @@ import {
  */
 
 const router = asyncRouter();
+
+// Every route reads or writes the database on each call: bounded per user, like every session
+// route, and said here so the limit travels with the routes.
+const proposalsLimit = sessionRateLimit();
 
 const listQuery = z.object({
   testId: z.coerce.number().int().positive().optional(),
@@ -93,7 +98,7 @@ function failed(res: Response, error: unknown, what: string) {
 }
 
 // GET /api/healing-proposals?testId=&executionId=&status=
-router.get('/api/healing-proposals', requireRole('viewer'), async (req, res) => {
+router.get('/api/healing-proposals', proposalsLimit, requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   const parsed = listQuery.safeParse(req.query);
   if (!parsed.success)
@@ -103,46 +108,61 @@ router.get('/api/healing-proposals', requireRole('viewer'), async (req, res) => 
 });
 
 // GET /api/healing-proposals/:id
-router.get('/api/healing-proposals/:id', requireRole('viewer'), async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
-  if (!validId(res, req.params.id)) return;
-  const row = await getHealingProposal(req.params.id);
-  if (!row)
-    return res.status(404).json({ error: 'Proposal not found.', code: 'proposal_not_found' });
-  res.json(view(row));
-});
+router.get(
+  '/api/healing-proposals/:id',
+  proposalsLimit,
+  requireRole('viewer'),
+  async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
+    if (!validId(res, req.params.id)) return;
+    const row = await getHealingProposal(req.params.id);
+    if (!row)
+      return res.status(404).json({ error: 'Proposal not found.', code: 'proposal_not_found' });
+    res.json(view(row));
+  },
+);
 
 // POST /api/healing-proposals/:id/approve { fingerprint }
-router.post('/api/healing-proposals/:id/approve', requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
-  if (!validId(res, req.params.id)) return;
-  const parsed = approveBody.safeParse(req.body);
-  if (!parsed.success)
-    return res.status(400).json({ error: 'The fingerprint you were shown is required.' });
-  try {
-    answer(
-      res,
-      await approveHealingProposal(req.params.id, parsed.data.fingerprint, auditActor(req)),
-    );
-  } catch (error) {
-    failed(res, error, 'approve');
-  }
-});
+router.post(
+  '/api/healing-proposals/:id/approve',
+  proposalsLimit,
+  requireRole('editor'),
+  async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!validId(res, req.params.id)) return;
+    const parsed = approveBody.safeParse(req.body);
+    if (!parsed.success)
+      return res.status(400).json({ error: 'The fingerprint you were shown is required.' });
+    try {
+      answer(
+        res,
+        await approveHealingProposal(req.params.id, parsed.data.fingerprint, auditActor(req)),
+      );
+    } catch (error) {
+      failed(res, error, 'approve');
+    }
+  },
+);
 
 // POST /api/healing-proposals/:id/reject { note? }
-router.post('/api/healing-proposals/:id/reject', requireRole('editor'), async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
-  if (!validId(res, req.params.id)) return;
-  const parsed = rejectBody.safeParse(req.body ?? {});
-  if (!parsed.success) return res.status(400).json({ error: 'Invalid note' });
-  try {
-    answer(
-      res,
-      await rejectHealingProposal(req.params.id, parsed.data.note ?? null, auditActor(req)),
-    );
-  } catch (error) {
-    failed(res, error, 'reject');
-  }
-});
+router.post(
+  '/api/healing-proposals/:id/reject',
+  proposalsLimit,
+  requireRole('editor'),
+  async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!validId(res, req.params.id)) return;
+    const parsed = rejectBody.safeParse(req.body ?? {});
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid note' });
+    try {
+      answer(
+        res,
+        await rejectHealingProposal(req.params.id, parsed.data.note ?? null, auditActor(req)),
+      );
+    } catch (error) {
+      failed(res, error, 'reject');
+    }
+  },
+);
 
 export default router;
