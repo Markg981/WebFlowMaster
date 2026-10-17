@@ -209,4 +209,95 @@ describe('FlakyTestsCard', () => {
 
     expect(await screen.findByText('Could not analyse flaky tests')).toBeInTheDocument();
   });
+
+  describe('a test rescued by retries (P14)', () => {
+    const recovery = (day: string, cause: string | null, recorded = true) => ({
+      kind: 'recovered' as const,
+      at: `2026-09-${day}T00:00:00.000Z`,
+      version: 4,
+      executionId: `exec-${day}`,
+      planId: 'plan-1',
+      unitId: recorded ? `unit-${day}` : null,
+      attempt: recorded ? 1 : null,
+      attempts: 2,
+      cause,
+      causeRecorded: recorded,
+    });
+    const rescued = (signals: ReturnType<typeof recovery>[]) => ({
+      ...response.items[0],
+      testName: 'Checkout',
+      browser: 'chromium',
+      matrix: { environment: 'staging', locale: 'it', device: null },
+      runs: 3,
+      passed: 3,
+      failed: 0,
+      errored: 0,
+      flips: 0,
+      unexplainedFlips: 0,
+      recoveredByRetry: 3,
+      flakiness: 1,
+      lastStatus: 'passed' as const,
+      lastAttempts: 2,
+      lastSeen: signals[0].at,
+      signals,
+    });
+
+    it('lists three runs that each passed on their second attempt, with no flip at all', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ...response,
+          items: [
+            rescued([
+              recovery('21', 'Timeout on #pay'),
+              recovery('14', 'Timeout on #pay'),
+              recovery('07', 'Timeout on #pay'),
+            ]),
+          ],
+        }),
+      });
+      renderCard();
+
+      expect(await screen.findByText('Checkout')).toBeInTheDocument();
+      expect(screen.getByText(/0× in 3 runs/)).toBeInTheDocument();
+      expect(screen.getByText('3× passed on retry')).toBeInTheDocument();
+      // The last run, green, still says it needed a second try and why the first failed.
+      expect(screen.getByText('Flaky · passed on attempt 2')).toHaveAttribute(
+        'title',
+        expect.stringContaining('First failure: Timeout on #pay'),
+      );
+      // The variant it is the history of.
+      expect(screen.getByText('· staging')).toBeInTheDocument();
+      expect(screen.getByText('· it')).toBeInTheDocument();
+    });
+
+    it('links every signal to the attempt that shows it', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ ...response, items: [rescued([recovery('21', 'Timeout on #pay')])] }),
+      });
+      renderCard();
+
+      const link = await screen.findByRole('link', { name: /first failure: Timeout on #pay/ });
+      expect(link).toHaveAttribute(
+        'href',
+        '/test-plans/plan-1/executions/exec-21/report?unit=unit-21&attempt=1',
+      );
+    });
+
+    it('says a legacy rescue has no recorded cause instead of guessing one', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ ...response, items: [rescued([recovery('21', null, false)])] }),
+      });
+      renderCard();
+
+      const link = await screen.findByRole('link', { name: /was not recorded/ });
+      expect(link).toHaveAttribute('href', '/test-plans/plan-1/executions/exec-21/report');
+      expect(screen.getByText('Flaky · passed on attempt 2')).toHaveAttribute(
+        'title',
+        expect.stringContaining('Why the first attempt failed was not recorded.'),
+      );
+    });
+  });
 });

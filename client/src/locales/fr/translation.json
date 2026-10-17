@@ -2921,7 +2921,9 @@
     "flaky": {
       "label": "Instable · réussi à la tentative {{attempts}}",
       "title": "Réussi uniquement après une nouvelle exécution : ce test est instable.",
-      "count": "{{count}} réussis seulement lors d’une tentative ultérieure"
+      "count": "{{count}} réussis seulement lors d’une tentative ultérieure",
+      "cause": "Premier échec : {{cause}}",
+      "causeUnknown": "La cause de l'échec de la première tentative n'a pas été enregistrée."
     },
     "attempts": {
       "label": "{{attempts}} tentatives",
@@ -3515,7 +3517,7 @@
   },
   "flakyTests": {
     "title": "Tests qui se contredisent",
-    "description": "Sur les {{days}} derniers jours, les tests dont le verdict a changé d'une exécution à l'autre sans rien pour l'expliquer. Un test cassé puis corrigé n'est pas ici, ni un test dont le verdict a changé parce que quelqu'un l'a modifié.",
+    "description": "Sur les {{days}} derniers jours, les tests dont le verdict a changé d'une exécution à l'autre sans rien pour l'expliquer, et ceux qui n'ont réussi que lorsque l'exécution les a relancés. Un test cassé puis corrigé n'apparaît pas ici, pas plus qu'un test dont le verdict a changé parce que quelqu'un l'a modifié.",
     "loading": "Analyse des exécutions récentes…",
     "empty": "Aucun test n'a changé de verdict sur cette période, sur {{count}} résultats examinés.",
     "columns": {
@@ -3524,14 +3526,25 @@
       "history": "Réussis / échoués",
       "flips": "Changements de verdict",
       "last": "Dernière exécution",
-      "quarantine": "Quarantaine"
+      "quarantine": "Quarantaine",
+      "evidence": "Preuves"
     },
     "errored": "jamais exécutés",
     "inRuns": "en {{runs}} exécutions",
     "edited": "modifié",
     "editedTitle": "Modifié pendant cette période (versions {{versions}}). Seuls les changements de verdict inexpliqués sont comptés.",
     "inQuarantine": "En quarantaine",
-    "quarantine": "Mettre en quarantaine"
+    "quarantine": "Mettre en quarantaine",
+    "recovered": "{{count}}× réussi après relance",
+    "recoveredTitle": "Réussi seulement après une relance, dans {{count}} exécutions sur {{runs}}.",
+    "signals": "{{count}} signaux",
+    "signal": {
+      "recovered": "Réussi à la tentative {{attempts}} ; premier échec : {{cause}}",
+      "recoveredUnknown": "Réussi à la tentative {{attempts}} ; la cause du premier échec n'a pas été enregistrée",
+      "flip": "Verdict passé à {{verdict}}",
+      "error": "Jamais exécuté : erreur d'infrastructure",
+      "definitionChanged": "Définition modifiée (version {{version}})"
+    }
   },
   "quarantine": {
     "title": "Mettre « {{name}} » en quarantaine",

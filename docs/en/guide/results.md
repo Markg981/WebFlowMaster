@@ -279,6 +279,17 @@ counted on its own, not by name: two different tests called the same are kept ap
 test keeps its history under its new name. Mobile tests are counted per device
 ([mobile apps](./mobile-apps#unstable)).
 
+A test that **passed on retry** is listed too, even when every run ended green and no verdict
+ever changed: three runs that each passed on the second attempt show **3× passed on retry**, and a
+last run that is green does not take the test off the list. Retries, changes of verdict, runs that
+never ran because of an infrastructure error, and edits are counted apart and never added up into
+one another. Only comparable runs share a history: the same test, running the same definition (a
+rename alone does not split it, a change to its steps, data or dependencies does), against the same
+browser, environment, locale and device. **Evidence** lists what happened, newest first, each item
+linked to the report of the run, opened on the attempt that shows it — for a retry, the first
+attempt that failed and why. A run recorded before attempts were kept says the cause was not
+recorded rather than guess one.
+
 A flaky test can be put in **quarantine**, with the reason. It keeps running and its results are
 kept, but its failures stop failing runs, stopping plans, filing issues and breaking pipelines.
 **Tests in quarantine** shows how each has done since; once it has been passing again,
