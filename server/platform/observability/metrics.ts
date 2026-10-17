@@ -75,7 +75,8 @@ export function sampleChildProcesses(root: number, proc: ProcFs): ChildProcessSa
   const own = stats.get(String(root));
   if (!own) return null;
   const children = new Map<string, string[]>();
-  for (const [pid, fields] of stats) children.set(fields[1], [...(children.get(fields[1]) ?? []), pid]);
+  for (const [pid, fields] of stats)
+    children.set(fields[1], [...(children.get(fields[1]) ?? []), pid]);
   let processes = 0;
   let residentBytes = 0;
   let ticks = Number(own[13]) + Number(own[14]);
@@ -163,7 +164,11 @@ export function createMetrics() {
     [
       ['processes', 'processes', 'Processes started by this worker (browsers and helpers)'],
       ['resident_bytes', 'residentBytes', 'Resident memory of the processes this worker started'],
-      ['cpu_seconds', 'cpuSeconds', 'CPU time of the processes this worker started, ended ones included'],
+      [
+        'cpu_seconds',
+        'cpuSeconds',
+        'CPU time of the processes this worker started, ended ones included',
+      ],
     ] as const
   ).map(
     ([suffix, key, help]) =>

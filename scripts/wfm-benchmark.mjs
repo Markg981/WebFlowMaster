@@ -93,7 +93,11 @@ const origin = (url) => {
  * Reads WFM_BENCHMARK_CONFIG and checks it against the profile. Returns the configuration with
  * its credentials resolved, or the first reason it is refused. Credentials are never echoed.
  */
-export function loadConfig(profile, env = process.env, read = (file) => readFileSync(file, 'utf8')) {
+export function loadConfig(
+  profile,
+  env = process.env,
+  read = (file) => readFileSync(file, 'utf8'),
+) {
   if (!(profile in PROFILES))
     return { error: `Unknown profile "${profile}": ${Object.keys(PROFILES).join(', ')}.` };
   const file = env.WFM_BENCHMARK_CONFIG;
@@ -116,22 +120,33 @@ export function loadConfig(profile, env = process.env, read = (file) => readFile
   if (!isObject(environment) || typeof environment.name !== 'string' || !environment.name)
     return { error: 'environment.name is required.' };
   if (environment.production !== false || PRODUCTION.test(environment.name))
-    return { error: 'A benchmark never runs against production: declare environment.production false on a dedicated installation.' };
+    return {
+      error:
+        'A benchmark never runs against production: declare environment.production false on a dedicated installation.',
+    };
   for (const field of ['version', 'browser'])
     if (typeof environment[field] !== 'string' || !environment[field])
       return { error: `environment.${field} is required.` };
   for (const field of ['hardware', 'concurrency', 'steps', 'artifacts'])
     if (!isObject(environment[field]) || Object.keys(environment[field]).length === 0)
-      return { error: `environment.${field} is required: record what the numbers were measured on.` };
-  if (!isObject(environment.mix) || !fraction(environment.mix.web) || !fraction(environment.mix.api) ||
-      Math.abs(environment.mix.web + environment.mix.api - 1) > 1e-9)
+      return {
+        error: `environment.${field} is required: record what the numbers were measured on.`,
+      };
+  if (
+    !isObject(environment.mix) ||
+    !fraction(environment.mix.web) ||
+    !fraction(environment.mix.api) ||
+    Math.abs(environment.mix.web + environment.mix.api - 1) > 1e-9
+  )
     return { error: 'environment.mix is { web, api }, two fractions adding up to 1.' };
 
   if (!isObject(target) || !/^https?:\/\//.test(target.url ?? ''))
     return { error: 'target.url is the dedicated installation, http(s)://….' };
   for (const name of ['WFM_URL', 'WEBFLOW_PUBLIC_URL'])
     if (env[name] && origin(env[name]) === origin(target.url))
-      return { error: `target.url is the installation in use (${name}); point it at a dedicated one.` };
+      return {
+        error: `target.url is the installation in use (${name}); point it at a dedicated one.`,
+      };
   if (!Array.isArray(target.targets) || target.targets.length === 0)
     return { error: 'target.targets lists at least one { keyEnv, planId }.' };
   if (!positiveInteger(target.maxConcurrent))
@@ -169,17 +184,38 @@ export function loadConfig(profile, env = process.env, read = (file) => readFile
   const dsn = resolve('volume.databaseUrlEnv', volume.databaseUrlEnv);
   if (dsn.error) return dsn;
   const inherited = Object.entries(env).find(
-    ([name, value]) => !CREDENTIAL_ENV.test(name) && /DATABASE_URL$/.test(name) && value === dsn.value,
+    ([name, value]) =>
+      !CREDENTIAL_ENV.test(name) && /DATABASE_URL$/.test(name) && value === dsn.value,
   );
   if (inherited)
-    return { error: `The scratch database is the application's own (${inherited[0]}): use a dedicated one.` };
+    return {
+      error: `The scratch database is the application's own (${inherited[0]}): use a dedicated one.`,
+    };
 
-  if (!isObject(baseline)) return { error: 'baseline is required: the N, U and R the profiles multiply.' };
-  for (const field of ['plans', 'tests', 'readers', 'runs', 'readSeconds', 'months', 'runsPerDay', 'orgs'])
-    if (!positiveInteger(baseline[field])) return { error: `baseline.${field} must be a positive integer.` };
+  if (!isObject(baseline))
+    return { error: 'baseline is required: the N, U and R the profiles multiply.' };
+  for (const field of [
+    'plans',
+    'tests',
+    'readers',
+    'runs',
+    'readSeconds',
+    'months',
+    'runsPerDay',
+    'orgs',
+  ])
+    if (!positiveInteger(baseline[field]))
+      return { error: `baseline.${field} must be a positive integer.` };
 
-  if (!isObject(slo) || typeof slo.approvedBy !== 'string' || !slo.approvedBy || typeof slo.approvedAt !== 'string')
-    return { error: 'slo needs approvedBy and approvedAt: thresholds nobody approved are not a verdict.' };
+  if (
+    !isObject(slo) ||
+    typeof slo.approvedBy !== 'string' ||
+    !slo.approvedBy ||
+    typeof slo.approvedAt !== 'string'
+  )
+    return {
+      error: 'slo needs approvedBy and approvedAt: thresholds nobody approved are not a verdict.',
+    };
   for (const field of ['maxP95Ms', 'maxQueueWaitP95Ms', 'maxQueryMs', 'maxSeqScanRows'])
     if (!positive(slo[field])) return { error: `slo.${field} must be a positive number.` };
   if (!fraction(slo.maxErrorRate)) return { error: 'slo.maxErrorRate is a fraction from 0 to 1.' };
@@ -187,14 +223,24 @@ export function loadConfig(profile, env = process.env, read = (file) => readFile
   let axes = PROFILES[profile];
   if (axes === null) {
     const combination = config.combination;
-    if (!isObject(combination) || !Array.isArray(combination.axes) || combination.axes.length < 2 ||
-        !combination.axes.every((a) => ['definitions', 'readers', 'runs'].includes(a)) ||
-        typeof combination.agreedBy !== 'string' || !combination.agreedBy)
-      return { error: 'tenfold-combined needs combination { axes: [two or more of definitions, readers, runs], agreedBy }.' };
+    if (
+      !isObject(combination) ||
+      !Array.isArray(combination.axes) ||
+      combination.axes.length < 2 ||
+      !combination.axes.every((a) => ['definitions', 'readers', 'runs'].includes(a)) ||
+      typeof combination.agreedBy !== 'string' ||
+      !combination.agreedBy
+    )
+      return {
+        error:
+          'tenfold-combined needs combination { axes: [two or more of definitions, readers, runs], agreedBy }.',
+      };
     axes = [...new Set(combination.axes)];
   }
   if (axes.includes('runs') && baseline.runs * FACTOR > 100)
-    return { error: `tenfold-runs starts ${baseline.runs * FACTOR} runs per target; wfm-load takes at most 100: lower baseline.runs or add targets.` };
+    return {
+      error: `tenfold-runs starts ${baseline.runs * FACTOR} runs per target; wfm-load takes at most 100: lower baseline.runs or add targets.`,
+    };
 
   return { config, profile, axes, targets, metrics, databaseUrl: dsn.value, credentials };
 }
@@ -222,35 +268,57 @@ export function workload(baseline, axes) {
 export function loadArgv(resolved, work, jsonPath) {
   const { config, targets } = resolved;
   return [
-    '--url', config.target.url,
+    '--url',
+    config.target.url,
     ...targets.flatMap((t) => ['--target', `${t.key}:${t.planId}`]),
-    '--readers', String(work.readers),
-    '--read-seconds', String(work.readSeconds),
-    '--runs', String(work.runs),
-    '--max-concurrent', String(config.target.maxConcurrent),
-    '--run-timeout', String(work.runTimeoutSeconds),
-    '--request-timeout', String(work.requestTimeoutSeconds),
-    '--max-p95-ms', String(config.slo.maxP95Ms),
-    '--max-error-rate', String(config.slo.maxErrorRate),
-    '--json', jsonPath,
+    '--readers',
+    String(work.readers),
+    '--read-seconds',
+    String(work.readSeconds),
+    '--runs',
+    String(work.runs),
+    '--max-concurrent',
+    String(config.target.maxConcurrent),
+    '--run-timeout',
+    String(work.runTimeoutSeconds),
+    '--request-timeout',
+    String(work.requestTimeoutSeconds),
+    '--max-p95-ms',
+    String(config.slo.maxP95Ms),
+    '--max-error-rate',
+    String(config.slo.maxErrorRate),
+    '--json',
+    jsonPath,
   ];
 }
 
 export function volumeArgv(resolved, work, jsonPath) {
   return [
-    '--database-url', resolved.databaseUrl,
+    '--database-url',
+    resolved.databaseUrl,
     '--reset',
-    '--months', String(work.months),
-    '--runs-per-day', String(work.runsPerDay),
-    '--orgs', String(work.orgs),
-    '--plans', String(work.plans),
-    '--tests', String(work.tests),
-    '--results-per-run', String(work.resultsPerRun),
-    '--logs-per-run', String(work.logsPerRun),
-    '--repeat', String(work.repeat),
-    '--max-ms', String(resolved.config.slo.maxQueryMs),
-    '--seq-scan-rows', String(resolved.config.slo.maxSeqScanRows),
-    '--json', jsonPath,
+    '--months',
+    String(work.months),
+    '--runs-per-day',
+    String(work.runsPerDay),
+    '--orgs',
+    String(work.orgs),
+    '--plans',
+    String(work.plans),
+    '--tests',
+    String(work.tests),
+    '--results-per-run',
+    String(work.resultsPerRun),
+    '--logs-per-run',
+    String(work.logsPerRun),
+    '--repeat',
+    String(work.repeat),
+    '--max-ms',
+    String(resolved.config.slo.maxQueryMs),
+    '--seq-scan-rows',
+    String(resolved.config.slo.maxSeqScanRows),
+    '--json',
+    jsonPath,
   ];
 }
 
@@ -295,15 +363,22 @@ export function total(samples, name, where = {}) {
  */
 export function histogramQuantile(before, after, name, where, q) {
   const counts = new Map();
-  for (const [samples, sign] of [[after, 1], [before, -1]])
+  for (const [samples, sign] of [
+    [after, 1],
+    [before, -1],
+  ])
     for (const s of samples)
       if (matches(s, `${name}_bucket`, where))
         counts.set(s.labels.le, (counts.get(s.labels.le) ?? 0) + sign * s.value);
   const count = counts.get('+Inf') ?? 0;
   if (count <= 0) return null;
-  const bounds = [...counts.keys()].filter((le) => le !== '+Inf').map(Number).sort((a, b) => a - b);
+  const bounds = [...counts.keys()]
+    .filter((le) => le !== '+Inf')
+    .map(Number)
+    .sort((a, b) => a - b);
   for (const bound of bounds)
-    if ((counts.get(String(bound)) ?? 0) >= q * count) return { upperBoundMs: bound * 1000, overflow: false };
+    if ((counts.get(String(bound)) ?? 0) >= q * count)
+      return { upperBoundMs: bound * 1000, overflow: false };
   return { upperBoundMs: (bounds.at(-1) ?? 0) * 1000, overflow: true };
 }
 
@@ -374,7 +449,9 @@ export function summariseProcesses(endpoints, { series, unreachable }) {
   };
   // A process start time that changed is a restart: under pressure, likely out of memory.
   const restarts = series.reduce((sum, points) => {
-    const starts = points.map((p) => total(p.samples, 'wfm_process_start_time_seconds')).filter((v) => v !== null);
+    const starts = points
+      .map((p) => total(p.samples, 'wfm_process_start_time_seconds'))
+      .filter((v) => v !== null);
     return sum + starts.filter((v, i) => i > 0 && v !== starts[i - 1]).length;
   }, 0);
   const first = series.map((points) => points[0]?.samples ?? []).flat();
@@ -391,7 +468,13 @@ export function summariseProcesses(endpoints, { series, unreachable }) {
     artifactBytes: delta('wfm_artifact_bytes_written_total'),
     peakQueueWaiting: peak('wfm_queue_jobs', { queue: 'test-execution-queue', state: 'waiting' }),
     workerErrors: delta('wfm_jobs_total', { queue: 'test-execution-queue', outcome: 'error' }),
-    planWaitP95: histogramQuantile(first, last, 'wfm_job_wait_seconds', { queue: 'test-execution-queue', job: 'execute-plan' }, 0.95),
+    planWaitP95: histogramQuantile(
+      first,
+      last,
+      'wfm_job_wait_seconds',
+      { queue: 'test-execution-queue', job: 'execute-plan' },
+      0.95,
+    ),
   };
 }
 
@@ -414,7 +497,8 @@ export function summariseRunLoad(load) {
   const runs = load.runs ?? [];
   const statuses = {};
   for (const run of runs)
-    for (const [status, n] of Object.entries(run.statuses ?? {})) statuses[status] = (statuses[status] ?? 0) + n;
+    for (const [status, n] of Object.entries(run.statuses ?? {}))
+      statuses[status] = (statuses[status] ?? 0) + n;
   const admitted = runs.reduce((sum, r) => sum + r.started, 0);
   const successful = statuses.completed ?? 0;
   const windowMs = max(runs.map((r) => r.lastEndMs));
@@ -552,17 +636,39 @@ export function verdict(slo, report) {
   const processes = report.measured.processes;
   if (runs.queueWaitP95Ms !== null && runs.queueWaitP95Ms > slo.maxQueueWaitP95Ms)
     found.push(`queue wait p95 ${runs.queueWaitP95Ms} ms > ${slo.maxQueueWaitP95Ms} ms`);
-  if (positive(slo.maxRunP95Ms) && runs.durationP95Ms !== null && runs.durationP95Ms > slo.maxRunP95Ms)
+  if (
+    positive(slo.maxRunP95Ms) &&
+    runs.durationP95Ms !== null &&
+    runs.durationP95Ms > slo.maxRunP95Ms
+  )
     found.push(`run duration p95 ${runs.durationP95Ms} ms > ${slo.maxRunP95Ms} ms`);
-  if (positive(slo.max429Rate) && runs.requested > 0 && runs.refused429 / runs.requested > slo.max429Rate)
-    found.push(`${runs.refused429} of ${runs.requested} run starts refused (429) > ${slo.max429Rate}`);
+  if (
+    positive(slo.max429Rate) &&
+    runs.requested > 0 &&
+    runs.refused429 / runs.requested > slo.max429Rate
+  )
+    found.push(
+      `${runs.refused429} of ${runs.requested} run starts refused (429) > ${slo.max429Rate}`,
+    );
   if (processes.restarts > 0)
-    found.push(`${processes.restarts} process restart(s) during the profile: pressure must queue or refuse, not crash`);
-  if (positive(slo.maxBrowserResidentBytes) && (processes.peakBrowserResidentBytes ?? 0) > slo.maxBrowserResidentBytes)
-    found.push(`browser memory peak ${processes.peakBrowserResidentBytes} B > ${slo.maxBrowserResidentBytes} B`);
-  if (positive(slo.maxCostPerSuccessfulRun) && report.cost.costPerSuccessfulRun !== null &&
-      report.cost.costPerSuccessfulRun > slo.maxCostPerSuccessfulRun)
-    found.push(`cost per successful run ${report.cost.costPerSuccessfulRun} ${report.cost.currency} > ${slo.maxCostPerSuccessfulRun}`);
+    found.push(
+      `${processes.restarts} process restart(s) during the profile: pressure must queue or refuse, not crash`,
+    );
+  if (
+    positive(slo.maxBrowserResidentBytes) &&
+    (processes.peakBrowserResidentBytes ?? 0) > slo.maxBrowserResidentBytes
+  )
+    found.push(
+      `browser memory peak ${processes.peakBrowserResidentBytes} B > ${slo.maxBrowserResidentBytes} B`,
+    );
+  if (
+    positive(slo.maxCostPerSuccessfulRun) &&
+    report.cost.costPerSuccessfulRun !== null &&
+    report.cost.costPerSuccessfulRun > slo.maxCostPerSuccessfulRun
+  )
+    found.push(
+      `cost per successful run ${report.cost.costPerSuccessfulRun} ${report.cost.currency} > ${slo.maxCostPerSuccessfulRun}`,
+    );
   return { passed: found.length === 0, breaches: found, economicGate: report.cost.gate };
 }
 
@@ -584,13 +690,18 @@ export function compare(baseline, current) {
   return {
     baseline: baseline.file ?? null,
     baselineAt: baseline.startedAt,
-    ratios: Object.fromEntries(Object.keys(after).map((k) => [k, round(ratio(after[k], before[k]), 3)])),
+    ratios: Object.fromEntries(
+      Object.keys(after).map((k) => [k, round(ratio(after[k], before[k]), 3)]),
+    ),
   };
 }
 
 function latestBaseline(dir, environment) {
   try {
-    const files = readdirSync(dir).filter((f) => /^baseline-.*\.json$/.test(f)).sort().reverse();
+    const files = readdirSync(dir)
+      .filter((f) => /^baseline-.*\.json$/.test(f))
+      .sort()
+      .reverse();
     for (const file of files) {
       const report = JSON.parse(readFileSync(path.join(dir, file), 'utf8'));
       if (report.schema === SCHEMA && report.environment?.name === environment && report.measured)
@@ -626,7 +737,10 @@ async function inProcess(run, redact, log) {
 
 function revision() {
   try {
-    return execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
   } catch {
     return null;
   }
@@ -652,7 +766,9 @@ export async function main(argv, { env = process.env, io = defaultIo } = {}) {
   mkdirSync(runDir, { recursive: true });
   const work = workload(config.baseline, axes);
   const startedAt = new Date(io.now()).toISOString();
-  say(`Benchmark ${profile} (${axes.length ? axes.map((a) => `${a} ×${FACTOR}`).join(', ') : 'baseline'}) on ${config.environment.name}`);
+  say(
+    `Benchmark ${profile} (${axes.length ? axes.map((a) => `${a} ×${FACTOR}`).join(', ') : 'baseline'}) on ${config.environment.name}`,
+  );
 
   let load;
   let volume;
@@ -662,9 +778,18 @@ export async function main(argv, { env = process.env, io = defaultIo } = {}) {
     const loadTool = await io.importTool('./wfm-load.ts');
     const volumeTool = await io.importTool('./wfm-volume.ts');
     const watch = sampler(io, metrics, (config.sampleSeconds ?? 5) * 1000);
-    const loadCode = await inProcess(() => loadTool.main(loadArgv(resolved, work, path.join(runDir, 'load.json'))), redact, io.log);
+    const loadCode = await inProcess(
+      () => loadTool.main(loadArgv(resolved, work, path.join(runDir, 'load.json'))),
+      redact,
+      io.log,
+    );
     processes = summariseProcesses(metrics, await watch.stop());
-    const volumeCode = await inProcess((print) => volumeTool.main(volumeArgv(resolved, work, path.join(runDir, 'volume.json')), print), redact, io.log);
+    const volumeCode = await inProcess(
+      (print) =>
+        volumeTool.main(volumeArgv(resolved, work, path.join(runDir, 'volume.json')), print),
+      redact,
+      io.log,
+    );
     codes = { load: loadCode, volume: volumeCode };
     if (loadCode === EXIT_TOOL_ERROR || volumeCode === EXIT_TOOL_ERROR)
       throw new Error(`${loadCode === EXIT_TOOL_ERROR ? 'wfm-load' : 'wfm-volume'} could not run`);
@@ -672,7 +797,14 @@ export async function main(argv, { env = process.env, io = defaultIo } = {}) {
     volume = JSON.parse(readFileSync(path.join(runDir, 'volume.json'), 'utf8'));
   } catch (error) {
     const file = path.join(outDir, `${profile}-${stamp}.json`);
-    writeFileSync(file, JSON.stringify({ schema: SCHEMA, profile, startedAt, error: redact(error.message), codes }, null, 2));
+    writeFileSync(
+      file,
+      JSON.stringify(
+        { schema: SCHEMA, profile, startedAt, error: redact(error.message), codes },
+        null,
+        2,
+      ),
+    );
     say(`The benchmark could not be run: ${error.message}\nReport: ${file}`);
     return EXIT_TOOL_ERROR;
   }
@@ -701,7 +833,13 @@ export async function main(argv, { env = process.env, io = defaultIo } = {}) {
     environment: {
       ...config.environment,
       revision: revision(),
-      runner: { platform: process.platform, node: process.version, cpus: os.cpus().length, cpuModel: os.cpus()[0]?.model ?? null, memoryBytes: os.totalmem() },
+      runner: {
+        platform: process.platform,
+        node: process.version,
+        cpus: os.cpus().length,
+        cpuModel: os.cpus()[0]?.model ?? null,
+        memoryBytes: os.totalmem(),
+      },
       targets: resolved.targets.length,
       maxConcurrentPerOrganization: config.target.maxConcurrent,
     },
@@ -727,7 +865,12 @@ export async function main(argv, { env = process.env, io = defaultIo } = {}) {
         postgres: volume.postgres,
         bytesPerRun: dbBytesPerRun,
         sizes: volume.sizes,
-        queries: volume.measurements.map((m) => ({ name: m.name, medianMs: m.medianMs, seqScans: m.seqScans, indexes: m.indexes })),
+        queries: volume.measurements.map((m) => ({
+          name: m.name,
+          medianMs: m.medianMs,
+          seqScans: m.seqScans,
+          indexes: m.indexes,
+        })),
       },
     },
     cost: priceRuns(config.cost, usage),
@@ -749,14 +892,25 @@ export async function main(argv, { env = process.env, io = defaultIo } = {}) {
       ? 'Within the approved SLO at this scale on this environment.'
       : 'Beyond the approved SLO at this scale: the sustainable limit is below it.',
   };
-  report.comparison = profile === 'baseline' ? null : compare(latestBaseline(outDir, config.environment.name), report);
+  report.comparison =
+    profile === 'baseline'
+      ? null
+      : compare(latestBaseline(outDir, config.environment.name), report);
 
   const file = path.join(outDir, `${profile}-${stamp}.json`);
   writeFileSync(file, redact(JSON.stringify(report, null, 2)));
   say('');
-  say(`API p95 ${report.measured.api.p95 ?? '—'} ms · queue wait p95 ${runs.queueWaitP95Ms ?? '—'} ms · ${runs.successful}/${runs.admitted} runs completed, ${runs.refused429} refused`);
-  say(`Cost per successful run: ${report.cost.costPerSuccessfulRun ?? `missing (${report.cost.missing.join(', ')})`}${report.cost.currency ? ` ${report.cost.currency}` : ''}`);
-  say(report.verdict.passed ? 'Within the approved SLO.' : `Breached:\n${report.verdict.breaches.map((b) => `  ✗ ${b}`).join('\n')}`);
+  say(
+    `API p95 ${report.measured.api.p95 ?? '—'} ms · queue wait p95 ${runs.queueWaitP95Ms ?? '—'} ms · ${runs.successful}/${runs.admitted} runs completed, ${runs.refused429} refused`,
+  );
+  say(
+    `Cost per successful run: ${report.cost.costPerSuccessfulRun ?? `missing (${report.cost.missing.join(', ')})`}${report.cost.currency ? ` ${report.cost.currency}` : ''}`,
+  );
+  say(
+    report.verdict.passed
+      ? 'Within the approved SLO.'
+      : `Breached:\n${report.verdict.breaches.map((b) => `  ✗ ${b}`).join('\n')}`,
+  );
   say(`Report: ${file}`);
   return report.verdict.passed ? EXIT_OK : EXIT_BREACHED;
 }
