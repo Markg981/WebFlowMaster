@@ -230,28 +230,47 @@ describe('a reviewed version', () => {
     expect(await executedSelectors()).toEqual(['#v2-login']);
   });
 
-  it('with an unsupported or corrupt bundle fails explicitly, never as the working copy', async () => {
+  it('with a corrupt bundle fails explicitly, never as the working copy', async () => {
     const login = await newGroup('#v1-login');
     const testId = await newTest([call(login)]);
     await as(author).post(`/api/tests/${testId}/publish`).send({}).expect(200);
     const planId = await planOf(testId);
 
-    for (const [snapshot, expected] of [
-      [{ executable: { protocol: 7, dependencies: {} } }, /format 7/],
-      [{ executable: { protocol: 1, dependencies: { protocol: 1 } } }, /unreadable/],
-    ] as const) {
-      // app_user may not rewrite a history; the database owner may, which is what this simulates.
-      await privilegedDb
-        .update(testVersions)
-        .set({ snapshot })
-        .where(eq(testVersions.testId, testId));
-      executeTestSequence.mockClear();
-      await processTestPlanJob(planId, (await enqueue(planId)).id, owner.id);
-      const [, , , , , , options] = executeTestSequence.mock.calls.at(-1)!;
-      const prepared = await prepareSequence([call(login)], options.dependencies);
-      expect(prepared.steps).toEqual([]);
-      expect(prepared.errors[0]).toMatch(expected);
-    }
+    // app_user may not rewrite a history; the database owner may, which is what this simulates.
+    await privilegedDb
+      .update(testVersions)
+      .set({ snapshot: { executable: { protocol: 1, dependencies: { protocol: 1 } } } })
+      .where(eq(testVersions.testId, testId));
+    await processTestPlanJob(planId, (await enqueue(planId)).id, owner.id);
+    const [, , , , , , options] = executeTestSequence.mock.calls.at(-1)!;
+    const prepared = await prepareSequence([call(login)], options.dependencies);
+    expect(prepared.steps).toEqual([]);
+    expect(prepared.errors[0]).toMatch(/unreadable/);
+  });
+
+  // R1 rollback contract: a server older than the version it is asked to run refuses the run
+  // before it is queued, rather than queue one it would run with live dependencies or fail later.
+  it('in a format this server does not know is refused before enqueue', async () => {
+    const login = await newGroup('#v1-login');
+    const testId = await newTest([call(login)]);
+    await as(author).post(`/api/tests/${testId}/publish`).send({}).expect(200);
+    const planId = await planOf(testId);
+    await privilegedDb
+      .update(testVersions)
+      .set({ snapshot: { executable: { protocol: 7, dependencies: {} } } })
+      .where(eq(testVersions.testId, testId));
+
+    await expect(enqueue(planId)).rejects.toMatchObject({
+      code: 'unsupported_definition',
+      status: 409,
+      message: expect.stringMatching(new RegExp(`test ${testId}.*format 7`)),
+    });
+    const queued = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.testPlanId, planId));
+    expect(queued).toEqual([]);
+    expect(executeTestSequence).not.toHaveBeenCalled();
   });
 });
 

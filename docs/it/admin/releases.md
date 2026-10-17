@@ -205,6 +205,20 @@ solo se compatibili con lo schema nuovo; altrimenti ripristinare database e arte
 verificato durante un'interruzione controllata. Seguire [operatività](./operations) e il runbook backup.
 Non sono garantiti downgrade automatico o migrazioni senza interruzione.
 
+**Formati dei dati e R1.** R1 è il rilascio più vecchio che legge ogni formato di esecuzione scritto
+oggi, oppure lo rifiuta esplicitamente; dopo la prima scrittura di un formato più recente non si
+torna sotto R1. I formati sono elencati in `SUPPORTED_EXECUTION_PROTOCOLS`
+(`shared/execution-provenance.ts`). Un server più vecchio non ripiega mai sul piano corrente né su
+gruppi di step, elementi o azioni personalizzate correnti:
+
+- una versione pubblicata di un test UI con le dipendenze registrate in un formato che il server non
+  conosce viene rifiutata alla richiesta del run (HTTP 409, `unsupported_definition`, con il nome del
+  test), quindi nessun run viene accodato;
+- una versione con le dipendenze registrate corrotte fa fallire quel test con un messaggio esplicito,
+  e il resto del piano viene eseguito;
+- un run già accodato con uno snapshot o un formato delle definizioni sconosciuto termina in `error`
+  (`unsupported_snapshot`, `unusable_snapshot`) senza eseguire nulla.
+
 `npm run test:release` verifica packaging e guardie senza database. Da checkout pulito e committato,
 `GITHUB_REPOSITORY=owner/repository node scripts/release/prepare.mjs` prepara metadati candidati.
 Il workflow esegue ricostruzioni e scansioni complete. Prima di un workflow riuscito sul tag,

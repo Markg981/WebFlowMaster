@@ -200,6 +200,19 @@ if they are compatible with the new schema; otherwise restore the verified pre-u
 and artifacts during a controlled outage. Follow [operations](./operations) and the backup runbook.
 No automatic downgrade or zero-downtime migration guarantee is provided.
 
+**Data formats and R1.** R1 is the oldest release that reads every execution format written
+today, or refuses it explicitly; once a newer format has been written, do not roll back below R1.
+The formats are listed in `SUPPORTED_EXECUTION_PROTOCOLS` (`shared/execution-provenance.ts`). An
+older server never falls back to the live plan or to live step groups, elements or custom actions:
+
+- a published UI test version whose dependencies are recorded in a format the server does not
+  know is refused when the run is requested (HTTP 409, `unsupported_definition`, naming the test),
+  so no run is queued;
+- a version whose recorded dependencies are corrupt fails that test with an explicit message, and
+  the rest of the plan runs;
+- a run already queued in an unknown snapshot or definitions format ends in `error`
+  (`unsupported_snapshot`, `unusable_snapshot`) without executing anything.
+
 Local tooling: `npm run test:release` tests packaging and publication guards without a database.
 On a clean committed checkout, `GITHUB_REPOSITORY=owner/repository node scripts/release/prepare.mjs`
 prepares candidate metadata. Full image rebuild/scan verification runs in the release workflow.

@@ -135,12 +135,12 @@ ripiegare sul piano o sulle dipendenze correnti. Dopo la prima scrittura di un f
 retrocede a codice precedente. La fonte nel codice è `SUPPORTED_EXECUTION_PROTOCOLS` in
 `shared/execution-provenance.ts`; ogni lotto che introduce un formato aggiunge qui la sua riga.
 
-| Dato                                                | Formati letti da R1 | Introdotto da | Formato assente / legacy                           | Corrotto o non supportato                                          |
-| --------------------------------------------------- | ------------------- | ------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
-| `test_plan_executions.configuration_snapshot`       | `version` 1         | prima di R1   | `{}` o null: il worker usa il piano attuale        | run in `error` (`corrupt_snapshot`, `unsupported_snapshot`)        |
-| `configuration_snapshot.definitions.version`        | 1, 2                | 2: P09        | 1: gruppi/elementi/azioni letti dal vivo           | run in `error` (`unusable_snapshot`)                               |
-| bundle delle dipendenze in una definizione accodata | `protocol` 1        | P09           | assente in formato 2: `unusable_snapshot`          | impronta non corrispondente: `unusable_snapshot`                   |
-| `test_versions.snapshot.executable` (versioni UI)   | `protocol` 1        | P09           | senza chiave: dipendenze catturate all'accodamento | il test fallisce con messaggio esplicito, mai come copia di lavoro |
+| Dato                                                | Formati letti da R1 | Introdotto da | Formato assente / legacy                           | Corrotto o non supportato                                                                                                                               |
+| --------------------------------------------------- | ------------------- | ------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test_plan_executions.configuration_snapshot`       | `version` 1         | prima di R1   | `{}` o null: il worker usa il piano attuale        | run in `error` (`corrupt_snapshot`, `unsupported_snapshot`)                                                                                             |
+| `configuration_snapshot.definitions.version`        | 1, 2                | 2: P09        | 1: gruppi/elementi/azioni letti dal vivo           | run in `error` (`unusable_snapshot`)                                                                                                                    |
+| bundle delle dipendenze in una definizione accodata | `protocol` 1        | P09           | assente in formato 2: `unusable_snapshot`          | impronta non corrispondente: `unusable_snapshot`                                                                                                        |
+| `test_versions.snapshot.executable` (versioni UI)   | `protocol` 1        | P09           | senza chiave: dipendenze catturate all'accodamento | corrotto: il test fallisce con messaggio esplicito, mai come copia di lavoro; non supportato: accodamento rifiutato (409 `unsupported_definition`, P18) |
 
 Un worker precedente a R1 che riceve `definitions.version` 2 lo considera non disponibile e rifiuta il run (non
 lo esegue con dipendenze correnti). Limiti dichiarati: variabili e segreti dell'ambiente, browser, griglie, agenti
