@@ -211,6 +211,25 @@ kills a worker mid-run and checks that the run reports `worker_lost` explicitly,
 run is missing a unit result, that no unit is left `running`, and that no run replays the lost one.
 Locking and concurrency on a real PostgreSQL cluster are verified in the pilot (lot P18).
 
+## Sizing for growth {#sizing}
+
+Size a worker from measurements, not from expectations. On a dedicated installation and scratch
+database, `npm run benchmark -- --profile baseline` and then each `tenfold-*` profile (see
+[growth to ten times](./load-testing#benchmark)) give API and queue-wait percentiles, completed runs
+per hour, the memory and CPU of the browsers each worker started (`wfm_worker_child_*`), artifact
+bytes per attempt and cost per successful run, against the approved SLO. The largest profile that
+passes is the operating limit for that hardware and those settings.
+
+- Concurrency is **per worker process** (`WORKER_CONCURRENCY` plans, `BROWSER_TASK_CONCURRENCY`
+  browser tasks) and **per organization** (`ORG_MAX_CONCURRENT_RUNS`); they are different limits.
+  Scale out with more worker replicas before raising per-process concurrency past what the memory
+  peak allows.
+- Saturation must show as a growing queue or HTTP 429, never as a restarted worker, lost results or
+  quota violations: a restart during a profile fails it.
+- Change indexes or queries only after `npm run volume` has measured them with
+  `EXPLAIN (ANALYZE, BUFFERS)`.
+- Keep the benchmark's cost figures apart from the human maintenance time measured in the pilot.
+
 ## Artifact retention
 
 Screenshots, videos and traces of runs that ended more than `ARTIFACT_RETENTION_DAYS` days ago
