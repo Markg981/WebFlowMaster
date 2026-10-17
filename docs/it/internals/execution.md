@@ -360,16 +360,20 @@ perso sono avvenuti; il fencing garantisce che il worker perso non possa cambiar
   (`waitForElement`, `waitForText`, `waitForNetworkIdle`), asserzioni (`assert`, `assertTextContains`,
   `assertElementCount`, `assertState`, `assertAccessible`) ed `ensureState`. Le asserzioni aspettano
   fino a 5 s che la pagina si stabilizzi; le attese esplicite fino a 15 s.
-- **Correzione automatica.** Quando un clic o un inserimento non trova il proprio elemento ed è
-  configurata una chiave AI, il DOM della pagina e l'errore vanno al modello, che propone un selettore.
-  Se il nuovo tentativo con quel selettore riesce, lo step è marcato _healed_ e il selettore è
-  proposto alla sorgente dello step, presa dalla provenienza che ogni step preparato porta con sé
-  (`server/authoring/step-provenance.ts`): l'elemento condiviso del repository, lo step del gruppo
-  o lo step del test nella sua posizione scritta, mai la posizione del runner nella sequenza
-  espansa. `server/authoring/selector-healing.ts` lo scrive in una transazione del tenant, dopo
-  aver bloccato la riga e confrontato il fingerprint preso quando il run l'ha preparata, con
-  versione (step del test) e voce di audit nella stessa transazione. Altrimenti segnala un conflitto
-  nel `healing` dello step.
+- **Riparazione.** Quando un clic, un inserimento o una selezione non trova il proprio elemento, il
+  reporter prova i fallback noti dello step (test id registrato, `id`, `name`, `aria-label`) e poi,
+  solo se è configurata una chiave AI, il suggerimento del modello a partire dalla pagina passata da
+  `domForModel` (senza script, stili, valori dei campi né token). Un candidato si usa solo se
+  Playwright lo interpreta e trova esattamente un elemento. Se il nuovo tentativo riesce, lo step
+  passa ed è marcato _healed_. Il run non scrive nulla nel test: `recordHealingProposal`
+  (`server/authoring/healing-proposals.ts`) registra una riga in `healing_proposals` (migrazione 0094) con run, unità e tentativo, il bersaglio preso dalla provenienza dello step
+  (`server/authoring/step-provenance.ts`: elemento condiviso, step del gruppo o step del test nella
+  sua posizione scritta), il fingerprint della sorgente e il locator prima e dopo. L'approvazione di
+  un editor (`POST /api/healing-proposals/:id/approve` con quel fingerprint) chiama
+  `writeHealedSelector` (`server/authoring/selector-healing.ts`) nella transazione del tenant di chi
+  approva: blocca la riga sorgente, confronta il fingerprint, scrive, registra una versione della
+  copia di lavoro (step del test) e le voci di audit, tutto in una transazione. Una sorgente cambiata
+  rende la proposta `stale` (409). La versione pubblicata non viene mai scritta.
 - **Evidenze.** Screenshot secondo la policy del piano; video, trace di Playwright e cattura di rete HAR
   secondo le impostazioni (`never`, `on_failure`, `always`); confronto visivo con le baseline per step
   quando i test visivi sono attivi (`server/web/visual-testing.ts` restituisce `match`, `diff`,

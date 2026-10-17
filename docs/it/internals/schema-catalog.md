@@ -4,7 +4,7 @@ Generato da `shared/schema/` (un file per dominio) con `node scripts/generate-sc
 
 Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le relazioni, poi cercare qui la tabella. Ogni riga riporta la proprietà TypeScript, il nome SQL e il builder completo: tipo, nullabilità, default e riferimenti dichiarati nella colonna. I vincoli definiti nel callback della tabella non sono espansi qui.
 
-**80 tabelle / 899 colonne dichiarate.**
+**81 tabelle / 923 colonne dichiarate.**
 
 ## Indice
 
@@ -44,6 +44,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | [custom_actions](#custom-actions)                             | `customActions`              | 9       |
 | [test_data_sets](#test-data-sets)                             | `testDataSets`               | 8       |
 | [project_elements](#project-elements)                         | `projectElements`            | 14      |
+| [healing_proposals](#healing-proposals)                       | `healingProposals`           | 24      |
 | [tags](#tags)                                                 | `tags`                       | 4       |
 | [test_tags](#test-tags)                                       | `testTags`                   | 8       |
 | [test_versions](#test-versions)                               | `testVersions`               | 19      |
@@ -462,7 +463,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:838`
+`sessions` — `shared/schema/identity.ts:842`
 
 | Proprietà TS | Colonna SQL | Dichiarazione                   |
 | ------------ | ----------- | ------------------------------- |
@@ -472,7 +473,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## tests {#tests}
 
-`tests` — `shared/schema/authoring.ts:29`
+`tests` — `shared/schema/authoring.ts:30`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                   |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -501,7 +502,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_runs {#test-runs}
 
-`testRuns` — `shared/schema/authoring.ts:84`
+`testRuns` — `shared/schema/authoring.ts:85`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -515,7 +516,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## detected_elements {#detected-elements}
 
-`detectedElements` — `shared/schema/authoring.ts:105`
+`detectedElements` — `shared/schema/authoring.ts:106`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                        |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------------ |
@@ -533,7 +534,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## excel_sequences_map {#excel-sequences-map}
 
-`excelSequencesMap` — `shared/schema/authoring.ts:132`
+`excelSequencesMap` — `shared/schema/authoring.ts:133`
 
 | Proprietà TS      | Colonna SQL          | Dichiarazione                                                                        |
 | ----------------- | -------------------- | ------------------------------------------------------------------------------------ |
@@ -545,7 +546,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## step_groups {#step-groups}
 
-`stepGroups` — `shared/schema/authoring.ts:168`
+`stepGroups` — `shared/schema/authoring.ts:169`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -561,7 +562,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## custom_actions {#custom-actions}
 
-`customActions` — `shared/schema/authoring.ts:201`
+`customActions` — `shared/schema/authoring.ts:202`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------- |
@@ -577,7 +578,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_data_sets {#test-data-sets}
 
-`testDataSets` — `shared/schema/authoring.ts:231`
+`testDataSets` — `shared/schema/authoring.ts:232`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -592,7 +593,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## project_elements {#project-elements}
 
-`projectElements` — `shared/schema/authoring.ts:264`
+`projectElements` — `shared/schema/authoring.ts:265`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                              |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------------------ |
@@ -611,9 +612,40 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `createdAt`        | `created_at`        | `timestamp('created_at').defaultNow().notNull()`                                           |
 | `updatedAt`        | `updated_at`        | `timestamp('updated_at').defaultNow().notNull()`                                           |
 
+## healing_proposals {#healing-proposals}
+
+`healingProposals` — `shared/schema/authoring.ts:308`
+
+| Proprietà TS        | Colonna SQL          | Dichiarazione                                                                                               |
+| ------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `id`                | `id`                 | `text('id').primaryKey()`                                                                                   |
+| `organizationId`    | `organization_id`    | `integer('organization_id') .notNull() .references(() => organizations.id)`                                 |
+| `projectId`         | `project_id`         | `integer('project_id').references(() => projects.id, { onDelete: 'set null' })`                             |
+| `testId`            | `test_id`            | `integer('test_id').notNull()`                                                                              |
+| `executionId`       | `execution_id`       | `text('execution_id')`                                                                                      |
+| `unitId`            | `unit_id`            | `text('unit_id')`                                                                                           |
+| `attempt`           | `attempt`            | `integer('attempt')`                                                                                        |
+| `stepIndex`         | `step_index`         | `integer('step_index').notNull()`                                                                           |
+| `targetKind`        | `target_kind`        | `text('target_kind').$type<HealingTargetKind>().notNull()`                                                  |
+| `targetRef`         | `target_ref`         | `text('target_ref').notNull()`                                                                              |
+| `targetIndex`       | `target_index`       | `integer('target_index')`                                                                                   |
+| `stepId`            | `step_id`            | `text('step_id')`                                                                                           |
+| `callPath`          | `call_path`          | `jsonb('call_path') .$type<Array<{ index: number; stepId: string &#124; null }>>() .notNull() .default([])` |
+| `sourceFingerprint` | `source_fingerprint` | `text('source_fingerprint').notNull()`                                                                      |
+| `origin`            | `origin`             | `text('origin').$type<HealingOrigin>().notNull()`                                                           |
+| `selectorBefore`    | `selector_before`    | `text('selector_before')`                                                                                   |
+| `selectorAfter`     | `selector_after`     | `text('selector_after').notNull()`                                                                          |
+| `status`            | `status`             | `text('status').$type<HealingProposalStatus>().notNull().default('proposed')`                               |
+| `reason`            | `reason`             | `text('reason')`                                                                                            |
+| `decidedBy`         | `decided_by`         | `integer('decided_by').references(() => users.id, { onDelete: 'set null' })`                                |
+| `decidedAt`         | `decided_at`         | `timestamp('decided_at')`                                                                                   |
+| `appliedVersion`    | `applied_version`    | `integer('applied_version')`                                                                                |
+| `createdAt`         | `created_at`         | `timestamp('created_at').notNull().defaultNow()`                                                            |
+| `updatedAt`         | `updated_at`         | `timestamp('updated_at').notNull().defaultNow()`                                                            |
+
 ## tags {#tags}
 
-`tags` — `shared/schema/authoring.ts:312`
+`tags` — `shared/schema/authoring.ts:372`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                               |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -624,7 +656,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_tags {#test-tags}
 
-`testTags` — `shared/schema/authoring.ts:336`
+`testTags` — `shared/schema/authoring.ts:396`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -639,7 +671,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_versions {#test-versions}
 
-`testVersions` — `shared/schema/authoring.ts:381`
+`testVersions` — `shared/schema/authoring.ts:441`
 
 | Proprietà TS          | Colonna SQL             | Dichiarazione                                                                                       |
 | --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
@@ -665,7 +697,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_publications {#test-publications}
 
-`testPublications` — `shared/schema/authoring.ts:445`
+`testPublications` — `shared/schema/authoring.ts:505`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                       |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -682,7 +714,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_reviews {#test-reviews}
 
-`testReviews` — `shared/schema/authoring.ts:488`
+`testReviews` — `shared/schema/authoring.ts:548`
 
 | Proprietà TS      | Colonna SQL        | Dichiarazione                                                                                       |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
@@ -702,7 +734,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## mobile_tests {#mobile-tests}
 
-`mobileTests` — `shared/schema/authoring.ts:535`
+`mobileTests` — `shared/schema/authoring.ts:595`
 
 | Proprietà TS       | Colonna SQL         | Dichiarazione                                                                   |
 | ------------------ | ------------------- | ------------------------------------------------------------------------------- |
@@ -724,7 +756,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## mobile_step_groups {#mobile-step-groups}
 
-`mobileStepGroups` — `shared/schema/authoring.ts:562`
+`mobileStepGroups` — `shared/schema/authoring.ts:622`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -741,7 +773,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## load_tests {#load-tests}
 
-`loadTests` — `shared/schema/authoring.ts:597`
+`loadTests` — `shared/schema/authoring.ts:657`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |

@@ -65,6 +65,7 @@ import { isExecutionInFlight } from '@shared/execution-status';
 import CommentsPanel from '@/components/tests/CommentsPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatDate, formatDateTime } from '@/lib/dates';
+import { useAuth } from '@/hooks/use-auth';
 
 /** The filter value that lets every result through. */
 const ALL = '__all__';
@@ -236,6 +237,7 @@ export interface TestPlanExecutionReport {
 }
 
 const TestReportPage: React.FC = () => {
+  const { user } = useAuth();
   const [commentsFor, setCommentsFor] = useState<{ id: string; name: string } | null>(null);
   /** The result whose steps are open, if any. */
   /** The failed result whose AI analysis is open, if any. */
@@ -1455,6 +1457,8 @@ const TestReportPage: React.FC = () => {
         unitEvidence={openedSteps?.unitEvidence}
         initialAttempt={openedSteps?.attempt}
         initialRow={openedSteps?.row}
+        // The server decides; this only keeps the buttons from a viewer.
+        canDecideHealing={!!user && user.role !== 'viewer'}
       />
       <Dialog
         open={commentsFor !== null}

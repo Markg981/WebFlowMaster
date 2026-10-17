@@ -346,15 +346,20 @@ With `shards = 1` none of this runs.
   waits (`waitForElement`, `waitForText`, `waitForNetworkIdle`), assertions (`assert`,
   `assertTextContains`, `assertElementCount`, `assertState`, `assertAccessible`) and `ensureState`.
   Assertions wait up to 5 s for the page to settle; explicit waits up to 15 s.
-- **Healing.** When a click or a fill cannot find its element and an AI key is configured, the page's
-  DOM and the error go to the model, which proposes a selector. If the retry with it succeeds, the
-  step is marked _healed_ and the selector is proposed to the step's source, taken from the
-  provenance every prepared step carries (`server/authoring/step-provenance.ts`): the shared
-  repository element, the group's step, or the test's step at its written position, never the
-  runner's position in the expanded sequence. `server/authoring/selector-healing.ts` writes it in a
-  tenant transaction, after locking the row and comparing it with the fingerprint taken when the
-  run prepared it, with a version (test step) and an audit entry in the same transaction. Otherwise
-  it reports a conflict on the step's `healing`.
+- **Healing.** When a click, fill or select cannot find its element, the reporter tries the step's
+  known fallbacks (recorded test id, `id`, `name`, `aria-label`) and then, only when an AI key is
+  configured, the model's suggestion from the page passed through `domForModel` (no scripts, styles,
+  form values or tokens). A candidate is used only if Playwright parses it and it matches exactly one
+  element. If the retry succeeds, the step passes and is marked _healed_. The run writes nothing to
+  the test: `recordHealingProposal` (`server/authoring/healing-proposals.ts`) records a row in
+  `healing_proposals` (migration 0094) with the run, unit and attempt, the target taken from the
+  step's provenance (`server/authoring/step-provenance.ts`: shared element, group step, or test step
+  at its written position), the source fingerprint, and the locator before and after. An editor's
+  approval (`POST /api/healing-proposals/:id/approve` with that fingerprint) calls
+  `writeHealedSelector` (`server/authoring/selector-healing.ts`) in the approver's tenant
+  transaction: it locks the source row, compares the fingerprint, writes, records a working-copy
+  version (test step) and audit entries, all in one transaction. A changed source makes the
+  proposal `stale` (409). The published version is never written.
 - **Evidence.** Screenshots per the plan's policy; video, Playwright trace and HAR network capture
   per the evidence settings (`never`, `on_failure`, `always`); visual comparison against per-step
   baselines when visual testing is on (`server/web/visual-testing.ts` returns `match`, `diff`,

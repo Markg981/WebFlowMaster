@@ -147,6 +147,21 @@ describe('AIAutomationService', () => {
       expect(await service.healSelector('div.old', 'html', 'error')).toBe('.css-button > span');
     });
 
+    it('keeps a locator that starts with "css", and refuses an answer that is not one locator (P13)', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => '```css-grid > a```' },
+      });
+      expect(await service.healSelector('div.old', 'html', 'error')).toBe('css-grid > a');
+      mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => 'css=.btn' },
+      });
+      expect(await service.healSelector('div.old', 'html', 'error')).toBe('css=.btn');
+      mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => 'Try this:\n#save' },
+      });
+      expect(await service.healSelector('div.old', 'html', 'error')).toBeNull();
+    });
+
     it('has no way to write a selector anywhere: the target is decided from provenance (C05)', () => {
       expect('updateSelectorInDb' in service).toBe(false);
     });

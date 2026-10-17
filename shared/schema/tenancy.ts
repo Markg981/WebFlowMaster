@@ -85,6 +85,8 @@ export const ORG_SCOPED_TABLES = [
   // A run's manifest of expected units and the attempts at each (migration 0091).
   'execution_units',
   'execution_unit_attempts',
+  // Locators a run repaired, waiting for a person to approve them (migration 0094).
+  'healing_proposals',
   // Which files map to which tests' tags (migration 0068).
   'impact_rules',
   // Text messages the test numbers received (migration 0070).

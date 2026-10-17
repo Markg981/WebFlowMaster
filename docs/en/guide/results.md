@@ -161,16 +161,23 @@ to _Never_ or _When the test fails_ in the plan, and keep `ARTIFACT_RETENTION_DA
 
 #### Healed steps {#healed-steps}
 
-A step marked **healed** found its element only after its selector was replaced (see
-[Element repository](./web-tests#element-repository)). The step's result also says what became of
-the new selector (`healing`):
+A step marked **passed after healing** passed on a repaired locator, not on its own (see
+[Runtime use, approval and publishing](./web-tests#healing-approval)). It is still a pass, and the
+steps after it ran normally. Steps that passed on their own locator have no badge. The step details
+show:
 
-- **applied**: saved to where the step is written (the test's step, the group's step or the kept
-  element), with the version number for a test step;
-- **already applied**: another run saved the same repair first;
-- **conflict**: not saved, with the reason (`changed`, `absent`, `locked`, `unauthorized`,
-  `no_source`, `invalid`, `failed`). The selector is kept here as a proposal for you to apply by
-  hand, and the run's log has a warning for that step.
+- the **written locator** and the one **used in this run**;
+- what found it: a known fallback, or the AI;
+- the **proposal** and its current state: _proposed_, _approved_ (with the working-copy version it
+  became), _rejected_, or _out of date_ (the step changed after the run, so it can no longer be
+  approved).
+
+Editors and owners of the project see **Approve** and **Reject**. Approving writes the repair to
+where the step is written, under the fingerprint the run recorded. It does not publish anything:
+the new version goes live only through the usual publish or review step. The run's log has a warning
+for each healed step. Proposals are also available from `GET /api/healing-proposals?testId=…`.
+
+Results recorded before approvals existed show what the run did then (it wrote the repair itself).
 
 The red outline that marks the element being acted on is removed after each action. Screenshots,
 visual comparisons and the page sent to the AI show the application as it is.

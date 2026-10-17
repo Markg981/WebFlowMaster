@@ -405,7 +405,8 @@ describe('rows that point across organizations', () => {
     // A run's pending job belongs to a run of the same organization (0090).
     // A run's manifest unit belongs to a run of the same organization (0091); its attempts and
     // result rows are tied to it by composite keys that carry the organization.
-    expect(rows.length).toBe(101);
+    // A healing proposal's test and project (0094).
+    expect(rows.length).toBe(103);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 
@@ -447,6 +448,7 @@ describe('rows that point across organizations', () => {
       'test_publications.published_by',
       'test_reviews.requested_by',
       'test_reviews.decided_by',
+      'healing_proposals.decided_by',
       'issue_trackers.created_by',
       'test_suites.created_by',
       'test_quarantines.quarantined_by',

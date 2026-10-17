@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import StepDetailsDialog, { type ReportStep } from './StepDetailsDialog';
 
 vi.mock('react-i18next', () => ({
@@ -516,5 +516,134 @@ describe('StepDetailsDialog', () => {
     );
 
     expect(screen.getByText(/no recorded steps/i)).toBeInTheDocument();
+  });
+});
+
+describe('StepDetailsDialog: a pass after healing (P13, M02)', () => {
+  const fingerprint = 'a'.repeat(64);
+  const healedSteps: ReportStep[] = [
+    { name: 'Click One', type: 'click', status: 'passed', details: 'Success' },
+    {
+      name: 'Click Save',
+      type: 'click',
+      status: 'passed',
+      details: 'Passed after healing, for this run only.',
+      healed: true,
+      healing: {
+        status: 'proposed',
+        originalSelector: '#{{field}}',
+        proposedSelector: 'button[data-testid="save"]',
+        origin: 'fallback',
+        proposalId: 'hp_' + '1'.repeat(24),
+        fingerprint,
+        detail: 'Passed after healing, for this run only.',
+      },
+    },
+  ];
+  const fetchMock = vi.fn();
+  const respond = (status: number, body: unknown) =>
+    Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(body) });
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(() => respond(200, { status: 'proposed' }));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const open = (canDecideHealing: boolean) =>
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Checkout"
+        steps={healedSteps}
+        canDecideHealing={canDecideHealing}
+      />,
+    );
+
+  it('tells a pass after healing from a pass on the original locator, and says it is runtime only', async () => {
+    open(false);
+    expect(screen.getAllByTestId('healed-badge')).toHaveLength(1);
+    expect(screen.getAllByTestId('healing-panel')).toHaveLength(1);
+    expect(screen.getByTestId('healing-original')).toHaveTextContent('#{{field}}');
+    expect(screen.getByTestId('healing-used')).toHaveTextContent('button[data-testid="save"]');
+    expect(screen.getByText(/a fallback the recording already knew/)).toBeInTheDocument();
+    expect(screen.getByTestId('healing-explainer')).toHaveTextContent(
+      /this run only.*approves.*publishing/,
+    );
+    expect(await screen.findByTestId('healing-status')).toHaveTextContent(/Proposed/);
+    // A viewer sees the proposal, not the buttons.
+    expect(screen.queryByTestId('healing-approve')).not.toBeInTheDocument();
+  });
+
+  it('approves with the fingerprint it was shown, and shows the version it became', async () => {
+    fetchMock.mockImplementation((_url: string, init?: { method?: string }) =>
+      init?.method === 'POST'
+        ? respond(200, { proposal: { status: 'approved', appliedVersion: 4 }, unchanged: false })
+        : respond(200, { status: 'proposed' }),
+    );
+    open(true);
+    fireEvent.click(await screen.findByTestId('healing-approve'));
+
+    expect(await screen.findByText(/Saved as version 4/)).toBeInTheDocument();
+    const [url, init] = fetchMock.mock.calls.find(([, i]) => i?.method === 'POST')!;
+    expect(url).toBe(`/api/healing-proposals/hp_${'1'.repeat(24)}/approve`);
+    expect(JSON.parse(init.body)).toEqual({ fingerprint });
+    expect(screen.queryByTestId('healing-approve')).not.toBeInTheDocument();
+  });
+
+  it('says so when the step changed since the run, and offers nothing more', async () => {
+    fetchMock.mockImplementation((_url: string, init?: { method?: string }) =>
+      init?.method === 'POST'
+        ? respond(409, {
+            error: 'The step changed after the run read it',
+            code: 'proposal_stale',
+            proposal: { status: 'stale' },
+          })
+        : respond(200, { status: 'proposed' }),
+    );
+    open(true);
+    fireEvent.click(await screen.findByTestId('healing-approve'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/step changed/);
+    expect(screen.getByTestId('healing-status')).toHaveTextContent(/Out of date/);
+    expect(screen.queryByTestId('healing-approve')).not.toBeInTheDocument();
+  });
+
+  it('shows the current decision, not the one at run time', async () => {
+    fetchMock.mockImplementation(() => respond(200, { status: 'rejected' }));
+    open(true);
+    expect(await screen.findByText(/Rejected/)).toBeInTheDocument();
+    expect(screen.queryByTestId('healing-approve')).not.toBeInTheDocument();
+  });
+
+  it('reads a result recorded before approvals as what it was', () => {
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Old run"
+        steps={[
+          {
+            name: 'Click',
+            type: 'click',
+            status: 'passed',
+            details: 'Success',
+            healed: true,
+            healing: {
+              status: 'applied',
+              originalSelector: null,
+              proposedSelector: '#new',
+              detail: 'The healed selector was saved to step 1 of the test (version 3).',
+            },
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByTestId('healing-legacy')).toHaveTextContent(/wrote the repair itself/);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

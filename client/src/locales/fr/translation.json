@@ -3153,7 +3153,8 @@
       "organization": "Organisation",
       "load_test": "Tests de charge",
       "step_group": "Groupes d’étapes",
-      "project_element": "Référentiel d’éléments"
+      "project_element": "Référentiel d’éléments",
+      "healing_proposal": "Propositions de réparation"
     },
     "actions": {
       "bdd_profile_created": "Profil BDD créé",
@@ -3280,7 +3281,9 @@
       "load_test_cancelled": "Exécution de charge arrêtée",
       "test_selector_healed": "Sélecteur du test corrigé",
       "step_group_selector_healed": "Sélecteur du groupe d’étapes corrigé",
-      "project_element_selector_healed": "Sélecteur de l’élément partagé corrigé"
+      "project_element_selector_healed": "Sélecteur de l’élément partagé corrigé",
+      "healing_proposal_approved": "Proposition de réparation approuvée",
+      "healing_proposal_rejected": "Proposition de réparation rejetée"
     }
   },
   "security": {
@@ -5145,6 +5148,27 @@
     "rowLabel": "Ligne {{n}}",
     "sliceScreenshot": "Capture d’écran",
     "downloadHar": "Télécharger l’enregistrement réseau (HAR)",
-    "stepsNotKept": "Le rapport conserve les étapes de la tentative qui fonde le résultat. Les étapes de cette tentative sont dans sa trace et sa vidéo, si le plan les a conservées."
+    "stepsNotKept": "Le rapport conserve les étapes de la tentative qui fonde le résultat. Les étapes de cette tentative sont dans sa trace et sa vidéo, si le plan les a conservées.",
+    "healing": {
+      "title": "Réussi après réparation, pas avec son propre localisateur",
+      "badge": "réussi après réparation",
+      "original": "Localisateur écrit",
+      "used": "Utilisé dans cette exécution",
+      "origin": "Trouvé par",
+      "fallback": "un repli déjà connu de l’enregistrement",
+      "ai": "l’IA, vérifié sur un seul élément",
+      "explainer": "Utilisé pour cette exécution seulement. Le test ne change que lorsqu’un éditeur approuve la proposition, ce qui enregistre une nouvelle version de la copie de travail ; publier cette version reste l’étape habituelle de publication ou de revue.",
+      "legacy": "Enregistré avant que la réparation ne demande une approbation : cette exécution a écrit la réparation elle-même.",
+      "status": {
+        "proposed": "Proposée — en attente d’un éditeur",
+        "approved": "Approuvée dans la copie de travail",
+        "rejected": "Rejetée — le test garde son localisateur",
+        "stale": "Périmée — l’étape a changé après cette exécution et ne peut plus être approuvée"
+      },
+      "version": "Enregistrée comme version {{version}}.",
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "failed": "La décision n’a pas été enregistrée."
+    }
   }
 }

@@ -50,6 +50,9 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   // Where a unit runs (shared/execution-identity.ts): written once with the manifest and never
   // rewritten — the unit id is a hash of it.
   'execution_units.coordinates': 'snapshot',
+  // The group calls that led to a healed step, as the run read them (migration 0094): a record of
+  // that run, never rewritten.
+  'healing_proposals.call_path': 'snapshot',
   'load_test_runs.definition': 'snapshot',
   'load_test_runs.summary': 'migration',
   'load_tests.stages': 'migration',

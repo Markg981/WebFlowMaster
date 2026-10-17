@@ -22,6 +22,8 @@ import AccessibilityPanel from './AccessibilityPanel';
 import NetworkPanel from './NetworkPanel';
 import type { NetworkSummary } from '@shared/network';
 import type { AttemptView, EvidenceLinks, UnitEvidenceView } from '@shared/execution-identity';
+import type { HealingProposalStatus, StepHealing } from '@shared/healing';
+import { Button } from '@/components/ui/button';
 
 /**
  * What a test actually did, step by step.
@@ -53,6 +55,8 @@ export interface ReportStep {
   details: string;
   error?: string;
   healed?: boolean;
+  /** The repaired locator the step ran with, and the proposal it left (shared/healing.ts). */
+  healing?: StepHealing;
   rca?: string;
   screenshot?: string | null;
   evidenceUnavailable?: boolean;
@@ -89,6 +93,174 @@ interface StepDetailsDialogProps {
   /** The attempt and row to open on; by default the attempt the result stands on, all rows. */
   initialAttempt?: number | null;
   initialRow?: number | null;
+  /** The viewer may approve or reject healing proposals (the server checks it again). */
+  canDecideHealing?: boolean;
+}
+
+/** A proposal as GET /api/healing-proposals/:id answers it, as far as the panel reads it. */
+interface ProposalState {
+  status: HealingProposalStatus;
+  appliedVersion?: number | null;
+  reason?: string | null;
+}
+
+/**
+ * A step that passed on a repaired locator rather than its own (M02). Says which, where the repair
+ * came from, and what it is: used for this run only, a proposal until an editor approves it, and
+ * even then a new working-copy version that the usual publish or review step puts live.
+ */
+function HealingPanel({ healing, canDecide }: { healing: StepHealing; canDecide: boolean }) {
+  const { t } = useTranslation();
+  const id = healing.proposalId;
+  const [proposal, setProposal] = useState<ProposalState | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // The decision may have been taken since the run: the proposal says what it is now.
+  useEffect(() => {
+    if (!id) return;
+    let live = true;
+    fetch(`/api/healing-proposals/${id}`, { credentials: 'include' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: ProposalState | null) => {
+        if (live && body) setProposal(body);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [id]);
+
+  const decide = async (decision: 'approve' | 'reject') => {
+    if (!id) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/healing-proposals/${id}/${decision}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(decision === 'approve' ? { fingerprint: healing.fingerprint } : {}),
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        proposal?: ProposalState;
+        error?: string;
+      };
+      if (body.proposal) setProposal(body.proposal);
+      if (!response.ok)
+        setMessage(body.error ?? t('stepDetails.healing.failed', 'The decision was not saved.'));
+    } catch {
+      setMessage(t('stepDetails.healing.failed', 'The decision was not saved.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const legacy = ['applied', 'already_applied', 'conflict'].includes(healing.status);
+  const status: HealingProposalStatus | null =
+    proposal?.status ?? (healing.status === 'proposed' ? 'proposed' : null);
+  const statusLabel: Record<HealingProposalStatus, string> = {
+    proposed: t('stepDetails.healing.status.proposed', 'Proposed — waiting for an editor'),
+    approved: t('stepDetails.healing.status.approved', 'Approved into the working copy'),
+    rejected: t('stepDetails.healing.status.rejected', 'Rejected — the test keeps its locator'),
+    stale: t(
+      'stepDetails.healing.status.stale',
+      'Out of date — the step changed after this run, so it can no longer be approved',
+    ),
+  };
+
+  return (
+    <div
+      className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs space-y-1 dark:border-amber-700 dark:bg-amber-950/30"
+      data-testid="healing-panel"
+    >
+      <p className="font-medium">
+        {t('stepDetails.healing.title', 'Passed after healing, not with its own locator')}
+      </p>
+      <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5">
+        <dt className="text-muted-foreground">
+          {t('stepDetails.healing.original', 'Written locator')}
+        </dt>
+        <dd>
+          <code data-testid="healing-original">{healing.originalSelector ?? '—'}</code>
+        </dd>
+        <dt className="text-muted-foreground">
+          {t('stepDetails.healing.used', 'Used in this run')}
+        </dt>
+        <dd>
+          <code data-testid="healing-used">{healing.proposedSelector}</code>
+        </dd>
+        {healing.origin && (
+          <>
+            <dt className="text-muted-foreground">{t('stepDetails.healing.origin', 'Found by')}</dt>
+            <dd>
+              {healing.origin === 'fallback'
+                ? t('stepDetails.healing.fallback', 'a fallback the recording already knew')
+                : t('stepDetails.healing.ai', 'the AI, checked to match exactly one element')}
+            </dd>
+          </>
+        )}
+      </dl>
+      {legacy ? (
+        <p data-testid="healing-legacy">
+          {t(
+            'stepDetails.healing.legacy',
+            'Recorded before healing needed approval: this run wrote the repair itself.',
+          )}{' '}
+          {healing.detail}
+        </p>
+      ) : (
+        <p className="text-muted-foreground" data-testid="healing-explainer">
+          {t(
+            'stepDetails.healing.explainer',
+            'Used for this run only. The test changes only when an editor approves the proposal, which saves a new working-copy version; publishing that version is still the usual publish or review step.',
+          )}
+        </p>
+      )}
+      {healing.status === 'unrecorded' && <p>{healing.detail}</p>}
+      {status && (
+        <p data-testid="healing-status">
+          <Badge variant={status === 'approved' ? 'secondary' : 'outline'} className="text-xs">
+            {statusLabel[status]}
+          </Badge>
+          {status === 'approved' && proposal?.appliedVersion ? (
+            <span className="ml-2">
+              {t('stepDetails.healing.version', 'Saved as version {{version}}.', {
+                version: proposal.appliedVersion,
+              })}
+            </span>
+          ) : null}
+        </p>
+      )}
+      {status === 'proposed' && canDecide && id && healing.fingerprint && (
+        <div className="flex gap-2 pt-1">
+          <Button
+            size="sm"
+            variant="default"
+            disabled={busy}
+            onClick={() => decide('approve')}
+            data-testid="healing-approve"
+          >
+            {t('stepDetails.healing.approve', 'Approve')}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => decide('reject')}
+            data-testid="healing-reject"
+          >
+            {t('stepDetails.healing.reject', 'Reject')}
+          </Button>
+        </div>
+      )}
+      {message && (
+        <p className="text-destructive" role="alert">
+          {message}
+        </p>
+      )}
+    </div>
+  );
 }
 
 /** The steps of one dataset row, out of the merged list ("Row 2 of 3 — Click"). */
@@ -367,6 +539,7 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
   unitEvidence,
   initialAttempt,
   initialRow,
+  canDecideHealing = false,
 }) => {
   const { t } = useTranslation();
   const attempts = unitEvidence?.attempts ?? [];
@@ -538,8 +711,13 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
                           {step.type}
                         </Badge>
                         {step.healed && (
-                          <Badge variant="secondary" className="whitespace-nowrap text-xs">
-                            <Wand2 className="h-3 w-3 mr-1" /> healed
+                          <Badge
+                            variant="secondary"
+                            className="whitespace-nowrap text-xs"
+                            data-testid="healed-badge"
+                          >
+                            <Wand2 className="h-3 w-3 mr-1" />{' '}
+                            {t('stepDetails.healing.badge', 'passed after healing')}
                           </Badge>
                         )}
                       </div>
@@ -550,6 +728,9 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
                       </p>
                       {step.rca && (
                         <p className="text-xs mt-1 italic text-muted-foreground">{step.rca}</p>
+                      )}
+                      {step.healing && (
+                        <HealingPanel healing={step.healing} canDecide={canDecideHealing} />
                       )}
                     </div>
                   </div>

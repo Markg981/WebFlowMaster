@@ -3153,7 +3153,8 @@
       "organization": "Organization",
       "load_test": "Load tests",
       "step_group": "Step groups",
-      "project_element": "Element repository"
+      "project_element": "Element repository",
+      "healing_proposal": "Healing proposals"
     },
     "actions": {
       "bdd_profile_created": "BDD profile created",
@@ -3280,7 +3281,9 @@
       "load_test_cancelled": "Load test run stopped",
       "test_selector_healed": "Test selector healed",
       "step_group_selector_healed": "Step group selector healed",
-      "project_element_selector_healed": "Shared element selector healed"
+      "project_element_selector_healed": "Shared element selector healed",
+      "healing_proposal_approved": "Healing proposal approved",
+      "healing_proposal_rejected": "Healing proposal rejected"
     }
   },
   "security": {
@@ -5145,6 +5148,27 @@
     "rowLabel": "Row {{n}}",
     "sliceScreenshot": "Screenshot",
     "downloadHar": "Download the network recording (HAR)",
-    "stepsNotKept": "The report keeps the steps of the attempt the result stands on. This attempt’s own steps are in its trace and video, when the plan kept them."
+    "stepsNotKept": "The report keeps the steps of the attempt the result stands on. This attempt’s own steps are in its trace and video, when the plan kept them.",
+    "healing": {
+      "title": "Passed after healing, not with its own locator",
+      "badge": "passed after healing",
+      "original": "Written locator",
+      "used": "Used in this run",
+      "origin": "Found by",
+      "fallback": "a fallback the recording already knew",
+      "ai": "the AI, checked to match exactly one element",
+      "explainer": "Used for this run only. The test changes only when an editor approves the proposal, which saves a new working-copy version; publishing that version is still the usual publish or review step.",
+      "legacy": "Recorded before healing needed approval: this run wrote the repair itself.",
+      "status": {
+        "proposed": "Proposed — waiting for an editor",
+        "approved": "Approved into the working copy",
+        "rejected": "Rejected — the test keeps its locator",
+        "stale": "Out of date — the step changed after this run, so it can no longer be approved"
+      },
+      "version": "Saved as version {{version}}.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "failed": "The decision was not saved."
+    }
   }
 }
