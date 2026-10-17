@@ -259,8 +259,9 @@ export function createMetrics() {
     },
     sampleChildren: (read: typeof childSnapshot) => {
       if (read() === null) return false;
+      if (!registry.getSingleMetric('wfm_worker_child_processes'))
+        for (const gauge of children) registry.registerMetric(gauge);
       childSnapshot = read;
-      for (const gauge of children) if (!registry.getSingleMetric(gauge.name)) registry.registerMetric(gauge);
       return true;
     },
   };
