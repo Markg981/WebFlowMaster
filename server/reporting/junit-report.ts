@@ -20,6 +20,8 @@ export async function junitReportFor(executionId: string): Promise<string | null
       .select({
         id: testPlanExecutions.id,
         startedAt: testPlanExecutions.startedAt,
+        status: testPlanExecutions.status,
+        failureMessage: testPlanExecutions.failureMessage,
         planName: testPlans.name,
         testPlanId: testPlanExecutions.testPlanId,
         configurationSnapshot: testPlanExecutions.configurationSnapshot,
@@ -75,5 +77,6 @@ export async function junitReportFor(executionId: string): Promise<string | null
     executionId,
     startedAt: source.execution.startedAt,
     results: source.results,
+    run: { status: source.execution.status, failureMessage: source.execution.failureMessage },
   });
 }

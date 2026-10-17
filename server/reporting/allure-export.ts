@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'crypto';
 import type { ReportModel, ReportResultModel } from './report-model';
 import { describeCi } from '@shared/ci';
 import type { ZipEntry } from '../platform/zip';
+import { runEndingResult } from './junit';
 
 /**
  * A run as Allure results: the files `allure generate` and every Allure server read.
@@ -170,6 +171,45 @@ export function buildAllureResults(
       attachments,
     };
     files.push({ name: `${id}-result.json`, data: Buffer.from(JSON.stringify(body, null, 2)) });
+  }
+
+  // A run that ended in a way its results do not say is broken, not a report of green tests (P18).
+  const ending = runEndingResult(model.status, model.failureMessage);
+  if (ending) {
+    const id = uuid();
+    const stop = time(model.completedAt, runStart);
+    files.push({
+      name: `${id}-result.json`,
+      data: Buffer.from(
+        JSON.stringify(
+          {
+            uuid: id,
+            historyId: historyIdFor(model.planId, { testName: ending.testName, browser: null }),
+            name: ending.testName,
+            fullName: `${model.planName} › ${ending.testName}`,
+            status: 'broken',
+            statusDetails: { message: ending.reasonForFailure },
+            stage: 'finished',
+            start: runStart,
+            stop,
+            labels: [
+              { name: 'framework', value: 'webflowmaster' },
+              { name: 'parentSuite', value: model.planName },
+              { name: 'suite', value: model.planName },
+              { name: 'tag', value: 'run' },
+            ],
+            parameters: [],
+            links: options.reportUrl
+              ? [{ name: 'WebFlowMaster report', url: options.reportUrl, type: 'link' }]
+              : [],
+            steps: [],
+            attachments: [],
+          },
+          null,
+          2,
+        ),
+      ),
+    });
   }
 
   // Shown on the report's overview.

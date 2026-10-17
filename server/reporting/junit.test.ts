@@ -1,5 +1,37 @@
 import { describe, it, expect } from 'vitest';
-import { buildJUnitXml, escapeXml, verdictFor, type JUnitResultRow } from './junit';
+import {
+  buildJUnitXml,
+  escapeXml,
+  runEndingResult,
+  verdictFor,
+  type JUnitResultRow,
+} from './junit';
+
+describe('runEndingResult', () => {
+  it('stands for the endings no test result accounts for, and only those (P18)', () => {
+    for (const status of ['completed', 'failed', 'running', 'queued'])
+      expect(runEndingResult(status, 'x')).toBeNull();
+    expect(runEndingResult('timed_out', null)).toEqual({
+      testName: 'Run timed out',
+      status: 'Error',
+      reasonForFailure: 'The run ended as "timed_out" before every test had a result.',
+    });
+    expect(runEndingResult('cancelled', ' Cancelled by ada ')?.reasonForFailure).toBe(
+      'Cancelled by ada',
+    );
+  });
+
+  it('turns a cancelled run with only green results into an error in the XML', () => {
+    const xml = buildJUnitXml({
+      planName: 'P',
+      executionId: 'e',
+      results: [{ testName: 'A', status: 'Passed', browser: 'chromium' }],
+      run: { status: 'cancelled', failureMessage: null },
+    });
+    expect(xml).toMatch(/<testsuites [^>]*tests="2" failures="0" errors="1"/);
+    expect(xml).toContain('<testcase name="Run cancelled" classname="webflowmaster"');
+  });
+});
 
 /**
  * The run in the one format every CI already reads. A pipeline could previously learn only
