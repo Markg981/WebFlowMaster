@@ -265,7 +265,10 @@ fallisce se braces o micromatch tornano in un lock.
 
 Nella stessa modifica sono stati chiusi gli altri avvisi di produzione: `moment` 2.31.0 e
 `tedious` 20.3.6 (fissato in `overrides`; non dipende più da `sprintf-js`).
-`npm audit --omit=dev` non riporta vulnerabilità.
+`npm audit --omit=dev` non riportava vulnerabilità. Da ottobre 2026 riporta due rilievi bassi
+nella copia di dompurify inclusa in Monaco 0.57.0, non raggiungibili dall'editor e accettati
+fino al 31 dicembre 2026: motivi e scadenza sono in `docs/SECURITY-AUDIT.md`. I rilievi bassi non
+bloccano il gate dei sorgenti.
 
 Tailwind 4 compila tramite lightningcss, il cui binario è un pacchetto opzionale per piattaforma.
 npm 11 lo elimina dal lock del workspace quando lo riscrive, e la build Linux fallisce con

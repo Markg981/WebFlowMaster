@@ -5,7 +5,35 @@ or a finding's exposure changes.
 
 How to report a vulnerability is in [SECURITY.md](../SECURITY.md).
 
-**Last reviewed:** 2026-10-11.
+**Last reviewed:** 2026-10-17.
+
+## 17 October 2026
+
+`npm audit --omit=dev` reports 2 low findings, both in the client's code editor: `dompurify`
+3.4.15 under `monaco-editor` 0.57.0, the latest release (GHSA-p98j-92pf-mc4p and
+GHSA-6688-9rhm-gjv2, fixed in dompurify 3.4.16). The fix npm proposes is `monaco-editor` 0.56.0,
+a downgrade of the editor, refused.
+
+No override either. Monaco does not import the `dompurify` package it declares: the editor runs
+its own copy, `vs/base/browser/dompurify/dompurify.js`, also 3.4.15. Lifting the npm package would
+clear the report and change nothing in the browser.
+
+Both advisories need `DOMPurify.sanitize(node, { IN_PLACE: true })` on a live DOM node; the first
+also needs an `afterSanitize*` hook that removes an element. Monaco sanitizes strings only
+(`domSanitize.js`, `markdownRenderer.js`), never with `IN_PLACE`, and its one `afterSanitizeAttributes`
+hook removes attributes, not nodes. The application does not use dompurify directly. The
+vulnerable path is not reachable, so the risk is accepted until the expiry below.
+`server/tests/dependency-locks.test.ts` fails if Monaco or the application starts using
+`IN_PLACE`, or if `monaco-editor` changes without this page following.
+
+## Accepted production findings
+
+| Package                                           | Severity | Advisories                               | Why it is not reachable                                                                          | Expires                                                                                               |
+| ------------------------------------------------- | -------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `monaco-editor` 0.57.0, bundling dompurify 3.4.15 | Low      | GHSA-p98j-92pf-mc4p, GHSA-6688-9rhm-gjv2 | Only `IN_PLACE` sanitization of a live node is affected; Monaco and the application never use it | **2026-12-31**, or the first Monaco release bundling dompurify 3.4.16 or later, whichever comes first |
+
+At the expiry: update Monaco if a release carries the fix; otherwise review the reachability again
+and record a new decision here. An entry is never renewed without that review.
 
 ## 11 October 2026
 
@@ -74,6 +102,6 @@ As of 11 October 2026.
 ## How to review
 
 ```bash
-npm audit --omit=dev     # production: must stay at 0
+npm audit --omit=dev     # production: 0, or only the accepted findings above, before their expiry
 npm audit                # everything: each finding in the table above, or a new decision here
 ```
