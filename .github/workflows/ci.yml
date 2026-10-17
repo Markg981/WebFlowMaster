@@ -310,6 +310,10 @@ jobs:
       - name: Build all application deliverables
         run: npm run build
 
+      # npm audit cannot see the dompurify copy Monaco vendors; this reads what the build shipped.
+      - name: Require a patched dompurify in the client bundle
+        run: node scripts/security/client-bundle-dompurify.mjs
+
       - name: Build documentation (including link checks)
         run: npm run docs:build
 

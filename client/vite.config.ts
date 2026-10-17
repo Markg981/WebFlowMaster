@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { monacoDompurify } from './monaco-dompurify';
 
 // Where the API server is listening. Both the port and the whole target are configurable so
 // `PORT=5100 npm run dev` in one terminal and `VITE_API_PORT=5100 npm run dev:client` in the
@@ -11,7 +12,7 @@ const apiTarget = process.env.VITE_API_TARGET ?? `http://localhost:${apiPort}`;
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [monacoDompurify(), react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
