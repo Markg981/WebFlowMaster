@@ -602,19 +602,19 @@ const TestReportPage: React.FC = () => {
                 <strong>{t('testReportPage.header.started', 'Started:')}</strong>{' '}
                 {formatDateTime(header.dateTime)}
               </p>
-              {header.completedAt ? (
+              {header.completedAt && (
                 <p>
                   <strong>{t('testReportPage.header.completed', 'Completed:')}</strong>{' '}
                   {formatDateTime(header.completedAt)}
                 </p>
-              ) : (
-                <p>
-                  <strong>{t('testReportPage.header.status', 'Status:')}</strong>{' '}
-                  <span className={`font-semibold ${getStatusColor(header.status)}`}>
-                    {header.status.toUpperCase()}
-                  </span>
-                </p>
               )}
+              {/* The run's verdict, finished or not: the one every other surface reports (P18). */}
+              <p data-testid="run-status">
+                <strong>{t('testReportPage.header.status', 'Status:')}</strong>{' '}
+                <span className={`font-semibold ${getStatusColor(header.status)}`}>
+                  {header.status.toUpperCase()}
+                </span>
+              </p>
               {keyMetrics.executionDurationMs !== null && (
                 <p>
                   <strong>{t('testReportPage.header.totalDuration', 'Total Duration:')}</strong>{' '}
