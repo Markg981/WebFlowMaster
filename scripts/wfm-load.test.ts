@@ -8,6 +8,7 @@ import {
   percentile,
   runLoad,
   summariseReads,
+  summariseRuns,
   type LoadIo,
   type LoadOptions,
 } from './wfm-load';
@@ -206,6 +207,30 @@ describe('runs in progress at once', () => {
       ]),
     ).toBe(1);
     expect(maxOverlap([{ startedAt: null, completedAt: null }])).toBe(0);
+  });
+});
+
+describe('time to the first failure', () => {
+  it('is when the earliest run that did not complete ended, and null when every run completed', () => {
+    const at = (s: number) => new Date(1_000_000 + s * 1000).toISOString();
+    const run = (status: string, end: number) => ({
+      id: `${status}-${end}`,
+      status,
+      queuedAt: at(0),
+      startedAt: at(0),
+      completedAt: at(end),
+      durationMs: end * 1000,
+      failure: null,
+    });
+    const mixed = summariseRuns(
+      [run('completed', 1), run('failed', 4), run('error', 3), run('completed', 2)],
+      0,
+      [],
+      0,
+      1_000_000,
+    );
+    expect(mixed.firstFailureMs).toBe(3000);
+    expect(summariseRuns([run('completed', 1)], 0, [], 0, 1_000_000).firstFailureMs).toBeNull();
   });
 });
 

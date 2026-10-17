@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
 import { Registry, Histogram, Counter, Gauge, collectDefaultMetrics } from 'prom-client';
 import type { RequestHandler } from 'express';
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
@@ -24,6 +25,70 @@ export interface MetricJob {
 export interface MetricQueue {
   name: string;
   getJobCounts(...states: string[]): Promise<Record<string, number>>;
+}
+
+export interface ChildProcessSample {
+  processes: number;
+  residentBytes: number;
+  cpuSeconds: number;
+}
+
+/** What /proc offers, as far as sampleChildProcesses reads it: injectable for tests. */
+export interface ProcFs {
+  pids(): string[];
+  stat(pid: string): string | undefined;
+}
+
+export const linuxProc: ProcFs = {
+  pids() {
+    try {
+      return readdirSync('/proc').filter((name) => /^\d+$/.test(name));
+    } catch {
+      return [];
+    }
+  },
+  stat(pid) {
+    try {
+      return readFileSync(`/proc/${pid}/stat`, 'utf8');
+    } catch {
+      return undefined;
+    }
+  },
+};
+
+// USER_HZ and the page size of every Linux image the worker ships on.
+const CLOCK_TICKS = 100;
+const PAGE_BYTES = 4096;
+
+/**
+ * The browsers and helpers a worker has started, as one total: how many, their resident memory
+ * and the CPU they used. Children already reaped count through the cutime/cstime of whoever
+ * reaped them. Null where there is no /proc (Windows, macOS): no number rather than a zero.
+ */
+export function sampleChildProcesses(root: number, proc: ProcFs): ChildProcessSample | null {
+  const stats = new Map<string, string[]>();
+  for (const pid of proc.pids()) {
+    const text = proc.stat(pid);
+    // The command name is in parentheses and may hold spaces: fields start after the last one.
+    if (text) stats.set(pid, text.slice(text.lastIndexOf(')') + 2).split(' '));
+  }
+  const own = stats.get(String(root));
+  if (!own) return null;
+  const children = new Map<string, string[]>();
+  for (const [pid, fields] of stats) children.set(fields[1], [...(children.get(fields[1]) ?? []), pid]);
+  let processes = 0;
+  let residentBytes = 0;
+  let ticks = Number(own[13]) + Number(own[14]);
+  const pending = [...(children.get(String(root)) ?? [])];
+  while (pending.length > 0) {
+    const pid = pending.pop()!;
+    const fields = stats.get(pid)!;
+    processes++;
+    residentBytes += Number(fields[21]) * PAGE_BYTES;
+    ticks += Number(fields[11]) + Number(fields[12]) + Number(fields[13]) + Number(fields[14]);
+    pending.push(...(children.get(pid) ?? []));
+  }
+  return { processes, residentBytes, cpuSeconds: ticks / CLOCK_TICKS };
 }
 
 export function createMetrics() {
@@ -87,6 +152,31 @@ export function createMetrics() {
     labelNames: ['queue', 'state'],
     registers: [registry],
   });
+  const artifactBytes = new Counter({
+    name: 'wfm_artifact_bytes_written_total',
+    help: 'Bytes of evidence this process wrote to the artifact store',
+    registers: [registry],
+  });
+  // Registered only by a process that samples its children, so no platform reports a false zero.
+  let childSnapshot: () => ChildProcessSample | null = () => null;
+  const children = (
+    [
+      ['processes', 'processes', 'Processes started by this worker (browsers and helpers)'],
+      ['resident_bytes', 'residentBytes', 'Resident memory of the processes this worker started'],
+      ['cpu_seconds', 'cpuSeconds', 'CPU time of the processes this worker started, ended ones included'],
+    ] as const
+  ).map(
+    ([suffix, key, help]) =>
+      new Gauge({
+        name: `wfm_worker_child_${suffix}`,
+        help,
+        registers: [],
+        collect() {
+          const sample = childSnapshot();
+          if (sample) this.set(sample[key]);
+        },
+      }),
+  );
   const enabled = () => process.env.WFM_METRICS_ENABLED === 'true';
   const middleware: RequestHandler = (req, res, next) => {
     if (!enabled() && process.env.WFM_TRACING_ENABLED !== 'true') return next();
@@ -163,8 +253,15 @@ export function createMetrics() {
     capacity,
     active,
     depth,
+    artifactBytes,
     setAgentSnapshot: (read: typeof agentSnapshot) => {
       agentSnapshot = read;
+    },
+    sampleChildren: (read: typeof childSnapshot) => {
+      if (read() === null) return false;
+      childSnapshot = read;
+      for (const gauge of children) if (!registry.getSingleMetric(gauge.name)) registry.registerMetric(gauge);
+      return true;
     },
   };
 }

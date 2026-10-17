@@ -208,6 +208,8 @@ export interface RunSummary {
   /** When its first run started and its last ended, ms since the burst. */
   firstStartMs: number | null;
   lastEndMs: number | null;
+  /** When the first run that did not complete ended, ms since the burst; null when none failed. */
+  firstFailureMs?: number | null;
 }
 
 const time = (value: string | null) => (value ? Date.parse(value) : NaN);
@@ -256,6 +258,10 @@ export function summariseRuns(
     .filter((n) => Number.isFinite(n) && n >= 0);
   const starts = runs.map((r) => time(r.startedAt)).filter(Number.isFinite);
   const ends = runs.map((r) => time(r.completedAt)).filter(Number.isFinite);
+  const failures = runs
+    .filter((r) => r.status !== 'completed' && TERMINAL.has(r.status))
+    .map((r) => time(r.completedAt))
+    .filter(Number.isFinite);
   return {
     started: runs.length,
     refused,
@@ -269,6 +275,7 @@ export function summariseRuns(
     maxRunning: Math.max(maxRunning, maxOverlap(runs)),
     firstStartMs: starts.length ? Math.min(...starts) - burstAt : null,
     lastEndMs: ends.length ? Math.max(...ends) - burstAt : null,
+    firstFailureMs: failures.length ? Math.min(...failures) - burstAt : null,
   };
 }
 

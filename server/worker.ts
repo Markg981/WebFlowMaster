@@ -41,6 +41,8 @@ import { startTracing } from '../shared/telemetry';
 import {
   applicationMetrics,
   instrumentJob,
+  linuxProc,
+  sampleChildProcesses,
   startMetricsServer,
 } from './platform/observability/metrics';
 import { Queue } from 'bullmq';
@@ -111,6 +113,8 @@ configureEgressProxy();
   applicationMetrics.capacity.set({ queue: TEST_EXECUTION_QUEUE_NAME }, planConcurrency);
   applicationMetrics.capacity.set({ queue: BROWSER_TASK_QUEUE_NAME }, browserTaskConcurrency);
   applicationMetrics.capacity.set({ queue: LOAD_QUEUE_NAME }, loadConcurrency);
+  // The browsers this process starts, in total: their memory and CPU size a worker, not its own heap.
+  applicationMetrics.sampleChildren(() => sampleChildProcesses(process.pid, linuxProc));
   const browserMetricsQueue =
     process.env.WFM_METRICS_ENABLED === 'true'
       ? new Queue(BROWSER_TASK_QUEUE_NAME, { connection })
