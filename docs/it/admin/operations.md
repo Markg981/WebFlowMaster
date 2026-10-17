@@ -218,6 +218,26 @@ che nessuna esecuzione completata manchi del risultato di un'unità, che nessuna
 e che nessuna esecuzione ripeta quella persa. Locking e concorrenza su un cluster PostgreSQL reale si
 verificano nel pilota (lotto P18).
 
+## Dimensionare per la crescita {#sizing}
+
+Dimensionare un worker sulle misure, non sulle attese. Su un'installazione e un database di prova
+dedicati, `npm run benchmark -- --profile baseline` e poi ogni profilo `tenfold-*` (vedi
+[crescita a dieci volte](./load-testing#benchmark)) danno i percentili delle API e dell'attesa in
+coda, le esecuzioni completate all'ora, memoria e CPU dei browser avviati da ogni worker
+(`wfm_worker_child_*`), i byte di artifact per tentativo e il costo per esecuzione riuscita, rispetto
+agli SLO approvati. Il profilo più grande che passa è il limite operativo per quell'hardware e quei
+parametri.
+
+- La concorrenza vale **per processo worker** (`WORKER_CONCURRENCY` piani, `BROWSER_TASK_CONCURRENCY`
+  task browser) e **per organizzazione** (`ORG_MAX_CONCURRENT_RUNS`): sono limiti diversi. Aggiungere
+  repliche del worker prima di alzare la concorrenza per processo oltre quanto consente il picco di
+  memoria.
+- La saturazione deve mostrarsi come coda che cresce o HTTP 429, mai come worker riavviato, risultati
+  persi o violazioni di quota: un riavvio durante un profilo lo fa fallire.
+- Cambiare indici o query solo dopo averli misurati con `npm run volume` e
+  `EXPLAIN (ANALYZE, BUFFERS)`.
+- Tenere i costi del benchmark separati dal tempo umano di manutenzione misurato nel pilota.
+
 ## Conservazione degli artefatti
 
 Screenshot, video e trace dei run terminati da più di `ARTIFACT_RETENTION_DAYS` giorni (90 di

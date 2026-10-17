@@ -190,6 +190,11 @@ current digests, then apply migrations and start the new API/worker. Verify read
 queue execution and artifact access. Reconcile the installed digests against the manifest and
 record the Collaudo cycle and commit. Never label a candidate build as an installed release.
 
+A release that changes the worker, the executor, the queues or the run tables repeats
+`npm run benchmark -- --profile baseline` on the staging installation and attaches the report next to
+the Collaudo cycle: a breached threshold blocks it like a failed test, and a comparison with the
+previous baseline shows regressions per axis. See [growth to ten times](./load-testing#benchmark).
+
 Rolling back image references does **not** roll back migrations. Only reuse the previous images
 if they are compatible with the new schema; otherwise restore the verified pre-upgrade database
 and artifacts during a controlled outage. Follow [operations](./operations) and the backup runbook.

@@ -195,6 +195,11 @@ attuali, applicare le migrazioni e avviare API/worker nuovi. Verificare disponib
 in coda e lettura degli artefatti; confrontare i digest installati con il manifest e registrare ciclo
 di collaudo e commit. Una build candidata non equivale a una release installata.
 
+Una release che cambia worker, esecutore, code o tabelle delle esecuzioni ripete
+`npm run benchmark -- --profile baseline` sull'installazione di staging e allega il report al ciclo di
+collaudo: una soglia superata la blocca come un test fallito, e il confronto con la baseline
+precedente mostra le regressioni per asse. Vedi [crescita a dieci volte](./load-testing#benchmark).
+
 Ripristinare i riferimenti delle immagini **non** annulla le migrazioni. Usare le immagini precedenti
 solo se compatibili con lo schema nuovo; altrimenti ripristinare database e artefatti dal backup
 verificato durante un'interruzione controllata. Seguire [operatività](./operations) e il runbook backup.

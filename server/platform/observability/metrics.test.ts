@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createMetrics, startMetricsServer } from './metrics';
+import { createMetrics, sampleChildProcesses, startMetricsServer } from './metrics';
 import express from 'express';
 import { createServer } from 'node:http';
 
@@ -54,6 +54,36 @@ describe('Prometheus telemetry', () => {
     expect(await metrics.registry.metrics()).toContain('wfm_agent_active_sessions 3');
     snapshot = { connected: 0, capacity: 0, active: 0 };
     expect(await metrics.registry.metrics()).toContain('wfm_agent_capacity 0');
+  });
+  it('sums the processes a worker started, without labels, and reports nothing without /proc', async () => {
+    // pid (comm) state ppid … utime stime cutime cstime … rss: fields 1-2, 3, 4, 14-17, 24.
+    const stat = (pid: number, ppid: number, ticks: number, pages: number, comm = 'chrome') =>
+      `${pid} (${comm}) S ${ppid} ${'0 '.repeat(9)}${ticks} ${ticks} ${ticks} ${ticks} ${'0 '.repeat(6)}${pages} 0`;
+    const table: Record<string, string> = {
+      '10': stat(10, 1, 50, 1000, 'node worker'),
+      '11': stat(11, 10, 100, 2000),
+      '12': stat(12, 11, 25, 500, 'chrome (renderer)'),
+      '99': stat(99, 1, 1000, 9000, 'unrelated'),
+    };
+    const proc = { pids: () => Object.keys(table), stat: (pid: string) => table[pid] };
+    expect(sampleChildProcesses(10, proc)).toEqual({
+      processes: 2,
+      residentBytes: 2500 * 4096,
+      // The worker's reaped children (2 × 50) and each descendant's own and reaped time.
+      cpuSeconds: (100 + 400 + 100) / 100,
+    });
+    expect(sampleChildProcesses(10, { pids: () => [], stat: () => undefined })).toBeNull();
+
+    const metrics = createMetrics();
+    expect(metrics.sampleChildren(() => null)).toBe(false);
+    expect(await metrics.registry.metrics()).not.toContain('wfm_worker_child_');
+    expect(metrics.sampleChildren(() => sampleChildProcesses(10, proc))).toBe(true);
+    metrics.artifactBytes.inc(1234);
+    const text = await metrics.registry.metrics();
+    expect(text).toContain('wfm_worker_child_processes 2');
+    expect(text).toContain(`wfm_worker_child_resident_bytes ${2500 * 4096}`);
+    expect(text).toContain('wfm_artifact_bytes_written_total 1234');
+    expect(text).not.toMatch(/wfm_worker_child_\w+\{/);
   });
   it('records wait, duration, failures and restores active capacity after errors', async () => {
     const metrics = createMetrics();

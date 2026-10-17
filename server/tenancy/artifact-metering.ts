@@ -12,6 +12,7 @@ import {
 import { quotaUsage, quotasFor, QuotaError } from './tenant-quotas';
 import type { ArtifactStore } from './artifact-store';
 import { isWriteOnceKey } from './write-once';
+import { applicationMetrics } from '../platform/observability/metrics';
 
 const rawStores = new WeakMap<ArtifactStore, ArtifactStore>();
 
@@ -137,6 +138,7 @@ async function meteredWrite(
   if (kept) return;
   // On ambiguous errors the reservation stays: the object might exist despite a lost reply.
   await raw.write(key, body, contentType);
+  applicationMetrics.artifactBytes.inc(body.length);
   await runWithTenant(organizationId, () =>
     withTenantTransaction((tx) =>
       tx
