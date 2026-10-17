@@ -1,0 +1,25 @@
+{
+  "id": "example-pilot",
+  "owner": "Product owner (example)",
+  "team": { "name": "Example team", "currentTool": "current-tool" },
+  "operator": { "name": "Tester who did not write WFM", "wroteProduct": false },
+  "window": { "start": "2026-11-02T08:00:00Z", "end": "2026-11-13T18:00:00Z" },
+  "flows": [
+    {
+      "id": "login-order",
+      "name": "Login and place an order",
+      "planId": "plan-login-order",
+      "why": "The flow the team runs on every release; forms, a dataset and a shadow DOM widget.",
+      "baseline": {
+        "source": "measured",
+        "measuredOn": "2026-10-28",
+        "timeToFirstGreenMin": 180,
+        "recorderCorrections": 9,
+        "diagnosisMin": 40,
+        "locatorFixes": 3,
+        "retries": 4,
+        "runMinutes": 12
+      }
+    }
+  ]
+}

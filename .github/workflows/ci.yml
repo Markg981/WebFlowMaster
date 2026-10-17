@@ -68,6 +68,9 @@ jobs:
       # The benchmark's configuration guards (profile limits, refusal of shared or production
       # targets) run on every change; the load itself stays an authorized acceptance run.
       - run: npm run test:benchmark
+      # The pilot's gate (P19): no vendor baseline, operator who did not write the product, every
+      # incident reopens its audit ID, the decision stands apart from the build's approval.
+      - run: npm run test:pilot
 
   application-restore-drill:
     needs: changes
