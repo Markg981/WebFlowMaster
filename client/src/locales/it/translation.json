@@ -3155,7 +3155,8 @@
       "organization": "Organizzazione",
       "load_test": "Test di carico",
       "step_group": "Gruppi di step",
-      "project_element": "Repository degli elementi"
+      "project_element": "Repository degli elementi",
+      "healing_proposal": "Proposte di riparazione"
     },
     "actions": {
       "bdd_profile_created": "Profilo BDD creato",
@@ -3282,7 +3283,9 @@
       "load_test_cancelled": "Esecuzione di carico fermata",
       "test_selector_healed": "Selettore del test corretto",
       "step_group_selector_healed": "Selettore del gruppo di step corretto",
-      "project_element_selector_healed": "Selettore dell’elemento condiviso corretto"
+      "project_element_selector_healed": "Selettore dell’elemento condiviso corretto",
+      "healing_proposal_approved": "Proposta di riparazione approvata",
+      "healing_proposal_rejected": "Proposta di riparazione rifiutata"
     }
   },
   "security": {
@@ -5158,6 +5161,27 @@
     "rowLabel": "Riga {{n}}",
     "sliceScreenshot": "Screenshot",
     "downloadHar": "Scarica la registrazione di rete (HAR)",
-    "stepsNotKept": "Il report conserva gli step del tentativo su cui si basa l’esito. Gli step di questo tentativo sono nella sua trace e nel suo video, se il piano li ha conservati."
+    "stepsNotKept": "Il report conserva gli step del tentativo su cui si basa l’esito. Gli step di questo tentativo sono nella sua trace e nel suo video, se il piano li ha conservati.",
+    "healing": {
+      "title": "Superato dopo la riparazione, non con il proprio locator",
+      "badge": "superato dopo riparazione",
+      "original": "Locator scritto",
+      "used": "Usato in questa esecuzione",
+      "origin": "Trovato da",
+      "fallback": "un fallback già noto alla registrazione",
+      "ai": "l’AI, verificato su un solo elemento",
+      "explainer": "Usato solo in questa esecuzione. Il test cambia solo quando un editor approva la proposta, che salva una nuova versione della copia di lavoro; pubblicare quella versione resta il consueto passo di pubblicazione o revisione.",
+      "legacy": "Registrato prima che la riparazione richiedesse approvazione: questa esecuzione ha scritto la riparazione da sé.",
+      "status": {
+        "proposed": "Proposta — in attesa di un editor",
+        "approved": "Approvata nella copia di lavoro",
+        "rejected": "Rifiutata — il test mantiene il suo locator",
+        "stale": "Superata — lo step è cambiato dopo questa esecuzione e non può più essere approvata"
+      },
+      "version": "Salvata come versione {{version}}.",
+      "approve": "Approva",
+      "reject": "Rifiuta",
+      "failed": "La decisione non è stata salvata."
+    }
   }
 }

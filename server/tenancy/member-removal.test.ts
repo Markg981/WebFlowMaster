@@ -59,6 +59,7 @@ const PROVENANCE = [
   'test_quarantines.released_by',
   'test_reviews.decided_by',
   'test_reviews.requested_by',
+  'healing_proposals.decided_by',
   'test_suites.created_by',
   'test_versions.created_by',
 ];

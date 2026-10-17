@@ -580,6 +580,9 @@ export class TestRunner {
             elementId: elementIdOfStep(step as unknown as SequenceStep),
             executionId: executionId ?? null,
             userId,
+            attempt: options?.attempt ?? null,
+            stepIndex: i,
+            element: step.targetElement ?? null,
           });
 
           reporter.resetStepState();
@@ -777,14 +780,19 @@ export class TestRunner {
 
           if (stepStatus === 'failed') overallSuccess = false;
           const healing = reporter.lastHealing;
-          if (healing?.status === 'conflict' && executionId) {
-            // The step passed on the proposal; its source keeps what it said. Somebody decides.
+          if (healing && executionId) {
+            // The step passed on the repair, for this run; its source keeps what it said until
+            // somebody approves the proposal.
             wsEmitter.emitExecutionLog(executionId, {
               level: 'warn',
               source: 'playwright',
               message: `Step ${i + 1} (${actionName}): ${healing.detail}`,
               timestamp: new Date().toISOString(),
-              metadata: { stepIndex: i, healing: healing.reason },
+              metadata: {
+                stepIndex: i,
+                healing: healing.status,
+                ...(healing.proposalId ? { proposalId: healing.proposalId } : {}),
+              },
             });
           }
           stepResults.push({
@@ -801,7 +809,13 @@ export class TestRunner {
             status: stepStatus,
             screenshot: stepScreenshot,
             error: stepError,
-            details: stepStatus === 'passed' ? (stepDetail ?? 'Success') : stepError || 'Failed',
+            // A pass on a repaired locator says so: it is not the pass the step was written for.
+            details:
+              stepStatus === 'passed'
+                ? healing
+                  ? [stepDetail, healing.detail].filter(Boolean).join(' ')
+                  : (stepDetail ?? 'Success')
+                : stepError || 'Failed',
             healed: reporter.lastActionHealed,
             ...(healing ? { healing } : {}),
             visual: stepVisual,

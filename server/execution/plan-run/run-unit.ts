@@ -38,7 +38,11 @@ import {
 } from './report-entry';
 import type { UnitFence } from './fence';
 import { beginAttempt, finishAttempt, type AttemptRecord } from '../execution-units';
-import { evidenceKey, type AttemptEvidenceRecord } from '@shared/execution-identity';
+import {
+  evidenceKey,
+  type AttemptEvidenceRecord,
+  type ExecutionAttemptRef,
+} from '@shared/execution-identity';
 import type { RunSettings } from './settings';
 
 /** Everything a unit reads: what the phases before execution produced. */
@@ -196,7 +200,7 @@ interface UnitContext {
  */
 async function attempt<T>(
   context: UnitContext,
-  once: (evidenceDir: string | undefined) => Promise<T>,
+  once: (evidenceDir: string | undefined, ref?: ExecutionAttemptRef) => Promise<T>,
   conclude: (result: T, evidenceDir: string) => Promise<{ status: string; record: AttemptRecord }>,
 ): Promise<T> {
   const { unitId } = context.unit;
@@ -209,7 +213,7 @@ async function attempt<T>(
   let status = 'error';
   let record: AttemptRecord = {};
   try {
-    const result = await once(evidenceDir);
+    const result = await once(evidenceDir, ref);
     ({ status, record } = await conclude(result, evidenceDir));
     return result;
   } finally {
@@ -477,7 +481,7 @@ async function runDefinition(
         },
       };
     });
-  const runTestOnce = (evidenceDir: string | undefined) =>
+  const runTestOnce = (evidenceDir: string | undefined, ref?: ExecutionAttemptRef) =>
     runTest(
       test,
       run.userId,
@@ -506,6 +510,7 @@ async function runDefinition(
           testType === 'ui' && unit.link.testId
             ? scope.tests.dependencies.get(unit.link.testId)
             : undefined,
+        attempt: ref,
       },
     );
   let attempts = 1;

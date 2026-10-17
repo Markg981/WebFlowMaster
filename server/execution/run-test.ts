@@ -26,6 +26,7 @@ import type { EvidenceCaptureMode } from '@shared/schema';
 import { type NetworkSummary } from '@shared/network';
 import { type PreconditionFailurePolicy, type StepRuntime } from '../runtime/run-policies';
 import type { FrozenDependencies } from '../authoring/executable-definition';
+import type { ExecutionAttemptRef } from '@shared/execution-identity';
 
 /** Keeps a browser label from turning into a path when it names a directory. */
 function sanitizeSegment(value: string): string {
@@ -113,6 +114,8 @@ export interface RunTestOptions {
    * never from the live groups, elements and custom actions. Absent: read live, as before R1.
    */
   dependencies?: FrozenDependencies;
+  /** The attempt of the run's manifest this try is: a healing proposal names it. */
+  attempt?: ExecutionAttemptRef;
 }
 
 /** The screenshot that says most about a run of steps: a visual failure's diff, else the last one. */
@@ -309,6 +312,7 @@ export async function runTest(
           locale: options?.locale,
           onVariables: (set) => variableSets.push(set),
           dependencies: options?.dependencies,
+          attempt: options?.attempt,
         },
       );
       const durationMs = Date.now() - startTime;

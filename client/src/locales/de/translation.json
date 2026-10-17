@@ -3155,7 +3155,8 @@
       "organization": "Organisation",
       "load_test": "Lasttests",
       "step_group": "Schrittgruppen",
-      "project_element": "Element-Repository"
+      "project_element": "Element-Repository",
+      "healing_proposal": "Reparaturvorschläge"
     },
     "actions": {
       "bdd_profile_created": "BDD-Profil erstellt",
@@ -3282,7 +3283,9 @@
       "load_test_cancelled": "Lasttest-Lauf gestoppt",
       "test_selector_healed": "Testselektor repariert",
       "step_group_selector_healed": "Selektor der Schrittgruppe repariert",
-      "project_element_selector_healed": "Selektor des gemeinsamen Elements repariert"
+      "project_element_selector_healed": "Selektor des gemeinsamen Elements repariert",
+      "healing_proposal_approved": "Reparaturvorschlag genehmigt",
+      "healing_proposal_rejected": "Reparaturvorschlag abgelehnt"
     }
   },
   "security": {
@@ -5158,6 +5161,27 @@
     "rowLabel": "Zeile {{n}}",
     "sliceScreenshot": "Screenshot",
     "downloadHar": "Netzwerkaufzeichnung (HAR) herunterladen",
-    "stepsNotKept": "Der Bericht behält die Schritte des Versuchs, auf dem das Ergebnis beruht. Die Schritte dieses Versuchs stehen in seinem Trace und Video, sofern der Plan sie behalten hat."
+    "stepsNotKept": "Der Bericht behält die Schritte des Versuchs, auf dem das Ergebnis beruht. Die Schritte dieses Versuchs stehen in seinem Trace und Video, sofern der Plan sie behalten hat.",
+    "healing": {
+      "title": "Nach Reparatur bestanden, nicht mit dem eigenen Locator",
+      "badge": "nach Reparatur bestanden",
+      "original": "Geschriebener Locator",
+      "used": "In diesem Lauf verwendet",
+      "origin": "Gefunden durch",
+      "fallback": "einen der Aufzeichnung bereits bekannten Fallback",
+      "ai": "die KI, geprüft auf genau ein Element",
+      "explainer": "Nur für diesen Lauf verwendet. Der Test ändert sich erst, wenn ein Editor den Vorschlag genehmigt; das speichert eine neue Version der Arbeitskopie. Diese Version zu veröffentlichen bleibt der übliche Veröffentlichungs- oder Review-Schritt.",
+      "legacy": "Aufgezeichnet, bevor Reparaturen eine Genehmigung brauchten: Dieser Lauf hat die Reparatur selbst geschrieben.",
+      "status": {
+        "proposed": "Vorgeschlagen — wartet auf einen Editor",
+        "approved": "In die Arbeitskopie übernommen",
+        "rejected": "Abgelehnt — der Test behält seinen Locator",
+        "stale": "Veraltet — der Schritt hat sich nach diesem Lauf geändert und kann nicht mehr genehmigt werden"
+      },
+      "version": "Als Version {{version}} gespeichert.",
+      "approve": "Genehmigen",
+      "reject": "Ablehnen",
+      "failed": "Die Entscheidung wurde nicht gespeichert."
+    }
   }
 }
