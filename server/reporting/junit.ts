@@ -31,6 +31,31 @@ export interface JUnitInput {
   executionId: string;
   startedAt?: Date | string | null;
   results: JUnitResultRow[];
+  /** How the run ended: an ending its results do not account for is one more error. */
+  run?: { status: string; failureMessage?: string | null };
+}
+
+/** Endings no test result accounts for: a result lost or never produced, a deadline, a cancel. */
+const ENDINGS_WITHOUT_VERDICT = new Set(['error', 'timed_out', 'cancelled']);
+
+/**
+ * The run itself, as one more errored test, when it ended in a way its results do not say (P18).
+ *
+ * Without it, a run that lost a result, ran out of time or was cancelled exports only the results
+ * it kept — all green, or none at all — and a pipeline that reads the file rather than the exit
+ * code, or a dashboard fed by it, counts the run as passed.
+ */
+export function runEndingResult(
+  status: string,
+  failureMessage?: string | null,
+): { testName: string; status: 'Error'; reasonForFailure: string } | null {
+  if (!ENDINGS_WITHOUT_VERDICT.has(status)) return null;
+  return {
+    testName: `Run ${status.replace('_', ' ')}`,
+    status: 'Error',
+    reasonForFailure:
+      failureMessage?.trim() || `The run ended as "${status}" before every test had a result.`,
+  };
 }
 
 /** Where a run with no browser recorded goes, which is every run made before the matrix. */
@@ -109,7 +134,11 @@ function classNameFor(row: JUnitResultRow): string {
 
 export function buildJUnitXml(input: JUnitInput): string {
   const suites = new Map<string, JUnitResultRow[]>();
-  for (const row of input.results) {
+  const ending = input.run && runEndingResult(input.run.status, input.run.failureMessage);
+  const everything: JUnitResultRow[] = ending
+    ? [...input.results, { ...ending, testType: 'run', startedAt: input.startedAt }]
+    : input.results;
+  for (const row of everything) {
     const suite = row.browser?.trim() || DEFAULT_SUITE;
     const existing = suites.get(suite);
     if (existing) existing.push(row);

@@ -105,6 +105,7 @@ export type EnqueueFailureCode =
   | 'queue_quota_exceeded'
   | 'execution_not_found'
   | 'replay_unavailable'
+  | 'unsupported_definition'
   | 'queue_submission_failed';
 
 /** Why a run could not be created, with the HTTP status that says so. */
@@ -348,6 +349,18 @@ export function createExecutionOrchestrator(
               ref.testType === 'api' && ref.apiTestId ? [ref.apiTestId] : [],
             ),
           );
+          // A published version in a format this server does not know was written by a newer
+          // release (R1 rollback contract): refused here, so it is neither queued to fail later
+          // nor ever run with live dependencies. A corrupt one still fails its own test by name.
+          for (const row of snapshot.definitions.ui) {
+            const frozen = row.dependencies;
+            if (frozen && 'reason' in frozen && frozen.reason === 'unsupported')
+              throw new ExecutionEnqueueError(
+                'unsupported_definition',
+                `UI test ${row.id}: ${frozen.error}`,
+                409,
+              );
+          }
           snapshot.datasets = await freezeExecutionDatasets(
             tx,
             organizationId,

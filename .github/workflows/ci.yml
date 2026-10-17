@@ -65,6 +65,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:resilience
+      # The benchmark's configuration guards (profile limits, refusal of shared or production
+      # targets) run on every change; the load itself stays an authorized acceptance run.
+      - run: npm run test:benchmark
 
   application-restore-drill:
     needs: changes
@@ -500,5 +503,8 @@ jobs:
           echo "app_user rolbypassrls = $bypasses"
           test "$bypasses" = "f"
 
+      # test:rls chains every real-Postgres suite, test:rls:execution included (run units,
+      # attempts and healing proposals across tenants and restricted projects, and two workers
+      # racing for one unit). A new file joins the job only through a selector in package.json.
       - name: Isolation, tenancy and audit suites against real Postgres
         run: npm run test:rls

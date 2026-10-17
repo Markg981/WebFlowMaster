@@ -458,6 +458,59 @@ describe('exporting a run', () => {
     expect(response.text).toContain('<failure');
   });
 
+  it('shows a run that lost a result as an error in JUnit and Allure, not as its green tests (P18)', async () => {
+    const { eq, and, ne } = await import('drizzle-orm');
+    // Only the passed test was saved; the run knows it is incomplete.
+    await privilegedDb
+      .delete(reportTestCaseResults)
+      .where(
+        and(
+          eq(reportTestCaseResults.testPlanExecutionId, executionId),
+          ne(reportTestCaseResults.status, 'Passed'),
+        ),
+      );
+    const message = 'The result of "Pay" could not be saved; the run is incomplete.';
+    await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status: 'error', failureCode: 'run_incomplete', failureMessage: message })
+      .where(eq(testPlanExecutions.id, executionId));
+
+    const junit = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/junit`)
+      .expect(200);
+    expect(junit.text).toMatch(/<testsuites [^>]*tests="2" failures="0" errors="1"/);
+    expect(junit.text).toContain('<testcase name="Run error"');
+    expect(junit.text).toContain(`<error message="${message.replace(/"/g, '&quot;')}"`);
+
+    const allure = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/export/allure`)
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+    const results = [...readZip(allure.body as Buffer).entries()]
+      .filter(([name]) => name.endsWith('-result.json'))
+      .map(([, data]) => JSON.parse(data.toString()));
+    expect(results.map((r) => [r.name, r.status]).sort()).toEqual([
+      ['Login', 'passed'],
+      ['Run error', 'broken'],
+    ]);
+    expect(results.find((r) => r.name === 'Run error').statusDetails.message).toBe(message);
+
+    // A run its tests decided carries no such entry.
+    await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status: 'completed', failureCode: null, failureMessage: null })
+      .where(eq(testPlanExecutions.id, executionId));
+    const green = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/junit`)
+      .expect(200);
+    expect(green.text).toMatch(/<testsuites [^>]*tests="1" failures="0" errors="0"/);
+  });
+
   it('shows a visual comparison that could not run as an error everywhere, never a pass or a regression (P06)', async () => {
     const reason =
       'Visual comparison could not run (baseline-corrupt): Invalid file signature. The step was not verified visually.';
