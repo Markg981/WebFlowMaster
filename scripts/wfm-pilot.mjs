@@ -74,17 +74,16 @@ export async function fetchRuns(pilot, env, fetchImpl = fetch) {
     return response.json();
   };
   const start = Date.parse(pilot.window.start);
+  const plans = new Set(pilot.flows.map((flow) => flow.planId));
   const runs = [];
-  for (const flow of pilot.flows) {
-    for (let offset = 0; ; offset += 100) {
-      const page = await call(
-        `/api/v1/runs?planId=${encodeURIComponent(flow.planId)}&limit=100&offset=${offset}`,
-      );
-      runs.push(...page.items);
-      const oldest = page.items.at(-1);
-      // Newest first: past the window's start there is nothing more of the pilot.
-      if (page.items.length < 100 || Date.parse(oldest.startedAt ?? oldest.queuedAt) < start) break;
-    }
+  // The organization's runs, newest first, kept when they belong to a pilot plan: nothing read
+  // from the pilot file goes into a request.
+  for (let offset = 0; ; offset += 100) {
+    const page = await call(`/api/v1/runs?limit=100&offset=${offset}`);
+    runs.push(...page.items.filter((run) => plans.has(run.planId)));
+    const oldest = page.items.at(-1);
+    // Past the window's start there is nothing more of the pilot.
+    if (page.items.length < 100 || Date.parse(oldest.startedAt ?? oldest.queuedAt) < start) break;
   }
   for (const run of runs) {
     const units = [];

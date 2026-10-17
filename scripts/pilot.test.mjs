@@ -194,7 +194,7 @@ test('the CLI refuses without runs or credentials, and an unusable pilot', async
   );
 });
 
-test('runs are read through /api/v1 with the key in a header, newest first until the window', async () => {
+test('runs are read through /api/v1 with the key in a header, and never carry data from the pilot file', async () => {
   const pilot = fixture('pilot');
   const calls = [];
   const fake = async (url, init) => {
@@ -212,8 +212,5 @@ test('runs are read through /api/v1 with the key in a header, newest first until
   assert.equal(runs.length, 1);
   assert.equal(runs[0].units[0].result.attempts, 3);
   assert.ok(calls.every((call) => call.key === 'k' && !call.url.includes('k=')));
-  assert.equal(
-    calls[0].url,
-    'http://wfm.test/api/v1/runs?planId=plan-login-order&limit=100&offset=0',
-  );
+  assert.equal(calls[0].url, 'http://wfm.test/api/v1/runs?limit=100&offset=0');
 });

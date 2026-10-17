@@ -394,7 +394,7 @@ export function reportMarkdown(report) {
     lines.push('| When | Incident | Reopens | What | State |', '| --- | --- | --- | --- | --- |');
     for (const entry of report.register)
       lines.push(
-        `| ${entry.at} | ${entry.incident} | ${entry.reopens} | ${entry.what.replace(/\|/g, '\\|')} | ${entry.state}${entry.closedBy ? ` (${entry.closedBy})` : ''} |`,
+        `| ${entry.at} | ${entry.incident} | ${entry.reopens} | ${entry.what.replace(/[\\|]/g, '\\$&')} | ${entry.state}${entry.closedBy ? ` (${entry.closedBy})` : ''} |`,
       );
   }
   if (report.missing.length)
