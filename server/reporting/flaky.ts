@@ -31,6 +31,59 @@ export interface FlakyInputRow {
   uiTestId?: number | null;
   apiTestId?: number | null;
   mobileTestId?: number | null;
+  /** How many tries the run made before this result stood. 1, or absent, for a single try. */
+  attempts?: number | null;
+  /**
+   * What the version executes (server/authoring/executable-definition.ts), when it is known: two
+   * versions that run the same thing are compared, and the same version number with a different
+   * one is not. Absent, the version number stands in for it.
+   */
+  definition?: string | null;
+  /** The plan the run belongs to, for the link to its report. */
+  planId?: string | null;
+  /** The matrix the result came from, as far as the run recorded it. */
+  environment?: string | null;
+  locale?: string | null;
+  device?: string | null;
+  /** The manifest unit and the attempt that decided it (P07); null on results written before. */
+  unitId?: string | null;
+  unitAttempt?: number | null;
+  /**
+   * The first try of this run that did not pass, from its attempt record — only when one was
+   * recorded. A legacy result keeps only its attempt count, and its first failure stays unknown.
+   */
+  firstFailure?: { attempt: number; status: string | null; reason: string | null } | null;
+}
+
+/** Where a signal can be looked at: the run, and the attempt of it that shows the thing. */
+export interface FlakyEvidence {
+  executionId: string | null;
+  planId: string | null;
+  unitId: string | null;
+  /** The attempt that shows it; null when the result predates attempt records. */
+  attempt: number | null;
+}
+
+/**
+ * One thing that happened, kept apart from the others because each asks a different question.
+ *
+ * - recovered: failed, then passed when the run tried again. A pass, and a finding.
+ * - flip: the verdict changed from the run before with the same definition.
+ * - error: the run never reached a verdict — a browser that did not start, a blocked setup.
+ * - definition_changed: the test executes something else from here on.
+ */
+export interface FlakySignal extends FlakyEvidence {
+  kind: 'recovered' | 'flip' | 'error' | 'definition_changed';
+  at: string;
+  version: number | null;
+  /** recovered: how many tries the run took. */
+  attempts?: number;
+  /** recovered: why the first try failed, as recorded; null when it was not. */
+  cause?: string | null;
+  /** recovered: false for a legacy result, which only kept how many tries it took. */
+  causeRecorded?: boolean;
+  /** flip: the verdict it changed to. */
+  verdict?: 'passed' | 'failed';
 }
 
 export interface FlakySummary {
@@ -38,9 +91,18 @@ export interface FlakySummary {
   /** The test behind the name, from its latest result that still points at one; null if deleted. */
   test: { type: 'ui' | 'api' | 'mobile'; id: number } | null;
   browser: string | null;
+  /** The rest of the matrix this history is for; nulls where runs did not record it. */
+  matrix: { environment: string | null; locale: string | null; device: string | null };
   runs: number;
   passed: number;
   failed: number;
+  /** Runs that tried the test more than once, whatever they ended with. */
+  retriedRuns: number;
+  /**
+   * Runs that passed only after a retry. Counted on their own, not as flips: three runs that each
+   * passed on the second try never change verdict, and are as unreliable as a test can be.
+   */
+  recoveredByRetry: number;
   /** Runs that never produced a verdict — a browser that would not start, a blocked setup. */
   errored: number;
   /**
@@ -62,19 +124,30 @@ export interface FlakySummary {
   unexplainedFlips: number;
   /** Distinct versions this window saw, in order. One means the test never changed. */
   versions: number[];
+  /** How many times what the test executes changed between two runs in the window. */
+  definitionChanges: number;
   /** True when the test was edited inside the window, which is why some flips are explained. */
   changedDuringWindow: boolean;
   /**
-   * unexplainedFlips / (comparable runs - 1), so a long history and a short one rank together.
+   * The larger of unexplainedFlips / (runs - 1) and recoveredByRetry / runs, so a long history
+   * and a short one rank together, and a test rescued by retries every night ranks with one that
+   * alternates.
    *
-   * Deliberately the unexplained ones: a test edited three times, changing verdict at each edit,
+   * Deliberately the unexplained flips: a test edited three times, changing verdict at each edit,
    * is not the test somebody should spend their morning on.
    */
   flakiness: number;
   lastStatus: 'passed' | 'failed';
+  /** How many tries the last judged run took. */
+  lastAttempts: number;
   firstSeen: string;
   lastSeen: string;
+  /** What happened, newest first, each with the attempt that shows it. At most MAX_SIGNALS. */
+  signals: FlakySignal[];
 }
+
+/** Enough to start from; the report of each run has the rest. */
+export const MAX_SIGNALS = 20;
 
 /** Only these two carry a verdict; everything else says the test never got to answer. */
 function verdictOf(status: string): 'passed' | 'failed' | null {
@@ -110,7 +183,35 @@ function keyOf(row: FlakyInputRow): string {
   // every cross-browser difference as flakiness.
   // A mobile test's "browser" is its device, so the same holds for a test that fails on one
   // phone and passes on another.
-  return JSON.stringify([...identity, row.browser ?? '']);
+  // The rest of the matrix the same way: the same test against staging and production, or in
+  // English and in Italian, is two histories. Where a run did not record a dimension, it is
+  // an unknown kept apart from the known ones, never assumed to be one of them.
+  return JSON.stringify([
+    ...identity,
+    row.browser ?? '',
+    row.environment ?? '',
+    row.locale ?? '',
+    row.device ?? '',
+  ]);
+}
+
+/**
+ * What the run executed, as far as it can be told: the executable fingerprint, else the version
+ * number, else nothing. Two nothings compare equal — an unrecorded definition explains nothing.
+ */
+function definitionOf(row: FlakyInputRow): string | null {
+  if (row.definition) return `x:${row.definition}`;
+  if (row.testVersion != null) return `v:${row.testVersion}`;
+  return null;
+}
+
+function evidenceOf(row: FlakyInputRow, attempt: number | null): FlakyEvidence {
+  return {
+    executionId: row.testPlanExecutionId ?? null,
+    planId: row.planId ?? null,
+    unitId: row.unitId ?? null,
+    attempt: row.unitId ? attempt : null,
+  };
 }
 
 export interface FlakyOptions {
@@ -121,11 +222,17 @@ export interface FlakyOptions {
 }
 
 /**
- * Groups results by test and browser, in time order, and counts the changes of mind.
+ * Groups results by test and matrix variant, in time order, and counts the changes of mind.
  *
  * Errors are counted and then stepped over rather than treated as failures: a run that could
  * not start a browser says nothing about whether the test is reliable, and letting it count as
  * a failure would manufacture two flips out of one bad night on the runner.
+ *
+ * Retries inside a run are their own signal. A run's verdict is its last attempt's, so a test
+ * that fails and then passes on every run has a perfect history of passes and no flips: judged
+ * on verdicts alone it vanished from this list exactly when it was flakiest. Such a test is
+ * listed however short its history, because a single recovered run already shows it failing
+ * and passing with nothing changed in between.
  */
 export function summariseFlakiness(
   rows: FlakyInputRow[],
@@ -147,61 +254,122 @@ export function summariseFlakiness(
     const ordered = [...group].sort(
       (left, right) => timeOf(left.startedAt) - timeOf(right.startedAt),
     );
-    // Verdict and version travel together: which version produced a verdict is what decides
-    // whether the next change of verdict is a surprise or a consequence.
-    const judged: Array<{ verdict: 'passed' | 'failed'; version: number | null }> = [];
+    // Verdict and definition travel together: what produced a verdict is what decides whether
+    // the next change of verdict is a surprise or a consequence.
+    const judged: Array<{ verdict: 'passed' | 'failed'; row: FlakyInputRow }> = [];
+    const signals: FlakySignal[] = [];
     let errored = 0;
+    let retriedRuns = 0;
+    let recoveredByRetry = 0;
 
     for (const row of ordered) {
+      const at = new Date(timeOf(row.startedAt)).toISOString();
+      const version = row.testVersion ?? null;
       const verdict = verdictOf(row.status);
-      if (verdict) judged.push({ verdict, version: row.testVersion ?? null });
-      else errored++;
+      const attempts = Math.max(1, row.attempts ?? 1);
+      if (!verdict) {
+        errored++;
+        signals.push({ kind: 'error', at, version, ...evidenceOf(row, row.unitAttempt ?? null) });
+        continue;
+      }
+      if (attempts > 1) retriedRuns++;
+      if (verdict === 'passed' && attempts > 1) {
+        recoveredByRetry++;
+        // The failed try is the one worth opening. Its cause only when it was recorded: a legacy
+        // result knows it took two tries and nothing about why the first one failed.
+        const first = row.unitId ? (row.firstFailure ?? null) : null;
+        signals.push({
+          kind: 'recovered',
+          at,
+          version,
+          attempts,
+          cause: first?.reason ?? null,
+          causeRecorded: first !== null,
+          ...evidenceOf(row, first?.attempt ?? null),
+        });
+      }
+      judged.push({ verdict, row });
     }
 
-    if (judged.length < minimumRuns) continue;
+    if (judged.length === 0) continue;
 
     let flips = 0;
     let unexplainedFlips = 0;
+    let definitionChanges = 0;
     for (let i = 1; i < judged.length; i++) {
-      if (judged[i].verdict === judged[i - 1].verdict) continue;
+      const previous = judged[i - 1];
+      const current = judged[i];
+      const at = new Date(timeOf(current.row.startedAt)).toISOString();
+      const version = current.row.testVersion ?? null;
+      // Same definition on both sides — including two unknowns, since an unrecorded one cannot
+      // account for anything.
+      const sameDefinition = definitionOf(previous.row) === definitionOf(current.row);
+      if (!sameDefinition) {
+        definitionChanges++;
+        signals.push({ kind: 'definition_changed', at, version, ...evidenceOf(current.row, null) });
+      }
+      if (current.verdict === previous.verdict) continue;
       flips++;
-      // Same version on both sides — including two unknowns, since an unrecorded version
-      // cannot account for anything.
-      if (judged[i].version === judged[i - 1].version) unexplainedFlips++;
+      if (!sameDefinition) continue;
+      unexplainedFlips++;
+      signals.push({
+        kind: 'flip',
+        at,
+        version,
+        verdict: current.verdict,
+        ...evidenceOf(current.row, current.row.unitAttempt ?? null),
+      });
     }
-    // Filtered on the unexplained ones: a test whose every change of verdict followed an edit
+    // Filtered on the unexplained flips: a test whose every change of verdict followed an edit
     // has not disagreed with itself, and putting it on this list is how the list loses its
-    // meaning.
-    if (unexplainedFlips < minimumFlips) continue;
+    // meaning. A recovery needs no history to count.
+    const flipsCount = judged.length >= minimumRuns && unexplainedFlips >= minimumFlips;
+    if (!flipsCount && recoveredByRetry === 0) continue;
 
     const versions = Array.from(
       new Set(
         judged
-          .map((entry) => entry.version)
+          .map((entry) => entry.row.testVersion ?? null)
           .filter((version): version is number => version !== null),
       ),
     ).sort((left, right) => left - right);
 
     const passed = judged.filter((entry) => entry.verdict === 'passed').length;
     const latest = ordered[ordered.length - 1];
+    const lastJudged = judged[judged.length - 1];
+    const flipRate = judged.length > 1 ? unexplainedFlips / (judged.length - 1) : 0;
     summaries.push({
       // The name it has now: a renamed test is listed under the name people will look for.
       testName: latest.testName,
       // Every row in the group points at the same test, or none does.
       test: testOf(latest),
       browser: ordered[0].browser ?? null,
+      matrix: {
+        environment: ordered[0].environment ?? null,
+        locale: ordered[0].locale ?? null,
+        device: ordered[0].device ?? null,
+      },
       runs: judged.length,
       passed,
       failed: judged.length - passed,
+      retriedRuns,
+      recoveredByRetry,
       errored,
       flips,
       unexplainedFlips,
       versions,
-      changedDuringWindow: versions.length > 1,
-      flakiness: Number((unexplainedFlips / (judged.length - 1)).toFixed(3)),
-      lastStatus: judged[judged.length - 1].verdict,
+      definitionChanges,
+      changedDuringWindow: definitionChanges > 0,
+      flakiness: Number(Math.max(flipRate, recoveredByRetry / judged.length).toFixed(3)),
+      lastStatus: lastJudged.verdict,
+      lastAttempts: Math.max(1, lastJudged.row.attempts ?? 1),
       firstSeen: new Date(timeOf(ordered[0].startedAt)).toISOString(),
-      lastSeen: new Date(timeOf(ordered[ordered.length - 1].startedAt)).toISOString(),
+      lastSeen: new Date(timeOf(latest.startedAt)).toISOString(),
+      // Newest first; the sort is stable, so one run's signals keep their order.
+      signals: signals
+        .reverse()
+        .sort((left, right) => Date.parse(right.at) - Date.parse(left.at))
+        .slice(0, MAX_SIGNALS),
     });
   }
 
@@ -218,9 +386,12 @@ export function describeFlakiness(summary: FlakySummary): string {
     ? ` The test was edited in this window (versions ${summary.versions.join(', ')}), which accounts for ` +
       `${summary.flips - summary.unexplainedFlips} of them.`
     : '';
+  const recovered = summary.recoveredByRetry
+    ? ` ${summary.recoveredByRetry} of the passes needed a retry.`
+    : '';
   return (
     `${summary.testName}${summary.browser ? ` (${summary.browser})` : ''}: ` +
     `${summary.passed} passed, ${summary.failed} failed over ${summary.runs} runs, ` +
-    `changing verdict ${summary.flips} time${summary.flips === 1 ? '' : 's'}.${edited}`
+    `changing verdict ${summary.flips} time${summary.flips === 1 ? '' : 's'}.${edited}${recovered}`
   );
 }

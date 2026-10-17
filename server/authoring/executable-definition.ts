@@ -216,6 +216,39 @@ export function readVersionBundle(snapshot: unknown): BundleRead {
   return readBundle(executable.dependencies);
 }
 
+/**
+ * What one UI version executes, as a hash: its own steps and setup plus its bundle's fingerprint,
+ * not its name or summary. Two versions with the same one run the same thing, so results of either
+ * can be compared (P14); a version without a usable bundle has none, because what it called was
+ * read live and is not known.
+ */
+export function versionExecutableFingerprint(version: {
+  url: unknown;
+  sequence: unknown;
+  elements: unknown;
+  preconditions: unknown;
+  cleanups: unknown;
+  dataset: unknown;
+  bdd?: unknown;
+  snapshot: unknown;
+}): string | null {
+  const read = readVersionBundle(version.snapshot);
+  if (read.kind !== 'ok') return null;
+  const executable = {
+    url: version.url ?? null,
+    sequence: version.sequence ?? null,
+    elements: version.elements ?? null,
+    preconditions: version.preconditions ?? null,
+    cleanups: version.cleanups ?? null,
+    dataset: version.dataset ?? null,
+    bdd: version.bdd ?? null,
+    dependencies: read.bundle.fingerprint,
+  };
+  return createHash('sha256')
+    .update(JSON.stringify(canonical(executable)))
+    .digest('hex');
+}
+
 /** A bundle as stored, checked for shape and for its own fingerprint. */
 export function readBundle(value: unknown): BundleRead {
   if (!isObject(value)) return { kind: 'corrupt', reason: 'The dependency bundle is missing.' };

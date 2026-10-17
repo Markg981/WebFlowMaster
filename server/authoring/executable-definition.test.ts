@@ -19,6 +19,7 @@ import {
   prepareSequence,
   readBundle,
   readVersionBundle,
+  versionExecutableFingerprint,
   versionSnapshotWith,
   type DependencyBundle,
 } from './executable-definition';
@@ -248,6 +249,32 @@ describe('reading a recorded bundle', () => {
     };
     expect(readBundle(tampered)).toMatchObject({ kind: 'corrupt' });
     expect(bundle.protocol).toBe(DEPENDENCY_PROTOCOL);
+  });
+
+  it('fingerprints what a version executes, not what it is called (P14)', async () => {
+    const snapshot = versionSnapshotWith(await empty());
+    const version = {
+      url: 'https://shop.test',
+      sequence: [{ action: 'click', selector: '#pay' }],
+      elements: [],
+      preconditions: null,
+      cleanups: null,
+      dataset: null,
+      snapshot,
+    };
+    const fingerprint = versionExecutableFingerprint(version);
+    expect(fingerprint).toMatch(/^[0-9a-f]{64}$/);
+    expect(versionExecutableFingerprint({ ...version, name: 'Renamed' } as typeof version)).toBe(
+      fingerprint,
+    );
+    expect(
+      versionExecutableFingerprint({
+        ...version,
+        sequence: [{ action: 'click', selector: '#buy' }],
+      }),
+    ).not.toBe(fingerprint);
+    // Dependencies read live are not known, so a legacy version has none.
+    expect(versionExecutableFingerprint({ ...version, snapshot: null })).toBeNull();
   });
 });
 

@@ -1,11 +1,18 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
-import { and, desc, eq, gte } from 'drizzle-orm';
-import { reportTestCaseResults, testPlanExecutions } from '@shared/schema';
+import { and, asc, desc, eq, gte, inArray, isNotNull } from 'drizzle-orm';
+import {
+  executionUnitAttempts,
+  executionUnits,
+  reportTestCaseResults,
+  testPlanExecutions,
+  testVersions,
+} from '@shared/schema';
 import { getDashboardMetrics, getDashboardSchedules } from '../../reporting/analytics';
 import { dashboardWidgetSchema, widgetConfigSchema } from '@shared/dashboard-layout';
-import { summariseFlakiness } from '../../reporting/flaky';
+import { summariseFlakiness, type FlakyInputRow } from '../../reporting/flaky';
 import { openQuarantinesOf, refKey } from '../../authoring/test-quarantine';
-import { withTenantTransaction } from '../../platform/middleware/tenancy';
+import { versionExecutableFingerprint } from '../../authoring/executable-definition';
+import { withTenantTransaction, type TenantTx } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import logger from '../../platform/logger';
 
@@ -88,10 +95,10 @@ router.get('/api/analytics/flaky', requireRole('viewer'), async (req, res) => {
   try {
     // No organization predicate: RLS supplies it on both tables, so this can only ever see
     // one tenant's history.
-    const rows = await withTenantTransaction((tx) => {
+    const rows = await withTenantTransaction(async (tx) => {
       const conditions = [gte(reportTestCaseResults.startedAt, since)];
       if (planId) conditions.push(eq(testPlanExecutions.testPlanId, planId));
-      return tx
+      const results = await tx
         .select({
           testName: reportTestCaseResults.testName,
           browser: reportTestCaseResults.browser,
@@ -104,14 +111,43 @@ router.get('/api/analytics/flaky', requireRole('viewer'), async (req, res) => {
           uiTestId: reportTestCaseResults.uiTestId,
           apiTestId: reportTestCaseResults.apiTestId,
           mobileTestId: reportTestCaseResults.mobileTestId,
+          // Retries inside the run, and the attempt that decided it.
+          attempts: reportTestCaseResults.attempts,
+          unitId: reportTestCaseResults.executionUnitId,
+          unitAttempt: reportTestCaseResults.unitAttempt,
+          planId: testPlanExecutions.testPlanId,
+          environment: testPlanExecutions.environment,
+          coordinates: executionUnits.coordinates,
         })
         .from(reportTestCaseResults)
         .innerJoin(
           testPlanExecutions,
           eq(reportTestCaseResults.testPlanExecutionId, testPlanExecutions.id),
         )
+        .leftJoin(
+          executionUnits,
+          and(
+            eq(executionUnits.executionId, reportTestCaseResults.testPlanExecutionId),
+            eq(executionUnits.unitId, reportTestCaseResults.executionUnitId),
+          ),
+        )
         .where(and(...conditions))
         .orderBy(desc(reportTestCaseResults.startedAt));
+      const definitions = await executableDefinitions(tx, results);
+      const firstFailures = await firstFailuresOf(tx, results);
+      return results.map(({ coordinates, ...row }): FlakyInputRow => {
+        const unitKey = row.unitId ? `${row.testPlanExecutionId}\u0000${row.unitId}` : null;
+        return {
+          ...row,
+          locale: coordinates?.locale ?? null,
+          device: coordinates?.device ?? null,
+          definition:
+            row.uiTestId != null && row.testVersion != null
+              ? (definitions.get(`${row.uiTestId}:${row.testVersion}`) ?? null)
+              : null,
+          firstFailure: unitKey ? (firstFailures.get(unitKey) ?? null) : null,
+        };
+      });
     });
 
     const summaries = summariseFlakiness(rows, { minimumRuns, minimumFlips }).slice(0, limit);
@@ -140,6 +176,99 @@ router.get('/api/analytics/flaky', requireRole('viewer'), async (req, res) => {
     res.status(500).json({ error: 'Failed to analyse flaky tests' });
   }
 });
+
+/**
+ * What each UI version in these results executes, by `testId:version`. Versions are immutable, so
+ * this is read once per version, not per result; a version without a usable bundle has no entry.
+ */
+async function executableDefinitions(
+  tx: TenantTx,
+  results: Array<{ uiTestId: number | null; testVersion: number | null }>,
+): Promise<Map<string, string>> {
+  const testIds = [
+    ...new Set(
+      results.flatMap((row) =>
+        row.uiTestId != null && row.testVersion != null ? [row.uiTestId] : [],
+      ),
+    ),
+  ];
+  const definitions = new Map<string, string>();
+  if (testIds.length === 0) return definitions;
+  const versions = await tx
+    .select({
+      testId: testVersions.testId,
+      version: testVersions.version,
+      url: testVersions.url,
+      sequence: testVersions.sequence,
+      elements: testVersions.elements,
+      preconditions: testVersions.preconditions,
+      cleanups: testVersions.cleanups,
+      dataset: testVersions.dataset,
+      bdd: testVersions.bdd,
+      snapshot: testVersions.snapshot,
+    })
+    .from(testVersions)
+    .where(inArray(testVersions.testId, testIds));
+  const wanted = new Set(results.map((row) => `${row.uiTestId}:${row.testVersion}`));
+  for (const version of versions) {
+    const key = `${version.testId}:${version.version}`;
+    if (!wanted.has(key)) continue;
+    const fingerprint = versionExecutableFingerprint(version);
+    if (fingerprint) definitions.set(key, fingerprint);
+  }
+  return definitions;
+}
+
+/**
+ * The first try that did not pass, of every unit in these results that took more than one, from
+ * its attempt record. A unit without records (written before P07) gets nothing: its first
+ * failure is unknown, and is reported as unknown.
+ */
+async function firstFailuresOf(
+  tx: TenantTx,
+  results: Array<{
+    testPlanExecutionId: string;
+    unitId: string | null;
+    unitAttempt: number | null;
+  }>,
+): Promise<Map<string, NonNullable<FlakyInputRow['firstFailure']>>> {
+  const retried = results.filter((row) => row.unitId && (row.unitAttempt ?? 1) > 1);
+  const failures = new Map<string, NonNullable<FlakyInputRow['firstFailure']>>();
+  if (retried.length === 0) return failures;
+  const deciding = new Map(
+    retried.map((row) => [`${row.testPlanExecutionId}\u0000${row.unitId}`, row.unitAttempt!]),
+  );
+  const attempts = await tx
+    .select({
+      executionId: executionUnitAttempts.executionId,
+      unitId: executionUnitAttempts.unitId,
+      attempt: executionUnitAttempts.attempt,
+      status: executionUnitAttempts.status,
+      failureReason: executionUnitAttempts.failureReason,
+    })
+    .from(executionUnitAttempts)
+    .where(
+      and(
+        inArray(executionUnitAttempts.executionId, [
+          ...new Set(retried.map((row) => row.testPlanExecutionId)),
+        ]),
+        isNotNull(executionUnitAttempts.status),
+      ),
+    )
+    .orderBy(asc(executionUnitAttempts.attempt));
+  for (const attempt of attempts) {
+    const key = `${attempt.executionId}\u0000${attempt.unitId}`;
+    const decidedBy = deciding.get(key);
+    if (decidedBy === undefined || attempt.attempt >= decidedBy || failures.has(key)) continue;
+    if (attempt.status?.toLowerCase() === 'passed') continue;
+    failures.set(key, {
+      attempt: attempt.attempt,
+      status: attempt.status,
+      reason: attempt.failureReason,
+    });
+  }
+  return failures;
+}
 
 /** A query parameter read as a number, or the default, and never outside the allowed range. */
 function clampNumber(value: unknown, fallback: number, min: number, max: number): number {

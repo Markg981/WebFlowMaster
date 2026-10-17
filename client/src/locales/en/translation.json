@@ -2921,7 +2921,9 @@
     "flaky": {
       "label": "Flaky · passed on attempt {{attempts}}",
       "title": "Passed only after being run again: this test is flaky.",
-      "count": "{{count}} passed only on a later attempt"
+      "count": "{{count}} passed only on a later attempt",
+      "cause": "First failure: {{cause}}",
+      "causeUnknown": "Why the first attempt failed was not recorded."
     },
     "attempts": {
       "label": "{{attempts}} attempts",
@@ -3512,7 +3514,7 @@
   },
   "flakyTests": {
     "title": "Tests that disagree with themselves",
-    "description": "Over the last {{days}} days, the tests whose verdict changed from one run to the next with nothing to explain it. A test that broke and was fixed is not here, and neither is one whose verdict changed because somebody edited it.",
+    "description": "Over the last {{days}} days, the tests whose verdict changed from one run to the next with nothing to explain it, and those that passed only when the run tried them again. A test that broke and was fixed is not here, and neither is one whose verdict changed because somebody edited it.",
     "loading": "Looking across recent runs…",
     "empty": "No test changed its mind in this window — out of {{count}} results examined.",
     "columns": {
@@ -3521,14 +3523,25 @@
       "history": "Passed / failed",
       "flips": "Changed verdict",
       "last": "Last run",
-      "quarantine": "Quarantine"
+      "quarantine": "Quarantine",
+      "evidence": "Evidence"
     },
     "errored": "never ran",
     "inRuns": "in {{runs}} runs",
     "edited": "edited",
     "editedTitle": "Edited during this window (versions {{versions}}). Only the unexplained changes of verdict are counted.",
     "inQuarantine": "In quarantine",
-    "quarantine": "Quarantine"
+    "quarantine": "Quarantine",
+    "recovered": "{{count}}× passed on retry",
+    "recoveredTitle": "Passed only after the run tried again, in {{count}} of {{runs}} runs.",
+    "signals": "{{count}} signals",
+    "signal": {
+      "recovered": "Passed on attempt {{attempts}}; first failure: {{cause}}",
+      "recoveredUnknown": "Passed on attempt {{attempts}}; why the first failed was not recorded",
+      "flip": "Changed verdict to {{verdict}}",
+      "error": "Never ran: infrastructure error",
+      "definitionChanged": "Definition changed (version {{version}})"
+    }
   },
   "quarantine": {
     "title": "Quarantine \"{{name}}\"",

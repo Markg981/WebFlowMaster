@@ -2921,7 +2921,9 @@
     "flaky": {
       "label": "Instabile · passato al tentativo {{attempts}}",
       "title": "Passato solo dopo essere stato rieseguito: questo test è instabile.",
-      "count": "{{count}} passati solo a un tentativo successivo"
+      "count": "{{count}} passati solo a un tentativo successivo",
+      "cause": "Primo fallimento: {{cause}}",
+      "causeUnknown": "Il motivo del fallimento del primo tentativo non è stato registrato."
     },
     "attempts": {
       "label": "{{attempts}} tentativi",
@@ -3512,7 +3514,7 @@
   },
   "flakyTests": {
     "title": "Test che si contraddicono",
-    "description": "Negli ultimi {{days}} giorni, i test il cui esito è cambiato da un'esecuzione all'altra senza nulla che lo spieghi. Un test che si è rotto ed è stato sistemato non è qui, e nemmeno uno il cui esito è cambiato perché qualcuno l'ha modificato.",
+    "description": "Negli ultimi {{days}} giorni, i test il cui esito è cambiato da un'esecuzione all'altra senza nulla che lo spieghi, e quelli passati solo quando l'esecuzione li ha riprovati. Un test che si è rotto ed è stato corretto non compare qui, né uno il cui esito è cambiato perché qualcuno lo ha modificato.",
     "loading": "Analisi delle esecuzioni recenti…",
     "empty": "Nessun test ha cambiato esito in questo periodo, su {{count}} risultati esaminati.",
     "columns": {
@@ -3521,14 +3523,25 @@
       "history": "Passati / falliti",
       "flips": "Cambi di esito",
       "last": "Ultima esecuzione",
-      "quarantine": "Quarantena"
+      "quarantine": "Quarantena",
+      "evidence": "Evidenze"
     },
     "errored": "mai eseguiti",
     "inRuns": "in {{runs}} esecuzioni",
     "edited": "modificato",
     "editedTitle": "Modificato in questo periodo (versioni {{versions}}). Sono contati solo i cambi di esito non spiegati.",
     "inQuarantine": "In quarantena",
-    "quarantine": "Metti in quarantena"
+    "quarantine": "Metti in quarantena",
+    "recovered": "{{count}}× passato al nuovo tentativo",
+    "recoveredTitle": "Passato solo dopo un nuovo tentativo, in {{count}} esecuzioni su {{runs}}.",
+    "signals": "{{count}} segnali",
+    "signal": {
+      "recovered": "Passato al tentativo {{attempts}}; primo fallimento: {{cause}}",
+      "recoveredUnknown": "Passato al tentativo {{attempts}}; il motivo del primo fallimento non è stato registrato",
+      "flip": "Esito cambiato in {{verdict}}",
+      "error": "Mai eseguito: errore d'infrastruttura",
+      "definitionChanged": "Definizione cambiata (versione {{version}})"
+    }
   },
   "quarantine": {
     "title": "Metti in quarantena \"{{name}}\"",

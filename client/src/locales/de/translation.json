@@ -2921,7 +2921,9 @@
     "flaky": {
       "label": "Instabil · bestanden im Versuch {{attempts}}",
       "title": "Erst nach erneuter Ausführung bestanden: dieser Test ist instabil.",
-      "count": "{{count}} erst in einem späteren Versuch bestanden"
+      "count": "{{count}} erst in einem späteren Versuch bestanden",
+      "cause": "Erster Fehler: {{cause}}",
+      "causeUnknown": "Warum der erste Versuch fehlschlug, wurde nicht aufgezeichnet."
     },
     "attempts": {
       "label": "{{attempts}} Versuche",
@@ -3512,7 +3514,7 @@
   },
   "flakyTests": {
     "title": "Tests, die sich widersprechen",
-    "description": "In den letzten {{days}} Tagen die Tests, deren Ergebnis sich von einem Lauf zum nächsten geändert hat, ohne dass etwas es erklärt. Ein Test, der kaputt war und behoben wurde, steht nicht hier, ebenso wenig einer, dessen Ergebnis sich geändert hat, weil jemand ihn bearbeitet hat.",
+    "description": "In den letzten {{days}} Tagen die Tests, deren Ergebnis sich von einem Lauf zum nächsten ohne erkennbaren Grund geändert hat, und die, die erst bestanden, als der Lauf sie erneut versuchte. Ein Test, der kaputt war und repariert wurde, steht nicht hier, ebenso wenig einer, dessen Ergebnis sich änderte, weil ihn jemand bearbeitet hat.",
     "loading": "Die letzten Läufe werden ausgewertet…",
     "empty": "Kein Test hat in diesem Zeitraum sein Ergebnis geändert, bei {{count}} untersuchten Ergebnissen.",
     "columns": {
@@ -3521,14 +3523,25 @@
       "history": "Bestanden / fehlgeschlagen",
       "flips": "Ergebniswechsel",
       "last": "Letzter Lauf",
-      "quarantine": "Quarantäne"
+      "quarantine": "Quarantäne",
+      "evidence": "Belege"
     },
     "errored": "nie gelaufen",
     "inRuns": "in {{runs}} Läufen",
     "edited": "bearbeitet",
     "editedTitle": "In diesem Zeitraum bearbeitet (Versionen {{versions}}). Gezählt werden nur die nicht erklärten Ergebniswechsel.",
     "inQuarantine": "In Quarantäne",
-    "quarantine": "In Quarantäne stellen"
+    "quarantine": "In Quarantäne stellen",
+    "recovered": "{{count}}× im Wiederholungsversuch bestanden",
+    "recoveredTitle": "Erst nach einem erneuten Versuch bestanden, in {{count}} von {{runs}} Läufen.",
+    "signals": "{{count}} Signale",
+    "signal": {
+      "recovered": "Bestanden im Versuch {{attempts}}; erster Fehler: {{cause}}",
+      "recoveredUnknown": "Bestanden im Versuch {{attempts}}; warum der erste fehlschlug, wurde nicht aufgezeichnet",
+      "flip": "Ergebnis wechselte zu {{verdict}}",
+      "error": "Nie gelaufen: Infrastrukturfehler",
+      "definitionChanged": "Definition geändert (Version {{version}})"
+    }
   },
   "quarantine": {
     "title": "„{{name}}“ in Quarantäne stellen",

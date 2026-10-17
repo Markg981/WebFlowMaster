@@ -311,6 +311,175 @@ describe('a test that changed underneath the runs', () => {
   });
 });
 
+/**
+ * Retries inside a run, flips across runs, errors and edits are four different things (M03).
+ *
+ * A run's verdict is its last attempt's, so a test rescued by a retry every night had a spotless
+ * history of passes and left the triage exactly when it was flakiest.
+ */
+describe('a test rescued by retries', () => {
+  const unit = (n: number) => `u_${String(n).padStart(24, '0')}`;
+  const retried = (
+    status: string,
+    attempts: number,
+    extra: Partial<FlakyInputRow> = {},
+  ): FlakyInputRow => ({
+    ...run('Checkout', status),
+    uiTestId: 5,
+    attempts,
+    ...extra,
+  });
+
+  it('lists three runs that all passed on the second attempt, with no flip between them', () => {
+    const [summary] = summariseFlakiness([
+      retried('Passed', 2, {
+        testPlanExecutionId: 'r1',
+        planId: 'p',
+        unitId: unit(1),
+        unitAttempt: 2,
+        firstFailure: { attempt: 1, status: 'Failed', reason: 'Timeout waiting for #pay' },
+      }),
+      retried('Passed', 2, {
+        testPlanExecutionId: 'r2',
+        planId: 'p',
+        unitId: unit(2),
+        unitAttempt: 2,
+        firstFailure: { attempt: 1, status: 'Failed', reason: 'Timeout waiting for #pay' },
+      }),
+      retried('Passed', 2, {
+        testPlanExecutionId: 'r3',
+        planId: 'p',
+        unitId: unit(3),
+        unitAttempt: 2,
+        firstFailure: { attempt: 1, status: 'Failed', reason: 'Element detached' },
+      }),
+    ]);
+
+    expect(summary).toMatchObject({
+      runs: 3,
+      passed: 3,
+      flips: 0,
+      recoveredByRetry: 3,
+      retriedRuns: 3,
+      lastStatus: 'passed',
+      lastAttempts: 2,
+      flakiness: 1,
+    });
+    // Each recovery points at the attempt that failed, with the cause it recorded.
+    expect(summary.signals[0]).toEqual({
+      kind: 'recovered',
+      at: summary.lastSeen,
+      version: null,
+      attempts: 2,
+      cause: 'Element detached',
+      causeRecorded: true,
+      executionId: 'r3',
+      planId: 'p',
+      unitId: unit(3),
+      attempt: 1,
+    });
+  });
+
+  it('does not invent why the first try of a legacy result failed', () => {
+    // Before attempt records, a result kept only how many tries it took.
+    const [summary] = summariseFlakiness([retried('Passed', 3, { testPlanExecutionId: 'old' })]);
+
+    expect(summary.recoveredByRetry).toBe(1);
+    expect(summary.signals).toEqual([
+      expect.objectContaining({
+        kind: 'recovered',
+        attempts: 3,
+        cause: null,
+        causeRecorded: false,
+        executionId: 'old',
+        unitId: null,
+        attempt: null,
+      }),
+    ]);
+  });
+
+  it('does not count a retry that never passed as a recovery', () => {
+    const summaries = summariseFlakiness([
+      retried('Failed', 2),
+      retried('Failed', 2),
+      retried('Failed', 2),
+    ]);
+
+    expect(summaries).toEqual([]);
+  });
+
+  it('keeps retries, flips, errors and edits apart', () => {
+    const [summary] = summariseFlakiness([
+      retried('Passed', 1, { testVersion: 1 }),
+      retried('Failed', 1, { testVersion: 1 }), // flip
+      retried('Error', 1, { testVersion: 1 }), // error
+      retried('Passed', 2, { testVersion: 1 }), // flip, and a recovery
+      retried('Failed', 1, { testVersion: 2 }), // edit
+    ]);
+
+    expect(summary).toMatchObject({
+      flips: 3,
+      unexplainedFlips: 2,
+      recoveredByRetry: 1,
+      errored: 1,
+      definitionChanges: 1,
+      changedDuringWindow: true,
+    });
+    expect(summary.signals.map((signal) => signal.kind)).toEqual([
+      'definition_changed',
+      'flip',
+      'recovered',
+      'error',
+      'flip',
+    ]);
+  });
+
+  it('compares two versions that execute the same thing, and not one version that does not', () => {
+    // A rename makes version 2 without changing what runs: its flips are not explained by it.
+    const renamed = summariseFlakiness([
+      retried('Passed', 1, { testVersion: 1, definition: 'same' }),
+      retried('Failed', 1, { testVersion: 2, definition: 'same' }),
+      retried('Passed', 1, { testVersion: 2, definition: 'same' }),
+    ]);
+    expect(renamed[0]).toMatchObject({ unexplainedFlips: 2, definitionChanges: 0 });
+
+    const edited = summariseFlakiness([
+      retried('Passed', 1, { testVersion: 1, definition: 'a' }),
+      retried('Failed', 1, { testVersion: 2, definition: 'b' }),
+      retried('Failed', 1, { testVersion: 2, definition: 'b' }),
+    ]);
+    expect(edited).toEqual([]);
+  });
+
+  it('keeps environments, languages and devices of the matrix apart', () => {
+    const summaries = summariseFlakiness([
+      retried('Passed', 1, { environment: 'staging', locale: 'en' }),
+      retried('Failed', 1, { environment: 'production', locale: 'en' }),
+      retried('Passed', 1, { environment: 'staging', locale: 'en' }),
+      retried('Failed', 1, { environment: 'production', locale: 'en' }),
+      retried('Passed', 1, { environment: 'staging', locale: 'it' }),
+      retried('Failed', 1, { environment: 'staging', locale: 'it' }),
+      retried('Passed', 1, { environment: 'staging', locale: 'it' }),
+    ]);
+
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0].matrix).toEqual({ environment: 'staging', locale: 'it', device: null });
+  });
+
+  it('links a flip to the attempt that decided the run', () => {
+    const [summary] = summariseFlakiness([
+      retried('Passed', 1, { testPlanExecutionId: 'a', unitId: unit(1), unitAttempt: 1 }),
+      retried('Failed', 2, { testPlanExecutionId: 'b', unitId: unit(2), unitAttempt: 2 }),
+      retried('Passed', 1, { testPlanExecutionId: 'c', unitId: unit(3), unitAttempt: 1 }),
+    ]);
+
+    expect(summary.signals.filter((signal) => signal.kind === 'flip')).toEqual([
+      expect.objectContaining({ executionId: 'c', attempt: 1, verdict: 'passed' }),
+      expect.objectContaining({ executionId: 'b', attempt: 2, verdict: 'failed' }),
+    ]);
+  });
+});
+
 describe('describeFlakiness', () => {
   it('says what the test has been doing in one line', () => {
     const [summary] = summariseFlakiness([

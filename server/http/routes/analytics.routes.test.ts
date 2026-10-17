@@ -411,6 +411,121 @@ describe('GET /api/analytics/flaky', () => {
     });
   });
 
+  /** One run whose test passed on attempt `attempts`, with the manifest unit and its tries. */
+  async function recordRecovery(
+    planId: string,
+    input: { daysAgo: number; attempts: number; firstReason?: string; withUnit?: boolean },
+  ) {
+    const executionId = nextId('exec');
+    const startedAt = new Date(Date.now() - input.daysAgo * 86_400_000);
+    const unitId = `u_${String(++idCounter).padStart(24, '0')}`;
+    await privilegedDb.execute(
+      sql`INSERT INTO test_plan_executions (id, test_plan_id, organization_id, status, started_at)
+          VALUES (${executionId}, ${planId}, ${organizationId}, 'completed', ${startedAt})`,
+    );
+    if (input.withUnit !== false) {
+      await privilegedDb.execute(
+        sql`INSERT INTO execution_units (execution_id, organization_id, unit_id, position, coordinates, state)
+            VALUES (${executionId}, ${organizationId}, ${unitId}, 0,
+                    ${JSON.stringify({ testType: 'ui', testId: null, occurrence: 0, browser: null, locale: 'it', device: null, bddRow: null })}::jsonb,
+                    'recorded')`,
+      );
+      for (let attempt = 1; attempt <= input.attempts; attempt++) {
+        const passed = attempt === input.attempts;
+        await privilegedDb.execute(
+          sql`INSERT INTO execution_unit_attempts
+                (execution_id, organization_id, unit_id, attempt, state, status, failure_reason)
+              VALUES (${executionId}, ${organizationId}, ${unitId}, ${attempt}, 'finished',
+                      ${passed ? 'Passed' : 'Failed'}, ${passed ? null : (input.firstReason ?? null)})`,
+        );
+      }
+    }
+    await privilegedDb.execute(
+      sql`INSERT INTO report_test_case_results
+            (id, test_plan_execution_id, organization_id, test_type, test_name, status, started_at,
+             attempts, execution_unit_id, unit_attempt)
+          VALUES (${nextId('rep')}, ${executionId}, ${organizationId}, 'ui', 'Checkout', 'Passed',
+                  ${startedAt}, ${input.attempts},
+                  ${input.withUnit === false ? null : unitId},
+                  ${input.withUnit === false ? null : input.attempts})`,
+    );
+    return { executionId, unitId };
+  }
+
+  it('lists a test that passed on its second attempt in every run, with the failed attempt', async () => {
+    const plan = await createPlan(userId, 'Nightly');
+    await recordRecovery(plan, { daysAgo: 4, attempts: 2, firstReason: 'Timeout on #pay' });
+    await recordRecovery(plan, { daysAgo: 3, attempts: 2, firstReason: 'Timeout on #pay' });
+    const last = await recordRecovery(plan, {
+      daysAgo: 2,
+      attempts: 2,
+      firstReason: 'Element detached',
+    });
+
+    const res = await request(app).get('/api/analytics/flaky').expect(200);
+
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0]).toMatchObject({
+      testName: 'Checkout',
+      runs: 3,
+      flips: 0,
+      recoveredByRetry: 3,
+      lastStatus: 'passed',
+      matrix: { locale: 'it' },
+    });
+    expect(res.body.items[0].signals[0]).toMatchObject({
+      kind: 'recovered',
+      executionId: last.executionId,
+      planId: plan,
+      unitId: last.unitId,
+      attempt: 1,
+      cause: 'Element detached',
+      causeRecorded: true,
+    });
+  });
+
+  it('reports a legacy recovery without a cause it never recorded', async () => {
+    const plan = await createPlan(userId, 'Nightly');
+    await recordRecovery(plan, { daysAgo: 2, attempts: 2, withUnit: false });
+
+    const res = await request(app).get('/api/analytics/flaky').expect(200);
+
+    expect(res.body.items[0].signals).toEqual([
+      expect.objectContaining({
+        kind: 'recovered',
+        cause: null,
+        causeRecorded: false,
+        attempt: null,
+      }),
+    ]);
+  });
+
+  it('does not mix runs against different environments into one history', async () => {
+    const plan = await createPlan(userId, 'Nightly');
+    for (const [status, environment, daysAgo] of [
+      ['Passed', 'staging', 6],
+      ['Failed', 'production', 5],
+      ['Passed', 'staging', 4],
+      ['Failed', 'production', 3],
+    ] as const) {
+      const executionId = nextId('exec');
+      const startedAt = new Date(Date.now() - daysAgo * 86_400_000);
+      await privilegedDb.execute(
+        sql`INSERT INTO test_plan_executions (id, test_plan_id, organization_id, status, started_at, environment)
+            VALUES (${executionId}, ${plan}, ${organizationId}, 'completed', ${startedAt}, ${environment})`,
+      );
+      await privilegedDb.execute(
+        sql`INSERT INTO report_test_case_results
+              (id, test_plan_execution_id, organization_id, test_type, test_name, status, started_at)
+            VALUES (${nextId('rep')}, ${executionId}, ${organizationId}, 'ui', 'Login', ${status}, ${startedAt})`,
+      );
+    }
+
+    const res = await request(app).get('/api/analytics/flaky?minRuns=2').expect(200);
+
+    expect(res.body.items).toEqual([]);
+  });
+
   it('says nothing, successfully, when nothing has run', async () => {
     const res = await request(app).get('/api/analytics/flaky').expect(200);
 

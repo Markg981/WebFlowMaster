@@ -280,6 +280,17 @@ conta per conto suo, non per nome: due test diversi con lo stesso nome restano s
 rinominato conserva la sua storia sotto il nome nuovo. I test mobili contano per dispositivo
 ([app mobili](./mobile-apps#instabili)).
 
+Compare anche un test **passato al nuovo tentativo**, pure quando ogni run è finito verde e nessun
+esito è mai cambiato: tre run passati ciascuno al secondo tentativo mostrano **3× passato al nuovo
+tentativo**, e un ultimo run verde non toglie il test dall'elenco. Nuovi tentativi, cambi di esito,
+run mai eseguiti per un errore d'infrastruttura e modifiche si contano a parte e non si sommano mai
+fra loro. Condividono una storia solo i run confrontabili: lo stesso test, che esegue la stessa
+definizione (rinominarlo non la divide, cambiarne passi, dati o dipendenze sì), sullo stesso
+browser, ambiente, lingua e dispositivo. **Evidenze** elenca cosa è successo, dal più recente, ogni
+voce collegata al report del run aperto sul tentativo che lo mostra — per un nuovo tentativo, il
+primo tentativo fallito e perché. Un run registrato prima che si conservassero i tentativi dice che
+il motivo non è stato registrato, invece di indovinarne uno.
+
 Un test instabile si può mettere in **quarantena**, con il motivo. Continua a girare e i suoi
 risultati vengono conservati, ma i suoi fallimenti smettono di far fallire i run, fermare i
 piani, aprire issue e rompere le pipeline. **Test in quarantena** mostra come è andato ognuno da
