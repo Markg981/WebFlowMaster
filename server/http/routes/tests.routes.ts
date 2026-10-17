@@ -33,9 +33,11 @@ import {
   parseBundle,
   sameAs,
 } from '../../integrations/test-bundle';
-import { toPlaywright } from '../../integrations/playwright-export';
-import { expandSequenceForRun } from '../../authoring/step-groups';
-import { resolveSequenceForRun } from '../../authoring/step-elements';
+import { ExportNotConformantError, toPlaywright } from '../../integrations/playwright-export';
+import {
+  loadExportDefinition,
+  parseExportSelector,
+} from '../../integrations/playwright-export-source';
 import { GherkinError } from '../../bdd/gherkin';
 import {
   compileGherkinSource,
@@ -1209,29 +1211,38 @@ router.post('/api/tests/import-bundle', requireRole('editor'), async (req, res) 
   }
 });
 
-// GET /api/tests/:id/playwright — the test as a Playwright Test file, with the steps a run would
-// execute (groups and custom actions expanded, repository elements resolved). ?format=json adds what
-// could not be exported.
+// GET /api/tests/:id/playwright — the test as a Playwright Test file (P15, M04).
+// ?version=run|published|working|<n> picks the definition (default: what a plan runs; see
+// server/integrations/playwright-export-source.ts); its steps are expanded with that definition's
+// own dependencies. ?mode=strict refuses (422, with the findings) a test the file cannot do the way
+// a run does; the default draft marks those steps with a call that fails. ?format=json returns the
+// file with its findings. X-WFM-Export-Source and X-WFM-Export-Version name what was exported.
 router.get('/api/tests/:id/playwright', requireRole('viewer'), async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid test id' });
-  const [test] = await withTenantTransaction((tx) =>
-    tx.select().from(tests).where(eq(tests.id, id)).limit(1),
-  );
-  if (!test) return res.status(404).json({ error: 'Test not found' });
-  const expansion = await expandSequenceForRun(test.sequence);
-  if (expansion.errors.length > 0)
-    return res.status(409).json({ error: expansion.errors.join(' ') });
-  const resolution = await resolveSequenceForRun(expansion.steps);
-  const exported = toPlaywright({
-    name: test.name,
-    url: test.url,
-    sequence: resolution.steps as never,
-    preconditions: (test.preconditions as never) ?? null,
-    cleanups: ((test as { cleanups?: unknown }).cleanups as never) ?? null,
-    dataset: Array.isArray(test.dataset) ? (test.dataset as Array<Record<string, unknown>>) : null,
-    version: test.publishedVersion ?? null,
-  });
+  const selector = parseExportSelector(req.query.version);
+  if (selector === null)
+    return res
+      .status(400)
+      .json({ error: 'version must be run, published, working or a version number.' });
+  const mode = req.query.mode ?? 'draft';
+  if (mode !== 'draft' && mode !== 'strict')
+    return res.status(400).json({ error: 'mode must be draft or strict.' });
+  const loaded = await loadExportDefinition(id, selector);
+  if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error });
+  let exported;
+  try {
+    exported = toPlaywright(loaded.test, { mode });
+  } catch (error) {
+    if (error instanceof ExportNotConformantError)
+      return res.status(422).json({ error: error.message, findings: error.findings });
+    throw error;
+  }
+  if (exported.source) {
+    res.setHeader('X-WFM-Export-Source', exported.source.kind);
+    if (exported.source.version !== null)
+      res.setHeader('X-WFM-Export-Version', String(exported.source.version));
+  }
   if (req.query.format === 'json') return res.json(exported);
   res.setHeader('Content-Disposition', `attachment; filename="${exported.fileName}"`);
   res.type('text/plain').send(exported.code);

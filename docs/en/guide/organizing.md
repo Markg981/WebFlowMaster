@@ -99,7 +99,10 @@ elements resolved. Variables come from environment variables named `WFM_<NAME>`
 (`WFM_BASEURL` for <code v-pre>{{baseUrl}}</code>); preconditions run first through Playwright's
 request fixture and the cleanup afterwards, whatever happened; a dataset becomes one test per row.
 Steps with no equivalent outside WebFlowMaster — waiting for an email, a database query, the
-accessibility scan — are written as comments, and the file's first lines say how many.
+accessibility scan — make the downloaded draft fail at that step, and the file's first lines list
+them; a pipeline can ask for a strict export that refuses such a test instead. Which version is
+exported, the full conformance table and the route are in
+[Exporting to Playwright](./playwright-export).
 
 ## Publishing and reviews {#publishing-and-reviews}
 

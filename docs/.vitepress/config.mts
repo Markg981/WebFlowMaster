@@ -95,6 +95,10 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
         { text: t.mobileApps, link: p('guide/mobile-apps') },
         { text: t.organizing, link: p('guide/organizing') },
         {
+          text: lang === 'en' ? 'Exporting to Playwright' : 'Esportazione in Playwright',
+          link: p('guide/playwright-export'),
+        },
+        {
           text: lang === 'en' ? 'Conversations and dashboards' : 'Conversazioni e dashboard',
           link: p('guide/collaboration'),
         },

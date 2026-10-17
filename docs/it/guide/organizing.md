@@ -104,8 +104,10 @@ elementi condivisi risolti. Le variabili vengono da variabili d'ambiente chiamat
 (`WFM_BASEURL` per <code v-pre>{{baseUrl}}</code>); le precondizioni girano prima tramite il fixture
 request di Playwright e la pulizia dopo, qualunque cosa sia successa; un dataset diventa un test per
 riga. Gli step senza un equivalente fuori da WebFlowMaster — attesa di un'email, una query al
-database, la scansione di accessibilità — sono scritti come commenti, e le prime righe del file
-dicono quanti sono.
+database, la scansione di accessibilità — fanno fallire la bozza scaricata in quel punto, e le prime
+righe del file li elencano; una pipeline può chiedere un'esportazione strict che rifiuta un test del
+genere. Quale versione viene esportata, la tabella di conformità completa e la route sono in
+[Esportazione in Playwright](./playwright-export).
 
 ## Pubblicazione e revisioni {#pubblicazione-e-revisioni}
 
