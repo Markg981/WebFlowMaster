@@ -23,10 +23,9 @@ const LOCKS = ['package-lock.json'];
 
 /**
  * monaco-editor 0.57.0 runs its own copy of dompurify 3.4.15 (vs/base/browser/dompurify), affected
- * by GHSA-p98j-92pf-mc4p and GHSA-6688-9rhm-gjv2; the npm dompurify it declares is never imported,
- * so an override would only silence the audit. Both advisories need IN_PLACE sanitization of a
- * live node, which neither Monaco nor this code base uses. The decision, with its expiry, is in
- * docs/SECURITY-AUDIT.md: these checks fail when one of its premises stops holding.
+ * by GHSA-p98j-92pf-mc4p and GHSA-6688-9rhm-gjv2, and imports nothing else. client/monaco-dompurify.ts
+ * points that import at the dompurify the client installs, in the build and in the dev pre-bundle;
+ * these checks fail when the swap would stop happening or would bring back an affected version.
  */
 const PATCHED_DOMPURIFY = [3, 4, 16];
 const isPatched = (version: string) => {
@@ -36,12 +35,6 @@ const isPatched = (version: string) => {
   }
   return true;
 };
-const sourceFiles = (dir: string): string[] =>
-  fs.readdirSync(path.join(repoRoot, dir), { withFileTypes: true }).flatMap((entry) => {
-    const rel = path.join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name === 'node_modules' ? [] : sourceFiles(rel);
-    return /\.(ts|tsx|js|mjs)$/.test(entry.name) ? [rel] : [];
-  });
 
 describe('the dependency lockfiles', () => {
   it.each(LOCKS)('%s holds no copy of braces or micromatch', (file) => {
@@ -72,29 +65,24 @@ describe("Monaco's bundled dompurify", () => {
   const bundled = /version\s*=\s*'(\d+\.\d+\.\d+)'/.exec(
     readText(`${monaco}/dompurify/dompurify.js`),
   )?.[1];
-  const monacoVersion =
-    readJson('package-lock.json').packages['node_modules/monaco-editor']?.version;
+  // The copy the client resolves: its own when npm nests it, the hoisted one otherwise.
+  const { packages } = readJson('package-lock.json');
+  const installed = (
+    packages['client/node_modules/dompurify'] ?? packages['node_modules/dompurify']
+  )?.version as string | undefined;
 
-  it('is the copy the triage records, or a patched one', () => {
+  it('is imported from where the client build swaps it', () => {
     expect(bundled).toBeTruthy();
-    if (isPatched(bundled!)) return;
-    const triage = readText('docs/SECURITY-AUDIT.md');
-    expect(triage, 'docs/SECURITY-AUDIT.md must name the installed Monaco').toContain(
-      `monaco-editor\` ${monacoVersion}`,
+    expect(readText(`${monaco}/domSanitize.js`)).toContain(
+      `import purify from './dompurify/dompurify.js'`,
     );
-    expect(triage).toContain(`dompurify ${bundled}`);
+    expect(readText('client/vite.config.ts')).toMatch(/plugins:\s*\[monacoDompurify\(\)/);
   });
 
-  it('is never asked to sanitize in place, by Monaco or by this code base', () => {
-    if (isPatched(bundled!)) return;
-    for (const file of [`${monaco}/domSanitize.js`, `${monaco}/markdownRenderer.js`]) {
-      expect(readText(file), file).not.toMatch(/IN_PLACE/);
-    }
-    const ours = ['client/src', 'server', 'shared'].flatMap(sourceFiles);
-    const offending = ours.filter((file) => {
-      if (file === path.join('server', 'tests', 'dependency-locks.test.ts')) return false;
-      return /IN_PLACE|from ['"]dompurify|require\(['"]dompurify/.test(readText(file));
-    });
-    expect(offending).toEqual([]);
+  it('is replaced by a patched dompurify installed for the client', () => {
+    const declared: string = readJson('client/package.json').dependencies.dompurify;
+    expect(isPatched(declared.replace(/^[\^~]/, '')), `client declares ${declared}`).toBe(true);
+    expect(installed, 'client/node_modules/dompurify in package-lock.json').toBeTruthy();
+    expect(isPatched(installed!), `client installs ${installed}`).toBe(true);
   });
 });

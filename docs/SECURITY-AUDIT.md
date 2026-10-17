@@ -7,6 +7,30 @@ How to report a vulnerability is in [SECURITY.md](../SECURITY.md).
 
 **Last reviewed:** 2026-10-17.
 
+## 17 October 2026, Monaco's dompurify replaced
+
+The acceptance recorded below is withdrawn: the client build no longer ships dompurify 3.4.15.
+`monaco-editor` 0.57.0 is still the latest release and still vendors 3.4.15, so the build
+replaces that copy instead. `client/monaco-dompurify.ts` resolves the one import of
+`vs/base/browser/dompurify/dompurify.js` (from `domSanitize.js`) to the `dompurify` the client
+declares, `^3.4.17`, in the production build and in the dev server's pre-bundle. Both copies
+export the same default object; Monaco calls only `sanitize`, `addHook` and `removeAllHooks`.
+The plugin fails the build if `domSanitize.js` stops importing that file.
+
+Three checks keep it true:
+
+- `server/tests/dependency-locks.test.ts`: Monaco still imports the file the plugin replaces, the
+  client build uses the plugin, and the client's dompurify is 3.4.16 or later;
+- `scripts/security/client-bundle-dompurify.mjs`, in the CI `build` job: every
+  `@license DOMPurify` in `dist/public/assets` is 3.4.16 or later, and at least one is there;
+- collaudo SEC-66 and SEC-67.
+
+`npm audit --omit=dev` still lists the 2 low findings against
+`node_modules/monaco-editor/node_modules/dompurify` 3.4.15. Monaco pins that package exactly, and
+npm 11 does not apply a root `overrides` entry to a workspace's nested exact pin. Nothing imports
+that package and no bundle contains it, which the bundle check proves on every build. Remove the
+plugin once a Monaco release vendors dompurify 3.4.16 or later.
+
 ## 17 October 2026
 
 `npm audit --omit=dev` reports 2 low findings, both in the client's code editor: `dompurify`
@@ -14,26 +38,14 @@ How to report a vulnerability is in [SECURITY.md](../SECURITY.md).
 GHSA-6688-9rhm-gjv2, fixed in dompurify 3.4.16). The fix npm proposes is `monaco-editor` 0.56.0,
 a downgrade of the editor, refused.
 
-No override either. Monaco does not import the `dompurify` package it declares: the editor runs
-its own copy, `vs/base/browser/dompurify/dompurify.js`, also 3.4.15. Lifting the npm package would
-clear the report and change nothing in the browser.
-
-Both advisories need `DOMPurify.sanitize(node, { IN_PLACE: true })` on a live DOM node; the first
-also needs an `afterSanitize*` hook that removes an element. Monaco sanitizes strings only
-(`domSanitize.js`, `markdownRenderer.js`), never with `IN_PLACE`, and its one `afterSanitizeAttributes`
-hook removes attributes, not nodes. The application does not use dompurify directly. The
-vulnerable path is not reachable, so the risk is accepted until the expiry below.
-`server/tests/dependency-locks.test.ts` fails if Monaco or the application starts using
-`IN_PLACE`, or if `monaco-editor` changes without this page following.
+Monaco does not import the `dompurify` package it declares: the editor runs its own copy,
+`vs/base/browser/dompurify/dompurify.js`, also 3.4.15. Both advisories need
+`DOMPurify.sanitize(node, { IN_PLACE: true })` on a live DOM node, which Monaco and the
+application never use. The risk was accepted until 2026-12-31; superseded by the section above.
 
 ## Accepted production findings
 
-| Package                                           | Severity | Advisories                               | Why it is not reachable                                                                          | Expires                                                                                               |
-| ------------------------------------------------- | -------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `monaco-editor` 0.57.0, bundling dompurify 3.4.15 | Low      | GHSA-p98j-92pf-mc4p, GHSA-6688-9rhm-gjv2 | Only `IN_PLACE` sanitization of a live node is affected; Monaco and the application never use it | **2026-12-31**, or the first Monaco release bundling dompurify 3.4.16 or later, whichever comes first |
-
-At the expiry: update Monaco if a release carries the fix; otherwise review the reachability again
-and record a new decision here. An entry is never renewed without that review.
+None.
 
 ## 11 October 2026
 
