@@ -127,6 +127,8 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 - Async route handlers no longer leave a request hanging ([#385](https://github.com/Markg981/WebFlowMaster/pull/385))
 - Upsert user_settings instead of select-then-insert ([#386](https://github.com/Markg981/WebFlowMaster/pull/386))
 - Read system settings by key only from an allow-list ([#389](https://github.com/Markg981/WebFlowMaster/pull/389))
+- A run ended error, timed out or cancelled is an error in JUnit and Allure, and the report shows every run's status ([#457](https://github.com/Markg981/WebFlowMaster/pull/457))
+- A version in an unknown dependency format is refused before enqueue, and releases gate their declared formats ([#457](https://github.com/Markg981/WebFlowMaster/pull/457))
 
 ### Security
 

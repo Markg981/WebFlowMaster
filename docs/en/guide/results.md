@@ -261,6 +261,12 @@ the report does. The HTML report lists them under **Attempts and dataset rows**.
 them to their test as _Attempts and dataset rows_. JUnit keeps one `<testcase>` per unit and puts
 them in the `wfm.attempts` property.
 
+A run that ended **error**, **timed out** or **cancelled** never exports as only its green tests.
+JUnit adds an `<error>` test case named after the ending (for example _Run cancelled_), and Allure
+adds a _broken_ result of the same name, both carrying the run's reason. The report header shows
+the run's status whether it finished or not: the same verdict as the API, the CLI exit code and
+every export.
+
 **Requirements covered** shows the [requirements](./organizing#requirements) with exactly this run's
 results, and exports them as a traceability matrix.
 
