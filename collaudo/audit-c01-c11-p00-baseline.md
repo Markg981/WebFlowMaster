@@ -147,6 +147,26 @@ lo esegue con dipendenze correnti). Limiti dichiarati: variabili e segreti dell'
 e stato dell'applicazione sotto test restano correnti; le versioni mobile hanno gruppi propri e non sono coperte
 da P09.
 
+## 9. Pilot e decisione di prodotto (P19)
+
+Lo strumento è `npm run pilot` (guida: `docs/it/admin/pilot.md`, casi OPS-51…OPS-53). La riga «Release» della
+matrice di chiusura resta aperta finché non ci sono le evidenze del pilot: il report del pilot in
+`ready_for_decision` e la decisione registrata dal responsabile. L'approvazione tecnica della build (P18, merge
+`b644779`) è una condizione necessaria, ma da sola non basta.
+
+| Voce                                                            | Fonte                           | Stato                   |
+| --------------------------------------------------------------- | ------------------------------- | ----------------------- |
+| Team/cliente e numero di utenti reali                           | responsabile                    | da scegliere            |
+| Flussi rappresentativi e motivo                                 | responsabile + team             | da scegliere            |
+| Operatore che non ha scritto il prodotto                        | team                            | da indicare             |
+| Finestra di osservazione                                        | responsabile (proposta 2 sett.) | da concordare           |
+| Baseline sugli stessi flussi (strumento attuale)                | team, misurata e datata         | da misurare             |
+| Report del pilot                                                | `npm run pilot -- report`       | da eseguire             |
+| Incidenti (falsa verde, evidenza persa, autorizzazione, blocco) | registro di revisione           | ognuno riapre il suo ID |
+| Decisione: target commerciale, matrice, supporto                | `npm run pilot -- decide`       | da prendere             |
+
+Fino al gate non si aggiunge nuovo perimetro funzionale: si accettano solo le correzioni degli ID riaperti dal pilot.
+
 ## Chiusura di P00
 
 - [x] SHA, versioni, hardware e profilo del collaudo registrati.
