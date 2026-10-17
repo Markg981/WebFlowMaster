@@ -282,7 +282,16 @@ export const RUN_LEVEL_DIFFERENCES = [
   'browser, device and viewport: the Playwright configuration decides them',
 ] as const;
 
-const js = (value: string) => JSON.stringify(value);
+/** A string literal for the generated file; <, >, / and line separators escaped too, the same value. */
+const UNSAFE_IN_CODE: Record<string, string> = {
+  '<': '\\u003C',
+  '>': '\\u003E',
+  '/': '\\u002F',
+  '\u2028': '\\u2028',
+  '\u2029': '\\u2029',
+};
+const js = (value: string) =>
+  JSON.stringify(value).replace(/[<>/\u2028\u2029]/g, (c) => UNSAFE_IN_CODE[c]);
 const PLACEHOLDER = /\{\{\s*([\w.]+)\s*\}\}/g;
 const GENERATOR = /\{\{\s*\$/;
 const VARIABLE_NAME = /^[\w.]+$/;
@@ -1019,7 +1028,7 @@ export function toPlaywright(
         emit('{');
         emit(`  const expected = ${text(value)};`);
         emit(
-          `  expect(await within(async () => ((await ${e}.textContent()) ?? null)?.includes(expected) === true, ${ASSERTION_TIMEOUT_MS}), \`Element ${js(selector!).slice(1, -1).replace(/[`$]/g, '\\$&')} did not contain "\${expected}" within ${ASSERTION_TIMEOUT_MS}ms.\`).toBe(true);`,
+          `  expect(await within(async () => ((await ${e}.textContent()) ?? null)?.includes(expected) === true, ${ASSERTION_TIMEOUT_MS}), ${js(`Element ${selector} did not contain "`)} + expected + ${js(`" within ${ASSERTION_TIMEOUT_MS}ms.`)}).toBe(true);`,
         );
         emit('}');
         break;

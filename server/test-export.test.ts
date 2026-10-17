@@ -83,7 +83,7 @@ describe('a web test as Playwright', () => {
     expect(out.code).toContain(`.fill(v("{{cardNumber}}"));`);
     expect(out.code).toContain('await p.locator("#terms").first().isChecked()');
     expect(out.code).toMatch(
-      /if \(holds\(v\("\{\{total\}\} > 100"\)\)\) \{\n\s+await p\.locator\("#coupon"\)[^\n]+\n\s+\} else \{\n\s+await p\.waitForTimeout\(500\);\n\s+\}/,
+      /if \(holds\(v\("\{\{total\}\} \\u003E 100"\)\)\) \{\n\s+await p\.locator\("#coupon"\)[^\n]+\n\s+\} else \{\n\s+await p\.waitForTimeout\(500\);\n\s+\}/,
     );
     expect(out.code).toContain(`route.abort('blockedbyclient')`);
     // Setup inside the try, before the start page, so a failed precondition still cleans up.
