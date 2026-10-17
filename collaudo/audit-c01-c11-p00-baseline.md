@@ -167,6 +167,40 @@ matrice di chiusura resta aperta finché non ci sono le evidenze del pilot: il r
 
 Fino al gate non si aggiunge nuovo perimetro funzionale: si accettano solo le correzioni degli ID riaperti dal pilot.
 
+## 10. Definition of Done finale
+
+Verifica del 2026-10-17 su `main` dopo il merge di P19 (`bfbf5ff`, PR #439…#458). Regola di chiusura: un flag
+temporaneo, una feature disattivata, una prova skipped o un warning al posto dell'errore sono contenimenti, non
+chiusure.
+
+| Criterio                                                                              | Evidenza nel repository                                                                                                                                  | Stato                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ogni ID ha test di regressione nel repository                                         | ogni lotto ha scritto il caso negativo nella suite normale (sezione 3); C01…C11, M02…M04 con test di unità/e2e, M01 con `test:benchmark`                 | chiuso                                                                                                                                                                               |
+| Nessuna run verde per risultato perso, unità mancante o controllo non eseguito        | P01, P07, P11 (verdetto dal manifest), P18 `e2e/execution-contracts.spec.ts` su UI, API, CLI ed export                                                   | chiuso                                                                                                                                                                               |
+| Snapshot e review senza codice condiviso live non dichiarato                          | P09 (bundle delle dipendenze), P18 (409 `unsupported_definition`); limiti dichiarati in sezione 8                                                        | chiuso per le versioni UI; le versioni mobile restano fuori da P09 e sono dichiarate come limite                                                                                     |
+| Healing non tocca sorgenti errate o concorrenti, non aggira la pubblicazione          | P10 (provenienza, `FOR UPDATE` + impronta), P13 (proposta / approvazione / pubblicazione)                                                                | chiuso                                                                                                                                                                               |
+| Evidenze e tentativi attribuibili, immutabili, accessibili solo ai principal previsti | P03 (`artifact-access.ts`), P08 (chiavi write-once per unità/tentativo/riga), P18 `test:rls:execution` su PostgreSQL reale                               | chiuso                                                                                                                                                                               |
+| Abort libera le risorse; worker perso senza replay o scritture incontrollate          | P05 (suite Chromium reale), P11 (epoch, lease, `indeterminate`, replay solo con policy esplicita)                                                        | chiuso                                                                                                                                                                               |
+| Recorder ed export superano le fixture di conformità                                  | P12 (fixture shadow DOM), P15 (`e2e/export-conformance.spec.ts` su 3 motori, strict → 422)                                                               | chiuso                                                                                                                                                                               |
+| Dati storici, upgrade, rollback e RLS verificati su ambiente reale                    | RLS: `test:rls` in CI su PostgreSQL reale; formati: gate `compatibility.mjs` in `release.yml`; upgrade/rollback: procedura in `docs/*/admin/releases.md` | **aperto**: nessun upgrade da un rilascio precedente né rollback eseguiti e registrati su un'installazione di staging; `minimumRollbackRelease` è `null` finché non esiste il tag R1 |
+| Capacità, costi e limiti misurati/stimati con fonti e ipotesi distinte                | P16: `wfm-benchmark` separa `measured` e `cost`, tariffe mancanti → totali `null` e `cost.gate` `unvalidated`; misure `wfm-volume` registrate            | **aperto**: nessun report 10x su installazione dedicata, SLO non approvati (sezione 5), dati economici non forniti (sezione 6)                                                       |
+| Documentazione e lingue aggiornate; release candidate identificabile; pilot valutato  | guide EN/IT e locali en/it/fr/de per ogni lotto, collaudo protocollo 83 (673 casi); candidate = merge `b644779` (P18)                                    | **aperto**: candidate senza tag; pilot non eseguito (sezione 9)                                                                                                                      |
+
+Contenimenti attivi, da non contare come chiusure:
+
+- P17: gli advisory di `dompurify` incluso in Monaco sono accettati come non raggiungibili fino al 2026-12-31
+  (SEC-66): la riga «Dipendenze» richiede triage documentato ed è soddisfatta, ma l'advisory va chiuso con
+  l'aggiornamento di Monaco prima della scadenza.
+- `describe.skipIf(!onRealPostgres)` in `server/tests/execution-unit-isolation.test.ts` salta la corsa fra worker
+  sulla suite in memoria; è eseguita da `test:rls:execution` (`WFM_TEST_REQUIRE_POSTGRES=1`) nel job CI su
+  PostgreSQL reale, quindi non è una prova mancante.
+
+Restano anche aperte le voci della chiusura di P00 (decisioni della sezione 5 e dati della sezione 6). La DoD
+finale si chiude quando: (1) un upgrade dal rilascio precedente e un rollback controllato sono eseguiti su staging
+con le evidenze allegate al ciclo di collaudo; (2) il benchmark `baseline` e almeno un profilo 10x girano su
+un'installazione dedicata con SLO approvati e tariffe fornite; (3) il tag R1 è creato con autorizzazione e il pilot
+produce un report `ready_for_decision` con `decision.json`.
+
 ## Chiusura di P00
 
 - [x] SHA, versioni, hardware e profilo del collaudo registrati.
