@@ -76,22 +76,25 @@ describe('a web test as Playwright', () => {
     });
     expect(out.fileName).toBe('checkout.spec.ts');
     expect(out.variables).toEqual(['api', 'baseUrl', 'cardNumber', 'cartId', 'total']);
-    expect(out.code).toContain(`"baseUrl": process.env.${envName('baseUrl')} ?? ''`);
+    expect(out.code).toContain(`["baseUrl", "${envName('baseUrl')}"],`);
     expect(out.code).toContain(
       `p.frameLocator("iframe#checkout").frameLocator("iframe.card").locator("button.pay").first().click();`,
     );
     expect(out.code).toContain(`.fill(v("{{cardNumber}}"));`);
-    expect(out.code).toContain('toBeChecked()');
+    expect(out.code).toContain('await p.locator("#terms").first().isChecked()');
     expect(out.code).toMatch(
       /if \(holds\(v\("\{\{total\}\} > 100"\)\)\) \{\n\s+await p\.locator\("#coupon"\)[^\n]+\n\s+\} else \{\n\s+await p\.waitForTimeout\(500\);\n\s+\}/,
     );
     expect(out.code).toContain(`route.abort('blockedbyclient')`);
-    // Setup before, cleanup in a finally.
-    expect(out.code.indexOf('precondition Create cart')).toBeLessThan(out.code.indexOf('try {'));
+    // Setup inside the try, before the start page, so a failed precondition still cleans up.
+    const setup = out.code.indexOf('await precondition(request, vars, {"name":"Create cart"');
+    expect(setup).toBeGreaterThan(out.code.indexOf('try {'));
+    expect(setup).toBeLessThan(out.code.indexOf('await p.goto('));
     expect(out.code).toMatch(
-      /\} finally \{\n\s+\/\/ Cleanup, whatever happened\n\s+await request\.fetch\(v\("\{\{api\}\}\/carts\/\{\{cartId\}\}"\), \{ method: "DELETE" \}\)/,
+      /\} finally \{\n\s+\/\/ Cleanup, whatever happened[^\n]*\n\s+await cleanup\(request, vars, \{"name":"Delete cart","method":"DELETE","url":"\{\{api\}\}\/carts\/\{\{cartId\}\}"/,
     );
     expect(out.notExported).toEqual([]);
+    expect(out.complete).toBe(true);
   });
 
   it('says what it cannot export, in the file and in the result', () => {
@@ -101,8 +104,12 @@ describe('a web test as Playwright', () => {
       sequence: [step('waitForEmail', 'a@example.com'), step('click')],
     });
     expect(out.notExported).toHaveLength(2);
-    expect(out.code).toContain('// 2 step(s) could not be exported');
+    expect(out.complete).toBe(false);
+    expect(out.code).toContain('// DRAFT — 2 step(s) could not be exported');
     expect(out.code).toContain('// Not exported — waitForEmail (a@example.com)');
+    // A draft fails where the step was; it is never green by skipping it.
+    expect(out.code).toContain('notExported("step 1, waitForEmail (a@example.com)');
+    expect(out.code).not.toContain('test.skip');
   });
 
   it('runs once per dataset row', () => {
@@ -571,5 +578,84 @@ describe('the test file', () => {
       .expect(200);
     expect(json.body.notExported).toEqual([]);
     await request(app).get('/api/tests/999999/playwright').expect(404);
+  });
+
+  it('exports the version it names, never the working copy labelled as the published one', async () => {
+    const organizationId = await organization('PwVersions');
+    const [test] = await privilegedDb
+      .insert(tests)
+      .values({
+        name: 'Versioned',
+        url: 'https://shop.example',
+        sequence: [step('click', undefined, '#working')],
+        elements: [],
+        userId: user.id,
+        organizationId,
+      })
+      .returning();
+    const version = (n: number, selector: string) => ({
+      organizationId,
+      testId: test.id,
+      version: n,
+      name: 'Versioned',
+      url: 'https://shop.example',
+      sequence: [step('click', undefined, selector)],
+      elements: [],
+    });
+    const get = (query: Record<string, string>) =>
+      request(app).get(`/api/tests/${test.id}/playwright`).query(query);
+
+    // Nothing saved: a plan runs the working copy, and there is no published version.
+    let res = await get({}).expect(200);
+    expect(res.headers['x-wfm-export-source']).toBe('working');
+    expect(res.text).toContain('#working');
+    await get({ version: 'published' }).expect(409);
+
+    await privilegedDb.insert(testVersions).values([version(1, '#v1'), version(2, '#v2')]);
+    // Saved, not published: a plan runs the latest version.
+    res = await get({}).expect(200);
+    expect(res.headers['x-wfm-export-source']).toBe('version');
+    expect(res.headers['x-wfm-export-version']).toBe('2');
+    expect(res.text).toContain('#v2');
+
+    await privilegedDb.update(tests).set({ publishedVersion: 1 }).where(eq(tests.id, test.id));
+    res = await get({ format: 'json' }).expect(200);
+    expect(res.body.source).toEqual({ kind: 'published', version: 1 });
+    expect(res.body.code).toContain('published version 1');
+    expect(res.body.code).toContain('#v1');
+    expect(res.body.code).not.toContain('#working');
+    expect((await get({ version: '2' }).expect(200)).text).toContain('#v2');
+    expect((await get({ version: 'working' }).expect(200)).text).toContain('#working');
+    await get({ version: '7' }).expect(404);
+    await get({ version: 'latest' }).expect(400);
+  });
+
+  it('refuses a strict export with the list, and marks a draft so it fails', async () => {
+    const organizationId = await organization('PwStrict');
+    const [test] = await privilegedDb
+      .insert(tests)
+      .values({
+        name: 'Inbox',
+        url: 'https://shop.example',
+        sequence: [step('click', undefined, '#send'), step('waitForEmail', 'ada@example.com')],
+        elements: [],
+        userId: user.id,
+        organizationId,
+      })
+      .returning();
+    const strict = await request(app)
+      .get(`/api/tests/${test.id}/playwright`)
+      .query({ mode: 'strict' })
+      .expect(422);
+    expect(strict.body.findings).toEqual([
+      expect.objectContaining({ step: 2, area: 'action', support: 'unsupported' }),
+    ]);
+    const draft = await request(app)
+      .get(`/api/tests/${test.id}/playwright`)
+      .query({ format: 'json' })
+      .expect(200);
+    expect(draft.body).toMatchObject({ mode: 'draft', complete: false });
+    expect(draft.body.code).toContain('notExported("step 2, waitForEmail');
+    await request(app).get(`/api/tests/${test.id}/playwright`).query({ mode: 'loose' }).expect(400);
   });
 });
