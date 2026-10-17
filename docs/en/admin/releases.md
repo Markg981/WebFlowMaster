@@ -288,8 +288,10 @@ return to a lock.
 The other production advisories were closed in the same change: `moment` 2.31.0 and
 `tedious` 20.3.6 (pinned in `overrides`; it no longer depends on `sprintf-js`).
 `npm audit --omit=dev` reported no vulnerabilities. Since October 2026 it reports two low
-findings in the dompurify copy bundled with Monaco 0.57.0, not reachable from the editor and
-accepted until 31 December 2026: the reasons and the expiry are in `docs/SECURITY-AUDIT.md`. Low
+findings in the dompurify 3.4.15 package that Monaco 0.57.0 declares. The build does not ship it:
+`client/monaco-dompurify.ts` replaces Monaco's own copy with the client's patched dompurify, and
+the CI `build` job fails if the bundle contains an affected version
+(`scripts/security/client-bundle-dompurify.mjs`). Details in `docs/SECURITY-AUDIT.md`. Low
 findings do not block the source gate.
 
 Tailwind 4 compiles through lightningcss, whose binary is a per-platform optional package.

@@ -9548,16 +9548,17 @@
     {
       "id": "SEC-66",
       "area": "SEC",
-      "title": "Advisory di produzione solo quelli accettati e non scaduti",
+      "title": "Nessuna dompurify vulnerabile nel client distribuito",
       "priority": "P2",
       "actor": "operatore",
       "preconditions": "Catalogo versione 81. Repository su main aggiornato, npm ci eseguito.",
       "steps": [
-        "Eseguire npm audit --omit=dev.",
-        "Aprire docs/SECURITY-AUDIT.md, sezione Accepted production findings.",
+        "Eseguire npm run build --workspace=client.",
+        "Eseguire node scripts/security/client-bundle-dompurify.mjs.",
+        "Eseguire npm audit --omit=dev e aprire docs/SECURITY-AUDIT.md.",
         "Eseguire npx vitest run server/tests/dependency-locks.test.ts."
       ],
-      "expected": "Nessun rilievo moderate, high o critical. Ogni rilievo riportato (oggi dompurify 3.4.15 sotto monaco-editor 0.57.0, GHSA-p98j-92pf-mc4p e GHSA-6688-9rhm-gjv2) compare nella tabella con scadenza non superata (31/12/2026). Il test passa."
+      "expected": "Lo script elenca solo dompurify 3.4.16 o successive (oggi 3.4.17 nel chunk dell'editor) ed esce con 0. npm audit non riporta rilievi moderate, high o critical; i due rilievi bassi su dompurify 3.4.15 sotto monaco-editor 0.57.0 sono spiegati in SECURITY-AUDIT.md come pacchetto dichiarato e non distribuito. La tabella Accepted production findings è vuota. Il test passa."
     },
     {
       "id": "SEC-67",
