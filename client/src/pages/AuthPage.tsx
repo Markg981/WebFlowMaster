@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, TestTube, CheckCircle2, ShieldCheck, Zap, BarChart3 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import MfaChallengeForm from '@/components/security/MfaChallengeForm';
 import SsoSignIn from '@/components/security/SsoSignIn';
 import ForgotPassword from '@/components/security/ForgotPassword';
@@ -138,7 +138,7 @@ export default function AuthPage() {
     });
   };
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -146,7 +146,7 @@ export default function AuthPage() {
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,

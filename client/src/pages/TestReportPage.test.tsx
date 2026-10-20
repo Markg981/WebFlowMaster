@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import TestReportPage from './TestReportPage';
@@ -218,7 +218,10 @@ describe('TestReportPage: from a result to one attempt and row (P08)', () => {
     try {
       renderPage();
       expect(await screen.findByTestId('slice-picker')).toBeTruthy();
-      expect(screen.getByTestId('attempt-1').getAttribute('aria-pressed')).toBe('true');
+      // The picker can render before the link's attempt and row are applied.
+      await waitFor(() =>
+        expect(screen.getByTestId('attempt-1').getAttribute('aria-pressed')).toBe('true'),
+      );
       expect(screen.getByTestId('row-0').getAttribute('aria-pressed')).toBe('true');
       expect(screen.getByTestId('trace-link').getAttribute('href')).toBe(
         `${at(1, 0)}/Pay_trace.zip`,
