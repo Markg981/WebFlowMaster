@@ -1,7 +1,7 @@
 import * as cron from 'node-cron';
-// cron-parser v4 is CommonJS; under Node ESM (tsx) only the default import exposes
-// its members — a named `{ parseExpression }` import throws at runtime.
-import cronParser from 'cron-parser';
+// cron-parser v5 is still CommonJS, but its named exports are detectable, so the
+// named import works under Node ESM (tsx) as well as in the bundle.
+import { CronExpressionParser } from 'cron-parser';
 import { privilegedDb } from '../platform/db';
 import { environments, testPlanSchedules, testPlans } from '@shared/schema';
 import type { TestPlanSchedule, TestPlanExecution, TestPlan } from '@shared/schema';
@@ -222,7 +222,7 @@ function calculateNextRunTime(
   const pattern = frequencyToCronPattern(frequency, from, timeZone);
   if (!pattern) return null;
   try {
-    const interval = cronParser.parseExpression(pattern, { currentDate: from, tz: timeZone });
+    const interval = CronExpressionParser.parse(pattern, { currentDate: from, tz: timeZone });
     return interval.next().toDate();
   } catch {
     return null;
@@ -255,7 +255,7 @@ export function firstRunAt(
   const start = new Date(Math.max(requested.getTime(), now.getTime()) - 1);
   let interval;
   try {
-    interval = cronParser.parseExpression(pattern, { currentDate: start, tz: timeZone });
+    interval = CronExpressionParser.parse(pattern, { currentDate: start, tz: timeZone });
   } catch (e: any) {
     throw new Error(`Invalid CRON expression "${pattern}": ${e?.message ?? e}`);
   }
