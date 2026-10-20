@@ -794,7 +794,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## api_test_history {#api-test-history}
 
-`apiTestHistory` — `shared/schema/api-testing.ts:9`
+`apiTestHistory` — `shared/schema/api-testing.ts:10`
 
 | TS property       | SQL column         | Declaration                                                                          |
 | ----------------- | ------------------ | ------------------------------------------------------------------------------------ |
@@ -814,7 +814,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## api_tests {#api-tests}
 
-`apiTests` — `shared/schema/api-testing.ts:36`
+`apiTests` — `shared/schema/api-testing.ts:37`
 
 | TS property            | SQL column               | Declaration                                                                     |
 | ---------------------- | ------------------------ | ------------------------------------------------------------------------------- |
@@ -853,7 +853,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plans {#test-plans}
 
-`testPlans` — `shared/schema/execution.ts:40`
+`testPlans` — `shared/schema/execution.ts:41`
 
 | TS property                      | SQL column                            | Declaration                                                                                                           |
 | -------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -891,7 +891,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_schedules {#test-plan-schedules}
 
-`testPlanSchedules` — `shared/schema/execution.ts:139`
+`testPlanSchedules` — `shared/schema/execution.ts:140`
 
 | TS property                  | SQL column                     | Declaration                                                                                |
 | ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
@@ -914,7 +914,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_executions {#test-plan-executions}
 
-`testPlanExecutions` — `shared/schema/execution.ts:182`
+`testPlanExecutions` — `shared/schema/execution.ts:183`
 
 | TS property             | SQL column                | Declaration                                                                                      |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -956,7 +956,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_outbox {#execution-outbox}
 
-`executionOutbox` — `shared/schema/execution.ts:269`
+`executionOutbox` — `shared/schema/execution.ts:270`
 
 | TS property      | SQL column        | Declaration                                                                                            |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------ |
@@ -973,7 +973,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## report_test_case_results {#report-test-case-results}
 
-`reportTestCaseResults` — `shared/schema/execution.ts:296`
+`reportTestCaseResults` — `shared/schema/execution.ts:297`
 
 | TS property           | SQL column               | Declaration                                                                                                   |
 | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -1012,7 +1012,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_logs {#execution-logs}
 
-`executionLogs` — `shared/schema/execution.ts:386`
+`executionLogs` — `shared/schema/execution.ts:387`
 
 | TS property           | SQL column               | Declaration                                                                                                   |
 | --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -1029,7 +1029,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_webhooks {#test-plan-webhooks}
 
-`testPlanWebhooks` — `shared/schema/execution.ts:411`
+`testPlanWebhooks` — `shared/schema/execution.ts:412`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1044,7 +1044,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_selected_tests {#test-plan-selected-tests}
 
-`testPlanSelectedTests` — `shared/schema/execution.ts:438`
+`testPlanSelectedTests` — `shared/schema/execution.ts:439`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1058,7 +1058,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## run_work_items {#run-work-items}
 
-`runWorkItems` — `shared/schema/execution.ts:467`
+`runWorkItems` — `shared/schema/execution.ts:468`
 
 | TS property      | SQL column         | Declaration                                                                                         |
 | ---------------- | ------------------ | --------------------------------------------------------------------------------------------------- |
@@ -1078,7 +1078,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_units {#execution-units}
 
-`executionUnits` — `shared/schema/execution.ts:503`
+`executionUnits` — `shared/schema/execution.ts:504`
 
 | TS property      | SQL column        | Declaration                                                                                         |
 | ---------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
@@ -1094,7 +1094,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## execution_unit_attempts {#execution-unit-attempts}
 
-`executionUnitAttempts` — `shared/schema/execution.ts:531`
+`executionUnitAttempts` — `shared/schema/execution.ts:532`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -1113,7 +1113,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## impact_rules {#impact-rules}
 
-`impactRules` — `shared/schema/execution.ts:565`
+`impactRules` — `shared/schema/execution.ts:566`
 
 | TS property      | SQL column        | Declaration                                                                 |
 | ---------------- | ----------------- | --------------------------------------------------------------------------- |
@@ -1125,7 +1125,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_suites {#test-suites}
 
-`testSuites` — `shared/schema/execution.ts:588`
+`testSuites` — `shared/schema/execution.ts:589`
 
 | TS property      | SQL column        | Declaration                                                                     |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -1142,7 +1142,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_suite_items {#test-suite-items}
 
-`testSuiteItems` — `shared/schema/execution.ts:611`
+`testSuiteItems` — `shared/schema/execution.ts:612`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1157,7 +1157,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_plan_suites {#test-plan-suites}
 
-`testPlanSuites` — `shared/schema/execution.ts:632`
+`testPlanSuites` — `shared/schema/execution.ts:633`
 
 | TS property      | SQL column        | Declaration                                                                                |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
@@ -1168,7 +1168,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## test_quarantines {#test-quarantines}
 
-`testQuarantines` — `shared/schema/execution.ts:657`
+`testQuarantines` — `shared/schema/execution.ts:658`
 
 | TS property      | SQL column        | Declaration                                                                      |
 | ---------------- | ----------------- | -------------------------------------------------------------------------------- |
@@ -1187,7 +1187,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## mobile_test_runs {#mobile-test-runs}
 
-`mobileTestRuns` — `shared/schema/execution.ts:683`
+`mobileTestRuns` — `shared/schema/execution.ts:684`
 
 | TS property             | SQL column                | Declaration                                                                                       |
 | ----------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -1212,7 +1212,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## load_test_runs {#load-test-runs}
 
-`loadTestRuns` — `shared/schema/execution.ts:717`
+`loadTestRuns` — `shared/schema/execution.ts:718`
 
 | TS property       | SQL column         | Declaration                                                                                   |
 | ----------------- | ------------------ | --------------------------------------------------------------------------------------------- |

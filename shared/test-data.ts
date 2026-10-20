@@ -52,7 +52,7 @@ export const testDataSetInputSchema = z
         'Two columns have the same name.',
       ),
     rows: z
-      .array(z.record(z.string().max(TEST_DATA_LIMITS.value)))
+      .array(z.record(z.string(), z.string().max(TEST_DATA_LIMITS.value)))
       .min(1, 'A data set needs at least one row.')
       .max(TEST_DATA_LIMITS.rows),
   })

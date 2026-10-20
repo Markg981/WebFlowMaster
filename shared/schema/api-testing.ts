@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { ApiPerformanceSchema, type ApiPerformance } from '../api-performance';
 import { ProtocolConfigSchema, type ProtocolConfig } from '../api-protocol-config';
 import { organizations, projects, users } from './identity';
+import { partialUpdate } from '../partial-update';
 
 export const apiTestHistory = pgTable(
   'api_test_history',
@@ -334,31 +335,40 @@ export const AuthParamsSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal(AuthTypeSchema.enum.none) }),
   z.object({
     type: z.literal(AuthTypeSchema.enum.jwtBearer),
-    params: JwtBearerAuthParamsSchema.default({}),
+    params: JwtBearerAuthParamsSchema.prefault({}),
   }),
   z.object({
     type: z.literal(AuthTypeSchema.enum.digest),
-    params: DigestAuthParamsSchema.default({}),
+    params: DigestAuthParamsSchema.prefault({}),
   }),
   z.object({
     type: z.literal(AuthTypeSchema.enum.oauth1),
-    params: OAuth1AuthParamsSchema.default({}),
+    params: OAuth1AuthParamsSchema.prefault({}),
   }),
   z.object({
     type: z.literal(AuthTypeSchema.enum.oauth2),
-    params: OAuth2AuthParamsSchema.default({}),
+    params: OAuth2AuthParamsSchema.prefault({}),
   }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.hawk), params: HawkAuthParamsSchema.default({}) }),
+  z.object({
+    type: z.literal(AuthTypeSchema.enum.hawk),
+    params: HawkAuthParamsSchema.prefault({}),
+  }),
   z.object({
     type: z.literal(AuthTypeSchema.enum.aws),
-    params: AwsSigV4AuthParamsSchema.default({}),
+    params: AwsSigV4AuthParamsSchema.prefault({}),
   }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.ntlm), params: NtlmAuthParamsSchema.default({}) }),
+  z.object({
+    type: z.literal(AuthTypeSchema.enum.ntlm),
+    params: NtlmAuthParamsSchema.prefault({}),
+  }),
   z.object({
     type: z.literal(AuthTypeSchema.enum.akamai),
-    params: AkamaiEdgeGridAuthParamsSchema.default({}),
+    params: AkamaiEdgeGridAuthParamsSchema.prefault({}),
   }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.asap), params: AsapAuthParamsSchema.default({}) }),
+  z.object({
+    type: z.literal(AuthTypeSchema.enum.asap),
+    params: AsapAuthParamsSchema.prefault({}),
+  }),
 ]);
 export type AuthParams = z.infer<typeof AuthParamsSchema>;
 
@@ -500,10 +510,10 @@ export const insertApiTestSchema = createInsertSchema(apiTests, {
   })
   .extend({
     queryParams: z
-      .record(z.string().or(z.array(z.string())))
+      .record(z.string(), z.string().or(z.array(z.string())))
       .optional()
       .nullable(),
-    requestHeaders: z.record(z.string()).optional().nullable(),
+    requestHeaders: z.record(z.string(), z.string()).optional().nullable(),
     requestBody: z.any().optional().nullable(),
     assertions: z.array(AssertionSchema).optional().nullable(),
     authType: AuthTypeSchema.optional().nullable(),
@@ -516,12 +526,12 @@ export const insertApiTestSchema = createInsertSchema(apiTests, {
     bodyGraphqlVariables: z.string().optional().nullable(),
   });
 
-export const updateApiTestSchema = insertApiTestSchema.partial().extend({
+export const updateApiTestSchema = partialUpdate(insertApiTestSchema).extend({
   queryParams: z
-    .record(z.string().or(z.array(z.string())))
+    .record(z.string(), z.string().or(z.array(z.string())))
     .optional()
     .nullable(),
-  requestHeaders: z.record(z.string()).optional().nullable(),
+  requestHeaders: z.record(z.string(), z.string()).optional().nullable(),
   requestBody: z.any().optional().nullable(),
   assertions: z.array(AssertionSchema).optional().nullable(),
   authType: AuthTypeSchema.optional().nullable(),

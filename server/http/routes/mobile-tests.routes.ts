@@ -17,6 +17,7 @@ import {
   MOBILE_GRID_PROVIDERS,
   mobileStepSchema,
   mobileTestSchema,
+  mobileTestFieldsSchema,
   mobileDeviceTargets,
 } from '@shared/mobile';
 import { requireRole } from '../middleware/require-role';
@@ -483,8 +484,7 @@ router.post('/api/browser-grids/:id/apps', requireRole('editor'), (req, res) => 
 
 // ─── The inspector (server/mobile/mobile-inspector.ts) ──────────────────────────────
 
-const inspectSchema = mobileTestSchema
-  .innerType()
+const inspectSchema = mobileTestFieldsSchema
   .pick({ platform: true, app: true, deviceName: true, osVersion: true })
   .extend({ gridId: z.string().min(1, 'Choose the grid the device comes from.') });
 

@@ -34,8 +34,8 @@ const proxyApiRequestBodySchema = z.object({
   // Not .url(): saved tests legitimately hold {{baseUrl}}/... here. The URL is
   // validated below, once the variables have been resolved.
   url: z.string().min(1),
-  queryParams: z.record(z.any()).optional(),
-  headers: z.record(z.string()).optional(),
+  queryParams: z.record(z.string(), z.any()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   body: z.any().optional(),
   // A form-data or binary body, which cannot travel in `body`: a browser FormData or File
   // serialises to `{}`. See ApiRequestSpec.multipart.

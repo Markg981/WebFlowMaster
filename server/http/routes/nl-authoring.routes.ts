@@ -35,7 +35,7 @@ const detectedElementSchema = z.object({
   frameSelector: z.string().optional().nullable(),
   text: z.string().optional().nullable(),
   tag: z.string().optional(),
-  attributes: z.record(z.string()).optional(),
+  attributes: z.record(z.string(), z.string()).optional(),
 });
 
 const bodySchema = z.object({

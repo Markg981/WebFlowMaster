@@ -31,7 +31,7 @@ export const BddAgentRequestSchema = z
     exampleLine: z.number().int().positive().optional(),
     profile: BddAgentProfileSchema.pick({ id: true, revision: true }),
     variables: z
-      .record(z.string().max(256 * 1024))
+      .record(z.string(), z.string().max(256 * 1024))
       .refine((value) => Object.keys(value).length <= 1000),
     timeoutMs: z.number().int().min(1000).max(BDD_MAX_DURATION_MS),
   })

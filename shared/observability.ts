@@ -94,7 +94,7 @@ export const ClientLogEntrySchema = z.object({
   clientTs: z.string(),
   correlationId: z.string().max(100).optional(),
   route: z.string().max(500).optional(),
-  meta: z.record(z.unknown()).optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
 });
 export type ClientLogEntry = z.infer<typeof ClientLogEntrySchema>;
 
@@ -115,7 +115,7 @@ export const ClientIncidentReportSchema = z.object({
   stack: z.string().max(20000).optional(),
   componentStack: z.string().max(20000).optional(),
   /** Serialisable props captured by the error boundary, when it has them. */
-  props: z.record(z.unknown()).optional(),
-  breadcrumbs: z.array(z.record(z.unknown())).max(50).optional(),
+  props: z.record(z.string(), z.unknown()).optional(),
+  breadcrumbs: z.array(z.record(z.string(), z.unknown())).max(50).optional(),
 });
 export type ClientIncidentReport = z.infer<typeof ClientIncidentReportSchema>;

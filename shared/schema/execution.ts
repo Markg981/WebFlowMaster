@@ -35,6 +35,7 @@ import { loadTests, mobileTests, tags, tests } from './authoring';
 import { browserGrids, environments } from './environments';
 import { organizations, projects, users } from './identity';
 import { issueTrackers, testManagementConnections } from './integrations';
+import { partialUpdate } from '../partial-update';
 
 // Test Plans Table
 export const testPlans = pgTable(
@@ -886,7 +887,7 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
 });
 
 export const selectTestPlanSchema = createSelectSchema(testPlans);
-export const updateTestPlanSchema = insertTestPlanSchema.partial();
+export const updateTestPlanSchema = partialUpdate(insertTestPlanSchema);
 
 // Test plan create/update payloads also carry the set of tests to link, which live in a
 // separate join table (testPlanSelectedTests) rather than as a column on testPlans.
@@ -924,8 +925,8 @@ export type InsertTestPlanSelectedTest = typeof testPlanSelectedTests.$inferInse
 export const insertTestPlanScheduleSchema = createInsertSchema(testPlanSchedules, {
   nextRunAt: z.number().positive().or(z.date()),
   browsers: z.array(z.string()).optional().nullable(),
-  notificationConfigOverride: z.record(z.any()).optional().nullable(),
-  executionParameters: z.record(z.any()).optional().nullable(),
+  notificationConfigOverride: z.record(z.string(), z.any()).optional().nullable(),
+  executionParameters: z.record(z.string(), z.any()).optional().nullable(),
   isActive: z.boolean().default(true),
   retryOnFailure: z.enum(['none', 'once', 'twice']).default('none'),
 }).omit({
@@ -942,7 +943,7 @@ export const insertTestPlanScheduleSchema = createInsertSchema(testPlanSchedules
 });
 
 export const selectTestPlanScheduleSchema = createSelectSchema(testPlanSchedules);
-export const updateTestPlanScheduleSchema = insertTestPlanScheduleSchema.partial().extend({
+export const updateTestPlanScheduleSchema = partialUpdate(insertTestPlanScheduleSchema).extend({
   isActive: z.boolean().optional(),
 });
 

@@ -24,6 +24,7 @@ import { dateFnsLocale } from '@/lib/dates';
 import { fetchTestPlansAPI, type TestPlanSummary } from '@/lib/api/test-plans';
 import {
   buildScheduleFormSchema,
+  type ScheduleFormInput,
   type ScheduleFormValues,
   FREQUENCY_OPTIONS,
   RETRY_ON_FAILURE_OPTIONS,
@@ -84,7 +85,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({
     watch,
     reset,
     formState: { errors },
-  } = useForm<ScheduleFormValues>({
+  } = useForm<ScheduleFormInput, unknown, ScheduleFormValues>({
     resolver: zodResolver(schema),
     defaultValues: transformedInitialData || { ...EMPTY_VALUES, nextRunAt: new Date() },
   });

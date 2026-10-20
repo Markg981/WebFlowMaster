@@ -7,6 +7,7 @@ import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { referencedElementIds } from '../../authoring/step-elements';
 import logger from '../../platform/logger';
+import { partialUpdate } from '@shared/partial-update';
 
 /**
  * The elements of an application, kept once instead of once per test.
@@ -25,10 +26,10 @@ const elementBodySchema = z.object({
   tag: z.string().trim().max(50).optional().nullable(),
   elementType: z.string().trim().max(50).optional().nullable(),
   text: z.string().max(500).optional().nullable(),
-  attributes: z.record(z.string()).optional().nullable(),
+  attributes: z.record(z.string(), z.string()).optional().nullable(),
 });
 
-const updateElementBodySchema = elementBodySchema.partial();
+const updateElementBodySchema = partialUpdate(elementBodySchema);
 
 function isUniqueViolation(error: any): boolean {
   const message = String(error?.message ?? '').toLowerCase();

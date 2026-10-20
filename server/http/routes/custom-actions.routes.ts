@@ -9,6 +9,7 @@ import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { asSteps } from '../../authoring/step-groups';
 import logger from '../../platform/logger';
+import { partialUpdate } from '@shared/partial-update';
 
 /**
  * The organization's own steps (shared/custom-actions.ts).
@@ -121,7 +122,7 @@ router.post('/api/custom-actions', requireRole('editor'), async (req, res) => {
 });
 
 router.put('/api/custom-actions/:id', requireRole('editor'), async (req, res) => {
-  const parsed = bodySchema.partial().safeParse(req.body);
+  const parsed = partialUpdate(bodySchema).safeParse(req.body);
   if (!parsed.success)
     return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
   if (Object.keys(parsed.data).length === 0)

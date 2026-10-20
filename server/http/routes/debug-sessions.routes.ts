@@ -34,7 +34,7 @@ const startSchema = z.object({
   elements: z.array(AdhocDetectedElementSchema).optional().default([]),
   preconditions: z.array(PreconditionSchema).optional().nullable(),
   environmentId: z.number().int().positive().optional().nullable(),
-  dataset: z.array(z.record(z.string())).optional().nullable(),
+  dataset: z.array(z.record(z.string(), z.string())).optional().nullable(),
   /** Ids of the steps to stop before. */
   breakpoints: z.array(z.string().max(200)).max(1000).optional().default([]),
   /** Which row of the dataset to debug with, counted from 0. */
