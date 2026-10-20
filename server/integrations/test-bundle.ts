@@ -226,10 +226,10 @@ const bundleSchema = z.object({
   kind: z.literal(BUNDLE_KIND),
   version: z.number().int().min(1),
   project: z.string().nullable().optional(),
-  tests: z.array(z.record(z.unknown())).max(2000).default([]),
-  apiTests: z.array(z.record(z.unknown())).max(2000).default([]),
-  mobileTests: z.array(z.record(z.unknown())).max(2000).default([]),
-  mobileStepGroups: z.array(z.record(z.unknown())).max(2000).default([]),
+  tests: z.array(z.record(z.string(), z.unknown())).max(2000).default([]),
+  apiTests: z.array(z.record(z.string(), z.unknown())).max(2000).default([]),
+  mobileTests: z.array(z.record(z.string(), z.unknown())).max(2000).default([]),
+  mobileStepGroups: z.array(z.record(z.string(), z.unknown())).max(2000).default([]),
 });
 export type Bundle = z.infer<typeof bundleSchema>;
 

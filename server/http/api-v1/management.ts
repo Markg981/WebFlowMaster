@@ -60,6 +60,7 @@ import {
   page,
   valid,
 } from './authoring';
+import { partialUpdate } from '@shared/partial-update';
 
 /**
  * The rest of what a pipeline or an operator's script manages around tests and runs: when plans
@@ -81,14 +82,13 @@ const scheduleFields = {
   timezone: z.string().trim().min(1).max(100).optional(),
   environment: z.string().max(200).nullable().optional(),
   browsers: z.array(z.string().min(1).max(50)).max(10).nullable().optional(),
-  notificationConfigOverride: z.record(z.unknown()).nullable().optional(),
-  executionParameters: z.record(z.unknown()).nullable().optional(),
+  notificationConfigOverride: z.record(z.string(), z.unknown()).nullable().optional(),
+  executionParameters: z.record(z.string(), z.unknown()).nullable().optional(),
   isActive: z.boolean().optional(),
   retryOnFailure: z.enum(['none', 'once', 'twice']).optional(),
 };
 export const scheduleCreateSchema = z.object(scheduleFields).strict();
-export const scheduleUpdateSchema = scheduleCreateSchema
-  .partial()
+export const scheduleUpdateSchema = partialUpdate(scheduleCreateSchema)
   .strict()
   .refine(atLeastOneField, 'Send at least one field.');
 export const environmentCreateSchema = z

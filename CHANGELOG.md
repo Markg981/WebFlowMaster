@@ -138,3 +138,4 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 - Fix the real high-severity CodeQL findings ([#361](https://github.com/Markg981/WebFlowMaster/pull/361))
 - Keep request values out of log message text ([#362](https://github.com/Markg981/WebFlowMaster/pull/362))
 - The code editor ships a patched dompurify in place of the copy Monaco vendors ([#460](https://github.com/Markg981/WebFlowMaster/pull/460))
+- Move to zod 4; partial updates no longer reset fields to their defaults ([#466](https://github.com/Markg981/WebFlowMaster/pull/466))

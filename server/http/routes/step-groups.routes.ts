@@ -7,6 +7,7 @@ import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { asSteps, isGroupCall, referencedGroupIds } from '../../authoring/step-groups';
 import logger from '../../platform/logger';
+import { partialUpdate } from '@shared/partial-update';
 
 /**
  * The named sequences tests call instead of repeating them.
@@ -34,7 +35,7 @@ const stepGroupBodySchema = z.object({
   sequence: z.array(AdhocTestStepSchema).min(1, 'A step group needs at least one step'),
 });
 
-const updateStepGroupBodySchema = stepGroupBodySchema.partial();
+const updateStepGroupBodySchema = partialUpdate(stepGroupBodySchema);
 
 /** The rule that keeps expansion one level deep, enforced where it is written. */
 function callsAnotherGroup(sequence: unknown): boolean {

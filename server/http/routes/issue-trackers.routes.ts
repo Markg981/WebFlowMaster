@@ -9,6 +9,7 @@ import { encryptSecret } from '../../platform/crypto';
 import { checkConnection } from '../../integrations/issue-providers';
 import { toConfig } from '../../integrations/issue-store';
 import logger from '../../platform/logger';
+import { partialUpdate } from '@shared/partial-update';
 
 /**
  * Where an organization files its bugs.
@@ -133,7 +134,7 @@ router.post('/api/issue-trackers', requireRole('editor'), async (req, res) => {
 router.put('/api/issue-trackers/:id', requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
 
-  const parsed = trackerSchema.partial().safeParse(req.body);
+  const parsed = partialUpdate(trackerSchema).safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
   }

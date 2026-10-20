@@ -2,7 +2,14 @@ import { z } from 'zod';
 import { PROTOCOL_HARD_LIMITS } from './api-protocol-config';
 
 const json: z.ZodType<unknown> = z.lazy(() =>
-  z.union([z.string(), z.number().finite(), z.boolean(), z.null(), z.array(json), z.record(json)]),
+  z.union([
+    z.string(),
+    z.number().finite(),
+    z.boolean(),
+    z.null(),
+    z.array(json),
+    z.record(z.string(), json),
+  ]),
 );
 export const ConversationStepSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('send'), message: json }).strict(),

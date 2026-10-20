@@ -60,6 +60,7 @@ import {
   quotaErrorStatus,
 } from '../../tenancy/tenant-quotas';
 import schedulerService from '../../execution/scheduler-service';
+import { partialUpdate } from '@shared/partial-update';
 
 const numericId = z.coerce.number().int().positive();
 export const projectCreateSchema = z.object({ name: z.string().trim().min(1).max(200) }).strict();
@@ -87,14 +88,13 @@ export const testCreateSchema = insertTestSchema
   .extend({
     name: z.string().trim().min(1).max(200),
     url: z.string().max(4000),
-    sequence: z.array(z.record(z.unknown())).max(2000),
-    elements: z.array(z.record(z.unknown())).max(2000).default([]),
+    sequence: z.array(z.record(z.string(), z.unknown())).max(2000),
+    elements: z.array(z.record(z.string(), z.unknown())).max(2000).default([]),
     projectId: z.number().int().positive().nullable().optional(),
     status: z.enum(['draft', 'ready', 'archived']).optional(),
   })
   .strict();
-export const testUpdateSchema = testCreateSchema
-  .partial()
+export const testUpdateSchema = partialUpdate(testCreateSchema)
   .strict()
   .refine((body) => Object.keys(body).length > 0, 'Send at least one field.');
 export const atLeastOneField = (body: object) => Object.keys(body).length > 0;
@@ -132,13 +132,11 @@ export const apiTestCreateSchema = insertApiTestSchema
     projectId: z.number().int().positive().nullable().optional(),
   })
   .strict();
-export const apiTestUpdateSchema = apiTestCreateSchema
-  .partial()
+export const apiTestUpdateSchema = partialUpdate(apiTestCreateSchema)
   .strict()
   .refine(atLeastOneField, 'Send at least one field.');
 export const mobileTestCreateSchema = mobileTestFieldsSchema.strict().superRefine(refineMobileTest);
-export const mobileTestUpdateSchema = mobileTestFieldsSchema
-  .partial()
+export const mobileTestUpdateSchema = partialUpdate(mobileTestFieldsSchema)
   .strict()
   .refine(atLeastOneField, 'Send at least one field.');
 export const datasetCreateSchema = testDataSetInputSchema;
@@ -173,8 +171,7 @@ export const planCreateSchema = insertTestPlanSchema
     selectedTests: membershipSchema.default([]),
   })
   .strict();
-export const planUpdateSchema = planCreateSchema
-  .partial()
+export const planUpdateSchema = partialUpdate(planCreateSchema)
   .strict()
   .refine((body) => Object.keys(body).length > 0, 'Send at least one field.');
 /** The kinds of test a suite can carry; an export holds the UI, manual and BDD tests unless asked. */

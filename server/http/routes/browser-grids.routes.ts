@@ -16,6 +16,7 @@ import { encryptSecret } from '../../platform/crypto';
 import { gridConnection, toGridConfig } from '../../runtime/browser-grids';
 import { appiumTransport } from '../../mobile/mobile-runner';
 import logger from '../../platform/logger';
+import { partialUpdate } from '@shared/partial-update';
 
 /**
  * An organization's browser grids (shared/browser-grids.ts).
@@ -145,7 +146,7 @@ router.post('/api/browser-grids', requireRole('editor'), async (req, res) => {
 });
 
 router.put('/api/browser-grids/:id', requireRole('editor'), async (req, res) => {
-  const parsed = gridSchema.partial().safeParse(req.body);
+  const parsed = partialUpdate(gridSchema).safeParse(req.body);
   if (!parsed.success)
     return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
 

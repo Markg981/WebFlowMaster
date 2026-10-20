@@ -45,7 +45,7 @@ const executeDirectTestSchema = z.object({
   // to is taken from the session, so naming another tenant's environment resolves nothing.
   environmentId: z.number().int().positive().optional().nullable(),
   // Rows the preview runs over, so it runs as many times as the saved test will.
-  dataset: z.array(z.record(z.string())).optional().nullable(),
+  dataset: z.array(z.record(z.string(), z.string())).optional().nullable(),
 });
 
 /**

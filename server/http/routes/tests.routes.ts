@@ -46,6 +46,7 @@ import {
 } from '../../bdd/gherkin-source';
 import { GherkinImportOptionsSchema } from '@shared/bdd';
 import { BddDefinitionError, prepareBddForSave } from '../../bdd/bdd-definition';
+import { partialUpdate } from '@shared/partial-update';
 
 const router = asyncRouter();
 
@@ -189,7 +190,7 @@ router.put('/api/tests/:id', requireRole('editor'), async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid test id' });
 
-  const parseResult = insertTestSchema.partial().safeParse(req.body);
+  const parseResult = partialUpdate(insertTestSchema).safeParse(req.body);
   if (!parseResult.success) {
     return res
       .status(400)

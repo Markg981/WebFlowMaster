@@ -718,7 +718,7 @@ export const PreconditionCheckSchema = z.object({
     )
     .optional()
     .nullable(),
-  requestHeaders: z.record(z.string()).optional().nullable(),
+  requestHeaders: z.record(z.string(), z.string()).optional().nullable(),
   /** Response statuses that mean the state is already there. Defaults to 2xx. */
   expectStatus: z.array(z.number().int()).optional().nullable(),
   /** A dotted path into the JSON body, e.g. `functions.netContentMachine`. */
@@ -745,7 +745,7 @@ export const PreconditionSchema = z.object({
     )
     .optional()
     .nullable(),
-  requestHeaders: z.record(z.string()).optional().nullable(),
+  requestHeaders: z.record(z.string(), z.string()).optional().nullable(),
   requestBody: z.any().optional().nullable(),
   sourceApiTestId: z.number().int().optional().nullable(),
   /** Asked before the setup call; when it holds, the call is skipped. */
@@ -785,7 +785,7 @@ export const insertTestSchema = createInsertSchema(tests, {
   // Rows of input, each key a {{variable}} for that run. Typed rather than raw jsonb so a
   // malformed dataset is refused at save time instead of halfway through a scheduled run.
   dataset: z
-    .array(z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])))
+    .array(z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])))
     .optional()
     .nullable(),
   priority: z.enum(['Critical', 'High', 'Medium', 'Low']).optional().nullable(),
@@ -861,7 +861,7 @@ export const AdhocDetectedElementSchema = z.object({
   frameSelector: z.string().optional().nullable(),
   text: z.string().optional().nullable(),
   tag: z.string(),
-  attributes: z.record(z.string()),
+  attributes: z.record(z.string(), z.string()),
   boundingBox: z
     .object({
       x: z.number(),

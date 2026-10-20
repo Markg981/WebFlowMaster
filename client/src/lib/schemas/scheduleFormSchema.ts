@@ -121,10 +121,13 @@ export function buildScheduleFormSchema(t: Translate = english) {
         .min(1, t('schedulingPage.form.validation.frequencyRequired', 'Frequency is required')),
       customCronExpression: z.string().optional(),
       nextRunAt: z.date({
-        required_error: t(
-          'schedulingPage.form.validation.nextRunRequired',
-          'Next run date and time is required',
-        ),
+        error: (issue) =>
+          issue.input === undefined
+            ? t(
+                'schedulingPage.form.validation.nextRunRequired',
+                'Next run date and time is required',
+              )
+            : undefined,
       }),
       // IANA name. Defaults to the browser's zone rather than UTC: "02:00" means 02:00 where
       // the tester is, and making them convert it twice a year is how a nightly job ends up
@@ -182,6 +185,8 @@ export function buildScheduleFormSchema(t: Translate = english) {
 export const scheduleFormSchema = buildScheduleFormSchema();
 
 export type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
+/** What the form holds before the defaults (timezone, isActive, retryOnFailure) fill in. */
+export type ScheduleFormInput = z.input<typeof scheduleFormSchema>;
 
 export const transformFormValuesToApiPayload = (
   values: ScheduleFormValues,
