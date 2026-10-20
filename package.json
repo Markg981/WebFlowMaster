@@ -121,7 +121,7 @@
     "axe-core": "^4.14.0",
     "bullmq": "^5.76.4",
     "connect-redis": "^9.0.0",
-    "cron-parser": "^4.9.0",
+    "cron-parser": "^5.10.2",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.45.4",
     "drizzle-zod": "^0.7.0",
