@@ -182,7 +182,7 @@
     "@types/ws": "^8.18.2",
     "@typescript-eslint/eslint-plugin": "^8.71.2",
     "@typescript-eslint/parser": "^8.71.1",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.5",
     "allure-commandline": "^2.46.1",
     "cross-env": "^7.0.3",
     "dependency-cruiser": "^18.6.0",
