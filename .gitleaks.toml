@@ -1,0 +1,16 @@
+# Secret scanning (CI job `secret-scan`). The default ruleset applies; only the files below are
+# allowed, because they are public on purpose: test key pairs and the collaudo stack's secrets.
+# Anything else that looks like a secret fails the job.
+title = "WebFlowMaster gitleaks"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test fixtures and the public collaudo secrets"
+paths = [
+  '''^e2e/fixtures/oidc-test\.key$''',
+  '''^server/tests/fixtures/saml-[^/]+\.key$''',
+  '''^server/tests/fixtures/grpc-tls/''',
+  '''^collaudo/collaudo\.env$''',
+]

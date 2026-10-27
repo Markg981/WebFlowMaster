@@ -264,6 +264,14 @@ one PR for each new major version. Merge the weekly one when CI passes; read the
 major and test the affected area before merging it. Playwright, the `lightningcss-*` binaries and
 the Docker base images are left out: upgrade them by hand, as described above.
 
+Every GitHub Action in `.github/workflows/` is pinned to a full commit SHA with the tag in a
+trailing comment (`uses: actions/checkout@<sha> # v7`); Dependabot's `github-actions` entry updates
+both. Workflows declare `permissions: contents: read` at the top, and a job asks for more only
+where it needs it. The `secret-scan` CI job runs gitleaks over the whole history with
+`.gitleaks.toml` (the public test keys and `collaudo/collaudo.env` are allowed by path) and
+`.gitleaksignore` (findings that predate the job). A new finding fails the build: remove and
+rotate the secret rather than adding it to the ignore file.
+
 ### Local output
 
 Tools write what they produce under one ignored folder, `.local/`, instead of a folder each at the
