@@ -70,6 +70,12 @@ config:
   csrfTrustedOrigins: ''
   # REGISTRATION: `invitation` (default) or `open`.
   registration: invitation
+  # TRUST_PROXY: reverse proxies in front of the api (count, `false`, or IPs/CIDRs). The ingress
+  # controller is one hop; add more for a load balancer that also appends X-Forwarded-For.
+  trustProxy: '1'
+  # EGRESS_PRIVATE_TARGETS: `allow` or `deny`. Use `deny` when several companies share the
+  # installation (registration: open fails to start unless it is `deny`).
+  egressPrivateTargets: allow
   # MAILPIT_URL: the test inbox for "Wait for email" steps when an environment names none.
   mailpitUrl: ''
   # Any other non-secret variable from docs/en/admin/configuration.md, as name: value.

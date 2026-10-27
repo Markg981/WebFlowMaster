@@ -1,5 +1,6 @@
 import { resolvePort } from './platform/config';
 import { registrationMode } from './identity/registration';
+import { trustProxySetting } from './platform/trust-proxy';
 import { cspMode } from './platform/security-headers';
 
 /**
@@ -17,14 +18,49 @@ export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): strin
   if (!env.SESSION_SECRET) errors.push('SESSION_SECRET must be set for session security.');
   if (env.NODE_ENV === 'production') errors.push(...publishedSecretErrors(env));
   if (env.NODE_ENV === 'production') errors.push(...publicUrlErrors(env));
-  for (const check of [() => registrationMode(env), () => cspMode(env), () => resolvePort(env)]) {
+  for (const check of [() => registrationMode(env), () => cspMode(env), () => resolvePort(env), () => trustProxySetting(env)]) {
     try {
       check();
     } catch (error) {
       errors.push(error instanceof Error ? error.message : String(error));
     }
   }
+  if (env.NODE_ENV === 'production' && sharedInstallation(env) && !egressExplicitlyDeny(env)) {
+    errors.push(
+      'EGRESS_PRIVATE_TARGETS must be "deny" while REGISTRATION=open (anyone can create an organization): "allow" lets their tests reach this server\'s private network. Set it to "deny" and list intranet hosts in EGRESS_ALLOW_HOSTS.',
+    );
+  }
   return errors;
+}
+
+/** Self-service organization creation is the codebase's signal for a shared (multi-organization) installation. */
+function sharedInstallation(env: NodeJS.ProcessEnv): boolean {
+  try {
+    return registrationMode(env) === 'open';
+  } catch {
+    return false; // reported by its own check
+  }
+}
+
+function egressExplicitlyDeny(env: NodeJS.ProcessEnv): boolean {
+  return env.EGRESS_PRIVATE_TARGETS?.trim().toLowerCase() === 'deny';
+}
+
+/** Non-fatal findings, logged at startup. */
+export function startupConfigWarnings(env: NodeJS.ProcessEnv = process.env): string[] {
+  const warnings: string[] = [];
+  if (env.NODE_ENV !== 'production') return warnings;
+  if (!env.EGRESS_PRIVATE_TARGETS?.trim()) {
+    warnings.push(
+      'EGRESS_PRIVATE_TARGETS is not set: it defaults to "allow", so tests can reach loopback and private addresses of this server\'s network. Set it explicitly ("deny" unless tests must reach an intranet).',
+    );
+  }
+  if (!env.TRUST_PROXY?.trim()) {
+    warnings.push(
+      'TRUST_PROXY is not set: assuming exactly 1 reverse proxy in front. Set it to the real proxy chain (hop count, false when none, or proxy IPs/CIDRs), or client IPs and per-IP rate limits can be forged via X-Forwarded-For.',
+    );
+  }
+  return warnings;
 }
 
 /**

@@ -1,4 +1,5 @@
 import passport from 'passport';
+import { trustProxySetting } from '../platform/trust-proxy';
 import { flattenZodError } from '../http/zod-error';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Express, type RequestHandler, type Response } from 'express';
@@ -279,7 +280,8 @@ export function setupAuth(app: Express) {
   // (server/platform/security-headers.ts).
   app.use(securityHeaders());
 
-  app.set('trust proxy', 1);
+  // TRUST_PROXY must match the real proxy chain (server/platform/trust-proxy.ts).
+  app.set('trust proxy', trustProxySetting());
   app.use(sharedSessionMiddleware);
   app.use(passport.initialize());
   app.use(passport.session());

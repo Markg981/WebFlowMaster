@@ -18,7 +18,7 @@ import { correlationMiddleware } from './platform/middleware/correlation';
 import { csrfOriginCheck } from './http/middleware/csrf';
 import { connection as redisConnection, connectSessionRedis, sessionRedis } from './platform/redis';
 import { resolvePort } from './platform/config';
-import { assertStartupConfig, connectSessionStore } from './startup-config';
+import { assertStartupConfig, connectSessionStore, startupConfigWarnings } from './startup-config';
 import { inspectSchemaState, describeSchemaState } from './platform/schema-state';
 import { redactWebhookPath } from './identity/webhook-tokens';
 import { healthRouter } from './health';
@@ -61,6 +61,7 @@ app.use(express.urlencoded({ extended: false }));
   // First, before the database or Redis is asked anything: a misspelt setting is reported by
   // name instead of hiding behind whichever connection happens to fail first.
   assertStartupConfig();
+  for (const warning of startupConfigWarnings()) logger.warn(warning);
 
   // Before anything serves a request: confirm the database is actually configured for tenant
   // isolation. None of it can be checked by the test suite, which runs on PGlite as a
