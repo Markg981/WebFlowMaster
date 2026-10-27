@@ -105,7 +105,7 @@ del piano resta valida: ogni browser viene preso in prestito dal pool.
 
 | Variabile                   | Dove                    | Significato                                                                                                                                                                                   |
 | --------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENT_RELAY_SECRET`        | web e worker            | Firma i ticket. Di default `SESSION_SECRET`; impostala esplicitamente se il worker non condivide il session secret del web server.                                                            |
+| `AGENT_RELAY_SECRET`        | web e worker            | Firma i ticket. Obbligatoria in produzione (nessun ripiego su `SESSION_SECRET`; in sviluppo il ripiego c'è, con un avviso). Ogni ticket vale una sola volta.                                  |
 | `AGENT_RELAY_URL`           | worker                  | Dove il runner raggiunge il relay. Di default `http://127.0.0.1:$PORT`, corretto quando il worker gira nel processo web. Con worker separati, puntala al web server (o al suo load balancer). |
 | `AGENT_RELAY_ADVERTISE_URL` | web, con più web server | L'indirizzo di questo web server come lo raggiungono gli altri web server (IP del pod, nome del container — non il load balancer). Impostarla attiva la directory condivisa in Redis.         |
 

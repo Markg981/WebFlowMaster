@@ -63,6 +63,11 @@ export interface AgentRelayOptions {
   heartbeatMs?: number;
   /** Absent: this is the only instance, as with one web server. */
   cluster?: RelayCluster;
+  /**
+   * Claims a ticket's id for its lifetime: true the first time, false for a replay. Shared between
+   * instances when there are several (Redis); absent, an in-memory set serves the only instance.
+   */
+  claimTicket?: (jti: string, ttlMs: number) => Promise<boolean>;
   log?: (level: 'info' | 'warn', message: string, meta?: Record<string, unknown>) => void;
 }
 
@@ -506,44 +511,65 @@ export class AgentRelay {
     const agent = chosen.candidate.local!;
     const verified = ticket;
 
-    this.wss.handleUpgrade(req, socket, head, (runner) => {
-      const cluster = this.options.cluster;
-      const id = cluster
-        ? `${cluster.instanceId}${SESSION_OWNER_SEPARATOR}${randomUUID()}`
-        : randomUUID();
-      const session: PendingSession = {
-        id,
-        agentId: agent.agent.id,
-        runner,
-        buffered: [],
-        timer: setTimeout(
-          () => this.failSession(session, 'The agent did not open a browser in time.'),
-          this.options.openTimeoutMs ?? 30_000,
-        ),
-      };
-      this.pending.set(id, session);
-      agent.sessions.add(id);
-      // The runner starts talking the moment it is connected; held until the browser is there.
-      runner.on('message', (data, isBinary) => {
-        if (this.pending.has(id)) session.buffered.push({ data, isBinary });
+    const open = () =>
+      this.wss.handleUpgrade(req, socket, head, (runner) => {
+        const cluster = this.options.cluster;
+        const id = cluster
+          ? `${cluster.instanceId}${SESSION_OWNER_SEPARATOR}${randomUUID()}`
+          : randomUUID();
+        const session: PendingSession = {
+          id,
+          agentId: agent.agent.id,
+          runner,
+          buffered: [],
+          timer: setTimeout(
+            () => this.failSession(session, 'The agent did not open a browser in time.'),
+            this.options.openTimeoutMs ?? 30_000,
+          ),
+        };
+        this.pending.set(id, session);
+        agent.sessions.add(id);
+        // The runner starts talking the moment it is connected; held until the browser is there.
+        runner.on('message', (data, isBinary) => {
+          if (this.pending.has(id)) session.buffered.push({ data, isBinary });
+        });
+        runner.on('close', () => {
+          if (this.pending.delete(id)) clearTimeout(session.timer);
+          agent.sessions.delete(id);
+        });
+        this.send(agent.ws, {
+          type: 'open',
+          traceContext: verified.traceContext,
+          sessionId: id,
+          engine: verified.engine,
+          channel: verified.channel,
+          headless: verified.headless,
+          ...(verified.bddProfile ? { bddProfile: verified.bddProfile } : {}),
+          ...(verified.apiProtocol
+            ? { apiProtocol: verified.apiProtocol, apiFeatures: verified.apiFeatures }
+            : {}),
+        });
       });
-      runner.on('close', () => {
-        if (this.pending.delete(id)) clearTimeout(session.timer);
-        agent.sessions.delete(id);
-      });
-      this.send(agent.ws, {
-        type: 'open',
-        traceContext: verified.traceContext,
-        sessionId: id,
-        engine: verified.engine,
-        channel: verified.channel,
-        headless: verified.headless,
-        ...(verified.bddProfile ? { bddProfile: verified.bddProfile } : {}),
-        ...(verified.apiProtocol
-          ? { apiProtocol: verified.apiProtocol, apiFeatures: verified.apiFeatures }
-          : {}),
-      });
-    });
+    // A ticket opens one browser. It is claimed here, where the session is made, and not when the
+    // request is only forwarded to the instance holding the agent: that one claims it in its turn.
+    this.claimTicket(verified).then(
+      (fresh) => (fresh ? open() : refuse(socket, 401, 'Ticket refused: already used.')),
+      () => refuse(socket, 503, 'The relay could not check the ticket.'),
+    );
+  }
+
+  private readonly claimed = new Map<string, number>();
+
+  /** True the first time a ticket is presented, false for a replay within its lifetime. */
+  private async claimTicket(ticket: BrowserTicket): Promise<boolean> {
+    if (!ticket.jti) return true;
+    const ttl = Math.max(ticket.expiresAt - Date.now(), 1_000) + 1_000;
+    if (this.options.claimTicket) return this.options.claimTicket(ticket.jti, ttl);
+    const now = Date.now();
+    for (const [id, until] of this.claimed) if (until <= now) this.claimed.delete(id);
+    if (this.claimed.has(ticket.jti)) return false;
+    this.claimed.set(ticket.jti, now + ttl);
+    return true;
   }
 
   private failSession(session: PendingSession, reason: string) {

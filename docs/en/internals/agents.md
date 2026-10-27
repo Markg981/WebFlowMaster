@@ -53,8 +53,8 @@ sequenceDiagram
   Revoking sets `revoked_at` and disconnects the agent.
 - The **ticket** says "this runner may borrow a browser of this organization's pool, now". The
   relay's browser endpoint is on the public address the agents dial, so without a ticket anyone could
-  borrow a customer's browser. A ticket is signed with `AGENT_RELAY_SECRET` (defaulting to
-  `SESSION_SECRET`), names organization, pool, engine, channel, headless and the runner's Playwright
+  borrow a customer's browser. A ticket is signed with `AGENT_RELAY_SECRET` (required in production;
+  outside it `SESSION_SECRET` is a development fallback), names organization, pool, engine, channel, headless and the runner's Playwright
   version, and expires after 60 seconds.
 
 ## Choosing an agent

@@ -160,11 +160,11 @@ _worker perso_; il worker batte ogni `WORK_ITEM_HEARTBEAT_MS` e a ogni avanzamen
 
 ## Agenti locali
 
-| Variabile                   | Letta da | Default                   | Descrizione                                                                                                                                                   |
-| --------------------------- | -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENT_RELAY_SECRET`        | entrambi | `SESSION_SECRET`          | Firma i ticket di un minuto con cui un runner prende in prestito il browser di un agente. Deve essere uguale nei processi web e in ogni worker.               |
-| `AGENT_RELAY_URL`           | worker   | `http://127.0.0.1:<PORT>` | Dove i worker raggiungono il relay nel processo web. Impostatela ogni volta che i worker girano su altre macchine o container, per esempio `http://api:5000`. |
-| `AGENT_RELAY_ADVERTISE_URL` | web      | nessuno                   | Con più processi web: l'indirizzo con cui gli altri raggiungono questo. Gli agenti connessi a un'istanza diventano così utilizzabili da tutte.                |
+| Variabile                   | Letta da | Default                    | Descrizione                                                                                                                                                                                                                                                                                    |
+| --------------------------- | -------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENT_RELAY_SECRET`        | entrambi | obbligatoria in produzione | Firma i ticket monouso di un minuto con cui un runner prende in prestito il browser di un agente. In produzione senza di essa gli agenti non funzionano (nessun ripiego su `SESSION_SECRET`; in sviluppo il ripiego c'è, con un avviso). Deve essere uguale nei processi web e in ogni worker. |
+| `AGENT_RELAY_URL`           | worker   | `http://127.0.0.1:<PORT>`  | Dove i worker raggiungono il relay nel processo web. Impostatela ogni volta che i worker girano su altre macchine o container, per esempio `http://api:5000`.                                                                                                                                  |
+| `AGENT_RELAY_ADVERTISE_URL` | web      | nessuno                    | Con più processi web: l'indirizzo con cui gli altri raggiungono questo. Gli agenti connessi a un'istanza diventano così utilizzabili da tutte.                                                                                                                                                 |
 
 ## Test di app mobili
 

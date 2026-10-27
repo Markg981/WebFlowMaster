@@ -184,7 +184,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 | Variabile            | Protegge                                                                                                    | Se cambia                                                                 | Se trapela                                                   |
 | -------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `SESSION_SECRET`     | I cookie di sessione (e i ticket degli agenti, se `AGENT_RELAY_SECRET` non è impostata)                     | Tutti vengono disconnessi                                                 | Le sessioni si possono falsificare: sostituitelo             |
+| `SESSION_SECRET`     | I cookie di sessione                                                                                        | Tutti vengono disconnessi                                                 | Le sessioni si possono falsificare: sostituitelo             |
 | `ENCRYPTION_KEY`     | Segreti degli ambienti, token di tracker e source host, stati di login salvati, segreti del secondo fattore | **Tutto ciò che è cifrato con essa diventa illeggibile**                  | Quei segreti sono esposti: ruotateli alla fonte              |
 | `AGENT_RELAY_SECRET` | I ticket con cui un runner prende in prestito il browser di un agente locale                                | I run sugli agenti falliscono finché ogni processo non ha il nuovo valore | Chi raggiunge il relay potrebbe usare i browser degli agenti |
 
@@ -269,7 +269,7 @@ web, e inoltre di:
 - `AGENT_RELAY_URL`: dove raggiungere il relay del processo web, se le organizzazioni usano
   agenti locali. Il default è la macchina del worker stesso, che funziona solo se i due girano
   sulla stessa.
-- `AGENT_RELAY_SECRET` (o lo stesso `SESSION_SECRET`), per lo stesso motivo.
+- `AGENT_RELAY_SECRET`, per lo stesso motivo.
 - `WEBFLOW_PUBLIC_URL`, perché è il worker a inviare notifiche e stati dei commit alla fine di
   un run.
 - I browser: l'immagine Playwright li contiene; altrove eseguite

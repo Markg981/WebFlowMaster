@@ -687,6 +687,13 @@
       "when": 1792400000020,
       "tag": "0097_users_username_lower_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1792400000021,
+      "tag": "0098_invitation_token_hash",
+      "breakpoints": true
     }
   ]
 }
