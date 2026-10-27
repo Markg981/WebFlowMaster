@@ -97,8 +97,8 @@ router.get('/api/api-keys', requireRole('editor'), async (req, res) => {
 // POST /api/api-keys — mint one, and show it once.
 router.post(
   '/api/api-keys',
-  requireRole('editor'),
   sharedSensitiveRateLimit(),
+  requireRole('editor'),
   sessionOnly('Creating API keys'),
   async (req, res) => {
     if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
@@ -200,8 +200,8 @@ router.post(
 // DELETE /api/api-keys/:id — revoke it. The row stays; the key stops working.
 router.delete(
   '/api/api-keys/:id',
-  requireRole('editor'),
   sharedSensitiveRateLimit(),
+  requireRole('editor'),
   sessionOnly('Revoking API keys'),
   async (req, res) => {
     if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });

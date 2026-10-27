@@ -366,8 +366,8 @@ router.get(
 
 router.post(
   '/api/organization/invitations',
-  requireRole('owner'),
   sharedSensitiveRateLimit(),
+  requireRole('owner'),
   sessionOnly('Inviting members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
@@ -482,8 +482,8 @@ router.post(
 
 router.delete(
   '/api/organization/invitations/:id',
-  requireRole('owner'),
   sharedSensitiveRateLimit(),
+  requireRole('owner'),
   sessionOnly('Revoking invitations'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
@@ -514,8 +514,8 @@ router.delete(
 
 router.post(
   '/api/organization/members',
-  requireRole('owner'),
   sharedSensitiveRateLimit(),
+  requireRole('owner'),
   sessionOnly('Adding members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
@@ -641,8 +641,8 @@ router.post(
 
 router.patch(
   '/api/organization/members/:userId',
-  requireRole('owner'),
   sharedSensitiveRateLimit(),
+  requireRole('owner'),
   sessionOnly('Changing roles or removing members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
@@ -693,8 +693,8 @@ router.patch(
 
 router.delete(
   '/api/organization/members/:userId',
-  requireRole('owner'),
   sharedSensitiveRateLimit(),
+  requireRole('owner'),
   sessionOnly('Changing roles or removing members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;

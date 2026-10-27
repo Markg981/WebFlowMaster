@@ -54,8 +54,8 @@ router.get('/api/service-accounts', requireRole('owner'), async (_req, res) => {
 
 router.post(
   '/api/service-accounts',
-  requireRole('owner'),
   sharedSensitiveRateLimit(),
+  requireRole('owner'),
   sessionOnly('Creating service accounts'),
   async (req, res) => {
     const parsed = createSchema.safeParse(req.body);
@@ -96,8 +96,8 @@ router.post(
  */
 router.delete(
   '/api/service-accounts/:id',
-  requireRole('owner'),
   sharedSensitiveRateLimit(),
+  requireRole('owner'),
   sessionOnly('Deleting service accounts'),
   async (req, res) => {
     const organizationId = getTenantOrgId()!;
