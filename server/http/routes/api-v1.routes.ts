@@ -1,4 +1,5 @@
 import { type Request } from 'express';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { readExecutionSnapshot } from '../../execution/execution-snapshot';
 import { MAX_CHANGED_FILES } from '../../execution/test-impact';
@@ -139,7 +140,7 @@ router.post('/api/v1/plans/:planId/runs', requireScope('runs:write'), async (req
   const parsed = startRunSchema.safeParse(req.body ?? {});
   if (!parsed.success) {
     return apiError(res, 400, 'invalid_request', 'The body does not match the schema.', {
-      details: parsed.error.flatten(),
+      details: flattenZodError(parsed.error),
     });
   }
   const idempotencyKey = req.get('Idempotency-Key')?.trim() || undefined;

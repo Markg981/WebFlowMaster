@@ -1,4 +1,5 @@
 import { type Request, type Response, type NextFunction } from 'express';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import rateLimit from 'express-rate-limit';
 import { sharedStore } from '../../platform/middleware/rate-limit-store';
@@ -131,7 +132,7 @@ router.put('/api/organization/sso', requireRole('owner'), sessionOnly, async (re
   if (!parsed.success)
     return res.status(400).json({
       error: 'Invalid single sign-on settings',
-      details: parsed.error.flatten().fieldErrors,
+      details: flattenZodError(parsed.error).fieldErrors,
     });
   try {
     const settings = await saveSsoSettings(

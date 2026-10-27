@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { asc, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -79,7 +80,7 @@ router.post('/api/tags', requireRole('editor'), async (req, res) => {
 
   const parsed = nameSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
   const name = normaliseTagName(parsed.data.name);
 
@@ -123,7 +124,7 @@ router.put('/api/tags/:id', requireRole('editor'), async (req, res) => {
 
   const parsed = nameSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
   const name = normaliseTagName(parsed.data.name);
 
@@ -198,7 +199,7 @@ async function assignTags(req: any, res: any, testType: TaggableType) {
 
   const parsed = assignmentSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
 
   try {

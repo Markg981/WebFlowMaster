@@ -24,6 +24,7 @@ import { v4 as uuidv4 } from 'uuid';
 import TestSuiteSelectorModal from './TestSuiteSelectorModal';
 
 import { Input } from '@/components/ui/input';
+import { ApiError, errorMessage } from '@/lib/queryClient';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { MOBILE_DEVICES, canEmulateDevice } from '@shared/devices';
@@ -340,17 +341,15 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
         body: JSON.stringify(planDataToSubmit),
       });
       if (!response.ok) {
-        let errorMsg = 'Failed to create test plan';
+        let body: unknown;
         try {
-          const errorData = await response.json();
-          errorMsg = errorData.error || errorData.message || errorMsg;
-          if (errorData.details) {
-            errorMsg = `${errorMsg}: ${JSON.stringify(errorData.details.formErrors || errorData.details.fieldErrors || errorData.details)}`;
-          }
+          body = await response.json();
         } catch (e) {
           /* ignore if response is not json */
         }
-        throw new Error(errorMsg);
+        const apiError = new ApiError(response.status, body, String(response.status));
+        const msg = errorMessage(apiError);
+        throw new Error(body ? msg : 'Failed to create test plan');
       }
       onPlanCreated();
       onClose();

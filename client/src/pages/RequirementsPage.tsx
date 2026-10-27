@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { errorMessage } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -215,7 +216,7 @@ const RequirementsPage: React.FC = () => {
   const rows = useMemo(() => data?.requirements ?? [], [data]);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['requirements'] });
   const onError = (title: string) => (err: Error) =>
-    toast({ variant: 'destructive', title, description: err.message });
+    toast({ variant: 'destructive', title, description: errorMessage(err) });
 
   const save = useMutation({
     mutationFn: (payload: RequirementPayload) =>

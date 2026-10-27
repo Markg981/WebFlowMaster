@@ -1,4 +1,5 @@
 import { RecordedActionSchema, type RecordedAction } from '@shared/recording';
+import { flattenZodError } from '../../http/zod-error';
 import { Browser, BrowserContext, Page } from 'playwright';
 import { v4 as uuidv4 } from 'uuid';
 import { gotoWithinPolicy } from '../../platform/egress-policy';
@@ -67,7 +68,7 @@ export class RecordingService {
       resolvedLogger.warn({
         message: 'PS:pushAction - Discarded malformed action from page',
         sessionId,
-        issues: parsed.error.flatten(),
+        issues: flattenZodError(parsed.error),
       });
       return;
     }

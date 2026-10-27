@@ -470,13 +470,37 @@ describe('CreateTestPlanWizard', () => {
       next();
       fireEvent.click(screen.getByRole('button', { name: /Create Plan/i }));
 
-      expect(
-        await screen.findByText('A plan of that name exists: ["name taken"]'),
-      ).toBeInTheDocument();
+      expect(await screen.findByText('name taken')).toBeInTheDocument();
       expect(screen.getByText('Step 3: Test Plan Settings')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Create Plan/i })).toBeEnabled();
       expect(onPlanCreated).not.toHaveBeenCalled();
       expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('shows the field error of a 400 validation response', async () => {
+      fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+        Promise.resolve(
+          init?.method === 'POST'
+            ? {
+                ok: false,
+                status: 400,
+                json: async () => ({ formErrors: [], fieldErrors: { name: ['Required'] } }),
+              }
+            : {
+                ok: true,
+                json: async () =>
+                  String(url).startsWith('/api/selectable-tests') ? selectableTests : {},
+              },
+        ),
+      );
+      renderWizard(vi.fn(), vi.fn());
+      nameThePlan();
+      next();
+      await addLinuxChrome();
+      next();
+      fireEvent.click(screen.getByRole('button', { name: /Create Plan/i }));
+
+      expect(await screen.findByText('name: Required')).toBeInTheDocument();
     });
 
     it('closes once the plan is created', async () => {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { errorMessage } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -93,7 +94,7 @@ const SuitesPage: React.FC = () => {
       toast({
         variant: 'destructive',
         title: t('suites.saveFailed', 'The suite was not saved'),
-        description: error.message,
+        description: errorMessage(error),
       }),
   });
 
@@ -109,7 +110,7 @@ const SuitesPage: React.FC = () => {
       toast({
         variant: 'destructive',
         title: t('suites.deleteFailed', 'The suite was not deleted'),
-        description: error.message,
+        description: errorMessage(error),
       }),
   });
 
