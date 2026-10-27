@@ -9588,7 +9588,7 @@
         "Impostare db.url sul database pubblico ed eseguire di nuovo."
       ],
       "expected": "Ai passi 1-3 lo step fallisce con «Blocked by the egress policy: …» senza alcuna connessione al database (nessun errore ECONNREFUSED/timeout/autenticazione che riveli lo stato della rete interna). Al passo 4 la query riesce."
-    },
+    },
     {
       "id": "OPS-49",
       "area": "OPS",
