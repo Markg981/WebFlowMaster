@@ -1,4 +1,5 @@
 import { type Response } from 'express';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { z } from 'zod';
 import { requireRole } from '../middleware/require-role';
@@ -48,7 +49,9 @@ const quarantineSchema = z.object({
 router.post('/api/quarantine', requireRole('editor'), async (req, res) => {
   const parsed = quarantineSchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid request', details: flattenZodError(parsed.error) });
   try {
     const row = await withTenantTransaction((tx) =>
       quarantineTest(tx, {

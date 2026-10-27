@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { and, asc, eq, isNull } from 'drizzle-orm';
@@ -62,7 +63,7 @@ const createSchema = z.object({
 router.post('/api/agents', requireRole('owner'), async (req, res) => {
   const parsed = createSchema.safeParse(req.body ?? {});
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid agent', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid agent', details: flattenZodError(parsed.error) });
   const { token, prefix, hash } = generateAgentToken();
   const row = await withTenantTransaction(async (tx) => {
     const [created] = await tx

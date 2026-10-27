@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { environments, secrets, AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { and, asc, eq } from 'drizzle-orm';
@@ -87,7 +88,9 @@ router.post('/api/environments', requireRole('editor'), async (req, res) => {
 
   const parsed = environmentNameSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid environment', details: parsed.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid environment', details: flattenZodError(parsed.error) });
   }
 
   try {
@@ -185,7 +188,9 @@ router.post('/api/environments/:id/secrets', requireRole('editor'), async (req, 
 
   const parsed = secretSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid secret', details: parsed.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid secret', details: flattenZodError(parsed.error) });
   }
 
   try {

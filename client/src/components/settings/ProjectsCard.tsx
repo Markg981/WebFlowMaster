@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { errorMessage } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ListTree, Loader2, Lock, PlusCircle, Trash2, Users } from 'lucide-react';
@@ -84,7 +85,7 @@ export default function ProjectsCard() {
     onError: (error) => {
       toast({
         title: t('settingsPage.toasts.projectCreateFailed.title', 'Error Creating Project'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
     },
@@ -105,7 +106,7 @@ export default function ProjectsCard() {
     onError: (error) => {
       toast({
         title: t('settingsPage.toasts.projectDeleteFailed.title', 'Error Deleting Project'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
     },

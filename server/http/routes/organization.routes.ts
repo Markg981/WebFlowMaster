@@ -1,4 +1,5 @@
 import { type Request, type Response } from 'express';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import {
   isEmailAddress,
@@ -163,7 +164,9 @@ router.get(
   async (req: Request, res: Response) => {
     const parsed = auditQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid query', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid query', details: flattenZodError(parsed.error) });
     }
     const query = parsed.data;
 
@@ -373,7 +376,9 @@ router.post(
       })
       .safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid payload', details: flattenZodError(parsed.error) });
     }
 
     // Privileged and outside the tenant transaction: this asks a question about the global
@@ -510,7 +515,9 @@ router.post(
       .object({ userId: z.number().int().positive(), role: RoleSchema })
       .safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid payload', details: flattenZodError(parsed.error) });
     }
 
     const outcome = await withTenantTransaction(async (tx) => {
@@ -634,7 +641,9 @@ router.patch(
 
     const parsed = z.object({ role: RoleSchema }).safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid role', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid role', details: flattenZodError(parsed.error) });
     }
 
     const outcome = await withTenantTransaction(async (tx) => {
@@ -684,7 +693,9 @@ router.delete(
       .object({ transferTo: z.number().int().positive().optional() })
       .safeParse(req.body ?? {});
     if (!body.success) {
-      return res.status(400).json({ error: 'Invalid payload', details: body.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid payload', details: flattenZodError(body.error) });
     }
 
     // Whether the person belongs anywhere else decides what "remove" means: taking this

@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
 import { AUDIT_ACTIONS, testPlans, testPlanWebhooks } from '@shared/schema';
@@ -58,7 +59,7 @@ router.post('/api/test-plans/:planId/webhooks', requireRole('editor'), async (re
 
   const parsed = createWebhookSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
 
   const { token, tokenHash, tokenPrefix } = generateWebhookToken();

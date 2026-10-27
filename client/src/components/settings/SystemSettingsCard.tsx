@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, Loader2, Save } from 'lucide-react';
@@ -120,7 +121,7 @@ export default function SystemSettingsCard({
     onError: (error) => {
       toast({
         title: t('settings.system.toast.logRetentionErrorTitle', 'Error Saving Log Retention'),
-        description: error.message || t('settings.toast.errorDescription'),
+        description: errorMessage(error) || t('settings.toast.errorDescription'),
         variant: 'destructive',
       });
     },
@@ -143,7 +144,7 @@ export default function SystemSettingsCard({
     onError: (error) => {
       toast({
         title: t('settings.system.toast.logLevelErrorTitle', 'Error Saving Log Level'),
-        description: error.message || t('settings.toast.errorDescription'),
+        description: errorMessage(error) || t('settings.toast.errorDescription'),
         variant: 'destructive',
       });
     },
