@@ -8573,6 +8573,19 @@
       "expected": "Passo 1: /healthz 200 {\"status\":\"ok\"}; /readyz 200 con database, redis e sessions ok. Passo 2: /healthz resta 200; /readyz 503 con database failed e nessun dettaglio dell'errore (host, porta, credenziali); api diventa unhealthy entro i retry dell'HEALTHCHECK. Passo 3: /readyz torna 200 e api healthy."
     },
     {
+      "id": "OPS-54",
+      "area": "OPS",
+      "priority": "P2",
+      "actor": "Operatore del Collaudo",
+      "title": "Prontezza del processo web con lo scheduler non avviato",
+      "preconditions": "Stack di collaudo avviato con api healthy.",
+      "steps": [
+        "Fermare Redis (wfmc stop redis) e riavviare api (wfmc restart api); durante i retry eseguire curl -s https://wfm.collaudo.test/healthz e /readyz.",
+        "Riavviare Redis (wfmc start redis) e ripetere /readyz entro qualche decina di secondi."
+      ],
+      "expected": "Passo 1: /healthz 200 (il processo non viene ucciso); /readyz 503 con scheduler failed e nessun dettaglio dell'errore; il log riporta i tentativi e, a budget esaurito, un errore. Passo 2: se i retry sono ancora in corso /readyz torna 200 con scheduler ok; a budget esaurito resta 503 finché api non viene riavviata."
+    },
+    {
       "id": "OPS-39",
       "area": "OPS",
       "priority": "P3",
