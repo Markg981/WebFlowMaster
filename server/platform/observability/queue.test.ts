@@ -1,6 +1,6 @@
 import { afterAll, expect, it, vi } from 'vitest';
 import { SpanKind } from '@opentelemetry/api';
-import { InMemorySpanExporter } from '@opentelemetry/sdk-trace-base';
+import { InMemorySpanExporter } from '@opentelemetry/sdk-trace';
 import { captureTrace, startTracing, withSpan } from '../../../shared/telemetry';
 import { signTicket, verifyTicket } from '../../runtime/agents/agent-credentials';
 
