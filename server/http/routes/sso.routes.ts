@@ -60,9 +60,13 @@ function sessionOnly(req: Request, res: Response, next: NextFunction) {
 
 /** This installation as its users reach it. */
 export function publicBase(req: Request, env: NodeJS.ProcessEnv = process.env): string {
-  return (
-    env.WEBFLOW_PUBLIC_URL?.trim().replace(/\/+$/, '') || `${req.protocol}://${req.get('host')}`
-  );
+  const configured = env.WEBFLOW_PUBLIC_URL?.trim().replace(/\/+$/, '');
+  if (configured) return configured;
+  // The Host header is attacker-controlled: links sent by email must never be built from it.
+  if (env.NODE_ENV === 'production') {
+    throw new Error('WEBFLOW_PUBLIC_URL must be set in production.');
+  }
+  return `${req.protocol}://${req.get('host')}`;
 }
 
 /** Where the provider sends the browser back: the address to register with it. */

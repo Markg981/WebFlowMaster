@@ -44,8 +44,21 @@ describe('the startup configuration check', () => {
       SESSION_SECRET: 'a'.repeat(64),
       ENCRYPTION_KEY: 'b'.repeat(64),
       AGENT_RELAY_SECRET: 'c'.repeat(64),
+      WEBFLOW_PUBLIC_URL: 'https://wfm.example.com',
     };
     expect(startupConfigErrors(env)).toEqual([]);
+  });
+
+  it.each([undefined, '', 'wfm.example.com', 'ftp://wfm.example.com'])(
+    'refuses production with WEBFLOW_PUBLIC_URL=%s',
+    (value) => {
+      const env = { ...valid, NODE_ENV: 'production', WEBFLOW_PUBLIC_URL: value };
+      expect(() => assertStartupConfig(env)).toThrow('WEBFLOW_PUBLIC_URL');
+    },
+  );
+
+  it('does not require WEBFLOW_PUBLIC_URL in development', () => {
+    expect(startupConfigErrors(valid)).toEqual([]);
   });
 
   it('reports every problem at once', () => {
