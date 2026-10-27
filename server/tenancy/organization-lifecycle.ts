@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
+import logger from '../platform/logger';
 import { relocateMembersBeforeErasure } from './organization-memberships';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
 import {
@@ -139,9 +140,17 @@ export async function exportOrganization(organizationId: number): Promise<Record
  */
 export async function eraseOrganization(
   organizationId: number,
-  options: { store?: ArtifactStore } = {},
+  options: {
+    store?: ArtifactStore;
+    /** Who asked for it; recorded in organization_erasures, which outlives the organization. */
+    actor?: { id?: number | null; username?: string | null };
+  } = {},
 ): Promise<{ deleted: Record<string, number>; files: { removed: number; failed: string[] } }> {
   const order = await deletionOrder();
+  const orgRow = await privilegedDb.execute(
+    sql`SELECT name FROM organizations WHERE id = ${organizationId}`,
+  );
+  const organizationName = (orgRow.rows[0] as { name?: string } | undefined)?.name ?? null;
 
   // Where its files are, read before the rows that name them are gone: each run's evidence
   // under results/<plan>/<run>/, and its visual baselines under visual-baselines/org_<id>/.
@@ -198,6 +207,28 @@ export async function eraseOrganization(
           files.removed += await store.deletePrefix(prefix);
         } catch {
           files.failed.push(prefix);
+        }
+      }
+      // Recorded outside the tenant tables (migration 0095): the audit log went with the
+      // organization, this row does not. Only when something was actually erased, so repeating
+      // the call on an erased organization stays a no-op. A failure to record is logged, never
+      // thrown: the erasure has committed and cannot be undone.
+      if (deleted.organizations > 0) {
+        try {
+          await privilegedDb.execute(sql`
+            INSERT INTO organization_erasures
+              (organization_id, organization_name, actor_user_id, actor_username,
+               deleted_counts, files_removed, files_failed)
+            VALUES (${organizationId}, ${organizationName}, ${options.actor?.id ?? null},
+              ${options.actor?.username ?? null}, ${JSON.stringify(deleted)}::jsonb,
+              ${files.removed}, ${JSON.stringify(files.failed)}::jsonb)
+          `);
+        } catch (error) {
+          logger.error({
+            message: 'Organization erased, but the erasure record could not be written',
+            organizationId,
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       }
       return { deleted, files };

@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import express, { type Request } from 'express';
-import { apiRateLimit, heavyRateLimit, sessionRateLimit, webhookRateLimit } from './rate-limits';
+import {
+  apiRateLimit,
+  heavyRateLimit,
+  sensitiveRateLimit,
+  sessionRateLimit,
+  webhookRateLimit,
+} from './rate-limits';
 
 /** An app where the x-test-key header stands in for a valid API key (see api-key-auth). */
 function apiApp(env: NodeJS.ProcessEnv) {
@@ -104,6 +110,35 @@ describe('heavyRateLimit', () => {
     const res = await request(defaults).post('/api/load-website').set('x-test-user', '1');
     expect(res.headers['ratelimit-policy']).toMatch(/^30;/);
     expect(() => heavyRateLimit({ HEAVY_RATE_LIMIT: 'many' })).toThrow(/whole numbers/);
+  });
+});
+
+describe('sensitiveRateLimit', () => {
+  function sensitiveApp(env: NodeJS.ProcessEnv) {
+    const app = express();
+    app.use((req, _res, next) => {
+      const id = req.header('x-test-user');
+      if (id) req.user = { id: Number(id) } as Express.User;
+      next();
+    });
+    app.post('/api/api-keys', sensitiveRateLimit(env), (_req, res) => res.json({ ok: true }));
+    return app;
+  }
+
+  it('stops a user past the limit and counts each user on its own', async () => {
+    const app = sensitiveApp({ SENSITIVE_RATE_LIMIT: '1' });
+    await request(app).post('/api/api-keys').set('x-test-user', '1').expect(200);
+    await request(app).post('/api/api-keys').set('x-test-user', '2').expect(200);
+    const res = await request(app).post('/api/api-keys').set('x-test-user', '1').expect(429);
+    expect(res.headers['retry-after']).toBeDefined();
+  });
+
+  it('is off at 0 and defaults to 30 a minute', async () => {
+    const app = sensitiveApp({ SENSITIVE_RATE_LIMIT: '0' });
+    for (let i = 0; i < 3; i++)
+      await request(app).post('/api/api-keys').set('x-test-user', '1').expect(200);
+    const res = await request(sensitiveApp({})).post('/api/api-keys').set('x-test-user', '1');
+    expect(res.headers['ratelimit-policy']).toMatch(/^30;/);
   });
 });
 

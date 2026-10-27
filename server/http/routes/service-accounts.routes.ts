@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { apiKeys, users, AUDIT_ACTIONS } from '@shared/schema';
@@ -6,6 +7,7 @@ import { storage } from '../../identity/storage';
 import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import logger from '../../platform/logger';
 
@@ -53,11 +55,14 @@ router.get('/api/service-accounts', requireRole('owner'), async (_req, res) => {
 router.post(
   '/api/service-accounts',
   requireRole('owner'),
+  sharedSensitiveRateLimit(),
   sessionOnly('Creating service accounts'),
   async (req, res) => {
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
     }
 
     const account = await storage.createServiceAccount({
@@ -92,6 +97,7 @@ router.post(
 router.delete(
   '/api/service-accounts/:id',
   requireRole('owner'),
+  sharedSensitiveRateLimit(),
   sessionOnly('Deleting service accounts'),
   async (req, res) => {
     const organizationId = getTenantOrgId()!;

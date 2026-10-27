@@ -1,4 +1,5 @@
 import { type Request, type Response, type NextFunction } from 'express';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import rateLimit from 'express-rate-limit';
 import { sharedStore } from '../../platform/middleware/rate-limit-store';
@@ -47,7 +48,9 @@ router.post(
   (req: Request, res: Response) => {
     const parsed = ClientLogBatchSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid log batch', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid log batch', details: flattenZodError(parsed.error) });
     }
 
     const { sessionId, entries, dropped } = parsed.data;
@@ -95,7 +98,7 @@ router.post(
     if (!parsed.success) {
       return res
         .status(400)
-        .json({ error: 'Invalid incident report', details: parsed.error.flatten() });
+        .json({ error: 'Invalid incident report', details: flattenZodError(parsed.error) });
     }
 
     const report = parsed.data;

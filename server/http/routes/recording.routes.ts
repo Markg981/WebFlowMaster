@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { asyncHandler } from '../../platform/middleware/async-handler';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
@@ -19,7 +20,7 @@ const sessionSchema = z.object({ sessionId: z.string().min(1, 'Session ID is req
 const loginStateSchema = sessionSchema.extend({ environmentId: z.number().int().positive() });
 
 function invalidRequest(error: z.ZodError) {
-  return { error: 'Invalid request data', details: error.flatten() };
+  return { error: 'Invalid request data', details: flattenZodError(error) };
 }
 
 /**

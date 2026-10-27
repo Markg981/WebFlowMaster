@@ -123,6 +123,8 @@ database or acceptance volumes to obtain a passing test.
 | `npm run docs:build`                                                                       | VitePress generation and link validation                          |
 | `npm run test:e2e`                                                                         | Dedicated real-installation interface smoke journeys              |
 
+Memory: every server test file starts its own PGlite (Postgres on WASM), about 0.5 GB resident per worker. By default the server suite uses `min(CPU cores, total RAM / 1 GB)` workers (at least 1; on CI, Vitest's own default). If you see `WebAssembly.Memory(): could not allocate memory`, lower it with `VITEST_MAX_WORKERS=2 npm test` or `npx vitest run --maxWorkers=2`; the flag takes precedence over the variable.
+
 For E2E use the dedicated database/Redis ports and build prerequisites in the developer guide.
 For acceptance use [test lab](../admin/test-lab), with relevant providers/agents/devices provisioned.
 A build proves packaging; an HTTP fake proves the contract exercised by the test; only a live

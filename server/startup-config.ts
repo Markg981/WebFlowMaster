@@ -1,5 +1,6 @@
 import { resolvePort } from './platform/config';
 import { registrationMode } from './identity/registration';
+import { trustProxySetting } from './platform/trust-proxy';
 import { cspMode } from './platform/security-headers';
 
 /**
@@ -16,14 +17,50 @@ export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): strin
   const errors: string[] = [];
   if (!env.SESSION_SECRET) errors.push('SESSION_SECRET must be set for session security.');
   if (env.NODE_ENV === 'production') errors.push(...publishedSecretErrors(env));
-  for (const check of [() => registrationMode(env), () => cspMode(env), () => resolvePort(env)]) {
+  if (env.NODE_ENV === 'production') errors.push(...publicUrlErrors(env));
+  for (const check of [() => registrationMode(env), () => cspMode(env), () => resolvePort(env), () => trustProxySetting(env)]) {
     try {
       check();
     } catch (error) {
       errors.push(error instanceof Error ? error.message : String(error));
     }
   }
+  if (env.NODE_ENV === 'production' && sharedInstallation(env) && !egressExplicitlyDeny(env)) {
+    errors.push(
+      'EGRESS_PRIVATE_TARGETS must be "deny" while REGISTRATION=open (anyone can create an organization): "allow" lets their tests reach this server\'s private network. Set it to "deny" and list intranet hosts in EGRESS_ALLOW_HOSTS.',
+    );
+  }
   return errors;
+}
+
+/** Self-service organization creation is the codebase's signal for a shared (multi-organization) installation. */
+function sharedInstallation(env: NodeJS.ProcessEnv): boolean {
+  try {
+    return registrationMode(env) === 'open';
+  } catch {
+    return false; // reported by its own check
+  }
+}
+
+function egressExplicitlyDeny(env: NodeJS.ProcessEnv): boolean {
+  return env.EGRESS_PRIVATE_TARGETS?.trim().toLowerCase() === 'deny';
+}
+
+/** Non-fatal findings, logged at startup. */
+export function startupConfigWarnings(env: NodeJS.ProcessEnv = process.env): string[] {
+  const warnings: string[] = [];
+  if (env.NODE_ENV !== 'production') return warnings;
+  if (!env.EGRESS_PRIVATE_TARGETS?.trim()) {
+    warnings.push(
+      'EGRESS_PRIVATE_TARGETS is not set: it defaults to "allow", so tests can reach loopback and private addresses of this server\'s network. Set it explicitly ("deny" unless tests must reach an intranet).',
+    );
+  }
+  if (!env.TRUST_PROXY?.trim()) {
+    warnings.push(
+      'TRUST_PROXY is not set: assuming exactly 1 reverse proxy in front. Set it to the real proxy chain (hop count, false when none, or proxy IPs/CIDRs), or client IPs and per-IP rate limits can be forged via X-Forwarded-For.',
+    );
+  }
+  return warnings;
 }
 
 /**
@@ -78,4 +115,18 @@ export async function connectSessionStore(
       `Session Redis is not reachable (${reason}); using an in-memory session store: logins will not survive a restart.`,
     );
   }
+}
+
+/** Emailed links must name this installation, never the Host header of whoever asked. */
+function publicUrlErrors(env: NodeJS.ProcessEnv): string[] {
+  const value = env.WEBFLOW_PUBLIC_URL?.trim();
+  const hint = 'WEBFLOW_PUBLIC_URL must be set in production to the absolute http(s) address users reach WebFlowMaster at.';
+  if (!value) return [hint];
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'http:' || url.protocol === 'https:') return [];
+  } catch {
+    // fall through
+  }
+  return [`${hint} Got "${value}".`];
 }

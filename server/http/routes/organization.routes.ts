@@ -1,5 +1,5 @@
 import { type Request, type Response } from 'express';
-import { sessionOnly } from '../middleware/session-only';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import {
   isEmailAddress,
@@ -22,6 +22,8 @@ import {
 } from '@shared/schema';
 import { storage } from '../../identity/storage';
 import { requireRole } from '../middleware/require-role';
+import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { exportOrganization, eraseOrganization } from '../../tenancy/organization-lifecycle';
@@ -164,7 +166,9 @@ router.get(
   async (req: Request, res: Response) => {
     const parsed = auditQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid query', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid query', details: flattenZodError(parsed.error) });
     }
     const query = parsed.data;
 
@@ -257,57 +261,54 @@ router.get(
  * Recorded in the application log rather than the audit trail: an audit entry about erasing an
  * organization would be erased along with it. The log outlives the tenant.
  */
-router.delete(
-  '/api/organization',
-  requireRole('owner'),
+router.delete('/api/organization', requireRole('owner'), async (req: Request, res: Response) => {
+  const organizationId = getTenantOrgId()!;
+  const parsed = z.object({ confirmName: z.string() }).safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Provide confirmName, the organization's name." });
+  }
 
-  async (req: Request, res: Response) => {
-    const organizationId = getTenantOrgId()!;
-    const parsed = z.object({ confirmName: z.string() }).safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: "Provide confirmName, the organization's name." });
-    }
+  const [organization] = await withTenantTransaction((tx) =>
+    tx
+      .select({ name: organizations.name })
+      .from(organizations)
+      .where(eq(organizations.id, organizationId)),
+  );
+  if (!organization) return res.status(404).json({ error: 'Organization not found' });
 
-    const [organization] = await withTenantTransaction((tx) =>
-      tx
-        .select({ name: organizations.name })
-        .from(organizations)
-        .where(eq(organizations.id, organizationId)),
-    );
-    if (!organization) return res.status(404).json({ error: 'Organization not found' });
+  if (parsed.data.confirmName !== organization.name) {
+    return res.status(400).json({ error: "confirmName does not match the organization's name." });
+  }
 
-    if (parsed.data.confirmName !== organization.name) {
-      return res.status(400).json({ error: "confirmName does not match the organization's name." });
-    }
+  logger.warn({
+    message: 'Organization erased',
+    organizationId,
+    organizationName: organization.name,
+    byUserId: req.user!.id,
+    byUsername: req.user!.username,
+  });
 
-    logger.warn({
-      message: 'Organization erased',
+  const { deleted, files } = await eraseOrganization(organizationId, {
+    actor: { id: req.user!.id, username: req.user!.username },
+  });
+  if (files.failed.length > 0) {
+    logger.error({
+      message: 'Organization erased, but some of its files could not be removed',
       organizationId,
-      organizationName: organization.name,
-      byUserId: req.user!.id,
-      byUsername: req.user!.username,
+      prefixes: files.failed,
     });
+  }
 
-    const { deleted, files } = await eraseOrganization(organizationId);
-    if (files.failed.length > 0) {
-      logger.error({
-        message: 'Organization erased, but some of its files could not be removed',
-        organizationId,
-        prefixes: files.failed,
-      });
-    }
-
-    // The caller's own account is among the rows just deleted, so their session now points at
-    // nothing. Ending it is tidier than letting the next request fail to deserialise a user — but
-    // the response must not depend on it: the erasure has already committed, and reporting it is
-    // the last thing anyone will ever learn about this organization. Guarded because req.logout
-    // only exists where passport is mounted.
-    if (typeof req.logout === 'function') {
-      req.logout(() => undefined);
-    }
-    res.json({ erased: true, deleted, files });
-  },
-);
+  // The caller's own account is among the rows just deleted, so their session now points at
+  // nothing. Ending it is tidier than letting the next request fail to deserialise a user — but
+  // the response must not depend on it: the erasure has already committed, and reporting it is
+  // the last thing anyone will ever learn about this organization. Guarded because req.logout
+  // only exists where passport is mounted.
+  if (typeof req.logout === 'function') {
+    req.logout(() => undefined);
+  }
+  res.json({ erased: true, deleted, files });
+});
 
 /**
  * How someone actually joins an organization they did not create.
@@ -366,6 +367,7 @@ router.get(
 router.post(
   '/api/organization/invitations',
   requireRole('owner'),
+  sharedSensitiveRateLimit(),
   sessionOnly('Inviting members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
@@ -378,7 +380,9 @@ router.post(
       })
       .safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid payload', details: flattenZodError(parsed.error) });
     }
 
     // Privileged and outside the tenant transaction: this asks a question about the global
@@ -479,6 +483,7 @@ router.post(
 router.delete(
   '/api/organization/invitations/:id',
   requireRole('owner'),
+  sharedSensitiveRateLimit(),
   sessionOnly('Revoking invitations'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
@@ -510,6 +515,7 @@ router.delete(
 router.post(
   '/api/organization/members',
   requireRole('owner'),
+  sharedSensitiveRateLimit(),
   sessionOnly('Adding members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
@@ -517,7 +523,9 @@ router.post(
       .object({ userId: z.number().int().positive(), role: RoleSchema })
       .safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid payload', details: flattenZodError(parsed.error) });
     }
 
     const outcome = await withTenantTransaction(async (tx) => {
@@ -634,6 +642,7 @@ router.post(
 router.patch(
   '/api/organization/members/:userId',
   requireRole('owner'),
+  sharedSensitiveRateLimit(),
   sessionOnly('Changing roles or removing members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
@@ -642,7 +651,9 @@ router.patch(
 
     const parsed = z.object({ role: RoleSchema }).safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid role', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid role', details: flattenZodError(parsed.error) });
     }
 
     const outcome = await withTenantTransaction(async (tx) => {
@@ -683,6 +694,7 @@ router.patch(
 router.delete(
   '/api/organization/members/:userId',
   requireRole('owner'),
+  sharedSensitiveRateLimit(),
   sessionOnly('Changing roles or removing members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
@@ -693,7 +705,9 @@ router.delete(
       .object({ transferTo: z.number().int().positive().optional() })
       .safeParse(req.body ?? {});
     if (!body.success) {
-      return res.status(400).json({ error: 'Invalid payload', details: body.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid payload', details: flattenZodError(body.error) });
     }
 
     // Whether the person belongs anywhere else decides what "remove" means: taking this

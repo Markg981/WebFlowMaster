@@ -224,14 +224,21 @@ that it answers a request this installation sent, which it can do only once — 
 
 - an identity it has seen before signs in to the same account, even if the address changed;
 - the first time, an existing account of the organization whose username is that address is
-  linked to it; this is how members who already had a password move over;
+  linked to it; this is how members who already had a password move over. An organization
+  owner, or an account with a second factor on, is never linked this way: the sign-in is refused
+  (`sso.link_refused` in the audit log) and the person signs in with their password first;
 - otherwise an account is **created**, with the address as its username and the role you
   chose — or the role its groups map to, below. Without a group mapped to owner, owners are
   never created this way: make someone an owner in **Settings → Members**.
 
-With OpenID Connect the address comes from the `email` claim or, when that is missing, from a
-`preferred_username` shaped like an address, which is what Entra ID sends; an address the provider
-marks as unverified is refused. With SAML it comes from the attributes listed above or an
+With OpenID Connect the address comes from the `email` claim, and the token must carry
+`email_verified: true`. Entra ID sends neither `email_verified` nor always `email`, so for it the
+provider setting `trustUnverifiedEmail` (API field of `PUT /api/organization/sso`, default
+`false`) accepts an absent `email_verified` and falls back to an address-shaped
+`preferred_username`; an address marked `false` is always refused. Providers saved with a
+Microsoft issuer before this setting existed have it switched on by the migration; turn it on
+only for providers whose addresses you cannot otherwise rely on being yours, with domain
+verification kept on. With SAML it comes from the attributes listed above or an
 address-shaped NameID. Either way an address outside your domains is refused.
 
 **Roles from the provider's groups.** Under **Roles from the provider's groups**, map the groups
@@ -265,11 +272,11 @@ what it found when the record is not there yet (DNS changes can take a while to 
 server). The proof is kept when the settings are saved again, and lost only when the domain is
 removed from the list.
 
-Where the installation sets `SSO_REQUIRE_DOMAIN_VERIFICATION=true` — every shared or multi-tenant
-installation should — a domain routes no sign-in until it is proven, and an unproven claim does not
+By default (`SSO_REQUIRE_DOMAIN_VERIFICATION` unset or `true`) a domain routes no sign-in until it is proven, and an unproven claim does not
 hold it: another organization that adds the domain takes it over, and whoever proves it first
-keeps it. Without the variable domains work as soon as they are saved and proving them is
-optional, which suits an installation with one organization.
+keeps it. `SSO_REQUIRE_DOMAIN_VERIFICATION=false` is an explicit opt-out under which domains work
+as soon as they are saved; it is unsafe on an installation shared by several organizations and
+suits only one with a single organization. Usernames are unique regardless of case.
 
 **Provisioning with SCIM.** Single sign-on learns about people when they sign in. With SCIM
 2.0 the provider tells WebFlowMaster as soon as something changes there: it creates accounts,

@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -59,7 +60,7 @@ router.post('/api/step-groups', requireRole('editor'), async (req, res) => {
 
   const parsed = stepGroupBodySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
   if (callsAnotherGroup(parsed.data.sequence)) {
     return res.status(400).json({ error: 'A step group cannot call another step group.' });
@@ -101,7 +102,7 @@ router.put('/api/step-groups/:id', requireRole('editor'), async (req, res) => {
 
   const parsed = updateStepGroupBodySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
   if (parsed.data.sequence && callsAnotherGroup(parsed.data.sequence)) {
     return res.status(400).json({ error: 'A step group cannot call another step group.' });

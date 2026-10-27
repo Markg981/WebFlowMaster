@@ -158,6 +158,8 @@
         "workerShutdownGraceMs": { "type": "integer", "minimum": 1000 },
         "csrfTrustedOrigins": { "type": "string" },
         "registration": { "enum": ["invitation", "open"] },
+        "trustProxy": { "type": "string" },
+        "egressPrivateTargets": { "enum": ["allow", "deny"] },
         "mailpitUrl": { "type": "string" },
         "extraEnv": { "$ref": "#/definitions/stringMap" }
       }

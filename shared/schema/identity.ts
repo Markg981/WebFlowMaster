@@ -409,6 +409,12 @@ export const organizationSso = pgTable(
     /** With mappings, refuse a person who is in none of the mapped groups. */
     requireGroup: boolean('require_group').notNull().default(false),
     /**
+     * OpenID Connect only (migration 0096, audit A-05). False: an address is believed only when the token says
+     * email_verified === true, and only from the `email` claim. True: an absent email_verified is accepted and
+     * an address-shaped preferred_username stands in for the email (Entra ID's behaviour).
+     */
+    trustUnverifiedEmail: boolean('trust_unverified_email').notNull().default(false),
+    /**
      * The bearer token the provider's SCIM client presents (server/identity/scim.ts, migration 0064): its
      * SHA-256, like an API key's, and enough of it to recognise in a list. Null: no provisioning.
      */
@@ -702,6 +708,8 @@ export const AUDIT_ACTIONS = {
   // unknown one belongs to no organization, and a trail of it would be a list of guesses.
   LOGIN_SUCCEEDED: 'auth.login',
   LOGIN_FAILED: 'auth.login_failed',
+  // An account stopped answering for a while: too many wrong passwords or second-factor codes.
+  ACCOUNT_LOCKED: 'auth.account_locked',
   LOGOUT: 'auth.logout',
   // What the organization's tests are, and what runs them.
   TEST_CREATED: 'test.created',
@@ -784,6 +792,7 @@ export const AUDIT_ACTIONS = {
   // Single sign-on: the provider an owner set up or removed, and accounts it created. Never the secret.
   SSO_CONFIGURED: 'sso.configured',
   SSO_REMOVED: 'sso.removed',
+  SSO_LINK_REFUSED: 'sso.link_refused',
   SSO_DOMAIN_VERIFIED: 'sso.domain_verified',
   MEMBER_PROVISIONED: 'member.provisioned',
   // Provisioning with SCIM: the token the provider holds, and what it does to accounts and groups.

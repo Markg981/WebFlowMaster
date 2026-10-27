@@ -16,6 +16,8 @@ data:
   WORKER_CONCURRENCY: {{ .Values.config.workerConcurrency | quote }}
   WORKER_SHUTDOWN_GRACE_MS: {{ .Values.config.workerShutdownGraceMs | quote }}
   REGISTRATION: {{ .Values.config.registration | quote }}
+  TRUST_PROXY: {{ .Values.config.trustProxy | quote }}
+  EGRESS_PRIVATE_TARGETS: {{ .Values.config.egressPrivateTargets | quote }}
   {{- if .Values.config.csrfTrustedOrigins }}
   CSRF_TRUSTED_ORIGINS: {{ .Values.config.csrfTrustedOrigins | quote }}
   {{- end }}

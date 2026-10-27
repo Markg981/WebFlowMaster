@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { and, eq } from 'drizzle-orm';
 import {
   DEFAULT_DASHBOARD_LAYOUT,
@@ -34,7 +35,7 @@ router.put('/api/dashboard/layout', async (req, res) => {
   if (!parsed.success)
     return res
       .status(400)
-      .json({ error: 'Invalid dashboard layout', details: parsed.error.flatten() });
+      .json({ error: 'Invalid dashboard layout', details: flattenZodError(parsed.error) });
   try {
     await withTenantTransaction(async (tx) => {
       await tx

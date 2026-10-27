@@ -1,7 +1,47 @@
 import { describe, it, expect, vi } from 'vitest';
-import { assertStartupConfig, connectSessionStore, startupConfigErrors } from './startup-config';
+import {
+  assertStartupConfig,
+  connectSessionStore,
+  startupConfigErrors,
+  startupConfigWarnings,
+} from './startup-config';
 
 const valid = { SESSION_SECRET: 's'.repeat(32) };
+
+describe('network defaults at startup (A-04)', () => {
+  const prod = { ...valid, NODE_ENV: 'production' };
+
+  it('rejects a malformed TRUST_PROXY', () => {
+    expect(startupConfigErrors({ ...valid, TRUST_PROXY: 'maybe' }).join()).toMatch(/TRUST_PROXY/);
+  });
+
+  it('warns in production when EGRESS_PRIVATE_TARGETS and TRUST_PROXY are unset', () => {
+    const text = startupConfigWarnings(prod).join('\n');
+    expect(text).toMatch(/EGRESS_PRIVATE_TARGETS is not set/);
+    expect(text).toMatch(/TRUST_PROXY is not set/);
+  });
+
+  it('does not warn when both are explicit, nor outside production', () => {
+    expect(
+      startupConfigWarnings({ ...prod, EGRESS_PRIVATE_TARGETS: 'allow', TRUST_PROXY: '1' }),
+    ).toEqual([]);
+    expect(startupConfigWarnings(valid)).toEqual([]);
+  });
+
+  it('fails production start with open registration unless egress is deny', () => {
+    const open = { ...prod, REGISTRATION: 'open' };
+    expect(startupConfigErrors(open).join()).toMatch(/EGRESS_PRIVATE_TARGETS must be "deny"/);
+    expect(startupConfigErrors({ ...open, EGRESS_PRIVATE_TARGETS: 'allow' }).join()).toMatch(
+      /must be "deny"/,
+    );
+    expect(startupConfigErrors({ ...open, EGRESS_PRIVATE_TARGETS: 'deny' })).toEqual([]);
+  });
+
+  it('keeps invitation-only and non-production installs unaffected', () => {
+    expect(startupConfigErrors(prod)).toEqual([]);
+    expect(startupConfigErrors({ ...valid, REGISTRATION: 'open' })).toEqual([]);
+  });
+});
 
 describe('the startup configuration check', () => {
   it('passes a configuration with a session secret and the rest left to defaults', () => {
@@ -44,8 +84,21 @@ describe('the startup configuration check', () => {
       SESSION_SECRET: 'a'.repeat(64),
       ENCRYPTION_KEY: 'b'.repeat(64),
       AGENT_RELAY_SECRET: 'c'.repeat(64),
+      WEBFLOW_PUBLIC_URL: 'https://wfm.example.com',
     };
     expect(startupConfigErrors(env)).toEqual([]);
+  });
+
+  it.each([undefined, '', 'wfm.example.com', 'ftp://wfm.example.com'])(
+    'refuses production with WEBFLOW_PUBLIC_URL=%s',
+    (value) => {
+      const env = { ...valid, NODE_ENV: 'production', WEBFLOW_PUBLIC_URL: value };
+      expect(() => assertStartupConfig(env)).toThrow('WEBFLOW_PUBLIC_URL');
+    },
+  );
+
+  it('does not require WEBFLOW_PUBLIC_URL in development', () => {
+    expect(startupConfigErrors(valid)).toEqual([]);
   });
 
   it('reports every problem at once', () => {

@@ -125,6 +125,8 @@ accettazione dei colleghi per ottenere un test positivo.
 | `npm run docs:build`                                                                       | Generazione VitePress e validazione link                                |
 | `npm run test:e2e`                                                                         | Smoke dell'interfaccia sull'installazione reale dedicata                |
 
+Memoria: ogni file di test server avvia un proprio PGlite (Postgres su WASM), circa 0,5 GB residenti per worker. Di default la suite server usa `min(core CPU, RAM totale / 1 GB)` worker (almeno 1; su CI il default di Vitest). Se compare `WebAssembly.Memory(): could not allocate memory`, abbassalo con `VITEST_MAX_WORKERS=2 npm test` oppure `npx vitest run --maxWorkers=2`; il flag ha la precedenza sulla variabile.
+
 Per E2E usare database/porte Redis dedicati e prerequisiti di build della guida sviluppatore.
 Per accettazione seguire il [laboratorio](../admin/test-lab), preparando provider/agenti/dispositivi.
 La build prova il packaging; un fake HTTP prova il contratto esercitato dal test; solo il percorso

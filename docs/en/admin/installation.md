@@ -194,9 +194,13 @@ otherwise).
 - **WebSockets.** Forward the `Upgrade` and `Connection` headers. Two features depend on them:
   live logs on `/ws` and the local-agent relay on `/api/agent/v1/`. Allow long-lived connections
   (an idle timeout of at least a few minutes) on those paths.
-- **Forwarded headers.** The server trusts one proxy hop (`X-Forwarded-For`,
-  `X-Forwarded-Proto`), which is what audit IP addresses and rate limits use. Put exactly one
-  proxy in front of it, or the recorded addresses are the proxy's.
+- **Forwarded headers.** `TRUST_PROXY` says how many proxy hops the server believes
+  (`X-Forwarded-For`, `X-Forwarded-Proto`); audit IP addresses and the per-address rate limits
+  (sign-in, SCIM, API) use the result. The default is `1`. It must match the real chain: `1` or
+  `2` for that many proxies, `false` when the server is reached directly (otherwise anyone can
+  send a rotating `X-Forwarded-For` and sidestep every limit), or a list of proxy IPs/CIDRs
+  (`10.0.0.0/8,loopback`). Too low and every client looks like the proxy; too high and clients
+  can forge their address. If unset, production logs a warning at startup.
 - **Origin.** State-changing requests must come from the same origin as the page. If the public
   address differs from the `Host` the server sees, list it in `CSRF_TRUSTED_ORIGINS`.
 - **Cookies.** With `NODE_ENV=production` the session cookie is `Secure` and is only sent over

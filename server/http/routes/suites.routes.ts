@@ -1,4 +1,5 @@
 import { type Response } from 'express';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { z } from 'zod';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
@@ -173,7 +174,7 @@ router.get('/api/suites/:id', requireRole('viewer'), async (req, res) => {
 router.post('/api/suites', requireRole('editor'), async (req, res) => {
   const parsed = suiteSchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid suite', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid suite', details: flattenZodError(parsed.error) });
   const organizationId = getTenantOrgId()!;
   const input = parsed.data;
   try {
@@ -214,7 +215,7 @@ router.put('/api/suites/:id', requireRole('editor'), async (req, res) => {
   if (!Number.isInteger(suiteId) || !parsed.success) {
     return res.status(400).json({
       error: 'Invalid suite',
-      details: parsed.success ? undefined : parsed.error.flatten(),
+      details: parsed.success ? undefined : flattenZodError(parsed.error),
     });
   }
   const organizationId = getTenantOrgId()!;

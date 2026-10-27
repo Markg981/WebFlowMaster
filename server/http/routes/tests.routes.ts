@@ -1,4 +1,5 @@
 import { quotaErrorBody } from '../../tenancy/tenant-quotas';
+import { flattenZodError } from '../zod-error';
 import { mobileTests, mobileStepGroups } from '@shared/schema';
 import { importMobileCatalog, type MobileImportOutcome } from '../../mobile/mobile-bundle';
 import { type Response } from 'express';
@@ -107,7 +108,7 @@ router.post('/api/tests', requireRole('editor'), async (req, res) => {
   if (!parseResult.success) {
     return res
       .status(400)
-      .json({ error: 'Invalid test data', details: parseResult.error.flatten() });
+      .json({ error: 'Invalid test data', details: flattenZodError(parseResult.error) });
   }
   const manualProblem = manualSequenceProblem(parseResult.data.sequence);
   if (manualProblem)
@@ -194,7 +195,7 @@ router.put('/api/tests/:id', requireRole('editor'), async (req, res) => {
   if (!parseResult.success) {
     return res
       .status(400)
-      .json({ error: 'Invalid test data', details: parseResult.error.flatten() });
+      .json({ error: 'Invalid test data', details: flattenZodError(parseResult.error) });
   }
   const manualProblem = manualSequenceProblem(parseResult.data.sequence);
   if (manualProblem)
@@ -265,7 +266,7 @@ router.put('/api/tests/:id/steps/:stepId/selector', requireRole('editor'), async
   if (!parsed.success)
     return res
       .status(400)
-      .json({ error: 'A selector is required.', details: parsed.error.flatten() });
+      .json({ error: 'A selector is required.', details: flattenZodError(parsed.error) });
 
   try {
     const outcome = await withTenantTransaction(async (tx) => {
@@ -457,7 +458,9 @@ const importSchema = z.object({
 router.post('/api/api-tests/import', requireRole('editor'), async (req, res) => {
   const parsed = importSchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid import', details: parsed.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid import', details: flattenZodError(parsed.error) });
   let result;
   try {
     result = importApiDescription(parsed.data.content, {
@@ -514,7 +517,9 @@ router.post('/api/api-tests/import', requireRole('editor'), async (req, res) => 
       invalid.push({
         index: test.index,
         name: test.name,
-        reason: Object.values(candidate.error.flatten().fieldErrors).flat().join('; ') || 'invalid',
+        reason:
+          Object.values(flattenZodError(candidate.error).fieldErrors).flat().join('; ') ||
+          'invalid',
       });
       continue;
     }
@@ -658,12 +663,12 @@ router.post('/api/api-tests', requireRole('editor'), async (req, res) => {
   if (!parseResult.success) {
     logger.warn({
       message: 'POST /api/api-tests - Invalid payload',
-      errors: parseResult.error.flatten(),
+      errors: flattenZodError(parseResult.error),
       userId: req.user?.id,
     });
     return res
       .status(400)
-      .json({ error: 'Invalid test data', details: parseResult.error.flatten() });
+      .json({ error: 'Invalid test data', details: flattenZodError(parseResult.error) });
   }
 
   try {
@@ -713,12 +718,12 @@ router.put('/api/api-tests/:id', requireRole('editor'), async (req, res) => {
   if (!parseResult.success) {
     logger.warn({
       message: `PUT /api/api-tests/${id} - Invalid payload`,
-      errors: parseResult.error.flatten(),
+      errors: flattenZodError(parseResult.error),
       userId: req.user?.id,
     });
     return res
       .status(400)
-      .json({ error: 'Invalid test data', details: parseResult.error.flatten() });
+      .json({ error: 'Invalid test data', details: flattenZodError(parseResult.error) });
   }
 
   try {
@@ -887,7 +892,9 @@ router.post('/api/tests/import-bundle', requireRole('editor'), async (req, res) 
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   const parsed = importBundleSchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid import', details: parsed.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid import', details: flattenZodError(parsed.error) });
   let bundle;
   try {
     bundle = parseBundle(parsed.data.content, parsed.data.format, parsed.data.bdd);
@@ -955,7 +962,7 @@ router.post('/api/tests/import-bundle', requireRole('editor'), async (req, res) 
             name,
             outcome: 'invalid',
             reason:
-              Object.entries(candidate.error.flatten().fieldErrors)
+              Object.entries(flattenZodError(candidate.error).fieldErrors)
                 .map(([k, v]) => `${k}: ${v?.join(', ')}`)
                 .join('; ') || 'invalid',
           });
@@ -1064,7 +1071,7 @@ router.post('/api/tests/import-bundle', requireRole('editor'), async (req, res) 
             name,
             outcome: 'invalid',
             reason:
-              Object.entries(candidate.error.flatten().fieldErrors)
+              Object.entries(flattenZodError(candidate.error).fieldErrors)
                 .map(([k, v]) => `${k}: ${v?.join(', ')}`)
                 .join('; ') || 'invalid',
           });

@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,6 +8,7 @@ import { API_SCOPE_NAMES, type ApiScope } from '@shared/api-scopes';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { requireRole, roleAllows } from '../middleware/require-role';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { generateApiKey } from '../../identity/api-keys';
 import logger from '../../platform/logger';
@@ -96,15 +98,17 @@ router.get('/api/api-keys', requireRole('editor'), async (req, res) => {
 router.post(
   '/api/api-keys',
   requireRole('editor'),
+  sharedSensitiveRateLimit(),
   sessionOnly('Creating API keys'),
   async (req, res) => {
     if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const parsed = createApiKeySchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
     }
-
     const maxDays = apiKeyMaxTtlDays();
     if (parsed.data.expiresInDays > maxDays) {
       return res.status(400).json({
@@ -197,6 +201,7 @@ router.post(
 router.delete(
   '/api/api-keys/:id',
   requireRole('editor'),
+  sharedSensitiveRateLimit(),
   sessionOnly('Revoking API keys'),
   async (req, res) => {
     if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
