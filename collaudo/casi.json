@@ -9575,6 +9575,21 @@
       "expected": "L'editor si carica senza errori in console, evidenzia la sintassi e mostra i tooltip. Il testo incollato resta testo: nessun alert, nessuna immagine. Dopo il ricaricamento il body è identico."
     },
     {
+      "id": "SEC-68",
+      "area": "SEC",
+      "title": "Proxy fidato e destinazioni private dichiarati esplicitamente all'avvio",
+      "priority": "P1",
+      "actor": "admin",
+      "preconditions": "Installazione in produzione raggiungibile direttamente, senza reverse proxy.",
+      "steps": [
+        "Avviare con NODE_ENV=production senza TRUST_PROXY né EGRESS_PRIVATE_TARGETS e leggere il log.",
+        "Impostare TRUST_PROXY=false e inviare più di AUTH_RATE_LIMIT tentativi di accesso a /api/login cambiando a ogni richiesta l'intestazione X-Forwarded-For.",
+        "Avviare con REGISTRATION=open ed EGRESS_PRIVATE_TARGETS non impostato, poi =allow, poi =deny.",
+        "Avviare con TRUST_PROXY=forse."
+      ],
+      "expected": "Il passo 1 avvia il server con due avvisi che citano le variabili. Al passo 2 il limite scatta con 429 nonostante l'intestazione cambi. Al passo 3 l'avvio fallisce senza variabile e con allow, riesce con deny. Al passo 4 l'avvio fallisce citando TRUST_PROXY."
+    },
+    {
       "id": "OPS-49",
       "area": "OPS",
       "title": "Versione in un formato di dipendenze sconosciuto rifiutata prima della coda (R1)",
