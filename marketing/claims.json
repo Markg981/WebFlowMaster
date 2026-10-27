@@ -346,7 +346,7 @@
       "evidence": [
         { "path": "server/tenancy/artifact-store.ts", "pattern": "S3Client" },
         { "path": "server/platform/observability/metrics.ts", "pattern": "prom-client" },
-        { "path": "package.json", "pattern": "@opentelemetry/sdk-trace-node" }
+        { "path": "package.json", "pattern": "@opentelemetry/sdk-trace" }
       ],
       "mentions": {
         "readme": ["PostgreSQL", "Valkey", "S3", "Prometheus", "OpenTelemetry"],
