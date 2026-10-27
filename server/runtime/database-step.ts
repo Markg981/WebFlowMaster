@@ -14,6 +14,15 @@
  * needed.
  */
 
+import net from 'node:net';
+import {
+  EgressDeniedError,
+  egressPolicy,
+  normalizeHostname,
+  resolveVetted,
+  type EgressPolicy,
+} from '../platform/egress-policy';
+
 export type DatabaseKind = 'postgres' | 'mysql' | 'sqlserver';
 
 export interface DatabaseResult {
@@ -29,7 +38,71 @@ export type DatabaseRunner = (
   url: string,
   sql: string,
   timeoutMs: number,
+  /** Where the egress policy allows the connection to go; see vetDatabaseTarget. */
+  target?: DatabaseTarget,
 ) => Promise<DatabaseResult>;
+
+/** The host of a database address after the egress policy accepted it. */
+export interface DatabaseTarget {
+  /** The name as written, kept for TLS server-name checks. */
+  host: string;
+  port?: number;
+  /** The verified address the driver must connect to, so a second DNS answer cannot redirect it. */
+  ip?: string;
+}
+
+const SOCKET_PARAMS = ['socketpath', 'socket', 'unix_socket', 'unixsocket'];
+const HOST_PARAMS = ['host', 'hostaddr'];
+
+/**
+ * The egress check for a database address, before any driver is created. Covers postgres://,
+ * mysql:// and sqlserver://host\instance, an overriding `?host=` / `?hostaddr=`, and unix sockets
+ * (`socketPath`, a path as host, or no host), which are private by nature and refused when
+ * EGRESS_PRIVATE_TARGETS is "deny". Throws EgressDeniedError, or an Error for an address that
+ * cannot be read (fail closed). The returned `ip` is what the driver connects to.
+ */
+export async function vetDatabaseTarget(
+  kind: DatabaseKind,
+  url: string,
+  policy: EgressPolicy = egressPolicy(),
+): Promise<DatabaseTarget> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url.trim().replace(/\\/g, '%5C'));
+  } catch {
+    throw new Error('The database address cannot be read.');
+  }
+  const decode = (text: string) => {
+    try {
+      return decodeURIComponent(text);
+    } catch {
+      throw new Error('The database address cannot be read.');
+    }
+  };
+  const params = new Map<string, string>();
+  for (const [key, value] of parsed.searchParams) params.set(key.toLowerCase(), value);
+  const unixSocket = () => {
+    if (policy.privateTargets === 'deny') throw new EgressDeniedError('a unix socket', 'private');
+  };
+  if (SOCKET_PARAMS.some((name) => params.get(name))) unixSocket();
+
+  let host = decode(parsed.hostname);
+  if (kind === 'sqlserver') host = host.split('\\')[0];
+  for (const name of HOST_PARAMS) {
+    const value = params.get(name);
+    if (value) {
+      if (value.includes(',')) throw new Error(`The database address has several hosts in ?${name}=.`);
+      host = value;
+    }
+  }
+  if (host === '' || host.startsWith('/')) {
+    unixSocket();
+    return { host };
+  }
+  const port = parsed.port ? Number(parsed.port) : undefined;
+  const answers = await resolveVetted(normalizeHostname(host), policy);
+  return { host, port, ip: answers[0]?.address };
+}
 
 export const DATABASE_TIMEOUT_MS = 30_000;
 /** Rows kept from a result. A step reads a value or a few rows, never a table. */
@@ -134,10 +207,24 @@ const runPostgres = async (
   url: string,
   sql: string,
   timeoutMs: number,
+  target?: DatabaseTarget,
 ): Promise<DatabaseResult> => {
   const { default: pg } = await import('pg');
+  const ip = target?.ip;
   const client = new pg.Client({
     connectionString: url,
+    ...(ip
+      ? {
+          // The socket goes to the verified address whatever the driver resolved from the URL.
+          stream: () => {
+            const socket = new net.Socket();
+            const connect = socket.connect.bind(socket) as (...a: unknown[]) => net.Socket;
+            socket.connect = ((port: number, _host: string, ...rest: unknown[]) =>
+              connect(port, ip, ...rest)) as typeof socket.connect;
+            return socket;
+          },
+        }
+      : {}),
     connectionTimeoutMillis: timeoutMs,
     statement_timeout: timeoutMs,
     query_timeout: timeoutMs,
@@ -158,10 +245,17 @@ const runPostgres = async (
   }
 };
 
-const runMysql = async (url: string, sql: string, timeoutMs: number): Promise<DatabaseResult> => {
+const runMysql = async (
+  url: string,
+  sql: string,
+  timeoutMs: number,
+  target?: DatabaseTarget,
+): Promise<DatabaseResult> => {
   const mysql = await import('mysql2/promise');
+  const ip = target?.ip;
   const connection = await mysql.createConnection({
     uri: url.replace(/^mariadb:/i, 'mysql:'),
+    ...(ip ? { stream: () => net.connect({ host: ip, port: target?.port ?? 3306 }) } : {}),
     connectTimeout: timeoutMs,
   });
   try {
@@ -185,7 +279,7 @@ const runMysql = async (url: string, sql: string, timeoutMs: number): Promise<Da
  * sqlserver://user:password@host:1433/database, the URL form of an ADO.NET connection string.
  * `?encrypt=false` for a server without TLS; `trustServerCertificate=true` for a self-signed one.
  */
-export function sqlServerConfig(url: string, timeoutMs: number) {
+export function sqlServerConfig(url: string, timeoutMs: number, target?: DatabaseTarget) {
   const parsed = new URL(url);
   const flag = (name: string, fallback: boolean) => {
     const raw = parsed.searchParams.get(name);
@@ -193,7 +287,7 @@ export function sqlServerConfig(url: string, timeoutMs: number) {
   };
   const [server, instanceName] = decodeURIComponent(parsed.hostname).split('\\');
   return {
-    server,
+    server: target?.ip ?? server,
     port: parsed.port ? Number(parsed.port) : undefined,
     user: decodeURIComponent(parsed.username),
     password: decodeURIComponent(parsed.password),
@@ -204,6 +298,8 @@ export function sqlServerConfig(url: string, timeoutMs: number) {
       encrypt: flag('encrypt', true),
       trustServerCertificate: flag('trustServerCertificate', false),
       ...(instanceName ? { instanceName } : {}),
+      // Connected by verified address; the certificate is still checked against the name.
+      ...(target?.ip ? { serverName: server } : {}),
     },
   };
 }
@@ -212,9 +308,10 @@ const runSqlServer = async (
   url: string,
   sql: string,
   timeoutMs: number,
+  target?: DatabaseTarget,
 ): Promise<DatabaseResult> => {
   const { default: mssql } = await import('mssql');
-  const pool = new mssql.ConnectionPool(sqlServerConfig(url, timeoutMs));
+  const pool = new mssql.ConnectionPool(sqlServerConfig(url, timeoutMs, target));
   await pool.connect();
   try {
     const result = await pool.request().query(sql);
@@ -232,11 +329,11 @@ const runSqlServer = async (
   }
 };
 
-export const runDatabaseQuery: DatabaseRunner = (kind, url, sql, timeoutMs) => {
+export const runDatabaseQuery: DatabaseRunner = (kind, url, sql, timeoutMs, target) => {
   const run = kind === 'postgres' ? runPostgres : kind === 'mysql' ? runMysql : runSqlServer;
   // Every driver has its own timeouts, and each covers only part of the way; this covers it all.
   return Promise.race([
-    run(url, sql, timeoutMs),
+    run(url, sql, timeoutMs, target),
     new Promise<never>((_, reject) =>
       setTimeout(
         () => reject(new Error(`No answer within ${Math.round(timeoutMs / 1000)}s.`)),

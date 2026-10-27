@@ -73,6 +73,7 @@ import {
   resultVariables,
   runDatabaseQuery,
   type DatabaseRunner,
+  vetDatabaseTarget,
 } from '../runtime/database-step';
 import { findUnresolvedVariables } from '../runtime/variables';
 
@@ -1541,9 +1542,16 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     for (const name of ['db.rowCount', 'db.value', 'db.json', 'db.columns'])
       rt.forgetVariable?.(name);
 
+    // Same egress policy as HTTP, before any driver exists; the driver gets the verified address.
+    let target;
+    try {
+      target = await vetDatabaseTarget(kind, url);
+    } catch (error: any) {
+      return failed(String(error?.message ?? error));
+    }
     let result;
     try {
-      result = await rt.database(kind, url, sql.value, timeoutMs);
+      result = await rt.database(kind, url, sql.value, timeoutMs, target);
     } catch (error: any) {
       return failed(
         `The database answered: ${redactMessage(String(error?.message ?? error), url)}`,
