@@ -22,6 +22,7 @@ import { assertStartupConfig, connectSessionStore } from './startup-config';
 import { inspectSchemaState, describeSchemaState } from './platform/schema-state';
 import { redactWebhookPath } from './identity/webhook-tokens';
 import { healthRouter } from './health';
+import { schedulerReadiness, startSchedulerWithRetry } from './execution/scheduler-boot';
 import { installProcessErrorHandlers } from './platform/process-errors';
 import scimRouter, { exceptScim, SCIM_BASE_PATH } from './http/routes/scim.routes';
 
@@ -37,6 +38,8 @@ app.use(
     database: () => privilegedDb.execute(sql`SELECT 1`),
     redis: () => redisConnection.ping(),
     sessions: () => process.env.NODE_ENV === 'test' || sessionRedis.isReady,
+    // 503 until the scheduler started, also after the retries ran out (audit A-08).
+    scheduler: schedulerReadiness,
   }),
 );
 app.use(applicationMetrics.middleware);
@@ -203,13 +206,8 @@ app.use(express.urlencoded({ extended: false }));
 
   // Initialize the scheduler after routes are registered and DB is presumably ready
   // In a real app, ensure DB connection/migration is complete before this.
-  try {
-    await schedulerService.initializeScheduler();
-    logger.info('Scheduler initialized successfully after routes.');
-  } catch (schedulerError) {
-    logger.error('Failed to initialize scheduler:', schedulerError);
-    // Decide if server should proceed or exit based on severity
-  }
+  // In the background: the API serves meanwhile and /readyz says 503 (scheduler) until it is up.
+  void startSchedulerWithRetry(() => schedulerService.initializeScheduler(), { log: logger });
 
   // Ends runs whose worker has stopped answering — see server/execution/run-recovery.ts. Here rather than
   // in the worker: when every worker is gone, somebody still has to say their runs are over.
