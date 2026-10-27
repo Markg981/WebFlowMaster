@@ -52,6 +52,10 @@ sign-up, where each new account gets an organization of its own.
   database in an API answer. Passwords must be 8 to 128 characters.
 - Sign-in, registration and second-factor endpoints are limited to 20 attempts per client
   address every 15 minutes. Failed sign-ins for existing accounts are recorded in the audit log.
+- A second limit counts per account, whatever the address: 10 wrong passwords or 5 wrong second-factor
+  codes in 15 minutes lock that account until the window ends (`429` with `Retry-After`, the same for a
+  name that does not exist). The second-factor count is not cleared by signing in again, only by a
+  correct code. The first refusal writes `auth.account_locked` to the audit log.
 - **Two-factor authentication**: TOTP codes from an authenticator app (RFC 6238), each accepted
   once, plus one-time recovery codes stored as hashes. After the password, the session is not
   signed in until the code is given: five wrong codes or five minutes end the attempt. Owners can
