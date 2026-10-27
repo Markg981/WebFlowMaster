@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const PATCHED = [3, 4, 16];
+const PATCHED = [3, 4, 17];
 const dir = path.resolve(process.argv[2] ?? 'dist/public/assets');
 
 const isPatched = (version) => {
