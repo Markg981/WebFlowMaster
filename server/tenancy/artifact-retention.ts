@@ -89,7 +89,13 @@ export async function purgeExpiredArtifacts(
         ),
       );
       report.purgedRuns += 1;
-    } catch {
+    } catch (error) {
+      logger.warn({
+        message: 'Artifact retention: run deletion failed',
+        runId: run.id,
+        organizationId: run.organizationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       report.failed.push(run.id);
     }
   }

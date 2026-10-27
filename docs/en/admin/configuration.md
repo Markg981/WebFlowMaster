@@ -151,6 +151,8 @@ worker beats every `WORK_ITEM_HEARTBEAT_MS` and with every progress it writes.
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | both    | the AWS default chain            | Explicit credentials. Unset uses environment, profile or instance role.                                                                                                     |
 | `S3_PREFIX`                                | both    | none                             | Prepended to every key, so one bucket can hold several installations.                                                                                                       |
 | `ARTIFACT_RETENTION_DAYS`                  | web     | `90`                             | Days a finished run keeps its screenshots, videos and traces. Results and baselines are kept. `0` keeps everything.                                                         |
+| `AUDIT_LOG_RETENTION_DAYS`                 | web     | unset                            | Optional. Days an audit entry is kept before the sweep deletes it. Unset, empty or `0` keeps it for ever. See Data protection.                                              |
+| `EVIDENCE_RETENTION_DAYS`                  | web     | unset                            | Optional. Days the stored evidence references of a finished attempt are kept. Unset, empty or `0` keeps them for ever.                                                      |
 
 ## Local agents
 
