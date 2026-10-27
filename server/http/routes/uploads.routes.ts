@@ -1,4 +1,5 @@
 import { type RequestHandler } from 'express';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import multer from 'multer';
 import { excelService } from '../../integrations/excel-service';
@@ -106,7 +107,9 @@ router.post('/api/excel-mappings', requireRole('editor'), async (req, res) => {
 
   const parseResult = excelMappingSchema.safeParse(req.body);
   if (!parseResult.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parseResult.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid data', details: flattenZodError(parseResult.error) });
   }
   const { excelTestCaseId, testId } = parseResult.data;
 

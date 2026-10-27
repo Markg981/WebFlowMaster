@@ -409,7 +409,7 @@ export const organizationSso = pgTable(
     /** With mappings, refuse a person who is in none of the mapped groups. */
     requireGroup: boolean('require_group').notNull().default(false),
     /**
-     * OpenID Connect only (migration 0095, audit A-05). False: an address is believed only when the token says
+     * OpenID Connect only (migration 0096, audit A-05). False: an address is believed only when the token says
      * email_verified === true, and only from the `email` claim. True: an absent email_verified is accepted and
      * an address-shaped preferred_username stands in for the email (Entra ID's behaviour).
      */
@@ -708,6 +708,8 @@ export const AUDIT_ACTIONS = {
   // unknown one belongs to no organization, and a trail of it would be a list of guesses.
   LOGIN_SUCCEEDED: 'auth.login',
   LOGIN_FAILED: 'auth.login_failed',
+  // An account stopped answering for a while: too many wrong passwords or second-factor codes.
+  ACCOUNT_LOCKED: 'auth.account_locked',
   LOGOUT: 'auth.logout',
   // What the organization's tests are, and what runs them.
   TEST_CREATED: 'test.created',

@@ -1,4 +1,5 @@
 import { type Request, type Response, type NextFunction } from 'express';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import rateLimit from 'express-rate-limit';
 import { sharedStore } from '../../platform/middleware/rate-limit-store';
@@ -60,9 +61,13 @@ function sessionOnly(req: Request, res: Response, next: NextFunction) {
 
 /** This installation as its users reach it. */
 export function publicBase(req: Request, env: NodeJS.ProcessEnv = process.env): string {
-  return (
-    env.WEBFLOW_PUBLIC_URL?.trim().replace(/\/+$/, '') || `${req.protocol}://${req.get('host')}`
-  );
+  const configured = env.WEBFLOW_PUBLIC_URL?.trim().replace(/\/+$/, '');
+  if (configured) return configured;
+  // The Host header is attacker-controlled: links sent by email must never be built from it.
+  if (env.NODE_ENV === 'production') {
+    throw new Error('WEBFLOW_PUBLIC_URL must be set in production.');
+  }
+  return `${req.protocol}://${req.get('host')}`;
 }
 
 /** Where the provider sends the browser back: the address to register with it. */
@@ -132,7 +137,7 @@ router.put('/api/organization/sso', requireRole('owner'), sessionOnly, async (re
   if (!parsed.success)
     return res.status(400).json({
       error: 'Invalid single sign-on settings',
-      details: parsed.error.flatten().fieldErrors,
+      details: flattenZodError(parsed.error).fieldErrors,
     });
   try {
     const settings = await saveSsoSettings(

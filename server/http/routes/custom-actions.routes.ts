@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -80,7 +81,7 @@ router.get('/api/custom-actions', requireRole('viewer'), async (_req, res) => {
 router.post('/api/custom-actions', requireRole('editor'), async (req, res) => {
   const parsed = bodySchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   try {
     const created = await withTenantTransaction(async (tx) => {
       const [row] = await tx
@@ -124,7 +125,7 @@ router.post('/api/custom-actions', requireRole('editor'), async (req, res) => {
 router.put('/api/custom-actions/:id', requireRole('editor'), async (req, res) => {
   const parsed = partialUpdate(bodySchema).safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   if (Object.keys(parsed.data).length === 0)
     return res.status(400).json({ error: 'No update data provided.' });
   try {

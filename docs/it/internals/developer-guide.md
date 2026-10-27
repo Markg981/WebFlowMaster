@@ -265,6 +265,14 @@ e una PR per ogni nuova versione major. La PR settimanale si unisce quando la CI
 si legge il changelog e si prova l'area interessata prima dell'unione. Playwright, i binari
 `lightningcss-*` e le immagini Docker di base sono esclusi: si aggiornano a mano, come descritto sopra.
 
+Ogni GitHub Action in `.github/workflows/` e fissata a uno SHA di commit completo, con il tag in
+un commento finale (`uses: actions/checkout@<sha> # v7`); la voce `github-actions` di Dependabot
+aggiorna entrambi. I workflow dichiarano `permissions: contents: read` in testa, e un job chiede
+di piu solo dove serve. Il job CI `secret-scan` esegue gitleaks su tutta la storia con
+`.gitleaks.toml` (le chiavi di test pubbliche e `collaudo/collaudo.env` sono ammesse per percorso)
+e `.gitleaksignore` (i rilevamenti precedenti al job). Un nuovo rilevamento fa fallire la build:
+si rimuove e si ruota il segreto, non lo si aggiunge al file di esclusione.
+
 ### Output locale
 
 Gli strumenti scrivono ciò che producono in un'unica cartella ignorata, `.local/`, invece che in una

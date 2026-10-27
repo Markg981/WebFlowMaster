@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Key, Plus, Trash2, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, errorMessage } from '@/lib/queryClient';
 import { useEnvironments, type EnvironmentSummary } from '@/hooks/use-environments';
 
 export default function EnvironmentsCard() {
@@ -49,7 +49,7 @@ export default function EnvironmentsCard() {
       toast({ title: t('environments.toast.created') });
     },
     onError: (error: any) =>
-      toast({ title: t('common.error'), description: error.message, variant: 'destructive' }),
+      toast({ title: t('common.error'), description: errorMessage(error), variant: 'destructive' }),
   });
 
   const deleteEnvMutation = useMutation({
@@ -79,7 +79,7 @@ export default function EnvironmentsCard() {
       toast({ title: t('environments.toast.secretSaved') });
     },
     onError: (error: any) =>
-      toast({ title: t('common.error'), description: error.message, variant: 'destructive' }),
+      toast({ title: t('common.error'), description: errorMessage(error), variant: 'destructive' }),
   });
 
   const deleteSecretMutation = useMutation({

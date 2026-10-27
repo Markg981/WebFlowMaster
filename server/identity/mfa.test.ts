@@ -52,6 +52,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  (await import('./login-throttle')).resetLoginThrottleForTests();
   await privilegedDb.delete(auditLog);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(userMfa);
@@ -212,6 +213,44 @@ describe('signing in with a second factor', () => {
 
     // Even a good code does not revive it: the password comes first again.
     await agent.post('/api/login/mfa').send({ code: recoveryCodes[1] }).expect(401);
+  });
+
+  it('keeps counting wrong codes across new password steps (per account, not per login)', async () => {
+    const setup = await signedIn();
+    const { recoveryCodes } = await enrol(setup);
+
+    // Five wrong codes in total, spread over two sign-ins.
+    for (let login = 0; login < 2; login++) {
+      const agent = request.agent(app);
+      await agent.post('/api/login').send(alice).expect(200);
+      const tries = login === 0 ? 3 : 2;
+      for (let i = 0; i < tries; i++) {
+        await agent.post('/api/login/mfa').send({ code: '000000' }).expect(401);
+      }
+    }
+    // The sixth attempt is refused outright, even with a good recovery code.
+    const third = request.agent(app);
+    await third.post('/api/login').send(alice).expect(200);
+    const locked = await third.post('/api/login/mfa').send({ code: recoveryCodes[0] }).expect(429);
+    expect(Number(locked.headers['retry-after'])).toBeGreaterThan(0);
+    const [event] = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, 'auth.account_locked'));
+    expect(event.metadata).toMatchObject({ factor: 'mfa' });
+  });
+
+  it('a correct code clears the second-factor count', async () => {
+    const setup = await signedIn();
+    const { recoveryCodes } = await enrol(setup);
+    for (let round = 0; round < 3; round++) {
+      const agent = request.agent(app);
+      await agent.post('/api/login').send(alice).expect(200);
+      for (let i = 0; i < 3; i++) {
+        await agent.post('/api/login/mfa').send({ code: '000000' }).expect(401);
+      }
+      await agent.post('/api/login/mfa').send({ code: recoveryCodes[round] }).expect(200);
+    }
   });
 
   it('refuses a code step with no password step before it', async () => {

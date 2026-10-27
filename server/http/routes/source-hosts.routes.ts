@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { asc, eq } from 'drizzle-orm';
@@ -69,7 +70,7 @@ router.put('/api/source-hosts/:provider', requireRole('owner'), async (req, res)
   if (!provider.success) return res.status(404).json({ error: 'Unknown provider.' });
   const parsed = connectSchema.safeParse(req.body ?? {});
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
 
   const apiUrl = (parsed.data.apiUrl ?? DEFAULT_API_URLS[provider.data]).replace(/\/+$/, '');
   const check = await checkSourceHost({

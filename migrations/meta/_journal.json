@@ -671,14 +671,21 @@
       "idx": 95,
       "version": "7",
       "when": 1792400000018,
-      "tag": "0095_sso_trust_unverified_email",
+      "tag": "0095_organization_erasures",
       "breakpoints": true
     },
     {
       "idx": 96,
       "version": "7",
       "when": 1792400000019,
-      "tag": "0096_users_username_lower_unique",
+      "tag": "0096_sso_trust_unverified_email",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1792400000020,
+      "tag": "0097_users_username_lower_unique",
       "breakpoints": true
     }
   ]

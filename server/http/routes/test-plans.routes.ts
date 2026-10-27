@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { checkRunOn } from '../../runtime/browser-grids';
 import {
   testPlans,
@@ -100,7 +101,9 @@ router.post('/api/test-plans', requireRole('editor'), async (req, res) => {
 
   const parseResult = testPlanApiPayloadSchema.safeParse(req.body);
   if (!parseResult.success)
-    return res.status(400).json({ error: 'Invalid data', details: parseResult.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid data', details: flattenZodError(parseResult.error) });
 
   // selectedTests lives in a separate join table (testPlanSelectedTests) rather than as a
   // column on testPlans, so it is inserted separately below — not dropped. It used to be
@@ -315,12 +318,12 @@ router.put('/api/test-plans/:id', requireRole('editor'), async (req, res) => {
   if (!parseResult.success) {
     logger.warn({
       message: `PUT /api/test-plans/${testPlanId} - Invalid payload`,
-      errors: parseResult.error.flatten(),
+      errors: flattenZodError(parseResult.error),
       userId: (req.user as any)?.id,
     });
     return res
       .status(400)
-      .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
+      .json({ error: 'Invalid request payload', details: flattenZodError(parseResult.error) });
   }
 
   // Agents or a grid, never both, and only a grid of this organization (server/runtime/browser-grids.ts).
@@ -677,7 +680,9 @@ router.post('/api/test-plan-schedules', requireRole('editor'), async (req, res) 
 
   const parseResult = insertTestPlanScheduleSchema.safeParse(req.body);
   if (!parseResult.success)
-    return res.status(400).json({ error: 'Invalid data', details: parseResult.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid data', details: flattenZodError(parseResult.error) });
 
   const scheduleId = uuidv4();
   const data = parseResult.data;
@@ -763,7 +768,9 @@ router.put('/api/test-plan-schedules/:id', requireRole('editor'), async (req, re
 
   const parseResult = updateTestPlanScheduleSchema.safeParse(req.body);
   if (!parseResult.success)
-    return res.status(400).json({ error: 'Invalid data', details: parseResult.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid data', details: flattenZodError(parseResult.error) });
   const updates = parseResult.data;
 
   try {

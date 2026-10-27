@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -82,7 +83,7 @@ router.post('/api/issue-trackers', requireRole('editor'), async (req, res) => {
 
   const parsed = trackerSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
   if (parsed.data.provider === 'jira' && !parsed.data.userEmail) {
     // Jira pairs an API token with an account. Storing one without the other produces a
@@ -136,7 +137,7 @@ router.put('/api/issue-trackers/:id', requireRole('editor'), async (req, res) =>
 
   const parsed = partialUpdate(trackerSchema).safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
 
   const changes: Record<string, unknown> = { updatedAt: new Date() };

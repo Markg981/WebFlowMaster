@@ -1,4 +1,5 @@
 import { type Response } from 'express';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import os from 'os';
 import fs from 'fs';
@@ -191,7 +192,7 @@ router.post('/api/mobile-tests', requireRole('editor'), async (req, res) => {
   if (!parsed.success)
     return res.status(400).json({
       error: parsed.error.issues[0]?.message ?? 'Invalid mobile test',
-      details: parsed.error.flatten(),
+      details: flattenZodError(parsed.error),
     });
   try {
     const created = await withTenantTransaction(async (tx) => {
@@ -236,7 +237,7 @@ router.put('/api/mobile-tests/:id', requireRole('editor'), async (req, res) => {
   if (!parsed.success)
     return res.status(400).json({
       error: parsed.error.issues[0]?.message ?? 'Invalid mobile test',
-      details: parsed.error.flatten(),
+      details: flattenZodError(parsed.error),
     });
   try {
     const id = idOf(req.params.id);
