@@ -22,6 +22,8 @@ import {
 } from '@shared/schema';
 import { storage } from '../../identity/storage';
 import { requireRole } from '../middleware/require-role';
+import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { exportOrganization, eraseOrganization } from '../../tenancy/organization-lifecycle';
@@ -365,7 +367,9 @@ router.get(
 
 router.post(
   '/api/organization/invitations',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
+  sessionOnly('Inviting members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const parsed = z
@@ -479,7 +483,9 @@ router.post(
 
 router.delete(
   '/api/organization/invitations/:id',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
+  sessionOnly('Revoking invitations'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const id = Number(req.params.id);
@@ -509,7 +515,9 @@ router.delete(
 
 router.post(
   '/api/organization/members',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
+  sessionOnly('Adding members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const parsed = z
@@ -634,7 +642,9 @@ router.post(
 
 router.patch(
   '/api/organization/members/:userId',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
+  sessionOnly('Changing roles or removing members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const userId = Number(req.params.userId);
@@ -684,7 +694,9 @@ router.patch(
 
 router.delete(
   '/api/organization/members/:userId',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
+  sessionOnly('Changing roles or removing members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const userId = Number(req.params.userId);

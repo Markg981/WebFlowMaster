@@ -597,3 +597,32 @@ describe('the suite that needs a browser can get one', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('credential and membership routes stay session-only (audit A-06)', () => {
+  /**
+   * A leaked API key must not mint keys, add or promote members or touch org security. Each
+   * mutating route on these paths must carry a session-only guard in its middleware chain.
+   * A new route under these prefixes fails here until it is guarded.
+   */
+  const sensitive = [
+    /^\/api\/api-keys/,
+    /^\/api\/service-accounts/,
+    /^\/api\/organization\/(invitations|members|sso|mfa-policy)/,
+    /^\/api\/mfa/,
+  ];
+  // Guarded by an inline check in the handler instead.
+  const exempt = [/password-reset$/];
+
+  it('every mutating sensitive route has a sessionOnly guard', () => {
+    const offenders: string[] = [];
+    for (const { name, source } of routeFiles()) {
+      for (const c of routeCalls(source, 'router', ['post', 'put', 'patch', 'delete'])) {
+        for (const p of c.paths) {
+          if (!sensitive.some((re) => re.test(p)) || exempt.some((re) => re.test(p))) continue;
+          if (!/sessionOnly/.test(c.chain)) offenders.push(`${name}:${c.line} ${c.method} ${p}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

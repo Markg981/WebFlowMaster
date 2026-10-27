@@ -75,7 +75,7 @@ describe('ApiKeysCard', () => {
     expect(screen.getByText(/only time it is shown/i)).toBeInTheDocument();
   });
 
-  it('sends the name, the optional lifetime, and by default only the run scopes', async () => {
+  it('sends the name, the lifetime (default 90 days), and by default only the run scopes', async () => {
     renderCard();
     await screen.findByText('GitHub Actions');
     fetchMock.mockResolvedValueOnce({
@@ -118,7 +118,11 @@ describe('ApiKeysCard', () => {
 
     await waitFor(() => {
       const post = fetchMock.mock.calls.find(([, init]: any[]) => init?.method === 'POST');
-      expect(JSON.parse(post![1].body)).toEqual({ name: 'Reader', scopes: ['plans:read'] });
+      expect(JSON.parse(post![1].body)).toEqual({
+        name: 'Reader',
+        expiresInDays: 90,
+        scopes: ['plans:read'],
+      });
     });
   });
 
@@ -138,9 +142,20 @@ describe('ApiKeysCard', () => {
     });
     renderCard();
 
-    expect(await screen.findByText('full access')).toBeInTheDocument();
+    expect(await screen.findByText('legacy, full access')).toBeInTheDocument();
     expect(screen.getByText('runs:read', { selector: 'div,span' })).toBeInTheDocument();
     expect(screen.getByText('held by CI bot')).toBeInTheDocument();
+  });
+
+  it('refuses a key with no lifetime before asking the server', async () => {
+    renderCard();
+    await screen.findByText('GitHub Actions');
+    const callsBefore = fetchMock.mock.calls.length;
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'x' } });
+    fireEvent.change(screen.getByLabelText(/Expires in/i), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: /Create key/i }));
+    expect(await screen.findByText(/whole number of days/i)).toBeInTheDocument();
+    expect(fetchMock.mock.calls.length).toBe(callsBefore);
   });
 
   it('refuses a nameless key before asking the server', async () => {

@@ -19,6 +19,8 @@ import { sharedStore } from '../../platform/middleware/rate-limit-store';
  *   sessionRateLimit below.
  * - HEAVY_RATE_LIMIT (default 30) for each signed-in user on the expensive routes: see
  *   heavyRateLimit below.
+ * - SENSITIVE_RATE_LIMIT (default 30) for each signed-in user on the routes that change who holds
+ *   access: see sensitiveRateLimit below.
  *
  * Past it the answer is 429 with Retry-After and the RateLimit headers. 0 turns a limit off.
  *
@@ -148,4 +150,40 @@ let heavy: RequestHandler | undefined;
 /** The one instance every expensive route mounts, so a user has one budget across them all. */
 export function sharedHeavyRateLimit(): RequestHandler {
   return (heavy ??= heavyRateLimit());
+}
+
+/**
+ * How often a person may change who holds access.
+ *
+ * Issuing or revoking API keys, creating service accounts, inviting, adding or removing members
+ * and changing roles are rare in the UI; a hijacked session scripting them is not. These routes
+ * already refuse API keys (sessionOnly); SENSITIVE_RATE_LIMIT (default 30 a minute) caps the
+ * session too, counted for each user across all of them (audit A-06).
+ */
+export function sensitiveRateLimit(env: NodeJS.ProcessEnv = process.env): RequestHandler {
+  const limit = perMinute(env.SENSITIVE_RATE_LIMIT, 30);
+  if (limit === 0) return passThrough;
+  return rateLimit({
+    windowMs: 60_000,
+    limit,
+    store: sharedStore('sensitive'),
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const userId = userIdOf(req);
+      return userId ? `user:${userId}` : `ip:${ipKeyGenerator(req.ip ?? '')}`;
+    },
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: `Too many requests: at most ${limit} a minute of this kind. Wait and try again.`,
+      });
+    },
+  });
+}
+
+let sensitive: RequestHandler | undefined;
+
+/** The one instance every access-changing route mounts. */
+export function sharedSensitiveRateLimit(): RequestHandler {
+  return (sensitive ??= sensitiveRateLimit());
 }

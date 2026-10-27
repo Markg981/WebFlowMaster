@@ -91,7 +91,7 @@ password, or resetting it with a link, signs that person out of every other sess
 Each of these is recorded in the [audit log](#audit-log).
 
 ::: details The same through the API
-With an owner's API key with full access (`Authorization: Bearer wfm_…`):
+Member management is **session-only**: with an API key, inviting, adding, changing roles and removing members, creating or revoking API keys and service accounts, and the SSO and MFA settings answer `403` (`session_required`). Use the signed-in session (cookie) of an owner:
 
 | Action                          | Request                                                                                                                        |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -356,9 +356,15 @@ person's password.
   were given: `plans:read`, `runs:read`, `runs:write`. A pipeline that starts a plan and waits
   for it needs `runs:write` and `runs:read`. Traces and HAR files of runs also need
   `runs:evidence`, and the editor role: they can hold passwords in clear.
-- **Full-access keys** act as their account everywhere. Use them only when a scoped key cannot do
-  the job.
-- A key can have an **expiry date**. Its last use is shown, so unused keys can be found.
+- **At least one scope is required** when a key is created, and so is an **expiry**: the lifetime
+  is chosen at creation (default 90 days in the form) and cannot exceed `API_KEY_MAX_TTL_DAYS`
+  (365 by default).
+- Keys created before this rule, with no scopes or no expiry, keep working and are listed as
+  **legacy, full access** / **no expiry (legacy)**. They act as their account everywhere; replace
+  them with scoped, expiring keys and revoke the old ones.
+- An API key cannot create or revoke keys or service accounts, manage members and roles, or change
+  SSO and MFA settings: those need a signed-in session.
+- Its last use is shown, so unused keys can be found.
 - The key is shown **once**. It is stored as a hash and cannot be recovered; a lost key is
   revoked and replaced.
 - The role of the key's account still applies: a viewer's key cannot start runs.
