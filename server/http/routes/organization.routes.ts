@@ -283,7 +283,9 @@ router.delete('/api/organization', requireRole('owner'), async (req: Request, re
     byUsername: req.user!.username,
   });
 
-  const { deleted, files } = await eraseOrganization(organizationId);
+  const { deleted, files } = await eraseOrganization(organizationId, {
+    actor: { id: req.user!.id, username: req.user!.username },
+  });
   if (files.failed.length > 0) {
     logger.error({
       message: 'Organization erased, but some of its files could not be removed',

@@ -151,6 +151,8 @@ _worker perso_; il worker batte ogni `WORK_ITEM_HEARTBEAT_MS` e a ogni avanzamen
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | entrambi | la catena predefinita di AWS        | Credenziali esplicite. Se non impostate si usano ambiente, profilo o ruolo dell'istanza.                                                                                          |
 | `S3_PREFIX`                                | entrambi | nessuno                             | Anteposto a ogni chiave, così un bucket può ospitare più installazioni.                                                                                                           |
 | `ARTIFACT_RETENTION_DAYS`                  | web      | `90`                                | Giorni per cui un run terminato conserva screenshot, video e trace. Risultati e baseline restano. `0` conserva tutto.                                                             |
+| `AUDIT_LOG_RETENTION_DAYS`                 | web      | unset                               | Facoltativa. Giorni per cui una voce di audit è conservata prima che lo sweep la elimini. Non impostata, vuota o `0` la conserva per sempre. Vedi Protezione dei dati.            |
+| `EVIDENCE_RETENTION_DAYS`                  | web      | unset                               | Facoltativa. Giorni per cui i riferimenti alle evidenze di un tentativo terminato sono conservati. Non impostata, vuota o `0` li conserva per sempre.                             |
 
 ## Agenti locali
 

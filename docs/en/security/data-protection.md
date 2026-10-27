@@ -112,15 +112,23 @@ database, storage and logging.
 
 Erasing an organization removes all of its rows from the database at once. It does **not**:
 
-- remove its files from the artifact store (screenshots, videos and traces under
-  `results/<planId>/`, baselines under `visual-baselines/org_<id>/`), which retention can no
-  longer find once the runs are gone;
 - remove log lines already written (they expire with log retention);
 - remove copies in the operator's backups, or in the systems it was connected to (issue
   trackers, commit statuses, Slack or Teams messages).
 
-The operator completes an erasure by removing the files; the plan ids are in the export taken
-before erasing.
+It does remove the organization's files from the artifact store, local disk or S3-compatible
+bucket alike (screenshots, videos and traces under `results/<planId>/<runId>/`, baselines under
+`visual-baselines/org_<id>/`), after the rows are gone. A prefix that cannot be removed is
+logged (`Organization erased, but some of its files could not be removed`) and the operator
+removes it by hand.
+
+Because the audit trail goes with the organization, every erasure is also written to
+`organization_erasures`, a table outside the tenant tables with no row level security and no
+privilege for the application role: organization id and name, who asked, when, rows deleted per
+table and files removed or left. It holds no tenant data and is kept.
+
+Erasing a single person (GDPR art. 17) is not implemented yet: members can be removed, but
+their audit entries and results keep naming them. This is an open item.
 
 ## Raw evidence and exposed credentials {#raw-evidence}
 
@@ -180,14 +188,37 @@ an installation upgraded from such a release:
 
 ## Retention at a glance
 
-| What                           | Default | Setting                                                      |
-| ------------------------------ | ------- | ------------------------------------------------------------ |
-| Run evidence                   | 90 days | `ARTIFACT_RETENTION_DAYS`                                    |
-| Application logs               | 7 days  | **Settings → System**, first value from `LOG_RETENTION_DAYS` |
-| Sessions                       | 7 days  | Fixed                                                        |
-| Invitation tokens              | 7 days  | Fixed                                                        |
-| Runners that stopped reporting | 7 days  | Fixed                                                        |
-| Results, tests, audit trail    | Kept    | Removed with the organization                                |
+| What                           | Default  | Setting                                                                    |
+| ------------------------------ | -------- | -------------------------------------------------------------------------- |
+| Run evidence                   | 90 days  | `ARTIFACT_RETENTION_DAYS`                                                  |
+| Application logs               | 7 days   | **Settings → System**, first value from `LOG_RETENTION_DAYS`               |
+| Sessions                       | 7 days   | Fixed                                                                      |
+| Invitation tokens              | 7 days   | Fixed                                                                      |
+| Runners that stopped reporting | 7 days   | Fixed                                                                      |
+| Results, tests                 | Kept     | Removed with the organization                                              |
+| Audit trail                    | Kept     | `AUDIT_LOG_RETENTION_DAYS` (unset keeps it); removed with the organization |
+| Attempt evidence references    | Kept     | `EVIDENCE_RETENTION_DAYS` (unset keeps them)                               |
+| Database and file backups      | Operator | **The backup retention window is the operator's responsibility**           |
+
+### Optional database retention
+
+Two settings, both off when unset, empty or `0` (the behaviour before they existed):
+
+- `AUDIT_LOG_RETENTION_DAYS` deletes audit entries older than that many days. The table is
+  append-only for the application; the sweep runs on the privileged database connection, the
+  same one organization erasure uses. Choose a window that satisfies your own accountability
+  obligations: deleted entries cannot be recovered.
+- `EVIDENCE_RETENTION_DAYS` clears the stored evidence references and failure reason of unit
+  attempts that finished earlier than that. The attempt and its verdict stay.
+
+Network captures (HAR) are cleaned when recorded: bodies are never kept, `Authorization`,
+`Cookie`, `Set-Cookie` and similar headers, credential-looking query parameters and form posts
+are replaced by `[redacted]`. Playwright traces are not redacted and follow
+`ARTIFACT_RETENTION_DAYS`.
+
+Backups of the database and of the artifact store keep their own copies for as long as the
+operator's backup policy says. **The backup retention window is the operator's responsibility**;
+an erasure or a retention sweep reaches them only when the backup expires.
 
 ## Recommendations for organizations
 

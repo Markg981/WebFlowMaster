@@ -227,6 +227,11 @@ app.use(express.urlencoded({ extended: false }));
   const stopArtifactRetention =
     process.env.NODE_ENV === 'test' ? () => {} : startArtifactRetention();
 
+  // Optional: AUDIT_LOG_RETENTION_DAYS / EVIDENCE_RETENTION_DAYS (off when unset) — see
+  // server/tenancy/data-retention.ts.
+  const { startDataRetention } = await import('./tenancy/data-retention');
+  const stopDataRetention = process.env.NODE_ENV === 'test' ? () => {} : startDataRetention();
+
   // Suspends past-due subscriptions past their grace and ends hand-set trials — see
   // server/tenancy/billing/service.ts.
   const { startBillingSweep } = await import('./tenancy/billing/sweep');
@@ -293,6 +298,7 @@ app.use(express.urlencoded({ extended: false }));
         stopRunRecovery();
         stopOutboxDispatcher();
         stopArtifactRetention();
+        stopDataRetention();
         stopBillingSweep();
         const { closeBrowserTasks } = await import('./web/browser-tasks');
         await closeBrowserTasks();
