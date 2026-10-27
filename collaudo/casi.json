@@ -9741,6 +9741,35 @@
         "Ripetere la prima esecuzione su un report blocked (OPS-52 con incidente aperto)."
       ],
       "expected": "La prima esecuzione esce con 0 e scrive decision.json accanto al report. La seconda esce con 1 e chiede responsabile, ore settimanali e canale del supporto, la release P18 citata come approvazione della build e il congelamento funzionale fino al gate. La terza esce con 1 perché il report non è ready_for_decision e nomina l'ID riaperto."
+    },
+    {
+      "actor": "owner.a",
+      "area": "ACC",
+      "detailHtml": "\n        <h4>Precondizioni</h4><p>Un account esistente, senza secondo fattore.</p>\n        <h4>Passi</h4>\n        <ol><li>Da indirizzi diversi, sbagliare la password 11 volte entro 15 minuti.</li><li>Provare con la password giusta.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Dall'11° tentativo la risposta è 429 con Retry-After, anche con la password giusta e anche per un nome inesistente. Audit <b>auth.account_locked</b> una sola volta.</p>\n      ",
+      "expected": "Dall'11° tentativo la risposta è 429 con Retry-After, anche con la password giusta e anche per un nome inesistente. Audit auth.account_locked una sola volta.",
+      "id": "ACC-14",
+      "preconditions": "Un account esistente, senza secondo fattore.",
+      "priority": "P2",
+      "steps": [
+        "Da indirizzi diversi, sbagliare la password 11 volte entro 15 minuti.",
+        "Provare con la password giusta."
+      ],
+      "title": "Blocco per account su password errate"
+    },
+    {
+      "actor": "owner.a",
+      "area": "ACC",
+      "detailHtml": "\n        <h4>Precondizioni</h4><p>Un account con secondo fattore attivo.</p>\n        <h4>Passi</h4>\n        <ol><li>Accedere con la password e sbagliare 3 codici.</li><li>Accedere di nuovo con la password e sbagliare altri 2 codici.</li><li>Accedere ancora e inserire un codice di recupero valido.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il sesto tentativo è rifiutato con 429 e Retry-After, anche con un codice valido. Audit <b>auth.account_locked</b> (factor mfa). Un codice corretto prima del limite azzera il conteggio.</p>\n      ",
+      "expected": "Il sesto tentativo è rifiutato con 429 e Retry-After, anche con un codice valido. Audit auth.account_locked (factor mfa). Un codice corretto prima del limite azzera il conteggio.",
+      "id": "ACC-15",
+      "preconditions": "Un account con secondo fattore attivo.",
+      "priority": "P2",
+      "steps": [
+        "Accedere con la password e sbagliare 3 codici.",
+        "Accedere di nuovo con la password e sbagliare altri 2 codici.",
+        "Accedere ancora e inserire un codice di recupero valido."
+      ],
+      "title": "Il limite del secondo fattore sopravvive a un nuovo accesso"
     }
   ],
   "presentation": {

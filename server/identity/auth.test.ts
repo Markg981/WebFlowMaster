@@ -30,6 +30,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  (await import('./login-throttle')).resetLoginThrottleForTests();
   // FK order. audit_log first: accepting an invitation writes an entry, and audit_log
   // references organizations with no cascade, so leaving one behind blocks the organizations
   // delete on the *next* run of this hook — which surfaces as unrelated tests failing.
@@ -299,5 +300,45 @@ describe('session user shape', () => {
     expect(user).toBeDefined();
     expect(typeof user!.organizationId).toBe('number');
     expect(['viewer', 'editor', 'owner']).toContain(user!.role);
+  });
+});
+
+describe('per-account login throttle', () => {
+  it('locks an account hit from many addresses, and a success resets the count', async () => {
+    await request(app).post('/api/register').send(validCreds).expect(201);
+    const wrong = { username: 'alice', password: 'nope-nope-nope' };
+    for (let i = 0; i < 9; i++) {
+      await request(app)
+        .post('/api/login')
+        .set('X-Forwarded-For', `10.0.0.${i}`)
+        .send(wrong)
+        .expect(401);
+    }
+    // A success before the limit clears the count.
+    await request(app).post('/api/login').send(validCreds).expect(200);
+    for (let i = 0; i < 10; i++) {
+      await request(app)
+        .post('/api/login')
+        .set('X-Forwarded-For', `10.0.1.${i}`)
+        .send(wrong)
+        .expect(401);
+    }
+    // Eleventh attempt, yet another address: refused even with the right password.
+    const res = await request(app)
+      .post('/api/login')
+      .set('X-Forwarded-For', '10.0.2.1')
+      .send(validCreds)
+      .expect(429);
+    expect(Number(res.headers['retry-after'])).toBeGreaterThan(0);
+    const events = await privilegedDb.select().from(auditLog);
+    expect(events.filter((e) => e.action === 'auth.account_locked')).toHaveLength(1);
+  });
+
+  it('answers an unknown account the same way, with no audit event', async () => {
+    for (let i = 0; i < 10; i++) {
+      await request(app).post('/api/login').send({ username: 'ghost', password: 'x' }).expect(401);
+    }
+    await request(app).post('/api/login').send({ username: 'Ghost', password: 'x' }).expect(429);
+    expect(await privilegedDb.select().from(auditLog)).toHaveLength(0);
   });
 });
