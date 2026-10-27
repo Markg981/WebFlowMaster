@@ -3908,7 +3908,8 @@
       "account_disabled": "Dieses Konto ist deaktiviert.",
       "account_linked": "Ihre Adresse ist bereits mit einer anderen Identität bei Ihrem Anbieter verknüpft. Fragen Sie einen Eigentümer Ihrer Organisation.",
       "browser_mismatch": "Diese Anmeldung wurde in einem anderen Browser gestartet. Starten Sie sie hier neu.",
-      "no_group": "Ihr Konto beim Identity Provider ist in keiner der Gruppen, die diese Organisation zulässt. Wenden Sie sich an Ihren Administrator."
+      "no_group": "Ihr Konto beim Identity Provider ist in keiner der Gruppen, die diese Organisation zulässt. Wenden Sie sich an Ihren Administrator.",
+      "link_requires_local_signin": "Dieses Konto ist Owner oder nutzt einen zweiten Faktor. Melden Sie sich mit Ihrem Passwort an und verknüpfen Sie Single Sign-on in den Einstellungen."
     },
     "protocol": "Protokoll",
     "saml": {

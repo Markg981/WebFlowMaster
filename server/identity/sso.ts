@@ -5,6 +5,7 @@ import {
   AUDIT_ACTIONS,
   auditLog,
   organizationMemberships,
+  userMfa,
   organizationSso,
   ssoDomains,
   ssoIdentities,
@@ -106,6 +107,8 @@ export interface SsoSettings {
   groupAttribute: string;
   roleMappings: RoleMapping[];
   requireGroup: boolean;
+  /** OpenID Connect: believe an address without email_verified (Entra ID). Default false. */
+  trustUnverifiedEmail: boolean;
   /** The provider's SCIM token (server/identity/scim.ts), never the token itself. Null: no provisioning. */
   scimToken: { prefix: string; createdAt: Date | null; lastUsedAt: Date | null } | null;
   updatedAt: Date;
@@ -133,6 +136,7 @@ export interface SsoInput {
   groupAttribute?: string | null;
   roleMappings?: RoleMapping[];
   requireGroup?: boolean;
+  trustUnverifiedEmail?: boolean;
 }
 
 /** What a sign-in in progress keeps in the session between leaving for the provider and coming back. */
@@ -290,6 +294,7 @@ export async function getSsoSettings(organizationId: number): Promise<SsoSetting
     groupAttribute: row.groupAttribute ?? DEFAULT_GROUP_ATTRIBUTE,
     roleMappings: row.roleMappings ?? [],
     requireGroup: row.requireGroup,
+    trustUnverifiedEmail: row.trustUnverifiedEmail,
     scimToken: row.scimTokenPrefix
       ? {
           prefix: row.scimTokenPrefix,
@@ -515,6 +520,9 @@ export async function saveSsoSettings(
         ...(mappingsGiven ? { roleMappings: mappings } : {}),
         ...(groupAttribute !== undefined ? { groupAttribute } : {}),
         ...(input.requireGroup !== undefined ? { requireGroup: input.requireGroup } : {}),
+        ...(input.trustUnverifiedEmail !== undefined
+          ? { trustUnverifiedEmail: input.trustUnverifiedEmail }
+          : {}),
         updatedAt: new Date(),
         ...advancedSaml,
         ...(protocol === 'oidc'
@@ -601,6 +609,9 @@ export async function saveSsoSettings(
           secretChanged: protocol === 'oidc' && Boolean(secret),
           roleMappings: saved.roleMappings,
           requireGroup: saved.requireGroup,
+          ...(input.trustUnverifiedEmail !== undefined
+            ? { trustUnverifiedEmail: input.trustUnverifiedEmail }
+            : {}),
           ...(released.length > 0 ? { takenFromUnverifiedClaims: released } : {}),
         },
       );
@@ -797,7 +808,8 @@ export type SignInError =
   | 'account_disabled'
   | 'account_linked'
   | 'browser_mismatch'
-  | 'no_group';
+  | 'no_group'
+  | 'link_requires_local_signin';
 
 /**
  * Where to send the browser for an e-mail address, and what to remember until it comes back: a
@@ -898,10 +910,11 @@ export async function finishSignIn(
     };
   }
 
-  const email = emailOf(claims);
+  const trust = row.trustUnverifiedEmail;
+  const email = emailOf(claims, trust);
   if (!email) return { error: 'no_email', organizationId: pending.organizationId };
-  // Absent is accepted: Entra ID never sends it, and the domain check below still applies.
-  if (claims.email_verified === false)
+  // Only a provider flagged trustUnverifiedEmail (Entra ID never sends the claim) may omit it.
+  if (claims.email_verified === false || (!trust && claims.email_verified !== true))
     return { error: 'email_unverified', organizationId: pending.organizationId };
 
   const domain = email.split('@')[1];
@@ -973,9 +986,14 @@ export async function samlProviderOf(organizationId: number) {
   return row && row.protocol === 'saml' ? row : null;
 }
 
-/** The address the token vouches for: `email`, or an address-shaped `preferred_username` (Entra ID's UPN). */
-export function emailOf(claims: Record<string, unknown>): string | null {
-  for (const candidate of [claims.email, claims.preferred_username]) {
+/**
+ * The address the token vouches for: `email`; with `trustUnverified` also an address-shaped
+ * `preferred_username` (Entra ID's UPN), which is not a verified mailbox.
+ */
+export function emailOf(claims: Record<string, unknown>, trustUnverified = false): string | null {
+  for (const candidate of trustUnverified
+    ? [claims.email, claims.preferred_username]
+    : [claims.email]) {
     if (typeof candidate === 'string' && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(candidate.trim())) {
       return candidate.trim().toLowerCase();
     }
@@ -1112,6 +1130,28 @@ async function resolveAccount(
       return switched;
     };
 
+    /** An organization owner (anywhere) or an account with MFA on: never linked by e-mail match alone. */
+    const isPrivileged = async (user: User): Promise<boolean> => {
+      if (user.role === 'owner') return true;
+      const [owned] = await tx
+        .select({ id: organizationMemberships.userId })
+        .from(organizationMemberships)
+        .where(
+          and(
+            eq(organizationMemberships.userId, user.id),
+            eq(organizationMemberships.role, 'owner'),
+          ),
+        )
+        .limit(1);
+      if (owned) return true;
+      const [mfa] = await tx
+        .select({ id: userMfa.userId })
+        .from(userMfa)
+        .where(and(eq(userMfa.userId, user.id), isNotNull(userMfa.enabledAt)))
+        .limit(1);
+      return Boolean(mfa);
+    };
+
     const [known] = await tx
       .select({ userId: ssoIdentities.userId })
       .from(ssoIdentities)
@@ -1151,6 +1191,20 @@ async function resolveAccount(
       .limit(1);
     if (existing) {
       if (!usable(existing)) return refuse('account_disabled');
+      // An address is not enough to take over an owner or an account protected by MFA: those are
+      // linked by their holder, signed in locally (audit A-05).
+      if (await isPrivileged(existing)) {
+        await audit(
+          tx,
+          organizationId,
+          { id: existing.id, username: existing.username, ipAddress: null },
+          AUDIT_ACTIONS.SSO_LINK_REFUSED,
+          'user',
+          String(existing.id),
+          { issuer: identity.issuer },
+        );
+        return refuse('link_requires_local_signin');
+      }
       const [alreadyLinked] = await tx
         .select({ issuer: ssoIdentities.issuer })
         .from(ssoIdentities)

@@ -234,14 +234,21 @@ risponda a una richiesta inviata da questa installazione, cosa che può fare una
 
 - un'identità già vista accede allo stesso account, anche se l'indirizzo è cambiato;
 - la prima volta, un account esistente dell'organizzazione il cui nome utente è quell'indirizzo
-  viene collegato; così passano al SSO i membri che avevano già una password;
+  viene collegato; così passano al SSO i membri che avevano già una password. Un owner
+  dell'organizzazione, o un account con il secondo fattore attivo, non viene mai collegato così:
+  l'accesso è rifiutato (`sso.link_refused` nel registro di audit) e la persona accede prima con la
+  password;
 - altrimenti viene **creato** un account, con l'indirizzo come nome utente e il ruolo scelto, o
   il ruolo a cui portano i suoi gruppi (sotto). Senza un gruppo mappato su owner, nessun owner
   viene creato così: si nomina un owner in **Impostazioni → Membri**.
 
-Con OpenID Connect l'indirizzo viene dal claim `email` oppure, se manca, da un
-`preferred_username` in forma di indirizzo, che è ciò che invia Entra ID; un indirizzo che il
-provider segna come non verificato viene rifiutato. Con SAML viene dagli attributi elencati sopra o
+Con OpenID Connect l'indirizzo viene dal claim `email` e il token deve contenere
+`email_verified: true`. Entra ID non invia `email_verified` e non sempre `email`: per lui
+l'impostazione del provider `trustUnverifiedEmail` (campo API di `PUT /api/organization/sso`,
+predefinito `false`) accetta un `email_verified` assente e ripiega su un `preferred_username` in
+forma di indirizzo; un indirizzo segnato `false` è sempre rifiutato. I provider salvati con un
+issuer Microsoft prima di questa impostazione la ricevono attiva dalla migrazione; attivatela solo
+se necessario, con la verifica dei domini attiva. Con SAML viene dagli attributi elencati sopra o
 da un NameID in forma di indirizzo. In entrambi i casi un indirizzo fuori dai vostri domini viene
 rifiutato.
 
@@ -277,10 +284,9 @@ non c'è ancora la scheda dice cosa ha trovato (le modifiche DNS possono impiega
 raggiungere tutti i server). La verifica resta quando si salvano di nuovo le impostazioni, e si
 perde solo togliendo il dominio dall'elenco.
 
-Se l'installazione imposta `SSO_REQUIRE_DOMAIN_VERIFICATION=true` — ogni installazione condivisa
-o multi-tenant dovrebbe farlo — un dominio non indirizza alcun accesso finché non è verificato, e
+Di default (`SSO_REQUIRE_DOMAIN_VERIFICATION` non impostata o `true`) un dominio non indirizza alcun accesso finché non è verificato, e
 una rivendicazione non verificata non lo trattiene: un'altra organizzazione che aggiunge il dominio
-lo prende, e chi lo verifica per primo lo tiene. Senza la variabile i domini funzionano appena
+lo prende, e chi lo verifica per primo lo tiene. Con `SSO_REQUIRE_DOMAIN_VERIFICATION=false` (rinuncia esplicita, non sicura su un'installazione condivisa) i domini funzionano appena
 salvati e verificarli è facoltativo, il che va bene per un'installazione con una sola
 organizzazione.
 

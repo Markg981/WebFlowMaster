@@ -14,6 +14,7 @@ import {
   ssoDomains,
   ssoIdentities,
   users,
+  userMfa,
 } from '@shared/schema';
 import { groupsOf, roleFromGroups } from '@shared/sso-roles';
 import { joinOrganization } from '../tenancy/organization-memberships';
@@ -145,6 +146,8 @@ afterAll(() => {
 beforeEach(async () => {
   const { clearDiscoveryCache } = await import('./sso');
   clearDiscoveryCache();
+  // The default is to require proof of domains; most cases here are not about that.
+  process.env.SSO_REQUIRE_DOMAIN_VERIFICATION = 'false';
   issued.clear();
   await privilegedDb.delete(auditLog);
   await privilegedDb.delete(invitations);
@@ -199,7 +202,7 @@ async function ssoSignIn(
   issued.set(code, {
     nonce: location.searchParams.get('nonce')!,
     challenge: location.searchParams.get('code_challenge')!,
-    claims,
+    claims: { email_verified: true, ...claims },
   });
   const params = new URLSearchParams({ code, state: location.searchParams.get('state')! });
   tamper?.(params);
@@ -452,9 +455,24 @@ describe('signing in through the provider', () => {
     expect(await privilegedDb.select().from(ssoIdentities)).toHaveLength(0);
   });
 
-  it("accepts Entra ID's address-shaped preferred_username when there is no email claim", async () => {
+  it("accepts Entra ID's address-shaped preferred_username only where the provider is trusted so", async () => {
     const { agent } = await owner();
     await agent.put('/api/organization/sso').send(settings()).expect(200);
+    const denied = await ssoSignIn('lin@example.com', {
+      sub: 'lin-0',
+      preferred_username: 'lin@example.com',
+    });
+    expect(denied.back.headers.location).toBe('/auth?sso_error=no_email');
+    const unverified = await ssoSignIn('lin@example.com', {
+      sub: 'lin-0',
+      email: 'lin@example.com',
+      email_verified: undefined,
+    });
+    expect(unverified.back.headers.location).toBe('/auth?sso_error=email_unverified');
+    await agent
+      .put('/api/organization/sso')
+      .send(settings({ clientSecret: '', trustUnverifiedEmail: true }))
+      .expect(200);
     const { browser } = await ssoSignIn('lin@example.com', {
       sub: 'lin-1',
       preferred_username: 'Lin@example.com',
@@ -879,5 +897,66 @@ describe('proving an e-mail domain with DNS', () => {
           .expect(409)
       ).body.code,
     ).toBe('domain_taken');
+  });
+});
+
+describe('linking by address (audit A-05)', () => {
+  it('refuses to link an organization owner or an account with MFA on a first sign-in, and audits it', async () => {
+    const { agent, organizationId } = await owner('olivia@example.com');
+    await agent.put('/api/organization/sso').send(settings()).expect(200);
+    const claimed = await ssoSignIn('olivia@example.com', {
+      sub: 'attacker',
+      email: 'olivia@example.com',
+    });
+    expect(claimed.back.headers.location).toBe('/auth?sso_error=link_requires_local_signin');
+    await claimed.browser.get('/api/user').expect(401);
+
+    const protectedUser = await member(organizationId, 'mia@example.com', 'editor');
+    await privilegedDb.insert(userMfa).values({ userId: protectedUser.id, enabledAt: new Date() });
+    const mfa = await ssoSignIn('mia@example.com', { sub: 'mia-x', email: 'mia@example.com' });
+    expect(mfa.back.headers.location).toBe('/auth?sso_error=link_requires_local_signin');
+
+    expect(await privilegedDb.select().from(ssoIdentities)).toHaveLength(0);
+    const refused = (
+      await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId))
+    ).filter((e) => e.action === 'sso.link_refused');
+    expect(refused).toHaveLength(2);
+  });
+
+  it('keeps the domain with the organization that proved it when two claim it', async () => {
+    process.env.SSO_REQUIRE_DOMAIN_VERIFICATION = 'true';
+    const first = await owner('first@one.example');
+    await first.agent.put('/api/organization/sso').send(settings()).expect(200);
+    const [second] = await privilegedDb.insert(organizations).values({ name: 'Two' }).returning();
+    const { hashPassword } = await import('./auth');
+    await privilegedDb.insert(users).values({
+      username: 'two-owner',
+      password: await hashPassword('password123'),
+      organizationId: second.id,
+      role: 'owner',
+    });
+    const two = request.agent(app);
+    await two
+      .post('/api/login')
+      .send({ username: 'two-owner', password: 'password123' })
+      .expect(200);
+    // Unproven on both sides: the claim is not kept, so nothing routes, and the later claimant gets it.
+    await two.put('/api/organization/sso').send(settings()).expect(200);
+    const [row] = await privilegedDb
+      .select()
+      .from(ssoDomains)
+      .where(eq(ssoDomains.domain, 'example.com'));
+    expect(row.organizationId).toBe(second.id);
+    const start = await request(app)
+      .get('/api/sso/start')
+      .query({ email: 'x@example.com' })
+      .expect(303);
+    expect(start.headers.location).toContain('sso_error=unknown_domain');
+  });
+
+  it('keeps usernames unique whatever their case', async () => {
+    const { organizationId } = await owner('olivia@example.com');
+    await member(organizationId, 'Bob@example.com');
+    await expect(member(organizationId, 'bob@example.com')).rejects.toThrow();
   });
 });

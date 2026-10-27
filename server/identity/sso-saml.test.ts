@@ -69,6 +69,8 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  // Proof of domains is on by default; these cases are not about it.
+  process.env.SSO_REQUIRE_DOMAIN_VERIFICATION = 'false';
   process.env.WEBFLOW_PUBLIC_URL = BASE;
   await privilegedDb.delete(ssoSamlRequests);
   await privilegedDb.delete(auditLog);

@@ -275,8 +275,9 @@ Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
   Senza un gruppo obbligatorio, una persona
   rimossa qui ma non presso il provider ottiene un nuovo account al suo accesso successivo, quindi
   l'accesso si revoca presso il provider. I domini e-mail si dimostrano con un record DNS TXT; la
-  verifica è obbligatoria solo con `SSO_REQUIRE_DOMAIN_VERIFICATION=true`, e senza, su
-  un'installazione condivisa, il primo che rivendica un dominio lo ottiene.
+  verifica è obbligatoria di default (`SSO_REQUIRE_DOMAIN_VERIFICATION=false` la disattiva, non sicuro
+  su un'installazione condivisa). OpenID Connect richiede `email_verified: true` salvo provider con
+  `trustUnverifiedEmail`, e un owner o un account con MFA non viene mai collegato solo per indirizzo.
 - **La complessità delle password è facoltativa**: la politica di default controlla solo la
   lunghezza; `PASSWORD_POLICY=strong` aggiunge 12 caratteri, varietà di caratteri, niente username
   e niente password comuni. Senza SMTP, i link di invito e di reset li consegna l'owner.
