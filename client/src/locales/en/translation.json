@@ -229,13 +229,12 @@
       "openApi": "API reference (OpenAPI)",
       "accessLabel": "What the key may do",
       "accessScoped": "Only what I choose, through /api/v1",
-      "accessFull": "Full access, everywhere",
-      "accessFullHint": "The key can do anything its account can, on every endpoint of the application. Prefer scopes unless a script needs more than /api/v1 offers.",
       "scopesRequired": "Choose at least one thing the key may do.",
       "holderLabel": "Issued to",
       "holderMe": "Me",
       "heldBy": "held by {{name}}",
-      "fullAccess": "full access",
+      "fullAccess": "legacy, full access",
+      "noExpiry": "no expiry (legacy)",
       "columns": {
         "access": "Access",
         "name": "Name",
@@ -254,7 +253,7 @@
         "mobile-tests_write": "Create and update native mobile tests."
       },
       "nameRequired": "Give the key a name, so it can be recognised later.",
-      "expiryInvalid": "Expiry must be a whole number of days.",
+      "expiryInvalid": "Enter the key lifetime as a whole number of days (at least 1).",
       "title": "API keys",
       "description": "For pipelines and scripts. A key acts as you, with your role, and can be revoked on its own.",
       "shownOnce": {
@@ -266,7 +265,7 @@
       "dismiss": "I have saved it",
       "nameLabel": "Name",
       "expiryLabel": "Expires in (days)",
-      "expiryPlaceholder": "never",
+      "expiryPlaceholder": "90",
       "create": "Create key",
       "loading": "Loading keys…",
       "empty": "No API keys yet. A pipeline needs one to start a test plan.",

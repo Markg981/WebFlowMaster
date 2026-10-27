@@ -178,7 +178,7 @@ async function planOf(page: Page, testId: number, browserName: string): Promise<
 
 async function apiKey(page: Page): Promise<string> {
   const response = await page.request.post('/api/api-keys', {
-    data: { name: unique('contracts'), scopes: ['runs:read', 'runs:write'] },
+    data: { name: unique('contracts'), scopes: ['runs:read', 'runs:write'], expiresInDays: 1 },
   });
   expect(response.status(), await response.text()).toBe(201);
   return ((await response.json()) as { key: string }).key;

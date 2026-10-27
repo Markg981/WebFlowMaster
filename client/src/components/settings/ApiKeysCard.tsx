@@ -79,8 +79,7 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
-  const [expiresInDays, setExpiresInDays] = useState('');
-  const [access, setAccess] = useState<'scoped' | 'full'>('scoped');
+  const [expiresInDays, setExpiresInDays] = useState('90');
   const [scopes, setScopes] = useState<ApiScope[]>(DEFAULT_SCOPES);
   /** 'me', or a service account's id. */
   const [holder, setHolder] = useState('me');
@@ -118,8 +117,8 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          ...(expiresInDays.trim() ? { expiresInDays: Number(expiresInDays) } : {}),
-          ...(access === 'scoped' ? { scopes } : {}),
+          expiresInDays: Number(expiresInDays),
+          scopes,
           ...(holder !== 'me' ? { serviceAccountId: Number(holder) } : {}),
         }),
       });
@@ -132,7 +131,7 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
     onSuccess: (created) => {
       setFreshKey(created.key);
       setName('');
-      setExpiresInDays('');
+      setExpiresInDays('90');
       setCopied(false);
       queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
     },
@@ -157,13 +156,19 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
       return;
     }
     if (
-      expiresInDays.trim() !== '' &&
-      (!Number.isInteger(Number(expiresInDays)) || Number(expiresInDays) < 1)
+      expiresInDays.trim() === '' ||
+      !Number.isInteger(Number(expiresInDays)) ||
+      Number(expiresInDays) < 1
     ) {
-      setFormError(t('settings.apiKeys.expiryInvalid', 'Expiry must be a whole number of days.'));
+      setFormError(
+        t(
+          'settings.apiKeys.expiryInvalid',
+          'Enter the key lifetime as a whole number of days (at least 1).',
+        ),
+      );
       return;
     }
-    if (access === 'scoped' && scopes.length === 0) {
+    if (scopes.length === 0) {
       setFormError(
         t('settings.apiKeys.scopesRequired', 'Choose at least one thing the key may do.'),
       );
@@ -262,23 +267,7 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
 
         <div className="space-y-2">
           <Label>{t('settings.apiKeys.accessLabel', 'What the key may do')}</Label>
-          <Select value={access} onValueChange={(value) => setAccess(value as 'scoped' | 'full')}>
-            <SelectTrigger
-              className="w-full sm:w-80"
-              aria-label={t('settings.apiKeys.accessLabel', 'What the key may do')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="scoped">
-                {t('settings.apiKeys.accessScoped', 'Only what I choose, through /api/v1')}
-              </SelectItem>
-              <SelectItem value="full">
-                {t('settings.apiKeys.accessFull', 'Full access, everywhere')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          {access === 'scoped' ? (
+          {
             <div className="grid gap-2 sm:grid-cols-3">
               {API_SCOPE_NAMES.map((scope) => (
                 <label key={scope} className="flex items-start gap-2 text-sm">
@@ -303,14 +292,7 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
                 </label>
               ))}
             </div>
-          ) : (
-            <p className="text-xs text-amber-700 dark:text-amber-400">
-              {t(
-                'settings.apiKeys.accessFullHint',
-                'The key can do anything its account can, on every endpoint of the application. Prefer scopes unless a script needs more than /api/v1 offers.',
-              )}
-            </p>
-          )}
+          }
         </div>
 
         {isOwner && activeServiceAccounts.length > 0 && (
@@ -395,12 +377,16 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
                         </span>
                       ) : (
                         <Badge variant="secondary">
-                          {t('settings.apiKeys.fullAccess', 'full access')}
+                          {t('settings.apiKeys.fullAccess', 'legacy, full access')}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-xs">{formatDate(key.lastUsedAt)}</TableCell>
-                    <TableCell className="text-xs">{formatDate(key.expiresAt)}</TableCell>
+                    <TableCell className="text-xs">
+                      {key.expiresAt
+                        ? formatDate(key.expiresAt)
+                        : t('settings.apiKeys.noExpiry', 'no expiry (legacy)')}
+                    </TableCell>
                     <TableCell className="text-right">
                       {!key.revokedAt && (
                         <Button

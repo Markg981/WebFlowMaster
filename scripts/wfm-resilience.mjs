@@ -268,6 +268,7 @@ async function createTenant(base, index) {
   const key = await json(client, 'post', '/api/api-keys', {
     name: 'Resilience',
     scopes: ['plans:read', 'runs:read', 'runs:write'],
+    expiresInDays: 1,
   });
   const tenant = { client, plan, key: key.key, agentId: registration.agent.id, expected: [] };
   await connected(tenant);

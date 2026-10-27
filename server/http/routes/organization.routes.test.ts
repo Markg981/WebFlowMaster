@@ -785,3 +785,26 @@ describe('role gating', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('API keys cannot manage membership (audit A-06)', () => {
+  const keyApp = express();
+  keyApp.use(express.json());
+  keyApp.use((req: Request, _res: Response, next: NextFunction) => {
+    (req as Request & { apiKeyId?: string }).apiKeyId = 'key-1';
+    next();
+  });
+  keyApp.use(app);
+
+  it.each([
+    ['post', '/api/organization/invitations'],
+    ['delete', '/api/organization/invitations/1'],
+    ['post', '/api/organization/members'],
+    ['patch', '/api/organization/members/1'],
+    ['delete', '/api/organization/members/1'],
+  ] as const)('%s %s answers 403 session_required', async (method, path) => {
+    const res = await request(keyApp)[method](path).send({});
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('session_required');
+  });
+});

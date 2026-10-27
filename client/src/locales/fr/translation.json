@@ -229,13 +229,12 @@
       "openApi": "Référence de l'API (OpenAPI)",
       "accessLabel": "Ce que la clé peut faire",
       "accessScoped": "Seulement ce que je choisis, via /api/v1",
-      "accessFull": "Accès complet, partout",
-      "accessFullHint": "La clé peut faire tout ce que peut son compte, sur chaque point d'accès de l'application. Préférez les scopes, sauf si un script a besoin de plus que ce qu'offre /api/v1.",
       "scopesRequired": "Choisissez au moins une chose que la clé peut faire.",
       "holderLabel": "Attribuée à",
       "holderMe": "Moi",
       "heldBy": "détenue par {{name}}",
-      "fullAccess": "accès complet",
+      "fullAccess": "hérité, accès complet",
+      "noExpiry": "sans expiration (hérité)",
       "columns": {
         "access": "Accès",
         "name": "Nom",
@@ -254,7 +253,7 @@
         "mobile-tests_write": "Créer et mettre à jour les tests mobiles natifs."
       },
       "nameRequired": "Donnez un nom à la clé pour pouvoir la reconnaître plus tard.",
-      "expiryInvalid": "L'expiration doit être un nombre entier de jours.",
+      "expiryInvalid": "Indiquez la durée de la clé en nombre entier de jours (au moins 1).",
       "title": "Clés API",
       "description": "Pour les pipelines et les scripts. Une clé agit en votre nom, avec votre rôle, et peut être révoquée seule.",
       "shownOnce": {
@@ -266,7 +265,7 @@
       "dismiss": "Je l'ai enregistrée",
       "nameLabel": "Nom",
       "expiryLabel": "Expire dans (jours)",
-      "expiryPlaceholder": "jamais",
+      "expiryPlaceholder": "90",
       "create": "Créer une clé",
       "loading": "Chargement des clés…",
       "empty": "Aucune clé API pour l'instant. Un pipeline en a besoin pour lancer un plan de test.",

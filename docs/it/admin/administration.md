@@ -97,7 +97,7 @@ persona.
 Ognuna di queste operazioni viene registrata nel [registro di audit](#registro-di-audit).
 
 ::: details Le stesse operazioni tramite l'API
-Con la chiave API ad accesso completo di un owner (`Authorization: Bearer wfm_…`):
+La gestione dei membri è **solo da sessione**: con una chiave API, invitare, aggiungere, cambiare ruolo e rimuovere membri, creare o revocare chiavi API e account di servizio, e le impostazioni SSO e MFA rispondono `403` (`session_required`). Usare la sessione (cookie) di un owner:
 
 | Operazione                        | Richiesta                                                                                                                           |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -364,10 +364,15 @@ password di una persona.
   ciò che è stato concesso: `plans:read`, `runs:read`, `runs:write`. Una pipeline che avvia un
   piano e ne aspetta l'esito ha bisogno di `runs:write` e `runs:read`. Trace e file HAR dei run
   richiedono anche `runs:evidence` e il ruolo editor: possono contenere password in chiaro.
-- Le **chiavi ad accesso completo** agiscono come il loro account ovunque. Usatele solo quando una
-  chiave con scope non basta.
-- Una chiave può avere una **scadenza**. Il suo ultimo utilizzo è visibile, così si trovano le
-  chiavi inutilizzate.
+- Alla creazione servono **almeno uno scope** e una **scadenza**: la durata si sceglie alla
+  creazione (nel form il default è 90 giorni) e non può superare `API_KEY_MAX_TTL_DAYS` (365 di
+  default).
+- Le chiavi create prima di questa regola, senza scope o senza scadenza, continuano a funzionare e
+  sono elencate come **legacy, accesso completo** / **nessuna scadenza (legacy)**. Agiscono come il
+  loro account ovunque: sostituitele con chiavi con scope e scadenza e revocate le vecchie.
+- Una chiave API non può creare o revocare chiavi e account di servizio, gestire membri e ruoli o
+  cambiare le impostazioni SSO e MFA: serve una sessione.
+- Il suo ultimo utilizzo è visibile, così si trovano le chiavi inutilizzate.
 - La chiave viene mostrata **una sola volta**. È salvata come hash e non si può recuperare; una
   chiave persa si revoca e si sostituisce.
 - Il ruolo dell'account della chiave vale comunque: la chiave di un viewer non avvia run.

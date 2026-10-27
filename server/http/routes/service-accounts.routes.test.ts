@@ -141,7 +141,7 @@ describe('its keys', () => {
 
     const key = await request(app)
       .post('/api/api-keys')
-      .send({ name: 'ci', serviceAccountId: account.body.id, scopes: ['runs:write'] })
+      .send({ expiresInDays: 30, name: 'ci', serviceAccountId: account.body.id, scopes: ['runs:write'] })
       .expect(201);
 
     const [row] = await privilegedDb.select().from(apiKeys).where(eq(apiKeys.id, key.body.id));
@@ -157,7 +157,7 @@ describe('its keys', () => {
 
     await request(app)
       .post('/api/api-keys')
-      .send({ name: 'ci', serviceAccountId: account.body.id })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'ci', serviceAccountId: account.body.id })
       .expect(403);
   });
 
@@ -165,7 +165,7 @@ describe('its keys', () => {
     const person = await createTestUser(org, `sa-person-${Date.now()}`);
     await request(app)
       .post('/api/api-keys')
-      .send({ name: 'x', serviceAccountId: person })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'x', serviceAccountId: person })
       .expect(404);
 
     const theirs = await storage.createServiceAccount({
@@ -176,7 +176,7 @@ describe('its keys', () => {
     });
     await request(app)
       .post('/api/api-keys')
-      .send({ name: 'x', serviceAccountId: theirs.id })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'x', serviceAccountId: theirs.id })
       .expect(404);
   });
 
@@ -193,11 +193,11 @@ describe('disabling a service account', () => {
     const account = await create({ name: 'Retired', role: 'editor' }).expect(201);
     await request(app)
       .post('/api/api-keys')
-      .send({ name: 'a', serviceAccountId: account.body.id })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'a', serviceAccountId: account.body.id })
       .expect(201);
     await request(app)
       .post('/api/api-keys')
-      .send({ name: 'b', serviceAccountId: account.body.id })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'b', serviceAccountId: account.body.id })
       .expect(201);
 
     const disabled = await request(app)
@@ -216,7 +216,7 @@ describe('disabling a service account', () => {
     await request(app).delete(`/api/service-accounts/${account.body.id}`).expect(404);
     await request(app)
       .post('/api/api-keys')
-      .send({ name: 'c', serviceAccountId: account.body.id })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'c', serviceAccountId: account.body.id })
       .expect(404);
   });
 });

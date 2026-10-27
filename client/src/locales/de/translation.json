@@ -229,13 +229,12 @@
       "openApi": "API-Referenz (OpenAPI)",
       "accessLabel": "Was der Schlüssel darf",
       "accessScoped": "Nur was ich auswähle, über /api/v1",
-      "accessFull": "Vollzugriff, überall",
-      "accessFullHint": "Der Schlüssel darf alles, was sein Konto darf, an jedem Endpunkt der Anwendung. Bevorzugen Sie Scopes, es sei denn, ein Skript braucht mehr, als /api/v1 bietet.",
       "scopesRequired": "Wählen Sie mindestens eine Berechtigung für den Schlüssel.",
       "holderLabel": "Ausgestellt für",
       "holderMe": "Mich",
       "heldBy": "gehört {{name}}",
-      "fullAccess": "Vollzugriff",
+      "fullAccess": "Altbestand, Vollzugriff",
+      "noExpiry": "kein Ablauf (Altbestand)",
       "columns": {
         "access": "Zugriff",
         "name": "Name",
@@ -254,7 +253,7 @@
         "mobile-tests_write": "Native Mobile-Tests erstellen und aktualisieren."
       },
       "nameRequired": "Geben Sie dem Schlüssel einen Namen, damit er später wiedererkannt werden kann.",
-      "expiryInvalid": "Der Ablauf muss eine ganze Zahl von Tagen sein.",
+      "expiryInvalid": "Geben Sie die Lebensdauer des Schlüssels in ganzen Tagen an (mindestens 1).",
       "title": "API-Schlüssel",
       "description": "Für Pipelines und Skripte. Ein Schlüssel handelt als Sie, mit Ihrer Rolle, und kann einzeln widerrufen werden.",
       "shownOnce": {
@@ -266,7 +265,7 @@
       "dismiss": "Ich habe ihn gespeichert",
       "nameLabel": "Name",
       "expiryLabel": "Läuft ab in (Tagen)",
-      "expiryPlaceholder": "nie",
+      "expiryPlaceholder": "90",
       "create": "Schlüssel erstellen",
       "loading": "Schlüssel werden geladen…",
       "empty": "Noch keine API-Schlüssel. Eine Pipeline braucht einen, um einen Testplan zu starten.",

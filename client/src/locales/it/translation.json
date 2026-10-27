@@ -229,13 +229,12 @@
       "openApi": "Riferimento API (OpenAPI)",
       "accessLabel": "Cosa può fare la chiave",
       "accessScoped": "Solo ciò che scelgo, tramite /api/v1",
-      "accessFull": "Accesso completo, ovunque",
-      "accessFullHint": "La chiave può fare tutto ciò che può il suo account, su ogni endpoint dell'applicazione. Preferisci gli scope, a meno che uno script non abbia bisogno di più di quanto offre /api/v1.",
       "scopesRequired": "Scegli almeno una cosa che la chiave può fare.",
       "holderLabel": "Assegnata a",
       "holderMe": "Me",
       "heldBy": "di {{name}}",
-      "fullAccess": "accesso completo",
+      "fullAccess": "legacy, accesso completo",
+      "noExpiry": "nessuna scadenza (legacy)",
       "columns": {
         "access": "Accesso",
         "name": "Nome",
@@ -254,7 +253,7 @@
         "mobile-tests_write": "Creare e aggiornare i test mobile nativi."
       },
       "nameRequired": "Dai un nome alla chiave, così potrai riconoscerla in seguito.",
-      "expiryInvalid": "La scadenza deve essere un numero intero di giorni.",
+      "expiryInvalid": "Indica la durata della chiave come numero intero di giorni (almeno 1).",
       "title": "Chiavi API",
       "description": "Per pipeline e script. Una chiave agisce come te, con il tuo ruolo, e si può revocare singolarmente.",
       "shownOnce": {
@@ -266,7 +265,7 @@
       "dismiss": "L'ho salvata",
       "nameLabel": "Nome",
       "expiryLabel": "Scade tra (giorni)",
-      "expiryPlaceholder": "mai",
+      "expiryPlaceholder": "90",
       "create": "Crea chiave",
       "loading": "Caricamento chiavi…",
       "empty": "Ancora nessuna chiave API. Una pipeline ne ha bisogno per avviare un piano di test.",

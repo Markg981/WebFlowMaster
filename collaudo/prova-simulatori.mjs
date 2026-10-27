@@ -357,6 +357,7 @@ const key = (
   await asOwner('POST', '/api/api-keys', {
     name: `Collaudo INT-07 ${Date.now()}`,
     scopes: ['runs:write', 'runs:read'],
+    expiresInDays: 1,
   })
 ).data?.key;
 if (plan && key) {

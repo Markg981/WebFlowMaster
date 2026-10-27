@@ -60,7 +60,7 @@ describe('POST /api/api-keys', () => {
   it('returns the key once, and stores only its hash', async () => {
     const response = await request(app)
       .post('/api/api-keys')
-      .send({ name: 'GitHub Actions' })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'GitHub Actions' })
       .expect(201);
 
     expect(response.body.key).toMatch(/^wfm_/);
@@ -76,7 +76,10 @@ describe('POST /api/api-keys', () => {
   });
 
   it('never shows the key again, in a listing or anywhere else', async () => {
-    const created = await request(app).post('/api/api-keys').send({ name: 'Nightly' }).expect(201);
+    const created = await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'Nightly' })
+      .expect(201);
 
     const listing = await request(app).get('/api/api-keys').expect(200);
 
@@ -88,7 +91,13 @@ describe('POST /api/api-keys', () => {
   it('stamps the organization from the session, not from the body', async () => {
     const response = await request(app)
       .post('/api/api-keys')
-      .send({ name: 'Sneaky', organizationId: otherOrganizationId, userId: otherUserId })
+      .send({
+        expiresInDays: 30,
+        scopes: ['runs:read'],
+        name: 'Sneaky',
+        organizationId: otherOrganizationId,
+        userId: otherUserId,
+      })
       .expect(201);
 
     const [stored] = await privilegedDb
@@ -100,7 +109,10 @@ describe('POST /api/api-keys', () => {
   });
 
   it('records the creation in the audit trail, with the prefix and not the key', async () => {
-    const created = await request(app).post('/api/api-keys').send({ name: 'Audited' }).expect(201);
+    const created = await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'Audited' })
+      .expect(201);
 
     const entries = await privilegedDb.select().from(auditLog);
     expect(entries).toHaveLength(1);
@@ -113,7 +125,7 @@ describe('POST /api/api-keys', () => {
   it('gives a key a lifetime when one was asked for', async () => {
     const response = await request(app)
       .post('/api/api-keys')
-      .send({ name: 'Short', expiresInDays: 7 })
+      .send({ scopes: ['runs:read'], name: 'Short', expiresInDays: 7 })
       .expect(201);
 
     const expiresAt = new Date(response.body.expiresAt).getTime();
@@ -122,26 +134,90 @@ describe('POST /api/api-keys', () => {
   });
 
   it('refuses a nameless key, because a list of nameless keys cannot be cleaned up', async () => {
-    await request(app).post('/api/api-keys').send({ name: '   ' }).expect(400);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: '   ' })
+      .expect(400);
+  });
+
+  it('refuses a key with no scopes or empty scopes (audit A-06)', async () => {
+    await request(app).post('/api/api-keys').send({ name: 'x', expiresInDays: 7 }).expect(400);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'x', expiresInDays: 7, scopes: [] })
+      .expect(400);
+  });
+
+  it('refuses a key with no expiry', async () => {
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'x', scopes: ['runs:read'] })
+      .expect(400);
+  });
+
+  it('caps the lifetime at API_KEY_MAX_TTL_DAYS, 365 by default', async () => {
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'x', scopes: ['runs:read'], expiresInDays: 366 })
+      .expect(400);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ name: 'x', scopes: ['runs:read'], expiresInDays: 365 })
+      .expect(201);
+    vi.stubEnv('API_KEY_MAX_TTL_DAYS', '30');
+    try {
+      const res = await request(app)
+        .post('/api/api-keys')
+        .send({ name: 'x', scopes: ['runs:read'], expiresInDays: 31 })
+        .expect(400);
+      expect(res.body.maxDays).toBe(30);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('rejects creation and revocation authenticated with an API key', async () => {
+    const keyAuthed = express();
+    keyAuthed.use(express.json());
+    keyAuthed.use((req, _res, next) => {
+      (req as any).apiKeyId = 'k1';
+      next();
+    });
+    keyAuthed.use(app);
+    const create = await request(keyAuthed)
+      .post('/api/api-keys')
+      .send({ name: 'x', scopes: ['runs:read'], expiresInDays: 7 })
+      .expect(403);
+    expect(create.body.code).toBe('session_required');
+    await request(keyAuthed).delete('/api/api-keys/anything').expect(403);
   });
 
   it('refuses a viewer', async () => {
     currentUser = { ...currentUser, role: 'viewer' };
 
-    await request(app).post('/api/api-keys').send({ name: 'Nope' }).expect(403);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'Nope' })
+      .expect(403);
   });
 });
 
 describe('GET /api/api-keys', () => {
   it("shows this organization's keys and not another's", async () => {
-    await request(app).post('/api/api-keys').send({ name: 'Ours' }).expect(201);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'Ours' })
+      .expect(201);
     currentUser = {
       id: otherUserId,
       username: 'other-keys-user',
       organizationId: otherOrganizationId,
       role: 'editor',
     };
-    await request(app).post('/api/api-keys').send({ name: 'Theirs' }).expect(201);
+    await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'Theirs' })
+      .expect(201);
 
     const theirs = await request(app).get('/api/api-keys').expect(200);
     currentUser = { id: userId, username: 'keys-user', organizationId, role: 'editor' };
@@ -154,7 +230,10 @@ describe('GET /api/api-keys', () => {
 
 describe('DELETE /api/api-keys/:id', () => {
   it('revokes a key and records it', async () => {
-    const created = await request(app).post('/api/api-keys').send({ name: 'Doomed' }).expect(201);
+    const created = await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'Doomed' })
+      .expect(201);
 
     const response = await request(app).delete(`/api/api-keys/${created.body.id}`).expect(200);
 
@@ -164,14 +243,20 @@ describe('DELETE /api/api-keys/:id', () => {
   });
 
   it('does not move the timestamp when a key is revoked twice', async () => {
-    const created = await request(app).post('/api/api-keys').send({ name: 'Doomed' }).expect(201);
+    const created = await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'Doomed' })
+      .expect(201);
     await request(app).delete(`/api/api-keys/${created.body.id}`).expect(200);
 
     await request(app).delete(`/api/api-keys/${created.body.id}`).expect(404);
   });
 
   it("cannot revoke another organization's key, and is not told it exists", async () => {
-    const created = await request(app).post('/api/api-keys').send({ name: 'Ours' }).expect(201);
+    const created = await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'Ours' })
+      .expect(201);
     currentUser = {
       id: otherUserId,
       username: 'other-keys-user',
@@ -191,7 +276,10 @@ describe('DELETE /api/api-keys/:id', () => {
 
 describe('the user a key belongs to', () => {
   it('takes its keys with them when the member is removed', async () => {
-    const created = await request(app).post('/api/api-keys').send({ name: 'Leaver' }).expect(201);
+    const created = await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'Leaver' })
+      .expect(201);
 
     await privilegedDb.delete(users).where(eq(users.id, userId));
 

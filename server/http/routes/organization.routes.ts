@@ -1,4 +1,5 @@
 import { type Request, type Response } from 'express';
+import { sessionOnly } from '../middleware/session-only';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import {
   isEmailAddress,
@@ -256,52 +257,57 @@ router.get(
  * Recorded in the application log rather than the audit trail: an audit entry about erasing an
  * organization would be erased along with it. The log outlives the tenant.
  */
-router.delete('/api/organization', requireRole('owner'), async (req: Request, res: Response) => {
-  const organizationId = getTenantOrgId()!;
-  const parsed = z.object({ confirmName: z.string() }).safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Provide confirmName, the organization's name." });
-  }
+router.delete(
+  '/api/organization',
+  requireRole('owner'),
 
-  const [organization] = await withTenantTransaction((tx) =>
-    tx
-      .select({ name: organizations.name })
-      .from(organizations)
-      .where(eq(organizations.id, organizationId)),
-  );
-  if (!organization) return res.status(404).json({ error: 'Organization not found' });
+  async (req: Request, res: Response) => {
+    const organizationId = getTenantOrgId()!;
+    const parsed = z.object({ confirmName: z.string() }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Provide confirmName, the organization's name." });
+    }
 
-  if (parsed.data.confirmName !== organization.name) {
-    return res.status(400).json({ error: "confirmName does not match the organization's name." });
-  }
+    const [organization] = await withTenantTransaction((tx) =>
+      tx
+        .select({ name: organizations.name })
+        .from(organizations)
+        .where(eq(organizations.id, organizationId)),
+    );
+    if (!organization) return res.status(404).json({ error: 'Organization not found' });
 
-  logger.warn({
-    message: 'Organization erased',
-    organizationId,
-    organizationName: organization.name,
-    byUserId: req.user!.id,
-    byUsername: req.user!.username,
-  });
+    if (parsed.data.confirmName !== organization.name) {
+      return res.status(400).json({ error: "confirmName does not match the organization's name." });
+    }
 
-  const { deleted, files } = await eraseOrganization(organizationId);
-  if (files.failed.length > 0) {
-    logger.error({
-      message: 'Organization erased, but some of its files could not be removed',
+    logger.warn({
+      message: 'Organization erased',
       organizationId,
-      prefixes: files.failed,
+      organizationName: organization.name,
+      byUserId: req.user!.id,
+      byUsername: req.user!.username,
     });
-  }
 
-  // The caller's own account is among the rows just deleted, so their session now points at
-  // nothing. Ending it is tidier than letting the next request fail to deserialise a user — but
-  // the response must not depend on it: the erasure has already committed, and reporting it is
-  // the last thing anyone will ever learn about this organization. Guarded because req.logout
-  // only exists where passport is mounted.
-  if (typeof req.logout === 'function') {
-    req.logout(() => undefined);
-  }
-  res.json({ erased: true, deleted, files });
-});
+    const { deleted, files } = await eraseOrganization(organizationId);
+    if (files.failed.length > 0) {
+      logger.error({
+        message: 'Organization erased, but some of its files could not be removed',
+        organizationId,
+        prefixes: files.failed,
+      });
+    }
+
+    // The caller's own account is among the rows just deleted, so their session now points at
+    // nothing. Ending it is tidier than letting the next request fail to deserialise a user — but
+    // the response must not depend on it: the erasure has already committed, and reporting it is
+    // the last thing anyone will ever learn about this organization. Guarded because req.logout
+    // only exists where passport is mounted.
+    if (typeof req.logout === 'function') {
+      req.logout(() => undefined);
+    }
+    res.json({ erased: true, deleted, files });
+  },
+);
 
 /**
  * How someone actually joins an organization they did not create.
@@ -360,6 +366,7 @@ router.get(
 router.post(
   '/api/organization/invitations',
   requireRole('owner'),
+  sessionOnly('Inviting members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const parsed = z
@@ -472,6 +479,7 @@ router.post(
 router.delete(
   '/api/organization/invitations/:id',
   requireRole('owner'),
+  sessionOnly('Revoking invitations'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const id = Number(req.params.id);
@@ -502,6 +510,7 @@ router.delete(
 router.post(
   '/api/organization/members',
   requireRole('owner'),
+  sessionOnly('Adding members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const parsed = z
@@ -625,6 +634,7 @@ router.post(
 router.patch(
   '/api/organization/members/:userId',
   requireRole('owner'),
+  sessionOnly('Changing roles or removing members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const userId = Number(req.params.userId);
@@ -673,6 +683,7 @@ router.patch(
 router.delete(
   '/api/organization/members/:userId',
   requireRole('owner'),
+  sessionOnly('Changing roles or removing members'),
   async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const userId = Number(req.params.userId);
