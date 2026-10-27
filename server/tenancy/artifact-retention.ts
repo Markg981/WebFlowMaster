@@ -1,3 +1,4 @@
+import { ADVISORY_KEYS, withAdvisoryLock } from '../platform/advisory-lock';
 import { and, asc, inArray, isNull, lt, eq } from 'drizzle-orm';
 import { testPlanExecutions } from '@shared/schema';
 import { privilegedDb } from '../platform/db';
@@ -102,7 +103,9 @@ export function startArtifactRetention(intervalMs = 6 * 60 * 60_000): () => void
     if (running) return;
     running = true;
     try {
-      const report = await purgeExpiredArtifacts();
+      const locked = await withAdvisoryLock(ADVISORY_KEYS.artifactRetention, purgeExpiredArtifacts);
+      if (!locked.ran) return;
+      const report = locked.value;
       if (report.purgedRuns > 0 || report.failed.length > 0) {
         logger.info({ message: 'Artifact retention', days: retentionDays(), ...report });
       }

@@ -1,3 +1,4 @@
+import { ADVISORY_KEYS, withAdvisoryLock } from '../platform/advisory-lock';
 import { and, inArray, lt, or, sql } from 'drizzle-orm';
 import { testPlanExecutions, type TestPlanExecution } from '@shared/schema';
 import { privilegedDb } from '../platform/db';
@@ -141,9 +142,13 @@ export function startRunRecovery(intervalMs = 60_000): () => void {
     running = true;
     try {
       const { executionOrchestrator } = await import('./execution-orchestrator');
-      const report = await recoverAbandonedRuns({
-        retry: (ended) => executionOrchestrator.retryFailedRun(ended, 0).catch(() => null),
-      });
+      const locked = await withAdvisoryLock(ADVISORY_KEYS.runRecovery, () =>
+        recoverAbandonedRuns({
+          retry: (ended) => executionOrchestrator.retryFailedRun(ended, 0).catch(() => null),
+        }),
+      );
+      if (!locked.ran) return;
+      const report = locked.value;
       const total = report.lost.length + report.cancelled.length + report.timedOut.length;
       if (total > 0) {
         logger.warn({ message: 'Ended runs nobody was running any more', ...report });
