@@ -1,6 +1,7 @@
 /** Node-only tracing shared by API, workers and the standalone local agent. */
 import {
   context,
+  propagation,
   trace,
   ROOT_CONTEXT,
   SpanKind,
@@ -12,20 +13,21 @@ import {
   defaultTextMapSetter,
 } from '@opentelemetry/api';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import {
+  TracerProvider,
   BatchSpanProcessor,
   SimpleSpanProcessor,
   ParentBasedSampler,
   TraceIdRatioBasedSampler,
   type SpanExporter,
-} from '@opentelemetry/sdk-trace-base';
+} from '@opentelemetry/sdk-trace';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 
 export type TraceCarrier = { traceparent?: string; tracestate?: string };
 const propagator = new W3CTraceContextPropagator();
-let provider: NodeTracerProvider | undefined;
+let provider: TracerProvider | undefined;
 
 export function startTracing(
   role: string,
@@ -36,21 +38,29 @@ export function startTracing(
   const ratio = Number(env.WFM_TRACE_SAMPLE_RATIO ?? '0.1');
   if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1)
     throw new Error('WFM_TRACE_SAMPLE_RATIO must be between 0 and 1.');
-  provider = new NodeTracerProvider({
+  provider = new TracerProvider({
     resource: resourceFromAttributes({
       'service.name': env.OTEL_SERVICE_NAME || `webflowmaster-${role}`,
     }),
     sampler: new ParentBasedSampler({ root: new TraceIdRatioBasedSampler(exporter ? 1 : ratio) }),
     spanProcessors: [
       exporter
-        ? new SimpleSpanProcessor(exporter)
-        : new BatchSpanProcessor(new OTLPTraceExporter()),
+        ? new SimpleSpanProcessor({ exporter })
+        : new BatchSpanProcessor({ exporter: new OTLPTraceExporter() }),
     ],
   });
-  provider.register({ propagator });
+  // sdk-trace 3 has no NodeTracerProvider.register(): context manager, propagator and provider
+  // are set on the API one by one.
+  const contextManager = new AsyncLocalStorageContextManager().enable();
+  context.setGlobalContextManager(contextManager);
+  propagation.setGlobalPropagator(propagator);
+  trace.setGlobalTracerProvider(provider);
   const started = provider;
   return async () => {
     await started.shutdown();
+    trace.disable();
+    propagation.disable();
+    context.disable();
     provider = undefined;
   };
 }
