@@ -9,6 +9,7 @@ import {
   type User,
 } from '@shared/schema';
 import { privilegedDb } from '../platform/db';
+import { hashInvitationToken } from '../platform/invitation-token';
 import type { TenantTx } from '../platform/middleware/tenancy';
 import { removePersonalRowsInOrganization } from './member-removal';
 
@@ -250,7 +251,7 @@ export async function acceptInvitationAsMember(
     const [invitation] = await tx
       .select()
       .from(invitations)
-      .where(eq(invitations.token, token))
+      .where(eq(invitations.token, hashInvitationToken(token)))
       .limit(1);
     if (!invitation) return { error: 'invalid' as const };
     if (invitation.acceptedAt) return { error: 'used' as const };
@@ -312,7 +313,7 @@ export async function describeInvitation(
     })
     .from(invitations)
     .innerJoin(organizations, eq(organizations.id, invitations.organizationId))
-    .where(eq(invitations.token, token))
+    .where(eq(invitations.token, hashInvitationToken(token)))
     .limit(1);
   if (!row || row.acceptedAt || row.expiresAt.getTime() <= Date.now()) return null;
   // One answer for every way it is not theirs, as registration gives one for every bad token.

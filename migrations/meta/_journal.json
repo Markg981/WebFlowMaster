@@ -666,6 +666,13 @@
       "when": 1792400000017,
       "tag": "0094_healing_proposals",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1792400000018,
+      "tag": "0095_invitation_token_hash",
+      "breakpoints": true
     }
   ]
 }

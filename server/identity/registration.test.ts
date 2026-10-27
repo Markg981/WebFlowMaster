@@ -1,3 +1,4 @@
+import { hashInvitationToken } from '../platform/invitation-token';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
@@ -80,7 +81,7 @@ describe('registration by invitation, the default', () => {
       organizationId: founder.body.organizationId,
       username: 'colleague',
       role: 'viewer',
-      token,
+      token: hashInvitationToken(token),
       invitedByUserId: founder.body.id,
       expiresAt: new Date(Date.now() + 60_000),
     });
@@ -98,7 +99,7 @@ describe('registration by invitation, the default', () => {
       organizationId: founder.body.organizationId,
       username: 'colleague',
       role: 'viewer',
-      token,
+      token: hashInvitationToken(token),
       invitedByUserId: founder.body.id,
       expiresAt: new Date(Date.now() + 60_000),
     });

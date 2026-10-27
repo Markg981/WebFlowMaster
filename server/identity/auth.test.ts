@@ -1,3 +1,4 @@
+import { hashInvitationToken } from '../platform/invitation-token';
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
@@ -120,7 +121,7 @@ describe('POST /api/register with an invitation', () => {
         organizationId: organization.id,
         username: 'invitee',
         role: overrides.role ?? 'editor',
-        token: overrides.token ?? token,
+        token: hashInvitationToken(overrides.token ?? token),
         invitedByUserId: inviter.id,
         expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60_000),
       })

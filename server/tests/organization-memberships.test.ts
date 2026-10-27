@@ -1,3 +1,4 @@
+import { hashInvitationToken } from '../platform/invitation-token';
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express, type Request, type Response, type NextFunction } from 'express';
@@ -319,7 +320,7 @@ describe('joining by invitation as an existing account', () => {
       organizationId: orgB,
       username: 'alice',
       role: 'editor',
-      token,
+      token: hashInvitationToken(token),
       invitedByUserId: null,
       expiresAt: new Date(Date.now() + 60_000),
     });
@@ -353,7 +354,7 @@ describe('joining by invitation as an existing account', () => {
       organizationId: orgB,
       username: 'bob',
       role: 'editor',
-      token,
+      token: hashInvitationToken(token),
       invitedByUserId: null,
       expiresAt: new Date(Date.now() + 60_000),
     });

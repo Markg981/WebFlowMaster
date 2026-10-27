@@ -199,6 +199,12 @@ export function newPasswordProblem(password: string, username: string | null): s
   return passwordProblem(password, username, policyFrom(process.env.PASSWORD_POLICY));
 }
 
+/**
+ * A well-formed stored hash nobody has the password of. An unknown username is compared against it
+ * so the answer takes as long as for a real account and does not reveal which usernames exist.
+ */
+const DUMMY_PASSWORD_HASH = `${'ab'.repeat(64)}.${'cd'.repeat(16)}`;
+
 export async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split('.');
   const hashedBuf = Buffer.from(hashed, 'hex');
@@ -258,7 +264,10 @@ export function setupAuth(app: Express) {
       // An unknown username is not recorded: it belongs to no organization, and a trail of
       // them would be a list of guesses — some of them other people's passwords typed into
       // the wrong box.
-      if (!user) return done(null, false);
+      if (!user) {
+        await comparePasswords(password, DUMMY_PASSWORD_HASH);
+        return done(null, false);
+      }
       // A service account has a password only because the column requires one: it is random
       // and nobody knows it. Refused before comparing anyway, so that stays true even if
       // somebody one day sets it by hand.
@@ -611,11 +620,17 @@ export function setupAuth(app: Express) {
     const weak = newPasswordProblem(parsed.data.newPassword, null);
     if (weak) return res.status(400).json({ message: weak, code: 'weak_password' });
     try {
+      // The username is only known once the link is looked up, so the policy (including
+      // "password is not the username") is applied there, before the link is consumed.
       const result = await storage.redeemPasswordReset(
         parsed.data.token,
         await hashPassword(parsed.data.newPassword),
         req.ip ?? null,
+        (username) => newPasswordProblem(parsed.data.newPassword, username),
       );
+      if ('error' in result && result.error === 'weak_password') {
+        return res.status(400).json({ message: result.message, code: 'weak_password' });
+      }
       if ('error' in result) {
         // One answer for unknown, used and expired, as for invitations: telling them apart would
         // help someone probing for links.
@@ -669,14 +684,16 @@ export function setupAuth(app: Express) {
       ) {
         const { runWithTenant, withTenantTransaction } =
           await import('../platform/middleware/tenancy');
-        const { issuePasswordReset } = await import('./password-reset');
+        const { issueSelfServiceReset } = await import('./password-reset');
         const issued = await runWithTenant(user.organizationId, () =>
           withTenantTransaction(async (tx) => {
-            const reset = await issuePasswordReset(tx, {
+            // Never replaces a pending link: an anonymous caller must not cancel someone's reset.
+            const reset = await issueSelfServiceReset(tx, {
               organizationId: user.organizationId!,
               userId: user.id,
               createdBy: null,
             });
+            if (!reset) return null;
             const { recordAudit } = await import('../tenancy/audit');
             await recordAudit(tx, {
               action: AUDIT_ACTIONS.PASSWORD_RESET_ISSUED,
@@ -692,6 +709,7 @@ export function setupAuth(app: Express) {
             return reset;
           }),
         );
+        if (!issued) return res.status(202).json(answer);
         const { publicBase } = await import('../http/routes/sso.routes');
         const sent = await sendMail({
           ...passwordResetMail({

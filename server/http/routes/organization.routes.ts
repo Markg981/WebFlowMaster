@@ -36,6 +36,7 @@ import {
   setMemberRole,
 } from '../../tenancy/organization-memberships';
 import { issuePasswordReset } from '../../identity/password-reset';
+import { hashInvitationToken } from '../../platform/invitation-token';
 import logger from '../../platform/logger';
 import { liveRunCounts, quotaUsage, quotasFor } from '../../tenancy/tenant-quotas';
 import { availableRunnerCount } from '../../runtime/runner-registry';
@@ -403,7 +404,7 @@ router.post(
             organizationId,
             username: parsed.data.username,
             role: parsed.data.role,
-            token,
+            token: hashInvitationToken(token),
             invitedByUserId: req.user!.id,
             expiresAt,
           })
@@ -440,7 +441,7 @@ router.post(
           organizationId,
           base: publicBase(req),
           username: created.username,
-          token: created.token,
+          token,
           role: created.role,
           organizationName: org?.name ?? 'your organization',
           invitedBy: req.user!.username,
@@ -451,7 +452,7 @@ router.post(
         id: created.id,
         username: created.username,
         role: created.role,
-        token: created.token,
+        token,
         expiresAt: created.expiresAt,
         // The owner is told which: an existing account joins by signing in and opening the link,
         // not by registering.

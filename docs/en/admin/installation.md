@@ -178,7 +178,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 | Variable             | Protects                                                                                       | If it changes                                             | If it leaks                                                  |
 | -------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------ |
-| `SESSION_SECRET`     | Session cookies (and agent tickets, unless `AGENT_RELAY_SECRET` is set)                        | Everyone is signed out                                    | Sessions can be forged: replace it                           |
+| `SESSION_SECRET`     | Session cookies                                                                                | Everyone is signed out                                    | Sessions can be forged: replace it                           |
 | `ENCRYPTION_KEY`     | Environment secrets, tracker and source-host tokens, saved login states, second-factor secrets | **Everything encrypted with it becomes unreadable**       | Those secrets are exposed: rotate them at their source       |
 | `AGENT_RELAY_SECRET` | Tickets that let a runner borrow a local agent's browser                                       | Runs on agents fail until every process has the new value | Anyone who can reach the relay could borrow agents' browsers |
 
@@ -252,7 +252,7 @@ plus:
 - `ARTIFACT_STORE=s3` and the bucket settings, so what it records can be served and compared.
 - `AGENT_RELAY_URL`: where to reach the web process's relay, if organizations use local agents.
   The default is the worker's own machine, which only works when both run on the same one.
-- `AGENT_RELAY_SECRET` (or the same `SESSION_SECRET`) for the same reason.
+- `AGENT_RELAY_SECRET` for the same reason.
 - `WEBFLOW_PUBLIC_URL`, because the worker sends the notifications and commit statuses at the
   end of a run.
 - The browsers: the Playwright image has them; elsewhere run

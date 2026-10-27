@@ -54,6 +54,15 @@ export async function setupAgentRelay(server: Server): Promise<AgentRelay> {
     },
     secret: () => relaySecret(),
     cluster,
+    // With several instances a replay may reach another one: the claim lives in Redis.
+    claimTicket: cluster
+      ? async (jti, ttlMs) => {
+          const { connection } = await import('../../platform/redis');
+          return (
+            (await connection.set(`agent-relay:ticket:${jti}`, '1', 'PX', ttlMs, 'NX')) === 'OK'
+          );
+        }
+      : undefined,
     log: (level, message, meta) => logger[level]({ message, ...meta }),
   });
   if (cluster)

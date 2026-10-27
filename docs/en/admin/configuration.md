@@ -154,11 +154,11 @@ worker beats every `WORK_ITEM_HEARTBEAT_MS` and with every progress it writes.
 
 ## Local agents
 
-| Variable                    | Read by | Default                   | Description                                                                                                                            |
-| --------------------------- | ------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENT_RELAY_SECRET`        | both    | `SESSION_SECRET`          | Signs the one-minute tickets with which a runner borrows an agent's browser. Must be the same in the web processes and every worker.   |
-| `AGENT_RELAY_URL`           | worker  | `http://127.0.0.1:<PORT>` | Where workers reach the relay in the web process. Set it whenever workers run on other machines or containers, e.g. `http://api:5000`. |
-| `AGENT_RELAY_ADVERTISE_URL` | web     | none                      | With several web processes: this one's own address as the others reach it. Agents connected to one instance are then usable from all.  |
+| Variable                    | Read by | Default                   | Description                                                                                                                                                                                                                                                            |
+| --------------------------- | ------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENT_RELAY_SECRET`        | both    | required in production    | Signs the one-minute, single-use tickets with which a runner borrows an agent's browser. Production refuses to use agents without it (no fallback to `SESSION_SECRET`; development falls back with a warning). Must be the same in the web processes and every worker. |
+| `AGENT_RELAY_URL`           | worker  | `http://127.0.0.1:<PORT>` | Where workers reach the relay in the web process. Set it whenever workers run on other machines or containers, e.g. `http://api:5000`.                                                                                                                                 |
+| `AGENT_RELAY_ADVERTISE_URL` | web     | none                      | With several web processes: this one's own address as the others reach it. Agents connected to one instance are then usable from all.                                                                                                                                  |
 
 ## Mobile app tests
 

@@ -105,7 +105,7 @@ list still applies: each browser is borrowed from the pool.
 
 | Variable                    | Where                         | Meaning                                                                                                                                                                                                     |
 | --------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENT_RELAY_SECRET`        | web and worker                | Signs the tickets. Defaults to `SESSION_SECRET`; set it explicitly when the worker does not share the web server's session secret.                                                                          |
+| `AGENT_RELAY_SECRET`        | web and worker                | Signs the tickets. Required in production (no fallback to `SESSION_SECRET`; development falls back with a warning). Each ticket works once.                                                                 |
 | `AGENT_RELAY_URL`           | worker                        | Where the runner reaches the relay. Defaults to `http://127.0.0.1:$PORT`, which is right when the worker runs in the web process. With separate workers, point it at the web server (or its load balancer). |
 | `AGENT_RELAY_ADVERTISE_URL` | web, with several web servers | This web server's own address as the other web servers reach it (pod IP, container name — not the load balancer). Setting it turns on the shared directory in Redis.                                        |
 
