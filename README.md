@@ -152,6 +152,10 @@ npm run format:check                     # Prettier; `npm run format` fixes what
 npm run any-budget                       # explicit `any` per area may only go down (scripts/any-budget.json)
 npm test                                 # server tests (Vitest, one PGlite per file) and the BDD runtime;
                                          # needs Redis on REDIS_URL and Chromium (npx playwright install chromium).
+                                         # ~0.5 GB RAM per worker (one PGlite each); workers default to
+                                         # min(cores, RAM/1 GB). On "WebAssembly.Memory ... could not
+                                         # allocate memory": VITEST_MAX_WORKERS=2 npm test
+                                         # (en: docs/en/internals/contributing-guide.md; it: docs/it/...)
                                          # CI runs test:coverage, which also enforces the coverage thresholds
 npm run test:client -- --run             # client tests (CI runs them with coverage)
 npm run test:release                     # release packaging and publication guards
