@@ -16,6 +16,7 @@ import { reviewRequired } from '../../authoring/test-publishing';
 import { publicExecution } from '../../execution/execution-provenance';
 import { requireRole } from '../middleware/require-role';
 import { DEMO_SHOP_PATH } from './demo-shop.routes';
+import { publicBase } from './sso.routes';
 
 /**
  * POST /api/sample-project — "Start with a sample project": creates the Northwind Shop sample in
@@ -47,8 +48,7 @@ const sampleProjectLimiter = rateLimit({
 export function demoShopUrl(req: Request, env: NodeJS.ProcessEnv = process.env): string {
   const explicit = env.DEMO_SHOP_URL?.trim();
   if (explicit) return explicit.replace(/\/+$/, '');
-  const base =
-    env.WEBFLOW_PUBLIC_URL?.trim().replace(/\/+$/, '') || `${req.protocol}://${req.get('host')}`;
+  const base = publicBase(req, env);
   return `${base}${DEMO_SHOP_PATH}`;
 }
 

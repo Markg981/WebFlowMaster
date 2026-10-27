@@ -24,6 +24,7 @@
     "import-netcontent-api.ts",
     "apply-migrations.ts",
     "migrator-env.ts",
+    "../server/platform/advisory-lock.ts",
     "database-target.ts",
     "schema-doctor.ts",
     "wfm-load.ts",

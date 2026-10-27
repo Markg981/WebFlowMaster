@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { eq } from 'drizzle-orm';
 import { tests } from '@shared/schema';
 import { catalogQuerySchema } from '@shared/catalog';
@@ -16,7 +17,7 @@ for (const type of ['tests', 'api-tests', 'mobile-tests', 'test-data'] as Catalo
     if (!parsed.success)
       return res
         .status(400)
-        .json({ error: 'Invalid catalog query', details: parsed.error.flatten() });
+        .json({ error: 'Invalid catalog query', details: flattenZodError(parsed.error) });
     const query = parsed.data;
     if (
       (query.status !== undefined && type !== 'tests') ||

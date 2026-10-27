@@ -65,7 +65,20 @@ async function applyMigrations() {
   }
 }
 
-await applyMigrations();
+try {
+  await applyMigrations();
+} catch (error) {
+  if (
+    error instanceof Error &&
+    /WebAssembly\.Memory|could not allocate memory/i.test(error.message)
+  ) {
+    console.error(
+      '\nNot enough memory to start another PGlite (WASM) instance: each test worker needs ~0.5 GB.\n' +
+        'Lower the parallelism, e.g. VITEST_MAX_WORKERS=2 npm test (or npx vitest run --maxWorkers=2).\n',
+    );
+  }
+  throw error;
+}
 
 // Only when run as a script (npm run test:setup-db, and the CI job that migrates a real
 // Postgres once before the suite). Exiting while running as a Vitest setup file would kill the

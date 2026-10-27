@@ -218,6 +218,28 @@ describe('Forgot your password?', () => {
     expect(entry.metadata).toMatchObject({ requestedByEmail: true });
     expect(JSON.stringify(entry.metadata)).not.toContain(token);
   });
+  it('builds the reset link from WEBFLOW_PUBLIC_URL, ignoring a malicious Host header', async () => {
+    mailerDeps.transport = transport as any;
+    const previous = process.env.WEBFLOW_PUBLIC_URL;
+    process.env.WEBFLOW_PUBLIC_URL = 'https://wfm.example.com/';
+    try {
+      await request(app)
+        .post('/api/register')
+        .send({ username: 'bob@shop.test', password: 'first-password' })
+        .expect(201);
+      await request(app)
+        .post('/api/password-reset/request')
+        .set('Host', 'evil.example')
+        .send({ username: 'bob@shop.test' })
+        .expect(202);
+      expect(sent).toHaveLength(1);
+      expect(sent[0].text).toContain('https://wfm.example.com/');
+      expect(sent[0].text).not.toContain('evil.example');
+    } finally {
+      if (previous === undefined) delete process.env.WEBFLOW_PUBLIC_URL;
+      else process.env.WEBFLOW_PUBLIC_URL = previous;
+    }
+  });
 });
 
 describe('run notifications by e-mail', () => {

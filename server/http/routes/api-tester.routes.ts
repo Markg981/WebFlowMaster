@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
@@ -84,7 +85,7 @@ router.post(
     if (!parseResult.success) {
       return res
         .status(400)
-        .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
+        .json({ error: 'Invalid request payload', details: flattenZodError(parseResult.error) });
     }
     const { environmentId, ...spec } = parseResult.data;
 
@@ -146,7 +147,7 @@ router.post(
     if (!parseResult.success) {
       return res
         .status(400)
-        .json({ error: 'Invalid history data', details: parseResult.error.flatten() });
+        .json({ error: 'Invalid history data', details: flattenZodError(parseResult.error) });
     }
     // The environment the request ran in, so its values can be taken back out of what is
     // stored. Only the environment's own values: the defaults (baseUrl) are configuration,

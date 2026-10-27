@@ -702,6 +702,8 @@ export const AUDIT_ACTIONS = {
   // unknown one belongs to no organization, and a trail of it would be a list of guesses.
   LOGIN_SUCCEEDED: 'auth.login',
   LOGIN_FAILED: 'auth.login_failed',
+  // An account stopped answering for a while: too many wrong passwords or second-factor codes.
+  ACCOUNT_LOCKED: 'auth.account_locked',
   LOGOUT: 'auth.logout',
   // What the organization's tests are, and what runs them.
   TEST_CREATED: 'test.created',

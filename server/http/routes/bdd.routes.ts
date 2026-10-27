@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -46,7 +47,7 @@ for (const method of ['post', 'put'] as const) {
       if (!parsed.success)
         return res
           .status(400)
-          .json({ error: 'Invalid BDD profile', details: parsed.error.flatten() });
+          .json({ error: 'Invalid BDD profile', details: flattenZodError(parsed.error) });
       try {
         const row = await withTenantTransaction(async (tx) => {
           if (method === 'put') {

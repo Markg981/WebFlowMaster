@@ -28,11 +28,52 @@ export class ApiError extends Error {
  * ApiError.message is "400: {\"message\":...}", meant for logs; pages that put it on screen
  * showed the JSON to whoever mistyped a password.
  */
+/** First readable "field: message" out of a zod flatten ({formErrors, fieldErrors}) or zod 4 tree ({errors, properties}). */
+export function validationMessage(details: unknown): string | undefined {
+  if (!details || typeof details !== 'object') return undefined;
+  const d = details as Record<string, any>;
+  const first = (v: unknown): string | undefined =>
+    Array.isArray(v) ? v.find((x) => typeof x === 'string' && x) : undefined;
+  if (d.fieldErrors && typeof d.fieldErrors === 'object') {
+    for (const [field, msgs] of Object.entries(d.fieldErrors)) {
+      const m = first(msgs);
+      if (m) return `${field}: ${m}`;
+    }
+  }
+  const form = first(d.formErrors) ?? first(d.errors);
+  if (d.properties && typeof d.properties === 'object') {
+    for (const [field, sub] of Object.entries(d.properties)) {
+      const m = first((sub as any)?.errors);
+      if (m) return `${field}: ${m}`;
+    }
+  }
+  return form;
+}
+
+/**
+ * What to show a person for a failed request: the field-level validation error when the server
+ * sent one, else its own sentence. ApiError.message is "400: {\"message\":...}", meant for logs;
+ * pages that put it on screen showed the JSON to whoever mistyped a password.
+ */
 export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.body && typeof error.body === 'object') {
-    const { message, error: text } = error.body as { message?: unknown; error?: unknown };
-    if (typeof message === 'string' && message) return message;
-    if (typeof text === 'string' && text) return text;
+  let body: unknown;
+  if (error instanceof ApiError) body = error.body;
+  else if (error instanceof Error) {
+    const m = /^\d{3}: (\{[\s\S]*\})$/.exec(error.message);
+    if (m) {
+      try {
+        body = JSON.parse(m[1]);
+      } catch {
+        /* not JSON */
+      }
+    }
+  }
+  if (body && typeof body === 'object') {
+    const b = body as { message?: unknown; error?: unknown; details?: unknown };
+    const v = validationMessage(b.details) ?? validationMessage(b);
+    if (v) return v;
+    if (typeof b.message === 'string' && b.message) return b.message;
+    if (typeof b.error === 'string' && b.error) return b.error;
   }
   return error instanceof Error ? error.message : String(error);
 }

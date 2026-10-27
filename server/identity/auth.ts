@@ -1,7 +1,8 @@
 import passport from 'passport';
 import { trustProxySetting } from '../platform/trust-proxy';
+import { flattenZodError } from '../http/zod-error';
 import { Strategy as LocalStrategy } from 'passport-local';
-import { Express, type RequestHandler } from 'express';
+import { Express, type RequestHandler, type Response } from 'express';
 import session from 'express-session';
 import { createHmac, scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
@@ -20,6 +21,12 @@ import { RedisStore } from 'connect-redis';
 import { storage } from './storage';
 import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from '@shared/schema';
 import { recordAudit } from '../tenancy/audit';
+import {
+  registerAttempt,
+  clearAttempts,
+  usernameKey,
+  type ThrottleVerdict,
+} from './login-throttle';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import logger from '../platform/logger';
 import { isMfaEnabled, mfaStatus, verifySecondFactor } from './mfa';
@@ -162,6 +169,32 @@ export function createSessionStore(): session.Store {
       'Sessions will not persist across restarts. Start Redis to use the shared store.',
   );
   return new MemoryStore({ checkPeriod: 86400000 });
+}
+
+function refuseLocked(res: Response, verdict: ThrottleVerdict) {
+  res.setHeader('Retry-After', String(verdict.retryAfterSeconds));
+  return res.status(429).json({ message: 'Too many attempts, please try again later.' });
+}
+
+/** The audit line for a lock: once per window, and only for an account that exists. */
+async function reportLock(
+  verdict: ThrottleVerdict,
+  factor: 'password' | 'mfa',
+  who: unknown,
+  ip: string | undefined,
+) {
+  if (!verdict.justLocked) return;
+  const user =
+    typeof who === 'object' && who
+      ? (who as SelectUser)
+      : typeof who === 'string'
+        ? await storage.getUserByUsername(who)
+        : undefined;
+  if (!user) return;
+  await recordAuthEvent(user, AUDIT_ACTIONS.ACCOUNT_LOCKED, ip, {
+    factor,
+    retryAfterSeconds: verdict.retryAfterSeconds,
+  });
 }
 
 // Rate limiter applied to authentication endpoints to slow down brute-force attempts.
@@ -315,7 +348,7 @@ export function setupAuth(app: Express) {
       if (!parsed.success) {
         res.status(400).json({
           message: 'Invalid registration data',
-          errors: parsed.error.flatten().fieldErrors,
+          errors: flattenZodError(parsed.error).fieldErrors,
         });
         return;
       }
@@ -407,11 +440,23 @@ export function setupAuth(app: Express) {
    * Until then the session is as anonymous as it was — req.user is not set — so a password
    * alone reaches nothing.
    */
-  app.post('/api/login', authLimiter, (req, res, next) => {
+  app.post('/api/login', authLimiter, async (req, res, next) => {
+    // Per account, whatever the address: counted by the name typed, existing or not.
+    const throttleKey = usernameKey(req.body?.username);
+    try {
+      const verdict = await registerAttempt('password', throttleKey);
+      if (verdict.locked) {
+        await reportLock(verdict, 'password', req.body?.username, req.ip);
+        return refuseLocked(res, verdict);
+      }
+    } catch (error) {
+      return next(error);
+    }
     passport.authenticate('local', async (err: unknown, user: SelectUser | false) => {
       if (err) return next(err);
       if (!user) return res.status(401).json({ message: 'Unauthorized' });
       try {
+        await clearAttempts('password', throttleKey);
         // Said only after the password was right, so it tells a stranger nothing about who has an
         // account. Owners keep their password: they are the way back in if the provider fails.
         if (await ssoRequiredFor(user)) {
@@ -466,6 +511,12 @@ export function setupAuth(app: Express) {
         delete req.session.mfaPending;
         return res.status(401).json({ message: 'Unauthorized' });
       }
+      const mfaVerdict = await registerAttempt('mfa', String(user.id));
+      if (mfaVerdict.locked) {
+        delete req.session.mfaPending;
+        await reportLock(mfaVerdict, 'mfa', user, req.ip);
+        return refuseLocked(res, mfaVerdict);
+      }
       const method = await verifySecondFactor(
         user.id,
         user.organizationId,
@@ -489,6 +540,7 @@ export function setupAuth(app: Express) {
           .json({ message: 'That code is not valid.', code: 'mfa_code_invalid' });
       }
       delete req.session.mfaPending;
+      await clearAttempts('mfa', String(user.id));
       // req.login regenerates the session: the challenge's session id does not become the
       // signed-in one.
       req.login(user, async (loginError) => {
@@ -564,7 +616,7 @@ export function setupAuth(app: Express) {
     if (!parsed.success) {
       return res
         .status(400)
-        .json({ message: 'Invalid password', errors: parsed.error.flatten().fieldErrors });
+        .json({ message: 'Invalid password', errors: flattenZodError(parsed.error).fieldErrors });
     }
     const weak = newPasswordProblem(parsed.data.newPassword, (req.user as SelectUser).username);
     if (weak) return res.status(400).json({ message: weak, code: 'weak_password' });
@@ -608,7 +660,7 @@ export function setupAuth(app: Express) {
     if (!parsed.success) {
       return res
         .status(400)
-        .json({ message: 'Invalid request', errors: parsed.error.flatten().fieldErrors });
+        .json({ message: 'Invalid request', errors: flattenZodError(parsed.error).fieldErrors });
     }
     const weak = newPasswordProblem(parsed.data.newPassword, null);
     if (weak) return res.status(400).json({ message: weak, code: 'weak_password' });

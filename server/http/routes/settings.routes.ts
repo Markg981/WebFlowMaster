@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { AUDIT_ACTIONS, insertSystemSettingSchema } from '@shared/schema';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { requireInstallationAdmin } from '../../tenancy/installation-admin';
@@ -42,7 +43,7 @@ router.post(
     if (!parseResult.success) {
       return res
         .status(400)
-        .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
+        .json({ error: 'Invalid request payload', details: flattenZodError(parseResult.error) });
     }
     res.json(await saveUserSettings(req.user!.id, parseResult.data));
   }),
@@ -89,7 +90,7 @@ router.post(
     if (!parseResult.success) {
       return res
         .status(400)
-        .json({ error: 'Invalid request payload', details: parseResult.error.flatten() });
+        .json({ error: 'Invalid request payload', details: flattenZodError(parseResult.error) });
     }
     const { key, value } = parseResult.data;
     const saved = await upsertSystemSetting(key, value ?? null);

@@ -22,6 +22,7 @@ import { assertStartupConfig, connectSessionStore, startupConfigWarnings } from 
 import { inspectSchemaState, describeSchemaState } from './platform/schema-state';
 import { redactWebhookPath } from './identity/webhook-tokens';
 import { healthRouter } from './health';
+import { schedulerReadiness, startSchedulerWithRetry } from './execution/scheduler-boot';
 import { installProcessErrorHandlers } from './platform/process-errors';
 import scimRouter, { exceptScim, SCIM_BASE_PATH } from './http/routes/scim.routes';
 
@@ -37,6 +38,8 @@ app.use(
     database: () => privilegedDb.execute(sql`SELECT 1`),
     redis: () => redisConnection.ping(),
     sessions: () => process.env.NODE_ENV === 'test' || sessionRedis.isReady,
+    // 503 until the scheduler started, also after the retries ran out (audit A-08).
+    scheduler: schedulerReadiness,
   }),
 );
 app.use(applicationMetrics.middleware);
@@ -204,13 +207,8 @@ app.use(express.urlencoded({ extended: false }));
 
   // Initialize the scheduler after routes are registered and DB is presumably ready
   // In a real app, ensure DB connection/migration is complete before this.
-  try {
-    await schedulerService.initializeScheduler();
-    logger.info('Scheduler initialized successfully after routes.');
-  } catch (schedulerError) {
-    logger.error('Failed to initialize scheduler:', schedulerError);
-    // Decide if server should proceed or exit based on severity
-  }
+  // In the background: the API serves meanwhile and /readyz says 503 (scheduler) until it is up.
+  void startSchedulerWithRetry(() => schedulerService.initializeScheduler(), { log: logger });
 
   // Ends runs whose worker has stopped answering — see server/execution/run-recovery.ts. Here rather than
   // in the worker: when every worker is gone, somebody still has to say their runs are over.
@@ -227,6 +225,11 @@ app.use(express.urlencoded({ extended: false }));
   const { startArtifactRetention } = await import('./tenancy/artifact-retention');
   const stopArtifactRetention =
     process.env.NODE_ENV === 'test' ? () => {} : startArtifactRetention();
+
+  // Optional: AUDIT_LOG_RETENTION_DAYS / EVIDENCE_RETENTION_DAYS (off when unset) — see
+  // server/tenancy/data-retention.ts.
+  const { startDataRetention } = await import('./tenancy/data-retention');
+  const stopDataRetention = process.env.NODE_ENV === 'test' ? () => {} : startDataRetention();
 
   // Suspends past-due subscriptions past their grace and ends hand-set trials — see
   // server/tenancy/billing/service.ts.
@@ -294,6 +297,7 @@ app.use(express.urlencoded({ extended: false }));
         stopRunRecovery();
         stopOutboxDispatcher();
         stopArtifactRetention();
+        stopDataRetention();
         stopBillingSweep();
         const { closeBrowserTasks } = await import('./web/browser-tasks');
         await closeBrowserTasks();

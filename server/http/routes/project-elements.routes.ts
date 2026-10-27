@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -64,7 +65,7 @@ router.post('/api/projects/:projectId/elements', requireRole('editor'), async (r
 
   const parsed = elementBodySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
 
   try {
@@ -128,7 +129,7 @@ router.put('/api/project-elements/:id', requireRole('editor'), async (req, res) 
 
   const parsed = updateElementBodySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
   if (Object.keys(parsed.data).length === 0) {
     return res.status(400).json({ error: 'No update data provided.' });

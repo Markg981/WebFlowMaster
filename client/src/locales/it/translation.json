@@ -3178,6 +3178,7 @@
       "webhook_deleted": "Webhook eliminato",
       "auth_login": "Accesso",
       "auth_login_failed": "Accesso rifiutato",
+      "auth_account_locked": "Account bloccato temporaneamente",
       "auth_logout": "Uscita",
       "test_created": "Test creato",
       "test_updated": "Test modificato",

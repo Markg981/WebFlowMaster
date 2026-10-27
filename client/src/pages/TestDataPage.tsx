@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -204,7 +205,7 @@ export default function TestDataPage() {
       toast({
         variant: 'destructive',
         title: t('testData.deleteFailed', 'Not deleted'),
-        description: e.message,
+        description: errorMessage(e),
       }),
   });
 

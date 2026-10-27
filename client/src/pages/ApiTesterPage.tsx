@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, History, Save, ListChecks } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, errorMessage } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import { useIsDark } from '@/hooks/use-is-dark';
 import { HistoryPanel } from '@/components/api-tester/HistoryPanel';
@@ -259,7 +259,7 @@ const ApiTesterForm: React.FC = () => {
       console.error('Failed to save to history:', error);
       toast({
         title: t('apiTesterPage.notifications.historySaveFailed.title', 'Error Saving History'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
         duration: 3000,
       });
@@ -409,7 +409,7 @@ const ApiTesterForm: React.FC = () => {
       setAssertionResults(null);
       toast({
         title: t('apiTesterPage.notifications.requestFailed.title', 'Request Failed'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
       console.error('API Proxy Request Error:', error);
@@ -605,7 +605,7 @@ const ApiTesterForm: React.FC = () => {
     onError: (error) => {
       toast({
         title: t('apiTesterPage.notifications.saveFailed.title', 'Save Test Failed'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
     },
@@ -630,7 +630,7 @@ const ApiTesterForm: React.FC = () => {
     onError: (error) => {
       toast({
         title: t('apiTesterPage.notifications.deleteFailed.title', 'Delete Test Failed'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
     },
