@@ -100,6 +100,7 @@ jobs:
             .local/restore-drill/*/*-evidence.json
           if-no-files-found: warn
           retention-days: 7
+          retention-days: 7
 
   # Static checks, unit suites, the acceptance catalog and the build used to run one after the
   # other in a single job, so a PR waited for all of them in sequence. They share nothing but
@@ -230,7 +231,7 @@ jobs:
         with:
           name: coverage-server
           path: coverage/
-          retention-days: 14
+          retention-days: 3
           if-no-files-found: ignore
 
   # Was missing: the client suite existed and CI never ran it.
@@ -260,7 +261,7 @@ jobs:
         with:
           name: coverage-client
           path: client/coverage/
-          retention-days: 14
+          retention-days: 3
           if-no-files-found: ignore
 
   collaudo:
@@ -325,7 +326,7 @@ jobs:
           name: application-bundles
           path: dist/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
   network-on-guarded-installation:
     needs: changes

@@ -26,6 +26,11 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  # build-push-action uploads a build record per build; on every PR run they filled the
+  # artifact quota and nothing reads them.
+  DOCKER_BUILD_RECORD_UPLOAD: false
+
 jobs:
   validate:
     runs-on: ubuntu-24.04
@@ -81,7 +86,7 @@ jobs:
           name: release-metadata
           path: release-artifacts/*.json
           if-no-files-found: error
-          retention-days: 30
+          retention-days: ${{ github.event_name == 'pull_request' && 5 || 30 }}
 
   build-and-scan:
     needs: validate
@@ -192,7 +197,7 @@ jobs:
             release-artifacts/${{ matrix.role }}/*.json
             release-artifacts/${{ matrix.role }}/config-digest.txt
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: ${{ github.event_name == 'pull_request' && 5 || 30 }}
 
   promote:
     if: github.event_name == 'push' && github.ref_type == 'tag'
