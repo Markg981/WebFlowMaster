@@ -6106,6 +6106,34 @@
       "expected": "Il passaggio a B con Richiedi SSO attivo è rifiutato (sso_required). Il ritorno ad A riesce e la sessione del provider di A resta valida lì. Con il secondo fattore obbligatorio su B la sessione viene mandata all'attivazione del secondo fattore."
     },
     {
+      "id": "SSO-36",
+      "area": "SSO",
+      "title": "Collegamento per indirizzo rifiutato per owner e account con secondo fattore",
+      "priority": "P1",
+      "actor": "Owner dell'organizzazione e persona con account esistente",
+      "preconditions": "Provider OpenID Connect attivo con dominio verificato. Un account owner e un account con secondo fattore attivo hanno come username un indirizzo del dominio, senza identità SSO.",
+      "steps": [
+        "Accedere con Sign in with SSO usando l'indirizzo dell'owner.",
+        "Ripetere con l'indirizzo dell'account con secondo fattore.",
+        "Accedere con la password e controllare il registro di audit."
+      ],
+      "expected": "Entrambi gli accessi sono rifiutati con il messaggio che chiede di accedere con la password; nessuna identità SSO viene creata; il registro di audit contiene due voci sso.link_refused."
+    },
+    {
+      "id": "SSO-37",
+      "area": "SSO",
+      "title": "Indirizzo non verificato dal provider OpenID Connect",
+      "priority": "P1",
+      "actor": "Owner dell'organizzazione e persona con account esistente",
+      "preconditions": "Provider OpenID Connect che invia email_verified assente; impostazione trustUnverifiedEmail disattiva. Verifica dei domini attiva (SSO_REQUIRE_DOMAIN_VERIFICATION non impostata).",
+      "steps": [
+        "Accedere con SSO: il token non contiene email_verified.",
+        "Attivare trustUnverifiedEmail dal PUT /api/organization/sso e ripetere.",
+        "Con un dominio non verificato provare di nuovo ad accedere."
+      ],
+      "expected": "Il primo accesso è rifiutato (email_unverified); con trustUnverifiedEmail attivo riesce, anche con preferred_username al posto di email; con il dominio non verificato l'accesso non è instradato (unknown_domain)."
+    },
+    {
       "id": "ADM-12",
       "area": "ADM",
       "title": "Invito HTML",

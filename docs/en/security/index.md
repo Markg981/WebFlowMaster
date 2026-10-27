@@ -256,8 +256,9 @@ Stated so a review can weigh them, not discovered later:
   [advanced SAML configuration](../admin/administration.md#single-sign-on) before enabling these options.
   Without a required group, a person removed here but not at the provider gets
   a new account at their next sign-in, so access is ended at the provider. E-mail domains are
-  proven by a DNS TXT record; proof is required only with `SSO_REQUIRE_DOMAIN_VERIFICATION=true`,
-  and without it, on a shared installation, the first organization to claim a domain has it.
+  proven by a DNS TXT record; proof is required by default (`SSO_REQUIRE_DOMAIN_VERIFICATION=false` opts out, unsafe
+  on a shared installation). OpenID Connect needs `email_verified: true` unless the provider is
+  set to `trustUnverifiedEmail`, and an owner or MFA account is never linked by address alone.
 - **Password complexity is opt-in**: the default policy checks length only; `PASSWORD_POLICY=strong`
   adds length 12, character mix, no username and no common passwords. Without SMTP, invitation and
   reset links are handed over by the owner.

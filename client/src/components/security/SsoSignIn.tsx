@@ -26,6 +26,7 @@ export const SSO_ERRORS = [
   'account_linked',
   'browser_mismatch',
   'no_group',
+  'link_requires_local_signin',
 ] as const;
 
 export function ssoErrorFromUrl(): string {
@@ -85,6 +86,10 @@ export default function SsoSignIn({ open: openAtStart = false }: { open?: boolea
     account_linked: t(
       'sso.errors.account_linked',
       'Your address is already linked to another identity at your provider. Ask an owner of your organization.',
+    ),
+    link_requires_local_signin: t(
+      'sso.errors.link_requires_local_signin',
+      'This account is an owner or uses a second factor. Sign in with your password and link single sign-on from your settings.',
     ),
     browser_mismatch: t(
       'sso.errors.browser_mismatch',

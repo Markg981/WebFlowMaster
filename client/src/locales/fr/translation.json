@@ -3907,7 +3907,8 @@
       "account_disabled": "Ce compte est désactivé.",
       "account_linked": "Votre adresse est déjà liée à une autre identité chez votre fournisseur. Demandez à un propriétaire de votre organisation.",
       "browser_mismatch": "Cette connexion a été lancée dans un autre navigateur. Relancez-la ici.",
-      "no_group": "Votre compte chez le fournisseur d'identité n'est dans aucun des groupes admis par cette organisation. Adressez-vous à votre administrateur."
+      "no_group": "Votre compte chez le fournisseur d'identité n'est dans aucun des groupes admis par cette organisation. Adressez-vous à votre administrateur.",
+      "link_requires_local_signin": "Ce compte est propriétaire ou utilise un second facteur. Connectez-vous avec votre mot de passe et liez l'authentification unique depuis vos paramètres."
     },
     "protocol": "Protocole",
     "saml": {

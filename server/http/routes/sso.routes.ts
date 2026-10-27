@@ -103,6 +103,7 @@ const settingsSchema = z.object({
     .max(100)
     .optional(),
   requireGroup: z.boolean().optional(),
+  trustUnverifiedEmail: z.boolean().optional(),
 });
 
 // GET /api/organization/sso — the settings (never the secret) and the address to register.
