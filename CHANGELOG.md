@@ -139,3 +139,4 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 - Keep request values out of log message text ([#362](https://github.com/Markg981/WebFlowMaster/pull/362))
 - The code editor ships a patched dompurify in place of the copy Monaco vendors ([#460](https://github.com/Markg981/WebFlowMaster/pull/460))
 - Move to zod 4; partial updates no longer reset fields to their defaults ([#466](https://github.com/Markg981/WebFlowMaster/pull/466))
+- Patched dompurify, msal-node, body-parser, multer, undici and zod clear the release vulnerability gate ([#476](https://github.com/Markg981/WebFlowMaster/pull/476))
