@@ -4,6 +4,7 @@ import { migrate as migratePglite } from 'drizzle-orm/pglite/migrator';
 import { privilegedDb } from '../server/platform/db'; // Reuses the driver selection logic (Postgres vs PGlite)
 import * as path from 'path';
 import { inspectSchemaState, describeSchemaState } from '../server/platform/schema-state';
+import { ADVISORY_KEYS, withBlockingAdvisoryLock } from '../server/platform/advisory-lock';
 import { describeDatabaseTarget } from './database-target';
 
 // Ensure DATABASE_URL is set
@@ -55,7 +56,7 @@ async function runMigrations() {
 
 // The schema inspection runs outside the try above; an unhandled rejection would print the whole
 // error object, and with it whatever the driver attached.
-runMigrations().catch((error) => {
+withBlockingAdvisoryLock(ADVISORY_KEYS.migrator, dbUrl, runMigrations).catch((error) => {
   console.error('Could not reach the database:', (error as Error)?.message ?? String(error));
   process.exit(1);
 });
