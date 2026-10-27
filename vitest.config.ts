@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import { defaultMaxWorkers } from './scripts/test-workers';
 
 export default defineConfig({
   test: {
@@ -14,6 +15,9 @@ export default defineConfig({
     // corrupts it, which is why this used to be singleFork + fileParallelism:false. Separate
     // instances in separate forks have nothing to contend over.
     pool: 'forks',
+    // One PGlite is ~0.5 GB resident, so the default worker count follows total memory (see
+    // scripts/test-workers.ts). Override with VITEST_MAX_WORKERS or --maxWorkers=N.
+    maxWorkers: defaultMaxWorkers(),
     // Every file's beforeAll applies the ten migrations to its own PGlite instance, which is
     // Postgres compiled to WASM — seconds of CPU, not milliseconds. With one fork per file
     // competing for cores (and some files driving a real browser), that setup regularly ran
