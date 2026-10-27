@@ -1,0 +1,11 @@
+-- Invitation tokens stored as a hash (security audit A-12).
+--
+-- `invitations.token` held the bearer token in clear while password-reset tokens and API keys were
+-- already stored as SHA-256. A read of the table (backup, SQL injection, an operator) yielded live
+-- invitation links. The column keeps its name and its UNIQUE constraint; it now holds the lower-case
+-- hex SHA-256 of the token, and every lookup hashes what it is given (server/platform/invitation-token.ts).
+--
+-- Existing rows are hashed in place, so a pending invitation already mailed keeps working. Accepted
+-- and expired rows are hashed too, so no clear token remains. Runs once (drizzle migrations are not
+-- re-run); sha256() is built in from PostgreSQL 11.
+UPDATE invitations SET token = encode(sha256(convert_to(token, 'UTF8')), 'hex');

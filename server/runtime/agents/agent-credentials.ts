@@ -1,5 +1,6 @@
 import { captureTrace } from '../../../shared/telemetry';
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
+import logger from '../../platform/logger';
 import { AGENT_POOL_PATTERN, AGENT_TOKEN_PREFIX, type AgentEngine } from '@shared/agents';
 import { BddAgentProfileSchema } from '@shared/bdd-agent';
 
@@ -44,16 +45,40 @@ export interface BrowserTicket {
   playwrightVersion: string;
   /** Milliseconds since the epoch. */
   expiresAt: number;
+  /**
+   * Unique per ticket, so the relay accepts each one once within its lifetime. Absent only on a
+   * ticket signed by a runner from before this field existed, which stays accepted (replayable for
+   * its minute) until the runners are updated.
+   */
+  jti?: string;
 }
 
 export const TICKET_LIFETIME_MS = 60_000;
 
-/** The secret tickets are signed with; the server and every runner must have the same one. */
+let warnedRelayFallback = false;
+
+/**
+ * The secret tickets are signed with; the server and every runner must have the same one.
+ *
+ * Production needs its own AGENT_RELAY_SECRET: borrowing SESSION_SECRET would make one leaked
+ * secret both forge sessions and open any organization's browsers. Elsewhere SESSION_SECRET is a
+ * convenience, with a warning.
+ */
 export function relaySecret(env: NodeJS.ProcessEnv = process.env): string {
-  const secret = env.AGENT_RELAY_SECRET || env.SESSION_SECRET;
-  if (!secret)
-    throw new Error('AGENT_RELAY_SECRET (or SESSION_SECRET) must be set to use local agents.');
-  return secret;
+  if (env.AGENT_RELAY_SECRET) return env.AGENT_RELAY_SECRET;
+  if (env.NODE_ENV === 'production')
+    throw new Error('AGENT_RELAY_SECRET must be set in production to use local agents.');
+  if (!env.SESSION_SECRET)
+    throw new Error(
+      'AGENT_RELAY_SECRET (or SESSION_SECRET outside production) must be set to use local agents.',
+    );
+  if (!warnedRelayFallback) {
+    warnedRelayFallback = true;
+    logger.warn(
+      '[agents] AGENT_RELAY_SECRET is not set; using SESSION_SECRET. Development only: production requires its own AGENT_RELAY_SECRET.',
+    );
+  }
+  return env.SESSION_SECRET;
 }
 
 function sign(payload: string, secret: string): string {
@@ -70,6 +95,7 @@ export function signTicket(
       ...ticket,
       traceContext: captureTrace(),
       expiresAt: now + TICKET_LIFETIME_MS,
+      jti: randomUUID(),
     }),
   ).toString('base64url');
   return `${payload}.${sign(payload, secret)}`;
@@ -95,6 +121,8 @@ export function verifyTicket(
   }
   if (typeof ticket.expiresAt !== 'number' || ticket.expiresAt < now)
     return { error: 'expired ticket' };
+  if (ticket.jti !== undefined && (typeof ticket.jti !== 'string' || ticket.jti.length > 100))
+    return { error: 'malformed ticket' };
   if (!Number.isInteger(ticket.organizationId) || !AGENT_POOL_PATTERN.test(ticket.pool))
     return { error: 'malformed ticket' };
   if (!['chromium', 'firefox', 'webkit'].includes(ticket.engine))

@@ -54,7 +54,7 @@ sequenceDiagram
 - Il **ticket** dice "questo runner può prendere in prestito un browser del pool di questa
   organizzazione, adesso". L'endpoint del relay per i browser sta sull'indirizzo pubblico che gli agenti
   chiamano, quindi senza ticket chiunque potrebbe prendere in prestito un browser dentro la rete di un
-  cliente. Un ticket è firmato con `AGENT_RELAY_SECRET` (che per default è `SESSION_SECRET`), indica
+  cliente. Un ticket è firmato con `AGENT_RELAY_SECRET` (obbligatoria in produzione; altrove `SESSION_SECRET` è un ripiego di sviluppo), indica
   organizzazione, pool, motore, canale, headless e la versione di Playwright del runner, e scade dopo 60
   secondi.
 

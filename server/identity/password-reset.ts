@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { passwordResets } from '@shared/schema';
 import type { TenantTx } from '../platform/middleware/tenancy';
 
@@ -38,25 +38,12 @@ export interface IssuedReset {
   expiresAt: Date;
 }
 
-/**
- * Issues a reset for `userId`, inside the caller's tenant transaction, replacing any unused one.
- * The caller checks that the user is a person in this organization.
- */
-export async function issuePasswordReset(
-  tx: TenantTx,
-  input: { organizationId: number; userId: number; createdBy: number | null },
-  now = new Date(),
-): Promise<IssuedReset> {
-  await tx
-    .delete(passwordResets)
-    .where(
-      and(
-        eq(passwordResets.userId, input.userId),
-        eq(passwordResets.organizationId, input.organizationId),
-        isNull(passwordResets.usedAt),
-      ),
-    );
+/** Pending links a person may hold at once when they ask for them themselves. */
+export const SELF_SERVICE_PENDING_CAP = 3;
 
+type ResetInput = { organizationId: number; userId: number; createdBy: number | null };
+
+async function insertReset(tx: TenantTx, input: ResetInput, now: Date): Promise<IssuedReset> {
   const token = randomBytes(32).toString('base64url');
   const id = randomUUID();
   const expiresAt = new Date(now.getTime() + PASSWORD_RESET_TTL_MS);
@@ -69,4 +56,51 @@ export async function issuePasswordReset(
     expiresAt,
   });
   return { id, token, expiresAt };
+}
+
+/**
+ * Issues a reset for `userId`, inside the caller's tenant transaction, replacing any unused one.
+ * The caller checks that the user is a person in this organization.
+ */
+export async function issuePasswordReset(
+  tx: TenantTx,
+  input: ResetInput,
+  now = new Date(),
+): Promise<IssuedReset> {
+  await tx
+    .delete(passwordResets)
+    .where(
+      and(
+        eq(passwordResets.userId, input.userId),
+        eq(passwordResets.organizationId, input.organizationId),
+        isNull(passwordResets.usedAt),
+      ),
+    );
+  return insertReset(tx, input, now);
+}
+
+/**
+ * The anonymous "Forgot your password?" request. It replaces nothing: otherwise anyone knowing a
+ * username could cancel that person's pending link by asking again. It adds a link while fewer than
+ * SELF_SERVICE_PENDING_CAP are still valid and returns null once the cap is reached, so the caller
+ * answers the same either way.
+ */
+export async function issueSelfServiceReset(
+  tx: TenantTx,
+  input: ResetInput,
+  now = new Date(),
+): Promise<IssuedReset | null> {
+  const [{ pending }] = await tx
+    .select({ pending: sql<number>`count(*)::int` })
+    .from(passwordResets)
+    .where(
+      and(
+        eq(passwordResets.userId, input.userId),
+        eq(passwordResets.organizationId, input.organizationId),
+        isNull(passwordResets.usedAt),
+        gt(passwordResets.expiresAt, now),
+      ),
+    );
+  if (pending >= SELF_SERVICE_PENDING_CAP) return null;
+  return insertReset(tx, input, now);
 }

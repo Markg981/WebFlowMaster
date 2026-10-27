@@ -20,6 +20,7 @@ import {
 import { privilegedDb } from '../platform/db';
 import { and, eq, desc, isNull, sql } from 'drizzle-orm';
 import { passwordResets } from '@shared/schema';
+import { hashInvitationToken } from '../platform/invitation-token';
 import { hashResetToken, issuePasswordReset, type IssuedReset } from './password-reset';
 import type { TenantTx } from '../platform/middleware/tenancy';
 import session from 'express-session';
@@ -189,7 +190,7 @@ export class DatabaseStorage implements IStorage {
       const [invitation] = await tx
         .select()
         .from(invitations)
-        .where(eq(invitations.token, token))
+        .where(eq(invitations.token, hashInvitationToken(token)))
         .limit(1);
 
       if (!invitation) return { error: 'invalid' as const };
@@ -267,7 +268,10 @@ export class DatabaseStorage implements IStorage {
     token: string,
     passwordHash: string,
     ipAddress: string | null,
-  ): Promise<User | { error: 'invalid' | 'expired' | 'used' }> {
+    passwordProblem?: (username: string) => string | null,
+  ): Promise<
+    User | { error: 'invalid' | 'expired' | 'used' } | { error: 'weak_password'; message: string }
+  > {
     return privilegedDb.transaction(async (tx) => {
       const [reset] = await tx
         .select()
@@ -277,6 +281,18 @@ export class DatabaseStorage implements IStorage {
       if (!reset) return { error: 'invalid' as const };
       if (reset.usedAt) return { error: 'used' as const };
       if (reset.expiresAt.getTime() <= Date.now()) return { error: 'expired' as const };
+
+      // The password policy needs the username, which only the link names. Checked before the link
+      // is claimed, so a refused password leaves it usable.
+      if (passwordProblem) {
+        const [owner] = await tx
+          .select({ username: users.username })
+          .from(users)
+          .where(eq(users.id, reset.userId))
+          .limit(1);
+        const problem = owner ? passwordProblem(owner.username) : null;
+        if (problem) return { error: 'weak_password' as const, message: problem };
+      }
 
       const claimed = await tx
         .update(passwordResets)
