@@ -9575,6 +9575,21 @@
       "expected": "L'editor si carica senza errori in console, evidenzia la sintassi e mostra i tooltip. Il testo incollato resta testo: nessun alert, nessuna immagine. Dopo il ricaricamento il body è identico."
     },
     {
+      "id": "SEC-68",
+      "area": "SEC",
+      "title": "Step queryDatabase verso destinazione vietata dalla policy di egress",
+      "priority": "P1",
+      "actor": "editor",
+      "preconditions": "Installazione con EGRESS_PRIVATE_TARGETS=deny. Un PostgreSQL raggiungibile su un indirizzo privato (es. 10.0.0.5:5432) e uno su un indirizzo pubblico. Ambiente con db.url modificabile.",
+      "steps": [
+        "Impostare db.url = postgres://utente:password@10.0.0.5:5432/x ed eseguire un test con lo step queryDatabase «SELECT 1».",
+        "Ripetere con mysql://…@10.0.0.5/x, con sqlserver://…@10.0.0.5\\SQLEXPRESS/x e con postgres://…@host-pubblico/x?host=10.0.0.5.",
+        "Ripetere con ?socketPath=/var/run/mysqld/mysqld.sock e con postgres:///x (socket unix).",
+        "Impostare db.url sul database pubblico ed eseguire di nuovo."
+      ],
+      "expected": "Ai passi 1-3 lo step fallisce con «Blocked by the egress policy: …» senza alcuna connessione al database (nessun errore ECONNREFUSED/timeout/autenticazione che riveli lo stato della rete interna). Al passo 4 la query riesce."
+    },
+    {
       "id": "OPS-49",
       "area": "OPS",
       "title": "Versione in un formato di dipendenze sconosciuto rifiutata prima della coda (R1)",
