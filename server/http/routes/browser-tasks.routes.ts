@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { type Response } from 'express';
 import { z } from 'zod';
 import {
@@ -67,7 +68,7 @@ function answerRefusal(error: unknown, res: Response, extra: Record<string, unkn
 function invalidPayload(res: Response, error: z.ZodError) {
   return res
     .status(400)
-    .json({ success: false, error: 'Invalid request payload', details: error.flatten() });
+    .json({ success: false, error: 'Invalid request payload', details: flattenZodError(error) });
 }
 
 router.post(

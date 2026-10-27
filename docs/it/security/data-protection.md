@@ -113,15 +113,25 @@ database, lo storage e i log.
 
 Cancellare un'organizzazione rimuove in una volta tutte le sue righe dal database. **Non**:
 
-- rimuove i suoi file dall'archivio degli artefatti (screenshot, video e trace sotto
-  `results/<planId>/`, baseline sotto `visual-baselines/org_<id>/`), che la conservazione non
-  trova più una volta spariti i run;
 - rimuove le righe di log già scritte (scadono con la conservazione dei log);
 - rimuove le copie nei backup dell'operatore, o nei sistemi a cui era collegata (issue tracker,
   stati dei commit, messaggi Slack o Teams).
 
-L'operatore completa la cancellazione rimuovendo i file; gli id dei piani sono nell'esportazione
-fatta prima di cancellare.
+Rimuove invece i file dell'organizzazione dall'archivio degli artefatti, disco locale o bucket
+compatibile S3 (screenshot, video e trace sotto `results/<planId>/<runId>/`, baseline sotto
+`visual-baselines/org_<id>/`), dopo le righe. Un prefisso che non si riesce a rimuovere finisce
+nel log (`Organization erased, but some of its files could not be removed`) e l'operatore lo
+rimuove a mano.
+
+Poiché il registro di audit se ne va con l'organizzazione, ogni cancellazione è scritta anche in
+`organization_erasures`, una tabella fuori dalle tabelle tenant, senza row level security e senza
+privilegi per il ruolo dell'applicazione: id e nome dell'organizzazione, chi l'ha chiesta,
+quando, righe eliminate per tabella e file rimossi o rimasti. Non contiene dati del tenant e si
+conserva.
+
+La cancellazione della singola persona (GDPR art. 17) non è ancora implementata: i membri si
+possono rimuovere, ma le loro voci di audit e i risultati continuano a nominarli. È un punto
+aperto.
 
 ## Evidenze grezze e credenziali esposte {#evidenze-grezze}
 
@@ -183,14 +193,37 @@ Procedura per un'installazione aggiornata da una release di quel tipo:
 
 ## Conservazione in sintesi
 
-| Cosa                                | Default    | Impostazione                                                     |
-| ----------------------------------- | ---------- | ---------------------------------------------------------------- |
-| Evidenze dei run                    | 90 giorni  | `ARTIFACT_RETENTION_DAYS`                                        |
-| Log dell'applicazione               | 7 giorni   | **Impostazioni → Sistema**, primo valore da `LOG_RETENTION_DAYS` |
-| Sessioni                            | 7 giorni   | Fisso                                                            |
-| Token degli inviti                  | 7 giorni   | Fisso                                                            |
-| Runner che non si fanno più sentire | 7 giorni   | Fisso                                                            |
-| Risultati, test, registro di audit  | Conservati | Rimossi con l'organizzazione                                     |
+| Cosa                                    | Default    | Impostazione                                                                      |
+| --------------------------------------- | ---------- | --------------------------------------------------------------------------------- |
+| Evidenze dei run                        | 90 giorni  | `ARTIFACT_RETENTION_DAYS`                                                         |
+| Log dell'applicazione                   | 7 giorni   | **Impostazioni → Sistema**, primo valore da `LOG_RETENTION_DAYS`                  |
+| Sessioni                                | 7 giorni   | Fisso                                                                             |
+| Token degli inviti                      | 7 giorni   | Fisso                                                                             |
+| Runner che non si fanno più sentire     | 7 giorni   | Fisso                                                                             |
+| Risultati, test                         | Conservati | Rimossi con l'organizzazione                                                      |
+| Registro di audit                       | Conservato | `AUDIT_LOG_RETENTION_DAYS` (se non impostata resta); rimosso con l'organizzazione |
+| Riferimenti alle evidenze dei tentativi | Conservati | `EVIDENCE_RETENTION_DAYS` (se non impostata restano)                              |
+| Backup di database e file               | Operatore  | **La finestra di conservazione dei backup è responsabilità dell'operatore**       |
+
+### Retention opzionale sul database
+
+Due impostazioni, spente se non impostate, vuote o `0` (il comportamento di prima):
+
+- `AUDIT_LOG_RETENTION_DAYS` elimina le voci di audit più vecchie di quei giorni. La tabella è
+  append-only per l'applicazione; lo sweep usa la connessione privilegiata, la stessa della
+  cancellazione di un'organizzazione. Scegliere una finestra coerente con i propri obblighi di
+  accountability: le voci eliminate non si recuperano.
+- `EVIDENCE_RETENTION_DAYS` svuota i riferimenti alle evidenze e il motivo di fallimento dei
+  tentativi terminati prima di quella soglia. Tentativo ed esito restano.
+
+I HAR sono ripuliti alla registrazione: i body non vengono mai salvati, gli header
+`Authorization`, `Cookie`, `Set-Cookie` e simili, i parametri di query che sembrano credenziali e
+i form inviati sono sostituiti da `[redacted]`. I trace Playwright non sono redatti e seguono
+`ARTIFACT_RETENTION_DAYS`.
+
+I backup di database e artifact store conservano le proprie copie per quanto stabilisce la
+politica di backup dell'operatore. **La finestra di conservazione dei backup è responsabilità
+dell'operatore**: una cancellazione o uno sweep di retention li raggiunge solo alla loro scadenza.
 
 ## Raccomandazioni per le organizzazioni
 

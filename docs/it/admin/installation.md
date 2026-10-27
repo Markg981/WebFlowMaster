@@ -200,9 +200,14 @@ altrimenti).
 - **WebSocket.** Inoltrate le intestazioni `Upgrade` e `Connection`. Ne dipendono due funzioni:
   i log in tempo reale su `/ws` e il relay degli agenti locali su `/api/agent/v1/`. Consentite
   connessioni di lunga durata (un timeout di inattività di almeno qualche minuto) su quei percorsi.
-- **Intestazioni inoltrate.** Il server si fida di un solo proxy (`X-Forwarded-For`,
-  `X-Forwarded-Proto`), ed è da lì che prendono l'indirizzo IP l'audit e i limiti di frequenza.
-  Mettete esattamente un proxy davanti, altrimenti gli indirizzi registrati sono quelli del proxy.
+- **Intestazioni inoltrate.** `TRUST_PROXY` dice a quanti passaggi di proxy crede il server
+  (`X-Forwarded-For`, `X-Forwarded-Proto`); audit e limiti di frequenza per indirizzo (accesso,
+  SCIM, API) usano il risultato. Il default è `1`. Deve corrispondere alla catena reale: `1` o
+  `2` per altrettanti proxy, `false` se il server è raggiunto direttamente (altrimenti chiunque
+  può inviare un `X-Forwarded-For` a rotazione e aggirare ogni limite), oppure un elenco di
+  IP/CIDR dei proxy (`10.0.0.0/8,loopback`). Troppo basso: ogni client sembra il proxy; troppo
+  alto: i client possono falsificare l'indirizzo. Se non impostato, in produzione all'avvio viene
+  registrato un avviso.
 - **Origine.** Le richieste che modificano dati devono venire dalla stessa origine della pagina.
   Se l'indirizzo pubblico è diverso dall'`Host` che vede il server, elencatelo in
   `CSRF_TRUSTED_ORIGINS`.

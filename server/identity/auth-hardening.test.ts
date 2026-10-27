@@ -157,7 +157,7 @@ describe('invitation tokens at rest', () => {
       .expect(201);
   });
 
-  it('migration 0095 hashes existing clear tokens in place', async () => {
+  it('migration 0098 hashes existing clear tokens in place', async () => {
     const { org, inviter } = await seedInviter();
     const clear = 'a1'.repeat(32);
     await privilegedDb.insert(invitations).values({
@@ -168,7 +168,7 @@ describe('invitation tokens at rest', () => {
       invitedByUserId: inviter.id,
       expiresAt: new Date(Date.now() + 60_000),
     });
-    const statement = readFileSync('migrations/0095_invitation_token_hash.sql', 'utf8')
+    const statement = readFileSync('migrations/0098_invitation_token_hash.sql', 'utf8')
       .split('\n')
       .filter((line) => !line.startsWith('--'))
       .join('\n');

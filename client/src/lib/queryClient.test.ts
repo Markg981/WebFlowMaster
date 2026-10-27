@@ -61,3 +61,24 @@ describe('mutationCache', () => {
     expect(toastMock).not.toHaveBeenCalled();
   });
 });
+
+describe('errorMessage validation shapes', () => {
+  it('reads the first field error from zod flatten, top-level or under details', () => {
+    const flat = { formErrors: [], fieldErrors: { name: ['Required'] } };
+    expect(errorMessage(new ApiError(400, flat, '400: x'))).toBe('name: Required');
+    expect(errorMessage(new ApiError(400, { error: 'Invalid data', details: flat }, '400: x'))).toBe(
+      'name: Required',
+    );
+  });
+  it('reads the zod 4 tree shape and form errors', () => {
+    const tree = { errors: [], properties: { url: { errors: ['Invalid URL'] } } };
+    expect(errorMessage(new ApiError(400, { details: tree }, '400: x'))).toBe('url: Invalid URL');
+    expect(errorMessage(new ApiError(400, { formErrors: ['Bad form'], fieldErrors: {} }, '400'))).toBe(
+      'Bad form',
+    );
+  });
+  it('parses a plain Error carrying "400: {json}"', () => {
+    const body = JSON.stringify({ message: 'Nope' });
+    expect(errorMessage(new Error(`400: ${body}`))).toBe('Nope');
+  });
+});

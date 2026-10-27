@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -74,7 +75,7 @@ const initialState = (id: string, breakpoints: string[]): DebugState => ({
 router.post('/api/debug-sessions', requireRole('editor'), async (req, res) => {
   const parsed = startSchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   const user = req.user as any;
   const { breakpoints, datasetRow, ...given } = parsed.data;
   // A shared data set's rows, in place of the marker the test keeps (shared/test-data.ts).
@@ -149,7 +150,7 @@ router.get('/api/debug-sessions/:id', requireRole('editor'), async (req, res) =>
 router.post('/api/debug-sessions/:id/commands', requireRole('editor'), async (req, res) => {
   const parsed = commandSchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   const state = await ownSession(req, req.params.id);
   if (!state) return res.status(404).json({ error: 'Debug session not found.' });
 

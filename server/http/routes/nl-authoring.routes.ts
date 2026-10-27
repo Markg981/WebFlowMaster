@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { projectElements, projects } from '@shared/schema';
@@ -55,7 +56,9 @@ router.post(
 
     const parsed = bodySchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+      return res
+        .status(400)
+        .json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
     }
 
     try {

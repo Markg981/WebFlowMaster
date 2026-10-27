@@ -5,7 +5,27 @@ or a finding's exposure changes.
 
 How to report a vulnerability is in [SECURITY.md](../SECURITY.md).
 
-**Last reviewed:** 2026-10-17.
+**Last reviewed:** 2026-10-27.
+
+## 27 October 2026, audit gate (A-02)
+
+`npm audit --omit=dev` on `main` reported ip-address (moderate, `Address6` zone identifier in
+quadratic time, GHSA-rxp7-6hxx-x8q5), reached only through the `mssql`/`@azure/identity`
+connection stack with addresses from operator configuration, never from request input. `npm audit
+fix` moved it to a patched release; `undici` is pinned at 6.29.1 and `nodemailer` at 10.2.1, both
+past the fixed versions. Production dependencies: **0 findings**, root and client.
+
+The CI job `dependency-audit` runs `scripts/security/audit-gate.mjs` (`npm audit --omit=dev` for
+the root and for the `client` workspace). It fails on any high or critical finding that is not in
+the table below or whose date has passed. The bundle check now requires dompurify 3.4.17 or later.
+
+### Accepted high and critical findings
+
+One row per advisory: `| GHSA id | package | expiry (YYYY-MM-DD) | reachability |`. The script reads
+these rows; an expired date fails CI.
+
+| Advisory | Package | Expires | Reachability |
+| -------- | ------- | ------- | ------------ |
 
 ## 17 October 2026, Monaco's dompurify replaced
 

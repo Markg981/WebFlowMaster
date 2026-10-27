@@ -1,4 +1,5 @@
 import { quotaErrorBody } from '../../tenancy/tenant-quotas';
+import { flattenZodError } from '../zod-error';
 import { type Response } from 'express';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { z } from 'zod';
@@ -208,7 +209,7 @@ router.post('/api/requirements', requireRole('editor'), async (req, res) => {
   if (!parsed.success)
     return res.status(400).json({
       error: parsed.error.issues[0]?.message ?? 'Invalid requirement',
-      details: parsed.error.flatten(),
+      details: flattenZodError(parsed.error),
     });
   const input = parsed.data;
   try {
@@ -247,7 +248,7 @@ router.put('/api/requirements/:id', requireRole('editor'), async (req, res) => {
   if (!Number.isInteger(id) || !parsed.success) {
     return res.status(400).json({
       error: parsed.success ? 'Invalid requirement id' : parsed.error.issues[0]?.message,
-      details: parsed.success ? undefined : parsed.error.flatten(),
+      details: parsed.success ? undefined : flattenZodError(parsed.error),
     });
   }
   const input = parsed.data;

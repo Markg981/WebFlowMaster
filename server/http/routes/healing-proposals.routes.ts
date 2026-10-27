@@ -1,4 +1,5 @@
 import type { Response } from 'express';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { HEALING_PROPOSAL_ID_PATTERN, HEALING_PROPOSAL_STATUSES } from '@shared/healing';
 import type { HealingProposalRow } from '@shared/schema';
@@ -102,7 +103,9 @@ router.get('/api/healing-proposals', proposalsLimit, requireRole('viewer'), asyn
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   const parsed = listQuery.safeParse(req.query);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid filter', details: parsed.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid filter', details: flattenZodError(parsed.error) });
   const rows = await listHealingProposals(parsed.data);
   res.json(rows.map(view));
 });

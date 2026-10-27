@@ -3178,6 +3178,7 @@
       "webhook_deleted": "Webhook eliminato",
       "auth_login": "Accesso",
       "auth_login_failed": "Accesso rifiutato",
+      "auth_account_locked": "Account bloccato temporaneamente",
       "auth_logout": "Uscita",
       "test_created": "Test creato",
       "test_updated": "Test modificato",
@@ -3907,7 +3908,8 @@
       "account_disabled": "Questo account è disattivato.",
       "account_linked": "Il tuo indirizzo è già collegato a un'altra identità presso il provider. Chiedi a un owner della tua organizzazione.",
       "browser_mismatch": "Questo accesso è stato avviato in un altro browser. Avviatelo di nuovo qui.",
-      "no_group": "Il vostro account presso l'identity provider non è in nessuno dei gruppi ammessi da questa organizzazione. Rivolgetevi al vostro amministratore."
+      "no_group": "Il vostro account presso l'identity provider non è in nessuno dei gruppi ammessi da questa organizzazione. Rivolgetevi al vostro amministratore.",
+      "link_requires_local_signin": "Questo account è un owner o usa un secondo fattore. Accedete con la password e collegate il single sign-on dalle impostazioni."
     },
     "protocol": "Protocollo",
     "saml": {

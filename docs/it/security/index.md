@@ -55,6 +55,10 @@ registrazione pubblica, in cui ogni nuovo account ottiene una propria organizzaz
 - Gli endpoint di accesso, registrazione e secondo fattore sono limitati a 20 tentativi per
   indirizzo client ogni 15 minuti. Gli accessi falliti per account esistenti finiscono nel
   registro di audit.
+- Un secondo limite conta per account, qualunque sia l'indirizzo: 10 password errate o 5 codici del
+  secondo fattore errati in 15 minuti bloccano l'account fino a fine finestra (`429` con `Retry-After`,
+  uguale per un nome inesistente). Il conteggio del secondo fattore non si azzera rifacendo l'accesso,
+  solo con un codice corretto. Il primo rifiuto scrive `auth.account_locked` nel registro di audit.
 - **Autenticazione a due fattori**: codici TOTP da un'app di autenticazione (RFC 6238), ognuno
   accettato una volta sola, più codici di recupero monouso salvati come hash. Dopo la password
   la sessione non è autenticata finché non si inserisce il codice: cinque codici errati o
@@ -271,8 +275,9 @@ Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
   Senza un gruppo obbligatorio, una persona
   rimossa qui ma non presso il provider ottiene un nuovo account al suo accesso successivo, quindi
   l'accesso si revoca presso il provider. I domini e-mail si dimostrano con un record DNS TXT; la
-  verifica è obbligatoria solo con `SSO_REQUIRE_DOMAIN_VERIFICATION=true`, e senza, su
-  un'installazione condivisa, il primo che rivendica un dominio lo ottiene.
+  verifica è obbligatoria di default (`SSO_REQUIRE_DOMAIN_VERIFICATION=false` la disattiva, non sicuro
+  su un'installazione condivisa). OpenID Connect richiede `email_verified: true` salvo provider con
+  `trustUnverifiedEmail`, e un owner o un account con MFA non viene mai collegato solo per indirizzo.
 - **La complessità delle password è facoltativa**: la politica di default controlla solo la
   lunghezza; `PASSWORD_POLICY=strong` aggiunge 12 caratteri, varietà di caratteri, niente username
   e niente password comuni. Senza SMTP, i link di invito e di reset li consegna l'owner.

@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { apiKeys, users, AUDIT_ACTIONS } from '@shared/schema';
@@ -52,7 +53,7 @@ router.get('/api/service-accounts', requireRole('owner'), async (_req, res) => {
 router.post('/api/service-accounts', requireRole('owner'), async (req, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten() });
+    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
   }
 
   const account = await storage.createServiceAccount({

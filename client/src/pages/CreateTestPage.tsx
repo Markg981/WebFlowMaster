@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ApiError, apiRequest, queryClient } from '@/lib/queryClient';
+import { ApiError, apiRequest, queryClient, errorMessage } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -579,7 +579,7 @@ function CreateTestPage() {
       setWebsiteScreenshot(null);
       toast({
         title: t('dashboardPageNew.toasts.websiteLoadFailed.title', 'Failed to load website'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
     },
@@ -624,7 +624,7 @@ function CreateTestPage() {
     onError: (error: Error) => {
       toast({
         title: t('dashboardPageNew.toasts.detectFailed.title', 'Failed to detect elements'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
     },
@@ -685,7 +685,7 @@ function CreateTestPage() {
     onError: (error: Error) => {
       toast({
         title: t('dashboardPageNew.toasts.saveFailed.title', 'Failed to save test'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
     },
@@ -834,7 +834,7 @@ function CreateTestPage() {
     onError: (error: Error) => {
       toast({
         title: t('dashboardPageNew.toasts.loginSaveFailed.title', 'Could not save the login'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
     },
@@ -929,7 +929,7 @@ function CreateTestPage() {
       setLastTestOverallResult(false); // Set overall result to failed
       toast({
         title: t('dashboardPageNew.toasts.testFailed'),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
     },

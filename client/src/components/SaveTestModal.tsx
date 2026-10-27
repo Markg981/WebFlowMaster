@@ -22,7 +22,7 @@ import {
 import { Loader2 } from 'lucide-react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, errorMessage } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import { useProjects, type ProjectSummary } from '@/hooks/use-projects';
 
@@ -139,7 +139,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
           'saveTestModal.notifications.projectCreateFailed.title',
           'Project Creation Failed',
         ),
-        description: error.message,
+        description: errorMessage(error),
         variant: 'destructive',
       });
     },

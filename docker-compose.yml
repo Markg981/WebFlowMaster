@@ -109,6 +109,11 @@ services:
       # Where report links in notifications, issues and commit statuses point: this stack as
       # its users reach it. Needed by the worker too, which is what sends them.
       - WEBFLOW_PUBLIC_URL=http://localhost:5000
+      # Explicit network defaults (see docs/en/admin/configuration.md). TRUST_PROXY: proxy hops in
+      # front of the api (1 = one proxy; use false if the api port is reached directly). EGRESS_PRIVATE_TARGETS: set
+      # to deny on an installation shared by several companies.
+      - TRUST_PROXY=${TRUST_PROXY:-1}
+      - EGRESS_PRIVATE_TARGETS=${EGRESS_PRIVATE_TARGETS:-allow}
       # This stack serves plain HTTP on localhost, so a Secure cookie would be dropped by
       # the browser: /api/login would answer 200 and every request after it would be
       # anonymous, with nothing saying why. Put TLS in front of this and remove the line

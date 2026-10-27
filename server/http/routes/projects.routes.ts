@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import {
   projects,
@@ -76,7 +77,7 @@ router.post('/api/projects', requireRole('editor'), async (req, res) => {
   if (!parseResult.success) {
     return res
       .status(400)
-      .json({ error: 'Invalid project data', details: parseResult.error.flatten() });
+      .json({ error: 'Invalid project data', details: flattenZodError(parseResult.error) });
   }
 
   try {
@@ -207,7 +208,9 @@ router.put('/api/projects/:id/access', requireRole('owner'), async (req, res) =>
   if (!Number.isInteger(projectId)) return res.status(400).json({ error: 'Invalid project id' });
   const parsed = accessSchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid payload', details: flattenZodError(parsed.error) });
   const organizationId = getTenantOrgId()!;
 
   const outcome = await withTenantTransaction(async (tx) => {

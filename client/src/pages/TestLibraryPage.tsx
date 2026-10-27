@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTags } from '@/hooks/use-tags';
@@ -134,7 +135,7 @@ const TestLibraryPage: React.FC = () => {
       toast({
         variant: 'destructive',
         title: t('catalog.detailFailed', 'Could not load details'),
-        description: error.message,
+        description: errorMessage(error),
       });
     } finally {
       setDetailBusyId(null);

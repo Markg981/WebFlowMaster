@@ -3178,6 +3178,7 @@
       "webhook_deleted": "Webhook deleted",
       "auth_login": "Signed in",
       "auth_login_failed": "Sign-in refused",
+      "auth_account_locked": "Account temporarily locked",
       "auth_logout": "Signed out",
       "test_created": "Test created",
       "test_updated": "Test changed",
@@ -3907,7 +3908,8 @@
       "account_disabled": "This account is disabled.",
       "account_linked": "Your address is already linked to another identity at your provider. Ask an owner of your organization.",
       "browser_mismatch": "This sign-in was started in another browser. Start it again here.",
-      "no_group": "Your account at the identity provider is in none of the groups this organization lets in. Ask your administrator."
+      "no_group": "Your account at the identity provider is in none of the groups this organization lets in. Ask your administrator.",
+      "link_requires_local_signin": "This account is an owner or uses a second factor. Sign in with your password and link single sign-on from your settings."
     },
     "protocol": "Protocol",
     "saml": {

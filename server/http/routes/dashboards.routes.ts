@@ -1,4 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
+import { flattenZodError } from '../zod-error';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
@@ -112,7 +113,9 @@ router.get('/api/dashboards', async (req, res) => {
 router.post('/api/dashboards', requireRole('viewer'), async (req, res) => {
   const parsed = dashboardDocumentSchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid dashboard', details: parsed.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid dashboard', details: flattenZodError(parsed.error) });
   try {
     const result = await withTenantTransaction(async (tx) => {
       if (!(await validateProjects(tx, parsed.data.widgets)))
@@ -185,7 +188,9 @@ router.get('/api/dashboards/:id', async (req, res) => {
 router.put('/api/dashboards/:id', requireRole('viewer'), async (req, res) => {
   const parsed = dashboardUpdateSchema.safeParse(req.body);
   if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid dashboard', details: parsed.error.flatten() });
+    return res
+      .status(400)
+      .json({ error: 'Invalid dashboard', details: flattenZodError(parsed.error) });
   try {
     const result = await withTenantTransaction(async (tx) => {
       const [old] = await tx.select().from(dashboards).where(eq(dashboards.id, req.params.id));

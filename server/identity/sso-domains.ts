@@ -8,14 +8,15 @@ import { domainVerificationRecord } from '@shared/sso-roles';
  * Proving an e-mail domain with DNS. Each claimed domain has a token; the owner publishes it as the
  * TXT record _wfm-verification.<domain> and presses Verify.
  *
- * With SSO_REQUIRE_DOMAIN_VERIFICATION=true an unproven domain routes no sign-in and accepts no
+ * Unless SSO_REQUIRE_DOMAIN_VERIFICATION=false, an unproven domain routes no sign-in and accepts no
  * address, and an unproven claim no longer keeps a domain from another organization: whoever proves
- * it first has it. Off (the default), domains work as soon as they are saved, as before, and
+ * it first has it. Set to false (unsafe on a shared installation), domains work as soon as they are saved, as before, and
  * verification is shown as advice.
  */
 
 export function domainVerificationRequired(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.SSO_REQUIRE_DOMAIN_VERIFICATION?.trim().toLowerCase() === 'true';
+  // On unless explicitly opted out (audit A-05); `false` is unsafe on a shared installation.
+  return env.SSO_REQUIRE_DOMAIN_VERIFICATION?.trim().toLowerCase() !== 'false';
 }
 
 export function newVerificationToken(): string {
