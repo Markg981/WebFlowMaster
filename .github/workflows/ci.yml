@@ -296,6 +296,23 @@ jobs:
       - name: Verify acceptance catalog in Chromium
         run: npm run test:collaudo:browser
 
+  # Production dependencies: no high or critical finding unless docs/SECURITY-AUDIT.md lists it
+  # with an unexpired date (audit A-02). Root and the client workspace are checked separately.
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: npm audit (root)
+        run: node scripts/security/audit-gate.mjs
+      - name: npm audit (client)
+        run: node scripts/security/audit-gate.mjs --client
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20

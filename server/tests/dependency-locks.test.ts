@@ -27,7 +27,7 @@ const LOCKS = ['package-lock.json'];
  * points that import at the dompurify the client installs, in the build and in the dev pre-bundle;
  * these checks fail when the swap would stop happening or would bring back an affected version.
  */
-const PATCHED_DOMPURIFY = [3, 4, 16];
+const PATCHED_DOMPURIFY = [3, 4, 17];
 const isPatched = (version: string) => {
   const parts = version.split('.').map(Number);
   for (let i = 0; i < PATCHED_DOMPURIFY.length; i++) {
