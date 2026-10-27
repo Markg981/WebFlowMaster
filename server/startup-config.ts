@@ -16,6 +16,7 @@ export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): strin
   const errors: string[] = [];
   if (!env.SESSION_SECRET) errors.push('SESSION_SECRET must be set for session security.');
   if (env.NODE_ENV === 'production') errors.push(...publishedSecretErrors(env));
+  if (env.NODE_ENV === 'production') errors.push(...publicUrlErrors(env));
   for (const check of [() => registrationMode(env), () => cspMode(env), () => resolvePort(env)]) {
     try {
       check();
@@ -78,4 +79,18 @@ export async function connectSessionStore(
       `Session Redis is not reachable (${reason}); using an in-memory session store: logins will not survive a restart.`,
     );
   }
+}
+
+/** Emailed links must name this installation, never the Host header of whoever asked. */
+function publicUrlErrors(env: NodeJS.ProcessEnv): string[] {
+  const value = env.WEBFLOW_PUBLIC_URL?.trim();
+  const hint = 'WEBFLOW_PUBLIC_URL must be set in production to the absolute http(s) address users reach WebFlowMaster at.';
+  if (!value) return [hint];
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'http:' || url.protocol === 'https:') return [];
+  } catch {
+    // fall through
+  }
+  return [`${hint} Got "${value}".`];
 }
