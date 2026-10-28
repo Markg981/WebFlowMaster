@@ -21,7 +21,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const chartDir = path.join(root, 'deployment', 'helm', 'webflowmaster');
 const templatesDir = path.join(chartDir, 'templates');
 
-const read = (...parts) => readFileSync(path.join(...parts), 'utf8');
+// Normalize CRLF so the regexes also pass on a Windows checkout with core.autocrlf.
+const read = (...parts) => readFileSync(path.join(...parts), 'utf8').replaceAll('\r\n', '\n');
 const readChart = (...parts) => read(chartDir, ...parts);
 
 const chart = YAML.parse(readChart('Chart.yaml'));
@@ -370,7 +371,7 @@ test('the worker is given its shutdown grace and a liveness probe on the metrics
     templateSources['configmap.yaml'],
     /WORKER_SHUTDOWN_GRACE_MS: \{\{ \.Values\.config\.workerShutdownGraceMs \| quote \}\}/,
   );
-  const config = read(root, 'server', 'config.ts');
+  const config = read(root, 'server', 'platform', 'config.ts');
   assert.match(config, /DEFAULT_WORKER_SHUTDOWN_GRACE_MS = 30_000/);
   assert.equal(values.config.workerShutdownGraceMs, 30000);
   // The worker serves only /metrics, so liveness is a TCP check on that port, behind metrics.enabled.
@@ -382,7 +383,7 @@ test('the worker is given its shutdown grace and a liveness probe on the metrics
 });
 
 test('the metrics ports and the bind address match server/platform/observability/metrics.ts', () => {
-  const metrics = read(root, 'server', 'observability', 'metrics.ts');
+  const metrics = read(root, 'server', 'platform', 'observability', 'metrics.ts');
   const ports = metrics.match(/role === 'api' \? (\d+) : (\d+)/);
   assert.equal(values.metrics.apiPort, Number(ports[1]));
   assert.equal(values.metrics.workerPort, Number(ports[2]));
@@ -393,7 +394,7 @@ test('the metrics ports and the bind address match server/platform/observability
 });
 
 test('the KEDA trigger watches the BullMQ wait list of the execution queue', () => {
-  const queueName = read(root, 'server', 'queue.ts').match(
+  const queueName = read(root, 'server', 'platform', 'queue.ts').match(
     /TEST_EXECUTION_QUEUE_NAME = '([^']+)'/,
   )[1];
   const keda = templateSources['keda-scaledobject.yaml'];

@@ -21,7 +21,7 @@ groups:
           max by (queue) (sum by (queue, instance) (wfm_queue_jobs{state=~"waiting|prioritized"})) > 20
           and
           max by (queue) (sum by (queue, instance) (wfm_queue_jobs{state=~"waiting|prioritized"}))
-          - max by (queue) (sum by (queue, instance) (wfm_queue_jobs{state=~"waiting|prioritized"}) offset 15m) > 0
+          - max by (queue) (sum by (queue, instance) (wfm_queue_jobs{state=~"waiting|prioritized"} offset 15m)) > 0
         for: 15m
         labels:
           severity: warning
