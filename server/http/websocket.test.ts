@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 import express, { type Express } from 'express';
 import request from 'supertest';
 import { WebSocket } from 'ws';
-import { eq, inArray } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
 import {
   auditLog,
