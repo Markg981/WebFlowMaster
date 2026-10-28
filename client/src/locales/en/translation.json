@@ -1774,7 +1774,8 @@
   "draggableAction": {
     "target": {
       "label": "Target:"
-    }
+    },
+    "add": "Add \"{{name}}\" to the test"
   },
   "draggableElement": {
     "element": {
@@ -1783,7 +1784,8 @@
     "keep": {
       "tooltip": "Keep this element in the project repository"
     },
-    "inFrame": "in frame"
+    "inFrame": "in frame",
+    "assign": "Use \"{{name}}\" as the target of the last step"
   },
   "testSequenceBuilder": {
     "flowErrors": "Blocks that do not close",
@@ -3861,7 +3863,9 @@
     "stepGroup": {
       "badge": "group"
     },
-    "deleteStep": "Delete step"
+    "deleteStep": "Delete step",
+    "moveUp": "Move step up",
+    "moveDown": "Move step down"
   },
   "sso": {
     "title": "Single sign-on",
