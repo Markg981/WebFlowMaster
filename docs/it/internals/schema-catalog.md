@@ -1474,7 +1474,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `connectionId`        | `connection_id`          | `text('connection_id').references(() => testManagementConnections.id, { onDelete: 'set null', })`             |
 | `connectionName`      | `connection_name`        | `text('connection_name').notNull()`                                                                           |
 | `provider`            | `provider`               | `text('provider').notNull()`                                                                                  |
-| `status`              | `status`                 | `text('status').$type<'published' &#124; 'partial' &#124; 'failed' &#124; 'nothing_to_publish'>().notNull()`                   |
+| `status`              | `status`                 | `text('status').$type<'published' &#124; 'partial' &#124; 'failed' &#124; 'nothing_to_publish'>().notNull()`  |
 | `externalKey`         | `external_key`           | `text('external_key')`                                                                                        |
 | `externalUrl`         | `external_url`           | `text('external_url')`                                                                                        |
 | `publishedCount`      | `published_count`        | `integer('published_count').notNull().default(0)`                                                             |
