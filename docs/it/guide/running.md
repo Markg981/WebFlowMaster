@@ -72,6 +72,10 @@ su questo comportamento durante un rilascio graduale.
 **Suite** sulla riga aggiunge [suite](./organizing#suite): girano dopo i test del piano,
 nell'ordine in cui sono spuntate, e un test presente in più suite gira una volta sola.
 
+Con **Retry Step** come risposta a un passo fallito, solo i passi che attendono o verificano
+(asserzioni, attese di elemento, testo o rete, controlli di stato) vengono ripetuti. Un clic, un
+caricamento, una query o una richiesta fallita potrebbe aver già agito, quindi non viene ripetuta.
+
 ### Un'esecuzione su più runner {#shard}
 
 Un piano lungo finisce prima se più runner se lo dividono. Con **Worker che si dividono un'esecuzione**

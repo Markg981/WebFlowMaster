@@ -191,7 +191,18 @@ router.put('/api/tests/:id', requireRole('editor'), async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid test id' });
 
-  const parseResult = partialUpdate(insertTestSchema).safeParse(req.body);
+  // Optimistic locking (C-31): a client that sends the `updatedAt` it loaded gets a 409 when
+  // someone saved in between, instead of silently overwriting their work. Optional, so clients
+  // that do not send it (the builder's deliberate overwrite, the API) behave as before.
+  const { expectedUpdatedAt, ...body } = (req.body ?? {}) as Record<string, unknown>;
+  const expected =
+    expectedUpdatedAt === undefined || expectedUpdatedAt === null
+      ? null
+      : new Date(String(expectedUpdatedAt));
+  if (expected && Number.isNaN(expected.getTime()))
+    return res.status(400).json({ error: 'expectedUpdatedAt must be a date.' });
+
+  const parseResult = partialUpdate(insertTestSchema).safeParse(body);
   if (!parseResult.success) {
     return res
       .status(400)
@@ -203,8 +214,17 @@ router.put('/api/tests/:id', requireRole('editor'), async (req, res) => {
 
   try {
     const updated = await withTenantTransaction(async (tx) => {
-      const [existing] = await tx.select().from(tests).where(eq(tests.id, id)).limit(1);
+      // Locked for the transaction: two saves of one test run one after the other, so the
+      // check below and the version number recordTestVersion computes cannot interleave.
+      const [existing] = await tx
+        .select()
+        .from(tests)
+        .where(eq(tests.id, id))
+        .limit(1)
+        .for('update');
       if (!existing) return [];
+      if (expected && existing.updatedAt && existing.updatedAt.getTime() !== expected.getTime())
+        return 'stale' as const;
       const definition = await prepareBddForSave(tx, parseResult.data, existing);
       const rows = await tx
         .update(tests)
@@ -239,6 +259,11 @@ router.put('/api/tests/:id', requireRole('editor'), async (req, res) => {
       return rows;
     });
 
+    if (updated === 'stale')
+      return res.status(409).json({
+        error: 'The test was changed by someone else; reload it before saving.',
+        code: 'test_changed',
+      });
     if (updated.length === 0) return notChanged(res, id, 'Test not found');
     res.json(updated[0]);
   } catch (error: any) {
@@ -247,6 +272,12 @@ router.put('/api/tests/:id', requireRole('editor'), async (req, res) => {
     if (isForeignKeyError(error))
       return res.status(400).json({ error: 'Invalid project ID or project does not exist.' });
     if (error instanceof BddDefinitionError) return res.status(400).json({ error: error.message });
+    // Two saves that raced to the same version number: the unique index refused the second.
+    if ((error?.cause?.code ?? error?.code) === '23505')
+      return res.status(409).json({
+        error: 'The test was changed by someone else; reload it before saving.',
+        code: 'test_changed',
+      });
     logger.error({ message: 'Error updating test', error: error.message, testId: id });
     res.status(500).json({ error: 'Failed to update test' });
   }
@@ -714,7 +745,16 @@ router.put('/api/api-tests/:id', requireRole('editor'), async (req, res) => {
   const id = parseTestId(req.params.id, res);
   if (id === null) return;
 
-  const parseResult = editApiTestSchema.safeParse(req.body);
+  // Optimistic locking, as on PUT /api/tests/:id (C-31).
+  const { expectedUpdatedAt, ...body } = (req.body ?? {}) as Record<string, unknown>;
+  const expected =
+    expectedUpdatedAt === undefined || expectedUpdatedAt === null
+      ? null
+      : new Date(String(expectedUpdatedAt));
+  if (expected && Number.isNaN(expected.getTime()))
+    return res.status(400).json({ error: 'expectedUpdatedAt must be a date.' });
+
+  const parseResult = editApiTestSchema.safeParse(body);
   if (!parseResult.success) {
     logger.warn({
       message: `PUT /api/api-tests/${id} - Invalid payload`,
@@ -728,6 +768,16 @@ router.put('/api/api-tests/:id', requireRole('editor'), async (req, res) => {
 
   try {
     const updated = await withTenantTransaction(async (tx) => {
+      if (expected) {
+        const [current] = await tx
+          .select({ updatedAt: apiTests.updatedAt })
+          .from(apiTests)
+          .where(eq(apiTests.id, id))
+          .limit(1)
+          .for('update');
+        if (current?.updatedAt && current.updatedAt.getTime() !== expected.getTime())
+          return 'stale' as const;
+      }
       const rows = await tx
         .update(apiTests)
         .set({ ...parseResult.data, updatedAt: new Date() })
@@ -752,11 +802,21 @@ router.put('/api/api-tests/:id', requireRole('editor'), async (req, res) => {
       }
       return rows;
     });
+    if (updated === 'stale')
+      return res.status(409).json({
+        error: 'The test was changed by someone else; reload it before saving.',
+        code: 'test_changed',
+      });
     if (updated.length === 0) return notChanged(res, id, 'Test not found', apiTests);
     res.json(updated[0]);
   } catch (e: any) {
     const quota = quotaErrorBody(e);
     if (quota) return res.status(429).json(quota);
+    if ((e?.cause?.code ?? e?.code) === '23505')
+      return res.status(409).json({
+        error: 'The test was changed by someone else; reload it before saving.',
+        code: 'test_changed',
+      });
     logger.error({
       message: `Error updating API test ${id}`,
       error: e.message,

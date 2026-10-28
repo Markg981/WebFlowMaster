@@ -1,7 +1,7 @@
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { BrowserGridProvider } from '@shared/browser-grids';
 import type { DownloadFinding } from '@shared/downloads';
-import { analyseFlow, leavesPageAlone } from '@shared/flow';
+import { analyseFlow, isRetrySafeAction, leavesPageAlone } from '@shared/flow';
 import { LOCALE_VARIABLE } from '@shared/locales';
 import { matrixEvidence, type MatrixEvidence } from '@shared/matrix-evidence';
 import type { Test } from '@shared/schema';
@@ -626,7 +626,13 @@ export class TestRunner {
                   } as typeof outcome;
                 }
                 if (abandoned) return;
-                if (outcome.status === 'failed' && options?.runtime?.retryFailedStep) {
+                // Only steps that wait or assert are tried again: a click, upload or query that
+                // failed may already have acted, and a second go would act twice (C-31).
+                if (
+                  outcome.status === 'failed' &&
+                  options?.runtime?.retryFailedStep &&
+                  isRetrySafeAction(actionId)
+                ) {
                   // "On Major Step Failure: Retry Step" — once. What the step reports is the second
                   // try: a step that passes on it passed, and one that fails again fails with its
                   // second error, which is the one closest to the state the test is now in.

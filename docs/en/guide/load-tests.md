@@ -91,6 +91,9 @@ takes it — at once when one is free — and **Running** from then on. The page
 **Stop the run** ends a queued run at once and a running one within 2 seconds; requests already in
 flight finish. Each load test keeps its last 10 runs on the page, with their summary and verdict.
 
+A run sends the requests of your API tests **as they were when you started it**: editing an API test
+while the run waits for a worker, or while it runs, changes only the runs you start afterwards.
+
 ### Where a run runs
 
 A load run is a job on a queue of its own, executed by **one of the installation's workers**,

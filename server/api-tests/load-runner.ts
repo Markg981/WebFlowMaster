@@ -610,7 +610,9 @@ export async function executeLoadRun(
           if (!run) return null;
           const definition = run.definition as unknown as LoadTestSnapshot;
           const ids = [...new Set(definition.steps.map((step) => step.apiTestId))];
-          const tests = await tx.select().from(apiTests).where(inArray(apiTests.id, ids));
+          const tests = definition.requests
+            ? []
+            : await tx.select().from(apiTests).where(inArray(apiTests.id, ids));
           const [dataSet] = definition.dataSetId
             ? await tx
                 .select()
@@ -630,7 +632,11 @@ export async function executeLoadRun(
         // The worker's limits, not the web process's: the two may be configured apart.
         const beyond = profileProblem(definition.stages, limits);
         if (beyond) throw new LoadRunError(beyond);
-        const byId = new Map(tests.map((test) => [test.id, test]));
+        const byId = new Map(
+          tests.map((test) => [test.id, { name: test.name, spec: apiTestSpec(test) }]),
+        );
+        for (const [key, frozen] of Object.entries(definition.requests ?? {}))
+          byId.set(Number(key), frozen);
         const missing = definition.steps.find((step) => !byId.has(step.apiTestId));
         if (missing)
           throw new LoadRunError(`API test #${missing.apiTestId} is no longer available.`);
@@ -640,8 +646,8 @@ export async function executeLoadRun(
           const problem = dataSetProblem(definition, dataSet.rows.length);
           if (problem) throw new LoadRunError(problem);
         }
-        const specs: ApiRequestSpec[] = definition.steps.map((step) =>
-          apiTestSpec(byId.get(step.apiTestId)!),
+        const specs: ApiRequestSpec[] = definition.steps.map(
+          (step) => byId.get(step.apiTestId)!.spec,
         );
         const vars = await resolveVariables({
           userId,
@@ -752,6 +758,12 @@ export interface LoadTestSnapshot {
   dataSetId: number | null;
   dataMode: LoadDataMode;
   thresholds: LoadThresholds;
+  /**
+   * The request of each step as it was when the run was queued, by API test id (C-31). A run
+   * that waits in the queue, or whose test is edited while it runs, still sends what was
+   * asked for. Absent on a run queued before this existed: that one reads the tests live.
+   */
+  requests?: Record<string, { name: string; spec: ApiRequestSpec }>;
 }
 
 export function snapshotOf(test: typeof loadTests.$inferSelect): LoadTestSnapshot {
