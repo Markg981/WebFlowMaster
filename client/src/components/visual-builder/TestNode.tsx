@@ -26,7 +26,7 @@ import {
 } from '@shared/custom-actions';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
-import { Trash2, Link2 } from 'lucide-react';
+import { Trash2, Link2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export type TestNodeData = {
@@ -36,6 +36,10 @@ export type TestNodeData = {
   isRecordingActive?: boolean;
   onUpdateValue: (id: string, value: string) => void;
   onDeleteNode: (id: string) => void;
+  /** Keyboard / touch way to reorder: -1 moves the step up, 1 down. */
+  onMoveNode?: (id: string, direction: -1 | 1) => void;
+  isFirst?: boolean;
+  isLast?: boolean;
   onSetTarget?: (id: string, element: DetectedElement) => void;
   /** A breakpoint: a debug session stops before this step. */
   breakpoint?: boolean;
@@ -137,16 +141,42 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
             </Badge>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-muted-foreground hover:text-destructive"
-          onClick={() => data.onDeleteNode(id)}
-          disabled={data.isRecordingActive}
-          aria-label={t('testNode.deleteStep', 'Delete step')}
-        >
-          <Trash2 className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center">
+          {data.onMoveNode && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground nodrag"
+                onClick={() => data.onMoveNode?.(id, -1)}
+                disabled={data.isRecordingActive || data.isFirst}
+                aria-label={t('testNode.moveUp', 'Move step up')}
+              >
+                <ArrowUp className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground nodrag"
+                onClick={() => data.onMoveNode?.(id, 1)}
+                disabled={data.isRecordingActive || data.isLast}
+                aria-label={t('testNode.moveDown', 'Move step down')}
+              >
+                <ArrowDown className="h-3 w-3" />
+              </Button>
+            </>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+            onClick={() => data.onDeleteNode(id)}
+            disabled={data.isRecordingActive}
+            aria-label={t('testNode.deleteStep', 'Delete step')}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3 mt-4">
