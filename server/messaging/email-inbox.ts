@@ -16,6 +16,7 @@
  * executor passes the browser context's request API, so a run on a local agent reads the
  * Mailpit of the agent's network, as it reaches the application of that network.
  */
+import { compileSafeRegex } from '../platform/utils/safe-regex';
 
 export interface InboxConfig {
   url: string;
@@ -92,7 +93,7 @@ export function parseEmailQuery(value: string): EmailQuery | { error: string } {
   let pattern: RegExp | null = null;
   if (source) {
     try {
-      pattern = new RegExp(source, 'i');
+      pattern = compileSafeRegex(source, 'i');
     } catch (error: any) {
       return {
         error: `The pattern "${source}" is not a valid regular expression: ${error?.message ?? error}.`,

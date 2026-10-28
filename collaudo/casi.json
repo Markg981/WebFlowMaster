@@ -1,5 +1,5 @@
 {
-  "version": 84,
+  "version": 85,
   "areas": [
     {
       "id": "ACC",
@@ -9887,6 +9887,19 @@
         "Ripetere le richieste 1 e 2 con la sessione dell'owner."
       ],
       "expected": "1-3: 403 con code session_required e messaggio che chiede una sessione. 4: le operazioni riescono con la sessione."
+    },
+    {
+      "id": "API-66",
+      "area": "API",
+      "title": "Regex dell'utente: pattern catastrofici rifiutati",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Un test API GET su un endpoint qualsiasi che risponde 200.",
+      "steps": [
+        "Aggiungere un'asserzione body matches regex con valore ^(a+)+$ e premere Invia.",
+        "Ripetere con un pattern di oltre 200 caratteri e con un pattern valido come ^d+$."
+      ],
+      "expected": "I primi due pattern falliscono subito con 'Invalid regex' e il motivo (gruppo ripetuto o pattern troppo lungo) senza rallentare il server; il pattern valido viene valutato normalmente. Lo stesso vale per il pattern della casella email/SMS di test."
     }
   ],
   "presentation": {

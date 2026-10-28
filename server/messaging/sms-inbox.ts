@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'crypto';
 import { and, asc, desc, eq, gte, lt } from 'drizzle-orm';
 import { organizations, smsMessages, type SmsMessage } from '@shared/schema';
 import { privilegedDb } from '../platform/db';
+import { compileSafeRegex } from '../platform/utils/safe-regex';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 
 /**
@@ -157,7 +158,7 @@ export function parseSmsQuery(value: string): SmsQuery | { error: string } {
   const source = rest.join('|').trim();
   if (!source) return { number, pattern: null };
   try {
-    return { number, pattern: new RegExp(source, 'i') };
+    return { number, pattern: compileSafeRegex(source, 'i') };
   } catch (error) {
     return {
       error: `The pattern "${source}" is not a valid regular expression: ${(error as Error).message}.`,
