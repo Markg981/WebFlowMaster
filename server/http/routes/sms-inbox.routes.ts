@@ -13,6 +13,8 @@ import {
   smsInboxStatus,
 } from '../../messaging/sms-inbox';
 import { publicBase } from './sso.routes';
+import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 /**
  * The test SMS inbox (server/messaging/sms-inbox.ts): the inbound address a provider posts to, and its
@@ -49,34 +51,46 @@ router.get('/api/organization/sms-inbox', requireRole('editor'), async (req, res
   });
 });
 
-router.post('/api/organization/sms-inbox/token', requireRole('owner'), async (req, res) => {
-  const issued = await issueSmsToken(getTenantOrgId()!);
-  await withTenantTransaction((tx) =>
-    recordAudit(tx, {
-      action: AUDIT_ACTIONS.SMS_INBOX_TOKEN_ISSUED,
-      actor: auditActor(req),
-      targetType: 'organization',
-      targetId: String(getTenantOrgId()),
-      metadata: { prefix: issued.status.prefix },
-    }),
-  );
-  res.status(201).json({
-    ...issued.status,
-    inboundUrl: `${publicBase(req)}${SMS_INBOUND_PATH}/${issued.token}`,
-  });
-});
+router.post(
+  '/api/organization/sms-inbox/token',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (post /api/organization/sms-inbox/token)'),
+  async (req, res) => {
+    const issued = await issueSmsToken(getTenantOrgId()!);
+    await withTenantTransaction((tx) =>
+      recordAudit(tx, {
+        action: AUDIT_ACTIONS.SMS_INBOX_TOKEN_ISSUED,
+        actor: auditActor(req),
+        targetType: 'organization',
+        targetId: String(getTenantOrgId()),
+        metadata: { prefix: issued.status.prefix },
+      }),
+    );
+    res.status(201).json({
+      ...issued.status,
+      inboundUrl: `${publicBase(req)}${SMS_INBOUND_PATH}/${issued.token}`,
+    });
+  },
+);
 
-router.delete('/api/organization/sms-inbox/token', requireRole('owner'), async (req, res) => {
-  await revokeSmsToken(getTenantOrgId()!);
-  await withTenantTransaction((tx) =>
-    recordAudit(tx, {
-      action: AUDIT_ACTIONS.SMS_INBOX_TOKEN_REVOKED,
-      actor: auditActor(req),
-      targetType: 'organization',
-      targetId: String(getTenantOrgId()),
-    }),
-  );
-  res.status(204).end();
-});
+router.delete(
+  '/api/organization/sms-inbox/token',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (delete /api/organization/sms-inbox/token)'),
+  async (req, res) => {
+    await revokeSmsToken(getTenantOrgId()!);
+    await withTenantTransaction((tx) =>
+      recordAudit(tx, {
+        action: AUDIT_ACTIONS.SMS_INBOX_TOKEN_REVOKED,
+        actor: auditActor(req),
+        targetType: 'organization',
+        targetId: String(getTenantOrgId()),
+      }),
+    );
+    res.status(204).end();
+  },
+);
 
 export default router;

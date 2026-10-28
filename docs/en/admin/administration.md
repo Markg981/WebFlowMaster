@@ -362,9 +362,10 @@ person's password.
 - **At least one scope is required** when a key is created, and so is an **expiry**: the lifetime
   is chosen at creation (default 90 days in the form) and cannot exceed `API_KEY_MAX_TTL_DAYS`
   (365 by default).
-- Keys created before this rule, with no scopes or no expiry, keep working and are listed as
-  **legacy, full access** / **no expiry (legacy)**. They act as their account everywhere; replace
-  them with scoped, expiring keys and revoke the old ones.
+- Keys created before scopes (no scopes) were migrated to read-only scopes (all `*:read`) and no
+  longer act as their account everywhere; keys with no expiry are listed as **no expiry (legacy)**.
+  Re-issue any key that wrote data with explicit write scopes. Owner-only changes (agents, mail,
+  source hosts, billing, SMS token, project access, deleting the organization...) need a session.
 - An API key cannot create or revoke keys or service accounts, manage members and roles, or change
   SSO and MFA settings: those need a signed-in session.
 - Its last use is shown, so unused keys can be found.

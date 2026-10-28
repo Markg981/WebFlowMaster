@@ -262,54 +262,60 @@ router.get(
  * Recorded in the application log rather than the audit trail: an audit entry about erasing an
  * organization would be erased along with it. The log outlives the tenant.
  */
-router.delete('/api/organization', requireRole('owner'), async (req: Request, res: Response) => {
-  const organizationId = getTenantOrgId()!;
-  const parsed = z.object({ confirmName: z.string() }).safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Provide confirmName, the organization's name." });
-  }
+router.delete(
+  '/api/organization',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (delete /api/organization)'),
+  async (req: Request, res: Response) => {
+    const organizationId = getTenantOrgId()!;
+    const parsed = z.object({ confirmName: z.string() }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Provide confirmName, the organization's name." });
+    }
 
-  const [organization] = await withTenantTransaction((tx) =>
-    tx
-      .select({ name: organizations.name })
-      .from(organizations)
-      .where(eq(organizations.id, organizationId)),
-  );
-  if (!organization) return res.status(404).json({ error: 'Organization not found' });
+    const [organization] = await withTenantTransaction((tx) =>
+      tx
+        .select({ name: organizations.name })
+        .from(organizations)
+        .where(eq(organizations.id, organizationId)),
+    );
+    if (!organization) return res.status(404).json({ error: 'Organization not found' });
 
-  if (parsed.data.confirmName !== organization.name) {
-    return res.status(400).json({ error: "confirmName does not match the organization's name." });
-  }
+    if (parsed.data.confirmName !== organization.name) {
+      return res.status(400).json({ error: "confirmName does not match the organization's name." });
+    }
 
-  logger.warn({
-    message: 'Organization erased',
-    organizationId,
-    organizationName: organization.name,
-    byUserId: req.user!.id,
-    byUsername: req.user!.username,
-  });
-
-  const { deleted, files } = await eraseOrganization(organizationId, {
-    actor: { id: req.user!.id, username: req.user!.username },
-  });
-  if (files.failed.length > 0) {
-    logger.error({
-      message: 'Organization erased, but some of its files could not be removed',
+    logger.warn({
+      message: 'Organization erased',
       organizationId,
-      prefixes: files.failed,
+      organizationName: organization.name,
+      byUserId: req.user!.id,
+      byUsername: req.user!.username,
     });
-  }
 
-  // The caller's own account is among the rows just deleted, so their session now points at
-  // nothing. Ending it is tidier than letting the next request fail to deserialise a user — but
-  // the response must not depend on it: the erasure has already committed, and reporting it is
-  // the last thing anyone will ever learn about this organization. Guarded because req.logout
-  // only exists where passport is mounted.
-  if (typeof req.logout === 'function') {
-    req.logout(() => undefined);
-  }
-  res.json({ erased: true, deleted, files });
-});
+    const { deleted, files } = await eraseOrganization(organizationId, {
+      actor: { id: req.user!.id, username: req.user!.username },
+    });
+    if (files.failed.length > 0) {
+      logger.error({
+        message: 'Organization erased, but some of its files could not be removed',
+        organizationId,
+        prefixes: files.failed,
+      });
+    }
+
+    // The caller's own account is among the rows just deleted, so their session now points at
+    // nothing. Ending it is tidier than letting the next request fail to deserialise a user — but
+    // the response must not depend on it: the erasure has already committed, and reporting it is
+    // the last thing anyone will ever learn about this organization. Guarded because req.logout
+    // only exists where passport is mounted.
+    if (typeof req.logout === 'function') {
+      req.logout(() => undefined);
+    }
+    res.json({ erased: true, deleted, files });
+  },
+);
 
 /**
  * How someone actually joins an organization they did not create.
@@ -574,7 +580,9 @@ router.post(
  */
 router.post(
   '/api/organization/members/:userId/password-reset',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
+  sessionOnly('Owner action (post /api/organization/members/:userId/password-reset)'),
   async (req: Request, res: Response) => {
     if ((req as Request & { apiKeyId?: string }).apiKeyId) {
       return res.status(403).json({

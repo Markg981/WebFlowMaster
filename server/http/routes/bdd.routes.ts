@@ -10,6 +10,8 @@ import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../../platform/middleware/tenancy';
 import { advertisedBddProfiles, validateBddProfileDefinition } from '../../bdd/bdd-profiles';
 import { auditActor, recordAudit } from '../../tenancy/audit';
+import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 const router = asyncRouter();
 const definition = z
@@ -103,27 +105,33 @@ for (const method of ['post', 'put'] as const) {
     },
   );
 }
-router.delete('/api/bdd/profiles/:id', requireRole('owner'), async (req, res, next) => {
-  try {
-    const row = await withTenantTransaction(async (tx) => {
-      const [removed] = await tx
-        .delete(bddExecutionProfiles)
-        .where(eq(bddExecutionProfiles.id, req.params.id))
-        .returning();
-      if (removed)
-        await recordAudit(tx, {
-          action: 'bdd_profile.deleted',
-          actor: auditActor(req),
-          targetType: 'bdd_profile',
-          targetId: removed.id,
-          metadata: { name: removed.name },
-        });
-      return removed;
-    });
-    if (!row) return res.status(404).json({ error: 'No such BDD profile.' });
-    res.json({ deleted: true });
-  } catch (error) {
-    next(error);
-  }
-});
+router.delete(
+  '/api/bdd/profiles/:id',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (delete /api/bdd/profiles/:id)'),
+  async (req, res, next) => {
+    try {
+      const row = await withTenantTransaction(async (tx) => {
+        const [removed] = await tx
+          .delete(bddExecutionProfiles)
+          .where(eq(bddExecutionProfiles.id, req.params.id))
+          .returning();
+        if (removed)
+          await recordAudit(tx, {
+            action: 'bdd_profile.deleted',
+            actor: auditActor(req),
+            targetType: 'bdd_profile',
+            targetId: removed.id,
+            metadata: { name: removed.name },
+          });
+        return removed;
+      });
+      if (!row) return res.status(404).json({ error: 'No such BDD profile.' });
+      res.json({ deleted: true });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 export default router;

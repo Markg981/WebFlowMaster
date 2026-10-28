@@ -15,6 +15,8 @@ import { getTenantOrgId, withTenantTransaction } from '../../platform/middleware
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { encryptSecret } from '../../platform/crypto';
 import { checkSourceHost, DEFAULT_API_URLS, hostConfig } from '../../integrations/commit-status';
+import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 /**
  * The GitHub or GitLab a run reports its commit status to (server/integrations/commit-status.ts).
@@ -65,95 +67,115 @@ router.get('/api/source-hosts', requireRole('viewer'), async (_req, res) => {
  * The token is checked before it is kept: a token that cannot even say whose it is would store a
  * connection that fails on every run, silently, which is the failure this feature exists to end.
  */
-router.put('/api/source-hosts/:provider', requireRole('owner'), async (req, res) => {
-  const provider = providerParam.safeParse(req.params.provider);
-  if (!provider.success) return res.status(404).json({ error: 'Unknown provider.' });
-  const parsed = connectSchema.safeParse(req.body ?? {});
-  if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
+router.put(
+  '/api/source-hosts/:provider',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (put /api/source-hosts/:provider)'),
+  async (req, res) => {
+    const provider = providerParam.safeParse(req.params.provider);
+    if (!provider.success) return res.status(404).json({ error: 'Unknown provider.' });
+    const parsed = connectSchema.safeParse(req.body ?? {});
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ error: 'Invalid data', details: flattenZodError(parsed.error) });
 
-  const apiUrl = (parsed.data.apiUrl ?? DEFAULT_API_URLS[provider.data]).replace(/\/+$/, '');
-  const check = await checkSourceHost({
-    provider: provider.data,
-    apiUrl,
-    token: parsed.data.token,
-  });
-  if (!check.ok) return res.status(400).json({ error: check.error });
-
-  const encrypted = await encryptSecret(parsed.data.token, getTenantOrgId()!);
-  const values = {
-    apiUrl,
-    encryptedToken: encrypted.encryptedValue,
-    tokenIv: encrypted.iv,
-    tokenAuthTag: encrypted.authTag,
-    updatedAt: new Date(),
-    lastDeliveryAt: null,
-    lastDeliveryError: null,
-  };
-  const row = await withTenantTransaction(async (tx) => {
-    const [saved] = await tx
-      .insert(sourceHosts)
-      .values({
-        id: randomUUID(),
-        organizationId: getTenantOrgId()!,
-        provider: provider.data,
-        createdBy: req.user!.id,
-        ...values,
-      })
-      .onConflictDoUpdate({
-        target: [sourceHosts.organizationId, sourceHosts.provider],
-        set: values,
-      })
-      .returning();
-    await recordAudit(tx, {
-      action: AUDIT_ACTIONS.SOURCE_HOST_CONNECTED,
-      actor: auditActor(req),
-      targetType: 'source_host',
-      targetId: saved.id,
-      // Whose token, never the token.
-      metadata: { provider: provider.data, apiUrl, account: check.account },
+    const apiUrl = (parsed.data.apiUrl ?? DEFAULT_API_URLS[provider.data]).replace(/\/+$/, '');
+    const check = await checkSourceHost({
+      provider: provider.data,
+      apiUrl,
+      token: parsed.data.token,
     });
-    return saved;
-  });
-  res.json({ ...view(row), account: check.account });
-});
+    if (!check.ok) return res.status(400).json({ error: check.error });
 
-/** POST /api/source-hosts/:provider/test — does the stored token still work, and whose is it? */
-router.post('/api/source-hosts/:provider/test', requireRole('owner'), async (req, res) => {
-  const provider = providerParam.safeParse(req.params.provider);
-  if (!provider.success) return res.status(404).json({ error: 'Unknown provider.' });
-  const [row] = await withTenantTransaction((tx) =>
-    tx
-      .select()
-      .from(sourceHosts)
-      .where(eq(sourceHosts.provider, provider.data as SourceHostProvider))
-      .limit(1),
-  );
-  if (!row) return res.status(404).json({ error: 'Not connected.' });
-  res.json(await checkSourceHost(await hostConfig(row)));
-});
-
-router.delete('/api/source-hosts/:provider', requireRole('owner'), async (req, res) => {
-  const provider = providerParam.safeParse(req.params.provider);
-  if (!provider.success) return res.status(404).json({ error: 'Unknown provider.' });
-  const removed = await withTenantTransaction(async (tx) => {
-    const [row] = await tx
-      .delete(sourceHosts)
-      .where(eq(sourceHosts.provider, provider.data))
-      .returning();
-    if (row) {
+    const encrypted = await encryptSecret(parsed.data.token, getTenantOrgId()!);
+    const values = {
+      apiUrl,
+      encryptedToken: encrypted.encryptedValue,
+      tokenIv: encrypted.iv,
+      tokenAuthTag: encrypted.authTag,
+      updatedAt: new Date(),
+      lastDeliveryAt: null,
+      lastDeliveryError: null,
+    };
+    const row = await withTenantTransaction(async (tx) => {
+      const [saved] = await tx
+        .insert(sourceHosts)
+        .values({
+          id: randomUUID(),
+          organizationId: getTenantOrgId()!,
+          provider: provider.data,
+          createdBy: req.user!.id,
+          ...values,
+        })
+        .onConflictDoUpdate({
+          target: [sourceHosts.organizationId, sourceHosts.provider],
+          set: values,
+        })
+        .returning();
       await recordAudit(tx, {
-        action: AUDIT_ACTIONS.SOURCE_HOST_REMOVED,
+        action: AUDIT_ACTIONS.SOURCE_HOST_CONNECTED,
         actor: auditActor(req),
         targetType: 'source_host',
-        targetId: row.id,
-        metadata: { provider: row.provider, apiUrl: row.apiUrl },
+        targetId: saved.id,
+        // Whose token, never the token.
+        metadata: { provider: provider.data, apiUrl, account: check.account },
       });
-    }
-    return row;
-  });
-  if (!removed) return res.status(404).json({ error: 'Not connected.' });
-  res.status(204).end();
-});
+      return saved;
+    });
+    res.json({ ...view(row), account: check.account });
+  },
+);
+
+/** POST /api/source-hosts/:provider/test — does the stored token still work, and whose is it? */
+router.post(
+  '/api/source-hosts/:provider/test',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (post /api/source-hosts/:provider/test)'),
+  async (req, res) => {
+    const provider = providerParam.safeParse(req.params.provider);
+    if (!provider.success) return res.status(404).json({ error: 'Unknown provider.' });
+    const [row] = await withTenantTransaction((tx) =>
+      tx
+        .select()
+        .from(sourceHosts)
+        .where(eq(sourceHosts.provider, provider.data as SourceHostProvider))
+        .limit(1),
+    );
+    if (!row) return res.status(404).json({ error: 'Not connected.' });
+    res.json(await checkSourceHost(await hostConfig(row)));
+  },
+);
+
+router.delete(
+  '/api/source-hosts/:provider',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (delete /api/source-hosts/:provider)'),
+  async (req, res) => {
+    const provider = providerParam.safeParse(req.params.provider);
+    if (!provider.success) return res.status(404).json({ error: 'Unknown provider.' });
+    const removed = await withTenantTransaction(async (tx) => {
+      const [row] = await tx
+        .delete(sourceHosts)
+        .where(eq(sourceHosts.provider, provider.data))
+        .returning();
+      if (row) {
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.SOURCE_HOST_REMOVED,
+          actor: auditActor(req),
+          targetType: 'source_host',
+          targetId: row.id,
+          metadata: { provider: row.provider, apiUrl: row.apiUrl },
+        });
+      }
+      return row;
+    });
+    if (!removed) return res.status(404).json({ error: 'Not connected.' });
+    res.status(204).end();
+  },
+);
 
 export default router;

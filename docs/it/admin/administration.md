@@ -375,9 +375,11 @@ password di una persona.
 - Alla creazione servono **almeno uno scope** e una **scadenza**: la durata si sceglie alla
   creazione (nel form il default è 90 giorni) e non può superare `API_KEY_MAX_TTL_DAYS` (365 di
   default).
-- Le chiavi create prima di questa regola, senza scope o senza scadenza, continuano a funzionare e
-  sono elencate come **legacy, accesso completo** / **nessuna scadenza (legacy)**. Agiscono come il
-  loro account ovunque: sostituitele con chiavi con scope e scadenza e revocate le vecchie.
+- Le chiavi create prima degli scope (senza scope) sono state migrate a soli scope di lettura (tutti
+  i `*:read`) e non agiscono più come il loro account ovunque; quelle senza scadenza sono elencate
+  come **nessuna scadenza (legacy)**. Riemettete con scope di scrittura espliciti le chiavi che
+  scrivevano. Le modifiche riservate al proprietario (agenti, posta, host sorgente, fatturazione,
+  token SMS, accesso ai progetti, eliminazione dell'organizzazione...) richiedono una sessione.
 - Una chiave API non può creare o revocare chiavi e account di servizio, gestire membri e ruoli o
   cambiare le impostazioni SSO e MFA: serve una sessione.
 - Il suo ultimo utilizzo è visibile, così si trovano le chiavi inutilizzate.

@@ -11,6 +11,9 @@ import { AUDIT_ACTIONS } from '@shared/schema';
 import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../../tenancy/audit';
+import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
+
 import {
   builtInTemplates,
   previewMailTemplate,
@@ -53,136 +56,154 @@ router.get('/api/mail-templates', requireRole('owner'), async (_req, res) => {
     res.status(500).json({ error: 'Could not load mail templates' });
   }
 });
-router.post('/api/mail-templates/:purpose/preview', requireRole('owner'), async (req, res) => {
-  const purpose = purposeSchema.safeParse(req.params.purpose);
-  const body = edit.safeParse(req.body);
-  if (!purpose.success || !body.success)
-    return res.status(400).json({ error: 'Invalid mail template' });
-  try {
-    res.json(previewMailTemplate(purpose.data, body.data));
-  } catch {
-    res.status(400).json({ error: 'Invalid mail template or required action link' });
-  }
-});
-router.put('/api/mail-templates/:purpose', requireRole('owner'), async (req, res) => {
-  const purpose = purposeSchema.safeParse(req.params.purpose);
-  const body = edit.safeParse(req.body);
-  if (!purpose.success || !body.success)
-    return res.status(400).json({ error: 'Invalid mail template' });
-  let content;
-  try {
-    content = validateMailTemplate(purpose.data, {
-      subject: body.data.subject,
-      html: body.data.html,
-      text: body.data.text,
-    });
-  } catch {
-    return res.status(400).json({ error: 'Invalid mail template or required action link' });
-  }
-  try {
-    const org = getTenantOrgId()!;
-    const result = await withTenantTransaction(async (tx) => {
-      const [row] =
-        body.data.version === 0
-          ? await tx
-              .insert(mailTemplates)
-              .values({ organizationId: org, purpose: purpose.data, ...content })
-              .onConflictDoNothing()
-              .returning()
-          : await tx
-              .update(mailTemplates)
-              .set({
-                ...content,
-                custom: true,
-                version: sql`${mailTemplates.version} + 1`,
-                updatedAt: new Date(),
-              })
-              .where(
-                and(
-                  eq(mailTemplates.organizationId, org),
-                  eq(mailTemplates.purpose, purpose.data),
-                  eq(mailTemplates.version, body.data.version),
-                ),
-              )
-              .returning();
-      if (!row) return null;
-      await recordAudit(tx, {
-        action: AUDIT_ACTIONS.MAIL_TEMPLATE_CHANGED,
-        actor: auditActor(req),
-        targetType: 'organization',
-        targetId: org,
-        metadata: {
-          purpose: purpose.data,
-          action: 'save',
-          fields: ['subject', 'html', 'text'],
-          version: row.version,
-        },
+router.post(
+  '/api/mail-templates/:purpose/preview',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (post /api/mail-templates/:purpose/preview)'),
+  async (req, res) => {
+    const purpose = purposeSchema.safeParse(req.params.purpose);
+    const body = edit.safeParse(req.body);
+    if (!purpose.success || !body.success)
+      return res.status(400).json({ error: 'Invalid mail template' });
+    try {
+      res.json(previewMailTemplate(purpose.data, body.data));
+    } catch {
+      res.status(400).json({ error: 'Invalid mail template or required action link' });
+    }
+  },
+);
+router.put(
+  '/api/mail-templates/:purpose',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (put /api/mail-templates/:purpose)'),
+  async (req, res) => {
+    const purpose = purposeSchema.safeParse(req.params.purpose);
+    const body = edit.safeParse(req.body);
+    if (!purpose.success || !body.success)
+      return res.status(400).json({ error: 'Invalid mail template' });
+    let content;
+    try {
+      content = validateMailTemplate(purpose.data, {
+        subject: body.data.subject,
+        html: body.data.html,
+        text: body.data.text,
       });
-      return entry(purpose.data, row);
-    });
-    if (!result)
-      return res.status(409).json({ error: 'Mail template changed; reload before saving' });
-    res.json(result);
-  } catch {
-    res.status(500).json({ error: 'Could not save mail template' });
-  }
-});
-router.delete('/api/mail-templates/:purpose', requireRole('owner'), async (req, res) => {
-  const purpose = purposeSchema.safeParse(req.params.purpose);
-  const body = revision.safeParse(req.body);
-  if (!purpose.success || !body.success)
-    return res.status(400).json({ error: 'Invalid mail template revision' });
-  try {
-    const org = getTenantOrgId()!;
-    const result = await withTenantTransaction(async (tx) => {
-      const [row] =
-        body.data.version === 0
-          ? await tx
-              .insert(mailTemplates)
-              .values({
-                organizationId: org,
-                purpose: purpose.data,
-                ...builtInTemplates[purpose.data],
-                custom: false,
-              })
-              .onConflictDoNothing()
-              .returning()
-          : await tx
-              .update(mailTemplates)
-              .set({
-                ...builtInTemplates[purpose.data],
-                custom: false,
-                version: sql`${mailTemplates.version} + 1`,
-                updatedAt: new Date(),
-              })
-              .where(
-                and(
-                  eq(mailTemplates.organizationId, org),
-                  eq(mailTemplates.purpose, purpose.data),
-                  eq(mailTemplates.version, body.data.version),
-                ),
-              )
-              .returning();
-      if (!row) return null;
-      await recordAudit(tx, {
-        action: AUDIT_ACTIONS.MAIL_TEMPLATE_CHANGED,
-        actor: auditActor(req),
-        targetType: 'organization',
-        targetId: org,
-        metadata: {
-          purpose: purpose.data,
-          action: 'reset',
-          fields: ['subject', 'html', 'text'],
-          version: row.version,
-        },
+    } catch {
+      return res.status(400).json({ error: 'Invalid mail template or required action link' });
+    }
+    try {
+      const org = getTenantOrgId()!;
+      const result = await withTenantTransaction(async (tx) => {
+        const [row] =
+          body.data.version === 0
+            ? await tx
+                .insert(mailTemplates)
+                .values({ organizationId: org, purpose: purpose.data, ...content })
+                .onConflictDoNothing()
+                .returning()
+            : await tx
+                .update(mailTemplates)
+                .set({
+                  ...content,
+                  custom: true,
+                  version: sql`${mailTemplates.version} + 1`,
+                  updatedAt: new Date(),
+                })
+                .where(
+                  and(
+                    eq(mailTemplates.organizationId, org),
+                    eq(mailTemplates.purpose, purpose.data),
+                    eq(mailTemplates.version, body.data.version),
+                  ),
+                )
+                .returning();
+        if (!row) return null;
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.MAIL_TEMPLATE_CHANGED,
+          actor: auditActor(req),
+          targetType: 'organization',
+          targetId: org,
+          metadata: {
+            purpose: purpose.data,
+            action: 'save',
+            fields: ['subject', 'html', 'text'],
+            version: row.version,
+          },
+        });
+        return entry(purpose.data, row);
       });
-      return entry(purpose.data, row);
-    });
-    if (!result)
-      return res.status(409).json({ error: 'Mail template changed; reload before resetting' });
-    res.json(result);
-  } catch {
-    res.status(500).json({ error: 'Could not reset mail template' });
-  }
-});
+      if (!result)
+        return res.status(409).json({ error: 'Mail template changed; reload before saving' });
+      res.json(result);
+    } catch {
+      res.status(500).json({ error: 'Could not save mail template' });
+    }
+  },
+);
+router.delete(
+  '/api/mail-templates/:purpose',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (delete /api/mail-templates/:purpose)'),
+  async (req, res) => {
+    const purpose = purposeSchema.safeParse(req.params.purpose);
+    const body = revision.safeParse(req.body);
+    if (!purpose.success || !body.success)
+      return res.status(400).json({ error: 'Invalid mail template revision' });
+    try {
+      const org = getTenantOrgId()!;
+      const result = await withTenantTransaction(async (tx) => {
+        const [row] =
+          body.data.version === 0
+            ? await tx
+                .insert(mailTemplates)
+                .values({
+                  organizationId: org,
+                  purpose: purpose.data,
+                  ...builtInTemplates[purpose.data],
+                  custom: false,
+                })
+                .onConflictDoNothing()
+                .returning()
+            : await tx
+                .update(mailTemplates)
+                .set({
+                  ...builtInTemplates[purpose.data],
+                  custom: false,
+                  version: sql`${mailTemplates.version} + 1`,
+                  updatedAt: new Date(),
+                })
+                .where(
+                  and(
+                    eq(mailTemplates.organizationId, org),
+                    eq(mailTemplates.purpose, purpose.data),
+                    eq(mailTemplates.version, body.data.version),
+                  ),
+                )
+                .returning();
+        if (!row) return null;
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.MAIL_TEMPLATE_CHANGED,
+          actor: auditActor(req),
+          targetType: 'organization',
+          targetId: org,
+          metadata: {
+            purpose: purpose.data,
+            action: 'reset',
+            fields: ['subject', 'html', 'text'],
+            version: row.version,
+          },
+        });
+        return entry(purpose.data, row);
+      });
+      if (!result)
+        return res.status(409).json({ error: 'Mail template changed; reload before resetting' });
+      res.json(result);
+    } catch {
+      res.status(500).json({ error: 'Could not reset mail template' });
+    }
+  },
+);
 export default router;

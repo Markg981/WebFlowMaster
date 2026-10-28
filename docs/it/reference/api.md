@@ -40,7 +40,7 @@ persone se ne vanno. Una chiave può avere una scadenza, e si revoca dalla stess
 
 ### Scope
 
-Una chiave **senza scope** può fare tutto ciò che può il suo account, su ogni endpoint. Una chiave
+Una chiave **senza scope** non è più accettata (quelle che non ne avevano sono state migrate a soli scope di lettura). Una chiave
 **con scope** funziona solo su `/api/v1`, e su ogni endpoint solo se ha lo scope che l'endpoint
 richiede:
 

@@ -14,6 +14,8 @@ import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import logger from '../../platform/logger';
 import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
+import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 const router = asyncRouter();
 
@@ -203,74 +205,83 @@ const accessSchema = z.object({
  * The list is kept when a project is opened again: opening is often temporary, and making the
  * owner retype it would be the punishment for having been careful.
  */
-router.put('/api/projects/:id/access', requireRole('owner'), async (req, res) => {
-  const projectId = Number(req.params.id);
-  if (!Number.isInteger(projectId)) return res.status(400).json({ error: 'Invalid project id' });
-  const parsed = accessSchema.safeParse(req.body);
-  if (!parsed.success)
-    return res
-      .status(400)
-      .json({ error: 'Invalid payload', details: flattenZodError(parsed.error) });
-  const organizationId = getTenantOrgId()!;
+router.put(
+  '/api/projects/:id/access',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (put /api/projects/:id/access)'),
+  async (req, res) => {
+    const projectId = Number(req.params.id);
+    if (!Number.isInteger(projectId)) return res.status(400).json({ error: 'Invalid project id' });
+    const parsed = accessSchema.safeParse(req.body);
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ error: 'Invalid payload', details: flattenZodError(parsed.error) });
+    const organizationId = getTenantOrgId()!;
 
-  const outcome = await withTenantTransaction(async (tx) => {
-    const before = await accessOf(tx, projectId);
-    if (!before) return { status: 404 as const };
+    const outcome = await withTenantTransaction(async (tx) => {
+      const before = await accessOf(tx, projectId);
+      if (!before) return { status: 404 as const };
 
-    // People of this organization only. users has no RLS, so the organization is named here,
-    // through the membership: a member acting in another organization is still one of ours.
-    const ids = parsed.data.members.map((m) => m.userId);
-    const found = ids.length
-      ? await tx
-          .select({ id: users.id, username: users.username })
-          .from(users)
-          .innerJoin(organizationMemberships, eq(organizationMemberships.userId, users.id))
-          .where(
-            and(
-              inArray(users.id, ids),
-              eq(organizationMemberships.organizationId, organizationId),
-              eq(users.kind, 'person'),
-            ),
-          )
-      : [];
-    if (found.length !== ids.length) return { status: 400 as const };
-    const nameOf = new Map(found.map((u) => [u.id, u.username]));
+      // People of this organization only. users has no RLS, so the organization is named here,
+      // through the membership: a member acting in another organization is still one of ours.
+      const ids = parsed.data.members.map((m) => m.userId);
+      const found = ids.length
+        ? await tx
+            .select({ id: users.id, username: users.username })
+            .from(users)
+            .innerJoin(organizationMemberships, eq(organizationMemberships.userId, users.id))
+            .where(
+              and(
+                inArray(users.id, ids),
+                eq(organizationMemberships.organizationId, organizationId),
+                eq(users.kind, 'person'),
+              ),
+            )
+        : [];
+      if (found.length !== ids.length) return { status: 400 as const };
+      const nameOf = new Map(found.map((u) => [u.id, u.username]));
 
-    await tx
-      .update(projects)
-      .set({ restricted: parsed.data.restricted })
-      .where(eq(projects.id, projectId));
-    await tx.delete(projectMembers).where(eq(projectMembers.projectId, projectId));
-    if (parsed.data.members.length > 0) {
-      await tx.insert(projectMembers).values(
-        parsed.data.members.map((m) => ({
-          projectId,
-          userId: m.userId,
-          organizationId,
-          role: m.role,
-        })),
-      );
-    }
+      await tx
+        .update(projects)
+        .set({ restricted: parsed.data.restricted })
+        .where(eq(projects.id, projectId));
+      await tx.delete(projectMembers).where(eq(projectMembers.projectId, projectId));
+      if (parsed.data.members.length > 0) {
+        await tx.insert(projectMembers).values(
+          parsed.data.members.map((m) => ({
+            projectId,
+            userId: m.userId,
+            organizationId,
+            role: m.role,
+          })),
+        );
+      }
 
-    await recordAudit(tx, {
-      action: AUDIT_ACTIONS.PROJECT_ACCESS_CHANGED,
-      actor: auditActor(req),
-      targetType: 'project',
-      targetId: projectId,
-      metadata: {
-        name: before.name,
-        from: before.restricted ? 'restricted' : 'open',
-        to: parsed.data.restricted ? 'restricted' : 'open',
-        members: parsed.data.members.map((m) => ({ username: nameOf.get(m.userId), role: m.role })),
-      },
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.PROJECT_ACCESS_CHANGED,
+        actor: auditActor(req),
+        targetType: 'project',
+        targetId: projectId,
+        metadata: {
+          name: before.name,
+          from: before.restricted ? 'restricted' : 'open',
+          to: parsed.data.restricted ? 'restricted' : 'open',
+          members: parsed.data.members.map((m) => ({
+            username: nameOf.get(m.userId),
+            role: m.role,
+          })),
+        },
+      });
+      return { status: 200 as const, body: await accessOf(tx, projectId) };
     });
-    return { status: 200 as const, body: await accessOf(tx, projectId) };
-  });
 
-  if (outcome.status === 404) return res.status(404).json({ error: 'Project not found' });
-  if (outcome.status === 400)
-    return res.status(400).json({ error: 'Every member must be a person in this organization.' });
-  res.json(outcome.body);
-});
+    if (outcome.status === 404) return res.status(404).json({ error: 'Project not found' });
+    if (outcome.status === 400)
+      return res.status(400).json({ error: 'Every member must be a person in this organization.' });
+    res.json(outcome.body);
+  },
+);
 
 export default router;

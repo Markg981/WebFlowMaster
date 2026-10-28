@@ -11,6 +11,8 @@ import { auditActor, recordAudit } from '../../tenancy/audit';
 import { generateAgentToken } from '../../runtime/agents/agent-credentials';
 import { agentRelay } from '../../runtime/agents/relay';
 import { RUNNER_PLAYWRIGHT_VERSION } from '../../runtime/agents/agent-browser';
+import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 /**
  * Local agents: which exist, which are connected now, and creating and revoking them.
@@ -60,59 +62,74 @@ const createSchema = z.object({
     .default('default'),
 });
 
-router.post('/api/agents', requireRole('owner'), async (req, res) => {
-  const parsed = createSchema.safeParse(req.body ?? {});
-  if (!parsed.success)
-    return res.status(400).json({ error: 'Invalid agent', details: flattenZodError(parsed.error) });
-  const { token, prefix, hash } = generateAgentToken();
-  const row = await withTenantTransaction(async (tx) => {
-    const [created] = await tx
-      .insert(agents)
-      .values({
-        id: randomUUID(),
-        organizationId: getTenantOrgId()!,
-        name: parsed.data.name,
-        pool: parsed.data.pool,
-        tokenPrefix: prefix,
-        tokenHash: hash,
-        createdBy: req.user!.id,
-      })
-      .returning();
-    await recordAudit(tx, {
-      action: AUDIT_ACTIONS.AGENT_CREATED,
-      actor: auditActor(req),
-      targetType: 'agent',
-      targetId: created.id,
-      metadata: { name: created.name, pool: created.pool, tokenPrefix: prefix },
+router.post(
+  '/api/agents',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (post /api/agents)'),
+  async (req, res) => {
+    const parsed = createSchema.safeParse(req.body ?? {});
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ error: 'Invalid agent', details: flattenZodError(parsed.error) });
+    const { token, prefix, hash } = generateAgentToken();
+    const row = await withTenantTransaction(async (tx) => {
+      const [created] = await tx
+        .insert(agents)
+        .values({
+          id: randomUUID(),
+          organizationId: getTenantOrgId()!,
+          name: parsed.data.name,
+          pool: parsed.data.pool,
+          tokenPrefix: prefix,
+          tokenHash: hash,
+          createdBy: req.user!.id,
+        })
+        .returning();
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.AGENT_CREATED,
+        actor: auditActor(req),
+        targetType: 'agent',
+        targetId: created.id,
+        metadata: { name: created.name, pool: created.pool, tokenPrefix: prefix },
+      });
+      return created;
     });
-    return created;
-  });
-  // The only time the token is ever shown.
-  res.status(201).json({ agent: view(row), token });
-});
+    // The only time the token is ever shown.
+    res.status(201).json({ agent: view(row), token });
+  },
+);
 
-router.post('/api/agents/:id/revoke', requireRole('owner'), async (req, res) => {
-  const revoked = await withTenantTransaction(async (tx) => {
-    const [row] = await tx
-      .update(agents)
-      .set({ revokedAt: new Date() })
-      .where(and(eq(agents.id, req.params.id), isNull(agents.revokedAt)))
-      .returning();
-    if (!row) return null;
-    await recordAudit(tx, {
-      action: AUDIT_ACTIONS.AGENT_REVOKED,
-      actor: auditActor(req),
-      targetType: 'agent',
-      targetId: row.id,
-      metadata: { name: row.name, pool: row.pool },
+router.post(
+  '/api/agents/:id/revoke',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (post /api/agents/:id/revoke)'),
+  async (req, res) => {
+    const revoked = await withTenantTransaction(async (tx) => {
+      const [row] = await tx
+        .update(agents)
+        .set({ revokedAt: new Date() })
+        .where(and(eq(agents.id, req.params.id), isNull(agents.revokedAt)))
+        .returning();
+      if (!row) return null;
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.AGENT_REVOKED,
+        actor: auditActor(req),
+        targetType: 'agent',
+        targetId: row.id,
+        metadata: { name: row.name, pool: row.pool },
+      });
+      return row;
     });
-    return row;
-  });
-  if (!revoked) return res.status(404).json({ error: 'No such agent, or it is already revoked.' });
-  // Its standing connection ends now; browsers it is lending finish their runs.
-  agentRelay()?.disconnect(revoked.id, 'This agent was revoked.');
-  res.json(view(revoked));
-});
+    if (!revoked)
+      return res.status(404).json({ error: 'No such agent, or it is already revoked.' });
+    // Its standing connection ends now; browsers it is lending finish their runs.
+    agentRelay()?.disconnect(revoked.id, 'This agent was revoked.');
+    res.json(view(revoked));
+  },
+);
 
 /**
  * GET /api/agent/v1/availability?ticket=… — whether the relay can lend a browser for a ticket,

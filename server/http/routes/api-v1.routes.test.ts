@@ -319,11 +319,11 @@ describe('where a key works', () => {
     await request(app).get('/api/api-keys').set(bearer(key)).expect(401);
   });
 
-  it('a key from before scopes keeps working on both', async () => {
+  it('a key without scopes is not a credential anywhere (audit C-03)', async () => {
     const key = await keyFor(editor, org, null);
 
-    await request(app).get('/api/api-keys').set(bearer(key)).expect(200);
-    await request(app).post(`/api/v1/plans/${plan}/runs`).set(bearer(key)).expect(202);
+    await request(app).get('/api/api-keys').set(bearer(key)).expect(401);
+    await request(app).post(`/api/v1/plans/${plan}/runs`).set(bearer(key)).expect(401);
   });
 
   it("answers a request with no key in the API's own shape", async () => {

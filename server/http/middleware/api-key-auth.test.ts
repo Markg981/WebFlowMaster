@@ -43,6 +43,7 @@ async function seedKey(overrides: Partial<typeof apiKeys.$inferInsert> = {}) {
     organizationId,
     userId,
     name: 'CI',
+    scopes: ['projects:read'],
     prefix,
     hashedKey,
     ...overrides,
@@ -65,14 +66,14 @@ beforeAll(async () => {
     next();
   });
   app.use(apiKeyAuth);
-  app.get('/whoami', requireRole('viewer'), (req, res) => {
+  app.get('/api/v1/whoami', requireRole('viewer'), (req, res) => {
     res.json({
       userId: req.user!.id,
       organizationId: req.user!.organizationId,
       apiKeyId: (req as any).apiKeyId ?? null,
     });
   });
-  app.post('/editor-only', requireRole('editor'), (_req, res) => res.json({ ok: true }));
+  app.post('/api/v1/editor-only', requireRole('editor'), (_req, res) => res.json({ ok: true }));
 });
 
 beforeEach(async () => {
@@ -85,7 +86,7 @@ describe('a request carrying a key', () => {
     const { id, key } = await seedKey();
 
     const response = await request(app)
-      .get('/whoami')
+      .get('/api/v1/whoami')
       .set('Authorization', `Bearer ${key}`)
       .expect(200);
 
@@ -95,14 +96,14 @@ describe('a request carrying a key', () => {
   it('is accepted under either header spelling', async () => {
     const { key } = await seedKey();
 
-    await request(app).get('/whoami').set('X-API-Key', key).expect(200);
-    await request(app).get('/whoami').set('Authorization', `Bearer ${key}`).expect(200);
+    await request(app).get('/api/v1/whoami').set('X-API-Key', key).expect(200);
+    await request(app).get('/api/v1/whoami').set('Authorization', `Bearer ${key}`).expect(200);
   });
 
   it('carries the role of the user who created it', async () => {
     const { key } = await seedKey();
 
-    await request(app).post('/editor-only').set('X-API-Key', key).expect(200);
+    await request(app).post('/api/v1/editor-only').set('X-API-Key', key).expect(200);
   });
 
   it('acts in the organization that issued it, with the role held there, wherever its user switched', async () => {
@@ -124,16 +125,16 @@ describe('a request carrying a key', () => {
     // The person moves their sign-in to the other organization, where they are an editor.
     await switchOrganization(traveller, other);
 
-    const response = await request(app).get('/whoami').set('X-API-Key', key).expect(200);
+    const response = await request(app).get('/api/v1/whoami').set('X-API-Key', key).expect(200);
     expect(response.body.organizationId).toBe(issuer);
     // Still the viewer it is in the issuing organization, not the editor it is elsewhere.
-    await request(app).post('/editor-only').set('X-API-Key', key).expect(403);
+    await request(app).post('/api/v1/editor-only').set('X-API-Key', key).expect(403);
   });
 
   it('records that the key was used', async () => {
     const { id, key } = await seedKey();
 
-    await request(app).get('/whoami').set('X-API-Key', key).expect(200);
+    await request(app).get('/api/v1/whoami').set('X-API-Key', key).expect(200);
 
     await vi.waitFor(async () => {
       const [row] = await privilegedDb.select().from(apiKeys).where(eq(apiKeys.id, id));
@@ -143,7 +144,7 @@ describe('a request carrying a key', () => {
 
   it('does not write that record on every request of a burst', async () => {
     const { id, key } = await seedKey();
-    await request(app).get('/whoami').set('X-API-Key', key).expect(200);
+    await request(app).get('/api/v1/whoami').set('X-API-Key', key).expect(200);
     await vi.waitFor(async () => {
       const [row] = await privilegedDb.select().from(apiKeys).where(eq(apiKeys.id, id));
       expect(row.lastUsedAt).not.toBeNull();
@@ -151,7 +152,7 @@ describe('a request carrying a key', () => {
     const [first] = await privilegedDb.select().from(apiKeys).where(eq(apiKeys.id, id));
 
     for (let i = 0; i < 5; i++) {
-      await request(app).get('/whoami').set('X-API-Key', key).expect(200);
+      await request(app).get('/api/v1/whoami').set('X-API-Key', key).expect(200);
     }
 
     const [after] = await privilegedDb.select().from(apiKeys).where(eq(apiKeys.id, id));
@@ -161,26 +162,32 @@ describe('a request carrying a key', () => {
 
 describe('a request whose key cannot be used', () => {
   it('is refused as unauthenticated when the key is unknown', async () => {
-    await request(app).get('/whoami').set('X-API-Key', 'wfm_not-a-real-key').expect(401);
+    await request(app).get('/api/v1/whoami').set('X-API-Key', 'wfm_not-a-real-key').expect(401);
+  });
+
+  it('is refused when the key has no scopes (audit C-03)', async () => {
+    const { key } = await seedKey({ scopes: null });
+
+    await request(app).get('/api/v1/whoami').set('X-API-Key', key).expect(401);
   });
 
   it('is refused when the key was revoked', async () => {
     const { key } = await seedKey({ revokedAt: new Date() });
 
-    await request(app).get('/whoami').set('X-API-Key', key).expect(401);
+    await request(app).get('/api/v1/whoami').set('X-API-Key', key).expect(401);
   });
 
   it('is refused when the key has expired', async () => {
     const { key } = await seedKey({ expiresAt: new Date(Date.now() - 1000) });
 
-    await request(app).get('/whoami').set('X-API-Key', key).expect(401);
+    await request(app).get('/api/v1/whoami').set('X-API-Key', key).expect(401);
   });
 
   it('answers a revoked key exactly as it answers no key at all', async () => {
     const { key } = await seedKey({ revokedAt: new Date() });
 
-    const revoked = await request(app).get('/whoami').set('X-API-Key', key);
-    const none = await request(app).get('/whoami');
+    const revoked = await request(app).get('/api/v1/whoami').set('X-API-Key', key);
+    const none = await request(app).get('/api/v1/whoami');
 
     expect(revoked.status).toBe(none.status);
     expect(revoked.body).toEqual(none.body);
@@ -202,12 +209,12 @@ describe('a request whose key cannot be used', () => {
         ),
       );
 
-    await request(app).get('/whoami').set('X-API-Key', key).expect(401);
+    await request(app).get('/api/v1/whoami').set('X-API-Key', key).expect(401);
   });
 
   it('leaves a Bearer token that is not ours alone', async () => {
     await request(app)
-      .get('/whoami')
+      .get('/api/v1/whoami')
       .set('Authorization', 'Bearer eyJhbGciOiJIUzI1NiJ9.jwt')
       .expect(401);
   });
