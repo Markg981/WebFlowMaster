@@ -112,7 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           chart=deployment/helm/webflowmaster
-          sets="--set secrets.sessionSecret=ci --set secrets.encryptionKey=ci --set secrets.agentRelaySecret=ci --set secrets.postgresPassword=ci --set postgresql.enabled=true --set redis.enabled=true"
+          sets="--set secrets.sessionSecret=ci --set secrets.encryptionKey=0000000000000000000000000000000000000000000000000000000000000000 --set secrets.agentRelaySecret=ci --set secrets.postgresPassword=ci --set postgresql.enabled=true --set redis.enabled=true"
           # shellcheck disable=SC2086
           helm lint "$chart" --strict $sets
           helm template wfm "$chart" $sets > /dev/null
