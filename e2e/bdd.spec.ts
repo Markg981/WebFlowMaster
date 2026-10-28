@@ -49,8 +49,15 @@ test('Cucumber import, source validation and published dataset execution use a r
       WFM_AGENT_MAX_SESSIONS: '1',
       WFM_BDD_PROFILES: manifest,
     },
-    stdio: 'ignore',
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
+  // Kept for the failure message: a failed run says nothing about why on its own.
+  let agentOutput = '';
+  const keep = (chunk: Buffer) => {
+    agentOutput = (agentOutput + chunk.toString()).slice(-8000);
+  };
+  agent.stdout?.on('data', keep);
+  agent.stderr?.on('data', keep);
   try {
     await expect
       .poll(
@@ -163,8 +170,14 @@ test('Cucumber import, source validation and published dataset execution use a r
           (await (await page.request.get(`/api/test-plan-executions/${runId}`)).json()).status,
         { timeout: 60000 },
       )
-      .toBe('completed');
+      .toMatch(/^(completed|failed|error|cancelled|timed_out)$/);
     const run = await (await page.request.get(`/api/test-plan-executions/${runId}`)).json();
+    expect(
+      run.status,
+      `run ${JSON.stringify(run).slice(0, 6000)}
+agent output:
+${agentOutput}`,
+    ).toBe('completed');
     expect(run.results).toHaveLength(2);
     expect(run.results.every((result: { success: boolean }) => result.success)).toBe(true);
     await expect(page.getByTestId('bdd-results').first()).toBeVisible();
