@@ -3257,6 +3257,7 @@
       "test_data_set_created": "Gemeinsamer Datensatz angelegt",
       "test_data_set_updated": "Gemeinsamer Datensatz geändert",
       "test_data_set_deleted": "Gemeinsamer Datensatz gelöscht",
+      "sso_link_refused": "Single-Sign-on-Verknüpfung abgelehnt",
       "sso_domain_verified": "Single-Sign-on-Domain nachgewiesen",
       "scim_token_issued": "SCIM-Token ausgestellt",
       "scim_token_revoked": "SCIM-Token widerrufen",
