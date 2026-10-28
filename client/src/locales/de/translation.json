@@ -3276,6 +3276,7 @@
       "organization_quotas_updated": "Organisationskontingente geändert",
       "organization_billing_updated": "Abrechnung der Organisation geändert",
       "organization_switched": "Organisation gewechselt",
+      "organization_exported": "Organisation exportiert",
       "organization_artifacts_reconciled": "Artefaktbestand der Organisation abgeglichen",
       "load_test_created": "Lasttest erstellt",
       "load_test_updated": "Lasttest geändert",
