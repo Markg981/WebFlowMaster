@@ -11,7 +11,7 @@ import { privilegedDb, closeDb, assertTenancyPreconditions } from './platform/db
 import { assertOrganizationKeysReadable } from './platform/organization-keys';
 import { systemSettings } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
-import { setupWebSockets } from './http/websocket';
+import { closeWebSockets, setupWebSockets } from './http/websocket';
 import { setupAgentRelay } from './runtime/agents/setup';
 import { registerCommitStatus } from './integrations/commit-status';
 import { correlationMiddleware } from './platform/middleware/correlation';
@@ -29,6 +29,7 @@ import scimRouter, { exceptScim, SCIM_BASE_PATH } from './http/routes/scim.route
 import { startTracing } from '../shared/telemetry';
 import { applicationMetrics, startMetricsServer } from './platform/observability/metrics';
 
+let draining = false;
 const stopTracing = startTracing('api');
 configureEgressProxy();
 const app = express();
@@ -40,6 +41,8 @@ app.use(
     sessions: () => process.env.NODE_ENV === 'test' || sessionRedis.isReady,
     // 503 until the scheduler started, also after the retries ran out (audit A-08).
     scheduler: schedulerReadiness,
+    // 503 as soon as a shutdown begins, so the balancer stops sending before the sockets close.
+    draining: () => !draining,
   }),
 );
 app.use(applicationMetrics.middleware);
@@ -198,7 +201,7 @@ app.use(express.urlencoded({ extended: false }));
   // Set up WebSockets for real-time logging
   await setupWebSockets(server);
   // Local agents dial in on the same address: see server/runtime/agents/relay.ts.
-  await setupAgentRelay(server);
+  const agentRelay = await setupAgentRelay(server);
   // Runs queued and cancelled from here report on their commit; the worker reports the rest.
   registerCommitStatus();
   // A run that ends lets its organization's next waiting run start at once (server/execution/run-promotion.ts).
@@ -282,6 +285,7 @@ app.use(express.urlencoded({ extended: false }));
   const shutdown = async (signal: string, exitCode = 0) => {
     if (shuttingDown) return;
     shuttingDown = true;
+    draining = true;
     logger.info(`Received ${signal}, shutting down gracefully...`);
 
     // Force-exit if cleanup hangs.
@@ -290,6 +294,11 @@ app.use(express.urlencoded({ extended: false }));
       process.exit(1);
     }, 10000);
     forceTimer.unref();
+
+    // server.close() waits for every open connection and a WebSocket never ends by itself: end the
+    // browser sockets and the agents' relay first, or the timer above forces exit 1 (audit C-26).
+    await closeWebSockets();
+    agentRelay.close();
 
     server.close(async () => {
       try {

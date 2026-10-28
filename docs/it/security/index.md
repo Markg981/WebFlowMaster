@@ -41,7 +41,11 @@ non restituisce nulla di un'altra organizzazione; non restituisce tutto.
 - Dentro un'organizzazione, i **progetti riservati** restringono chi vede i test di un
   progetto, anche questo imposto dal database.
 - I log in tempo reale via WebSocket verificano allo stesso modo la sessione e che il run
-  appartenga all'organizzazione di chi guarda.
+  appartenga all'organizzazione di chi guarda. L'upgrade è rifiutato con 403 se l'`Origin` del
+  browser non è quello dell'app (o uno in `CSRF_TRUSTED_ORIGINS`); un socket aperto è ricontrollato
+  sullo store delle sessioni ogni 30 secondi e a ogni messaggio, e si chiude quando l'utente esce,
+  cambia la password, viene disabilitato o perde l'appartenenza. Uno shutdown chiude i socket e
+  `/readyz` risponde prima 503.
 
 ## Identità e accessi
 

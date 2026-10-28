@@ -1,3 +1,4 @@
+import type { IncomingHttpHeaders } from 'http';
 import type { Request, Response, NextFunction } from 'express';
 
 // CSRF defense via Origin/Referer validation (OWASP-recommended for cookie-auth APIs),
@@ -29,7 +30,7 @@ function hostOf(urlOrHost: string | undefined): string | null {
   }
 }
 
-function trustedHosts(req: Request): Set<string> {
+function trustedHosts(req: { headers: IncomingHttpHeaders }): Set<string> {
   const hosts = new Set<string>();
   if (req.headers.host) hosts.add(req.headers.host);
   const xfHost = req.headers['x-forwarded-host'];
@@ -42,6 +43,17 @@ function trustedHosts(req: Request): Set<string> {
     });
   }
   return hosts;
+}
+
+/**
+ * Whether a browser-supplied Origin names this app (the request's own host, the forwarded host or
+ * CSRF_TRUSTED_ORIGINS). No Origin means a non-browser client: it passes, as in csrfOriginCheck.
+ * Used by the WebSocket upgrade, which does not go through Express (audit C-26).
+ */
+export function isTrustedOrigin(req: { headers: IncomingHttpHeaders }): boolean {
+  const originHost = hostOf(req.headers.origin);
+  if (!originHost) return !req.headers.origin;
+  return trustedHosts(req).has(originHost);
 }
 
 export function csrfOriginCheck(req: Request, res: Response, next: NextFunction): void {

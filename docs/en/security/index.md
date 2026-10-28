@@ -39,7 +39,11 @@ organization; it does not return everything.
 - Within an organization, **restricted projects** narrow who sees a project's tests, also
   enforced by the database.
 - Live logs over WebSocket check the session and that the run belongs to the viewer's
-  organization, in the same way.
+  organization, in the same way. The upgrade is refused with 403 when the browser's `Origin` is not
+  this app's (or one in `CSRF_TRUSTED_ORIGINS`); an open socket is checked against the session
+  store every 30 seconds and on each message, and is closed when the user logs out, changes the
+  password, is disabled or loses the membership. A shutdown closes the sockets and `/readyz`
+  answers 503 first.
 
 ## Identity and access
 
