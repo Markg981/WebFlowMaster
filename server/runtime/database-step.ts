@@ -91,7 +91,8 @@ export async function vetDatabaseTarget(
   for (const name of HOST_PARAMS) {
     const value = params.get(name);
     if (value) {
-      if (value.includes(',')) throw new Error(`The database address has several hosts in ?${name}=.`);
+      if (value.includes(','))
+        throw new Error(`The database address has several hosts in ?${name}=.`);
       host = value;
     }
   }

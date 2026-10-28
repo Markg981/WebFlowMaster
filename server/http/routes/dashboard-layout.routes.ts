@@ -1,5 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
-import { flattenZodError } from '../zod-error';
+import { flattenZodError } from '../../platform/zod-error';
 import { and, eq } from 'drizzle-orm';
 import {
   DEFAULT_DASHBOARD_LAYOUT,

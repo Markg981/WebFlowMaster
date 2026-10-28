@@ -1,5 +1,5 @@
 import { quotaErrorBody } from '../../tenancy/tenant-quotas';
-import { flattenZodError } from '../zod-error';
+import { flattenZodError } from '../../platform/zod-error';
 import { type Response } from 'express';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { z } from 'zod';

@@ -1,5 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
-import { flattenZodError } from '../zod-error';
+import { flattenZodError } from '../../platform/zod-error';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';

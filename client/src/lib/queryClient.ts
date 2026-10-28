@@ -31,19 +31,19 @@ export class ApiError extends Error {
 /** First readable "field: message" out of a zod flatten ({formErrors, fieldErrors}) or zod 4 tree ({errors, properties}). */
 export function validationMessage(details: unknown): string | undefined {
   if (!details || typeof details !== 'object') return undefined;
-  const d = details as Record<string, any>;
+  const d = details as Record<string, unknown>;
   const first = (v: unknown): string | undefined =>
     Array.isArray(v) ? v.find((x) => typeof x === 'string' && x) : undefined;
   if (d.fieldErrors && typeof d.fieldErrors === 'object') {
-    for (const [field, msgs] of Object.entries(d.fieldErrors)) {
+    for (const [field, msgs] of Object.entries(d.fieldErrors as Record<string, unknown>)) {
       const m = first(msgs);
       if (m) return `${field}: ${m}`;
     }
   }
   const form = first(d.formErrors) ?? first(d.errors);
   if (d.properties && typeof d.properties === 'object') {
-    for (const [field, sub] of Object.entries(d.properties)) {
-      const m = first((sub as any)?.errors);
+    for (const [field, sub] of Object.entries(d.properties as Record<string, unknown>)) {
+      const m = first((sub as { errors?: unknown } | null)?.errors);
       if (m) return `${field}: ${m}`;
     }
   }

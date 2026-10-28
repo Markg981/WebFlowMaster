@@ -1,5 +1,5 @@
 import { type Response } from 'express';
-import { flattenZodError } from '../zod-error';
+import { flattenZodError } from '../../platform/zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import os from 'os';
 import fs from 'fs';

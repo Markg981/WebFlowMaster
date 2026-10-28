@@ -1,5 +1,5 @@
 import { RecordedActionSchema, type RecordedAction } from '@shared/recording';
-import { flattenZodError } from '../../http/zod-error';
+import { flattenZodError } from '../../platform/zod-error';
 import { Browser, BrowserContext, Page } from 'playwright';
 import { v4 as uuidv4 } from 'uuid';
 import { gotoWithinPolicy } from '../../platform/egress-policy';
