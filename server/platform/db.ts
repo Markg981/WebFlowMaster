@@ -8,6 +8,7 @@ import path from 'path';
 import { unwrapDrizzleQueryErrors } from './db-errors';
 import { readPoolSettings, sessionSetupStatements } from './db-pool-settings';
 import logger from './logger';
+import { attachPoolErrorHandler } from './pool-errors';
 
 // Before any query: failed queries surface as the driver's own error, not as drizzle's wrapper
 // carrying the SQL and its parameters (see server/platform/db-errors.ts).
@@ -34,7 +35,11 @@ export async function withArtifactLock<T>(
   if (!Number.isSafeInteger(organizationId) || organizationId <= 0)
     throw new Error('Invalid artifact organization');
   if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
-    artifactLockPool ??= new Pool({ connectionString: dbUrl, max: 2 });
+    artifactLockPool ??= attachPoolErrorHandler(
+      new Pool({ connectionString: dbUrl, max: 2 }),
+      'artifact-lock',
+      (message) => logger.error(message),
+    );
     const client = await artifactLockPool.connect();
     let locked = false;
     try {
@@ -99,12 +104,16 @@ if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
   // Real PostgreSQL
   // Sized and bounded from the environment (see server/platform/db-pool-settings.ts).
   const poolSettings = readPoolSettings();
-  const pool = new Pool({
-    connectionString: dbUrl,
-    max: poolSettings.max,
-    connectionTimeoutMillis: poolSettings.connectionTimeoutMillis,
-    idleTimeoutMillis: poolSettings.idleTimeoutMillis,
-  });
+  const pool = attachPoolErrorHandler(
+    new Pool({
+      connectionString: dbUrl,
+      max: poolSettings.max,
+      connectionTimeoutMillis: poolSettings.connectionTimeoutMillis,
+      idleTimeoutMillis: poolSettings.idleTimeoutMillis,
+    }),
+    'main',
+    (message) => logger.error(message),
+  );
   const sessionSetup = sessionSetupStatements(poolSettings, SESSION_TIME_ZONE);
   // Runs on every new pooled connection, before the pool hands it to anyone: a client's queries
   // run in the order they were issued, so this is the first thing each connection does. One
