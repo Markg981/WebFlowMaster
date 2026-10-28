@@ -35,7 +35,9 @@ describe('per-IP limiter and X-Forwarded-For', () => {
     app.get('/', (_req, res) => res.send('ok'));
     const statuses: number[] = [];
     for (let i = 0; i < attempts; i++) {
-      const res = await request(app).get('/').set('X-Forwarded-For', `203.0.113.${i + 1}`);
+      const res = await request(app)
+        .get('/')
+        .set('X-Forwarded-For', `203.0.113.${i + 1}`);
       statuses.push(res.status);
     }
     return statuses;

@@ -33,9 +33,9 @@ describe('relay secret (audit A-12)', () => {
   });
 
   it('falls back to SESSION_SECRET outside production, and still needs one of them', () => {
-    expect(
-      relaySecret({ NODE_ENV: 'development', SESSION_SECRET: 's' } as NodeJS.ProcessEnv),
-    ).toBe('s');
+    expect(relaySecret({ NODE_ENV: 'development', SESSION_SECRET: 's' } as NodeJS.ProcessEnv)).toBe(
+      's',
+    );
     expect(() => relaySecret({ NODE_ENV: 'development' } as NodeJS.ProcessEnv)).toThrow();
   });
 });
@@ -61,7 +61,11 @@ describe('single-use tickets (audit A-12)', () => {
   it('delegates the claim to the shared store when there is one (several instances)', async () => {
     const seen = new Set<string>();
     const claimTicket = vi.fn(async (jti: string) => !seen.has(jti) && !!seen.add(jti));
-    const relay = new AgentRelay({ authenticate: async () => null, secret: () => 'k', claimTicket });
+    const relay = new AgentRelay({
+      authenticate: async () => null,
+      secret: () => 'k',
+      claimTicket,
+    });
     const ticket = ticketOf('k');
     expect(await (relay as any).claimTicket(ticket)).toBe(true);
     expect(await (relay as any).claimTicket(ticket)).toBe(false);

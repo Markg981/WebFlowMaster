@@ -1,4 +1,4 @@
-import { afterAll, expect, it } from 'vitest';
+import { afterAll, expect, it, vi } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';
 import WebSocket from 'ws';
@@ -217,3 +217,36 @@ it.each(['capacity', 'capacity-timeout', 'profile', 'execution'] as const)(
   },
   10000,
 );
+
+it('signs a fresh single-use ticket for every request it makes to the relay (C-02)', async () => {
+  const jtis: string[] = [];
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const ticket = new URL(String(input)).searchParams.get('ticket')!;
+    jtis.push(JSON.parse(Buffer.from(ticket.split('.')[0], 'base64url').toString()).jti);
+    return new Response(
+      JSON.stringify(
+        jtis.length < 3 ? { available: false, reason: 'busy or draining' } : { available: false },
+      ),
+    );
+  });
+  try {
+    await expect(
+      runBddOnAgent(
+        { organizationId: 1, pool: 'bdd' },
+        {
+          source: 'Feature: F\nScenario: S\nGiven a',
+          uri: 'test.feature',
+          scenarioLine: 2,
+          profile: { id: 'shop', revision: 'rev-1' },
+          variables: {},
+          timeoutMs: 60000,
+        },
+        { AGENT_RELAY_URL: 'http://127.0.0.1:1', AGENT_RELAY_SECRET: secret },
+      ),
+    ).rejects.toThrow();
+  } finally {
+    fetchMock.mockRestore();
+  }
+  expect(jtis.length).toBeGreaterThanOrEqual(3);
+  expect(new Set(jtis).size).toBe(jtis.length);
+});

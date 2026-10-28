@@ -4,7 +4,7 @@ Generato da `shared/schema/` (un file per dominio) con `node scripts/generate-sc
 
 Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le relazioni, poi cercare qui la tabella. Ogni riga riporta la proprietà TypeScript, il nome SQL e il builder completo: tipo, nullabilità, default e riferimenti dichiarati nella colonna. I vincoli definiti nel callback della tabella non sono espansi qui.
 
-**81 tabelle / 923 colonne dichiarate.**
+**81 tabelle / 924 colonne dichiarate.**
 
 ## Indice
 
@@ -24,7 +24,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | [system_settings](#system-settings)                           | `systemSettings`             | 2       |
 | [invitations](#invitations)                                   | `invitations`                | 9       |
 | [password_resets](#password-resets)                           | `passwordResets`             | 8       |
-| [organization_sso](#organization-sso)                         | `organizationSso`            | 27      |
+| [organization_sso](#organization-sso)                         | `organizationSso`            | 28      |
 | [scim_users](#scim-users)                                     | `scimUsers`                  | 6       |
 | [scim_groups](#scim-groups)                                   | `scimGroups`                 | 6       |
 | [scim_group_members](#scim-group-members)                     | `scimGroupMembers`           | 2       |
@@ -324,6 +324,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `groupAttribute`                 | `group_attribute`                   | `text('group_attribute')`                                                                                                          |
 | `roleMappings`                   | `role_mappings`                     | `jsonb('role_mappings') .$type<Array<{ group: string; role: 'viewer' &#124; 'editor' &#124; 'owner' }>>() .notNull() .default([])` |
 | `requireGroup`                   | `require_group`                     | `boolean('require_group').notNull().default(false)`                                                                                |
+| `trustUnverifiedEmail`           | `trust_unverified_email`            | `boolean('trust_unverified_email').notNull().default(false)`                                                                       |
 | `scimTokenHash`                  | `scim_token_hash`                   | `text('scim_token_hash')`                                                                                                          |
 | `scimTokenPrefix`                | `scim_token_prefix`                 | `text('scim_token_prefix')`                                                                                                        |
 | `scimTokenCreatedAt`             | `scim_token_created_at`             | `timestamp('scim_token_created_at')`                                                                                               |
@@ -332,7 +333,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## scim_users {#scim-users}
 
-`scimUsers` — `shared/schema/identity.ts:432`
+`scimUsers` — `shared/schema/identity.ts:438`
 
 | Proprietà TS       | Colonna SQL          | Dichiarazione                                                                                        |
 | ------------------ | -------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -345,7 +346,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## scim_groups {#scim-groups}
 
-`scimGroups` — `shared/schema/identity.ts:451`
+`scimGroups` — `shared/schema/identity.ts:457`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -358,7 +359,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## scim_group_members {#scim-group-members}
 
-`scimGroupMembers` — `shared/schema/identity.ts:466`
+`scimGroupMembers` — `shared/schema/identity.ts:472`
 
 | Proprietà TS | Colonna SQL | Dichiarazione                                                                           |
 | ------------ | ----------- | --------------------------------------------------------------------------------------- |
@@ -367,7 +368,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sso_saml_requests {#sso-saml-requests}
 
-`ssoSamlRequests` — `shared/schema/identity.ts:487`
+`ssoSamlRequests` — `shared/schema/identity.ts:493`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -379,7 +380,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sso_saml_replay {#sso-saml-replay}
 
-`ssoSamlReplay` — `shared/schema/identity.ts:502`
+`ssoSamlReplay` — `shared/schema/identity.ts:508`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -389,7 +390,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sso_saml_sessions {#sso-saml-sessions}
 
-`ssoSamlSessions` — `shared/schema/identity.ts:515`
+`ssoSamlSessions` — `shared/schema/identity.ts:521`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                        |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -404,7 +405,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sso_domains {#sso-domains}
 
-`ssoDomains` — `shared/schema/identity.ts:541`
+`ssoDomains` — `shared/schema/identity.ts:547`
 
 | Proprietà TS        | Colonna SQL          | Dichiarazione                                                                                        |
 | ------------------- | -------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -415,7 +416,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sso_identities {#sso-identities}
 
-`ssoIdentities` — `shared/schema/identity.ts:557`
+`ssoIdentities` — `shared/schema/identity.ts:563`
 
 | Proprietà TS   | Colonna SQL       | Dichiarazione                                                                                  |
 | -------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
@@ -427,7 +428,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## audit_log {#audit-log}
 
-`auditLog` — `shared/schema/identity.ts:589`
+`auditLog` — `shared/schema/identity.ts:595`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                   |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -445,7 +446,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## api_keys {#api-keys}
 
-`apiKeys` — `shared/schema/identity.ts:634`
+`apiKeys` — `shared/schema/identity.ts:640`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                        |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------ |
@@ -463,7 +464,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:842`
+`sessions` — `shared/schema/identity.ts:851`
 
 | Proprietà TS | Colonna SQL | Dichiarazione                   |
 | ------------ | ----------- | ------------------------------- |

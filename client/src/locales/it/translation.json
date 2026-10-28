@@ -3257,6 +3257,7 @@
       "test_data_set_created": "Set di dati condiviso creato",
       "test_data_set_updated": "Set di dati condiviso modificato",
       "test_data_set_deleted": "Set di dati condiviso eliminato",
+      "sso_link_refused": "Collegamento single sign-on rifiutato",
       "sso_domain_verified": "Dominio del single sign-on verificato",
       "scim_token_issued": "Token SCIM emesso",
       "scim_token_revoked": "Token SCIM revocato",

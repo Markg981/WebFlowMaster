@@ -185,7 +185,7 @@ describe('TagsCard', () => {
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith(
         expect.objectContaining({
-          description: 'Invalid data String must contain at most 60 character(s)',
+          description: 'name: String must contain at most 60 character(s)',
           variant: 'destructive',
         }),
       ),

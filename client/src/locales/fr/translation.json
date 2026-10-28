@@ -3257,6 +3257,7 @@
       "test_data_set_created": "Jeu de données partagé créé",
       "test_data_set_updated": "Jeu de données partagé modifié",
       "test_data_set_deleted": "Jeu de données partagé supprimé",
+      "sso_link_refused": "Liaison d'authentification unique refusée",
       "sso_domain_verified": "Domaine de l'authentification unique vérifié",
       "scim_token_issued": "Jeton SCIM émis",
       "scim_token_revoked": "Jeton SCIM révoqué",
