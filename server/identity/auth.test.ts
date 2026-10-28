@@ -305,34 +305,43 @@ describe('session user shape', () => {
 });
 
 describe('per-account login throttle', () => {
-  it('locks an account hit from many addresses, and a success resets the count', async () => {
+  it('locks only the address that guesses, and a success resets the count', async () => {
     await request(app).post('/api/register').send(validCreds).expect(201);
     const wrong = { username: 'alice', password: 'nope-nope-nope' };
-    for (let i = 0; i < 9; i++) {
-      await request(app)
-        .post('/api/login')
-        .set('X-Forwarded-For', `10.0.0.${i}`)
-        .send(wrong)
-        .expect(401);
-    }
+    const from = (ip: string) => request(app).post('/api/login').set('X-Forwarded-For', ip);
+    for (let i = 0; i < 9; i++) await from('10.0.0.1').send(wrong).expect(401);
     // A success before the limit clears the count.
-    await request(app).post('/api/login').send(validCreds).expect(200);
-    for (let i = 0; i < 10; i++) {
-      await request(app)
-        .post('/api/login')
-        .set('X-Forwarded-For', `10.0.1.${i}`)
-        .send(wrong)
-        .expect(401);
-    }
-    // Eleventh attempt, yet another address: refused even with the right password.
-    const res = await request(app)
-      .post('/api/login')
-      .set('X-Forwarded-For', '10.0.2.1')
-      .send(validCreds)
-      .expect(429);
+    await from('10.0.0.1').send(validCreds).expect(200);
+    for (let i = 0; i < 10; i++) await from('10.0.0.1').send(wrong).expect(401);
+    // Eleventh attempt from the attacker's address: refused even with the right password.
+    const res = await from('10.0.0.1').send(validCreds).expect(429);
     expect(Number(res.headers['retry-after'])).toBeGreaterThan(0);
+    // The account's owner, from another address, still gets in (C-27).
+    await from('10.0.0.2').send(validCreds).expect(200);
     const events = await privilegedDb.select().from(auditLog);
     expect(events.filter((e) => e.action === 'auth.account_locked')).toHaveLength(1);
+  });
+
+  it('locks the account for everyone once guesses over many addresses pass the ceiling', async () => {
+    process.env.LOGIN_MAX_FAILURES_ACCOUNT = '12';
+    try {
+      await request(app).post('/api/register').send(validCreds).expect(201);
+      const wrong = { username: 'alice', password: 'nope-nope-nope' };
+      for (let i = 0; i < 12; i++) {
+        await request(app)
+          .post('/api/login')
+          .set('X-Forwarded-For', `10.1.0.${i}`)
+          .send(wrong)
+          .expect(401);
+      }
+      await request(app)
+        .post('/api/login')
+        .set('X-Forwarded-For', '10.1.1.1')
+        .send(validCreds)
+        .expect(429);
+    } finally {
+      delete process.env.LOGIN_MAX_FAILURES_ACCOUNT;
+    }
   });
 
   it('answers an unknown account the same way, with no audit event', async () => {
