@@ -2,6 +2,7 @@ import { type RequestHandler } from 'express';
 import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import multer from 'multer';
+import { XLSX_UPLOAD_DIR, XlsxLimitError } from '../../integrations/xlsx-guard';
 import { excelService } from '../../integrations/excel-service';
 import fs from 'fs-extra';
 import logger from '../../platform/logger';
@@ -34,7 +35,7 @@ const XLSX_TYPES = new Set([
 class UnsupportedUploadError extends Error {}
 
 const upload = multer({
-  dest: 'uploads/',
+  dest: XLSX_UPLOAD_DIR,
   limits: { fileSize: EXCEL_UPLOAD_MAX_BYTES, files: 1, fields: 10 },
   fileFilter: (_req, file, accept) => {
     if (/\.xlsx$/i.test(file.originalname) && XLSX_TYPES.has(file.mimetype))
@@ -73,6 +74,7 @@ router.post('/api/upload-excel', requireRole('editor'), uploadExcelFile, async (
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
+  let tooLarge: string | undefined;
   let parsedData: Awaited<ReturnType<typeof excelService.parseExcel>> | undefined;
   try {
     const detectedColumns = await excelService.detectColumns(req.file.path);
@@ -87,6 +89,7 @@ router.post('/api/upload-excel', requireRole('editor'), uploadExcelFile, async (
 
     parsedData = await excelService.parseExcel(req.file.path, mappings);
   } catch (error: any) {
+    if (error instanceof XlsxLimitError) tooLarge = error.message;
     logger.error({ message: 'Error parsing Excel', error: error.message });
   } finally {
     // Also when parsing fails: a file that is not a workbook used to stay in uploads/. Removed
@@ -96,6 +99,7 @@ router.post('/api/upload-excel', requireRole('editor'), uploadExcelFile, async (
       .catch((err) => logger.warn('Failed to delete uploaded file', err));
   }
 
+  if (tooLarge) return res.status(413).json({ error: tooLarge });
   if (parsedData === undefined)
     return res.status(500).json({ error: 'Failed to parse Excel file' });
   res.json(parsedData);

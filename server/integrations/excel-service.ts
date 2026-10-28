@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { assertXlsxWithinLimits } from './xlsx-guard';
 
 export interface ExcelTestCase {
   id: string;
@@ -13,6 +14,7 @@ export interface ExcelTestCase {
 export class ExcelService {
   async parseExcelFile(filePath: string): Promise<ExcelTestCase[]> {
     const workbook = new ExcelJS.Workbook();
+    await assertXlsxWithinLimits(filePath);
     await workbook.xlsx.readFile(filePath);
 
     const worksheet = workbook.getWorksheet(1); // Assume first sheet
@@ -49,6 +51,7 @@ export class ExcelService {
 
   async detectColumns(filePath: string): Promise<string[]> {
     const workbook = new ExcelJS.Workbook();
+    await assertXlsxWithinLimits(filePath);
     await workbook.xlsx.readFile(filePath);
     const worksheet = workbook.getWorksheet(1);
     if (!worksheet) return [];

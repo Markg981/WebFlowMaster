@@ -25,7 +25,7 @@ people. Each item names the setting or the page that explains it. The
 - `MFA_ISSUER` set to a name that identifies this installation.
 - A body size limit on the reverse proxy no lower than the server's own: 24 MB for a test
   bundle import, 20 MB for the API tester's proxy, 12 MB for an API test import, 10 MB for an
-  Excel upload (only `.xlsx`, removed once parsed), 100 kB for every other JSON request.
+  Excel upload (only `.xlsx`, removed once parsed; a workbook that expands past 100 MB, 2000 parts or a 100:1 ratio is refused with 413), 100 kB for every other JSON request.
 
 ## Quick start versus a shared installation {#quickstart}
 
