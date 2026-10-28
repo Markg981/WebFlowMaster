@@ -778,7 +778,10 @@ function evaluate(
       typeof value === 'string' ? value : JSON.stringify(value).replace(/^"|"$/g, '');
   }
 
-  return { passed: assertions.every((a) => a.pass), assertions, extracted, extractionErrors };
+  // A request with nothing to check is not green on an error answer: with no assertion enabled,
+  // the implicit one is "the status is 2xx" (3xx is an answer the transport already followed).
+  const passed = assertions.length > 0 ? assertions.every((a) => a.pass) : snapshot.status < 400;
+  return { passed, assertions, extracted, extractionErrors };
 }
 
 async function runOtherProtocol(

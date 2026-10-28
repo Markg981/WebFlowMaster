@@ -64,7 +64,7 @@ An XPath is evaluated on documents up to 2 MB and 20,000 nodes, with an expressi
 
 Comparisons: equals, not equals, contains, not contains, exists, not exists, is empty, is not
 empty, greater than, less than (or equal), matches regex, not matches regex. An assertion can be
-switched off without being deleted. The test passes when every enabled assertion does.
+switched off without being deleted. The test passes when every enabled assertion does. A test with no enabled assertion passes only if the status is below 400 (an implicit check). A plan run whose plan holds no tests ends in error (`run_empty`), not completed.
 A regex is limited to 200 characters and cannot repeat a repeated group such as `(a+)+` (it could
 freeze the server); such an assertion fails at once with an "Invalid regex" message.
 

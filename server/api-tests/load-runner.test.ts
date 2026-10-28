@@ -47,6 +47,29 @@ const ok = (durationMs: number, extracted: Record<string, string> = {}): StepOut
   extracted,
 });
 
+describe('HTTP errors', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('fail a load that is answered by 503, with no threshold set', async () => {
+    const plan: LoadPlan = {
+      stages: [{ durationSec: 5, targetVus: 2 }],
+      warmUpSec: 0,
+      thresholds: {},
+      steps: [{ name: 'GET /', thinkTimeMs: 100 }],
+    };
+    const outcome = await runFor(
+      plan,
+      engine(async () => {
+        await sleep(5); // a request takes time, so the virtual clock moves
+        return { durationMs: 5, error: null, status: 503, extracted: {} };
+      }),
+    );
+    expect(outcome.summary.overall.errorRatePct).toBe(100);
+    expect(outcome.summary.breaches.join(' ')).toContain('errors 100%');
+  });
+});
+
 describe('the stage profile', () => {
   const stages = [
     { durationSec: 10, targetVus: 10 },

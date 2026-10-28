@@ -152,7 +152,6 @@ describe('verdictOf', () => {
   it('completes a run whose tests passed, were skipped or wait for a person', () => {
     expect(verdictOf(rows('Passed', 'Passed'), 2, false)).toBe('completed');
     expect(verdictOf(rows('Passed', 'Skipped', 'Pending'), 3, false)).toBe('completed');
-    expect(verdictOf(rows(), 0, false)).toBe('completed');
   });
 
   it('fails a run with a failure that is not in quarantine', () => {
@@ -163,6 +162,8 @@ describe('verdictOf', () => {
 
   it('is an error when nothing was recorded, or something did not run', () => {
     expect(verdictOf(rows(), 3, false)).toBe('error');
+    // A plan emptied of its tests has verified nothing: not `completed`.
+    expect(verdictOf(rows(), 0, false)).toBe('error');
     expect(verdictOf(rows('Passed'), 1, true)).toBe('error');
     // An incomplete run that also failed says it failed.
     expect(verdictOf(rows('Failed'), 1, true)).toBe('failed');
