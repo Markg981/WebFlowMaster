@@ -479,6 +479,9 @@ async function findTab(rt: StepRuntime, wanted: string): Promise<Page | null> {
   return found;
 }
 
+/** States waitForElement accepts: Playwright's own four. */
+const WAITABLE_STATES = ['visible', 'hidden', 'attached', 'detached'] as const;
+
 /** What a condition can ask of an element. */
 export const CONDITION_STATES = [
   'visible',
@@ -659,7 +662,9 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       enabled: () => element.isEnabled(),
       disabled: () => element.isDisabled(),
       editable: () => element.isEditable(),
-      readonly: async () => !(await element.isEditable()),
+      // Not editable AND enabled: isEditable() is false for a disabled control too, so
+      // "not editable" alone would call every disabled field read-only.
+      readonly: async () => (await element.isEnabled()) && !(await element.isEditable()),
     };
 
     // Reported separately from "it is not in that state", because they are different
@@ -848,7 +853,15 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in target) return failed(target.error);
 
     const wanted = typeof rt.raw === 'string' ? rt.raw.trim().toLowerCase() : '';
-    const state = wanted === 'hidden' ? 'hidden' : 'visible';
+    // Empty keeps the old default (visible); anything else must be a known state, so a
+    // typo ("hiden") fails the step instead of silently waiting for "visible".
+    if (wanted !== '' && !(WAITABLE_STATES as readonly string[]).includes(wanted)) {
+      return failed(
+        `Unknown state "${rt.raw}" for waitForElement. Expected one of: ` +
+          `${WAITABLE_STATES.join(', ')}.`,
+      );
+    }
+    const state = (wanted || 'visible') as (typeof WAITABLE_STATES)[number];
 
     try {
       await rt.locator(target.selector).first().waitFor({ state, timeout: rt.timeoutMs });
@@ -875,7 +888,9 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
         .locator(target.selector)
         .filter({ hasText: expected.value })
         .first()
-        .waitFor({ state: 'attached', timeout: rt.timeoutMs });
+        // visible, like assertTextContains' intent: text inside a hidden element is not
+        // something the user can see arrive.
+        .waitFor({ state: 'visible', timeout: rt.timeoutMs });
       return passed;
     } catch {
       const actual = await rt
@@ -1039,9 +1054,15 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const checks = check(limits, measured.metrics);
     const finding: PerformanceFinding = { url: measured.url, metrics: measured.metrics, checks };
     const line = describeChecks(checks, formatMetric);
+    // By design (see the guide) a limit the browser cannot measure does not fail the step, so
+    // one test runs on every browser; but it must not read as "held": say what was not measured.
+    const unmeasured = checks.filter((c) => c.ok === null);
+    const note = unmeasured.length
+      ? ` Not measured: ${unmeasured.map((c) => c.metric).join(', ')}.`
+      : '';
     return checks.some((c) => c.ok === false)
       ? { status: 'failed', error: line, performance: finding }
-      : { status: 'passed', detail: line, performance: finding };
+      : { status: 'passed', detail: `${line}${note}`, performance: finding };
   },
 
   /**

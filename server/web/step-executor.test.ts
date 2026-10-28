@@ -72,6 +72,7 @@ const PAGES: Record<string, string> = {
     <button id="dead" disabled>Disabled</button>
     <input id="typable" type="text">
     <input id="locked" type="text" readonly>
+    <input id="dead-input" type="text" disabled>
     <script>
       // Flips late, so the assertion has to be willing to look again.
       setTimeout(function () {
@@ -357,6 +358,16 @@ describe('waiting for something to happen instead of for a duration', () => {
     // A bare Playwright timeout says nothing about what the test was waiting for.
     expect(waitStep?.error).toContain('#never-appears');
     expect(waitStep?.error).toContain('visible');
+  }, 60_000);
+
+  it('rejects a waitForElement state it does not know instead of waiting for visible', async () => {
+    const result = await runOnLatePage([
+      step('waitForElement', { selector: '#panel', value: 'hiden' }),
+    ]);
+
+    const waitStep = (result.steps ?? []).find((s) => s.type === 'waitForElement');
+    expect(waitStep?.status).toBe('failed');
+    expect(waitStep?.error).toContain('Unknown state');
   }, 60_000);
 
   it('waits for the network to settle', async () => {
@@ -648,6 +659,13 @@ describe('asserting the state of a control', () => {
 
     const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
     expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
+  }, 90_000);
+
+  it('does not call a disabled control read-only', async () => {
+    const result = await runOnControls([stateStep('#dead-input', 'readonly')]);
+
+    expect(result.success).toBe(false);
+    expect((result.steps ?? []).find((s) => s.status === 'failed')).toBeDefined();
   }, 90_000);
 
   it('says the control was off, not that it was missing', async () => {
