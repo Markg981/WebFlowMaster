@@ -462,7 +462,7 @@ describe('raw run evidence through /api/v1: role and scope (P03)', () => {
       requiredScope: 'runs:evidence',
     });
 
-    // The same editor with runs:evidence, and with a key from before scopes.
+    // The same editor with runs:evidence; a key from before scopes is no credential (audit C-03).
     const evidence = await makeKey(user, org, ['runs:read', 'runs:evidence']);
     const generated = generateApiKey();
     await privilegedDb.insert(apiKeys).values({
@@ -474,7 +474,8 @@ describe('raw run evidence through /api/v1: role and scope (P03)', () => {
       hashedKey: generated.hashedKey,
       scopes: null,
     } as any);
-    for (const allowed of [evidence, generated.key]) {
+    await request(app).get(trace).set(auth(generated.key)).expect(401);
+    for (const allowed of [evidence]) {
       const all = await request(app)
         .get(`/api/v1/runs/${runId}/evidence`)
         .set(auth(allowed))
