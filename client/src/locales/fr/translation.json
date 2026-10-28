@@ -1774,7 +1774,8 @@
   "draggableAction": {
     "target": {
       "label": "Cible :"
-    }
+    },
+    "add": "Ajouter « {{name}} » au test"
   },
   "draggableElement": {
     "element": {
@@ -1783,7 +1784,8 @@
     "keep": {
       "tooltip": "Conserver cet élément dans le référentiel du projet"
     },
-    "inFrame": "dans un frame"
+    "inFrame": "dans un frame",
+    "assign": "Utiliser « {{name}} » comme cible de la dernière étape"
   },
   "testSequenceBuilder": {
     "flowErrors": "Blocs non fermés",
@@ -3862,7 +3864,9 @@
     "stepGroup": {
       "badge": "groupe"
     },
-    "deleteStep": "Supprimer l'étape"
+    "deleteStep": "Supprimer l'étape",
+    "moveUp": "Monter l'étape",
+    "moveDown": "Descendre l'étape"
   },
   "sso": {
     "title": "Authentification unique (SSO)",
