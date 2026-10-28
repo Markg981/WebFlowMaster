@@ -6,7 +6,12 @@ import {
   type PublishedOutcome,
   type TestManagementProvider,
 } from '@shared/test-management';
-import { call, describeFailure, normaliseBaseUrl, type ProviderDeps } from './issue-providers';
+import {
+  callWithRetry as call,
+  describeFailure,
+  normaliseBaseUrl,
+  type ProviderDeps,
+} from './issue-providers';
 
 /**
  * Speaking to TestRail, Xray and Zephyr Scale: publishing a run's results, and telling whether
@@ -121,11 +126,18 @@ async function publishToTestRail(
       deps,
     );
     if (!posted.ok)
-      throw describeFailure(
-        `Adding the results to TestRail run R${runId}`,
-        posted.status,
-        posted.body,
-        posted.text,
+      // The run exists in TestRail: say which, so the failed publication points at it.
+      throw Object.assign(
+        describeFailure(
+          `Adding the results to TestRail run R${runId}`,
+          posted.status,
+          posted.body,
+          posted.text,
+        ),
+        {
+          externalKey: `R${runId}`,
+          externalUrl: run.body?.url ?? `${api.base}/index.php?/runs/view/${runId}`,
+        },
       );
   }
   return {

@@ -93,7 +93,10 @@ in its comment. The run's title is the plan's name and when it ended, in UTC.
 
 The **Test management** card of the report lists where the run went, with a link to the TestRail
 run or the Xray issue, how many cases were published and how many tests had no case, and why a
-publication failed (a wrong token, a case the tool refused). **Publish again** sends the run once
+publication failed (a wrong token, a case the tool refused). A run where the tool took only some of
+the cases is **Partially published**, and one where it took none is **Failed**, never Published; a
+TestRail run created before its results failed is still linked. Requests that hit a network error,
+429 or a 502-504 are retried up to three times. **Publish again** sends the run once
 more — after the manual verdicts are in, or when the tool was down — to the plan's connection or to
 another one; each time is a new run in the tool. A failed publication never changes the run's
 result.

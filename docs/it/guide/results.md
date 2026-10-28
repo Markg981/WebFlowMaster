@@ -98,7 +98,10 @@ nome del piano e il momento in cui è terminato, in UTC.
 La scheda **Test management** del report elenca dove è andato il run, con il link alla run di
 TestRail o alla issue di Xray, quanti casi sono stati pubblicati e quanti test non avevano un caso,
 e perché una pubblicazione è fallita (un token errato, un caso rifiutato dallo strumento).
-**Pubblica di nuovo** invia ancora il run — dopo gli esiti manuali, o quando lo strumento era giù —
+Se lo strumento ha accettato solo alcuni casi la pubblicazione è **Pubblicata parzialmente**, se non
+ne ha accettato nessuno è **Fallita**, mai Pubblicata; una run TestRail creata prima che i risultati
+fallissero resta collegata. Le richieste che incontrano un errore di rete, 429 o 502-504 vengono
+ripetute fino a tre volte. **Pubblica di nuovo** invia ancora il run — dopo gli esiti manuali, o quando lo strumento era giù —
 alla connessione del piano o a un'altra; ogni volta è una nuova run nello strumento. Una
 pubblicazione fallita non cambia mai il risultato del run.
 

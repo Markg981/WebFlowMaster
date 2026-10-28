@@ -200,7 +200,7 @@ export const testManagementPublications = pgTable(
     }),
     connectionName: text('connection_name').notNull(),
     provider: text('provider').notNull(),
-    status: text('status').$type<'published' | 'failed' | 'nothing_to_publish'>().notNull(),
+    status: text('status').$type<'published' | 'partial' | 'failed' | 'nothing_to_publish'>().notNull(),
     externalKey: text('external_key'),
     externalUrl: text('external_url'),
     publishedCount: integer('published_count').notNull().default(0),

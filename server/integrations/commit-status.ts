@@ -187,6 +187,32 @@ async function call(
   }
 }
 
+const ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 500;
+
+/**
+ * `call` with up to three attempts on a network error, 429 or 5xx. Setting a status twice is
+ * harmless, so every 5xx is worth another try.
+ */
+async function callWithRetry(
+  host: HostConfig,
+  path: string,
+  init: RequestInit,
+  fetchImpl: typeof fetch,
+  sleep: (ms: number) => Promise<void>,
+): Promise<Response> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const response = await call(host, path, init, fetchImpl);
+      if ((response.status !== 429 && response.status < 500) || attempt >= ATTEMPTS)
+        return response;
+    } catch (error) {
+      if (attempt >= ATTEMPTS) throw error;
+    }
+    await sleep(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1));
+  }
+}
+
 /** A refusal in a sentence: what the host said, and what that usually means. */
 async function refusal(
   host: HostConfig,
@@ -218,11 +244,12 @@ export async function postCommitStatus(
   target: CommitTarget,
   status: CommitStatus,
   fetchImpl: typeof fetch = fetchTarget,
+  sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
 ): Promise<string | null> {
   try {
     const response =
       host.provider === 'github'
-        ? await call(
+        ? await callWithRetry(
             host,
             `/repos/${target.repository.split('/').map(encodeURIComponent).join('/')}/statuses/${target.commit}`,
             {
@@ -235,8 +262,9 @@ export async function postCommitStatus(
               }),
             },
             fetchImpl,
+            sleep,
           )
-        : await call(
+        : await callWithRetry(
             host,
             `/projects/${encodeURIComponent(target.repository)}/statuses/${target.commit}`,
             {
@@ -249,6 +277,7 @@ export async function postCommitStatus(
               }),
             },
             fetchImpl,
+            sleep,
           );
     if (response.ok) return null;
     // GitLab refuses to set a state a commit already has ("Cannot transition status via :run from
@@ -309,6 +338,7 @@ const inFlight = new Map<string, Promise<void>>();
 
 export interface ReportDeps {
   fetchImpl?: typeof fetch;
+  sleep?: (ms: number) => Promise<void>;
 }
 
 /** Reports a run's current state on its commit, if it has one and the organization has the host. */
@@ -334,7 +364,11 @@ export function reportCommitStatus(
         tx.select().from(sourceHosts).where(eq(sourceHosts.provider, target.provider)).limit(1),
       );
       if (!host) return;
-      const error = await postCommitStatus(await hostConfig(host), target, status, deps.fetchImpl);
+      // A host whose token cannot be read is a failed delivery too, not a silent one.
+      const error = await hostConfig(host).then(
+        (config) => postCommitStatus(config, target, status, deps.fetchImpl, deps.sleep),
+        (e: unknown) => `Could not read the host credentials: ${(e as Error)?.message ?? e}`,
+      );
       await withTenantTransaction(async (tx) => {
         await tx
           .update(sourceHosts)

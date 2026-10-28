@@ -288,9 +288,13 @@ export async function publishExecution(
       },
       options.deps,
     );
+    // The tool refusing cases is said per case in `problems`: some taken is partial, none taken is
+    // a failure. (A case TestRail leaves untested is not a refusal.)
+    const status =
+      outcome.problems.length === 0 ? 'published' : outcome.published > 0 ? 'partial' : 'failed';
     return record({
       ...base,
-      status: 'published',
+      status,
       externalKey: outcome.externalKey,
       externalUrl: outcome.externalUrl,
       publishedCount: outcome.published,
@@ -300,6 +304,8 @@ export async function publishExecution(
     return record({
       ...base,
       status: 'failed',
+      externalKey: typeof error?.externalKey === 'string' ? error.externalKey : null,
+      externalUrl: typeof error?.externalUrl === 'string' ? error.externalUrl : null,
       message: String(error?.message ?? error).slice(0, 4000),
     });
   }
