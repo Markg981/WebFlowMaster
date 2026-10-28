@@ -17,7 +17,10 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { DraggableAction } from '@/components/draggable-action';
 import { DraggableElement } from '@/components/draggable-element';
-import { VisualTestBuilder } from '@/components/visual-builder/VisualTestBuilder';
+import {
+  VisualTestBuilder,
+  buildStepFromAction,
+} from '@/components/visual-builder/VisualTestBuilder';
 import DebugPanel, { useDebugSession } from '@/components/visual-builder/DebugPanel';
 import { DEBUG_ENDED, type DebugStepPatch } from '@shared/debug-session';
 import {
@@ -1101,6 +1104,24 @@ function CreateTestPage() {
 
   // Tests run ONLY when the user clicks "Execute Test". Editing the sequence — adding an
   // action or binding a target element — must never launch a run on its own.
+  // Palette click / Enter: the same result as dropping the action on the canvas.
+  const handleAddAction = (action: unknown) => {
+    if (isRecording) return;
+    handleSequenceUpdated([...testSequence, buildStepFromAction(action) as DragDropTestStep]);
+  };
+
+  // Detected-element button: binds it to the newest step still missing a target (else the last).
+  const handleAssignElement = (element: DetectedElement) => {
+    if (isRecording || testSequence.length === 0) return;
+    const open = [...testSequence].reverse().find((step) => !step.targetElement);
+    const target = open ?? testSequence[testSequence.length - 1];
+    handleSequenceUpdated(
+      testSequence.map((step) =>
+        step.id === target.id ? { ...step, targetElement: element } : step,
+      ),
+    );
+  };
+
   const handleSequenceUpdated = (newSequence: DragDropTestStep[]) => {
     setTestSequence(newSequence);
 
@@ -1342,6 +1363,8 @@ function CreateTestPage() {
                       action={action}
                       stepId="library"
                       onDropElement={() => {}}
+                      onAdd={handleAddAction}
+                      isRecordingActive={isRecording}
                     />
                   ))}
 
@@ -1372,6 +1395,8 @@ function CreateTestPage() {
                           action={action}
                           stepId="library"
                           onDropElement={() => {}}
+                          onAdd={handleAddAction}
+                          isRecordingActive={isRecording}
                         />
                       ))}
                     </>
@@ -1388,6 +1413,8 @@ function CreateTestPage() {
                           action={action}
                           stepId="library"
                           onDropElement={() => {}}
+                          onAdd={handleAddAction}
+                          isRecordingActive={isRecording}
                         />
                       ))}
                     </>
@@ -1591,6 +1618,7 @@ function CreateTestPage() {
                       element={element}
                       onHover={setHighlightedElement}
                       onKeep={setElementBeingKept}
+                      onAssign={handleAssignElement}
                     />
                   ))}
 
