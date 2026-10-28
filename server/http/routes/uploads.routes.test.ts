@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import fs from 'fs-extra';
 
 vi.mock('../../platform/logger', () => ({
@@ -79,6 +80,20 @@ describe('POST /api/upload-excel', () => {
       .post('/api/upload-excel')
       .attach('file', Buffer.alloc(maxBytes + 1), { filename: 'big.xlsx', contentType: XLSX });
     expect(res.status).toBe(413);
+    expect(await leftInUploads()).toBe(before);
+  });
+
+  it('refuses a zip bomb (tiny file, huge declared XML) with 413 before parsing', async () => {
+    const before = await leftInUploads();
+    const zip = new JSZip();
+    zip.file('xl/worksheets/sheet1.xml', Buffer.alloc(120 * 1024 * 1024, 0x61));
+    const bomb = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    expect(bomb.length).toBeLessThan(1024 * 1024);
+    const res = await request(app)
+      .post('/api/upload-excel')
+      .attach('file', bomb, { filename: 'bomb.xlsx', contentType: XLSX });
+    expect(res.status).toBe(413);
+    expect(res.body.error).toMatch(/expands|compression/);
     expect(await leftInUploads()).toBe(before);
   });
 

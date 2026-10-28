@@ -25,7 +25,7 @@ persone. Ogni punto indica l'impostazione o la pagina che lo spiega. La
 - `MFA_ISSUER` impostato con un nome che identifichi questa installazione.
 - Un limite sulla dimensione delle richieste nel reverse proxy non inferiore a quello del
   server: 24 MB per l'import di un bundle di test, 20 MB per il proxy dell'API tester, 12 MB per
-  l'import di un test API, 10 MB per un upload Excel (solo `.xlsx`, cancellato dopo la lettura),
+  l'import di un test API, 10 MB per un upload Excel (solo `.xlsx`, cancellato dopo la lettura; una cartella di lavoro che si espande oltre 100 MB, 2000 parti o rapporto 100:1 è rifiutata con 413),
   100 kB per ogni altra richiesta JSON.
 
 ## Quick start e installazione condivisa {#quickstart}
