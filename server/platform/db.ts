@@ -38,6 +38,7 @@ export async function withArtifactLock<T>(
     artifactLockPool ??= attachPoolErrorHandler(
       new Pool({ connectionString: dbUrl, max: 2 }),
       'artifact-lock',
+      (message) => logger.error(message),
     );
     const client = await artifactLockPool.connect();
     let locked = false;
@@ -111,6 +112,7 @@ if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
       idleTimeoutMillis: poolSettings.idleTimeoutMillis,
     }),
     'main',
+    (message) => logger.error(message),
   );
   const sessionSetup = sessionSetupStatements(poolSettings, SESSION_TIME_ZONE);
   // Runs on every new pooled connection, before the pool hands it to anyone: a client's queries

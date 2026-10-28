@@ -31,6 +31,7 @@ function pool(): Pool {
   lockPool ??= attachPoolErrorHandler(
     new Pool({ connectionString: process.env.DATABASE_URL, max: 2 }),
     'advisory-lock',
+    (message) => logger.error(message),
   );
   return lockPool;
 }

@@ -1,17 +1,22 @@
 import fs from 'fs';
 import path from 'path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Pool } from 'pg';
 import { attachPoolErrorHandler } from './pool-errors';
 
 describe('attachPoolErrorHandler', () => {
-  it('handles an error emitted on an idle connection without throwing', () => {
+  it('handles an error emitted on an idle connection without throwing, and logs it', () => {
+    const logError = vi.fn();
     const pool = attachPoolErrorHandler(
       new Pool({ connectionString: 'postgres://x@localhost/x' }),
       'test',
+      logError,
     );
     expect(pool.listenerCount('error')).toBe(1);
     expect(() => pool.emit('error', new Error('terminating connection'))).not.toThrow();
+    expect(logError).toHaveBeenCalledWith(
+      'PostgreSQL pool "test": idle connection error: terminating connection',
+    );
   });
 
   it('is used by every new Pool( in server/', () => {
