@@ -24,6 +24,12 @@ Trascinate un'azione da **Azioni Disponibili** nella **Sequenza del test**, poi 
 sopra un elemento rilevato (oppure usate **Imposta elemento**). Compilate il valore che l'azione
 richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
 
+Trascinare è facoltativo: ogni azione in **Azioni Disponibili** ha un pulsante **+** (Tab per
+raggiungerlo, poi Invio o Spazio, oppure un tocco) che aggiunge lo step in fondo alla sequenza. Su un
+elemento rilevato, il pulsante a forma di collegamento lo associa allo step più recente che non ha
+ancora un elemento. Ogni step ha i pulsanti **Sposta lo step su** e **Sposta lo step giù** per
+riordinarlo: tutto il builder si usa quindi da tastiera e da touch screen.
+
 ![I passi nella sequenza del test sotto l’anteprima](/screenshots/builder-sequence.webp)
 
 | Azione                                          | Cosa fa                                                                                                                                                                                                                      |
