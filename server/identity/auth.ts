@@ -1,6 +1,5 @@
 import passport from 'passport';
 import { trustProxySetting } from '../platform/trust-proxy';
-import { flattenZodError } from '../http/zod-error';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Express, type RequestHandler, type Response } from 'express';
 import session from 'express-session';
@@ -357,7 +356,7 @@ export function setupAuth(app: Express) {
       if (!parsed.success) {
         res.status(400).json({
           message: 'Invalid registration data',
-          errors: flattenZodError(parsed.error).fieldErrors,
+          errors: z.flattenError(parsed.error).fieldErrors,
         });
         return;
       }
@@ -625,7 +624,7 @@ export function setupAuth(app: Express) {
     if (!parsed.success) {
       return res
         .status(400)
-        .json({ message: 'Invalid password', errors: flattenZodError(parsed.error).fieldErrors });
+        .json({ message: 'Invalid password', errors: z.flattenError(parsed.error).fieldErrors });
     }
     const weak = newPasswordProblem(parsed.data.newPassword, (req.user as SelectUser).username);
     if (weak) return res.status(400).json({ message: weak, code: 'weak_password' });
@@ -669,7 +668,7 @@ export function setupAuth(app: Express) {
     if (!parsed.success) {
       return res
         .status(400)
-        .json({ message: 'Invalid request', errors: flattenZodError(parsed.error).fieldErrors });
+        .json({ message: 'Invalid request', errors: z.flattenError(parsed.error).fieldErrors });
     }
     const weak = newPasswordProblem(parsed.data.newPassword, null);
     if (weak) return res.status(400).json({ message: weak, code: 'weak_password' });
