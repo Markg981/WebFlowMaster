@@ -2,6 +2,8 @@ import { useDrag, useDrop } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import type { DetectedElement } from './drag-drop-provider';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { ActionIcon } from '@/lib/action-icons';
 
 interface TestAction {
@@ -19,6 +21,8 @@ interface DraggableActionProps {
   targetElement?: DetectedElement; // Optional: To display info about the associated element
   isDropZoneActive?: boolean;
   isRecordingActive?: boolean;
+  /** Palette only: the keyboard / touch way in, same result as dropping the action on the canvas. */
+  onAdd?: (action: TestAction) => void;
 }
 
 export function DraggableAction({
@@ -26,6 +30,8 @@ export function DraggableAction({
   stepId,
   onDropElement,
   targetElement,
+  onAdd,
+  isRecordingActive,
 }: DraggableActionProps) {
   const { t } = useTranslation();
   const [{ isDragging: isActionDragging }, drag] = useDrag(() => ({
@@ -89,6 +95,20 @@ export function DraggableAction({
               </div>
             )}
           </div>
+          {onAdd && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="ml-auto h-7 w-7 shrink-0"
+              disabled={isRecordingActive}
+              aria-label={t('draggableAction.add', { name: t(action.name) })}
+              title={t('draggableAction.add', { name: t(action.name) })}
+              onClick={() => onAdd(action)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </Card>
     </div>
