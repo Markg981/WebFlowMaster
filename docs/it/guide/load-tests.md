@@ -78,7 +78,7 @@ Un run è **superato** quando arriva alla fine entro tutte le soglie ed è **fal
 soglia superata ("p95 412 ms > 300 ms", "throughput 38 req/s < 50 req/s"). Fallisce anche un run
 che non ha valutato nessuna richiesta. **Annullato** significa che qualcuno lo ha fermato, in coda
 o in corso; **Non eseguito** significa che non è mai partito — un test API o il data set sono stati
-eliminati, il data set ha troppe poche righe, il profilo supera i limiti dell'installazione;
+eliminati, il data set ha troppe poche righe, il profilo supera i limiti dell'installazione, l'URL del primo test usa una variabile non definita o non è valido;
 **Worker perso** significa che il worker che lo eseguiva ha smesso di rispondere (un crash, un
 redeploy che non ha aspettato): il riepilogo fino a quel momento resta, e il run non è arrivato
 alla fine.

@@ -399,6 +399,35 @@ describe('runLoad', () => {
     expect(progress.length).toBeGreaterThanOrEqual(2);
   });
 
+  it('lets timers and cancel run when every request fails in microtasks (C-14)', async () => {
+    vi.useRealTimers();
+    let stop = false;
+    let timerFired = false;
+    setTimeout(() => (timerFired = true), 30);
+    setTimeout(() => (stop = true), 100);
+    const plan: LoadPlan = {
+      stages: [{ durationSec: 30, targetVus: 2 }],
+      warmUpSec: 0,
+      thresholds: {},
+      steps: [{ name: 'GET /', thinkTimeMs: 0 }],
+    };
+    const began = Date.now();
+    const { cancelled } = await runLoad(
+      plan,
+      {},
+      {
+        now: () => Date.now(),
+        sleep,
+        tickMs: 20,
+        shouldStop: () => stop,
+        send: async () => ({ durationMs: 0, error: 'Unresolved variable(s) base', extracted: {} }),
+      },
+    );
+    expect(timerFired).toBe(true);
+    expect(cancelled).toBe(true);
+    expect(Date.now() - began).toBeLessThan(5_000);
+  });
+
   it('keeps the timeline to 240 points over an hour', async () => {
     const plan: LoadPlan = {
       stages: [{ durationSec: 3600, targetVus: 1 }],
