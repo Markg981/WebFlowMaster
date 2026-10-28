@@ -32,6 +32,8 @@ const STATUS_TONE: Record<string, Tone> = {
   failed: 'fail',
   fail: 'fail',
   error: 'fail',
+  timed_out: 'fail',
+  cancelling: 'warn',
   blocked: 'warn',
   warning: 'warn',
   flaky: 'warn',

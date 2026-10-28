@@ -218,7 +218,9 @@ only on a later attempt is marked **flaky** in the report, and still counts as p
   or a **custom CRON** expression (minute, hour, day of month, month, day of week).
 - **Timezone**: the schedule runs at that local time all year, daylight saving included.
 - **Environment** whose secrets the run uses, and the **browsers** to run in (headless: nobody is
-  watching).
+  watching). An environment still named by an active schedule cannot be deleted (the request is
+  refused with 409 and lists the schedules); if the name no longer matches any environment, the
+  run is not started rather than run without variables and secrets.
 - **Retry on Failure**: run the whole plan again if it fails, once or twice.
 - **Schedule Active**: switch it off without deleting it.
 

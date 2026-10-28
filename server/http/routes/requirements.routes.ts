@@ -415,7 +415,15 @@ async function importFrom(req: any, res: Response, keysFromExisting: boolean) {
 
     let items: TrackedItem[];
     try {
-      items = await fetchItems(config, { keys, query: parsed.data.query });
+      // A sync of more than one provider page of keys is fetched in chunks: handed over whole,
+      // the keys past the cap would come back absent and be reported as missing.
+      if (keys && keys.length > MAX_IMPORTED_ITEMS) {
+        items = [];
+        for (let i = 0; i < keys.length; i += MAX_IMPORTED_ITEMS)
+          items = items.concat(
+            await fetchItems(config, { keys: keys.slice(i, i + MAX_IMPORTED_ITEMS) }),
+          );
+      } else items = await fetchItems(config, { keys, query: parsed.data.query });
       // Up to two levels of parents not in the answer: a story's epic, a feature's epic.
       for (let level = 0; level < 2; level++) {
         const have = new Set(items.map((i) => i.key.toLowerCase()));
@@ -427,9 +435,10 @@ async function importFrom(req: any, res: Response, keysFromExisting: boolean) {
           ),
         );
         if (parents.length === 0) break;
-        items = items.concat(
-          await fetchItems(config, { keys: parents.slice(0, MAX_IMPORTED_ITEMS) }),
-        );
+        for (let i = 0; i < parents.length; i += MAX_IMPORTED_ITEMS)
+          items = items.concat(
+            await fetchItems(config, { keys: parents.slice(i, i + MAX_IMPORTED_ITEMS) }),
+          );
       }
     } catch (error: any) {
       throw new RequirementError(502, `${tracker.name}: ${error?.message ?? error}`);
