@@ -24,16 +24,18 @@ async function runBddOnAgentImpl(
   const payload = JSON.stringify(request);
   if (Buffer.byteLength(payload) > 64 * 1024 * 1024)
     throw new Error('Serialized BDD request exceeds the relay limit.');
-  const ticket = signTicket(
-    {
-      ...agent,
-      engine: 'chromium',
-      headless: true,
-      playwrightVersion: RUNNER_PLAYWRIGHT_VERSION,
-      bddProfile: request.profile,
-    },
-    relaySecret(env),
-  );
+  // Tickets are single-use (A-12): every request to the relay, each retry included, signs its own.
+  const mintTicket = () =>
+    signTicket(
+      {
+        ...agent,
+        engine: 'chromium',
+        headless: true,
+        playwrightVersion: RUNNER_PLAYWRIGHT_VERSION,
+        bddProfile: request.profile,
+      },
+      relaySecret(env),
+    );
   const base = relayBaseUrl(env);
   const availabilitySignal = signal
     ? AbortSignal.any([signal, AbortSignal.timeout(10_000)])
@@ -41,7 +43,7 @@ async function runBddOnAgentImpl(
   const slotDeadline = Date.now() + 6000;
   while (true) {
     const response = await fetch(
-      `${base}/api/agent/v1/availability?ticket=${encodeURIComponent(ticket)}`,
+      `${base}/api/agent/v1/availability?ticket=${encodeURIComponent(mintTicket())}`,
       { signal: availabilitySignal },
     );
     if (!response.ok) throw new Error(`BDD relay availability failed: HTTP ${response.status}`);
@@ -51,7 +53,7 @@ async function runBddOnAgentImpl(
         throw new Error(available.reason || 'No dedicated BDD agent is available.');
     } else {
       try {
-        return await openBddSession(base, ticket, payload, request.timeoutMs, signal);
+        return await openBddSession(base, mintTicket(), payload, request.timeoutMs, signal);
       } catch (error) {
         // Availability and the agent's socket teardown can race. Only retry a
         // relay refusal before dispatch: replaying an executed scenario is unsafe.

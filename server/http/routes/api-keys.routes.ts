@@ -190,8 +190,11 @@ router.post(
       logger.info({ message: 'API key created', apiKeyId: id, userId: req.user.id });
       // `key` appears here and nowhere else, ever.
       res.status(201).json({ ...created, key });
-    } catch (error: any) {
-      logger.error({ message: 'Failed to create API key', error: error?.message ?? String(error) });
+    } catch (error) {
+      logger.error({
+        message: 'Failed to create API key',
+        error: error instanceof Error ? error.message : String(error),
+      });
       res.status(500).json({ error: 'Failed to create the API key.' });
     }
   },
@@ -232,10 +235,10 @@ router.delete(
       // indistinguishable from it here — which is the right answer to both.
       if (!revoked) return res.status(404).json({ error: 'API key not found.' });
       res.json(revoked);
-    } catch (error: any) {
+    } catch (error) {
       logger.error({
         message: 'Failed to revoke API key',
-        error: error?.message ?? String(error),
+        error: error instanceof Error ? error.message : String(error),
         apiKeyId: id,
       });
       res.status(500).json({ error: 'Failed to revoke the API key.' });

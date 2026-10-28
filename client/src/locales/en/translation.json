@@ -3257,6 +3257,7 @@
       "test_data_set_created": "Shared data set created",
       "test_data_set_updated": "Shared data set changed",
       "test_data_set_deleted": "Shared data set deleted",
+      "sso_link_refused": "Single sign-on link refused",
       "sso_domain_verified": "Single sign-on domain proven",
       "scim_token_issued": "SCIM token issued",
       "scim_token_revoked": "SCIM token revoked",

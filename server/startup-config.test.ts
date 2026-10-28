@@ -9,7 +9,7 @@ import {
 const valid = { SESSION_SECRET: 's'.repeat(32) };
 
 describe('network defaults at startup (A-04)', () => {
-  const prod = { ...valid, NODE_ENV: 'production' };
+  const prod = { ...valid, NODE_ENV: 'production', WEBFLOW_PUBLIC_URL: 'https://wfm.example.com' };
 
   it('rejects a malformed TRUST_PROXY', () => {
     expect(startupConfigErrors({ ...valid, TRUST_PROXY: 'maybe' }).join()).toMatch(/TRUST_PROXY/);
