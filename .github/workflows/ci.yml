@@ -120,7 +120,6 @@ jobs:
             .local/restore-drill/*/*-evidence.json
           if-no-files-found: warn
           retention-days: 7
-          retention-days: 7
 
   # Static checks, unit suites, the acceptance catalog and the build used to run one after the
   # other in a single job, so a PR waited for all of them in sequence. They share nothing but
