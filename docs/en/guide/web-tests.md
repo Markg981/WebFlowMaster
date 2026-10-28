@@ -22,6 +22,12 @@ Drag an action from **Available Actions** into the **Test Sequence**, then drop 
 on it (or use **Set Element**). Fill in the value the action needs: the text to type, the option to
 choose, the text to expect.
 
+Dragging is optional: every action in **Available Actions** has a **+** button (Tab to it, then
+Enter or Space, or tap it) that adds the step at the end of the sequence. On a detected element, the
+link button binds it to the newest step that still has no element. Each step has **Move step up**
+and **Move step down** buttons to reorder it, so the whole builder works from the keyboard and on a
+touch screen.
+
 ![Steps in the test sequence below the preview](/screenshots/builder-sequence.webp)
 
 | Action                                       | What it does                                                                                                                                                                                                            |

@@ -1774,7 +1774,8 @@
   "draggableAction": {
     "target": {
       "label": "Bersaglio:"
-    }
+    },
+    "add": "Aggiungi \"{{name}}\" al test"
   },
   "draggableElement": {
     "element": {
@@ -1783,7 +1784,8 @@
     "keep": {
       "tooltip": "Salva questo elemento nel repository del progetto"
     },
-    "inFrame": "in frame"
+    "inFrame": "in frame",
+    "assign": "Usa \"{{name}}\" come elemento dell'ultimo step"
   },
   "testSequenceBuilder": {
     "flowErrors": "Blocchi non chiusi",
@@ -3861,7 +3863,9 @@
     "stepGroup": {
       "badge": "gruppo"
     },
-    "deleteStep": "Elimina step"
+    "deleteStep": "Elimina step",
+    "moveUp": "Sposta lo step su",
+    "moveDown": "Sposta lo step giù"
   },
   "sso": {
     "title": "Single sign-on",
