@@ -89,6 +89,11 @@ Più worker, per più run contemporanei:
 docker compose up -d --scale worker=3
 ```
 
+`api` e `worker` hanno `restart: unless-stopped`, quindi ripartono dopo un crash o un riavvio della
+macchina (`migrate` gira una volta e non riparte). Il worker ha `stop_grace_period: 45s`: dopo SIGTERM
+aspetta `WORKER_SHUTDOWN_GRACE_MS` (30 s di default) per i suoi run, quindi un `docker compose up -d`
+durante un run non lo uccide più. Se alzate quella variabile, alzate anche `stop_grace_period` sopra di essa.
+
 ::: warning Il file Compose è un punto di partenza, non un deployment
 Serve per una prima prova su una macchina. Prima che lo stack sia raggiungibile da altri:
 
