@@ -377,27 +377,29 @@ export async function memberOf(
 }
 
 /**
- * Owners of the organization other than `userId`. Counted inside the caller's transaction, so two
- * concurrent demotions cannot both see a second owner and both succeed.
+ * Owners of the organization other than `userId`. Every owner row, the caller's included, is
+ * locked (`FOR UPDATE`) inside the caller's transaction, so two concurrent demotions serialise on
+ * the same set: the second waits for the first to commit, re-reads, finds one owner fewer and is
+ * refused. (An aggregate cannot take a row lock, hence the rows are selected and counted here.)
  */
 export async function otherOwnerCount(
   tx: TenantTx,
   organizationId: number,
   userId: number,
 ): Promise<number> {
-  const [{ others }] = await tx
-    .select({ others: sql<number>`count(*)::int` })
+  const others = await tx
+    .select({ userId: organizationMemberships.userId })
     .from(organizationMemberships)
     .innerJoin(users, eq(users.id, organizationMemberships.userId))
     .where(
       and(
         eq(organizationMemberships.organizationId, organizationId),
         eq(organizationMemberships.role, 'owner'),
-        ne(organizationMemberships.userId, userId),
         eq(users.kind, 'person'),
       ),
-    );
-  return others;
+    )
+    .for('update', { of: organizationMemberships });
+  return others.filter((o) => o.userId !== userId).length;
 }
 
 /** The longest-standing owner other than `userId`, who takes over what a removed owner made. */
