@@ -84,6 +84,11 @@ More workers, for more runs at once:
 docker compose up -d --scale worker=3
 ```
 
+`api` and `worker` are set to `restart: unless-stopped`, so they come back after a crash or a reboot
+(`migrate` runs once and does not restart). The worker has `stop_grace_period: 45s`: it waits
+`WORKER_SHUTDOWN_GRACE_MS` (30 s by default) for its runs after SIGTERM, so a `docker compose up -d`
+during a run no longer kills it. If you raise that variable, raise `stop_grace_period` above it.
+
 ::: warning The Compose file is a starting point, not a deployment
 It is meant for a first look on one machine. Before the stack is reachable by anyone else:
 

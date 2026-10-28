@@ -93,6 +93,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Come back after a crash or a reboot; init reaps the children the browser and the
+    # server leave behind. The image's HEALTHCHECK (/readyz) applies.
+    restart: unless-stopped
+    init: true
     ports:
       - '127.0.0.1:5000:5000'
     environment:
@@ -141,6 +145,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    init: true
+    # The worker waits WORKER_SHUTDOWN_GRACE_MS (30 s by default) for its runs after SIGTERM;
+    # Docker's own 10 s would SIGKILL them mid-run on every `up -d`. Keep this above the
+    # grace (the Helm chart adds the same margin); raise both together.
+    stop_grace_period: 45s
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
