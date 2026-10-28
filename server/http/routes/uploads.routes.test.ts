@@ -86,8 +86,12 @@ describe('POST /api/upload-excel', () => {
   it('refuses a zip bomb (tiny file, huge declared XML) with 413 before parsing', async () => {
     const before = await leftInUploads();
     const zip = new JSZip();
-    zip.file('xl/worksheets/sheet1.xml', Buffer.alloc(120 * 1024 * 1024, 0x61));
+    zip.file('xl/worksheets/sheet1.xml', Buffer.alloc(64 * 1024, 0x61));
     const bomb = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    // The guard trusts the central directory, as a real bomb's would be read: declare 120 MB
+    // there instead of deflating 120 MB here, which took most of the 30 s timeout on CI.
+    const central = bomb.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+    bomb.writeUInt32LE(120 * 1024 * 1024, central + 24);
     expect(bomb.length).toBeLessThan(1024 * 1024);
     const res = await request(app)
       .post('/api/upload-excel')
