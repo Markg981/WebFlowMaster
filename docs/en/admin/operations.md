@@ -191,6 +191,7 @@ run's verdict (lot P11):
   the worker writes afterwards is refused. The run is queued again only when its plan's **When a
   runner is lost mid-test** setting is _Run the test again_ (`worker_loss_policy = replay`) and it
   has attempts left — never because of a retry count or re-run-on-failure alone.
+- **Queued run whose job is gone.** A run still `queued` after `QUEUED_RUN_LOST_AFTER_MS` (10 minutes) with no job in the queue and no pending submission ends as `error` / `queue_job_lost`; it is not run again. The same happens at once when its job fails before a worker takes it.
 - **Shared runs.** Each piece of work is held under a lease (`WORK_CLAIM_LEASE_MS`, default
   `STALE_CLAIM_MS`, 2 minutes) renewed every `WORK_ITEM_HEARTBEAT_MS` (15 s). A worker that cannot
   confirm its lease before the lease less `WORK_CLAIM_MARGIN_MS` (10 s) stops the piece itself. A
