@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';
 import type { Browser } from 'playwright';
@@ -10,6 +10,7 @@ import {
   parsePerformanceLimits,
 } from '@shared/web-performance';
 import { executeStep } from './step-executor';
+import { lighthouseEnv, runLighthouse } from './web-performance';
 
 /** How fast a page is, as a test step sees it (shared/web-performance.ts, server/web/web-performance.ts). */
 
@@ -159,5 +160,30 @@ describe('the steps, in a real browser', () => {
       await executeStep({ page, vars: {}, runLighthouse: audit }, step('auditLighthouse')),
     ).toMatchObject({ status: 'failed', error: expect.stringContaining('navigate first') });
     await page.close();
+  });
+});
+
+describe('Lighthouse egress and environment', () => {
+  it('refuses metadata and private addresses before launching anything', async () => {
+    vi.stubEnv('LIGHTHOUSE_BIN', 'wfm-lighthouse-must-not-start');
+    vi.stubEnv('EGRESS_PRIVATE_TARGETS', 'deny');
+    try {
+      for (const url of ['http://169.254.169.254/latest/meta-data/', 'http://10.0.0.1/']) {
+        const error = await runLighthouse({ url, formFactor: 'desktop' }).catch((e) => e);
+        expect(error.name, url).toBe('EgressDeniedError');
+      }
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('passes the child no worker secrets', () => {
+    const env = lighthouseEnv({
+      PATH: '/bin',
+      DATABASE_URL: 'postgres://secret',
+      SESSION_SECRET: 'x',
+      CHROME_PATH: '/chrome',
+    });
+    expect(env).toEqual({ PATH: '/bin', CHROME_PATH: '/chrome' });
   });
 });

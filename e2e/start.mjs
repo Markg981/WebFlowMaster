@@ -39,6 +39,8 @@ const env = {
   // REGISTRATION=open needs private egress denied; the suite's fixture servers and OIDC provider are on loopback.
   EGRESS_PRIVATE_TARGETS: 'deny',
   EGRESS_ALLOW_HOSTS: 'localhost,127.0.0.0/8,::1',
+  // Production signs local-agent relay tickets with its own secret, never SESSION_SECRET (A-12).
+  AGENT_RELAY_SECRET: 'ci-e2e-disposable-agent-relay-secret',
   INSTALLATION_ADMINS: 'e2e_operator',
   NODE_EXTRA_CA_CERTS: fileURLToPath(new URL('./fixtures/oidc-test.crt', import.meta.url)),
   // DNS verification is a separate acceptance scenario, not a dependency on public DNS here.

@@ -63,6 +63,8 @@ Each assertion reads one part of the answer and compares it:
 Comparisons: equals, not equals, contains, not contains, exists, not exists, is empty, is not
 empty, greater than, less than (or equal), matches regex, not matches regex. An assertion can be
 switched off without being deleted. The test passes when every enabled assertion does.
+A regex is limited to 200 characters and cannot repeat a repeated group such as `(a+)+` (it could
+freeze the server); such an assertion fails at once with an "Invalid regex" message.
 
 The **response time** runs from sending the request to the last byte of the body, not to the
 headers: a body that trickles in counts in full. The 30-second timeout covers the whole transfer
