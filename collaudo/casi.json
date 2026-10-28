@@ -1,5 +1,5 @@
 {
-  "version": 84,
+  "version": 85,
   "areas": [
     {
       "id": "ACC",
@@ -9887,6 +9887,20 @@
         "Ripetere le richieste 1 e 2 con la sessione dell'owner."
       ],
       "expected": "1-3: 403 con code session_required e messaggio che chiede una sessione. 4: le operazioni riescono con la sessione."
+    },
+    {
+      "id": "API-66",
+      "area": "API",
+      "title": "XPath su documento XML pesante rifiutato con errore chiaro",
+      "priority": "P2",
+      "actor": "editor.a",
+      "preconditions": "Catalogo versione 85. Un test API SOAP o HTTP la cui risposta e un XML con circa 600 elementi fratelli.",
+      "steps": [
+        "Aggiungere un'asserzione body xpath con l'espressione //a[. = 'v599'] e confrontarla con v599.",
+        "Sostituire l'espressione con //*[count(//*[count(//*)>0])>0].",
+        "Eseguire il test e osservare tempo di risposta dell'applicazione."
+      ],
+      "expected": "1: l'asserzione passa. 2-3: l'asserzione fallisce subito con il messaggio XPath expression too expensive, senza bloccare l'applicazione; oltre 500 caratteri, 2 MB o 20000 nodi l'errore indica il limite superato."
     }
   ],
   "presentation": {
