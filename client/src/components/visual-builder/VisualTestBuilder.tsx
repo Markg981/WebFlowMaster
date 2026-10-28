@@ -28,6 +28,19 @@ const nodeTypes = {
   testNode: TestNode,
 };
 
+/**
+ * The step a palette action becomes, whether it is dropped on the canvas or added with a
+ * click / Enter. A step group travels in `value`, which is where the runner looks when it
+ * expands the call.
+ */
+export function buildStepFromAction(action: any): TestStep {
+  return {
+    id: `step-${Date.now()}`,
+    action,
+    value: action?.groupId ?? '',
+  };
+}
+
 /** How far one level of if / loop moves a step to the right. */
 const FLOW_INDENT_PX = 80;
 
@@ -100,6 +113,9 @@ export function VisualTestBuilder({
         isRecordingActive,
         onUpdateValue: (id, val) => handleUpdateValue(id, val),
         onDeleteNode: (id) => handleDeleteNode(id),
+        onMoveNode: (id, direction) => handleMoveNode(id, direction),
+        isFirst: index === 0,
+        isLast: index === testSequence.length - 1,
         onSetTarget: (id, element) => handleSetTarget(id, element),
         breakpoint: breakpoints?.has(step.id) ?? false,
         onToggleBreakpoint,
@@ -167,13 +183,7 @@ export function VisualTestBuilder({
       accept: 'action',
       drop: (item: any) => {
         if (isRecordingActive) return;
-        const newStep: TestStep = {
-          id: `step-${Date.now()}`,
-          action: item.data,
-          // A step group is dragged like any action, and the group it names travels in `value` —
-          // which is where the runner looks when it expands the call.
-          value: item.data?.groupId ?? '',
-        };
+        const newStep = buildStepFromAction(item.data);
         onUpdateSequence([...testSequence, newStep]);
       },
       collect: (monitor) => ({
@@ -191,6 +201,15 @@ export function VisualTestBuilder({
 
   const handleDeleteNode = (id: string) => {
     const updated = testSequence.filter((s) => s.id !== id);
+    onUpdateSequence(updated);
+  };
+
+  const handleMoveNode = (id: string, direction: -1 | 1) => {
+    const from = testSequence.findIndex((s) => s.id === id);
+    const to = from + direction;
+    if (from < 0 || to < 0 || to >= testSequence.length) return;
+    const updated = [...testSequence];
+    [updated[from], updated[to]] = [updated[to], updated[from]];
     onUpdateSequence(updated);
   };
 

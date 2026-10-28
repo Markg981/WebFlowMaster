@@ -2,7 +2,7 @@ import { useDrag } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, MousePointer, Bookmark } from 'lucide-react';
+import { Search, MousePointer, Bookmark, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface DetectedElement {
@@ -27,9 +27,11 @@ interface DraggableElementProps {
   onHover: (elementId: string | null) => void;
   /** Offered when the page can keep this element in a project's repository. */
   onKeep?: (element: DetectedElement) => void;
+  /** The keyboard / touch way to what dropping on a step does: bind the element to a step. */
+  onAssign?: (element: DetectedElement) => void;
 }
 
-export function DraggableElement({ element, onHover, onKeep }: DraggableElementProps) {
+export function DraggableElement({ element, onHover, onKeep, onAssign }: DraggableElementProps) {
   const { t } = useTranslation();
   // `element` MUST be in the deps array: detected-element ids are positional
   // (regenerated from 0 on every detect), so React reuses the same DraggableElement
@@ -130,6 +132,19 @@ export function DraggableElement({ element, onHover, onKeep }: DraggableElementP
         {/* Keeping an element means the project owns it: every test that names it reads one
             selector, and a repair reaches all of them at once instead of one failure at a
             time. Without this the only way in was the API. */}
+        {onAssign && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0"
+            title={t('draggableElement.assign', { name: element.text || element.selector })}
+            aria-label={t('draggableElement.assign', { name: element.text || element.selector })}
+            onClick={() => onAssign(element)}
+          >
+            <Link2 className="h-3 w-3" />
+          </Button>
+        )}
         {onKeep && (
           <Button
             variant="ghost"
