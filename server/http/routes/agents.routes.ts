@@ -12,6 +12,7 @@ import { generateAgentToken } from '../../runtime/agents/agent-credentials';
 import { agentRelay } from '../../runtime/agents/relay';
 import { RUNNER_PLAYWRIGHT_VERSION } from '../../runtime/agents/agent-browser';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 /**
  * Local agents: which exist, which are connected now, and creating and revoking them.
@@ -63,6 +64,7 @@ const createSchema = z.object({
 
 router.post(
   '/api/agents',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/agents)'),
   async (req, res) => {
@@ -101,6 +103,7 @@ router.post(
 
 router.post(
   '/api/agents/:id/revoke',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/agents/:id/revoke)'),
   async (req, res) => {

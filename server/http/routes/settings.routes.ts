@@ -8,6 +8,7 @@ import { asyncHandler } from '../../platform/middleware/async-handler';
 import { requireRole, roleAllows } from '../middleware/require-role';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 import {
   getSystemSetting,
@@ -85,6 +86,7 @@ router.get(
 // or editor should not be able to reconfigure logging for every tenant.
 router.post(
   '/api/system-settings',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/system-settings)'),
   requireInstallationAdmin,

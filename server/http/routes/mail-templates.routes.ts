@@ -12,6 +12,7 @@ import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 import {
   builtInTemplates,
@@ -57,6 +58,7 @@ router.get('/api/mail-templates', requireRole('owner'), async (_req, res) => {
 });
 router.post(
   '/api/mail-templates/:purpose/preview',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/mail-templates/:purpose/preview)'),
   async (req, res) => {
@@ -73,6 +75,7 @@ router.post(
 );
 router.put(
   '/api/mail-templates/:purpose',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (put /api/mail-templates/:purpose)'),
   async (req, res) => {
@@ -141,6 +144,7 @@ router.put(
 );
 router.delete(
   '/api/mail-templates/:purpose',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (delete /api/mail-templates/:purpose)'),
   async (req, res) => {

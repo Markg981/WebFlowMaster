@@ -14,6 +14,7 @@ import {
 } from '../../tenancy/billing/service';
 import { publicBase } from './sso.routes';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 /**
  * An organization's own view of its billing: the plan it is on, where it stands, what it uses
@@ -62,6 +63,7 @@ const checkoutSchema = z
 
 router.post(
   '/api/billing/checkout',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/billing/checkout)'),
   async (req, res, next) => {
@@ -89,6 +91,7 @@ router.post(
 
 router.post(
   '/api/billing/portal',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/billing/portal)'),
   async (req, res, next) => {

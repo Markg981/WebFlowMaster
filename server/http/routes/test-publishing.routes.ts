@@ -23,6 +23,7 @@ import { targetColumn, targetTable } from '../../authoring/test-version-target';
 import type { VersionedTestType } from '@shared/test-versioning';
 import logger from '../../platform/logger';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 /**
  * Publishing tests, reviewing them, and rolling back. See server/authoring/test-publishing.ts for the rules;
@@ -305,6 +306,7 @@ router.get('/api/organization/test-review-policy', requireRole('viewer'), async 
 // PUT /api/organization/test-review-policy — owners only.
 router.put(
   '/api/organization/test-review-policy',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (put /api/organization/test-review-policy)'),
   async (req, res) => {

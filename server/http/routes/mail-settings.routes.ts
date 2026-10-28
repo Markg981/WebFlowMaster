@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/require-role';
 import { getTenantOrgId, withTenantTransaction } from '../../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 import {
   buildMailSettings,
@@ -33,6 +34,7 @@ router.get('/api/mail-settings', requireRole('owner'), async (_req, res) => {
 });
 router.put(
   '/api/mail-settings',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (put /api/mail-settings)'),
   async (req, res) => {

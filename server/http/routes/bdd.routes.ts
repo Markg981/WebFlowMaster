@@ -11,6 +11,7 @@ import { getTenantOrgId, withTenantTransaction } from '../../platform/middleware
 import { advertisedBddProfiles, validateBddProfileDefinition } from '../../bdd/bdd-profiles';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 const router = asyncRouter();
 const definition = z
@@ -106,6 +107,7 @@ for (const method of ['post', 'put'] as const) {
 }
 router.delete(
   '/api/bdd/profiles/:id',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (delete /api/bdd/profiles/:id)'),
   async (req, res, next) => {

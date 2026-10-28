@@ -14,6 +14,7 @@ import {
 } from '../../messaging/sms-inbox';
 import { publicBase } from './sso.routes';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 /**
  * The test SMS inbox (server/messaging/sms-inbox.ts): the inbound address a provider posts to, and its
@@ -52,6 +53,7 @@ router.get('/api/organization/sms-inbox', requireRole('editor'), async (req, res
 
 router.post(
   '/api/organization/sms-inbox/token',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/organization/sms-inbox/token)'),
   async (req, res) => {
@@ -74,6 +76,7 @@ router.post(
 
 router.delete(
   '/api/organization/sms-inbox/token',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (delete /api/organization/sms-inbox/token)'),
   async (req, res) => {

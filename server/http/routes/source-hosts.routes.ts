@@ -16,6 +16,7 @@ import { auditActor, recordAudit } from '../../tenancy/audit';
 import { encryptSecret } from '../../platform/crypto';
 import { checkSourceHost, DEFAULT_API_URLS, hostConfig } from '../../integrations/commit-status';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 /**
  * The GitHub or GitLab a run reports its commit status to (server/integrations/commit-status.ts).
@@ -68,6 +69,7 @@ router.get('/api/source-hosts', requireRole('viewer'), async (_req, res) => {
  */
 router.put(
   '/api/source-hosts/:provider',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (put /api/source-hosts/:provider)'),
   async (req, res) => {
@@ -129,6 +131,7 @@ router.put(
 /** POST /api/source-hosts/:provider/test — does the stored token still work, and whose is it? */
 router.post(
   '/api/source-hosts/:provider/test',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/source-hosts/:provider/test)'),
   async (req, res) => {
@@ -148,6 +151,7 @@ router.post(
 
 router.delete(
   '/api/source-hosts/:provider',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (delete /api/source-hosts/:provider)'),
   async (req, res) => {

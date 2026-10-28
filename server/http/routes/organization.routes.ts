@@ -264,6 +264,7 @@ router.get(
  */
 router.delete(
   '/api/organization',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (delete /api/organization)'),
   async (req: Request, res: Response) => {
@@ -579,6 +580,7 @@ router.post(
  */
 router.post(
   '/api/organization/members/:userId/password-reset',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/organization/members/:userId/password-reset)'),
   async (req: Request, res: Response) => {

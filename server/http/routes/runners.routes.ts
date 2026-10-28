@@ -6,6 +6,7 @@ import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { listRunners, setRunnerDesiredState, statusOf } from '../../runtime/runner-registry';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 /**
  * The runners, for whoever keeps the installation running. Owners see them; draining and resuming
@@ -28,6 +29,7 @@ router.get('/api/runners', requireRole('owner'), async (_req, res) => {
  */
 router.post(
   '/api/runners/:id/drain',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/runners/:id/drain)'),
   requireInstallationAdmin,
@@ -49,6 +51,7 @@ router.post(
 
 router.post(
   '/api/runners/:id/resume',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (post /api/runners/:id/resume)'),
   requireInstallationAdmin,

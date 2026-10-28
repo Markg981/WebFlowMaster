@@ -15,6 +15,7 @@ import logger from '../../platform/logger';
 import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { sessionOnly } from '../middleware/session-only';
+import { sharedSensitiveRateLimit } from '../middleware/rate-limits';
 
 const router = asyncRouter();
 
@@ -206,6 +207,7 @@ const accessSchema = z.object({
  */
 router.put(
   '/api/projects/:id/access',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
   sessionOnly('Owner action (put /api/projects/:id/access)'),
   async (req, res) => {
