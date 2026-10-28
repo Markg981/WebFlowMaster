@@ -23,6 +23,17 @@ async function seed(organizationId: number, userId: number, label: string) {
     INSERT INTO tests (user_id, organization_id, name, url, sequence, elements)
     VALUES (${userId}, ${organizationId}, ${`${label}-test`}, 'https://app.test', '[]'::jsonb, '[]'::jsonb)
   `);
+  // A load test and a run of it: their foreign key to organizations has no ON DELETE CASCADE,
+  // so erasure only works if both are in the erased tables (C-10).
+  await privilegedDb.execute(sql`
+    INSERT INTO load_tests (organization_id, name, steps, stages)
+    VALUES (${organizationId}, ${`${label}-load`}, '[{}]'::jsonb, '[{}]'::jsonb)
+  `);
+  await privilegedDb.execute(sql`
+    INSERT INTO load_test_runs (id, organization_id, load_test_id, status, definition)
+    SELECT ${`${label}-${organizationId}-run`}, ${organizationId}, id, 'passed', '{}'::jsonb
+    FROM load_tests WHERE organization_id = ${organizationId}
+  `);
   await runWithTenant(organizationId, () =>
     withTenantTransaction((tx) =>
       recordAudit(tx, {
@@ -107,6 +118,35 @@ describe('exportOrganization', () => {
 });
 
 describe('eraseOrganization', () => {
+  it('covers every table with a foreign key to organizations, in deletion and export', async () => {
+    const rows = await privilegedDb.execute(sql`
+      SELECT DISTINCT child.relname::text AS child
+      FROM pg_constraint c
+      JOIN pg_class child ON child.oid = c.conrelid
+      JOIN pg_class parent ON parent.oid = c.confrelid
+      JOIN pg_namespace n ON n.oid = child.relnamespace
+      WHERE c.contype = 'f' AND c.confdeltype <> 'c' AND parent.relname = 'organizations' AND n.nspname = current_schema()
+    `);
+    const referencing = (rows.rows as Array<{ child: string }>).map((r) => r.child);
+    // Tables that outlive the organization on purpose, or that are erased by dedicated code.
+    // Foreign keys that cascade are skipped by the query: the database erases those rows itself.
+    const EXCEPTIONS = new Set<string>(['organization_erasures']);
+    const covered = new Set<string>([...ORG_SCOPED_TABLES, 'invitations', 'users']);
+    const missing = referencing.filter((t) => !covered.has(t) && !EXCEPTIONS.has(t));
+    expect(missing, 'add these to ORG_SCOPED_TABLES, or cascade them').toEqual([]);
+    // Everything covered is exported unless it is a declared credential.
+    expect(referencing).toContain('load_tests');
+    expect(referencing).toContain('load_test_runs');
+  });
+
+  it('erases an organization that owns a load test and a load run', async () => {
+    await expect(eraseOrganization(orgA)).resolves.toBeDefined();
+    const left = await privilegedDb.execute(
+      sql`SELECT count(*)::int AS n FROM load_tests WHERE organization_id = ${orgA}`,
+    );
+    expect((left.rows[0] as { n: number }).n).toBe(0);
+  });
+
   it('removes ledger-owned evidence even after its plan history was deleted', async () => {
     await privilegedDb.execute(
       sql`INSERT INTO quota_artifacts(organization_id,key,bytes) VALUES (${orgA},'results/deleted-plan/deleted-run/evidence.png',10)`,
