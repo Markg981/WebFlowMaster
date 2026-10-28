@@ -237,7 +237,9 @@ risponda a una richiesta inviata da questa installazione, cosa che può fare una
   viene collegato; così passano al SSO i membri che avevano già una password. Un owner
   dell'organizzazione, o un account con il secondo fattore attivo, non viene mai collegato così:
   l'accesso è rifiutato (`sso.link_refused` nel registro di audit) e la persona accede prima con la
-  password;
+  password. Vale lo stesso per un account di un'altra organizzazione: una password impostata là non
+  ha mai provato la casella (un invito accetta qualsiasi nome utente), quindi il solo indirizzo non
+  lo consegna a questa organizzazione, nemmeno su un dominio verificato;
 - altrimenti viene **creato** un account, con l'indirizzo come nome utente e il ruolo scelto, o
   il ruolo a cui portano i suoi gruppi (sotto). Senza un gruppo mappato su owner, nessun owner
   viene creato così: si nomina un owner in **Impostazioni → Membri**.
