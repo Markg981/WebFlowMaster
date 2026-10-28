@@ -11,7 +11,8 @@ import {
   type FailureAnalysis,
 } from '@shared/failure-analysis';
 import type { NetworkSummary } from '@shared/network';
-import { withTenantTransaction } from '../../platform/middleware/tenancy';
+import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
+import { aiEnabled, AI_NOT_ENABLED } from '../../authoring/ai-consent';
 import { requireRole } from '../middleware/require-role';
 import { sharedHeavyRateLimit } from '../middleware/rate-limits';
 import { auditActor, recordAudit } from '../../tenancy/audit';
@@ -84,6 +85,10 @@ router.post(
       }
       const kept = readFailureAnalysis(result.aiAnalysis);
       if (kept && !refresh) return res.json({ analysis: kept, cached: true });
+      // The evidence (screenshot, DOM, error) leaves for the provider only if the owner allowed it.
+      if (!(await withTenantTransaction((tx) => aiEnabled(tx, getTenantOrgId()!)))) {
+        return res.status(403).json({ error: AI_NOT_ENABLED });
+      }
       if (!aiService.isAvailable()) {
         return res
           .status(503)

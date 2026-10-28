@@ -37,6 +37,8 @@ export const organizations = pgTable('organizations', {
   mfaRequired: boolean('mfa_required').notNull().default(false),
   /** Publishing a test needs another member's approval, and plans run published tests only. */
   testReviewRequired: boolean('test_review_required').notNull().default(false),
+  /** The owner allows this organization's data (screenshots, DOM, requirements) to go to the AI provider. Off by default. */
+  aiEnabled: boolean('ai_enabled').notNull().default(false),
   /** The test SMS inbox's inbound address token, hashed (server/messaging/sms-inbox.ts, migration 0070). */
   smsInboundTokenHash: text('sms_inbound_token_hash'),
   smsInboundTokenPrefix: text('sms_inbound_token_prefix'),
@@ -752,6 +754,7 @@ export const AUDIT_ACTIONS = {
   TEST_REVIEW_REJECTED: 'test_review.rejected',
   TEST_REVIEW_WITHDRAWN: 'test_review.withdrawn',
   TEST_REVIEW_POLICY_CHANGED: 'test_review.policy_changed',
+  AI_POLICY_CHANGED: 'organization.ai_policy_changed',
   // Taking a runner out of service, and putting it back.
   RUNNER_DRAINED: 'runner.drained',
   RUNNER_RESUMED: 'runner.resumed',

@@ -701,6 +701,13 @@
       "when": 1792400000022,
       "tag": "0099_api_keys_mandatory_scopes",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1792400000025,
+      "tag": "0102_organizations_ai_enabled",
+      "breakpoints": true
     }
   ]
 }

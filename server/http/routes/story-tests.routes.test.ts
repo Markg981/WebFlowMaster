@@ -16,7 +16,11 @@ import {
 } from '@shared/schema';
 import { isManualSequence, manualStepsOf } from '@shared/manual-tests';
 import { encryptSecret } from '../../platform/crypto';
-import { createTestOrganization, createTestUser } from '../../tests/factories';
+import {
+  createTestOrganization,
+  createTestUser,
+  enableOrganizationAi,
+} from '../../tests/factories';
 import { buildStoryPrompt, parseProposals } from '../../authoring/story-tests';
 import { jiraText } from '../../integrations/issue-providers';
 
@@ -160,6 +164,7 @@ async function addRequirement(key: string, values: Partial<typeof requirements.$
 
 beforeAll(async () => {
   organizationId = await createTestOrganization('Story Tests Org');
+  await enableOrganizationAi(organizationId);
   editor = {
     id: await createTestUser(organizationId, 'story-editor'),
     username: 'story-editor',
@@ -173,6 +178,7 @@ beforeAll(async () => {
     role: 'viewer',
   };
   const otherOrganizationId = await createTestOrganization('Other Story Org');
+  await enableOrganizationAi(otherOrganizationId);
   otherOrg = {
     id: await createTestUser(otherOrganizationId, 'story-other'),
     username: 'story-other',
