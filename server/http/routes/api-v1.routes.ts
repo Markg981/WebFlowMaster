@@ -1,5 +1,5 @@
 import { type Request } from 'express';
-import { flattenZodError } from '../../platform/zod-error';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { readExecutionSnapshot } from '../../execution/execution-snapshot';
 import { MAX_CHANGED_FILES } from '../../execution/test-impact';

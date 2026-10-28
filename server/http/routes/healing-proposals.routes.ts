@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import { flattenZodError } from '../../platform/zod-error';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { HEALING_PROPOSAL_ID_PATTERN, HEALING_PROPOSAL_STATUSES } from '@shared/healing';
 import type { HealingProposalRow } from '@shared/schema';

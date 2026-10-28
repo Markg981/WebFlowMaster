@@ -1,5 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
-import { flattenZodError } from '../../platform/zod-error';
+import { flattenZodError } from '../zod-error';
 import { environments, secrets, AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { and, asc, eq } from 'drizzle-orm';

@@ -1,6 +1,6 @@
 import passport from 'passport';
 import { trustProxySetting } from '../platform/trust-proxy';
-import { flattenZodError } from '../platform/zod-error';
+import { flattenZodError } from '../http/zod-error';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Express, type RequestHandler, type Response } from 'express';
 import session from 'express-session';

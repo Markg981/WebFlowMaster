@@ -1,5 +1,5 @@
 import { type Response } from 'express';
-import { flattenZodError } from '../../platform/zod-error';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { z } from 'zod';
 import { requireRole } from '../middleware/require-role';

@@ -1,5 +1,5 @@
 import { type RequestHandler } from 'express';
-import { flattenZodError } from '../../platform/zod-error';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import multer from 'multer';
 import { excelService } from '../../integrations/excel-service';

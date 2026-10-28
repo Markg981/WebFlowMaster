@@ -1546,8 +1546,8 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     let target;
     try {
       target = await vetDatabaseTarget(kind, url);
-    } catch (error) {
-      return failed(error instanceof Error ? error.message : String(error));
+    } catch (error: any) {
+      return failed(String(error?.message ?? error));
     }
     let result;
     try {

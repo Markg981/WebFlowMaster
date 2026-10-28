@@ -1,5 +1,5 @@
 import { quotaErrorBody } from '../../tenancy/tenant-quotas';
-import { flattenZodError } from '../../platform/zod-error';
+import { flattenZodError } from '../zod-error';
 import { mobileTests, mobileStepGroups } from '@shared/schema';
 import { importMobileCatalog, type MobileImportOutcome } from '../../mobile/mobile-bundle';
 import { type Response } from 'express';

@@ -141,12 +141,7 @@ describe('its keys', () => {
 
     const key = await request(app)
       .post('/api/api-keys')
-      .send({
-        expiresInDays: 30,
-        name: 'ci',
-        serviceAccountId: account.body.id,
-        scopes: ['runs:write'],
-      })
+      .send({ expiresInDays: 30, name: 'ci', serviceAccountId: account.body.id, scopes: ['runs:write'] })
       .expect(201);
 
     const [row] = await privilegedDb.select().from(apiKeys).where(eq(apiKeys.id, key.body.id));
@@ -162,12 +157,7 @@ describe('its keys', () => {
 
     await request(app)
       .post('/api/api-keys')
-      .send({
-        expiresInDays: 30,
-        scopes: ['runs:read'],
-        name: 'ci',
-        serviceAccountId: account.body.id,
-      })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'ci', serviceAccountId: account.body.id })
       .expect(403);
   });
 
@@ -203,21 +193,11 @@ describe('disabling a service account', () => {
     const account = await create({ name: 'Retired', role: 'editor' }).expect(201);
     await request(app)
       .post('/api/api-keys')
-      .send({
-        expiresInDays: 30,
-        scopes: ['runs:read'],
-        name: 'a',
-        serviceAccountId: account.body.id,
-      })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'a', serviceAccountId: account.body.id })
       .expect(201);
     await request(app)
       .post('/api/api-keys')
-      .send({
-        expiresInDays: 30,
-        scopes: ['runs:read'],
-        name: 'b',
-        serviceAccountId: account.body.id,
-      })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'b', serviceAccountId: account.body.id })
       .expect(201);
 
     const disabled = await request(app)
@@ -236,12 +216,7 @@ describe('disabling a service account', () => {
     await request(app).delete(`/api/service-accounts/${account.body.id}`).expect(404);
     await request(app)
       .post('/api/api-keys')
-      .send({
-        expiresInDays: 30,
-        scopes: ['runs:read'],
-        name: 'c',
-        serviceAccountId: account.body.id,
-      })
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'c', serviceAccountId: account.body.id })
       .expect(404);
   });
 });

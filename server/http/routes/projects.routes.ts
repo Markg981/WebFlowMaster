@@ -1,5 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
-import { flattenZodError } from '../../platform/zod-error';
+import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import {
   projects,

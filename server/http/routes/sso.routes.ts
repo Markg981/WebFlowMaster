@@ -1,5 +1,5 @@
 import { type Request, type Response, type NextFunction } from 'express';
-import { flattenZodError } from '../../platform/zod-error';
+import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import rateLimit from 'express-rate-limit';
 import { sharedStore } from '../../platform/middleware/rate-limit-store';

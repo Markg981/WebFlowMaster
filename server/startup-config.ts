@@ -18,12 +18,7 @@ export function startupConfigErrors(env: NodeJS.ProcessEnv = process.env): strin
   if (!env.SESSION_SECRET) errors.push('SESSION_SECRET must be set for session security.');
   if (env.NODE_ENV === 'production') errors.push(...publishedSecretErrors(env));
   if (env.NODE_ENV === 'production') errors.push(...publicUrlErrors(env));
-  for (const check of [
-    () => registrationMode(env),
-    () => cspMode(env),
-    () => resolvePort(env),
-    () => trustProxySetting(env),
-  ]) {
+  for (const check of [() => registrationMode(env), () => cspMode(env), () => resolvePort(env), () => trustProxySetting(env)]) {
     try {
       check();
     } catch (error) {
@@ -125,8 +120,7 @@ export async function connectSessionStore(
 /** Emailed links must name this installation, never the Host header of whoever asked. */
 function publicUrlErrors(env: NodeJS.ProcessEnv): string[] {
   const value = env.WEBFLOW_PUBLIC_URL?.trim();
-  const hint =
-    'WEBFLOW_PUBLIC_URL must be set in production to the absolute http(s) address users reach WebFlowMaster at.';
+  const hint = 'WEBFLOW_PUBLIC_URL must be set in production to the absolute http(s) address users reach WebFlowMaster at.';
   if (!value) return [hint];
   try {
     const url = new URL(value);

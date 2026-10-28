@@ -1,5 +1,5 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
-import { flattenZodError } from '../../platform/zod-error';
+import { flattenZodError } from '../zod-error';
 import { AUDIT_ACTIONS, insertSystemSettingSchema } from '@shared/schema';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { requireInstallationAdmin } from '../../tenancy/installation-admin';
