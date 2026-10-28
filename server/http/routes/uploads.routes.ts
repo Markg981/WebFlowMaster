@@ -2,7 +2,7 @@ import { type RequestHandler } from 'express';
 import { flattenZodError } from '../zod-error';
 import { asyncRouter } from '../../platform/middleware/async-router';
 import multer from 'multer';
-import { XlsxLimitError } from '../../integrations/xlsx-guard';
+import { XLSX_UPLOAD_DIR, XlsxLimitError } from '../../integrations/xlsx-guard';
 import { excelService } from '../../integrations/excel-service';
 import fs from 'fs-extra';
 import logger from '../../platform/logger';
@@ -35,7 +35,7 @@ const XLSX_TYPES = new Set([
 class UnsupportedUploadError extends Error {}
 
 const upload = multer({
-  dest: 'uploads/',
+  dest: XLSX_UPLOAD_DIR,
   limits: { fileSize: EXCEL_UPLOAD_MAX_BYTES, files: 1, fields: 10 },
   fileFilter: (_req, file, accept) => {
     if (/\.xlsx$/i.test(file.originalname) && XLSX_TYPES.has(file.mimetype))

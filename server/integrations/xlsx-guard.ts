@@ -1,4 +1,8 @@
 import fs from 'fs/promises';
+import path from 'path';
+
+/** Where multer stores uploaded workbooks; the guard opens nothing outside it. */
+export const XLSX_UPLOAD_DIR = path.resolve('uploads');
 
 /** An .xlsx is a zip: the 10 MB upload cap is on the compressed bytes, not on what ExcelJS inflates. */
 export const XLSX_LIMITS = {
@@ -19,7 +23,9 @@ const INVALID = 'The file is not a valid .xlsx archive.';
  * sizes would exhaust memory when ExcelJS loads them. Throws XlsxLimitError.
  */
 export async function assertXlsxWithinLimits(filePath: string): Promise<void> {
-  const fh = await fs.open(filePath, 'r');
+  const resolved = path.resolve(filePath);
+  if (!resolved.startsWith(XLSX_UPLOAD_DIR + path.sep)) throw new Error(INVALID);
+  const fh = await fs.open(resolved, 'r');
   try {
     const { size } = await fh.stat();
     const tailLen = Math.min(size, 22 + 0xffff);
