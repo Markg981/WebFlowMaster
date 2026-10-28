@@ -2,6 +2,7 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
 import type { BrowserContext, Page } from 'playwright';
+import { STEP_GROUP_ACTION_ID } from '@shared/recording';
 import type { EvidenceCaptureMode } from '@shared/schema';
 import { sanitiseHar, summariseHar, type HarLike, type NetworkSummary } from '@shared/network';
 
@@ -61,19 +62,45 @@ export function shouldKeep(mode: EvidenceCaptureMode | undefined | null, passed:
  * recorder stores a typed password as) or anything named password — a field, a selector, a value.
  * Errs towards "sensitive": a "Forgot password?" link costs that test its trace, nothing more.
  *
- * A heuristic, and meant as one. It cannot see a secret behind an ordinary variable name or inside a
- * step group, so it narrows what is recorded for the flows that are obviously sensitive; it does not
+ * A heuristic, and meant as one. It cannot see a secret behind an ordinary variable name, so it narrows what is recorded for the flows that are obviously sensitive; it does not
  * make any recording safe. Access control on the stored files (server/tenancy/artifact-access.ts) is
  * what protects the rest.
  */
-export function isSensitiveFlow(steps: unknown): boolean {
+function safeParse(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+export function isSensitiveFlow(
+  steps: unknown,
+  groups: ReadonlyArray<{ id: string; sequence: unknown }> = [],
+  seen: Set<string> = new Set(),
+): boolean {
   let text: string;
   try {
     text = JSON.stringify(steps ?? null);
   } catch {
     return true;
   }
-  return /\{\{\s*secrets?[._]/i.test(text) || /pass(word|wd)|\bpwd\b/i.test(text);
+  if (/\{\{\s*secrets?[._]/i.test(text) || /pass(word|wd)|\bpwd\b/i.test(text)) return true;
+
+  // A group call holds only a reference: look into the group it names, and into the groups that
+  // one calls, so a login kept in a step group is as sensitive as one written in the test.
+  const byId = new Map(groups.map((group) => [group.id, group]));
+  const list = typeof steps === 'string' ? safeParse(steps) : steps;
+  for (const step of Array.isArray(list) ? list : []) {
+    if (step?.action?.id !== STEP_GROUP_ACTION_ID) continue;
+    const id = typeof step.value === 'string' ? step.value.trim() : '';
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const group = byId.get(id);
+    // A group that cannot be read cannot be shown clean: err towards sensitive.
+    if (!group || isSensitiveFlow(group.sequence, groups, seen)) return true;
+  }
+  return false;
 }
 
 /**

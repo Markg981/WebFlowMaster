@@ -1,6 +1,7 @@
 import { AuthParamsSchema, type ApiTest, type Assertion, type AuthParams } from '@shared/schema';
 import { runGrpc, runWebSocket, xpathValue, type ProtocolResponse } from './api-protocols';
 import { fetchTarget, substituteInValues, substituteVariables } from '../platform/outbound-http';
+import { compileSafeRegex, safeRegexTest } from '../platform/utils/safe-regex';
 import { findUnresolvedVariables } from '../runtime/variables';
 import {
   ProtocolConfigSchema,
@@ -266,15 +267,15 @@ function compare(comparison: string, actual: any, target: string | undefined): b
       return !text.includes(target ?? '');
     case 'matches_regex':
       try {
-        return new RegExp(target ?? '').test(text);
-      } catch {
-        return `Invalid regex: ${target}`;
+        return safeRegexTest(compileSafeRegex(target ?? ''), text);
+      } catch (error) {
+        return `Invalid regex: ${target} (${(error as Error).message})`;
       }
     case 'not_matches_regex':
       try {
-        return !new RegExp(target ?? '').test(text);
-      } catch {
-        return `Invalid regex: ${target}`;
+        return !safeRegexTest(compileSafeRegex(target ?? ''), text);
+      } catch (error) {
+        return `Invalid regex: ${target} (${(error as Error).message})`;
       }
     case 'greater_than':
     case 'less_than':

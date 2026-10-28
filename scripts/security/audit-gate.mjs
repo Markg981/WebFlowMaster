@@ -25,6 +25,31 @@ export function parseExceptions(markdown) {
   return rows;
 }
 
+// Fail closed: a report that is not a genuine npm audit report means "could not audit", never "clean".
+export function parseAuditOutput(out) {
+  let doc;
+  try {
+    doc = JSON.parse(String(out ?? ''));
+  } catch {
+    throw new Error('audit gate: npm audit output is not valid JSON, could not audit');
+  }
+  if (doc === null || typeof doc !== 'object' || Array.isArray(doc))
+    throw new Error('audit gate: npm audit output is not a JSON object, could not audit');
+  if (doc.error) {
+    const e = doc.error;
+    throw new Error(
+      `audit gate: npm audit failed (${e.code ?? 'unknown'}${e.summary ? `: ${e.summary}` : ''}), could not audit`,
+    );
+  }
+  if (typeof doc.auditReportVersion !== 'number')
+    throw new Error(
+      'audit gate: auditReportVersion missing from npm audit output, could not audit',
+    );
+  if (doc.vulnerabilities === null || typeof doc.vulnerabilities !== 'object')
+    throw new Error('audit gate: vulnerabilities missing from npm audit output, could not audit');
+  return doc;
+}
+
 export function findingsOf(auditJson) {
   const found = new Map();
   for (const [name, v] of Object.entries(auditJson.vulnerabilities ?? {})) {
@@ -72,8 +97,15 @@ function run() {
     out = e.stdout; // npm audit exits 1 when it finds something
     if (!out) throw e;
   }
+  let report;
+  try {
+    report = parseAuditOutput(out);
+  } catch (e) {
+    console.error(e.message);
+    process.exit(2);
+  }
   const doc = readFileSync(new URL('../../docs/SECURITY-AUDIT.md', import.meta.url), 'utf8');
-  const errors = evaluate(findingsOf(JSON.parse(out)), parseExceptions(doc));
+  const errors = evaluate(findingsOf(report), parseExceptions(doc));
   if (errors.length) {
     console.error(errors.join('\n'));
     process.exit(1);
