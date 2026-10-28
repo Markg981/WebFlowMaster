@@ -33,7 +33,8 @@ import {
 } from '../platform/middleware/tenancy';
 import { STALE_CLAIM_MS, WORK_ITEM_HEARTBEAT_MS } from '../runtime/run-shards';
 import { withExecutionUsage } from '../tenancy/execution-usage';
-import { resolveVariables } from '../runtime/variables';
+import { findUnresolvedVariables, resolveVariables } from '../runtime/variables';
+import { substituteVariables } from '../platform/outbound-http';
 import logger from '../platform/logger';
 
 /**
@@ -209,6 +210,10 @@ export async function runLoad(
     let iteration = 0;
     try {
       while (!over() && slot < target) {
+        // A request that fails before any I/O (bad URL, missing variable) settles in microtasks:
+        // without this yield the loop would starve timers, heartbeat and cancel (audit C-14).
+        await yieldToEventLoop();
+        if (over() || slot >= target) break;
         iteration += 1;
         const row =
           plan.data?.mode === 'iteration'
@@ -573,6 +578,8 @@ export async function recoverLostLoadRuns(
   return lost.map((row) => row.id);
 }
 
+// The global setImmediate, so a virtual clock (tests) drives it like the other timers.
+const yieldToEventLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
@@ -641,6 +648,22 @@ export async function executeLoadRun(
           organizationId,
           environmentId: run.environmentId,
         });
+
+        // Fail fast on what every iteration would hit: the first step's URL, with the variables
+        // known up front (later steps may use values captured by earlier ones).
+        const probe: Record<string, string> = { ...vars, 'load.vu': '1', 'load.iteration': '1' };
+        for (const column of dataSet?.columns ?? [])
+          probe[`${DATA_PREFIX}.${dataSet!.name}.${column}`] = '';
+        const unresolved = findUnresolvedVariables(specs[0].url, probe);
+        if (unresolved.length)
+          throw new LoadRunError(
+            `Unresolved variable(s) ${unresolved.join(', ')} in the URL of the first step.`,
+          );
+        try {
+          new URL(substituteVariables(specs[0].url, probe));
+        } catch {
+          throw new LoadRunError('The URL of the first step is not valid.');
+        }
 
         let cancelRequested = run.cancelRequested;
         const outcome = await withExecutionUsage(

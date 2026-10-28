@@ -72,7 +72,7 @@ A run **passes** when it reaches the end within every threshold and **fails** na
 threshold exceeded ("p95 412 ms > 300 ms", "throughput 38 req/s < 50 req/s"). A run that judged
 no request fails too. **Cancelled** means someone stopped it, queued or running; **Could not run**
 means it never got going — an API test or the data set was deleted, the data set has too few rows,
-the profile is beyond the installation's limits; **Worker lost** means the worker executing it
+the profile is beyond the installation's limits, the first test's URL uses a variable that is not defined or is not a valid URL; **Worker lost** means the worker executing it
 stopped answering (a crash, a redeploy that did not wait): its summary up to then is kept, and the
 run did not finish.
 
