@@ -109,4 +109,7 @@ export const ORG_SCOPED_TABLES = [
   // The organization's subscription (migration 0087): one row, read by its own members, moved
   // between statuses only by privileged code (webhooks, the installation administrator, the sweep).
   'organization_subscriptions',
+  // Load tests and their runs (migration 0083); their foreign key to organizations has no cascade.
+  'load_tests',
+  'load_test_runs',
 ] as const;

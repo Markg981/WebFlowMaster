@@ -19,6 +19,7 @@ import { runPerformance } from '../api-tests/api-performance';
 import type { ApiPerformance, PerformanceSummary } from '@shared/api-performance';
 import { type BrowserChoice } from '../runtime/browsers';
 import { isSensitiveFlow, prudentEvidence } from '../runtime/run-evidence';
+import { loadGroupsTransitively } from '../authoring/step-groups';
 import { isManualSequence } from '@shared/manual-tests';
 import type { VisualContext } from '../web/visual-testing';
 import { sequenceStatus } from '../web/playwright/visual-verdict';
@@ -274,9 +275,19 @@ export async function runTest(
       }
 
       // A flow that visibly handles a credential records no trace (server/runtime/run-evidence.ts).
+      // Including the flows inside the step groups it calls: a group call holds only a reference.
+      let sensitiveFlow: boolean;
+      try {
+        sensitiveFlow = isSensitiveFlow(
+          uiTest.sequence,
+          await loadGroupsTransitively(uiTest.sequence),
+        );
+      } catch {
+        sensitiveFlow = true; // groups unreadable: cannot show the flow clean
+      }
       const evidence = prudentEvidence(
         options?.evidence ? { ...options.evidence, artifactDir: screenshotBaseDir } : undefined,
-        isSensitiveFlow(uiTest.sequence),
+        sensitiveFlow,
       );
       if (evidence.traceWithheld) {
         getWsEmitter().emitExecutionLog(runId, {

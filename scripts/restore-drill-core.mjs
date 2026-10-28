@@ -9,6 +9,10 @@ export function drillCompose(root, key, session, imageTag = 'local') {
     REGISTRATION: 'open',
     ARTIFACT_STORE: 'local',
     APP_BASE_URL: 'http://api:5000',
+    WEBFLOW_PUBLIC_URL: 'http://api:5000',
+    // REGISTRATION=open needs private egress denied; the drill's own tests call the api service.
+    EGRESS_PRIVATE_TARGETS: 'deny',
+    EGRESS_ALLOW_HOSTS: 'api',
     AUTH_RATE_LIMIT: '100',
   };
   const volumes = ['results:/app/results', 'visual_baselines:/app/data/visual-baselines'];

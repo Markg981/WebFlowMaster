@@ -59,9 +59,13 @@ Ogni asserzione legge una parte della risposta e la confronta:
 | response time  | —                          | less than `500` (millisecondi)                         |
 | body xpath     | un XPath in un corpo XML   | `//status` equals `Shipped` — vedi [SOAP](#protocolli) |
 
+Un XPath viene valutato su documenti fino a 2 MB e 20.000 nodi, con espressione di al massimo 500 caratteri. Un'espressione che annida molti `//` o predicati su un documento grande viene rifiutata con "XPath expression too expensive" invece di essere eseguita, così una sola asserzione non può bloccare il server.
+
 Confronti: equals, not equals, contains, not contains, exists, not exists, is empty, is not
 empty, greater than, less than (o uguale), matches regex, not matches regex. Un'asserzione si può
 disattivare senza cancellarla. Il test passa quando passano tutte quelle attive.
+Una regex è limitata a 200 caratteri e non può ripetere un gruppo già ripetuto come `(a+)+` (bloccherebbe
+il server): l'asserzione fallisce subito con il messaggio "Invalid regex".
 
 Il **response time** va dall'invio della richiesta all'ultimo byte del corpo, non agli header: un
 corpo che arriva lentamente conta per intero. Anche il timeout di 30 secondi copre tutto il
