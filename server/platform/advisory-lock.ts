@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import logger from './logger';
+import { attachPoolErrorHandler } from './pool-errors';
 
 /**
  * Cross-replica coordination for periodic sweeps and the migrator. Session-level advisory locks,
@@ -27,7 +28,10 @@ function isPostgres(): boolean {
 }
 
 function pool(): Pool {
-  lockPool ??= new Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
+  lockPool ??= attachPoolErrorHandler(
+    new Pool({ connectionString: process.env.DATABASE_URL, max: 2 }),
+    'advisory-lock',
+  );
   return lockPool;
 }
 
