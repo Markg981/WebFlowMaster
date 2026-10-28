@@ -1,4 +1,6 @@
 import path from 'path';
+import { assertEgressAllowed } from '../platform/egress-policy';
+import { guardedBrowserLaunchOptions } from '../platform/egress-guard-proxy';
 import fs from 'fs-extra';
 import { execFile } from 'child_process';
 import type { Page } from 'playwright';
@@ -118,6 +120,34 @@ export const LIGHTHOUSE_TIMEOUT_MS = Number(process.env.LIGHTHOUSE_TIMEOUT_MS) |
 
 export class LighthouseUnavailableError extends Error {}
 
+/** The only variables Lighthouse and its Chrome get: none of the worker's secrets or settings. */
+const LIGHTHOUSE_ENV_ALLOWLIST = [
+  'PATH',
+  'HOME',
+  'USERPROFILE',
+  'TMPDIR',
+  'TMP',
+  'TEMP',
+  'LANG',
+  'LC_ALL',
+  'TZ',
+  'SystemRoot',
+  'windir',
+  'ComSpec',
+  'PATHEXT',
+  'LOCALAPPDATA',
+  'APPDATA',
+  'XDG_RUNTIME_DIR',
+  'DISPLAY',
+];
+
+export function lighthouseEnv(source: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {};
+  for (const key of LIGHTHOUSE_ENV_ALLOWLIST) if (source[key] !== undefined) env[key] = source[key];
+  env.CHROME_PATH = source.CHROME_PATH || chromium.executablePath();
+  return env;
+}
+
 function lighthouseBin(): string {
   return process.env.LIGHTHOUSE_BIN || 'lighthouse';
 }
@@ -132,6 +162,10 @@ export async function runLighthouse(input: {
   formFactor: 'mobile' | 'desktop';
   outputDir?: string;
 }): Promise<Omit<LighthouseFinding, 'checks'>> {
+  // Refuse before anything is launched; Chrome's redirects and subresources are then decided by
+  // the same proxy the other browser steps use (egress-guard-proxy.ts, or WFM_EGRESS_PROXY).
+  await assertEgressAllowed(input.url);
+  const proxy = (await guardedBrowserLaunchOptions()).proxy;
   const dir =
     input.outputDir ??
     (await fs.mkdtemp(path.join(process.env.TMPDIR || '/tmp', 'wfm-lighthouse-')));
@@ -143,7 +177,12 @@ export async function runLighthouse(input: {
     '--output=html',
     `--output-path=${base}`,
     `--only-categories=${LIGHTHOUSE_CATEGORIES.join(',')}`,
-    '--chrome-flags=--headless=new --no-sandbox --disable-dev-shm-usage',
+    `--chrome-flags=${[
+      '--headless=new',
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      ...(proxy ? [`--proxy-server=${proxy.server}`, '--proxy-bypass-list=<-loopback>'] : []),
+    ].join(' ')}`,
     '--quiet',
     ...(input.formFactor === 'desktop' ? ['--preset=desktop'] : []),
     ...(input.cookieHeader
@@ -158,7 +197,7 @@ export async function runLighthouse(input: {
         timeout: LIGHTHOUSE_TIMEOUT_MS,
         maxBuffer: 32 * 1024 * 1024,
         // Lighthouse finds its browser through CHROME_PATH: Playwright's Chromium unless one is set.
-        env: { ...process.env, CHROME_PATH: process.env.CHROME_PATH || chromium.executablePath() },
+        env: lighthouseEnv(),
       },
       (error, _stdout, stderr) => {
         if (!error) return resolve();
