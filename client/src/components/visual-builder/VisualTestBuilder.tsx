@@ -33,11 +33,12 @@ const nodeTypes = {
  * click / Enter. A step group travels in `value`, which is where the runner looks when it
  * expands the call.
  */
-export function buildStepFromAction(action: any): TestStep {
+export function buildStepFromAction(action: unknown): TestStep {
+  const groupId = (action as { groupId?: unknown } | null)?.groupId;
   return {
     id: `step-${Date.now()}`,
-    action,
-    value: action?.groupId ?? '',
+    action: action as TestStep['action'],
+    value: typeof groupId === 'string' ? groupId : '',
   };
 }
 
