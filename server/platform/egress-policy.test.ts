@@ -107,12 +107,7 @@ describe('addresses', () => {
       expect(checkAddress(address, allow), address).toBeUndefined();
       expect(checkAddress(address, deny), address).toBe('private');
     }
-    for (const address of [
-      '172.32.0.1',
-      '8.8.8.8',
-      '93.184.216.34',
-      '2606:4700::1111',
-    ])
+    for (const address of ['172.32.0.1', '8.8.8.8', '93.184.216.34', '2606:4700::1111'])
       expect(checkAddress(address, deny), address).toBeUndefined();
   });
 
