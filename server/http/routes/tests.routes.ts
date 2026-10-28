@@ -16,7 +16,8 @@ import {
   AUDIT_ACTIONS,
 } from '@shared/schema';
 import { auditActor, changedFields, recordAudit } from '../../tenancy/audit';
-import { eq, and, desc, getTableColumns, isNull } from 'drizzle-orm';
+import { eq, and, desc, count, getTableColumns, isNull } from 'drizzle-orm';
+import { listPage, setTotalCount } from '../list-page';
 import { z } from 'zod';
 import logger from '../../platform/logger';
 import { BrowserTaskError, browserTasks } from '../../web/browser-tasks';
@@ -83,14 +84,25 @@ router.get('/api/tests', requireRole('viewer'), async (req, res) => {
   try {
     // No organization filter here on purpose: the RLS policy applies it. Adding one would
     // be harmless but would suggest the isolation depends on remembering it.
-    const allTests = await withTenantTransaction(async (tx) => {
-      const rows = await tx.select().from(tests).orderBy(desc(tests.createdAt));
+    const { limit, offset } = listPage(req);
+    const { allTests, total } = await withTenantTransaction(async (tx) => {
+      const [counted] = await tx.select({ n: count() }).from(tests);
+      const rows = await tx
+        .select()
+        .from(tests)
+        .orderBy(desc(tests.createdAt), desc(tests.id))
+        .limit(limit)
+        .offset(offset);
       // One query for every row's tags rather than one per row: this list is what the library
       // and the pickers are built from, and per-row lookups is where a list becomes hundreds
       // of queries.
       const byTest = await tagsOfTests(tx, { testIds: rows.map((row) => row.id) });
-      return rows.map((row) => ({ ...row, tags: byTest.ui.get(row.id) ?? [] }));
+      return {
+        allTests: rows.map((row) => ({ ...row, tags: byTest.ui.get(row.id) ?? [] })),
+        total: counted?.n ?? 0,
+      };
     });
+    setTotalCount(res, total);
     res.json(allTests);
   } catch (error: any) {
     const quota = quotaErrorBody(error);
