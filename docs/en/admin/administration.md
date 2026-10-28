@@ -226,7 +226,10 @@ that it answers a request this installation sent, which it can do only once — 
 - the first time, an existing account of the organization whose username is that address is
   linked to it; this is how members who already had a password move over. An organization
   owner, or an account with a second factor on, is never linked this way: the sign-in is refused
-  (`sso.link_refused` in the audit log) and the person signs in with their password first;
+  (`sso.link_refused` in the audit log) and the person signs in with their password first. The
+  same holds for an account that belongs to another organization: a password set there never
+  proved the mailbox (an invitation accepts any username), so the address alone does not hand it
+  to this organization, even on a verified domain;
 - otherwise an account is **created**, with the address as its username and the role you
   chose — or the role its groups map to, below. Without a group mapped to owner, owners are
   never created this way: make someone an owner in **Settings → Members**.

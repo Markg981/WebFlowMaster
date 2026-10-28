@@ -3909,7 +3909,7 @@
       "account_linked": "Your address is already linked to another identity at your provider. Ask an owner of your organization.",
       "browser_mismatch": "This sign-in was started in another browser. Start it again here.",
       "no_group": "Your account at the identity provider is in none of the groups this organization lets in. Ask your administrator.",
-      "link_requires_local_signin": "This account is an owner or uses a second factor. Sign in with your password and link single sign-on from your settings."
+      "link_requires_local_signin": "This account is an owner, uses a second factor or has a local password whose mailbox was never verified. Sign in with your password and link single sign-on from your settings."
     },
     "protocol": "Protocol",
     "saml": {

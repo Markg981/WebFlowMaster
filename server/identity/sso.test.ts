@@ -389,46 +389,35 @@ describe('signing in through the provider', () => {
       sub: 'hedy-1',
       email: 'hedy@example.com',
     });
-    expect(refused.back.headers.location).toBe('/auth?sso_error=account_elsewhere');
+    expect(refused.back.headers.location).toBe('/auth?sso_error=link_requires_local_signin');
 
-    // On a domain this organization has proven it owns, the account joins instead (migration
-    // 0086): one more organization for it, with the default role, and the one it now acts in.
+    // On a domain this organization has proven it owns the account is still not handed over by
+    // its address alone: its local credential never proved the mailbox (audit C-04).
     await privilegedDb
       .update(ssoDomains)
       .set({ verifiedAt: new Date() })
       .where(eq(ssoDomains.organizationId, organizationId));
-    const joined = await ssoSignIn('hedy@example.com', {
+    const preHijack = await ssoSignIn('hedy@example.com', {
       sub: 'hedy-1',
       email: 'hedy@example.com',
     });
-    expect(joined.back.headers.location).toBe('/');
-    expect((await joined.browser.get('/api/user').expect(200)).body).toMatchObject({
-      id: hedy.id,
-      organizationId,
-      role: 'editor',
-    });
+    expect(preHijack.back.headers.location).toBe('/auth?sso_error=link_requires_local_signin');
+    await preHijack.browser.get('/api/user').expect(401);
+    expect(
+      (await privilegedDb.select().from(ssoIdentities)).filter((i) => i.userId === hedy.id),
+    ).toHaveLength(0);
     const memberships = await privilegedDb
       .select({ organizationId: organizationMemberships.organizationId })
       .from(organizationMemberships)
       .where(eq(organizationMemberships.userId, hedy.id));
-    expect(memberships.map((m) => m.organizationId).sort()).toEqual(
-      [elsewhere.id, organizationId].sort(),
-    );
+    expect(memberships.map((m) => m.organizationId)).toEqual([elsewhere.id]);
     const trail = (
       await privilegedDb
-        .select({
-          action: auditLog.action,
-          targetId: auditLog.targetId,
-          metadata: auditLog.metadata,
-        })
+        .select({ action: auditLog.action, targetId: auditLog.targetId })
         .from(auditLog)
         .where(eq(auditLog.organizationId, organizationId))
     ).filter((e) => e.targetId === String(hedy.id));
-    expect(trail.find((e) => e.action === 'member.joined')?.metadata).toMatchObject({
-      role: 'editor',
-      bySso: true,
-    });
-    expect(trail.find((e) => e.action === 'auth.login')?.metadata).toMatchObject({ joined: true });
+    expect(trail.map((e) => e.action)).toContain('sso.link_refused');
     await refused.browser.get('/api/user').expect(401);
   });
 
