@@ -1210,6 +1210,22 @@ async function resolveAccount(
         .from(ssoIdentities)
         .where(eq(ssoIdentities.userId, existing.id));
       if (existing.organizationId !== organizationId) {
+        // An account of another organization with a local credential has never proven this mailbox
+        // (an invitation or a registration takes any username): matching the address is not enough
+        // to hand it this organization's identity (audit C-04, pre-hijacking). Its holder signs in
+        // locally and links from the settings; an identity linked elsewhere already is admitted.
+        if (!alreadyLinked) {
+          await audit(
+            tx,
+            organizationId,
+            { id: existing.id, username: existing.username, ipAddress: null },
+            AUDIT_ACTIONS.SSO_LINK_REFUSED,
+            'user',
+            String(existing.id),
+            { issuer: identity.issuer, reason: 'unverified_mailbox' },
+          );
+          return refuse('link_requires_local_signin');
+        }
         const admitted = await admitFromElsewhere(existing);
         if (!admitted) return refuse('account_elsewhere');
         // An account carries one identity. Linked to another organization's provider already, it

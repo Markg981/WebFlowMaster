@@ -45,6 +45,21 @@ describe('XPath on XML answers', () => {
     expect(xpathValue(SOAP_RESPONSE, '//Fault')).toBeUndefined();
     expect(xpathValue('{"json": true}', '//x')).toBeUndefined();
   });
+
+  it('refuses a cubic expression on a 600-node document instead of stalling (C-07)', () => {
+    const xml = `<r>${Array.from({ length: 600 }, (_, i) => `<a>v${i}</a>`).join('')}</r>`;
+    const started = Date.now();
+    expect(() => xpathValue(xml, '//*[count(//*[count(//*)>0])>0]')).toThrow(/too expensive/);
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(xpathValue(xml, '//a[. = "v599"]')).toBe('v599');
+  });
+
+  it('refuses oversized expressions and documents', () => {
+    expect(() => xpathValue('<r/>', `//a[${'b/'.repeat(300)}c]`)).toThrow(/too long/);
+    expect(() => xpathValue(`<r>${'x'.repeat(2_100_000)}</r>`, '//r')).toThrow(/too large/);
+    const many = `<r>${'<a/>'.repeat(21_000)}</r>`;
+    expect(() => xpathValue(many, '//a')).toThrow(/too many nodes/);
+  });
 });
 
 describe('SOAP over HTTP', () => {

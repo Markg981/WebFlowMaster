@@ -170,6 +170,33 @@ export async function loadReferencedGroups(sequence: unknown): Promise<LoadedSte
 }
 
 /**
+ * Every group a sequence reaches, including groups called from inside groups (to any depth).
+ * Unlike the run-time expansion this follows nesting, because it serves the secret scan
+ * (C-09): a password typed three calls deep still ends up in the trace.
+ */
+export async function loadGroupsTransitively(sequence: unknown): Promise<LoadedStepGroup[]> {
+  const loaded = new Map<string, LoadedStepGroup>();
+  let pending = referencedGroupIds(sequence);
+  while (pending.length > 0) {
+    const rows = await loadReferencedGroupsByIds(pending);
+    for (const row of rows) loaded.set(row.id, row);
+    const next = new Set<string>();
+    for (const row of rows) {
+      for (const id of referencedGroupIds(row.sequence)) if (!loaded.has(id)) next.add(id);
+    }
+    // Ids that came back empty (deleted) are not retried.
+    for (const id of pending) if (!loaded.has(id)) next.delete(id);
+    pending = [...next];
+  }
+  return [...loaded.values()];
+}
+
+async function loadReferencedGroupsByIds(ids: string[]): Promise<LoadedStepGroup[]> {
+  const rows = await withTenantTransaction((tx) => loadStepGroups(tx, ids));
+  return rows.map(({ id, name, sequence: steps }) => ({ id, name, sequence: steps }));
+}
+
+/**
  * Expands a sequence about to be run, loading whatever groups it names.
  *
  * Returns the sequence unchanged, and without touching the database, when nothing calls a

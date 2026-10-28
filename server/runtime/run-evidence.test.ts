@@ -305,6 +305,23 @@ describe('prudent capture for sensitive flows (P03)', () => {
     expect(isSensitiveFlow(null)).toBe(false);
   });
 
+  it('looks inside step groups, including nested ones (C-09)', () => {
+    const call = (id: string) => ({ action: { id: 'callGroup' }, value: id });
+    const groups = [
+      { id: 'g1', sequence: login },
+      { id: 'outer', sequence: [call('inner')] },
+      { id: 'inner', sequence: login },
+      { id: 'clean', sequence: [{ type: 'click', selector: '#search' }] },
+      { id: 'loop', sequence: [call('loop')] },
+    ];
+    expect(isSensitiveFlow([call('g1')], groups)).toBe(true);
+    expect(isSensitiveFlow([call('outer')], groups)).toBe(true);
+    expect(isSensitiveFlow([call('clean')], groups)).toBe(false);
+    expect(isSensitiveFlow([call('loop')], groups)).toBe(false);
+    // A group that cannot be loaded cannot be shown clean.
+    expect(isSensitiveFlow([call('gone')], groups)).toBe(true);
+  });
+
   it('records no trace for a sensitive flow, and keeps the rest as the plan asked', () => {
     const asked = {
       trace: 'always',
