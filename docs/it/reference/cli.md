@@ -58,8 +58,9 @@ node wfm.mjs run 12 --wait --junit junit.xml
 
 Uno step di pipeline che esegue `wfm run … --wait` fallisce quindi esattamente quando deve.
 
-`wfm tests` usa gli endpoint dell'applicazione, non `/api/v1`, quindi serve una chiave API ad
-**accesso completo** (creata senza scope); una chiave con scope viene rifiutata, e la CLI lo dice. Un
+`wfm tests` usa gli endpoint dell'applicazione, non `/api/v1`, raggiungibili dalle chiavi senza scope; tali
+chiavi non sono più accettate (C-03) e una chiave con scope viene rifiutata, quindi per ora funziona solo
+dove è disponibile una sessione. Un
 uso tipico tiene i test nel repository dell'applicazione: un job notturno esegue `wfm tests export
 --project 12 --out tests/shop.wfm.yaml` e committa il file se è cambiato, e un job sul ramo principale
 esegue `wfm tests import tests/shop.wfm.yaml` dopo che una pull request l'ha modificato.

@@ -39,7 +39,7 @@ expiry date, and is revoked from the same page.
 
 ### Scopes
 
-A key **without scopes** can do anything its account can, on every endpoint. A key **with scopes**
+A key **without scopes** is no longer accepted (keys that had none were migrated to read-only scopes). A key **with scopes**
 works only on `/api/v1`, and on each endpoint only if it holds the scope the endpoint names:
 
 | Scope                                      | Minimum role    | Allows                                                                                                        |

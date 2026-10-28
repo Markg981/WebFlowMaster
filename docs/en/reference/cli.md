@@ -58,8 +58,9 @@ node wfm.mjs run 12 --wait --junit junit.xml
 
 A pipeline step that runs `wfm run … --wait` therefore fails exactly when it should.
 
-`wfm tests` uses the application's own endpoints, not `/api/v1`, so it needs a **full-access** API
-key (one created without scopes); a scoped key is refused, and the CLI says so. A typical use keeps
+`wfm tests` uses the application's own endpoints, not `/api/v1`, which API keys without scopes used to
+reach; such keys are no longer accepted (C-03) and a scoped key is refused, so for now it works only
+where a session is available. A typical use keeps
 the tests in the application's repository: a nightly job runs `wfm tests export --project 12 --out
 tests/shop.wfm.yaml` and commits the file when it changed, and a job on the main branch runs
 `wfm tests import tests/shop.wfm.yaml` after a pull request edited it.

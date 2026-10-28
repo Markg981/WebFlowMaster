@@ -88,6 +88,17 @@ export async function apiKeyAuth(req: Request, _res: Response, next: NextFunctio
       return next();
     }
 
+    // A key without scopes (from before scopes; migration 0099 gives them read scopes) would act
+    // as its user everywhere, SSO and MFA included (audit C-03). It is not a credential.
+    if (!matched!.scopes || matched!.scopes.length === 0) {
+      logger.warn({
+        message: 'API key without scopes refused; re-issue it with explicit scopes',
+        apiKeyId: matched!.id,
+        path: req.path,
+      });
+      return next();
+    }
+
     // A scoped key is for /api/v1, where every endpoint says which scope it needs. Anywhere
     // else it would act with its user's whole role, which is exactly what scoping it was meant
     // to prevent — so there it is not a credential at all, and the request is answered as the

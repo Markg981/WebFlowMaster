@@ -7,6 +7,8 @@ import logger, { updateLogLevel } from '../../platform/logger';
 import { asyncHandler } from '../../platform/middleware/async-handler';
 import { requireRole, roleAllows } from '../middleware/require-role';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
+import { sessionOnly } from '../middleware/session-only';
+
 import {
   getSystemSetting,
   listSystemSettings,
@@ -84,6 +86,7 @@ router.get(
 router.post(
   '/api/system-settings',
   requireRole('owner'),
+  sessionOnly('Owner action (post /api/system-settings)'),
   requireInstallationAdmin,
   asyncHandler(async (req, res) => {
     const parseResult = insertSystemSettingSchema.safeParse(req.body);

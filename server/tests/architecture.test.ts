@@ -626,3 +626,17 @@ describe('credential and membership routes stay session-only (audit A-06)', () =
     expect(offenders).toEqual([]);
   });
 });
+
+describe('owner-only mutations are session-only (audit C-03)', () => {
+  it('every mutating route gated by requireRole("owner") has a sessionOnly guard', () => {
+    const offenders: string[] = [];
+    for (const { name, source } of routeFiles()) {
+      for (const c of routeCalls(source, 'router', ['post', 'put', 'patch', 'delete'])) {
+        if (!/requireRole\(\s*'owner'/.test(c.chain)) continue;
+        if (!/sessionOnly/.test(c.chain))
+          offenders.push(`${name}:${c.line} ${c.method} ${c.paths}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

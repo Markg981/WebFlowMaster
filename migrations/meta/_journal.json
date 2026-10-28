@@ -694,6 +694,13 @@
       "when": 1792400000021,
       "tag": "0098_invitation_token_hash",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1792400000022,
+      "tag": "0099_api_keys_mandatory_scopes",
+      "breakpoints": true
     }
   ]
 }

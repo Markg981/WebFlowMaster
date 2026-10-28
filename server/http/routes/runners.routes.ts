@@ -5,6 +5,7 @@ import { requireInstallationAdmin } from '../../tenancy/installation-admin';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { listRunners, setRunnerDesiredState, statusOf } from '../../runtime/runner-registry';
+import { sessionOnly } from '../middleware/session-only';
 
 /**
  * The runners, for whoever keeps the installation running. Owners see them; draining and resuming
@@ -28,6 +29,7 @@ router.get('/api/runners', requireRole('owner'), async (_req, res) => {
 router.post(
   '/api/runners/:id/drain',
   requireRole('owner'),
+  sessionOnly('Owner action (post /api/runners/:id/drain)'),
   requireInstallationAdmin,
   async (req, res) => {
     const runner = await setRunnerDesiredState(req.params.id, 'drain');
@@ -48,6 +50,7 @@ router.post(
 router.post(
   '/api/runners/:id/resume',
   requireRole('owner'),
+  sessionOnly('Owner action (post /api/runners/:id/resume)'),
   requireInstallationAdmin,
   async (req, res) => {
     const runner = await setRunnerDesiredState(req.params.id, 'active');

@@ -13,6 +13,7 @@ import {
   startCheckout,
 } from '../../tenancy/billing/service';
 import { publicBase } from './sso.routes';
+import { sessionOnly } from '../middleware/session-only';
 
 /**
  * An organization's own view of its billing: the plan it is on, where it stands, what it uses
@@ -59,38 +60,48 @@ const checkoutSchema = z
   })
   .strict();
 
-router.post('/api/billing/checkout', requireRole('owner'), async (req, res, next) => {
-  const parsed = checkoutSchema.safeParse(req.body ?? {});
-  if (!parsed.success) return res.status(400).json({ error: 'Invalid checkout request' });
-  try {
-    res.json(
-      await startCheckout({
-        organizationId: getTenantOrgId()!,
-        planCode: parsed.data.planCode,
-        interval: parsed.data.interval,
-        userId: req.user!.id,
-        baseUrl: returnBase(req),
-      }),
-    );
-  } catch (error) {
+router.post(
+  '/api/billing/checkout',
+  requireRole('owner'),
+  sessionOnly('Owner action (post /api/billing/checkout)'),
+  async (req, res, next) => {
+    const parsed = checkoutSchema.safeParse(req.body ?? {});
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid checkout request' });
     try {
-      fail(res, error);
-    } catch (unhandled) {
-      next(unhandled);
+      res.json(
+        await startCheckout({
+          organizationId: getTenantOrgId()!,
+          planCode: parsed.data.planCode,
+          interval: parsed.data.interval,
+          userId: req.user!.id,
+          baseUrl: returnBase(req),
+        }),
+      );
+    } catch (error) {
+      try {
+        fail(res, error);
+      } catch (unhandled) {
+        next(unhandled);
+      }
     }
-  }
-});
+  },
+);
 
-router.post('/api/billing/portal', requireRole('owner'), async (req, res, next) => {
-  try {
-    res.json(await openPortal(getTenantOrgId()!, returnBase(req)));
-  } catch (error) {
+router.post(
+  '/api/billing/portal',
+  requireRole('owner'),
+  sessionOnly('Owner action (post /api/billing/portal)'),
+  async (req, res, next) => {
     try {
-      fail(res, error);
-    } catch (unhandled) {
-      next(unhandled);
+      res.json(await openPortal(getTenantOrgId()!, returnBase(req)));
+    } catch (error) {
+      try {
+        fail(res, error);
+      } catch (unhandled) {
+        next(unhandled);
+      }
     }
-  }
-});
+  },
+);
 
 export default router;
