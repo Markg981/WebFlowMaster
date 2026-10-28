@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Loader2, Pencil, Tag as TagIcon, Trash2, X } from 'lucide-react';
-import { apiRequest, errorMessage } from '@/lib/queryClient';
+import { apiRequest, ApiError, errorMessage } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import { TAGS_QUERY_KEY, useTags, type TagSummary } from '@/hooks/use-tags';
 
@@ -21,11 +21,19 @@ import { TAGS_QUERY_KEY, useTags, type TagSummary } from '@/hooks/use-tags';
  */
 
 /**
- * What the server said, for a toast: the field error behind a 400 (where "a tag needs a name"
- * and "at most 60 characters" live), else its sentence.
+ * What the server said, for a toast: its sentence, plus the field errors behind a 400, which
+ * is where "a tag needs a name" and "at most 60 characters" live.
  */
 function serverMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? errorMessage(error) || fallback : fallback;
+  if (error instanceof ApiError && error.body && typeof error.body === 'object') {
+    const body = error.body as { details?: { fieldErrors?: Record<string, string[]> } };
+    const detail = body.details?.fieldErrors
+      ? Object.values(body.details.fieldErrors).flat().join(' ')
+      : '';
+    const text = errorMessage(error);
+    return `${text || fallback}${detail ? ` ${detail}` : ''}`;
+  }
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 const totalOf = (tag: TagSummary) => tag.uiCount + tag.apiCount + tag.mobileCount;
