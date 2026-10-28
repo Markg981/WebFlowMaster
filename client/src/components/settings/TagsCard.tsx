@@ -21,18 +21,11 @@ import { TAGS_QUERY_KEY, useTags, type TagSummary } from '@/hooks/use-tags';
  */
 
 /**
- * What the server said, for a toast: its sentence, plus the field errors behind a 400, which
- * is where "a tag needs a name" and "at most 60 characters" live.
+ * What the server said, for a toast: errorMessage() already puts the field error behind a 400
+ * first ("name: at most 60 characters"), so it is not appended a second time here.
  */
 function serverMessage(error: unknown, fallback: string): string {
-  if (error instanceof ApiError && error.body && typeof error.body === 'object') {
-    const body = error.body as { details?: { fieldErrors?: Record<string, string[]> } };
-    const detail = body.details?.fieldErrors
-      ? Object.values(body.details.fieldErrors).flat().join(' ')
-      : '';
-    const text = errorMessage(error);
-    return `${text || fallback}${detail ? ` ${detail}` : ''}`;
-  }
+  if (error instanceof ApiError) return errorMessage(error) || fallback;
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
