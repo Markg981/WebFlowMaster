@@ -64,7 +64,9 @@ done** with a note, and records the verdict:
 - **Blocked** (it could not be performed) counts with the skipped ones.
 
 Each verdict works out the run's totals and status again, so the report mixes manual and automated
-results. A cancelled or timed-out run keeps its ending. A verdict can be corrected by recording it
+results. A completed or failed run moves between the two like any run ending, so the commit
+status, notifications and test-management publishing run again with the new outcome. A cancelled
+or timed-out run keeps its ending and announces nothing. A verdict can be corrected by recording it
 again; the row says who recorded it and when, and every recording goes into the audit log.
 
 ### Publishing to TestRail, Xray or Zephyr {#test-management}
