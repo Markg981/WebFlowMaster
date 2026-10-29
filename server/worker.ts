@@ -14,7 +14,8 @@ import logger, { applyLogSettings } from './platform/logger';
 import { installProcessErrorHandlers } from './platform/process-errors';
 import { resolveWorkerShutdownGraceMs } from './platform/config';
 import { correlationStore } from './platform/middleware/correlation';
-import { closeDb, privilegedDb } from './platform/db';
+import { closeDb, privilegedDb, assertTenancyPreconditions } from './platform/db';
+import { assertSchemaMigrated } from './platform/schema-state';
 import { assertOrganizationKeysReadable } from './platform/organization-keys';
 import {
   TRIGGER_SCHEDULE_JOB,
@@ -61,6 +62,10 @@ configureEgressProxy();
   const shutdownGraceMs = resolveWorkerShutdownGraceMs();
   // Likewise the load limits: a malformed LOAD_WORKER_CONCURRENCY stops the worker here, by name.
   const loadConcurrency = loadLimits().runsPerWorker;
+  // The same database checks as the web process (server/index.ts): a worker deployed alone must
+  // not run against a database that does not isolate tenants or whose migrations are behind.
+  await assertTenancyPreconditions();
+  await assertSchemaMigrated();
   // Every secret a run needs is under an organization key: refuse to start if one of them cannot
   // be opened with the configured master keys, rather than failing each run that reaches it.
   await assertOrganizationKeysReadable();

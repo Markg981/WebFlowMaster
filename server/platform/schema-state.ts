@@ -93,6 +93,14 @@ export async function inspectSchemaState(db: DbType = privilegedDb): Promise<Sch
   return { kind, appliedMigrations, expectedMigrations, hasTables };
 }
 
+/** Throws describeSchemaState() when the schema was pushed or is behind the migrations; web and worker share it. */
+export async function assertSchemaMigrated(db: DbType = privilegedDb): Promise<SchemaState> {
+  const state = await inspectSchemaState(db);
+  if (state.kind === 'unmanaged' || state.kind === 'behind')
+    throw new Error(describeSchemaState(state));
+  return state;
+}
+
 /** A message that says what is wrong and what to run. */
 export function describeSchemaState(state: SchemaState): string {
   switch (state.kind) {
