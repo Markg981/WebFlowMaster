@@ -1,0 +1,13 @@
+{
+  "id": "LIB-28",
+  "area": "LIB",
+  "title": "Rifiuto API conserva la pubblicazione",
+  "priority": "P1",
+  "actor": "owner.a, editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Versione 1 pubblicata, richiesta della 2 pendente.",
+  "steps": [
+    "Come owner.a rifiutare la richiesta della 2 con motivazione.",
+    "Come editor.a rileggere la review e avviare il piano."
+  ],
+  "expected": "Review rifiutata con motivazione e decisore; nessuna pubblicazione della 2. Il piano continua a eseguire la 1."
+}

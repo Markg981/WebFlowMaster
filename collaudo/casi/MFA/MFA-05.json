@@ -1,0 +1,14 @@
+{
+  "id": "MFA-05",
+  "area": "MFA",
+  "title": "Accesso con un codice di recupero",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il primo accesso riesce e i codici rimasti scendono a 9. Lo stesso codice non vale una seconda volta. Audit mfa.recovery_code_used.",
+  "steps": [
+    "Accedere usando un codice di recupero al posto del codice dell'app.",
+    "Riprovare con lo stesso codice di recupero."
+  ],
+  "expected": "Il primo accesso riesce e i codici rimasti scendono a 9. Lo stesso codice non vale una seconda volta. Audit mfa.recovery_code_used.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Accedere usando un codice di recupero al posto del codice dell'app.</li><li>Riprovare con lo stesso codice di recupero.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il primo accesso riesce e i codici rimasti scendono a 9. Lo stesso codice non vale una seconda volta. Audit <b>mfa.recovery_code_used</b>.</p>\n      "
+}

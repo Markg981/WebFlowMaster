@@ -1,0 +1,15 @@
+{
+  "id": "INT-19",
+  "area": "INT",
+  "title": "GitHub Action: solo i test toccati dalla pull request",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "INT-06; impact map di PLN-37.",
+  "steps": [
+    "Nel workflow: actions/checkout@v4 con fetch-depth: 0, poi l'action con changed-since: origin/${{ github.base_ref }}.",
+    "Aprire una pull request che cambia solo docs/; poi una che cambia src/checkout/.",
+    "Togliere fetch-depth: 0 e rilanciare."
+  ],
+  "expected": "2: nella prima gira solo ciò che la mappa non copre; nella seconda anche i test checkout; il log dello step riporta il motivo. 3: lo step fallisce (codice 2) dicendo che non riesce a elencare i file cambiati: nessun run parziale.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>INT-06; impact map di PLN-37.</p>\n        <h4>Passi</h4>\n        <ol><li>Nel workflow: <code>actions/checkout@v4</code> con <code>fetch-depth: 0</code>, poi l'action con <code>changed-since: origin/${{ github.base_ref }}</code>.</li><li>Aprire una pull request che cambia solo <code>docs/</code>; poi una che cambia <code>src/checkout/</code>.</li><li>Togliere fetch-depth: 0 e rilanciare.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2: nella prima gira solo ciò che la mappa non copre; nella seconda anche i test checkout; il log dello step riporta il motivo. 3: lo step fallisce (codice 2) dicendo che non riesce a elencare i file cambiati: nessun run parziale.</p>\n      "
+}

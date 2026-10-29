@@ -1,0 +1,13 @@
+{
+  "id": "API-47",
+  "area": "API",
+  "title": "Bundle SOAP WSDL 1.1/2.0 e XSD",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0078; bundle offline con WSDL principale, WSDL importato e XSD import/include; due endpoint SOAP e fixture WSDL 2 request-response/one-way.",
+  "steps": [
+    "Aprire più file/cartella in Importa; correggere percorsi logici e documento principale.",
+    "Selezionare endpoint, verificare anteprima e avvisi, importare; aprire i test salvati."
+  ],
+  "expected": "Richieste con endpoint selezionato, namespace corretti, SOAPAction/Content-Type appropriati; one-way attende stato 2xx. Nessuna dipendenza scaricata automaticamente."
+}

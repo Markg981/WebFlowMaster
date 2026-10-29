@@ -1,0 +1,16 @@
+{
+  "id": "REP-36",
+  "area": "REP",
+  "title": "Prima esecuzione e accettazione esplicita delle baseline restano invariate",
+  "priority": "P2",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 70. Un piano con Test visivi attivo mai eseguito; un token API con scope runs:write. Una baseline corrotta come in REP-34.",
+  "steps": [
+    "Eseguire il piano per la prima volta.",
+    "Eseguirlo una seconda volta senza modifiche.",
+    "Corrompere la baseline di uno step (come REP-34).",
+    "Avviare un run via API con updateBaselines: true.",
+    "Eseguire di nuovo il piano normalmente."
+  ],
+  "expected": "Il primo run è Passed con baseline-created; il secondo è Passed con match. Il run con updateBaselines è Passed con baseline-updated e sostituisce la baseline corrotta; il run successivo è Passed con match. Nessuna baseline viene creata o sostituita in modo implicito da un run normale."
+}

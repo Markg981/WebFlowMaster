@@ -1,0 +1,13 @@
+{
+  "id": "QUO-12",
+  "area": "QUO",
+  "title": "Accesso riservato all’amministratore dell’installazione",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Come owner.a ordinario e come account di servizio richiedere le API di amministrazione quote e tentare modifiche di B.",
+    "Ripetere con l’amministratore umano dell’installazione."
+  ],
+  "expected": "Gli account ordinari e di servizio ricevono 403. Soltanto l’amministratore umano autenticato può elencare e modificare quote delle organizzazioni."
+}

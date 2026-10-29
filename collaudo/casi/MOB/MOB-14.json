@@ -1,0 +1,18 @@
+{
+  "id": "MOB-14",
+  "area": "MOB",
+  "title": "Inspector: guidare il dispositivo e registrare i passi",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-13.",
+  "steps": [
+    "Aprire l'inspector; premere Registra.",
+    "Selezionare la barra di ricerca; Toccalo sul dispositivo.",
+    "Selezionare il campo di testo; scrivere Appium in Testo e Digitalo.",
+    "Il pulsante indietro e scorri in su.",
+    "Selezionare un elemento e scegliere Toccalo con un elemento che non c'è più (rileggere lo schermo dopo aver cambiato pagina).",
+    "Aggiungi 4 step al test; chiudere, salvare il test ed eseguirlo."
+  ],
+  "expected": "2–4: dopo ogni azione lo schermo si aggiorna alla nuova schermata; in Step registrati compaiono Tocca, Digita «Appium», Indietro, Scorri up — non ancora nel test. 5: messaggio «No visible element … within 5s.» e nessun passo registrato. 6: i quattro passi sono in fondo al test e il test registrato passa.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-13.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire l'inspector; premere <b>Registra</b>.</li><li>Selezionare la barra di ricerca; <b>Toccalo sul dispositivo</b>.</li><li>Selezionare il campo di testo; scrivere <code>Appium</code> in Testo e <b>Digitalo</b>.</li><li>Il pulsante indietro e scorri in su.</li><li>Selezionare un elemento e scegliere Toccalo con un elemento che non c'è più (rileggere lo schermo dopo aver cambiato pagina).</li><li><b>Aggiungi 4 step al test</b>; chiudere, salvare il test ed eseguirlo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2–4: dopo ogni azione lo schermo si aggiorna alla nuova schermata; in <b>Step registrati</b> compaiono Tocca, Digita «Appium», Indietro, Scorri up — non ancora nel test. 5: messaggio «No visible element … within 5s.» e nessun passo registrato. 6: i quattro passi sono in fondo al test e il test registrato passa.</p>\n      "
+}

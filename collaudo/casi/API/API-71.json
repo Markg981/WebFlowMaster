@@ -1,0 +1,13 @@
+{
+  "id": "API-71",
+  "area": "API",
+  "title": "Elenco test con molte righe: pagina predefinita e totale",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Catalogo versione 93. Organizzazione con più di 1000 test.",
+  "steps": [
+    "Chiamare GET /api/tests senza parametri e leggere l'intestazione X-Total-Count.",
+    "Chiamare GET /api/tests?limit=50&offset=50."
+  ],
+  "expected": "1: risposta array di al massimo 1000 elementi; X-Total-Count riporta il totale reale. 2: array di 50 elementi, il secondo blocco dell'ordine per data di creazione, senza sovrapposizioni con il primo."
+}

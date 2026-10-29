@@ -1,0 +1,15 @@
+{
+  "id": "SEC-22",
+  "area": "SEC",
+  "title": "Database e TOTP: segreti fuori dai report",
+  "priority": "P1",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "WEB-48 e WEB-50 eseguiti su Staging.",
+  "steps": [
+    "Aprire i report dei run di WEB-48 e WEB-50: dettagli dei passi, log del run, trace ed export.",
+    "Verifica valori {{secret_mfa}} == x; eseguire.",
+    "Come viewer.a aprire l'ambiente Staging."
+  ],
+  "expected": "1: in nessun punto compaiono la chiave TOTP, il codice digitato o la password di db.url. 2: il passo fallisce con «\"{{secret_mfa}} == x\" does not hold.» senza mostrare il valore. 3: il viewer vede i nomi dei segreti, non i valori.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-48 e WEB-50 eseguiti su Staging.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire i report dei run di WEB-48 e WEB-50: dettagli dei passi, log del run, trace ed export.</li><li>Verifica valori <code>{{secret_mfa}} == x</code>; eseguire.</li><li>Come viewer.a aprire l'ambiente Staging.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: in nessun punto compaiono la chiave TOTP, il codice digitato o la password di db.url. 2: il passo fallisce con «\"{{secret_mfa}} == x\" does not hold.» senza mostrare il valore. 3: il viewer vede i nomi dei segreti, non i valori.</p>\n      "
+}

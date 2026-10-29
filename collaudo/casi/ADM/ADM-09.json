@@ -1,0 +1,16 @@
+{
+  "id": "ADM-09",
+  "area": "ADM",
+  "title": "Password dimenticata",
+  "priority": "P1",
+  "actor": "—",
+  "preconditions": "ADM-08: l'account nuova.persona@acme.test.",
+  "steps": [
+    "Dalla pagina di accesso Password dimenticata?, indirizzo nuova.persona@acme.test, Inviatemi un link.",
+    "Ripetere con nessuno@acme.test.",
+    "Aprire il link della prima mail, scegliere una nuova password e accedere.",
+    "Come owner.a aprire il registro di audit."
+  ],
+  "expected": "1–2: la stessa frase («Se esiste un account con quell'indirizzo…») in entrambi i casi; in mailpit arriva una sola mail, per nuova.persona. 3: la nuova password funziona, la vecchia no. 4: «Link di reset della password emesso» per nuova.persona, senza autore, con requestedByEmail; nessun token nel registro.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>ADM-08: l'account nuova.persona@acme.test.</p>\n        <h4>Passi</h4>\n        <ol><li>Dalla pagina di accesso <b>Password dimenticata?</b>, indirizzo nuova.persona@acme.test, <b>Inviatemi un link</b>.</li><li>Ripetere con <code>nessuno@acme.test</code>.</li><li>Aprire il link della prima mail, scegliere una nuova password e accedere.</li><li>Come owner.a aprire il registro di audit.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1–2: la stessa frase («Se esiste un account con quell'indirizzo…») in entrambi i casi; in mailpit arriva una sola mail, per nuova.persona. 3: la nuova password funziona, la vecchia no. 4: «Link di reset della password emesso» per nuova.persona, senza autore, con requestedByEmail; nessun token nel registro.</p>\n      "
+}

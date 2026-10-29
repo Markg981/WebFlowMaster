@@ -1,0 +1,12 @@
+{
+  "id": "SSO-32",
+  "area": "SSO",
+  "title": "Logout avviato dall'IdP",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Con sessione SAML attiva inviare LogoutRequest firmata riferita alla sua identità/sessione."
+  ],
+  "expected": "Sessione corrispondente revocata; un successivo accesso protetto richiede autenticazione."
+}

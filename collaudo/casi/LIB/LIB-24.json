@@ -1,0 +1,12 @@
+{
+  "id": "LIB-24",
+  "area": "LIB",
+  "title": "Accesso al progetto",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Come editor privo di accesso al progetto riservato tentare import/export dei suoi test."
+  ],
+  "expected": "Nessuna lettura o modifica dei test riservati."
+}

@@ -1,0 +1,12 @@
+{
+  "id": "BDD-11",
+  "area": "BDD",
+  "title": "Editor e report sicuri",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Modificare sorgente e modalità, salvare e riaprire; cambiare test selezionato; produrre allegato text/plain, HTML e una credenziale nel diagnostico."
+  ],
+  "expected": "Sorgente e selettori restano coerenti; il report applica escape e redazione, conserva testo semplice e omette HTML/binari."
+}

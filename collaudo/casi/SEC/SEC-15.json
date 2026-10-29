@@ -1,0 +1,15 @@
+{
+  "id": "SEC-15",
+  "area": "SEC",
+  "title": "Debug: sessioni personali e ruoli",
+  "priority": "P1",
+  "actor": "editor.b · editor.a · viewer.a",
+  "preconditions": "WEB-38 in corso come editor.a (id sessione dalla rete del browser).",
+  "steps": [
+    "Come editor.b (altra organizzazione) e come un secondo editor di A: GET /api/debug-sessions/<id> e POST .../commands con {type:'stop'}.",
+    "Come viewer.a: premere Debug / POST /api/debug-sessions.",
+    "Come editor.a: POST .../commands con {type:'continue'} mentre il run è in esecuzione."
+  ],
+  "expected": "Chiunque non sia editor.a riceve 404 anche nella stessa organizzazione, e la sessione non cambia. viewer.a riceve 403. Un comando che non si applica al momento risponde 409 con l'elenco dei comandi ammessi.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-38 in corso come editor.a (id sessione dalla rete del browser).</p>\n        <h4>Passi</h4>\n        <ol><li>Come editor.b (altra organizzazione) e come un secondo editor di A: <code>GET /api/debug-sessions/&lt;id&gt;</code> e <code>POST .../commands</code> con <code>{type:'stop'}</code>.</li><li>Come viewer.a: premere Debug / <code>POST /api/debug-sessions</code>.</li><li>Come editor.a: <code>POST .../commands</code> con <code>{type:'continue'}</code> mentre il run è in esecuzione.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Chiunque non sia editor.a riceve 404 anche nella stessa organizzazione, e la sessione non cambia. viewer.a riceve 403. Un comando che non si applica al momento risponde 409 con l'elenco dei comandi ammessi.</p>\n      "
+}

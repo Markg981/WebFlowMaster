@@ -1,0 +1,14 @@
+{
+  "id": "UX-16",
+  "area": "UX",
+  "title": "Il salvataggio di un test non parte due volte",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 93. Un owner; un test web con almeno uno step e un progetto.",
+  "steps": [
+    "In Create Test aprire «Salva test», scegliere il progetto e dare un nome.",
+    "Fare doppio clic veloce su «Salva».",
+    "Aprire la libreria dei test."
+  ],
+  "expected": "2: parte una sola richiesta di salvataggio. 3: esiste un solo test con quel nome."
+}

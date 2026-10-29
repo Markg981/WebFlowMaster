@@ -1,0 +1,13 @@
+{
+  "id": "REP-05",
+  "area": "REP",
+  "title": "Pannello di accessibilità",
+  "priority": "P2",
+  "actor": "viewer.a",
+  "preconditions": "WEB-08 in un piano.",
+  "steps": [
+    "Aprire il risultato dello step di accessibilità."
+  ],
+  "expected": "Regole violate con gravità ed elementi coinvolti; indicazione dello step fallito quando la soglia è superata.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-08 in un piano.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire il risultato dello step di accessibilità.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Regole violate con gravità ed elementi coinvolti; indicazione dello step fallito quando la soglia è superata.</p>\n      "
+}

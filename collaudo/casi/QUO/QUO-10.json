@@ -1,0 +1,13 @@
+{
+  "id": "QUO-10",
+  "area": "QUO",
+  "title": "Occupazione worker a cavallo del mese UTC",
+  "priority": "P2",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "In un ambiente con tempo controllabile eseguire un piano con shard attraverso il cambio mese UTC.",
+    "Rilevare ammissione, attesa in coda e intervalli di occupazione dei worker per i due mesi."
+  ],
+  "expected": "Gli intervalli si ripartiscono sui mesi UTC; il tempo in coda è escluso e l’occupazione aggiuntiva dei worker shard è inclusa. Annotare gli intervalli osservati."
+}

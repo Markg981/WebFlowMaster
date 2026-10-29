@@ -1,0 +1,13 @@
+{
+  "id": "MOB-36",
+  "area": "MOB",
+  "title": "Permessi gruppi mobile e dipendenze riservate",
+  "priority": "P1",
+  "actor": "editor.a, owner.a",
+  "preconditions": "Migrazione 0082 applicata. Progetto riservato con editor membro, viewer e outsider; gruppo aperto richiamato da un test riservato.",
+  "steps": [
+    "Leggere e modificare il gruppo riservato come viewer e outsider.",
+    "Cancellare il gruppo aperto come outsider del progetto del test."
+  ],
+  "expected": "Viewer: lettura consentita e scrittura 403. Outsider: gruppo nascosto. Cancellazione 409 senza nomi di test inaccessibili."
+}

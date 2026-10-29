@@ -1,0 +1,14 @@
+{
+  "id": "WEB-60",
+  "area": "WEB",
+  "title": "Velocità della pagina su più browser e dopo un'interazione",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "WEB-59; un piano con Chromium, Firefox e WebKit.",
+  "steps": [
+    "Valore LCP < 2.5s, CLS <= 0.1; eseguire su tre browser.",
+    "Prima dello step aggiungere un Click su un elemento della pagina; valore INP < 200; eseguire su Chromium."
+  ],
+  "expected": "1: su Chromium lo step misura e passa; su Firefox e WebKit LCP e CLS compaiono come — e lo step passa dicendo «Not measured in this browser or page: LCP, CLS»: un limite non misurabile non fa fallire. 2: INP ha un valore in ms dopo il click.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-59; un piano con Chromium, Firefox e WebKit.</p>\n        <h4>Passi</h4>\n        <ol><li>Valore <code>LCP &lt; 2.5s, CLS &lt;= 0.1</code>; eseguire su tre browser.</li><li>Prima dello step aggiungere un Click su un elemento della pagina; valore <code>INP &lt; 200</code>; eseguire su Chromium.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: su Chromium lo step misura e passa; su Firefox e WebKit LCP e CLS compaiono come — e lo step passa dicendo «Not measured in this browser or page: LCP, CLS»: un limite non misurabile non fa fallire. 2: INP ha un valore in ms dopo il click.</p>\n      "
+}

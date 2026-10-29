@@ -1,0 +1,13 @@
+{
+  "id": "LIB-30",
+  "area": "LIB",
+  "title": "Review obbligatoria blocca piano API non pubblicato",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Test mai pubblicato, review pendente e piano dedicato.",
+  "steps": [
+    "Avviare il piano prima della decisione.",
+    "Aprire report e stato della review."
+  ],
+  "expected": "Il test viene saltato come non pubblicato; non esegue la copia di lavoro. La review rimane pendente."
+}

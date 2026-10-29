@@ -1,0 +1,15 @@
+{
+  "id": "ADM-29",
+  "area": "ADM",
+  "title": "Cancellazione dell'organizzazione: traccia e file",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Organizzazione di prova con run che hanno evidenze (disco o bucket S3).",
+  "steps": [
+    "Cancellare l'organizzazione dalle impostazioni.",
+    "Controllare il database: <code>SELECT * FROM organization_erasures</code>.",
+    "Controllare la cartella o il bucket degli artefatti."
+  ],
+  "expected": "Esiste una riga con id e nome dell'organizzazione, chi l'ha cancellata, data e conteggi; sotto results/ e visual-baselines/org_ID/ non resta nulla di quell'organizzazione, anche su S3.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Organizzazione di prova con run che hanno evidenze (disco o bucket S3).</p>\n        <h4>Passi</h4>\n        <ol><li>Cancellare l'organizzazione dalle impostazioni.</li><li>Controllare il database: <code>SELECT * FROM organization_erasures</code>.</li><li>Controllare la cartella o il bucket degli artefatti.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Esiste una riga con id e nome dell'organizzazione, chi l'ha cancellata, data e conteggi; sotto <code>results/</code> e <code>visual-baselines/org_ID/</code> non resta nulla di quell'organizzazione, anche su S3.</p>\n      "
+}

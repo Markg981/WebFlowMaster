@@ -1,0 +1,13 @@
+{
+  "id": "SEC-86",
+  "area": "SEC",
+  "title": "SSO OIDC: discovery verso un indirizzo di metadata cloud rifiutata",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 93. Un owner con sessione.",
+  "steps": [
+    "In Impostazioni > SSO inserire come issuer https://169.254.169.254/ e premere Test.",
+    "Salvare un issuer verso un host pubblico valido e premere Test."
+  ],
+  "expected": "1: il test fallisce con un rifiuto della policy di egress e nessuna richiesta parte verso 169.254.169.254. 2: la discovery funziona come prima."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "WEB-42",
+  "area": "WEB",
+  "title": "Debug: variabili e segreti",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un ambiente con la variabile segreta password; un test che la usa e che salva un testo con Salva testo in orderId.",
+  "steps": [
+    "Selezionare l'ambiente; breakpoint sull'ultimo step; Debug.",
+    "Aprire Variabili nel pannello."
+  ],
+  "expected": "orderId mostra il valore letto dalla pagina; password mostra solo il nome con «(dall'ambiente, nascosta)». Il valore della password non compare in nessun punto del pannello.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un ambiente con la variabile segreta <code>password</code>; un test che la usa e che salva un testo con Salva testo in <code>orderId</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Selezionare l'ambiente; breakpoint sull'ultimo step; Debug.</li><li>Aprire <b>Variabili</b> nel pannello.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\"><code>orderId</code> mostra il valore letto dalla pagina; <code>password</code> mostra solo il nome con «(dall'ambiente, nascosta)». Il valore della password non compare in nessun punto del pannello.</p>\n      "
+}

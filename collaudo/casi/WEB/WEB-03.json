@@ -1,0 +1,14 @@
+{
+  "id": "WEB-03",
+  "area": "WEB",
+  "title": "Un test che fallisce lo dice bene",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Esito «Failed» sullo step di verifica, con un messaggio che confronta testo atteso e trovato, e lo screenshot di quel momento.",
+  "steps": [
+    "Nel test di WEB-02 cambiare il testo atteso in «Benvenuto».",
+    "Esegui test."
+  ],
+  "expected": "Esito «Failed» sullo step di verifica, con un messaggio che confronta testo atteso e trovato, e lo screenshot di quel momento.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Nel test di WEB-02 cambiare il testo atteso in «Benvenuto».</li><li><b>Esegui test</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Esito «Failed» sullo step di verifica, con un messaggio che confronta testo atteso e trovato, e lo screenshot di quel momento.</p>\n      "
+}

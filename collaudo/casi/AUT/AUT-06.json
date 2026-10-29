@@ -1,0 +1,14 @@
+{
+  "id": "AUT-06",
+  "area": "AUT",
+  "title": "Authoring mobile, matrice e permessi",
+  "priority": "P1",
+  "actor": "editor.a / viewer.a",
+  "preconditions": "Sessioni separate; creazione mobile abilitata. Non richiede dispositivo Appium. Procedura: collaudo/critical-ui-e2e.md.",
+  "steps": [
+    "Come editor creare un test mobile con passo e coppia dispositivo/versione OS.",
+    "Riaprire e modificare il test; salvare e ricaricare.",
+    "Come viewer aprire catalogo e storico dello stesso test."
+  ],
+  "expected": "Passi e matrice persistono; etichette dispositivo/OS interpolate; viewer legge senza creare, modificare, eliminare, ripristinare o pubblicare. Non prova esecuzione Android/iOS."
+}

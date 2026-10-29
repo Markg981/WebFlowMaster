@@ -1,0 +1,13 @@
+{
+  "id": "LIB-35",
+  "area": "LIB",
+  "title": "Cataloghi paginati e totale dei risultati",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Ambiente aggiornato; almeno 51 test UI, 26 API, 26 mobile e 26 set dati accessibili. Nuovo ciclo protocollo 30: Da eseguire.",
+  "steps": [
+    "Aprire Libreria, Test API, App mobili e Dati di test; controllare Network e totale di ciascun elenco.",
+    "Passare alla seconda pagina e tornare alla prima con i controlli di navigazione."
+  ],
+  "expected": "Ogni elenco carica riepiloghi tramite /api/catalog, 25 per pagina; totale corretto, nessuna duplicazione fra pagine, pulsanti coerenti con inizio/fine. Nessun download globale di passi, richieste o righe dati."
+}

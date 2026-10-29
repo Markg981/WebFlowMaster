@@ -1,0 +1,15 @@
+{
+  "id": "SEC-12",
+  "area": "SEC",
+  "title": "Azioni personalizzate: isolamento e ruoli",
+  "priority": "P1",
+  "actor": "owner.b · viewer.a",
+  "preconditions": "WEB-35 nell'organizzazione A.",
+  "steps": [
+    "Come owner.b: Impostazioni → Azioni personalizzate e palette del costruttore.",
+    "Come owner.b: GET /api/custom-actions; salvare un test con uno step customAction:<id di A> ed eseguirlo.",
+    "Come viewer.a: aprire la sezione; dalla console fetch('/api/custom-actions', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:'x', script:'return true'})})."
+  ],
+  "expected": "owner.b non vede l'azione di A; l'API restituisce un elenco senza di essa e il test fallisce dicendo che l'azione non esiste. viewer.a vede l'elenco ma la creazione risponde 403. Lo script gira solo nella pagina testata: nessuna azione può leggere file o dati del server.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-35 nell'organizzazione A.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b: Impostazioni → Azioni personalizzate e palette del costruttore.</li><li>Come owner.b: <code>GET /api/custom-actions</code>; salvare un test con uno step <code>customAction:&lt;id di A&gt;</code> ed eseguirlo.</li><li>Come viewer.a: aprire la sezione; dalla console <code>fetch('/api/custom-actions', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:'x', script:'return true'})})</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">owner.b non vede l'azione di A; l'API restituisce un elenco senza di essa e il test fallisce dicendo che l'azione non esiste. viewer.a vede l'elenco ma la creazione risponde 403. Lo script gira solo nella pagina testata: nessuna azione può leggere file o dati del server.</p>\n      "
+}

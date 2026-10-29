@@ -1,0 +1,15 @@
+{
+  "id": "OPS-40",
+  "area": "OPS",
+  "title": "Note di rilascio dal CHANGELOG",
+  "priority": "P3",
+  "actor": "Operatore del Collaudo",
+  "preconditions": "Checkout del repository su main con npm ci eseguito; sito della documentazione costruito con npm run docs:build e servito con npm run docs:preview.",
+  "steps": [
+    "Eseguire npm run changelog:draft due volte di seguito e osservare git diff CHANGELOG.md.",
+    "Aprire Riferimento → Release notes (/en/reference/changelog) e Riferimento → Note di rilascio (/it/reference/changelog).",
+    "Su una copia di lavoro eseguire npm run changelog:release -- 9.9.9, poi node scripts/release/changelog.mjs notes 9.9.9 e node scripts/release/changelog.mjs notes 9.9.8; infine git checkout CHANGELOG.md."
+  ],
+  "expected": "Passo 1: la prima esecuzione aggiunge in [Unreleased] solo PR feat, fix, perf o security non ancora elencate (nessuna se il file è aggiornato), la seconda stampa Added 0 entries. Passo 2: le due pagine mostrano le sezioni Added, Changed, Fixed, Security con il link a ogni PR; quella italiana ha titolo e introduzione in italiano e nessun titolo Changelog ripetuto. Passo 3: [Unreleased] diventa [9.9.9] - <data di oggi> sopra un nuovo [Unreleased] vuoto; notes 9.9.9 stampa le sole voci di quella versione; notes 9.9.8 termina con errore CHANGELOG.md has no section for 9.9.8.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Checkout del repository su <code>main</code> con <code>npm ci</code> eseguito; sito della documentazione costruito con <code>npm run docs:build</code> e servito con <code>npm run docs:preview</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Eseguire <code>npm run changelog:draft</code> due volte di seguito e osservare <code>git diff CHANGELOG.md</code>.</li><li>Aprire Riferimento → Release notes (<code>/en/reference/changelog</code>) e Riferimento → Note di rilascio (<code>/it/reference/changelog</code>).</li><li>Su una copia di lavoro eseguire <code>npm run changelog:release -- 9.9.9</code>, poi <code>node scripts/release/changelog.mjs notes 9.9.9</code> e <code>node scripts/release/changelog.mjs notes 9.9.8</code>; infine <code>git checkout CHANGELOG.md</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Passo 1: la prima esecuzione aggiunge in <code>[Unreleased]</code> solo PR feat, fix, perf o security non ancora elencate (nessuna se il file è aggiornato), la seconda stampa Added 0 entries. Passo 2: le due pagine mostrano le sezioni Added, Changed, Fixed, Security con il link a ogni PR; quella italiana ha titolo e introduzione in italiano e nessun titolo Changelog ripetuto. Passo 3: <code>[Unreleased]</code> diventa <code>[9.9.9] - &lt;data di oggi&gt;</code> sopra un nuovo <code>[Unreleased]</code> vuoto; notes 9.9.9 stampa le sole voci di quella versione; notes 9.9.8 termina con errore CHANGELOG.md has no section for 9.9.8.</p>\n      "
+}

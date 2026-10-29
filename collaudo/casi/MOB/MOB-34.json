@@ -1,0 +1,13 @@
+{
+  "id": "MOB-34",
+  "area": "MOB",
+  "title": "Cicli nativi e limiti",
+  "priority": "P1",
+  "actor": "editor.a, owner.a",
+  "preconditions": "Migrazione 0082 applicata. Test Android con azioni back, ambiente con variabile count=2.",
+  "steps": [
+    "Creare repeat {{count}}, type con {{loopIndex}} ed endLoop; aggiungere un ciclo annidato.",
+    "Eseguire repeatWhile true e un ciclo annidato oltre 10.000 visite."
+  ],
+  "expected": "Iterazioni distinte; indice esterno ripristinato. I limiti di 200 iterazioni e 10.000 visite falliscono esplicitamente."
+}

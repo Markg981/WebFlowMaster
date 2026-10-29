@@ -1,0 +1,16 @@
+{
+  "id": "SEC-30",
+  "area": "SEC",
+  "title": "Quarantena dei test mobili: progetti e organizzazioni",
+  "priority": "P1",
+  "actor": "editor.a · viewer.a · owner.a",
+  "preconditions": "Il test mobile «Pagamenti iOS» nel progetto riservato «Pagamenti» (MOB-19), con viewer.a come viewer del progetto e un editor dell'organizzazione fuori dal progetto.",
+  "steps": [
+    "Come viewer di progetto: POST /api/quarantine con testType mobile e l'id del test, motivo «x».",
+    "Come editor fuori dal progetto: la stessa richiesta; poi GET /api/quarantine.",
+    "Come editor.a (membro) metterlo in quarantena; ripetere la richiesta.",
+    "POST /api/quarantine con testType mobile e l'id di un test mobile dell'organizzazione B."
+  ],
+  "expected": "1: 403 «You can view this test's project but not change it.». 2: 404 e l'elenco non mostra il test. 3: 201, poi 409 «This test is already in quarantine.»; il registro di audit ha test.quarantined su mobile_test. 4: 404, nessuna riga creata.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Il test mobile «Pagamenti iOS» nel progetto riservato «Pagamenti» (MOB-19), con viewer.a come viewer del progetto e un editor dell'organizzazione fuori dal progetto.</p>\n        <h4>Passi</h4>\n        <ol><li>Come viewer di progetto: POST /api/quarantine con testType mobile e l'id del test, motivo «x».</li><li>Come editor fuori dal progetto: la stessa richiesta; poi GET /api/quarantine.</li><li>Come editor.a (membro) metterlo in quarantena; ripetere la richiesta.</li><li>POST /api/quarantine con testType mobile e l'id di un test mobile dell'organizzazione B.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: 403 «You can view this test's project but not change it.». 2: 404 e l'elenco non mostra il test. 3: 201, poi 409 «This test is already in quarantine.»; il registro di audit ha test.quarantined su mobile_test. 4: 404, nessuna riga creata.</p>\n      "
+}

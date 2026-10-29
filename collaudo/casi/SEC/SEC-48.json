@@ -1,0 +1,16 @@
+{
+  "id": "SEC-48",
+  "area": "SEC",
+  "title": "Cambio di account nella stessa scheda: nessun dato dell'utente precedente dalla cache",
+  "priority": "P1",
+  "actor": "owner.a, owner.b",
+  "preconditions": "Due account di organizzazioni diverse: owner.a (con test nella libreria) e owner.b; un solo browser, una sola scheda.",
+  "steps": [
+    "Come owner.a, aprire Libreria test e attendere l'elenco dei test di A.",
+    "Esci dal menu utente; nella stessa scheda, senza ricaricare, accedere come owner.b.",
+    "Aprire Libreria test; in DevTools → Network controllare le richieste a /api/tests.",
+    "Ripetere con una sessione scaduta: come owner.a aprire Libreria test, eliminare il cookie di sessione, compiere un'azione che chiama l'API, poi accedere come owner.b."
+  ],
+  "expected": "Dopo il cambio di account la libreria mostra solo i test di B, caricati con una nuova richiesta a /api/tests fatta come B; nessun test di A compare, nemmeno per un istante.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Due account di organizzazioni diverse: owner.a (con test nella libreria) e owner.b; un solo browser, una sola scheda.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.a, aprire Libreria test e attendere l'elenco dei test di A.</li><li>Esci dal menu utente; nella stessa scheda, senza ricaricare, accedere come owner.b.</li><li>Aprire Libreria test; in DevTools → Network controllare le richieste a <code>/api/tests</code>.</li><li>Ripetere con una sessione scaduta: come owner.a aprire Libreria test, eliminare il cookie di sessione, compiere un'azione che chiama l'API, poi accedere come owner.b.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Dopo il cambio di account la libreria mostra solo i test di B, caricati con una nuova richiesta a <code>/api/tests</code> fatta come B; nessun test di A compare, nemmeno per un istante.</p>\n      "
+}

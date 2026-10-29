@@ -1,0 +1,16 @@
+{
+  "id": "OPS-45",
+  "area": "OPS",
+  "title": "Run creato e processo web fermato prima dell'invio alla coda",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "API, Redis e PostgreSQL attivi, nessun worker avviato; accesso al terminale del container web e a psql.",
+  "steps": [
+    "Accodare un run di un piano via API con Idempotency-Key e, subito dopo la risposta, docker kill del container web prima che termini (oppure bloccare Redis con docker pause redis durante la richiesta e poi uccidere il web).",
+    "Con psql verificare che il run sia queued e che in execution_outbox esista la sua riga.",
+    "Riavviare il container web (e Redis se messo in pausa) e attendere almeno un minuto.",
+    "Avviare un worker; poi reinviare la stessa richiesta con la stessa Idempotency-Key."
+  ],
+  "expected": "Dopo il riavvio il dispatcher dell'outbox pubblica il job con l'id del run: la riga di execution_outbox sparisce e il log del web riporta «Published run jobs their request did not». Il worker esegue il run una sola volta; il reinvio restituisce lo stesso run senza crearne un secondo. Nessun run resta queued senza job.",
+  "detailHtml": "<h4>Precondizioni</h4><p>API, Redis e PostgreSQL attivi, nessun worker avviato; accesso al terminale del container web e a psql.</p><h4>Passi</h4><ol><li>Accodare un run di un piano via API con <code>Idempotency-Key</code> e, subito dopo la risposta, <code>docker kill</code> del container web prima che termini (oppure bloccare Redis con <code>docker pause redis</code> durante la richiesta e poi uccidere il web).</li><li>Con psql verificare che il run sia <code>queued</code> e che in <code>execution_outbox</code> esista la sua riga.</li><li>Riavviare il container web (e Redis se messo in pausa) e attendere almeno un minuto.</li><li>Avviare un worker; poi reinviare la stessa richiesta con la stessa <code>Idempotency-Key</code>.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Dopo il riavvio il dispatcher dell'outbox pubblica il job con l'id del run: la riga di <code>execution_outbox</code> sparisce e il log del web riporta «Published run jobs their request did not». Il worker esegue il run una sola volta; il reinvio restituisce lo stesso run senza crearne un secondo. Nessun run resta <code>queued</code> senza job.</p>"
+}

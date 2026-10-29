@@ -1,0 +1,15 @@
+{
+  "id": "SEC-21",
+  "area": "SEC",
+  "title": "Test management: isolamento e segreti",
+  "priority": "P1",
+  "actor": "owner.b · editor.a",
+  "preconditions": "TMG-01 e TMG-03 nell'organizzazione A.",
+  "steps": [
+    "Come owner.b (organizzazione B) aprire Impostazioni → Test management; poi GET /api/test-management/<id di A>/cases e POST /api/test-plan-executions/<run di A>/publish.",
+    "Come editor.a leggere la risposta di GET /api/test-management e il log del run.",
+    "Come owner.b in B: impostazioni di un piano di B con testManagementId = id della connessione di A (via API PUT)."
+  ],
+  "expected": "1: B non vede la connessione di A; le API rispondono 404. 2: nessun token, secret o password nelle risposte o nel log (solo «hasToken»). 3: rifiutato: un piano non può pubblicare su una connessione di un'altra organizzazione. In TestRail/Xray/Zephyr arrivano solo nomi dei test, esiti, motivi e l'indirizzo del report: nessuno screenshot, video o valore di secret.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TMG-01 e TMG-03 nell'organizzazione A.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b (organizzazione B) aprire Impostazioni → Test management; poi <code>GET /api/test-management/&lt;id di A&gt;/cases</code> e <code>POST /api/test-plan-executions/&lt;run di A&gt;/publish</code>.</li><li>Come editor.a leggere la risposta di <code>GET /api/test-management</code> e il log del run.</li><li>Come owner.b in B: impostazioni di un piano di B con <code>testManagementId</code> = id della connessione di A (via API PUT).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: B non vede la connessione di A; le API rispondono 404. 2: nessun token, secret o password nelle risposte o nel log (solo «hasToken»). 3: rifiutato: un piano non può pubblicare su una connessione di un'altra organizzazione. In TestRail/Xray/Zephyr arrivano solo nomi dei test, esiti, motivi e l'indirizzo del report: nessuno screenshot, video o valore di secret.</p>\n      "
+}

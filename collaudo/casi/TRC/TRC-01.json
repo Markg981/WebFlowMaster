@@ -1,0 +1,17 @@
+{
+  "id": "TRC-01",
+  "area": "TRC",
+  "title": "Requisiti scritti a mano e test che li coprono",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un test web che passa, un test API che passa, un piano Nightly che li esegue su Chromium.",
+  "steps": [
+    "Menu Requisiti → Nuovo requisito: PAG «Pagamenti», tipo Epic.",
+    "Nuovi requisiti PAG-1 «Pagare con carta» e PAG-2 «Pagare con bonifico», tipo User story, Appartiene a PAG.",
+    "Su PAG-1 Test: spuntare il test web e il test API; Salva.",
+    "Eseguire il piano Nightly; tornare su Requisiti.",
+    "Cliccare i numeri della riga PAG-1."
+  ],
+  "expected": "Prima del run PAG-1 è «Non eseguito», PAG-2 «Nessun test». Dopo il run PAG-1 è «Passa» con «2 superati · 0 falliti · 0 non eseguiti», l'epic PAG «Passa» con gli stessi due test (contati una volta), PAG-2 resta «Nessun test». I riquadri dicono 3 requisiti, «Con test» 67%. I numeri aprono i due test con «Superato» e il link al report del run. Lo stato è sempre icona e parola, non solo colore.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test web che passa, un test API che passa, un piano <code>Nightly</code> che li esegue su Chromium.</p>\n        <h4>Passi</h4>\n        <ol><li>Menu <b>Requisiti</b> → <b>Nuovo requisito</b>: <code>PAG</code> «Pagamenti», tipo Epic.</li><li>Nuovi requisiti <code>PAG-1</code> «Pagare con carta» e <code>PAG-2</code> «Pagare con bonifico», tipo User story, <b>Appartiene a</b> PAG.</li><li>Su PAG-1 <b>Test</b>: spuntare il test web e il test API; Salva.</li><li>Eseguire il piano Nightly; tornare su Requisiti.</li><li>Cliccare i numeri della riga PAG-1.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Prima del run PAG-1 è «Non eseguito», PAG-2 «Nessun test». Dopo il run PAG-1 è «Passa» con «2 superati · 0 falliti · 0 non eseguiti», l'epic PAG «Passa» con gli stessi due test (contati una volta), PAG-2 resta «Nessun test». I riquadri dicono 3 requisiti, «Con test» 67%. I numeri aprono i due test con «Superato» e il link al report del run. Lo stato è sempre icona e parola, non solo colore.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "AUT-01",
+  "area": "AUT",
+  "title": "MFA e recovery monouso",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Account locale senza MFA; applicazione di autenticazione disponibile. Procedura: collaudo/critical-ui-e2e.md.",
+  "steps": [
+    "Attivare MFA dalle impostazioni, inserendo il codice TOTP e conservando i dieci codici di recupero.",
+    "Uscire e accedere con password; inviare un codice errato, quindi un recovery valido.",
+    "Uscire e tentare un nuovo accesso con lo stesso recovery."
+  ],
+  "expected": "Codice errato rifiutato; il recovery consente una sola sessione e il suo riuso è rifiutato. Non prova la soglia di cinque errori."
+}

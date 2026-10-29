@@ -1,0 +1,13 @@
+{
+  "id": "SEC-04",
+  "area": "SEC",
+  "title": "I segreti non tornano indietro",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Nessuna risposta contiene un valore segreto, un token o un client secret.",
+  "steps": [
+    "Network: osservare le risposte delle pagine Ambienti, Issue tracker, GitHub e GitLab, Single sign-on."
+  ],
+  "expected": "Nessuna risposta contiene un valore segreto, un token o un client secret.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Network: osservare le risposte delle pagine Ambienti, Issue tracker, GitHub e GitLab, Single sign-on.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nessuna risposta contiene un valore segreto, un token o un client secret.</p>\n      "
+}
