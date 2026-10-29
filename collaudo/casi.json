@@ -10053,6 +10053,47 @@
       "expected": "1: ogni azione viene aggiunta in fondo alla sequenza come con il drag&drop. 2: l'elemento si associa al più recente step ancora senza elemento. 3: lo step cambia posto di una posizione. 4: «su» è disabilitato sul primo step, «giù» sull'ultimo; durante una registrazione tutti i pulsanti sono disabilitati. 5: stesso risultato dei passi 1-3."
     },
     {
+      "id": "UX-14",
+      "area": "UX",
+      "title": "Dopo il login si torna alla pagina richiesta",
+      "priority": "P2",
+      "actor": "owner.a",
+      "preconditions": "Catalogo versione 93. Un owner con sessione chiusa.",
+      "steps": [
+        "Da disconnesso aprire direttamente l'indirizzo di una pagina interna, ad esempio /reports?tab=runs.",
+        "Accedere con le credenziali.",
+        "Disconnettersi e aprire /auth?returnTo=//evil.example, poi accedere."
+      ],
+      "expected": "1: si arriva alla pagina di accesso con returnTo nell'indirizzo. 2: dopo l'accesso si apre /reports?tab=runs, non la dashboard. 3: dopo l'accesso si apre la dashboard; un returnTo esterno o protocol-relative è ignorato."
+    },
+    {
+      "id": "UX-15",
+      "area": "UX",
+      "title": "La lingua del documento segue la lingua scelta",
+      "priority": "P2",
+      "actor": "owner.a",
+      "preconditions": "Catalogo versione 93. Un owner con sessione.",
+      "steps": [
+        "In Impostazioni cambiare la lingua da inglese a italiano.",
+        "Ispezionare l'elemento html (strumenti del browser) e ricaricare la pagina."
+      ],
+      "expected": "1-2: l'attributo lang di html passa da en a it subito e dopo il ricaricamento, senza ricarica manuale al passo 1."
+    },
+    {
+      "id": "UX-16",
+      "area": "UX",
+      "title": "Il salvataggio di un test non parte due volte",
+      "priority": "P2",
+      "actor": "owner.a",
+      "preconditions": "Catalogo versione 93. Un owner; un test web con almeno uno step e un progetto.",
+      "steps": [
+        "In Create Test aprire «Salva test», scegliere il progetto e dare un nome.",
+        "Fare doppio clic veloce su «Salva».",
+        "Aprire la libreria dei test."
+      ],
+      "expected": "2: parte una sola richiesta di salvataggio. 3: esiste un solo test con quel nome."
+    },
+    {
       "id": "ADM-31",
       "area": "ADM",
       "title": "Reset password di un utente presente in più organizzazioni: rifiutato",
