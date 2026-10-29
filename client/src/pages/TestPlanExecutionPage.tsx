@@ -134,7 +134,7 @@ const TestPlanExecutionPage: React.FC = () => {
                   <SelectValue placeholder="Select Environment" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No Environment</SelectItem>
+                  <SelectItem value="none">{t('common.noEnvironment')}</SelectItem>
                   {environments.map((env) => (
                     <SelectItem key={env.id} value={env.id.toString()}>
                       {env.name}

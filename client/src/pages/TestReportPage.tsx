@@ -533,7 +533,7 @@ const TestReportPage: React.FC = () => {
                     disabled={isFetching}
                   >
                     <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-                    Refresh
+                    {t('common.refresh')}
                   </Button>
                 )}
                 <CancelRunButton
@@ -1420,7 +1420,7 @@ const TestReportPage: React.FC = () => {
           {isExecutionInFlight(reportData?.header?.status) && (
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-              Refresh Report
+              {t('common.refreshReport')}
             </Button>
           )}
         </div>

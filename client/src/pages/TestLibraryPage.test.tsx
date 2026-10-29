@@ -185,7 +185,6 @@ describe('TestLibraryPage', () => {
   });
   it('returns to the last valid page after deleting its final item', async () => {
     let deleted = false;
-    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method === 'DELETE') {
         deleted = true;
@@ -202,6 +201,7 @@ describe('TestLibraryPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByText('Login');
     fireEvent.click(screen.getByTitle('Delete'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
     // Page one comes back from the cache first (26 items, two pages); wait for its refetch.
     expect(await screen.findByText('25 items · Page 1 of 1')).toBeInTheDocument();
     expect(screen.getByText('Checkout')).toBeInTheDocument();
@@ -356,14 +356,12 @@ describe('TestLibraryPage', () => {
   });
 
   it('asks before deleting a test and its history', async () => {
-    const confirmMock = vi.fn().mockReturnValue(false);
-    vi.stubGlobal('confirm', confirmMock);
     renderPage();
     await screen.findByText('Checkout');
 
     fireEvent.click(screen.getAllByTitle('Delete')[0]);
 
-    expect(confirmMock).toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
   });
 

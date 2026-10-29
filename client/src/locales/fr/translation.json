@@ -2853,6 +2853,15 @@
     "emptyHint": "Aucun pour l’instant. Créez-en un dans les Paramètres pour utiliser les secrets et une connexion enregistrée."
   },
   "common": {
+    "loginFailed": "Échec de la connexion",
+    "registrationFailed": "Échec de l’inscription",
+    "logoutFailed": "Échec de la déconnexion",
+    "noEnvironment": "Aucun environnement",
+    "loadingExecutions": "Chargement des exécutions...",
+    "refresh": "Actualiser",
+    "refreshReport": "Actualiser le rapport",
+    "visualCheck": "Contrôle visuel",
+    "saveLoginForEnvironment": "Enregistrer la connexion pour cet environnement",
     "error": "Erreur",
     "cancel": "Annuler",
     "save": "Enregistrer",

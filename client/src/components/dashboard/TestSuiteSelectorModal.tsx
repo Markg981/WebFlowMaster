@@ -168,7 +168,7 @@ const TestSuiteSelectorModal: React.FC<TestSuiteSelectorModalProps> = ({
         <ScrollArea className="grow border rounded-md">
           <div className="p-4 space-y-2">
             {isLoading && (
-              <div className="flex items-center justify-center py-4">
+              <div role="status" className="flex items-center justify-center py-4">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 <span className="ml-2">
                   {t('testSuiteSelectorModal.loading', 'Loading tests...')}

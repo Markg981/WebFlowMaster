@@ -1,3 +1,4 @@
+import { useConfirm } from '@/hooks/use-confirm';
 import React, { useEffect, useState } from 'react';
 import { errorMessage } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
@@ -68,6 +69,7 @@ interface LibraryTest {
 
 const TestLibraryPage: React.FC = () => {
   const { t } = useTranslation();
+  const { confirm, confirmDialog } = useConfirm();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -200,13 +202,13 @@ const TestLibraryPage: React.FC = () => {
   };
 
   const remove = async (test: LibraryTest) => {
-    if (
-      !window.confirm(
-        t('testLibrary.confirmDelete', 'Delete "{{name}}" and its history?', { name: test.name }),
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      destructive: true,
+      title: t('testLibrary.confirmDelete', 'Delete "{{name}}" and its history?', {
+        name: test.name,
+      }),
+    });
+    if (!ok) return;
     setBusyId(test.id);
     try {
       const response = await fetch(`/api/tests/${test.id}`, { method: 'DELETE' });
@@ -236,6 +238,7 @@ const TestLibraryPage: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-[1400px] p-6">
+      {confirmDialog}
       <PageHeader
         title={t('testLibrary.title', 'Test Library')}
         description={t(

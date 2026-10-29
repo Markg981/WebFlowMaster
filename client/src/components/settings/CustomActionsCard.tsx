@@ -1,3 +1,4 @@
+import { useConfirm } from '@/hooks/use-confirm';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -49,6 +50,7 @@ function formatParameterList(parameters: CustomActionParameter[]): string {
 
 const CustomActionsCard: React.FC = () => {
   const { t } = useTranslation();
+  const { confirm, confirmDialog } = useConfirm();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [message, setMessage] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
@@ -117,6 +119,7 @@ const CustomActionsCard: React.FC = () => {
 
   return (
     <Card>
+      {confirmDialog}
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Puzzle className="h-5 w-5" aria-hidden />
@@ -185,18 +188,16 @@ const CustomActionsCard: React.FC = () => {
                     size="icon"
                     aria-label={t('settings.customActions.delete', 'Delete')}
                     disabled={remove.isPending}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          t(
-                            'settings.customActions.confirmDelete',
-                            'Delete “{{name}}”? A test that still uses it cannot run.',
-                            { name: action.name },
-                          ),
-                        )
-                      ) {
-                        remove.mutate(action.id);
-                      }
+                    onClick={async () => {
+                      const ok = await confirm({
+                        destructive: true,
+                        title: t(
+                          'settings.customActions.confirmDelete',
+                          'Delete “{{name}}”? A test that still uses it cannot run.',
+                          { name: action.name },
+                        ),
+                      });
+                      if (ok) remove.mutate(action.id);
                     }}
                   >
                     <Trash2 className="h-4 w-4" />

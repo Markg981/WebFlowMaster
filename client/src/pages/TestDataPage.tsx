@@ -1,3 +1,4 @@
+import { useConfirm } from '@/hooks/use-confirm';
 import React, { useEffect, useState } from 'react';
 import { errorMessage } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
@@ -159,6 +160,7 @@ function DataSetDialog({ set, onClose }: { set: DataSet | 'new' | null; onClose:
 
 export default function TestDataPage() {
   const { t } = useTranslation();
+  const { confirm, confirmDialog } = useConfirm();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -211,6 +213,7 @@ export default function TestDataPage() {
 
   return (
     <div className="mx-auto max-w-[1400px] p-6">
+      {confirmDialog}
       <PageHeader
         className="mb-6"
         title={t('testData.title', 'Test data')}
@@ -287,11 +290,15 @@ export default function TestDataPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() =>
-                          window.confirm(
-                            t('testData.confirmDelete', 'Delete {{name}}?', { name: set.name }),
-                          ) && remove.mutate(set)
-                        }
+                        onClick={async () => {
+                          const ok = await confirm({
+                            destructive: true,
+                            title: t('testData.confirmDelete', 'Delete {{name}}?', {
+                              name: set.name,
+                            }),
+                          });
+                          if (ok) remove.mutate(set);
+                        }}
                         disabled={remove.isPending || detailBusyId === set.id}
                         aria-label={t('testData.deleteNamed', 'Delete {{name}}', {
                           name: set.name,

@@ -2853,6 +2853,15 @@
     "emptyHint": "Non ce ne sono. Creane uno nelle Impostazioni per usare i segreti e un accesso salvato."
   },
   "common": {
+    "loginFailed": "Accesso non riuscito",
+    "registrationFailed": "Registrazione non riuscita",
+    "logoutFailed": "Uscita non riuscita",
+    "noEnvironment": "Nessun ambiente",
+    "loadingExecutions": "Caricamento delle esecuzioni...",
+    "refresh": "Aggiorna",
+    "refreshReport": "Aggiorna report",
+    "visualCheck": "Controllo visivo",
+    "saveLoginForEnvironment": "Salva l’accesso per questo ambiente",
     "error": "Errore",
     "cancel": "Annulla",
     "save": "Salva",

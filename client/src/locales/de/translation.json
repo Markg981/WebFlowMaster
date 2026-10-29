@@ -2853,6 +2853,15 @@
     "emptyHint": "Noch keine. Legen Sie in den Einstellungen eine an, um Geheimnisse und eine gespeicherte Anmeldung zu nutzen."
   },
   "common": {
+    "loginFailed": "Anmeldung fehlgeschlagen",
+    "registrationFailed": "Registrierung fehlgeschlagen",
+    "logoutFailed": "Abmeldung fehlgeschlagen",
+    "noEnvironment": "Keine Umgebung",
+    "loadingExecutions": "Ausführungen werden geladen...",
+    "refresh": "Aktualisieren",
+    "refreshReport": "Bericht aktualisieren",
+    "visualCheck": "Visuelle Prüfung",
+    "saveLoginForEnvironment": "Anmeldung für diese Umgebung speichern",
     "error": "Fehler",
     "cancel": "Abbrechen",
     "save": "Speichern",

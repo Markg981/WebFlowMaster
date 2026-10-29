@@ -2853,6 +2853,15 @@
     "emptyHint": "None yet. Create one in Settings to use secrets and a saved login."
   },
   "common": {
+    "loginFailed": "Login failed",
+    "registrationFailed": "Registration failed",
+    "logoutFailed": "Logout failed",
+    "noEnvironment": "No Environment",
+    "loadingExecutions": "Loading executions...",
+    "refresh": "Refresh",
+    "refreshReport": "Refresh Report",
+    "visualCheck": "Visual check",
+    "saveLoginForEnvironment": "Save login for this environment",
     "error": "Error",
     "cancel": "Cancel",
     "save": "Save",

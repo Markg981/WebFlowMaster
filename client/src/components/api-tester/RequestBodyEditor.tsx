@@ -208,6 +208,7 @@ export function RequestBodyEditor(props: Props) {
               </Label>
               <div className="mt-1 border rounded-md overflow-hidden">
                 <Editor
+                  aria-label={t('apiTesterPage.graphqlVariablesJson.label')}
                   height="100px"
                   language="json"
                   theme={monacoTheme}
