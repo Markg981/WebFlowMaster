@@ -1,0 +1,14 @@
+{
+  "id": "ACC-22",
+  "area": "ACC",
+  "title": "Reset password: risposta immediata e uniforme",
+  "priority": "P2",
+  "actor": "anonimo",
+  "preconditions": "Posta configurata per l'organizzazione.",
+  "steps": [
+    "Richiedere il reset per un indirizzo esistente e per uno inesistente.",
+    "Confrontare tempi e risposte."
+  ],
+  "expected": "Entrambe rispondono 202 con lo stesso messaggio, senza attendere l'invio della posta; solo l'indirizzo esistente riceve la mail.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Posta configurata per l'organizzazione.</p>\n        <h4>Passi</h4>\n        <ol><li>Richiedere il reset per un indirizzo esistente e per uno inesistente.</li><li>Confrontare tempi e risposte.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Entrambe rispondono 202 con lo stesso messaggio, senza attendere l'invio della posta; solo l'indirizzo esistente riceve la mail.</p>\n      "
+}

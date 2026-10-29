@@ -3,7 +3,7 @@ import { trustProxySetting } from '../platform/trust-proxy';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Express, type RequestHandler, type Response } from 'express';
 import session from 'express-session';
-import { createHmac, scrypt, randomBytes, timingSafeEqual } from 'crypto';
+import { createHmac, scrypt, randomBytes, timingSafeEqual, type ScryptOptions } from 'crypto';
 import { promisify } from 'util';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
@@ -29,7 +29,7 @@ import {
 } from './login-throttle';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import logger from '../platform/logger';
-import { isMfaEnabled, mfaStatus, verifySecondFactor } from './mfa';
+import { isMfaEnabled, mfaEnabledAt, mfaStatus, verifySecondFactor } from './mfa';
 import createMemoryStore from 'memorystore';
 import { sessionRedis } from '../platform/redis';
 import { sessionCookieSecure } from '../platform/config';
@@ -54,7 +54,12 @@ declare global {
   }
 }
 
-const scryptAsync = promisify(scrypt);
+const scryptAsync = promisify(scrypt) as (
+  password: string,
+  salt: Buffer | string,
+  keylen: number,
+  options: ScryptOptions,
+) => Promise<Buffer>;
 
 declare module 'express-session' {
   interface SessionData {
@@ -209,21 +214,82 @@ const authLimiter = rateLimit({
   message: { message: 'Too many attempts, please try again later.' },
 });
 
+// Stored hashes come in two formats. The original is `<hash>.<salt>` (hex, scrypt N=16384 r=8 p=1,
+// implied). The current one carries its parameters: `scrypt$<log2 N>$<r>$<p>$<salt>$<hash>`, so the
+// cost can be raised later and old hashes stay verifiable; a successful sign-in rewrites an old or
+// weaker hash (needsRehash). N=2^17 is the OWASP recommendation; SCRYPT_LOG_N overrides it (14-20).
+const LEGACY_SCRYPT = { logN: 14, r: 8, p: 1 };
+
+function scryptParams() {
+  const raw = Number(process.env.SCRYPT_LOG_N);
+  const fallback = process.env.NODE_ENV === 'test' ? 14 : 17; // the test suite hashes a lot
+  const logN = Number.isInteger(raw) && raw >= 14 && raw <= 20 ? raw : fallback;
+  return { logN, r: 8, p: 1 };
+}
+
+function scryptWith(password: string, salt: Buffer | string, p: typeof LEGACY_SCRYPT) {
+  const N = 2 ** p.logN;
+  return scryptAsync(password, salt, 64, {
+    N,
+    r: p.r,
+    p: p.p,
+    maxmem: 256 * N * p.r + 1024 * 1024,
+  }) as Promise<Buffer>;
+}
+
 export async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString('hex');
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString('hex')}.${salt}`;
+  const params = scryptParams();
+  const salt = randomBytes(16);
+  const buf = await scryptWith(password, salt, params);
+  return `scrypt$${params.logN}$${params.r}$${params.p}$${salt.toString('hex')}$${buf.toString('hex')}`;
+}
+
+/** Splits a stored hash into its parameters, salt and digest; null when it is not one of ours. */
+function parseStoredHash(stored: string) {
+  if (stored.startsWith('scrypt$')) {
+    const [, logN, r, p, salt, hash] = stored.split('$');
+    const params = { logN: Number(logN), r: Number(r), p: Number(p) };
+    if (!salt || !hash || ![params.logN, params.r, params.p].every(Number.isInteger)) return null;
+    if (
+      params.logN < 10 ||
+      params.logN > 20 ||
+      params.r < 1 ||
+      params.r > 32 ||
+      params.p < 1 ||
+      params.p > 16
+    )
+      return null;
+    return {
+      params,
+      salt: Buffer.from(salt, 'hex') as Buffer | string,
+      hash: Buffer.from(hash, 'hex'),
+    };
+  }
+  const [hash, salt] = stored.split('.');
+  if (!hash || !salt) return null;
+  // The legacy salt is used as the hex string itself, not decoded.
+  return { params: LEGACY_SCRYPT, salt: salt as Buffer | string, hash: Buffer.from(hash, 'hex') };
+}
+
+/** Whether a stored hash is in the old format or below the current cost, to be rewritten at sign-in. */
+export function needsRehash(stored: string): boolean {
+  const parsed = parseStoredHash(stored);
+  if (!parsed) return false;
+  return !stored.startsWith('scrypt$') || parsed.params.logN < scryptParams().logN;
 }
 
 /**
  * What a session remembers of the password it was opened with: an HMAC of the stored hash, so the
  * session store holds nothing that helps guess the password, and a new password makes it differ.
  */
-export function passwordStamp(storedHash: string): string {
-  return createHmac('sha256', process.env.SESSION_SECRET ?? '')
+export function passwordStamp(storedHash: string, mfaAt?: Date | null): string {
+  // Without a second factor the stamp is the password's alone, as before; with one, turning it on,
+  // off or resetting it changes the stamp and so ends the person's other sessions.
+  const stamp = createHmac('sha256', process.env.SESSION_SECRET ?? '')
     .update(storedHash)
     .digest('hex')
     .slice(0, 32);
+  return mfaAt ? `${stamp}.${mfaAt.getTime()}` : stamp;
 }
 
 const newPasswordSchema = z.string().min(1).max(PASSWORD_MAX_LENGTH);
@@ -237,13 +303,27 @@ export function newPasswordProblem(password: string, username: string | null): s
  * A well-formed stored hash nobody has the password of. An unknown username is compared against it
  * so the answer takes as long as for a real account and does not reveal which usernames exist.
  */
-const DUMMY_PASSWORD_HASH = `${'ab'.repeat(64)}.${'cd'.repeat(16)}`;
+function dummyPasswordHash(): string {
+  const { logN, r, p } = scryptParams();
+  return `scrypt$${logN}$${r}$${p}$${'cd'.repeat(16)}$${'ab'.repeat(64)}`;
+}
+
+/** Spends the time of a comparison on an account that cannot sign in, so the answer does not tell. */
+async function spendComparisonTime(supplied: string): Promise<void> {
+  await comparePasswords(supplied, dummyPasswordHash());
+}
 
 export async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split('.');
-  const hashedBuf = Buffer.from(hashed, 'hex');
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  const parsed = parseStoredHash(stored);
+  if (!parsed) return false;
+  const suppliedBuf = await scryptWith(supplied, parsed.salt, parsed.params);
+  return parsed.hash.length === suppliedBuf.length && timingSafeEqual(parsed.hash, suppliedBuf);
+}
+
+/** SESSION_IDLE_TIMEOUT_MINUTES as milliseconds; undefined when unset or not a positive number. */
+function sessionIdleTimeoutMs(): number | undefined {
+  const minutes = Number(process.env.SESSION_IDLE_TIMEOUT_MINUTES);
+  return Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes * 60_000) : undefined;
 }
 
 // Built once, on the first setupAuth(app) call, and reused after — see getSessionMiddleware.
@@ -273,11 +353,15 @@ export function setupAuth(app: Express) {
       resave: false,
       saveUninitialized: false,
       store: createSessionStore(),
+      // SESSION_IDLE_TIMEOUT_MINUTES turns the fixed 7 days into an idle timeout: the cookie and
+      // the stored session are renewed on every response, so they end after that long unused.
+      // Unset keeps the fixed 7 days (audit C-38 ID-07).
+      rolling: sessionIdleTimeoutMs() !== undefined,
       cookie: {
         httpOnly: true,
         sameSite: 'lax',
         secure: sessionCookieSecure(),
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+        maxAge: sessionIdleTimeoutMs() ?? 1000 * 60 * 60 * 24 * 7, // 7 days
       },
     });
   }
@@ -300,13 +384,14 @@ export function setupAuth(app: Express) {
       // them would be a list of guesses — some of them other people's passwords typed into
       // the wrong box.
       if (!user) {
-        await comparePasswords(password, DUMMY_PASSWORD_HASH);
+        await spendComparisonTime(password);
         return done(null, false);
       }
       // A service account has a password only because the column requires one: it is random
       // and nobody knows it. Refused before comparing anyway, so that stays true even if
       // somebody one day sets it by hand.
       if (user.kind !== 'person' || user.disabledAt) {
+        await spendComparisonTime(password);
         await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, { reason: 'not_a_person' });
         return done(null, false);
       }
@@ -315,6 +400,16 @@ export function setupAuth(app: Express) {
           reason: 'wrong_password',
         });
         return done(null, false);
+      }
+      // An old or weaker hash is rewritten now that the password is at hand. The session is opened
+      // after this, so its stamp is the new hash's; a failure to rewrite must not fail the sign-in.
+      if (needsRehash(user.password)) {
+        try {
+          const updated = await storage.updatePassword(user.id, await hashPassword(password));
+          if (updated) return done(null, { ...user, password: updated.password });
+        } catch (error) {
+          logger.warn({ message: 'Password rehash failed', userId: user.id, error });
+        }
       }
       return done(null, user);
     }),
@@ -330,9 +425,18 @@ export function setupAuth(app: Express) {
   // organization while what it creates lands in the other. The membership is read again at every
   // request, so a session in an organization the person has been removed from ends there. A session
   // from before the organization was stamped acts in the one the account last switched to.
-  passport.serializeUser((user, done) =>
-    done(null, { id: user.id, pw: passwordStamp(user.password), org: user.organizationId }),
-  );
+  passport.serializeUser(async (user, done) => {
+    try {
+      const mfaAt = await mfaEnabledAt(user.id);
+      done(null, {
+        id: user.id,
+        pw: passwordStamp(user.password, mfaAt),
+        org: user.organizationId,
+      });
+    } catch (error) {
+      done(error);
+    }
+  });
   passport.deserializeUser(async (payload: unknown, done) => {
     try {
       const stamped = payload as { id?: unknown; pw?: unknown; org?: unknown } | null;
@@ -340,7 +444,8 @@ export function setupAuth(app: Express) {
         return done(null, false);
       const user = await storage.getUser(stamped.id);
       // A disabled account's sessions end with it (an identity provider deactivating someone, server/identity/scim.ts).
-      if (!user || stamped.pw !== passwordStamp(user.password) || user.disabledAt)
+      if (!user || user.disabledAt) return done(null, false);
+      if (stamped.pw !== passwordStamp(user.password, await mfaEnabledAt(user.id)))
         return done(null, false);
       const organizationId = typeof stamped.org === 'number' ? stamped.org : user.organizationId;
       const acting = await actingAs(user, organizationId);
@@ -371,7 +476,13 @@ export function setupAuth(app: Express) {
       // With an invitation the username check waits until the token has been validated
       // (createUserFromInvitation): a used invitation names a username that now exists, and
       // answering "Username already exists" to it would tell it apart from an invalid one.
-      if (!invitationToken && (await storage.getUserByUsername(username))) {
+      // Where registration is by invitation, a request without one gets the same refusal whether or
+      // not the username exists (createFirstUser below), so the check applies to open mode only.
+      if (
+        !invitationToken &&
+        registrationMode() === 'open' &&
+        (await storage.getUserByUsername(username))
+      ) {
         res.status(400).json({ message: 'Username already exists' });
         return;
       }
@@ -732,6 +843,9 @@ export function setupAuth(app: Express) {
           message:
             'Password reset by e-mail is not available here. Ask an owner of your organization for a link.',
         });
+      // Answered before the work is done, so the time taken (database, mail) does not tell whether
+      // the account exists (audit C-38 ID-08). Failures after this point are logged, not returned.
+      res.status(202).json(answer);
       const user = await storage.getUserByUsername(parsed.data.username);
       if (
         user &&
@@ -767,7 +881,7 @@ export function setupAuth(app: Express) {
             return reset;
           }),
         );
-        if (!issued) return res.status(202).json(answer);
+        if (!issued) return;
         const { publicBase } = await import('../http/routes/sso.routes');
         const sent = await sendMail({
           ...passwordResetMail({
@@ -786,9 +900,9 @@ export function setupAuth(app: Express) {
           });
         }
       }
-      res.status(202).json(answer);
     } catch (error) {
-      next(error);
+      if (res.headersSent) logger.error({ message: 'Password reset request failed', error });
+      else next(error);
     }
   });
 }

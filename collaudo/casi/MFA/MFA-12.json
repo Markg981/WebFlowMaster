@@ -1,0 +1,14 @@
+{
+  "id": "MFA-12",
+  "area": "MFA",
+  "title": "Timeout di inattività della sessione (opzionale)",
+  "priority": "P3",
+  "actor": "admin",
+  "preconditions": "Server avviato con SESSION_IDLE_TIMEOUT_MINUTES=2.",
+  "steps": [
+    "Accedere e lavorare normalmente per più di 2 minuti, con una richiesta ogni minuto.",
+    "Restare fermi per più di 2 minuti e ricaricare."
+  ],
+  "expected": "Finché si lavora la sessione resta valida (rolling); dopo 2 minuti di inattività si torna alla pagina di accesso. Senza la variabile la sessione dura 7 giorni fissi.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Server avviato con SESSION_IDLE_TIMEOUT_MINUTES=2.</p>\n        <h4>Passi</h4>\n        <ol><li>Accedere e lavorare normalmente per più di 2 minuti, con una richiesta ogni minuto.</li><li>Restare fermi per più di 2 minuti e ricaricare.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Finché si lavora la sessione resta valida (rolling); dopo 2 minuti di inattività si torna alla pagina di accesso. Senza la variabile la sessione dura 7 giorni fissi.</p>\n      "
+}

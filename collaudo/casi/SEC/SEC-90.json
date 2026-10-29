@@ -1,0 +1,14 @@
+{
+  "id": "SEC-90",
+  "area": "SEC",
+  "title": "Avviso se Redis non risponde ai contatori di sicurezza",
+  "priority": "P3",
+  "actor": "admin",
+  "preconditions": "Redis configurato e poi fermato.",
+  "steps": [
+    "Provare un accesso con password errata.",
+    "Leggere il log del server."
+  ],
+  "expected": "Il log riporta un avviso \"Redis is not answering\" (al massimo uno al minuto); i limiti continuano a contare in memoria.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Redis configurato e poi fermato.</p>\n        <h4>Passi</h4>\n        <ol><li>Provare un accesso con password errata.</li><li>Leggere il log del server.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il log riporta un avviso \"Redis is not answering\" (al massimo uno al minuto); i limiti continuano a contare in memoria.</p>\n      "
+}

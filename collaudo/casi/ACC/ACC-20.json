@@ -1,0 +1,15 @@
+{
+  "id": "ACC-20",
+  "area": "ACC",
+  "title": "Hash della password aggiornato al primo accesso",
+  "priority": "P2",
+  "actor": "admin",
+  "preconditions": "Account creato prima dell'aggiornamento (hash nel formato vecchio hash.salt).",
+  "steps": [
+    "Accedere con la password di sempre.",
+    "Controllare in DB il valore di users.password.",
+    "Cambiare password e riaccedere."
+  ],
+  "expected": "L'accesso riesce con la vecchia password e l'hash diventa \"scrypt$17$8$1$salt$hash\"; dopo il cambio password l'accesso funziona con la nuova.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Account creato prima dell'aggiornamento (hash nel formato vecchio hash.salt).</p>\n        <h4>Passi</h4>\n        <ol><li>Accedere con la password di sempre.</li><li>Controllare in DB il valore di users.password.</li><li>Cambiare password e riaccedere.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'accesso riesce con la vecchia password e l'hash diventa \"scrypt$17$8$1$salt$hash\"; dopo il cambio password l'accesso funziona con la nuova.</p>\n      "
+}
