@@ -24,6 +24,9 @@ invitation link. Depending on how your organization is set up:
   your company's identity provider. If the sign-in page says your organization signs in with
   single sign-on, your password no longer works there: use this button.
 
+If you opened a link to a page while signed out (from an e-mail or a chat message), signing in
+takes you to that page instead of the dashboard.
+
 Forgot your password? Ask an owner of your organization for a reset link.
 
 **More than one organization?** An owner of another organization can invite your existing

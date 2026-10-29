@@ -67,7 +67,8 @@ family, and a name answering in both (`localhost` on many hosts) is vetted and t
 again by the gRPC client, like the SMTP path. Cloud metadata endpoints (`169.254.0.0/16`
 including `169.254.169.254`, `fd00:ec2::254`, `metadata.google.internal`, Alibaba's
 `100.100.100.200`, Oracle's `192.0.0.192`, Azure's `168.63.129.16`) are always refused. Private,
-loopback, link-local and unique-local addresses are reached by default
+loopback, link-local, unique-local, carrier-grade NAT (`100.64.0.0/10`), benchmarking
+(`198.18.0.0/15`), `192.0.0.0/24`, multicast and 6to4 (`2002::/16`) addresses are reached by default
 (`EGRESS_PRIVATE_TARGETS=allow`): a self-hosted installation tests its intranet from the
 server, and nothing changes for it. `EGRESS_PRIVATE_TARGETS=deny` refuses them too, which is
 the setting for a shared installation; `EGRESS_ALLOW_HOSTS` exempts named hosts and CIDRs from
