@@ -253,9 +253,12 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
       startedAt: r.startedAt,
       completedAt: r.completedAt,
       durationMs: r.durationMs,
-      steps: stepsOf(r.detailedLog),
-      matrixEvidence: readMatrixEvidence(r.detailedLog),
-      network: (r.networkSummary as NetworkSummary | null) ?? null,
+      // The detail of a test of a restricted project the caller is not on stays out of the export.
+      steps: access.hiddenResult(r) ? [] : stepsOf(r.detailedLog),
+      matrixEvidence: access.hiddenResult(r) ? undefined : readMatrixEvidence(r.detailedLog),
+      network: access.hiddenResult(r)
+        ? null
+        : ((r.networkSummary as NetworkSummary | null) ?? null),
       // The result's own screenshot, else the one its failed step kept: either way the picture of
       // where it broke, for the export that embeds it.
       screenshotPath: execution.artifactsPurgedAt
