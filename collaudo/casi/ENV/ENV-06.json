@@ -1,0 +1,12 @@
+{
+  "id": "ENV-06",
+  "area": "ENV",
+  "title": "SMTP di organizzazione: connessione all'IP verificato",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un SMTP di organizzazione con host che risolve a un indirizzo consentito.",
+  "steps": [
+    "Inviare una mail di prova."
+  ],
+  "expected": "La mail parte verso l'IP verificato con il certificato controllato sul nome dell'host."
+}

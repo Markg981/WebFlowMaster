@@ -14,6 +14,7 @@ import {
 import { ClipboardList, ExternalLink, Loader2, Upload } from 'lucide-react';
 import { isExecutionInFlight } from '@shared/execution-status';
 import { formatDateTime } from '@/lib/dates';
+import { safeHttpUrl } from '@/lib/safe-url';
 
 /**
  * Where this run went in TestRail, Xray or Zephyr Scale, and a way to send it again: after the
@@ -142,7 +143,7 @@ export default function PublicationsCard({
                   {row.externalKey &&
                     (row.externalUrl ? (
                       <a
-                        href={row.externalUrl}
+                        href={safeHttpUrl(row.externalUrl)}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 underline"

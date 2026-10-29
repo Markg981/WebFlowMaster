@@ -69,6 +69,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/dates';
+import { safeHttpUrl } from '@/lib/safe-url';
 
 /**
  * Requirements traceability: epics, user stories and requirements, the tests that cover them, and
@@ -525,7 +526,7 @@ const RequirementsPage: React.FC = () => {
                             <div className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
                               {row.url ? (
                                 <a
-                                  href={row.url}
+                                  href={safeHttpUrl(row.url)}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="inline-flex items-center gap-1 underline"
