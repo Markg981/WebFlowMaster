@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
 import {
   executionUnitAttempts,
+  executionOutbox,
   executionUnits,
   runWorkItems,
   testPlanExecutions,
@@ -11,7 +12,7 @@ import {
   users,
 } from '@shared/schema';
 import { createTestOrganization } from '../tests/factories';
-import { recoverAbandonedRuns } from './run-recovery';
+import { reconcileQueuedRuns, recoverAbandonedRuns } from './run-recovery';
 
 /**
  * Ending the runs whose worker went away.
@@ -249,5 +250,35 @@ describe('recoverAbandonedRuns', () => {
     ]);
 
     expect(a.lost.length + b.lost.length).toBe(1);
+  });
+});
+
+describe('reconcileQueuedRuns', () => {
+  const emptyQueue = { getJobState: async () => null };
+
+  it('ends a queued run whose job is gone, and leaves the rest alone', async () => {
+    const lost = await run({ status: 'queued', queuedAt: minutesAgo(30) });
+    const waiting = await run({ status: 'queued', queuedAt: minutesAgo(30) });
+    const fresh = await run({ status: 'queued', queuedAt: minutesAgo(1) });
+    const pending = await run({ status: 'queued', queuedAt: minutesAgo(30) });
+    await privilegedDb
+      .insert(executionOutbox)
+      .values({ executionId: pending, organizationId, payload: {}, priority: 1 } as any);
+    const queue = { getJobState: async (id: string) => (id === waiting ? 'waiting' : null) };
+
+    const ended = await reconcileQueuedRuns(queue, { now });
+
+    expect(ended).toEqual([lost]);
+    expect(await statusOf(lost)).toMatchObject({ status: 'error', failureCode: 'queue_job_lost' });
+    expect((await statusOf(waiting)).status).toBe('queued');
+    expect((await statusOf(fresh)).status).toBe('queued');
+    expect((await statusOf(pending)).status).toBe('queued');
+  });
+
+  it('treats a failed job as gone', async () => {
+    const id = await run({ status: 'queued', queuedAt: minutesAgo(30) });
+    await reconcileQueuedRuns({ getJobState: async () => 'failed' }, { now });
+    expect((await statusOf(id)).failureCode).toBe('queue_job_lost');
+    expect(emptyQueue).toBeTruthy();
   });
 });
