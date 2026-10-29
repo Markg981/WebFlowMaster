@@ -1,0 +1,12 @@
+{
+  "id": "WEB-68",
+  "area": "WEB",
+  "title": "Estrazione OTP",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Configurare la casella SMS dell'organizzazione; avviare Attendi SMS e inviare un messaggio nuovo al numero atteso."
+  ],
+  "expected": "Il codice viene estratto nella variabile configurata e utilizzabile nello step seguente."
+}

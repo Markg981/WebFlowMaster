@@ -1,0 +1,15 @@
+{
+  "id": "SEC-73",
+  "area": "SEC",
+  "title": "Chiave API rifiutata sulle operazioni di credenziali e membri",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 83. Un owner con sessione e una sua chiave API.",
+  "steps": [
+    "Con una chiave API di un owner: POST /api/api-keys, DELETE /api/api-keys/<id>, POST /api/service-accounts.",
+    "Con la stessa chiave: POST /api/organization/invitations, POST /api/organization/members, PATCH e DELETE /api/organization/members/<userId>.",
+    "Con la stessa chiave: PUT /api/organization/sso e PUT /api/organization/mfa-policy.",
+    "Ripetere le richieste 1 e 2 con la sessione dell'owner."
+  ],
+  "expected": "1-3: 403 con code session_required e messaggio che chiede una sessione. 4: le operazioni riescono con la sessione."
+}

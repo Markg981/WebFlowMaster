@@ -1,0 +1,15 @@
+{
+  "id": "SEC-46",
+  "area": "SEC",
+  "title": "Limite di frequenza per utente con sessione",
+  "priority": "P2",
+  "actor": "editor",
+  "preconditions": "SESSION_RATE_LIMIT=5 sull'installazione di collaudo; un utente editor autenticato nel browser.",
+  "steps": [
+    "Con il cookie di sessione dell'editor, sei GET /api/tests in un minuto.",
+    "Subito dopo, una GET /api/tests con la sessione di un secondo utente.",
+    "Ricaricare l'applicazione con l'editor dopo un minuto."
+  ],
+  "expected": "La sesta richiesta dell'editor risponde 429 con l'header Retry-After; il secondo utente riceve 200; dopo il minuto l'editor lavora di nuovo e gli asset del client non sono mai stati conteggiati.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>SESSION_RATE_LIMIT=5</code> sull'installazione di collaudo; un utente editor autenticato nel browser.</p>\n        <h4>Passi</h4>\n        <ol><li>Con il cookie di sessione dell'editor, sei GET <code>/api/tests</code> in un minuto.</li><li>Subito dopo, una GET <code>/api/tests</code> con la sessione di un secondo utente.</li><li>Ricaricare l'applicazione con l'editor dopo un minuto.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La sesta richiesta dell'editor risponde 429 con l'header Retry-After; il secondo utente riceve 200; dopo il minuto l'editor lavora di nuovo e gli asset del client non sono mai stati conteggiati.</p>\n      "
+}

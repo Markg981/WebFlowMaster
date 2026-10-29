@@ -1,0 +1,12 @@
+{
+  "id": "LIB-26",
+  "area": "LIB",
+  "title": "Modifica del commento",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Come autore modificare il proprio commento e riaprire il pannello."
+  ],
+  "expected": "Testo aggiornato, mantenendo l'associazione al test o risultato."
+}

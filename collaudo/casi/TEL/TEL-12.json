@@ -1,0 +1,13 @@
+{
+  "id": "TEL-12",
+  "area": "TEL",
+  "title": "Agent precedente senza export locale",
+  "priority": "P2",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "Abilitare tracing su API e worker e collegare un agente precedente compatibile con il protocollo browser/HTTP.",
+    "Eseguire una richiesta tramite quell’agente e osservare il risultato e gli span."
+  ],
+  "expected": "Il campo trace opzionale non rompe l’operazione dell’agente precedente. API/worker esportano i propri span; l’assenza degli span locali dell’agente è un limite della versione e non un errore del test."
+}

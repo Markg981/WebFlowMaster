@@ -1,0 +1,14 @@
+{
+  "id": "OPS-50",
+  "area": "OPS",
+  "title": "Release bloccata se i formati dichiarati o la release minima di rollback non tornano",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Catalogo versione 82. Repository su main aggiornato, npm ci eseguito.",
+  "steps": [
+    "Eseguire node scripts/release/compatibility.mjs check.",
+    "Eseguire npm run test:release.",
+    "Aprire .github/workflows/release.yml e cercare compatibility.mjs."
+  ],
+  "expected": "Il controllo esce con 0 e riporta i formati di deployment/releases/data-compatibility.json uguali a quelli supportati dal codice. I test di compatibility.test.mjs passano (su Windows può fallire solo il test BuildKit per i CRLF, noto). Il workflow di release esegue il controllo prima della pubblicazione."
+}

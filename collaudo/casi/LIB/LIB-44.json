@@ -1,0 +1,16 @@
+{
+  "id": "LIB-44",
+  "area": "LIB",
+  "title": "Aggiornare una dipendenza richiede una nuova versione",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 73. Review non obbligatoria. Un test pubblicato (versione 1) che richiama il gruppo \"Login\" e un'azione personalizzata; un piano che lo esegue.",
+  "steps": [
+    "Modificare lo script dell'azione personalizzata e gli step del gruppo \"Login\".",
+    "Eseguire il piano.",
+    "Riaprire il test senza cambiare nulla e salvarlo.",
+    "Pubblicare la nuova versione ed eseguire di nuovo il piano.",
+    "Toccare il gruppo senza cambiarne gli step (per esempio salvarlo identico) e salvare di nuovo il test."
+  ],
+  "expected": "Il primo run usa ancora gruppo e azione della versione 1. Il salvataggio senza modifiche crea la versione 2 con il riepilogo \"Step group \"Login\" changed, custom action \"…\" changed.\" Dopo la pubblicazione il run usa le dipendenze aggiornate. L'ultimo salvataggio non crea versioni: nulla di eseguibile è cambiato."
+}

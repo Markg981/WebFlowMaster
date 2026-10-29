@@ -1,0 +1,14 @@
+{
+  "id": "QUO-06",
+  "area": "QUO",
+  "title": "Crescita degli artifact e conservazione delle evidenze",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Riconciliare A e impostare il limite sugli artifact alla capacità utilizzata.",
+    "Tentare una baseline più grande, nuove evidenze e uno screenshot mobile inline oltre il limite.",
+    "Aprire la baseline precedente e il report dell’esecuzione."
+  ],
+  "expected": "Solo la crescita richiede nuova capacità; la sostituzione rifiutata conserva la baseline precedente. Il rifiuto di un’evidenza non cambia il verdetto funzionale del test."
+}

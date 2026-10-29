@@ -1,0 +1,16 @@
+{
+  "id": "WEB-61",
+  "area": "WEB",
+  "title": "Audit Lighthouse con i cookie del test",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Stack del collaudo (Lighthouse è nell'immagine del worker). Un'applicazione con una pagina protetta da login.",
+  "steps": [
+    "Test: accedere all'applicazione; Naviga alla pagina protetta; Audit Lighthouse con valore performance >= 50, accessibility >= 80, desktop. Eseguire in un piano.",
+    "Nel report: dettagli dello step, scheda Velocità delle pagine, link report.",
+    "Cambiare in performance >= 100, seo >= 100; rieseguire.",
+    "Valore vuoto; rieseguire."
+  ],
+  "expected": "1: lo step impiega 15–60 secondi e passa con «Lighthouse (desktop): performance …, accessibility …, best-practices …, seo …». 2: la scheda mostra i quattro punteggi e il link; il report HTML di Lighthouse si apre e analizza la pagina protetta (non la pagina di login): i cookie del test sono stati usati. 3: fallisce con «Lighthouse (mobile) below the limit: …». 4: registra i punteggi e passa.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Stack del collaudo (Lighthouse è nell'immagine del worker). Un'applicazione con una pagina protetta da login.</p>\n        <h4>Passi</h4>\n        <ol><li>Test: accedere all'applicazione; Naviga alla pagina protetta; <b>Audit Lighthouse</b> con valore <code>performance &gt;= 50, accessibility &gt;= 80, desktop</code>. Eseguire in un piano.</li><li>Nel report: dettagli dello step, scheda <b>Velocità delle pagine</b>, link <b>report</b>.</li><li>Cambiare in <code>performance &gt;= 100, seo &gt;= 100</code>; rieseguire.</li><li>Valore vuoto; rieseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: lo step impiega 15–60 secondi e passa con «Lighthouse (desktop): performance …, accessibility …, best-practices …, seo …». 2: la scheda mostra i quattro punteggi e il link; il report HTML di Lighthouse si apre e analizza la pagina protetta (non la pagina di login): i cookie del test sono stati usati. 3: fallisce con «Lighthouse (mobile) below the limit: …». 4: registra i punteggi e passa.</p>\n      "
+}

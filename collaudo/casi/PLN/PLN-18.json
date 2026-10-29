@@ -1,0 +1,15 @@
+{
+  "id": "PLN-18",
+  "area": "PLN",
+  "title": "Eliminare un piano",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un piano di prova con un run concluso, una pianificazione e un webhook.",
+  "steps": [
+    "Eliminare il piano dall'interfaccia; leggere la conferma.",
+    "Chiamare il webhook del piano; attendere l'orario della pianificazione.",
+    "Come viewer.a cercare il comando di eliminazione."
+  ],
+  "expected": "Il piano si elimina dall'interfaccia, dopo una conferma che dice che spariscono anche i suoi run, le pianificazioni e i webhook. Il webhook risponde 401 o 404 e la pianificazione non parte più. viewer.a non ha il comando. Audit plan.deleted.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un piano di prova con un run concluso, una pianificazione e un webhook.</p>\n        <h4>Passi</h4>\n        <ol><li>Eliminare il piano dall'interfaccia; leggere la conferma.</li><li>Chiamare il webhook del piano; attendere l'orario della pianificazione.</li><li>Come viewer.a cercare il comando di eliminazione.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il piano si elimina dall'interfaccia, dopo una conferma che dice che spariscono anche i suoi run, le pianificazioni e i webhook. Il webhook risponde 401 o 404 e la pianificazione non parte più. viewer.a non ha il comando. Audit <b>plan.deleted</b>.</p>\n      "
+}

@@ -1,0 +1,13 @@
+{
+  "id": "OPS-09",
+  "area": "OPS",
+  "title": "Osservabilità con Loki",
+  "priority": "P3",
+  "actor": "operatore",
+  "preconditions": "I log dell'applicazione arrivano in Loki e si interrogano da Grafana.",
+  "steps": [
+    "docker-compose.observability.yml con LOKI_URL; aprire Grafana."
+  ],
+  "expected": "I log dell'applicazione arrivano in Loki e si interrogano da Grafana.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><code>docker-compose.observability.yml</code> con <code>LOKI_URL</code>; aprire Grafana.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">I log dell'applicazione arrivano in Loki e si interrogano da Grafana.</p>\n      "
+}

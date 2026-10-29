@@ -1,0 +1,17 @@
+{
+  "id": "MOB-18",
+  "area": "MOB",
+  "title": "Tag sui test mobili e suite dinamiche",
+  "priority": "P1",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "MOB-06; un test web con il tag «smoke» (LIB-…).",
+  "steps": [
+    "App mobili: nella colonna Tag del test «Ricerca Wikipedia» aggiungere «smoke» e creare il nuovo tag «android».",
+    "Suite → Nuova suite, Dinamica, tag smoke; aprire la suite. Poi tag smoke + android.",
+    "Un piano con solo questa suite; eseguirlo.",
+    "Procedura guidata del piano → Aggiungi Suite di Test, filtro per tag android.",
+    "Come viewer.a aprire App mobili; rimuovere il tag dal test come editor e rieseguire il piano."
+  ],
+  "expected": "1: i tag compaiono sulla riga; «android» esiste ora anche nella libreria. 2: con smoke la suite elenca il test web e «Ricerca Wikipedia»; con smoke + android solo quello mobile. 3: il report ha i risultati del test web e del test mobile (una riga, con il dispositivo). 4: compare solo il test mobile, con l'etichetta MOBILE. 5: il viewer vede i tag senza poterli modificare; senza tag il test mobile esce dalla suite al run successivo.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-06; un test web con il tag «smoke» (LIB-…).</p>\n        <h4>Passi</h4>\n        <ol><li>App mobili: nella colonna <b>Tag</b> del test «Ricerca Wikipedia» aggiungere «smoke» e creare il nuovo tag «android».</li><li>Suite → Nuova suite, Dinamica, tag smoke; aprire la suite. Poi tag smoke + android.</li><li>Un piano con solo questa suite; eseguirlo.</li><li>Procedura guidata del piano → Aggiungi Suite di Test, filtro per tag android.</li><li>Come viewer.a aprire App mobili; rimuovere il tag dal test come editor e rieseguire il piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: i tag compaiono sulla riga; «android» esiste ora anche nella libreria. 2: con smoke la suite elenca il test web e «Ricerca Wikipedia»; con smoke + android solo quello mobile. 3: il report ha i risultati del test web e del test mobile (una riga, con il dispositivo). 4: compare solo il test mobile, con l'etichetta MOBILE. 5: il viewer vede i tag senza poterli modificare; senza tag il test mobile esce dalla suite al run successivo.</p>\n      "
+}

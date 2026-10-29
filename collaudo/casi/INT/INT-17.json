@@ -1,0 +1,15 @@
+{
+  "id": "INT-17",
+  "area": "INT",
+  "title": "CircleCI",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Solo se CircleCI è in uso. Progetto di prova con il contenuto di integrations/circleci/webflowmaster-orb.yml sotto orbs: webflowmaster: e un context con WFM_URL e WFM_API_KEY.",
+  "steps": [
+    "Workflow con il job webflowmaster/run su un piano che passa.",
+    "Rilanciare con un piano che fallisce.",
+    "Rilanciare con WFM_URL sbagliato."
+  ],
+  "expected": "1: job verde, scheda Tests con i test del piano, artifact webflowmaster-report.html. 2: lo step «WebFlowMaster verdict» è rosso, ma la scheda Tests e l'artifact ci sono (sono salvati prima dell'esito). 3: messaggio «Could not download the WebFlowMaster CLI…» e job rosso con codice 2. Nel report del run 1 la build indica CircleCI con il link al job.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Solo se CircleCI è in uso. Progetto di prova con il contenuto di <code>integrations/circleci/webflowmaster-orb.yml</code> sotto orbs: webflowmaster: e un context con WFM_URL e WFM_API_KEY.</p>\n        <h4>Passi</h4>\n        <ol><li>Workflow con il job webflowmaster/run su un piano che passa.</li><li>Rilanciare con un piano che fallisce.</li><li>Rilanciare con WFM_URL sbagliato.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: job verde, scheda Tests con i test del piano, artifact webflowmaster-report.html. 2: lo step «WebFlowMaster verdict» è rosso, ma la scheda Tests e l'artifact ci sono (sono salvati prima dell'esito). 3: messaggio «Could not download the WebFlowMaster CLI…» e job rosso con codice 2. Nel report del run 1 la build indica CircleCI con il link al job.</p>\n      "
+}

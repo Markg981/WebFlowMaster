@@ -1,0 +1,15 @@
+{
+  "id": "ACC-05",
+  "area": "ACC",
+  "title": "Accesso e uscita",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "L'accesso porta alla dashboard. L'uscita porta a /auth; tornando indietro non si vedono dati e si resta sulla pagina di accesso.",
+  "steps": [
+    "Accedere con username e password.",
+    "Uscire dal menu dell'account.",
+    "Premere Indietro nel browser."
+  ],
+  "expected": "L'accesso porta alla dashboard. L'uscita porta a /auth; tornando indietro non si vedono dati e si resta sulla pagina di accesso.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Accedere con username e password.</li><li>Uscire dal menu dell'account.</li><li>Premere Indietro nel browser.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'accesso porta alla dashboard. L'uscita porta a /auth; tornando indietro non si vedono dati e si resta sulla pagina di accesso.</p>\n      "
+}

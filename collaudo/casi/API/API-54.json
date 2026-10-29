@@ -1,0 +1,14 @@
+{
+  "id": "API-54",
+  "area": "API",
+  "title": "Test mobile via /api/v1 e PATCH parziale validato",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Chiave con mobile-tests:read/write; griglia BrowserStack o LambdaTest e un server Playwright configurati; app caricata (bs://…). Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "POST /api/v1/mobile-tests con piattaforma android, app, dispositivo e un passo tap; poi PATCH con solo osVersion e gridId della griglia mobile.",
+    "PATCH con app non valida, con gridId del server Playwright e con un locator non valido per Android; ripetere il POST con il nome in maiuscolo.",
+    "Aprire il test in App mobili ed eseguirlo."
+  ],
+  "expected": "Creazione 201; il PATCH parziale lascia invariati gli altri campi; i PATCH non validi rispondono 400 senza modificare il test; nome duplicato (senza distinzione di maiuscole) 409; il test è visibile, versionato e si esegue come uno creato dalla UI."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "MFA-02",
+  "area": "MFA",
+  "title": "Accesso con il secondo fattore",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MFA-01.",
+  "steps": [
+    "Uscire e accedere con la password.",
+    "Inserire il codice dell'app."
+  ],
+  "expected": "Dopo la password viene chiesto il codice; prima del codice nessuna pagina dell'applicazione è raggiungibile. Con il codice si entra.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MFA-01.</p>\n        <h4>Passi</h4>\n        <ol><li>Uscire e accedere con la password.</li><li>Inserire il codice dell'app.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Dopo la password viene chiesto il codice; prima del codice nessuna pagina dell'applicazione è raggiungibile. Con il codice si entra.</p>\n      "
+}

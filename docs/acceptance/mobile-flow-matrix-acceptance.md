@@ -1,7 +1,7 @@
 # Mobile flow, matrix and catalog acceptance
 
 Branch: `codex/mobile-flow-matrix-catalog`; migration: `0082_mobile_flow_matrix_groups`.
-New cases: MOB-33–MOB-40 in `collaudo/casi.json`.
+New cases: MOB-33–MOB-40 in `collaudo/casi/`.
 
 | Case   | Scenario                                                    | Expected                                                                                                   |
 | ------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |

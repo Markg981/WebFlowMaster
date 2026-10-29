@@ -1,0 +1,16 @@
+{
+  "id": "WEB-34",
+  "area": "WEB",
+  "title": "Valori generati",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il test passa; ogni esecuzione produce un indirizzo diverso test.…@example.com. La data è quella fra sette giorni in formato aaaa-mm-gg, il numero è fra 1 e 6. Il generatore scritto male fa fallire lo step nominando $randomEmial, senza scrivere il testo nella pagina.",
+  "steps": [
+    "Imposta variabile email={{$randomEmail}}; Naviga /login; Inserimento Testo username {{email}}; Esegui JavaScript return document.querySelector('#username').value.endsWith('@example.com').",
+    "Eseguire due volte e confrontare il valore nel dettaglio dello step Imposta variabile.",
+    "Inserimento Testo con {{$today(+7)}}, {{$randomInt(1,6)}}, {{$uuid}}.",
+    "Inserimento Testo con {{$randomEmial}}."
+  ],
+  "expected": "Il test passa; ogni esecuzione produce un indirizzo diverso test.…@example.com. La data è quella fra sette giorni in formato aaaa-mm-gg, il numero è fra 1 e 6. Il generatore scritto male fa fallire lo step nominando $randomEmial, senza scrivere il testo nella pagina.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><b>Imposta variabile</b> <code>email={{$randomEmail}}</code>; Naviga /login; Inserimento Testo username <code>{{email}}</code>; Esegui JavaScript <code>return document.querySelector('#username').value.endsWith('@example.com')</code>.</li><li>Eseguire due volte e confrontare il valore nel dettaglio dello step Imposta variabile.</li><li>Inserimento Testo con <code>{{$today(+7)}}</code>, <code>{{$randomInt(1,6)}}</code>, <code>{{$uuid}}</code>.</li><li>Inserimento Testo con <code>{{$randomEmial}}</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il test passa; ogni esecuzione produce un indirizzo diverso <code>test.…@example.com</code>. La data è quella fra sette giorni in formato aaaa-mm-gg, il numero è fra 1 e 6. Il generatore scritto male fa fallire lo step nominando <code>$randomEmial</code>, senza scrivere il testo nella pagina.</p>\n      "
+}

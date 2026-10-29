@@ -1,0 +1,13 @@
+{
+  "id": "AUT-05",
+  "area": "AUT",
+  "title": "Pubblicazione diretta persistente",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Review obbligatoria disattivata; test API salvato dalla UI. Procedura: collaudo/critical-ui-e2e.md.",
+  "steps": [
+    "Aprire lo storico e pubblicare la versione salvata.",
+    "Ricaricare la pagina e riaprire lo storico."
+  ],
+  "expected": "La versione resta pubblicata dopo il reload e corrisponde a quella selezionata."
+}

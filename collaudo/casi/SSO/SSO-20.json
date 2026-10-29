@@ -1,0 +1,16 @@
+{
+  "id": "SSO-20",
+  "area": "SSO",
+  "title": "Rifiutare chi non è in nessun gruppo",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "SSO-18; marco in nessun gruppo.",
+  "steps": [
+    "Togliere tutte le mappature: l'interruttore Rifiuta chi non è in nessuno di questi gruppi è disattivato. Rimettere wfm-editor → Editor.",
+    "Attivare l'interruttore; Salva.",
+    "In una finestra anonima, Sign in with SSO come marco.",
+    "In Keycloak aggiungere marco a wfm-editor; marco riprova."
+  ],
+  "expected": "1: senza mappature l'interruttore non si può attivare. 3: si torna su /auth con il messaggio che l'account non è in nessuno dei gruppi ammessi (no_group); nessun account creato; il log del server ha «Single sign-on refused» con error no_group. 4: marco entra come editor.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-18; marco in nessun gruppo.</p>\n        <h4>Passi</h4>\n        <ol><li>Togliere tutte le mappature: l'interruttore <b>Rifiuta chi non è in nessuno di questi gruppi</b> è disattivato. Rimettere wfm-editor → Editor.</li><li>Attivare l'interruttore; <b>Salva</b>.</li><li>In una finestra anonima, <b>Sign in with SSO</b> come marco.</li><li>In Keycloak aggiungere marco a wfm-editor; marco riprova.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: senza mappature l'interruttore non si può attivare. 3: si torna su /auth con il messaggio che l'account non è in nessuno dei gruppi ammessi (no_group); nessun account creato; il log del server ha «Single sign-on refused» con error no_group. 4: marco entra come editor.</p>\n      "
+}

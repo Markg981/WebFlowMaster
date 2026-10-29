@@ -1,0 +1,16 @@
+{
+  "id": "MOB-21",
+  "area": "MOB",
+  "title": "Test mobili instabili",
+  "priority": "P1",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "MOB-20 rilasciato; un piano con «Ricerca Wikipedia» eseguito almeno 3 volte con esiti alterni sullo stesso dispositivo (modificare uno step tra un run e l'altro senza salvarne la versione, o usare un'app che a volte non risponde). Facoltativo: un secondo test mobile che fallisce sempre su un dispositivo e passa sempre su un altro.",
+  "steps": [
+    "Report → Test che si contraddicono.",
+    "Passare il mouse sull'etichetta accanto al nome in App mobili.",
+    "Nella scheda premere Quarantena sulla riga del test mobile, con un motivo.",
+    "Come viewer.a aprire Report e App mobili."
+  ],
+  "expected": "1: il test compare con l'etichetta MOBILE, il dispositivo nella colonna del browser e il numero di cambi di esito; il test che cambia esito solo tra dispositivi non compare. 2: App mobili mostra «Instabile» sulla riga; il suggerimento dice dispositivo e «cambiato esito N× in M run». 3: la riga della scheda passa a «In quarantena» e anche App mobili mostra «In quarantena». 4: il viewer vede entrambe le etichette ma nessun pulsante Quarantena.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-20 rilasciato; un piano con «Ricerca Wikipedia» eseguito almeno 3 volte con esiti alterni sullo stesso dispositivo (modificare uno step tra un run e l'altro senza salvarne la versione, o usare un'app che a volte non risponde). Facoltativo: un secondo test mobile che fallisce sempre su un dispositivo e passa sempre su un altro.</p>\n        <h4>Passi</h4>\n        <ol><li>Report → Test che si contraddicono.</li><li>Passare il mouse sull'etichetta accanto al nome in App mobili.</li><li>Nella scheda premere Quarantena sulla riga del test mobile, con un motivo.</li><li>Come viewer.a aprire Report e App mobili.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: il test compare con l'etichetta MOBILE, il dispositivo nella colonna del browser e il numero di cambi di esito; il test che cambia esito solo tra dispositivi non compare. 2: App mobili mostra «Instabile» sulla riga; il suggerimento dice dispositivo e «cambiato esito N× in M run». 3: la riga della scheda passa a «In quarantena» e anche App mobili mostra «In quarantena». 4: il viewer vede entrambe le etichette ma nessun pulsante Quarantena.</p>\n      "
+}

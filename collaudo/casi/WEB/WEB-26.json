@@ -1,0 +1,16 @@
+{
+  "id": "WEB-26",
+  "area": "WEB",
+  "title": "Salvare un testo in una variabile",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il primo test passa e lo step mostra {{cognome}} = \"Smith\". Il secondo test fallisce indicando la variabile cognome mancante: i valori salvati restano nel loro run. Sul campo password il valore non viene mostrato nel report («a password field, not shown»).",
+  "steps": [
+    "/tables: Salva testo in variabile sulla prima cella «Last Name» della tabella 1, valore cognome.",
+    "Naviga a /login; Inserimento Testo username {{cognome}}; Verifica stato o Esegui JavaScript document.querySelector('#username').value === 'Smith'.",
+    "Salvare il test ed eseguirlo in un piano insieme a un secondo test che usa {{cognome}} senza averlo salvato.",
+    "Salva testo in variabile sul campo password dopo averlo compilato."
+  ],
+  "expected": "Il primo test passa e lo step mostra {{cognome}} = \"Smith\". Il secondo test fallisce indicando la variabile cognome mancante: i valori salvati restano nel loro run. Sul campo password il valore non viene mostrato nel report («a password field, not shown»).",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>/tables: <b>Salva testo in variabile</b> sulla prima cella «Last Name» della tabella 1, valore <code>cognome</code>.</li><li>Naviga a /login; Inserimento Testo username <code>{{cognome}}</code>; Verifica stato o Esegui JavaScript <code>document.querySelector('#username').value === 'Smith'</code>.</li><li>Salvare il test ed eseguirlo in un piano insieme a un secondo test che usa <code>{{cognome}}</code> senza averlo salvato.</li><li><b>Salva testo in variabile</b> sul campo password dopo averlo compilato.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il primo test passa e lo step mostra <code>{{cognome}} = \"Smith\"</code>. Il secondo test fallisce indicando la variabile <code>cognome</code> mancante: i valori salvati restano nel loro run. Sul campo password il valore non viene mostrato nel report («a password field, not shown»).</p>\n      "
+}

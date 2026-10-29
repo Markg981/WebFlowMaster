@@ -1,0 +1,15 @@
+{
+  "id": "REP-20",
+  "area": "REP",
+  "title": "Filtri del report",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Il run di REP-19.",
+  "steps": [
+    "Filtri: Gravità = una sola gravità.",
+    "Esito = Fallito, gravità Tutti.",
+    "Componente = un componente; poi Azzera i filtri."
+  ],
+  "expected": "Prima i filtri non facevano nulla. Ora le opzioni di componente e gravità sono solo quelle presenti nel run. Ogni filtro restringe sia «Test falliti» sia i risultati per modulo (moduli e componenti senza test spariscono, i conteggi sono quelli dei test mostrati), e compare «Mostrati X risultati su Y». Azzera i filtri riporta tutto com'era.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Il run di REP-19.</p>\n        <h4>Passi</h4>\n        <ol><li>Filtri: Gravità = una sola gravità.</li><li>Esito = Fallito, gravità Tutti.</li><li>Componente = un componente; poi <b>Azzera i filtri</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Prima i filtri non facevano nulla. Ora le opzioni di componente e gravità sono solo quelle presenti nel run. Ogni filtro restringe sia «Test falliti» sia i risultati per modulo (moduli e componenti senza test spariscono, i conteggi sono quelli dei test mostrati), e compare «Mostrati X risultati su Y». Azzera i filtri riporta tutto com'era.</p>\n      "
+}

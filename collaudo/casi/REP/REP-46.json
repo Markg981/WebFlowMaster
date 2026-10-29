@@ -1,0 +1,13 @@
+{
+  "id": "REP-46",
+  "area": "REP",
+  "title": "Il report mostra lo stato di ogni run, concluso o no",
+  "priority": "P2",
+  "actor": "visualizzatore",
+  "preconditions": "Catalogo versione 82. Un run completato, uno fallito e uno annullato.",
+  "steps": [
+    "Aprire il report di ciascun run.",
+    "Confrontare lo stato con GET /api/v1/runs/:id e con l'export HTML."
+  ],
+  "expected": "L'intestazione mostra «Status:» con COMPLETED, FAILED o CANCELLED anche a run concluso, accanto alla data di fine; lo stato è lo stesso dell'API e dell'export."
+}

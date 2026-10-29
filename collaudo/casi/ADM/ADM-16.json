@@ -1,0 +1,12 @@
+{
+  "id": "ADM-16",
+  "area": "ADM",
+  "title": "Callback di consegna",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Inviare tramite l'adattatore un evento delivered firmato e recente con il messageId registrato."
+  ],
+  "expected": "Evento persistente e stato aggiornato a consegnato."
+}

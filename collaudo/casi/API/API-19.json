@@ -1,0 +1,17 @@
+{
+  "id": "API-19",
+  "area": "API",
+  "title": "Tempi di risposta su più richieste, con soglie",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un piano con un solo test API.",
+  "steps": [
+    "Nuovo test GET https://httpbin.org/get con asserzione status code equals 200; scheda Prestazioni: attivare il controllo, Richieste 20, Alla volta 4, p95 3000, Richieste fallite 0. Salvare e mettere il test nel piano; eseguirlo.",
+    "Cambiare l'URL in https://httpbin.org/delay/2, p95 1000; salvare e rieseguire il piano.",
+    "Cambiare l'URL in https://httpbin.org/status/200,500 (risponde a caso 200 o 500), togliere p95, Richieste fallite 10; rieseguire.",
+    "Scrivere 5000 in Richieste.",
+    "Spegnere il controllo, salvare, rieseguire."
+  ],
+  "expected": "1: il test passa; nel report la scheda «Tempi di risposta» mostra il test con 20 ×4, p50, p95 e la più lenta in ms, 0% ed «entro le soglie». 2: il test fallisce con «Performance over 20 requests: p95 … ms > 1000 ms» nel motivo e il badge rosso nella scheda. 3: il test fallisce (salvo il caso raro in cui la prima risposta è 500: allora fallisce per l'asserzione) con «errors …% > 10% (N of 20)» e sotto l'esito un esempio «status_code equals \"200\" — actual: 500». 4: il campo si ferma a 200. 5: il piano invia una sola richiesta e la scheda «Tempi di risposta» non compare.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un piano con un solo test API.</p>\n        <h4>Passi</h4>\n        <ol><li>Nuovo test GET <code>https://httpbin.org/get</code> con asserzione status code equals 200; scheda <b>Prestazioni</b>: attivare il controllo, Richieste <code>20</code>, Alla volta <code>4</code>, p95 <code>3000</code>, Richieste fallite <code>0</code>. Salvare e mettere il test nel piano; eseguirlo.</li><li>Cambiare l'URL in <code>https://httpbin.org/delay/2</code>, p95 <code>1000</code>; salvare e rieseguire il piano.</li><li>Cambiare l'URL in <code>https://httpbin.org/status/200,500</code> (risponde a caso 200 o 500), togliere p95, Richieste fallite <code>10</code>; rieseguire.</li><li>Scrivere <code>5000</code> in Richieste.</li><li>Spegnere il controllo, salvare, rieseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: il test passa; nel report la scheda «Tempi di risposta» mostra il test con 20 ×4, p50, p95 e la più lenta in ms, 0% ed «entro le soglie». 2: il test fallisce con «Performance over 20 requests: p95 … ms &gt; 1000 ms» nel motivo e il badge rosso nella scheda. 3: il test fallisce (salvo il caso raro in cui la prima risposta è 500: allora fallisce per l'asserzione) con «errors …% &gt; 10% (N of 20)» e sotto l'esito un esempio «status_code equals \"200\" — actual: 500». 4: il campo si ferma a 200. 5: il piano invia una sola richiesta e la scheda «Tempi di risposta» non compare.</p>\n      "
+}

@@ -1,0 +1,15 @@
+{
+  "id": "MOB-08",
+  "area": "MOB",
+  "title": "Fallimento, riesecuzione e ambiente nel piano",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "MOB-06; l'ambiente Staging di MOB-03 con search.term = Appium.",
+  "steps": [
+    "Nel test mobile Digita {{search.term}}; eseguire il piano con ambiente Staging.",
+    "Aggiungere in fondo al test Verifica visibile ~nonEsiste; nel piano Riesegui in Caso di Fallimento = una volta; eseguire.",
+    "Impostare il piano per fermarsi al primo step fallito ed eseguire di nuovo."
+  ],
+  "expected": "1: il test mobile passa cercando «Appium» (le variabili dell'ambiente valgono come per gli altri test). 2: due sessioni su BrowserStack; la riga è Fallita con «No visible element ~nonEsiste within 15s.», il badge dei tentativi dice 2 e il run è Fallito. 3: i test dopo quello mobile risultano Saltati con il motivo della politica.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-06; l'ambiente Staging di MOB-03 con <code>search.term</code> = <code>Appium</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Nel test mobile Digita <code>{{search.term}}</code>; eseguire il piano con ambiente Staging.</li><li>Aggiungere in fondo al test Verifica visibile <code>~nonEsiste</code>; nel piano <b>Riesegui in Caso di Fallimento</b> = una volta; eseguire.</li><li>Impostare il piano per fermarsi al primo step fallito ed eseguire di nuovo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: il test mobile passa cercando «Appium» (le variabili dell'ambiente valgono come per gli altri test). 2: due sessioni su BrowserStack; la riga è Fallita con «No visible element ~nonEsiste within 15s.», il badge dei tentativi dice 2 e il run è Fallito. 3: i test dopo quello mobile risultano Saltati con il motivo della politica.</p>\n      "
+}

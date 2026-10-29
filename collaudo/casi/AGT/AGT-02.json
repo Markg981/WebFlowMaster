@@ -1,0 +1,14 @@
+{
+  "id": "AGT-02",
+  "area": "AGT",
+  "title": "Eseguire un piano sull'agente",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "AGT-01; un test su un URL raggiungibile solo dall'agente.",
+  "steps": [
+    "Impostazioni del piano → Esegui su: Local agents: interno.",
+    "Eseguire; poi eseguire lo stesso piano sui runner del server."
+  ],
+  "expected": "Sull'agente il test passa e il report indica l'agente in «Eseguito su». Sui runner del server lo stesso test fallisce perché l'URL non è raggiungibile.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>AGT-01; un test su un URL raggiungibile solo dall'agente.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni del piano → <b>Esegui su</b>: Local agents: interno.</li><li>Eseguire; poi eseguire lo stesso piano sui runner del server.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Sull'agente il test passa e il report indica l'agente in «Eseguito su». Sui runner del server lo stesso test fallisce perché l'URL non è raggiungibile.</p>\n      "
+}

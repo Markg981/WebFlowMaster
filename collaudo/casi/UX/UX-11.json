@@ -1,0 +1,17 @@
+{
+  "id": "UX-11",
+  "area": "UX",
+  "title": "Aiuto contestuale: il ? apre il manuale alla sezione della pagina",
+  "priority": "P3",
+  "actor": "editor",
+  "preconditions": "Stack di collaudo avviato con l'immagine costruita dal commit in prova; editor.a esiste; nessuna connessione a internet richiesta per il manuale.",
+  "steps": [
+    "Accedere come editor.a, aprire Suite e premere il ? nella barra in alto, a destra della ricerca.",
+    "Impostare la lingua Italiano in Impostazioni → Preferenze, aprire un report di esecuzione e premere di nuovo il ?.",
+    "Impostare la lingua Deutsch, aprire Novità e premere il ?; poi premere Ctrl+K, digitare Hilfe e premere Invio.",
+    "Nella scheda del manuale cercare «quarantena» con la ricerca del sito e aprire una pagina con un diagramma (Internals → Local agents).",
+    "Aprire https://wfm.collaudo.test/docs/it/guide/pagina-inesistente e, con gli strumenti per sviluppatori, leggere l'intestazione Content-Security-Policy di una pagina del manuale e di /dashboard."
+  ],
+  "expected": "Passo 1: si apre una nuova scheda su /docs/en/guide/organizing#suites, posizionata sulla sezione Suites; l'applicazione resta aperta nella scheda di partenza. Passo 2: la scheda si apre su /docs/it/guide/results#il-report-di-un-run, in italiano. Passo 3: Novità apre /docs/en/reference/changelog (le note di rilascio non sono tradotte in tedesco); la palette offre «Hilfe zu dieser Seite» e apre la stessa pagina. Passo 4: la ricerca trova risultati, il diagramma è disegnato e la console del browser non riporta violazioni CSP. Passo 5: la pagina inesistente è il 404 del manuale, non l'applicazione; sotto /docs lo script-src contiene, oltre a 'self', tre hash sha256, mentre /dashboard ha script-src 'self' senza hash.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Stack di collaudo avviato con l'immagine costruita dal commit in prova; editor.a esiste; nessuna connessione a internet richiesta per il manuale.</p>\n        <h4>Passi</h4>\n        <ol><li>Accedere come editor.a, aprire Suite e premere il ? nella barra in alto, a destra della ricerca.</li><li>Impostare la lingua Italiano in Impostazioni → Preferenze, aprire un report di esecuzione e premere di nuovo il ?.</li><li>Impostare la lingua Deutsch, aprire Novità e premere il ?; poi premere Ctrl+K, digitare Hilfe e premere Invio.</li><li>Nella scheda del manuale cercare «quarantena» con la ricerca del sito e aprire una pagina con un diagramma (Internals → Local agents).</li><li>Aprire <code>https://wfm.collaudo.test/docs/it/guide/pagina-inesistente</code> e, con gli strumenti per sviluppatori, leggere l'intestazione <code>Content-Security-Policy</code> di una pagina del manuale e di <code>/dashboard</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Passo 1: si apre una nuova scheda su /docs/en/guide/organizing#suites, posizionata sulla sezione Suites; l'applicazione resta aperta nella scheda di partenza. Passo 2: la scheda si apre su /docs/it/guide/results#il-report-di-un-run, in italiano. Passo 3: Novità apre /docs/en/reference/changelog (le note di rilascio non sono tradotte in tedesco); la palette offre «Hilfe zu dieser Seite» e apre la stessa pagina. Passo 4: la ricerca trova risultati, il diagramma è disegnato e la console del browser non riporta violazioni CSP. Passo 5: la pagina inesistente è il 404 del manuale, non l'applicazione; sotto /docs lo script-src contiene, oltre a 'self', tre hash sha256, mentre /dashboard ha script-src 'self' senza hash.</p>\n      "
+}

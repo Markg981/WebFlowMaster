@@ -1,0 +1,13 @@
+{
+  "id": "MOB-40",
+  "area": "MOB",
+  "title": "Catalogo mobile con dipendenze non valide",
+  "priority": "P1",
+  "actor": "editor.a, owner.a",
+  "preconditions": "Migrazione 0082 applicata. Bundle v2 modificabile con gruppi e test mobile.",
+  "steps": [
+    "Duplicare una chiave gruppo; aggiungere richiamo mancante o gruppo di piattaforma diversa.",
+    "Eseguire anteprima e import."
+  ],
+  "expected": "Esiti invalid espliciti; nessun test salvato contro una dipendenza non valida. I bundle v1 sono ancora leggibili."
+}

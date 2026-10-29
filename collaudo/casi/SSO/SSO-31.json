@@ -1,0 +1,12 @@
+{
+  "id": "SSO-31",
+  "area": "SSO",
+  "title": "Logout avviato dal prodotto",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Con SLO configurato accedere via SAML e premere Logout."
+  ],
+  "expected": "Sessione locale terminata e browser indirizzato alla richiesta LogoutRequest firmata dell'IdP."
+}

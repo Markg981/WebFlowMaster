@@ -1,0 +1,14 @@
+{
+  "id": "API-58",
+  "area": "API",
+  "title": "Test di carico: dati per utente e per iterazione",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Data set di 3 righe; test API che invia {{data.<set>.<colonna>}}, {{load.vu}} e {{load.iteration}} in un header. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "Creare un test di carico con 4 utenti al picco e 'Una riga propria per ogni utente virtuale'; salvare.",
+    "Passare a 'La riga successiva a ogni iterazione', salvare ed eseguire per 20 s con 4 utenti.",
+    "Riportare 3 utenti, modalità per utente; eliminare due righe dal data set e avviare un run."
+  ],
+  "expected": "Il primo salvataggio è rifiutato con '3 rows for 4 virtual users'. In modalità per iterazione il salvataggio riesce e l'endpoint riceve le righe a rotazione con load.vu 1–4 e load.iteration crescente per utente. L'avvio dopo la riduzione delle righe è rifiutato con '1 rows for 3 virtual users' e non crea esecuzioni."
+}

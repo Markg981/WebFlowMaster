@@ -1,0 +1,16 @@
+{
+  "id": "WEB-25",
+  "area": "WEB",
+  "title": "Lavorare in una nuova scheda",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Gli step dopo il cambio agiscono nella nuova scheda e i loro screenshot la mostrano; dopo la chiusura si torna alla prima. Il valore numerico e quello testuale scelgono la scheda giusta. Con una scheda inesistente lo step fallisce dopo l'attesa ed elenca le schede aperte. Chiudi scheda sull'unica scheda viene rifiutato.",
+  "steps": [
+    "/windows: Click «Click Here»; Cambia scheda con valore vuoto; Verifica Testo Contenuto h3 «New Window».",
+    "Chiudi scheda; Verifica Testo Contenuto h3 «Opening a new window».",
+    "Variante: Cambia scheda con valore /windows/new, poi con 1.",
+    "Cambia scheda con 5 quando le schede sono due."
+  ],
+  "expected": "Gli step dopo il cambio agiscono nella nuova scheda e i loro screenshot la mostrano; dopo la chiusura si torna alla prima. Il valore numerico e quello testuale scelgono la scheda giusta. Con una scheda inesistente lo step fallisce dopo l'attesa ed elenca le schede aperte. Chiudi scheda sull'unica scheda viene rifiutato.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>/windows: Click «Click Here»; <b>Cambia scheda</b> con valore vuoto; Verifica Testo Contenuto <code>h3</code> «New Window».</li><li><b>Chiudi scheda</b>; Verifica Testo Contenuto <code>h3</code> «Opening a new window».</li><li>Variante: <b>Cambia scheda</b> con valore <code>/windows/new</code>, poi con <code>1</code>.</li><li><b>Cambia scheda</b> con <code>5</code> quando le schede sono due.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Gli step dopo il cambio agiscono nella nuova scheda e i loro screenshot la mostrano; dopo la chiusura si torna alla prima. Il valore numerico e quello testuale scelgono la scheda giusta. Con una scheda inesistente lo step fallisce dopo l'attesa ed elenca le schede aperte. <b>Chiudi scheda</b> sull'unica scheda viene rifiutato.</p>\n      "
+}

@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { createCollaudoServer } from './server.mjs';
+import { loadCatalog } from './catalog.mjs';
 
 test('historical cycles stay frozen while the current catalog is available without creating a cycle', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'wfm-collaudo-browser-'));
@@ -16,7 +17,7 @@ test('historical cycles stay frozen while the current catalog is available witho
       if (server.listening) await new Promise((resolve) => server.close(resolve));
     await rm(directory, { recursive: true, force: true });
   });
-  const current = JSON.parse(await readFile(new URL('../casi.json', import.meta.url), 'utf8'));
+  const current = await loadCatalog();
   const historical = structuredClone(current);
   historical.version = 16;
   historical.cases = [current.cases[0]];

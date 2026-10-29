@@ -1,0 +1,15 @@
+{
+  "id": "REP-40",
+  "area": "REP",
+  "title": "Export e CLI: tentativi e righe non moltiplicano i test del piano",
+  "priority": "P2",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 72. Un piano con due browser (Chromium e Chromium con dispositivo Pixel 7), due lingue (en-US, it-IT), Re-Run On Failure una volta e Trace \"Sempre\"; un test UI con un dataset di 3 righe il cui primo tentativo fallisce e il secondo passa (per esempio un elemento che compare solo dopo un primo caricamento). Il run di REP-37 è concluso; la CLI wfm configurata con un token runs:read.",
+  "steps": [
+    "Esportare il run in HTML, Allure e JUnit.",
+    "Contare i test nei tre export.",
+    "Eseguire wfm units <runId>, poi wfm units <runId> <unitId>.",
+    "Aprire un run eseguito prima di questa versione: report, dettagli e export."
+  ],
+  "expected": "HTML: 4 righe in \"Every result\" e una sezione \"Attempts and dataset rows\" sotto ogni test. Allure: 4 risultati, ciascuno con l’allegato \"Attempts and dataset rows\". JUnit: tests=\"4\", un testcase per unità e la proprietà wfm.attempts. La CLI elenca 4 unità \"Passed after 2 attempts\" e, per un’unità, i due tentativi con le tre righe e i link alle evidenze. Il run precedente si apre come prima, con i suoi link storici funzionanti e senza selettori di tentativi o righe."
+}

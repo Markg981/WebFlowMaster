@@ -1,0 +1,14 @@
+{
+  "id": "PLN-06",
+  "area": "PLN",
+  "title": "Evidenze: video, trace e rete",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un test che passa e uno che fallisce.",
+  "steps": [
+    "Conserva una registrazione del run: Video e Trace «quando il test fallisce», Rete attiva.",
+    "Eseguire."
+  ],
+  "expected": "Il test fallito ha video, trace e HAR; quello passato no (ma il riepilogo di rete c'è per entrambi). L'HAR non contiene cookie, header Authorization né corpi.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test che passa e uno che fallisce.</p>\n        <h4>Passi</h4>\n        <ol><li><b>Conserva una registrazione del run</b>: Video e Trace «quando il test fallisce», Rete attiva.</li><li>Eseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il test fallito ha video, trace e HAR; quello passato no (ma il riepilogo di rete c'è per entrambi). L'HAR non contiene cookie, header Authorization né corpi.</p>\n      "
+}

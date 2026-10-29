@@ -1,0 +1,13 @@
+{
+  "id": "API-05",
+  "area": "API",
+  "title": "Segnaposto d'ambiente nella richiesta",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Segreto apiBase = https://httpbin.org e token nell'ambiente Staging.",
+  "steps": [
+    "URL {{apiBase}}/bearer, Bearer {{token}}, ambiente Staging; Invia."
+  ],
+  "expected": "La richiesta usa i valori dell'ambiente e risponde 200; il valore del token non compare nella cronologia in chiaro.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Segreto <code>apiBase</code> = <code>https://httpbin.org</code> e <code>token</code> nell'ambiente Staging.</p>\n        <h4>Passi</h4>\n        <ol><li>URL <code>{{apiBase}}/bearer</code>, Bearer <code>{{token}}</code>, ambiente Staging; <b>Invia</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La richiesta usa i valori dell'ambiente e risponde 200; il valore del token non compare nella cronologia in chiaro.</p>\n      "
+}

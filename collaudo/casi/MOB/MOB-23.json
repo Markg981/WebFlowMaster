@@ -1,0 +1,16 @@
+{
+  "id": "MOB-23",
+  "area": "MOB",
+  "title": "Correggere gli step registrati prima di aggiungerli",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-22, con almeno 4 step registrati e non ancora aggiunti.",
+  "steps": [
+    "Cambiare il locator della riga 1 in un altro valido.",
+    "Spostare l'ultima riga in su con la freccia; rimuovere la riga Scorri con il cestino.",
+    "Chiudere l'inspector con Esc.",
+    "Annullare la conferma; premere Scarta; chiudere di nuovo."
+  ],
+  "expected": "1: il campo accetta la modifica; se la riga era «fragile» l'etichetta sparisce. 2: l'ordine e i numeri si aggiornano, la riga Scorri non c'è più. 3: il browser chiede «Chiudere e perdere i N step registrati…?». 4: annullando l'inspector resta aperto con gli step; dopo Scarta l'elenco è vuoto e la chiusura non chiede nulla. Nessuno step è entrato nel test.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-22, con almeno 4 step registrati e non ancora aggiunti.</p>\n        <h4>Passi</h4>\n        <ol><li>Cambiare il locator della riga 1 in un altro valido.</li><li>Spostare l'ultima riga in su con la freccia; rimuovere la riga Scorri con il cestino.</li><li>Chiudere l'inspector con Esc.</li><li>Annullare la conferma; premere <b>Scarta</b>; chiudere di nuovo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: il campo accetta la modifica; se la riga era «fragile» l'etichetta sparisce. 2: l'ordine e i numeri si aggiornano, la riga Scorri non c'è più. 3: il browser chiede «Chiudere e perdere i N step registrati…?». 4: annullando l'inspector resta aperto con gli step; dopo Scarta l'elenco è vuoto e la chiusura non chiede nulla. Nessuno step è entrato nel test.</p>\n      "
+}

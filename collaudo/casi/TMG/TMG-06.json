@@ -1,0 +1,17 @@
+{
+  "id": "TMG-06",
+  "area": "TMG",
+  "title": "Pubblica di nuovo, manuali ed errori",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "TMG-03; un test manuale con caso C3 nel piano (LIB-13).",
+  "steps": [
+    "Eseguire il piano senza dare l'esito manuale.",
+    "Dare l'esito Superato; Pubblica di nuovo alla connessione del piano.",
+    "Pubblica di nuovo scegliendo un'altra connessione (TMG-04).",
+    "Cambiare il token della connessione TestRail con uno errato; Pubblica di nuovo.",
+    "Durante un run in corso, aprire il report."
+  ],
+  "expected": "1: C3 non riceve risultato in TestRail (in Xray sarebbe TODO, in Zephyr Not Executed). 2: una nuova run in TestRail, con C3 Passed; la scheda elenca due pubblicazioni, la più recente in alto. 3: pubblicata su Xray senza cambiare il piano. 4: riga «Fallita» con il motivo (credenziali rifiutate); il run non cambia esito; audit test_management.run_published con stato failed. 5: nessun pulsante di pubblicazione finché il run non è finito.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TMG-03; un test manuale con caso C3 nel piano (LIB-13).</p>\n        <h4>Passi</h4>\n        <ol><li>Eseguire il piano senza dare l'esito manuale.</li><li>Dare l'esito Superato; <b>Pubblica di nuovo</b> alla connessione del piano.</li><li>Pubblica di nuovo scegliendo un'altra connessione (TMG-04).</li><li>Cambiare il token della connessione TestRail con uno errato; Pubblica di nuovo.</li><li>Durante un run in corso, aprire il report.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: C3 non riceve risultato in TestRail (in Xray sarebbe TODO, in Zephyr Not Executed). 2: una nuova run in TestRail, con C3 Passed; la scheda elenca due pubblicazioni, la più recente in alto. 3: pubblicata su Xray senza cambiare il piano. 4: riga «Fallita» con il motivo (credenziali rifiutate); il run non cambia esito; audit <b>test_management.run_published</b> con stato failed. 5: nessun pulsante di pubblicazione finché il run non è finito.</p>\n      "
+}

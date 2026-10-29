@@ -1,0 +1,14 @@
+{
+  "id": "QUO-07",
+  "area": "QUO",
+  "title": "Prenotazioni conservative e recupero storage",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "In uno storage sacrificabile provocare un timeout dopo la persistenza di un artifact.",
+    "Provocare anche una riconciliazione non riuscita e osservare il consumo.",
+    "Ripristinare lo storage ed eseguire una riconciliazione riuscita."
+  ],
+  "expected": "La prenotazione resta conservativa; l’inventario fallito conserva l’ultimo consumo valido. La riconciliazione riuscita risolve il consumo effettivo senza liberare spazio non confermato."
+}
