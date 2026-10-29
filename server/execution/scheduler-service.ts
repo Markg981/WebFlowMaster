@@ -704,8 +704,13 @@ export async function bullmqAddScheduleJob(schedule: TestPlanSchedule): Promise<
 }
 
 export async function bullmqRemoveScheduleJob(scheduleId: string): Promise<void> {
-  await testExecutionQueue.removeJobScheduler(scheduleId).catch(() => {});
-  await testExecutionQueue.remove(onceJobId(scheduleId)).catch(() => {});
+  // Best effort, but never silent: a job left in Redis would fire for a removed schedule.
+  await testExecutionQueue.removeJobScheduler(scheduleId).catch((error) => {
+    logger.warn(`[SchedulerService/bullmq] Could not remove job scheduler ${scheduleId}`, error);
+  });
+  await testExecutionQueue.remove(onceJobId(scheduleId)).catch((error) => {
+    logger.warn(`[SchedulerService/bullmq] Could not remove once-job for ${scheduleId}`, error);
+  });
 }
 
 export async function bullmqUpdateScheduleJob(schedule: TestPlanSchedule): Promise<void> {
@@ -728,7 +733,12 @@ export async function bullmqInitializeScheduler(): Promise<void> {
     const existing = await testExecutionQueue.getJobSchedulers(0, -1);
     for (const js of existing) {
       if (js.key && !activeIds.has(js.key)) {
-        await testExecutionQueue.removeJobScheduler(js.key).catch(() => {});
+        await testExecutionQueue.removeJobScheduler(js.key).catch((error) => {
+          logger.warn(
+            `[SchedulerService/bullmq] Could not remove stale job scheduler ${js.key}`,
+            error,
+          );
+        });
       }
     }
   } catch (e) {

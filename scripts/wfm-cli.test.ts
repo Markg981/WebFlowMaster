@@ -342,6 +342,22 @@ describe('runCli', () => {
     expect(context.files.get('allure.zip')).toBeInstanceOf(Uint8Array);
   });
 
+  it('still prints the summary and exits with the verdict when the JUnit download fails', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(started())
+      .mockResolvedValueOnce(run('failed', { total: 2, passed: 1, failed: 1 }))
+      .mockResolvedValueOnce(textResponse('boom', 500));
+    const context = io(fetchImpl);
+
+    const code = await runCli(options({ wait: true, junitPath: 'junit.xml' }), context);
+
+    expect(code).toBe(EXIT_RUN_FAILED);
+    expect(context.errors.join(' ')).toContain('JUnit');
+    expect(context.files.has('junit.xml')).toBe(false);
+    expect(context.lines.join('\n')).toContain('run-1');
+  });
+
   it("reports a refused start as a tool error, with the server's own reason", async () => {
     const fetchImpl = vi
       .fn()

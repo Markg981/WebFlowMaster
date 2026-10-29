@@ -1,0 +1,12 @@
+{
+  "id": "REP-49",
+  "area": "REP",
+  "title": "CLI: esito della run anche se il download JUnit fallisce",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "Ambiente di prova.",
+  "steps": [
+    "Eseguire wfm run --wait --junit f.xml con l'endpoint JUnit che risponde 500 su una run fallita."
+  ],
+  "expected": "Il riepilogo della run e stampato, c'e un avviso sul download e il codice di uscita e 1 (run fallita), non 2."
+}
