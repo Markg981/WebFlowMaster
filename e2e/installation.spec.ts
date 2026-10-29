@@ -279,9 +279,9 @@ test('registration, logout and login keep the session across a reload', async ({
   await page.getByRole('button', { name: 'Account', exact: true }).click();
   await expect(page.getByText(username, { exact: true })).toBeVisible();
   await page.getByRole('menuitem', { name: 'Log out', exact: true }).click();
-  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page).toHaveURL(/\/auth(\?returnTo=[^&]*)?$/);
   await page.goto('/dashboard');
-  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page).toHaveURL(/\/auth(\?returnTo=[^&]*)?$/);
   await page.locator('#login-username').fill(username);
   await page.locator('#login-password').fill(password);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();

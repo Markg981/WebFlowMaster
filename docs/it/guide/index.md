@@ -26,6 +26,9 @@ di solito tramite un link di invito. A seconda di come è configurata l'organizz
   vostra organizzazione accede con il single sign-on, la password lì non funziona più: usate
   quel pulsante.
 
+Se avete aperto il link di una pagina da disconnessi (da un'e-mail o da un messaggio), dopo
+l'accesso arrivate a quella pagina invece che alla dashboard.
+
 Password dimenticata? Chiedete un link di reset a un owner della vostra organizzazione.
 
 **Più di un'organizzazione?** Un owner di un'altra organizzazione può invitare lo username che già
