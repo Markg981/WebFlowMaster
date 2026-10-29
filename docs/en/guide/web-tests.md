@@ -305,9 +305,12 @@ matches nothing fails the step.
 
 **Which inbox.** The environment's secrets `mailpit.url` (for example `https://mail.staging.example`)
 and, when it asks for them, `mailpit.username` and `mailpit.password`; `mailpit.timeout` changes
-the wait, in seconds. Without them, the server's own (`MAILPIT_URL`, which the docker-compose stack
+the wait, in seconds; `mailpit.from` keeps only mail whose sender address contains that text, so a second email in the same minute is not taken for the one awaited. The code itself is never shown in the step's detail in the report. Without them, the server's own (`MAILPIT_URL`, which the docker-compose stack
 sets to its bundled Mailpit, open at http://localhost:8025). The inbox is read from where the
 browser runs, so a plan on a local agent reaches a Mailpit on the agent's network.
+
+**Sites behind HTTP Basic authentication.** Set the environment's secrets `http.username` and
+`http.password`: the browser answers the site's Basic-auth challenge with them.
 
 ### Text messages (SMS) {#sms}
 

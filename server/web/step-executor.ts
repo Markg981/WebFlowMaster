@@ -1427,6 +1427,8 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in wanted) return failed(wanted.error);
     const query = parseEmailQuery(wanted.value);
     if ('error' in query) return failed(query.error);
+    const wantedFrom = rt.vars['mailpit.from']?.trim();
+    if (wantedFrom) query.from = wantedFrom;
     const config = inboxConfig(rt.vars);
     if (!config) {
       return failed(
@@ -1467,7 +1469,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       );
     }
     const read = [
-      otp !== null ? `{{email.otp}} = "${otp}"` : 'no code found',
+      otp !== null ? '{{email.otp}} = (code, not shown)' : 'no code found',
       link !== null ? `{{email.link}} = ${excerpt(link)}` : 'no link found',
     ];
     return {
@@ -1508,7 +1510,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       );
     return {
       status: 'passed',
-      detail: `Text from ${message.fromNumber || 'an unknown sender'}: ${otp !== null ? `{{sms.otp}} = "${otp}"` : 'no code found'}.`,
+      detail: `Text from ${message.fromNumber || 'an unknown sender'}: ${otp !== null ? `{{sms.otp}} = (code, not shown)` : 'no code found'}.`,
     };
   },
 
