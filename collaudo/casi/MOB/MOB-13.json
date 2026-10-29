@@ -1,0 +1,17 @@
+{
+  "id": "MOB-13",
+  "area": "MOB",
+  "title": "Inspector: scegliere un elemento e aggiungere il passo",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-01 (app Wikipedia su BrowserStack, dispositivo Google Pixel 8).",
+  "steps": [
+    "Nuovo test mobile: compilare App e Dispositivo senza passi; il pulsante Inspector prima di compilarli e dopo.",
+    "Inspector; attendere il dispositivo.",
+    "Cliccare sullo schermo sulla barra di ricerca.",
+    "+ accanto al primo locator; poi scegliere Aggiungi come = Verifica visibile e + su un altro locator.",
+    "Chiudere l'inspector."
+  ],
+  "expected": "1: disabilitato finché mancano app o dispositivo, poi attivo. 2: prima «La griglia sta cercando un Google Pixel 8…», poi lo schermo del telefono con l'elenco degli elementi; nel titolo «Google Pixel 8 · Android …». 3: la barra è evidenziata con un riquadro; compaiono tipo, attributi e locator, il primo segnato «unico» (per esempio ~Search Wikipedia). 4: il passo vuoto iniziale è sostituito da Tocca con quel locator, poi si aggiunge Verifica visibile; il contatore dice 2 passi aggiunti. 5: nella dashboard di App Automate la sessione «WebFlowMaster · inspector» risulta chiusa subito.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-01 (app Wikipedia su BrowserStack, dispositivo Google Pixel 8).</p>\n        <h4>Passi</h4>\n        <ol><li>Nuovo test mobile: compilare App e Dispositivo senza passi; il pulsante <b>Inspector</b> prima di compilarli e dopo.</li><li><b>Inspector</b>; attendere il dispositivo.</li><li>Cliccare sullo schermo sulla barra di ricerca.</li><li><b>+</b> accanto al primo locator; poi scegliere <b>Aggiungi come</b> = Verifica visibile e <b>+</b> su un altro locator.</li><li>Chiudere l'inspector.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: disabilitato finché mancano app o dispositivo, poi attivo. 2: prima «La griglia sta cercando un Google Pixel 8…», poi lo schermo del telefono con l'elenco degli elementi; nel titolo «Google Pixel 8 · Android …». 3: la barra è evidenziata con un riquadro; compaiono tipo, attributi e locator, il primo segnato «unico» (per esempio ~Search Wikipedia). 4: il passo vuoto iniziale è sostituito da Tocca con quel locator, poi si aggiunge Verifica visibile; il contatore dice 2 passi aggiunti. 5: nella dashboard di App Automate la sessione «WebFlowMaster · inspector» risulta chiusa subito.</p>\n      "
+}

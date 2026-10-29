@@ -1,0 +1,13 @@
+{
+  "id": "PLN-55",
+  "area": "PLN",
+  "title": "Riesecuzione dopo perdita del worker solo con la policy esplicita del piano",
+  "priority": "P2",
+  "actor": "owner",
+  "preconditions": "Catalogo versione 75. Ambiente di collaudo con due worker (mai produzione) e accesso al database; un piano con «Worker che si dividono un'esecuzione» = 2 e due test UI ripetibili senza danni.",
+  "steps": [
+    "Ripetere PLN-54 con «Se un runner si perde durante un test» = «Riesegui il test su un altro runner».",
+    "Ripetere con un piano su un solo worker e una pianificazione con tentativi (retry) ma policy al default: terminare il worker a metà run."
+  ],
+  "expected": "Nel primo caso il test perso viene rieseguito come nuovo tentativo su un altro worker e il run termina Completed; il tentativo del worker perso resta visibile come abandoned. Nel secondo il run termina worker_lost e non viene accodato alcun nuovo tentativo: né i retry della pianificazione né «Riesegui in caso di fallimento» autorizzano una riesecuzione."
+}

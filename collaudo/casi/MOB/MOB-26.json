@@ -1,0 +1,13 @@
+{
+  "id": "MOB-26",
+  "area": "MOB",
+  "title": "Salvataggio mobile invariato",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile salvato in A. Annotare numero e conteggio revisioni.",
+  "steps": [
+    "Salvare senza modificare la configurazione.",
+    "Ricaricare e ripetere il salvataggio."
+  ],
+  "expected": "Numero e conteggio revisioni restano invariati; nessun duplicato nella cronologia."
+}

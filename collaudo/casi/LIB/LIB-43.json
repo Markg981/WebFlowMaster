@@ -1,0 +1,16 @@
+{
+  "id": "LIB-43",
+  "area": "LIB",
+  "title": "Versione revisionata: il gruppo modificato dopo la review non cambia ciò che viene pubblicato ed eseguito",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 73. Organizzazione con review obbligatoria; due editor (autore e revisore). Un gruppo di step \"Login\" che compila il campo utente e preme \"Accedi\"; un piano con un solo test UI.",
+  "steps": [
+    "Come autore, creare un test che richiama il gruppo \"Login\" e salvarlo (versione 1); richiedere la review.",
+    "Modificare il gruppo \"Login\" aggiungendo uno step che fallisce sicuramente (per esempio un clic su un selettore inesistente).",
+    "Come revisore, approvare la review della versione 1.",
+    "Eseguire il piano e aprire il report.",
+    "Aprire la cronologia del test."
+  ],
+  "expected": "Il run esegue gli step del gruppo come erano al salvataggio della versione 1 e passa; lo step aggiunto dopo la review non compare. La provenienza del run indica la versione 1 pubblicata con dipendenze di origine \"version\". La cronologia mostra solo la versione 1: l'approvazione non ha catturato di nuovo il gruppo."
+}

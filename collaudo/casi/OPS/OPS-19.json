@@ -1,0 +1,14 @@
+{
+  "id": "OPS-19",
+  "area": "OPS",
+  "title": "Backup con impronte alterate rifiutato",
+  "priority": "P2",
+  "actor": "collaudatore locale",
+  "preconditions": "Un backup JSON della pagina locale contiene almeno un ciclo congelato e un esito. Lavorare su una copia del file.",
+  "steps": [
+    "Modificare un passo del caso nel catalogo della sezione state.snapshots lasciando invariata la sua chiave SHA-256.",
+    "Tentare di importare il file modificato.",
+    "Ricaricare il ciclo già presente e verificare esiti e note."
+  ],
+  "expected": "L'importazione segnala un'impronta non valida. Nessun ciclo, esito, nota o definizione del catalogo locale viene modificato."
+}

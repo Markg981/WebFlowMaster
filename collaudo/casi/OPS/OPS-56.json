@@ -1,0 +1,14 @@
+{
+  "id": "OPS-56",
+  "area": "OPS",
+  "title": "Compose: il worker sopravvive a up -d durante un run e i servizi ripartono",
+  "priority": "P1",
+  "actor": "Operatore",
+  "preconditions": "Stack docker-compose.yml avviato; un run lungo almeno 20 secondi in esecuzione sul worker.",
+  "steps": [
+    "Durante il run eseguire docker compose up -d --build worker (o docker compose stop worker) e osservare il run.",
+    "docker inspect sul worker: leggere HostConfig.RestartPolicy e StopTimeout; poi docker kill sul container api.",
+    "Riavviare il daemon Docker (o la macchina) e controllare docker compose ps."
+  ],
+  "expected": "1: il worker attende la fine del run (fino a 45 s) e si ferma senza SIGKILL; il run termina, non resta running né diventa worker_lost. 2: RestartPolicy unless-stopped e StopTimeout 45; api riparte da solo dopo il kill. 3: api e worker tornano in esecuzione, migrate resta terminato."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "MOB-24",
+  "area": "MOB",
+  "title": "Registrare in un campo password ed elementi senza nome",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un'app con una schermata di login (per esempio l'app demo di BrowserStack o una propria) con un campo password; inspector in Registra.",
+  "steps": [
+    "Cliccare sul campo password nell'immagine e scrivere una password; Invio.",
+    "Nella riga Digita sostituire il valore con {{password}}.",
+    "Cliccare su un elemento senza accessibility id, resource id né testo (per esempio un'icona decorativa).",
+    "Aggiungere gli step al test ed eseguirlo con un ambiente che definisce password."
+  ],
+  "expected": "1: il campo di scrittura è mascherato; la riga Digita ha il valore mascherato e l'etichetta «password». 2: il valore diventa leggibile ({{password}}) e l'etichetta sparisce. 3: la riga Tocca ha un XPath per posizione e l'etichetta «fragile», con il suggerimento di dare un accessibility id. 4: il run usa la password dell'ambiente; nel test salvato non compare la password scritta al passo 1.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un'app con una schermata di login (per esempio l'app demo di BrowserStack o una propria) con un campo password; inspector in <b>Registra</b>.</p>\n        <h4>Passi</h4>\n        <ol><li>Cliccare sul campo password nell'immagine e scrivere una password; Invio.</li><li>Nella riga Digita sostituire il valore con <code>{{password}}</code>.</li><li>Cliccare su un elemento senza accessibility id, resource id né testo (per esempio un'icona decorativa).</li><li>Aggiungere gli step al test ed eseguirlo con un ambiente che definisce password.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: il campo di scrittura è mascherato; la riga Digita ha il valore mascherato e l'etichetta «password». 2: il valore diventa leggibile ({{password}}) e l'etichetta sparisce. 3: la riga Tocca ha un XPath per posizione e l'etichetta «fragile», con il suggerimento di dare un accessibility id. 4: il run usa la password dell'ambiente; nel test salvato non compare la password scritta al passo 1.</p>\n      "
+}

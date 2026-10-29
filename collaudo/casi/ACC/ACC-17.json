@@ -1,0 +1,15 @@
+{
+  "id": "ACC-17",
+  "area": "ACC",
+  "title": "Il limite del secondo fattore sopravvive a un nuovo accesso",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un account con secondo fattore attivo.",
+  "steps": [
+    "Accedere con la password e sbagliare 3 codici.",
+    "Accedere di nuovo con la password e sbagliare altri 2 codici.",
+    "Accedere ancora e inserire un codice di recupero valido."
+  ],
+  "expected": "Il sesto tentativo è rifiutato con 429 e Retry-After, anche con un codice valido. Audit auth.account_locked (factor mfa). Un codice corretto prima del limite azzera il conteggio.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un account con secondo fattore attivo.</p>\n        <h4>Passi</h4>\n        <ol><li>Accedere con la password e sbagliare 3 codici.</li><li>Accedere di nuovo con la password e sbagliare altri 2 codici.</li><li>Accedere ancora e inserire un codice di recupero valido.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il sesto tentativo è rifiutato con 429 e Retry-After, anche con un codice valido. Audit <b>auth.account_locked</b> (factor mfa). Un codice corretto prima del limite azzera il conteggio.</p>\n      "
+}

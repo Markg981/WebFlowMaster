@@ -1,0 +1,13 @@
+{
+  "id": "TEL-06",
+  "area": "TEL",
+  "title": "Tentativi worker, rinvii e ritorno degli slot a zero",
+  "priority": "P1",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "Avviare un piano e una preview; osservare le code dei piani e dei browser durante e dopo il lavoro.",
+    "Provocare separatamente un errore infrastrutturale, un rinvio per quota e un’asserzione funzionale fallita."
+  ],
+  "expected": "Istogrammi attesa/durata e gauge capacità/attivi sono aggiornati per coda. wfm_jobs_total distingue success, error e deferred; il rinvio non è un run completato. Un’asserzione fallita elaborata normalmente conta come job success; gli attivi tornano a zero."
+}

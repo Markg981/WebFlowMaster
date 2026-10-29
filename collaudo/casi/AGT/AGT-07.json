@@ -1,0 +1,14 @@
+{
+  "id": "AGT-07",
+  "area": "AGT",
+  "title": "WebSocket nella rete privata con estrazioni",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Agente 1.1.0 nel pool interno; endpoint WebSocket echo raggiungibile solo dalla rete agente.",
+  "steps": [
+    "Creare un test WEBSOCKET con header bearer e body {\"send\":[\"hello {{name}}\"],\"until\":1}.",
+    "Asserire last e count; estrarre last in una variabile. Eseguire il piano sul pool interno."
+  ],
+  "expected": "Il servizio riceve header e messaggio sostituito dalla rete agente. Asserzioni ed estrazione passano nel report.",
+  "detailHtml": "<h4>Precondizioni</h4><p>Agente 1.1.0 nel pool interno; endpoint WebSocket echo raggiungibile solo dalla rete agente.</p><h4>Passi</h4><ol><li>Creare un test WEBSOCKET con header bearer e body {\"send\":[\"hello {{name}}\"],\"until\":1}.</li><li>Asserire last e count; estrarre last in una variabile. Eseguire il piano sul pool interno.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Il servizio riceve header e messaggio sostituito dalla rete agente. Asserzioni ed estrazione passano nel report.</p>"
+}

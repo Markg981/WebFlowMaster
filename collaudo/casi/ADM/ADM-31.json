@@ -1,0 +1,13 @@
+{
+  "id": "ADM-31",
+  "area": "ADM",
+  "title": "Reset password di un utente presente in più organizzazioni: rifiutato",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 93. Un utente membro sia dell'organizzazione A sia della B; owner.a è owner solo di A.",
+  "steps": [
+    "Da owner.a, emettere il link di reset password per quell'utente.",
+    "Emettere lo stesso link per un utente presente solo in A."
+  ],
+  "expected": "1: 409 con il messaggio che indica «Password dimenticata»; nessun token emesso e nessuna voce di audit di reset. 2: 201 con il link, una sola volta."
+}

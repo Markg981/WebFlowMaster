@@ -1,0 +1,13 @@
+{
+  "id": "API-02",
+  "area": "API",
+  "title": "Un'asserzione che fallisce",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "API-01.",
+  "steps": [
+    "Cambiare la prima asserzione in status code equals 201; Invia."
+  ],
+  "expected": "Quell'asserzione è rossa e mostra il valore ottenuto (200); le altre restano verdi.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>API-01.</p>\n        <h4>Passi</h4>\n        <ol><li>Cambiare la prima asserzione in status code equals 201; <b>Invia</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Quell'asserzione è rossa e mostra il valore ottenuto (200); le altre restano verdi.</p>\n      "
+}

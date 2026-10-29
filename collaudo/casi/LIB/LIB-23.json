@@ -1,0 +1,12 @@
+{
+  "id": "LIB-23",
+  "area": "LIB",
+  "title": "Dialetto non supportato",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Importare un file con direttiva di lingua italiana e parole chiave italiane."
+  ],
+  "expected": "Formato rifiutato esplicitamente, senza creare test parziali."
+}

@@ -1,0 +1,12 @@
+{
+  "id": "BDD-04",
+  "area": "BDD",
+  "title": "Selezione isolata di una riga Examples",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Importare un Outline con due righe, pubblicare solo la prima e avviare il piano; esportare quel test."
+  ],
+  "expected": "Si esegue e si esporta una sola riga; la seconda non viene caricata nel percorso di esecuzione scelto."
+}

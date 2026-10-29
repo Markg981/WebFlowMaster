@@ -1,0 +1,13 @@
+{
+  "id": "SCH-05",
+  "area": "SCH",
+  "title": "Una sola volta",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "Parte una volta all'orario, poi non più.",
+  "steps": [
+    "Frequency «Once» fra 10 minuti."
+  ],
+  "expected": "Parte una volta all'orario, poi non più.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Frequency «Once» fra 10 minuti.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Parte una volta all'orario, poi non più.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "ACC-13",
+  "area": "ACC",
+  "title": "Revocare un invito in attesa",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "Un invito creato e non ancora usato.",
+  "steps": [
+    "Impostazioni → Membri → inviti in attesa: Revoca.",
+    "Aprire il link dell'invito revocato in una finestra anonima."
+  ],
+  "expected": "L'invito sparisce da quelli in attesa; il link risponde «That invitation is not valid.». Audit invitation.revoked.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un invito creato e non ancora usato.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Membri → inviti in attesa: <b>Revoca</b>.</li><li>Aprire il link dell'invito revocato in una finestra anonima.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'invito sparisce da quelli in attesa; il link risponde «That invitation is not valid.». Audit <b>invitation.revoked</b>.</p>\n      "
+}

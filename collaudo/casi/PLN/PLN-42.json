@@ -1,0 +1,15 @@
+{
+  "id": "PLN-42",
+  "area": "PLN",
+  "title": "BDD congelato su worker condivisi",
+  "priority": "P1",
+  "actor": "editor.a + operatore",
+  "preconditions": "Pool BDD valido e agente disponibile; piano con due shard e dataset condiviso di due righe. Tutti i worker sono fermi prima dell’accodamento.",
+  "steps": [
+    "Accodare il piano e verificare queued.",
+    "Modificare il dataset in una sola riga e cambiare i valori data.*; riavviare almeno due worker.",
+    "Controllare numero dei risultati BDD e input ricevuti dal runtime."
+  ],
+  "expected": "Il report contiene due risultati BDD indipendenti; entrambi i worker usano righe e valori data.* originali senza moltiplicazione per browser/lingue. Se non si prova l’effettivo uso di due worker, registrare il prerequisito mancante e non dichiarare verificato lo sharding.",
+  "detailHtml": "<h4>Precondizioni</h4><p>Pool BDD valido e agente disponibile; piano con due shard e dataset condiviso di due righe. Tutti i worker sono fermi prima dell’accodamento.</p><h4>Passi</h4><ol><li>Accodare il piano e verificare queued.</li><li>Modificare il dataset in una sola riga e cambiare i valori data.*; riavviare almeno due worker.</li><li>Controllare numero dei risultati BDD e input ricevuti dal runtime.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Il report contiene due risultati BDD indipendenti; entrambi i worker usano righe e valori data.* originali senza moltiplicazione per browser/lingue. Se non si prova l’effettivo uso di due worker, registrare il prerequisito mancante e non dichiarare verificato lo sharding.</p>"
+}

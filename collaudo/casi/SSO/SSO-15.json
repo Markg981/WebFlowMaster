@@ -1,0 +1,14 @@
+{
+  "id": "SSO-15",
+  "area": "SSO",
+  "title": "Risposta SAML riutilizzata",
+  "priority": "P1",
+  "actor": "—",
+  "preconditions": "SSO-14; DevTools aperti sulla scheda Rete.",
+  "steps": [
+    "Fare un accesso SAML e copiare il campo SAMLResponse del POST verso /acs.",
+    "In un'altra finestra anonima ripostare lo stesso SAMLResponse a /api/sso/saml/1/acs (curl o un form)."
+  ],
+  "expected": "Il secondo POST porta a /auth?sso_error=expired con il messaggio che l'accesso è scaduto; nessuna sessione viene creata.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-14; DevTools aperti sulla scheda Rete.</p>\n        <h4>Passi</h4>\n        <ol><li>Fare un accesso SAML e copiare il campo SAMLResponse del POST verso /acs.</li><li>In un'altra finestra anonima ripostare lo stesso SAMLResponse a /api/sso/saml/1/acs (curl o un form).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il secondo POST porta a /auth?sso_error=expired con il messaggio che l'accesso è scaduto; nessuna sessione viene creata.</p>\n      "
+}

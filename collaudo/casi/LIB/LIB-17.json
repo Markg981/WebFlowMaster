@@ -1,0 +1,15 @@
+{
+  "id": "LIB-17",
+  "area": "LIB",
+  "title": "Scaricare un test come test Playwright",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il test di WEB-02 e, nel progetto, un test con Se/Altrimenti, una precondizione, una pulizia e Attendi email.",
+  "steps": [
+    "Libreria: icona Scarica come test Playwright sul test di login.",
+    "In una cartella con npm i -D @playwright/test: WFM_USERNAME=tomsmith WFM_PASSWORD=… npx playwright test login-ok.spec.ts.",
+    "Scaricare il secondo test e leggerlo."
+  ],
+  "expected": "1: un file <nome>.spec.ts che legge le variabili da process.env.WFM_<NOME>. 2: il test Playwright passa. 3: Se/Altrimenti sono blocchi if/else, la precondizione è una chiamata prima degli step, la pulizia sta in un finally; Attendi email è una chiamata notExported(\"step N, …\") che fa fallire il test in quel punto (mai test.skip) e in testa il file dice «DRAFT» ed elenca gli step mancanti.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Il test di WEB-02 e, nel progetto, un test con Se/Altrimenti, una precondizione, una pulizia e Attendi email.</p>\n        <h4>Passi</h4>\n        <ol><li>Libreria: icona <b>Scarica come test Playwright</b> sul test di login.</li><li>In una cartella con <code>npm i -D @playwright/test</code>: <code>WFM_USERNAME=tomsmith WFM_PASSWORD=… npx playwright test login-ok.spec.ts</code>.</li><li>Scaricare il secondo test e leggerlo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: un file <code>&lt;nome&gt;.spec.ts</code> che legge le variabili da <code>process.env.WFM_&lt;NOME&gt;</code>. 2: il test Playwright passa. 3: Se/Altrimenti sono blocchi <code>if</code>/<code>else</code>, la precondizione è una chiamata prima degli step, la pulizia sta in un <code>finally</code>; Attendi email è un commento «Not exported» e in testa il file dice quanti step non sono stati esportati.</p>\n      "
+}

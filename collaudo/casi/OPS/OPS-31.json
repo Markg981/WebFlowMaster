@@ -1,0 +1,15 @@
+{
+  "id": "OPS-31",
+  "area": "OPS",
+  "title": "Recupero S3 da versioning o replica esterna",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Inventario key/version ID/hash al checkpoint; replica recuperabile; bucket e stack destinazione sacrificabili.",
+  "steps": [
+    "Seguire collaudo/application-restore-drill.md: recuperare oggetti nel bucket isolato e ripristinare DB/chiave.",
+    "Eseguire login, aprire report/evidenze e baseline, confrontare hash, verificare altro tenant e completare un nuovo run.",
+    "Registrare ID provider, checkpoint DB/replica e tempi bucket/DB/applicazione."
+  ],
+  "expected": "Oggetti storici e baseline recuperati con hash attesi; tenant escluso; nuovo run riuscito; tempi e ID provider documentati. Prerequisiti mancanti: Bloccato.",
+  "detailHtml": "<h4>Precondizioni</h4><p>Inventario key/version ID/hash al checkpoint; replica recuperabile; bucket e stack destinazione sacrificabili.</p><h4>Passi</h4><ol><li>Seguire collaudo/application-restore-drill.md: recuperare oggetti nel bucket isolato e ripristinare DB/chiave.</li><li>Eseguire login, aprire report/evidenze e baseline, confrontare hash, verificare altro tenant e completare un nuovo run.</li><li>Registrare ID provider, checkpoint DB/replica e tempi bucket/DB/applicazione.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Oggetti storici e baseline recuperati con hash attesi; tenant escluso; nuovo run riuscito; tempi e ID provider documentati. Prerequisiti mancanti: Bloccato.</p>"
+}

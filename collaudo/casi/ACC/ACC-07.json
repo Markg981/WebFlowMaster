@@ -1,0 +1,13 @@
+{
+  "id": "ACC-07",
+  "area": "ACC",
+  "title": "Limite ai tentativi di accesso",
+  "priority": "P2",
+  "actor": "nessuno",
+  "preconditions": "Dal 21° tentativo la risposta è «Too many attempts, please try again later.» anche con la password giusta; dopo 15 minuti si accede di nuovo.",
+  "steps": [
+    "Dallo stesso indirizzo, sbagliare la password 21 volte entro 15 minuti."
+  ],
+  "expected": "Dal 21° tentativo la risposta è «Too many attempts, please try again later.» anche con la password giusta; dopo 15 minuti si accede di nuovo.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Dallo stesso indirizzo, sbagliare la password 21 volte entro 15 minuti.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Dal 21° tentativo la risposta è «Too many attempts, please try again later.» anche con la password giusta; dopo 15 minuti si accede di nuovo.</p>\n      "
+}

@@ -1,0 +1,13 @@
+{
+  "id": "AUT-10",
+  "area": "AUT",
+  "title": "UI su Chromium, Firefox e WebKit",
+  "priority": "P2",
+  "actor": "owner.a / editor.a",
+  "preconditions": "PostgreSQL/Redis sacrificabili, bundle produzione, tre browser installati. Procedura: collaudo/real-matrix-certification.md.",
+  "steps": [
+    "Eseguire tutti i percorsi UI sui tre progetti Playwright.",
+    "Eseguire il piano UI con tre browser e aprire report ed esportazioni."
+  ],
+  "expected": "Tre risultati indipendenti; motore/versione/OS osservati e configurazione richiesta visibili. Un risultato passato non certifica OS/versioni non applicati."
+}

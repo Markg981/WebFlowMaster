@@ -1,0 +1,15 @@
+{
+  "id": "OPS-03",
+  "area": "OPS",
+  "title": "Backup e ripristino",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Con la stessa chiave tutto funziona, segreti compresi. Con una chiave diversa i segreti non si decifrano e lo step lo dice: conferma che la chiave va conservata a parte.",
+  "steps": [
+    "pg_dump; ripristino su un PostgreSQL vuoto con gli stessi ruoli (verificare BYPASSRLS e app_user).",
+    "Avviare con la stessa ENCRYPTION_KEY; eseguire un test che usa un segreto.",
+    "Ripetere con una chiave diversa."
+  ],
+  "expected": "Con la stessa chiave tutto funziona, segreti compresi. Con una chiave diversa i segreti non si decifrano e lo step lo dice: conferma che la chiave va conservata a parte.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><code>pg_dump</code>; ripristino su un PostgreSQL vuoto con gli stessi ruoli (verificare <code>BYPASSRLS</code> e <code>app_user</code>).</li><li>Avviare con la stessa <code>ENCRYPTION_KEY</code>; eseguire un test che usa un segreto.</li><li>Ripetere con una chiave diversa.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con la stessa chiave tutto funziona, segreti compresi. Con una chiave diversa i segreti non si decifrano e lo step lo dice: conferma che la chiave va conservata a parte.</p>\n      "
+}

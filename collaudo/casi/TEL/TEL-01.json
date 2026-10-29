@@ -1,0 +1,13 @@
+{
+  "id": "TEL-01",
+  "area": "TEL",
+  "title": "Telemetria disabilitata per impostazione predefinita",
+  "priority": "P1",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "Avviare API e worker senza WFM_METRICS_ENABLED=true e WFM_TRACING_ENABLED=true.",
+    "Eseguire una richiesta applicativa e un piano; verificare listener dedicati ed export al collector."
+  ],
+  "expected": "Applicazione e piano funzionano; nessun listener metriche dedicato e nessun export OpenTelemetry. I correlation ID applicativi restano disponibili."
+}

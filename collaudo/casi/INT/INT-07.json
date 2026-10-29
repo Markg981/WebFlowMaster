@@ -1,0 +1,13 @@
+{
+  "id": "INT-07",
+  "area": "INT",
+  "title": "Stato del commit su GitHub o GitLab",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Impostazioni → GitHub e GitLab collegato con un token.",
+  "steps": [
+    "Avviare un run dalla CI su un commit."
+  ],
+  "expected": "Il commit mostra lo stato in corso, poi passato o fallito, con il link al report. Errori di invio compaiono sul collegamento in Impostazioni.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Impostazioni → GitHub e GitLab collegato con un token.</p>\n        <h4>Passi</h4>\n        <ol><li>Avviare un run dalla CI su un commit.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il commit mostra lo stato in corso, poi passato o fallito, con il link al report. Errori di invio compaiono sul collegamento in Impostazioni.</p>\n      "
+}

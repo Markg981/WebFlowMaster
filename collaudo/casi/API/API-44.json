@@ -1,0 +1,13 @@
+{
+  "id": "API-44",
+  "area": "API",
+  "title": "mTLS con segreti dell’ambiente",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0078; servizio gRPC mTLS di prova con certificato valido per il proprio hostname; CA, certificato/chiave client e passphrase cifrata in segreti dell’ambiente A; agent 1.2.0.",
+  "steps": [
+    "Salvare indirizzo grpcs:// e riferimenti esatti {{secret_grpc_ca}}, {{secret_grpc_cert}}, {{secret_grpc_key}}, eventuale {{secret_grpc_passphrase}}.",
+    "Salvare, pubblicare, eseguire da worker e agente; esportare bundle e aprire cronologia."
+  ],
+  "expected": "mTLS verificato riesce sui due trasporti; test, versioni, bundle e cronologia non contengono PEM o chiavi risolte."
+}

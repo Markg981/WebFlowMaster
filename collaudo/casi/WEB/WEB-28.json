@@ -1,0 +1,15 @@
+{
+  "id": "WEB-28",
+  "area": "WEB",
+  "title": "Descrivere a frasi le nuove azioni",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "Ogni riga diventa l'azione corrispondente senza bisogno della chiave AI; «Premi Login» resta un click. Una riga che nomina un elemento inesistente viene rifiutata con il motivo. Le righe del passo 3 diventano Carica file con valore prova.csv, Rispondi al dialog accept:collaudo, Doppio click e Click destro (anche scritti «clic»).",
+  "steps": [
+    "Descrivi con le righe: «Premi Invio nel campo Password», «Click destro su …», «Doppio click su …», «Accetta il dialog», «Passa alla nuova scheda», «Chiudi la scheda», «Cancella i cookie», «Salva il testo di … come numeroOrdine».",
+    "Leggi la descrizione.",
+    "Su /upload, senza chiave AI: dopo Rileva Elementi, «Carica il file prova.csv nel campo file-upload», «Rispondi al prompt con «collaudo»», «Fai doppio clic su …», «Clic destro su …»; Leggi la descrizione."
+  ],
+  "expected": "Ogni riga diventa l'azione corrispondente senza bisogno della chiave AI; «Premi Login» resta un click. Una riga che nomina un elemento inesistente viene rifiutata con il motivo. Le righe del passo 3 diventano Carica file con valore prova.csv, Rispondi al dialog accept:collaudo, Doppio click e Click destro (anche scritti «clic»).",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><b>Descrivi</b> con le righe: «Premi Invio nel campo Password», «Click destro su …», «Doppio click su …», «Accetta il dialog», «Passa alla nuova scheda», «Chiudi la scheda», «Cancella i cookie», «Salva il testo di … come numeroOrdine».</li><li><b>Leggi la descrizione</b>.</li><li>Su /upload, senza chiave AI: dopo <b>Rileva Elementi</b>, «Carica il file prova.csv nel campo file-upload», «Rispondi al prompt con «collaudo»», «Fai doppio clic su …», «Clic destro su …»; <b>Leggi la descrizione</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ogni riga diventa l'azione corrispondente senza bisogno della chiave AI; «Premi Login» resta un click. Una riga che nomina un elemento inesistente viene rifiutata con il motivo. Le righe del passo 3 diventano Carica file con valore <code>prova.csv</code>, Rispondi al dialog <code>accept:collaudo</code>, Doppio click e Click destro (anche scritti «clic»).</p>\n      "
+}

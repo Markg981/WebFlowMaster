@@ -1,0 +1,15 @@
+{
+  "id": "SEC-75",
+  "area": "SEC",
+  "title": "Chiave API senza scope rifiutata; rotte riservate al proprietario solo da sessione",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 85. Un owner con sessione; una chiave API con scope projects:read.",
+  "steps": [
+    "Con la chiave con scope: GET /api/v1/projects.",
+    "Con la stessa chiave: PUT /api/mail-settings, POST /api/agents, DELETE /api/organization.",
+    "Dal database impostare scopes = NULL sulla chiave e ripetere GET /api/v1/projects.",
+    "Ripetere la richiesta 2 con la sessione dell'owner (senza confermare DELETE)."
+  ],
+  "expected": "1: 200. 2: 403 session_required (o 401 fuori da /api/v1). 3: 401, la chiave senza scope non è una credenziale. 4: le operazioni sono consentite con la sessione. Le chiavi senza scope esistenti sono state migrate ai soli scope di lettura."
+}

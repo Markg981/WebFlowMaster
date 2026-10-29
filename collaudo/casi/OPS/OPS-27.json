@@ -1,0 +1,13 @@
+{
+  "id": "OPS-27",
+  "area": "OPS",
+  "title": "Carico prolungato multi-tenant con evidenze",
+  "priority": "P1",
+  "actor": "operatore collaudo",
+  "preconditions": "Ambiente dedicato, due tenant con chiavi separate e piani con artefatti abilitati; agenti reali disponibili; scheduler configurato; budget di coda/spazio e durata concordati, metriche prima del carico. Procedura docs/it/admin/load-testing.md. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "Eseguire il profilo prolungato per la durata concordata su entrambi i tenant, includendo letture e invii periodici; conservare rapporto e metriche.",
+    "Durante il carico verificare run dagli agenti, run schedulati e lettura degli artefatti; riconciliare invii, ID unici ed esiti terminali."
+  ],
+  "expected": "Il rapporto mostra carico osservato, errori e latenza; nessuna perdita/duplicazione di run o contaminazione tenant; scheduler, agenti e artefatti restano utilizzabili. Le soglie concordate sono valutate con evidenze reali."
+}

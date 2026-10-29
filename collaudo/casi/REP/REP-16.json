@@ -1,0 +1,14 @@
+{
+  "id": "REP-16",
+  "area": "REP",
+  "title": "Analisi di un errore dell'applicazione",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "GEMINI_API_KEY impostata; un test che fallisce perché un'API risponde 500 (HAR conservato).",
+  "steps": [
+    "Analizzare il fallimento con l'AI.",
+    "Analizza di nuovo."
+  ],
+  "expected": "Categoria Bug dell'applicazione (o Ambiente) che cita la richiesta fallita; nessun selettore proposto. Analizza di nuovo fa una nuova richiesta e aggiorna data e testo.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>GEMINI_API_KEY</code> impostata; un test che fallisce perché un'API risponde 500 (HAR conservato).</p>\n        <h4>Passi</h4>\n        <ol><li>Analizzare il fallimento con l'AI.</li><li><b>Analizza di nuovo</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Categoria <b>Bug dell'applicazione</b> (o Ambiente) che cita la richiesta fallita; nessun selettore proposto. Analizza di nuovo fa una nuova richiesta e aggiorna data e testo.</p>\n      "
+}

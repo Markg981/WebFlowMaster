@@ -1,0 +1,12 @@
+{
+  "id": "LIB-22",
+  "area": "LIB",
+  "title": "Metadati non coerenti",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Modificare il testo di uno scenario esportato lasciando il suo commento wfm-test; tentare l'importazione."
+  ],
+  "expected": "Errore esplicito; nessun aggiornamento silenzioso dal testo incoerente."
+}

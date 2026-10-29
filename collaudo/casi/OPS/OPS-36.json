@@ -1,0 +1,14 @@
+{
+  "id": "OPS-36",
+  "area": "OPS",
+  "title": "Worker non-root con CA del Collaudo",
+  "priority": "P1",
+  "actor": "Operatore del Collaudo",
+  "preconditions": "Docker Linux e overlay collaudo aggiornati; CA esportata, Keycloak disponibile e nessun run attivo. Ricostruire il worker tramite Compose con INSTALL_COLLAUDO_CA_TOOLS=1. Il runtime produttivo predefinito resta pwuser.",
+  "steps": [
+    "Avviare il worker con docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml up -d --build --wait worker.",
+    "Verificare che il worker resti attivo come pwuser (UID 1000) e registri Collaudo CA trusted by the worker's Chromium; nessuna installazione apt avviene all'avvio.",
+    "Dal worker aprire con Chromium https://keycloak.collaudo.test/realms/acme/.well-known/openid-configuration senza ignoreHTTPSErrors; verificare risposta 200 e issuer del realm acme."
+  ],
+  "expected": "Worker attivo non-root; certutil presente dall'immagine di Collaudo; CA importata nel database NSS scrivibile dell'utente; Chromium legge il documento OIDC via HTTPS senza errore di certificato. Registrare immagini, UID ed esito. Un test automatico non assegna l'esito manuale."
+}

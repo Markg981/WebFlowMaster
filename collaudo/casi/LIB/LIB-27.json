@@ -1,0 +1,14 @@
+{
+  "id": "LIB-27",
+  "area": "LIB",
+  "title": "Approvazione API nella pagina condivisa",
+  "priority": "P1",
+  "actor": "editor.a, owner.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Revisioni 1 e 2 distinguibili.",
+  "steps": [
+    "Come editor.a richiedere review della versione 1 con nota; poi salvare la versione 2.",
+    "Come owner.a aprire Revisioni, identificare tipo API, autore e versione richiesta; leggere il confronto e approvare/pubblicare.",
+    "Avviare un piano dedicato."
+  ],
+  "expected": "La review pubblica la versione 1 richiesta, senza incorporare la 2; stato e autore della decisione persistono; piano e risultato indicano versione 1."
+}

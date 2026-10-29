@@ -1,0 +1,15 @@
+{
+  "id": "SEC-62",
+  "area": "SEC",
+  "title": "Overlay locali: il merge non ripubblica porte su tutte le interfacce",
+  "priority": "P1",
+  "actor": "admin",
+  "preconditions": "Catalogo versione 68. Lo stack di collaudo avviato come da collaudo/README.md. Una seconda macchina sulla stessa rete.",
+  "steps": [
+    "Eseguire docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml --profile \"*\" config --format json e cercare host_ip nelle sezioni ports.",
+    "Dalla macchina di collaudo aprire https://wfm.collaudo.test e connettersi al database su localhost:55432 (postgres / password).",
+    "Dalla seconda macchina provare le porte 80, 443 e 55432 della prima.",
+    "Aggiungere temporaneamente a un overlay di prova ports: ['5433:5432'] sotto postgres (senza !override), rieseguire il comando del passo 1, poi togliere l'overlay."
+  ],
+  "expected": "Passo 1: ogni porta pubblicata ha host_ip 127.0.0.1; postgres ha solo 55432. Passo 2: l'app e il database rispondono. Passo 3: connessioni rifiutate. Passo 4: postgres ha due pubblicazioni, la seconda senza host_ip: è il caso che compose-bindings.test.mjs segnala come 0.0.0.0:5433->5432."
+}

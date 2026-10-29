@@ -1,0 +1,14 @@
+{
+  "id": "QUO-09",
+  "area": "QUO",
+  "title": "Budget mensile e ammissione delle esecuzioni",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Con un run attivo e lavoro già in coda, esaurire il budget mensile di A in enforce.",
+    "Tentare nuove esecuzioni di piano, browser diretto, API e mobile.",
+    "Eliminare un report e osservare budget, coda e run attivo."
+  ],
+  "expected": "Le nuove ammissioni ricevono 429; il lavoro già in coda attende e quello attivo termina. Eliminare report non azzera il consumo mensile."
+}

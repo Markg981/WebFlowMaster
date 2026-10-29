@@ -1,0 +1,16 @@
+{
+  "id": "MOB-03",
+  "area": "MOB",
+  "title": "Un passo che fallisce, variabili e dispositivo inesistente",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-02; un ambiente Staging con il segreto search.term = Appium.",
+  "steps": [
+    "Cambiare il valore di Digita in {{search.term}}; eseguire con ambiente Nessuno.",
+    "Eseguire con ambiente Staging.",
+    "Aggiungere in fondo Verifica visibile ~nonEsiste; eseguire.",
+    "Dispositivo Google Pixel 99; eseguire."
+  ],
+  "expected": "1: fallisce al passo 2 con «Unresolved variable(s) search.term…», i passi dopo sono «Saltato». 2: passa, cercando «Appium». 3: l'ultimo passo fallisce con «No visible element ~nonEsiste within 15s.» dopo circa 15 secondi; la sessione su BrowserStack è segnata failed. 4: «Could not run» con il messaggio della griglia (dispositivo non trovato); la chiave della griglia non compare mai.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-02; un ambiente Staging con il segreto <code>search.term</code> = <code>Appium</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Cambiare il valore di Digita in <code>{{search.term}}</code>; eseguire con ambiente Nessuno.</li><li>Eseguire con ambiente Staging.</li><li>Aggiungere in fondo Verifica visibile <code>~nonEsiste</code>; eseguire.</li><li>Dispositivo <code>Google Pixel 99</code>; eseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: fallisce al passo 2 con «Unresolved variable(s) search.term…», i passi dopo sono «Saltato». 2: passa, cercando «Appium». 3: l'ultimo passo fallisce con «No visible element ~nonEsiste within 15s.» dopo circa 15 secondi; la sessione su BrowserStack è segnata failed. 4: «Could not run» con il messaggio della griglia (dispositivo non trovato); la chiave della griglia non compare mai.</p>\n      "
+}

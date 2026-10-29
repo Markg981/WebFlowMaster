@@ -1,0 +1,14 @@
+{
+  "id": "WEB-54",
+  "area": "WEB",
+  "title": "Un set condiviso che non c'è più",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un test pubblicato collegato a un set, e un collaboratore che elimina il set dopo aver scollegato la copia di lavoro (oppure: collegare, pubblicare, scollegare senza ripubblicare, eliminare il set).",
+  "steps": [
+    "Eseguire il piano con la versione pubblicata.",
+    "Aprire il test nel builder con il collegamento ancora presente."
+  ],
+  "expected": "1: quel test finisce in Errore con «… uses shared data set N, which no longer exists. Choose another set or give the test its own rows.»; gli altri test del piano girano. 2: il pannello mostra in rosso che il set non esiste più (id N).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test pubblicato collegato a un set, e un collaboratore che elimina il set dopo aver scollegato la copia di lavoro (oppure: collegare, pubblicare, scollegare senza ripubblicare, eliminare il set).</p>\n        <h4>Passi</h4>\n        <ol><li>Eseguire il piano con la versione pubblicata.</li><li>Aprire il test nel builder con il collegamento ancora presente.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: quel test finisce in Errore con «… uses shared data set N, which no longer exists. Choose another set or give the test its own rows.»; gli altri test del piano girano. 2: il pannello mostra in rosso che il set non esiste più (id N).</p>\n      "
+}

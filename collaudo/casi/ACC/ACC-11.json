@@ -1,0 +1,14 @@
+{
+  "id": "ACC-11",
+  "area": "ACC",
+  "title": "La sessione sopravvive al riavvio del server",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Sessioni su Redis.",
+  "steps": [
+    "Con una sessione aperta, riavviare il servizio api.",
+    "Ricaricare la pagina."
+  ],
+  "expected": "Si resta collegati senza rifare l'accesso.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Sessioni su Redis.</p>\n        <h4>Passi</h4>\n        <ol><li>Con una sessione aperta, riavviare il servizio <code>api</code>.</li><li>Ricaricare la pagina.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Si resta collegati senza rifare l'accesso.</p>\n      "
+}

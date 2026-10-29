@@ -1,0 +1,16 @@
+{
+  "id": "MOB-07",
+  "area": "MOB",
+  "title": "Il risultato mobile nel report",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-06 eseguito.",
+  "steps": [
+    "Nel report aprire i passi della riga «Ricerca Wikipedia».",
+    "Aprire lo screenshot della riga.",
+    "Cliccare Open the session on the grid.",
+    "Nella dashboard di App Automate cercare la sessione; poi scaricare il JUnit del run."
+  ],
+  "expected": "1: i passi sono numerati come nel test («1. tap ~Search Wikipedia», «2. type …»), il titolo dice «Steps recorded on Google Pixel 8 · 14.0». 2: è l'ultima schermata del telefono. 3: si apre la sessione BrowserStack con il video. 4: la sessione ha come build «WebFlowMaster · <id del piano> · …» ed è segnata passed; nel JUnit c'è un testcase «Ricerca Wikipedia».",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-06 eseguito.</p>\n        <h4>Passi</h4>\n        <ol><li>Nel report aprire i passi della riga «Ricerca Wikipedia».</li><li>Aprire lo screenshot della riga.</li><li>Cliccare <b>Open the session on the grid</b>.</li><li>Nella dashboard di App Automate cercare la sessione; poi scaricare il JUnit del run.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: i passi sono numerati come nel test («1. tap ~Search Wikipedia», «2. type …»), il titolo dice «Steps recorded on Google Pixel 8 · 14.0». 2: è l'ultima schermata del telefono. 3: si apre la sessione BrowserStack con il video. 4: la sessione ha come build «WebFlowMaster · &lt;id del piano&gt; · …» ed è segnata passed; nel JUnit c'è un testcase «Ricerca Wikipedia».</p>\n      "
+}
