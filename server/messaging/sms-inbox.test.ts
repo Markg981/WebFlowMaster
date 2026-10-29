@@ -175,7 +175,7 @@ describe('the inbox', () => {
     );
     expect(outcome).toMatchObject({
       status: 'passed',
-      detail: 'Text from Bank: {{sms.otp}} = "654321".',
+      detail: 'Text from Bank: {{sms.otp}} = (code, not shown).',
     });
     expect(vars).toMatchObject({ 'sms.otp': '654321', 'sms.from': 'Bank' });
 
