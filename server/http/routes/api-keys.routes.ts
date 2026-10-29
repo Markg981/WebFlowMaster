@@ -217,7 +217,14 @@ router.delete(
           .set({ revokedAt: new Date() })
           // Only a key that is still live: revoking twice would otherwise move the timestamp
           // and rewrite when it actually stopped working.
-          .where(and(eq(apiKeys.id, id), isNull(apiKeys.revokedAt)))
+          .where(
+            and(
+              eq(apiKeys.id, id),
+              isNull(apiKeys.revokedAt),
+              // An editor revokes only the keys they hold; an owner, any. Others' read as absent.
+              ...(roleAllows(req.user!.role, 'owner') ? [] : [eq(apiKeys.userId, req.user!.id)]),
+            ),
+          )
           .returning();
         if (!row) return null;
 
