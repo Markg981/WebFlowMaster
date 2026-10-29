@@ -18,14 +18,14 @@ id, and every incident records the correlation id needed to find its log lines.
 
 ## Decisions taken
 
-| Question                             | Decision                                                                      |
-| ------------------------------------ | ----------------------------------------------------------------------------- |
-| How the agent is triggered           | On demand, reading local files. No watcher, no daemon.                        |
-| What "reproduce automatically" means | Each incident yields a runnable failing test.                                 |
-| Which layers produce incidents       | All four: server API, client runtime, runner infrastructure, background jobs. |
-| Where incidents live                 | `.observability/` on disk, gitignored, redacted, rotated.                     |
-| Which environment                    | Development only. Production and source-map resolution are out of scope.      |
-| Frontend log volume                  | Continuous, level configurable, batched.                                      |
+| Question                             | Decision                                                                                                                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| How the agent is triggered           | On demand, reading local files. No watcher, no daemon.                                                                                                                                            |
+| What "reproduce automatically" means | Each incident yields a runnable failing test.                                                                                                                                                     |
+| Which layers produce incidents       | All four: server API, client runtime, runner infrastructure, background jobs.                                                                                                                     |
+| Where incidents live                 | `.observability/` on disk, gitignored, redacted, rotated.                                                                                                                                         |
+| Which environment                    | Developed for development. Since then `incidentErrorHandler` is always mounted (`server/index.ts`), so unhandled errors are recorded in production too; source-map resolution stays out of scope. |
+| Frontend log volume                  | Continuous, level configurable, batched.                                                                                                                                                          |
 
 ## What already exists
 
