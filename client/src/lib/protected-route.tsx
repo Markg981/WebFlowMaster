@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
 import { Redirect, Route } from 'wouter';
+import { loginUrlFor, currentPath } from '@/lib/return-to';
 import AppShell from '@/components/layout/AppShell';
 
 const MfaEnrollmentRequired = React.lazy(
@@ -30,7 +31,7 @@ export function ProtectedRoute({
   if (!user) {
     return (
       <Route path={path}>
-        <Redirect to="/auth" />
+        <Redirect to={loginUrlFor(currentPath())} />
       </Route>
     );
   }
