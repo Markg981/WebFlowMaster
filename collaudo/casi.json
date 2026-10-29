@@ -10053,6 +10053,44 @@
       "expected": "1: ogni azione viene aggiunta in fondo alla sequenza come con il drag&drop. 2: l'elemento si associa al più recente step ancora senza elemento. 3: lo step cambia posto di una posizione. 4: «su» è disabilitato sul primo step, «giù» sull'ultimo; durante una registrazione tutti i pulsanti sono disabilitati. 5: stesso risultato dei passi 1-3."
     },
     {
+      "id": "SEC-79",
+      "area": "SEC",
+      "title": "Report di piano: dettaglio dei test di progetti riservati nascosto ai non membri",
+      "priority": "P1",
+      "actor": "viewer.a",
+      "preconditions": "Un progetto riservato con un test fallito in un piano eseguito; un utente dell'organizzazione non membro del progetto; un owner.",
+      "steps": [
+        "Come non membro: GET /api/test-plans/executions/<id>/report (o la pagina del report).",
+        "Nel JSON, per il test del progetto riservato, leggere detailedLog, steps, networkSummary, aiAnalysis."
+      ],
+      "expected": "detailedLog, networkSummary e aiAnalysis sono null, steps è vuoto; la riga del test resta con nome e stato."
+    },
+    {
+      "id": "SEC-80",
+      "area": "SEC",
+      "title": "Export del report (HTML/PDF/JUnit/Allure): nessun dettaglio dei test riservati ai non membri",
+      "priority": "P1",
+      "actor": "viewer.a",
+      "preconditions": "Un progetto riservato con un test fallito in un piano eseguito; un utente dell'organizzazione non membro del progetto; un owner.",
+      "steps": [
+        "Come non membro: esportare il report del run in HTML e JUnit.",
+        "Cercare passi, log e rete del test del progetto riservato."
+      ],
+      "expected": "L'export non contiene passi, log né riepilogo di rete del test riservato."
+    },
+    {
+      "id": "SEC-81",
+      "area": "SEC",
+      "title": "Report di piano: l'owner e i membri del progetto vedono il dettaglio completo",
+      "priority": "P1",
+      "actor": "viewer.a",
+      "preconditions": "Un progetto riservato con un test fallito in un piano eseguito; un utente dell'organizzazione non membro del progetto; un owner.",
+      "steps": [
+        "Come owner e come membro del progetto riservato: aprire lo stesso report."
+      ],
+      "expected": "detailedLog, steps, networkSummary e aiAnalysis sono presenti per il test del progetto riservato."
+    },
+    {
       "id": "PLN-58",
       "area": "PLN",
       "title": "Run in coda il cui job è sparito: chiuso come queue_job_lost",
