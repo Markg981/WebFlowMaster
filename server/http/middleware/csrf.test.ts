@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
-import { csrfOriginCheck } from './csrf';
+import { csrfOriginCheck, isTrustedOrigin } from './csrf';
 
 function makeReq(method: string, headers: Record<string, string> = {}): Request {
   return { method, headers } as unknown as Request;
@@ -114,5 +114,21 @@ describe('csrfOriginCheck', () => {
       next,
     );
     expect(next).toHaveBeenCalledOnce();
+  });
+});
+
+describe('isTrustedOrigin (WebSocket upgrade)', () => {
+  beforeEach(() => {
+    delete process.env.CSRF_TRUSTED_ORIGINS;
+  });
+
+  it('trusts the app host, a listed origin and a client without Origin; refuses the rest', () => {
+    const host = 'app.example';
+    expect(isTrustedOrigin({ headers: { host, origin: `https://${host}` } })).toBe(true);
+    expect(isTrustedOrigin({ headers: { host } })).toBe(true);
+    expect(isTrustedOrigin({ headers: { host, origin: 'https://evil.example' } })).toBe(false);
+    expect(isTrustedOrigin({ headers: { host, origin: 'null' } })).toBe(false);
+    process.env.CSRF_TRUSTED_ORIGINS = 'https://public.example';
+    expect(isTrustedOrigin({ headers: { host, origin: 'https://public.example' } })).toBe(true);
   });
 });

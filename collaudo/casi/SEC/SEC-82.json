@@ -1,0 +1,13 @@
+{
+  "id": "SEC-82",
+  "area": "SEC",
+  "title": "WebSocket /ws da un'origine estranea: upgrade rifiutato",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Utente collegato nell'app; una pagina su un altro sito della stessa rete.",
+  "steps": [
+    "Dalla console di una pagina di un'altra origine aprire new WebSocket('wss://<host>/ws') con i cookie della sessione.",
+    "Aprire /ws dall'app stessa."
+  ],
+  "expected": "1: l'upgrade riceve 403 e il socket non si apre. 2: il socket si apre e i log del run arrivano."
+}

@@ -1,0 +1,13 @@
+{
+  "id": "SEC-84",
+  "area": "SEC",
+  "title": "Shutdown del server: socket chiusi, readiness a 503, uscita pulita",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Un browser con il live log aperto e un agente locale collegato.",
+  "steps": [
+    "Inviare SIGTERM al processo web.",
+    "Leggere /readyz subito dopo."
+  ],
+  "expected": "1: i socket del browser e dell'agente si chiudono subito; il processo esce con 0 senza attendere i 10 s. 2: /readyz risponde 503 (draining)."
+}
