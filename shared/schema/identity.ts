@@ -695,6 +695,8 @@ export const AUDIT_ACTIONS = {
   MEMBER_JOINED: 'member.joined',
   // Recorded in the organization switched to: the session started acting in it.
   ORGANIZATION_SWITCHED: 'organization.switched',
+  // The owner took the whole organization's data out as a file. Never the content.
+  ORGANIZATION_EXPORTED: 'organization.exported',
   INVITATION_CREATED: 'invitation.created',
   INVITATION_REVOKED: 'invitation.revoked',
   INVITATION_ACCEPTED: 'invitation.accepted',

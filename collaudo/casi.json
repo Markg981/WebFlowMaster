@@ -10053,6 +10053,47 @@
       "expected": "1: ogni azione viene aggiunta in fondo alla sequenza come con il drag&drop. 2: l'elemento si associa al più recente step ancora senza elemento. 3: lo step cambia posto di una posizione. 4: «su» è disabilitato sul primo step, «giù» sull'ultimo; durante una registrazione tutti i pulsanti sono disabilitati. 5: stesso risultato dei passi 1-3."
     },
     {
+      "id": "ADM-31",
+      "area": "ADM",
+      "title": "Reset password di un utente presente in più organizzazioni: rifiutato",
+      "priority": "P1",
+      "actor": "owner.a",
+      "preconditions": "Catalogo versione 93. Un utente membro sia dell'organizzazione A sia della B; owner.a è owner solo di A.",
+      "steps": [
+        "Da owner.a, emettere il link di reset password per quell'utente.",
+        "Emettere lo stesso link per un utente presente solo in A."
+      ],
+      "expected": "1: 409 con il messaggio che indica «Password dimenticata»; nessun token emesso e nessuna voce di audit di reset. 2: 201 con il link, una sola volta."
+    },
+    {
+      "id": "ADM-32",
+      "area": "ADM",
+      "title": "Esportazione dell'organizzazione: auditata e senza hash né cifrati",
+      "priority": "P1",
+      "actor": "owner.a",
+      "preconditions": "Organizzazione con una chiave API, un segreto d'ambiente e un webhook.",
+      "steps": [
+        "Da owner.a (sessione), scaricare l'esportazione dalle Impostazioni.",
+        "Cercare nel file hashed_key, token_hash, encrypted_value, iv e auth_tag.",
+        "Aprire l'audit log; poi ripetere la richiesta con una chiave API."
+      ],
+      "expected": "1-2: il file non contiene alcuna colonna di hash, cifrati, IV o tag; i prefissi delle chiavi restano. 3: l'audit ha la voce «Organizzazione esportata» con l'autore; con la chiave API la richiesta è rifiutata (403)."
+    },
+    {
+      "id": "ADM-33",
+      "area": "ADM",
+      "title": "Un editor revoca solo le proprie chiavi API",
+      "priority": "P1",
+      "actor": "editor.b",
+      "preconditions": "In A: una chiave di editor.a e una di editor.b; owner.a.",
+      "steps": [
+        "Da editor.b, revocare la chiave di editor.a.",
+        "Da editor.b, revocare la propria.",
+        "Da owner.a, revocare la chiave di editor.a."
+      ],
+      "expected": "1: 404, la chiave resta valida. 2: revocata. 3: revocata."
+    },
+    {
       "id": "WEB-78",
       "area": "WEB",
       "title": "Ambiente dietro HTTP Basic auth: segreti http.username e http.password",
