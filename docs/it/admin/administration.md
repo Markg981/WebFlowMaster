@@ -99,18 +99,18 @@ Ognuna di queste operazioni viene registrata nel [registro di audit](#registro-d
 ::: details Le stesse operazioni tramite l'API
 La gestione dei membri è **solo da sessione**: con una chiave API, invitare, aggiungere, cambiare ruolo e rimuovere membri, creare o revocare chiavi API e account di servizio, e le impostazioni SSO e MFA rispondono `403` (`session_required`). Usare la sessione (cookie) di un owner:
 
-| Operazione                        | Richiesta                                                                                                                           |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Elencare i membri                 | `GET /api/organization`                                                                                                             |
-| Invitare                          | `POST /api/organization/invitations` con `{"username":"maria.rossi","role":"editor"}`; la risposta contiene il token, una volta     |
-| Inviti in attesa, revocarne uno   | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                                    |
-| Registrarsi con un invito         | `POST /api/register` con `{"username","password","invitationToken"}`                                                                |
-| Entrare con un account esistente  | Da sessione: `GET /api/invitations/preview?token=…`, poi `POST /api/invitations/accept` con `{"token"}` (solo sessioni)             |
-| Le proprie organizzazioni, cambio | `GET /api/organizations/mine`; `POST /api/organizations/switch` con `{"organizationId"}` (solo sessioni; una chiave non cambia)     |
-| Cambiare un ruolo                 | `PATCH /api/organization/members/<userId>` con `{"role":"owner"}`                                                                   |
-| Rimuovere                         | `DELETE /api/organization/members/<userId>`, facoltativamente con `{"transferTo":<userId>}`                                         |
-| Link di reset della password      | `POST /api/organization/members/<userId>/password-reset`; la risposta contiene il token, una volta. Il link è `/auth?reset=<token>` |
-| Azzerare il secondo fattore       | `DELETE /api/organization/members/<userId>/mfa`                                                                                     |
+| Operazione                        | Richiesta                                                                                                                                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Elencare i membri                 | `GET /api/organization`                                                                                                                                                                                      |
+| Invitare                          | `POST /api/organization/invitations` con `{"username":"maria.rossi","role":"editor"}`; la risposta contiene il token, una volta                                                                              |
+| Inviti in attesa, revocarne uno   | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                                                                                                             |
+| Registrarsi con un invito         | `POST /api/register` con `{"username","password","invitationToken"}`                                                                                                                                         |
+| Entrare con un account esistente  | Da sessione: `GET /api/invitations/preview?token=…`, poi `POST /api/invitations/accept` con `{"token"}` (solo sessioni)                                                                                      |
+| Le proprie organizzazioni, cambio | `GET /api/organizations/mine`; `POST /api/organizations/switch` con `{"organizationId"}` (solo sessioni; una chiave non cambia)                                                                              |
+| Cambiare un ruolo                 | `PATCH /api/organization/members/<userId>` con `{"role":"owner"}`                                                                                                                                            |
+| Rimuovere                         | `DELETE /api/organization/members/<userId>`, facoltativamente con `{"transferTo":<userId>}`                                                                                                                  |
+| Link di reset della password      | `POST /api/organization/members/<userId>/password-reset`; la risposta contiene il token, una volta. Il link è `/auth?reset=<token>`. Rifiutato (409) se l'account appartiene anche a un'altra organizzazione |
+| Azzerare il secondo fattore       | `DELETE /api/organization/members/<userId>/mfa`                                                                                                                                                              |
 | :::                               |
 
 ## Progetti riservati
@@ -498,9 +498,9 @@ export KEY=wfm_...   # la chiave ad accesso completo di un owner
 
 **Esportazione**: `GET /api/organization/export` restituisce l'intera organizzazione in un file
 JSON: ogni tabella che le appartiene (membri, progetti, test, piani, run, il registro di audit e
-il resto). Password e token degli inviti sono esclusi. I segreti salvati e i token delle
-integrazioni sono inclusi in forma cifrata, illeggibili senza la `ENCRYPTION_KEY`
-dell'installazione; chiavi API e altri token solo come hash, da cui non si risale alle chiavi.
+il resto). Password, token, hash e tutto ciò che è cifrato (segreti salvati, token delle
+integrazioni, relativi IV e tag) sono esclusi. L'esportazione richiede la sessione di un owner, non
+una chiave API, ed è registrata nell'audit come `organization.exported`.
 Trattate comunque il file come riservato: contiene test, dati e registro di audit
 dell'organizzazione.
 

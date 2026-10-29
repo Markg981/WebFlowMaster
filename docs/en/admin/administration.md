@@ -93,18 +93,18 @@ Each of these is recorded in the [audit log](#audit-log).
 ::: details The same through the API
 Member management is **session-only**: with an API key, inviting, adding, changing roles and removing members, creating or revoking API keys and service accounts, and the SSO and MFA settings answer `403` (`session_required`). Use the signed-in session (cookie) of an owner:
 
-| Action                          | Request                                                                                                                        |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| List members                    | `GET /api/organization`                                                                                                        |
-| Invite                          | `POST /api/organization/invitations` with `{"username":"maria.rossi","role":"editor"}`; the answer holds the token, once       |
-| Pending invitations, revoke one | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                               |
-| Register with an invitation     | `POST /api/register` with `{"username","password","invitationToken"}`                                                          |
-| Join with an existing account   | Signed in: `GET /api/invitations/preview?token=…`, then `POST /api/invitations/accept` with `{"token"}` (sessions only)        |
-| One's organizations, switching  | `GET /api/organizations/mine`; `POST /api/organizations/switch` with `{"organizationId"}` (sessions only; a key cannot switch) |
-| Change a role                   | `PATCH /api/organization/members/<userId>` with `{"role":"owner"}`                                                             |
-| Remove                          | `DELETE /api/organization/members/<userId>`, optionally with `{"transferTo":<userId>}`                                         |
-| Password reset link             | `POST /api/organization/members/<userId>/password-reset`; the answer holds the token, once. The link is `/auth?reset=<token>`  |
-| Reset the second factor         | `DELETE /api/organization/members/<userId>/mfa`                                                                                |
+| Action                          | Request                                                                                                                                                                                               |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| List members                    | `GET /api/organization`                                                                                                                                                                               |
+| Invite                          | `POST /api/organization/invitations` with `{"username":"maria.rossi","role":"editor"}`; the answer holds the token, once                                                                              |
+| Pending invitations, revoke one | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>`                                                                                                                      |
+| Register with an invitation     | `POST /api/register` with `{"username","password","invitationToken"}`                                                                                                                                 |
+| Join with an existing account   | Signed in: `GET /api/invitations/preview?token=…`, then `POST /api/invitations/accept` with `{"token"}` (sessions only)                                                                               |
+| One's organizations, switching  | `GET /api/organizations/mine`; `POST /api/organizations/switch` with `{"organizationId"}` (sessions only; a key cannot switch)                                                                        |
+| Change a role                   | `PATCH /api/organization/members/<userId>` with `{"role":"owner"}`                                                                                                                                    |
+| Remove                          | `DELETE /api/organization/members/<userId>`, optionally with `{"transferTo":<userId>}`                                                                                                                |
+| Password reset link             | `POST /api/organization/members/<userId>/password-reset`; the answer holds the token, once. The link is `/auth?reset=<token>`. Refused (409) for an account that also belongs to another organization |
+| Reset the second factor         | `DELETE /api/organization/members/<userId>/mfa`                                                                                                                                                       |
 | :::                             |
 
 ## Restricted projects
@@ -476,9 +476,9 @@ export KEY=wfm_...   # an owner's full-access key
 
 **Export**: `GET /api/organization/export` returns the whole organization as one JSON file:
 every table that belongs to it (members, projects, tests, plans, runs, the audit log and the
-rest). Passwords and invitation tokens are left out. Stored secrets and integration tokens are
-included in their encrypted form, unreadable without the installation's `ENCRYPTION_KEY`; API
-keys and other tokens only as hashes, which cannot be turned back into keys. Treat the file as
+rest). Passwords, tokens, hashes and anything encrypted (stored secrets, integration tokens,
+their IVs and tags) are left out. The export needs a signed-in owner session, not an API key, and
+is recorded in the audit log as `organization.exported`. Treat the file as
 confidential all the same: it holds the organization's tests, data and audit trail.
 
 ```bash
