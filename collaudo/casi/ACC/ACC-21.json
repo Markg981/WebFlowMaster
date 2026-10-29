@@ -1,0 +1,14 @@
+{
+  "id": "ACC-21",
+  "area": "ACC",
+  "title": "Registrazione: stessa risposta per username esistente o no",
+  "priority": "P2",
+  "actor": "anonimo",
+  "preconditions": "Registrazione solo su invito (REGISTRATION predefinito); esiste già l'utente admin.",
+  "steps": [
+    "POST /api/register con username \"admin\" e senza invito.",
+    "POST /api/register con username inesistente e senza invito."
+  ],
+  "expected": "Entrambe rispondono 403 con codice invitation_required: non si capisce se lo username esiste.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Registrazione solo su invito (REGISTRATION predefinito); esiste già l'utente admin.</p>\n        <h4>Passi</h4>\n        <ol><li>POST /api/register con username \"admin\" e senza invito.</li><li>POST /api/register con username inesistente e senza invito.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Entrambe rispondono 403 con codice invitation_required: non si capisce se lo username esiste.</p>\n      "
+}

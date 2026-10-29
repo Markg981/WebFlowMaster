@@ -50,6 +50,34 @@ describe('csrfOriginCheck', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it('rejects Origin: null on a state-changing request (sandboxed iframe)', () => {
+    const res = makeRes();
+    csrfOriginCheck(makeReq('POST', { host: 'app.test', origin: 'null' }), res, next);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('trusts X-Forwarded-Host only while a proxy is trusted', () => {
+    const headers = {
+      host: 'internal:5000',
+      origin: 'https://public.test',
+      'x-forwarded-host': 'public.test',
+    };
+    csrfOriginCheck(makeReq('POST', headers), makeRes(), next);
+    expect(next).toHaveBeenCalledOnce();
+
+    process.env.TRUST_PROXY = 'false';
+    try {
+      next = vi.fn();
+      const res = makeRes();
+      csrfOriginCheck(makeReq('POST', headers), res, next);
+      expect(next).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(403);
+    } finally {
+      delete process.env.TRUST_PROXY;
+    }
+  });
+
   it('passes safe methods without checking origin', () => {
     const res = makeRes();
     csrfOriginCheck(makeReq('GET', { origin: 'https://evil.example' }), res, next);

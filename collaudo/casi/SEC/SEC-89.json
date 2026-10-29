@@ -1,0 +1,14 @@
+{
+  "id": "SEC-89",
+  "area": "SEC",
+  "title": "X-Forwarded-Host considerato solo con TRUST_PROXY attivo",
+  "priority": "P2",
+  "actor": "anonimo",
+  "preconditions": "TRUST_PROXY=false.",
+  "steps": [
+    "Inviare POST con Host interno, Origin pubblico e X-Forwarded-Host uguale all'Origin.",
+    "Ripetere con TRUST_PROXY=1."
+  ],
+  "expected": "Con TRUST_PROXY=false la richiesta è rifiutata (403); con TRUST_PROXY=1 passa.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TRUST_PROXY=false.</p>\n        <h4>Passi</h4>\n        <ol><li>Inviare POST con Host interno, Origin pubblico e X-Forwarded-Host uguale all'Origin.</li><li>Ripetere con TRUST_PROXY=1.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con TRUST_PROXY=false la richiesta è rifiutata (403); con TRUST_PROXY=1 passa.</p>\n      "
+}

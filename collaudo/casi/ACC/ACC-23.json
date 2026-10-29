@@ -1,0 +1,14 @@
+{
+  "id": "ACC-23",
+  "area": "ACC",
+  "title": "Account disattivato o di servizio: tempo di risposta come un account normale",
+  "priority": "P3",
+  "actor": "anonimo",
+  "preconditions": "Un utente disattivato e un account di servizio.",
+  "steps": [
+    "Tentare l'accesso con la password dell'utente disattivato.",
+    "Tentare l'accesso con un username inesistente."
+  ],
+  "expected": "Stessa risposta 401 e tempi confrontabili (viene eseguito comunque un confronto di hash fittizio).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un utente disattivato e un account di servizio.</p>\n        <h4>Passi</h4>\n        <ol><li>Tentare l'accesso con la password dell'utente disattivato.</li><li>Tentare l'accesso con un username inesistente.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Stessa risposta 401 e tempi confrontabili (viene eseguito comunque un confronto di hash fittizio).</p>\n      "
+}

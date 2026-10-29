@@ -1,0 +1,14 @@
+{
+  "id": "SEC-88",
+  "area": "SEC",
+  "title": "Origin: null rifiutato sulle richieste che modificano dati",
+  "priority": "P2",
+  "actor": "anonimo",
+  "preconditions": "Sessione valida.",
+  "steps": [
+    "Inviare POST /api/... con header \"Origin: null\" e il cookie di sessione.",
+    "Ripetere senza header Origin (client da server, es. curl con API key)."
+  ],
+  "expected": "Con Origin: null la risposta è 403 \"CSRF validation failed\"; senza Origin la richiesta passa come prima.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Sessione valida.</p>\n        <h4>Passi</h4>\n        <ol><li>Inviare POST /api/... con header \"Origin: null\" e il cookie di sessione.</li><li>Ripetere senza header Origin (client da server, es. curl con API key).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con Origin: null la risposta è 403 \"CSRF validation failed\"; senza Origin la richiesta passa come prima.</p>\n      "
+}
