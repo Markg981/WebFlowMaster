@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
+import { safeReturnTo } from '@/lib/return-to';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,7 +80,7 @@ export default function AuthPage() {
   const joining = Boolean(user && invited.token && arrivedSignedIn.current);
   useEffect(() => {
     if (user && !joining) {
-      navigate('/dashboard');
+      navigate(safeReturnTo(new URLSearchParams(window.location.search).get('returnTo')));
     }
   }, [user, joining, navigate]);
 
