@@ -1,0 +1,14 @@
+{
+  "id": "AUT-08",
+  "area": "AUT",
+  "title": "Quota enforce e permessi di amministrazione",
+  "priority": "P1",
+  "actor": "amministratore installazione / owner.a / editor.a",
+  "preconditions": "Installazione sacrificabile; operatore umano in INSTALLATION_ADMINS; quota test salvati modificabile. Procedura: collaudo/critical-ui-e2e.md.",
+  "steps": [
+    "Verificare che owner ordinario ed editor non possano amministrare quote.",
+    "Come operatore impostare enforce e limite test salvati pari al consumo corrente più uno; salvare e ricaricare.",
+    "Come editor salvare un test, consultare consumo e tentare di salvarne un secondo; ricaricare il catalogo."
+  ],
+  "expected": "Configurazione persistente; primo test raggiunge il limite, secondo rifiutato con errore visibile e HTTP 429, senza test aggiuntivo dopo reload. Non copre tutte le dimensioni di quota."
+}

@@ -1,0 +1,13 @@
+{
+  "id": "MOB-25",
+  "area": "MOB",
+  "title": "Cronologia mobile: salvataggi e confronto",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile salvato in A. Configurazioni alternative valide per i campi eseguibili.",
+  "steps": [
+    "Aprire la cronologia e annotare la revisione corrente; modificare a turno app, piattaforma, dispositivo, sistema operativo, grid e step, salvando ogni modifica.",
+    "Confrontare la prima e l’ultima revisione e ricaricare."
+  ],
+  "expected": "Ogni configurazione cambiata crea una revisione progressiva con autore e data; il confronto mostra tutti i campi modificati e la cronologia resta persistente."
+}

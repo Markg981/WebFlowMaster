@@ -1,0 +1,14 @@
+{
+  "id": "REP-19",
+  "area": "REP",
+  "title": "Grafici del report",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Un run con test superati, falliti e saltati, di priorità e gravità diverse.",
+  "steps": [
+    "Aprire il report; guardare la scheda dei grafici.",
+    "Passare il mouse sulle barre."
+  ],
+  "expected": "Non compare più «Chart placeholder». Il primo grafico mostra la percentuale di successo e una barra superati/falliti/saltati con legenda (nome, numero, percentuale); gli altri due una riga per priorità e per gravità sulla stessa scala, col totale a destra. Il passaggio del mouse mostra nome, numero e percentuale di ogni parte. Con un run vuoto: «Nessun risultato da rappresentare».",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un run con test superati, falliti e saltati, di priorità e gravità diverse.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire il report; guardare la scheda dei grafici.</li><li>Passare il mouse sulle barre.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Non compare più «Chart placeholder». Il primo grafico mostra la percentuale di successo e una barra superati/falliti/saltati con legenda (nome, numero, percentuale); gli altri due una riga per priorità e per gravità sulla stessa scala, col totale a destra. Il passaggio del mouse mostra nome, numero e percentuale di ogni parte. Con un run vuoto: «Nessun risultato da rappresentare».</p>\n      "
+}

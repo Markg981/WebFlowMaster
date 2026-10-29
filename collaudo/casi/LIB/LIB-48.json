@@ -1,0 +1,15 @@
+{
+  "id": "LIB-48",
+  "area": "LIB",
+  "title": "Approvazione idempotente, proposta superata, fingerprint e permessi di progetto",
+  "priority": "P1",
+  "actor": "editor, viewer",
+  "preconditions": "Catalogo versione 77. Un test con uno step riparato da due run diversi con due locator diversi (due proposte aperte per lo stesso step). Un progetto ristretto dove l'utente viewer è membro viewer. Strumento HTTP con sessione.",
+  "steps": [
+    "Approvare la prima proposta due volte (doppio clic o due richieste POST /api/healing-proposals/<id>/approve con lo stesso fingerprint).",
+    "Aprire la seconda proposta e provare ad approvarla.",
+    "Approvare una proposta inviando un fingerprint diverso da quello mostrato.",
+    "Con un utente editor dell'organizzazione ma solo viewer del progetto ristretto, approvare una proposta di un test di quel progetto."
+  ],
+  "expected": "La doppia approvazione produce una sola versione e una sola voce healing_proposal.approved (la seconda risposta indica nessuna modifica). La seconda proposta risulta Superata e l'approvazione risponde 409 proposal_stale. Il fingerprint diverso dà 409 fingerprint_mismatch e nulla cambia. L'utente del progetto ristretto riceve 403 project_read_only; il test non cambia."
+}

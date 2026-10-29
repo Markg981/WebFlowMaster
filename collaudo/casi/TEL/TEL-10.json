@@ -1,0 +1,13 @@
+{
+  "id": "TEL-10",
+  "area": "TEL",
+  "title": "Trace distribuito e correlazione con i log",
+  "priority": "P1",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "Abilitare tracing su API, worker e agente aggiornato; impostare WFM_TRACE_SAMPLE_RATIO=1 e collector OTLP/HTTP JSON raggiungibile.",
+    "Avviare un piano con shard e un’operazione tramite agente; cercare gli span nel backend e il trace ID nei log strutturati."
+  ],
+  "expected": "HTTP, producer, tentativo worker, shard e sessione agente mantengono il trace ID lungo la rispettiva catena. I log emessi nello span contengono traceId/spanId. Lo span agente termina al rilascio; BDD non richiede strumentazione degli step nel processo figlio."
+}

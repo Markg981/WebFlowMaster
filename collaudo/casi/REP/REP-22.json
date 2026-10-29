@@ -1,0 +1,14 @@
+{
+  "id": "REP-22",
+  "area": "REP",
+  "title": "Selettore proposto non applicabile",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un fallimento su uno step dentro un gruppo di step; un run fatto prima di questo aggiornamento.",
+  "steps": [
+    "Analizzare con l'AI il fallimento nel gruppo.",
+    "Analizzare con l'AI il fallimento del run vecchio."
+  ],
+  "expected": "Nel gruppo non c'è Applica al test e il dialogo dice di modificare lo step nel gruppo. Sul run vecchio si può solo copiare il selettore. Dall'API, PUT /api/tests/<id>/steps/<id inesistente>/selector risponde 404, su uno step senza elemento 409, come viewer 403.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un fallimento su uno step dentro un gruppo di step; un run fatto prima di questo aggiornamento.</p>\n        <h4>Passi</h4>\n        <ol><li>Analizzare con l'AI il fallimento nel gruppo.</li><li>Analizzare con l'AI il fallimento del run vecchio.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nel gruppo non c'è Applica al test e il dialogo dice di modificare lo step nel gruppo. Sul run vecchio si può solo copiare il selettore. Dall'API, <code>PUT /api/tests/&lt;id&gt;/steps/&lt;id inesistente&gt;/selector</code> risponde 404, su uno step senza elemento 409, come viewer 403.</p>\n      "
+}

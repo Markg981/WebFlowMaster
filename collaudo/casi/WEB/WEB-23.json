@@ -1,0 +1,15 @@
+{
+  "id": "WEB-23",
+  "area": "WEB",
+  "title": "Caricare un file",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il file viene caricato con il nome indicato; lo step riporta nome e dimensione. Senza contenuto viene creato un file di testo di prova. Un nome con / o \\ fa fallire lo step dicendo che non è un nome di file: nessun file del server viene letto.",
+  "steps": [
+    "/upload: Carica file su #file-upload con valore prova.csv|a;b;c; Click su #file-submit; Verifica Testo Contenuto #uploaded-files «prova.csv».",
+    "Stesso test con l'elemento Choose File invece del campo nascosto, se la pagina lo offre, o con il valore solo prova.txt.",
+    "Valore ../etc/passwd."
+  ],
+  "expected": "Il file viene caricato con il nome indicato; lo step riporta nome e dimensione. Senza contenuto viene creato un file di testo di prova. Un nome con / o \\ fa fallire lo step dicendo che non è un nome di file: nessun file del server viene letto.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>/upload: <b>Carica file</b> su <code>#file-upload</code> con valore <code>prova.csv|a;b;c</code>; Click su <code>#file-submit</code>; Verifica Testo Contenuto <code>#uploaded-files</code> «prova.csv».</li><li>Stesso test con l'elemento <b>Choose File</b> invece del campo nascosto, se la pagina lo offre, o con il valore solo <code>prova.txt</code>.</li><li>Valore <code>../etc/passwd</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il file viene caricato con il nome indicato; lo step riporta nome e dimensione. Senza contenuto viene creato un file di testo di prova. Un nome con <code>/</code> o <code>\\</code> fa fallire lo step dicendo che non è un nome di file: nessun file del server viene letto.</p>\n      "
+}

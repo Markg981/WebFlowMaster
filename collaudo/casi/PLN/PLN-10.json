@@ -1,0 +1,14 @@
+{
+  "id": "PLN-10",
+  "area": "PLN",
+  "title": "Annullare un run",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Worker fermo per il run in coda; un piano lungo per quello in corso.",
+  "steps": [
+    "Con il worker fermo, avviare un run e Annulla run dal report.",
+    "Con il worker attivo, avviare un piano lungo e annullarlo a metà."
+  ],
+  "expected": "Il run in coda è annullato subito. Quello in corso termina allo step successivo; i test non partiti risultano saltati; stato «Annullato». Audit run.cancelled.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Worker fermo per il run in coda; un piano lungo per quello in corso.</p>\n        <h4>Passi</h4>\n        <ol><li>Con il worker fermo, avviare un run e <b>Annulla run</b> dal report.</li><li>Con il worker attivo, avviare un piano lungo e annullarlo a metà.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il run in coda è annullato subito. Quello in corso termina allo step successivo; i test non partiti risultano saltati; stato «Annullato». Audit <b>run.cancelled</b>.</p>\n      "
+}

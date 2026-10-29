@@ -1,0 +1,14 @@
+{
+  "id": "PLN-49",
+  "area": "PLN",
+  "title": "Un browser richiesto che non parte resta nel manifest come unità attese",
+  "priority": "P1",
+  "actor": "admin",
+  "preconditions": "Catalogo versione 70. Accesso in sola lettura al database del worker (psql) per leggere execution_units, execution_unit_attempts e report_test_case_results. Un piano con due test UI su chromium e su un browser che il runner non può avviare (per esempio firefox non installato nell'immagine del worker).",
+  "steps": [
+    "Avviare il piano e attendere la fine della run.",
+    "Leggere SELECT state, reason, coordinates->'browser'->>'name' FROM execution_units WHERE execution_id = '<run>' ORDER BY position.",
+    "Aprire la run nell’interfaccia."
+  ],
+  "expected": "4 unità: le 2 di chromium 'recorded', le 2 del browser non avviabile 'not_startable' con il motivo dell'avvio fallito. Nessun tentativo né risultato per quelle 2. La run termina in Error con run_incomplete, come prima. Un browser che ripiega (visibile→headless o canale→motore) mantiene invece l'identità del browser richiesto."
+}

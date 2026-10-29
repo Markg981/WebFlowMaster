@@ -1,0 +1,14 @@
+{
+  "id": "OPS-51",
+  "area": "OPS",
+  "title": "Pilot: operatore che non ha scritto il prodotto e baseline misurata dal team, mai cifre dei vendor",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Catalogo versione 84. Repository su main aggiornato, npm ci eseguito.",
+  "steps": [
+    "Copiare scripts/fixtures/pilot/pilot.json in una cartella di lavoro e impostare operator.wroteProduct a true.",
+    "Eseguire npm run pilot -- report --pilot <copia> --log scripts/fixtures/pilot/observations.json --runs scripts/fixtures/pilot/runs.json.",
+    "Riportare wroteProduct a false, impostare flows[0].baseline.source a vendor e ripetere."
+  ],
+  "expected": "Entrambe le esecuzioni escono con codice 2 senza scrivere il report: la prima segnala che i compiti vanno eseguiti da chi non ha scritto il prodotto, la seconda che valgono solo cifre misurate dal team sul flusso (measured), non percentuali dei vendor. Con il file originale esce con 0 e scrive .local/pilot/example-pilot/report.md."
+}

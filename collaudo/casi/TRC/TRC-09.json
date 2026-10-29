@@ -1,0 +1,17 @@
+{
+  "id": "TRC-09",
+  "area": "TRC",
+  "title": "Correggere, scegliere e creare i test proposti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "TRC-08 con le proposte a schermo; un piano Manuali.",
+  "steps": [
+    "Rinominare il primo caso Pagamento con carta valida; correggere un risultato atteso; aggiungere un passo; togliere un passo al secondo; togliere la spunta al terzo.",
+    "Crea N test.",
+    "Aprire la riga SHOP-10 (numeri) e la Libreria.",
+    "Aggiungere i test al piano Manuali ed eseguirlo; dare gli esiti nel report.",
+    "Riaprire il dialogo e creare di nuovo un caso chiamato Pagamento con carta valida."
+  ],
+  "expected": "2: il messaggio dice «N test creati e collegati» (N = i casi spuntati). 3: SHOP-10 ha i nuovi test collegati, «Non eseguito»; in Libreria sono test manuali, versione 1, con le precondizioni come primo passo («Precondizioni: …») e i passi come corretti. 4: gli esiti manuali aggiornano la copertura di SHOP-10. 5: rifiutato «A test with this name already exists: Pagamento con carta valida.», il nome in rosso; nessun test creato. Audit: test.created con generatedFrom SHOP-10 e requirement.tests_changed.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TRC-08 con le proposte a schermo; un piano <code>Manuali</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Rinominare il primo caso <code>Pagamento con carta valida</code>; correggere un risultato atteso; aggiungere un passo; togliere un passo al secondo; togliere la spunta al terzo.</li><li><b>Crea N test</b>.</li><li>Aprire la riga SHOP-10 (numeri) e la Libreria.</li><li>Aggiungere i test al piano Manuali ed eseguirlo; dare gli esiti nel report.</li><li>Riaprire il dialogo e creare di nuovo un caso chiamato Pagamento con carta valida.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2: il messaggio dice «N test creati e collegati» (N = i casi spuntati). 3: SHOP-10 ha i nuovi test collegati, «Non eseguito»; in Libreria sono test manuali, versione 1, con le precondizioni come primo passo («Precondizioni: …») e i passi come corretti. 4: gli esiti manuali aggiornano la copertura di SHOP-10. 5: rifiutato «A test with this name already exists: Pagamento con carta valida.», il nome in rosso; nessun test creato. Audit: test.created con generatedFrom SHOP-10 e requirement.tests_changed.</p>\n      "
+}

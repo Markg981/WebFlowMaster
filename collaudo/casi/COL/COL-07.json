@@ -1,0 +1,14 @@
+{
+  "id": "COL-07",
+  "area": "COL",
+  "title": "Widget condiviso non espone un progetto riservato",
+  "priority": "P1",
+  "actor": "owner.a, viewer.a, editor.a",
+  "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+  "steps": [
+    "Come owner.a condividere una dashboard con un widget filtrato su un progetto riservato.",
+    "Come viewer.a escluso dal progetto aprire la dashboard.",
+    "Come membro B richiedere la dashboard per ID."
+  ],
+  "expected": "Il widget del viewer è esplicitamente non disponibile senza nomi o conteggi; B non vede la dashboard. Le dashboard private altrui rimangono nascoste anche agli owner."
+}

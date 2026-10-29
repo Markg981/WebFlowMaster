@@ -1,0 +1,13 @@
+{
+  "id": "API-09",
+  "area": "API",
+  "title": "Query GraphQL",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "La risposta contiene i dati richiesti; le variabili JSON vengono inviate.",
+  "steps": [
+    "Corpo GraphQL con query e variabili verso un endpoint GraphQL pubblico o interno."
+  ],
+  "expected": "La risposta contiene i dati richiesti; le variabili JSON vengono inviate.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Corpo GraphQL con query e variabili verso un endpoint GraphQL pubblico o interno.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La risposta contiene i dati richiesti; le variabili JSON vengono inviate.</p>\n      "
+}

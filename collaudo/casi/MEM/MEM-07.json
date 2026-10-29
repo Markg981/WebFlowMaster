@@ -1,0 +1,15 @@
+{
+  "id": "MEM-07",
+  "area": "MEM",
+  "title": "Creare ed eliminare un progetto",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un progetto Q con un test, una suite e un elemento nel repository usato dal test; un piano che include il test.",
+  "steps": [
+    "Impostazioni → Progetti: creare un progetto nuovo.",
+    "Eliminare Q dall'interfaccia; leggere la conferma.",
+    "Libreria e Suite: cercare il test e la suite di Q; eseguire il piano."
+  ],
+  "expected": "Il progetto si crea e si elimina dall'interfaccia. La conferma dice cosa succede a test, suite ed elementi. Test e suite restano, senza progetto; il piano esegue ancora il test. Audit project.created e project.deleted.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un progetto Q con un test, una suite e un elemento nel repository usato dal test; un piano che include il test.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Progetti: creare un progetto nuovo.</li><li>Eliminare Q dall'interfaccia; leggere la conferma.</li><li>Libreria e Suite: cercare il test e la suite di Q; eseguire il piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il progetto si crea e si elimina dall'interfaccia. La conferma dice cosa succede a test, suite ed elementi. Test e suite restano, senza progetto; il piano esegue ancora il test. Audit <b>project.created</b> e <b>project.deleted</b>.</p>\n      "
+}

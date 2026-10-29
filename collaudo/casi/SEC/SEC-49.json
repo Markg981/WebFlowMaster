@@ -1,0 +1,15 @@
+{
+  "id": "SEC-49",
+  "area": "SEC",
+  "title": "Cambio organizzazione limitato alla sessione",
+  "priority": "P1",
+  "actor": "utente membro di A e B",
+  "preconditions": "Migrazione 0089 applicata; catalogo versione 60. Account con appartenenza alle organizzazioni A (owner) e B (viewer), con almeno un progetto in ciascuna.",
+  "steps": [
+    "Accedere con lo stesso account in due browser (o una finestra normale e una anonima); entrambi mostrano A.",
+    "Nel primo browser passare a B dal menu delle organizzazioni.",
+    "Nel secondo browser, senza ricaricare, creare un progetto; poi ricaricare la pagina.",
+    "Nel primo browser verificare l'elenco progetti di B; aprire un terzo browser e accedere."
+  ],
+  "expected": "Il secondo browser resta in A con ruolo owner e il progetto compare in A, non in B. Il primo browser mostra solo i progetti di B con ruolo viewer. Il nuovo accesso parte da B, l'ultima organizzazione scelta."
+}

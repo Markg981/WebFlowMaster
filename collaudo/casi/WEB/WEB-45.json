@@ -1,0 +1,17 @@
+{
+  "id": "WEB-45",
+  "area": "WEB",
+  "title": "Reimpostare una password via email",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Stack del collaudo con Mailpit (http://localhost:8025); utente Keycloak reimposta.",
+  "steps": [
+    "Test web: Imposta variabile nuova=Pw.{{$randomString(8)}}!; Naviga https://keycloak.collaudo.test/realms/acme/account; Clic sul link «Forgot Password?»; Digita reimposta in #username; Clic su Submit.",
+    "Attendi email con valore reimposta@acme.test|Reset password.",
+    "Naviga {{email.link}}; Digita {{nuova}} in #password-new e in #password-confirm; Clic su Submit.",
+    "Cancella cookie; Naviga di nuovo all'account; accedere con reimposta e {{nuova}}; Attendi elemento #password = hidden.",
+    "Eseguire il test due volte; aprire http://localhost:8025."
+  ],
+  "expected": "Lo step Attendi email passa con «\"Reset password\" from noreply@acme.test: no code found, {{email.link}} = https://keycloak.collaudo.test/realms/acme/login-actions/action-token?key=…». Il link porta al modulo della nuova password e l'accesso con la nuova password riesce. La seconda esecuzione usa la sua email, non quella della prima (arrivata prima dell'inizio del test). Mailpit mostra un'email per esecuzione.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Stack del collaudo con Mailpit (http://localhost:8025); utente Keycloak <code>reimposta</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Test web: Imposta variabile <code>nuova=Pw.{{$randomString(8)}}!</code>; Naviga <code>https://keycloak.collaudo.test/realms/acme/account</code>; Clic sul link «Forgot Password?»; Digita <code>reimposta</code> in <code>#username</code>; Clic su Submit.</li><li><b>Attendi email</b> con valore <code>reimposta@acme.test|Reset password</code>.</li><li>Naviga <code>{{email.link}}</code>; Digita <code>{{nuova}}</code> in <code>#password-new</code> e in <code>#password-confirm</code>; Clic su Submit.</li><li>Cancella cookie; Naviga di nuovo all'account; accedere con <code>reimposta</code> e <code>{{nuova}}</code>; Attendi elemento <code>#password</code> = hidden.</li><li>Eseguire il test due volte; aprire http://localhost:8025.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Lo step Attendi email passa con «\"Reset password\" from noreply@acme.test: no code found, {{email.link}} = https://keycloak.collaudo.test/realms/acme/login-actions/action-token?key=…». Il link porta al modulo della nuova password e l'accesso con la nuova password riesce. La seconda esecuzione usa la sua email, non quella della prima (arrivata prima dell'inizio del test). Mailpit mostra un'email per esecuzione.</p>\n      "
+}

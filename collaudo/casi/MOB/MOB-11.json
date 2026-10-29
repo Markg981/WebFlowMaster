@@ -1,0 +1,16 @@
+{
+  "id": "MOB-11",
+  "area": "MOB",
+  "title": "Un test mobile come copertura di un requisito",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-10 eseguito; un requisito SHOP-20 (story).",
+  "steps": [
+    "Requisiti → riga SHOP-20 → Test: spuntare «Ricerca Wikipedia» (etichetta Mobile); salvare.",
+    "Aprire i test dietro la copertura di SHOP-20.",
+    "Rendere il test mobile fallito (MOB-08, passo 2) ed eseguire il piano; ricaricare Requisiti.",
+    "Esporta matrice."
+  ],
+  "expected": "1: SHOP-20 conta 1 test. 2: «Ricerca Wikipedia» con badge Mobile, esito e link all'ultima esecuzione del piano. 3: SHOP-20 diventa «In errore» con 1 fallito. 4: nel CSV la riga del test ha tipo «mobile» ed esito «failed».",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-10 eseguito; un requisito <code>SHOP-20</code> (story).</p>\n        <h4>Passi</h4>\n        <ol><li>Requisiti → riga SHOP-20 → <b>Test</b>: spuntare «Ricerca Wikipedia» (etichetta Mobile); salvare.</li><li>Aprire i test dietro la copertura di SHOP-20.</li><li>Rendere il test mobile fallito (MOB-08, passo 2) ed eseguire il piano; ricaricare Requisiti.</li><li><b>Esporta matrice</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: SHOP-20 conta 1 test. 2: «Ricerca Wikipedia» con badge Mobile, esito e link all'ultima esecuzione del piano. 3: SHOP-20 diventa «In errore» con 1 fallito. 4: nel CSV la riga del test ha tipo «mobile» ed esito «failed».</p>\n      "
+}

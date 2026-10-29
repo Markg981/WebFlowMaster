@@ -1,0 +1,15 @@
+{
+  "id": "WEB-46",
+  "area": "WEB",
+  "title": "Codice OTP con indirizzo inventato e pattern",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Stack del collaudo. Mailpit fa da applicazione: il comando PowerShell nei passi invia un'email come la invierebbe l'applicazione.",
+  "steps": [
+    "Test: Imposta variabile email=otp.collaudo@example.com; Naviga https://the-internet.herokuapp.com/login; Attendi email {{email}}|codice di accesso; Digita {{email.otp}} in #username. Avviare e, mentre attende, eseguire Invoke-RestMethod -Method Post http://localhost:8025/api/v1/send -ContentType application/json -Body '{\"From\":{\"Email\":\"noreply@app.test\"},\"To\":[{\"Email\":\"otp.collaudo@example.com\"}],\"Subject\":\"Il tuo codice di accesso\",\"Text\":\"Ciao, il tuo codice è 482913. © 2026 Acme, via Roma 1600\"}'.",
+    "Cambiare il valore in {{email}}||codice è (\\d+) e ripetere.",
+    "Ripetere inviando invece Subject «Il tuo codice di accesso» e Text «Ordine 12345 del 30/09 spedito, totale 99,50»."
+  ],
+  "expected": "1-2: il test passa; il dettaglio dello step dice {{email.otp}} = \"482913\" e il campo Username contiene 482913 (non 2026 né 1600). 3: Attendi email passa con «no code found» e lo step Digita fallisce con «Unresolved variable(s) email.otp».",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Stack del collaudo. Mailpit fa da applicazione: il comando PowerShell nei passi invia un'email come la invierebbe l'applicazione.</p>\n        <h4>Passi</h4>\n        <ol><li>Test: Imposta variabile <code>email=otp.collaudo@example.com</code>; Naviga <code>https://the-internet.herokuapp.com/login</code>; <b>Attendi email</b> <code>{{email}}|codice di accesso</code>; Digita <code>{{email.otp}}</code> in <code>#username</code>. Avviare e, mentre attende, eseguire <code>Invoke-RestMethod -Method Post http://localhost:8025/api/v1/send -ContentType application/json -Body '{\"From\":{\"Email\":\"noreply@app.test\"},\"To\":[{\"Email\":\"otp.collaudo@example.com\"}],\"Subject\":\"Il tuo codice di accesso\",\"Text\":\"Ciao, il tuo codice è 482913. © 2026 Acme, via Roma 1600\"}'</code>.</li><li>Cambiare il valore in <code>{{email}}||codice è (\\d+)</code> e ripetere.</li><li>Ripetere inviando invece Subject «Il tuo codice di accesso» e Text «Ordine 12345 del 30/09 spedito, totale 99,50».</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1-2: il test passa; il dettaglio dello step dice <code>{{email.otp}} = \"482913\"</code> e il campo Username contiene 482913 (non 2026 né 1600). 3: Attendi email passa con «no code found» e lo step Digita fallisce con «Unresolved variable(s) email.otp».</p>\n      "
+}

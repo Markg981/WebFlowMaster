@@ -1,0 +1,14 @@
+{
+  "id": "PLN-12",
+  "area": "PLN",
+  "title": "Nessun runner attivo",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Il run resta in coda e Utilizzo dei run segnala che nessun runner è online; al riavvio il run parte.",
+  "steps": [
+    "Fermare tutti i worker; avviare un run.",
+    "Guardare Utilizzo dei run; riavviare un worker."
+  ],
+  "expected": "Il run resta in coda e Utilizzo dei run segnala che nessun runner è online; al riavvio il run parte.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Fermare tutti i worker; avviare un run.</li><li>Guardare Utilizzo dei run; riavviare un worker.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il run resta in coda e Utilizzo dei run segnala che nessun runner è online; al riavvio il run parte.</p>\n      "
+}

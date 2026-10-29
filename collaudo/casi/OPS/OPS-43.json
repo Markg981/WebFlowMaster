@@ -1,0 +1,16 @@
+{
+  "id": "OPS-43",
+  "area": "OPS",
+  "title": "Screenshot delle guide rigenerati dalla demo",
+  "priority": "P3",
+  "actor": "Operatore del Collaudo",
+  "preconditions": "Stack di collaudo con il servizio shop e l'organizzazione Northwind Commerce popolata secondo marketing/promo-video/README.md (passi 1–4); checkout con npm ci; NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt.",
+  "steps": [
+    "Eseguire SHOTS=dashboard,report node marketing/promo-video/demo/capture.mjs, poi npm run docs:screenshots.",
+    "Eseguire git status docs/public/screenshots e aprire dashboard.webp e run-report-failure.webp.",
+    "Costruire la documentazione (npm run docs:build, npm run docs:preview) e aprire Guide → Results e Guida → Risultati.",
+    "Rinominare docs/public/screenshots/reports.webp ed eseguire npx vitest run scripts/docs-screenshots.test.ts; poi ripristinare il nome."
+  ],
+  "expected": "Passo 1: lo script stampa 13 immagini con ✓ e la loro dimensione, ognuna sotto 100 KB. Passo 2: le immagini sono larghe 1600 px; la dashboard mostra i grafici Execution status e Last 30 days disegnati; il ritaglio del report mostra i test falliti e i risultati per modulo senza la tabella dell'ambiente. Passo 3: le pagine EN e IT mostrano le stesse immagini con testo alternativo nella propria lingua, e nessuna immagine separa una frase che termina con due punti dalla sua lista. Passo 4: il test fallisce indicando reports come immagine mancante.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Stack di collaudo con il servizio shop e l'organizzazione Northwind Commerce popolata secondo <code>marketing/promo-video/README.md</code> (passi 1–4); checkout con <code>npm ci</code>; <code>NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Eseguire <code>SHOTS=dashboard,report node marketing/promo-video/demo/capture.mjs</code>, poi <code>npm run docs:screenshots</code>.</li><li>Eseguire <code>git status docs/public/screenshots</code> e aprire <code>dashboard.webp</code> e <code>run-report-failure.webp</code>.</li><li>Costruire la documentazione (<code>npm run docs:build</code>, <code>npm run docs:preview</code>) e aprire Guide → Results e Guida → Risultati.</li><li>Rinominare <code>docs/public/screenshots/reports.webp</code> ed eseguire <code>npx vitest run scripts/docs-screenshots.test.ts</code>; poi ripristinare il nome.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Passo 1: lo script stampa 13 immagini con ✓ e la loro dimensione, ognuna sotto 100 KB. Passo 2: le immagini sono larghe 1600 px; la dashboard mostra i grafici Execution status e Last 30 days disegnati; il ritaglio del report mostra i test falliti e i risultati per modulo senza la tabella dell'ambiente. Passo 3: le pagine EN e IT mostrano le stesse immagini con testo alternativo nella propria lingua, e nessuna immagine separa una frase che termina con due punti dalla sua lista. Passo 4: il test fallisce indicando reports come immagine mancante.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "API-55",
+  "area": "API",
+  "title": "Suite completa pubblica: export/import con test API e mobile",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Progetto sacrificabile con un test UI, un test API con segreto e un test mobile che chiama un gruppo di step; una chiave con soli suites read/write e una con anche gli scope API e mobile. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "Export senza include; poi con include tests/apiTests/mobileTests con la chiave solo suites, con formato gherkin e infine con la chiave completa.",
+    "Modificare l'URL del test API nel contenuto; import in dryRun e poi reale; eseguire il test API.",
+    "Importare un file con un test API nuovo e un test mobile non valido; ripetere un import con test API usando la chiave solo suites."
+  ],
+  "expected": "Senza include l'export è identico a prima (solo test UI/manuali/BDD); scope mancante 403 con requiredScope; gherkin con API/mobile 400; export completo con segreti sostituiti da variabili e gruppi di step inclusi. Il dryRun non salva e indica kind/outcome per riga; l'import reale aggiorna e il segreto resta valido. Un elemento non valido annulla tutto l'import (nessun test API creato); senza api-tests:write 403."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "SEC-52",
+  "area": "SEC",
+  "title": "WebSocket verso destinazione vietata da pagina, popup e worker",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 66. Installazione self-hosted senza WFM_EGRESS_PROXY, runner locale (non agente né griglia). EGRESS_PRIVATE_TARGETS=deny, EGRESS_ALLOW_HOSTS=localhost. Sul runner un piccolo server di prova su 127.0.0.1:<porta> che registra le richieste e accetta WebSocket; un file C:\\temp\\marker.html (o /tmp/marker.html) con il testo FILE-MARKER.",
+  "steps": [
+    "Eseguire un test che apre http://localhost:<porta>/ e, con uno step di script, apre new WebSocket('ws://localhost:<porta>/ok').",
+    "Nello stesso test aprire new WebSocket('ws://127.0.0.1:<porta>/vietato') dalla pagina, da un popup (window.open) e da un worker dedicato (new Worker da Blob).",
+    "Controllare il log del server di prova."
+  ],
+  "expected": "La WebSocket verso localhost si apre. Le tre verso 127.0.0.1 non si aprono (chiusura con codice 1008 o errore) e il server di prova non registra alcuna connessione verso 127.0.0.1."
+}

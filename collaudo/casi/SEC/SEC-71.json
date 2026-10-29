@@ -1,0 +1,15 @@
+{
+  "id": "SEC-71",
+  "area": "SEC",
+  "title": "Accesso, reset e inviti: nessuna enumerazione, policy sulla password e token di invito hashati (A-12)",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Catalogo versione 83. Un account alice@example.test con password nota; un invito pendente creato prima dell'aggiornamento.",
+  "steps": [
+    "Tentare l'accesso con un utente inesistente e con alice@example.test con password errata: confrontare i tempi di risposta e il messaggio.",
+    "Aprire un link di reset di alice e scegliere come nuova password il suo username, poi una password valida.",
+    "Chiedere due volte «Password dimenticata?» per alice@example.test senza usare il link e poi aprire il primo link ricevuto; ripetere per un indirizzo inesistente.",
+    "Leggere la colonna invitations.token nel database e aprire il link dell'invito pendente creato prima dell'aggiornamento."
+  ],
+  "expected": "Tempi e messaggio dell'accesso sono indistinguibili. Il reset con la password uguale all'username è rifiutato con codice weak_password e il link resta valido; con una password valida funziona. Le richieste ripetute non annullano il link precedente (fino a 3 link validi) e la risposta è identica per account esistente e inesistente. invitations.token contiene solo hash SHA-256 e l'invito pendente precedente funziona ancora."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "WEB-19",
+  "area": "WEB",
+  "title": "Eliminare un gruppo di step",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "WEB-14: gruppo Login usato da due test.",
+  "steps": [
+    "Eliminare il gruppo Login dall'interfaccia; leggere la conferma.",
+    "Aprire ed eseguire uno dei test che lo usavano."
+  ],
+  "expected": "Il gruppo si elimina dall'interfaccia e la conferma dice quanti test lo usano. I test restano apribili e il risultato spiega che il gruppo non esiste più.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-14: gruppo <code>Login</code> usato da due test.</p>\n        <h4>Passi</h4>\n        <ol><li>Eliminare il gruppo <code>Login</code> dall'interfaccia; leggere la conferma.</li><li>Aprire ed eseguire uno dei test che lo usavano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il gruppo si elimina dall'interfaccia e la conferma dice quanti test lo usano. I test restano apribili e il risultato spiega che il gruppo non esiste più.</p>\n      "
+}

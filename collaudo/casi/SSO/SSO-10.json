@@ -1,0 +1,14 @@
+{
+  "id": "SSO-10",
+  "area": "SSO",
+  "title": "Spegnere e rimuovere il single sign-on",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Con l'offerta spenta il pulsante «Accedi con SSO» non compare (se nessun'altra organizzazione lo offre). Dopo la rimozione le password tornano a funzionare per tutti. Audit sso.removed.",
+  "steps": [
+    "Disattivare Offri il single sign-on e salvare; aprire /auth in anonimo.",
+    "Riattivare, poi Rimuovi → conferma."
+  ],
+  "expected": "Con l'offerta spenta il pulsante «Accedi con SSO» non compare (se nessun'altra organizzazione lo offre). Dopo la rimozione le password tornano a funzionare per tutti. Audit sso.removed.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Disattivare <b>Offri il single sign-on</b> e salvare; aprire /auth in anonimo.</li><li>Riattivare, poi <b>Rimuovi</b> → conferma.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con l'offerta spenta il pulsante «Accedi con SSO» non compare (se nessun'altra organizzazione lo offre). Dopo la rimozione le password tornano a funzionare per tutti. Audit <b>sso.removed</b>.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "ADM-27",
+  "area": "ADM",
+  "title": "Editor HTML, variabili e anteprima isolata",
+  "priority": "P1",
+  "actor": "owner.a, owner.b, editor.a, viewer.a",
+  "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+  "steps": [
+    "Per invito modificare oggetto, HTML completo e alternativa testo mantenendo la variabile actionUrl; richiedere anteprima.",
+    "Tentare variabile sconosciuta, oggetto con CR/LF, rimozione del link richiesto, script, handler evento e URL javascript.",
+    "Ispezionare iframe sandbox e Network durante anteprima; salvare la versione valida e inviare un invito controllato."
+  ],
+  "expected": "Variabili sconosciute, header invalidi e link obbligatorio mancante rifiutati. HTML pericoloso sanitizzato; anteprima con dati sintetici senza script, risorse esterne o invio. Email effettiva usa lo stesso render sicuro e link reale utilizzabile."
+}

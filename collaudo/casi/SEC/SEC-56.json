@@ -1,0 +1,14 @@
+{
+  "id": "SEC-56",
+  "area": "SEC",
+  "title": "Evidenze grezze via /api/v1: ruolo, scope runs:evidence, elenco e download",
+  "priority": "P1",
+  "actor": "owner",
+  "preconditions": "Catalogo versione 67. Il run di SEC-55. Tre chiavi API: di un viewer con tutti gli scope; di un editor con solo runs:read; di un editor con runs:read e runs:evidence.",
+  "steps": [
+    "Con ciascuna chiave chiamare GET /api/v1/runs/<runId>/evidence.",
+    "Con ciascuna chiave chiamare GET /api/v1/runs/<runId>/artifacts/<percorso della trace>.",
+    "Con la chiave del viewer scaricare uno screenshot dello stesso run."
+  ],
+  "expected": "Passo 1: viewer ed editor senza runs:evidence non vedono trace né HAR nell'elenco e withheld ne riporta il numero; l'editor con runs:evidence li vede e withheld è 0. Passo 2: viewer 403 insufficient_role, editor solo runs:read 403 insufficient_scope (requiredScope runs:evidence), editor con runs:evidence 200. Passo 3: 200."
+}

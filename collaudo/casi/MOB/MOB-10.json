@@ -1,0 +1,16 @@
+{
+  "id": "MOB-10",
+  "area": "MOB",
+  "title": "Un test mobile in una suite statica",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-06 (test «Ricerca Wikipedia» con griglia per i piani); un test web salvato.",
+  "steps": [
+    "Suite → Nuova suite, Statica; spuntare il test web e «Ricerca Wikipedia» (etichetta Mobile); salvare.",
+    "Aprire la suite.",
+    "Un piano senza test propri che include solo questa suite; eseguirlo.",
+    "Suite → Nuova suite, Dinamica, con un tag qualsiasi: guardare l'anteprima dei test."
+  ],
+  "expected": "1: la suite si salva; la riga del test mobile porta l'etichetta Mobile. 2: la suite elenca i due test nell'ordine scelto. 3: il report ha il test web (una riga per browser) e una riga «Ricerca Wikipedia» con il dispositivo, come in MOB-06. 4: nessun test mobile nella suite dinamica (non hanno tag).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-06 (test «Ricerca Wikipedia» con griglia per i piani); un test web salvato.</p>\n        <h4>Passi</h4>\n        <ol><li>Suite → <b>Nuova suite</b>, Statica; spuntare il test web e «Ricerca Wikipedia» (etichetta <b>Mobile</b>); salvare.</li><li>Aprire la suite.</li><li>Un piano senza test propri che include solo questa suite; eseguirlo.</li><li>Suite → Nuova suite, Dinamica, con un tag qualsiasi: guardare l'anteprima dei test.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: la suite si salva; la riga del test mobile porta l'etichetta Mobile. 2: la suite elenca i due test nell'ordine scelto. 3: il report ha il test web (una riga per browser) e una riga «Ricerca Wikipedia» con il dispositivo, come in MOB-06. 4: nessun test mobile nella suite dinamica (non hanno tag).</p>\n      "
+}

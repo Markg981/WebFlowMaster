@@ -1,0 +1,15 @@
+{
+  "id": "OPS-48",
+  "area": "OPS",
+  "title": "Benchmark: baseline e profili a dieci volte con verdetto e costi",
+  "priority": "P2",
+  "actor": "Operatore del Collaudo",
+  "preconditions": "Catalogo versione 80. Un'installazione WFM dedicata (non quella in uso, mai produzione) con le metriche attive (WFM_METRICS_ENABLED, WFM_METRICS_TOKEN), una chiave API di servizio, un piano con almeno un test, e un database PostgreSQL di prova dedicato. Un file bench.json come in docs/admin/load-testing (sezione Crescita a dieci volte) con SLO approvati; chiave, token e DSN solo in variabili WFM_BENCHMARK_*. In bench.json la sezione cost senza rates.trafficPerGb.",
+  "steps": [
+    "npm run benchmark -- --profile baseline.",
+    "npm run benchmark -- --profile tenfold-readers, poi tenfold-tests e tenfold-runs.",
+    "Aprire i JSON in .local/benchmark/ e leggere measured, cost, verdict, limits e comparison.",
+    "Abbassare slo.maxP95Ms sotto il p95 misurato e rieseguire tenfold-readers."
+  ],
+  "expected": "1-2: ogni profilo scrive <profilo>-<ora>.json con load.json e volume.json accanto; ogni profilo moltiplica per 10 un solo asse in workload. 3: measured riporta p50/p95 API, 429, attesa in coda, tempo al primo fallimento, memoria e CPU dei browser, byte per tentativo; cost.missing elenca rates.trafficPerGb, costPerRun e monthlyCost10x sono null (non 0) e cost.gate è unvalidated; comparison divide per l'ultima baseline. Nessun DSN, chiave o token nei file né nel terminale. 4: exit 1, verdict.passed false, la soglia superata è elencata e limits.sustainable è false."
+}

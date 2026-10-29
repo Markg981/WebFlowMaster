@@ -1,0 +1,14 @@
+{
+  "id": "REP-44",
+  "area": "REP",
+  "title": "Varianti non confrontabili e risultati storici non si mescolano nel triage dei test instabili",
+  "priority": "P2",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 78. Lo stesso test web eseguito su due ambienti (per esempio staging e produzione) con esiti diversi alternati; un secondo test di cui si cambia un passo fra un run e l'altro; un risultato storico con più tentativi registrato prima della conservazione dei tentativi (o importato).",
+  "steps": [
+    "Eseguire il primo test alternando i due ambienti, almeno tre run per ambiente con esito stabile per ambiente.",
+    "Eseguire il secondo test, modificarne un passo, rieseguirlo; poi solo rinominarlo e rieseguirlo.",
+    "Aprire «Test che si contraddicono» ed espandere le evidenze."
+  ],
+  "expected": "Il primo test non compare come instabile: i run di staging e produzione formano storie separate, e l'ambiente è indicato accanto al browser. Il cambio di passo del secondo test è segnalato come «Definizione cambiata» e non conta come cambio di esito; la sola rinomina non divide la storia. Il risultato storico salvato dal nuovo tentativo dice che il motivo del primo fallimento non è stato registrato, senza inventarne uno, e il suo collegamento apre il report del run."
+}

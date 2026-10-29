@@ -1,0 +1,14 @@
+{
+  "id": "WEB-01",
+  "area": "WEB",
+  "title": "Caricare una pagina e rilevarne gli elementi",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "L'anteprima mostra lo screenshot della pagina. L'elenco degli elementi contiene i campi username e password e il pulsante Login, ognuno con un selettore.",
+  "steps": [
+    "Crea Test: URL https://the-internet.herokuapp.com/login → Carica Sito.",
+    "Rileva Elementi."
+  ],
+  "expected": "L'anteprima mostra lo screenshot della pagina. L'elenco degli elementi contiene i campi username e password e il pulsante Login, ognuno con un selettore.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Crea Test: URL <code>https://the-internet.herokuapp.com/login</code> → <b>Carica Sito</b>.</li><li><b>Rileva Elementi</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'anteprima mostra lo screenshot della pagina. L'elenco degli elementi contiene i campi username e password e il pulsante Login, ognuno con un selettore.</p>\n      "
+}

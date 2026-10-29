@@ -1,0 +1,14 @@
+{
+  "id": "ADM-24",
+  "area": "ADM",
+  "title": "Callback nativo Mailgun",
+  "priority": "P1",
+  "actor": "owner.a, owner.b, editor.a, viewer.a",
+  "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+  "steps": [
+    "Configurare SMTP Mailgun di prova e la chiave di firma webhook dell’organizzazione.",
+    "Configurare webhook delivered e failed all’URL HTTPS e inviare email di prova.",
+    "Verificare X-Mailgun-Variables wfm_delivery_id, bounce temporaneo/permanente e replay duplicato."
+  ],
+  "expected": "Eventi nativi autenticati correlati al destinatario della stessa organizzazione; duplicati idempotenti e hard bounce non annullato da eventi tardivi. Nessun payload grezzo o token salvato nella cronologia."
+}

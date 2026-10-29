@@ -1,0 +1,14 @@
+{
+  "id": "ADM-32",
+  "area": "ADM",
+  "title": "Esportazione dell'organizzazione: auditata e senza hash né cifrati",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Organizzazione con una chiave API, un segreto d'ambiente e un webhook.",
+  "steps": [
+    "Da owner.a (sessione), scaricare l'esportazione dalle Impostazioni.",
+    "Cercare nel file hashed_key, token_hash, encrypted_value, iv e auth_tag.",
+    "Aprire l'audit log; poi ripetere la richiesta con una chiave API."
+  ],
+  "expected": "1-2: il file non contiene alcuna colonna di hash, cifrati, IV o tag; i prefissi delle chiavi restano. 3: l'audit ha la voce «Organizzazione esportata» con l'autore; con la chiave API la richiesta è rifiutata (403)."
+}

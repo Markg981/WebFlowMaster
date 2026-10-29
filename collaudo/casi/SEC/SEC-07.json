@@ -1,0 +1,13 @@
+{
+  "id": "SEC-07",
+  "area": "SEC",
+  "title": "Cookie di sessione",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Il cookie di sessione è HttpOnly, Secure e SameSite=Lax.",
+  "steps": [
+    "Strumenti per sviluppatori → Application → Cookies."
+  ],
+  "expected": "Il cookie di sessione è HttpOnly, Secure e SameSite=Lax.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Strumenti per sviluppatori → Application → Cookies.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il cookie di sessione è HttpOnly, Secure e SameSite=Lax.</p>\n      "
+}

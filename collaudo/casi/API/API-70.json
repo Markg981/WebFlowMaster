@@ -1,0 +1,13 @@
+{
+  "id": "API-70",
+  "area": "API",
+  "title": "Load test con URL non risolvibile: rifiuto immediato e worker reattivo",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 90. Un API test con URL {{base}}/x e la variabile base non definita nell'ambiente; un load test che lo usa, con durata 60 s.",
+  "steps": [
+    "Avviare il load test.",
+    "Definire base con un URL valido, avviare di nuovo e annullare il run dopo qualche secondo."
+  ],
+  "expected": "1: il run termina subito come Non eseguito, con il messaggio sulla variabile non definita; gli altri run del worker continuano ad avere il battito. 2: il run si ferma come Annullato entro pochi secondi."
+}

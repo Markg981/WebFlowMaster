@@ -1,0 +1,13 @@
+{
+  "id": "UX-06",
+  "area": "UX",
+  "title": "Documentazione",
+  "priority": "P3",
+  "actor": "chiunque",
+  "preconditions": "Nessun link rotto; i PDF delle sezioni vengono creati.",
+  "steps": [
+    "Aprire la documentazione del sito e seguire i link dalla guida utente; generare i PDF con npm run docs:pdf."
+  ],
+  "expected": "Nessun link rotto; i PDF delle sezioni vengono creati.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Aprire la documentazione del sito e seguire i link dalla guida utente; generare i PDF con <code>npm run docs:pdf</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nessun link rotto; i PDF delle sezioni vengono creati.</p>\n      "
+}

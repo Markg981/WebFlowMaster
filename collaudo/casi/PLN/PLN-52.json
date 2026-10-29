@@ -1,0 +1,15 @@
+{
+  "id": "PLN-52",
+  "area": "PLN",
+  "title": "Configurazione o bundle illeggibili: il run viene rifiutato, mai eseguito dal piano corrente",
+  "priority": "P2",
+  "actor": "owner",
+  "preconditions": "Catalogo versione 73. Accesso al database di un ambiente di collaudo (mai produzione). Un piano con un test UI pubblicato che richiama un gruppo; il worker fermo.",
+  "steps": [
+    "Avviare il piano e, con il run in coda, impostare configuration_snapshot.version a 2 sulla riga del run; avviare il worker.",
+    "Ripetere con un run nuovo alterando gli step di un gruppo dentro definitions.ui[0].dependencies.bundle.",
+    "Impostare test_versions.snapshot della versione pubblicata a {\"executable\":{\"protocol\":7}} ed eseguire il piano.",
+    "Ripetere con un run storico con configuration_snapshot = {}."
+  ],
+  "expected": "Il primo run termina in Error con failureCode unsupported_snapshot, il secondo con unusable_snapshot, senza eseguire nessun test. Nel terzo il test fallisce con il messaggio che il formato 7 non è supportato e non è stato eseguito con dipendenze correnti; la copia di lavoro non viene mai eseguita al suo posto. Il run storico con {} gira dal piano corrente come prima."
+}

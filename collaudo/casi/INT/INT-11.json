@@ -1,0 +1,13 @@
+{
+  "id": "INT-11",
+  "area": "INT",
+  "title": "Limite di frequenza dell'API",
+  "priority": "P2",
+  "actor": "ci-bot",
+  "preconditions": "API_RATE_LIMIT=5 sull'installazione di collaudo.",
+  "steps": [
+    "Sei chiamate in un minuto con la stessa chiave."
+  ],
+  "expected": "La sesta risponde 429 rate_limited con l'header Retry-After.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>API_RATE_LIMIT=5</code> sull'installazione di collaudo.</p>\n        <h4>Passi</h4>\n        <ol><li>Sei chiamate in un minuto con la stessa chiave.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La sesta risponde 429 <code>rate_limited</code> con l'header Retry-After.</p>\n      "
+}

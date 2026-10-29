@@ -1,0 +1,15 @@
+{
+  "id": "SSO-35",
+  "area": "SSO",
+  "title": "SSO di un'organizzazione non vale per un'altra",
+  "priority": "P1",
+  "actor": "Persona membro di due organizzazioni A e B, ciascuna con il proprio provider",
+  "preconditions": "Organizzazione A con SSO attivo sul proprio provider; organizzazione B con SSO attivo su un provider diverso. La stessa persona è membro (non owner) di A e di B.",
+  "steps": [
+    "Su B attivare Richiedi SSO. Accedere con Sign in with SSO tramite il provider di A.",
+    "Dal selettore organizzazioni passare a B.",
+    "Su B disattivare Richiedi SSO, passare a B e poi tornare ad A dalla stessa sessione.",
+    "Su B attivare il secondo fattore obbligatorio, passare di nuovo a B e aprire una pagina qualsiasi."
+  ],
+  "expected": "Il passaggio a B con Richiedi SSO attivo è rifiutato (sso_required). Il ritorno ad A riesce e la sessione del provider di A resta valida lì. Con il secondo fattore obbligatorio su B la sessione viene mandata all'attivazione del secondo fattore."
+}

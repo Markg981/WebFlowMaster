@@ -1,0 +1,14 @@
+{
+  "id": "SEC-70",
+  "area": "SEC",
+  "title": "Agenti locali: AGENT_RELAY_SECRET obbligatoria in produzione e ticket monouso (A-12)",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Catalogo versione 83. Un'installazione con NODE_ENV=production, SESSION_SECRET impostata, un agente locale collegato.",
+  "steps": [
+    "Avviare l'installazione senza AGENT_RELAY_SECRET e lanciare un test su un agente locale.",
+    "Impostare AGENT_RELAY_SECRET (openssl rand -hex 32) in web e worker e ripetere il test.",
+    "Catturare l'URL del relay con il ticket di una sessione già aperta e ripresentarlo entro 60 secondi."
+  ],
+  "expected": "Senza AGENT_RELAY_SECRET il test fallisce con «AGENT_RELAY_SECRET must be set in production»: nessun ripiego su SESSION_SECRET (in sviluppo il ripiego c'è, con un avviso nel log). Con il segreto il test passa. Il secondo uso dello stesso ticket è rifiutato con 401 «Ticket refused: already used»."
+}

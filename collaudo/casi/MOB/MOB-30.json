@@ -1,0 +1,14 @@
+{
+  "id": "MOB-30",
+  "area": "MOB",
+  "title": "Debug mobile congela la copia di lavoro",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile salvato in A. Versione 1 pubblicata; versione 2 salvata. Appium disponibile; configurare una breve attesa prima degli step osservabili.",
+  "steps": [
+    "Richiedere un debug sulla versione 2.",
+    "Salvare subito una versione 3 con step distinguibili prima che il debug li esegua.",
+    "Aprire il risultato del debug."
+  ],
+  "expected": "Il debug richiesto esegue la configurazione 2 congelata alla richiesta e registra versione 2; non incorpora gli step della 3. Pubblicazione resta alla 1."
+}

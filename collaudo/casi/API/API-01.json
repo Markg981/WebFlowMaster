@@ -1,0 +1,15 @@
+{
+  "id": "API-01",
+  "area": "API",
+  "title": "Richiesta GET con asserzioni",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Risposta con stato, tempo, corpo e header; le quattro asserzioni sono verdi.",
+  "steps": [
+    "Tester API: GET https://httpbin.org/get, parametro query x = 1 (controllare l'URL effettivo).",
+    "Asserzioni: status code equals 200; header Content-Type contains json; body json path args.x equals 1; response time less than 3000.",
+    "Invia."
+  ],
+  "expected": "Risposta con stato, tempo, corpo e header; le quattro asserzioni sono verdi.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Tester API: GET <code>https://httpbin.org/get</code>, parametro query <code>x</code> = <code>1</code> (controllare l'URL effettivo).</li><li>Asserzioni: status code equals 200; header Content-Type contains json; body json path <code>args.x</code> equals 1; response time less than 3000.</li><li><b>Invia</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Risposta con stato, tempo, corpo e header; le quattro asserzioni sono verdi.</p>\n      "
+}

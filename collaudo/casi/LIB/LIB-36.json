@@ -1,0 +1,13 @@
+{
+  "id": "LIB-36",
+  "area": "LIB",
+  "title": "Ricerca letterale e filtri prima della pagina",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Oltre 25 test UI; nomi mirati con maiuscole, percentuale e underscore; due progetti e stati diversi. Nuovo ciclo protocollo 30: Da eseguire.",
+  "steps": [
+    "Dalla seconda pagina cercare un nome con maiuscole diverse, poi nomi contenenti % e _.",
+    "Applicare progetto e stato; confrontare risultati e totale con i dati predisposti."
+  ],
+  "expected": "Ogni modifica riporta alla prima pagina; il server filtra prima di contare e paginare. Ricerca senza distinzione maiuscole/minuscole, % e _ letterali, nessun risultato di altri progetti/stati selezionati."
+}

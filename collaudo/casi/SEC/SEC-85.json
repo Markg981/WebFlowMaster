@@ -1,0 +1,13 @@
+{
+  "id": "SEC-85",
+  "area": "SEC",
+  "title": "Egress: intervalli CGNAT, benchmarking, multicast e 6to4 rifiutati con EGRESS_PRIVATE_TARGETS=deny",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 93. EGRESS_PRIVATE_TARGETS=deny. Un editor che può creare un API test.",
+  "steps": [
+    "Eseguire un API test verso http://100.64.0.1/, poi http://198.18.0.1/, http://224.0.0.1/ e http://[2002:c0a8:101::1]/.",
+    "Con EGRESS_PRIVATE_TARGETS=allow ripetere la richiesta verso http://100.64.0.1/."
+  ],
+  "expected": "1: ogni richiesta è rifiutata dalla policy di egress, senza connessione. 2: la policy non rifiuta l'indirizzo (la richiesta può fallire per timeout, non per policy)."
+}

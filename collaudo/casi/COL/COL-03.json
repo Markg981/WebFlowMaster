@@ -1,0 +1,14 @@
+{
+  "id": "COL-03",
+  "area": "COL",
+  "title": "Eliminazione del messaggio iniziale conserva le risposte",
+  "priority": "P1",
+  "actor": "owner.a, viewer.a, editor.a",
+  "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+  "steps": [
+    "Creare un messaggio e una risposta di un altro membro.",
+    "Come autore eliminare il messaggio iniziale.",
+    "Ricaricare il pannello."
+  ],
+  "expected": "Rimane il segnaposto di messaggio eliminato; testo e menzioni cancellati non sono esposti; la risposta altrui rimane visibile."
+}

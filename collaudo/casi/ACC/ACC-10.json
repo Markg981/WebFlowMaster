@@ -1,0 +1,14 @@
+{
+  "id": "ACC-10",
+  "area": "ACC",
+  "title": "Reset per l'unico owner, da riga di comando",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "Accesso alla macchina dell'installazione.",
+  "steps": [
+    "Eseguire docker compose exec api node dist/password-reset-link.js owner.a.",
+    "Aprire il link stampato e impostare una nuova password."
+  ],
+  "expected": "Il link usa WEBFLOW_PUBLIC_URL, vale un giorno e una volta. L'audit dell'organizzazione A annota che l'ha emesso l'operatore.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Accesso alla macchina dell'installazione.</p>\n        <h4>Passi</h4>\n        <ol><li>Eseguire <code>docker compose exec api node dist/password-reset-link.js owner.a</code>.</li><li>Aprire il link stampato e impostare una nuova password.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il link usa <code>WEBFLOW_PUBLIC_URL</code>, vale un giorno e una volta. L'audit dell'organizzazione A annota che l'ha emesso l'operatore.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "SSO-12",
+  "area": "SSO",
+  "title": "Un membro rimosso ma ancora abilitato nel provider",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Utente SSO attivo in Keycloak.",
+  "steps": [
+    "Rimuovere l'utente da Membri.",
+    "L'utente accede di nuovo con SSO."
+  ],
+  "expected": "Rientra con un account nuovo e il ruolo predefinito: è il comportamento documentato. Va annotato come promemoria operativo, non come difetto.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Utente SSO attivo in Keycloak.</p>\n        <h4>Passi</h4>\n        <ol><li>Rimuovere l'utente da Membri.</li><li>L'utente accede di nuovo con SSO.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Rientra con un account nuovo e il ruolo predefinito: è il comportamento documentato. Va annotato come promemoria operativo, non come difetto.</p>\n      "
+}

@@ -1,0 +1,13 @@
+{
+  "id": "SSO-08",
+  "area": "SSO",
+  "title": "SSO e secondo fattore obbligatorio",
+  "priority": "P2",
+  "actor": "nessuno",
+  "preconditions": "Secondo fattore obbligatorio nell'organizzazione A.",
+  "steps": [
+    "Accedere con SSO come un utente senza secondo fattore."
+  ],
+  "expected": "Si entra senza dover configurare il codice dell'app: il controllo spetta al provider.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Secondo fattore obbligatorio nell'organizzazione A.</p>\n        <h4>Passi</h4>\n        <ol><li>Accedere con SSO come un utente senza secondo fattore.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Si entra senza dover configurare il codice dell'app: il controllo spetta al provider.</p>\n      "
+}
