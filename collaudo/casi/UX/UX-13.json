@@ -1,0 +1,16 @@
+{
+  "id": "UX-13",
+  "area": "UX",
+  "title": "Builder dei test web usabile da tastiera e touch, senza drag&drop",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 90. Un owner con sessione; un progetto con la pagina di Create Test in modalità manuale e un sito caricato con almeno due elementi rilevati.",
+  "steps": [
+    "Con la sola tastiera, premere Tab fino al pulsante «Aggiungi … al test» di un'azione in Azioni Disponibili e premere Invio; ripetere con un'altra azione.",
+    "Tab fino al pulsante di un elemento rilevato («Usa … come elemento dell'ultimo step») e premere Invio.",
+    "Su uno step nel mezzo della sequenza premere «Sposta lo step su», poi «Sposta lo step giù».",
+    "Verificare i pulsanti sul primo e sull'ultimo step.",
+    "Ripetere i passi 1-3 con un dispositivo touch (o l'emulazione touch del browser) usando solo il tocco."
+  ],
+  "expected": "1: ogni azione viene aggiunta in fondo alla sequenza come con il drag&drop. 2: l'elemento si associa al più recente step ancora senza elemento. 3: lo step cambia posto di una posizione. 4: «su» è disabilitato sul primo step, «giù» sull'ultimo; durante una registrazione tutti i pulsanti sono disabilitati. 5: stesso risultato dei passi 1-3."
+}

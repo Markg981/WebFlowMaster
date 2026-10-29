@@ -1,0 +1,16 @@
+{
+  "id": "MEM-06",
+  "area": "MEM",
+  "title": "Progetto riservato",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un progetto P con un test, un test API e una suite; un piano che include il test.",
+  "steps": [
+    "Impostazioni → Progetti: icona delle persone su P; riservarlo e aggiungere editor.a come viewer.",
+    "Come viewer.a (non elencato): Libreria, Tester API, Suite.",
+    "Come editor.a: aprire il test di P e provare a salvarlo.",
+    "Come viewer.a: aprire il piano e il suo ultimo report."
+  ],
+  "expected": "viewer.a non vede nulla di P. editor.a lo vede ma non può salvare modifiche. Piano e report restano visibili a tutti, e il piano esegue il test di P. Audit project.access_changed.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un progetto P con un test, un test API e una suite; un piano che include il test.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Progetti: icona delle persone su P; riservarlo e aggiungere editor.a come viewer.</li><li>Come viewer.a (non elencato): Libreria, Tester API, Suite.</li><li>Come editor.a: aprire il test di P e provare a salvarlo.</li><li>Come viewer.a: aprire il piano e il suo ultimo report.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">viewer.a non vede nulla di P. editor.a lo vede ma non può salvare modifiche. Piano e report restano visibili a tutti, e il piano esegue il test di P. Audit <b>project.access_changed</b>.</p>\n      "
+}

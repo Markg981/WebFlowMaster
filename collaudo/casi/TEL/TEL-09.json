@@ -1,0 +1,13 @@
+{
+  "id": "TEL-09",
+  "area": "TEL",
+  "title": "Capacità degli agenti e drain",
+  "priority": "P1",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "Connettere un agente con slot noti, aprire una sessione e leggere i gauge wfm_agent_* sul relay API.",
+    "Mettere l’agente in drain, rilasciare la sessione e disconnetterlo."
+  ],
+  "expected": "Connessioni, capacità e sessioni sono aggregati locali del relay. Gli slot in drain non contribuiscono alla capacità; rilascio e disconnessione aggiornano i gauge senza sessioni fantasma."
+}

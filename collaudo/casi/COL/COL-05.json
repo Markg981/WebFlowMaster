@@ -1,0 +1,14 @@
+{
+  "id": "COL-05",
+  "area": "COL",
+  "title": "Dashboard multiple, configurazione e predefinita",
+  "priority": "P1",
+  "actor": "owner.a, viewer.a, editor.a",
+  "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+  "steps": [
+    "Creare una dashboard privata e aggiungere una seconda istanza Report recenti.",
+    "Configurare titolo, larghezza, periodo di 7 giorni e limite 10; salvare.",
+    "Impostarla come predefinita e ricaricare."
+  ],
+  "expected": "La nuova dashboard si apre al nuovo accesso; le istanze e i parametri persistono. Il layout precedente resta disponibile."
+}

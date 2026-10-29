@@ -1,0 +1,16 @@
+{
+  "id": "MOB-06",
+  "area": "MOB",
+  "title": "Un test mobile dentro un piano",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-02 (test «Ricerca Wikipedia» su BrowserStack); un test web salvato.",
+  "steps": [
+    "Modifica il test mobile: campo Nei piani di test gira su = la griglia BrowserStack; Salva e riaprire.",
+    "Piani di test → + Piano di test; passo 2: due configurazioni, Chrome headless e Firefox headless; Aggiungi Suite di Test, cercare Ricerca.",
+    "Aggiungere il test mobile e il test web; creare il piano e aprirne la pagina.",
+    "Esegui ora; a run finito aprire il report."
+  ],
+  "expected": "1: alla riapertura il campo mostra BrowserStack; aprendo Esegui (▶) la griglia è già scelta. 2: il test mobile compare con l'etichetta MOBILE. 3: la pagina del piano elenca «Ricerca Wikipedia (app mobile)». 4: il test web ha due risultati (chromium, firefox), il test mobile uno solo, con Browser = «Google Pixel 8 · 14.0» ed esito Superato; il totale del run li conta tutti e tre.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-02 (test «Ricerca Wikipedia» su BrowserStack); un test web salvato.</p>\n        <h4>Passi</h4>\n        <ol><li><b>Modifica</b> il test mobile: campo <b>Nei piani di test gira su</b> = la griglia BrowserStack; Salva e riaprire.</li><li>Piani di test → <b>+ Piano di test</b>; passo 2: due configurazioni, Chrome headless e Firefox headless; <b>Aggiungi Suite di Test</b>, cercare <code>Ricerca</code>.</li><li>Aggiungere il test mobile e il test web; creare il piano e aprirne la pagina.</li><li><b>Esegui ora</b>; a run finito aprire il report.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: alla riapertura il campo mostra BrowserStack; aprendo <b>Esegui</b> (▶) la griglia è già scelta. 2: il test mobile compare con l'etichetta MOBILE. 3: la pagina del piano elenca «Ricerca Wikipedia (app mobile)». 4: il test web ha due risultati (chromium, firefox), il test mobile uno solo, con Browser = «Google Pixel 8 · 14.0» ed esito Superato; il totale del run li conta tutti e tre.</p>\n      "
+}

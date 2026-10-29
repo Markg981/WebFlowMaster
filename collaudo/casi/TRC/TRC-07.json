@@ -1,0 +1,17 @@
+{
+  "id": "TRC-07",
+  "area": "TRC",
+  "title": "Regole su chiavi, gerarchia ed eliminazione",
+  "priority": "P2",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "TRC-01.",
+  "steps": [
+    "Nuovo requisito con chiave pag-1.",
+    "Chiave PAG 3 (con spazio).",
+    "Modificare PAG: Appartiene a PAG-1.",
+    "Eliminare l'epic PAG.",
+    "Come viewer.a aprire Requisiti."
+  ],
+  "expected": "1: rifiutato «A requirement with that key already exists.» (le chiavi non distinguono maiuscole). 2: il campo segnala il formato e Salva resta disabilitato. 3: «A requirement cannot be under itself or under one of its own children.» 4: PAG-1 e PAG-2 passano al primo livello; i test e i loro risultati restano; audit requirement.deleted. 5: il viewer vede tutto ed esporta la matrice, ma non ha Nuovo requisito, Importa, Test, modifica ed eliminazione.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TRC-01.</p>\n        <h4>Passi</h4>\n        <ol><li>Nuovo requisito con chiave <code>pag-1</code>.</li><li>Chiave <code>PAG 3</code> (con spazio).</li><li>Modificare PAG: <b>Appartiene a</b> PAG-1.</li><li>Eliminare l'epic PAG.</li><li>Come viewer.a aprire Requisiti.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: rifiutato «A requirement with that key already exists.» (le chiavi non distinguono maiuscole). 2: il campo segnala il formato e Salva resta disabilitato. 3: «A requirement cannot be under itself or under one of its own children.» 4: PAG-1 e PAG-2 passano al primo livello; i test e i loro risultati restano; audit <b>requirement.deleted</b>. 5: il viewer vede tutto ed esporta la matrice, ma non ha Nuovo requisito, Importa, Test, modifica ed eliminazione.</p>\n      "
+}

@@ -1,0 +1,13 @@
+{
+  "id": "REP-04",
+  "area": "REP",
+  "title": "Pannello di rete",
+  "priority": "P2",
+  "actor": "viewer.a",
+  "preconditions": "PLN-06.",
+  "steps": [
+    "Aprire il pannello Rete di un test; scaricare l'HAR e aprirlo negli strumenti per sviluppatori."
+  ],
+  "expected": "Riepilogo di richieste, fallite e byte ricevuti, elenco delle fallite e delle più lente; l'HAR si apre.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-06.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire il pannello Rete di un test; scaricare l'HAR e aprirlo negli strumenti per sviluppatori.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Riepilogo di richieste, fallite e byte ricevuti, elenco delle fallite e delle più lente; l'HAR si apre.</p>\n      "
+}

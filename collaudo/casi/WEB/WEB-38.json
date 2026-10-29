@@ -1,0 +1,16 @@
+{
+  "id": "WEB-38",
+  "area": "WEB",
+  "title": "Debug: breakpoint, passo e continua",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un test di 4 step sull'applicazione di prova (apri pagina, compila, clicca, verifica testo).",
+  "steps": [
+    "Cliccare il pallino dello step 3: diventa rosso.",
+    "Debug.",
+    "Al fermo: leggere il pannello; Passo.",
+    "Al nuovo fermo: Continua."
+  ],
+  "expected": "Il pannello mostra «avvio», poi «in esecuzione», poi si ferma: «Fermo al breakpoint prima di …» con screenshot e URL della pagina, step 1–2 eseguiti e lo step 3 contornato nel canvas. Passo esegue lo step 3 e si ferma prima del 4 («Fermo prima di …»). Continua porta alla fine: «Il test è passato.». Esegui test e Debug restano disabilitati durante la sessione.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test di 4 step sull'applicazione di prova (apri pagina, compila, clicca, verifica testo).</p>\n        <h4>Passi</h4>\n        <ol><li>Cliccare il pallino dello step 3: diventa rosso.</li><li><b>Debug</b>.</li><li>Al fermo: leggere il pannello; <b>Passo</b>.</li><li>Al nuovo fermo: <b>Continua</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il pannello mostra «avvio», poi «in esecuzione», poi si ferma: «Fermo al breakpoint prima di …» con screenshot e URL della pagina, step 1–2 eseguiti e lo step 3 contornato nel canvas. Passo esegue lo step 3 e si ferma prima del 4 («Fermo prima di …»). Continua porta alla fine: «Il test è passato.». Esegui test e Debug restano disabilitati durante la sessione.</p>\n      "
+}

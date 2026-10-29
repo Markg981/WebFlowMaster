@@ -1,0 +1,13 @@
+{
+  "id": "API-40",
+  "area": "API",
+  "title": "Deadline locale senza asserzioni",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report.",
+  "steps": [
+    "Salvare metodo Wait con corpo {}, timeoutMs=50 e nessuna asserzione.",
+    "Avviare il piano e poi rieseguire Server."
+  ],
+  "expected": "Wait fallisce per timeout, senza promuovere un risultato parziale; Server successivo funziona e la capacità agente viene liberata."
+}

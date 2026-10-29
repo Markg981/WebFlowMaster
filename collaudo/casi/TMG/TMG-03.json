@@ -1,0 +1,16 @@
+{
+  "id": "TMG-03",
+  "area": "TMG",
+  "title": "Pubblicare un run su TestRail",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "TMG-02; piano Nightly con i tre test più un quarto senza caso, su Chromium e Firefox; Checkout fallisce su Firefox.",
+  "steps": [
+    "Impostazioni del piano → Pubblica i risultati su = TestRail QA; Salva.",
+    "Eseguire il piano e attendere la fine.",
+    "Nel report, scheda Test management.",
+    "In TestRail aprire la run creata."
+  ],
+  "expected": "3: una riga «Pubblicata» con TestRail QA, la chiave R<id> come link e «2 caso/i pubblicati, 1 test senza caso esclusi». 4: la run ha nome «Nightly — AAAA-MM-GG HH:MM UTC», contiene solo C1 e C2; C1 Passed; C2 Failed (Checkout su Firefox fallito, Orders API passato: uno solo basta), con nel commento l'esito per browser, il motivo del fallimento e l'indirizzo del report. Il run in WebFlowMaster ha lo stesso esito di prima.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TMG-02; piano <code>Nightly</code> con i tre test più un quarto senza caso, su Chromium e Firefox; Checkout fallisce su Firefox.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni del piano → <b>Pubblica i risultati su</b> = TestRail QA; Salva.</li><li>Eseguire il piano e attendere la fine.</li><li>Nel report, scheda <b>Test management</b>.</li><li>In TestRail aprire la run creata.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">3: una riga «Pubblicata» con TestRail QA, la chiave <code>R&lt;id&gt;</code> come link e «2 caso/i pubblicati, 1 test senza caso esclusi». 4: la run ha nome «Nightly — AAAA-MM-GG HH:MM UTC», contiene solo C1 e C2; C1 Passed; C2 Failed (Checkout su Firefox fallito, Orders API passato: uno solo basta), con nel commento l'esito per browser, il motivo del fallimento e l'indirizzo del report. Il run in WebFlowMaster ha lo stesso esito di prima.</p>\n      "
+}

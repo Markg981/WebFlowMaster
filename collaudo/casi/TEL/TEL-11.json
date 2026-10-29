@@ -1,0 +1,13 @@
+{
+  "id": "TEL-11",
+  "area": "TEL",
+  "title": "Sampling W3C e assenza di baggage o segreti",
+  "priority": "P1",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "Inviare richieste con traceparent/tracestate validi, una campionata e una non campionata; includere baggage e valori sensibili riconoscibili.",
+    "Esaminare export OTLP e contesto nei job e nei ticket del relay in un ambiente di prova."
+  ],
+  "expected": "Il sampling segue il parent. Attraversano i confini soltanto traceparent/tracestate; baggage, payload, URL dei sistemi testati, messaggi di eccezione, label utente/tenant e credenziali non entrano nella telemetria applicativa."
+}

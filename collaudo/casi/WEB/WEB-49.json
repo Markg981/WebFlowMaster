@@ -1,0 +1,15 @@
+{
+  "id": "WEB-49",
+  "area": "WEB",
+  "title": "{{$totp}}: errori chiari",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "WEB-48.",
+  "steps": [
+    "Digita {{$totp(secret_mf)}} (nome sbagliato).",
+    "Nell'ambiente, un segreto bad_seed = non-una-chiave!; Digita {{$totp(bad_seed)}}.",
+    "Digita {{$totp}} senza nome."
+  ],
+  "expected": "Ogni passo fallisce con «Unresolved variable(s) $totp(secret_mf)» (o $totp(bad_seed), $totp) e «Select an environment that defines them…»; nel campo della pagina non viene digitato nulla.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-48.</p>\n        <h4>Passi</h4>\n        <ol><li>Digita <code>{{$totp(secret_mf)}}</code> (nome sbagliato).</li><li>Nell'ambiente, un segreto <code>bad_seed</code> = <code>non-una-chiave!</code>; Digita <code>{{$totp(bad_seed)}}</code>.</li><li>Digita <code>{{$totp}}</code> senza nome.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ogni passo fallisce con «Unresolved variable(s) $totp(secret_mf)» (o $totp(bad_seed), $totp) e «Select an environment that defines them…»; nel campo della pagina non viene digitato nulla.</p>\n      "
+}

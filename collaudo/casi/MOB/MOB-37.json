@@ -1,0 +1,13 @@
+{
+  "id": "MOB-37",
+  "area": "MOB",
+  "title": "Matrice mobile standalone",
+  "priority": "P1",
+  "actor": "editor.a, owner.a",
+  "preconditions": "Migrazione 0082 applicata. Test Android con due coppie dispositivo/OS e app disponibile sui dispositivi.",
+  "steps": [
+    "Configurare due target e avviare Esegui matrice dispositivi.",
+    "Far fallire il primo target; seguire i due risultati."
+  ],
+  "expected": "Due run con snapshot target distinti, sessioni e risultati separati. Il secondo target esegue anche se il primo fallisce."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "ADM-03",
+  "area": "ADM",
+  "title": "Livello e conservazione dei log",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "ADM-02 con la variabile.",
+  "steps": [
+    "Sistema: livello debug; salvare; eseguire un'azione; guardare i log.",
+    "Conservazione a 3 giorni; salvare."
+  ],
+  "expected": "I log diventano più dettagliati subito nel processo web; i valori restano dopo un ricaricamento. Audit system_settings.changed.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>ADM-02 con la variabile.</p>\n        <h4>Passi</h4>\n        <ol><li>Sistema: livello <code>debug</code>; salvare; eseguire un'azione; guardare i log.</li><li>Conservazione a 3 giorni; salvare.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">I log diventano più dettagliati subito nel processo web; i valori restano dopo un ricaricamento. Audit <b>system_settings.changed</b>.</p>\n      "
+}

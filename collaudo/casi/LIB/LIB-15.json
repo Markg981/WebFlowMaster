@@ -1,0 +1,17 @@
+{
+  "id": "LIB-15",
+  "area": "LIB",
+  "title": "Esportare un progetto come file e reimportarlo",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un progetto con due test web e un test API con Bearer token scritto in chiaro.",
+  "steps": [
+    "Libreria → File → Esporta: Progetto = quel progetto, Formato YAML; Scarica.",
+    "Aprire il file in un editor di testo.",
+    "Organizzazione B (owner.b): File → Importa → Apri un file… con quel file; Mostra cosa cambia.",
+    "Importa; aprire i test.",
+    "Ripetere l'import senza modifiche; poi cambiare l'URL di un test nel file e reimportare; aprire la Cronologia di quel test."
+  ],
+  "expected": "1: un file <progetto>.wfm.yaml. 2: inizia con kind: webflowmaster/tests; niente id, autori, date né elementi rilevati; il token è diventato {{bearer_token}}. 3: l'anteprima segna i tre test «nuovo» senza creare nulla. 4: i test esistono in B, nel progetto scelto in «I nuovi test vanno in», con una versione 1. 5: tutti «invariato» e nessun salvataggio; poi quel test «aggiornato» e la cronologia ha una nuova versione. Audit test.imported.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un progetto con due test web e un test API con Bearer token scritto in chiaro.</p>\n        <h4>Passi</h4>\n        <ol><li>Libreria → <b>File</b> → Esporta: Progetto = quel progetto, Formato YAML; <b>Scarica</b>.</li><li>Aprire il file in un editor di testo.</li><li>Organizzazione B (owner.b): <b>File</b> → Importa → <b>Apri un file…</b> con quel file; <b>Mostra cosa cambia</b>.</li><li><b>Importa</b>; aprire i test.</li><li>Ripetere l'import senza modifiche; poi cambiare l'URL di un test nel file e reimportare; aprire la <b>Cronologia</b> di quel test.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: un file <code>&lt;progetto&gt;.wfm.yaml</code>. 2: inizia con <code>kind: webflowmaster/tests</code>; niente id, autori, date né elementi rilevati; il token è diventato <code>{{bearer_token}}</code>. 3: l'anteprima segna i tre test «nuovo» senza creare nulla. 4: i test esistono in B, nel progetto scelto in «I nuovi test vanno in», con una versione 1. 5: tutti «invariato» e nessun salvataggio; poi quel test «aggiornato» e la cronologia ha una nuova versione. Audit <b>test.imported</b>.</p>\n      "
+}

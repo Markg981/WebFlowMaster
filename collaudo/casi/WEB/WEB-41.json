@@ -1,0 +1,15 @@
+{
+  "id": "WEB-41",
+  "area": "WEB",
+  "title": "Debug: pausa, breakpoint a sessione in corso, gruppi",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un test con uno step wait lungo (5 s) seguito da altri step; un test che chiama un gruppo di step.",
+  "steps": [
+    "Debug; durante l'attesa: Pausa.",
+    "Mentre è in esecuzione, aggiungere un breakpoint su uno step successivo; Continua.",
+    "Test col gruppo: breakpoint sulla chiamata al gruppo; Debug; correggere il valore dello step fermo e Riprova/Continua."
+  ],
+  "expected": "Pausa si ferma prima dello step successivo («In pausa prima di …»). Il breakpoint aggiunto durante la sessione ferma il run. Col gruppo il run si ferma al primo step del gruppo; il pannello avvisa che la correzione vale solo per questo run e il canvas non cambia.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test con uno step wait lungo (5 s) seguito da altri step; un test che chiama un gruppo di step.</p>\n        <h4>Passi</h4>\n        <ol><li>Debug; durante l'attesa: <b>Pausa</b>.</li><li>Mentre è in esecuzione, aggiungere un breakpoint su uno step successivo; Continua.</li><li>Test col gruppo: breakpoint sulla chiamata al gruppo; Debug; correggere il valore dello step fermo e Riprova/Continua.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Pausa si ferma prima dello step successivo («In pausa prima di …»). Il breakpoint aggiunto durante la sessione ferma il run. Col gruppo il run si ferma al primo step del gruppo; il pannello avvisa che la correzione vale solo per questo run e il canvas non cambia.</p>\n      "
+}

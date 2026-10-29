@@ -1,0 +1,15 @@
+{
+  "id": "MOB-04",
+  "area": "MOB",
+  "title": "iOS su LambdaTest",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Una griglia LambdaTest; un .ipa per dispositivi reali (per esempio l'app demo di LambdaTest).",
+  "steps": [
+    "Caricare l'.ipa scegliendo la griglia LambdaTest.",
+    "Piattaforma iOS (impostata da sola dall'upload), Dispositivo iPhone 15, Versione 17; un passo Verifica visibile con ios=label == \"…\" per un elemento dell'app; eseguire.",
+    "Mettere nel test iOS un passo android=new UiSelector()."
+  ],
+  "expected": "1: App = lt://APP…, piattaforma iOS. 2: la sessione parte su LambdaTest Real Devices e la dashboard la segna passed o failed come il report; qui non c'è il link al video (solo per BrowserStack). 3: il passo è segnato in rosso: android=… non vale per iOS.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Una griglia LambdaTest; un .ipa per dispositivi reali (per esempio l'app demo di LambdaTest).</p>\n        <h4>Passi</h4>\n        <ol><li>Caricare l'.ipa scegliendo la griglia LambdaTest.</li><li>Piattaforma iOS (impostata da sola dall'upload), Dispositivo <code>iPhone 15</code>, Versione <code>17</code>; un passo Verifica visibile con <code>ios=label == \"…\"</code> per un elemento dell'app; eseguire.</li><li>Mettere nel test iOS un passo <code>android=new UiSelector()</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: App = lt://APP…, piattaforma iOS. 2: la sessione parte su LambdaTest Real Devices e la dashboard la segna passed o failed come il report; qui non c'è il link al video (solo per BrowserStack). 3: il passo è segnato in rosso: android=… non vale per iOS.</p>\n      "
+}

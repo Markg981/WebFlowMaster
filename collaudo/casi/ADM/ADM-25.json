@@ -1,0 +1,14 @@
+{
+  "id": "ADM-25",
+  "area": "ADM",
+  "title": "Callback SES/SNS e header originali",
+  "priority": "P1",
+  "actor": "owner.a, owner.b, editor.a, viewer.a",
+  "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+  "steps": [
+    "Configurare SMTP SES e ARN esatto SNS; attivare header originali nelle notifiche SES di delivery e bounce.",
+    "Sottoscrivere il callback HTTPS e verificare la conferma firmata; inviare un invito di prova.",
+    "Verificare correlazione tramite X-Wfm-Delivery-Id; ripetere con topic errato e certificato/firma non ammessi."
+  ],
+  "expected": "Conferma e notifiche valide funzionano senza adattatore esterno. Topic, firma e URL certificato non ammessi rifiutati; nessuna chiamata verso host arbitrari. Header originali mancanti non danno falsa conferma di consegna."
+}

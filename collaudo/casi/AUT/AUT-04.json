@@ -1,0 +1,14 @@
+{
+  "id": "AUT-04",
+  "area": "AUT",
+  "title": "Review obbligatoria con separazione dei ruoli",
+  "priority": "P1",
+  "actor": "owner.a / editor.a autore / viewer.a",
+  "preconditions": "Tre sessioni separate della stessa organizzazione e test API da creare. Procedura: collaudo/critical-ui-e2e.md.",
+  "steps": [
+    "Come owner attivare la review obbligatoria dalle impostazioni.",
+    "Come editor creare un test API e richiedere review dallo storico; controllare le azioni disponibili ad autore e viewer.",
+    "Come owner approvare e pubblicare; ricaricare lo storico e aprirlo come viewer."
+  ],
+  "expected": "Autore e viewer non approvano; owner approva e pubblica; versione pubblicata persistente e storico viewer senza azioni di modifica."
+}

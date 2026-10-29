@@ -1,0 +1,13 @@
+{
+  "id": "API-39",
+  "area": "API",
+  "title": "Conversazione bidirezionale gRPC",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report.",
+  "steps": [
+    "Salvare metodo Bidi con receive, capture name=challenge property=text, send message={\"text\":\"{{capture.challenge}}\"}, receive, end. Asserire count=2 e last.text=challenge.",
+    "Pubblicare e avviare il piano."
+  ],
+  "expected": "La challenge immediata viene catturata e riutilizzata; lo stream termina e il risultato è riuscito."
+}

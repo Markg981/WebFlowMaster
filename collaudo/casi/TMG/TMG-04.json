@@ -1,0 +1,16 @@
+{
+  "id": "TMG-04",
+  "area": "TMG",
+  "title": "Xray Cloud: Test Execution e Test Plan",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Jira Cloud con Xray; API key Xray (client id e secret); test Xray SHOP-45 e SHOP-46; un Test Plan SHOP-100.",
+  "steps": [
+    "Nuova connessione Xray Cloud: Indirizzo vuoto, Client id, Client secret, Chiave del progetto SHOP, Test Plan SHOP-100.",
+    "Verifica connessione.",
+    "Nei test mettere SHOP-45 e SHOP-46; piano che pubblica su Xray; eseguire.",
+    "Aprire il link della pubblicazione."
+  ],
+  "expected": "1: l'indirizzo vuoto usa https://xray.cloud.getxray.app. 2: «Authenticated with Xray Cloud.». 4: si apre la Test Execution in Jira, nel progetto SHOP, collegata al Test Plan SHOP-100, con SHOP-45 e SHOP-46 PASSED/FAILED come nel run e il commento per test. Per Xray Server/Data Center (con PAT) lo stesso, con esiti PASS/FAIL.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Jira Cloud con Xray; API key Xray (client id e secret); test Xray <code>SHOP-45</code> e <code>SHOP-46</code>; un Test Plan <code>SHOP-100</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Nuova connessione Xray Cloud: Indirizzo vuoto, Client id, Client secret, Chiave del progetto <code>SHOP</code>, Test Plan <code>SHOP-100</code>.</li><li>Verifica connessione.</li><li>Nei test mettere SHOP-45 e SHOP-46; piano che pubblica su Xray; eseguire.</li><li>Aprire il link della pubblicazione.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: l'indirizzo vuoto usa https://xray.cloud.getxray.app. 2: «Authenticated with Xray Cloud.». 4: si apre la Test Execution in Jira, nel progetto SHOP, collegata al Test Plan SHOP-100, con SHOP-45 e SHOP-46 PASSED/FAILED come nel run e il commento per test. Per Xray Server/Data Center (con PAT) lo stesso, con esiti PASS/FAIL.</p>\n      "
+}

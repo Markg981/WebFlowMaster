@@ -1,0 +1,14 @@
+{
+  "id": "TRC-04",
+  "area": "TRC",
+  "title": "Importare da Azure DevOps con WIQL",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "Issue tracker Azure DevOps configurato (INT-10), con una Epic e una User Story figlia.",
+  "steps": [
+    "Importa → Una query WIQL: SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = 'User Story'.",
+    "Importa → Epic e story del progetto."
+  ],
+  "expected": "1: arriva la User Story e, con lei, la sua Epic (chiavi = id numerici, link a _workitems/edit/<id>). 2: arrivano Epic, Feature e story del progetto, ciascuna sotto il suo padre.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Issue tracker Azure DevOps configurato (INT-10), con una Epic e una User Story figlia.</p>\n        <h4>Passi</h4>\n        <ol><li>Importa → Una query WIQL: <code>SELECT [System.Id] FROM WorkItems WHERE [System.WorkItemType] = 'User Story'</code>.</li><li>Importa → Epic e story del progetto.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: arriva la User Story e, con lei, la sua Epic (chiavi = id numerici, link a _workitems/edit/&lt;id&gt;). 2: arrivano Epic, Feature e story del progetto, ciascuna sotto il suo padre.</p>\n      "
+}

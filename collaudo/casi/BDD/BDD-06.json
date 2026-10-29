@@ -1,0 +1,12 @@
+{
+  "id": "BDD-06",
+  "area": "BDD",
+  "title": "Versione pubblicata e dataset distribuito",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Pubblicare BDD; modificare il draft; avviare il piano con due righe dataset, due browser, due lingue e due shard."
+  ],
+  "expected": "Si esegue il sorgente pubblicato con revisione fissata; esattamente due risultati distinti senza moltiplicazione per matrice o shard."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "PLN-13",
+  "area": "PLN",
+  "title": "Notifiche a un webhook",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "URL di prova (Slack, Teams o webhook.site).",
+  "steps": [
+    "Invia una notifica quando: solo Failed; URL del webhook.",
+    "Eseguire un run che passa, poi uno che fallisce."
+  ],
+  "expected": "Arriva una sola notifica, per il run fallito, con il nome del piano e il link al report. Un URL non http(s) viene rifiutato al salvataggio.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>URL di prova (Slack, Teams o webhook.site).</p>\n        <h4>Passi</h4>\n        <ol><li><b>Invia una notifica quando</b>: solo Failed; URL del webhook.</li><li>Eseguire un run che passa, poi uno che fallisce.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Arriva una sola notifica, per il run fallito, con il nome del piano e il link al report. Un URL non http(s) viene rifiutato al salvataggio.</p>\n      "
+}

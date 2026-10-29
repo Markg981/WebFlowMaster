@@ -1,0 +1,14 @@
+{
+  "id": "SSO-11",
+  "area": "SSO",
+  "title": "Provider irraggiungibile",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "La prova mostra l'errore di rete. L'accesso torna su /auth spiegando che il provider non è raggiungibile.",
+  "steps": [
+    "Fermare Keycloak.",
+    "Prova il provider; poi un accesso con SSO."
+  ],
+  "expected": "La prova mostra l'errore di rete. L'accesso torna su /auth spiegando che il provider non è raggiungibile.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Fermare Keycloak.</li><li><b>Prova il provider</b>; poi un accesso con SSO.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La prova mostra l'errore di rete. L'accesso torna su /auth spiegando che il provider non è raggiungibile.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "WEB-02",
+  "area": "WEB",
+  "title": "Costruire ed eseguire un test di login",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "WEB-01.",
+  "steps": [
+    "Trascinare Naviga, due Inserimento Testo, Click Elemento e Verifica Testo Contenuto; assegnare gli elementi rilevati e i valori.",
+    "Esegui test."
+  ],
+  "expected": "Esito «Passed». L'anteprima riproduce gli step uno alla volta con il loro screenshot.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-01.</p>\n        <h4>Passi</h4>\n        <ol><li>Trascinare Naviga, due Inserimento Testo, Click Elemento e Verifica Testo Contenuto; assegnare gli elementi rilevati e i valori.</li><li><b>Esegui test</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Esito «Passed». L'anteprima riproduce gli step uno alla volta con il loro screenshot.</p>\n      "
+}

@@ -1,0 +1,17 @@
+{
+  "id": "UX-08",
+  "area": "UX",
+  "title": "Accessibilità: messaggi, tastiera e contrasto",
+  "priority": "P2",
+  "actor": "owner",
+  "preconditions": "Un owner con almeno un piano di test; un secondo browser senza sessione.",
+  "steps": [
+    "Senza sessione, aprire /auth e accedere con una password sbagliata.",
+    "Aprire un link d'invito inventato (/auth?invitation=xyz&username=prova) e provare a registrarsi.",
+    "Accedere come owner. In Impostazioni > Preferenze attivare il tema scuro, poi spostarsi solo con Tab tra sidebar e pagina.",
+    "In API Tester, con il focus su Save Test, premere Invio, poi Esc.",
+    "In Test plans, lasciare il puntatore sui pulsanti di paginazione e di azzeramento della ricerca; con un lettore di schermo, ascoltarne il nome."
+  ],
+  "expected": "Gli errori di accesso e di registrazione mostrano una frase (per esempio \"That invitation is not valid.\"), mai il codice HTTP e il JSON. Nel tema scuro i testi e i pulsanti primari restano leggibili e il focus da tastiera è sempre visibile. Chiudendo il dialog con Esc il focus torna su Save Test. Paginazione e azzeramento della ricerca hanno un nome (Previous page, Next page, Clear search).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un owner con almeno un piano di test; un secondo browser senza sessione.</p>\n        <h4>Passi</h4>\n        <ol><li>Senza sessione, aprire /auth e accedere con una password sbagliata.</li><li>Aprire un link d'invito inventato (/auth?invitation=xyz&amp;username=prova) e provare a registrarsi.</li><li>Accedere come owner. In Impostazioni &gt; Preferenze attivare il tema scuro, poi spostarsi solo con Tab tra sidebar e pagina.</li><li>In API Tester, con il focus su Save Test, premere Invio, poi Esc.</li><li>In Test plans, lasciare il puntatore sui pulsanti di paginazione e di azzeramento della ricerca; con un lettore di schermo, ascoltarne il nome.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Gli errori di accesso e di registrazione mostrano una frase (per esempio \"That invitation is not valid.\"), mai il codice HTTP e il JSON. Nel tema scuro i testi e i pulsanti primari restano leggibili e il focus da tastiera è sempre visibile. Chiudendo il dialog con Esc il focus torna su Save Test. Paginazione e azzeramento della ricerca hanno un nome (Previous page, Next page, Clear search).</p>\n      "
+}

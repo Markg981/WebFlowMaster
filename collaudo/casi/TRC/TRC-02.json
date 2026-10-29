@@ -1,0 +1,15 @@
+{
+  "id": "TRC-02",
+  "area": "TRC",
+  "title": "Copertura che fallisce, e un test manuale in attesa",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "TRC-01; un test manuale (LIB-13) e un piano con Chromium e Firefox.",
+  "steps": [
+    "Far fallire il test web solo su Firefox; eseguire il piano.",
+    "Collegare a PAG-2 il test manuale; eseguire un piano che lo contiene senza dare l'esito.",
+    "Dare l'esito Superato nel report; ricaricare Requisiti."
+  ],
+  "expected": "1: PAG-1 e l'epic diventano «Fallisce» (basta un browser); il test mostra «Fallito». 2: PAG-2 è «Non eseguito» e il test manuale «In attesa di esito». 3: PAG-2 diventa «Passa». Filtro Copertura = Fallisce mostra solo PAG e PAG-1.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TRC-01; un test manuale (LIB-13) e un piano con Chromium e Firefox.</p>\n        <h4>Passi</h4>\n        <ol><li>Far fallire il test web solo su Firefox; eseguire il piano.</li><li>Collegare a PAG-2 il test manuale; eseguire un piano che lo contiene senza dare l'esito.</li><li>Dare l'esito Superato nel report; ricaricare Requisiti.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: PAG-1 e l'epic diventano «Fallisce» (basta un browser); il test mostra «Fallito». 2: PAG-2 è «Non eseguito» e il test manuale «In attesa di esito». 3: PAG-2 diventa «Passa». Filtro <b>Copertura</b> = Fallisce mostra solo PAG e PAG-1.</p>\n      "
+}

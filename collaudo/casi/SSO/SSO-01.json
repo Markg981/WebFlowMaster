@@ -1,0 +1,15 @@
+{
+  "id": "SSO-01",
+  "area": "SSO",
+  "title": "Configurare il single sign-on",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Keycloak pronto (vedi Preparazione).",
+  "steps": [
+    "Impostazioni → Sicurezza → Single sign-on: copiare il redirect URI e registrarlo nel client Keycloak.",
+    "Inserire issuer (https://…/realms/acme), client ID, client secret, dominio acme.test, ruolo dei nuovi account Editor; Salva.",
+    "Prova il provider."
+  ],
+  "expected": "«Salvato.» e «The provider answered: …» con l'issuer. Riaprendo la scheda il secret non è visibile (campo vuoto, «Stored»). Audit sso.configured senza il secret.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Keycloak pronto (vedi Preparazione).</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Sicurezza → Single sign-on: copiare il redirect URI e registrarlo nel client Keycloak.</li><li>Inserire issuer (<code>https://…/realms/acme</code>), client ID, client secret, dominio <code>acme.test</code>, ruolo dei nuovi account <b>Editor</b>; <b>Salva</b>.</li><li><b>Prova il provider</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">«Salvato.» e «The provider answered: …» con l'issuer. Riaprendo la scheda il secret non è visibile (campo vuoto, «Stored»). Audit <b>sso.configured</b> senza il secret.</p>\n      "
+}

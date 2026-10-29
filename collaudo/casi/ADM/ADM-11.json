@@ -1,0 +1,16 @@
+{
+  "id": "ADM-11",
+  "area": "ADM",
+  "title": "Politica delle password strong",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "Stack di prova con PASSWORD_POLICY=strong sul servizio api.",
+  "steps": [
+    "Registrare un account con password password123.",
+    "Con Password1234!.",
+    "Con una password che contiene lo username.",
+    "Con Blu-Bollitore-2026."
+  ],
+  "expected": "1: rifiutata («at least 12 characters»). 2: rifiutata come troppo comune. 3: rifiutata («must not contain the username»). 4: accettata. Gli account esistenti accedono con le password di prima.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Stack di prova con <code>PASSWORD_POLICY=strong</code> sul servizio api.</p>\n        <h4>Passi</h4>\n        <ol><li>Registrare un account con password <code>password123</code>.</li><li>Con <code>Password1234!</code>.</li><li>Con una password che contiene lo username.</li><li>Con <code>Blu-Bollitore-2026</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: rifiutata («at least 12 characters»). 2: rifiutata come troppo comune. 3: rifiutata («must not contain the username»). 4: accettata. Gli account esistenti accedono con le password di prima.</p>\n      "
+}

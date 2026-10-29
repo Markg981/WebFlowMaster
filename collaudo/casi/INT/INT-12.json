@@ -1,0 +1,13 @@
+{
+  "id": "INT-12",
+  "area": "INT",
+  "title": "Chiave scaduta o revocata",
+  "priority": "P3",
+  "actor": "ci-bot",
+  "preconditions": "401 unauthenticated. Audit api_key.revoked.",
+  "steps": [
+    "Revocare la chiave (o usarne una scaduta) e chiamare l'API."
+  ],
+  "expected": "401 unauthenticated. Audit api_key.revoked.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Revocare la chiave (o usarne una scaduta) e chiamare l'API.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">401 <code>unauthenticated</code>. Audit <b>api_key.revoked</b>.</p>\n      "
+}

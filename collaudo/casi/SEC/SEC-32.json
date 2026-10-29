@@ -1,0 +1,16 @@
+{
+  "id": "SEC-32",
+  "area": "SEC",
+  "title": "Verifica e mappature SSO: chi può",
+  "priority": "P1",
+  "actor": "editor.a · owner.b",
+  "preconditions": "SSO-22.",
+  "steps": [
+    "Come editor.a, POST /api/organization/sso/domains/acme.test/verify.",
+    "Come owner.b (organizzazione B), lo stesso POST.",
+    "Come owner.a, PUT /api/organization/sso con roleMappings [{group:'x',role:'admin'}] e poi con requireGroup true e nessuna mappatura.",
+    "Come owner.a, la stessa verifica con una chiave API."
+  ],
+  "expected": "1: 403. 2: 404 (il dominio non è dell'organizzazione B), nessuna modifica. 3: 400 con codice invalid_mapping, poi require_group_needs_mappings. 4: rifiutata: la verifica richiede una sessione.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-22.</p>\n        <h4>Passi</h4>\n        <ol><li>Come editor.a, POST /api/organization/sso/domains/acme.test/verify.</li><li>Come owner.b (organizzazione B), lo stesso POST.</li><li>Come owner.a, PUT /api/organization/sso con roleMappings [{group:'x',role:'admin'}] e poi con requireGroup true e nessuna mappatura.</li><li>Come owner.a, la stessa verifica con una chiave API.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: 403. 2: 404 (il dominio non è dell'organizzazione B), nessuna modifica. 3: 400 con codice invalid_mapping, poi require_group_needs_mappings. 4: rifiutata: la verifica richiede una sessione.</p>\n      "
+}

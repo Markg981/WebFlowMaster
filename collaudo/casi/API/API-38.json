@@ -1,0 +1,13 @@
+{
+  "id": "API-38",
+  "area": "API",
+  "title": "Streaming client gRPC",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report.",
+  "steps": [
+    "Salvare metodo Client con corpo {\"messages\":[{\"text\":\"first\"},{\"text\":\"second\"}]} e asserzione text=first,second.",
+    "Pubblicare e avviare il piano."
+  ],
+  "expected": "Una sola risposta JSON first,second dopo la chiusura dello stream di richieste; esito riuscito."
+}

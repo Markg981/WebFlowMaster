@@ -1,0 +1,13 @@
+{
+  "id": "REP-02",
+  "area": "REP",
+  "title": "Il report di un run",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Test per browser con esito e tempi degli step; «Eseguito su» indica il runner; per un run da CI compare «Build» con repository, branch e commit.",
+  "steps": [
+    "Aprire un run con più browser e un test fallito."
+  ],
+  "expected": "Test per browser con esito e tempi degli step; «Eseguito su» indica il runner; per un run da CI compare «Build» con repository, branch e commit.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Aprire un run con più browser e un test fallito.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Test per browser con esito e tempi degli step; «Eseguito su» indica il runner; per un run da CI compare «Build» con repository, branch e commit.</p>\n      "
+}

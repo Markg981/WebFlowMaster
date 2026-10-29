@@ -1,0 +1,14 @@
+{
+  "id": "PLN-58",
+  "area": "PLN",
+  "title": "Run in coda il cui job è sparito: chiuso come queue_job_lost",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 90. Un run in stato queued da più di QUEUED_RUN_LOST_AFTER_MS (10 minuti) il cui job non esiste più nella coda (ad esempio coda svuotata con valkey-cli FLUSHALL) e senza riga di invio pendente.",
+  "steps": [
+    "Attendere il successivo giro dello sweep di recupero (60 secondi) e aprire il run.",
+    "Aprire l'elenco dei run e verificare la quota di run in coda dell'organizzazione.",
+    "Avviare un run il cui job fallisce prima che un worker lo prenda e osservarne lo stato."
+  ],
+  "expected": "1: il run è error con codice queue_job_lost e un messaggio che dice che non è stato rieseguito. 2: il run non è più contato come in coda e la quota è libera. 3: anche questo run passa subito a error / queue_job_lost, non resta queued."
+}

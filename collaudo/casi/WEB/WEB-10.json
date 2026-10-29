@@ -1,0 +1,14 @@
+{
+  "id": "WEB-10",
+  "area": "WEB",
+  "title": "Descrivere un test a frasi",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Ogni riga è mostrata come lo step che diventerà prima di inserirla; gli step vanno in fondo alla sequenza. Senza chiave AI compare l'avviso che sono state lette solo le formulazioni comuni; con la chiave, le righe lette dal modello sono segnate «AI».",
+  "steps": [
+    "Descrivi: incollare quattro righe (vai su /login, scrivi tomsmith nel campo Username, clicca Login, verifica che «Secure Area» sia visibile).",
+    "Leggi la descrizione, controllare gli step proposti, Inserisci."
+  ],
+  "expected": "Ogni riga è mostrata come lo step che diventerà prima di inserirla; gli step vanno in fondo alla sequenza. Senza chiave AI compare l'avviso che sono state lette solo le formulazioni comuni; con la chiave, le righe lette dal modello sono segnate «AI».",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><b>Descrivi</b>: incollare quattro righe (vai su /login, scrivi tomsmith nel campo Username, clicca Login, verifica che «Secure Area» sia visibile).</li><li><b>Leggi la descrizione</b>, controllare gli step proposti, <b>Inserisci</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ogni riga è mostrata come lo step che diventerà prima di inserirla; gli step vanno in fondo alla sequenza. Senza chiave AI compare l'avviso che sono state lette solo le formulazioni comuni; con la chiave, le righe lette dal modello sono segnate «AI».</p>\n      "
+}

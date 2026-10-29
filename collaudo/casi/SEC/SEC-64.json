@@ -1,0 +1,14 @@
+{
+  "id": "SEC-64",
+  "area": "SEC",
+  "title": "Riparazione con AI: niente valori di campi o token al modello, niente segreti nella proposta",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 77. Stack di collaudo con il doppio Gemini (registra le richieste). Un test su una pagina con un campo nascosto csrf e un meta token, che compila un campo con {{password}} da un segreto di ambiente e poi clicca un selettore rotto senza fallback noti.",
+  "steps": [
+    "Eseguire il test dal piano.",
+    "Leggere la richiesta ricevuta dal doppio Gemini.",
+    "Leggere la proposta (GET /api/healing-proposals?testId=<id>) e la voce di audit dopo averla approvata."
+  ],
+  "expected": "La pagina inviata al modello non contiene script, valore del campo csrf, contenuto del meta né il valore del segreto. La proposta ha il locator scritto con i segnaposto non risolti e nessun valore di segreto; l'audit non contiene selettori."
+}

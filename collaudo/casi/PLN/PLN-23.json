@@ -1,0 +1,14 @@
+{
+  "id": "PLN-23",
+  "area": "PLN",
+  "title": "Piano con test manuali e automatici",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "LIB-13; un piano con due browser e due lingue che include LIB-13 e un test automatico.",
+  "steps": [
+    "Eseguire il piano; seguire il log live.",
+    "Aprire il report."
+  ],
+  "expected": "Il log dice che il test manuale attende il suo esito nel report; nessun browser lo esegue. Il report ha il test automatico in 4 corsie (2 browser × 2 lingue) e una sola riga manuale, In attesa, senza browser. Il run finisce come completato.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>LIB-13; un piano con due browser e due lingue che include LIB-13 e un test automatico.</p>\n        <h4>Passi</h4>\n        <ol><li>Eseguire il piano; seguire il log live.</li><li>Aprire il report.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il log dice che il test manuale attende il suo esito nel report; nessun browser lo esegue. Il report ha il test automatico in 4 corsie (2 browser × 2 lingue) e <b>una sola</b> riga manuale, <b>In attesa</b>, senza browser. Il run finisce come completato.</p>\n      "
+}

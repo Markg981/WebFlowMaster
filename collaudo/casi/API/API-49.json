@@ -1,0 +1,13 @@
+{
+  "id": "API-49",
+  "area": "API",
+  "title": "Provisioning suite con sola API pubblica",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Ambiente sacrificabile aggiornato; chiave editor con scope projects/tests/datasets/plans read/write e suites read/write; destinazione HTTP di prova. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "Con la stessa chiave creare progetto, test UI, dataset e piano usando solo /api/v1 secondo docs/it/reference/api.md.",
+    "Leggere le risorse create, aggiornare il test e verificare la nuova versione; avviare il piano e leggere il report."
+  ],
+  "expected": "Risorse persistenti nel tenant corretto, selezione del piano coerente, aggiornamento versionato ed esecuzione leggibile; nessun endpoint privato necessario."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "WEB-24",
+  "area": "WEB",
+  "title": "Rispondere a alert, confirm e prompt",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Ogni dialog riceve la risposta data, nell'ordine in cui le risposte sono state scritte (Ok al primo confirm, Cancel al secondo). Un valore diverso da accept, dismiss o accept:testo fa fallire lo step nominando i valori ammessi.",
+  "steps": [
+    "/javascript_alerts: Rispondi al dialog dismiss; Click «Click for JS Confirm»; Verifica Testo Contenuto #result «You clicked: Cancel».",
+    "Rispondi al dialog accept:collaudo; Click «Click for JS Prompt»; Verifica #result «You entered: collaudo».",
+    "Due Rispondi al dialog di fila (accept, poi dismiss), poi i due click su Confirm.",
+    "Valore forse."
+  ],
+  "expected": "Ogni dialog riceve la risposta data, nell'ordine in cui le risposte sono state scritte (Ok al primo confirm, Cancel al secondo). Un valore diverso da accept, dismiss o accept:testo fa fallire lo step nominando i valori ammessi.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>/javascript_alerts: <b>Rispondi al dialog</b> <code>dismiss</code>; Click «Click for JS Confirm»; Verifica Testo Contenuto <code>#result</code> «You clicked: Cancel».</li><li><b>Rispondi al dialog</b> <code>accept:collaudo</code>; Click «Click for JS Prompt»; Verifica <code>#result</code> «You entered: collaudo».</li><li>Due <b>Rispondi al dialog</b> di fila (<code>accept</code>, poi <code>dismiss</code>), poi i due click su Confirm.</li><li>Valore <code>forse</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ogni dialog riceve la risposta data, nell'ordine in cui le risposte sono state scritte (Ok al primo confirm, Cancel al secondo). Un valore diverso da accept, dismiss o accept:testo fa fallire lo step nominando i valori ammessi.</p>\n      "
+}

@@ -1,0 +1,15 @@
+{
+  "id": "PLN-05",
+  "area": "PLN",
+  "title": "Parallelismo",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un piano con 8 test di durata simile.",
+  "steps": [
+    "Esegui al massimo 1; eseguire e annotare la durata.",
+    "Impostare 4; eseguire.",
+    "Provare 17."
+  ],
+  "expected": "Con 4 la durata è sensibilmente minore che con 1. 17 viene rifiutato: il valore dev'essere fra 1 e 16.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un piano con 8 test di durata simile.</p>\n        <h4>Passi</h4>\n        <ol><li><b>Esegui al massimo</b> 1; eseguire e annotare la durata.</li><li>Impostare 4; eseguire.</li><li>Provare 17.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con 4 la durata è sensibilmente minore che con 1. 17 viene rifiutato: il valore dev'essere fra 1 e 16.</p>\n      "
+}

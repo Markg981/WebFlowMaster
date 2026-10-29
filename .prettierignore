@@ -19,7 +19,7 @@ collaudo/mobile/apps/
 # Rewritten by npm on every install; formatting them here would only fight npm
 **/package.json
 # Case catalog edited by hand and by scripts that write JSON.stringify output
-collaudo/casi.json
+collaudo/casi/
 
 # Helm templates carry Go template actions, which are not YAML until rendered
 deployment/helm/**/templates/**

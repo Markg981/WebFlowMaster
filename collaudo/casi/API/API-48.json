@@ -1,0 +1,13 @@
+{
+  "id": "API-48",
+  "area": "API",
+  "title": "Import SOAP rifiuta dipendenze e XML insicuri",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Stessi prerequisiti API-47.",
+  "steps": [
+    "Togliere una dipendenza, aggiungere un duplicato ambiguo, un path con traversal e un DOCTYPE/entità.",
+    "Provare più di 32 documenti o oltre 10 MiB; cambiare file dopo un’anteprima valida."
+  ],
+  "expected": "Import rifiutato con spiegazione; nessuna lettura remota/filesystem. L’anteprima obsoleta non permette il salvataggio."
+}

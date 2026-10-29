@@ -1,0 +1,15 @@
+{
+  "id": "PLN-40",
+  "area": "PLN",
+  "title": "Dataset condiviso congelato durante l’attesa",
+  "priority": "P1",
+  "actor": "editor.a + operatore",
+  "preconditions": "Ambiente sacrificabile; API e Redis attivi, tutti i worker fermi. Piano con test web/BDD su due righe condivise e un test API che usa data.<set>.<colonna>.",
+  "steps": [
+    "Accodare il piano e verificare stato queued.",
+    "Modificare i valori del set, poi eliminarlo; riavviare i worker.",
+    "Verificare i valori realmente usati nei risultati e nello snapshot del run."
+  ],
+  "expected": "Il run usa le due righe e i valori della prima riga originali, senza leggere il set eliminato. Lo snapshot include l’origine del set. Un nuovo run registra un errore per il riferimento non disponibile.",
+  "detailHtml": "<h4>Precondizioni</h4><p>Ambiente sacrificabile; API e Redis attivi, tutti i worker fermi. Piano con test web/BDD su due righe condivise e un test API che usa data.<set>.<colonna>.</p><h4>Passi</h4><ol><li>Accodare il piano e verificare stato queued.</li><li>Modificare i valori del set, poi eliminarlo; riavviare i worker.</li><li>Verificare i valori realmente usati nei risultati e nello snapshot del run.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Il run usa le due righe e i valori della prima riga originali, senza leggere il set eliminato. Lo snapshot include l’origine del set. Un nuovo run registra un errore per il riferimento non disponibile.</p>"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "OPS-57",
+  "area": "OPS",
+  "title": "Redis fermo: l'avvio di un run risponde 503 entro il timeout",
+  "priority": "P1",
+  "actor": "Operatore",
+  "preconditions": "Stack avviato; un piano eseguibile; permesso di fermare Redis.",
+  "steps": [
+    "Fermare Redis (docker compose stop redis).",
+    "Avviare il piano dall'interfaccia o via API.",
+    "Riavviare Redis e riavviare il piano."
+  ],
+  "expected": "1: Redis fermo. 2: la richiesta non resta appesa: entro circa 10 secondi risponde 503 queue_submission_failed e il run non resta in coda. 3: il run parte normalmente."
+}

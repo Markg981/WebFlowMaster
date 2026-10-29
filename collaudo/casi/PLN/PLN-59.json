@@ -1,0 +1,13 @@
+{
+  "id": "PLN-59",
+  "area": "PLN",
+  "title": "Ultimo verdetto manuale: commit status, notifiche e pubblicazione ripartono",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 93. Un piano con un test automatico e uno manuale, collegato a una pipeline con commit status e a un test management; il run è terminato Completed con il test manuale in attesa.",
+  "steps": [
+    "Aprire il run e registrare il verdetto Fallito sul test manuale.",
+    "Controllare lo stato sulla PR/commit, le notifiche e la pubblicazione sul test management."
+  ],
+  "expected": "Il run passa a Failed e il commit status, le notifiche e la pubblicazione vengono rieseguiti con il nuovo esito, come per un run appena terminato."
+}

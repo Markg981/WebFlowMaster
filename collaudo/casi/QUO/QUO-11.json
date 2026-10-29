@@ -1,0 +1,14 @@
+{
+  "id": "QUO-11",
+  "area": "QUO",
+  "title": "Override, eredità e concorrenza amministrativa",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Aprire le quote di A in due sessioni dell’amministratore e salvare un override nella prima.",
+    "Tentare il salvataggio obsoleto nella seconda; ricaricare e rimuovere l’override.",
+    "Selezionare off e monitor e leggere il registro di audit di A."
+  ],
+  "expected": "Valori effettivi, default ed eredità sono visibili; la revisione obsoleta riceve 409. Audit con attore, valori prima/dopo e revisione; nessuna sovrascrittura silenziosa."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "WEB-44",
+  "area": "WEB",
+  "title": "Debug con una riga del dataset",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un test con un dataset di 3 righe e uno step che usa {{valore}} valido solo nella riga 2.",
+  "steps": [
+    "Accanto a Debug scegliere Riga 2; Debug.",
+    "Aprire Variabili nel pannello; poi Debug con Riga 1."
+  ],
+  "expected": "La scelta della riga compare solo se il dataset ha più di una riga. Con la riga 2 il run passa e Variabili mostra i valori di quella riga; con la riga 1 lo step fallisce e il run si ferma lì.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test con un dataset di 3 righe e uno step che usa <code>{{valore}}</code> valido solo nella riga 2.</p>\n        <h4>Passi</h4>\n        <ol><li>Accanto a Debug scegliere <b>Riga 2</b>; Debug.</li><li>Aprire Variabili nel pannello; poi Debug con Riga 1.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La scelta della riga compare solo se il dataset ha più di una riga. Con la riga 2 il run passa e Variabili mostra i valori di quella riga; con la riga 1 lo step fallisce e il run si ferma lì.</p>\n      "
+}
