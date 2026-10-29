@@ -1,0 +1,13 @@
+{
+  "id": "SEC-10",
+  "area": "SEC",
+  "title": "Errori senza dettagli interni",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Messaggio comprensibile senza stack trace; l'header X-Correlation-Id permette di trovare la riga nei log.",
+  "steps": [
+    "Provocare un errore (per esempio un id inesistente in un URL di API) e leggere la risposta."
+  ],
+  "expected": "Messaggio comprensibile senza stack trace; l'header X-Correlation-Id permette di trovare la riga nei log.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Provocare un errore (per esempio un id inesistente in un URL di API) e leggere la risposta.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Messaggio comprensibile senza stack trace; l'header X-Correlation-Id permette di trovare la riga nei log.</p>\n      "
+}

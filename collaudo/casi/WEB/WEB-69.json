@@ -1,0 +1,12 @@
+{
+  "id": "WEB-69",
+  "area": "WEB",
+  "title": "Messaggio precedente",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Inserire soltanto un SMS precedente all'inizio del test ed eseguire Attendi SMS."
+  ],
+  "expected": "Il messaggio vecchio non soddisfa l'attesa; lo step termina per timeout."
+}

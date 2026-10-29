@@ -1,0 +1,16 @@
+{
+  "id": "API-03",
+  "area": "API",
+  "title": "Corpi della richiesta",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "httpbin restituisce ciò che è stato inviato, nei campi attesi, per ciascun tipo di corpo.",
+  "steps": [
+    "POST /post con corpo raw JSON {\"name\":\"wfm\"}; asserzione json path json.name equals wfm.",
+    "Form data con un campo di testo e un file.",
+    "x-www-form-urlencoded con due campi.",
+    "Una richiesta senza corpo (GET) mostra che non ne ha."
+  ],
+  "expected": "httpbin restituisce ciò che è stato inviato, nei campi attesi, per ciascun tipo di corpo.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>POST <code>/post</code> con corpo raw JSON <code>{\"name\":\"wfm\"}</code>; asserzione json path <code>json.name</code> equals wfm.</li><li>Form data con un campo di testo e un file.</li><li>x-www-form-urlencoded con due campi.</li><li>Una richiesta senza corpo (GET) mostra che non ne ha.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">httpbin restituisce ciò che è stato inviato, nei campi attesi, per ciascun tipo di corpo.</p>\n      "
+}

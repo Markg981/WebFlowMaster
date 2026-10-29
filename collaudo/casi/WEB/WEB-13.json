@@ -1,0 +1,14 @@
+{
+  "id": "WEB-13",
+  "area": "WEB",
+  "title": "Precondizioni",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un test API salvato che risponde 200 e uno che chiama httpbin.org/status/500 con asserzione status 200.",
+  "steps": [
+    "Aggiungere il primo come precondizione di un test web; eseguirlo in un piano.",
+    "Sostituirlo con il secondo; eseguire di nuovo."
+  ],
+  "expected": "Nel primo caso la precondizione gira prima degli step e il test passa. Nel secondo il test risulta bloccato dalla precondizione, non fallito.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test API salvato che risponde 200 e uno che chiama <code>httpbin.org/status/500</code> con asserzione status 200.</p>\n        <h4>Passi</h4>\n        <ol><li>Aggiungere il primo come precondizione di un test web; eseguirlo in un piano.</li><li>Sostituirlo con il secondo; eseguire di nuovo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nel primo caso la precondizione gira prima degli step e il test passa. Nel secondo il test risulta <b>bloccato</b> dalla precondizione, non fallito.</p>\n      "
+}

@@ -1,0 +1,15 @@
+{
+  "id": "LIB-47",
+  "area": "LIB",
+  "title": "Riparazione usata solo nel run: la proposta si approva, la pubblicazione resta separata",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 77. Chiave AI configurata (o il doppio Gemini dello stack di collaudo). Un test pubblicato (versione N) con uno step proprio dal selettore rotto, in un piano.",
+  "steps": [
+    "Eseguire il piano e aprire il report: dettagli dello step riparato.",
+    "Aprire la cronologia del test e la versione pubblicata, prima di decidere.",
+    "Approvare la proposta; riaprire la cronologia e il registro di audit.",
+    "Eseguire di nuovo il piano senza pubblicare; poi pubblicare la nuova versione ed eseguirlo ancora."
+  ],
+  "expected": "Lo step ha il badge «superato dopo riparazione», con locator scritto, locator usato, origine e stato Proposta; la spiegazione dice che vale solo per questo run e che la pubblicazione è un passo separato. Prima dell'approvazione la cronologia non ha nuove versioni. Dopo: versione N+1 della copia di lavoro con autore l'editor, il pannello indica «Salvata come versione N+1», la versione pubblicata resta N; l'audit ha healing_proposal.approved e test.selector_healed con l'editor. Il secondo run esegue ancora N (e ripara di nuovo); dopo la pubblicazione lo step passa con il proprio locator."
+}

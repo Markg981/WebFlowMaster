@@ -1,0 +1,14 @@
+{
+  "id": "COL-04",
+  "area": "COL",
+  "title": "Discussioni e menzioni rispettano progetti e organizzazioni",
+  "priority": "P1",
+  "actor": "owner.a, viewer.a, editor.a",
+  "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+  "steps": [
+    "Aprire una discussione in un progetto riservato con owner.a.",
+    "Verificare i destinatari selezionabili e tentare menzioni di un membro escluso o di B tramite API.",
+    "Come membro escluso e membro B richiedere lettura, risposta e risoluzione tramite link diretto."
+  ],
+  "expected": "Nessun contenuto o destinatario non autorizzato esposto; menzioni invalide rifiutate senza modifiche; parent di altro test, thread o organizzazione rifiutato."
+}

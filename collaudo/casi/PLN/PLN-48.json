@@ -1,0 +1,14 @@
+{
+  "id": "PLN-48",
+  "area": "PLN",
+  "title": "Ogni risultato di una run appartiene a una propria unità, anche con lo stesso test ripetuto",
+  "priority": "P1",
+  "actor": "admin",
+  "preconditions": "Catalogo versione 70. Accesso in sola lettura al database del worker (psql) per leggere execution_units, execution_unit_attempts e report_test_case_results. Un piano con il test UI 'Login', poi un test API, poi di nuovo 'Login'; browser chromium e firefox; lingue it-IT ed en-US.",
+  "steps": [
+    "Avviare il piano e attendere la fine della run.",
+    "Leggere le unità: SELECT unit_id, position, state, coordinates FROM execution_units WHERE execution_id = '<run>' ORDER BY position.",
+    "Leggere i risultati: SELECT test_name, browser, execution_unit_id, unit_attempt FROM report_test_case_results WHERE test_plan_execution_id = '<run>'."
+  ],
+  "expected": "12 unità (3 test × 2 browser × 2 lingue), scritte prima del primo test, tutte 'recorded', con id u_ + 24 cifre esadecimali tutti diversi. Le due occorrenze di 'Login' hanno occurrence 0 e 1 e id diversi. 12 righe di risultato, ciascuna con un execution_unit_id diverso fra quelli del manifest e unit_attempt 1. Le coordinate non contengono URL, valori di dataset o segreti. Ordine dei test e valori catturati fra i test API della stessa corsia invariati."
+}

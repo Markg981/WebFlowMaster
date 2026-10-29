@@ -1,0 +1,15 @@
+{
+  "id": "ENV-02",
+  "area": "ENV",
+  "title": "Usare i segreti in un test",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "ENV-01.",
+  "steps": [
+    "Nel costruttore: Naviga {{baseUrl}}/login, Inserimento Testo {{USERNAME}} e {{PASSWORD}}, Click sul pulsante, Verifica Testo Contenuto «You logged into a secure area!».",
+    "Eseguire con ambiente Staging.",
+    "Eseguire con No environment."
+  ],
+  "expected": "Con Staging il test passa. Senza ambiente lo step fallisce indicando per nome la variabile mancante (nessun testo «{{PASSWORD}}» inviato alla pagina).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>ENV-01.</p>\n        <h4>Passi</h4>\n        <ol><li>Nel costruttore: Naviga <code>{{baseUrl}}/login</code>, Inserimento Testo <code>{{USERNAME}}</code> e <code>{{PASSWORD}}</code>, Click sul pulsante, Verifica Testo Contenuto «You logged into a secure area!».</li><li>Eseguire con ambiente <b>Staging</b>.</li><li>Eseguire con <b>No environment</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con Staging il test passa. Senza ambiente lo step fallisce indicando per nome la variabile mancante (nessun testo «{{PASSWORD}}» inviato alla pagina).</p>\n      "
+}

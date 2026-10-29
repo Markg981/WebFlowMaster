@@ -1,0 +1,14 @@
+{
+  "id": "PLN-08",
+  "area": "PLN",
+  "title": "Aggiornare le baseline",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "PLN-07; CLI o API.",
+  "steps": [
+    "Avviare un run con --update-baselines (o \"updateBaselines\": true).",
+    "Eseguire ancora normalmente."
+  ],
+  "expected": "Dopo l'aggiornamento il run normale non segnala differenze sulle pagine rimaste uguali.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-07; CLI o API.</p>\n        <h4>Passi</h4>\n        <ol><li>Avviare un run con <code>--update-baselines</code> (o <code>\"updateBaselines\": true</code>).</li><li>Eseguire ancora normalmente.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Dopo l'aggiornamento il run normale non segnala differenze sulle pagine rimaste uguali.</p>\n      "
+}

@@ -1,0 +1,15 @@
+{
+  "id": "OPS-52",
+  "area": "OPS",
+  "title": "Pilot: una falsa verde riapre il suo ID e blocca il gate, una misura non osservata resta mancante",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Catalogo versione 84. Copie di lavoro di scripts/fixtures/pilot/pilot.json, observations.json e runs.json.",
+  "steps": [
+    "Aggiungere al registro un evento {\"kind\": \"incident\", \"incident\": \"false_green\", \"reopens\": \"C02\", \"flow\": \"login-order\", \"at\": \"2026-11-06T10:00:00Z\", \"what\": \"run passata senza lo step di conferma\"}.",
+    "Eseguire npm run pilot -- report con le tre copie e aprire report.md.",
+    "Aggiungere all'incidente \"closedBy\": \"PR #N\" e ripetere.",
+    "Togliere dal registro gli eventi diagnosis_start e diagnosis_end e ripetere."
+  ],
+  "expected": "Con l'incidente aperto il report è blocked, esce con 1 e riporta «reopened: C02»; il registro di revisione lo mostra come reopened. Con closedBy è ready_for_decision (codice 0) e l'incidente risulta closed. Senza diagnosi il report è incomplete, il tempo di diagnosi vale «—» e il confronto not_comparable, mai zero."
+}

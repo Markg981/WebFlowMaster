@@ -1,0 +1,14 @@
+{
+  "id": "SEC-05",
+  "area": "SEC",
+  "title": "Content Security Policy e intestazioni",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Installazione in produzione.",
+  "steps": [
+    "Network: controllare le intestazioni della pagina principale.",
+    "Console aperta, visitare tutte le pagine, compreso il Tester API con l'editor."
+  ],
+  "expected": "Presenti Content-Security-Policy, Strict-Transport-Security, X-Content-Type-Options. Nessuna violazione della policy in console, in nessuna pagina.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Installazione in produzione.</p>\n        <h4>Passi</h4>\n        <ol><li>Network: controllare le intestazioni della pagina principale.</li><li>Console aperta, visitare tutte le pagine, compreso il Tester API con l'editor.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Presenti Content-Security-Policy, Strict-Transport-Security, X-Content-Type-Options. Nessuna violazione della policy in console, in nessuna pagina.</p>\n      "
+}

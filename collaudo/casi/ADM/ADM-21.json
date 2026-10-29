@@ -1,0 +1,14 @@
+{
+  "id": "ADM-21",
+  "area": "ADM",
+  "title": "SMTP e credenziali per organizzazione",
+  "priority": "P1",
+  "actor": "owner.a, owner.b, editor.a, viewer.a",
+  "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+  "steps": [
+    "Come owner.a scegliere SMTP personalizzato TLS su un relay di prova autorizzato, mittente e credenziali; salvare e ricaricare.",
+    "Verificare in Network che GET non contenga password/segreti; salvare con password vuota e poi sostituirla esplicitamente.",
+    "Inviare un invito di prova in A e confrontare mittente e credenziali nel relay; in B mantenere i predefiniti."
+  ],
+  "expected": "A conserva i propri valori e il segreto non è leggibile; il campo vuoto conserva la credenziale, la sostituzione la aggiorna. B usa la propria configurazione. Un errore SMTP di A non ripiega sul mittente dell’installazione."
+}

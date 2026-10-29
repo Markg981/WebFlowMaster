@@ -1,0 +1,13 @@
+{
+  "id": "REP-42",
+  "area": "REP",
+  "title": "Successo originale e successo dopo riparazione distinti, senza saltare le asserzioni",
+  "priority": "P2",
+  "actor": "viewer",
+  "preconditions": "Catalogo versione 77. Un run con un test il cui clic è stato riparato seguito da un'asserzione che fallisce, e un run registrato prima di questa versione con uno step healed.",
+  "steps": [
+    "Aprire i dettagli del test del run nuovo.",
+    "Aprire i dettagli dello step healed del run vecchio."
+  ],
+  "expected": "Lo step riparato è verde con il badge «superato dopo riparazione» e il pannello della proposta; gli altri step passati non hanno badge. L'asserzione successiva è stata eseguita e il suo fallimento fa fallire il test (nessuno stato nuovo, nessuno step saltato). Il run vecchio mostra la nota «registrato prima che la riparazione richiedesse approvazione» con il dettaglio di allora, senza pulsanti."
+}

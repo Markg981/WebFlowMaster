@@ -1,0 +1,13 @@
+{
+  "id": "SEC-06",
+  "area": "SEC",
+  "title": "Richieste da un'altra origine",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "La richiesta viene rifiutata con 403 (controllo CSRF).",
+  "steps": [
+    "Da una pagina servita su un'altra origine, una fetch POST all'applicazione con credentials: 'include'."
+  ],
+  "expected": "La richiesta viene rifiutata con 403 (controllo CSRF).",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Da una pagina servita su un'altra origine, una <code>fetch</code> POST all'applicazione con <code>credentials: 'include'</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La richiesta viene rifiutata con 403 (controllo CSRF).</p>\n      "
+}

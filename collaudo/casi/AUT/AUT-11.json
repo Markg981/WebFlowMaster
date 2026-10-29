@@ -1,0 +1,14 @@
+{
+  "id": "AUT-11",
+  "area": "AUT",
+  "title": "Griglia reale: OS e versioni osservati",
+  "priority": "P2",
+  "actor": "owner.a / editor.a",
+  "preconditions": "Griglia BrowserStack o LambdaTest, credenziali valide e fixture raggiungibile dalla griglia. Configurazione con OS/versione/browser richiesti.",
+  "steps": [
+    "Eseguire il percorso di certificazione su due righe macchina reali.",
+    "Confrontare report UI, HTML/PDF, JUnit e allegato Allure.",
+    "Ripetere con configurazione non disponibile oppure metadati sessione mancanti."
+  ],
+  "expected": "Ogni macchina ha la propria evidenza; sostituzioni sono Non corrispondenti, dati mancanti Non verificati. Errori di sessione non producono certificazione."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "INT-18",
+  "area": "INT",
+  "title": "CLI: wfm tests export e import",
+  "priority": "P2",
+  "actor": "ci-bot",
+  "preconditions": "Una chiave API ad accesso completo (senza scope) di un editor; una chiave con scope.",
+  "steps": [
+    "node wfm.mjs tests export --project <id> --out shop.wfm.yaml.",
+    "Modificare un test nel file; node wfm.mjs tests import shop.wfm.yaml --dry-run; poi senza --dry-run.",
+    "Rompere un test nel file; importare e leggere il codice di uscita.",
+    "Ripetere l'export con la chiave con scope."
+  ],
+  "expected": "1: il file viene scritto ed è lo stesso dell'export dall'interfaccia. 2: con --dry-run elenca cosa cambierebbe senza salvare; poi il test è aggiornato con una nuova versione. 3: il test rotto è segnalato e l'uscita è 1. 4: rifiutato con il messaggio che serve una chiave ad accesso completo.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Una chiave API ad accesso completo (senza scope) di un editor; una chiave con scope.</p>\n        <h4>Passi</h4>\n        <ol><li><code>node wfm.mjs tests export --project &lt;id&gt; --out shop.wfm.yaml</code>.</li><li>Modificare un test nel file; <code>node wfm.mjs tests import shop.wfm.yaml --dry-run</code>; poi senza <code>--dry-run</code>.</li><li>Rompere un test nel file; importare e leggere il codice di uscita.</li><li>Ripetere l'export con la chiave con scope.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: il file viene scritto ed è lo stesso dell'export dall'interfaccia. 2: con --dry-run elenca cosa cambierebbe senza salvare; poi il test è aggiornato con una nuova versione. 3: il test rotto è segnalato e l'uscita è 1. 4: rifiutato con il messaggio che serve una chiave ad accesso completo.</p>\n      "
+}

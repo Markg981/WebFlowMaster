@@ -1,0 +1,16 @@
+{
+  "id": "WEB-35",
+  "area": "WEB",
+  "title": "Creare e usare un'azione personalizzata",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "L'azione compare nella palette con il suggerimento cognome=…; email=… (optional) nel campo valore. Con Smith lo step passa, è chiamato «Verifica riga» nel report e mostra il valore restituito (l'e-mail). Con Nessuno fallisce con «Nessuna riga Nessuno». La voce di audit riporta nome, parametri e lunghezza dello script, non lo script.",
+  "steps": [
+    "Impostazioni → Azioni personalizzate → Nuova azione personalizzata: nome Verifica riga, parametri cognome, email?, script const r = [...document.querySelectorAll('#table1 tr')].find(x => x.textContent.includes(args.cognome)); if (!r) throw new Error('Nessuna riga ' + args.cognome); return r.cells[2].textContent;; salvare.",
+    "Nel costruttore: Naviga a /tables; trascinare Verifica riga dalla sezione «Azioni personalizzate» della palette; valore cognome=Smith; eseguire.",
+    "Valore cognome=Nessuno; eseguire.",
+    "Registro di audit: cercare custom_action.created."
+  ],
+  "expected": "L'azione compare nella palette con il suggerimento cognome=…; email=… (optional) nel campo valore. Con Smith lo step passa, è chiamato «Verifica riga» nel report e mostra il valore restituito (l'e-mail). Con Nessuno fallisce con «Nessuna riga Nessuno». La voce di audit riporta nome, parametri e lunghezza dello script, non lo script.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Impostazioni → <b>Azioni personalizzate</b> → <b>Nuova azione personalizzata</b>: nome <code>Verifica riga</code>, parametri <code>cognome, email?</code>, script <code>const r = [...document.querySelectorAll('#table1 tr')].find(x =&gt; x.textContent.includes(args.cognome)); if (!r) throw new Error('Nessuna riga ' + args.cognome); return r.cells[2].textContent;</code>; salvare.</li><li>Nel costruttore: Naviga a /tables; trascinare <b>Verifica riga</b> dalla sezione «Azioni personalizzate» della palette; valore <code>cognome=Smith</code>; eseguire.</li><li>Valore <code>cognome=Nessuno</code>; eseguire.</li><li>Registro di audit: cercare <b>custom_action.created</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'azione compare nella palette con il suggerimento <code>cognome=…; email=… (optional)</code> nel campo valore. Con Smith lo step passa, è chiamato «Verifica riga» nel report e mostra il valore restituito (l'e-mail). Con Nessuno fallisce con «Nessuna riga Nessuno». La voce di audit riporta nome, parametri e lunghezza dello script, non lo script.</p>\n      "
+}

@@ -1,0 +1,13 @@
+{
+  "id": "SSO-09",
+  "area": "SSO",
+  "title": "Un dominio appartiene a una sola organizzazione",
+  "priority": "P2",
+  "actor": "owner.b",
+  "preconditions": "Salvataggio rifiutato: un'altra organizzazione accede già con quel dominio.",
+  "steps": [
+    "Nell'organizzazione B configurare SSO con dominio acme.test."
+  ],
+  "expected": "Salvataggio rifiutato: un'altra organizzazione accede già con quel dominio.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Nell'organizzazione B configurare SSO con dominio <code>acme.test</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Salvataggio rifiutato: un'altra organizzazione accede già con quel dominio.</p>\n      "
+}

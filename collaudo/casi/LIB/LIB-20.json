@@ -1,0 +1,12 @@
+{
+  "id": "LIB-20",
+  "area": "LIB",
+  "title": "Scenario Outline",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Importare un Outline con placeholder e due righe Examples."
+  ],
+  "expected": "Due test concreti con valori sostituiti e nomi distinti."
+}

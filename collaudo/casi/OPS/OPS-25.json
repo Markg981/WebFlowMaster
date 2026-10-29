@@ -1,0 +1,16 @@
+{
+  "id": "OPS-25",
+  "area": "OPS",
+  "title": "Aggiornamento tramite digest e ripristino verificato",
+  "priority": "P1",
+  "actor": "operatore release",
+  "preconditions": "Staging con una release precedente, backup verificato di database/artefatti e release nuova completa. Mancanza della baseline: Bloccato per prerequisito mancante. Se la baseline usava root, verificare la proprietà dei volumi results e visual-baselines e adeguarla a pwuser (UID 1000) solo dopo backup verificato, secondo docs/it/admin/operations.md.",
+  "steps": [
+    "Registrare vecchi digest",
+    " verificare backup e compatibilità schema.",
+    "Usare release.env con deployment/releases/compose.yml, avviare migrator e nuovi servizi.",
+    "Verificare login, piano in coda e lettura artefatti",
+    " provare il ripristino previsto su ambiente sacrificabile."
+  ],
+  "expected": "Servizi installati coincidono con manifest; migrazioni dalla stessa immagine API. Ripristino rispetta compatibilità schema o ripristina database e artefatti; nessuna perdita di evidenze."
+}

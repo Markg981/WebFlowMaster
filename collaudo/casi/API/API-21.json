@@ -1,0 +1,15 @@
+{
+  "id": "API-21",
+  "area": "API",
+  "title": "Importare una collection Postman",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Una collection Postman v2.1 con una cartella, una richiesta con Bearer {{token}}, una con Basic con password scritta in chiaro, una GraphQL, e variabili di collection.",
+  "steps": [
+    "Importa: incollare la collection nel riquadro; Mostra cosa crea.",
+    "Importare; aprire i test creati.",
+    "Incollare un testo che non è né OpenAPI né Postman; poi un file di 20 MB."
+  ],
+  "expected": "1: un test per richiesta, nominati con la cartella; le variabili della collection sono elencate. 2: la password in chiaro è diventata una variabile (nessun segreto letterale nei test creati); la richiesta GraphQL conserva query e variabili. 3: un messaggio dice che il contenuto non è riconosciuto; il file troppo grande viene rifiutato senza bloccare la pagina.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Una collection Postman v2.1 con una cartella, una richiesta con Bearer <code>{{token}}</code>, una con Basic con password scritta in chiaro, una GraphQL, e variabili di collection.</p>\n        <h4>Passi</h4>\n        <ol><li><b>Importa</b>: incollare la collection nel riquadro; <b>Mostra cosa crea</b>.</li><li>Importare; aprire i test creati.</li><li>Incollare un testo che non è né OpenAPI né Postman; poi un file di 20 MB.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: un test per richiesta, nominati con la cartella; le variabili della collection sono elencate. 2: la password in chiaro è diventata una variabile (nessun segreto letterale nei test creati); la richiesta GraphQL conserva query e variabili. 3: un messaggio dice che il contenuto non è riconosciuto; il file troppo grande viene rifiutato senza bloccare la pagina.</p>\n      "
+}

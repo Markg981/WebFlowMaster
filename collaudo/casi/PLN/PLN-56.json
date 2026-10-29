@@ -1,0 +1,13 @@
+{
+  "id": "PLN-56",
+  "area": "PLN",
+  "title": "Corsia API concatenata persa a metà: mai ripresa, i risultati già ammessi restano",
+  "priority": "P1",
+  "actor": "owner",
+  "preconditions": "Catalogo versione 75. Ambiente di collaudo con due worker (mai produzione) e accesso al database; un piano con «Worker che si dividono un'esecuzione» = 2, tre test API in cui il primo cattura un valore usato dai successivi, policy «Riesegui il test su un altro runner».",
+  "steps": [
+    "Avviare il piano; dopo che il primo test API è registrato e mentre gira il secondo, terminare il worker (SIGKILL).",
+    "Attendere la fine del run e aprire il report e l'elenco delle unità."
+  ],
+  "expected": "Il primo test resta registrato con il suo risultato; il secondo e il terzo sono indeterminate, nessuno viene rieseguito da un altro worker nonostante la policy (i valori catturati sono andati persi e le prime richieste sono già avvenute). Il run termina run_incomplete, mai Completed."
+}

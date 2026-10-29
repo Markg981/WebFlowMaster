@@ -1,0 +1,15 @@
+{
+  "id": "WEB-36",
+  "area": "WEB",
+  "title": "Argomenti, variabili ed elemento",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "WEB-35.",
+  "steps": [
+    "Imposta variabile chi=Smith; Verifica riga con cognome={{chi}}.",
+    "Verifica riga con email=x (manca cognome); poi con cognome=Smith; colore=rosso; poi con Smith. Ognuno sia con Esegui test nel costruttore (URL iniziale compilato) sia salvato in un piano.",
+    "Nuova azione Valore campo senza parametri, script return element.value === 'tomsmith';; su /login dopo aver scritto tomsmith nello username, usarla con l'elemento username."
+  ],
+  "expected": "Con la variabile passa. Argomento mancante, argomento sconosciuto e valore senza = fanno fallire il test prima di aprire il browser, con un messaggio che li nomina: anche nel costruttore il risultato non contiene alcuno step di navigazione né screenshot. L'azione con elemento legge il campo e passa.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-35.</p>\n        <h4>Passi</h4>\n        <ol><li>Imposta variabile <code>chi=Smith</code>; <b>Verifica riga</b> con <code>cognome={{chi}}</code>.</li><li><b>Verifica riga</b> con <code>email=x</code> (manca cognome); poi con <code>cognome=Smith; colore=rosso</code>; poi con <code>Smith</code>. Ognuno sia con <b>Esegui test</b> nel costruttore (URL iniziale compilato) sia salvato in un piano.</li><li>Nuova azione <code>Valore campo</code> senza parametri, script <code>return element.value === 'tomsmith';</code>; su /login dopo aver scritto tomsmith nello username, usarla con l'elemento username.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con la variabile passa. Argomento mancante, argomento sconosciuto e valore senza <code>=</code> fanno fallire il test prima di aprire il browser, con un messaggio che li nomina: anche nel costruttore il risultato non contiene alcuno step di navigazione né screenshot. L'azione con elemento legge il campo e passa.</p>\n      "
+}

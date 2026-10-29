@@ -1,0 +1,17 @@
+{
+  "id": "TRC-10",
+  "area": "TRC",
+  "title": "Test da story: Azure DevOps, requisito manuale ed errori",
+  "priority": "P2",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "TRC-04 (work item Azure DevOps importato) e TRC-01 (PAG-1 scritto a mano).",
+  "steps": [
+    "Proporre test dalla User Story di Azure DevOps.",
+    "PAG-1 senza descrizione: Proponi test. Poi aggiungere una descrizione a PAG-1 e riprovare.",
+    "Una story di Jira senza descrizione né criteri: Proponi test.",
+    "Server senza GEMINI_API_KEY: Proponi test.",
+    "Come viewer.a aprire Requisiti."
+  ],
+  "expected": "1: usa descrizione e «Acceptance Criteria» del work item. 2: prima «PAG-1 has no description to write tests from…», poi «Scritti dalla descrizione di PAG-1» con proposte. 3: «… has no description or acceptance criteria in Jira to write tests from.» 4: «No AI model is configured on this server (GEMINI_API_KEY).» 5: il viewer non vede il pulsante con le scintille.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TRC-04 (work item Azure DevOps importato) e TRC-01 (PAG-1 scritto a mano).</p>\n        <h4>Passi</h4>\n        <ol><li>Proporre test dalla User Story di Azure DevOps.</li><li>PAG-1 senza descrizione: Proponi test. Poi aggiungere una descrizione a PAG-1 e riprovare.</li><li>Una story di Jira senza descrizione né criteri: Proponi test.</li><li>Server senza GEMINI_API_KEY: Proponi test.</li><li>Come viewer.a aprire Requisiti.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: usa descrizione e «Acceptance Criteria» del work item. 2: prima «PAG-1 has no description to write tests from…», poi «Scritti dalla descrizione di PAG-1» con proposte. 3: «… has no description or acceptance criteria in Jira to write tests from.» 4: «No AI model is configured on this server (GEMINI_API_KEY).» 5: il viewer non vede il pulsante con le scintille.</p>\n      "
+}

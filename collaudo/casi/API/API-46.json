@@ -1,0 +1,13 @@
+{
+  "id": "API-46",
+  "area": "API",
+  "title": "Compatibilità agenti precedenti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report. Pool distinto con agente nativo 1.1.0.",
+  "steps": [
+    "Eseguire unary Say e WebSocket echo legacy nel pool precedente.",
+    "Eseguire Server o una conversazione/TLS configurata sul medesimo pool."
+  ],
+  "expected": "Le chiamate legacy funzionano; quelle avanzate richiedono esplicitamente aggiornamento senza passare alla rete del server."
+}

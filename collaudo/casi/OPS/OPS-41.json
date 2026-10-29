@@ -1,0 +1,15 @@
+{
+  "id": "OPS-41",
+  "area": "OPS",
+  "title": "Riferimento API generato dal documento OpenAPI",
+  "priority": "P3",
+  "actor": "Operatore del Collaudo",
+  "preconditions": "Stack di collaudo avviato; checkout del repository con npm ci eseguito; documentazione costruita con npm run docs:build e servita con npm run docs:preview.",
+  "steps": [
+    "Aprire Riferimento → API endpoints (generated) (/en/reference/api-endpoints) e la pagina italiana (/it/reference/api-endpoints); contare le operazioni e scaricare il link openapi.json.",
+    "Confrontare il file scaricato con curl -s https://wfm.collaudo.test/api/v1/openapi.json.",
+    "Nel checkout, aggiungere una parola alla summary di listRuns in server/http/api-v1/openapi.ts, eseguire npx vitest run scripts/api-reference.test.ts, poi npm run docs:api-reference e di nuovo il test; infine git checkout server/api-v1 docs."
+  ],
+  "expected": "Passo 1: entrambe le pagine dichiarano lo stesso numero di operazioni, raggruppate per risorsa (Projects, Tests, …, Runs), ognuna con scope richiesto, parametri, corpo e risposte; la pagina italiana ha introduzione in italiano. Passo 2: i due documenti hanno gli stessi paths e la stessa info.version. Passo 3: il primo test fallisce indicando che il riferimento non corrisponde a server/http/api-v1/openapi.ts; dopo la rigenerazione passa e la nuova summary compare nella pagina.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Stack di collaudo avviato; checkout del repository con <code>npm ci</code> eseguito; documentazione costruita con <code>npm run docs:build</code> e servita con <code>npm run docs:preview</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire Riferimento → API endpoints (generated) (<code>/en/reference/api-endpoints</code>) e la pagina italiana (<code>/it/reference/api-endpoints</code>); contare le operazioni e scaricare il link openapi.json.</li><li>Confrontare il file scaricato con <code>curl -s https://wfm.collaudo.test/api/v1/openapi.json</code>.</li><li>Nel checkout, aggiungere una parola alla <code>summary</code> di <code>listRuns</code> in <code>server/http/api-v1/openapi.ts</code>, eseguire <code>npx vitest run scripts/api-reference.test.ts</code>, poi <code>npm run docs:api-reference</code> e di nuovo il test; infine <code>git checkout server/api-v1 docs</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Passo 1: entrambe le pagine dichiarano lo stesso numero di operazioni, raggruppate per risorsa (Projects, Tests, …, Runs), ognuna con scope richiesto, parametri, corpo e risposte; la pagina italiana ha introduzione in italiano. Passo 2: i due documenti hanno gli stessi <code>paths</code> e la stessa <code>info.version</code>. Passo 3: il primo test fallisce indicando che il riferimento non corrisponde a <code>server/http/api-v1/openapi.ts</code>; dopo la rigenerazione passa e la nuova summary compare nella pagina.</p>\n      "
+}

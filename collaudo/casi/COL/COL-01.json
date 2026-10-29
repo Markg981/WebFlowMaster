@@ -1,0 +1,14 @@
+{
+  "id": "COL-01",
+  "area": "COL",
+  "title": "Conversazione con risposta e menzione",
+  "priority": "P1",
+  "actor": "owner.a, viewer.a, editor.a",
+  "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+  "steps": [
+    "Nel pannello Commenti di un test API creare un messaggio menzionando viewer.a.",
+    "Come viewer.a filtrare Menzioni a me e rispondere al messaggio.",
+    "Ricaricare il pannello."
+  ],
+  "expected": "Menzione e risposta persistono nello stesso thread; il filtro mostra l’intera conversazione, senza cambiare autore o test."
+}

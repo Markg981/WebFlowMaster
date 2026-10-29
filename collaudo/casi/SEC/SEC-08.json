@@ -1,0 +1,13 @@
+{
+  "id": "SEC-08",
+  "area": "SEC",
+  "title": "Una chiave con scope vale solo su /api/v1",
+  "priority": "P2",
+  "actor": "ci-bot",
+  "preconditions": "La richiesta viene rifiutata.",
+  "steps": [
+    "Con la chiave di ci-bot chiamare GET /api/tests."
+  ],
+  "expected": "La richiesta viene rifiutata.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Con la chiave di ci-bot chiamare <code>GET /api/tests</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La richiesta viene rifiutata.</p>\n      "
+}

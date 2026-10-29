@@ -1,0 +1,13 @@
+{
+  "id": "AGT-04",
+  "area": "AGT",
+  "title": "Un agente serve solo la sua organizzazione",
+  "priority": "P1",
+  "actor": "owner.b",
+  "preconditions": "Il pool e l'agente dell'organizzazione A non compaiono.",
+  "steps": [
+    "Come owner.b cercare il pool interno fra le opzioni di «Esegui su» e in Agenti locali."
+  ],
+  "expected": "Il pool e l'agente dell'organizzazione A non compaiono.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Come owner.b cercare il pool <code>interno</code> fra le opzioni di «Esegui su» e in Agenti locali.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il pool e l'agente dell'organizzazione A non compaiono.</p>\n      "
+}

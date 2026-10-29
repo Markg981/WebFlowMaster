@@ -1,0 +1,13 @@
+{
+  "id": "WEB-72",
+  "area": "WEB",
+  "title": "Campo normale con lo stesso nome di uno dentro un componente; password e Invio nel componente",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 76. Server sulla propria macchina (la registrazione apre un browser locale). Fixture dei web component avviata con npm run fixture:shadow (http://127.0.0.1:5090).",
+  "steps": [
+    "Registrare su http://127.0.0.1:5090/: scrivere in Plain (fuori dai componenti), poi in Password e in Search del componente x-login, e premere Invio in Search.",
+    "Termina registrazione; definire il segreto richiesto dal segnaposto nell'ambiente ed eseguire il test."
+  ],
+  "expected": "Plain ha un selettore che non è input[name=\"q\"] (che corrisponderebbe anche al campo nel componente). La password è un segnaposto {{secret_pass}}, mai in chiaro. Il passo Premi tasto Invio viene dopo il valore di Search. L'esecuzione passa scrivendo in Plain e non nel componente."
+}

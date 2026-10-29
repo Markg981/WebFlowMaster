@@ -1,0 +1,13 @@
+{
+  "id": "API-33",
+  "area": "API",
+  "title": "Piano API conserva la versione pubblicata",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Revisione 1 pubblicata; piano dedicato. La revisione 2 produce un risultato distinguibile dalla 1.",
+  "steps": [
+    "Salvare la configurazione 2 senza pubblicarla.",
+    "Avviare il piano e verificare configurazione eseguita e numero versione nel risultato."
+  ],
+  "expected": "Il piano usa ancora la revisione 1; la copia di lavoro resta alla 2. Il risultato registra versione 1."
+}

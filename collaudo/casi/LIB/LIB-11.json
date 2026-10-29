@@ -1,0 +1,15 @@
+{
+  "id": "LIB-11",
+  "area": "LIB",
+  "title": "Rinominare ed eliminare un tag",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Tag smoke su tre test; una suite dinamica per smoke (LIB-07).",
+  "steps": [
+    "Dall'interfaccia rinominare smoke in fumo.",
+    "Aprire la suite dinamica: «Runs right now».",
+    "Eliminare il tag fumo; guardare Libreria e suite."
+  ],
+  "expected": "Rinomina ed eliminazione si fanno dall'interfaccia. Dopo la rinomina i tre test mostrano fumo e la suite dinamica li contiene ancora. Dopo l'eliminazione il tag sparisce dai test e la suite indica che non include più nulla.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Tag <code>smoke</code> su tre test; una suite dinamica per <code>smoke</code> (LIB-07).</p>\n        <h4>Passi</h4>\n        <ol><li>Dall'interfaccia rinominare <code>smoke</code> in <code>fumo</code>.</li><li>Aprire la suite dinamica: «Runs right now».</li><li>Eliminare il tag <code>fumo</code>; guardare Libreria e suite.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Rinomina ed eliminazione si fanno dall'interfaccia. Dopo la rinomina i tre test mostrano <code>fumo</code> e la suite dinamica li contiene ancora. Dopo l'eliminazione il tag sparisce dai test e la suite indica che non include più nulla.</p>\n      "
+}

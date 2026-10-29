@@ -1,0 +1,16 @@
+{
+  "id": "LIB-45",
+  "area": "LIB",
+  "title": "Healing di uno step di gruppo: si corregge il gruppo, mai lo step indipendente che lo segue",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 74. Chiave AI configurata (o il doppio Gemini dello stack di collaudo). Un gruppo di step «Login» con due clic, il secondo su un selettore che l'applicazione non ha più; un test che chiama il gruppo e poi fa un clic indipendente su un altro pulsante, lo stesso gruppo chiamato anche da un secondo test.",
+  "steps": [
+    "Eseguire il test e aprire il report: dettagli dello step riparato.",
+    "Aprire il gruppo «Login» nell'editor dei gruppi e il test nell'editor, prima di decidere.",
+    "Approvare la proposta dai dettagli dello step; riaprire gruppo e test.",
+    "Aprire il registro di audit (Impostazioni → Audit).",
+    "Eseguire il secondo test che chiama il gruppo; ripetere con un test che chiama due volte lo stesso gruppo."
+  ],
+  "expected": "Il secondo clic del gruppo passa dopo riparazione e la proposta indica lo step 2 del gruppo. Prima dell'approvazione gruppo e test sono invariati. Dopo l'approvazione il gruppo contiene il nuovo selettore nello step 2; il clic indipendente del test conserva il proprio selettore e il test non ha una nuova versione. L'audit contiene healing_proposal.approved e step_group.selector_healed con l'editor come autore, senza valori di selettore. Il secondo test passa senza riparazione. Con il gruppo chiamato due volte il run registra una sola proposta per lo step del gruppo."
+}

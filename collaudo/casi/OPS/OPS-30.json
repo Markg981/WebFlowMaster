@@ -1,0 +1,14 @@
+{
+  "id": "OPS-30",
+  "area": "OPS",
+  "title": "Misura dei tempi di recupero",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Drill OPS-29 riuscito con recovery.json e dimensioni del backup.",
+  "steps": [
+    "Registrare commit, risorse, dimensioni, checkpoint e tempi per fase.",
+    "Confrontare recoveryDurationMs con obiettivi concordati su dati rappresentativi; separare build ed età backup."
+  ],
+  "expected": "Tempi documentati con limiti della fixture; fallimenti non dichiarati RTO; età backup distinta da RPO produttivo.",
+  "detailHtml": "<h4>Precondizioni</h4><p>Drill OPS-29 riuscito con recovery.json e dimensioni del backup.</p><h4>Passi</h4><ol><li>Registrare commit, risorse, dimensioni, checkpoint e tempi per fase.</li><li>Confrontare recoveryDurationMs con obiettivi concordati su dati rappresentativi; separare build ed età backup.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Tempi documentati con limiti della fixture; fallimenti non dichiarati RTO; età backup distinta da RPO produttivo.</p>"
+}

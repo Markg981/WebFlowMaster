@@ -1,0 +1,14 @@
+{
+  "id": "SCH-01",
+  "area": "SCH",
+  "title": "Pianificazione ogni 5 minuti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Partono circa tre run, headless, con l'ambiente scelto; nel report risultano avviati da una pianificazione. La dashboard mostra il prossimo run.",
+  "steps": [
+    "Schedulazione → Crea pianificazione: piano, Frequency «Every 5 Minutes», Environment Staging, Browsers Chrome; attiva.",
+    "Attendere 15 minuti."
+  ],
+  "expected": "Partono circa tre run, headless, con l'ambiente scelto; nel report risultano avviati da una pianificazione. La dashboard mostra il prossimo run.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Schedulazione → <b>Crea pianificazione</b>: piano, Frequency «Every 5 Minutes», Environment Staging, Browsers Chrome; attiva.</li><li>Attendere 15 minuti.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Partono circa tre run, headless, con l'ambiente scelto; nel report risultano avviati da una pianificazione. La dashboard mostra il prossimo run.</p>\n      "
+}

@@ -1,0 +1,13 @@
+{
+  "id": "SEC-58",
+  "area": "SEC",
+  "title": "Export HTML, PDF, Allure e JUnit senza trace né HAR",
+  "priority": "P2",
+  "actor": "viewer",
+  "preconditions": "Catalogo versione 67. Il run di SEC-55 con un test fallito che ha screenshot, video, trace e HAR.",
+  "steps": [
+    "Esportare il run in HTML, PDF, Allure e JUnit.",
+    "Cercare nei file (aprire lo zip Allure) Collaudo-Pw-SEC55, \"_trace.zip\", \".har\" e link /artifacts/."
+  ],
+  "expected": "Gli export contengono risultati e screenshot dei test falliti; nessuno contiene la password sintetica, file o link a trace, HAR o video."
+}

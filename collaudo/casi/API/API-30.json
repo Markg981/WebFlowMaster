@@ -1,0 +1,13 @@
+{
+  "id": "API-30",
+  "area": "API",
+  "title": "Salvataggio API invariato",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Annotare numero e conteggio revisioni.",
+  "steps": [
+    "Salvare senza modificare la configurazione.",
+    "Ricaricare e ripetere il salvataggio."
+  ],
+  "expected": "Numero e conteggio revisioni restano invariati; nessun duplicato nella cronologia."
+}

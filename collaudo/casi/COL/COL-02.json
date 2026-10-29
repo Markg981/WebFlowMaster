@@ -1,0 +1,14 @@
+{
+  "id": "COL-02",
+  "area": "COL",
+  "title": "Risoluzione e riapertura di una conversazione",
+  "priority": "P1",
+  "actor": "owner.a, viewer.a, editor.a",
+  "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+  "steps": [
+    "Come autore risolvere una conversazione aperta con una risposta.",
+    "Come viewer.a filtrare Risolte e tentare una nuova risposta.",
+    "Come autore riaprire la conversazione."
+  ],
+  "expected": "La conversazione risolta conserva le risposte e rifiuta nuove risposte; dopo la riapertura torna aperta e rispondibile. Un altro viewer non può risolverla."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "PLN-22",
+  "area": "PLN",
+  "title": "Codici di lingua non validi",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Il primo salvataggio è rifiutato nominando italiano. Il secondo salva it-IT, en (normalizzato, senza doppioni). Undici lingue sono rifiutate («Al massimo 10 lingue»). Con il campo vuoto il piano torna a girare nella lingua predefinita del browser e i risultati non hanno la lingua nell'etichetta.",
+  "steps": [
+    "Impostazioni del piano → Lingue: italiano, en-US; salvare.",
+    "Lingue: it_it, IT-it, en; salvare e riaprire.",
+    "Undici lingue diverse; salvare.",
+    "Svuotare il campo; salvare ed eseguire."
+  ],
+  "expected": "Il primo salvataggio è rifiutato nominando italiano. Il secondo salva it-IT, en (normalizzato, senza doppioni). Undici lingue sono rifiutate («Al massimo 10 lingue»). Con il campo vuoto il piano torna a girare nella lingua predefinita del browser e i risultati non hanno la lingua nell'etichetta.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Impostazioni del piano → Lingue: <code>italiano, en-US</code>; salvare.</li><li>Lingue: <code>it_it, IT-it, en</code>; salvare e riaprire.</li><li>Undici lingue diverse; salvare.</li><li>Svuotare il campo; salvare ed eseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il primo salvataggio è rifiutato nominando <code>italiano</code>. Il secondo salva <code>it-IT, en</code> (normalizzato, senza doppioni). Undici lingue sono rifiutate («Al massimo 10 lingue»). Con il campo vuoto il piano torna a girare nella lingua predefinita del browser e i risultati non hanno la lingua nell'etichetta.</p>\n      "
+}

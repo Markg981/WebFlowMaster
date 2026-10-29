@@ -1,0 +1,12 @@
+{
+  "id": "LIB-21",
+  "area": "LIB",
+  "title": "Export e reimportazione",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Esportare in Gherkin un test web con azioni automatiche; reimportare il file senza modificarlo."
+  ],
+  "expected": "File .feature e metadati WFM presenti; azioni e campi supportati ripristinati."
+}

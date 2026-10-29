@@ -1,0 +1,17 @@
+{
+  "id": "WEB-53",
+  "area": "WEB",
+  "title": "Un test UI che gira sulle righe di un set condiviso",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "WEB-52; un test UI con uno step che usa {{email}}.",
+  "steps": [
+    "Nel builder, pannello Data rows: Use a shared data set → clienti. Salvare.",
+    "Eseguire il test in un piano.",
+    "In Dati di test aggiungere una terza riga a clienti e rinominare il set in acquirenti; rieseguire il piano.",
+    "Provare a eliminare il set.",
+    "Nel test, Use a copy as this test's own rows, salvare; eliminare il set."
+  ],
+  "expected": "1: il pannello dice «Data rows from a shared data set», 2 runs, colonne {{email}}, {{paese}}. 2: il test gira due volte, una per riga. 3: gira tre volte: il test segue il set anche rinominato. 4: rifiutato con il nome del test che lo usa. 5: il test ha ora tre righe proprie; l'eliminazione riesce e il test continua a girare tre volte.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-52; un test UI con uno step che usa <code>{{email}}</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Nel builder, pannello Data rows: <b>Use a shared data set</b> → clienti. Salvare.</li><li>Eseguire il test in un piano.</li><li>In Dati di test aggiungere una terza riga a clienti e rinominare il set in <code>acquirenti</code>; rieseguire il piano.</li><li>Provare a eliminare il set.</li><li>Nel test, <b>Use a copy as this test's own rows</b>, salvare; eliminare il set.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: il pannello dice «Data rows from a shared data set», 2 runs, colonne {{email}}, {{paese}}. 2: il test gira due volte, una per riga. 3: gira tre volte: il test segue il set anche rinominato. 4: rifiutato con il nome del test che lo usa. 5: il test ha ora tre righe proprie; l'eliminazione riesce e il test continua a girare tre volte.</p>\n      "
+}
