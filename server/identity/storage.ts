@@ -12,7 +12,7 @@ import {
   type InsertUserSettings,
 } from '@shared/schema';
 import { privilegedDb } from '../platform/db';
-import { and, eq, desc, isNull, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { passwordResets } from '@shared/schema';
 import { hashInvitationToken } from '../platform/invitation-token';
 import { hashResetToken, issuePasswordReset, type IssuedReset } from './password-reset';
