@@ -1,0 +1,13 @@
+{
+  "id": "API-37",
+  "area": "API",
+  "title": "Streaming server gRPC",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report.",
+  "steps": [
+    "Salvare GRPC grpc://protocolli:50051/collaudo.Echo/Server con corpo {}, maxMessages 5 e asserzioni count=2, last.text=complete.",
+    "Pubblicare e avviare il piano."
+  ],
+  "expected": "La revisione pubblicata completa lo stream: due messaggi ordinati e risultato riuscito."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "MOB-17",
+  "area": "MOB",
+  "title": "Appium locale: un test su un emulatore, dal test e dal piano",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-16; l'apk di MOB-01 copiato sulla macchina dell'agente, per esempio /home/qa/WikipediaSample.apk o C:\\apps\\WikipediaSample.apk.",
+  "steps": [
+    "Nuovo test mobile: App = il percorso dell'apk, Dispositivo = emulator-5554, Nei piani di test gira su = Lab; guardare il selettore di upload.",
+    "Aprire l'Inspector; scegliere la barra di ricerca e aggiungere il passo; chiudere.",
+    "Salvare ed Eseguire sulla griglia Lab.",
+    "Mettere il test in un piano ed eseguirlo."
+  ],
+  "expected": "1: si salva con un percorso locale (non serve bs://); il selettore «Carica su» non propone Lab. 2: l'emulatore sulla macchina dell'agente apre l'app e l'inspector ne mostra lo schermo. 3: i passi girano sull'emulatore; alla fine lo screenshot, senza link a video o dashboard. 4: nel report una riga con «emulator-5554» come dispositivo e lo stesso esito.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-16; l'apk di MOB-01 copiato sulla macchina dell'agente, per esempio <code>/home/qa/WikipediaSample.apk</code> o <code>C:\\apps\\WikipediaSample.apk</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Nuovo test mobile: App = il percorso dell'apk, Dispositivo = <code>emulator-5554</code>, <b>Nei piani di test gira su</b> = Lab; guardare il selettore di upload.</li><li>Aprire l'<b>Inspector</b>; scegliere la barra di ricerca e aggiungere il passo; chiudere.</li><li>Salvare ed <b>Eseguire</b> sulla griglia Lab.</li><li>Mettere il test in un piano ed eseguirlo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: si salva con un percorso locale (non serve bs://); il selettore «Carica su» non propone Lab. 2: l'emulatore sulla macchina dell'agente apre l'app e l'inspector ne mostra lo schermo. 3: i passi girano sull'emulatore; alla fine lo screenshot, senza link a video o dashboard. 4: nel report una riga con «emulator-5554» come dispositivo e lo stesso esito.</p>\n      "
+}

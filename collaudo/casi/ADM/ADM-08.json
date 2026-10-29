@@ -1,0 +1,16 @@
+{
+  "id": "ADM-08",
+  "area": "ADM",
+  "title": "Invito e link di reset inviati per e-mail",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Lo stack di collaudo con SMTP_URL verso mailpit (impostato nel file compose); mailpit su http://localhost:8025.",
+  "steps": [
+    "Membri → invitare nuova.persona@acme.test come viewer.",
+    "Aprire mailpit e il link della mail; registrarsi.",
+    "Invitare persona-senza-indirizzo (non è un indirizzo).",
+    "Emettere un link di reset per nuova.persona@acme.test."
+  ],
+  "expected": "1: la pagina mostra il link e «Inviato anche per e-mail a nuova.persona@acme.test». 2: in mailpit c'è «You are invited to Acme on WebFlowMaster» con il link; il link apre la registrazione con invito e username già compilati. 3: solo il link, nessuna riga sull'e-mail e nessuna mail. 4: mail «Choose a new WebFlowMaster password» con un link che funziona una volta.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Lo stack di collaudo con <code>SMTP_URL</code> verso mailpit (impostato nel file compose); mailpit su http://localhost:8025.</p>\n        <h4>Passi</h4>\n        <ol><li>Membri → invitare <code>nuova.persona@acme.test</code> come viewer.</li><li>Aprire mailpit e il link della mail; registrarsi.</li><li>Invitare <code>persona-senza-indirizzo</code> (non è un indirizzo).</li><li>Emettere un link di reset per nuova.persona@acme.test.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: la pagina mostra il link e «Inviato anche per e-mail a nuova.persona@acme.test». 2: in mailpit c'è «You are invited to Acme on WebFlowMaster» con il link; il link apre la registrazione con invito e username già compilati. 3: solo il link, nessuna riga sull'e-mail e nessuna mail. 4: mail «Choose a new WebFlowMaster password» con un link che funziona una volta.</p>\n      "
+}

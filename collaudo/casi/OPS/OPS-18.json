@@ -1,0 +1,14 @@
+{
+  "id": "OPS-18",
+  "area": "OPS",
+  "title": "Backup automatico dello storico locale e ripristino",
+  "priority": "P1",
+  "actor": "collaudatore locale",
+  "preconditions": "Pagina di collaudo locale e cartella .local isolata per la prova. Un ciclo con esiti e note.",
+  "steps": [
+    "Salvare una nuova nota e controllare collaudo/.local/backups/auto-*.json.",
+    "Arrestare il server e conservare una copia della cartella .local. Rinominare state.json e riavviare.",
+    "Importare il backup automatico precedente tramite Importa backup JSON."
+  ],
+  "expected": "Il backup conserva lo stato precedente al salvataggio ed è importabile. Cicli, cataloghi congelati, esiti e note del backup vengono ripristinati. Dopo oltre 30 salvataggi restano gli ultimi 30 backup automatici; i backup manuali rimangono."
+}

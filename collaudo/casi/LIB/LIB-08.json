@@ -1,0 +1,13 @@
+{
+  "id": "LIB-08",
+  "area": "LIB",
+  "title": "Eliminare una suite usata da un piano",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "La conferma avverte quanti piani la includono. Dopo, il piano non esegue più quei test; i report dei run passati restano invariati.",
+  "steps": [
+    "Eliminare la suite di LIB-06."
+  ],
+  "expected": "La conferma avverte quanti piani la includono. Dopo, il piano non esegue più quei test; i report dei run passati restano invariati.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Eliminare la suite di LIB-06.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La conferma avverte quanti piani la includono. Dopo, il piano non esegue più quei test; i report dei run passati restano invariati.</p>\n      "
+}

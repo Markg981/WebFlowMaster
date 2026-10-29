@@ -1,0 +1,15 @@
+{
+  "id": "OPS-14",
+  "area": "OPS",
+  "title": "Ripristini rifiutati: chiave diversa e versione più recente",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "OPS-11; lo stack di OPS-13.",
+  "steps": [
+    "Nello stack di destinazione cambiare ENCRYPTION_KEY di api e worker e ricrearli; backup:restore … --yes.",
+    "Ripetere con --yes --ignore-key; eseguire il test con il segreto.",
+    "In una copia del backup alzare database.migrationsApplied nel manifest oltre il numero di migrazioni del codice; backup:restore su quella copia."
+  ],
+  "expected": "1: rifiutato prima di toccare qualunque cosa: «The running installation has a different ENCRYPTION_KEY from the one this backup was taken with…», uscita 1. 2: il ripristino avviene ma il test con il segreto fallisce perché il segreto non si decifra: va reinserito, come detto dal messaggio. 3: «The backup comes from a newer version (… migrations; this code has …)», uscita 1.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>OPS-11; lo stack di OPS-13.</p>\n        <h4>Passi</h4>\n        <ol><li>Nello stack di destinazione cambiare <code>ENCRYPTION_KEY</code> di api e worker e ricrearli; <code>backup:restore … --yes</code>.</li><li>Ripetere con <code>--yes --ignore-key</code>; eseguire il test con il segreto.</li><li>In una copia del backup alzare <code>database.migrationsApplied</code> nel manifest oltre il numero di migrazioni del codice; <code>backup:restore</code> su quella copia.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: rifiutato prima di toccare qualunque cosa: «The running installation has a different ENCRYPTION_KEY from the one this backup was taken with…», uscita 1. 2: il ripristino avviene ma il test con il segreto fallisce perché il segreto non si decifra: va reinserito, come detto dal messaggio. 3: «The backup comes from a newer version (… migrations; this code has …)», uscita 1.</p>\n      "
+}

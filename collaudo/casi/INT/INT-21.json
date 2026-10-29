@@ -1,0 +1,13 @@
+{
+  "id": "INT-21",
+  "area": "INT",
+  "title": "Pubblicazione Zephyr con tutti i casi rifiutati: stato Fallita, non Pubblicata",
+  "priority": "P3",
+  "actor": "editor",
+  "preconditions": "Una connessione Zephyr Scale il cui progetto rifiuta le esecuzioni (per esempio utente senza permesso di scrittura); un run con test collegati a casi.",
+  "steps": [
+    "Pubblicare il run dalla scheda Test management del report."
+  ],
+  "expected": "La pubblicazione compare come Fallita, con il motivo di ogni caso rifiutato; non compare mai come Pubblicata con 0 casi.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Una connessione Zephyr Scale il cui progetto rifiuta le esecuzioni (per esempio utente senza permesso di scrittura); un run con test collegati a casi.</p>\n        <h4>Passi</h4>\n        <ol><li>Pubblicare il run dalla scheda Test management del report.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La pubblicazione compare come Fallita, con il motivo di ogni caso rifiutato; non compare mai come Pubblicata con 0 casi.</p>\n      "
+}

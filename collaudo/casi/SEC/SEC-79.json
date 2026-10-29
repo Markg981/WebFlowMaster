@@ -1,0 +1,13 @@
+{
+  "id": "SEC-79",
+  "area": "SEC",
+  "title": "Report di piano: dettaglio dei test di progetti riservati nascosto ai non membri",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Un progetto riservato con un test fallito in un piano eseguito; un utente dell'organizzazione non membro del progetto; un owner.",
+  "steps": [
+    "Come non membro: GET /api/test-plans/executions/<id>/report (o la pagina del report).",
+    "Nel JSON, per il test del progetto riservato, leggere detailedLog, steps, networkSummary, aiAnalysis."
+  ],
+  "expected": "detailedLog, networkSummary e aiAnalysis sono null, steps è vuoto; la riga del test resta con nome e stato."
+}

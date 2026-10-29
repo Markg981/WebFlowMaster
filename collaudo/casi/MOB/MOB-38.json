@@ -1,0 +1,13 @@
+{
+  "id": "MOB-38",
+  "area": "MOB",
+  "title": "Matrice mobile nei piani",
+  "priority": "P1",
+  "actor": "editor.a, owner.a",
+  "preconditions": "Migrazione 0082 applicata. Piano con due browser, due lingue, un test web e un mobile con due target.",
+  "steps": [
+    "Eseguire il piano con retry e controllare report e screenshot.",
+    "Ripetere con shard e quarantena del test mobile."
+  ],
+  "expected": "Quattro risultati web e due mobile; screenshot separati e retry per dispositivo. Gli shard conservano il target; quarantena e policy di arresto rispettate."
+}

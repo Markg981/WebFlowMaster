@@ -1,0 +1,14 @@
+{
+  "id": "SSO-36",
+  "area": "SSO",
+  "title": "Collegamento per indirizzo rifiutato per owner e account con secondo fattore",
+  "priority": "P1",
+  "actor": "Owner dell'organizzazione e persona con account esistente",
+  "preconditions": "Provider OpenID Connect attivo con dominio verificato. Un account owner e un account con secondo fattore attivo hanno come username un indirizzo del dominio, senza identità SSO.",
+  "steps": [
+    "Accedere con Sign in with SSO usando l'indirizzo dell'owner.",
+    "Ripetere con l'indirizzo dell'account con secondo fattore.",
+    "Accedere con la password e controllare il registro di audit."
+  ],
+  "expected": "Entrambi gli accessi sono rifiutati con il messaggio che chiede di accedere con la password; nessuna identità SSO viene creata; il registro di audit contiene due voci sso.link_refused."
+}

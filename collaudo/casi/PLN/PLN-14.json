@@ -1,0 +1,14 @@
+{
+  "id": "PLN-14",
+  "area": "PLN",
+  "title": "Issue aperte automaticamente",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Issue tracker configurato (INT-10).",
+  "steps": [
+    "Registra i fallimenti in Jira; Apri una issue quando un test fallisce.",
+    "Far fallire lo stesso test in due run."
+  ],
+  "expected": "Una sola issue per test e browser; il secondo fallimento è aggiunto come commento. Il report mostra il link alla issue.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Issue tracker configurato (INT-10).</p>\n        <h4>Passi</h4>\n        <ol><li><b>Registra i fallimenti in</b> Jira; <b>Apri una issue quando un test fallisce</b>.</li><li>Far fallire lo stesso test in due run.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Una sola issue per test e browser; il secondo fallimento è aggiunto come commento. Il report mostra il link alla issue.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "MOB-35",
+  "area": "MOB",
+  "title": "Gruppi nativi riutilizzabili e snapshot",
+  "priority": "P1",
+  "actor": "editor.a, owner.a",
+  "preconditions": "Migrazione 0082 applicata. Gruppo Login Android richiamato da due test; run temporaneamente accodato.",
+  "steps": [
+    "Accodare un run che richiama Login.",
+    "Modificare Login aggiungendo un passo.",
+    "Eseguire il run accodato e un nuovo run."
+  ],
+  "expected": "Il run accodato conserva il contenuto precedente; il nuovo usa il gruppo aggiornato. Gruppi annidati rifiutati."
+}

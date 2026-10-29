@@ -1,0 +1,13 @@
+{
+  "id": "QUO-01",
+  "area": "QUO",
+  "title": "Installazione libera con quote disattivate",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Impostare TENANT_QUOTA_MODE=off su API e worker e riavviarli.",
+    "Salvare limiti finiti per A e creare test e nuove esecuzioni oltre quei limiti."
+  ],
+  "expected": "Nessun rifiuto dovuto alle quote e nessun pagamento richiesto; restano applicati i limiti indipendenti di sicurezza dei worker."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "SCH-04",
+  "area": "SCH",
+  "title": "Modificare, sospendere ed eliminare",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Le modifiche valgono dal prossimo run; da disattivata non parte; eliminata sparisce anche dalla dashboard.",
+  "steps": [
+    "Modificare frequenza e prossimo run.",
+    "Disattivare Schedule Active; attendere l'orario.",
+    "Eliminare con conferma."
+  ],
+  "expected": "Le modifiche valgono dal prossimo run; da disattivata non parte; eliminata sparisce anche dalla dashboard.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Modificare frequenza e prossimo run.</li><li>Disattivare <b>Schedule Active</b>; attendere l'orario.</li><li>Eliminare con conferma.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Le modifiche valgono dal prossimo run; da disattivata non parte; eliminata sparisce anche dalla dashboard.</p>\n      "
+}

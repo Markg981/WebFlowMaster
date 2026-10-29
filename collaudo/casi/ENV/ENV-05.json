@@ -1,0 +1,13 @@
+{
+  "id": "ENV-05",
+  "area": "ENV",
+  "title": "Eliminare un segreto e un ambiente",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "Spariscono dall'elenco. Audit secret.deleted ed environment.deleted.",
+  "steps": [
+    "Eliminare un segreto, poi un ambiente di prova."
+  ],
+  "expected": "Spariscono dall'elenco. Audit secret.deleted ed environment.deleted.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Eliminare un segreto, poi un ambiente di prova.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Spariscono dall'elenco. Audit <b>secret.deleted</b> ed <b>environment.deleted</b>.</p>\n      "
+}

@@ -1,0 +1,12 @@
+{
+  "id": "LIB-19",
+  "area": "LIB",
+  "title": "Background",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Importare una Feature con un Background e due Scenario."
+  ],
+  "expected": "I passi del Background precedono quelli di entrambi gli scenari."
+}

@@ -1,0 +1,12 @@
+{
+  "id": "AUT-13",
+  "area": "AUT",
+  "title": "Contratti di esecuzione E2E: un solo esito su ogni superficie, comportamenti su tre motori",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Catalogo versione 82. Postgres e Redis usa e getta come in collaudo/critical-ui-e2e.md, build client/server/migrator eseguita, migrazioni applicate, browser Playwright installati.",
+  "steps": [
+    "Eseguire npx playwright test --config=e2e/playwright.config.ts e2e/execution-contracts.spec.ts."
+  ],
+  "expected": "Sette test passano e due sono saltati (l'esito su tutte le superfici gira solo su Chromium). Verde, fallito, errore di test e run incompleto danno lo stesso esito in UI, API interna e v1, codice di uscita della CLI, JUnit, HTML, PDF e Allure; dialog, upload, download, iframe e popup passano su Chromium, Firefox e WebKit; un run annullato via API v1 risulta cancelled ovunque."
+}

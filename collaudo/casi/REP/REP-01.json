@@ -1,0 +1,14 @@
+{
+  "id": "REP-01",
+  "area": "REP",
+  "title": "Elenco dei report",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Run di piani diversi, avviati a mano, da pianificazione, da API e da webhook.",
+  "steps": [
+    "Report: filtrare per piano, poi per stato.",
+    "Controllare le colonne."
+  ],
+  "expected": "I filtri funzionano. Ogni riga ha piano, stato, inizio, durata, conteggio passati/falliti/saltati/totali e chi l'ha avviato.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Run di piani diversi, avviati a mano, da pianificazione, da API e da webhook.</p>\n        <h4>Passi</h4>\n        <ol><li>Report: filtrare per piano, poi per stato.</li><li>Controllare le colonne.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">I filtri funzionano. Ogni riga ha piano, stato, inizio, durata, conteggio passati/falliti/saltati/totali e chi l'ha avviato.</p>\n      "
+}

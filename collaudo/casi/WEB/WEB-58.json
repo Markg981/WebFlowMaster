@@ -1,0 +1,16 @@
+{
+  "id": "WEB-58",
+  "area": "WEB",
+  "title": "Pulizia: errori, 404 e dataset",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "WEB-57.",
+  "steps": [
+    "Cambiare l'URL della pulizia in uno che risponde 404 (per esempio https://httpbin.org/status/404); eseguire.",
+    "Poi in uno che risponde 500 (/status/500); eseguire.",
+    "Aggiungere al test un dataset di tre righe; eseguire.",
+    "Debug del test fino alla fine."
+  ],
+  "expected": "1: 404 (e 410) contano come già rimosso: la riga Cleanup è riuscita. 2: la riga Cleanup è fallita, il log dell'esecuzione nomina la chiamata, ma il test resta Superato. 3: la pulizia gira una volta per riga, dopo tutte le righe. 4: il debugger non esegue la pulizia.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-57.</p>\n        <h4>Passi</h4>\n        <ol><li>Cambiare l'URL della pulizia in uno che risponde 404 (per esempio <code>https://httpbin.org/status/404</code>); eseguire.</li><li>Poi in uno che risponde 500 (<code>/status/500</code>); eseguire.</li><li>Aggiungere al test un dataset di tre righe; eseguire.</li><li><b>Debug</b> del test fino alla fine.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: 404 (e 410) contano come <b>già rimosso</b>: la riga Cleanup è riuscita. 2: la riga Cleanup è fallita, il log dell'esecuzione nomina la chiamata, ma il test resta Superato. 3: la pulizia gira una volta per riga, dopo tutte le righe. 4: il debugger non esegue la pulizia.</p>\n      "
+}

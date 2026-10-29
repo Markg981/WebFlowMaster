@@ -1,0 +1,13 @@
+{
+  "id": "API-42",
+  "area": "API",
+  "title": "Conversazione WebSocket con cattura",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report. Token Bearer private-fixture-token.",
+  "steps": [
+    "Salvare WEBSOCKET ws://protocolli:8080/conversation con receive, capture token property=token, send {{capture.token}}, receive property=accepted equals=true, end.",
+    "Pubblicare e avviare il piano."
+  ],
+  "expected": "La challenge immediata arriva alla ricezione, il secondo messaggio usa la cattura e accepted=true; esito riuscito."
+}

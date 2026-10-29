@@ -1,0 +1,12 @@
+{
+  "id": "ADM-12",
+  "area": "ADM",
+  "title": "Invito HTML",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Inviare un invito a un destinatario di prova con nome contenente markup HTML."
+  ],
+  "expected": "Alternative HTML e testo coerenti; nome mostrato come testo, senza interpretare il markup."
+}

@@ -1,0 +1,13 @@
+{
+  "id": "API-31",
+  "area": "API",
+  "title": "Ripristino API senza pubblicazione",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Versione 1 pubblicata; copia di lavoro versione 3 diversa dalla 2.",
+  "steps": [
+    "Ripristinare la versione 2 dalla cronologia.",
+    "Confrontare la nuova revisione con la 2 e riaprire il pannello di pubblicazione."
+  ],
+  "expected": "Nasce la versione 4 con configurazione della 2; revisioni 1–3 conservate; pubblicata resta la 1."
+}

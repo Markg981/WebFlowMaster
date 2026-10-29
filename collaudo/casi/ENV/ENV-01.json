@@ -1,0 +1,15 @@
+{
+  "id": "ENV-01",
+  "area": "ENV",
+  "title": "Creare un ambiente con i suoi segreti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "I segreti mostrano solo il nome e «Encrypted»: i valori non si vedono più. Audit environment.created e secret.set, senza valori.",
+  "steps": [
+    "Impostazioni → Ambienti: creare Staging.",
+    "Aggiungere i segreti baseUrl = https://the-internet.herokuapp.com, USERNAME = tomsmith, PASSWORD = SuperSecretPassword!.",
+    "Ricaricare la pagina."
+  ],
+  "expected": "I segreti mostrano solo il nome e «Encrypted»: i valori non si vedono più. Audit environment.created e secret.set, senza valori.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Ambienti: creare <code>Staging</code>.</li><li>Aggiungere i segreti <code>baseUrl</code> = <code>https://the-internet.herokuapp.com</code>, <code>USERNAME</code> = <code>tomsmith</code>, <code>PASSWORD</code> = <code>SuperSecretPassword!</code>.</li><li>Ricaricare la pagina.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">I segreti mostrano solo il nome e «Encrypted»: i valori non si vedono più. Audit <b>environment.created</b> e <b>secret.set</b>, senza valori.</p>\n      "
+}

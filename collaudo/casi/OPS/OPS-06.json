@@ -1,0 +1,13 @@
+{
+  "id": "OPS-06",
+  "area": "OPS",
+  "title": "Più worker",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "Runner mostra due runner; i run si distribuiscono.",
+  "steps": [
+    "docker compose up -d --scale worker=2; avviare diversi run."
+  ],
+  "expected": "Runner mostra due runner; i run si distribuiscono.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><code>docker compose up -d --scale worker=2</code>; avviare diversi run.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Runner mostra due runner; i run si distribuiscono.</p>\n      "
+}

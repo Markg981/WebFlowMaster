@@ -1,0 +1,14 @@
+{
+  "id": "SSO-16",
+  "area": "SSO",
+  "title": "Risposta SAML avviata da un altro browser",
+  "priority": "P2",
+  "actor": "—",
+  "preconditions": "SSO-13.",
+  "steps": [
+    "Nel browser 1 avviare l'accesso SSO e fermarsi sulla pagina di Keycloak; copiarne l'URL.",
+    "Aprire quell'URL nel browser 2 (senza il cookie wfm_saml_request) e accedere."
+  ],
+  "expected": "Il browser 2 torna su /auth con il messaggio che l'accesso è stato avviato in un altro browser (browser_mismatch). Il browser 1 non viene autenticato.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-13.</p>\n        <h4>Passi</h4>\n        <ol><li>Nel browser 1 avviare l'accesso SSO e fermarsi sulla pagina di Keycloak; copiarne l'URL.</li><li>Aprire quell'URL nel browser 2 (senza il cookie wfm_saml_request) e accedere.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il browser 2 torna su /auth con il messaggio che l'accesso è stato avviato in un altro browser (browser_mismatch). Il browser 1 non viene autenticato.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "MEM-01",
+  "area": "MEM",
+  "title": "Cambiare il ruolo di un membro",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Il nuovo ruolo vale subito: le sezioni riservate agli owner compaiono e spariscono per editor.a. Audit member.role_changed.",
+  "steps": [
+    "Membri: portare viewer.a a editor, poi di nuovo a viewer.",
+    "Portare editor.a a owner e ricaricare la sua pagina; poi riportarlo a editor."
+  ],
+  "expected": "Il nuovo ruolo vale subito: le sezioni riservate agli owner compaiono e spariscono per editor.a. Audit member.role_changed.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Membri: portare viewer.a a editor, poi di nuovo a viewer.</li><li>Portare editor.a a owner e ricaricare la sua pagina; poi riportarlo a editor.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il nuovo ruolo vale subito: le sezioni riservate agli owner compaiono e spariscono per editor.a. Audit <b>member.role_changed</b>.</p>\n      "
+}

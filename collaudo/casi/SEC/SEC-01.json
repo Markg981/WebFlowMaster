@@ -1,0 +1,13 @@
+{
+  "id": "SEC-01",
+  "area": "SEC",
+  "title": "Isolamento fra organizzazioni nell'interfaccia",
+  "priority": "P1",
+  "actor": "owner.b",
+  "preconditions": "Dati dell'organizzazione A creati nelle aree precedenti.",
+  "steps": [
+    "Come owner.b scorrere Dashboard, Libreria, Tester API, Suite, Piani, Report, Impostazioni (ambienti, agenti, audit)."
+  ],
+  "expected": "Nulla dell'organizzazione A è visibile.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Dati dell'organizzazione A creati nelle aree precedenti.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b scorrere Dashboard, Libreria, Tester API, Suite, Piani, Report, Impostazioni (ambienti, agenti, audit).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nulla dell'organizzazione A è visibile.</p>\n      "
+}

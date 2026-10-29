@@ -1,0 +1,14 @@
+{
+  "id": "ADM-01",
+  "area": "ADM",
+  "title": "Svuotare e riprendere un runner",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "INSTALLATION_ADMINS=owner.a; due worker.",
+  "steps": [
+    "Impostazioni → Runner: Drain su un runner; avviare due run.",
+    "Resume."
+  ],
+  "expected": "Il runner in svuotamento finisce ciò che ha e non prende altro: i nuovi run vanno sull'altro. Dopo Resume torna a prendere run. Audit runner.drained e runner.resumed.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>INSTALLATION_ADMINS=owner.a</code>; due worker.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Runner: <b>Drain</b> su un runner; avviare due run.</li><li><b>Resume</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il runner in svuotamento finisce ciò che ha e non prende altro: i nuovi run vanno sull'altro. Dopo Resume torna a prendere run. Audit <b>runner.drained</b> e <b>runner.resumed</b>.</p>\n      "
+}

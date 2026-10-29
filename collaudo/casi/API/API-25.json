@@ -1,0 +1,12 @@
+{
+  "id": "API-25",
+  "area": "API",
+  "title": "Chiamata gRPC unary",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Configurare definizione proto, servizio, metodo unary, URL e richiesta JSON validi; eseguire."
+  ],
+  "expected": "Risposta decodificata in JSON, stato gRPC e asserzioni verificabili."
+}

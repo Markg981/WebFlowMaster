@@ -1,0 +1,12 @@
+{
+  "id": "BDD-09",
+  "area": "BDD",
+  "title": "Import portabile con mapping esplicito",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Esportare BDD in JSON e Gherkin; importare senza mapping, poi scegliere esplicitamente il profilo di destinazione; provare un binding estraneo."
+  ],
+  "expected": "Senza mapping o con profilo non autorizzato l’import è invalid anche in anteprima; quello autorizzato preserva sorgente e selettori."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "SEC-18",
+  "area": "SEC",
+  "title": "Nessuna richiesta anonima con un tipo di autenticazione scelto",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un endpoint che registra le richieste ricevute (e.g. un bin di webhook.site).",
+  "steps": [
+    "Per ciascuno fra Hawk, OAuth 1.0, AWS, Akamai, ASAP, JWT: tipo scelto, campi obbligatori vuoti, Invia verso il bin.",
+    "Hawk con ID e chiave presi da segnaposto dell'ambiente {{hawkId}} e {{hawkKey}}; Invia; aprire la Cronologia e il test salvato."
+  ],
+  "expected": "Nessuna delle richieste senza credenziali arriva al bin; ognuna dice quale campo manca. Con i segnaposto la richiesta arriva firmata, e nel test salvato restano i segnaposto, non la chiave.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un endpoint che registra le richieste ricevute (e.g. un bin di <code>webhook.site</code>).</p>\n        <h4>Passi</h4>\n        <ol><li>Per ciascuno fra Hawk, OAuth 1.0, AWS, Akamai, ASAP, JWT: tipo scelto, campi obbligatori vuoti, <b>Invia</b> verso il bin.</li><li>Hawk con ID e chiave presi da segnaposto dell'ambiente <code>{{hawkId}}</code> e <code>{{hawkKey}}</code>; <b>Invia</b>; aprire la Cronologia e il test salvato.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nessuna delle richieste senza credenziali arriva al bin; ognuna dice quale campo manca. Con i segnaposto la richiesta arriva firmata, e nel test salvato restano i segnaposto, non la chiave.</p>\n      "
+}

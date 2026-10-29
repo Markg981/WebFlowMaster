@@ -1,0 +1,13 @@
+{
+  "id": "SEC-13",
+  "area": "SEC",
+  "title": "Esiti manuali: isolamento",
+  "priority": "P1",
+  "actor": "owner.b",
+  "preconditions": "REP-11 nell'organizzazione A.",
+  "steps": [
+    "Come owner.b: PUT /api/test-plan-executions/<run di A>/results/<risultato di A>/manual-verdict con {outcome:'failed'}."
+  ],
+  "expected": "Risposta 404; il risultato e il run di A non cambiano.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>REP-11 nell'organizzazione A.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b: <code>PUT /api/test-plan-executions/&lt;run di A&gt;/results/&lt;risultato di A&gt;/manual-verdict</code> con <code>{outcome:'failed'}</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Risposta 404; il risultato e il run di A non cambiano.</p>\n      "
+}

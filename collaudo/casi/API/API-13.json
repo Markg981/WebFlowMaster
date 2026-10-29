@@ -1,0 +1,15 @@
+{
+  "id": "API-13",
+  "area": "API",
+  "title": "NTLM verso un sito con autenticazione Windows",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un sito IIS con autenticazione Windows (solo provider NTLM) e un utente di dominio.",
+  "steps": [
+    "NTLM Authentication: nome utente, password, dominio; GET sull'indirizzo del sito; Invia.",
+    "Nome utente scritto come DOMINIO\\utente e dominio vuoto; Invia.",
+    "Password sbagliata; Invia."
+  ],
+  "expected": "Le prime due rispondono 200 con la pagina del sito; il log di IIS registra l'utente di dominio (colonna cs-username). La terza risponde 401.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un sito IIS con autenticazione Windows (solo provider NTLM) e un utente di dominio.</p>\n        <h4>Passi</h4>\n        <ol><li>NTLM Authentication: nome utente, password, dominio; GET sull'indirizzo del sito; <b>Invia</b>.</li><li>Nome utente scritto come <code>DOMINIO\\utente</code> e dominio vuoto; <b>Invia</b>.</li><li>Password sbagliata; <b>Invia</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Le prime due rispondono 200 con la pagina del sito; il log di IIS registra l'utente di dominio (colonna cs-username). La terza risponde 401.</p>\n      "
+}

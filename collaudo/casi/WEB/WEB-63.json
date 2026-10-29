@@ -1,0 +1,12 @@
+{
+  "id": "WEB-63",
+  "area": "WEB",
+  "title": "Contenuto PDF",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Scaricare un PDF testuale noto mediante Verifica un download e verificare una frase presente."
+  ],
+  "expected": "Asserzione riuscita, file conservato e metadati del PDF disponibili."
+}

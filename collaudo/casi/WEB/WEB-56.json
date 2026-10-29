@@ -1,0 +1,15 @@
+{
+  "id": "WEB-56",
+  "area": "WEB",
+  "title": "Bloccare richieste e togliere le simulazioni",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "1: le richieste bloccate falliscono come se la rete fosse giù e la verifica passa. 2: dopo Rimuovi simulazioni la pagina raggiunge di nuovo i server veri. 3: sì, la simulazione vale per tutte le schede aperte dal test.",
+  "steps": [
+    "Su una pagina dell'applicazione che carica un'immagine o uno script di terze parti: Blocca richieste con un pattern che li comprende (per esempio **/*.png); Naviga; Esegui JavaScript che verifica che l'immagine non sia caricata (return [...document.images].every(i => !i.complete || i.naturalWidth === 0)).",
+    "Rimuovi simulazioni; Naviga di nuovo; la stessa verifica al contrario.",
+    "Usare Simula richiesta e poi aprire una nuova scheda con Cambia scheda: la simulazione vale anche lì?"
+  ],
+  "expected": "1: le richieste bloccate falliscono come se la rete fosse giù e la verifica passa. 2: dopo Rimuovi simulazioni la pagina raggiunge di nuovo i server veri. 3: sì, la simulazione vale per tutte le schede aperte dal test.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Su una pagina dell'applicazione che carica un'immagine o uno script di terze parti: <b>Blocca richieste</b> con un pattern che li comprende (per esempio <code>**/*.png</code>); Naviga; Esegui JavaScript che verifica che l'immagine non sia caricata (<code>return [...document.images].every(i =&gt; !i.complete || i.naturalWidth === 0)</code>).</li><li><b>Rimuovi simulazioni</b>; Naviga di nuovo; la stessa verifica al contrario.</li><li>Usare <b>Simula richiesta</b> e poi aprire una nuova scheda con <b>Cambia scheda</b>: la simulazione vale anche lì?</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: le richieste bloccate falliscono come se la rete fosse giù e la verifica passa. 2: dopo Rimuovi simulazioni la pagina raggiunge di nuovo i server veri. 3: sì, la simulazione vale per tutte le schede aperte dal test.</p>\n      "
+}

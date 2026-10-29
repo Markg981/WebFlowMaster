@@ -1,0 +1,15 @@
+{
+  "id": "ADM-10",
+  "area": "ADM",
+  "title": "Notifiche personali e del piano per e-mail",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un piano con una notifica su fallimento, indirizzo qa@acme.test nel campo e-mail del piano; un test che fallisce. editor.a ha un indirizzo come username (altrimenti usare nuova.persona@acme.test con ruolo editor).",
+  "steps": [
+    "Impostazioni → Notifiche: attivare le e-mail, lasciare solo «Run falliti»; Salva le notifiche.",
+    "Eseguire il piano (fallisce).",
+    "Togliere il test che fallisce ed eseguire di nuovo (passa)."
+  ],
+  "expected": "1: le scelte restano dopo aver ricaricato la pagina. 2: in mailpit due mail «[WebFlowMaster] <piano>: failed» (qa@acme.test e la persona) con riepilogo e link al report; la console del run dice a chi è stata inviata. 3: nessuna mail (il piano notifica solo i fallimenti, la persona solo i run falliti).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un piano con una notifica su fallimento, indirizzo <code>qa@acme.test</code> nel campo e-mail del piano; un test che fallisce. editor.a ha un indirizzo come username (altrimenti usare nuova.persona@acme.test con ruolo editor).</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Notifiche: attivare le e-mail, lasciare solo «Run falliti»; <b>Salva le notifiche</b>.</li><li>Eseguire il piano (fallisce).</li><li>Togliere il test che fallisce ed eseguire di nuovo (passa).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: le scelte restano dopo aver ricaricato la pagina. 2: in mailpit due mail «[WebFlowMaster] &lt;piano&gt;: failed» (qa@acme.test e la persona) con riepilogo e link al report; la console del run dice a chi è stata inviata. 3: nessuna mail (il piano notifica solo i fallimenti, la persona solo i run falliti).</p>\n      "
+}

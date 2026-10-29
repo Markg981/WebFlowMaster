@@ -1,0 +1,13 @@
+{
+  "id": "REP-07",
+  "area": "REP",
+  "title": "Aprire una issue dal report",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Issue tracker configurato.",
+  "steps": [
+    "Su un test fallito: Apri issue; poi Apri nel tracker."
+  ],
+  "expected": "La issue nasce con i dettagli del fallimento e il link al report; il link porta alla issue.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Issue tracker configurato.</p>\n        <h4>Passi</h4>\n        <ol><li>Su un test fallito: <b>Apri issue</b>; poi <b>Apri nel tracker</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La issue nasce con i dettagli del fallimento e il link al report; il link porta alla issue.</p>\n      "
+}

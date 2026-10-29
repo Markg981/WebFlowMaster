@@ -1,0 +1,15 @@
+{
+  "id": "SEC-72",
+  "area": "SEC",
+  "title": "Chiave API senza scope o senza scadenza rifiutata alla creazione",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 83. Un owner con sessione e una sua chiave API.",
+  "steps": [
+    "In Impostazioni → Chiavi API deselezionare tutti gli scope e premere Crea chiave.",
+    "Svuotare la scadenza e premere Crea chiave.",
+    "Con la sessione, POST /api/api-keys con scopes ma expiresInDays 400 (limite 365).",
+    "Creare una chiave con scope runs:read e scadenza 30 giorni."
+  ],
+  "expected": "1-2: messaggi nel form, nessuna richiesta. 3: 400 con maxDays 365. 4: 201, token mostrato una volta. Le chiavi create prima, senza scope o scadenza, restano nell'elenco come «legacy, accesso completo» e «nessuna scadenza (legacy)» e continuano a funzionare."
+}

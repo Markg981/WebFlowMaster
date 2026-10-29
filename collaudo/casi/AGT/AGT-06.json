@@ -1,0 +1,15 @@
+{
+  "id": "AGT-06",
+  "area": "AGT",
+  "title": "gRPC unario nella rete privata",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Agente 1.1.0 nel pool interno; servizio gRPC unario raggiungibile solo dalla rete agente e relativo proto.",
+  "steps": [
+    "Creare un test GRPC con indirizzo grpc://host:porta/pacchetto.Servizio/Metodo, proto e body JSON.",
+    "Aggiungere asserzioni sul codice 0, body e metadati; assegnare il piano al pool interno ed eseguirlo.",
+    "Eseguire lo stesso test sui runner del server."
+  ],
+  "expected": "Sul pool il servizio riceve la chiamata e le asserzioni passano. Sui runner il servizio privato non è raggiungibile. Non compare il rifiuto dei protocolli su agente.",
+  "detailHtml": "<h4>Precondizioni</h4><p>Agente 1.1.0 nel pool interno; servizio gRPC unario raggiungibile solo dalla rete agente e relativo proto.</p><h4>Passi</h4><ol><li>Creare un test GRPC con indirizzo grpc://host:porta/pacchetto.Servizio/Metodo, proto e body JSON.</li><li>Aggiungere asserzioni sul codice 0, body e metadati; assegnare il piano al pool interno ed eseguirlo.</li><li>Eseguire lo stesso test sui runner del server.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Sul pool il servizio riceve la chiamata e le asserzioni passano. Sui runner il servizio privato non è raggiungibile. Non compare il rifiuto dei protocolli su agente.</p>"
+}

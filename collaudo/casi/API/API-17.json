@@ -1,0 +1,15 @@
+{
+  "id": "API-17",
+  "area": "API",
+  "title": "OAuth 1.0, Hawk e Akamai EdgeGrid",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Per Akamai: una sezione .edgerc di un account API client.",
+  "steps": [
+    "OAuth 1.0 HMAC-SHA1 con consumer key e secret; POST form a=1 su https://httpbin.org/anything; poi Aggiungi a: Query.",
+    "Hawk con ID e chiave, spuntare l'hash del corpo; POST JSON su /anything.",
+    "Akamai EdgeGrid con i tre valori di .edgerc; GET https://<host>/identity-management/v3/user-profile."
+  ],
+  "expected": "httpbin mostra l'header OAuth oauth_consumer_key=…, oauth_signature=…, poi gli stessi campi come parametri query; l'header Hawk id=…, ts=…, nonce=…, hash=…, mac=…. Akamai risponde 200 con il profilo; con il client secret sbagliato 401.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Per Akamai: una sezione <code>.edgerc</code> di un account API client.</p>\n        <h4>Passi</h4>\n        <ol><li>OAuth 1.0 HMAC-SHA1 con consumer key e secret; POST form <code>a=1</code> su <code>https://httpbin.org/anything</code>; poi Aggiungi a: Query.</li><li>Hawk con ID e chiave, spuntare l'hash del corpo; POST JSON su <code>/anything</code>.</li><li>Akamai EdgeGrid con i tre valori di <code>.edgerc</code>; GET <code>https://&lt;host&gt;/identity-management/v3/user-profile</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">httpbin mostra l'header <code>OAuth oauth_consumer_key=…, oauth_signature=…</code>, poi gli stessi campi come parametri query; l'header <code>Hawk id=…, ts=…, nonce=…, hash=…, mac=…</code>. Akamai risponde 200 con il profilo; con il client secret sbagliato 401.</p>\n      "
+}
