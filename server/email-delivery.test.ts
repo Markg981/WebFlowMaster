@@ -198,7 +198,8 @@ describe('Forgot your password?', () => {
       .send({ username: 'nobody@shop.test' })
       .expect(202);
     expect(unknown.body).toEqual(known.body);
-    expect(sent).toHaveLength(1);
+    // The answer goes out before the mail (C-38 ID-08), so wait for it.
+    await vi.waitFor(() => expect(sent).toHaveLength(1));
     expect(sent[0].to).toBe('ann@shop.test');
 
     const token = new URL(/https?:\/\/\S+/.exec(sent[0].text)![0]).searchParams.get('reset')!;

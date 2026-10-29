@@ -7,6 +7,7 @@ import {
   type IssueTracker,
 } from '@shared/schema';
 import { withTenantTransaction } from '../platform/middleware/tenancy';
+import logger from '../platform/logger';
 import { decryptSecret } from '../platform/crypto';
 import { addComment, createIssue, type ProviderDeps, type TrackerConfig } from './issue-providers';
 import {
@@ -155,7 +156,17 @@ export async function fileFailure(
         }),
       );
     } catch (error: any) {
-      if (!isUniqueViolation(error)) throw error;
+      if (!isUniqueViolation(error)) {
+        // The issue exists in the tracker but nothing links to it. Say where it is, so the
+        // orphan is found by whoever reads the log or the error, not left silently.
+        logger.error(
+          `[IssueStore] Issue ${created.key} (${created.url}) was created but its link could not be saved`,
+          error,
+        );
+        throw new Error(
+          `Issue ${created.key} was created (${created.url}) but could not be linked: ${error?.message ?? String(error)}`,
+        );
+      }
       // Two runs of the same plan filed the same failure at the same instant. The issue that
       // lost the race exists in the tracker and is reported here rather than swallowed: a
       // duplicate somebody can see is recoverable, one nothing mentions is not.

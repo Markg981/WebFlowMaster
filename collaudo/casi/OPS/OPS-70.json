@@ -1,0 +1,12 @@
+{
+  "id": "OPS-70",
+  "area": "OPS",
+  "title": "Rimozione job BullMQ fallita: registrata nel log",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "Ambiente di prova.",
+  "steps": [
+    "Eliminare una pianificazione con Redis non raggiungibile."
+  ],
+  "expected": "Il log riporta un avviso per ogni rimozione fallita del job scheduler o del job once."
+}

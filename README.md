@@ -19,20 +19,20 @@ Connect or SAML.
   authentication, run on their own or inside a plan; import them from OpenAPI, Swagger or Postman.
 - **Mobile app tests**: Android and iOS apps through Appium on BrowserStack, LambdaTest or your own
   emulators and devices (via a local agent), with a live inspector to pick locators.
-- **BDD tests**: versioned Gherkin scenarios executed with Cucumber on dedicated local agents.
+- **BDD tests**: versioned Gherkin scenarios executed with Cucumber on dedicated local agents (an operator installs the Cucumber bundle and sets `WFM_BDD_PROFILES`).
 - **Requirements and test management**: epics and stories with computed coverage; results published to
   TestRail, Xray and Zephyr Scale.
 - **Plans, suites and schedules**: choose the tests, the browsers and how many run at once; run
   them now, on a cron schedule or from a webhook; quarantine flaky tests; get notified on
   completion by email, in Slack or Microsoft Teams, or through your own webhook.
-- **Results**: a report per run with evidence for each step, history and trends, and exports to
+- **Results**: a report per run with evidence for each step, history and trends of the runs of a plan (no run-to-run comparison), and exports to
   HTML, PDF, JUnit and Allure.
 - **CI**: the `wfm` command-line tool, and ready-made integrations for GitHub Actions, GitLab CI,
   Jenkins, Azure Pipelines, Bitbucket Pipelines and CircleCI.
 - **Local agents**: test applications the server cannot reach (an intranet, a staging
   environment behind a VPN) through an agent that runs inside that network and connects out.
 - **Issue trackers and source hosts**: open issues in Jira or Azure DevOps from a failure, and
-  report run status back to commits.
+  report run status back to commits (GitHub and GitLab only).
 - **Administration**: organizations, projects, roles (owner, editor, viewer), invitations,
   scoped API keys and service accounts, single sign-on, SCIM provisioning, an append-only audit
   log, quotas and data retention.

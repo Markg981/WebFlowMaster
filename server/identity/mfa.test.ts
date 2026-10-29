@@ -253,6 +253,28 @@ describe('signing in with a second factor', () => {
     }
   });
 
+  it('counts wrong codes on recovery-codes and DELETE /api/mfa against the account budget', async () => {
+    const setup = await signedIn();
+    await enrol(setup);
+    for (let i = 0; i < 5; i++) {
+      await setup.post('/api/mfa/recovery-codes').send({ code: '000000' }).expect(400);
+    }
+    const locked = await setup.post('/api/mfa/recovery-codes').send({ code: '000000' }).expect(429);
+    expect(Number(locked.headers['retry-after'])).toBeGreaterThan(0);
+    await setup.delete('/api/mfa').send({ password: alice.password, code: '000000' }).expect(429);
+  });
+
+  it('ends the other sessions of a person when their second factor is turned on', async () => {
+    const setup = await signedIn();
+    const other = request.agent(app);
+    await other.post('/api/login').send(alice).expect(200);
+    await other.get('/api/user').expect(200);
+    await enrol(setup);
+    await other.get('/api/user').expect(401);
+    // The session that made the change goes on.
+    await setup.get('/api/user').expect(200);
+  });
+
   it('refuses a code step with no password step before it', async () => {
     await request(app).post('/api/login/mfa').send({ code: '123456' }).expect(401);
   });

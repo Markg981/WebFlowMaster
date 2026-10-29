@@ -19,6 +19,8 @@ import type Redis from 'ioredis';
  */
 
 const REDIS_TIMEOUT_MS = 250;
+const DEGRADED_WARNING_EVERY_MS = 60_000;
+let lastDegradedWarning = 0;
 
 /** One counter per key and window: the first hit starts the window, the key expires with it. */
 const INCREMENT = `
@@ -80,6 +82,23 @@ export class SharedRateLimitStore implements Store {
     }
   }
 
+  /**
+   * Redis is configured but not answering: the counts are per process now (multiplied by the number
+   * of instances, lost on restart), which matters most for the sign-in and second-factor limits.
+   * Said out loud, at most once a minute, instead of failing closed and locking everyone out
+   * (audit C-38 ID-09).
+   */
+  private reportDegraded() {
+    const now = Date.now();
+    if (now - lastDegradedWarning < DEGRADED_WARNING_EVERY_MS) return;
+    lastDegradedWarning = now;
+    void import('../logger').then(({ default: logger }) =>
+      logger.warn(
+        `[rate-limit] Redis is not answering: the "${this.name}" limit (and every other) counts per process until it does.`,
+      ),
+    );
+  }
+
   async increment(key: string): Promise<ClientRateLimitInfo> {
     const client = this.ready();
     if (client) {
@@ -90,7 +109,10 @@ export class SharedRateLimitStore implements Store {
         return { totalHits: Number(hits), resetTime: new Date(Date.now() + Number(ttl)) };
       } catch {
         // Fall through to this process's count.
+        this.reportDegraded();
       }
+    } else if (this.redis()) {
+      this.reportDegraded();
     }
     return this.memory.increment(key);
   }

@@ -1,5 +1,6 @@
 import type { IncomingHttpHeaders } from 'http';
 import type { Request, Response, NextFunction } from 'express';
+import { trustProxySetting } from '../../platform/trust-proxy';
 
 // CSRF defense via Origin/Referer validation (OWASP-recommended for cookie-auth APIs),
 // layered on top of the SameSite=Lax session cookie.
@@ -33,8 +34,11 @@ function hostOf(urlOrHost: string | undefined): string | null {
 function trustedHosts(req: { headers: IncomingHttpHeaders }): Set<string> {
   const hosts = new Set<string>();
   if (req.headers.host) hosts.add(req.headers.host);
+  // X-Forwarded-Host is the proxy's word: honoured only where a proxy is trusted (TRUST_PROXY).
+  const proxy = trustProxySetting();
   const xfHost = req.headers['x-forwarded-host'];
-  if (typeof xfHost === 'string') xfHost.split(',').forEach((h) => hosts.add(h.trim()));
+  if (typeof xfHost === 'string' && proxy !== false && proxy !== 0)
+    xfHost.split(',').forEach((h) => hosts.add(h.trim()));
   const env = process.env.CSRF_TRUSTED_ORIGINS;
   if (env) {
     env.split(',').forEach((o) => {
@@ -60,6 +64,12 @@ export function csrfOriginCheck(req: Request, res: Response, next: NextFunction)
   if (SAFE_METHODS.has(req.method)) return next();
   if (req.method === 'POST' && CROSS_SITE_BY_DESIGN.test(req.path)) return next();
 
+  // `Origin: null` is what a sandboxed iframe or a cross-origin redirect sends: a browser, and not
+  // a page of ours, so it is refused rather than treated as "no origin" (audit C-38 ID-10).
+  if (req.headers.origin === 'null') {
+    res.status(403).json({ error: 'CSRF validation failed: cross-origin request rejected.' });
+    return;
+  }
   const originHost = hostOf(req.headers.origin) ?? hostOf(req.headers.referer);
   // No browser-supplied origin -> server-to-server client, not a CSRF vector.
   if (!originHost) return next();

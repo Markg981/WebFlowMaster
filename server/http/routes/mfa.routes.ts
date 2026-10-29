@@ -17,6 +17,7 @@ import {
   setMfaRequired,
   verifySecondFactor,
 } from '../../identity/mfa';
+import { registerAttempt, clearAttempts } from '../../identity/login-throttle';
 import logger from '../../platform/logger';
 
 /**
@@ -26,6 +27,29 @@ import logger from '../../platform/logger';
  * change the policy: a key that could turn off its holder's second factor would make the
  * second factor decoration.
  */
+
+/**
+ * Counts a code attempt against the same per-account budget as the sign-in's second step, so a
+ * stolen session cannot guess a TOTP at the rate of the per-user session limiter (audit C-38 ID-06).
+ * Answers 429 and returns false once the account is locked; a right code clears the count.
+ */
+async function mfaAttemptAllowed(userId: number, res: Response): Promise<boolean> {
+  const verdict = await registerAttempt('mfa', String(userId));
+  if (!verdict.locked) return true;
+  res.setHeader('Retry-After', String(verdict.retryAfterSeconds));
+  res.status(429).json({ error: 'Too many attempts, please try again later.' });
+  return false;
+}
+
+/**
+ * The session stamp covers the second factor's state, so a change to it ends every session of the
+ * person; this one signs in again at once so the person making the change is not the one thrown out.
+ */
+function renewSession(req: Request): Promise<void> {
+  return new Promise((resolve, reject) =>
+    req.login(req.user!, (error) => (error ? reject(error) : resolve())),
+  );
+}
 
 const router = asyncRouter();
 
@@ -81,6 +105,7 @@ router.post('/api/mfa/enrollment/confirm', requireRole('viewer'), sessionOnly, a
       error: 'That code does not match. Check the time on your phone and try the next one.',
     });
   logger.info({ message: 'MFA enabled', userId: req.user!.id });
+  await renewSession(req);
   res.json({ recoveryCodes: codes });
 });
 
@@ -91,11 +116,13 @@ router.post('/api/mfa/recovery-codes', requireRole('viewer'), sessionOnly, async
   if (!parsed.success) return res.status(400).json({ error: 'Enter a code from your app.' });
 
   const actor = auditActor(req);
+  if (!(await mfaAttemptAllowed(req.user!.id, res))) return;
   if (
     !(await verifySecondFactor(req.user!.id, req.user!.organizationId, actor, parsed.data.code))
   ) {
     return res.status(400).json({ error: 'That code is not valid.' });
   }
+  await clearAttempts('mfa', String(req.user!.id));
   const codes = await regenerateRecoveryCodes(req.user!.id, req.user!.organizationId, actor);
   if (!codes) return res.status(409).json({ error: 'Two-factor authentication is not on.' });
   res.json({ recoveryCodes: codes });
@@ -122,14 +149,18 @@ router.delete('/api/mfa', requireRole('viewer'), sessionOnly, async (req, res) =
   }
 
   const user = await storage.getUser(req.user!.id);
-  if (!user || !(await comparePasswords(parsed.data.password, user.password))) {
+  if (!user) return res.status(400).json({ error: 'The password or the code is not valid.' });
+  if (!(await mfaAttemptAllowed(user.id, res))) return;
+  if (!(await comparePasswords(parsed.data.password, user.password))) {
     return res.status(400).json({ error: 'The password or the code is not valid.' });
   }
   const actor = auditActor(req);
   if (!(await verifySecondFactor(user.id, user.organizationId, actor, parsed.data.code))) {
     return res.status(400).json({ error: 'The password or the code is not valid.' });
   }
+  await clearAttempts('mfa', String(user.id));
   await disableMfa(user.id, user.organizationId, actor);
+  await renewSession(req);
   res.status(204).end();
 });
 

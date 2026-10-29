@@ -1,0 +1,14 @@
+{
+  "id": "MFA-10",
+  "area": "MFA",
+  "title": "Tentativi di codice limitati su codici di recupero e disattivazione",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "editor.a con secondo fattore attivo, sessione aperta.",
+  "steps": [
+    "Impostazioni → Sicurezza: chiedere nuovi codici di recupero con un codice errato per 6 volte di fila.",
+    "Provare a disattivare il secondo fattore con password giusta e codice errato."
+  ],
+  "expected": "Dal sesto tentativo l'app risponde \"Too many attempts\" (429) con Retry-After, anche con un codice giusto, finché non scade la finestra (stesso conteggio del secondo passo di accesso).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>editor.a con secondo fattore attivo, sessione aperta.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Sicurezza: chiedere nuovi codici di recupero con un codice errato per 6 volte di fila.</li><li>Provare a disattivare il secondo fattore con password giusta e codice errato.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Dal sesto tentativo l'app risponde \"Too many attempts\" (429) con Retry-After, anche con un codice giusto, finché non scade la finestra (stesso conteggio del secondo passo di accesso).</p>\n      "
+}

@@ -178,6 +178,19 @@ export async function mfaStatus(userId: number, organizationId: number): Promise
   };
 }
 
+/**
+ * When the user's second factor was turned on, or null. Part of the session stamp (passwordStamp):
+ * turning it on, off or resetting it ends the person's other sessions (audit C-38 ID-07).
+ */
+export async function mfaEnabledAt(userId: number): Promise<Date | null> {
+  const [row] = await privilegedDb
+    .select({ enabledAt: userMfa.enabledAt })
+    .from(userMfa)
+    .where(eq(userMfa.userId, userId))
+    .limit(1);
+  return row?.enabledAt ?? null;
+}
+
 export async function isMfaEnabled(userId: number): Promise<boolean> {
   const [row] = await privilegedDb
     .select({ enabledAt: userMfa.enabledAt })
