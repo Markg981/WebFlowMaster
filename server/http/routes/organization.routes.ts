@@ -233,15 +233,26 @@ router.get(
 
 /**
  * Data portability. Owner-only, and it is the whole organization: members, tests, plans,
- * executions, the audit trail. Credentials are excluded by exportOrganization — this is a
+ * executions, the audit trail. Credentials and key material (hashes, ciphertext, IVs, tags, tokens)
+ * are excluded by exportOrganization, and each export is audited — this is a
  * customer taking their data with them, not a credential dump, and the file will be emailed.
  */
 router.get(
   '/api/organization/export',
+  sharedSensitiveRateLimit(),
   requireRole('owner'),
-  async (_req: Request, res: Response) => {
+  sessionOnly('Owner action (get /api/organization/export)'),
+  async (req: Request, res: Response) => {
     const organizationId = getTenantOrgId()!;
     const payload = await exportOrganization(organizationId);
+    await withTenantTransaction((tx) =>
+      recordAudit(tx, {
+        action: AUDIT_ACTIONS.ORGANIZATION_EXPORTED,
+        actor: auditActor(req),
+        targetType: 'organization',
+        targetId: organizationId,
+      }),
+    );
 
     res.setHeader(
       'Content-Disposition',
@@ -598,6 +609,9 @@ router.post(
         .json({ error: 'Change your own password in Settings > Account, with your current one.' });
     }
 
+    // Read before the transaction, not inside it: it uses the privileged pool, not this connection.
+    const otherMembership = await hasOtherMembership(userId, organizationId);
+
     const issued = await withTenantTransaction(async (tx) => {
       // users has no RLS: the membership names the organization, whichever one they act in.
       const [member] = await tx
@@ -612,6 +626,11 @@ router.post(
           ),
         );
       if (!member) return null;
+
+      // An account that also belongs to another organization is not this owner's to reset: `users`
+      // is global, so the new password would open that organization too. Refused (409); the member
+      // can use "Forgot password". Other memberships are invisible under RLS, hence the helper.
+      if (otherMembership) return 'multi-org' as const;
 
       const reset = await issuePasswordReset(tx, {
         organizationId,
@@ -630,6 +649,13 @@ router.post(
     });
 
     if (!issued) return res.status(404).json({ error: 'Member not found' });
+    if (issued === 'multi-org') {
+      return res.status(409).json({
+        error:
+          'This account belongs to more than one organization, so its password cannot be reset ' +
+          'from here. The member can use "Forgot password" on the sign-in page.',
+      });
+    }
     const mail = await mailIfPossible(issued.username, async () =>
       passwordResetMail({
         base: publicBase(req),

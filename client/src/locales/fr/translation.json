@@ -3279,6 +3279,7 @@
       "organization_quotas_updated": "Quotas de l'organisation modifiés",
       "organization_billing_updated": "Facturation de l'organisation modifiée",
       "organization_switched": "Organisation changée",
+      "organization_exported": "Organisation exportée",
       "organization_artifacts_reconciled": "Inventaire des artefacts de l'organisation réconcilié",
       "load_test_created": "Test de charge créé",
       "load_test_updated": "Test de charge modifié",

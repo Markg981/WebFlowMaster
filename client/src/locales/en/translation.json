@@ -3279,6 +3279,7 @@
       "organization_quotas_updated": "Organization quotas changed",
       "organization_billing_updated": "Organization billing changed",
       "organization_switched": "Switched organization",
+      "organization_exported": "Organization exported",
       "organization_artifacts_reconciled": "Organization artifact inventory reconciled",
       "load_test_created": "Load test created",
       "load_test_updated": "Load test updated",
