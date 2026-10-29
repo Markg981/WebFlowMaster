@@ -171,6 +171,21 @@ describe('fileFailure', () => {
     expect(await privilegedDb.select().from(issueLinks)).toHaveLength(0);
   });
 
+  it('names the created issue when its link cannot be saved', async () => {
+    const jira = fakeJira();
+    // A plan that does not exist: the issue is created, then the link insert breaks a foreign key.
+    const outcome = await inTenant(() =>
+      fileFailure(
+        { organizationId, tracker, failure: { ...failure, planId: 'no-such-plan' } },
+        jira,
+      ),
+    );
+
+    expect(outcome.action).toBe('failed');
+    expect(outcome.error).toContain('SHOP-412');
+    expect(outcome.error).toContain('could not be linked');
+  });
+
   it('never throws, whatever the tracker does', async () => {
     // The caller is a run whose verdict is already written. An exception here would turn a
     // recorded result into a crashed job.
