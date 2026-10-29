@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRoute, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { fetchTestExecutionReport } from '@/lib/api/reports';
+import { safeHttpUrl } from '@/lib/safe-url';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -586,7 +587,7 @@ const TestReportPage: React.FC = () => {
                   <strong>{t('testReportPage.ci.label', 'Build')}:</strong>{' '}
                   {header.ci.buildUrl ? (
                     <a
-                      href={header.ci.buildUrl}
+                      href={safeHttpUrl(header.ci.buildUrl)}
                       target="_blank"
                       rel="noreferrer"
                       className="underline hover:text-primary"

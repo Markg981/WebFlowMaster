@@ -204,6 +204,38 @@ export function resultVariables(result: DatabaseResult): Record<string, string> 
   return vars;
 }
 
+/**
+ * The pg config from the validated fields of the address only. The driver's own URL parser would
+ * honour `sslcert`/`sslkey`/`sslrootcert` (files read from the server) and a query that overrides
+ * host, port or user after the egress check; none of the query is passed on except the ssl mode.
+ */
+export function postgresConfig(url: string): {
+  host?: string;
+  port?: number;
+  user?: string;
+  password?: string;
+  database?: string;
+  ssl?: boolean;
+} {
+  const parsed = new URL(url.trim());
+  const mode = (parsed.searchParams.get('sslmode') ?? '').toLowerCase();
+  const ssl =
+    mode === 'disable'
+      ? false
+      : ['require', 'prefer', 'verify-ca', 'verify-full'].includes(mode) ||
+          parsed.searchParams.get('ssl') === 'true'
+        ? true
+        : undefined;
+  return {
+    host: decodeURIComponent(parsed.hostname) || undefined,
+    port: parsed.port ? Number(parsed.port) : undefined,
+    user: parsed.username ? decodeURIComponent(parsed.username) : undefined,
+    password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
+    database: decodeURIComponent(parsed.pathname.replace(/^\//, '')) || undefined,
+    ...(ssl === undefined ? {} : { ssl }),
+  };
+}
+
 const runPostgres = async (
   url: string,
   sql: string,
@@ -213,7 +245,7 @@ const runPostgres = async (
   const { default: pg } = await import('pg');
   const ip = target?.ip;
   const client = new pg.Client({
-    connectionString: url,
+    ...postgresConfig(url),
     ...(ip
       ? {
           // The socket goes to the verified address whatever the driver resolved from the URL.

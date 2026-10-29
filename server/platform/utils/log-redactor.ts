@@ -26,6 +26,8 @@ const SENSITIVE_KEYS =
   /^(password|passwd|pwd|secret|token|authorization|cookie|apikey|api_key|api_?token|access_?token|refresh_?token|client_?secret|private_?key|encryptedvalue|iv|authtag|credit_?card|ssn|session_?id|x-api-key)$/i;
 
 const REDACTED = '[REDACTED]';
+/** `scheme://user:pass@host`: the userinfo of a URL, in a message or an error text. */
+const URL_CREDENTIALS_PATTERN = /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/?#@]+@/gi;
 const MAX_DEPTH = 6;
 
 /**
@@ -150,6 +152,7 @@ export function redactString(value: string): string {
   // "Authorization: Bearer abc.def" became "Authorization: [REDACTED] abc.def", consuming
   // the word that BEARER_TOKEN_PATTERN needed to match and leaving the real token in clear.
   return value
+    .replace(URL_CREDENTIALS_PATTERN, `$1${REDACTED}@`)
     .replace(BEARER_TOKEN_PATTERN, `Bearer ${REDACTED}`)
     .replace(KEY_VALUE_PATTERN, (_match, key: string, sep: string) => `${key}${sep}${REDACTED}`);
 }

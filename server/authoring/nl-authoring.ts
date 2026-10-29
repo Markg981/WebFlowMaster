@@ -108,7 +108,13 @@ export interface Candidate {
 /** Asks a model for the lines the patterns did not cover. Absent when no key is configured. */
 export type ProposeFn = (prompt: string) => Promise<string | null>;
 
-const ACTION_IDS = new Set<string>(ADHOC_ACTION_IDS);
+/**
+ * Actions that run code or SQL. The prompt carries labels from the page under test, so a hostile
+ * label could suggest a step with code; the author writes these by hand in the builder.
+ */
+const CODE_ACTION_IDS = new Set<string>(['executeScript', 'queryDatabase']);
+const AUTHORABLE_ACTION_IDS = ADHOC_ACTION_IDS.filter((id) => !CODE_ACTION_IDS.has(id));
+const ACTION_IDS = new Set<string>(AUTHORABLE_ACTION_IDS);
 
 /** Words that name a kind of control rather than the control, dropped when matching. */
 const NOUN_WORDS = new Set([
@@ -839,7 +845,7 @@ export function buildPrompt(
   lines: { line: number; text: string }[],
   catalogue: CatalogueEntry[],
 ): string {
-  const actions = ADHOC_ACTION_IDS.map((id) => {
+  const actions = AUTHORABLE_ACTION_IDS.map((id) => {
     const requirements = ACTION_REQUIREMENTS[id];
     const options = ACTION_VALUE_OPTIONS[id];
     const parts = [
