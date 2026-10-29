@@ -195,6 +195,7 @@ contraddica il verdetto dell'esecuzione (lotto P11):
   **Se un runner si perde durante un test** del piano è _Riesegui il test_ (`worker_loss_policy =
 replay`) e ha ancora tentativi — mai per il solo numero di tentativi o per la riesecuzione su
   fallimento.
+- **Run in coda il cui job è sparito.** Un run ancora `queued` dopo `QUEUED_RUN_LOST_AFTER_MS` (10 minuti), senza job nella coda e senza invio pendente, termina come `error` / `queue_job_lost`; non viene rieseguito. Lo stesso accade subito se il suo job fallisce prima che un worker lo prenda.
 - **Esecuzioni condivise.** Ogni pezzo di lavoro è tenuto sotto una lease (`WORK_CLAIM_LEASE_MS`,
   default `STALE_CLAIM_MS`, 2 minuti) rinnovata ogni `WORK_ITEM_HEARTBEAT_MS` (15 s). Un worker che
   non riesce a confermare la lease prima della lease meno `WORK_CLAIM_MARGIN_MS` (10 s) ferma da solo
