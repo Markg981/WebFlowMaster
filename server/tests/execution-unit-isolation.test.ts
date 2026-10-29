@@ -296,6 +296,16 @@ describe('a member who is not on the restricted project', () => {
     expect(access.linkable(`units/${openUnit}/attempt_1/final.png`)).toBe(true);
   });
 
+  it('has the detail of a hidden test’s result withheld from the report (C-24)', async () => {
+    const access = await outsider(() =>
+      withTenantTransaction((tx) =>
+        runArtifactAccess(tx, { organizationId: orgA, executionId, principal: null }),
+      ),
+    );
+    expect(access.hiddenResult({ uiTestId: closedTestId })).toBe(true);
+    expect(access.hiddenResult({ uiTestId: null, mobileTestId: null })).toBe(false);
+  });
+
   it('cannot read, list or approve its healing proposals', async () => {
     await expect(outsider(() => listHealingProposals({ executionId }))).resolves.toEqual([]);
     await expect(outsider(() => getHealingProposal(proposalId))).resolves.toBeNull();
