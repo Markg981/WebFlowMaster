@@ -1,0 +1,13 @@
+{
+  "id": "API-52",
+  "area": "API",
+  "title": "Scope dedicati ai test API e mobile",
+  "priority": "P1",
+  "actor": "owner.a / editor.a",
+  "preconditions": "Ambiente sacrificabile aggiornato; possibilità di creare chiavi API. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "In Impostazioni → Chiavi API verificare che compaiano api-tests:read/write e mobile-tests:read/write con la descrizione nella lingua dell'interfaccia.",
+    "Con una chiave che ha solo tests:read/write chiamare GET /api/v1/api-tests e GET /api/v1/mobile-tests; ripetere con una chiave che ha i quattro nuovi scope e con una chiave viewer che ha gli scope di scrittura (POST)."
+  ],
+  "expected": "Gli scope dei test UI non aprono test API e mobile (403 insufficient_scope); con gli scope dedicati le liste rispondono 200 paginate; il viewer riceve 403 insufficient_role. openapi.json elenca le nuove operazioni con x-required-scope."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "SEC-57",
+  "area": "SEC",
+  "title": "Evidenze di un altro tenant e di un progetto riservato non accessibili",
+  "priority": "P1",
+  "actor": "owner",
+  "preconditions": "Catalogo versione 67. Il run di SEC-55 in un piano che include anche un test di un progetto riservato, con trace e screenshot di entrambi. Un editor dell'organizzazione non membro del progetto; un editor di un'altra organizzazione.",
+  "steps": [
+    "Come editor dell'altra organizzazione aprire il link della trace di SEC-55 e GET /api/v1/runs/<runId>/evidence con una sua chiave.",
+    "Come editor non membro del progetto aprire il report del run e i link a screenshot e trace del test riservato (copiati dall'owner).",
+    "Come lo stesso editor esportare il run in HTML.",
+    "Come owner ripetere i passi 2 e 3."
+  ],
+  "expected": "Passo 1: 404 su entrambi, nessun dato del run. Passo 2: i file del test riservato rispondono 404 come un file mai scritto (non 403) e il report non ha link verso di essi; i file degli altri test restano raggiungibili. Passo 3: l'HTML non incorpora lo screenshot del test riservato. Passo 4: l'owner raggiunge e incorpora tutto."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "SEC-51",
+  "area": "SEC",
+  "title": "Pagine file:// rifiutate al salvataggio e in esecuzione",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 66. Installazione self-hosted senza WFM_EGRESS_PROXY, runner locale (non agente né griglia). EGRESS_PRIVATE_TARGETS=deny, EGRESS_ALLOW_HOSTS=localhost. Sul runner un piccolo server di prova su 127.0.0.1:<porta> che registra le richieste e accetta WebSocket; un file C:\\temp\\marker.html (o /tmp/marker.html) con il testo FILE-MARKER.",
+  "steps": [
+    "Creare un test con URL iniziale file:///C:/temp/marker.html e salvarlo.",
+    "Creare un test con URL iniziale http://localhost:<porta>/ e uno step navigate con valore file:///C:/temp/marker.html; salvarlo.",
+    "Salvare invece lo step navigate con valore {{pagina}} e una variabile pagina = file:///C:/temp/marker.html; eseguire il test.",
+    "Ripetere il passo 3 con EGRESS_PRIVATE_TARGETS=allow, e con valore view-source:file:///C:/temp/marker.html."
+  ],
+  "expected": "Il salvataggio ai passi 1 e 2 è rifiutato: l'URL deve essere un indirizzo http(s). Al passo 3 lo step fallisce con «Blocked by the egress policy: file:// pages are not web addresses…» e nessuno screenshot mostra FILE-MARKER. Al passo 4 il rifiuto è identico: file:// è vietato in ogni profilo."
+}

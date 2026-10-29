@@ -1,0 +1,13 @@
+{
+  "id": "OPS-04",
+  "area": "OPS",
+  "title": "Worker interrotto durante un run",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Entro il tempo del battito, il run termina in errore con motivo worker_lost; nessun run resta «in corso» per sempre. Riavviato il worker, i nuovi run partono.",
+  "steps": [
+    "Durante un run, docker kill del worker che lo esegue."
+  ],
+  "expected": "Entro il tempo del battito, il run termina in errore con motivo worker_lost; nessun run resta «in corso» per sempre. Riavviato il worker, i nuovi run partono.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Durante un run, <code>docker kill</code> del worker che lo esegue.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Entro il tempo del battito, il run termina in errore con motivo <code>worker_lost</code>; nessun run resta «in corso» per sempre. Riavviato il worker, i nuovi run partono.</p>\n      "
+}

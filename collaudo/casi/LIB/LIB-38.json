@@ -1,0 +1,13 @@
+{
+  "id": "LIB-38",
+  "area": "LIB",
+  "title": "Dettaglio manuale BDD e dataset su richiesta",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Test manuale e BDD con passi noti; set con colonne/righe note; editor autorizzato. Nuovo ciclo protocollo 30: Da eseguire.",
+  "steps": [
+    "Aprire gli elenchi con Network e verificare l’assenza delle definizioni complete nei riepiloghi.",
+    "Aprire Modifica su manuale, BDD e set dati; cambiare un valore e salvare, poi riaprire."
+  ],
+  "expected": "Il dettaglio della risorsa scelta viene richiesto all’apertura; passi e tabella sono completi. Salvataggio conserva i campi non modificati e aggiorna il riepilogo; nessun set vuoto ricostruito dai soli conteggi."
+}

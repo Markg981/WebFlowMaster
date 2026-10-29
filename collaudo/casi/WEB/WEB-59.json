@@ -1,0 +1,16 @@
+{
+  "id": "WEB-59",
+  "area": "WEB",
+  "title": "Misurare la velocità di una pagina",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "1: lo step passa con «Within the limits: LCP … (limit <= 2.50 s); CLS 0.000 (limit <= 0.100)» e «Not measured …: INP» (nessuna interazione). 2: il pannello mostra LCP, FCP, CLS, TTFB, DCL, LOAD, richieste e peso; la scheda ha una riga per il test con la pagina e «entro i limiti». 3: lo step fallisce con «Over the limit: TTFB … (limit < 1 ms)» e la scheda mostra il limite in rosso. 4: messaggi «is not a limit», «Unknown metric», «Use ms or s for a time».",
+  "steps": [
+    "Test su https://the-internet.herokuapp.com/login: Naviga; Attendi elemento #username; Misura la velocità della pagina con valore vuoto. Eseguire in un piano su Chromium.",
+    "Nel report aprire i dettagli dello step e la scheda Velocità delle pagine.",
+    "Cambiare il valore in TTFB < 1ms; rieseguire.",
+    "Valore LCP veloce; poi SPEED < 3; poi LCP < 3MB."
+  ],
+  "expected": "1: lo step passa con «Within the limits: LCP … (limit <= 2.50 s); CLS 0.000 (limit <= 0.100)» e «Not measured …: INP» (nessuna interazione). 2: il pannello mostra LCP, FCP, CLS, TTFB, DCL, LOAD, richieste e peso; la scheda ha una riga per il test con la pagina e «entro i limiti». 3: lo step fallisce con «Over the limit: TTFB … (limit < 1 ms)» e la scheda mostra il limite in rosso. 4: messaggi «is not a limit», «Unknown metric», «Use ms or s for a time».",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Test su <code>https://the-internet.herokuapp.com/login</code>: Naviga; Attendi elemento <code>#username</code>; <b>Misura la velocità della pagina</b> con valore vuoto. Eseguire in un piano su Chromium.</li><li>Nel report aprire i dettagli dello step e la scheda <b>Velocità delle pagine</b>.</li><li>Cambiare il valore in <code>TTFB &lt; 1ms</code>; rieseguire.</li><li>Valore <code>LCP veloce</code>; poi <code>SPEED &lt; 3</code>; poi <code>LCP &lt; 3MB</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: lo step passa con «Within the limits: LCP … (limit &lt;= 2.50 s); CLS 0.000 (limit &lt;= 0.100)» e «Not measured …: INP» (nessuna interazione). 2: il pannello mostra LCP, FCP, CLS, TTFB, DCL, LOAD, richieste e peso; la scheda ha una riga per il test con la pagina e «entro i limiti». 3: lo step fallisce con «Over the limit: TTFB … (limit &lt; 1 ms)» e la scheda mostra il limite in rosso. 4: messaggi «is not a limit», «Unknown metric», «Use ms or s for a time».</p>\n      "
+}

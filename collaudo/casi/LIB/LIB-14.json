@@ -1,0 +1,15 @@
+{
+  "id": "LIB-14",
+  "area": "LIB",
+  "title": "Modificare un test manuale",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "LIB-13.",
+  "steps": [
+    "Dalla riga del test: matita Modifica gli step.",
+    "Spostare lo step 2 sopra lo step 1, aggiungere uno step, rimuoverne uno; salvare.",
+    "Aprire la Cronologia."
+  ],
+  "expected": "Il dialogo si apre con nome e step salvati; dopo il salvataggio l'ordine è quello nuovo. La cronologia mostra una nuova versione; il test si pubblica e si revisiona come un test automatico.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>LIB-13.</p>\n        <h4>Passi</h4>\n        <ol><li>Dalla riga del test: matita <b>Modifica gli step</b>.</li><li>Spostare lo step 2 sopra lo step 1, aggiungere uno step, rimuoverne uno; salvare.</li><li>Aprire la <b>Cronologia</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il dialogo si apre con nome e step salvati; dopo il salvataggio l'ordine è quello nuovo. La cronologia mostra una nuova versione; il test si pubblica e si revisiona come un test automatico.</p>\n      "
+}

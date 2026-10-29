@@ -1,0 +1,17 @@
+{
+  "id": "WEB-48",
+  "area": "WEB",
+  "title": "Accesso in due passaggi con {{$totp}}",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Stack del collaudo con Keycloak; utente Keycloak mfa con l'azione richiesta «Configure OTP»; un'app di autenticazione sul telefono. Per un ciclo automatico: utente mfa-pronto, OTP già configurato con la chiave indicata nel README (passi 1 e 2 già fatti).",
+  "steps": [
+    "Accedere a Keycloak come mfa: alla pagina del QR code cliccare Unable to scan? e copiare la chiave; completare la registrazione con l'app del telefono.",
+    "Nell'ambiente Staging aggiungere il segreto secret_mfa = la chiave copiata.",
+    "Test web: Naviga sul login Keycloak; Digita utente e password; Digita {{$totp(secret_mfa)}} nel campo del codice; Clicca Sign In; Verifica testo della pagina protetta. Eseguirlo su Staging.",
+    "Nello stesso momento confrontare il codice sul telefono con quello digitato (screenshot del passo).",
+    "Cambiare il valore in otpauth://totp/Keycloak:mfa?secret=<chiave>&period=30 ed eseguire di nuovo."
+  ],
+  "expected": "3: il login riesce e la pagina protetta si apre: Keycloak accetta il codice digitato, quindi è quello valido in quell'intervallo di 30 secondi, lo stesso che mostra il telefono (4). Il passo non mostra il codice: i valori digitati non vengono conservati nel report. La chiave non compare in nessun passo, log o report. 5: stesso risultato con l'indirizzo otpauth.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Stack del collaudo con Keycloak; utente Keycloak <code>mfa</code> con l'azione richiesta «Configure OTP»; un'app di autenticazione sul telefono. Per un ciclo automatico: utente <code>mfa-pronto</code>, OTP già configurato con la chiave indicata nel README (passi 1 e 2 già fatti).</p>\n        <h4>Passi</h4>\n        <ol><li>Accedere a Keycloak come mfa: alla pagina del QR code cliccare <b>Unable to scan?</b> e copiare la chiave; completare la registrazione con l'app del telefono.</li><li>Nell'ambiente Staging aggiungere il segreto <code>secret_mfa</code> = la chiave copiata.</li><li>Test web: Naviga sul login Keycloak; Digita utente e password; Digita <code>{{$totp(secret_mfa)}}</code> nel campo del codice; Clicca Sign In; Verifica testo della pagina protetta. Eseguirlo su Staging.</li><li>Nello stesso momento confrontare il codice sul telefono con quello digitato (screenshot del passo).</li><li>Cambiare il valore in <code>otpauth://totp/Keycloak:mfa?secret=&lt;chiave&gt;&amp;period=30</code> ed eseguire di nuovo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">3: il login riesce e la pagina protetta si apre: Keycloak accetta il codice digitato, quindi è quello valido in quell'intervallo di 30 secondi, lo stesso che mostra il telefono (4). Il passo non mostra il codice: i valori digitati non vengono conservati nel report. La chiave non compare in nessun passo, log o report. 5: stesso risultato con l'indirizzo otpauth.</p>\n      "
+}

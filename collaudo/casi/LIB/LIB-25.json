@@ -1,0 +1,12 @@
+{
+  "id": "LIB-25",
+  "area": "LIB",
+  "title": "Commento su test",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Come utente autorizzato aggiungere un commento a un test accessibile; riaprire il test."
+  ],
+  "expected": "Commento persistente con autore e data."
+}

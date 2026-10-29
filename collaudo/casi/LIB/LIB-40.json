@@ -1,0 +1,13 @@
+{
+  "id": "LIB-40",
+  "area": "LIB",
+  "title": "Isolamento e validazione dei cataloghi",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Organizzazioni A/B, progetto riservato di A senza editor.a; sessione viewer/editor e ID di risorse non accessibili. Nuovo ciclo protocollo 30: Da eseguire.",
+  "steps": [
+    "Leggere i quattro cataloghi come editor.a, includendo progetto riservato e filtri di ricerca delle risorse B.",
+    "Ripetere senza sessione; provare page=0, pageSize=101 e tagIds con oltre 50 elementi."
+  ],
+  "expected": "Nessun nome, contenuto o conteggio di B/progetti non accessibili è esposto; richiesta anonima rifiutata. Parametri non validi producono 400. Un viewer può leggere soltanto risorse accessibili."
+}

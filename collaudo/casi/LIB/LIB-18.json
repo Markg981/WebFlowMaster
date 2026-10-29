@@ -1,0 +1,12 @@
+{
+  "id": "LIB-18",
+  "area": "LIB",
+  "title": "Importazione Gherkin",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "In Test come file importare una Feature inglese con Scenario e passi Given/When/Then; controllare l'anteprima e confermare."
+  ],
+  "expected": "Test web con passi manuali e risultati attesi coerenti; nessuna azione browser inventata."
+}

@@ -1,0 +1,13 @@
+{
+  "id": "OPS-08",
+  "area": "OPS",
+  "title": "Configurazione non valida",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "Il processo non parte e il messaggio nomina la variabile sbagliata.",
+  "steps": [
+    "Avviare con CONTENT_SECURITY_POLICY=strict; poi con REGISTRATION=foo; poi senza SESSION_SECRET."
+  ],
+  "expected": "Il processo non parte e il messaggio nomina la variabile sbagliata.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Avviare con <code>CONTENT_SECURITY_POLICY=strict</code>; poi con <code>REGISTRATION=foo</code>; poi senza <code>SESSION_SECRET</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il processo non parte e il messaggio nomina la variabile sbagliata.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "SCH-08",
+  "area": "SCH",
+  "title": "Dashboard: run scaduti e annullati",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Schedule attivo su un piano; ambiente di collaudo esistente.",
+  "steps": [
+    "Avere run completed, timed_out e cancelled nel periodo.",
+    "Aprire la dashboard, widget andamento."
+  ],
+  "expected": "timed_out conta tra i falliti e abbassa il tasso di successo; cancelled non compare nel totale né nel tasso; il chip di timed_out è rosso.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Schedule attivo su un piano; ambiente di collaudo esistente.</p>\n        <h4>Passi</h4>\n        <ol><li>Avere run completed, timed_out e cancelled nel periodo.</li><li>Aprire la dashboard, widget andamento.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">timed_out conta tra i falliti e abbassa il tasso di successo; cancelled non compare nel totale né nel tasso; il chip di timed_out è rosso.</p>\n      "
+}

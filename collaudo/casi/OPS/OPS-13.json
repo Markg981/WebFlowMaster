@@ -1,0 +1,16 @@
+{
+  "id": "OPS-13",
+  "area": "OPS",
+  "title": "Ripristino su un server nuovo",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "OPS-11. Un secondo stack vuoto con la stessa ENCRYPTION_KEY: un altro progetto Compose (per esempio -p wfm-drill, con le porte tolte) avviato con docker compose up -d.",
+  "steps": [
+    "npm run backup:restore -- <cartella> -p wfm-drill … senza --yes.",
+    "Ripetere con --yes.",
+    "Nello stack nuovo: accedere come owner.a con la sua password; aprire un report con screenshot; eseguire un test che usa un segreto dell'ambiente Staging.",
+    "Contare i file in /app/results nel container api del nuovo stack e confrontarli con l'archivio."
+  ],
+  "expected": "1: dice cosa verrebbe sostituito e che tutto ciò che è stato scritto dopo il backup va perso; uscita 2, nulla cambia. 2: ferma api e worker, sostituisce database e artefatti, applica le migrazioni, riavvia; «Restored.» e uscita 0. 3: l'accesso riesce, i report mostrano gli screenshot, il test con il segreto passa (i segreti si decifrano). 4: stesso numero di file dell'archivio. Lo stack di partenza non è stato toccato.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>OPS-11. Un secondo stack vuoto con la stessa <code>ENCRYPTION_KEY</code>: un altro progetto Compose (per esempio <code>-p wfm-drill</code>, con le porte tolte) avviato con <code>docker compose up -d</code>.</p>\n        <h4>Passi</h4>\n        <ol><li><code>npm run backup:restore -- &lt;cartella&gt; -p wfm-drill …</code> senza <code>--yes</code>.</li><li>Ripetere con <code>--yes</code>.</li><li>Nello stack nuovo: accedere come owner.a con la sua password; aprire un report con screenshot; eseguire un test che usa un segreto dell'ambiente Staging.</li><li>Contare i file in <code>/app/results</code> nel container api del nuovo stack e confrontarli con l'archivio.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: dice cosa verrebbe sostituito e che tutto ciò che è stato scritto dopo il backup va perso; uscita 2, nulla cambia. 2: ferma api e worker, sostituisce database e artefatti, applica le migrazioni, riavvia; «Restored.» e uscita 0. 3: l'accesso riesce, i report mostrano gli screenshot, il test con il segreto passa (i segreti si decifrano). 4: stesso numero di file dell'archivio. Lo stack di partenza non è stato toccato.</p>\n      "
+}

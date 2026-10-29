@@ -1,0 +1,12 @@
+{
+  "id": "BDD-01",
+  "area": "BDD",
+  "title": "Gherkin multilingua e argomenti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Importare Feature e Rule in italiano, francese e tedesco con Background, doc string, tabelle con escape ed Examples con tag."
+  ],
+  "expected": "Ogni riga genera un test con passi, tag, argomenti e selettori originali; errori sintattici indicano la riga."
+}

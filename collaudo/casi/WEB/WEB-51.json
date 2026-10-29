@@ -1,0 +1,18 @@
+{
+  "id": "WEB-51",
+  "area": "WEB",
+  "title": "Query al database: errori, secondo database, timeout",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "WEB-50.",
+  "steps": [
+    "Togliere db.url dall'ambiente; eseguire.",
+    "Rimetterlo con password sbagliata postgres://postgres:sbagliata@postgres:5432/shop.",
+    "Rimetterlo giusto; query SELECT nope FROM orders.",
+    "Aggiungere db.reporting.url = lo stesso indirizzo; query @reporting SELECT count(*) AS n FROM orders.",
+    "db.timeout = 2; query SELECT pg_sleep(5).",
+    "db.url = oracle://h/x."
+  ],
+  "expected": "1: «No database is configured: add db.url to the environment, for example postgres://…». 2: fallisce con il messaggio di Postgres (autenticazione); la parola «sbagliata» non compare da nessuna parte. 3: «The database answered: column \"nope\" does not exist». 4: passa, {{db.n}} = 1. 5: fallisce dopo circa 2 secondi per timeout. 6: «db.url is not a postgres://, mysql:// or sqlserver:// address.»",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-50.</p>\n        <h4>Passi</h4>\n        <ol><li>Togliere <code>db.url</code> dall'ambiente; eseguire.</li><li>Rimetterlo con password sbagliata <code>postgres://postgres:sbagliata@postgres:5432/shop</code>.</li><li>Rimetterlo giusto; query <code>SELECT nope FROM orders</code>.</li><li>Aggiungere <code>db.reporting.url</code> = lo stesso indirizzo; query <code>@reporting SELECT count(*) AS n FROM orders</code>.</li><li><code>db.timeout</code> = <code>2</code>; query <code>SELECT pg_sleep(5)</code>.</li><li><code>db.url</code> = <code>oracle://h/x</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: «No database is configured: add db.url to the environment, for example postgres://…». 2: fallisce con il messaggio di Postgres (autenticazione); la parola «sbagliata» non compare da nessuna parte. 3: «The database answered: column \"nope\" does not exist». 4: passa, {{db.n}} = 1. 5: fallisce dopo circa 2 secondi per timeout. 6: «db.url is not a postgres://, mysql:// or sqlserver:// address.»</p>\n      "
+}

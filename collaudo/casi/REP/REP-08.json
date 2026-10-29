@@ -1,0 +1,16 @@
+{
+  "id": "REP-08",
+  "area": "REP",
+  "title": "Test instabili e quarantena",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un test con esiti alterni negli ultimi run.",
+  "steps": [
+    "Report → Test che si contraddicono: individuarlo.",
+    "Quarantena con un motivo.",
+    "Eseguire un run in cui fallisce; eseguire la CLI con --wait sullo stesso piano.",
+    "Test in quarantena → Rilascia con una nota; eseguire di nuovo facendolo fallire."
+  ],
+  "expected": "Il test compare fra gli instabili. In quarantena il suo fallimento è mostrato ma non fa fallire il run, nel JUnit è «skipped» e la CLI esce con 0. Rilasciato, il fallimento torna a far fallire il run. Audit test.quarantined e test.quarantine_released.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test con esiti alterni negli ultimi run.</p>\n        <h4>Passi</h4>\n        <ol><li>Report → <b>Test che si contraddicono</b>: individuarlo.</li><li><b>Quarantena</b> con un motivo.</li><li>Eseguire un run in cui fallisce; eseguire la CLI con <code>--wait</code> sullo stesso piano.</li><li><b>Test in quarantena</b> → <b>Rilascia</b> con una nota; eseguire di nuovo facendolo fallire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il test compare fra gli instabili. In quarantena il suo fallimento è mostrato ma non fa fallire il run, nel JUnit è «skipped» e la CLI esce con 0. Rilasciato, il fallimento torna a far fallire il run. Audit <b>test.quarantined</b> e <b>test.quarantine_released</b>.</p>\n      "
+}

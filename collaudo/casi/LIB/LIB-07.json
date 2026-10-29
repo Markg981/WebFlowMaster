@@ -1,0 +1,15 @@
+{
+  "id": "LIB-07",
+  "area": "LIB",
+  "title": "Suite dinamica per tag",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Due test con tag smoke.",
+  "steps": [
+    "Nuova suite dinamica con tag smoke; controllare «Runs right now».",
+    "Aggiungere il tag smoke a un terzo test.",
+    "Eseguire un piano che include la suite."
+  ],
+  "expected": "L'anteprima mostra i due test; il run successivo ne esegue tre senza aver toccato la suite.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Due test con tag <code>smoke</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Nuova suite dinamica con tag <code>smoke</code>; controllare «Runs right now».</li><li>Aggiungere il tag <code>smoke</code> a un terzo test.</li><li>Eseguire un piano che include la suite.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'anteprima mostra i due test; il run successivo ne esegue tre senza aver toccato la suite.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "ADM-23",
+  "area": "ADM",
+  "title": "Callback nativo SendGrid",
+  "priority": "P1",
+  "actor": "owner.a, owner.b, editor.a, viewer.a",
+  "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+  "steps": [
+    "Configurare SMTP SendGrid di prova, provider SendGrid e chiave pubblica di verifica.",
+    "Configurare Event Webhook firmato HTTPS per delivered, deferred e bounce; inviare un invito al destinatario di prova.",
+    "Confrontare unique argument wfm_delivery_id con la cronologia; inviare firma invalida e un evento valido con ID appartenente a B."
+  ],
+  "expected": "La firma nativa autentica gli eventi e la consegna aggiorna solo A. Firma invalida rifiutata; ID/recipient estranei non alterano B. Annotare separatamente fixture firmata o account provider realmente utilizzato."
+}

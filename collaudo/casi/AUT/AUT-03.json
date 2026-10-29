@@ -1,0 +1,13 @@
+{
+  "id": "AUT-03",
+  "area": "AUT",
+  "title": "Dominio SSO sconosciuto",
+  "priority": "P1",
+  "actor": "utente non autenticato",
+  "preconditions": "Un dominio di prova privo di configurazione SSO. Procedura: collaudo/critical-ui-e2e.md.",
+  "steps": [
+    "Dalla pagina di accesso richiedere SSO per il dominio sconosciuto.",
+    "Aprire direttamente la pagina delle revisioni."
+  ],
+  "expected": "Errore visibile per il dominio; pagina protetta reindirizzata al login, nessuna sessione creata."
+}

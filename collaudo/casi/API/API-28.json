@@ -1,0 +1,12 @@
+{
+  "id": "API-28",
+  "area": "API",
+  "title": "Risposta WebSocket assente",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Usare un servizio che non invia messaggi entro la finestra di ascolto e richiedere con un'asserzione count maggiore di zero."
+  ],
+  "expected": "L'ascolto termina entro il limite e l'asserzione fallisce per assenza di messaggi."
+}

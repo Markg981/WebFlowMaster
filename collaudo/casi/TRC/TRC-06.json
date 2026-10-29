@@ -1,0 +1,14 @@
+{
+  "id": "TRC-06",
+  "area": "TRC",
+  "title": "Matrice di tracciabilità (CSV)",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "TRC-01…TRC-03; un requisito con titolo =SOMMA(1;2) e un altro con accenti «Verifica disponibilità».",
+  "steps": [
+    "Esporta matrice (CSV); aprire il file in Excel.",
+    "Con Risultati da = Release, esportare di nuovo."
+  ],
+  "expected": "Una riga per requisito e test, con tipo (web/api), ultimo esito, data, piano e id del run; una riga anche per ogni requisito senza test (colonne dei test vuote). Gli accenti si leggono correttamente; =SOMMA(1;2) appare come testo, non come formula. Il secondo file usa i risultati di Release.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TRC-01…TRC-03; un requisito con titolo <code>=SOMMA(1;2)</code> e un altro con accenti «Verifica disponibilità».</p>\n        <h4>Passi</h4>\n        <ol><li><b>Esporta matrice (CSV)</b>; aprire il file in Excel.</li><li>Con <b>Risultati da</b> = Release, esportare di nuovo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Una riga per requisito e test, con tipo (web/api), ultimo esito, data, piano e id del run; una riga anche per ogni requisito senza test (colonne dei test vuote). Gli accenti si leggono correttamente; <code>=SOMMA(1;2)</code> appare come testo, non come formula. Il secondo file usa i risultati di Release.</p>\n      "
+}

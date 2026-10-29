@@ -1,0 +1,14 @@
+{
+  "id": "MOB-39",
+  "area": "MOB",
+  "title": "Catalogo mobile portabile e anteprima",
+  "priority": "P1",
+  "actor": "editor.a, owner.a",
+  "preconditions": "Migrazione 0082 applicata. Organizzazioni A e B; test mobile di A con gruppo e matrice; progetto modificabile in B.",
+  "steps": [
+    "Esportare YAML e JSON da A.",
+    "In B eseguire anteprima e verificare assenza di scritture.",
+    "Importare, configurare grid/app e ripetere l’import."
+  ],
+  "expected": "Riferimenti gruppi rimappati; matrice conservata; anteprima senza versioni/audit/scritture. Nuovo test senza grid. Secondo import unchanged, nessuna nuova versione."
+}

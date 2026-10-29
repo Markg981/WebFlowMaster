@@ -1,0 +1,14 @@
+{
+  "id": "UX-14",
+  "area": "UX",
+  "title": "Dopo il login si torna alla pagina richiesta",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 93. Un owner con sessione chiusa.",
+  "steps": [
+    "Da disconnesso aprire direttamente l'indirizzo di una pagina interna, ad esempio /reports?tab=runs.",
+    "Accedere con le credenziali.",
+    "Disconnettersi e aprire /auth?returnTo=//evil.example, poi accedere."
+  ],
+  "expected": "1: si arriva alla pagina di accesso con returnTo nell'indirizzo. 2: dopo l'accesso si apre /reports?tab=runs, non la dashboard. 3: dopo l'accesso si apre la dashboard; un returnTo esterno o protocol-relative è ignorato."
+}

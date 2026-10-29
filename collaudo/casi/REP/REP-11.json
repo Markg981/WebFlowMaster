@@ -1,0 +1,15 @@
+{
+  "id": "REP-11",
+  "area": "REP",
+  "title": "Registrare un esito manuale",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "PLN-23 terminato.",
+  "steps": [
+    "Report → scheda Test manuali: aprire la riga.",
+    "Segnare gli step OK/OK, nota Ambiente staging; Superato.",
+    "Aprire di nuovo la riga: step KO sul secondo con nota Email mai arrivata; Fallito senza nota generale."
+  ],
+  "expected": "La scheda indica 1 in attesa, poi 0. Con Superato i totali del run contano il test tra i superati e il run resta completato; la riga dice «Registrato da editor.a il …». Con Fallito il run diventa fallito, il test conta tra i falliti e il motivo è Email mai arrivata. Audit run.manual_result_recorded per ogni registrazione.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-23 terminato.</p>\n        <h4>Passi</h4>\n        <ol><li>Report → scheda <b>Test manuali</b>: aprire la riga.</li><li>Segnare gli step OK/OK, nota <code>Ambiente staging</code>; <b>Superato</b>.</li><li>Aprire di nuovo la riga: step KO sul secondo con nota <code>Email mai arrivata</code>; <b>Fallito</b> senza nota generale.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La scheda indica 1 in attesa, poi 0. Con Superato i totali del run contano il test tra i superati e il run resta completato; la riga dice «Registrato da editor.a il …». Con Fallito il run diventa fallito, il test conta tra i falliti e il motivo è <code>Email mai arrivata</code>. Audit <b>run.manual_result_recorded</b> per ogni registrazione.</p>\n      "
+}

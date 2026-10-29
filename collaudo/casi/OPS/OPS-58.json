@@ -1,0 +1,13 @@
+{
+  "id": "OPS-58",
+  "area": "OPS",
+  "title": "Pianificazione mensile al 29, 30 o 31: gira anche nei mesi corti",
+  "priority": "P1",
+  "actor": "Operatore",
+  "preconditions": "Una pianificazione mensile con prima esecuzione il 31 del mese, fuso Europe/Rome.",
+  "steps": [
+    "Creare la pianificazione mensile con primo run il 31 gennaio.",
+    "Leggere la prossima esecuzione dopo il run di gennaio."
+  ],
+  "expected": "1: creata. 2: la prossima esecuzione è il 28 febbraio (ultimo giorno del mese), non il 31 marzo."
+}

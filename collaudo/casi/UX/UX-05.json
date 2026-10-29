@@ -1,0 +1,13 @@
+{
+  "id": "UX-05",
+  "area": "UX",
+  "title": "Stati vuoti",
+  "priority": "P2",
+  "actor": "owner.b",
+  "preconditions": "Organizzazione B senza dati.",
+  "steps": [
+    "Aprire Dashboard, Libreria, Suite, Piani, Report, Schedulazione."
+  ],
+  "expected": "Ogni pagina spiega cosa manca e offre l'azione per iniziare.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Organizzazione B senza dati.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire Dashboard, Libreria, Suite, Piani, Report, Schedulazione.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ogni pagina spiega cosa manca e offre l'azione per iniziare.</p>\n      "
+}

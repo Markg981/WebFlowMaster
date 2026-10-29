@@ -1,0 +1,16 @@
+{
+  "id": "LIB-16",
+  "area": "LIB",
+  "title": "Test come file: errori e permessi",
+  "priority": "P2",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "LIB-15.",
+  "steps": [
+    "Nel file cambiare la sequence di un test in un testo (sequence: \"x\"); importare.",
+    "Importare un file con kind: altro; poi uno con version: 9.",
+    "Un test che usa un gruppo di step: esportare il progetto.",
+    "Come viewer.a aprire File."
+  ],
+  "expected": "1: quel test è «non importato» con il motivo, gli altri sono importati. 2: rifiutato con «Not a WebFlowMaster test file…», poi con il messaggio che il file viene da una versione più recente. 3: il download riesce; l'export segnala (header X-WFM-Tests-With-References) i test che rimandano a gruppi, azioni personalizzate o elementi per id e funzionano solo nella stessa organizzazione. 4: il viewer può esportare ma non vede la sezione Importa.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>LIB-15.</p>\n        <h4>Passi</h4>\n        <ol><li>Nel file cambiare la <code>sequence</code> di un test in un testo (<code>sequence: \"x\"</code>); importare.</li><li>Importare un file con <code>kind: altro</code>; poi uno con <code>version: 9</code>.</li><li>Un test che usa un gruppo di step: esportare il progetto.</li><li>Come viewer.a aprire <b>File</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: quel test è «non importato» con il motivo, gli altri sono importati. 2: rifiutato con «Not a WebFlowMaster test file…», poi con il messaggio che il file viene da una versione più recente. 3: il download riesce; l'export segnala (header <code>X-WFM-Tests-With-References</code>) i test che rimandano a gruppi, azioni personalizzate o elementi per id e funzionano solo nella stessa organizzazione. 4: il viewer può esportare ma non vede la sezione Importa.</p>\n      "
+}

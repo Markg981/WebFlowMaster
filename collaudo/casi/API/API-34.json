@@ -1,0 +1,13 @@
+{
+  "id": "API-34",
+  "area": "API",
+  "title": "Prova API usa la copia di lavoro",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Versione 1 pubblicata; versione 2 salvata con URL/asserzione distinguibile.",
+  "steps": [
+    "Dal tester eseguire il test salvato con il comando di prova.",
+    "Controllare richiesta e asserzione, poi il pannello di pubblicazione."
+  ],
+  "expected": "La prova usa la configurazione 2; la pubblicazione resta alla 1."
+}

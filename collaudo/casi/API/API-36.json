@@ -1,0 +1,12 @@
+{
+  "id": "API-36",
+  "area": "API",
+  "title": "Piano API mai pubblicato senza obbligo di review",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Mai pubblicato, revisione 2 salvata; review non obbligatoria; piano dedicato.",
+  "steps": [
+    "Avviare il piano e aprire il risultato."
+  ],
+  "expected": "Il piano esegue l’ultima copia salvata e il risultato identifica revisione 2."
+}

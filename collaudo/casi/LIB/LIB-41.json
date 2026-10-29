@@ -1,0 +1,13 @@
+{
+  "id": "LIB-41",
+  "area": "LIB",
+  "title": "Pagina valida dopo eliminazione e lista aggiornata",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "26 risorse sacrificabili in ciascun catalogo; ultima pagina con una sola risorsa; editor autorizzato. Nuovo ciclo protocollo 30: Da eseguire.",
+  "steps": [
+    "Aprire la seconda pagina ed eliminare l’unica risorsa, ripetendo nei quattro cataloghi.",
+    "Creare e modificare una risorsa; controllare conteggio, riepilogo e navigazione."
+  ],
+  "expected": "Dopo eliminazione il gestore torna a una pagina valida e mostra 25 risorse con totale aggiornato. Creazione/modifica aggiornano elenco e conteggi senza definizioni obsolete."
+}

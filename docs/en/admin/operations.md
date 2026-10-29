@@ -9,7 +9,7 @@ For local acceptance, use the `wfm-collaudo` project and its overlay, preserving
 The worker imports Chromium's private CA as `pwuser`; the overlay enables
 `INSTALL_COLLAUDO_CA_TOOLS=1` to install `certutil` at build time. If the startup script reports
 missing `certutil`, rebuild the worker with the overlay. Startup does not install packages or
-require root privileges. Dedicated acceptance case OPS-36 is in `collaudo/casi.json`.
+require root privileges. Dedicated acceptance case OPS-36 is in `collaudo/casi/`.
 
 A release can change the database schema, so the order matters.
 

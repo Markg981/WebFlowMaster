@@ -1,0 +1,15 @@
+{
+  "id": "SEC-50",
+  "area": "SEC",
+  "title": "Chiave API e rimozione dall'organizzazione dopo un cambio",
+  "priority": "P1",
+  "actor": "utente membro di A e B; un owner di B",
+  "preconditions": "Migrazione 0089 applicata; catalogo versione 60. Account con appartenenza alle organizzazioni A (owner) e B (viewer), con almeno un progetto in ciascuna. Una chiave API creata dall'utente mentre agiva in A.",
+  "steps": [
+    "Passare a B dal menu delle organizzazioni.",
+    "Chiamare GET /api/v1/projects con la chiave creata in A.",
+    "In un secondo browser restare in A; come owner di B rimuovere l'utente da B.",
+    "Ricaricare il browser che agiva in B e quello che agiva in A."
+  ],
+  "expected": "Il cambio riesce anche con una chiave esistente. La chiave restituisce i progetti di A, non di B. Dopo la rimozione la sessione in B termina (torna al login), quella in A continua a funzionare."
+}

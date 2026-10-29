@@ -1,0 +1,13 @@
+{
+  "id": "REP-10",
+  "area": "REP",
+  "title": "Dashboard",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Run degli ultimi giorni e una pianificazione.",
+  "steps": [
+    "Aprire la Dashboard."
+  ],
+  "expected": "Indicatori (test totali, percentuale di successo, durata media, ultimo run), grafico degli ultimi 30 giorni, report recenti e prossime pianificazioni coerenti con i dati.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Run degli ultimi giorni e una pianificazione.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire la Dashboard.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Indicatori (test totali, percentuale di successo, durata media, ultimo run), grafico degli ultimi 30 giorni, report recenti e prossime pianificazioni coerenti con i dati.</p>\n      "
+}

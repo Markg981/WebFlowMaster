@@ -1,0 +1,14 @@
+{
+  "id": "REP-17",
+  "area": "REP",
+  "title": "Dati inviati all'AI",
+  "priority": "P1",
+  "actor": "editor.a · operatore",
+  "preconditions": "GEMINI_API_KEY impostata; un test che digita una password in #password e poi fallisce; accesso ai log del proxy verso Google o a un Gemini finto.",
+  "steps": [
+    "Analizzare il fallimento con l'AI.",
+    "Ispezionare la richiesta inviata al modello."
+  ],
+  "expected": "La richiesta contiene nome del test, motivo, step intorno al fallimento, richieste fallite e lo screenshot; I valori digitati negli step non vengono inviati: la password non compare in nessuna forma. Nessuna analisi parte senza un clic: i fallimenti di un run non generano chiamate al modello.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>GEMINI_API_KEY</code> impostata; un test che digita una password in <code>#password</code> e poi fallisce; accesso ai log del proxy verso Google o a un Gemini finto.</p>\n        <h4>Passi</h4>\n        <ol><li>Analizzare il fallimento con l'AI.</li><li>Ispezionare la richiesta inviata al modello.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La richiesta contiene nome del test, motivo, step intorno al fallimento, richieste fallite e lo screenshot; I valori digitati negli step non vengono inviati: la password non compare in nessuna forma. Nessuna analisi parte senza un clic: i fallimenti di un run non generano chiamate al modello.</p>\n      "
+}

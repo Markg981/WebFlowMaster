@@ -1,0 +1,16 @@
+{
+  "id": "MOB-02",
+  "area": "MOB",
+  "title": "Eseguire su un dispositivo reale",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-01.",
+  "steps": [
+    "Esegui (▶) sulla riga; griglia BrowserStack, ambiente Nessuno; Esegui.",
+    "Attendere la fine.",
+    "Aprire Video e log sulla griglia.",
+    "Nella dashboard di App Automate cercare la sessione."
+  ],
+  "expected": "1–2: prima «In attesa di un dispositivo…», poi i passi compaiono uno per volta con la spunta verde; alla fine «Superato» e lo screenshot del telefono con i risultati di ricerca. 3: si apre la sessione di BrowserStack con il video. 4: la sessione si chiama «Ricerca Wikipedia», build «WebFlowMaster · Ricerca Wikipedia», segnata passed. L'elenco mostra «Superato · data».",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-01.</p>\n        <h4>Passi</h4>\n        <ol><li><b>Esegui</b> (▶) sulla riga; griglia BrowserStack, ambiente Nessuno; Esegui.</li><li>Attendere la fine.</li><li>Aprire <b>Video e log sulla griglia</b>.</li><li>Nella dashboard di App Automate cercare la sessione.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1–2: prima «In attesa di un dispositivo…», poi i passi compaiono uno per volta con la spunta verde; alla fine «Superato» e lo screenshot del telefono con i risultati di ricerca. 3: si apre la sessione di BrowserStack con il video. 4: la sessione si chiama «Ricerca Wikipedia», build «WebFlowMaster · Ricerca Wikipedia», segnata passed. L'elenco mostra «Superato · data».</p>\n      "
+}

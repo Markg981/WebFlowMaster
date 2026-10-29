@@ -1,0 +1,16 @@
+{
+  "id": "TRC-08",
+  "area": "TRC",
+  "title": "Proporre test da una story di Jira",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Server con GEMINI_API_KEY; TRC-03 (SHOP-10 importata). In Jira SHOP-10 ha una descrizione e i criteri di accettazione (nella descrizione o nel campo «Acceptance criteria»). Interfaccia in italiano.",
+  "steps": [
+    "Requisiti → sulla riga SHOP-10 il pulsante con le scintille.",
+    "Proponi test con «Quanti al massimo» = 4.",
+    "Aprire «Scritti da SHOP-10 com'è ora nel tracker».",
+    "In Jira aggiungere un criterio di accettazione; Proponi di nuovo."
+  ],
+  "expected": "2: entro circa un minuto arrivano al massimo 4 casi in italiano, tutti spuntati, ciascuno con tipo (Percorso principale, Errore, Limite), «Copre: …» con il criterio, precondizioni e passi azione/risultato atteso; nessun caso riguarda funzioni non citate dalla story. 3: mostra titolo, descrizione e criteri letti da Jira. 4: le nuove proposte tengono conto del criterio aggiunto. Nulla è stato creato né scritto in Jira.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Server con GEMINI_API_KEY; TRC-03 (SHOP-10 importata). In Jira SHOP-10 ha una descrizione e i criteri di accettazione (nella descrizione o nel campo «Acceptance criteria»). Interfaccia in italiano.</p>\n        <h4>Passi</h4>\n        <ol><li>Requisiti → sulla riga SHOP-10 il pulsante con le scintille.</li><li><b>Proponi test</b> con «Quanti al massimo» = <code>4</code>.</li><li>Aprire «Scritti da SHOP-10 com'è ora nel tracker».</li><li>In Jira aggiungere un criterio di accettazione; <b>Proponi di nuovo</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2: entro circa un minuto arrivano al massimo 4 casi in italiano, tutti spuntati, ciascuno con tipo (Percorso principale, Errore, Limite), «Copre: …» con il criterio, precondizioni e passi azione/risultato atteso; nessun caso riguarda funzioni non citate dalla story. 3: mostra titolo, descrizione e criteri letti da Jira. 4: le nuove proposte tengono conto del criterio aggiunto. Nulla è stato creato né scritto in Jira.</p>\n      "
+}

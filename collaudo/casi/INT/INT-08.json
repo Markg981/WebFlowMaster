@@ -1,0 +1,13 @@
+{
+  "id": "INT-08",
+  "area": "INT",
+  "title": "Altri sistemi di CI",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Solo quelli in uso: GitLab CI, Jenkins, Azure Pipelines.",
+  "steps": [
+    "Usare il template di integrations/ per quel sistema."
+  ],
+  "expected": "Stesso comportamento di INT-06: esito della build, report pubblicato, build visibile nel report.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Solo quelli in uso: GitLab CI, Jenkins, Azure Pipelines.</p>\n        <h4>Passi</h4>\n        <ol><li>Usare il template di <code>integrations/</code> per quel sistema.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Stesso comportamento di INT-06: esito della build, report pubblicato, build visibile nel report.</p>\n      "
+}

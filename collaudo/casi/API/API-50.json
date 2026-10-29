@@ -1,0 +1,13 @@
+{
+  "id": "API-50",
+  "area": "API",
+  "title": "Scope, ruolo e isolamento del provisioning",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Due organizzazioni e progetto riservato; chiavi viewer/read-only, editor con scope parziali, editor non membro del progetto riservato; ID noti delle risorse altrui. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "Tentare scritture con chiavi di sola lettura e con scope mancanti.",
+    "Leggere/modificare/importare/esportare risorse del secondo tenant o del progetto riservato; provare un piano che seleziona un test non accessibile."
+  ],
+  "expected": "Scope e ruolo insufficienti sono rifiutati; nessuna risorsa, relazione o contenuto del tenant/progetto non accessibile è esposto o modificato."
+}

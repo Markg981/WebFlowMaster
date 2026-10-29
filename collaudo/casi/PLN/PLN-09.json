@@ -1,0 +1,14 @@
+{
+  "id": "PLN-09",
+  "area": "PLN",
+  "title": "Riesecuzione dei test falliti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un test instabile (per esempio un'asserzione su /dynamic_content che passa a volte).",
+  "steps": [
+    "Procedura o impostazioni: Riesegui in Caso di Fallimento «Twice».",
+    "Eseguire più volte."
+  ],
+  "expected": "Un test fallito viene rieseguito; se passa a un tentativo successivo è segnato «Instabile · passato al tentativo N» e conta come passato.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test instabile (per esempio un'asserzione su /dynamic_content che passa a volte).</p>\n        <h4>Passi</h4>\n        <ol><li>Procedura o impostazioni: <b>Riesegui in Caso di Fallimento</b> «Twice».</li><li>Eseguire più volte.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Un test fallito viene rieseguito; se passa a un tentativo successivo è segnato «Instabile · passato al tentativo N» e conta come passato.</p>\n      "
+}

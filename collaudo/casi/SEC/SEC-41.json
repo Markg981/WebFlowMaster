@@ -1,0 +1,13 @@
+{
+  "id": "SEC-41",
+  "area": "SEC",
+  "title": "mobile: nessuna autoapprovazione",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile in A con review pendente richiesta da editor.a. Editor autorizzato al progetto.",
+  "steps": [
+    "Come editor.a tentare approvazione dalla pagina Revisioni.",
+    "Ripetere con richiesta autenticata di decisione usando gli strumenti Network."
+  ],
+  "expected": "Nessuna autoapprovazione consentita anche via API; review pendente e pubblicazione invariata."
+}

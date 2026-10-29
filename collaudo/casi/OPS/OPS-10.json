@@ -1,0 +1,14 @@
+{
+  "id": "OPS-10",
+  "area": "OPS",
+  "title": "Errori del browser nei log del server",
+  "priority": "P3",
+  "actor": "operatore",
+  "preconditions": "L'errore del browser arriva nei log del server con la pagina e il correlation id; nessun token o password nel messaggio.",
+  "steps": [
+    "Nell'interfaccia provocare un errore lato browser (per esempio una pagina che non riesce a caricare i dati a server fermo, poi riavviato).",
+    "Cercare nei log del server l'errore e il suo correlation id."
+  ],
+  "expected": "L'errore del browser arriva nei log del server con la pagina e il correlation id; nessun token o password nel messaggio.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Nell'interfaccia provocare un errore lato browser (per esempio una pagina che non riesce a caricare i dati a server fermo, poi riavviato).</li><li>Cercare nei log del server l'errore e il suo correlation id.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'errore del browser arriva nei log del server con la pagina e il correlation id; nessun token o password nel messaggio.</p>\n      "
+}

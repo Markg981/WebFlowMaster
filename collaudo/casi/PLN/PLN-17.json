@@ -1,0 +1,14 @@
+{
+  "id": "PLN-17",
+  "area": "PLN",
+  "title": "Modificare un piano",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un piano con tre test e un run concluso.",
+  "steps": [
+    "Cambiare nome e descrizione; togliere un test e aggiungerne un altro; salvare.",
+    "Eseguire; aprire anche il report del run precedente."
+  ],
+  "expected": "L'elenco mostra il nuovo nome. Il nuovo run esegue i test aggiornati; il report precedente resta com'era. Audit plan.updated.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un piano con tre test e un run concluso.</p>\n        <h4>Passi</h4>\n        <ol><li>Cambiare nome e descrizione; togliere un test e aggiungerne un altro; salvare.</li><li>Eseguire; aprire anche il report del run precedente.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'elenco mostra il nuovo nome. Il nuovo run esegue i test aggiornati; il report precedente resta com'era. Audit <b>plan.updated</b>.</p>\n      "
+}

@@ -1,0 +1,13 @@
+{
+  "id": "TEL-13",
+  "area": "TEL",
+  "title": "Memoria e CPU dei browser del worker e byte di artifact",
+  "priority": "P3",
+  "actor": "Amministratore",
+  "preconditions": "Catalogo versione 80. Worker su Linux con WFM_METRICS_ENABLED=true e WFM_METRICS_TOKEN impostati; un piano web.",
+  "steps": [
+    "Leggere /metrics del worker con il token prima di avviare il piano.",
+    "Avviare il piano e rileggere /metrics durante e dopo l'esecuzione."
+  ],
+  "expected": "wfm_worker_child_processes, wfm_worker_child_resident_bytes e wfm_worker_child_cpu_seconds crescono durante l'esecuzione (i browser avviati) e non hanno etichette; wfm_artifact_bytes_written_total aumenta dei byte di screenshot e report scritti. Nessuna etichetta contiene runId, unitId o un altro identificatore."
+}

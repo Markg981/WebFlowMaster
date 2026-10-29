@@ -1,0 +1,13 @@
+{
+  "id": "ENV-03",
+  "area": "ENV",
+  "title": "I valori segreti non trapelano",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "ENV-02 eseguito anche in un piano con rete e trace.",
+  "steps": [
+    "Cercare SuperSecretPassword! nel log di esecuzione, nel report, nell'HAR scaricato, nell'export HTML e nei log del server."
+  ],
+  "expected": "Il valore non compare da nessuna parte (mascherato o assente).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>ENV-02 eseguito anche in un piano con rete e trace.</p>\n        <h4>Passi</h4>\n        <ol><li>Cercare <code>SuperSecretPassword!</code> nel log di esecuzione, nel report, nell'HAR scaricato, nell'export HTML e nei log del server.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il valore non compare da nessuna parte (mascherato o assente).</p>\n      "
+}

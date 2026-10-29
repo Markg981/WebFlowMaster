@@ -1,0 +1,13 @@
+{
+  "id": "REP-09",
+  "area": "REP",
+  "title": "Scadenza delle evidenze",
+  "priority": "P2",
+  "actor": "operatore · viewer.a",
+  "preconditions": "ARTIFACT_RETENTION_DAYS basso su un'installazione di prova, o run datati.",
+  "steps": [
+    "Attendere il passaggio di pulizia; aprire un run vecchio."
+  ],
+  "expected": "Il report avvisa che screenshot, video e trace sono stati rimossi in una data; esiti e step restano. Le baseline visive non vengono toccate.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>ARTIFACT_RETENTION_DAYS</code> basso su un'installazione di prova, o run datati.</p>\n        <h4>Passi</h4>\n        <ol><li>Attendere il passaggio di pulizia; aprire un run vecchio.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il report avvisa che screenshot, video e trace sono stati rimossi in una data; esiti e step restano. Le baseline visive non vengono toccate.</p>\n      "
+}

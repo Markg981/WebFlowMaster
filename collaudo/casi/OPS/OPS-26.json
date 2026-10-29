@@ -1,0 +1,15 @@
+{
+  "id": "OPS-26",
+  "area": "OPS",
+  "title": "Verifica correzioni dipendenze e assenza di braces",
+  "priority": "P1",
+  "actor": "operatore sicurezza",
+  "preconditions": "Checkout completo, Docker Linux e rapporti Trivy del candidato. Conservare la baseline precedente.",
+  "steps": [
+    "Eseguire npm ci (anche con --ignore-scripts) e npm audit --omit=dev; verificare con npm ls braces micromatch che nessuna copia sia installata, nella radice e nel client (npm ci in client/ con --workspaces=false).",
+    "Eseguire npm run test:security (composizione email reale) e npx vitest run server/tests/dependency-locks.test.ts.",
+    "Ricostruire le tre immagini, produrre SBOM e scansionare sorgenti e immagini con il gate senza ignore; verificare che deployment/releases/source-exceptions.json non esista e che un HIGH/CRITICAL residuo impedisca la pubblicazione.",
+    "Aprire le pagine principali dell'interfaccia (dashboard, impostazioni, report) e confrontarle con la release precedente: Tailwind 4 non deve cambiare layout, colori, tema scuro e animazioni dei dialoghi."
+  ],
+  "expected": "npm audit --omit=dev non riporta vulnerabilità; braces e micromatch non sono installati in nessuno dei due alberi; il test dei lock passa; nessuna eccezione sorgenti è applicata e ogni HIGH/CRITICAL blocca il gate. Nodemailer funziona. L'interfaccia è visivamente equivalente alla release precedente."
+}

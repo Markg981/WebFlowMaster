@@ -1,0 +1,14 @@
+{
+  "id": "PLN-54",
+  "area": "PLN",
+  "title": "Worker perso a test iniziato: unità indeterminata, run incompleto esplicito, nessuna riesecuzione",
+  "priority": "P1",
+  "actor": "owner",
+  "preconditions": "Catalogo versione 75. Ambiente di collaudo con due worker (mai produzione) e accesso al database; un piano con «Worker che si dividono un'esecuzione» = 2, due test UI e l'impostazione «Se un runner si perde durante un test» al default.",
+  "steps": [
+    "Avviare il piano; appena un worker inizia un test, terminarne il processo (docker kill -s SIGKILL).",
+    "Attendere la fine del run (al più la lease più il polling del coordinatore).",
+    "Aprire il report e l'elenco delle unità; controllare la notifica."
+  ],
+  "expected": "Il run termina in Error con failureCode run_incomplete e messaggio «1 of 2 expected unit(s) have no result: 1 indeterminate…»; l'unità persa è indeterminate con il motivo, il suo tentativo abandoned, l'elemento di lavoro indeterminate. Il test perso non viene rieseguito (nessun secondo tentativo). Una sola notifica, con esito errore. Mai Completed."
+}

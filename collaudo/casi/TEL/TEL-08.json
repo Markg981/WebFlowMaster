@@ -1,0 +1,13 @@
+{
+  "id": "TEL-08",
+  "area": "TEL",
+  "title": "Repliche worker e aggregazione delle code",
+  "priority": "P2",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "Avviare due repliche worker, raccogliere separatamente /metrics e accodare lavoro.",
+    "Confrontare max by (queue, state) (wfm_queue_jobs) con i conteggi Redis; calcolare utilizzo da somma attivi/somma capacità."
+  ],
+  "expected": "Ogni replica è osservabile. La profondità globale duplicata si aggrega con max e non con somma; attivi e capacità locali si sommano per calcolare l’utilizzo."
+}
