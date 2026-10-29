@@ -608,6 +608,7 @@
     "dropActionsPrompt": "Element hier ablegen"
   },
   "apiTesterPage": {
+    "confirmDeleteSavedTest": "Diesen gespeicherten Test löschen?",
     "backToDashboard": {
       "button": "Zurück zum Dashboard"
     },
@@ -1634,7 +1635,8 @@
       "title": "404 Seite nicht gefunden"
     },
     "didYouForgetToAddThePage": {
-      "description": "Wurde die Seite dem Router hinzugefügt?"
+      "description": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
+      "homeLink": "Zur Startseite"
     }
   },
   "settingsPage": {
@@ -2405,6 +2407,7 @@
     }
   },
   "testPlanExecutionPage": {
+    "backToTestPlans": "Zurück zu den Testplänen",
     "logs": {
       "startingExecution": "Ausführung des Plans wird gestartet: {{planName}}",
       "runningTest": "Test wird ausgeführt: {{testName}}",
@@ -2851,6 +2854,15 @@
     "emptyHint": "Noch keine. Legen Sie in den Einstellungen eine an, um Geheimnisse und eine gespeicherte Anmeldung zu nutzen."
   },
   "common": {
+    "loginFailed": "Anmeldung fehlgeschlagen",
+    "registrationFailed": "Registrierung fehlgeschlagen",
+    "logoutFailed": "Abmeldung fehlgeschlagen",
+    "noEnvironment": "Keine Umgebung",
+    "loadingExecutions": "Ausführungen werden geladen...",
+    "refresh": "Aktualisieren",
+    "refreshReport": "Bericht aktualisieren",
+    "visualCheck": "Visuelle Prüfung",
+    "saveLoginForEnvironment": "Anmeldung für diese Umgebung speichern",
     "error": "Fehler",
     "cancel": "Abbrechen",
     "save": "Speichern",
@@ -3217,6 +3229,7 @@
       "test_review_rejected": "Prüfung abgelehnt",
       "test_review_withdrawn": "Prüfung zurückgezogen",
       "test_review_policy_changed": "Prüfrichtlinie geändert",
+      "organization_ai_policy_changed": "Richtlinie für externen KI-Anbieter geändert",
       "runner_drained": "Runner geleert",
       "runner_resumed": "Runner fortgesetzt",
       "suite_created": "Suite erstellt",

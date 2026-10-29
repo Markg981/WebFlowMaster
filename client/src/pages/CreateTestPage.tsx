@@ -1,3 +1,4 @@
+import { useConfirm } from '@/hooks/use-confirm';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -151,6 +152,7 @@ export default function DashboardPage() {
 
 function CreateTestPage() {
   const { t } = useTranslation();
+  const { confirm, confirmDialog } = useConfirm();
   // Initial URL state. "https://github.com" is a placeholder that can be overwritten.
   const [currentUrl, setCurrentUrl] = useState('https://github.com');
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
@@ -656,9 +658,12 @@ function CreateTestPage() {
         if (!(error instanceof ApiError) || error.status !== 409) throw error;
 
         const conflict = error.body as { existingTestId?: number; name?: string };
-        const overwrite = window.confirm(
-          t('dashboardPageNew.saveTest.overwriteConfirm', { name: conflict?.name ?? payload.name }),
-        );
+        const overwrite = await confirm({
+          destructive: true,
+          title: t('dashboardPageNew.saveTest.overwriteConfirm', {
+            name: conflict?.name ?? payload.name,
+          }),
+        });
         if (!overwrite) return null;
 
         response = await apiRequest('PUT', `/api/tests/${conflict.existingTestId}`, payload);
@@ -779,7 +784,7 @@ function CreateTestPage() {
   });
   const isRecording = recording.isRecording;
 
-  const handleStartRecording = () => {
+  const handleStartRecording = async () => {
     if (!currentUrl) {
       toast({
         title: t('dashboardPageNew.toasts.cannotStartRecording.title'),
@@ -788,7 +793,10 @@ function CreateTestPage() {
       });
       return;
     }
-    if (testSequence.length > 0 && !window.confirm(t('recording.overwriteConfirm'))) {
+    if (
+      testSequence.length > 0 &&
+      !(await confirm({ destructive: true, title: t('recording.overwriteConfirm') }))
+    ) {
       return;
     }
     setLastTestOverallResult(null);
@@ -1135,6 +1143,7 @@ function CreateTestPage() {
 
   return (
     <div className="min-h-full bg-background text-foreground">
+      {confirmDialog}
       {/* One toolbar, not a page header stacked on a form.
           The header, the URL field, the environment and the creation mode used to occupy
           370px of a 900px window in a single narrow column, which pushed the three-pane
@@ -1309,7 +1318,7 @@ function CreateTestPage() {
                   {captureLoginStateMutation.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  Save login for this environment
+                  {t('common.saveLoginForEnvironment')}
                 </Button>
                 {!environmentIdFor(selectedEnvironment) && (
                   <p className="text-xs text-muted-foreground">

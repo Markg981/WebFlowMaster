@@ -220,7 +220,16 @@ export function startRunRecovery(intervalMs = 60_000): () => void {
       const { executionOrchestrator } = await import('./execution-orchestrator');
       const locked = await withAdvisoryLock(ADVISORY_KEYS.runRecovery, () =>
         recoverAbandonedRuns({
-          retry: (ended) => executionOrchestrator.retryFailedRun(ended, 0).catch(() => null),
+          retry: (ended) =>
+            executionOrchestrator.retryFailedRun(ended, 0).catch((error: unknown) => {
+              // The run stays ended as failed; the replay is the part that did not happen.
+              logger.warn({
+                message: 'Replay of a recovered run failed',
+                runId: ended.id,
+                error: (error as Error)?.message ?? String(error),
+              });
+              return null;
+            }),
         }),
       );
       if (!locked.ran) return;

@@ -1,0 +1,12 @@
+{
+  "id": "SEC-91",
+  "area": "SEC",
+  "title": "URL del database con parametri ssl o host nella query: ignorati",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un ambiente con db.url postgres://u:p@host/db?sslrootcert=/etc/passwd&host=altro.",
+  "steps": [
+    "Eseguire uno step queryDatabase."
+  ],
+  "expected": "Nessun file del server è letto e la connessione va all'host controllato dall'egress, non a quello della query."
+}

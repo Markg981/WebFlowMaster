@@ -233,6 +233,8 @@ A set is used two ways:
   per row of the set, with its columns as <code v-pre>{{column}}</code> — see
   [Datasets](./web-tests#datasets).
 
+Precedence when the same name is defined twice, lowest to highest: the base URL default, shared data sets, environment values and secrets, then the columns of the current dataset row. A row column overrides an environment value or a secret of the same name, so do not name a column like a secret. A run loads only the sets the test names.
+
 Names are lowercase letters, digits and underscores; columns are letters, digits and underscores,
 so a placeholder can name them. A set holds up to 1,000 rows and 50 columns. A set that a test runs
 over cannot be deleted until that test stops using it; the refusal names the tests. Creating,

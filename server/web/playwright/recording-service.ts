@@ -217,9 +217,14 @@ export class RecordingService {
     }
   }
 
-  async captureLoginState(sessionId: string, environment: EnvironmentScope): Promise<boolean> {
+  async captureLoginState(
+    sessionId: string,
+    environment: EnvironmentScope,
+    userId?: number,
+  ): Promise<boolean> {
     const session = this.activeSessions.get(sessionId);
-    if (!session) {
+    // A session owned by someone else is reported like a missing one, as stop/get-actions do.
+    if (!session || (userId && session.userId && session.userId !== userId)) {
       resolvedLogger.warn({
         message: 'PS:captureLoginState - no such recording session',
         sessionId,

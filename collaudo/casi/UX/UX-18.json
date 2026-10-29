@@ -1,0 +1,14 @@
+{
+  "id": "UX-18",
+  "area": "UX",
+  "title": "Barra laterale e pulsanti-icona utilizzabili senza storage del browser",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "Browser con dati dei siti bloccati (o finestra privata restrittiva).",
+  "steps": [
+    "Accedere e aprire un piano di test in esecuzione dall'elenco piani.",
+    "Leggere con un lettore di schermo il pulsante di ritorno in alto a sinistra.",
+    "Comprimere e riaprire la barra laterale."
+  ],
+  "expected": "1: l'applicazione si carica senza errori. 2: il pulsante ha il nome «Torna ai piani di test». 3: la barra si comprime e si riapre anche se la preferenza non viene salvata."
+}

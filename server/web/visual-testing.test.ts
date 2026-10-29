@@ -308,3 +308,17 @@ describe('a screenshot of the page once it has settled', () => {
     expect((await stableScreenshot(page)).toString()).toBe('same');
   });
 });
+
+describe('the visual threshold from the environment', () => {
+  it('keeps the default unless WFM_VISUAL_THRESHOLD is a fraction', async () => {
+    const { visualThresholdFromEnv, DEFAULT_VISUAL_THRESHOLD } = await import('./visual-testing');
+    expect(visualThresholdFromEnv({})).toBe(DEFAULT_VISUAL_THRESHOLD);
+    expect(visualThresholdFromEnv({ WFM_VISUAL_THRESHOLD: '0.05' } as never)).toBe(0.05);
+    expect(visualThresholdFromEnv({ WFM_VISUAL_THRESHOLD: '7' } as never)).toBe(
+      DEFAULT_VISUAL_THRESHOLD,
+    );
+    expect(visualThresholdFromEnv({ WFM_VISUAL_THRESHOLD: 'abc' } as never)).toBe(
+      DEFAULT_VISUAL_THRESHOLD,
+    );
+  });
+});

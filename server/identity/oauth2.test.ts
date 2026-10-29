@@ -3,7 +3,7 @@ import http from 'http';
 import crypto from 'crypto';
 import type { AddressInfo } from 'net';
 import { runApiRequest } from '../api-tests/api-test-runner';
-import { clearTokenCache } from './oauth2';
+import { clearTokenCache, MAX_CACHED_TOKENS, tokenCacheSize } from './oauth2';
 import {
   IMPLEMENTED_AUTH_TYPES,
   AuthTypeSchema,
@@ -149,6 +149,16 @@ describe('OAuth 2.0, client credentials', () => {
     expect(tokenRequests).toHaveLength(1);
     expect(reachedTarget).toHaveLength(3);
   });
+
+  it('keeps the cache bounded however many credentials it meets', async () => {
+    for (let i = 0; i < MAX_CACHED_TOKENS + 5; i++) {
+      await runApiRequest(
+        { method: 'GET', url: `${targetUrl}/private`, auth: oauth2({ clientId: `acct-${i}` }) },
+        {},
+      );
+    }
+    expect(tokenCacheSize()).toBeLessThanOrEqual(MAX_CACHED_TOKENS);
+  }, 60_000);
 
   it('does not reuse it for different credentials', async () => {
     await runApiRequest({ method: 'GET', url: `${targetUrl}/private`, auth: oauth2() }, {});

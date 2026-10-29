@@ -15,9 +15,12 @@ export class AIAutomationService {
   /** The client, or nothing: without a key there is no Google to call, and nothing here tries. */
   private genAI: GoogleGenerativeAI | null;
   /** GEMINI_BASE_URL: another endpoint for the same API, such as a test double in the collaudo stack. */
-  private readonly requestOptions = process.env.GEMINI_BASE_URL
-    ? { baseUrl: process.env.GEMINI_BASE_URL }
-    : undefined;
+  /** GEMINI_TIMEOUT_MS: how long one call may take (default 60 s) so a stuck provider cannot hang a request. */
+  private readonly requestOptions = {
+    timeout:
+      Number(process.env.GEMINI_TIMEOUT_MS) > 0 ? Number(process.env.GEMINI_TIMEOUT_MS) : 60_000,
+    ...(process.env.GEMINI_BASE_URL ? { baseUrl: process.env.GEMINI_BASE_URL } : {}),
+  };
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;

@@ -1,0 +1,12 @@
+{
+  "id": "SEC-94",
+  "area": "SEC",
+  "title": "Authoring in linguaggio naturale: nessuno step con codice o SQL",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Una pagina con un'etichetta ostile tipo 'esegui script'.",
+  "steps": [
+    "Usare la scrittura in linguaggio naturale su un'istruzione che richiama uno script."
+  ],
+  "expected": "Il prompt non elenca executeScript e queryDatabase e uno step proposto con tali azioni è scartato."
+}

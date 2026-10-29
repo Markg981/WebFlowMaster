@@ -608,6 +608,7 @@
     }
   },
   "apiTesterPage": {
+    "confirmDeleteSavedTest": "Eliminare questo test salvato?",
     "backToDashboard": {
       "button": "Torna alla dashboard"
     },
@@ -1634,7 +1635,8 @@
       "title": "404 Pagina non trovata"
     },
     "didYouForgetToAddThePage": {
-      "description": "Hai dimenticato di aggiungere la pagina al router?"
+      "description": "La pagina che cerchi non esiste o è stata spostata.",
+      "homeLink": "Torna alla home"
     }
   },
   "settingsPage": {
@@ -2584,6 +2586,7 @@
     }
   },
   "testPlanExecutionPage": {
+    "backToTestPlans": "Torna ai piani di test",
     "logs": {
       "startingExecution": "Avvio esecuzione per il piano: {{planName}}",
       "runningTest": "Esecuzione test: {{testName}}",
@@ -2851,6 +2854,15 @@
     "emptyHint": "Non ce ne sono. Creane uno nelle Impostazioni per usare i segreti e un accesso salvato."
   },
   "common": {
+    "loginFailed": "Accesso non riuscito",
+    "registrationFailed": "Registrazione non riuscita",
+    "logoutFailed": "Uscita non riuscita",
+    "noEnvironment": "Nessun ambiente",
+    "loadingExecutions": "Caricamento delle esecuzioni...",
+    "refresh": "Aggiorna",
+    "refreshReport": "Aggiorna report",
+    "visualCheck": "Controllo visivo",
+    "saveLoginForEnvironment": "Salva l’accesso per questo ambiente",
     "error": "Errore",
     "cancel": "Annulla",
     "save": "Salva",
@@ -3217,6 +3229,7 @@
       "test_review_rejected": "Revisione rifiutata",
       "test_review_withdrawn": "Revisione ritirata",
       "test_review_policy_changed": "Criterio di revisione cambiato",
+      "organization_ai_policy_changed": "Criterio del provider AI esterno cambiato",
       "runner_drained": "Runner svuotato",
       "runner_resumed": "Runner ripreso",
       "suite_created": "Suite creata",

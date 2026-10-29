@@ -1,0 +1,13 @@
+{
+  "id": "OPS-74",
+  "area": "OPS",
+  "title": "Import NetContent senza percorso personale cablato",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "Repository aggiornato.",
+  "steps": [
+    "Eseguire npx tsx scripts/import-netcontent-api.ts --dry-run senza argomenti e senza NETCONTENT_CONTROLLERS_DIR.",
+    "Rieseguire passando la cartella dei controller come primo argomento, oppure con NETCONTENT_CONTROLLERS_DIR."
+  ],
+  "expected": "Il primo comando stampa l'uso e termina con codice 1; il secondo legge la cartella indicata."
+}

@@ -146,7 +146,7 @@ export const RECORDER_SCRIPT = `
       el.name, el.id, el.getAttribute && el.getAttribute('autocomplete'),
       el.getAttribute && el.getAttribute('aria-label')
     ].join(' ').toLowerCase();
-    return /pass|secret|token|apikey|api-key|otp|cvv|\\bpin\\b/.test(haystack);
+    return /pass|secret|token|apikey|api-key|otp|one-time-code|cc-|cvv|cvc|\\bssn\\b|\\bpin\\b/.test(haystack);
   }
 
   // Rebuilt from the shared patterns rather than written twice; see shared/selectors.ts.

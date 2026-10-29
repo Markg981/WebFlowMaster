@@ -1,0 +1,12 @@
+{
+  "id": "SEC-93",
+  "area": "SEC",
+  "title": "Log: credenziali negli URL mascherate",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un errore il cui testo contiene postgres://utente:segreto@host/db.",
+  "steps": [
+    "Provocare l'errore e leggere il log."
+  ],
+  "expected": "Il log contiene postgres://[REDACTED]@host/db."
+}

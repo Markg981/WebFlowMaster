@@ -1,0 +1,14 @@
+{
+  "id": "UX-17",
+  "area": "UX",
+  "title": "Pagina 404 con link alla home e animazioni ridotte nel login",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "Un owner; sistema operativo con «Riduci animazioni» attivo.",
+  "steps": [
+    "Aprire un indirizzo inesistente, ad esempio /pagina-che-non-esiste.",
+    "Premere il pulsante «Torna alla home».",
+    "Uscire e aprire la pagina di accesso."
+  ],
+  "expected": "1: testo comprensibile nella lingua dell'interfaccia, senza riferimenti al router. 2: si torna alla home. 3: lo sfondo del login non si muove."
+}

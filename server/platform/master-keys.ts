@@ -114,7 +114,9 @@ export function open(
   key: Buffer,
   aad?: string,
 ): string {
-  const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, 'hex'));
+  const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, 'hex'), {
+    authTagLength: TAG_BYTES,
+  });
   if (aad !== undefined) decipher.setAAD(Buffer.from(aad, 'utf8'));
   decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
   let decrypted = decipher.update(encryptedValue, 'hex', 'utf8');

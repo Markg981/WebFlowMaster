@@ -45,8 +45,14 @@ interface CachedToken {
  * making.
  */
 const cache = new Map<string, CachedToken>();
+export const MAX_CACHED_TOKENS = 500;
 
 /** Exported for tests, which need a cold cache per case. */
+/** Exported for tests. */
+export function tokenCacheSize(): number {
+  return cache.size;
+}
+
 export function clearTokenCache(): void {
   cache.clear();
 }
@@ -210,6 +216,12 @@ export async function accessTokenFor(
   const lifetime = Number(payload?.expires_in);
   const validFor =
     Number.isFinite(lifetime) && lifetime > 0 ? lifetime * 1000 : DEFAULT_LIFETIME_MS;
+  // Bounded: drop expired entries, then the oldest, so a long-lived process cannot grow it forever.
+  if (cache.size >= MAX_CACHED_TOKENS) {
+    const now = Date.now();
+    for (const [k, v] of cache) if (v.expiresAt <= now) cache.delete(k);
+    while (cache.size >= MAX_CACHED_TOKENS) cache.delete(cache.keys().next().value as string);
+  }
   cache.set(key, {
     authorization,
     expiresAt: Date.now() + Math.max(validFor - EXPIRY_MARGIN_MS, 0),

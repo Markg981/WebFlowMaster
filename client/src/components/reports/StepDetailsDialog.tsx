@@ -495,6 +495,7 @@ function ImagePanel({ label, src }: { label: string; src?: string | null }) {
 }
 
 function VisualPanel({ visual }: { visual: ReportStepVisual }) {
+  const { t } = useTranslation();
   const isDiff = visual.outcome === 'diff';
   // A comparison that could not run is not a regression: no red, and the cause beside it.
   const isError = visual.outcome === 'error';
@@ -504,7 +505,7 @@ function VisualPanel({ visual }: { visual: ReportStepVisual }) {
     >
       <div className="flex items-center gap-2 mb-2">
         <ImageIcon className="h-4 w-4" />
-        <span className="text-sm font-medium">Visual check</span>
+        <span className="text-sm font-medium">{t('common.visualCheck')}</span>
         <Badge
           variant={isDiff ? 'destructive' : isError ? 'outline' : 'secondary'}
           className="whitespace-nowrap"

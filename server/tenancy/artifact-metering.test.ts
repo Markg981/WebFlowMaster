@@ -148,9 +148,8 @@ describe('retained artifact bytes', () => {
     await asOrg(() => store.deletePrefix(`visual-baselines/org_${org}/test_1/`));
     expect((await usage()).artifactBytes).toBe(0);
   });
-  it('retains an ambiguous reservation until successful reconciliation', async () => {
-    const { meterArtifactStore, reconcileOrganizationArtifacts } =
-      await import('./artifact-metering');
+  it('commits a write whose reply was lost once the store confirms it landed', async () => {
+    const { meterArtifactStore } = await import('./artifact-metering');
     const raw = createLocalArtifactStore(directory);
     const write = raw.write;
     raw.write = async (key, body) => {
@@ -161,9 +160,45 @@ describe('retained artifact bytes', () => {
     await expect(
       asOrg(() => store.write(`visual-baselines/org_${org}/test_1/a.png`, Buffer.alloc(10))),
     ).rejects.toThrow('Lost storage response');
-    expect((await usage()).reservedArtifactBytes).toBe(10);
-    await reconcileOrganizationArtifacts(org, raw);
     expect((await usage()).artifactBytes).toBe(10);
+    expect((await usage()).reservedArtifactBytes).toBe(0);
+  });
+  it('closes the reservation of a write that failed, so a retry is not blocked', async () => {
+    const { meterArtifactStore } = await import('./artifact-metering');
+    const raw = createLocalArtifactStore(directory);
+    const write = raw.write;
+    let fail = true;
+    raw.write = async (key, body, type) => {
+      if (fail) throw new Error('Bucket unavailable');
+      await write(key, body, type);
+    };
+    const store = meterArtifactStore(raw);
+    const key = `visual-baselines/org_${org}/test_1/b.png`;
+    await expect(asOrg(() => store.write(key, Buffer.alloc(10)))).rejects.toThrow(
+      'Bucket unavailable',
+    );
+    expect((await usage()).reservedArtifactBytes).toBe(0);
+    fail = false;
+    await asOrg(() => store.write(key, Buffer.alloc(10)));
+    expect((await usage()).artifactBytes).toBe(10);
+  });
+  it('keeps the reservation when the store cannot say whether the write landed', async () => {
+    const { meterArtifactStore, reconcileOrganizationArtifacts } =
+      await import('./artifact-metering');
+    const raw = createLocalArtifactStore(directory);
+    raw.write = async () => {
+      throw new Error('Storage down');
+    };
+    raw.read = async () => {
+      throw new Error('Storage down');
+    };
+    const store = meterArtifactStore(raw);
+    await expect(
+      asOrg(() => store.write(`visual-baselines/org_${org}/test_1/c.png`, Buffer.alloc(10))),
+    ).rejects.toThrow('Storage down');
+    expect((await usage()).reservedArtifactBytes).toBe(10);
+    raw.read = createLocalArtifactStore(directory).read;
+    await reconcileOrganizationArtifacts(org, raw);
     expect((await usage()).reservedArtifactBytes).toBe(0);
   });
   it('monitor allows overage and legacy objects are measured rather than assumed empty', async () => {
