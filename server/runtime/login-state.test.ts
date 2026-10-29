@@ -283,6 +283,25 @@ describe('capturing a login state from a recording session', () => {
     }
   }, 90_000);
 
+  it('refuses a recording session that belongs to another user', async () => {
+    const { playwrightService } = await import('../web/playwright-service');
+    const environmentId = await makeEnvironment('Foreign capture env');
+    const started = await playwrightService.startRecordingSession(baseUrl, userId);
+    expect(started.success).toBe(true);
+
+    try {
+      const saved = await playwrightService.captureLoginState(
+        started.sessionId!,
+        { environmentId, organizationId },
+        userId + 1,
+      );
+      expect(saved).toBe(false);
+      expect(await loadLoginState({ environmentId, organizationId })).toBeUndefined();
+    } finally {
+      await playwrightService.stopRecordingSession(started.sessionId!, userId).catch(() => {});
+    }
+  }, 90_000);
+
   it('reports an unknown session rather than saving an empty state', async () => {
     const { playwrightService } = await import('../web/playwright-service');
     const environmentId = await makeEnvironment('No session env');

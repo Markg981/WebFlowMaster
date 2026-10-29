@@ -120,6 +120,14 @@ export function domForModel(html: string, limit = 30_000): string {
       /(<(?:input|option|meta|button|param)\b[^>]*?\s)(value|content)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,
       '$1$2="***"',
     )
+    .replace(
+      /(\sdata-[\w-]*(?:token|secret|key|auth|session|csrf|nonce)[\w-]*\s*=\s*)("[^"]*"|'[^']*'|[^\s>]+)/gi,
+      '$1"***"',
+    )
+    .replace(
+      /(\shref\s*=\s*["']?[^"'\s>]*?[?&](?:[\w-]*(?:token|secret|key|sig|auth|session|code)[\w-]*)=)[^&"'\s>]*/gi,
+      '$1***',
+    )
     .slice(0, limit);
 }
 

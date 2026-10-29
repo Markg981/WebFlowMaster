@@ -102,6 +102,7 @@ export async function performBrowserTask(envelope: BrowserTaskEnvelope): Promise
                 userId,
                 organizationId,
                 environmentId: task.environmentId,
+                referencedIn: JSON.stringify(test),
               });
               return playwrightService.executeTestSequence(
                 test,

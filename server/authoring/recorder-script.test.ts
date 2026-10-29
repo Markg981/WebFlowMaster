@@ -9,6 +9,7 @@ import {
   unsupportedActions,
   type RecordedAction,
 } from '../../shared/recording';
+import { RECORDER_SCRIPT } from './recorder-script';
 import { startShadowFixture, type ShadowFixtureServer } from '../../e2e/recorder-shadow-fixture';
 
 vi.mock('../platform/logger', () => ({
@@ -878,5 +879,16 @@ describe('shadow DOM', () => {
       const failures = steps.filter((s) => s.status === 'failed');
       expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
     }, 120_000);
+  });
+});
+
+describe('the secret-field pattern', () => {
+  it('masks card, one-time-code and SSN fields as well as passwords', () => {
+    const source = RECORDER_SCRIPT.match(/return (\/pass[^;]*\/)\.test\(haystack\)/)?.[1];
+    expect(source).toBeTruthy();
+    const secret = new Function(`return ${source}`)() as RegExp;
+    for (const hit of ['cc-number', 'one-time-code', 'ssn', 'cc-csc', 'cvc', 'password'])
+      expect(secret.test(hit), hit).toBe(true);
+    for (const miss of ['email', 'first-name', 'city']) expect(secret.test(miss), miss).toBe(false);
   });
 });
