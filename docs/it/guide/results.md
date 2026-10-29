@@ -65,7 +65,9 @@ comunque come completato. A run concluso, un editor apre la riga, segna ogni ste
 - **Bloccato** (non è stato possibile eseguirlo) conta tra i saltati.
 
 Ogni esito ricalcola i totali e lo stato del run, così il report mescola risultati manuali e
-automatici. Un run annullato o scaduto conserva il suo esito. Un esito si può correggere
+automatici. Un run completato o fallito passa dall'uno all'altro come a ogni fine run, quindi
+commit status, notifiche e pubblicazione sul test management ripartono con il nuovo esito. Un run
+annullato o scaduto conserva il suo esito e non annuncia nulla. Un esito si può correggere
 registrandolo di nuovo; la riga dice chi l'ha registrato e quando, e ogni registrazione finisce nel
 registro di audit.
 

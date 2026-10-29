@@ -157,6 +157,33 @@ export async function transitionExecution(
   return moved ?? null;
 }
 
+/**
+ * Re-decides a run that ended on its results (`completed` or `failed`) after a person changed
+ * one of them — a manual verdict. It is the one move the table above does not list: both states
+ * are terminal, but which of the two it is follows the results. Cancelled, timed-out and errored
+ * runs are not touched. Runs in the caller's transaction and carries the new totals; the usage
+ * record was closed when the run first ended, so it is not closed again. The caller announces the
+ * returned row once its transaction has committed.
+ */
+export async function redecideExecution(
+  tx: TenantTx,
+  executionId: string,
+  to: 'completed' | 'failed',
+  patch: ExecutionTransitionPatch = {},
+): Promise<TestPlanExecution | null> {
+  const [row] = await tx
+    .update(testPlanExecutions)
+    .set({ ...patch, status: to })
+    .where(
+      and(
+        eq(testPlanExecutions.id, executionId),
+        inArray(testPlanExecutions.status, ['completed', 'failed']),
+      ),
+    )
+    .returning();
+  return row ?? null;
+}
+
 export type TakeOutcome =
   | { outcome: 'taken'; execution: TestPlanExecution }
   | {
