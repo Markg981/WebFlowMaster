@@ -142,6 +142,7 @@ export function RequestBodyEditor(props: Props) {
               <Label htmlFor="requestBodyEditorRaw">{t('apiTesterPage.body.label')}</Label>
               <div className="mt-1 border rounded-md overflow-hidden">
                 <Editor
+                  aria-label={t('apiTesterPage.body.label')}
                   height="200px"
                   language={rawEditorLanguage(props.rawContentType)}
                   theme={monacoTheme}
@@ -190,6 +191,7 @@ export function RequestBodyEditor(props: Props) {
               <Label htmlFor="graphqlQueryEditor">{t('apiTesterPage.graphqlQuery.label')}</Label>
               <div className="mt-1 border rounded-md overflow-hidden">
                 <Editor
+                  aria-label={t('apiTesterPage.graphqlQuery.label')}
                   height="150px"
                   language="graphql"
                   theme={monacoTheme}

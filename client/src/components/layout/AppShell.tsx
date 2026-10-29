@@ -236,16 +236,24 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const title = usePageTitle(location, sections);
   const { hasNews } = useWhatsNew();
 
-  const [collapsed, setCollapsed] = useState<boolean>(
-    () => localStorage.getItem(COLLAPSE_KEY) === '1',
-  );
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(COLLAPSE_KEY) === '1';
+    } catch {
+      return false; // storage blocked (private window)
+    }
+  });
   const [mobileOpen, setMobileOpen] = useState(false);
   // One owner for the theme — see hooks/use-theme.ts. The toggle used to write the class and
   // POST without telling either settings cache, so opening Settings afterwards undid it.
   const { isDark, toggle: toggleTheme } = useTheme();
 
   useEffect(() => {
-    localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+    } catch {
+      // storage blocked: the preference just doesn't persist
+    }
   }, [collapsed]);
 
   useEffect(() => {

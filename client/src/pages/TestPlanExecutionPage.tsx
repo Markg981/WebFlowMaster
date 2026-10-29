@@ -113,8 +113,8 @@ const TestPlanExecutionPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button variant="outline" size="icon" asChild>
-              <Link href="/test-plans">
-                <ArrowLeft className="h-5 w-5" />
+              <Link href="/test-plans" aria-label={t('testPlanExecutionPage.backToTestPlans')}>
+                <ArrowLeft className="h-5 w-5" aria-hidden="true" />
               </Link>
             </Button>
             <PlayCircle className="h-7 w-7 text-primary" />

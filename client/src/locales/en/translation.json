@@ -1634,7 +1634,8 @@
       "title": "404 Page Not Found"
     },
     "didYouForgetToAddThePage": {
-      "description": "Did you forget to add the page to the router?"
+      "description": "The page you are looking for does not exist or has moved.",
+      "homeLink": "Back to home"
     }
   },
   "settingsPage": {
@@ -2584,6 +2585,7 @@
     }
   },
   "testPlanExecutionPage": {
+    "backToTestPlans": "Back to test plans",
     "logs": {
       "startingExecution": "Starting execution for plan: {{planName}}",
       "runningTest": "Running test: {{testName}}",

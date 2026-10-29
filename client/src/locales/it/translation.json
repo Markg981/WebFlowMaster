@@ -1634,7 +1634,8 @@
       "title": "404 Pagina non trovata"
     },
     "didYouForgetToAddThePage": {
-      "description": "Hai dimenticato di aggiungere la pagina al router?"
+      "description": "La pagina che cerchi non esiste o è stata spostata.",
+      "homeLink": "Torna alla home"
     }
   },
   "settingsPage": {
@@ -2584,6 +2585,7 @@
     }
   },
   "testPlanExecutionPage": {
+    "backToTestPlans": "Torna ai piani di test",
     "logs": {
       "startingExecution": "Avvio esecuzione per il piano: {{planName}}",
       "runningTest": "Esecuzione test: {{testName}}",

@@ -5,6 +5,7 @@ import * as RechartsPrimitive from 'recharts';
 import type { LegendPayload, TooltipContentProps } from 'recharts';
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
+import i18n from 'i18next';
 import { cn } from '@/lib/utils';
 
 // Format: { THEME_NAME: CSS_SELECTOR }
@@ -223,7 +224,7 @@ const ChartTooltipContent = React.forwardRef<
                       </div>
                       {item.value && (
                         <span className="font-mono font-medium tabular-nums text-foreground">
-                          {item.value.toLocaleString()}
+                          {item.value.toLocaleString(i18n.language)}
                         </span>
                       )}
                     </div>

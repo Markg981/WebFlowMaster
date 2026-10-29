@@ -1634,7 +1634,8 @@
       "title": "404 Page introuvable"
     },
     "didYouForgetToAddThePage": {
-      "description": "Avez-vous oublié d’ajouter la page au routeur ?"
+      "description": "La page que vous cherchez n’existe pas ou a été déplacée.",
+      "homeLink": "Retour à l’accueil"
     }
   },
   "settingsPage": {
@@ -2405,6 +2406,7 @@
     }
   },
   "testPlanExecutionPage": {
+    "backToTestPlans": "Retour aux plans de test",
     "logs": {
       "startingExecution": "Lancement de l’exécution du plan : {{planName}}",
       "runningTest": "Exécution du test : {{testName}}",

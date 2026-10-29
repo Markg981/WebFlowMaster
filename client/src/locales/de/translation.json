@@ -1634,7 +1634,8 @@
       "title": "404 Seite nicht gefunden"
     },
     "didYouForgetToAddThePage": {
-      "description": "Wurde die Seite dem Router hinzugefügt?"
+      "description": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
+      "homeLink": "Zur Startseite"
     }
   },
   "settingsPage": {
@@ -2405,6 +2406,7 @@
     }
   },
   "testPlanExecutionPage": {
+    "backToTestPlans": "Zurück zu den Testplänen",
     "logs": {
       "startingExecution": "Ausführung des Plans wird gestartet: {{planName}}",
       "runningTest": "Test wird ausgeführt: {{testName}}",
