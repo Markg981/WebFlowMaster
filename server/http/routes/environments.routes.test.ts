@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
+import { sql } from 'drizzle-orm';
 import { privilegedDb } from '../../platform/db';
 import { environments, secrets } from '@shared/schema';
 import { decryptSecret } from '../../platform/crypto';
@@ -92,6 +93,27 @@ describe('environments', () => {
     expect(await privilegedDb.select().from(environments)).toHaveLength(0);
     // Orphaned secrets would be undeletable through the interface and still decryptable.
     expect(await privilegedDb.select().from(secrets)).toHaveLength(0);
+  });
+
+  it('refuses to delete an environment an active schedule still names', async () => {
+    const created = await request(app).post('/api/environments').send({ name: 'Nightly' });
+    const planId = `plan_env_${Date.now()}`;
+    await privilegedDb.execute(
+      sql`INSERT INTO test_plans (id, name, user_id, organization_id)
+          VALUES (${planId}, 'P', ${userId}, ${organizationId})`,
+    );
+    await privilegedDb.execute(
+      sql`INSERT INTO test_plan_schedules
+            (id, test_plan_id, schedule_name, frequency, next_run_at, environment, is_active, organization_id)
+          VALUES (${`sch_${planId}`}, ${planId}, 'Night', 'daily', now(), 'nightly', true, ${organizationId})`,
+    );
+
+    const res = await request(app).delete(`/api/environments/${created.body.id}`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.schedules).toEqual(['Night']);
+    expect(await privilegedDb.select().from(environments)).toHaveLength(1);
+    await privilegedDb.execute(sql`DELETE FROM test_plan_schedules WHERE test_plan_id = ${planId}`);
   });
 
   it('does not list another organization environments', async () => {

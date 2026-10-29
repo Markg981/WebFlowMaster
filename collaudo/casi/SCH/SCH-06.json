@@ -1,0 +1,14 @@
+{
+  "id": "SCH-06",
+  "area": "SCH",
+  "title": "Ambiente referenziato da uno schedule",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Schedule attivo su un piano; ambiente di collaudo esistente.",
+  "steps": [
+    "Creare uno schedule attivo che usa l'ambiente QA.",
+    "Impostazioni → Ambienti: eliminare QA."
+  ],
+  "expected": "L'eliminazione è rifiutata con 409 e l'elenco degli schedule che lo usano; l'ambiente resta.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Schedule attivo su un piano; ambiente di collaudo esistente.</p>\n        <h4>Passi</h4>\n        <ol><li>Creare uno schedule attivo che usa l'ambiente QA.</li><li>Impostazioni → Ambienti: eliminare QA.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'eliminazione è rifiutata con 409 e l'elenco degli schedule che lo usano; l'ambiente resta.</p>\n      "
+}

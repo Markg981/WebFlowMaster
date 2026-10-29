@@ -72,9 +72,9 @@ export async function getDashboardMetrics(_userId: number, config: DashboardWidg
     if (config.projectId) conditions.push(runProject(config.projectId));
     const [stats] = await tx
       .select({
-        total: sql<number>`count(*)`,
+        total: sql<number>`count(*) filter (where ${testPlanExecutions.status} not in ('cancelled', 'cancelling'))`,
         passed: sql<number>`count(*) filter (where ${testPlanExecutions.status} = 'completed')`,
-        failed: sql<number>`count(*) filter (where ${testPlanExecutions.status} in ('failed', 'error'))`,
+        failed: sql<number>`count(*) filter (where ${testPlanExecutions.status} in ('failed', 'error', 'timed_out'))`,
         avgDuration: sql<number>`coalesce(avg(${testPlanExecutions.executionDurationMs}), 0)`,
       })
       .from(testPlanExecutions)
@@ -84,7 +84,7 @@ export async function getDashboardMetrics(_userId: number, config: DashboardWidg
       .select({
         date: sql<string>`to_char(${testPlanExecutions.startedAt}, 'YYYY-MM-DD')`,
         passed: sql<number>`count(*) filter (where ${testPlanExecutions.status} = 'completed')`,
-        failed: sql<number>`count(*) filter (where ${testPlanExecutions.status} in ('failed', 'error'))`,
+        failed: sql<number>`count(*) filter (where ${testPlanExecutions.status} in ('failed', 'error', 'timed_out'))`,
       })
       .from(testPlanExecutions)
       .innerJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))

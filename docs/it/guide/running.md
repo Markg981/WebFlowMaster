@@ -227,7 +227,9 @@ report, e conta comunque come passato.
   giorno della settimana).
 - **Timezone**: la pianificazione gira a quell'ora locale tutto l'anno, ora legale compresa.
 - **Environment** i cui segreti usa il run, e i **Browsers** in cui girare (headless: nessuno sta
-  guardando).
+  guardando). Un ambiente ancora indicato da una pianificazione attiva non si può eliminare
+  (richiesta rifiutata con 409, con l'elenco delle pianificazioni); se il nome non corrisponde più
+  ad alcun ambiente, il run non parte invece di girare senza variabili e segreti.
 - **Retry on Failure**: riesegue l'intero piano se fallisce, una o due volte.
 - **Schedule Active**: la si spegne senza cancellarla.
 
