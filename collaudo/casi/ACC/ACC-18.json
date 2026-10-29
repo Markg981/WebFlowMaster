@@ -1,0 +1,14 @@
+{
+  "id": "ACC-18",
+  "area": "ACC",
+  "title": "Chi sbaglia la password non blocca il titolare dell'account",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Un account noto con password valida; due postazioni con indirizzi diversi (A e B).",
+  "steps": [
+    "Da A sbagliare la password 11 volte.",
+    "Da A provare la password giusta.",
+    "Da B accedere con la password giusta."
+  ],
+  "expected": "2: rifiutato con 429 e Retry-After, anche con la password giusta (audit auth.account_locked, factor password). 3: accesso riuscito (200); il blocco vale solo per l'indirizzo che ha sbagliato."
+}

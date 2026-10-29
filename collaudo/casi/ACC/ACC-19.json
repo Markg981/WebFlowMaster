@@ -1,0 +1,13 @@
+{
+  "id": "ACC-19",
+  "area": "ACC",
+  "title": "Tentativi su molti indirizzi bloccano comunque l'account",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Un account noto; LOGIN_MAX_FAILURES_ACCOUNT al valore predefinito (100).",
+  "steps": [
+    "Da molti indirizzi diversi sbagliare la password 100 volte in totale (al massimo 10 per indirizzo).",
+    "Da un indirizzo nuovo provare la password giusta."
+  ],
+  "expected": "2: rifiutato con 429 e Retry-After finché la finestra non scade; il limite per account è un tetto contro i tentativi distribuiti."
+}

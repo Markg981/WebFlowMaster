@@ -24,6 +24,7 @@ import {
   registerAttempt,
   clearAttempts,
   usernameKey,
+  passwordKey,
   type ThrottleVerdict,
 } from './login-throttle';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
@@ -450,12 +451,15 @@ export function setupAuth(app: Express) {
    */
   app.post('/api/login', authLimiter, async (req, res, next) => {
     // Per account, whatever the address: counted by the name typed, existing or not.
-    const throttleKey = usernameKey(req.body?.username);
+    const accountKey = usernameKey(req.body?.username);
+    const throttleKey = passwordKey(req.body?.username, req.ip);
     try {
       const verdict = await registerAttempt('password', throttleKey);
-      if (verdict.locked) {
-        await reportLock(verdict, 'password', req.body?.username, req.ip);
-        return refuseLocked(res, verdict);
+      const accountVerdict = await registerAttempt('account', accountKey);
+      if (verdict.locked || accountVerdict.locked) {
+        const locked = verdict.locked ? verdict : accountVerdict;
+        await reportLock(locked, 'password', req.body?.username, req.ip);
+        return refuseLocked(res, locked);
       }
     } catch (error) {
       return next(error);
@@ -465,6 +469,7 @@ export function setupAuth(app: Express) {
       if (!user) return res.status(401).json({ message: 'Unauthorized' });
       try {
         await clearAttempts('password', throttleKey);
+        await clearAttempts('account', accountKey);
         // Said only after the password was right, so it tells a stranger nothing about who has an
         // account. Owners keep their password: they are the way back in if the provider fails.
         if (await ssoRequiredFor(user)) {

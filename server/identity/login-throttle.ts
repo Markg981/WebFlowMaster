@@ -2,8 +2,9 @@ import type { Options } from 'express-rate-limit';
 import { sharedStore, type SharedRateLimitStore } from '../platform/middleware/rate-limit-store';
 
 /**
- * A limit per account, on top of the one per address (authLimiter): an attacker spreading guesses
- * over many addresses is one client to nobody, but is always one account to us.
+ * A limit per account and address, on top of the one per address (authLimiter): an attacker only
+ * locks their own address out of the account, never its owner. Guesses spread over many addresses
+ * are caught by a higher limit on the account alone (LOGIN_MAX_FAILURES_ACCOUNT).
  *
  * Counted through the same store the address limiter uses: Redis when it answers (so every web
  * process shares one budget), this process's memory otherwise. Each attempt is counted before it
@@ -22,6 +23,8 @@ function intEnv(name: string, fallback: number): number {
 
 export const loginThrottleConfig = () => ({
   maxPasswordFailures: intEnv('LOGIN_MAX_FAILURES', 10),
+  // Backstop on the account alone, for guesses spread over many addresses; well above the per-address limit.
+  maxAccountFailures: intEnv('LOGIN_MAX_FAILURES_ACCOUNT', 100),
   maxMfaFailures: intEnv('MFA_MAX_FAILURES', 5),
   windowMs: intEnv('LOGIN_LOCK_WINDOW_MINUTES', 15) * 60_000,
 });
@@ -34,7 +37,7 @@ export interface ThrottleVerdict {
   retryAfterSeconds: number;
 }
 
-type Kind = 'password' | 'mfa';
+type Kind = 'password' | 'account' | 'mfa';
 const stores = new Map<Kind, SharedRateLimitStore>();
 
 function storeFor(kind: Kind) {
@@ -50,7 +53,12 @@ function storeFor(kind: Kind) {
 /** Count one attempt on this key and say whether it is over the limit. */
 export async function registerAttempt(kind: Kind, key: string): Promise<ThrottleVerdict> {
   const cfg = loginThrottleConfig();
-  const max = kind === 'password' ? cfg.maxPasswordFailures : cfg.maxMfaFailures;
+  const max =
+    kind === 'password'
+      ? cfg.maxPasswordFailures
+      : kind === 'account'
+        ? cfg.maxAccountFailures
+        : cfg.maxMfaFailures;
   const info = await storeFor(kind).increment(key);
   const resetAt = info.resetTime?.getTime() ?? Date.now() + cfg.windowMs;
   return {
@@ -62,6 +70,11 @@ export async function registerAttempt(kind: Kind, key: string): Promise<Throttle
 
 export async function clearAttempts(kind: Kind, key: string): Promise<void> {
   await storeFor(kind).resetKey(key);
+}
+
+/** The password count belongs to the account seen from one address: a stranger cannot lock you out. */
+export function passwordKey(username: unknown, ip: string | undefined): string {
+  return `${usernameKey(username)}|${ip ?? ''}`;
 }
 
 export function usernameKey(username: unknown): string {
