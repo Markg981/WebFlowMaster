@@ -232,6 +232,8 @@ export interface RunArtifactAccess {
   linkable(relativePath: string): boolean;
   /** Whether the file is withheld only for lack of the raw-evidence permission. */
   restricted(relativePath: string): boolean;
+  /** Whether a result row belongs to a test the caller cannot see: its detail is not theirs. */
+  hiddenResult(row: { uiTestId?: number | null; mobileTestId?: number | null }): boolean;
 }
 
 /**
@@ -260,5 +262,8 @@ export async function runArtifactAccess(
       const decision = decide(relativePath);
       return !decision.allowed && decision.reason !== 'hidden';
     },
+    hiddenResult: (row) =>
+      (!!row.uiTestId && hidden.has(`ui:${row.uiTestId}`)) ||
+      (!!row.mobileTestId && hidden.has(`mobile:${row.mobileTestId}`)),
   };
 }
