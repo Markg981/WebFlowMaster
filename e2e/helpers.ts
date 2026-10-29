@@ -25,7 +25,7 @@ export async function register(page: Page, username = unique('critical'), invita
 export async function logout(page: Page) {
   await page.getByRole('banner').getByRole('button', { name: 'Account', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Log out', exact: true }).click();
-  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page).toHaveURL(/\/auth(\?returnTo=[^&]*)?$/);
 }
 
 export async function login(page: Page, username: string) {

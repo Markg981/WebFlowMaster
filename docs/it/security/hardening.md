@@ -69,8 +69,8 @@ quando sono di una sola famiglia, mentre un nome che risponde in entrambe (`loca
 host) è verificato e poi risolto di nuovo dal client gRPC, come per il percorso SMTP. Gli endpoint dei
 metadati cloud (`169.254.0.0/16` incluso `169.254.169.254`, `fd00:ec2::254`,
 `metadata.google.internal`, `100.100.100.200` di Alibaba, `192.0.0.192` di Oracle,
-`168.63.129.16` di Azure) sono sempre rifiutati. Gli indirizzi privati, loopback, link-local e
-unique-local sono raggiungibili per default (`EGRESS_PRIVATE_TARGETS=allow`): un'installazione
+`168.63.129.16` di Azure) sono sempre rifiutati. Gli indirizzi privati, loopback, link-local,
+unique-local, CGNAT (`100.64.0.0/10`), benchmarking (`198.18.0.0/15`), `192.0.0.0/24`, multicast e 6to4 (`2002::/16`) sono raggiungibili per default (`EGRESS_PRIVATE_TARGETS=allow`): un'installazione
 self-hosted testa la propria intranet dal server, e per lei non cambia nulla.
 `EGRESS_PRIVATE_TARGETS=deny` rifiuta anche quelli, ed è l'impostazione per un'installazione
 condivisa; `EGRESS_ALLOW_HOSTS` esenta host e CIDR da entrambi. Una richiesta rifiutata fallisce

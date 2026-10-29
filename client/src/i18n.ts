@@ -43,4 +43,13 @@ i18n
     },
   });
 
+// Screen readers and the browser's hyphenation/spell-check follow <html lang>, not the UI language.
+const syncDocumentLang = (language: string | undefined) => {
+  if (typeof document !== 'undefined' && language) {
+    document.documentElement.lang = language.split('-')[0];
+  }
+};
+i18n.on('languageChanged', syncDocumentLang);
+syncDocumentLang(i18n.language);
+
 export default i18n;
