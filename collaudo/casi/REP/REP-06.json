@@ -1,0 +1,14 @@
+{
+  "id": "REP-06",
+  "area": "REP",
+  "title": "Esportare un run",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Quattro file scaricati. L'HTML si apre offline con gli screenshot; il PDF è leggibile; Allure genera il report; il JUnit è valido e raggruppato per browser.",
+  "steps": [
+    "Esporta in HTML, PDF, Allure (.zip) e JUnit XML.",
+    "Aprire l'HTML senza rete; aprire il PDF; allure generate sullo zip; validare il JUnit in una CI o in un visualizzatore."
+  ],
+  "expected": "Quattro file scaricati. L'HTML si apre offline con gli screenshot; il PDF è leggibile; Allure genera il report; il JUnit è valido e raggruppato per browser.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><b>Esporta</b> in HTML, PDF, Allure (.zip) e JUnit XML.</li><li>Aprire l'HTML senza rete; aprire il PDF; <code>allure generate</code> sullo zip; validare il JUnit in una CI o in un visualizzatore.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Quattro file scaricati. L'HTML si apre offline con gli screenshot; il PDF è leggibile; Allure genera il report; il JUnit è valido e raggruppato per browser.</p>\n      "
+}

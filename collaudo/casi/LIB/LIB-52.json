@@ -1,0 +1,14 @@
+{
+  "id": "LIB-52",
+  "area": "LIB",
+  "title": "Stesso esito da WebFlowMaster e dal file esportato",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 79. Una pagina di prova controllata che registra le chiamate ricevute; due test web su di essa con precondizione (POST) e pulizia (DELETE), un iframe, un ciclo Ripeti e una casella: uno con asserzioni corrette, uno con un’asserzione sbagliata dopo il salvataggio. Entrambi pubblicati.",
+  "steps": [
+    "Eseguire i due test in un piano e annotare esiti, motivo del fallimento e chiamate registrate dalla pagina.",
+    "Azzerare il registro, esportare i due test con ?mode=strict ed eseguirli con npx playwright test.",
+    "Confrontare."
+  ],
+  "expected": "Le chiamate registrate sono le stesse nei due casi (precondizione, salvataggio, invio nell’iframe, pulizia anche per il test fallito); il test corretto passa in entrambi, quello sbagliato fallisce in entrambi con il testo atteso nel messaggio. Lo stesso confronto è automatizzato in e2e/export-conformance.spec.ts su Chromium, Firefox e WebKit."
+}

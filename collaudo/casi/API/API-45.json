@@ -1,0 +1,13 @@
+{
+  "id": "API-45",
+  "area": "API",
+  "title": "mTLS negativo e isolamento organizzazione",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Stessi prerequisiti API-44; seconda organizzazione senza quei segreti.",
+  "steps": [
+    "Provare CA errata, certificato/chiave non corrispondenti e hostname errato.",
+    "Importare i soli riferimenti nell’organizzazione B ed eseguire senza definirne i segreti."
+  ],
+  "expected": "Ogni prova fallisce, senza fallback TLS insicuro né segreti nelle spiegazioni; B non risolve i valori di A."
+}

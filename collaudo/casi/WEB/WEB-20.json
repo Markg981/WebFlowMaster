@@ -1,0 +1,15 @@
+{
+  "id": "WEB-20",
+  "area": "WEB",
+  "title": "Premere un tasto, e l'Invio registrato",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "I tasti validi arrivano alla pagina. Un nome di tasto non valido fa fallire lo step con un messaggio di Playwright che lo nomina. Nella registrazione lo step Premi tasto Enter compare dopo l'inserimento della password, e il replay effettua l'accesso («Secure Area»).",
+  "steps": [
+    "/key_presses: Premi tasto Enter sul campo #target; Verifica Testo Contenuto #result «ENTER». Variante: Control+A, poi Tab senza elemento.",
+    "/login: Premi tasto con valore Invio (nome non valido); eseguire.",
+    "Registrazione (server sulla propria macchina): su /login scrivere username e password e confermare con Invio nel campo password, senza cliccare Login; Termina registrazione; Esegui test."
+  ],
+  "expected": "I tasti validi arrivano alla pagina. Un nome di tasto non valido fa fallire lo step con un messaggio di Playwright che lo nomina. Nella registrazione lo step Premi tasto Enter compare dopo l'inserimento della password, e il replay effettua l'accesso («Secure Area»).",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>/key_presses: <b>Premi tasto</b> <code>Enter</code> sul campo <code>#target</code>; Verifica Testo Contenuto <code>#result</code> «ENTER». Variante: <code>Control+A</code>, poi <code>Tab</code> senza elemento.</li><li>/login: <b>Premi tasto</b> con valore <code>Invio</code> (nome non valido); eseguire.</li><li>Registrazione (server sulla propria macchina): su /login scrivere username e password e confermare con <b>Invio</b> nel campo password, senza cliccare Login; <b>Termina registrazione</b>; <b>Esegui test</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">I tasti validi arrivano alla pagina. Un nome di tasto non valido fa fallire lo step con un messaggio di Playwright che lo nomina. Nella registrazione lo step <b>Premi tasto</b> Enter compare <b>dopo</b> l'inserimento della password, e il replay effettua l'accesso («Secure Area»).</p>\n      "
+}

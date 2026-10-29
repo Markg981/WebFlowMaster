@@ -1,0 +1,14 @@
+{
+  "id": "ADM-28",
+  "area": "ADM",
+  "title": "Modelli: reset, revisioni e isolamento",
+  "priority": "P1",
+  "actor": "owner.a, owner.b, editor.a, viewer.a",
+  "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+  "steps": [
+    "Personalizzare separatamente invito, reset password e notifica run in A; salvare, ricaricare e verificare invii account/worker controllati.",
+    "In due sessioni modificare lo stesso modello: dopo il primo salvataggio, il secondo deve produrre conflitto con bozza conservata.",
+    "Cambiare scopo/organizzazione, verificare pulizia bozze/anteprima; ripristinare il modello integrato e verificare B."
+  ],
+  "expected": "Override persistenti applicati ai percorsi account/worker di A; reset ripristina il built-in e B resta separata. Conflitti non perdono la bozza; cambio identità/scopo non mostra contenuti del contesto precedente."
+}

@@ -1,0 +1,13 @@
+{
+  "id": "QUO-14",
+  "area": "QUO",
+  "title": "Debug rifiutato senza sessione fantasma",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Esaurire il budget di esecuzione di A in enforce e avviare una sessione di debug.",
+    "Controllare risposta, stato del debug e sessioni attive."
+  ],
+  "expected": "La richiesta riceve 429; lo stato inizializzato del debug termina e non rimane una sessione attiva fantasma."
+}

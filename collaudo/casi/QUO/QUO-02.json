@@ -1,0 +1,13 @@
+{
+  "id": "QUO-02",
+  "area": "QUO",
+  "title": "Monitoraggio e applicazione dei limiti",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Impostare A in monitor e superare il limite di test configurato.",
+    "Passare A a enforce e tentare una nuova creazione; aprire e modificare un test esistente."
+  ],
+  "expected": "Monitor mostra il consumo senza bloccare; enforce rifiuta la crescita oltre il limite, conservando contenuti esistenti ed esecuzioni già in corso."
+}

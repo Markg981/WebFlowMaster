@@ -1,0 +1,15 @@
+{
+  "id": "WEB-62",
+  "area": "WEB",
+  "title": "Lighthouse dove non può girare",
+  "priority": "P2",
+  "actor": "editor.a · operatore",
+  "preconditions": "WEB-61.",
+  "steps": [
+    "Su un'installazione senza Lighthouse (es. avviata con npm run dev senza installarlo): eseguire il test.",
+    "Lo stesso test in un piano su un pool di agenti locali con una pagina raggiungibile solo dall'agente.",
+    "Uno step Audit Lighthouse prima di qualunque Naviga (pagina vuota)."
+  ],
+  "expected": "1: lo step fallisce con «Lighthouse is not installed on this runner…» e indica come installarlo o LIGHTHOUSE_BIN. 2: fallisce con il motivo di Lighthouse (pagina non raggiungibile dal runner): la documentazione dice che l'audit gira solo sui runner del server. 3: «Lighthouse needs a page with a web address: navigate first.»",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-61.</p>\n        <h4>Passi</h4>\n        <ol><li>Su un'installazione senza Lighthouse (es. avviata con npm run dev senza installarlo): eseguire il test.</li><li>Lo stesso test in un piano su un pool di agenti locali con una pagina raggiungibile solo dall'agente.</li><li>Uno step Audit Lighthouse prima di qualunque Naviga (pagina vuota).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: lo step fallisce con «Lighthouse is not installed on this runner…» e indica come installarlo o LIGHTHOUSE_BIN. 2: fallisce con il motivo di Lighthouse (pagina non raggiungibile dal runner): la documentazione dice che l'audit gira solo sui runner del server. 3: «Lighthouse needs a page with a web address: navigate first.»</p>\n      "
+}

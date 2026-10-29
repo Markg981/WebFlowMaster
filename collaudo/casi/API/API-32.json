@@ -1,0 +1,13 @@
+{
+  "id": "API-32",
+  "area": "API",
+  "title": "Pubblicazione diretta API",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Revisione 2 diversa dalla 1; revisioni non obbligatorie.",
+  "steps": [
+    "Pubblicare la revisione 2.",
+    "Ricaricare e avviare un piano contenente solo questo test."
+  ],
+  "expected": "Il pannello indica revisione 2 pubblicata; piano e risultato usano la configurazione della 2 e riportano il numero 2."
+}

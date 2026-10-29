@@ -1,0 +1,15 @@
+{
+  "id": "WEB-15",
+  "area": "WEB",
+  "title": "Repository degli elementi",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Con il selettore sbagliato entrambi i test falliscono su quello step; ripristinato, passano entrambi senza toccare i test.",
+  "steps": [
+    "Segnalibro sull'elemento username: Salva questo elemento nel progetto con nome Campo username.",
+    "Usarlo in due test.",
+    "Impostazioni → Repository degli elementi: cambiare il selettore in uno sbagliato; eseguire i due test; ripristinarlo; eseguire."
+  ],
+  "expected": "Con il selettore sbagliato entrambi i test falliscono su quello step; ripristinato, passano entrambi senza toccare i test.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Segnalibro sull'elemento username: <b>Salva questo elemento</b> nel progetto con nome <code>Campo username</code>.</li><li>Usarlo in due test.</li><li>Impostazioni → Repository degli elementi: cambiare il selettore in uno sbagliato; eseguire i due test; ripristinarlo; eseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con il selettore sbagliato entrambi i test falliscono su quello step; ripristinato, passano entrambi senza toccare i test.</p>\n      "
+}

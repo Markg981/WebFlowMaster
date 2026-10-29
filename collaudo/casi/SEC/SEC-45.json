@@ -1,0 +1,15 @@
+{
+  "id": "SEC-45",
+  "area": "SEC",
+  "title": "Lo stack Compose rifiuta segreti mancanti o pubblici",
+  "priority": "P1",
+  "actor": "Operatore del Collaudo",
+  "preconditions": "Copia pulita del repository, senza .env alla radice. Docker disponibile. Nessuno stack wfm-collaudo da preservare.",
+  "steps": [
+    "Dalla radice eseguire docker compose --env-file /dev/null config -q (PowerShell: --env-file NUL).",
+    "Creare .env con POSTGRES_PASSWORD, SESSION_SECRET, ENCRYPTION_KEY e AGENT_RELAY_SECRET generati con openssl rand -hex 32 e ripetere docker compose config -q.",
+    "Impostare in .env ENCRYPTION_KEY a 64 zeri, avviare docker compose up -d api e leggere docker compose logs api.",
+    "Ripristinare la chiave generata e riavviare api; aprire http://localhost:5000."
+  ],
+  "expected": "Passo 1: Compose si ferma con \"required variable POSTGRES_PASSWORD is missing a value\" (e le altre tre). Passo 2: nessun errore. Passo 3: api non parte e il log riporta Invalid configuration con ENCRYPTION_KEY is a published example value. Passo 4: api healthy e pagina di accesso raggiungibile. Lo stack di collaudo parte con collaudo/collaudo.env senza modifiche."
+}

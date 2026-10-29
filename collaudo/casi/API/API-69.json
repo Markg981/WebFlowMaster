@@ -1,0 +1,12 @@
+{
+  "id": "API-69",
+  "area": "API",
+  "title": "Un load contro un endpoint che risponde 500 fallisce anche senza soglie",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 90. Un load test senza soglie su un endpoint che risponde 500.",
+  "steps": [
+    "Avviare il load test e attendere la fine."
+  ],
+  "expected": "Il run è fallito: richieste fallite 100% (soglia predefinita 50%), campioni di errore «HTTP 500»."
+}

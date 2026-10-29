@@ -1,0 +1,14 @@
+{
+  "id": "OPS-23",
+  "area": "OPS",
+  "title": "Guardie di tag e promozione",
+  "priority": "P1",
+  "actor": "operatore release",
+  "preconditions": "Repository di prova sacrificabile, tag autorizzati per soli casi negativi e nessuna release cliente.",
+  "steps": [
+    "Provare tag diverso dalla versione del pacchetto e commit fuori da main.",
+    "Provare commit senza i quattro check riusciti.",
+    "Tentare promozione con archivio alterato o tag preesistente con altro contenuto."
+  ],
+  "expected": "Tutti i tentativi sono rifiutati prima di sovrascrivere immagini. Rieseguire sullo stesso contenuto permette di riutilizzare i tag coincidenti."
+}

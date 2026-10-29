@@ -1,0 +1,13 @@
+{
+  "id": "API-14",
+  "area": "API",
+  "title": "NTLM da un agente locale",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Il sito di API-13 raggiungibile solo dalla rete dell'agente; un pool di agenti con un agente connesso.",
+  "steps": [
+    "Un piano con il test API di API-13, Esegui su: il pool; eseguire."
+  ],
+  "expected": "Il test passa: l'handshake (negotiate, challenge, authenticate) parte dalla macchina dell'agente sulla stessa connessione. Il log di IIS mostra come client l'IP dell'agente.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Il sito di API-13 raggiungibile solo dalla rete dell'agente; un pool di agenti con un agente connesso.</p>\n        <h4>Passi</h4>\n        <ol><li>Un piano con il test API di API-13, Esegui su: il pool; eseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il test passa: l'handshake (negotiate, challenge, authenticate) parte dalla macchina dell'agente sulla stessa connessione. Il log di IIS mostra come client l'IP dell'agente.</p>\n      "
+}

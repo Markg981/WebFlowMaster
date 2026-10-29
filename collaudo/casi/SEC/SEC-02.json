@@ -1,0 +1,14 @@
+{
+  "id": "SEC-02",
+  "area": "SEC",
+  "title": "Isolamento con gli identificativi",
+  "priority": "P1",
+  "actor": "owner.b",
+  "preconditions": "L'URL di un report di A e l'id di un suo run.",
+  "steps": [
+    "Come owner.b aprire l'URL del report di A.",
+    "Con una chiave API di B: GET /api/v1/runs/{id di A} e POST /api/v1/plans/{piano di A}/runs."
+  ],
+  "expected": "Il report non si apre. L'API risponde 404 run_not_found e plan_not_found: nemmeno l'esistenza viene rivelata.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>L'URL di un report di A e l'id di un suo run.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b aprire l'URL del report di A.</li><li>Con una chiave API di B: <code>GET /api/v1/runs/{id di A}</code> e <code>POST /api/v1/plans/{piano di A}/runs</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il report non si apre. L'API risponde 404 <code>run_not_found</code> e <code>plan_not_found</code>: nemmeno l'esistenza viene rivelata.</p>\n      "
+}

@@ -1,0 +1,17 @@
+{
+  "id": "MOB-16",
+  "area": "MOB",
+  "title": "Appium locale: configurare la griglia",
+  "priority": "P1",
+  "actor": "owner.a · editor.a",
+  "preconditions": "Un agente locale del pool lab connesso (vedi le guide sugli agenti); sulla sua macchina Appium 2 con il driver uiautomator2, un emulatore Android avviato e appium in esecuzione.",
+  "steps": [
+    "Impostazioni → Griglie di browser → Aggiungi griglia: provider Local Appium (agent); guardare i campi.",
+    "Nome Lab, senza pool; Aggiungi. Poi pool lab (proposto dall'elenco) e indirizzo ws://127.0.0.1:4723; Aggiungi. Poi indirizzo vuoto; Aggiungi.",
+    "Verifica connessione sulla riga Lab.",
+    "Fermare Appium sulla macchina dell'agente; Verifica connessione. Poi fermare l'agente; Verifica connessione.",
+    "Impostazioni di un piano → Esegui su: guardare l'elenco delle griglie."
+  ],
+  "expected": "1: nessun campo chiave né username; ci sono Indirizzo (segnaposto http://127.0.0.1:4723) e Pool di agenti locali. 2: prima «Name the pool…», poi l'errore sull'indirizzo http://; infine salvata: in elenco «lab · http://127.0.0.1:4723». 3: verde «Connected through pool \"lab\": Appium 2.x…». 4: rosso con il motivo (connessione rifiutata; poi nessun agente del pool). 5: Lab non compare: un Appium locale non fa girare i browser di un piano.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un agente locale del pool <code>lab</code> connesso (vedi le guide sugli agenti); sulla sua macchina Appium 2 con il driver uiautomator2, un emulatore Android avviato e <code>appium</code> in esecuzione.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Griglie di browser → Aggiungi griglia: provider <b>Local Appium (agent)</b>; guardare i campi.</li><li>Nome <code>Lab</code>, senza pool; Aggiungi. Poi pool <code>lab</code> (proposto dall'elenco) e indirizzo <code>ws://127.0.0.1:4723</code>; Aggiungi. Poi indirizzo vuoto; Aggiungi.</li><li><b>Verifica connessione</b> sulla riga Lab.</li><li>Fermare Appium sulla macchina dell'agente; Verifica connessione. Poi fermare l'agente; Verifica connessione.</li><li>Impostazioni di un piano → Esegui su: guardare l'elenco delle griglie.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: nessun campo chiave né username; ci sono Indirizzo (segnaposto http://127.0.0.1:4723) e Pool di agenti locali. 2: prima «Name the pool…», poi l'errore sull'indirizzo http://; infine salvata: in elenco «lab · http://127.0.0.1:4723». 3: verde «Connected through pool \"lab\": Appium 2.x…». 4: rosso con il motivo (connessione rifiutata; poi nessun agente del pool). 5: Lab non compare: un Appium locale non fa girare i browser di un piano.</p>\n      "
+}

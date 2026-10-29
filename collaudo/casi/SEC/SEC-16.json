@@ -1,0 +1,15 @@
+{
+  "id": "SEC-16",
+  "area": "SEC",
+  "title": "Griglie di browser: isolamento, ruoli e segreti",
+  "priority": "P1",
+  "actor": "owner.b · viewer.a",
+  "preconditions": "PLN-24 nell'organizzazione A.",
+  "steps": [
+    "Come owner.b: GET /api/browser-grids; PUT, DELETE e POST .../test sull'id della griglia di A; PUT /api/test-plans/<piano di B> con browserGridId di A.",
+    "Come viewer.a: aprire la sezione; dalla console POST /api/browser-grids.",
+    "Come operatore: cercare la chiave nel database, nei log del web e del worker, e nei job della coda."
+  ],
+  "expected": "owner.b vede un elenco vuoto e riceve 404; il piano di B non può puntare alla griglia di A (400, e il vincolo same-org del database lo impedisce comunque). viewer.a vede l'elenco ma riceve 403. La chiave è solo cifrata in browser_grids.encrypted_key: non compare in log, job o snapshot del run.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-24 nell'organizzazione A.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b: <code>GET /api/browser-grids</code>; <code>PUT</code>, <code>DELETE</code> e <code>POST .../test</code> sull'id della griglia di A; <code>PUT /api/test-plans/&lt;piano di B&gt;</code> con <code>browserGridId</code> di A.</li><li>Come viewer.a: aprire la sezione; dalla console <code>POST /api/browser-grids</code>.</li><li>Come operatore: cercare la chiave nel database, nei log del web e del worker, e nei job della coda.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">owner.b vede un elenco vuoto e riceve 404; il piano di B non può puntare alla griglia di A (400, e il vincolo same-org del database lo impedisce comunque). viewer.a vede l'elenco ma riceve 403. La chiave è solo cifrata in <code>browser_grids.encrypted_key</code>: non compare in log, job o snapshot del run.</p>\n      "
+}

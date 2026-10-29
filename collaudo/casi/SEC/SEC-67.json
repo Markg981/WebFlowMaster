@@ -1,0 +1,14 @@
+{
+  "id": "SEC-67",
+  "area": "SEC",
+  "title": "Editor di codice funzionante con Monaco 0.57 e markdown sanificato",
+  "priority": "P2",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 81. Un test API esistente.",
+  "steps": [
+    "Aprire l'API Tester e modificare il body JSON nell'editor di codice: digitare, usare l'autocompletamento, passare il mouse su una proprietà.",
+    "Incollare nel body il testo <img src=x onerror=alert(1)> e salvare.",
+    "Ricaricare la pagina."
+  ],
+  "expected": "L'editor si carica senza errori in console, evidenzia la sintassi e mostra i tooltip. Il testo incollato resta testo: nessun alert, nessuna immagine. Dopo il ricaricamento il body è identico."
+}

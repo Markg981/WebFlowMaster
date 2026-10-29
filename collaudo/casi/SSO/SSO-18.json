@@ -1,0 +1,16 @@
+{
+  "id": "SSO-18",
+  "area": "SSO",
+  "title": "Ruolo dai gruppi del provider (OIDC)",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "SSO-01 configurato con OpenID Connect; anna in wfm-editor; nessun account anna@acme.test (eliminarlo in Membri se c'è).",
+  "steps": [
+    "In Impostazioni → Sicurezza → Single sign-on, Ruoli dai gruppi del provider: lasciare il claim vuoto (groups); Mappa un gruppo wfm-editor → Editor e wfm-owner → Owner; Salva.",
+    "In una finestra anonima, Sign in with SSO come anna.",
+    "Console di Keycloak: spostare anna da wfm-editor a wfm-owner; uscire e rientrare con SSO come anna.",
+    "Registro di audit."
+  ],
+  "expected": "2: account creato con ruolo editor (anche se il ruolo dei nuovi account è viewer). 3: anna ora è owner e vede Impostazioni → Membri. 4: «Account creato al primo accesso» con bySsoGroups, poi «Ruolo del membro modificato» da editor a owner con bySsoGroups: true.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-01 configurato con OpenID Connect; anna in wfm-editor; nessun account anna@acme.test (eliminarlo in Membri se c'è).</p>\n        <h4>Passi</h4>\n        <ol><li>In Impostazioni → Sicurezza → Single sign-on, <b>Ruoli dai gruppi del provider</b>: lasciare il claim vuoto (groups); <b>Mappa un gruppo</b> wfm-editor → Editor e wfm-owner → Owner; <b>Salva</b>.</li><li>In una finestra anonima, <b>Sign in with SSO</b> come anna.</li><li>Console di Keycloak: spostare anna da wfm-editor a wfm-owner; uscire e rientrare con SSO come anna.</li><li>Registro di audit.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2: account creato con ruolo editor (anche se il ruolo dei nuovi account è viewer). 3: anna ora è owner e vede Impostazioni → Membri. 4: «Account creato al primo accesso» con bySsoGroups, poi «Ruolo del membro modificato» da editor a owner con bySsoGroups: true.</p>\n      "
+}

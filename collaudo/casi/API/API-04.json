@@ -1,0 +1,17 @@
+{
+  "id": "API-04",
+  "area": "API",
+  "title": "Tipi di autorizzazione",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "200 con le credenziali giuste, 401 con quelle sbagliate; l'header o il parametro compaiono dove previsto; il token OAuth viene ottenuto e inviato come Bearer. Tutti i quattordici tipi del menu sono selezionabili, nessuno è segnato «not available» (API-12…API-17).",
+  "steps": [
+    "Basic Auth su /basic-auth/user/passwd con user/passwd, poi con password sbagliata.",
+    "Bearer Token su /bearer.",
+    "API Key in header X-API-KEY su /headers; poi come parametro query.",
+    "OAuth 2.0 client credentials contro il token endpoint di Keycloak, poi su /bearer.",
+    "Aprire il menu dei tipi."
+  ],
+  "expected": "200 con le credenziali giuste, 401 con quelle sbagliate; l'header o il parametro compaiono dove previsto; il token OAuth viene ottenuto e inviato come Bearer. Tutti i quattordici tipi del menu sono selezionabili, nessuno è segnato «not available» (API-12…API-17).",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Basic Auth su <code>/basic-auth/user/passwd</code> con user/passwd, poi con password sbagliata.</li><li>Bearer Token su <code>/bearer</code>.</li><li>API Key in header <code>X-API-KEY</code> su <code>/headers</code>; poi come parametro query.</li><li>OAuth 2.0 client credentials contro il token endpoint di Keycloak, poi su <code>/bearer</code>.</li><li>Aprire il menu dei tipi.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">200 con le credenziali giuste, 401 con quelle sbagliate; l'header o il parametro compaiono dove previsto; il token OAuth viene ottenuto e inviato come Bearer. Tutti i quattordici tipi del menu sono selezionabili, nessuno è segnato «not available» (API-12…API-17).</p>\n      "
+}

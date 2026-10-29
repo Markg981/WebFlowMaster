@@ -1,0 +1,14 @@
+{
+  "id": "API-18",
+  "area": "API",
+  "title": "Un test salvato quando NTLM non funzionava",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un test API salvato prima di questo aggiornamento con tipo NTLM (o un altro dei tipi «not available»).",
+  "steps": [
+    "Aprire il test da Test salvati.",
+    "Eseguirlo senza modificarlo, in un piano."
+  ],
+  "expected": "Il test si apre con il modulo del tipo e i campi vuoti (prima: «not implemented»). Eseguito così non parte e dice quale campo manca («NTLM authentication needs a username.»); compilati i campi e salvato, passa.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test API salvato prima di questo aggiornamento con tipo NTLM (o un altro dei tipi «not available»).</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire il test da Test salvati.</li><li>Eseguirlo senza modificarlo, in un piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il test si apre con il modulo del tipo e i campi vuoti (prima: «not implemented»). Eseguito così non parte e dice quale campo manca («NTLM authentication needs a username.»); compilati i campi e salvato, passa.</p>\n      "
+}

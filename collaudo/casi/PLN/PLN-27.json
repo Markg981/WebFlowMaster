@@ -1,0 +1,15 @@
+{
+  "id": "PLN-27",
+  "area": "PLN",
+  "title": "Server Playwright proprio",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Su una macchina raggiungibile dai runner: npx playwright@<stessa versione> run-server --port 3000.",
+  "steps": [
+    "Aggiungere una griglia «Server Playwright» con indirizzo http://host:3000; poi con ws://host:3000/.",
+    "Prova la connessione.",
+    "Un piano su di essa con chrome, OS Windows, versione browser 118; eseguirlo."
+  ],
+  "expected": "L'indirizzo http:// è rifiutato (deve iniziare con ws:// o wss://). La prova riesce. Nel piano non vengono chiesti OS e versioni; se presenti dal passato, il log avvisa che il server Playwright usa i browser che ha e che «Windows, chrome 118» non sono applicati. I test girano sul server remoto.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Su una macchina raggiungibile dai runner: <code>npx playwright@&lt;stessa versione&gt; run-server --port 3000</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Aggiungere una griglia «Server Playwright» con indirizzo <code>http://host:3000</code>; poi con <code>ws://host:3000/</code>.</li><li>Prova la connessione.</li><li>Un piano su di essa con chrome, OS Windows, versione browser 118; eseguirlo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'indirizzo http:// è rifiutato (deve iniziare con ws:// o wss://). La prova riesce. Nel piano non vengono chiesti OS e versioni; se presenti dal passato, il log avvisa che il server Playwright usa i browser che ha e che «Windows, chrome 118» non sono applicati. I test girano sul server remoto.</p>\n      "
+}

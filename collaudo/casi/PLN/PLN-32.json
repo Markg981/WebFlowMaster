@@ -1,0 +1,14 @@
+{
+  "id": "PLN-32",
+  "area": "PLN",
+  "title": "Dispositivi su una browser grid e su un agente locale",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "Una browser grid (BrowserStack o LambdaTest) e un pool di agenti locali configurati.",
+  "steps": [
+    "Piano di PLN-30 con Esegui su = la grid; eseguire.",
+    "Esegui su = il pool di agenti; eseguire."
+  ],
+  "expected": "1: i passaggi si chiamano per esempio «chromium · Pixel 7» nel report e nella dashboard della grid gira un browser desktop che mostra la pagina come Pixel 7 (screenshot stretti). 2: stessi risultati di PLN-30 con il browser dell'agente.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Una browser grid (BrowserStack o LambdaTest) e un pool di agenti locali configurati.</p>\n        <h4>Passi</h4>\n        <ol><li>Piano di PLN-30 con <b>Esegui su</b> = la grid; eseguire.</li><li><b>Esegui su</b> = il pool di agenti; eseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: i passaggi si chiamano per esempio «chromium · Pixel 7» nel report e nella dashboard della grid gira un browser desktop che mostra la pagina come Pixel 7 (screenshot stretti). 2: stessi risultati di PLN-30 con il browser dell'agente.</p>\n      "
+}

@@ -1,0 +1,13 @@
+{
+  "id": "API-41",
+  "area": "API",
+  "title": "Limite dei messaggi ricevuti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report.",
+  "steps": [
+    "Salvare metodo Server con maxMessages=1.",
+    "Eseguire il piano."
+  ],
+  "expected": "Il secondo messaggio fa fallire il test per limite superato; nessun successo con stream troncato."
+}

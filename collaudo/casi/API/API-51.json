@@ -1,0 +1,13 @@
+{
+  "id": "API-51",
+  "area": "API",
+  "title": "Import/export pubblico e validazione atomica",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Suite di prova UI/manuale/BDD con dataset inline e condiviso; chiave suites read/write e project access; conservare conteggi e versioni iniziali. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "Esportare e reimportare la suite nel formato supportato, prima in dryRun e poi in un progetto sacrificabile.",
+    "Inviare import malformato e riferimenti di test/dataset non validi; ripetere export con scope mancante."
+  ],
+  "expected": "DryRun non persiste risorse; import valido produce risorse coerenti; input non valido restituisce errore stabile senza import parziale; scope insufficiente non rivela contenuti."
+}

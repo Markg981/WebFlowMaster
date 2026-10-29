@@ -1,0 +1,13 @@
+{
+  "id": "WEB-16",
+  "area": "WEB",
+  "title": "Correzione automatica del selettore (con chiave AI)",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "GEMINI_API_KEY impostata.",
+  "steps": [
+    "Rompere il selettore di un elemento salvato (per esempio #usernameX); eseguire in un piano."
+  ],
+  "expected": "Lo step è segnato healed nel report; il repository mostra il selettore vecchio e quello proposto, da confermare.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>GEMINI_API_KEY</code> impostata.</p>\n        <h4>Passi</h4>\n        <ol><li>Rompere il selettore di un elemento salvato (per esempio <code>#usernameX</code>); eseguire in un piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Lo step è segnato <b>healed</b> nel report; il repository mostra il selettore vecchio e quello proposto, da confermare.</p>\n      "
+}

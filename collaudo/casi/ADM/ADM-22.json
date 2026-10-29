@@ -1,0 +1,14 @@
+{
+  "id": "ADM-22",
+  "area": "ADM",
+  "title": "Disabilitazione invio e accesso owner",
+  "priority": "P1",
+  "actor": "owner.a, owner.b, editor.a, viewer.a",
+  "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+  "steps": [
+    "Come owner.a disabilitare l’invio e creare un invito; copiare il link mostrato.",
+    "Come editor.a e viewer.a aprire Sicurezza e richiedere GET/PUT mail-settings e mail-templates.",
+    "Come owner.b leggere la propria configurazione."
+  ],
+  "expected": "Nessuna email spedita da A; il link manuale resta utilizzabile. Editor/viewer non vedono le schede e le API rispondono 403. B non legge né modifica dati A."
+}

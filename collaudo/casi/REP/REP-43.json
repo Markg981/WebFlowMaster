@@ -1,0 +1,14 @@
+{
+  "id": "REP-43",
+  "area": "REP",
+  "title": "Test salvato dal nuovo tentativo in ogni run: compare fra i test instabili senza cambi di esito",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 78. Un piano con un nuovo tentativo per test (retry 1) su un test web il cui primo tentativo fallisce sempre (per esempio un'attesa troppo breve su un elemento lento) e il secondo passa.",
+  "steps": [
+    "Eseguire il piano tre volte, a distanza di qualche minuto.",
+    "Aprire Report e la scheda «Test che si contraddicono».",
+    "Aprire «Evidenze» sulla riga del test e seguire il collegamento della voce più recente."
+  ],
+  "expected": "Il test è in elenco anche se i tre run sono tutti verdi e i cambi di esito sono 0: mostra «3× passato al nuovo tentativo» e, nell'ultimo run, il badge «Flaky · passato al tentativo 2», il cui suggerimento riporta il motivo del primo fallimento. Le evidenze elencano tre voci dal run più recente; il collegamento apre il report di quel run sul tentativo 1 fallito. Il pulsante «Quarantena» è disponibile come per gli altri test instabili."
+}

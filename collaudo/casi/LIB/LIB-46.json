@@ -1,0 +1,16 @@
+{
+  "id": "LIB-46",
+  "area": "LIB",
+  "title": "Healing in conflitto: sorgente modificata, eliminata, archiviata o run di un viewer — nessuna scrittura altrove",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 74. Chiave AI configurata (o il doppio Gemini dello stack di collaudo). Un test pubblicato (versione N) con uno step proprio dal selettore rotto e uno step che nomina un elemento salvato del repository, anch'esso rotto.",
+  "steps": [
+    "Eseguire il test dal piano e aprire il report: dettagli degli step riparati.",
+    "Prima di approvare, modificare lo step proprio nell'editor e salvare; poi approvare la sua proposta.",
+    "Ripetere eliminando l'elemento del repository prima di approvarne la proposta.",
+    "Ripetere archiviando il test prima di approvare.",
+    "Aprire gli stessi dettagli con un account viewer."
+  ],
+  "expected": "Il run non cambia né il test né l'elemento: ci sono solo proposte. Con lo step modificato l'approvazione risponde che lo step è cambiato e la proposta diventa Superata; con l'elemento eliminato o il test archiviato nessuna scrittura. In nessun caso cambiano il test, il gruppo o un altro elemento, e lo step del test non viene corretto al posto dell'elemento. Il viewer vede la proposta e il suo stato ma non i pulsanti Approva/Rifiuta."
+}

@@ -1,0 +1,17 @@
+{
+  "id": "MOB-01",
+  "area": "MOB",
+  "title": "Caricare l'app e scrivere un test Android",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Una griglia BrowserStack (App Automate attivo, anche trial) in Impostazioni → Griglie di browser. L'app demo di BrowserStack WikipediaSample.apk (dalla documentazione di App Automate) o un .apk vostro.",
+  "steps": [
+    "Menu App mobili → Nuovo test mobile.",
+    "Scegliere la griglia accanto a Carica .apk / .ipa e caricare l'apk.",
+    "Nome Ricerca Wikipedia, Dispositivo Google Pixel 8, Versione 14.0.",
+    "Passi: Tocca ~Search Wikipedia; Digita id=org.wikipedia.alpha:id/search_src_text valore BrowserStack; Verifica visibile //android.widget.TextView.",
+    "Aggiungere un passo Tocca con elemento #search; poi correggerlo in text=Search Wikipedia. Salvare."
+  ],
+  "expected": "2: il campo App si riempie con bs://… e la piattaforma resta Android; nessun file resta su WebFlowMaster; audit mobile_test.app_uploaded. 5: con #search il passo è segnato in rosso («\"#search\" is not a locator for Android…») e Salva risponde «Correct the steps marked in red first.»; corretto, il test si salva e compare nell'elenco con Android, Google Pixel 8 14.0, 4 passi, «—» come ultima esecuzione.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Una griglia BrowserStack (App Automate attivo, anche trial) in Impostazioni → Griglie di browser. L'app demo di BrowserStack <code>WikipediaSample.apk</code> (dalla documentazione di App Automate) o un .apk vostro.</p>\n        <h4>Passi</h4>\n        <ol><li>Menu <b>App mobili</b> → <b>Nuovo test mobile</b>.</li><li>Scegliere la griglia accanto a <b>Carica .apk / .ipa</b> e caricare l'apk.</li><li>Nome <code>Ricerca Wikipedia</code>, Dispositivo <code>Google Pixel 8</code>, Versione <code>14.0</code>.</li><li>Passi: Tocca <code>~Search Wikipedia</code>; Digita <code>id=org.wikipedia.alpha:id/search_src_text</code> valore <code>BrowserStack</code>; Verifica visibile <code>//android.widget.TextView</code>.</li><li>Aggiungere un passo Tocca con elemento <code>#search</code>; poi correggerlo in <code>text=Search Wikipedia</code>. Salvare.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2: il campo App si riempie con bs://… e la piattaforma resta Android; nessun file resta su WebFlowMaster; audit mobile_test.app_uploaded. 5: con #search il passo è segnato in rosso («\"#search\" is not a locator for Android…») e Salva risponde «Correct the steps marked in red first.»; corretto, il test si salva e compare nell'elenco con Android, Google Pixel 8 14.0, 4 passi, «—» come ultima esecuzione.</p>\n      "
+}

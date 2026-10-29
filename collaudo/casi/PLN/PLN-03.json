@@ -1,0 +1,14 @@
+{
+  "id": "PLN-03",
+  "area": "PLN",
+  "title": "Più browser",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Ogni test gira una volta per browser; il report e il JUnit li raggruppano per browser.",
+  "steps": [
+    "Impostazioni del piano → Browser: Chromium, Firefox, WebKit.",
+    "Eseguire."
+  ],
+  "expected": "Ogni test gira una volta per browser; il report e il JUnit li raggruppano per browser.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Impostazioni del piano → <b>Browser</b>: Chromium, Firefox, WebKit.</li><li>Eseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ogni test gira una volta per browser; il report e il JUnit li raggruppano per browser.</p>\n      "
+}

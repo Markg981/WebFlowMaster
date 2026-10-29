@@ -1,0 +1,14 @@
+{
+  "id": "LIB-51",
+  "area": "LIB",
+  "title": "Export Playwright strict per la CI e bozza per l’utente tecnico",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 79. Un test web con un passo «Interroga database» (queryDatabase) tra due passi supportati.",
+  "steps": [
+    "Chiamare GET /api/tests/:id/playwright?mode=strict.",
+    "Chiamare la stessa route senza mode (bozza) ed eseguire il file con npx playwright test.",
+    "Chiamare ?mode=strict su un test con soli passi supportati."
+  ],
+  "expected": "1: 422, nessun allegato; il corpo elenca il rilievo {step: 2, area: «action», support: «unsupported»} con il motivo. 2: il file inizia con «// DRAFT —» e la riga «missing:»; il test fallisce al passo 2 con «step 2, Query a database: …» e il passo dopo non viene eseguito; nel file non c’è test.skip. 3: 200 e il file dice «// Conformance: complete»."
+}

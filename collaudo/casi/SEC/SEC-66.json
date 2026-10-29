@@ -1,0 +1,15 @@
+{
+  "id": "SEC-66",
+  "area": "SEC",
+  "title": "Nessuna dompurify vulnerabile nel client distribuito",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "Catalogo versione 81. Repository su main aggiornato, npm ci eseguito.",
+  "steps": [
+    "Eseguire npm run build --workspace=client.",
+    "Eseguire node scripts/security/client-bundle-dompurify.mjs.",
+    "Eseguire npm audit --omit=dev e aprire docs/SECURITY-AUDIT.md.",
+    "Eseguire npx vitest run server/tests/dependency-locks.test.ts."
+  ],
+  "expected": "Lo script elenca solo dompurify 3.4.16 o successive (oggi 3.4.17 nel chunk dell'editor) ed esce con 0. npm audit non riporta rilievi moderate, high o critical; i due rilievi bassi su dompurify 3.4.15 sotto monaco-editor 0.57.0 sono spiegati in SECURITY-AUDIT.md come pacchetto dichiarato e non distribuito. La tabella Accepted production findings è vuota. Il test passa."
+}

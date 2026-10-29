@@ -1,0 +1,14 @@
+{
+  "id": "WEB-43",
+  "area": "WEB",
+  "title": "Debug: sessione abbandonata e una alla volta",
+  "priority": "P2",
+  "actor": "editor.a · operatore",
+  "preconditions": "Installazione con worker (BROWSER_TASKS=worker).",
+  "steps": [
+    "Debug con un breakpoint; lasciare la sessione in pausa e, in un'altra scheda, avviare un secondo Debug.",
+    "Lasciare il secondo fermo per 15 minuti (o accorciare il timeout su un'installazione di prova)."
+  ],
+  "expected": "Avviare il secondo Debug ferma il primo (il suo browser si chiude). Dopo 15 minuti senza comandi la sessione si chiude da sola con un messaggio che lo dice, e il posto nel worker si libera.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Installazione con worker (BROWSER_TASKS=worker).</p>\n        <h4>Passi</h4>\n        <ol><li>Debug con un breakpoint; lasciare la sessione in pausa e, in un'altra scheda, avviare un secondo Debug.</li><li>Lasciare il secondo fermo per 15 minuti (o accorciare il timeout su un'installazione di prova).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Avviare il secondo Debug ferma il primo (il suo browser si chiude). Dopo 15 minuti senza comandi la sessione si chiude da sola con un messaggio che lo dice, e il posto nel worker si libera.</p>\n      "
+}

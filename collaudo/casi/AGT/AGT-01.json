@@ -1,0 +1,14 @@
+{
+  "id": "AGT-01",
+  "area": "AGT",
+  "title": "Creare e collegare un agente locale",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Macchina nella rete privata.",
+  "steps": [
+    "Impostazioni → Agenti locali: creare un agente in un pool interno; copiare il token.",
+    "Sulla macchina: avviare Dockerfile.agent o node wfm-agent.mjs con URL e token."
+  ],
+  "expected": "L'agente risulta connesso con i suoi browser e la versione di Playwright. Audit agent.created.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Macchina nella rete privata.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Agenti locali: creare un agente in un pool <code>interno</code>; copiare il token.</li><li>Sulla macchina: avviare <code>Dockerfile.agent</code> o <code>node wfm-agent.mjs</code> con URL e token.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'agente risulta connesso con i suoi browser e la versione di Playwright. Audit <b>agent.created</b>.</p>\n      "
+}

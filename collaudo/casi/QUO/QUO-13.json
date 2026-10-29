@@ -1,0 +1,13 @@
+{
+  "id": "QUO-13",
+  "area": "QUO",
+  "title": "Riconciliazione durante la pubblicazione delle evidenze",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Riconciliare gli artifact mentre un piano di A sta generando file nello staging.",
+    "Completare la pubblicazione oppure provocare un rifiuto per quota; controllare inventario e download."
+  ],
+  "expected": "Lo staging attivo o incompleto non diventa evidenza conservata o scaricabile. Le evidenze pubblicate restano misurate, senza doppio conteggio o liberazione anticipata."
+}

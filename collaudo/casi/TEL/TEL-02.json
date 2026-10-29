@@ -1,0 +1,12 @@
+{
+  "id": "TEL-02",
+  "area": "TEL",
+  "title": "Token obbligatorio per abilitare le metriche",
+  "priority": "P1",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "In un processo di prova avviare API e poi worker con WFM_METRICS_ENABLED=true e senza WFM_METRICS_TOKEN."
+  ],
+  "expected": "Ogni processo rifiuta l’avvio con errore di configurazione; nessun endpoint metriche privo di autenticazione viene aperto."
+}
