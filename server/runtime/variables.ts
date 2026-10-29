@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
 import { secrets as secretsTable, testDataSets } from '@shared/schema';
 import { dataVariables } from '@shared/test-data';
@@ -29,6 +29,20 @@ export interface VariableScope {
   organizationId: number;
   /** The environment whose values apply. Without one, only the defaults resolve. */
   environmentId?: number | null;
+  /**
+   * The serialised test about to run. When given, only the shared data sets it names
+   * (`data.<set>.`) are loaded; a test that pulls in step groups loads them all, because the
+   * groups' own text is not in here.
+   */
+  referencedIn?: string;
+}
+
+/** The names of the data sets `text` refers to, or null when it cannot be told (load everything). */
+function referencedSetNames(text: string | undefined): string[] | null {
+  if (text === undefined || /group/i.test(text)) return null;
+  const names = new Set<string>();
+  for (const match of text.matchAll(/data\.([^.{}\s"\\]+)\./g)) names.add(match[1]);
+  return [...names];
 }
 
 /**
@@ -47,10 +61,24 @@ export function defaultVariables(): Record<string, string> {
 export async function resolveVariables(scope: VariableScope): Promise<Record<string, string>> {
   // The organization's shared test data under the environment's values: {{data.<set>.<column>}}
   // (shared/test-data.ts). Scoped by organization explicitly, like the secrets below.
-  const sets = await privilegedDb
-    .select({ name: testDataSets.name, columns: testDataSets.columns, rows: testDataSets.rows })
-    .from(testDataSets)
-    .where(eq(testDataSets.organizationId, scope.organizationId));
+  // Only the sets the test names when that can be told, instead of every set of the organization.
+  const wanted = referencedSetNames(scope.referencedIn);
+  const sets =
+    wanted && wanted.length === 0
+      ? []
+      : await privilegedDb
+          .select({
+            name: testDataSets.name,
+            columns: testDataSets.columns,
+            rows: testDataSets.rows,
+          })
+          .from(testDataSets)
+          .where(
+            and(
+              eq(testDataSets.organizationId, scope.organizationId),
+              ...(wanted ? [inArray(testDataSets.name, wanted)] : []),
+            ),
+          );
   const vars = { ...defaultVariables(), ...dataVariables(sets) };
   if (!scope.environmentId) return vars;
 

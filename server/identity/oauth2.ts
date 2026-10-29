@@ -45,9 +45,14 @@ interface CachedToken {
  * making.
  */
 const cache = new Map<string, CachedToken>();
-const MAX_CACHED_TOKENS = 500;
+export const MAX_CACHED_TOKENS = 500;
 
 /** Exported for tests, which need a cold cache per case. */
+/** Exported for tests. */
+export function tokenCacheSize(): number {
+  return cache.size;
+}
+
 export function clearTokenCache(): void {
   cache.clear();
 }

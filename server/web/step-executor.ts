@@ -430,7 +430,7 @@ export function unusedDialogAnswers(page: Page): number {
   return pendingDialogAnswers.get(page)?.length ?? 0;
 }
 
-function queueDialogAnswer(page: Page, answer: DialogAnswer) {
+export function queueDialogAnswer(page: Page, answer: DialogAnswer) {
   let queue = pendingDialogAnswers.get(page);
   if (!queue) {
     queue = [];
