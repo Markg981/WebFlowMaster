@@ -1,0 +1,12 @@
+{
+  "id": "INT-24",
+  "area": "INT",
+  "title": "Issue creata ma link non salvato: l'URL resta visibile",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "Ambiente di prova.",
+  "steps": [
+    "Far fallire l'inserimento del link dopo la creazione dell'issue nel tracker."
+  ],
+  "expected": "L'errore restituito e il log riportano chiave e URL dell'issue creata: nessuna issue orfana silenziosa."
+}

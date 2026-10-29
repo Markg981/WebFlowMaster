@@ -614,8 +614,12 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
 
     // Written whether the run passed or not: a failed run is when they are read.
     if (options.junitPath) {
+      // A failed download is warned about, not allowed to hide the verdict: in CI a failed run
+      // must not look like a network problem.
       const written = await download(io, call, runId, 'junit', options.junitPath);
-      if (written !== EXIT_PASSED) return written;
+      if (written !== EXIT_PASSED) {
+        io.error('Warning: the JUnit file was not written; the run verdict follows.');
+      }
     }
     const reports = await writeReports(options, io, call, runId);
     if (reports !== EXIT_PASSED) return reports;
