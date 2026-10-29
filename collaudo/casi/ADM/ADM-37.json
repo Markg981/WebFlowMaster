@@ -1,0 +1,15 @@
+{
+  "id": "ADM-37",
+  "area": "ADM",
+  "title": "Issue tracker: creazione, modifica ed eliminazione finiscono nel registro di audit",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un editor; un owner.",
+  "steps": [
+    "Da un editor creare un issue tracker con un token.",
+    "Modificarne il token e il nome.",
+    "Eliminarlo.",
+    "Da owner.a aprire Impostazioni, Registro di audit."
+  ],
+  "expected": "Tre voci (issue_tracker.created, .updated, .deleted) con attore e nome del tracker; la modifica elenca i campi cambiati e che il token è stato sostituito; nessuna voce contiene il token o l'URL."
+}

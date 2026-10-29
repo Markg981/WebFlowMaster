@@ -1,0 +1,12 @@
+{
+  "id": "SEC-98",
+  "area": "SEC",
+  "title": "Cancellazione di un'organizzazione rimuove anche il suo registro di audit",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un'organizzazione con voci di audit.",
+  "steps": [
+    "Esportare, poi cancellare l'organizzazione con il suo nome."
+  ],
+  "expected": "La cancellazione riesce, il registro dell'organizzazione è vuoto, la riga in organization_erasures è scritta."
+}

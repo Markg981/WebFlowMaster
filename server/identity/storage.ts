@@ -4,16 +4,10 @@ import {
   invitations,
   auditLog,
   AUDIT_ACTIONS,
-  tests,
-  testRuns,
   userSettings,
   sessions,
   type User,
   type InsertUser,
-  type Test,
-  type InsertTest,
-  type TestRun,
-  type InsertTestRun,
   type UserSettings,
   type InsertUserSettings,
 } from '@shared/schema';
@@ -84,16 +78,6 @@ export interface IStorage {
     user: InsertUser,
     token: string,
   ): Promise<User | { error: 'invalid' | 'expired' | 'used' | 'username_taken' }>;
-
-  getTest(id: number): Promise<Test | undefined>;
-  getTestsByUser(userId: number): Promise<Test[]>;
-  createTest(test: InsertTest, userId: number, organizationId: number): Promise<Test>;
-  updateTest(id: number, test: Partial<InsertTest>): Promise<Test | undefined>;
-  deleteTest(id: number): Promise<boolean>;
-
-  createTestRun(testRun: InsertTestRun): Promise<TestRun>;
-  getTestRuns(testId: number): Promise<TestRun[]>;
-  updateTestRun(id: number, testRun: Partial<InsertTestRun>): Promise<TestRun | undefined>;
 
   getUserSettings(userId: number): Promise<UserSettings | undefined>;
   upsertUserSettings(
@@ -396,66 +380,6 @@ export class DatabaseStorage implements IStorage {
 
       return account;
     });
-  }
-
-  async getTest(id: number): Promise<Test | undefined> {
-    const [test] = await privilegedDb.select().from(tests).where(eq(tests.id, id));
-    return test || undefined;
-  }
-
-  async getTestsByUser(userId: number): Promise<Test[]> {
-    return await privilegedDb
-      .select()
-      .from(tests)
-      .where(eq(tests.userId, userId))
-      .orderBy(desc(tests.updatedAt));
-  }
-
-  async createTest(test: InsertTest, userId: number, organizationId: number): Promise<Test> {
-    // Both come from the caller's session, never from the InsertTest payload, which omits
-    // them. The comment here already claimed that of userId while the schema still accepted
-    // it — which is what made every save from the page fail with `userId: ["Required"]`.
-    const [newTest] = await privilegedDb
-      .insert(tests)
-      .values({ ...test, userId, organizationId })
-      .returning();
-    return newTest;
-  }
-
-  async updateTest(id: number, test: Partial<InsertTest>): Promise<Test | undefined> {
-    const [updatedTest] = await privilegedDb
-      .update(tests)
-      .set({ ...test, updatedAt: new Date() })
-      .where(eq(tests.id, id))
-      .returning();
-    return updatedTest || undefined;
-  }
-
-  async deleteTest(id: number): Promise<boolean> {
-    const deleted = await privilegedDb.delete(tests).where(eq(tests.id, id)).returning();
-    return deleted.length > 0;
-  }
-
-  async createTestRun(testRun: InsertTestRun): Promise<TestRun> {
-    const [newTestRun] = await privilegedDb.insert(testRuns).values(testRun).returning();
-    return newTestRun;
-  }
-
-  async getTestRuns(testId: number): Promise<TestRun[]> {
-    return await privilegedDb
-      .select()
-      .from(testRuns)
-      .where(eq(testRuns.testId, testId))
-      .orderBy(desc(testRuns.startedAt));
-  }
-
-  async updateTestRun(id: number, testRun: Partial<InsertTestRun>): Promise<TestRun | undefined> {
-    const [updatedTestRun] = await privilegedDb
-      .update(testRuns)
-      .set(testRun)
-      .where(eq(testRuns.id, id))
-      .returning();
-    return updatedTestRun || undefined;
   }
 
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {

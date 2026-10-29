@@ -10,7 +10,8 @@ import logger from '../platform/logger';
  * (GDPR, contracts), so there is no default.
  *
  * - AUDIT_LOG_RETENTION_DAYS: deletes audit_log entries older than that. The table is append-only
- *   for app_user (SELECT and INSERT only); like organization erasure, this runs on the privileged
+ *   for app_user (SELECT and INSERT only) and a trigger refuses UPDATE/DELETE for everyone unless the
+ *   transaction sets app.audit_maintenance; like organization erasure, this runs on the privileged
  *   connection, which owns the table. The application itself still cannot alter or delete entries.
  * - EVIDENCE_RETENTION_DAYS: clears the `evidence` document (stored paths of screenshots, traces,
  *   HAR) and the failure reason of unit attempts that finished earlier than that. The attempt row
@@ -50,11 +51,13 @@ export async function purgeExpiredRows(
   const cutoff = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000);
 
   if (auditDays > 0) {
-    report.auditEntriesDeleted = affected(
-      await privilegedDb.execute(
-        sql`DELETE FROM audit_log WHERE created_at < ${cutoff(auditDays)}`,
-      ),
-    );
+    // The audit_log trigger (migration 0102) refuses DELETE unless this transaction opts in.
+    report.auditEntriesDeleted = await privilegedDb.transaction(async (tx) => {
+      await tx.execute(sql`SELECT set_config('app.audit_maintenance', 'on', true)`);
+      return affected(
+        await tx.execute(sql`DELETE FROM audit_log WHERE created_at < ${cutoff(auditDays)}`),
+      );
+    });
   }
   if (evidenceDays > 0) {
     report.evidenceCleared = affected(

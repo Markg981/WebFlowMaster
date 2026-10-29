@@ -451,8 +451,8 @@ I limiti li imposta chi gestisce l'installazione, non gli owner (vedi
 **Impostazioni → Registro di audit** registra chi ha fatto cosa e quando: accessi e accessi
 falliti, membri e inviti, chiavi e account di servizio, test, piani, schedulazioni, suite,
 progetti e relativi accessi, revisioni e pubblicazioni, quarantena, ambienti e segreti, agenti,
-collegamenti GitHub/GitLab, runner, modifiche al secondo fattore, run annullati e impostazioni di
-sistema.
+collegamenti GitHub/GitLab, issue tracker e griglie browser (nome e campi modificati, mai token o
+chiave), runner, modifiche al secondo fattore, run annullati e impostazioni di sistema.
 
 Ogni voce riporta chi ha agito, l'azione, l'oggetto, l'indirizzo IP del client e, per le
 richieste fatte con una chiave, quale chiave. Si può filtrare per categoria, azione, persona e
@@ -460,7 +460,9 @@ date, ed esportare in CSV (fino a 10.000 voci per esportazione; restringete le d
 averne di più).
 
 Il registro non si può modificare né cancellare dall'applicazione: il database gli concede solo
-lettura e aggiunta. Viene rimosso solo quando si cancella l'intera organizzazione.
+lettura e aggiunta, e un trigger del database rifiuta ogni modifica o cancellazione, anche dal
+proprietario della tabella. Lo rimuovono solo la pulizia opzionale `AUDIT_LOG_RETENTION_DAYS` e la
+cancellazione dell'intera organizzazione.
 
 ## Impostazioni di sistema _(owner)_
 

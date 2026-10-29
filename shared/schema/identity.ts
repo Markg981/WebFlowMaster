@@ -846,6 +846,14 @@ export const AUDIT_ACTIONS = {
   LOAD_TEST_DELETED: 'load_test.deleted',
   LOAD_TEST_RUN: 'load_test.run',
   LOAD_TEST_CANCELLED: 'load_test.cancelled',
+  // Issue trackers and browser grids hold credentials of systems we do not own (C-41). The
+  // entry names the configuration and the fields changed, never the token or the URL userinfo.
+  ISSUE_TRACKER_CREATED: 'issue_tracker.created',
+  ISSUE_TRACKER_UPDATED: 'issue_tracker.updated',
+  ISSUE_TRACKER_DELETED: 'issue_tracker.deleted',
+  BROWSER_GRID_CREATED: 'browser_grid.created',
+  BROWSER_GRID_UPDATED: 'browser_grid.updated',
+  BROWSER_GRID_DELETED: 'browser_grid.deleted',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

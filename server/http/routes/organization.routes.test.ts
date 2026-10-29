@@ -3,6 +3,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import request from 'supertest';
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from '../../platform/db';
+import { auditLogMaintenance } from '../../tests/factories';
 import { runWithTenant } from '../../platform/middleware/tenancy';
 import organizationRoutes from './organization.routes';
 
@@ -38,7 +39,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await privilegedDb.execute(sql`DELETE FROM audit_log WHERE organization_id = ${orgId}`);
+  await auditLogMaintenance(sql`DELETE FROM audit_log WHERE organization_id = ${orgId}`);
   await privilegedDb.execute(sql`DELETE FROM invitations WHERE organization_id = ${orgId}`);
   await privilegedDb.execute(sql`DELETE FROM users WHERE organization_id = ${orgId}`);
   await privilegedDb.execute(sql`DELETE FROM organizations WHERE id = ${orgId}`);

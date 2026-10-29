@@ -703,6 +703,8 @@
       "breakpoints": true
     },{
       "idx": 100,"version": "7","when": 1792400000023,"tag": "0100_test_management_partial_status","breakpoints": true
+    },{
+      "idx": 102,"version": "7","when": 1792400000025,"tag": "0102_audit_log_immutable_trigger","breakpoints": true
     }
   ]
 }

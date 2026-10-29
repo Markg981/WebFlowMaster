@@ -2,7 +2,7 @@ import { asyncRouter } from '../../platform/middleware/async-router';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { mobileStepGroups } from '@shared/schema';
-import { mobileGroupSchema } from '@shared/mobile-groups';
+import { mobileGroupSchema, type MobileGroupInput } from '@shared/mobile-groups';
 import {
   getTenantOrgId,
   withTenantTransaction,
@@ -44,6 +44,17 @@ function fail(res: import('express').Response, error: unknown) {
   logger.error({ message: 'Mobile group operation failed', error: message });
   return res.status(500).json({ error: 'Mobile group operation failed.' });
 }
+/**
+ * The columns a client may set, named one by one: mobileGroupSchema is a strict-by-stripping
+ * z.object, but a field added to it later must not reach the table without a decision here.
+ */
+const groupFields = (d: MobileGroupInput) => ({
+  name: d.name,
+  description: d.description,
+  platform: d.platform,
+  projectId: d.projectId,
+  steps: d.steps,
+});
 router.get('/api/mobile-step-groups', requireRole('viewer'), async (_req, res) => {
   try {
     res.json(
@@ -65,7 +76,7 @@ router.post('/api/mobile-step-groups', requireRole('editor'), async (req, res) =
       const [row] = await tx
         .insert(mobileStepGroups)
         .values({
-          ...parsed.data,
+          ...groupFields(parsed.data),
           id: randomUUID(),
           organizationId: getTenantOrgId()!,
           createdBy: req.user!.id,
@@ -93,7 +104,7 @@ router.put('/api/mobile-step-groups/:id', requireRole('editor'), async (req, res
       await editableProject(tx, parsed.data.projectId ?? null);
       const [row] = await tx
         .update(mobileStepGroups)
-        .set({ ...parsed.data, updatedAt: new Date() })
+        .set({ ...groupFields(parsed.data), updatedAt: new Date() })
         .where(eq(mobileStepGroups.id, current.id))
         .returning();
       return row;

@@ -3289,7 +3289,13 @@
       "step_group_selector_healed": "Selektor der Schrittgruppe repariert",
       "project_element_selector_healed": "Selektor des gemeinsamen Elements repariert",
       "healing_proposal_approved": "Reparaturvorschlag genehmigt",
-      "healing_proposal_rejected": "Reparaturvorschlag abgelehnt"
+      "healing_proposal_rejected": "Reparaturvorschlag abgelehnt",
+      "issue_tracker_created": "Issue-Tracker hinzugefügt",
+      "issue_tracker_updated": "Issue-Tracker geändert",
+      "issue_tracker_deleted": "Issue-Tracker entfernt",
+      "browser_grid_created": "Browser-Grid hinzugefügt",
+      "browser_grid_updated": "Browser-Grid geändert",
+      "browser_grid_deleted": "Browser-Grid entfernt"
     }
   },
   "security": {

@@ -3,7 +3,7 @@ import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { ISSUE_PROVIDERS, issueTrackers } from '@shared/schema';
+import { AUDIT_ACTIONS, ISSUE_PROVIDERS, issueTrackers } from '@shared/schema';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { encryptSecret } from '../../platform/crypto';
@@ -11,6 +11,7 @@ import { checkConnection } from '../../integrations/issue-providers';
 import { toConfig } from '../../integrations/issue-store';
 import logger from '../../platform/logger';
 import { partialUpdate } from '@shared/partial-update';
+import { auditActor, changedFields, recordAudit } from '../../tenancy/audit';
 
 /**
  * Where an organization files its bugs.
@@ -113,6 +114,14 @@ router.post('/api/issue-trackers', requireRole('editor'), async (req, res) => {
           createdBy: req.user!.id,
         })
         .returning();
+      // Names the tracker, never the token or the base URL.
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.ISSUE_TRACKER_CREATED,
+        actor: auditActor(req),
+        targetType: 'issue_tracker',
+        targetId: row.id,
+        metadata: { name: row.name, provider: row.provider },
+      });
       return row;
     });
 
@@ -155,9 +164,28 @@ router.put('/api/issue-trackers/:id', requireRole('editor'), async (req, res) =>
   }
 
   try {
-    const updated = await withTenantTransaction((tx) =>
-      tx.update(issueTrackers).set(changes).where(eq(issueTrackers.id, req.params.id)).returning(),
-    );
+    const updated = await withTenantTransaction(async (tx) => {
+      const rows = await tx
+        .update(issueTrackers)
+        .set(changes)
+        .where(eq(issueTrackers.id, req.params.id))
+        .returning();
+      if (rows.length > 0) {
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.ISSUE_TRACKER_UPDATED,
+          actor: auditActor(req),
+          targetType: 'issue_tracker',
+          targetId: req.params.id,
+          // Field names only: values may hold a token or a URL.
+          metadata: {
+            name: rows[0].name,
+            fields: changedFields(parsed.data).filter((f) => f !== 'token'),
+            tokenReplaced: !!parsed.data.token,
+          },
+        });
+      }
+      return rows;
+    });
     if (updated.length === 0) return res.status(404).json({ error: 'Tracker not found.' });
     res.json(toListed(updated[0]));
   } catch (error: any) {
@@ -211,6 +239,15 @@ router.delete('/api/issue-trackers/:id', requireRole('editor'), async (req, res)
         .delete(issueTrackers)
         .where(eq(issueTrackers.id, req.params.id))
         .returning();
+      if (deleted.length > 0) {
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.ISSUE_TRACKER_DELETED,
+          actor: auditActor(req),
+          targetType: 'issue_tracker',
+          targetId: req.params.id,
+          metadata: { name: deleted[0].name },
+        });
+      }
       return deleted.length;
     });
     if (outcome === 0) return res.status(404).json({ error: 'Tracker not found.' });

@@ -4,7 +4,7 @@ import { privilegedDb } from '../platform/db';
 import { auditLog, AUDIT_ACTIONS } from '@shared/schema';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { recordAudit } from './audit';
-import { createTestOrganization, createTestUser } from '../tests/factories';
+import { auditLogMaintenance, createTestOrganization, createTestUser } from '../tests/factories';
 
 /**
  * The two properties that make this an audit log rather than another table of log lines:
@@ -23,9 +23,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await privilegedDb.execute(
-    sql`DELETE FROM audit_log WHERE organization_id IN (${orgA}, ${orgB})`,
-  );
+  await auditLogMaintenance(sql`DELETE FROM audit_log WHERE organization_id IN (${orgA}, ${orgB})`);
   await privilegedDb.execute(sql`DELETE FROM users WHERE organization_id IN (${orgA}, ${orgB})`);
   await privilegedDb.execute(sql`DELETE FROM organizations WHERE id IN (${orgA}, ${orgB})`);
 });
@@ -140,6 +138,22 @@ describe('the audit log is append-only at the database level', () => {
     await expect(asAppUser((tx) => tx.execute(sql`DELETE FROM audit_log`))).rejects.toThrow(
       /permission denied/i,
     );
+  });
+
+  it('cannot be updated or deleted by the owner role either, outside a maintenance transaction', async () => {
+    await expect(
+      privilegedDb.execute(sql`UPDATE audit_log SET action = 'nothing.happened'`),
+    ).rejects.toThrow(/append-only/i);
+    await expect(privilegedDb.execute(sql`DELETE FROM audit_log`)).rejects.toThrow(/append-only/i);
+  });
+
+  it('still lets ON DELETE SET NULL clear the actor, and nothing else', async () => {
+    await privilegedDb.execute(sql`DELETE FROM users WHERE id = ${userA}`);
+    const rows = await privilegedDb.execute(
+      sql`SELECT actor_user_id, actor_username FROM audit_log WHERE organization_id = ${orgA}`,
+    );
+    expect(rows.rows[0].actor_user_id).toBeNull();
+    expect(rows.rows[0].actor_username).toBe('someone');
   });
 
   it('can still be read and appended to', async () => {

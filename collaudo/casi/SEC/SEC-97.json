@@ -1,0 +1,12 @@
+{
+  "id": "SEC-97",
+  "area": "SEC",
+  "title": "Pulizia del registro di audit con AUDIT_LOG_RETENTION_DAYS continua a funzionare",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "AUDIT_LOG_RETENTION_DAYS=365; voci più vecchie e più recenti di 365 giorni.",
+  "steps": [
+    "Attendere il ciclo di pulizia (o invocare purgeExpiredRows)."
+  ],
+  "expected": "Le voci più vecchie della finestra sono cancellate, le altre restano; nessun errore di append-only nel log applicativo."
+}

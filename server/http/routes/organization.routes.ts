@@ -270,8 +270,8 @@ router.get(
  * be undone, and `DELETE /api/organization` is two characters away from `DELETE
  * /api/organization/members/:id`.
  *
- * Recorded in the application log rather than the audit trail: an audit entry about erasing an
- * organization would be erased along with it. The log outlives the tenant.
+ * Recorded in the application log and in organization_erasures (migration 0095), not in the
+ * audit trail: an audit entry about erasing an organization would be erased along with it.
  */
 router.delete(
   '/api/organization',
@@ -745,14 +745,16 @@ router.delete(
         .json({ error: 'Invalid payload', details: flattenZodError(body.error) });
     }
 
-    // Whether the person belongs anywhere else decides what "remove" means: taking this
-    // organization away from an account that lives on, or deleting the account as before. Asked
-    // before the tenant transaction, because from inside it the other memberships are not visible.
-    const belongsElsewhere = await hasOtherMembership(userId, organizationId);
-
     const outcome = await withTenantTransaction(async (tx) => {
       const target = await memberOf(tx, organizationId, userId);
       if (!target) return { status: 404 as const };
+
+      // Whether the person belongs anywhere else decides what "remove" means: taking this
+      // organization away from an account that lives on, or deleting the account as before. Asked
+      // inside the transaction, after the member is known to exist, to keep the window to the
+      // deletion as short as possible: the tenant connection cannot see other organizations'
+      // memberships (RLS), so the read itself goes through the privileged pool.
+      const belongsElsewhere = await hasOtherMembership(userId, organizationId);
 
       if (target.role === 'owner') {
         if ((await otherOwnerCount(tx, organizationId, userId)) === 0)
@@ -805,6 +807,7 @@ router.delete(
       return {
         status: 200 as const,
         wasCurrent: target.current,
+        belongsElsewhere,
         body: {
           removed: userId,
           accountDeleted: !belongsElsewhere,
@@ -822,7 +825,7 @@ router.delete(
     // They were acting here and still have somewhere to be: their session moves there on its next
     // request (passport re-reads the user row). After the transaction, where the other membership
     // is visible.
-    if (belongsElsewhere && outcome.wasCurrent)
+    if (outcome.belongsElsewhere && outcome.wasCurrent)
       await moveToAnotherMembership(userId, organizationId);
     res.json(outcome.body);
   },
