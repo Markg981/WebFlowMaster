@@ -704,12 +704,13 @@ export async function bullmqAddScheduleJob(schedule: TestPlanSchedule): Promise<
 }
 
 export async function bullmqRemoveScheduleJob(scheduleId: string): Promise<void> {
+  const logId = scheduleId.replace(/[\r\n]/g, '');
   // Best effort, but never silent: a job left in Redis would fire for a removed schedule.
   await testExecutionQueue.removeJobScheduler(scheduleId).catch((error) => {
-    logger.warn(`[SchedulerService/bullmq] Could not remove job scheduler ${scheduleId}`, error);
+    logger.warn(`[SchedulerService/bullmq] Could not remove job scheduler ${logId}`, error);
   });
   await testExecutionQueue.remove(onceJobId(scheduleId)).catch((error) => {
-    logger.warn(`[SchedulerService/bullmq] Could not remove once-job for ${scheduleId}`, error);
+    logger.warn(`[SchedulerService/bullmq] Could not remove once-job for ${logId}`, error);
   });
 }
 
