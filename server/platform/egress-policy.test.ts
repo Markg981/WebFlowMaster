@@ -107,13 +107,7 @@ describe('addresses', () => {
       expect(checkAddress(address, allow), address).toBeUndefined();
       expect(checkAddress(address, deny), address).toBe('private');
     }
-    for (const address of [
-      '172.32.0.1',
-      '8.8.8.8',
-      '93.184.216.34',
-      '2606:4700::1111',
-      '100.64.0.1',
-    ])
+    for (const address of ['172.32.0.1', '8.8.8.8', '93.184.216.34', '2606:4700::1111'])
       expect(checkAddress(address, deny), address).toBeUndefined();
   });
 
@@ -126,6 +120,23 @@ describe('addresses', () => {
     expect(checkAddress('10.2.0.1', policy)).toBe('private');
     expect(checkAddress('169.254.169.254', policy)).toBeUndefined();
     expect(checkAddress('169.254.169.253', policy)).toBe('metadata');
+  });
+});
+
+describe('reserved ranges under deny', () => {
+  it.each([
+    '100.64.0.1',
+    '100.127.255.254',
+    '198.18.0.1',
+    '198.19.255.255',
+    '192.0.0.1',
+    '224.0.0.1',
+    '239.255.255.250',
+    'ff02::1',
+    '2002:c0a8:101::1',
+  ])('refuses %s', (address) => {
+    expect(checkAddress(address, deny)).toBeDefined();
+    expect(checkAddress(address, allow)).toBeUndefined();
   });
 });
 
