@@ -317,7 +317,8 @@ dipendenze.
 Ogni stage di build/runtime applica `deployment/releases/harden-base.sh`. Installa
 le versioni Ubuntu esatte `3.5.5-1ubuntu3.7` di libssl3t64, openssl e
 openssl-provider-legacy, e `8.18.0-1ubuntu2.8` di curl, libcurl4t64 e
-libcurl3t64-gnutls (CVE-2026-92392), elimina `/usr/bin/pebble`, gestore di servizi inutilizzato,
+libcurl3t64-gnutls (CVE-2026-92392), e `1.2.0-3ubuntu0.1` di libbrotli1
+(CVE-2026-111497), elimina `/usr/bin/pebble`, gestore di servizi inutilizzato,
 e mantiene UID/GID 1000 di `pwuser` per i volumi esistenti. npm globale è eliminato
 soltanto dagli stage finali. Indici, cache e log variabili APT sono rimossi prima
 dell'esportazione dei layer. Se una versione fissata scompare dai repository
