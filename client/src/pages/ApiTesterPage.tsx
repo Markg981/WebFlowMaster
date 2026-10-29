@@ -1,4 +1,5 @@
 // client/src/pages/ApiTesterPage.tsx
+import { useConfirm } from '@/hooks/use-confirm';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
@@ -68,6 +69,7 @@ import {
 } from '@/components/api-tester/request-state';
 const ApiTesterForm: React.FC = () => {
   const { t } = useTranslation();
+  const { confirm, confirmDialog } = useConfirm();
   const { user } = useAuth();
   const canEdit = user?.role !== 'viewer';
   const isDark = useIsDark();
@@ -850,10 +852,12 @@ const ApiTesterForm: React.FC = () => {
     });
   };
 
-  const handleDeleteSavedTest = (testId: number) => {
-    if (window.confirm('Are you sure you want to delete this saved test?')) {
-      deleteApiTestMutation.mutate(testId);
-    }
+  const handleDeleteSavedTest = async (testId: number) => {
+    const ok = await confirm({
+      destructive: true,
+      title: t('apiTesterPage.confirmDeleteSavedTest'),
+    });
+    if (ok) deleteApiTestMutation.mutate(testId);
   };
 
   const handleExportTest = (test: ApiTest) => {
@@ -966,6 +970,7 @@ const ApiTesterForm: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-background text-foreground">
+      {confirmDialog}
       <header className="flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-2">
         <h1 className="truncate text-sm font-semibold tracking-tight">
           {t('apiTesterPage.title')}

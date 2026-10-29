@@ -608,6 +608,7 @@
     "dropActionsPrompt": "Déposez un élément ici"
   },
   "apiTesterPage": {
+    "confirmDeleteSavedTest": "Supprimer ce test enregistré ?",
     "backToDashboard": {
       "button": "Retour au tableau de bord"
     },

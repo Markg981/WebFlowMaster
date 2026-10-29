@@ -608,6 +608,7 @@
     "dropActionsPrompt": "Element hier ablegen"
   },
   "apiTesterPage": {
+    "confirmDeleteSavedTest": "Diesen gespeicherten Test löschen?",
     "backToDashboard": {
       "button": "Zurück zum Dashboard"
     },

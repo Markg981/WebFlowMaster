@@ -608,6 +608,7 @@
     "dropActionsPrompt": "Drop an element here"
   },
   "apiTesterPage": {
+    "confirmDeleteSavedTest": "Are you sure you want to delete this saved test?",
     "backToDashboard": {
       "button": "Back to Dashboard"
     },
