@@ -1334,13 +1334,14 @@ router.get(
           harUrl: openable(r.harUrl),
           evidenceRestricted: evidenceRestricted(r),
           unitEvidence: unitEvidenceOf(r),
-          networkSummary: r.networkSummary,
+          // The detail below is withheld for a test of a restricted project the caller is not on.
+          networkSummary: access.hiddenResult(r) ? null : r.networkSummary,
           // What the AI made of this failure, when somebody asked (routes/failure-analysis.routes.ts).
-          aiAnalysis: r.aiAnalysis ?? null,
-          detailedLog: r.detailedLog,
+          aiAnalysis: access.hiddenResult(r) ? null : (r.aiAnalysis ?? null),
+          detailedLog: access.hiddenResult(r) ? null : r.detailedLog,
           // The step list the runner already recorded, with its images made openable. The
           // report had no way to show which step failed; the row's reason string was all of it.
-          steps: stepsOf(r.detailedLog),
+          steps: access.hiddenResult(r) ? [] : stepsOf(r.detailedLog),
           component: r.component,
           priority: r.priority,
           severity: r.severity,
