@@ -17,6 +17,7 @@ import { privilegedDb } from '../platform/db';
 import { joinOrganization } from '../tenancy/organization-memberships';
 import { decryptSecret, encryptSecret, type CryptoOptions } from '../platform/crypto';
 import { sqlState } from '../platform/db-errors';
+import { assertEgressAllowed } from '../platform/egress-policy';
 import {
   DEFAULT_GROUP_ATTRIBUTE,
   domainVerificationRecord,
@@ -742,6 +743,8 @@ async function clientFor(row: typeof organizationSso.$inferSelect): Promise<oidc
     return cached.config;
 
   const issuer = new URL(row.issuer);
+  // The owner chooses the issuer: the discovery fetch obeys the egress policy like any other.
+  await assertEgressAllowed(issuer);
   const secret = await decryptSecret(
     row.clientSecretEncrypted!,
     row.clientSecretIv!,
