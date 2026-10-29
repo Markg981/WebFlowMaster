@@ -1,0 +1,15 @@
+{
+  "id": "TMG-05",
+  "area": "TMG",
+  "title": "Zephyr Scale: test cycle ed esecuzioni",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Jira Cloud con Zephyr Scale, token API di Zephyr; casi SHOP-T1, SHOP-T2.",
+  "steps": [
+    "Connessione Zephyr Scale con Chiave del progetto SHOP; Verifica.",
+    "Casi SHOP-T1 e SHOP-T2 su due test; un terzo test con caso SHOP-T999 (inesistente).",
+    "Eseguire un piano che pubblica su Zephyr."
+  ],
+  "expected": "1: «Connected to …». 3: in Zephyr un test cycle col titolo del run, con le esecuzioni di SHOP-T1 e SHOP-T2 in Pass/Fail; la pubblicazione è «Pubblicata» con 2 casi e nel messaggio il problema di SHOP-T999 (le altre esecuzioni non sono perse). La chiave del cycle è mostrata senza link.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Jira Cloud con Zephyr Scale, token API di Zephyr; casi <code>SHOP-T1</code>, <code>SHOP-T2</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Connessione Zephyr Scale con Chiave del progetto <code>SHOP</code>; Verifica.</li><li>Casi SHOP-T1 e SHOP-T2 su due test; un terzo test con caso <code>SHOP-T999</code> (inesistente).</li><li>Eseguire un piano che pubblica su Zephyr.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: «Connected to …». 3: in Zephyr un test cycle col titolo del run, con le esecuzioni di SHOP-T1 e SHOP-T2 in Pass/Fail; la pubblicazione è «Pubblicata» con 2 casi e nel messaggio il problema di SHOP-T999 (le altre esecuzioni non sono perse). La chiave del cycle è mostrata senza link.</p>\n      "
+}

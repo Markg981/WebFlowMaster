@@ -1,0 +1,16 @@
+{
+  "id": "REP-34",
+  "area": "REP",
+  "title": "Baseline visiva corrotta: il test termina in Error, non Passed né differenza visiva",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 70. Un piano con Test visivi attivo e un test UI che apre una pagina stabile; il piano è già stato eseguito una volta, quindi le baseline esistono. Accesso al server per sostituire un file in baselines/ (storage locale).",
+  "steps": [
+    "Sostituire il file PNG della baseline di uno step con un file di testo qualsiasi.",
+    "Eseguire il piano senza aggiornare le baseline.",
+    "Aprire il report del run e il dettaglio degli step del test.",
+    "Esportare il run in HTML, Allure e JUnit.",
+    "Rieseguire il piano e controllare il file della baseline."
+  ],
+  "expected": "Il test è Error (non Passed, non Failed). Lo step mostra Visual check 'not verified · baseline-corrupt' e il motivo 'Visual comparison could not run (baseline-corrupt)'. In Allure test e step sono broken, nella categoria Visual comparison errors e non in Visual differences; in JUnit il test è un <error>. Il file corrotto non è stato sostituito: il secondo run è ancora Error."
+}

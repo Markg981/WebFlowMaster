@@ -1,0 +1,13 @@
+{
+  "id": "QUO-04",
+  "area": "QUO",
+  "title": "Conteggio dei test nei progetti riservati",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Riempire il limite di A con test in un progetto non accessibile a editor.a.",
+    "Come editor.a creare un test in un progetto accessibile."
+  ],
+  "expected": "Il limite conta tutta l’organizzazione; la creazione è rifiutata senza rivelare nomi o dettagli dei test nei progetti riservati."
+}

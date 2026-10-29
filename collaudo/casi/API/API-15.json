@@ -1,0 +1,17 @@
+{
+  "id": "API-15",
+  "area": "API",
+  "title": "JWT Bearer e Atlassian ASAP",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il primo header è Bearer eyJ… e jwt.io dice «Signature Verified» con iat aggiunto. Con RS256 il token è nel parametro jwt e il campo del segreto diventa un'area di testo; per HS* è mascherato e c'è l'opzione Base64. Il JSON non valido blocca l'invio con un messaggio. Il token ASAP decodificato ha kid, iss, sub, aud, iat, exp (60 secondi dopo) e un jti diverso a ogni invio.",
+  "steps": [
+    "JWT Bearer HS256, segreto your-256-bit-secret, payload {\"sub\":\"123\"}; GET https://httpbin.org/headers; Invia.",
+    "Incollare il token dell'header Authorization su jwt.io con lo stesso segreto.",
+    "Algoritmo RS256 con una chiave privata PEM (e.g. openssl genpkey -algorithm RSA); Aggiungi a: Query, nome jwt; GET https://httpbin.org/anything.",
+    "Payload {sub (JSON non valido); Invia.",
+    "Atlassian ASAP con issuer, audience, key ID e la chiave PEM; GET /headers."
+  ],
+  "expected": "Il primo header è Bearer eyJ… e jwt.io dice «Signature Verified» con iat aggiunto. Con RS256 il token è nel parametro jwt e il campo del segreto diventa un'area di testo; per HS* è mascherato e c'è l'opzione Base64. Il JSON non valido blocca l'invio con un messaggio. Il token ASAP decodificato ha kid, iss, sub, aud, iat, exp (60 secondi dopo) e un jti diverso a ogni invio.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>JWT Bearer HS256, segreto <code>your-256-bit-secret</code>, payload <code>{\"sub\":\"123\"}</code>; GET <code>https://httpbin.org/headers</code>; <b>Invia</b>.</li><li>Incollare il token dell'header Authorization su jwt.io con lo stesso segreto.</li><li>Algoritmo RS256 con una chiave privata PEM (e.g. <code>openssl genpkey -algorithm RSA</code>); Aggiungi a: Query, nome <code>jwt</code>; GET <code>https://httpbin.org/anything</code>.</li><li>Payload <code>{sub</code> (JSON non valido); <b>Invia</b>.</li><li>Atlassian ASAP con issuer, audience, key ID e la chiave PEM; GET <code>/headers</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il primo header è <code>Bearer eyJ…</code> e jwt.io dice «Signature Verified» con <code>iat</code> aggiunto. Con RS256 il token è nel parametro <code>jwt</code> e il campo del segreto diventa un'area di testo; per HS* è mascherato e c'è l'opzione Base64. Il JSON non valido blocca l'invio con un messaggio. Il token ASAP decodificato ha <code>kid</code>, <code>iss</code>, <code>sub</code>, <code>aud</code>, <code>iat</code>, <code>exp</code> (60 secondi dopo) e un <code>jti</code> diverso a ogni invio.</p>\n      "
+}

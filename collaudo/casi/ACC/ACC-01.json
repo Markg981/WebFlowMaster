@@ -1,0 +1,15 @@
+{
+  "id": "ACC-01",
+  "area": "ACC",
+  "title": "Registrare il primo account dell'installazione",
+  "priority": "P1",
+  "actor": "nessuno",
+  "preconditions": "Database vuoto, REGISTRATION=invitation.",
+  "steps": [
+    "Aprire l'applicazione: si viene portati a /auth.",
+    "Scheda Register: username owner.a, password di almeno 8 caratteri, conferma.",
+    "Inviare."
+  ],
+  "expected": "L'account viene creato ed entra subito. È owner di una nuova organizzazione. La dashboard mostra gli stati vuoti con l'invito a creare un test.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Database vuoto, <code>REGISTRATION=invitation</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire l'applicazione: si viene portati a /auth.</li><li>Scheda <b>Register</b>: username <code>owner.a</code>, password di almeno 8 caratteri, conferma.</li><li>Inviare.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'account viene creato ed entra subito. È owner di una nuova organizzazione. La dashboard mostra gli stati vuoti con l'invito a creare un test.</p>\n      "
+}

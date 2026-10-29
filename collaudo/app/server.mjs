@@ -4,6 +4,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
+import { loadCatalog } from './catalog.mjs';
 
 const appDirectory = dirname(fileURLToPath(import.meta.url));
 const root = resolve(appDirectory, '..');
@@ -198,9 +199,7 @@ export async function createCollaudoServer({
   directory = resolve(root, '.local'),
   initialCatalog,
 } = {}) {
-  const seed = validateCatalog(
-    initialCatalog || JSON.parse(await readFile(resolve(root, 'casi.json'), 'utf8')),
-  );
+  const seed = validateCatalog(initialCatalog || (await loadCatalog()));
   await mkdir(directory, { recursive: true });
   const stateFile = resolve(directory, 'state.json');
   let store;
@@ -487,7 +486,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   });
   server.listen(port, '127.0.0.1', () =>
     console.log(
-      `Collaudo WebFlowMaster: http://localhost:${port}\nCasi: collaudo/casi.json · Esiti locali: collaudo/.local/state.json`,
+      `Collaudo WebFlowMaster: http://localhost:${port}\nCasi: collaudo/casi/ · Esiti locali: collaudo/.local/state.json`,
     ),
   );
 }

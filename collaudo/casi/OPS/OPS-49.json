@@ -1,0 +1,13 @@
+{
+  "id": "OPS-49",
+  "area": "OPS",
+  "title": "Versione in un formato di dipendenze sconosciuto rifiutata prima della coda (R1)",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Catalogo versione 82. Repository su main aggiornato, npm ci eseguito.",
+  "steps": [
+    "Eseguire npx vitest run server/execution/execution-definitions.test.ts.",
+    "Aprire docs/it/admin/releases.md, sezione «Formati dei dati e R1»."
+  ],
+  "expected": "Il test passa: un piano con una versione UI pubblicata in un protocollo sconosciuto riceve 409 unsupported_definition e non crea alcun run; un bundle corrotto in un protocollo noto fa fallire solo il suo test. La guida descrive il rifiuto e il ritorno a R1."
+}

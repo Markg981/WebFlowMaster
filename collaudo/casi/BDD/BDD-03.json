@@ -1,0 +1,12 @@
+{
+  "id": "BDD-03",
+  "area": "BDD",
+  "title": "Definizioni reali JavaScript e TypeScript",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Configurare profili CJS, ESM e TS; importare Cucumber e avviare un piano con World, hook e argomenti."
+  ],
+  "expected": "Le definizioni reali vengono eseguite sul pool dedicato, con variabili nel World e risultati di passi/hook."
+}

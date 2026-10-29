@@ -1,0 +1,12 @@
+{
+  "id": "SSO-26",
+  "area": "SSO",
+  "title": "IdP login disabilitato",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Con l'opzione disabilitata inviare dall'IdP una nuova asserzione firmata non correlata a una richiesta SP."
+  ],
+  "expected": "Accesso rifiutato."
+}

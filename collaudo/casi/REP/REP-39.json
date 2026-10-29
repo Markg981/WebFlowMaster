@@ -1,0 +1,16 @@
+{
+  "id": "REP-39",
+  "area": "REP",
+  "title": "Tentativi e righe rispettano le autorizzazioni sulle evidenze grezze e sui progetti riservati",
+  "priority": "P1",
+  "actor": "viewer",
+  "preconditions": "Catalogo versione 72. Un piano con due browser (Chromium e Chromium con dispositivo Pixel 7), due lingue (en-US, it-IT), Re-Run On Failure una volta e Trace \"Sempre\"; un test UI con un dataset di 3 righe il cui primo tentativo fallisce e il secondo passa (per esempio un elemento che compare solo dopo un primo caricamento). Un utente viewer; un utente editor non membro di un progetto riservato; il test di REP-37 spostato in quel progetto riservato prima di un secondo run.",
+  "steps": [
+    "Come viewer: aprire i dettagli di un risultato, selezionare Tentativo 1 e una riga.",
+    "Come viewer: provare ad aprire direttamente il link della trace di quella riga.",
+    "Eseguire di nuovo il piano con il test nel progetto riservato.",
+    "Come editor non membro: aprire GET /api/test-plan-executions/{id}/units/{unitId} e il link di uno screenshot units/<unità>/attempt_1/row_0/…",
+    "Come owner: ripetere il passo precedente."
+  ],
+  "expected": "Il viewer vede screenshot e video di ogni tentativo e riga, non la trace né l’HAR: compare la nota che sono riservate a editor e owner, e il link diretto risponde 403. L’editor non membro riceve 404 sia sull’unità sia sui file (come per un file mai scritto) e l’unità non compare nell’elenco. L’owner vede tutto."
+}

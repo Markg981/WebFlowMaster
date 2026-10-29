@@ -15,7 +15,8 @@ Eseguire `npm run dev:collaudo` dalla radice del repository e aprire `http://loc
 per la pagina locale: riprende la presentazione dell'artifact originale, con ricerca,
 filtri, avanzamento, esiti, salvataggio automatico delle note e backup JSON importabili.
 `npm run dev:docs` resta dedicato alla documentazione. Il catalogo è versionato in
-`collaudo/casi.json`; cicli ed esiti sono in `collaudo/.local/state.json`, escluso da Git.
+`collaudo/casi/`, un file per caso (`<AREA>/<ID>.json`), così le PR che aggiungono casi non vanno in
+conflitto; cicli ed esiti sono in `collaudo/.local/state.json`, escluso da Git.
 La pagina funziona senza Claude e senza Docker. Per eseguire i casi sul prodotto,
 usare l'ambiente descritto qui sotto.
 
@@ -35,7 +36,7 @@ su un'altra macchina: i backup locali non proteggono da guasti del disco.
 I test automatici provano il codice; l'ambiente di collaudo prova il _prodotto come lo incontra una persona_: le
 immagini vere, TLS, cookie, single sign-on, e-mail, agenti in un'altra rete, un emulatore vero. Il protocollo è
 un elenco di casi numerati (aree ACC, MFA, SSO, MEM, ENV, WEB, API, LIB, PLN, SCH, REP, INT, AGT, ADM, SEC, OPS,
-UX, TMG, TRC, MOB) conservato localmente in `collaudo/casi.json`; ogni esito registrato è legato all'id del
+UX, TMG, TRC, MOB) conservato localmente in `collaudo/casi/`; ogni esito registrato è legato all'id del
 caso, quindi gli id non si rinominano mai.
 
 ## Topologia

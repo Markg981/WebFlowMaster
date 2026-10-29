@@ -1,0 +1,13 @@
+{
+  "id": "LIB-09",
+  "area": "LIB",
+  "title": "Eliminare un test",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Conferma «Delete … and its history?»; il test sparisce con la sua cronologia. Audit test.deleted.",
+  "steps": [
+    "Libreria: Elimina su un test di prova."
+  ],
+  "expected": "Conferma «Delete … and its history?»; il test sparisce con la sua cronologia. Audit test.deleted.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Libreria: <b>Elimina</b> su un test di prova.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Conferma «Delete … and its history?»; il test sparisce con la sua cronologia. Audit <b>test.deleted</b>.</p>\n      "
+}

@@ -1,0 +1,15 @@
+{
+  "id": "OPS-39",
+  "area": "OPS",
+  "title": "Test a volume delle tabelle di log e risultati",
+  "priority": "P3",
+  "actor": "Operatore del Collaudo",
+  "preconditions": "Un database PostgreSQL di prova, vuoto o già usato solo da questo strumento, raggiungibile come superutente (mai quello di produzione). Repository con le dipendenze installate.",
+  "steps": [
+    "Generare un volume ridotto: npx tsx scripts/wfm-volume.ts --database-url postgres://postgres:PASSWORD@HOST:PORTA/wfm_volume --months 2 --runs-per-day 30.",
+    "Rimisurare senza rigenerare: stesso comando con --measure-only al posto di --months e --runs-per-day.",
+    "Forzare le violazioni: stesso comando con --measure-only --max-ms 0.001 e leggere l'elenco delle violazioni; controllare il codice di uscita."
+  ],
+  "expected": "Passo 1: lo strumento stampa le dimensioni delle tabelle, i tempi mediani di ogni query, il tempo di cancellazione di un mese (annullata) e scrive un report JSON in .local/volume/; uscita 0. Passo 2: nessuna rigenerazione, stesse query misurate, uscita 0. Passo 3: uscita 1 e sezione Breaches che nomina ogni query oltre soglia (median … ms > 0.001 ms). Un database con organizzazioni non create dallo strumento viene rifiutato con uscita 2.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un database PostgreSQL di prova, vuoto o già usato solo da questo strumento, raggiungibile come superutente (mai quello di produzione). Repository con le dipendenze installate.</p>\n        <h4>Passi</h4><ol><li>Generare un volume ridotto: npx tsx scripts/wfm-volume.ts --database-url postgres://postgres:PASSWORD@HOST:PORTA/wfm_volume --months 2 --runs-per-day 30.</li><li>Rimisurare senza rigenerare: stesso comando con --measure-only al posto di --months e --runs-per-day.</li><li>Forzare le violazioni: stesso comando con --measure-only --max-ms 0.001 e leggere l'elenco delle violazioni; controllare il codice di uscita.</li></ol>\n        <h4>Risultato atteso</h4><p class=\"expected\">Passo 1: lo strumento stampa le dimensioni delle tabelle, i tempi mediani di ogni query, il tempo di cancellazione di un mese (annullata) e scrive un report JSON in .local/volume/; uscita 0. Passo 2: nessuna rigenerazione, stesse query misurate, uscita 0. Passo 3: uscita 1 e sezione Breaches che nomina ogni query oltre soglia (median … ms > 0.001 ms). Un database con organizzazioni non create dallo strumento viene rifiutato con uscita 2.</p>\n      "
+}

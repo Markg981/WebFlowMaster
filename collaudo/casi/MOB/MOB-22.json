@@ -1,0 +1,19 @@
+{
+  "id": "MOB-22",
+  "area": "MOB",
+  "title": "Registrare toccando e trascinando sullo schermo",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "MOB-13; il test «Ricerca Wikipedia» con un solo passo vuoto.",
+  "steps": [
+    "Aprire l'inspector e premere Registra: l'immagine ha un bordo rosso e compare «Step registrati (0)».",
+    "Cliccare sulla barra «Search Wikipedia» nell'immagine.",
+    "Scrivere Appium nel campo «Testo da scrivere in …» e premere Invio.",
+    "Trascinare sull'immagine dal basso verso l'alto.",
+    "Cliccare su un punto vuoto senza elementi (per esempio un margine), se c'è.",
+    "Verifica il testo, poi cliccare sul titolo di un risultato.",
+    "Aggiungi 5 step al test (o il numero mostrato)."
+  ],
+  "expected": "2: il dispositivo tocca la barra; la riga 1 è Tocca con il locator più solido (per esempio ~Search Wikipedia), senza etichetta fragile; compare il campo di testo perché è un campo di input. 3: riga 2 Digita «Appium», lo schermo mostra i risultati. 4: riga 3 Scorri «up». 5: il tocco viene fatto ma non registrato, con il messaggio «…il tocco è stato fatto ma non registrato». 6: riga Verifica testo con il testo del risultato. 7: i passi finiscono in fondo al test nello stesso ordine, il contatore dice quanti; l'elenco si svuota. Salvato ed eseguito, il test passa.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-13; il test «Ricerca Wikipedia» con un solo passo vuoto.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire l'inspector e premere <b>Registra</b>: l'immagine ha un bordo rosso e compare «Step registrati (0)».</li><li>Cliccare sulla barra «Search Wikipedia» nell'immagine.</li><li>Scrivere <code>Appium</code> nel campo «Testo da scrivere in …» e premere Invio.</li><li>Trascinare sull'immagine dal basso verso l'alto.</li><li>Cliccare su un punto vuoto senza elementi (per esempio un margine), se c'è.</li><li><b>Verifica il testo</b>, poi cliccare sul titolo di un risultato.</li><li><b>Aggiungi 5 step al test</b> (o il numero mostrato).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2: il dispositivo tocca la barra; la riga 1 è Tocca con il locator più solido (per esempio ~Search Wikipedia), senza etichetta fragile; compare il campo di testo perché è un campo di input. 3: riga 2 Digita «Appium», lo schermo mostra i risultati. 4: riga 3 Scorri «up». 5: il tocco viene fatto ma non registrato, con il messaggio «…il tocco è stato fatto ma non registrato». 6: riga Verifica testo con il testo del risultato. 7: i passi finiscono in fondo al test nello stesso ordine, il contatore dice quanti; l'elenco si svuota. Salvato ed eseguito, il test passa.</p>\n      "
+}

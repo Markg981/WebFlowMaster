@@ -1,0 +1,14 @@
+{
+  "id": "SEC-38",
+  "area": "SEC",
+  "title": "API: isolamento cronologia tra tenant",
+  "priority": "P1",
+  "actor": "owner.b",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A con review pendente richiesta da editor.a. Owner.b dispone degli ID test, revisioni e review di A.",
+  "steps": [
+    "Come owner.b richiedere /api/api-tests/ID/versions e dettaglio della versione.",
+    "Tentare ripristino, pubblicazione, rollback e decisione sulla review di A usando richieste autenticate.",
+    "Riaprire la pagina Revisioni in B."
+  ],
+  "expected": "Nessuna configurazione o review di A viene esposta; nessuna operazione muta dati di A; gli elenchi di B non includono i test di A."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "OPS-16",
+  "area": "OPS",
+  "title": "Prova di carico",
+  "priority": "P3",
+  "actor": "operatore",
+  "preconditions": "Due organizzazioni con una chiave API ciascuna (scope plans:read, runs:read, runs:write) e un piano leggero; API_RATE_LIMIT=0 per la durata della prova.",
+  "steps": [
+    "npx tsx scripts/wfm-load.ts --url https://wfm.collaudo.test --target <chiave A>:<piano A> --target <chiave B>:<piano B> --readers 10 --read-seconds 30 --runs 8 --max-concurrent 2 --json carico.json.",
+    "Leggere il riepilogo e il codice di uscita; ripetere con --max-p95-ms 1."
+  ],
+  "expected": "1: riepilogo con latenze p50/p95/p99 delle letture, errori, e per ogni organizzazione attesa, durata ed esito dei run e il massimo in corso insieme (mai oltre 2); uscita 0 e file JSON scritto. 2: uscita 1, con la soglia superata nominata.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Due organizzazioni con una chiave API ciascuna (scope plans:read, runs:read, runs:write) e un piano leggero; <code>API_RATE_LIMIT=0</code> per la durata della prova.</p>\n        <h4>Passi</h4>\n        <ol><li><code>npx tsx scripts/wfm-load.ts --url https://wfm.collaudo.test --target &lt;chiave A&gt;:&lt;piano A&gt; --target &lt;chiave B&gt;:&lt;piano B&gt; --readers 10 --read-seconds 30 --runs 8 --max-concurrent 2 --json carico.json</code>.</li><li>Leggere il riepilogo e il codice di uscita; ripetere con <code>--max-p95-ms 1</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: riepilogo con latenze p50/p95/p99 delle letture, errori, e per ogni organizzazione attesa, durata ed esito dei run e il massimo in corso insieme (mai oltre 2); uscita 0 e file JSON scritto. 2: uscita 1, con la soglia superata nominata.</p>\n      "
+}

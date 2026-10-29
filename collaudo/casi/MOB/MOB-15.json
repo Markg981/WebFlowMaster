@@ -1,0 +1,17 @@
+{
+  "id": "MOB-15",
+  "area": "MOB",
+  "title": "Inspector: variabili, locator non unici, scadenza e permessi",
+  "priority": "P2",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "MOB-13.",
+  "steps": [
+    "Nell'inspector Digitalo con testo {{search.term}}.",
+    "Selezionare un elemento con testo ripetuto (per esempio una voce di elenco).",
+    "Lasciare l'inspector aperto senza toccarlo per 6 minuti, poi rileggere lo schermo.",
+    "Aprire l'inspector su due finestre del browser, una dopo l'altra.",
+    "Come viewer.a aprire un test mobile."
+  ],
+  "expected": "1: «Unresolved variable(s) search.term…»: l'inspector non ha un ambiente. 2: il locator di testo è segnato «non unico», in cima ce n'è uno unico (al limite un XPath per posizione). 3: «The inspector session has ended. Open it again.» e la sessione su BrowserStack è chiusa. 4: la prima finestra, alla prossima azione, dice che la sessione è finita. 5: nessun pulsante Inspector (il viewer non modifica i test); l'API POST /api/mobile-inspector risponde 403.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-13.</p>\n        <h4>Passi</h4>\n        <ol><li>Nell'inspector Digitalo con testo <code>{{search.term}}</code>.</li><li>Selezionare un elemento con testo ripetuto (per esempio una voce di elenco).</li><li>Lasciare l'inspector aperto senza toccarlo per 6 minuti, poi rileggere lo schermo.</li><li>Aprire l'inspector su due finestre del browser, una dopo l'altra.</li><li>Come viewer.a aprire un test mobile.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: «Unresolved variable(s) search.term…»: l'inspector non ha un ambiente. 2: il locator di testo è segnato «non unico», in cima ce n'è uno unico (al limite un XPath per posizione). 3: «The inspector session has ended. Open it again.» e la sessione su BrowserStack è chiusa. 4: la prima finestra, alla prossima azione, dice che la sessione è finita. 5: nessun pulsante Inspector (il viewer non modifica i test); l'API POST /api/mobile-inspector risponde 403.</p>\n      "
+}

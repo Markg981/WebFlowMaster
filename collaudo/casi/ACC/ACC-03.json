@@ -1,0 +1,16 @@
+{
+  "id": "ACC-03",
+  "area": "ACC",
+  "title": "Invitare un editor e registrarlo con il link",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Entrambi gli account nascono nell'organizzazione A con il ruolo dell'invito. Gli inviti spariscono da quelli in attesa. Il registro di audit ha invitation.created e invitation.accepted.",
+  "steps": [
+    "Impostazioni → Membri: invitare editor.a con ruolo editor → Crea invito.",
+    "Copiare il link mostrato (compare una sola volta).",
+    "Aprirlo in una finestra anonima: username già compilato; scegliere una password e registrarsi.",
+    "Ripetere per viewer.a con ruolo viewer."
+  ],
+  "expected": "Entrambi gli account nascono nell'organizzazione A con il ruolo dell'invito. Gli inviti spariscono da quelli in attesa. Il registro di audit ha invitation.created e invitation.accepted.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Membri: invitare <code>editor.a</code> con ruolo editor → <b>Crea invito</b>.</li><li>Copiare il link mostrato (compare una sola volta).</li><li>Aprirlo in una finestra anonima: username già compilato; scegliere una password e registrarsi.</li><li>Ripetere per <code>viewer.a</code> con ruolo viewer.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Entrambi gli account nascono nell'organizzazione A con il ruolo dell'invito. Gli inviti spariscono da quelli in attesa. Il registro di audit ha <b>invitation.created</b> e <b>invitation.accepted</b>.</p>\n      "
+}

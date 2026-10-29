@@ -1,0 +1,14 @@
+{
+  "id": "INT-10",
+  "area": "INT",
+  "title": "Configurare un issue tracker",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Jira o Azure DevOps di prova.",
+  "steps": [
+    "Impostazioni → Issue tracker: nuovo con credenziali giuste; Test.",
+    "Ripetere con un token sbagliato."
+  ],
+  "expected": "Con le credenziali giuste il test riesce; con quelle sbagliate l'errore del tracker viene mostrato.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Jira o Azure DevOps di prova.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Issue tracker: nuovo con credenziali giuste; <b>Test</b>.</li><li>Ripetere con un token sbagliato.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con le credenziali giuste il test riesce; con quelle sbagliate l'errore del tracker viene mostrato.</p>\n      "
+}

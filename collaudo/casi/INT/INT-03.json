@@ -1,0 +1,13 @@
+{
+  "id": "INT-03",
+  "area": "INT",
+  "title": "Descrizione OpenAPI",
+  "priority": "P1",
+  "actor": "chiunque",
+  "preconditions": "Il documento è valido e l'importazione crea le sei operazioni.",
+  "steps": [
+    "Aprire /api/v1/openapi.json; importarlo in Postman o Insomnia."
+  ],
+  "expected": "Il documento è valido e l'importazione crea le sei operazioni.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Aprire <code>/api/v1/openapi.json</code>; importarlo in Postman o Insomnia.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il documento è valido e l'importazione crea le sei operazioni.</p>\n      "
+}

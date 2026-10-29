@@ -1,0 +1,14 @@
+{
+  "id": "AUT-02",
+  "area": "AUT",
+  "title": "Accesso OIDC e permessi viewer",
+  "priority": "P1",
+  "actor": "owner.a / nuovo utente SSO viewer",
+  "preconditions": "Provider OIDC HTTPS di prova con email verificata; dominio e ruolo predefinito viewer configurabili. Procedura: collaudo/critical-ui-e2e.md.",
+  "steps": [
+    "Configurare OIDC dalle impostazioni e ricaricare per verificare la persistenza.",
+    "In un profilo separato accedere tramite il provider e ricaricare la dashboard.",
+    "Aprire mobile e impostazioni come viewer, poi uscire e aprire una pagina protetta."
+  ],
+  "expected": "Sessione SSO persistente; viewer senza creazione mobile né gestione SSO/review; dopo logout la pagina protetta richiede accesso. Esclusi SAML, DNS e gruppi provider."
+}

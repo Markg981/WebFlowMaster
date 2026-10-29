@@ -1,0 +1,14 @@
+{
+  "id": "AGT-08",
+  "area": "AGT",
+  "title": "Agente precedente privo delle capacità native",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Pool legacy con agente 1.0.0 collegato; test HTTP e WebSocket disponibili.",
+  "steps": [
+    "Eseguire il test HTTP sul pool legacy.",
+    "Eseguire il test WebSocket sul medesimo pool."
+  ],
+  "expected": "HTTP resta funzionante. WebSocket fallisce con istruzioni per aggiornare l’agente; il servizio non riceve una chiamata alternativa dai runner server.",
+  "detailHtml": "<h4>Precondizioni</h4><p>Pool legacy con agente 1.0.0 collegato; test HTTP e WebSocket disponibili.</p><h4>Passi</h4><ol><li>Eseguire il test HTTP sul pool legacy.</li><li>Eseguire il test WebSocket sul medesimo pool.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">HTTP resta funzionante. WebSocket fallisce con istruzioni per aggiornare l’agente; il servizio non riceve una chiamata alternativa dai runner server.</p>"
+}

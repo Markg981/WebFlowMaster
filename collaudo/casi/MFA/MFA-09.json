@@ -1,0 +1,14 @@
+{
+  "id": "MFA-09",
+  "area": "MFA",
+  "title": "Azzerare il secondo fattore di un membro",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "editor.a con secondo fattore.",
+  "steps": [
+    "Impostazioni → Membri: icona della chiave accanto a editor.a.",
+    "Provare la stessa azione su se stessi."
+  ],
+  "expected": "editor.a accede con la sola password (e deve riconfigurarlo se l'organizzazione lo richiede). Su se stessi l'azione non è permessa.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>editor.a con secondo fattore.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Membri: icona della chiave accanto a editor.a.</li><li>Provare la stessa azione su se stessi.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">editor.a accede con la sola password (e deve riconfigurarlo se l'organizzazione lo richiede). Su se stessi l'azione non è permessa.</p>\n      "
+}

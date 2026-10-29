@@ -1,0 +1,15 @@
+{
+  "id": "WEB-33",
+  "area": "WEB",
+  "title": "Blocchi non chiusi",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il costruttore mostra in basso a sinistra «Blocchi non chiusi» con l'elenco, per numero di step. L'esecuzione fallisce prima di aprire il browser con gli stessi messaggi; nessuno step viene eseguito. Con i blocchi chiusi l'avviso sparisce e gli step annidati sono rientrati di due livelli.",
+  "steps": [
+    "Nel costruttore: un Se senza Fine se; poi un Altrimenti isolato; poi un Fine ciclo senza Ripeti.",
+    "Osservare il costruttore; Esegui test; salvare ed eseguire in un piano.",
+    "Annidare un Ripeti dentro un Se, chiuderli correttamente."
+  ],
+  "expected": "Il costruttore mostra in basso a sinistra «Blocchi non chiusi» con l'elenco, per numero di step. L'esecuzione fallisce prima di aprire il browser con gli stessi messaggi; nessuno step viene eseguito. Con i blocchi chiusi l'avviso sparisce e gli step annidati sono rientrati di due livelli.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Nel costruttore: un <b>Se</b> senza <b>Fine se</b>; poi un <b>Altrimenti</b> isolato; poi un <b>Fine ciclo</b> senza Ripeti.</li><li>Osservare il costruttore; <b>Esegui test</b>; salvare ed eseguire in un piano.</li><li>Annidare un Ripeti dentro un Se, chiuderli correttamente.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il costruttore mostra in basso a sinistra «Blocchi non chiusi» con l'elenco, per numero di step. L'esecuzione fallisce prima di aprire il browser con gli stessi messaggi; nessuno step viene eseguito. Con i blocchi chiusi l'avviso sparisce e gli step annidati sono rientrati di due livelli.</p>\n      "
+}

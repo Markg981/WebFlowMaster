@@ -1,0 +1,15 @@
+{
+  "id": "PLN-47",
+  "area": "PLN",
+  "title": "Annullare una run su agent o grid chiude solo la propria sessione",
+  "priority": "P2",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 69. Un pool di agent (o una browser grid) usato da due run contemporaneamente. Due piani A e B, ciascuno con un test UI che contiene lo step JavaScript 'return new Promise(() => {});' seguito da uno step di attesa.",
+  "steps": [
+    "Avviare A e B sullo stesso agent o grid e attendere in entrambi Executing step 1.",
+    "Annullare solo A.",
+    "Osservare B e il cruscotto dell'agent o del provider.",
+    "Annullare B."
+  ],
+  "expected": "A risulta Annullata con lo step 'Stopped: the run was cancelled.' entro heartbeat + 5 secondi; la sessione di A sull'agent o sul provider si chiude (il provider può mostrarla ancora fino al proprio timeout di inattività). B continua: il suo browser e la sua sessione non vengono toccati. Annullata anche B, nessuna sessione delle due run resta aperta sull'agent."
+}

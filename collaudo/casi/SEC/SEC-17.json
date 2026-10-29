@@ -1,0 +1,14 @@
+{
+  "id": "SEC-17",
+  "area": "SEC",
+  "title": "Nessuna funzione finta",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "Accesso all'API.",
+  "steps": [
+    "POST /api/reports/generate come editor.",
+    "GET /api/non-esiste; poi aprire nel browser /test-plans."
+  ],
+  "expected": "Risponde 404 JSON {\"error\":\"No such endpoint.\"}, non la pagina HTML dell'applicazione: l'endpoint che diceva «Report generated successfully» senza fare nulla non esiste più. Lo stesso vale per ogni percorso /api sconosciuto; le pagine dell'applicazione si aprono normalmente. Gli export (HTML, PDF, JUnit, Allure) restano disponibili dal report.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Accesso all'API.</p>\n        <h4>Passi</h4>\n        <ol><li><code>POST /api/reports/generate</code> come editor.</li><li><code>GET /api/non-esiste</code>; poi aprire nel browser <code>/test-plans</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Risponde 404 JSON <code>{\"error\":\"No such endpoint.\"}</code>, non la pagina HTML dell'applicazione: l'endpoint che diceva «Report generated successfully» senza fare nulla non esiste più. Lo stesso vale per ogni percorso /api sconosciuto; le pagine dell'applicazione si aprono normalmente. Gli export (HTML, PDF, JUnit, Allure) restano disponibili dal report.</p>\n      "
+}

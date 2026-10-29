@@ -1,0 +1,14 @@
+{
+  "id": "SEC-60",
+  "area": "SEC",
+  "title": "Migrazioni e db:doctor non stampano la password del database",
+  "priority": "P1",
+  "actor": "admin",
+  "preconditions": "Catalogo versione 67. Una shell nel repository. Nessun database in ascolto sulla porta 1.",
+  "steps": [
+    "Eseguire DATABASE_URL=postgres://u:Collaudo-Db-SEC60@127.0.0.1:1/x npx tsx scripts/apply-migrations.ts.",
+    "Eseguire lo stesso con scripts/schema-doctor.ts.",
+    "Eseguire node --test scripts/security/migration-log.test.mjs."
+  ],
+  "expected": "Passo 1: stampa \"Connecting to the database (PostgreSQL)\" e un errore di connessione; Collaudo-Db-SEC60 non compare in stdout né stderr. Passo 2: stampa \"Database: PostgreSQL\", nessuna password. Passo 3: 2 test passati."
+}

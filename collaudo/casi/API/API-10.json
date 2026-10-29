@@ -1,0 +1,14 @@
+{
+  "id": "API-10",
+  "area": "API",
+  "title": "Eliminare una voce della cronologia",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "API-07.",
+  "steps": [
+    "Cronologia: eliminare una voce; ricaricare la pagina.",
+    "Come viewer.a aprire la cronologia."
+  ],
+  "expected": "La voce sparisce e non torna dopo il ricaricamento; le altre restano. viewer.a non ha il comando di eliminazione.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>API-07.</p>\n        <h4>Passi</h4>\n        <ol><li>Cronologia: eliminare una voce; ricaricare la pagina.</li><li>Come viewer.a aprire la cronologia.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La voce sparisce e non torna dopo il ricaricamento; le altre restano. viewer.a non ha il comando di eliminazione.</p>\n      "
+}

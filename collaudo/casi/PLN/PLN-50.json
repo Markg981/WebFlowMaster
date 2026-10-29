@@ -1,0 +1,14 @@
+{
+  "id": "PLN-50",
+  "area": "PLN",
+  "title": "La riesecuzione è un nuovo tentativo della stessa unità; le righe storiche restano senza unità",
+  "priority": "P2",
+  "actor": "admin",
+  "preconditions": "Catalogo versione 70. Accesso in sola lettura al database del worker (psql) per leggere execution_units, execution_unit_attempts e report_test_case_results. Un piano con Re-run on failure = una volta e un test che fallisce al primo giro e passa al secondo (per esempio un'asserzione su un contatore). Una run dello stesso piano eseguita prima dell'aggiornamento.",
+  "steps": [
+    "Avviare il piano e attendere la fine della run.",
+    "Leggere SELECT attempt, state, status FROM execution_unit_attempts WHERE execution_id = '<run>' ORDER BY attempt.",
+    "Leggere la riga di risultato del test e le righe della run storica (execution_unit_id, unit_attempt)."
+  ],
+  "expected": "Due tentativi della stessa unità: 1 failed, 2 passed, entrambi finished. Una sola riga di risultato: Passed, attempts 2, unit_attempt 2. Un secondo inserimento per la stessa unità viene rifiutato dal database. Le righe della run storica restano leggibili e invariate, con execution_unit_id e unit_attempt vuoti: nessuna identità ricostruita dal nome."
+}

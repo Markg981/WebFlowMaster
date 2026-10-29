@@ -1,0 +1,14 @@
+{
+  "id": "MFA-01",
+  "area": "MFA",
+  "title": "Attivare il secondo fattore",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "App di autenticazione sul telefono.",
+  "steps": [
+    "Impostazioni → Sicurezza → configurare l'autenticazione a due fattori.",
+    "Inquadrare il codice QR, inserire il codice a sei cifre."
+  ],
+  "expected": "Vengono mostrati 10 codici di recupero, una sola volta. Lo stato diventa attivo con la data. Audit mfa.enabled.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>App di autenticazione sul telefono.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Sicurezza → configurare l'autenticazione a due fattori.</li><li>Inquadrare il codice QR, inserire il codice a sei cifre.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Vengono mostrati 10 codici di recupero, una sola volta. Lo stato diventa attivo con la data. Audit <b>mfa.enabled</b>.</p>\n      "
+}

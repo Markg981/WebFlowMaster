@@ -1,0 +1,13 @@
+{
+  "id": "PLN-15",
+  "area": "PLN",
+  "title": "Run troppo lungo",
+  "priority": "P2",
+  "actor": "operatore · editor.a",
+  "preconditions": "RUN_MAX_DURATION_MS basso (per esempio 60000).",
+  "steps": [
+    "Eseguire un piano che dura di più."
+  ],
+  "expected": "Il run termina come «Tempo scaduto».",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>RUN_MAX_DURATION_MS</code> basso (per esempio 60000).</p>\n        <h4>Passi</h4>\n        <ol><li>Eseguire un piano che dura di più.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il run termina come «Tempo scaduto».</p>\n      "
+}

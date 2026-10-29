@@ -1,0 +1,14 @@
+{
+  "id": "MOB-33",
+  "area": "MOB",
+  "title": "Condizioni native if/else",
+  "priority": "P1",
+  "actor": "editor.a, owner.a",
+  "preconditions": "Migrazione 0082 applicata. Test Android con banner presente e assente, grid Appium configurata.",
+  "steps": [
+    "Creare if ~banner visible, tap nel ramo vero, else/back ed endIf.",
+    "Eseguire con banner presente e assente.",
+    "Interrompere il collegamento Appium durante la condizione."
+  ],
+  "expected": "Esegue solo il ramo selezionato; l’altro è skipped. Un errore di trasporto fallisce il run."
+}

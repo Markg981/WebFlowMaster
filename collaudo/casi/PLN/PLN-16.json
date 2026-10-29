@@ -1,0 +1,13 @@
+{
+  "id": "PLN-16",
+  "area": "PLN",
+  "title": "Comportamento sui fallimenti",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "Dopo il fallimento l'esecuzione si ferma; con il valore predefinito prosegue con il test successivo.",
+  "steps": [
+    "Passo 3: On Major Step Failure = Stop Execution; eseguire un piano con un test che fallisce seguito da altri."
+  ],
+  "expected": "Dopo il fallimento l'esecuzione si ferma; con il valore predefinito prosegue con il test successivo.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Passo 3: <b>On Major Step Failure</b> = Stop Execution; eseguire un piano con un test che fallisce seguito da altri.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Dopo il fallimento l'esecuzione si ferma; con il valore predefinito prosegue con il test successivo.</p>\n      "
+}

@@ -1,0 +1,15 @@
+{
+  "id": "SEC-54",
+  "area": "SEC",
+  "title": "Destinazioni private autorizzate e browser di agente invariati",
+  "priority": "P2",
+  "actor": "admin",
+  "preconditions": "Catalogo versione 66. Un'applicazione intranet su un indirizzo privato con certificato self-signed. Un agente locale registrato in un pool.",
+  "steps": [
+    "Con EGRESS_PRIVATE_TARGETS=allow eseguire un test sull'applicazione intranet sul runner.",
+    "Con EGRESS_PRIVATE_TARGETS=deny e l'indirizzo dell'applicazione in EGRESS_ALLOW_HOSTS ripetere il test.",
+    "Eseguire lo stesso test sul pool dell'agente.",
+    "Eseguire un test verso ws://169.254.169.254/ e http://169.254.169.254/ dal runner con EGRESS_PRIVATE_TARGETS=allow."
+  ],
+  "expected": "Passi 1-3: il test passa, il certificato self-signed è accettato come prima. Sull'agente la policy del runner non si applica: decide la rete del proprietario. Passo 4: metadati sempre rifiutati, anche con allow."
+}

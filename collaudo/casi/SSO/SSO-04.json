@@ -1,0 +1,13 @@
+{
+  "id": "SSO-04",
+  "area": "SSO",
+  "title": "Collegare un account esistente",
+  "priority": "P1",
+  "actor": "nessuno",
+  "preconditions": "Un membro invitato con username uguale alla sua e-mail, per esempio marco@acme.test, presente anche in Keycloak.",
+  "steps": [
+    "Accedere con SSO come marco@acme.test."
+  ],
+  "expected": "Si entra nell'account già esistente, con il suo ruolo e i suoi dati; nessun account doppio in Membri.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un membro invitato con username uguale alla sua e-mail, per esempio <code>marco@acme.test</code>, presente anche in Keycloak.</p>\n        <h4>Passi</h4>\n        <ol><li>Accedere con SSO come <code>marco@acme.test</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Si entra nell'account già esistente, con il suo ruolo e i suoi dati; nessun account doppio in Membri.</p>\n      "
+}

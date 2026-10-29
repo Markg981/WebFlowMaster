@@ -1,0 +1,16 @@
+{
+  "id": "PLN-24",
+  "area": "PLN",
+  "title": "Aggiungere una griglia BrowserStack",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un account BrowserStack (anche trial) con Automate: username e access key.",
+  "steps": [
+    "Impostazioni → Griglie di browser: fornitore BrowserStack, nome BrowserStack, senza username; Aggiungi griglia.",
+    "Compilare username, lasciare vuota la chiave; Aggiungi.",
+    "Compilare la chiave; Aggiungi.",
+    "Prova la connessione."
+  ],
+  "expected": "I primi due tentativi sono rifiutati dicendo cosa manca (nome utente, chiave). Dopo il salvataggio la riga mostra nome, etichetta BrowserStack e username, mai la chiave (nemmeno nell'API GET /api/browser-grids: solo hasKey: true). La prova dice «Connected: …» con la versione del browser e i millisecondi; nella dashboard BrowserStack compare la sessione «WebFlowMaster connection check».",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un account BrowserStack (anche trial) con Automate: username e access key.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → <b>Griglie di browser</b>: fornitore BrowserStack, nome <code>BrowserStack</code>, senza username; <b>Aggiungi griglia</b>.</li><li>Compilare username, lasciare vuota la chiave; Aggiungi.</li><li>Compilare la chiave; Aggiungi.</li><li><b>Prova la connessione</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">I primi due tentativi sono rifiutati dicendo cosa manca (nome utente, chiave). Dopo il salvataggio la riga mostra nome, etichetta BrowserStack e username, mai la chiave (nemmeno nell'API <code>GET /api/browser-grids</code>: solo <code>hasKey: true</code>). La prova dice «Connected: …» con la versione del browser e i millisecondi; nella dashboard BrowserStack compare la sessione «WebFlowMaster connection check».</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "LIB-01",
+  "area": "LIB",
+  "title": "Cercare e filtrare nella Libreria",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Almeno 5 test salvati.",
+  "steps": [
+    "Cercare per parte del nome.",
+    "Aggiungere il tag smoke a due test; cliccare il tag per filtrare; Clear."
+  ],
+  "expected": "Ricerca e filtro mostrano solo i test giusti; «Clear» li riporta tutti.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Almeno 5 test salvati.</p>\n        <h4>Passi</h4>\n        <ol><li>Cercare per parte del nome.</li><li>Aggiungere il tag <code>smoke</code> a due test; cliccare il tag per filtrare; <b>Clear</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ricerca e filtro mostrano solo i test giusti; «Clear» li riporta tutti.</p>\n      "
+}

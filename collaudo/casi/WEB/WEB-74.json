@@ -1,0 +1,14 @@
+{
+  "id": "WEB-74",
+  "area": "WEB",
+  "title": "Componente dentro un iframe dentro un componente, riprodotto in Chromium, Firefox e WebKit",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 76. Server sulla propria macchina (la registrazione apre un browser locale). Fixture dei web component avviata con npm run fixture:shadow (http://127.0.0.1:5090).",
+  "steps": [
+    "Registrare su http://127.0.0.1:5090/frames: scrivere una città nel campo dentro il riquadro.",
+    "Termina registrazione e salvare il test; aprire il passo e controllare elemento e frame.",
+    "Pubblicare il test, aggiungerlo a un piano con Chromium, Firefox e WebKit ed eseguirlo."
+  ],
+  "expected": "Il passo ha il selettore del campo (body > x-field input[name=\"city\"]) e, separato, il frame (body > x-frame-shell iframe[name=\"inner\"]): il frame non finisce nel selettore né il componente nel frame. Nessuna navigazione registrata per il caricamento del riquadro. Il piano passa nei tre browser."
+}
