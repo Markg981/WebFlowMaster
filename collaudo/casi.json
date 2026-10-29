@@ -10092,6 +10092,46 @@
       "expected": "1: ogni azione viene aggiunta in fondo alla sequenza come con il drag&drop. 2: l'elemento si associa al più recente step ancora senza elemento. 3: lo step cambia posto di una posizione. 4: «su» è disabilitato sul primo step, «giù» sull'ultimo; durante una registrazione tutti i pulsanti sono disabilitati. 5: stesso risultato dei passi 1-3."
     },
     {
+      "id": "OPS-57",
+      "area": "OPS",
+      "title": "Redis fermo: l'avvio di un run risponde 503 entro il timeout",
+      "priority": "P1",
+      "actor": "Operatore",
+      "preconditions": "Stack avviato; un piano eseguibile; permesso di fermare Redis.",
+      "steps": [
+        "Fermare Redis (docker compose stop redis).",
+        "Avviare il piano dall'interfaccia o via API.",
+        "Riavviare Redis e riavviare il piano."
+      ],
+      "expected": "1: Redis fermo. 2: la richiesta non resta appesa: entro circa 10 secondi risponde 503 queue_submission_failed e il run non resta in coda. 3: il run parte normalmente."
+    },
+    {
+      "id": "OPS-58",
+      "area": "OPS",
+      "title": "Pianificazione mensile al 29, 30 o 31: gira anche nei mesi corti",
+      "priority": "P1",
+      "actor": "Operatore",
+      "preconditions": "Una pianificazione mensile con prima esecuzione il 31 del mese, fuso Europe/Rome.",
+      "steps": [
+        "Creare la pianificazione mensile con primo run il 31 gennaio.",
+        "Leggere la prossima esecuzione dopo il run di gennaio."
+      ],
+      "expected": "1: creata. 2: la prossima esecuzione è il 28 febbraio (ultimo giorno del mese), non il 31 marzo."
+    },
+    {
+      "id": "OPS-59",
+      "area": "OPS",
+      "title": "Errore transitorio del database alla chiusura del run: il verdetto viene registrato",
+      "priority": "P1",
+      "actor": "Operatore",
+      "preconditions": "Un piano con test che passano; possibilità di interrompere il database per pochi secondi alla fine del run.",
+      "steps": [
+        "Avviare il piano e, appena i test finiscono, interrompere il database per 1 secondo.",
+        "Aprire il run."
+      ],
+      "expected": "1: avviato. 2: il run ha lo stato passed (la transizione finale viene ritentata), non worker_lost."
+    },
+    {
       "id": "UX-14",
       "area": "UX",
       "title": "Dopo il login si torna alla pagina richiesta",
