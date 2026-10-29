@@ -150,6 +150,7 @@ credenziale conosciuti sostituiti da `[redacted]`).
   conta il nome del file, non un flag salvato con esso.
 - I file di un test in un progetto riservato sono raggiungibili solo da chi è nel progetto e dagli
   owner; per chiunque altro nell'organizzazione rispondono come un file che non esiste.
+- Il report di piano e i suoi export mostrano elenco dei passi, log, riepilogo di rete e analisi AI di un risultato solo per i test che il chiamante vede; per un test di un progetto riservato a cui non partecipa la riga resta ma il dettaglio è vuoto.
 - Gli export (HTML, PDF, Allure, JUnit) contengono gli screenshot dei test falliti e nessun'altra
   evidenza.
 - Un test che gestisce in modo visibile una credenziale (un valore `{{secret_…}}`, o qualcosa che si

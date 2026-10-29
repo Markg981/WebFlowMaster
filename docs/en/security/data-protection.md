@@ -147,6 +147,7 @@ replaced by `[redacted]`).
   the file's name, not a flag stored with it.
 - The files of a test in a restricted project are reachable only by the people on that project and
   by owners; to anyone else in the organization they answer like a file that does not exist.
+- The plan report and its exports show a result's step list, log, network summary and AI analysis only for tests the caller can see; for a test of a restricted project they are not on, the row stays but its detail is empty.
 - Exports (HTML, PDF, Allure, JUnit) contain screenshots of failed tests and no other evidence.
 - A test that visibly handles a credential (a `{{secret_…}}` value, or anything named _password_)
   records no trace, even when its plan asks for one.
