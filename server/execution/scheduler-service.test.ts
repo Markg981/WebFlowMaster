@@ -331,3 +331,10 @@ describe('the first run of a schedule being saved', () => {
     );
   });
 });
+
+describe('monthly on the 29th-31st', () => {
+  it('falls on the last day of a shorter month instead of skipping it', () => {
+    const next = calculateNextRunTime('monthly', new Date('2026-01-31T10:00:00Z'), 'UTC');
+    expect(next?.toISOString()).toBe('2026-02-28T10:00:00.000Z');
+  });
+});
