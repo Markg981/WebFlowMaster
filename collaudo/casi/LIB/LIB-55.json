@@ -1,0 +1,14 @@
+{
+  "id": "LIB-55",
+  "area": "LIB",
+  "title": "Load test: modifica dell'API test tra accodamento ed esecuzione ignorata",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 93. Un load test con due API test; il worker di carico fermo.",
+  "steps": [
+    "Avviare il run (resta Accodato).",
+    "Modificare l'URL di uno dei due API test.",
+    "Avviare il worker di carico e attendere la fine del run."
+  ],
+  "expected": "Il run invia le richieste com'erano all'accodamento (URL originale) e termina secondo il verdetto atteso; la modifica vale solo per i run successivi."
+}

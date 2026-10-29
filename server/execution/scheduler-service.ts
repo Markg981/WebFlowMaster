@@ -297,8 +297,7 @@ export async function executeScheduledPlanForTest(
  * wanted an id: it parsed "QA" as a number, got nothing, and every scheduled run went out with no
  * environment's variables and no saved login, whatever the schedule said. An id is still read as
  * an id; anything else is looked up by name, ignoring case, inside the schedule's organization. A name
- * that matches nothing runs without an environment, as it always did, and keeps its label on the
- * run so the report still says what was asked for.
+ * that matches nothing yields no id: the caller refuses the run rather than run without one.
  */
 async function resolveScheduleEnvironment(
   value: string | null | undefined,
@@ -387,8 +386,10 @@ export async function executeScheduledPlan(
 
       const environment = await resolveScheduleEnvironment(schedule.environment);
       if (environment.label && environment.environmentId == null) {
-        logger.warn(
-          `[SchedulerService] Schedule ${schedule.id} names environment "${environment.label}", which is not an environment of its organization; running without one.`,
+        // A run against no environment has no variables and no saved login: it would pass or
+        // fail for the wrong reasons, so it does not start. The error log is the signal.
+        throw new Error(
+          `Schedule ${schedule.id} names environment "${environment.label}", which is not an environment of its organization; the run was not started (environment_missing).`,
         );
       }
 

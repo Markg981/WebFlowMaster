@@ -423,6 +423,10 @@ thresholds: `LCP <= 2500, CLS <= 0.1, INP <= 200`. Put it after the page has loa
 Only Chromium measures LCP, CLS, INP and TBT; in Firefox and WebKit they are shown as — and a limit
 on them is reported as not measured rather than failed, so the same test runs on every browser.
 
+**Wait for element** takes `visible` (default), `hidden`, `attached` or `detached`; any other value fails
+the step. **Wait for text** waits for the text to be visible. **Check state** `readonly` means enabled
+but not editable: a disabled field is `disabled`, not read-only.
+
 **Lighthouse audit** runs [Lighthouse](https://developer.chrome.com/docs/lighthouse) on the current
 page's address and checks its category scores (0–100): `performance >= 80, accessibility >= 90,
 best-practices >= 90, seo >= 80`, plus `desktop` for the desktop preset (mobile by default). Empty

@@ -65,7 +65,9 @@ comunque come completato. A run concluso, un editor apre la riga, segna ogni ste
 - **Bloccato** (non è stato possibile eseguirlo) conta tra i saltati.
 
 Ogni esito ricalcola i totali e lo stato del run, così il report mescola risultati manuali e
-automatici. Un run annullato o scaduto conserva il suo esito. Un esito si può correggere
+automatici. Un run completato o fallito passa dall'uno all'altro come a ogni fine run, quindi
+commit status, notifiche e pubblicazione sul test management ripartono con il nuovo esito. Un run
+annullato o scaduto conserva il suo esito e non annuncia nulla. Un esito si può correggere
 registrandolo di nuovo; la riga dice chi l'ha registrato e quando, e ogni registrazione finisce nel
 registro di audit.
 
@@ -98,7 +100,10 @@ nome del piano e il momento in cui è terminato, in UTC.
 La scheda **Test management** del report elenca dove è andato il run, con il link alla run di
 TestRail o alla issue di Xray, quanti casi sono stati pubblicati e quanti test non avevano un caso,
 e perché una pubblicazione è fallita (un token errato, un caso rifiutato dallo strumento).
-**Pubblica di nuovo** invia ancora il run — dopo gli esiti manuali, o quando lo strumento era giù —
+Se lo strumento ha accettato solo alcuni casi la pubblicazione è **Pubblicata parzialmente**, se non
+ne ha accettato nessuno è **Fallita**, mai Pubblicata; una run TestRail creata prima che i risultati
+fallissero resta collegata. Le richieste che incontrano un errore di rete, 429 o 502-504 vengono
+ripetute fino a tre volte. **Pubblica di nuovo** invia ancora il run — dopo gli esiti manuali, o quando lo strumento era giù —
 alla connessione del piano o a un'altra; ogni volta è una nuova run nello strumento. Una
 pubblicazione fallita non cambia mai il risultato del run.
 

@@ -73,8 +73,8 @@ export type Verdict = 'completed' | 'failed' | 'error';
  */
 export function verdictOf(tally: Tally, plannedTests: number, incomplete: boolean): Verdict {
   const verdict: Verdict =
-    tally.total === 0 && plannedTests > 0
-      ? 'error' // No results recorded but tests were expected
+    tally.total === 0
+      ? 'error' // No results: tests were expected and lost, or the plan holds none (`run_empty`)
       : tally.failures.holding > 0
         ? 'failed'
         : // Every test passed, none failed outright (some skipped, or waiting for a person), or
@@ -181,11 +181,13 @@ export async function finalizeRun(
         ...aggregates,
         ...(finalOverallStatus === 'error'
           ? {
-              failureCode: 'run_incomplete',
+              failureCode: snapshot.selectedTests.length === 0 ? 'run_empty' : 'run_incomplete',
               // The reason itself when there is one: "Not every browser produced a result" sends
               // somebody looking for which, when the run already knows.
               failureMessage: [
-                'Not every browser or test in the plan produced a recorded result.',
+                snapshot.selectedTests.length === 0
+                  ? 'The plan has no tests to run: nothing was verified.'
+                  : 'Not every browser or test in the plan produced a recorded result.',
                 ...(missing ? [missing] : []),
                 ...startupFailures,
                 ...unitFailures,

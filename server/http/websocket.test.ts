@@ -6,7 +6,14 @@ import request from 'supertest';
 import { WebSocket } from 'ws';
 import { inArray } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
-import { organizations, testPlans, testPlanExecutions, executionLogs, users } from '@shared/schema';
+import {
+  auditLog,
+  organizations,
+  testPlans,
+  testPlanExecutions,
+  executionLogs,
+  users,
+} from '@shared/schema';
 
 vi.mock('../platform/logger', () => ({
   default: {
@@ -36,6 +43,7 @@ vi.mock('bullmq', () => {
     on() {
       return this;
     }
+    async close() {}
   }
   class FakeJob {
     static fromId = vi.fn().mockResolvedValue(undefined);
@@ -45,7 +53,13 @@ vi.mock('bullmq', () => {
 
 import { setupAuth } from '../identity/auth';
 import { forgetSamlSession, registerSamlSession } from '../identity/sso-saml';
-import { installWorkerLogEmitter, setupWebSockets, type WsEmitter } from './websocket';
+import {
+  closeWebSockets,
+  installWorkerLogEmitter,
+  revalidateWebSockets,
+  setupWebSockets,
+  type WsEmitter,
+} from './websocket';
 
 /**
  * Drives the real setupAuth + setupWebSockets wiring against a real http.Server and real `ws`
@@ -64,6 +78,7 @@ const openSockets: WebSocket[] = [];
 
 let orgAId: number;
 let orgBId: number;
+let extraOrgId: number | undefined;
 let cookieA: string;
 let cookieB: string;
 const execAId = 'ws-auth-test-exec-a';
@@ -196,8 +211,16 @@ afterAll(async () => {
     .delete(testPlanExecutions)
     .where(inArray(testPlanExecutions.id, [execAId, execBId]));
   await privilegedDb.delete(testPlans).where(inArray(testPlans.id, [planAId, planBId]));
-  await privilegedDb.delete(users).where(inArray(users.organizationId, [orgAId, orgBId]));
-  await privilegedDb.delete(organizations).where(inArray(organizations.id, [orgAId, orgBId]));
+  // audit_log references organizations with no cascade: the logout writes an entry.
+  await privilegedDb
+    .delete(auditLog)
+    .where(inArray(auditLog.organizationId, [orgAId, orgBId, ...(extraOrgId ? [extraOrgId] : [])]));
+  await privilegedDb
+    .delete(users)
+    .where(inArray(users.organizationId, [orgAId, orgBId, ...(extraOrgId ? [extraOrgId] : [])]));
+  await privilegedDb
+    .delete(organizations)
+    .where(inArray(organizations.id, [orgAId, orgBId, ...(extraOrgId ? [extraOrgId] : [])]));
 });
 
 describe('WebSocket upgrade authentication', () => {
@@ -239,6 +262,54 @@ describe('subscribe-execution authorization', () => {
     const reply = await waitForMessage(ws, (m) => m.executionId === execAId);
 
     expect(reply.type).toBe('subscribed');
+  });
+});
+
+describe('WebSocket hardening (audit C-26)', () => {
+  it('refuses an upgrade from a foreign Origin with 403, even with a valid session', async () => {
+    const ws = new WebSocket(baseWsUrl, {
+      headers: { Cookie: cookieA, Origin: 'https://evil.example' },
+    });
+    openSockets.push(ws);
+    const status = await new Promise<number>((resolve, reject) => {
+      ws.once('unexpected-response', (_req, res) => resolve(res.statusCode ?? 0));
+      ws.once('open', () => reject(new Error('the upgrade was accepted')));
+      ws.once('error', () => {});
+    });
+    expect(status).toBe(403);
+  });
+
+  it('accepts an upgrade whose Origin is this app', async () => {
+    const host = new URL(baseWsUrl).host;
+    const ws = new WebSocket(baseWsUrl, {
+      headers: { Cookie: cookieA, Origin: `http://${host}` },
+    });
+    openSockets.push(ws);
+    await expect(waitForOpen(ws)).resolves.toBeUndefined();
+  });
+
+  it('closes an open socket once its session has logged out', async () => {
+    const reg = await request(app)
+      .post('/api/register')
+      .send({ username: 'ws-auth-logout-user', password: 'password123' })
+      .expect(201);
+    extraOrgId = reg.body.organizationId;
+    const cookie = toCookieHeader(reg.headers['set-cookie']);
+    const ws = connectWs(cookie);
+    await waitForOpen(ws);
+    const closed = new Promise<number>((resolve) => ws.once('close', (code) => resolve(code)));
+
+    await request(app).post('/api/logout').set('Cookie', cookie).expect(200);
+    await revalidateWebSockets();
+
+    expect(await closed).toBe(1008);
+  });
+
+  it('keeps a socket whose session still stands', async () => {
+    const ws = connectWs(cookieA);
+    await waitForOpen(ws);
+    await revalidateWebSockets();
+    expect(ws.readyState).toBe(WebSocket.OPEN);
   });
 });
 
@@ -340,5 +411,15 @@ describe('run logs from the queue worker', () => {
     }
     expect(stored).toHaveLength(1);
     expect(stored[0].organizationId).toBe(orgAId);
+  });
+});
+
+describe('WebSocket shutdown (audit C-26)', () => {
+  it('closes every socket on shutdown', async () => {
+    const ws = connectWs(cookieB);
+    await waitForOpen(ws);
+    const closed = new Promise<number>((resolve) => ws.once('close', (code) => resolve(code)));
+    await closeWebSockets();
+    expect(await closed).toBe(1001);
   });
 });

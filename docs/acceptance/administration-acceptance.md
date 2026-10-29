@@ -1,8 +1,11 @@
 # Administration acceptance / Collaudo amministrazione
 
-Scope: advanced SAML, organization SMTP/provider settings and editable HTML email with delivery/bounce tracking. Billing and consumption plans
-are deferred by the user's decision on 2026-10-02. No billing provider, prices or billable unit
-have been selected. Existing organization execution quotas continue to apply.
+Scope: advanced SAML, organization SMTP/provider settings and editable HTML email with delivery/bounce tracking. Billing was deferred on 2026-10-02 and has since been
+built (migration `0087_billing.sql`, `server/tenancy/billing/`, the Settings billing card): plans,
+one subscription per organization, a ledger, and a Stripe or manual provider. It is off by default
+(`BILLING_PROVIDER=none`: no organization is ever blocked, nothing is charged); the single source is
+[Administration, Billing](../en/admin/administration.md#billing). Organization execution quotas
+continue to apply.
 
 Run automated regressions from the repository root:
 

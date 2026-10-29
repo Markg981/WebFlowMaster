@@ -125,6 +125,10 @@ La riserva copre test, test API, gruppi di step, elementi e suite del progetto. 
 report restano visibili a tutta l'organizzazione, e un piano può eseguire i test di un progetto
 riservato. Lo impone il database, non solo l'interfaccia.
 
+Un progetto riservato non si può eliminare: i suoi test perderebbero il progetto e diventerebbero
+visibili a tutta l'organizzazione. Togliete prima la riserva (registrata nel log di audit), poi
+eliminate.
+
 ## Autenticazione a due fattori
 
 Ognuno può attivare un secondo fattore in **Impostazioni → Sicurezza**: un codice da un'app di

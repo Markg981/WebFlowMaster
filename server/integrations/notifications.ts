@@ -314,6 +314,7 @@ export function describeUnsupported(settings: NotificationSettings, canEmail = f
 
 export interface SendDeps {
   fetchImpl?: typeof fetch;
+  sleep?: (ms: number) => Promise<void>;
 }
 
 /**
@@ -344,31 +345,38 @@ export async function sendRunNotification(
   }
 
   const send = deps.fetchImpl ?? fetchTarget;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
-  try {
-    const response = await send(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildPayload(summary, url)),
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      return {
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const body = JSON.stringify(buildPayload(summary, url));
+  // Up to three attempts on a network error, 429 or 5xx: a webhook that blinked is not a lost one.
+  let result: NotificationResult = { delivered: false, error: 'Notification was not sent.' };
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    if (attempt > 1) await sleep(500 * 2 ** (attempt - 2));
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
+    try {
+      const response = await send(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: controller.signal,
+      });
+      if (response.ok) return { delivered: true };
+      result = {
         delivered: false,
         error: `Notification webhook answered ${response.status} ${response.statusText}.`,
       };
+      if (response.status !== 429 && response.status < 500) return result;
+    } catch (error: any) {
+      const reason =
+        error?.name === 'AbortError'
+          ? `no answer within ${WEBHOOK_TIMEOUT_MS / 1000}s`
+          : (error?.message ?? String(error));
+      result = { delivered: false, error: `Notification webhook could not be reached: ${reason}.` };
+    } finally {
+      clearTimeout(timer);
     }
-    return { delivered: true };
-  } catch (error: any) {
-    const reason =
-      error?.name === 'AbortError'
-        ? `no answer within ${WEBHOOK_TIMEOUT_MS / 1000}s`
-        : (error?.message ?? String(error));
-    return { delivered: false, error: `Notification webhook could not be reached: ${reason}.` };
-  } finally {
-    clearTimeout(timer);
   }
+  return result;
 }
 
 function formatDuration(ms: number): string {

@@ -127,12 +127,15 @@ router.delete('/api/projects/:projectId', requireRole('editor'), async (req, res
     // previously relied on the latter for both.
     const deleted = await withTenantTransaction(async (tx) => {
       const projectToDelete = await tx
-        .select({ id: projects.id, name: projects.name })
+        .select({ id: projects.id, name: projects.name, restricted: projects.restricted })
         .from(projects)
         .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)))
         .limit(1);
 
       if (projectToDelete.length === 0) return false;
+      // Deleting sets project_id to NULL on its tests, and a NULL project is open to the whole
+      // organization: a restricted project must be opened on purpose (audited) before it goes.
+      if (projectToDelete[0].restricted) return 'restricted' as const;
 
       await tx
         .delete(projects)
@@ -147,6 +150,13 @@ router.delete('/api/projects/:projectId', requireRole('editor'), async (req, res
       return true;
     });
 
+    if (deleted === 'restricted') {
+      return res.status(409).json({
+        error:
+          'A restricted project cannot be deleted: its tests would become visible to the whole organization. Open the project first.',
+        code: 'PROJECT_RESTRICTED',
+      });
+    }
     if (!deleted) {
       return res.status(404).json({ error: 'Project not found or not owned by user.' });
     }

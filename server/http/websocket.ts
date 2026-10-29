@@ -13,6 +13,7 @@ import { getCorrelationId } from '../platform/middleware/correlation';
 import { getSessionMiddleware } from '../identity/auth';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { isSamlSessionActive } from '../identity/sso-saml';
+import { isTrustedOrigin } from './middleware/csrf';
 import {
   ClientSocketMessageSchema,
   type ExecutionLogEntry,
@@ -41,7 +42,25 @@ type AuthenticatedWebSocket = WebSocket & {
   organizationId: number;
   userId: number;
   samlSessionId?: string;
+  /** The upgrade request, kept to ask the session store again whether the login still stands. */
+  upgradeRequest?: UpgradeRequest;
 };
+
+/** How often an open socket's session and account are checked again (audit C-26). */
+const REVALIDATE_INTERVAL_MS = 30_000;
+
+let closeSockets: (() => Promise<void>) | null = null;
+let revalidateAllSockets: (() => Promise<void>) | null = null;
+
+/** Closes every browser socket and stops the listeners behind them: called on shutdown. */
+export async function closeWebSockets(): Promise<void> {
+  await closeSockets?.();
+}
+
+/** Checks every open socket against the session store now; those that no longer hold are closed. */
+export async function revalidateWebSockets(): Promise<void> {
+  await revalidateAllSockets?.();
+}
 
 // Global emitter reference, set after setupWebSockets is called
 let globalWsEmitter: WsEmitter | null = null;
@@ -90,6 +109,28 @@ async function authenticateUpgrade(req: UpgradeRequest): Promise<SelectUser | un
   )
     return undefined;
   return user;
+}
+
+/**
+ * Asks again, as an HTTP request would, whether the login of an open socket still stands: the
+ * session may be gone (logout), the password changed, the account disabled or the membership
+ * removed. The session and passport middleware run once more on the upgrade request, without the
+ * session and user it already carries.
+ */
+async function socketLoginStands(client: AuthenticatedWebSocket): Promise<boolean> {
+  const req = client.upgradeRequest;
+  if (!req) return true;
+  try {
+    delete req.session;
+    delete req.user;
+    const user = await authenticateUpgrade(req);
+    if (user && user.id === client.userId && user.organizationId === client.organizationId)
+      return true;
+  } catch {
+    /* A failed check never authorizes live data. */
+  }
+  client.close(1008, 'Session ended');
+  return false;
 }
 
 async function socketSamlSessionActive(client: AuthenticatedWebSocket): Promise<boolean> {
@@ -228,6 +269,13 @@ export function installWorkerLogEmitter(): WsEmitter {
 
 export async function setupWebSockets(server: Server): Promise<WsEmitter> {
   const wss = new WebSocketServer({ noServer: true });
+  const revalidateTimer = setInterval(() => void revalidateAll(), REVALIDATE_INTERVAL_MS);
+  revalidateTimer.unref();
+
+  async function revalidateAll() {
+    await Promise.all([...wss.clients].map((c) => socketLoginStands(c as AuthenticatedWebSocket)));
+  }
+  revalidateAllSockets = revalidateAll;
 
   // ─── Room-based subscriptions ───────────────────────────────────────────
   // Map: executionId → Set<WebSocket clients>
@@ -267,6 +315,14 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
       return;
     }
 
+    // The browser sends the page's Origin on a WebSocket and cookies ride along from any
+    // same-site page, so the upgrade is held to the same rule as a state-changing request.
+    if (!isTrustedOrigin(req)) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
     authenticateUpgrade(req)
       .then((user) => {
         if (!user) {
@@ -289,6 +345,7 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
     const authedWs = ws as AuthenticatedWebSocket;
     authedWs.organizationId = user.organizationId;
     authedWs.userId = user.id;
+    authedWs.upgradeRequest = req;
     if (req.session?.samlIdentity) authedWs.samlSessionId = req.sessionID;
 
     logger.info('WebSocket client connected', {
@@ -300,6 +357,7 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
       void (async () => {
         try {
           if (!(await socketSamlSessionActive(authedWs))) return;
+          if (!(await socketLoginStands(authedWs))) return;
           const parsed = ClientSocketMessageSchema.safeParse(JSON.parse(raw.toString()));
           if (!parsed.success) return;
           const msg = parsed.data;
@@ -344,6 +402,7 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
     });
 
     authedWs.on('close', () => {
+      authedWs.upgradeRequest = undefined;
       // Clean up all subscriptions for this client
       for (const [, clients] of subscriptions) {
         clients.delete(authedWs);
@@ -472,6 +531,14 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
 
   // Set global reference
   globalWsEmitter = emitter;
+
+  closeSockets = async () => {
+    clearInterval(revalidateTimer);
+    for (const client of wss.clients) client.close(1001, 'Server shutting down');
+    wss.close();
+    await queueEvents.close().catch(() => {});
+    logSubscriber.disconnect();
+  };
 
   logger.info('WebSocket server initialized with authenticated, room-based subscriptions');
   return emitter;

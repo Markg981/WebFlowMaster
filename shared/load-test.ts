@@ -293,6 +293,9 @@ export function statsOf(
   };
 }
 
+/** Without an `errorRatePct` threshold, a load answered by errors more often than this still fails. */
+export const DEFAULT_ERROR_RATE_PCT = 50;
+
 /** One line per threshold exceeded, as the API performance check writes them. */
 export function loadBreaches(
   overall: LoadStats & { rps: number },
@@ -300,7 +303,8 @@ export function loadBreaches(
 ): string[] {
   if (overall.requests === 0) return ['no request was measured after the warm-up'];
   const breaches: string[] = [];
-  const { p50Ms, p95Ms, p99Ms, maxMs, errorRatePct, minRps } = thresholds;
+  const { p50Ms, p95Ms, p99Ms, maxMs, minRps } = thresholds;
+  const errorRatePct = thresholds.errorRatePct ?? DEFAULT_ERROR_RATE_PCT;
   if (p50Ms !== undefined && overall.p50Ms > p50Ms)
     breaches.push(`p50 ${overall.p50Ms} ms > ${p50Ms} ms`);
   if (p95Ms !== undefined && overall.p95Ms > p95Ms)
@@ -309,7 +313,7 @@ export function loadBreaches(
     breaches.push(`p99 ${overall.p99Ms} ms > ${p99Ms} ms`);
   if (maxMs !== undefined && overall.maxMs > maxMs)
     breaches.push(`max ${overall.maxMs} ms > ${maxMs} ms`);
-  if (errorRatePct !== undefined && overall.errorRatePct > errorRatePct) {
+  if (overall.errorRatePct > errorRatePct) {
     breaches.push(
       `errors ${overall.errorRatePct}% > ${errorRatePct}% (${overall.errors} of ${overall.requests})`,
     );

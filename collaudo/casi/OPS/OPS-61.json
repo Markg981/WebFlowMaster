@@ -1,0 +1,13 @@
+{
+  "id": "OPS-61",
+  "area": "OPS",
+  "title": "Worker avviato da solo rifiuta un database non migrato o senza isolamento",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 94. Un deploy del solo worker (senza il servizio migrate) su un database creato con db:push oppure con migrazioni arretrate.",
+  "steps": [
+    "Avviare il processo worker (npm run worker) su quel database.",
+    "Applicare le migrazioni (npm run db:migrate) e riavviare il worker."
+  ],
+  "expected": "1: il worker termina all'avvio con il messaggio che dice cosa eseguire, come fa il processo web, senza prendere job. 2: il worker si avvia e consuma la coda."
+}

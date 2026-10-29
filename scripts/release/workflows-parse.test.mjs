@@ -21,3 +21,11 @@ for (const file of files)
     );
     assert.ok(doc.toJS().jobs);
   });
+
+// Without this, every push to a pull request left its previous CI run going, and a round of
+// merges from main queued dozens of runs for commits nobody would merge.
+test('a new push to a pull request cancels its CI run in progress, and only that', () => {
+  const { concurrency } = parseDocument(readFileSync(`${dir}/ci.yml`, 'utf8')).toJS();
+  assert.equal(concurrency['cancel-in-progress'], true);
+  assert.match(concurrency.group, /github\.event\.pull_request\.number \|\| github\.run_id/);
+});

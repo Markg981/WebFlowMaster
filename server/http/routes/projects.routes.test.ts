@@ -226,3 +226,34 @@ describe('a test in a restricted project', () => {
     expect(hidden.body).toEqual(missing.body);
   });
 });
+
+describe('deleting a restricted project', () => {
+  it('is refused, and its tests stay hidden from people who are not on it', async () => {
+    const [row] = await privilegedDb
+      .insert(tests)
+      .values({
+        name: `Hidden-${Math.random()}`,
+        url: 'https://x.test',
+        sequence: [],
+        elements: [],
+        userId: owner.id,
+        organizationId: org,
+        projectId: secret,
+      } as any)
+      .returning();
+
+    const refused = await as(owner).delete(`/api/projects/${secret}`).expect(409);
+    expect(refused.body.code).toBe('PROJECT_RESTRICTED');
+    const listed = await as(carol).get('/api/tests').expect(200);
+    expect(listed.body.map((t: { id: number }) => t.id)).not.toContain(row.id);
+    await as(carol).put(`/api/tests/${row.id}`).send({ url: 'https://y.test' }).expect(404);
+  });
+
+  it('still works once the project has been opened', async () => {
+    await as(owner)
+      .put(`/api/projects/${secret}/access`)
+      .send({ restricted: false, members: [] })
+      .expect(200);
+    await as(owner).delete(`/api/projects/${secret}`).expect(204);
+  });
+});

@@ -2,7 +2,12 @@ import { asyncRouter } from '../../platform/middleware/async-router';
 import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
-import { AUDIT_ACTIONS, reportTestCaseResults, testPlanExecutions } from '@shared/schema';
+import {
+  AUDIT_ACTIONS,
+  reportTestCaseResults,
+  testPlanExecutions,
+  type TestPlanExecution,
+} from '@shared/schema';
 import {
   MANUAL_STEP_OUTCOMES,
   MANUAL_VERDICTS,
@@ -14,6 +19,7 @@ import { withTenantTransaction } from '../../platform/middleware/tenancy';
 import { requireRole } from '../middleware/require-role';
 import { auditActor, recordAudit } from '../../tenancy/audit';
 import { failuresOf } from '../../authoring/test-quarantine';
+import { announceExecution, redecideExecution } from '../../execution/execution-state';
 import logger from '../../platform/logger';
 
 /**
@@ -151,10 +157,22 @@ router.put(
             ? 'failed'
             : 'completed'
           : run.status;
-        await tx
-          .update(testPlanExecutions)
-          .set({ ...totals, status: runStatus })
-          .where(eq(testPlanExecutions.id, executionId));
+        // A run decided by its results goes through the state machine, so the listeners (commit
+        // status, notifications, test-management publishing) hear the new verdict once committed.
+        let announce: TestPlanExecution | null = null;
+        if (DECIDED_BY_RESULTS.has(run.status)) {
+          announce = await redecideExecution(
+            tx,
+            executionId,
+            runStatus as 'completed' | 'failed',
+            totals,
+          );
+        } else {
+          await tx
+            .update(testPlanExecutions)
+            .set(totals)
+            .where(eq(testPlanExecutions.id, executionId));
+        }
 
         await recordAudit(tx, {
           action: AUDIT_ACTIONS.RUN_MANUAL_RESULT_RECORDED,
@@ -168,10 +186,16 @@ router.put(
             runStatus,
           },
         });
-        return { status: 200, result: updated, run: { ...totals, status: runStatus } } as const;
+        return {
+          status: 200,
+          result: updated,
+          run: { ...totals, status: runStatus },
+          announce,
+        } as const;
       });
 
       if ('error' in outcome) return res.status(outcome.status).json({ error: outcome.error });
+      if (outcome.announce) announceExecution(outcome.announce);
       res.json({ result: outcome.result, run: outcome.run });
     } catch (error: any) {
       logger.error({

@@ -20,7 +20,19 @@ import {
   type ReportTestCaseResult,
   type TestPlanSchedule,
 } from '@shared/schema';
-import { eq, desc, asc, and, or, inArray, getTableColumns, sql, type SQL } from 'drizzle-orm';
+import {
+  eq,
+  desc,
+  asc,
+  and,
+  or,
+  inArray,
+  count,
+  getTableColumns,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
+import { listPage, setTotalCount } from '../list-page';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../platform/logger';
 import schedulerService, {
@@ -90,9 +102,18 @@ function isForeignKeyError(e: any): boolean {
 router.get('/api/test-plans', requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   // No organization filter here on purpose: the RLS policy applies it.
-  const plans = await withTenantTransaction((tx) =>
-    tx.select().from(testPlans).orderBy(desc(testPlans.createdAt)),
-  );
+  const { limit, offset } = listPage(req);
+  const { plans, total } = await withTenantTransaction(async (tx) => {
+    const [counted] = await tx.select({ n: count() }).from(testPlans);
+    const rows = await tx
+      .select()
+      .from(testPlans)
+      .orderBy(desc(testPlans.createdAt), desc(testPlans.id))
+      .limit(limit)
+      .offset(offset);
+    return { plans: rows, total: counted?.n ?? 0 };
+  });
+  setTotalCount(res, total);
   res.json(plans);
 });
 

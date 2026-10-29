@@ -65,7 +65,7 @@ for example to make an order reference unique: `order-{{load.vu}}-{{load.iterati
 Each threshold is optional and judged on the requests sent after the warm-up:
 
 - **Median (p50)**, **95th percentile (p95)**, **99th percentile (p99)** and **Slowest**, in ms;
-- **Failed requests**, in percent;
+- **Failed requests**, in percent (an HTTP status of 400 or more counts as failed; with no threshold set, a run with more than 50% failed requests fails);
 - **Minimum throughput**, in requests per second over the judged time.
 
 A run **passes** when it reaches the end within every threshold and **fails** naming each
@@ -90,6 +90,9 @@ takes it — at once when one is free — and **Running** from then on. The page
 
 **Stop the run** ends a queued run at once and a running one within 2 seconds; requests already in
 flight finish. Each load test keeps its last 10 runs on the page, with their summary and verdict.
+
+A run sends the requests of your API tests **as they were when you started it**: editing an API test
+while the run waits for a worker, or while it runs, changes only the runs you start afterwards.
 
 ### Where a run runs
 

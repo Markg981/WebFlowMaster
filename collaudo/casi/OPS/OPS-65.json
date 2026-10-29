@@ -1,0 +1,14 @@
+{
+  "id": "OPS-65",
+  "area": "OPS",
+  "title": "Documentazione allineata: fatturazione, spec observability, audit dipendenze",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Repository aggiornato; accesso in lettura ai documenti.",
+  "steps": [
+    "Leggere docs/acceptance/administration-acceptance.md: la fatturazione risulta implementata, spenta con BILLING_PROVIDER=none, con rimando alla guida.",
+    "Leggere la spec observability: incidentErrorHandler montato sempre, non solo in sviluppo.",
+    "Eseguire npm audit --omit=dev e confrontare con docs/SECURITY-AUDIT.md (data, comando, finding qs)."
+  ],
+  "expected": "I testi coincidono con il codice e con l'esito del comando; nessuna dichiarazione di zero finding non riscontrabile."
+}

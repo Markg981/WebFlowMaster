@@ -1,0 +1,14 @@
+{
+  "id": "SCH-07",
+  "area": "SCH",
+  "title": "Schedule con ambiente inesistente",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Schedule attivo su un piano; ambiente di collaudo esistente.",
+  "steps": [
+    "Impostare su uno schedule un nome ambiente che non esiste (modifica diretta o ambiente rinominato).",
+    "Attendere l'orario previsto."
+  ],
+  "expected": "Nessun run parte (niente esecuzione senza variabili né segreti) e il log del server riporta environment_missing con l'id dello schedule.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Schedule attivo su un piano; ambiente di collaudo esistente.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostare su uno schedule un nome ambiente che non esiste (modifica diretta o ambiente rinominato).</li><li>Attendere l'orario previsto.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nessun run parte (niente esecuzione senza variabili né segreti) e il log del server riporta environment_missing con l'id dello schedule.</p>\n      "
+}

@@ -5,7 +5,7 @@ or a finding's exposure changes.
 
 How to report a vulnerability is in [SECURITY.md](../SECURITY.md).
 
-**Last reviewed:** 2026-10-27.
+**Last reviewed:** 2026-10-28 (`npm audit --omit=dev`).
 
 ## 27 October 2026, audit gate (A-02)
 
@@ -13,7 +13,11 @@ How to report a vulnerability is in [SECURITY.md](../SECURITY.md).
 quadratic time, GHSA-rxp7-6hxx-x8q5), reached only through the `mssql`/`@azure/identity`
 connection stack with addresses from operator configuration, never from request input. `npm audit
 fix` moved it to a patched release; `undici` is pinned at 6.29.1 and `nodemailer` at 10.2.1, both
-past the fixed versions. Production dependencies: **0 findings**, root and client.
+past the fixed versions. Production dependencies: **0 findings** at the time, root and client. Re-checked on 2026-10-28 with
+`npm audit --omit=dev`: **1 moderate**, transitive `qs` (`qs.stringify` with `arrayFormat: 'comma'`
+throws on array elements with a non-callable own `toString`, GHSA-6pq8-jhm2-2vcw); the server never
+passes request input to `qs.stringify`, so it is accepted until the lockfile picks up the patched
+release (`npm audit fix`). The CI gate fails only on high and critical findings.
 
 The CI job `dependency-audit` runs `scripts/security/audit-gate.mjs` (`npm audit --omit=dev` for
 the root and for the `client` workspace). It fails on any high or critical finding that is not in

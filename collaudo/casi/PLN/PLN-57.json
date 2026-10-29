@@ -1,0 +1,13 @@
+{
+  "id": "PLN-57",
+  "area": "PLN",
+  "title": "Un piano senza test termina in errore",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 90. Un piano con un solo test.",
+  "steps": [
+    "Eliminare il test.",
+    "Eseguire il piano (anche con wfm run <planId> --wait)."
+  ],
+  "expected": "Il run termina in stato error con codice run_empty e messaggio «The plan has no tests to run»; la CLI esce con codice diverso da 0."
+}

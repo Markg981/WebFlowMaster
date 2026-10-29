@@ -1,0 +1,13 @@
+{
+  "id": "API-73",
+  "area": "API",
+  "title": "Client esistenti: libreria e selettori continuano a mostrare gli elenchi",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Catalogo versione 93. Qualche test UI, un piano e un test mobile.",
+  "steps": [
+    "Aprire la libreria dei test, la pagina dei piani e la libreria mobile.",
+    "Aprire un selettore di test (ad esempio nell'editor di un piano)."
+  ],
+  "expected": "1-2: gli elenchi compaiono completi come prima; la forma della risposta (array) non è cambiata."
+}

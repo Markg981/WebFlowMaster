@@ -1,0 +1,13 @@
+{
+  "id": "API-72",
+  "area": "API",
+  "title": "Elenco piani di test e test mobile: stessi parametri di paginazione",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Catalogo versione 93. Almeno 3 piani di test e 3 test mobile.",
+  "steps": [
+    "Chiamare GET /api/test-plans?limit=2 e GET /api/mobile-tests?limit=2.",
+    "Chiamare gli stessi endpoint con limit=0, limit=999999 e offset=-5."
+  ],
+  "expected": "1: array di 2 elementi e X-Total-Count con il totale. 2: nessun errore; limit è riportato tra 1 e 1000 e offset a 0."
+}

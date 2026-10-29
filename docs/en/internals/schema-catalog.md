@@ -1467,26 +1467,26 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 `testManagementPublications` — `shared/schema/integrations.ts:188`
 
-| TS property           | SQL column               | Declaration                                                                                                   |
-| --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `id`                  | `id`                     | `serial('id').primaryKey()`                                                                                   |
-| `organizationId`      | `organization_id`        | `integer('organization_id') .notNull() .references(() => organizations.id)`                                   |
-| `testPlanExecutionId` | `test_plan_execution_id` | `text('test_plan_execution_id') .notNull() .references(() => testPlanExecutions.id, { onDelete: 'cascade' })` |
-| `connectionId`        | `connection_id`          | `text('connection_id').references(() => testManagementConnections.id, { onDelete: 'set null', })`             |
-| `connectionName`      | `connection_name`        | `text('connection_name').notNull()`                                                                           |
-| `provider`            | `provider`               | `text('provider').notNull()`                                                                                  |
-| `status`              | `status`                 | `text('status').$type<'published' &#124; 'failed' &#124; 'nothing_to_publish'>().notNull()`                   |
-| `externalKey`         | `external_key`           | `text('external_key')`                                                                                        |
-| `externalUrl`         | `external_url`           | `text('external_url')`                                                                                        |
-| `publishedCount`      | `published_count`        | `integer('published_count').notNull().default(0)`                                                             |
-| `unmappedCount`       | `unmapped_count`         | `integer('unmapped_count').notNull().default(0)`                                                              |
-| `message`             | `message`                | `text('message')`                                                                                             |
-| `requestedBy`         | `requested_by`           | `integer('requested_by').references(() => users.id, { onDelete: 'set null' })`                                |
-| `createdAt`           | `created_at`             | `timestamp('created_at').defaultNow().notNull()`                                                              |
+| TS property           | SQL column               | Declaration                                                                                                    |
+| --------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `id`                  | `id`                     | `serial('id').primaryKey()`                                                                                    |
+| `organizationId`      | `organization_id`        | `integer('organization_id') .notNull() .references(() => organizations.id)`                                    |
+| `testPlanExecutionId` | `test_plan_execution_id` | `text('test_plan_execution_id') .notNull() .references(() => testPlanExecutions.id, { onDelete: 'cascade' })`  |
+| `connectionId`        | `connection_id`          | `text('connection_id').references(() => testManagementConnections.id, { onDelete: 'set null', })`              |
+| `connectionName`      | `connection_name`        | `text('connection_name').notNull()`                                                                            |
+| `provider`            | `provider`               | `text('provider').notNull()`                                                                                   |
+| `status`              | `status`                 | `text('status') .$type<'published' &#124; 'partial' &#124; 'failed' &#124; 'nothing_to_publish'>() .notNull()` |
+| `externalKey`         | `external_key`           | `text('external_key')`                                                                                         |
+| `externalUrl`         | `external_url`           | `text('external_url')`                                                                                         |
+| `publishedCount`      | `published_count`        | `integer('published_count').notNull().default(0)`                                                              |
+| `unmappedCount`       | `unmapped_count`         | `integer('unmapped_count').notNull().default(0)`                                                               |
+| `message`             | `message`                | `text('message')`                                                                                              |
+| `requestedBy`         | `requested_by`           | `integer('requested_by').references(() => users.id, { onDelete: 'set null' })`                                 |
+| `createdAt`           | `created_at`             | `timestamp('created_at').defaultNow().notNull()`                                                               |
 
 ## requirement_tests {#requirement-tests}
 
-`requirementTests` — `shared/schema/integrations.ts:218`
+`requirementTests` — `shared/schema/integrations.ts:220`
 
 | TS property      | SQL column        | Declaration                                                                                        |
 | ---------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
@@ -1502,7 +1502,7 @@ Read the [domain schema](./database-schema) for explanations and relationships, 
 
 ## issue_links {#issue-links}
 
-`issueLinks` — `shared/schema/integrations.ts:259`
+`issueLinks` — `shared/schema/integrations.ts:261`
 
 | TS property        | SQL column           | Declaration                                                                                     |
 | ------------------ | -------------------- | ----------------------------------------------------------------------------------------------- |

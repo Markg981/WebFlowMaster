@@ -74,7 +74,9 @@ A pipeline needs `runs:write` and `runs:read`; add `plans:read` if it looks plan
 - **Errors** are always `{ "error": { "code": "…", "message": "…" } }`, with a stable `code` to
   branch on and a `message` for people.
 - **Pagination**: list endpoints take `limit` (1 to 100, default 20) and `offset` (default 0), and
-  answer `{ "items": [...], "limit": 20, "offset": 0 }`.
+  answer `{ "items": [...], "limit": 20, "offset": 0 }`. The application lists `GET /api/tests`,
+  `/api/test-plans` and `/api/mobile-tests` still answer a bare array, now capped at 1000 rows
+  (`limit` 1 to 1000, `offset`), with the real total in the `X-Total-Count` header.
 - **Rate limit**: each key may make `API_RATE_LIMIT` requests a minute (600 by default). Past it
   the answer is `429 rate_limited`, with `Retry-After` and the `RateLimit` headers.
 - **Idempotency**: starting a run accepts an `Idempotency-Key` header (up to 255 characters). The

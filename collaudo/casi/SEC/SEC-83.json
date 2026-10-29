@@ -1,0 +1,13 @@
+{
+  "id": "SEC-83",
+  "area": "SEC",
+  "title": "WebSocket aperto e sessione terminata: il socket si chiude",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Due schede dell'app aperte con lo stesso utente, una con il live log di un run.",
+  "steps": [
+    "Dall'altra scheda fare logout (in alternativa cambiare la password o disabilitare l'utente da un owner).",
+    "Attendere fino a 30 secondi."
+  ],
+  "expected": "Il socket della prima scheda si chiude (codice 1008) e non riceve più log del run."
+}

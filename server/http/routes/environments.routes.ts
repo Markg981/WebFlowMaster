@@ -1,8 +1,8 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { flattenZodError } from '../zod-error';
-import { environments, secrets, AUDIT_ACTIONS } from '@shared/schema';
+import { environments, secrets, testPlanSchedules, AUDIT_ACTIONS } from '@shared/schema';
 import { auditActor, recordAudit } from '../../tenancy/audit';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import logger from '../../platform/logger';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
@@ -128,6 +128,12 @@ router.post('/api/environments', requireRole('editor'), async (req, res) => {
   }
 });
 
+class EnvironmentInUseError extends Error {
+  constructor(readonly schedules: string[]) {
+    super('Environment is used by active schedules');
+  }
+}
+
 router.delete('/api/environments/:id', requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
   const id = Number(req.params.id);
@@ -135,6 +141,25 @@ router.delete('/api/environments/:id', requireRole('editor'), async (req, res) =
 
   try {
     const deleted = await withTenantTransaction(async (tx) => {
+      // A schedule names its environment as text, without a foreign key: deleting one it still
+      // names would turn every later run into one that cannot find it.
+      const [env] = await tx
+        .select({ name: environments.name })
+        .from(environments)
+        .where(eq(environments.id, id))
+        .limit(1);
+      if (env) {
+        const used = await tx
+          .select({ id: testPlanSchedules.id, name: testPlanSchedules.scheduleName })
+          .from(testPlanSchedules)
+          .where(
+            and(
+              eq(testPlanSchedules.isActive, true),
+              sql`(${testPlanSchedules.environment} = ${String(id)} or lower(${testPlanSchedules.environment}) = lower(${env.name}))`,
+            ),
+          );
+        if (used.length > 0) throw new EnvironmentInUseError(used.map((u) => u.name));
+      }
       // Secrets go with it through the FK's ON DELETE CASCADE: an orphaned secret could
       // not be deleted through the interface and would still be decryptable.
       const rows = await tx.delete(environments).where(eq(environments.id, id)).returning();
@@ -154,6 +179,12 @@ router.delete('/api/environments/:id', requireRole('editor'), async (req, res) =
     if (deleted.length === 0) return res.status(404).json({ error: 'Environment not found' });
     res.status(204).end();
   } catch (error: any) {
+    if (error instanceof EnvironmentInUseError)
+      return res.status(409).json({
+        error: 'Environment is used by active schedules',
+        code: 'environment_in_use',
+        schedules: error.schedules,
+      });
     logger.error({ message: 'Error deleting environment', error: error.message });
     res.status(500).json({ error: 'Failed to delete environment' });
   }

@@ -26,7 +26,7 @@ export interface PublicationRow {
   id: number;
   connectionName: string;
   provider: string;
-  status: 'published' | 'failed' | 'nothing_to_publish';
+  status: 'published' | 'partial' | 'failed' | 'nothing_to_publish';
   externalKey: string | null;
   externalUrl: string | null;
   publishedCount: number;
@@ -97,9 +97,11 @@ export default function PublicationsCard({
   const statusLabel = (row: PublicationRow) =>
     row.status === 'published'
       ? t('publications.status.published', 'Published')
-      : row.status === 'failed'
-        ? t('publications.status.failed', 'Failed')
-        : t('publications.status.nothing', 'Nothing to publish');
+      : row.status === 'partial'
+        ? t('publications.status.partial', 'Partially published')
+        : row.status === 'failed'
+          ? t('publications.status.failed', 'Failed')
+          : t('publications.status.nothing', 'Nothing to publish');
 
   return (
     <Card data-testid="publications-card">
@@ -155,7 +157,7 @@ export default function PublicationsCard({
                     {formatDateTime(row.createdAt)}
                   </span>
                 </div>
-                {row.status === 'published' && (
+                {(row.status === 'published' || row.status === 'partial') && (
                   <p className="text-xs text-muted-foreground mt-1">
                     {t(
                       'publications.counts',

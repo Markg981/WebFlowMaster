@@ -69,14 +69,14 @@ vi.mock('./playwright-reporter', () => ({
 
 const { playwrightService } = await import('./playwright-service');
 
-const oneStepTest = (): Test =>
+const oneStepTest = (actionId = 'click'): Test =>
   ({
     id: 1,
     userId: 1,
     organizationId: 1,
     name: 'One step',
     url: 'https://example.test',
-    sequence: [{ id: 's1', action: { id: 'click', name: 'Click' } }],
+    sequence: [{ id: 's1', action: { id: actionId, name: actionId } }],
     elements: [],
     dataset: null,
   }) as unknown as Test;
@@ -89,9 +89,9 @@ const runtime = (overrides: Partial<StepRuntime> = {}): StepRuntime => ({
   ...overrides,
 });
 
-const run = (options?: { runtime?: StepRuntime }) =>
+const run = (options?: { runtime?: StepRuntime }, actionId?: string) =>
   playwrightService.executeTestSequence(
-    oneStepTest(),
+    oneStepTest(actionId),
     1,
     undefined,
     undefined,
@@ -241,7 +241,7 @@ describe('"Retry Step"', () => {
       .mockResolvedValueOnce({ status: 'failed', error: 'not yet' })
       .mockResolvedValueOnce({ status: 'passed' });
 
-    const result = await run({ runtime: runtime({ retryFailedStep: true }) });
+    const result = await run({ runtime: runtime({ retryFailedStep: true }) }, 'waitForElement');
 
     expect(mocks.executeStep).toHaveBeenCalledTimes(2);
     expect(result.success).toBe(true);
@@ -252,12 +252,22 @@ describe('"Retry Step"', () => {
       .mockRejectedValueOnce(new Error('first throw'))
       .mockResolvedValueOnce({ status: 'failed', error: 'second outcome failed' });
 
-    const result = await run({ runtime: runtime({ retryFailedStep: true }) });
+    const result = await run({ runtime: runtime({ retryFailedStep: true }) }, 'assertTextContains');
 
     expect(mocks.executeStep).toHaveBeenCalledTimes(2);
     expect(result.success).toBe(false);
     expect(result.steps?.[1]).toMatchObject({ status: 'failed', error: 'second outcome failed' });
   });
+
+  it.each(['click', 'uploadFile', 'queryDatabase'])(
+    'runs a failed %s once: a second go could act twice (C-31)',
+    async (actionId) => {
+      mocks.executeStep.mockResolvedValue({ status: 'failed', error: 'boom' });
+      const result = await run({ runtime: runtime({ retryFailedStep: true }) }, actionId);
+      expect(mocks.executeStep).toHaveBeenCalledTimes(1);
+      expect(result.success).toBe(false);
+    },
+  );
 
   it('does not retry without the setting', async () => {
     mocks.executeStep.mockResolvedValue({ status: 'failed', error: 'no' });

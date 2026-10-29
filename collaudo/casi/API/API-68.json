@@ -1,0 +1,13 @@
+{
+  "id": "API-68",
+  "area": "API",
+  "title": "Test API senza asserzioni non è verde su uno stato di errore",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 90. Un endpoint che risponde 200 e uno che risponde 500.",
+  "steps": [
+    "Creare un test API GET sull'endpoint 500 senza asserzioni ed eseguirlo.",
+    "Eseguire lo stesso test sull'endpoint 200."
+  ],
+  "expected": "1: il test fallisce, il motivo è HTTP 500. 2: il test passa."
+}

@@ -71,7 +71,7 @@ disponibili, per esempio per rendere unico il riferimento di un ordine:
 Ogni soglia è facoltativa e viene valutata sulle richieste inviate dopo il warm-up:
 
 - **Mediana (p50)**, **95° percentile (p95)**, **99° percentile (p99)** e **Più lenta**, in ms;
-- **Richieste fallite**, in percentuale;
+- **Richieste fallite**, in percentuale (uno stato HTTP 400 o superiore conta come fallita; senza soglia impostata, un run con più del 50% di richieste fallite fallisce);
 - **Throughput minimo**, in richieste al secondo sul tempo valutato.
 
 Un run è **superato** quando arriva alla fine entro tutte le soglie ed è **fallito** indicando ogni
@@ -98,6 +98,9 @@ quel momento. La pagina la segue, ogni 2 secondi:
 **Ferma l'esecuzione** conclude subito un'esecuzione in coda ed entro 2 secondi una in corso; le
 richieste già in volo terminano. Ogni test di carico mostra le sue ultime 10 esecuzioni, con
 riepilogo ed esito.
+
+Un'esecuzione invia le richieste dei test API **com'erano quando l'hai avviata**: modificare un test
+API mentre l'esecuzione aspetta un worker, o mentre gira, cambia solo le esecuzioni successive.
 
 ### Dove gira un run
 

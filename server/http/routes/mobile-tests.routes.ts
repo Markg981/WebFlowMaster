@@ -6,7 +6,8 @@ import fs from 'fs';
 import multer from 'multer';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { desc, eq, sql } from 'drizzle-orm';
+import { count, desc, eq, sql } from 'drizzle-orm';
+import { listPage, setTotalCount } from '../list-page';
 import {
   AUDIT_ACTIONS,
   browserGrids,
@@ -112,10 +113,17 @@ const runColumns = {
   testVersion: mobileTestRuns.testVersion,
 };
 
-router.get('/api/mobile-tests', requireRole('viewer'), async (_req, res) => {
+router.get('/api/mobile-tests', requireRole('viewer'), async (req, res) => {
   try {
-    const rows = await withTenantTransaction(async (tx) => {
-      const all = await tx.select().from(mobileTests).orderBy(mobileTests.name);
+    const { limit, offset } = listPage(req);
+    const { rows, total } = await withTenantTransaction(async (tx) => {
+      const [counted] = await tx.select({ n: count() }).from(mobileTests);
+      const all = await tx
+        .select()
+        .from(mobileTests)
+        .orderBy(mobileTests.name, mobileTests.id)
+        .limit(limit)
+        .offset(offset);
       // The latest run of each, for the list's status column.
       const latest = await tx
         .selectDistinctOn([mobileTestRuns.mobileTestId], {
@@ -127,12 +135,16 @@ router.get('/api/mobile-tests', requireRole('viewer'), async (_req, res) => {
         .orderBy(mobileTestRuns.mobileTestId, desc(mobileTestRuns.createdAt));
       const byTest = new Map(latest.map((r) => [r.mobileTestId, r]));
       const tagged = await tagsOfTests(tx, { mobileTestIds: all.map((test) => test.id) });
-      return all.map((test) => ({
-        ...test,
-        tags: tagged.mobile.get(test.id) ?? [],
-        lastRun: byTest.get(test.id) ?? null,
-      }));
+      return {
+        rows: all.map((test) => ({
+          ...test,
+          tags: tagged.mobile.get(test.id) ?? [],
+          lastRun: byTest.get(test.id) ?? null,
+        })),
+        total: counted?.n ?? 0,
+      };
     });
+    setTotalCount(res, total);
     res.json(rows);
   } catch (error) {
     fail(res, error, 'load the mobile tests');

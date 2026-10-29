@@ -1,0 +1,13 @@
+{
+  "id": "WEB-76",
+  "area": "WEB",
+  "title": "waitForElement con stato sconosciuto: il passo fallisce con il nome dello stato",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 93. Un test con un passo Attendi elemento su un selettore presente.",
+  "steps": [
+    "Impostare il valore a hiden (errore di battitura) ed eseguire.",
+    "Impostare il valore a hidden, poi a detached, ed eseguire."
+  ],
+  "expected": "1: il passo fallisce con «Unknown state» e l'elenco degli stati ammessi (visible, hidden, attached, detached), senza attendere. 2: gli stati validi sono accettati."
+}

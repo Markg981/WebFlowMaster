@@ -70,6 +70,10 @@ relying on this behavior during a rolling deployment.
 **Suites** on the row adds [suites](./organizing#suites): they run after the plan's own tests, in the
 order ticked, and a test in more than one runs once.
 
+With **Retry Step** as the answer to a failed step, only steps that wait or check (assertions, waits for
+an element, text or the network, state checks) are tried a second time. A click, an upload, a database
+query or a request that failed may already have acted, so it is not repeated.
+
 ### One run on several runners {#shards}
 
 A long plan finishes sooner when several runners share it. With **Workers sharing a run** above 1,
@@ -218,7 +222,9 @@ only on a later attempt is marked **flaky** in the report, and still counts as p
   or a **custom CRON** expression (minute, hour, day of month, month, day of week).
 - **Timezone**: the schedule runs at that local time all year, daylight saving included.
 - **Environment** whose secrets the run uses, and the **browsers** to run in (headless: nobody is
-  watching).
+  watching). An environment still named by an active schedule cannot be deleted (the request is
+  refused with 409 and lists the schedules); if the name no longer matches any environment, the
+  run is not started rather than run without variables and secrets.
 - **Retry on Failure**: run the whole plan again if it fails, once or twice.
 - **Schedule Active**: switch it off without deleting it.
 

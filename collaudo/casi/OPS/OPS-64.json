@@ -1,0 +1,14 @@
+{
+  "id": "OPS-64",
+  "area": "OPS",
+  "title": "Due owner si declassano insieme: l'organizzazione resta con un owner",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Organizzazione con esattamente due owner (owner.a e owner.b), ciascuno con una propria sessione.",
+  "steps": [
+    "Da due sessioni, quasi in contemporanea, inviare PATCH /api/organization/members/:id con role member: owner.a declassa owner.b e owner.b declassa owner.a.",
+    "Rileggere GET /api/organization/members.",
+    "Ripetere con DELETE /api/organization/members/:id incrociato."
+  ],
+  "expected": "Una sola richiesta riesce (200/204), l'altra riceve 409; resta almeno un owner. Il blocco di riga su tutti gli owner serializza le due transazioni."
+}

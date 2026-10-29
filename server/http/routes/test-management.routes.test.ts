@@ -589,7 +589,7 @@ describe('publishing a run', () => {
       .send({ connectionId: conn.id })
       .expect(200);
     expect(body).toMatchObject({
-      status: 'published',
+      status: 'partial',
       externalKey: 'SHOP-R5',
       publishedCount: 2,
       message: expect.stringContaining('SHOP-T404'),

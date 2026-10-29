@@ -194,6 +194,28 @@ describe('recording a manual verdict', () => {
     });
   });
 
+  it('announces the run to the transition listeners after a verdict, not for a cancelled run', async () => {
+    const { onExecutionTransition } = await import('../../execution/execution-state');
+    const heard: Array<{ id: string; status: string }> = [];
+    const stop = onExecutionTransition((execution) => {
+      heard.push({ id: execution.id, status: execution.status });
+    });
+    try {
+      const { executionId, ids } = await seedRun('completed', [
+        { status: 'Passed' },
+        { status: 'Pending', manual: true },
+      ]);
+      await verdict(executionId, ids[1], { outcome: 'failed' });
+      expect(heard).toEqual([{ id: executionId, status: 'failed' }]);
+
+      const cancelled = await seedRun('cancelled', [{ status: 'Pending', manual: true }]);
+      await verdict(cancelled.executionId, cancelled.ids[0], { outcome: 'failed' });
+      expect(heard).toHaveLength(1);
+    } finally {
+      stop();
+    }
+  });
+
   it('leaves a cancelled run cancelled', async () => {
     const { executionId, ids } = await seedRun('cancelled', [{ status: 'Pending', manual: true }]);
     await verdict(executionId, ids[0], { outcome: 'failed' });

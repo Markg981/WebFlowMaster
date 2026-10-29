@@ -10,6 +10,13 @@ on:
   schedule:
     - cron: '17 3 * * *'
 
+# A new push to a pull request cancels its run still in progress: that run checks a commit nobody
+# will merge, and it holds runners the new one waits for. Every run on main and every nightly run
+# is kept (one group per run).
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 # Least privilege for the token: a job that needs more says so itself.
 permissions:
   contents: read

@@ -1,0 +1,13 @@
+{
+  "id": "PLN-60",
+  "area": "PLN",
+  "title": "Verdetto manuale corretto: il run torna Completed e viene annunciato di nuovo",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 93. Come PLN-59, con il run Failed per il solo verdetto manuale.",
+  "steps": [
+    "Registrare di nuovo il verdetto sul test manuale come Superato.",
+    "Controllare commit status e pubblicazione."
+  ],
+  "expected": "Il run torna Completed, i totali sono ricalcolati e commit status e pubblicazione mostrano l'esito aggiornato."
+}

@@ -1,0 +1,13 @@
+{
+  "id": "LIB-54",
+  "area": "LIB",
+  "title": "Riprova passo: solo i passi di attesa e verifica vengono ripetuti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 93. Un piano con «In caso di errore di un passo importante: riprova il passo». Un test con un passo Click su un pulsante inesistente e uno con un'attesa di testo che compare dopo 2 s.",
+  "steps": [
+    "Eseguire il test con il Click fallito e guardare il registro dell'esecuzione.",
+    "Eseguire il test con l'attesa di testo tardivo."
+  ],
+  "expected": "Il Click fallito viene eseguito una sola volta (nessun messaggio «Trying it once more») e il passo risulta fallito. L'attesa viene ripetuta una volta e può passare al secondo tentativo."
+}

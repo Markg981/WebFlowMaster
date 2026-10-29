@@ -101,6 +101,8 @@ export interface StepOutcome {
   durationMs: number;
   /** Why the request failed — not made, or an assertion that did not hold — or null. */
   error: string | null;
+  /** The HTTP status when the request was answered: 400 or more is an error even without `error`. */
+  status?: number;
   extracted: Record<string, string>;
 }
 
@@ -233,7 +235,12 @@ export async function runLoad(
             break;
           }
           const startedAt = deps.now();
-          const outcome = await deps.send(index, vars);
+          const sent = await deps.send(index, vars);
+          // An HTTP status of 400 or more is an error of the request, thresholds or not.
+          const outcome: StepOutcome =
+            sent.error === null && (sent.status ?? 0) >= 400
+              ? { ...sent, error: `HTTP ${sent.status}` }
+              : sent;
           record(index, startedAt, outcome);
           // The next steps would send what this one did not capture: the iteration is over.
           if (outcome.error !== null) {
@@ -610,7 +617,9 @@ export async function executeLoadRun(
           if (!run) return null;
           const definition = run.definition as unknown as LoadTestSnapshot;
           const ids = [...new Set(definition.steps.map((step) => step.apiTestId))];
-          const tests = await tx.select().from(apiTests).where(inArray(apiTests.id, ids));
+          const tests = definition.requests
+            ? []
+            : await tx.select().from(apiTests).where(inArray(apiTests.id, ids));
           const [dataSet] = definition.dataSetId
             ? await tx
                 .select()
@@ -630,7 +639,11 @@ export async function executeLoadRun(
         // The worker's limits, not the web process's: the two may be configured apart.
         const beyond = profileProblem(definition.stages, limits);
         if (beyond) throw new LoadRunError(beyond);
-        const byId = new Map(tests.map((test) => [test.id, test]));
+        const byId = new Map(
+          tests.map((test) => [test.id, { name: test.name, spec: apiTestSpec(test) }]),
+        );
+        for (const [key, frozen] of Object.entries(definition.requests ?? {}))
+          byId.set(Number(key), frozen);
         const missing = definition.steps.find((step) => !byId.has(step.apiTestId));
         if (missing)
           throw new LoadRunError(`API test #${missing.apiTestId} is no longer available.`);
@@ -640,8 +653,8 @@ export async function executeLoadRun(
           const problem = dataSetProblem(definition, dataSet.rows.length);
           if (problem) throw new LoadRunError(problem);
         }
-        const specs: ApiRequestSpec[] = definition.steps.map((step) =>
-          apiTestSpec(byId.get(step.apiTestId)!),
+        const specs: ApiRequestSpec[] = definition.steps.map(
+          (step) => byId.get(step.apiTestId)!.spec,
         );
         const vars = await resolveVariables({
           userId,
@@ -700,6 +713,7 @@ export async function executeLoadRun(
                   return {
                     durationMs: result.durationMs,
                     error: failureOf(result),
+                    status: result.status,
                     extracted: result.extracted,
                   };
                 },
@@ -752,6 +766,12 @@ export interface LoadTestSnapshot {
   dataSetId: number | null;
   dataMode: LoadDataMode;
   thresholds: LoadThresholds;
+  /**
+   * The request of each step as it was when the run was queued, by API test id (C-31). A run
+   * that waits in the queue, or whose test is edited while it runs, still sends what was
+   * asked for. Absent on a run queued before this existed: that one reads the tests live.
+   */
+  requests?: Record<string, { name: string; spec: ApiRequestSpec }>;
 }
 
 export function snapshotOf(test: typeof loadTests.$inferSelect): LoadTestSnapshot {

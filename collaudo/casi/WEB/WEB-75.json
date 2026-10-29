@@ -1,0 +1,13 @@
+{
+  "id": "WEB-75",
+  "area": "WEB",
+  "title": "assertState readonly: un campo disabilitato non è di sola lettura",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 93. Una pagina con un campo di testo readonly e uno disabled.",
+  "steps": [
+    "Creare un test con un passo Verifica stato readonly sul campo readonly e uno sul campo disabled.",
+    "Eseguire il test."
+  ],
+  "expected": "1-2: il passo sul campo readonly passa; il passo sul campo disabled fallisce (il campo è disabilitato, non di sola lettura)."
+}

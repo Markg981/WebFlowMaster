@@ -118,6 +118,9 @@ Restriction covers the project's tests, API tests, step groups, elements and sui
 runs and reports stay visible to the whole organization, and a plan may run a restricted
 project's tests. The database enforces it, not only the interface.
 
+A restricted project cannot be deleted: its tests would lose their project and become visible to
+the whole organization. Remove the restriction first (recorded in the audit log), then delete.
+
 ## Two-factor authentication
 
 Each person can turn on a second factor in **Settings → Security**: a code from an

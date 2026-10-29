@@ -288,6 +288,33 @@ describe('load tests', () => {
     expect(done.heartbeatAt).not.toBeNull();
   });
 
+  it('runs the requests as they were when the run was queued, not as edited since (C-31)', async () => {
+    const { body: test } = await request(app).post('/api/load-tests').send(checkout()).expect(201);
+    const { body: started } = await request(app)
+      .post(`/api/load-tests/${test.id}/runs`)
+      .send({})
+      .expect(202);
+    // Edited while the run waits for a worker: the new URL answers nothing.
+    await privilegedDb
+      .update(apiTests)
+      .set({ url: `${base}/moved-away` })
+      .where(eq(apiTests.id, cart));
+    try {
+      expect(await work(started.id)).toEqual({ outcome: 'done' });
+    } finally {
+      await privilegedDb
+        .update(apiTests)
+        .set({ url: `${base}/cart` })
+        .where(eq(apiTests.id, cart));
+    }
+    const [done] = await privilegedDb
+      .select()
+      .from(loadTestRuns)
+      .where(eq(loadTestRuns.id, started.id));
+    expect(done.status).toBe('passed');
+    expect(shop.carts.length).toBeGreaterThan(0);
+  });
+
   it('runs a scenario along its stages, each virtual user with its own row, and passes it', async () => {
     const { body: test } = await request(app).post('/api/load-tests').send(checkout()).expect(201);
     const { started } = await startAndWork(test.id);

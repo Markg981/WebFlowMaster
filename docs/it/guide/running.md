@@ -72,6 +72,10 @@ su questo comportamento durante un rilascio graduale.
 **Suite** sulla riga aggiunge [suite](./organizing#suite): girano dopo i test del piano,
 nell'ordine in cui sono spuntate, e un test presente in più suite gira una volta sola.
 
+Con **Retry Step** come risposta a un passo fallito, solo i passi che attendono o verificano
+(asserzioni, attese di elemento, testo o rete, controlli di stato) vengono ripetuti. Un clic, un
+caricamento, una query o una richiesta fallita potrebbe aver già agito, quindi non viene ripetuta.
+
 ### Un'esecuzione su più runner {#shard}
 
 Un piano lungo finisce prima se più runner se lo dividono. Con **Worker che si dividono un'esecuzione**
@@ -227,7 +231,9 @@ report, e conta comunque come passato.
   giorno della settimana).
 - **Timezone**: la pianificazione gira a quell'ora locale tutto l'anno, ora legale compresa.
 - **Environment** i cui segreti usa il run, e i **Browsers** in cui girare (headless: nessuno sta
-  guardando).
+  guardando). Un ambiente ancora indicato da una pianificazione attiva non si può eliminare
+  (richiesta rifiutata con 409, con l'elenco delle pianificazioni); se il nome non corrisponde più
+  ad alcun ambiente, il run non parte invece di girare senza variabili e segreti.
 - **Retry on Failure**: riesegue l'intero piano se fallisce, una o due volte.
 - **Schedule Active**: la si spegne senza cancellarla.
 

@@ -108,6 +108,7 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 
 ### Fixed
 
+- No more false greens: a load answered by HTTP 4xx/5xx counts those as request errors (and fails above 50% errors when no threshold says otherwise), an API test with no assertions fails on a status of 400 or more, and a plan run with no tests ends `error` (`run_empty`) instead of `completed`
 - Dark-mode fixes for API Tester editors and the Create Test canvas ([#120](https://github.com/Markg981/WebFlowMaster/pull/120))
 - Make UI test authoring against SPA sites actually work ([#121](https://github.com/Markg981/WebFlowMaster/pull/121))
 - Make the production path build and run, and verify it ([#131](https://github.com/Markg981/WebFlowMaster/pull/131))

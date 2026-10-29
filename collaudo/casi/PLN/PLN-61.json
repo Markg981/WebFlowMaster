@@ -1,0 +1,13 @@
+{
+  "id": "PLN-61",
+  "area": "PLN",
+  "title": "Verdetto manuale su run annullato o scaduto: stato invariato, nessun annuncio",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 93. Un run terminato Cancelled (o Timed out) con un test manuale in attesa.",
+  "steps": [
+    "Registrare un verdetto Fallito sul test manuale.",
+    "Controllare lo stato del run e il commit status."
+  ],
+  "expected": "Il verdetto è registrato e i totali aggiornati, ma il run resta Cancelled (o Timed out) e commit status, notifiche e pubblicazione non vengono rieseguiti."
+}
