@@ -90,6 +90,16 @@ async function deletionOrder(): Promise<string[]> {
 }
 
 /**
+ * Columns that are key material or credential residue, by name: password and token hashes,
+ * ciphertext with its IV and auth tag, tokens, salts. Matched on the name so a column added
+ * later with the usual naming is left out by default. A `*_prefix` display column is kept.
+ */
+export function isSecretColumn(column: string): boolean {
+  if (column.endsWith('_prefix')) return false;
+  return /hash|encrypted|cipher|auth_tag|password|salt|(^|_)iv(_|$)|(^|_)token(_|$)/.test(column);
+}
+
+/**
  * Everything the organization owns, as plain JSON.
  *
  * Reads privileged and filters explicitly by organization_id rather than going through RLS. The
@@ -97,7 +107,7 @@ async function deletionOrder(): Promise<string[]> {
  * carry an organization but have no policy — mixing "the policy scopes this" and "the predicate
  * scopes this" in one operation is how a table quietly gets left out.
  *
- * Password hashes and invitation tokens are excluded: this is data portability, not a
+ * Password and key hashes, ciphertext (with IV and tag) and tokens are excluded: this is data portability, not a
  * credential dump, and an export lands in a file the customer will email to someone.
  */
 export async function exportOrganization(organizationId: number): Promise<Record<string, unknown>> {
@@ -110,8 +120,7 @@ export async function exportOrganization(organizationId: number): Promise<Record
     );
     data[table] = rows.rows.map((row) => {
       const copy = { ...(row as Record<string, unknown>) };
-      delete copy.password;
-      delete copy.token;
+      for (const column of Object.keys(copy)) if (isSecretColumn(column)) delete copy[column];
       return copy;
     });
   }
