@@ -21,7 +21,7 @@ import {
   executeScheduledPlan,
   scheduledOccurrence,
 } from './execution/scheduler-service';
-import { testPlanSchedules, testPlans } from '@shared/schema';
+import { testPlanExecutions, testPlanSchedules, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { withJobIncidents } from './platform/observability/taps/jobs';
 import { artifactStore } from './tenancy/artifact-store';
@@ -300,6 +300,25 @@ configureEgressProxy();
 
   worker.on('failed', (job: Job | undefined, err: Error) => {
     logger.error(`Job ${job?.id} failed with error:`, err);
+    // A job that failed before the worker took its run leaves the run `queued` with nothing
+    // left to take it. A run already taken ends itself; this only moves a run still queued.
+    const runId =
+      job?.name === 'execute-plan' ? (job.data?.executionId ?? job.data?.testPlanRunId) : null;
+    if (typeof runId === 'string') {
+      void (async () => {
+        const [run] = await privilegedDb
+          .select({ organizationId: testPlanExecutions.organizationId })
+          .from(testPlanExecutions)
+          .where(eq(testPlanExecutions.id, runId))
+          .limit(1);
+        if (!run) return;
+        const { runWithTenant } = await import('./platform/middleware/tenancy');
+        const { markQueuedRunLost } = await import('./execution/run-recovery');
+        await runWithTenant(run.organizationId, () => markQueuedRunLost(runId, 'failed'));
+      })().catch((e) =>
+        logger.warn(`Could not end the queued run of failed job ${job?.id}: ${e?.message}`),
+      );
+    }
   });
 
   logger.info(`Worker started and listening to queue: ${TEST_EXECUTION_QUEUE_NAME}`);
