@@ -27,6 +27,8 @@
 services:
   redis:
     image: valkey/valkey:alpine
+    # Append-only file, so a restart does not lose the queue's jobs (the Helm chart has it too).
+    command: ['valkey-server', '--appendonly', 'yes']
     # The loopback only, like every port in this file (see the top).
     ports:
       - '127.0.0.1:6379:6379'
