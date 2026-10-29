@@ -33,6 +33,7 @@ import {
   quotaErrorBody,
   quotaErrorStatus,
 } from '../../tenancy/tenant-quotas';
+import { apiTestSpec } from '../../api-tests/api-test-runner';
 import {
   enqueueLoadRun,
   loadLimits,
@@ -365,6 +366,14 @@ router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) 
           .limit(1);
         if (!environment) throw new LoadError(404, 'Environment not found.');
       }
+      // The requests are frozen with the run, like the rest of its definition (C-31).
+      const stepTests = await tx
+        .select()
+        .from(apiTests)
+        .where(inArray(apiTests.id, [...new Set(test.steps.map((step) => step.apiTestId))]));
+      const requests = Object.fromEntries(
+        stepTests.map((t) => [String(t.id), { name: t.name, spec: apiTestSpec(t) }]),
+      );
       await settleInterrupted(tx);
       const [{ live }] = await tx
         .select({ live: count() })
@@ -388,7 +397,7 @@ router.post('/api/load-tests/:id/runs', requireRole('editor'), async (req, res) 
           projectId: test.projectId,
           environmentId: parsed.data.environmentId ?? null,
           status: 'queued',
-          definition: snapshotOf(test) as unknown as Record<string, unknown>,
+          definition: { ...snapshotOf(test), requests } as unknown as Record<string, unknown>,
           requestedBy: req.user!.id,
           queuedAt: now,
           startedAt: now,

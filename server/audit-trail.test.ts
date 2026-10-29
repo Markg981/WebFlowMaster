@@ -42,7 +42,7 @@ vi.mock('./execution/scheduler-service', () => ({
 }));
 
 const { privilegedDb } = await import('./platform/db');
-const { auditLog, testPlanExecutions, testPlans, users } = await import('@shared/schema');
+const { auditLog, tests, testPlanExecutions, testPlans, users } = await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
 const { runWithTenant } = await import('./platform/middleware/tenancy');
 const { default: testsRoutes } = await import('./http/routes/tests.routes');
@@ -327,5 +327,52 @@ describe('reading the trail', () => {
     } finally {
       owner = saved;
     }
+  });
+});
+
+describe('two saves of one test (C-31)', () => {
+  const create = async () =>
+    (
+      await request(app)
+        .post('/api/tests')
+        .send({
+          name: `Race ${uuidv4().slice(0, 4)}`,
+          url: 'https://shop.test',
+          sequence: [],
+          elements: [],
+        })
+        .expect(201)
+    ).body;
+
+  it('refuses the save of someone who read the test before another save landed', async () => {
+    const test = await create();
+    await request(app)
+      .put(`/api/tests/${test.id}`)
+      .send({ url: 'https://one.test', expectedUpdatedAt: test.updatedAt })
+      .expect(200);
+
+    const late = await request(app)
+      .put(`/api/tests/${test.id}`)
+      .send({ url: 'https://two.test', expectedUpdatedAt: test.updatedAt })
+      .expect(409);
+    expect(late.body.code).toBe('test_changed');
+    const [row] = await privilegedDb.select().from(tests).where(eq(tests.id, test.id));
+    expect(row.url).toBe('https://one.test');
+  });
+
+  it('lets exactly one of two concurrent saves with the same base win', async () => {
+    const test = await create();
+    const save = (url: string) =>
+      request(app).put(`/api/tests/${test.id}`).send({ url, expectedUpdatedAt: test.updatedAt });
+    const statuses = (await Promise.all([save('https://a.test'), save('https://b.test')]))
+      .map((r) => r.status)
+      .sort();
+    expect(statuses).toEqual([200, 409]);
+  });
+
+  it('keeps saving without expectedUpdatedAt as before', async () => {
+    const test = await create();
+    await request(app).put(`/api/tests/${test.id}`).send({ url: 'https://x.test' }).expect(200);
+    await request(app).put(`/api/tests/${test.id}`).send({ url: 'https://y.test' }).expect(200);
   });
 });

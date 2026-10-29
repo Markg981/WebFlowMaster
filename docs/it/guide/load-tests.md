@@ -99,6 +99,9 @@ quel momento. La pagina la segue, ogni 2 secondi:
 richieste già in volo terminano. Ogni test di carico mostra le sue ultime 10 esecuzioni, con
 riepilogo ed esito.
 
+Un'esecuzione invia le richieste dei test API **com'erano quando l'hai avviata**: modificare un test
+API mentre l'esecuzione aspetta un worker, o mentre gira, cambia solo le esecuzioni successive.
+
 ### Dove gira un run
 
 Un run di carico è un job su una coda propria, eseguito da **uno dei worker dell'installazione**,

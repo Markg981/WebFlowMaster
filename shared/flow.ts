@@ -157,3 +157,25 @@ export function analyseFlow(
   }
   return errors.length > 0 ? { ok: false, errors } : { ok: true, blocks };
 }
+
+/**
+ * Actions that can run a second time without doing anything twice: the ones that only wait for
+ * the page or look at it. "Retry Step" re-runs a failed step, and a click that had already
+ * landed, an upload, a database write or a sent request would then happen twice (C-31); those
+ * fail on the first error. `ensureState` is here because it checks first and acts only if needed.
+ */
+const RETRY_SAFE_ACTION_IDS: ReadonlySet<string> = new Set([
+  'assert',
+  'assertTextContains',
+  'assertElementCount',
+  'assertState',
+  'assertAccessible',
+  'ensureState',
+  'waitForElement',
+  'waitForText',
+  'waitForNetworkIdle',
+]);
+
+export function isRetrySafeAction(actionId: string | undefined): boolean {
+  return !!actionId && RETRY_SAFE_ACTION_IDS.has(actionId);
+}

@@ -1,0 +1,14 @@
+{
+  "id": "LIB-53",
+  "area": "LIB",
+  "title": "Due salvataggi dello stesso test: il secondo riceve 409",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 93. Un test web salvato, aperto da due editor (o due schede) con lo stesso updatedAt.",
+  "steps": [
+    "Dalla prima scheda salvare una modifica all'URL del test.",
+    "Dalla seconda scheda (che ha ancora la versione letta prima) inviare PUT /api/tests/{id} con expectedUpdatedAt uguale al vecchio valore e un altro URL.",
+    "Ripetere il PUT senza expectedUpdatedAt."
+  ],
+  "expected": "Il secondo PUT risponde 409 con codice test_changed e il test conserva l'URL della prima modifica; la cronologia versioni non ha righe duplicate. Il PUT senza expectedUpdatedAt continua a funzionare come prima. Lo stesso vale per PUT /api/api-tests/{id}."
+}
