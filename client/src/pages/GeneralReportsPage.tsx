@@ -275,9 +275,9 @@ const GeneralReportsPage: React.FC = () => {
           </CardHeader>
           <CardContent className="overflow-x-auto">
             {isLoading && (
-              <div className="flex justify-center items-center py-10">
+              <div role="status" className="flex justify-center items-center py-10">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-2">Loading executions...</p>
+                <p className="ml-2">{t('common.loadingExecutions')}</p>
               </div>
             )}
             {error && (

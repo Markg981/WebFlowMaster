@@ -608,6 +608,7 @@
     "dropActionsPrompt": "Déposez un élément ici"
   },
   "apiTesterPage": {
+    "confirmDeleteSavedTest": "Supprimer ce test enregistré ?",
     "backToDashboard": {
       "button": "Retour au tableau de bord"
     },
@@ -1634,7 +1635,8 @@
       "title": "404 Page introuvable"
     },
     "didYouForgetToAddThePage": {
-      "description": "Avez-vous oublié d’ajouter la page au routeur ?"
+      "description": "La page que vous cherchez n’existe pas ou a été déplacée.",
+      "homeLink": "Retour à l’accueil"
     }
   },
   "settingsPage": {
@@ -2405,6 +2407,7 @@
     }
   },
   "testPlanExecutionPage": {
+    "backToTestPlans": "Retour aux plans de test",
     "logs": {
       "startingExecution": "Lancement de l’exécution du plan : {{planName}}",
       "runningTest": "Exécution du test : {{testName}}",
@@ -2851,6 +2854,15 @@
     "emptyHint": "Aucun pour l’instant. Créez-en un dans les Paramètres pour utiliser les secrets et une connexion enregistrée."
   },
   "common": {
+    "loginFailed": "Échec de la connexion",
+    "registrationFailed": "Échec de l’inscription",
+    "logoutFailed": "Échec de la déconnexion",
+    "noEnvironment": "Aucun environnement",
+    "loadingExecutions": "Chargement des exécutions...",
+    "refresh": "Actualiser",
+    "refreshReport": "Actualiser le rapport",
+    "visualCheck": "Contrôle visuel",
+    "saveLoginForEnvironment": "Enregistrer la connexion pour cet environnement",
     "error": "Erreur",
     "cancel": "Annuler",
     "save": "Enregistrer",

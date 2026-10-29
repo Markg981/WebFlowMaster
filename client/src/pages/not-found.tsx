@@ -1,4 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
+import { Link } from 'wouter';
+import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -18,6 +20,9 @@ export default function NotFound() {
           <p className="mt-4 text-sm text-muted-foreground">
             {t('notFoundPage.didYouForgetToAddThePage.description')}
           </p>
+          <Button asChild className="mt-4">
+            <Link href="/">{t('notFoundPage.didYouForgetToAddThePage.homeLink')}</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

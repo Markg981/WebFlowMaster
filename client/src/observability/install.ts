@@ -24,7 +24,10 @@ function describeTarget(element: Element | null): string | undefined {
   if (testId) return `[data-testid="${testId}"]`;
   const label = element.getAttribute('aria-label');
   if (label) return `${element.tagName.toLowerCase()}[aria-label="${label}"]`;
-  const text = (element.textContent ?? '').trim().slice(0, 40);
+  // Visible text can hold personal data (a name in a row, an e-mail in a menu): only the tag
+  // and, for short controls, the label without digits or e-mail-like tokens are kept.
+  const raw = (element.textContent ?? '').trim().slice(0, 40);
+  const text = /[@\d]/.test(raw) ? '' : raw;
   return text ? `${element.tagName.toLowerCase()}:"${text}"` : element.tagName.toLowerCase();
 }
 

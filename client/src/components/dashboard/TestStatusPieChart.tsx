@@ -54,7 +54,7 @@ const TestStatusPieChart: React.FC<TestStatusPieChartProps> = ({ data, isLoading
           resolves 100% to 0 once the card is not stretched by a grid row (configurable dashboards). */}
       <div className="h-64 w-full min-w-0 shrink-0">
         {isLoading ? (
-          <div className="flex items-center justify-center h-full">
+          <div role="status" className="flex items-center justify-center h-full">
             <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
           </div>
         ) : !hasRuns ? (
