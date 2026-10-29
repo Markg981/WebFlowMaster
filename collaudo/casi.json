@@ -10053,6 +10053,45 @@
       "expected": "1: ogni azione viene aggiunta in fondo alla sequenza come con il drag&drop. 2: l'elemento si associa al più recente step ancora senza elemento. 3: lo step cambia posto di una posizione. 4: «su» è disabilitato sul primo step, «giù» sull'ultimo; durante una registrazione tutti i pulsanti sono disabilitati. 5: stesso risultato dei passi 1-3."
     },
     {
+      "id": "WEB-78",
+      "area": "WEB",
+      "title": "Ambiente dietro HTTP Basic auth: segreti http.username e http.password",
+      "priority": "P2",
+      "actor": "owner.a",
+      "preconditions": "Un sito di prova protetto da HTTP Basic auth; un ambiente con i segreti http.username e http.password; un test web che apre il sito.",
+      "steps": [
+        "Eseguire il test senza i segreti: osservare il risultato.",
+        "Aggiungere i segreti http.username e http.password corretti all'ambiente e rieseguire."
+      ],
+      "expected": "1: la pagina non si apre (401). 2: il browser si autentica da solo e lo step passa."
+    },
+    {
+      "id": "WEB-79",
+      "area": "WEB",
+      "title": "Wait for email filtrata per mittente (mailpit.from)",
+      "priority": "P2",
+      "actor": "owner.a",
+      "preconditions": "Mailpit configurato; due email allo stesso indirizzo in pochi secondi, da mittenti diversi, entrambe con un codice.",
+      "steps": [
+        "Impostare il segreto mailpit.from sul mittente della prima email (la meno recente).",
+        "Eseguire Wait for email con indirizzo e pattern del codice."
+      ],
+      "expected": "1: nessun effetto immediato. 2: viene letta la mail del mittente indicato, anche se l'altra e' piu' recente; {{email.otp}} e' il suo codice."
+    },
+    {
+      "id": "WEB-80",
+      "area": "WEB",
+      "title": "Codice OTP non mostrato nel dettaglio dello step",
+      "priority": "P2",
+      "actor": "owner.a",
+      "preconditions": "Un test con Wait for email (o Wait for SMS) che riceve un codice.",
+      "steps": [
+        "Eseguire il test e aprire il dettaglio dello step Wait for email nel report.",
+        "Usare {{email.otp}} in uno step successivo."
+      ],
+      "expected": "1: il dettaglio dice che il codice non viene mostrato, senza il valore. 2: lo step successivo usa il codice correttamente."
+    },
+    {
       "id": "SEC-79",
       "area": "SEC",
       "title": "Report di piano: dettaglio dei test di progetti riservati nascosto ai non membri",
