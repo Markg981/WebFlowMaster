@@ -1,0 +1,13 @@
+{
+  "id": "SEC-76",
+  "area": "SEC",
+  "title": "Eliminare un progetto riservato è rifiutato e i suoi test restano nascosti",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 93. Un progetto riservato con un test, di cui editor.b non è membro.",
+  "steps": [
+    "Come owner.a eliminare il progetto riservato.",
+    "Come editor.b (non membro) elencare i test e aprire il test del progetto."
+  ],
+  "expected": "1: il rifiuto è 409 con codice PROJECT_RESTRICTED, il progetto e il test restano. 2: editor.b non vede il test né in elenco né per ID (404): non è diventato visibile a tutta l'organizzazione."
+}

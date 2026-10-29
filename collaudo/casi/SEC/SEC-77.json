@@ -1,0 +1,13 @@
+{
+  "id": "SEC-77",
+  "area": "SEC",
+  "title": "Aprire il progetto riservato prima di eliminarlo lo rende eliminabile",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 93. Un progetto riservato.",
+  "steps": [
+    "Rimuovere la restrizione del progetto dalla gestione degli accessi.",
+    "Eliminare il progetto."
+  ],
+  "expected": "1: la modifica è registrata nel log di audit. 2: il progetto è eliminato (204) e l'eliminazione è registrata."
+}
