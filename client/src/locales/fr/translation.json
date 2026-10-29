@@ -3217,6 +3217,7 @@
       "test_review_rejected": "Relecture refusée",
       "test_review_withdrawn": "Relecture retirée",
       "test_review_policy_changed": "Règle de relecture modifiée",
+      "organization_ai_policy_changed": "Règle du fournisseur IA externe modifiée",
       "runner_drained": "Runner vidé",
       "runner_resumed": "Runner repris",
       "suite_created": "Suite créée",

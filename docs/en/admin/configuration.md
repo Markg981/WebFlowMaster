@@ -178,12 +178,12 @@ worker beats every `WORK_ITEM_HEARTBEAT_MS` and with every progress it writes.
 
 ## AI features (optional)
 
-| Variable                | Read by | Default               | Description                                                                                                                                |
-| ----------------------- | ------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GEMINI_API_KEY`        | both    | none                  | Google Gemini key. Without it, describing a test in sentences, AI selector healing and AI failure analysis are off; everything else works. |
-| `GEMINI_MODEL`          | web     | `gemini-2.0-flash`    | The model used to turn sentences into steps, to analyse failures and to heal selectors.                                                    |
-| `GEMINI_BASE_URL`       | both    | Google's              | Another address for the same Gemini API: a proxy, or a test double such as the one in the collaudo stack.                                  |
-| `DEBUG_IDLE_TIMEOUT_MS` | both    | `900000` (15 minutes) | How long a paused debug session waits for a command before it closes its browser. Shorten it only on a test installation.                  |
+| Variable                | Read by | Default               | Description                                                                                                                                                                                                                                                                                 |
+| ----------------------- | ------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GEMINI_API_KEY`        | both    | none                  | Google Gemini key. Even with it, each organization must be opted in by an owner (`PUT /api/organization/ai-policy`, off by default) before any of its data is sent. Without it, describing a test in sentences, AI selector healing and AI failure analysis are off; everything else works. |
+| `GEMINI_MODEL`          | web     | `gemini-2.0-flash`    | The model used to turn sentences into steps, to analyse failures and to heal selectors.                                                                                                                                                                                                     |
+| `GEMINI_BASE_URL`       | both    | Google's              | Another address for the same Gemini API: a proxy, or a test double such as the one in the collaudo stack.                                                                                                                                                                                   |
+| `DEBUG_IDLE_TIMEOUT_MS` | both    | `900000` (15 minutes) | How long a paused debug session waits for a command before it closes its browser. Shorten it only on a test installation.                                                                                                                                                                   |
 
 ## Logging
 

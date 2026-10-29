@@ -3,9 +3,12 @@ import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
 import { asc, eq } from 'drizzle-orm';
 import { projectElements, projects } from '@shared/schema';
-import { withTenantTransaction } from '../../platform/middleware/tenancy';
+import { withTenantTransaction, getTenantOrgId } from '../../platform/middleware/tenancy';
+import { auditActor } from '../../tenancy/audit';
 import { requireRole } from '../middleware/require-role';
-import { sharedHeavyRateLimit } from '../middleware/rate-limits';
+import { sessionOnly } from '../middleware/session-only';
+import { sharedHeavyRateLimit, sharedSensitiveRateLimit } from '../middleware/rate-limits';
+import { aiEnabled, setAiEnabled } from '../../authoring/ai-consent';
 import { aiService } from '../../authoring/ai-automation-service';
 import { authorSteps } from '../../authoring/nl-authoring';
 import logger from '../../platform/logger';
@@ -69,6 +72,12 @@ router.post(
         repository = loaded;
       }
 
+      // The model sees the page's elements and the author's text only when the owner allowed AI;
+      // otherwise the deterministic parser alone answers.
+      const modelAllowed =
+        aiService.isAvailable() &&
+        (await withTenantTransaction((tx) => aiEnabled(tx, getTenantOrgId()!)));
+
       const result = await authorSteps(
         {
           text: parsed.data.text,
@@ -78,9 +87,7 @@ router.post(
         // Absent when no key is configured, and `authorSteps` then says so per line instead of
         // failing: the phrasings it understands on its own keep working.
         {
-          propose: aiService.isAvailable()
-            ? (prompt) => aiService.proposeTestSteps(prompt)
-            : undefined,
+          propose: modelAllowed ? (prompt) => aiService.proposeTestSteps(prompt) : undefined,
         },
       );
 
@@ -88,7 +95,7 @@ router.post(
         steps: result.steps,
         unresolved: result.unresolved,
         usedModel: result.usedModel,
-        modelAvailable: aiService.isAvailable(),
+        modelAvailable: modelAllowed,
         // Names only. What the author needs when a line failed is the list of things they could
         // have named, and a selector is not that.
         catalogue: buildCatalogueListing(repository, parsed.data.elements ?? []),
@@ -152,5 +159,25 @@ function buildCatalogueListing(
     detected: detected.length,
   };
 }
+
+// GET /api/organization/ai-policy — whether the AI provider may receive this organization's data.
+router.get('/api/organization/ai-policy', requireRole('viewer'), async (_req, res) => {
+  const enabled = await withTenantTransaction((tx) => aiEnabled(tx, getTenantOrgId()!));
+  res.json({ enabled, available: aiService.isAvailable() });
+});
+
+// PUT /api/organization/ai-policy — owners only. Off by default.
+router.put(
+  '/api/organization/ai-policy',
+  sharedSensitiveRateLimit(),
+  requireRole('owner'),
+  sessionOnly('Owner action (put /api/organization/ai-policy)'),
+  async (req, res) => {
+    const parsed = z.object({ enabled: z.boolean() }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid payload' });
+    await setAiEnabled(getTenantOrgId()!, auditActor(req), parsed.data.enabled);
+    res.json({ enabled: parsed.data.enabled });
+  },
+);
 
 export default router;
