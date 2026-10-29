@@ -19,13 +19,13 @@ test('MFA enrollment gates login, rejects a wrong code and consumes a recovery c
   await logout(page);
   await login(page, username);
   await expect(page.getByLabel('Code from your authenticator app', { exact: true })).toBeVisible();
-  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page).toHaveURL(/\/auth(\?returnTo=[^&]*)?$/);
   await page
     .getByLabel('Code from your authenticator app', { exact: true })
     .fill('invalid-recovery-code');
   await page.getByRole('button', { name: 'Verify', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('That code is not valid.');
-  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page).toHaveURL(/\/auth(\?returnTo=[^&]*)?$/);
   await page.getByLabel('Code from your authenticator app', { exact: true }).fill(recovery);
   await page.getByRole('button', { name: 'Verify', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
@@ -34,7 +34,7 @@ test('MFA enrollment gates login, rejects a wrong code and consumes a recovery c
   await page.getByLabel('Code from your authenticator app', { exact: true }).fill(recovery);
   await page.getByRole('button', { name: 'Verify', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('That code is not valid.');
-  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page).toHaveURL(/\/auth(\?returnTo=[^&]*)?$/);
 });
 
 test('OIDC login returns from a real HTTPS provider and preserves the viewer permissions', async ({
@@ -97,7 +97,7 @@ test('OIDC login returns from a real HTTPS provider and preserves the viewer per
     ).toHaveCount(0);
     await logout(reader);
     await reader.goto('/mobile-tests');
-    await expect(reader).toHaveURL(/\/auth$/);
+    await expect(reader).toHaveURL(/\/auth(\?returnTo=[^&]*)?$/);
   } finally {
     await context.close();
   }
