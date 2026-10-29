@@ -392,6 +392,15 @@ export class TestRunner {
               ...deviceContextOptions(browserChoice),
               ...(savedLogin ? { storageState: storageState as any } : {}),
               ...(replayHeaders ? { extraHTTPHeaders: replayHeaders } : {}),
+              // HTTP Basic auth in front of the environment: the secrets http.username and http.password.
+              ...(vars['http.username']
+                ? {
+                    httpCredentials: {
+                      username: vars['http.username'],
+                      password: vars['http.password'] ?? '',
+                    },
+                  }
+                : {}),
               // Playwright sends it as Accept-Language and answers navigator.language with it.
               ...(options?.locale ? { locale: options.locale } : {}),
               // Recording has to be asked for when the context is made; whether the file is kept
