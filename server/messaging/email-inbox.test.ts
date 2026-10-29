@@ -231,7 +231,7 @@ describe('the waitForEmail step', () => {
     const waited = await executeStep(ctx, step('waitForEmail', '{{email}}|confirm your'));
     expect(waited).toMatchObject({
       status: 'passed',
-      detail: expect.stringContaining('{{email.otp}} = "905172"'),
+      detail: expect.stringContaining('{{email.otp}} = (code, not shown)'),
     });
     expect(vars['email.otp']).toBe('905172');
     expect(vars['email.subject']).toBe('Confirm your account');
