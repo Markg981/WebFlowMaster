@@ -160,11 +160,11 @@ describe('route modules cannot query outside the tenant context', () => {
         'under its own organization.',
     },
     'execution/run-recovery.ts': {
-      max: 1,
+      max: 2,
       why:
-        'The recovery sweep looks across every organization for runs whose worker went quiet: it ' +
-        'is not a request and has no tenant. It only finds them; each is ended under its own ' +
-        'organization through the state machine.',
+        'The recovery sweep looks across every organization for runs whose worker went quiet, and ' +
+        'for queued runs whose job was lost (audit C-16): it is not a request and has no tenant. ' +
+        'It only finds them; each is ended under its own organization through the state machine.',
     },
     'identity/sso.ts': {
       max: 0,

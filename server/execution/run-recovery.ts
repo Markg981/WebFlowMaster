@@ -1,6 +1,6 @@
 import { ADVISORY_KEYS, withAdvisoryLock } from '../platform/advisory-lock';
-import { and, inArray, lt, or, sql } from 'drizzle-orm';
-import { testPlanExecutions, type TestPlanExecution } from '@shared/schema';
+import { and, eq, inArray, lt, notExists, or, sql } from 'drizzle-orm';
+import { executionOutbox, testPlanExecutions, type TestPlanExecution } from '@shared/schema';
 import { privilegedDb } from '../platform/db';
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { LIVE_EXECUTION_STATUSES, transitionExecution } from './execution-state';
@@ -39,6 +39,10 @@ import logger from '../platform/logger';
 export const RUN_STALE_AFTER_MS =
   Number(process.env.RUN_STALE_AFTER_MS) || Math.max(8 * RUN_HEARTBEAT_INTERVAL_MS, 120_000);
 export const RUN_TIMEOUT_GRACE_MS = 5 * 60_000;
+/** How long a run may be `queued` with no job in the queue and no pending outbox row before it is ended. */
+export const QUEUED_RUN_LOST_AFTER_MS = Number(process.env.QUEUED_RUN_LOST_AFTER_MS) || 10 * 60_000;
+/** The failure code of a run whose job vanished from the queue. */
+export const QUEUE_JOB_LOST = 'queue_job_lost';
 
 export interface RecoveryOptions {
   now?: Date;
@@ -126,6 +130,78 @@ export async function recoverAbandonedRuns(options: RecoveryOptions = {}): Promi
   return report;
 }
 
+/** The part of the queue the reconciliation reads: the state BullMQ gives a job id, if it has one. */
+export interface QueuedJobLookup {
+  getJobState(jobId: string): Promise<string | null>;
+}
+
+/** States in which a job is still going to reach (or has reached) a worker. */
+const JOB_PRESENT_STATES = new Set([
+  'waiting',
+  'delayed',
+  'active',
+  'prioritized',
+  'waiting-children',
+]);
+
+/**
+ * Ends the `queued` runs whose job is gone.
+ *
+ * The recovery above only looks at live (`running`/`cancelling`) runs, and the outbox only at
+ * rows it still holds. A run whose row was confirmed and whose job then disappeared (a queue
+ * store that lost its state, a job that failed before a worker took the run) stayed `queued`
+ * for ever, holding its organization's quota. Run id = job id, so the lookup is one call per run.
+ *
+ * It does not publish the job again: the run may have been taken in a way this cannot see, and
+ * a second run on top of half a first is not the same run. It ends as `error` / `queue_job_lost`
+ * and the user starts it again on purpose.
+ */
+export async function reconcileQueuedRuns(
+  queue: QueuedJobLookup,
+  options: { now?: Date; lostAfterMs?: number } = {},
+): Promise<string[]> {
+  const now = options.now ?? new Date();
+  const before = new Date(now.getTime() - (options.lostAfterMs ?? QUEUED_RUN_LOST_AFTER_MS));
+  const candidates = await privilegedDb
+    .select({ id: testPlanExecutions.id, organizationId: testPlanExecutions.organizationId })
+    .from(testPlanExecutions)
+    .where(
+      and(
+        eq(testPlanExecutions.status, 'queued'),
+        lt(testPlanExecutions.queuedAt, before),
+        notExists(
+          privilegedDb
+            .select({ one: sql`1` })
+            .from(executionOutbox)
+            .where(eq(executionOutbox.executionId, testPlanExecutions.id)),
+        ),
+      ),
+    )
+    .limit(200);
+
+  const lost: string[] = [];
+  for (const run of candidates) {
+    const state = await queue.getJobState(run.id);
+    if (state && JOB_PRESENT_STATES.has(state)) continue;
+    const ended = await runWithTenant(run.organizationId, () => markQueuedRunLost(run.id, state));
+    if (ended) lost.push(run.id);
+  }
+  return lost;
+}
+
+/** queued → error for a run whose job is gone or failed; false when it had already moved on. */
+export async function markQueuedRunLost(runId: string, jobState: string | null = null) {
+  const ended = await transitionExecution(runId, 'error', {
+    failureCode: QUEUE_JOB_LOST,
+    failureMessage:
+      (jobState
+        ? `The job for this run ended as "${jobState}" before any worker took the run. `
+        : 'The job for this run is no longer in the queue and no worker ever took the run. ') +
+      'It was not run again; start it again if it is still needed.',
+  });
+  return Boolean(ended);
+}
+
 /** Whether a run whose worker was lost may run again: only when its plan said so, at enqueue. */
 export function mayReplayAfterLoss(
   ended: Pick<TestPlanExecution, 'configurationSnapshot'>,
@@ -149,6 +225,18 @@ export function startRunRecovery(intervalMs = 60_000): () => void {
       );
       if (!locked.ran) return;
       const report = locked.value;
+      const { testExecutionQueue } = await import('../platform/queue');
+      const lostJobs = await withAdvisoryLock(ADVISORY_KEYS.runRecovery, () =>
+        reconcileQueuedRuns({
+          getJobState: async (id) => {
+            const job = await testExecutionQueue.getJob(id);
+            return job ? await job.getState() : null;
+          },
+        }),
+      );
+      if (lostJobs.ran && lostJobs.value.length > 0) {
+        logger.warn({ message: 'Ended queued runs whose job was gone', runs: lostJobs.value });
+      }
       const total = report.lost.length + report.cancelled.length + report.timedOut.length;
       if (total > 0) {
         logger.warn({ message: 'Ended runs nobody was running any more', ...report });
