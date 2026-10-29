@@ -1,0 +1,14 @@
+{
+  "id": "ACC-06",
+  "area": "ACC",
+  "title": "Password errata",
+  "priority": "P1",
+  "actor": "nessuno",
+  "preconditions": "Stesso messaggio generico in entrambi i casi, che non rivela se l'utente esiste. L'audit dell'organizzazione A registra auth.login_failed solo per editor.a.",
+  "steps": [
+    "Accedere come editor.a con una password sbagliata.",
+    "Accedere come nessuno.qui (inesistente)."
+  ],
+  "expected": "Stesso messaggio generico in entrambi i casi, che non rivela se l'utente esiste. L'audit dell'organizzazione A registra auth.login_failed solo per editor.a.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Accedere come <code>editor.a</code> con una password sbagliata.</li><li>Accedere come <code>nessuno.qui</code> (inesistente).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Stesso messaggio generico in entrambi i casi, che non rivela se l'utente esiste. L'audit dell'organizzazione A registra <b>auth.login_failed</b> solo per editor.a.</p>\n      "
+}

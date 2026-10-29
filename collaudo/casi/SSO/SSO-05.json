@@ -1,0 +1,15 @@
+{
+  "id": "SSO-05",
+  "area": "SSO",
+  "title": "Accessi rifiutati, con il motivo",
+  "priority": "P2",
+  "actor": "nessuno",
+  "preconditions": "Tornando su /auth compare ogni volta un messaggio che spiega il motivo (dominio sconosciuto, e-mail non verificata, account di un'altra organizzazione); nessuna sessione aperta, nessun account creato.",
+  "steps": [
+    "Accedi con SSO con x@altro.test (dominio non configurato).",
+    "Utente Keycloak con e-mail non verificata.",
+    "Utente Keycloak la cui e-mail appartiene a un account dell'organizzazione B."
+  ],
+  "expected": "Tornando su /auth compare ogni volta un messaggio che spiega il motivo (dominio sconosciuto, e-mail non verificata, account di un'altra organizzazione); nessuna sessione aperta, nessun account creato.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Accedi con SSO con <code>x@altro.test</code> (dominio non configurato).</li><li>Utente Keycloak con e-mail non verificata.</li><li>Utente Keycloak la cui e-mail appartiene a un account dell'organizzazione B.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Tornando su /auth compare ogni volta un messaggio che spiega il motivo (dominio sconosciuto, e-mail non verificata, account di un'altra organizzazione); nessuna sessione aperta, nessun account creato.</p>\n      "
+}

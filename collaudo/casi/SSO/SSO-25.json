@@ -1,0 +1,17 @@
+{
+  "id": "SSO-25",
+  "area": "SSO",
+  "title": "SCIM: gruppi, ruoli e chi non è in nessun gruppo",
+  "priority": "P2",
+  "actor": "operatore (provider) · owner.a",
+  "preconditions": "SSO-24; mappatura wfm-editor → Editor (SSO-18); un account Sara creato via SCIM.",
+  "steps": [
+    "POST /api/scim/v2/Groups con displayName wfm-editor e Sara fra i members.",
+    "PATCH del gruppo che rimuove Sara.",
+    "Attivare Rifiuta chi non è in nessuno di questi gruppi; salvare.",
+    "Rimettere Sara nel gruppo con un PATCH.",
+    "Creare via SCIM un nuovo utente non in nessun gruppo."
+  ],
+  "expected": "1: Sara diventa editor subito, senza accedere (audit con bySsoGroups e byScim). 2: il ruolo resta editor: senza la regola, uscire dai gruppi non cambia il ruolo. 3: Sara, fuori dall'ultimo gruppo mappato, è disattivata subito; il registro di audit ha reason no_group. 4: Sara è riattivata. 5: l'account nasce disattivato e si attiva quando un gruppo mappato lo contiene. Un account disattivato dal provider con active: false resta disattivato anche entrando in un gruppo.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-24; mappatura wfm-editor → Editor (SSO-18); un account Sara creato via SCIM.</p>\n        <h4>Passi</h4>\n        <ol><li><code>POST /api/scim/v2/Groups</code> con <code>displayName</code> <code>wfm-editor</code> e Sara fra i <code>members</code>.</li><li><code>PATCH</code> del gruppo che rimuove Sara.</li><li>Attivare <b>Rifiuta chi non è in nessuno di questi gruppi</b>; salvare.</li><li>Rimettere Sara nel gruppo con un PATCH.</li><li>Creare via SCIM un nuovo utente non in nessun gruppo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: Sara diventa editor subito, senza accedere (audit con bySsoGroups e byScim). 2: il ruolo resta editor: senza la regola, uscire dai gruppi non cambia il ruolo. 3: Sara, fuori dall'ultimo gruppo mappato, è disattivata subito; il registro di audit ha reason no_group. 4: Sara è riattivata. 5: l'account nasce disattivato e si attiva quando un gruppo mappato lo contiene. Un account disattivato dal provider con <code>active: false</code> resta disattivato anche entrando in un gruppo.</p>\n      "
+}

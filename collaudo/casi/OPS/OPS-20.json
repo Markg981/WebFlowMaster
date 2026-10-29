@@ -1,0 +1,14 @@
+{
+  "id": "OPS-20",
+  "area": "OPS",
+  "title": "Ricostruzione indipendente delle tre immagini",
+  "priority": "P1",
+  "actor": "operatore release",
+  "preconditions": "Un candidato release sul nuovo workflow e runner Linux amd64 con spazio sufficiente.",
+  "steps": [
+    "Eseguire Reproducible release tramite workflow_dispatch senza tag.",
+    "Esaminare per API, worker e agente le due build no-cache e il confronto dei digest.",
+    "Scaricare le evidenze del candidato e annotare commit/toolchain."
+  ],
+  "expected": "Per ogni ruolo coincidono configurazione e identificatori dei layer non compressi. Un confronto diverso fa fallire il job; nessuna immagine è pubblicata dal candidato."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "OPS-02",
+  "area": "OPS",
+  "title": "Aggiornamento con migrazioni",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Installazione della release precedente con dati.",
+  "steps": [
+    "Svuotare i runner, fermare, backup, docker compose up -d --build con la nuova release.",
+    "npm run db:doctor (o equivalente) e un giro rapido dell'interfaccia."
+  ],
+  "expected": "Le migrazioni si applicano, il doctor non segnala nulla; utenti, test, piani e report di prima ci sono ancora.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Installazione della release precedente con dati.</p>\n        <h4>Passi</h4>\n        <ol><li>Svuotare i runner, fermare, backup, <code>docker compose up -d --build</code> con la nuova release.</li><li><code>npm run db:doctor</code> (o equivalente) e un giro rapido dell'interfaccia.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Le migrazioni si applicano, il doctor non segnala nulla; utenti, test, piani e report di prima ci sono ancora.</p>\n      "
+}

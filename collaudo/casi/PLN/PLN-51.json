@@ -1,0 +1,16 @@
+{
+  "id": "PLN-51",
+  "area": "PLN",
+  "title": "Run in coda: dipendenze congelate all'accodamento, nessuna lettura dal vivo",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 73. Un test non pubblicato che richiama un gruppo di step, un elemento del repository e un'azione personalizzata; un piano con quel test e un worker fermo o occupato, così che il run resti in coda.",
+  "steps": [
+    "Avviare il piano: il run resta in coda.",
+    "Mentre aspetta, modificare il selettore dell'elemento, eliminare l'azione personalizzata (dopo averla tolta dagli altri test) e cambiare gli step del gruppo.",
+    "Far partire il worker e attendere la fine del run.",
+    "Rieseguire il run dallo storico (replay).",
+    "Avviare il test dal costruttore con Esegui test."
+  ],
+  "expected": "Run e replay eseguono gruppo, selettore e script come erano all'accodamento e non segnalano dipendenze mancanti. La provenienza indica dipendenze di origine \"enqueue\" con impronta identica nei due run. L'esecuzione dal costruttore usa invece i valori correnti e fallisce sull'azione eliminata nominandola."
+}

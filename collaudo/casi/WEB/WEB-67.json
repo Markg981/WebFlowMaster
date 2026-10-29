@@ -1,0 +1,12 @@
+{
+  "id": "WEB-67",
+  "area": "WEB",
+  "title": "Cambio posizione",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Impostare una prima posizione, poi una seconda nello stesso test; interrogare la pagina dopo ciascuno step."
+  ],
+  "expected": "Ogni lettura restituisce la posizione impostata nello step precedente."
+}

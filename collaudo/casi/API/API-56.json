@@ -1,0 +1,14 @@
+{
+  "id": "API-56",
+  "area": "API",
+  "title": "Test di carico: scenario composto, rampa, warm-up e superamento",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Ambiente con un endpoint di login che risponde con un token e un endpoint protetto che lo richiede; due test API salvati (login con cattura del token, lettura protetta con Bearer {{token}}); un data set con almeno 5 righe di credenziali. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "Test di carico → Nuovo: scenario login + lettura (pausa 500 ms dopo la lettura); stage 30 s → 5 utenti, 60 s → 5, 30 s → 0; warm-up 20 s; data set con 'Una riga propria per ogni utente virtuale'; soglie p95 2000 ms ed errori 1%.",
+    "Salvare, aprire le esecuzioni, scegliere l'ambiente e avviare; seguire il run fino alla fine.",
+    "Nei log dell'endpoint di login verificare le credenziali ricevute."
+  ],
+  "expected": "L'editor disegna il profilo con il warm-up ombreggiato e indica 120 s e 5 utenti al picco. Durante il run avanzamento, utenti virtuali attuali e timeline si aggiornano ogni 2 s; la curva degli utenti sale, resta piatta e scende. A fine run esito Superato, statistiche p50/p90/p95/p99/max per ciascun test API e in totale, iterazioni completate > 0 e fallite 0, richieste del warm-up conteggiate a parte. Il login riceve 5 credenziali distinte (una per utente) e ogni lettura usa il token del proprio login."
+}

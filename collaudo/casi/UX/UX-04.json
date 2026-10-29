@@ -1,0 +1,13 @@
+{
+  "id": "UX-04",
+  "area": "UX",
+  "title": "Finestre strette",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "Le pagine restano utilizzabili; i menu laterali si comprimono.",
+  "steps": [
+    "Ridurre la finestra a circa 1024 e 768 pixel di larghezza."
+  ],
+  "expected": "Le pagine restano utilizzabili; i menu laterali si comprimono.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Ridurre la finestra a circa 1024 e 768 pixel di larghezza.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Le pagine restano utilizzabili; i menu laterali si comprimono.</p>\n      "
+}

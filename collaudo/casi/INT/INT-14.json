@@ -1,0 +1,14 @@
+{
+  "id": "INT-14",
+  "area": "INT",
+  "title": "Elenco dei run dall'API",
+  "priority": "P2",
+  "actor": "ci-bot",
+  "preconditions": "Run di piani diversi, alcuni falliti.",
+  "steps": [
+    "GET /api/v1/runs; poi con ?planId=…, ?status=failed e ?limit=2.",
+    "?status=pippo."
+  ],
+  "expected": "L'elenco contiene solo i run dell'organizzazione, filtrati come richiesto e al massimo 2 con il limite. Uno stato sconosciuto risponde 400 con un messaggio che lo nomina.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Run di piani diversi, alcuni falliti.</p>\n        <h4>Passi</h4>\n        <ol><li><code>GET /api/v1/runs</code>; poi con <code>?planId=…</code>, <code>?status=failed</code> e <code>?limit=2</code>.</li><li><code>?status=pippo</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'elenco contiene solo i run dell'organizzazione, filtrati come richiesto e al massimo 2 con il limite. Uno stato sconosciuto risponde 400 con un messaggio che lo nomina.</p>\n      "
+}

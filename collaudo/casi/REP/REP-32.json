@@ -1,0 +1,14 @@
+{
+  "id": "REP-32",
+  "area": "REP",
+  "title": "Quote e idempotenza del replay",
+  "priority": "P1",
+  "actor": "owner.a / editor.a; viewer.a e tenant B nei casi negativi",
+  "preconditions": "API e worker aggiornati; ambiente sacrificabile, due tenant e test UI/API/mobile con versioni note. Procedura: collaudo/historical-replay-2026-10-06.md.",
+  "steps": [
+    "Impostare una quota di coda enforce raggiunta e tentare il replay.",
+    "Liberare la quota e richiedere due volte lo stesso replay con Idempotency-Key identica.",
+    "Abilitare review obbligatoria dopo un run di copia non pubblicata e rieseguirlo."
+  ],
+  "expected": "Quota raggiunta: 429 e nessun nuovo run. Ripetizione della chiave: un solo run. Copia storica non pubblicata: test saltato sotto review obbligatoria, senza sostituzione con una versione corrente."
+}

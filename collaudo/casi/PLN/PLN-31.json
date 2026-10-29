@@ -1,0 +1,15 @@
+{
+  "id": "PLN-31",
+  "area": "PLN",
+  "title": "Dispositivi: Firefox, tablet orizzontale, riapertura",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "PLN-30.",
+  "steps": [
+    "Nella riga webkit · iPhone 15 cambiare il browser in firefox.",
+    "Rimettere webkit; aggiungere una riga chromium con Galaxy Tab S9 landscape; salvare e riaprire le impostazioni.",
+    "Con l'API: PUT /api/test-plans/<id> con una riga { \"browserName\": \"firefox\", \"headless\": true, \"device\": \"iPhone 15\" }; poi con \"device\": \"Nokia 3310\"."
+  ],
+  "expected": "1: il Dispositivo torna a Desktop e la scelta è disabilitata. 2: alla riapertura le righe mostrano iPhone 15 e Galaxy Tab S9 landscape; il tablet produce uno screenshot orizzontale. 3: entrambe le richieste sono rifiutate con 400; i dettagli dell'errore dicono «Firefox cannot emulate a phone or a tablet…» e poi «Not a device this installation can emulate.»; il piano non cambia.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-30.</p>\n        <h4>Passi</h4>\n        <ol><li>Nella riga webkit · iPhone 15 cambiare il browser in firefox.</li><li>Rimettere webkit; aggiungere una riga chromium con <code>Galaxy Tab S9 landscape</code>; salvare e riaprire le impostazioni.</li><li>Con l'API: PUT /api/test-plans/&lt;id&gt; con una riga <code>{ \"browserName\": \"firefox\", \"headless\": true, \"device\": \"iPhone 15\" }</code>; poi con <code>\"device\": \"Nokia 3310\"</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: il Dispositivo torna a Desktop e la scelta è disabilitata. 2: alla riapertura le righe mostrano iPhone 15 e Galaxy Tab S9 landscape; il tablet produce uno screenshot orizzontale. 3: entrambe le richieste sono rifiutate con 400; i dettagli dell'errore dicono «Firefox cannot emulate a phone or a tablet…» e poi «Not a device this installation can emulate.»; il piano non cambia.</p>\n      "
+}

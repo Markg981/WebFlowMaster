@@ -1,0 +1,14 @@
+{
+  "id": "OPS-53",
+  "area": "OPS",
+  "title": "Decisione di adozione registrata solo su un report pronto, con supporto e distinta dall'approvazione della build",
+  "priority": "P1",
+  "actor": "owner",
+  "preconditions": "Catalogo versione 84. Report del pilot d'esempio pronto in .local/pilot/example-pilot/report.json (OPS-51).",
+  "steps": [
+    "Eseguire npm run pilot -- decide --report .local/pilot/example-pilot/report.json --decision scripts/fixtures/pilot/decision.json.",
+    "Ripetere con una copia di decision.json senza support e buildApproval e con featureFreezeUntilGate false.",
+    "Ripetere la prima esecuzione su un report blocked (OPS-52 con incidente aperto)."
+  ],
+  "expected": "La prima esecuzione esce con 0 e scrive decision.json accanto al report. La seconda esce con 1 e chiede responsabile, ore settimanali e canale del supporto, la release P18 citata come approvazione della build e il congelamento funzionale fino al gate. La terza esce con 1 perché il report non è ready_for_decision e nomina l'ID riaperto."
+}

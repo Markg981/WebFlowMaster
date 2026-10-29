@@ -1,0 +1,13 @@
+{
+  "id": "SSO-38",
+  "area": "SSO",
+  "title": "SSO non aggancia un account di un'altra organizzazione solo per l'indirizzo",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 85. Organizzazione A con SSO attivo e dominio verificato, SSO non obbligatorio. Un account in un'altra organizzazione B con password locale e nome utente vittima@corp.com (creato tramite invito, mailbox mai provata).",
+  "steps": [
+    "Fare il primo accesso SSO su A come vittima@corp.com.",
+    "Controllare il registro di audit di A e provare POST /api/login con la password locale dell'account su A."
+  ],
+  "expected": "1: accesso rifiutato con sso_error=link_requires_local_signin, nessuna identità SSO creata, l'account non entra in A. 2: evento sso.link_refused presente."
+}

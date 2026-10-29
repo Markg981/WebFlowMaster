@@ -1,0 +1,13 @@
+{
+  "id": "INT-05",
+  "area": "INT",
+  "title": "Idempotenza",
+  "priority": "P2",
+  "actor": "ci-bot",
+  "preconditions": "Le due esecuzioni restituiscono lo stesso run: ne parte uno solo.",
+  "steps": [
+    "Lanciare due volte run ID --idempotency-key build-42."
+  ],
+  "expected": "Le due esecuzioni restituiscono lo stesso run: ne parte uno solo.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Lanciare due volte <code>run ID --idempotency-key build-42</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Le due esecuzioni restituiscono lo stesso run: ne parte uno solo.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "SEC-29",
+  "area": "SEC",
+  "title": "Progetti dei test mobili: altra organizzazione",
+  "priority": "P1",
+  "actor": "owner.b · editor.a",
+  "preconditions": "Un progetto dell'organizzazione B.",
+  "steps": [
+    "Come editor.a: POST /api/mobile-tests con projectId del progetto di B.",
+    "PUT di un proprio test con lo stesso projectId."
+  ],
+  "expected": "1–2: 400 «Invalid project ID or project does not exist.»; nessun test finisce nel progetto di B.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un progetto dell'organizzazione B.</p>\n        <h4>Passi</h4>\n        <ol><li>Come editor.a: POST /api/mobile-tests con projectId del progetto di B.</li><li>PUT di un proprio test con lo stesso projectId.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1–2: 400 «Invalid project ID or project does not exist.»; nessun test finisce nel progetto di B.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "SEC-24",
+  "area": "SEC",
+  "title": "App mobili: isolamento e segreti",
+  "priority": "P1",
+  "actor": "owner.b · editor.a",
+  "preconditions": "MOB-02 nell'organizzazione A.",
+  "steps": [
+    "Come owner.b (organizzazione B): App mobili; poi GET /api/mobile-tests/<id di A>, GET /api/mobile-test-runs/<run di A>, POST /api/browser-grids/<griglia di A>/apps.",
+    "Come editor.a: leggere le risposte di GET /api/mobile-tests/<id> e /api/mobile-test-runs/<id>, e i log del server durante un run."
+  ],
+  "expected": "1: B non vede test né esecuzioni di A; le API rispondono 404. 2: la chiave e lo username della griglia non compaiono in nessuna risposta né log; i valori dei segreti dell'ambiente non compaiono nei passi (solo nomi degli elementi e testi letti).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-02 nell'organizzazione A.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b (organizzazione B): App mobili; poi <code>GET /api/mobile-tests/&lt;id di A&gt;</code>, <code>GET /api/mobile-test-runs/&lt;run di A&gt;</code>, <code>POST /api/browser-grids/&lt;griglia di A&gt;/apps</code>.</li><li>Come editor.a: leggere le risposte di GET /api/mobile-tests/&lt;id&gt; e /api/mobile-test-runs/&lt;id&gt;, e i log del server durante un run.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: B non vede test né esecuzioni di A; le API rispondono 404. 2: la chiave e lo username della griglia non compaiono in nessuna risposta né log; i valori dei segreti dell'ambiente non compaiono nei passi (solo nomi degli elementi e testi letti).</p>\n      "
+}

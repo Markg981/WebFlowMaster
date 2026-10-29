@@ -1,0 +1,16 @@
+{
+  "id": "TRC-03",
+  "area": "TRC",
+  "title": "Importare epic e story da Jira",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Issue tracker Jira configurato (INT-10). Nel progetto Jira: un'epic con due story, SHOP-10 e SHOP-11.",
+  "steps": [
+    "Importa dal tracker → Queste chiavi: SHOP-10, SHOP-999; Importa.",
+    "Importa → «Epic e story del progetto».",
+    "In Jira rinominare SHOP-11 e spostarla In Progress; in WebFlowMaster Sincronizza importati.",
+    "Aprire la cronologia delle issue in Jira."
+  ],
+  "expected": "1: il messaggio dice «2 nuovi, 0 aggiornati» e «Non trovati nel tracker: SHOP-999»; arrivano SHOP-10 e la sua epic, con SHOP-10 sotto l'epic. La chiave è un link alla issue; la colonna «Stato nel tracker» mostra lo stato di Jira. 2: arriva anche SHOP-11, le altre risultano aggiornate. 3: titolo e stato di SHOP-11 aggiornati, i test collegati restano. 4: in Jira nessuna modifica, nessun commento fatto da WebFlowMaster.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Issue tracker Jira configurato (INT-10). Nel progetto Jira: un'epic con due story, <code>SHOP-10</code> e <code>SHOP-11</code>.</p>\n        <h4>Passi</h4>\n        <ol><li><b>Importa dal tracker</b> → Queste chiavi: <code>SHOP-10, SHOP-999</code>; Importa.</li><li>Importa → «Epic e story del progetto».</li><li>In Jira rinominare SHOP-11 e spostarla In Progress; in WebFlowMaster <b>Sincronizza importati</b>.</li><li>Aprire la cronologia delle issue in Jira.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: il messaggio dice «2 nuovi, 0 aggiornati» e «Non trovati nel tracker: SHOP-999»; arrivano SHOP-10 e la sua epic, con SHOP-10 sotto l'epic. La chiave è un link alla issue; la colonna «Stato nel tracker» mostra lo stato di Jira. 2: arriva anche SHOP-11, le altre risultano aggiornate. 3: titolo e stato di SHOP-11 aggiornati, i test collegati restano. 4: in Jira nessuna modifica, nessun commento fatto da WebFlowMaster.</p>\n      "
+}

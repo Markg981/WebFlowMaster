@@ -1,0 +1,15 @@
+{
+  "id": "WEB-39",
+  "area": "WEB",
+  "title": "Debug: correggere uno step fallito e riprendere",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un test il cui step click usa un selettore che non esiste più (es. #buy-old).",
+  "steps": [
+    "Debug senza breakpoint.",
+    "Al fallimento: nel campo Selettore scrivere quello giusto; Riprova.",
+    "A fine run: guardare il canvas; salvare il test ed eseguirlo con Esegui test."
+  ],
+  "expected": "Il run si ferma sullo step fallito con l'errore in rosso e il bordo rosso nel canvas, senza chiudere il browser. Riprova esegue lo step corretto e prosegue; nell'elenco lo step ha l'etichetta «corretto». Un avviso dice che la correzione è stata copiata nel test: il canvas ha il nuovo selettore, e dopo il salvataggio Esegui test passa.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test il cui step click usa un selettore che non esiste più (es. <code>#buy-old</code>).</p>\n        <h4>Passi</h4>\n        <ol><li><b>Debug</b> senza breakpoint.</li><li>Al fallimento: nel campo Selettore scrivere quello giusto; <b>Riprova</b>.</li><li>A fine run: guardare il canvas; salvare il test ed eseguirlo con Esegui test.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il run si ferma sullo step fallito con l'errore in rosso e il bordo rosso nel canvas, senza chiudere il browser. Riprova esegue lo step corretto e prosegue; nell'elenco lo step ha l'etichetta «corretto». Un avviso dice che la correzione è stata copiata nel test: il canvas ha il nuovo selettore, e dopo il salvataggio Esegui test passa.</p>\n      "
+}

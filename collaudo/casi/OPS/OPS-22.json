@@ -1,0 +1,14 @@
+{
+  "id": "OPS-22",
+  "area": "OPS",
+  "title": "SBOM e manifest coerenti con immagini pubblicate",
+  "priority": "P1",
+  "actor": "operatore release",
+  "preconditions": "Release di staging autorizzata, versione coerente e quattro check CI verdi sul commit in main; credenziali GHCR se necessarie.",
+  "steps": [
+    "Eseguire il workflow sul tag vVERSION.",
+    "Scaricare manifest, release.env, SBOM e rapporti dalla draft.",
+    "Confrontare hash degli allegati e digest dei tre ruoli con GHCR."
+  ],
+  "expected": "Commit, versioni, migrazioni ordinate, hash delle evidenze e digest coincidono. Tag versione e commit puntano allo stesso digest; non viene scritto latest."
+}

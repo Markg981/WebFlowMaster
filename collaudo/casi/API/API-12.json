@@ -1,0 +1,16 @@
+{
+  "id": "API-12",
+  "area": "API",
+  "title": "Digest Auth",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Con le credenziali giuste 200 e il corpo {\"authenticated\": true, \"user\": \"user\"}, anche con SHA-256: la richiesta ha risposto al 401 del server. Con la password sbagliata 401. Con il nome utente vuoto la richiesta non parte e il risultato dice «Digest authentication needs a username.»",
+  "steps": [
+    "Digest Auth, utente user password passwd; GET https://httpbin.org/digest-auth/auth/user/passwd; asserzione status 200; Invia.",
+    "Stesso con /digest-auth/auth/user/passwd/SHA-256.",
+    "Password sbagliata; Invia.",
+    "Nome utente vuoto; Invia."
+  ],
+  "expected": "Con le credenziali giuste 200 e il corpo {\"authenticated\": true, \"user\": \"user\"}, anche con SHA-256: la richiesta ha risposto al 401 del server. Con la password sbagliata 401. Con il nome utente vuoto la richiesta non parte e il risultato dice «Digest authentication needs a username.»",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Digest Auth, utente <code>user</code> password <code>passwd</code>; GET <code>https://httpbin.org/digest-auth/auth/user/passwd</code>; asserzione status 200; <b>Invia</b>.</li><li>Stesso con <code>/digest-auth/auth/user/passwd/SHA-256</code>.</li><li>Password <code>sbagliata</code>; <b>Invia</b>.</li><li>Nome utente vuoto; <b>Invia</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con le credenziali giuste 200 e il corpo <code>{\"authenticated\": true, \"user\": \"user\"}</code>, anche con SHA-256: la richiesta ha risposto al 401 del server. Con la password sbagliata 401. Con il nome utente vuoto la richiesta non parte e il risultato dice «Digest authentication needs a username.»</p>\n      "
+}

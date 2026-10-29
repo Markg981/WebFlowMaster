@@ -1,0 +1,16 @@
+{
+  "id": "SEC-33",
+  "area": "SEC",
+  "title": "SCIM: un token vale per una sola organizzazione",
+  "priority": "P1",
+  "actor": "owner.b · operatore (provider)",
+  "preconditions": "SSO-23 nell'organizzazione A; owner.b con un token SCIM dell'organizzazione B.",
+  "steps": [
+    "Con il token di B: GET /api/scim/v2/Users/<id di Sara in A>, PATCH e DELETE sullo stesso id.",
+    "Con il token di B: POST /api/scim/v2/Groups con fra i members l'id di un membro di A.",
+    "Con il token di A: GET /api/tests e GET /api/v1/plans.",
+    "Come editor.a: POST /api/organization/sso/scim-token."
+  ],
+  "expected": "1: 404 per tutte e tre; Sara non cambia. 2: il membro di A non entra nel gruppo di B (rifiutato o ignorato) e il suo ruolo non cambia. 3: il token SCIM non vale fuori da /api/scim/v2: 401. 4: 403, solo un owner con una sessione emette il token.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-23 nell'organizzazione A; owner.b con un token SCIM dell'organizzazione B.</p>\n        <h4>Passi</h4>\n        <ol><li>Con il token di B: <code>GET /api/scim/v2/Users/&lt;id di Sara in A&gt;</code>, <code>PATCH</code> e <code>DELETE</code> sullo stesso id.</li><li>Con il token di B: <code>POST /api/scim/v2/Groups</code> con fra i members l'id di un membro di A.</li><li>Con il token di A: <code>GET /api/tests</code> e <code>GET /api/v1/plans</code>.</li><li>Come editor.a: <code>POST /api/organization/sso/scim-token</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: 404 per tutte e tre; Sara non cambia. 2: il membro di A non entra nel gruppo di B (rifiutato o ignorato) e il suo ruolo non cambia. 3: il token SCIM non vale fuori da /api/scim/v2: 401. 4: 403, solo un owner con una sessione emette il token.</p>\n      "
+}

@@ -1,0 +1,16 @@
+{
+  "id": "PLN-45",
+  "area": "PLN",
+  "title": "Annullare durante uno script che non termina chiude il browser del test",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 69. Ambiente locale di collaudo (mai uno condiviso o di produzione), worker con browser locale. Un test UI con due step JavaScript: il primo 'return new Promise(() => {});', il secondo 'return 1;'. Un piano che esegue solo quel test.",
+  "steps": [
+    "Eseguire il piano e attendere nel log live il messaggio Executing step 1.",
+    "Premere Cancel run sul report e annotare l'ora.",
+    "Attendere la fine della run e aprire il report del test.",
+    "Sulla macchina del worker elencare i processi del browser (Task Manager, oppure docker compose exec worker ps aux | grep -i chrom).",
+    "Eseguire subito un altro piano."
+  ],
+  "expected": "Passo 3: run Annullata entro l'intervallo di heartbeat (15 s per default) più 5 secondi; lo step 1 risulta failed con 'Stopped: the run was cancelled.'; lo step 2 non compare. Passo 4: nessun processo del browser di quel test resta attivo. Passo 5: il nuovo piano parte subito, lo slot è libero."
+}

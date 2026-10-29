@@ -1,0 +1,14 @@
+{
+  "id": "OPS-55",
+  "area": "OPS",
+  "title": "Errore su connessione PostgreSQL inattiva: web e worker restano attivi",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Stack con PostgreSQL reale, web e worker avviati, metriche attive.",
+  "steps": [
+    "Riavviare il container PostgreSQL (o terminare le sessioni con pg_terminate_backend) mentre web e worker sono inattivi.",
+    "Controllare i log di web e worker e lo stato dei processi.",
+    "Eseguire un login e avviare un run."
+  ],
+  "expected": "1-2: i processi non terminano; nei log compare 'PostgreSQL pool ... idle connection error'. 3: login e run funzionano, il pool apre nuove connessioni."
+}

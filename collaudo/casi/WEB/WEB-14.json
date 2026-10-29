@@ -1,0 +1,15 @@
+{
+  "id": "WEB-14",
+  "area": "WEB",
+  "title": "Gruppi di step",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Il gruppo compare sotto «Gruppi di step» con il numero di step. Entrambi i test eseguono il gruppo nella versione modificata.",
+  "steps": [
+    "Selezionare gli step di login e Salva come gruppo Login.",
+    "Usare il gruppo in un secondo test.",
+    "Modificare il gruppo (per esempio l'asserzione) ed eseguire entrambi i test in un piano."
+  ],
+  "expected": "Il gruppo compare sotto «Gruppi di step» con il numero di step. Entrambi i test eseguono il gruppo nella versione modificata.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Selezionare gli step di login e <b>Salva come gruppo</b> <code>Login</code>.</li><li>Usare il gruppo in un secondo test.</li><li>Modificare il gruppo (per esempio l'asserzione) ed eseguire entrambi i test in un piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il gruppo compare sotto «Gruppi di step» con il numero di step. Entrambi i test eseguono il gruppo nella versione modificata.</p>\n      "
+}

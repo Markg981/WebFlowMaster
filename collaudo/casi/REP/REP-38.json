@@ -1,0 +1,15 @@
+{
+  "id": "REP-38",
+  "area": "REP",
+  "title": "L’evidenza del primo fallimento resta disponibile e non viene sovrascritta",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 72. Un piano con due browser (Chromium e Chromium con dispositivo Pixel 7), due lingue (en-US, it-IT), Re-Run On Failure una volta e Trace \"Sempre\"; un test UI con un dataset di 3 righe il cui primo tentativo fallisce e il secondo passa (per esempio un elemento che compare solo dopo un primo caricamento). Il run di REP-37 è concluso.",
+  "steps": [
+    "Dal dettaglio di un risultato, Tentativo 1, riga 1: scaricare la trace e calcolarne l’hash (sha256sum o Get-FileHash).",
+    "Copiare il link della trace del Tentativo 1 e quello della trace del Tentativo 2 della stessa riga.",
+    "Aprire il report con ?unit=<id unità>&attempt=1&row=0 nell’indirizzo.",
+    "Riscaricare la trace del Tentativo 1 e ricalcolarne l’hash."
+  ],
+  "expected": "I due link sono diversi (attempt_1 e attempt_2). Il link con ?unit&attempt&row apre i dettagli esattamente su Tentativo 1, riga 1, con la trace di quel tentativo. L’hash della trace del Tentativo 1 è identico prima e dopo: la riesecuzione non l’ha sovrascritta. Anche con lo storage S3/MinIO, una seconda pubblicazione dello stesso tentativo non sostituisce il file (scrittura condizionale, solo se assente)."
+}

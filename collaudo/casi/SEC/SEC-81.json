@@ -1,0 +1,12 @@
+{
+  "id": "SEC-81",
+  "area": "SEC",
+  "title": "Report di piano: l'owner e i membri del progetto vedono il dettaglio completo",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Un progetto riservato con un test fallito in un piano eseguito; un utente dell'organizzazione non membro del progetto; un owner.",
+  "steps": [
+    "Come owner e come membro del progetto riservato: aprire lo stesso report."
+  ],
+  "expected": "detailedLog, steps, networkSummary e aiAnalysis sono presenti per il test del progetto riservato."
+}

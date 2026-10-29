@@ -1,0 +1,15 @@
+{
+  "id": "REP-18",
+  "area": "REP",
+  "title": "Analisi non disponibile o non ammessa",
+  "priority": "P2",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "Un'installazione senza GEMINI_API_KEY; un'altra con la chiave e REP-15 già analizzato.",
+  "steps": [
+    "Senza chiave: Analizza con l'AI su un test fallito.",
+    "Con la chiave, come viewer.a: aprire l'analisi di REP-15; premere Analizza di nuovo.",
+    "Dalla console: POST .../results/<id di un risultato superato>/ai-analysis."
+  ],
+  "expected": "Senza chiave il dialogo mostra che l'analisi AI non è configurata (GEMINI_API_KEY) e offre Riprova. viewer.a legge l'analisi conservata, ma chiederne una nuova risponde 403. Un risultato superato risponde 409.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un'installazione senza <code>GEMINI_API_KEY</code>; un'altra con la chiave e REP-15 già analizzato.</p>\n        <h4>Passi</h4>\n        <ol><li>Senza chiave: Analizza con l'AI su un test fallito.</li><li>Con la chiave, come viewer.a: aprire l'analisi di REP-15; premere Analizza di nuovo.</li><li>Dalla console: <code>POST .../results/&lt;id di un risultato superato&gt;/ai-analysis</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Senza chiave il dialogo mostra che l'analisi AI non è configurata (<code>GEMINI_API_KEY</code>) e offre Riprova. viewer.a legge l'analisi conservata, ma chiederne una nuova risponde 403. Un risultato superato risponde 409.</p>\n      "
+}

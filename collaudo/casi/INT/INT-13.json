@@ -1,0 +1,15 @@
+{
+  "id": "INT-13",
+  "area": "INT",
+  "title": "Disattivare un account di servizio",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "ci-bot con una chiave attiva e run avviati da lui.",
+  "steps": [
+    "Impostazioni → Account di servizio: disattivare ci-bot.",
+    "Chiamare l'API con la sua chiave.",
+    "Aprire Report: i run avviati da ci-bot."
+  ],
+  "expected": "La chiave risponde 401. I run passati restano e indicano ci-bot come disattivato. Audit service_account.disabled.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>ci-bot con una chiave attiva e run avviati da lui.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Account di servizio: disattivare ci-bot.</li><li>Chiamare l'API con la sua chiave.</li><li>Aprire Report: i run avviati da ci-bot.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La chiave risponde 401. I run passati restano e indicano ci-bot come disattivato. Audit <b>service_account.disabled</b>.</p>\n      "
+}

@@ -1,0 +1,16 @@
+{
+  "id": "TMG-07",
+  "area": "TMG",
+  "title": "Niente da pubblicare, connessione eliminata, viewer",
+  "priority": "P2",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "TMG-03.",
+  "steps": [
+    "Un piano con solo test senza caso, che pubblica su TestRail QA; eseguirlo.",
+    "Eliminare la connessione TestRail QA dalle Impostazioni.",
+    "Aprire le impostazioni del piano Nightly e un report già pubblicato.",
+    "Come viewer.a aprire Impostazioni → Test management e un report."
+  ],
+  "expected": "1: riga «Niente da pubblicare» con i nomi dei test senza caso; in TestRail nessuna run creata. 2: il messaggio dice quanti piani non pubblicano più; audit test_management.removed. 3: il piano è «Da nessuna parte»; le pubblicazioni passate restano con il loro link. 4: il viewer vede connessioni e pubblicazioni; aggiungere, verificare, salvare casi o pubblicare risponde 403.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TMG-03.</p>\n        <h4>Passi</h4>\n        <ol><li>Un piano con solo test senza caso, che pubblica su TestRail QA; eseguirlo.</li><li>Eliminare la connessione TestRail QA dalle Impostazioni.</li><li>Aprire le impostazioni del piano Nightly e un report già pubblicato.</li><li>Come viewer.a aprire Impostazioni → Test management e un report.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: riga «Niente da pubblicare» con i nomi dei test senza caso; in TestRail nessuna run creata. 2: il messaggio dice quanti piani non pubblicano più; audit <b>test_management.removed</b>. 3: il piano è «Da nessuna parte»; le pubblicazioni passate restano con il loro link. 4: il viewer vede connessioni e pubblicazioni; aggiungere, verificare, salvare casi o pubblicare risponde 403.</p>\n      "
+}

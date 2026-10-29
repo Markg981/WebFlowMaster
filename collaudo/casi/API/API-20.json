@@ -1,0 +1,17 @@
+{
+  "id": "API-20",
+  "area": "API",
+  "title": "Importare test API da OpenAPI",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il file /api/v1/openapi.json dell'installazione salvato su disco (INT-03).",
+  "steps": [
+    "Tester API → Test salvati → Importa; Apri un file… e scegliere openapi.json.",
+    "Togliere la spunta a due operazioni; scegliere un progetto; Mostra cosa crea.",
+    "Importa N test.",
+    "Ripetere l'import dello stesso file.",
+    "Eseguire uno dei test senza ambiente, poi con un ambiente che definisce baseUrl e il token."
+  ],
+  "expected": "1–2: un test per operazione, con «N di M selezionati»; l'elenco delle variabili da impostare in un ambiente comprende baseUrl e quella del bearer. 3: «N test importati.»; ogni test parte da {{baseUrl}} e ha come asserzione lo stato atteso. Audit Test API importati da OpenAPI o Postman. 4: le operazioni già presenti sono segnate «già presente» ed escluse («esclusi: esistono già»). 5: senza ambiente la richiesta segnala le variabili non risolte; con l'ambiente risponde come previsto.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Il file <code>/api/v1/openapi.json</code> dell'installazione salvato su disco (INT-03).</p>\n        <h4>Passi</h4>\n        <ol><li>Tester API → Test salvati → <b>Importa</b>; <b>Apri un file…</b> e scegliere openapi.json.</li><li>Togliere la spunta a due operazioni; scegliere un progetto; <b>Mostra cosa crea</b>.</li><li><b>Importa N test</b>.</li><li>Ripetere l'import dello stesso file.</li><li>Eseguire uno dei test senza ambiente, poi con un ambiente che definisce <code>baseUrl</code> e il token.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1–2: un test per operazione, con «N di M selezionati»; l'elenco delle variabili da impostare in un ambiente comprende <code>baseUrl</code> e quella del bearer. 3: «N test importati.»; ogni test parte da <code>{{baseUrl}}</code> e ha come asserzione lo stato atteso. Audit <b>Test API importati da OpenAPI o Postman</b>. 4: le operazioni già presenti sono segnate «già presente» ed escluse («esclusi: esistono già»). 5: senza ambiente la richiesta segnala le variabili non risolte; con l'ambiente risponde come previsto.</p>\n      "
+}

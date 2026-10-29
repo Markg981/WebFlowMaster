@@ -1,0 +1,14 @@
+{
+  "id": "ACC-02",
+  "area": "ACC",
+  "title": "Registrazione senza invito rifiutata",
+  "priority": "P1",
+  "actor": "nessuno",
+  "preconditions": "ACC-01 eseguito.",
+  "steps": [
+    "In una finestra anonima aprire /auth, scheda Register.",
+    "Registrare intruso con una password valida, senza token di invito."
+  ],
+  "expected": "Registrazione rifiutata con il messaggio che gli account si creano su invito. Nessun account intruso esiste (verificare in Membri).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>ACC-01 eseguito.</p>\n        <h4>Passi</h4>\n        <ol><li>In una finestra anonima aprire /auth, scheda <b>Register</b>.</li><li>Registrare <code>intruso</code> con una password valida, senza token di invito.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Registrazione rifiutata con il messaggio che gli account si creano su invito. Nessun account <code>intruso</code> esiste (verificare in Membri).</p>\n      "
+}

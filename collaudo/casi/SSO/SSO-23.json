@@ -1,0 +1,18 @@
+{
+  "id": "SSO-23",
+  "area": "SSO",
+  "title": "Provisioning SCIM: emettere, sostituire e revocare il token",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "SSO-01 configurato.",
+  "steps": [
+    "Impostazioni → Sicurezza → Single sign-on → Provisioning (SCIM): leggere lo stato.",
+    "Emetti un token; copiare URL di base e token.",
+    "curl -H \"Authorization: Bearer <token>\" https://wfm.collaudo.test/api/scim/v2/Users.",
+    "Sostituisci il token; ripetere la chiamata con il token vecchio, poi con il nuovo.",
+    "Revoca; ripetere con il nuovo.",
+    "Registro di audit."
+  ],
+  "expected": "1: «Nessun token: il provisioning è spento.». 2: URL https://wfm.collaudo.test/api/scim/v2 e il token, mostrato una sola volta; lo stato diventa «Token wfm_scim_…… emesso …». 3: 200 con una ListResponse che elenca i membri dell'organizzazione A. 4: il token vecchio risponde 401, il nuovo 200. 5: 401; lo stato torna «Nessun token». 6: Token SCIM emesso e Token SCIM revocato a nome di owner.a, senza il token. Senza SSO configurato la sezione dice di configurarlo prima.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-01 configurato.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Sicurezza → Single sign-on → <b>Provisioning (SCIM)</b>: leggere lo stato.</li><li><b>Emetti un token</b>; copiare URL di base e token.</li><li><code>curl -H \"Authorization: Bearer &lt;token&gt;\" https://wfm.collaudo.test/api/scim/v2/Users</code>.</li><li><b>Sostituisci il token</b>; ripetere la chiamata con il token vecchio, poi con il nuovo.</li><li><b>Revoca</b>; ripetere con il nuovo.</li><li>Registro di audit.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: «Nessun token: il provisioning è spento.». 2: URL <code>https://wfm.collaudo.test/api/scim/v2</code> e il token, mostrato una sola volta; lo stato diventa «Token wfm_scim_…… emesso …». 3: 200 con una ListResponse che elenca i membri dell'organizzazione A. 4: il token vecchio risponde 401, il nuovo 200. 5: 401; lo stato torna «Nessun token». 6: <b>Token SCIM emesso</b> e <b>Token SCIM revocato</b> a nome di owner.a, senza il token. Senza SSO configurato la sezione dice di configurarlo prima.</p>\n      "
+}

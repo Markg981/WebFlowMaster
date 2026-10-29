@@ -1,0 +1,15 @@
+{
+  "id": "WEB-21",
+  "area": "WEB",
+  "title": "Doppio click e click destro",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Il doppio click aggiunge gli elementi e la verifica passa. Il click destro apre il menu: con Rispondi al dialog lo step dice che il dialog successivo viene accettato; senza, il dialog viene chiuso da solo e il test non resta bloccato.",
+  "steps": [
+    "/add_remove_elements/: Doppio click su «Add Element»; Verifica Conteggio Elementi .added-manually >=2.",
+    "/context_menu: Rispondi al dialog accept, poi Click destro su #hot-spot; eseguire.",
+    "Ripetere il secondo test senza lo step Rispondi al dialog."
+  ],
+  "expected": "Il doppio click aggiunge gli elementi e la verifica passa. Il click destro apre il menu: con Rispondi al dialog lo step dice che il dialog successivo viene accettato; senza, il dialog viene chiuso da solo e il test non resta bloccato.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>/add_remove_elements/: <b>Doppio click</b> su «Add Element»; Verifica Conteggio Elementi <code>.added-manually</code> <code>&gt;=2</code>.</li><li>/context_menu: <b>Rispondi al dialog</b> <code>accept</code>, poi <b>Click destro</b> su <code>#hot-spot</code>; eseguire.</li><li>Ripetere il secondo test senza lo step Rispondi al dialog.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il doppio click aggiunge gli elementi e la verifica passa. Il click destro apre il menu: con Rispondi al dialog lo step dice che il dialog successivo viene accettato; senza, il dialog viene chiuso da solo e il test non resta bloccato.</p>\n      "
+}

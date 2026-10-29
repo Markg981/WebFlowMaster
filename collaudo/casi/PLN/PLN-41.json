@@ -1,0 +1,15 @@
+{
+  "id": "PLN-41",
+  "area": "PLN",
+  "title": "Dataset inline congelato e retry con gli stessi dati",
+  "priority": "P1",
+  "actor": "editor.a + operatore",
+  "preconditions": "API e Redis attivi, tutti i worker fermi; piano web con dataset inline di due righe e retry automatico su fallimento.",
+  "steps": [
+    "Accodare il run con una chiave di idempotenza e registrare id e snapshot.",
+    "Modificare le righe inline e reinviare con la stessa chiave.",
+    "Riavviare i worker e causare un primo tentativo fallito; controllare il retry."
+  ],
+  "expected": "Il reinvio restituisce il run originale. Primo tentativo e retry usano le righe originali e lo stesso snapshot; un nuovo run con chiave diversa acquisisce le righe aggiornate.",
+  "detailHtml": "<h4>Precondizioni</h4><p>API e Redis attivi, tutti i worker fermi; piano web con dataset inline di due righe e retry automatico su fallimento.</p><h4>Passi</h4><ol><li>Accodare il run con una chiave di idempotenza e registrare id e snapshot.</li><li>Modificare le righe inline e reinviare con la stessa chiave.</li><li>Riavviare i worker e causare un primo tentativo fallito; controllare il retry.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Il reinvio restituisce il run originale. Primo tentativo e retry usano le righe originali e lo stesso snapshot; un nuovo run con chiave diversa acquisisce le righe aggiornate.</p>"
+}

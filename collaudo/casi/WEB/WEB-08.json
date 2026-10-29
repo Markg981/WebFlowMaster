@@ -1,0 +1,14 @@
+{
+  "id": "WEB-08",
+  "area": "WEB",
+  "title": "Verifica accessibilità",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Il risultato elenca le regole violate con gravità ed elementi, quelle rispettate e quelle da controllare a mano; lo step fallisce solo per violazioni «serious» o «critical».",
+  "steps": [
+    "Aggiungere Verifica accessibilità dopo la navigazione a una pagina, gravità lasciata vuota.",
+    "Eseguire."
+  ],
+  "expected": "Il risultato elenca le regole violate con gravità ed elementi, quelle rispettate e quelle da controllare a mano; lo step fallisce solo per violazioni «serious» o «critical».",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Aggiungere <b>Verifica accessibilità</b> dopo la navigazione a una pagina, gravità lasciata vuota.</li><li>Eseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il risultato elenca le regole violate con gravità ed elementi, quelle rispettate e quelle da controllare a mano; lo step fallisce solo per violazioni «serious» o «critical».</p>\n      "
+}

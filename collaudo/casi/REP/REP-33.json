@@ -1,0 +1,14 @@
+{
+  "id": "REP-33",
+  "area": "REP",
+  "title": "Test instabili: identità per test, non per nome",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Due test API distinti entrambi chiamati «Login», uno che passa sempre e uno che fallisce sempre, nello stesso piano eseguito almeno 3 volte; un test UI con esiti alterni eseguito almeno 2 volte, poi rinominato ed eseguito altre 2 volte.",
+  "steps": [
+    "Report → Test che si contraddicono.",
+    "Cercare le righe «Login».",
+    "Cercare il test UI rinominato."
+  ],
+  "expected": "I due test «Login» non compaiono: sono stabili, ciascuno per conto suo. Il test UI rinominato compare una sola volta, con il nome nuovo, e i run contano sia quelli prima sia quelli dopo la rinomina; Quarantena agisce su quel test."
+}

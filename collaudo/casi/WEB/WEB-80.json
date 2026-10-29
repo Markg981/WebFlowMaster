@@ -1,0 +1,13 @@
+{
+  "id": "WEB-80",
+  "area": "WEB",
+  "title": "Codice OTP non mostrato nel dettaglio dello step",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un test con Wait for email (o Wait for SMS) che riceve un codice.",
+  "steps": [
+    "Eseguire il test e aprire il dettaglio dello step Wait for email nel report.",
+    "Usare {{email.otp}} in uno step successivo."
+  ],
+  "expected": "1: il dettaglio dice che il codice non viene mostrato, senza il valore. 2: lo step successivo usa il codice correttamente."
+}

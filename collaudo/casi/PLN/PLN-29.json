@@ -1,0 +1,13 @@
+{
+  "id": "PLN-29",
+  "area": "PLN",
+  "title": "Salvare i browser del piano sui runner",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un piano sui runner del server.",
+  "steps": [
+    "Impostazioni → Browser: aggiungere firefox e webkit; salvare e riaprire."
+  ],
+  "expected": "Il salvataggio riesce e i browser restano (prima rispondeva 400 «Invalid request payload» perché OS e versioni erano obbligatori). Sui runner i campi OS/versione non vengono mostrati.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un piano sui runner del server.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Browser: aggiungere firefox e webkit; salvare e riaprire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il salvataggio riesce e i browser restano (prima rispondeva 400 «Invalid request payload» perché OS e versioni erano obbligatori). Sui runner i campi OS/versione non vengono mostrati.</p>\n      "
+}

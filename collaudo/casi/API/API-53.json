@@ -1,0 +1,14 @@
+{
+  "id": "API-53",
+  "area": "API",
+  "title": "Test API via /api/v1 senza esporre né perdere segreti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Chiave con api-tests:read/write; progetto sacrificabile; endpoint httpbin.org/bearer raggiungibile. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "POST /api/v1/api-tests con auth bearer e token letterale; leggere la risposta e GET del test.",
+    "Rimandare la definizione letta in un PATCH cambiando solo l'URL; eseguire il test dal Tester API e aprirne la cronologia.",
+    "Ripetere il POST con lo stesso nome; PATCH con userId; controllare il registro di audit."
+  ],
+  "expected": "Le letture mostrano {{bearer_token}} al posto del token e nessun userId/organizationId; dopo il PATCH il test continua ad autenticarsi (segreto conservato) con versione 2; nome duplicato 409 name_conflict, campo sconosciuto 400; audit api_test.created/updated senza il token."
+}

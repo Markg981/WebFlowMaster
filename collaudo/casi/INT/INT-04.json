@@ -1,0 +1,16 @@
+{
+  "id": "INT-04",
+  "area": "INT",
+  "title": "CLI wfm: esiti e codici di uscita",
+  "priority": "P1",
+  "actor": "ci-bot",
+  "preconditions": "Node.js 18+.",
+  "steps": [
+    "curl -fsSL $WFM_URL/cli/wfm.mjs -o wfm.mjs.",
+    "node wfm.mjs run ID --wait --junit junit.xml --html report.html su un piano che passa; stampare il codice di uscita.",
+    "Su un piano che fallisce.",
+    "Con una chiave sbagliata; con un URL irraggiungibile."
+  ],
+  "expected": "Codice 0 per il piano che passa, 1 per quello che fallisce, 2 per chiave sbagliata e server irraggiungibile. I file JUnit e HTML vengono scritti.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Node.js 18+.</p>\n        <h4>Passi</h4>\n        <ol><li><code>curl -fsSL $WFM_URL/cli/wfm.mjs -o wfm.mjs</code>.</li><li><code>node wfm.mjs run ID --wait --junit junit.xml --html report.html</code> su un piano che passa; stampare il codice di uscita.</li><li>Su un piano che fallisce.</li><li>Con una chiave sbagliata; con un URL irraggiungibile.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Codice 0 per il piano che passa, 1 per quello che fallisce, 2 per chiave sbagliata e server irraggiungibile. I file JUnit e HTML vengono scritti.</p>\n      "
+}

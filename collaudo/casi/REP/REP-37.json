@@ -1,0 +1,16 @@
+{
+  "id": "REP-37",
+  "area": "REP",
+  "title": "Ogni browser, lingua, tentativo e riga del dataset conserva le proprie evidenze",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 72. Un piano con due browser (Chromium e Chromium con dispositivo Pixel 7), due lingue (en-US, it-IT), Re-Run On Failure una volta e Trace \"Sempre\"; un test UI con un dataset di 3 righe il cui primo tentativo fallisce e il secondo passa (per esempio un elemento che compare solo dopo un primo caricamento).",
+  "steps": [
+    "Eseguire il piano e attendere la fine del run.",
+    "Aprire il report: contare le righe del test.",
+    "Aprire i dettagli di una riga: selezionare Tentativo 1, poi ciascuna delle tre righe del dataset, e scaricare la trace di ognuna.",
+    "Ripetere con Tentativo 2 e con un altro browser o lingua.",
+    "Con un token API (runs:read, runs:evidence) chiamare GET /api/v1/runs/{runId}/units e GET /api/v1/runs/{runId}/units/{unitId}."
+  ],
+  "expected": "Il report ha 4 righe per il test (2 browser × 2 lingue), tutte Passed con 2 tentativi: le righe del dataset non diventano test. Ogni unità ha 2 tentativi e ogni tentativo 3 righe: 24 trace diverse, ognuna in units/<unità>/attempt_<n>/row_<m>, nessuna con valori del dataset nel percorso. Il Tentativo 1 mostra il motivo del fallimento e la riga fallita il proprio errore. L’API restituisce le stesse unità, tentativi e righe, senza nome del worker né percorsi interni."
+}

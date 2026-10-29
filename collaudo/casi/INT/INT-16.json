@@ -1,0 +1,15 @@
+{
+  "id": "INT-16",
+  "area": "INT",
+  "title": "Bitbucket Pipelines",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Solo se Bitbucket è in uso. Repository di prova con lo step di integrations/bitbucket/bitbucket-pipelines.yml copiato in bitbucket-pipelines.yml e le variabili WFM_URL, WFM_API_KEY (secured) e WFM_PLAN_ID.",
+  "steps": [
+    "Avviare la pipeline su un piano che passa.",
+    "Cambiare WFM_PLAN_ID in un piano che fallisce e rilanciare.",
+    "Aprire una pull request e lasciare partire la pipeline."
+  ],
+  "expected": "1: lo step è verde; la scheda Tests mostra i test del piano; l'artifact webflowmaster-report.html è scaricabile. 2: lo step è rosso, la scheda Tests mostra i fallimenti e l'artifact c'è comunque. 3: nel report di WebFlowMaster il run indica Bitbucket Pipelines con repository, commit, branch, PR e il link alla pipeline.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Solo se Bitbucket è in uso. Repository di prova con lo step di <code>integrations/bitbucket/bitbucket-pipelines.yml</code> copiato in bitbucket-pipelines.yml e le variabili WFM_URL, WFM_API_KEY (secured) e WFM_PLAN_ID.</p>\n        <h4>Passi</h4>\n        <ol><li>Avviare la pipeline su un piano che passa.</li><li>Cambiare WFM_PLAN_ID in un piano che fallisce e rilanciare.</li><li>Aprire una pull request e lasciare partire la pipeline.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: lo step è verde; la scheda Tests mostra i test del piano; l'artifact webflowmaster-report.html è scaricabile. 2: lo step è rosso, la scheda Tests mostra i fallimenti e l'artifact c'è comunque. 3: nel report di WebFlowMaster il run indica Bitbucket Pipelines con repository, commit, branch, PR e il link alla pipeline.</p>\n      "
+}

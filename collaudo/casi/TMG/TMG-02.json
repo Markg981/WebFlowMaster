@@ -1,0 +1,16 @@
+{
+  "id": "TMG-02",
+  "area": "TMG",
+  "title": "Assegnare i casi: chiave nel nome o nella casella",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "TMG-01; nel progetto TestRail i casi C1 e C2. Tre test: «[C1] Login», Checkout, Orders API (API).",
+  "steps": [
+    "Sulla connessione Casi di test.",
+    "Nella casella di Checkout scrivere SHOP-T1.",
+    "Scrivere invece C2; nella casella di Orders API 2; Salva 2 modifiche.",
+    "Riaprire Casi di test; filtrare per C2."
+  ],
+  "expected": "1: Login mostra C1 in grigio come segnaposto (chiave dal nome), gli altri «—». 2: bordo rosso e «Not a case key of this tool (like C123): SHOP-T1»; Salva disabilitato. 3: salvato; audit test_management.cases_changed. 4: Checkout mostra C2 e Orders API C2 (il «2» è normalizzato). Il filtro mostra entrambi.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TMG-01; nel progetto TestRail i casi C1 e C2. Tre test: «[C1] Login», <code>Checkout</code>, <code>Orders API</code> (API).</p>\n        <h4>Passi</h4>\n        <ol><li>Sulla connessione <b>Casi di test</b>.</li><li>Nella casella di Checkout scrivere <code>SHOP-T1</code>.</li><li>Scrivere invece <code>C2</code>; nella casella di Orders API <code>2</code>; <b>Salva 2 modifiche</b>.</li><li>Riaprire Casi di test; filtrare per <code>C2</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: Login mostra C1 in grigio come segnaposto (chiave dal nome), gli altri «—». 2: bordo rosso e «Not a case key of this tool (like C123): SHOP-T1»; Salva disabilitato. 3: salvato; audit <b>test_management.cases_changed</b>. 4: Checkout mostra C2 e Orders API C2 (il «2» è normalizzato). Il filtro mostra entrambi.</p>\n      "
+}
