@@ -210,6 +210,12 @@ const PRIVATE_RANGES = parseRanges([
   '::/128',
   'fe80::/10', // link-local
   'fc00::/7', // unique local
+  '100.64.0.0/10', // carrier-grade NAT (shared address space)
+  '198.18.0.0/15', // benchmarking
+  '192.0.0.0/24', // IETF protocol assignments
+  '224.0.0.0/4', // multicast
+  'ff00::/8', // IPv6 multicast
+  '2002::/16', // 6to4: embeds an IPv4 address the rules above do not see
 ]);
 
 // ───────────────────────────── Policy ─────────────────────────────

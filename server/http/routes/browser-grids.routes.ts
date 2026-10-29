@@ -17,6 +17,7 @@ import { encryptSecret } from '../../platform/crypto';
 import { gridConnection, toGridConfig } from '../../runtime/browser-grids';
 import { appiumTransport } from '../../mobile/mobile-runner';
 import logger from '../../platform/logger';
+import { assertEgressAllowed } from '../../platform/egress-policy';
 import { partialUpdate } from '@shared/partial-update';
 
 /**
@@ -228,6 +229,7 @@ router.post('/api/browser-grids/:id/test', requireRole('editor'), async (req, re
     });
     const started = Date.now();
     try {
+      await assertEgressAllowed(connection.wsEndpoint);
       const browser = await playwright.chromium.connect(connection.wsEndpoint, {
         timeout: 60_000,
         ...(connection.headers ? { headers: connection.headers } : {}),
