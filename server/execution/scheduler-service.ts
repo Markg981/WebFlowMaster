@@ -188,7 +188,8 @@ function frequencyToCronPattern(
       return `${minutes} ${hours} * * ${zoned.weekday}`;
     case 'monthly':
       // Likewise the day of the month.
-      return `${minutes} ${hours} ${zoned.dayOfMonth} * *`;
+      // Days 29-31 mean "the last day" in a shorter month, which a plain day field would skip.
+      return `${minutes} ${hours} ${zoned.dayOfMonth > 28 ? 'L' : zoned.dayOfMonth} * *`;
     // 'once' type schedules are not recurring, so they don't get a cron pattern here.
     // They are executed once then typically deactivated or deleted.
     // Or, if they should run at a specific future time and then stop,
