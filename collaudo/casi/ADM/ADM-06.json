@@ -1,0 +1,16 @@
+{
+  "id": "ADM-06",
+  "area": "ADM",
+  "title": "Cancellare un'organizzazione",
+  "priority": "P1",
+  "actor": "owner (org di prova)",
+  "preconditions": "Un'organizzazione C creata apposta, con un piano eseguito che ha tenuto screenshot (e una baseline visiva, se c'è).",
+  "steps": [
+    "Annotare l'id del piano e del run di C e controllare che la cartella results/<piano>/<run>/ esista nell'archivio (o nel volume dei risultati).",
+    "Impostazioni → Esportazione e cancellazione: scrivere il nome con una maiuscola diversa.",
+    "Scrivere il nome esatto, Cancella definitivamente, annullare la conferma; poi ripetere e confermare.",
+    "Controllare l'archivio e il log dell'applicazione."
+  ],
+  "expected": "2: il pulsante resta disabilitato. 3: annullando non succede nulla; confermando si torna alla pagina di accesso, l'organizzazione e tutti i suoi account spariscono, A e B restano intatte. 4: la cartella del run e visual-baselines/org_<id>/ non ci sono più; il log ha «Organization erased». Irreversibile: mai su A o B.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un'organizzazione C creata apposta, con un piano eseguito che ha tenuto screenshot (e una baseline visiva, se c'è).</p>\n        <h4>Passi</h4>\n        <ol><li>Annotare l'id del piano e del run di C e controllare che la cartella <code>results/&lt;piano&gt;/&lt;run&gt;/</code> esista nell'archivio (o nel volume dei risultati).</li><li>Impostazioni → Esportazione e cancellazione: scrivere il nome con una maiuscola diversa.</li><li>Scrivere il nome esatto, <b>Cancella definitivamente</b>, annullare la conferma; poi ripetere e confermare.</li><li>Controllare l'archivio e il log dell'applicazione.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2: il pulsante resta disabilitato. 3: annullando non succede nulla; confermando si torna alla pagina di accesso, l'organizzazione e tutti i suoi account spariscono, A e B restano intatte. 4: la cartella del run e <code>visual-baselines/org_&lt;id&gt;/</code> non ci sono più; il log ha «Organization erased». Irreversibile: mai su A o B.</p>\n      "
+}

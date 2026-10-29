@@ -1,0 +1,13 @@
+{
+  "id": "WEB-17",
+  "area": "WEB",
+  "title": "Modificare e svuotare la sequenza",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "Ogni modifica si riflette subito; «Svuota» lascia la sequenza vuota con l'invito a trascinare le azioni.",
+  "steps": [
+    "Cambiare l'azione di uno step, cambiarne l'elemento, rimuoverne uno, poi Svuota."
+  ],
+  "expected": "Ogni modifica si riflette subito; «Svuota» lascia la sequenza vuota con l'invito a trascinare le azioni.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Cambiare l'azione di uno step, cambiarne l'elemento, rimuoverne uno, poi <b>Svuota</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ogni modifica si riflette subito; «Svuota» lascia la sequenza vuota con l'invito a trascinare le azioni.</p>\n      "
+}

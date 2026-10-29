@@ -1,0 +1,16 @@
+{
+  "id": "ACC-09",
+  "area": "ACC",
+  "title": "Link di reset emesso da un owner",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Il primo link non vale più dopo l'emissione del secondo. Il secondo cambia la password una volta sola, poi non funziona più. L'accesso con la nuova password riesce. Audit auth.password_reset_issued e auth.password_reset_completed.",
+  "steps": [
+    "Impostazioni → Membri: icona del link accanto a editor.a; copiare il link (una sola volta).",
+    "Emetterne un secondo; aprire il primo in anonimo.",
+    "Aprire il secondo, scegliere una nuova password, accedere.",
+    "Riaprire il secondo link."
+  ],
+  "expected": "Il primo link non vale più dopo l'emissione del secondo. Il secondo cambia la password una volta sola, poi non funziona più. L'accesso con la nuova password riesce. Audit auth.password_reset_issued e auth.password_reset_completed.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Membri: icona del link accanto a editor.a; copiare il link (una sola volta).</li><li>Emetterne un secondo; aprire il primo in anonimo.</li><li>Aprire il secondo, scegliere una nuova password, accedere.</li><li>Riaprire il secondo link.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il primo link non vale più dopo l'emissione del secondo. Il secondo cambia la password una volta sola, poi non funziona più. L'accesso con la nuova password riesce. Audit <b>auth.password_reset_issued</b> e <b>auth.password_reset_completed</b>.</p>\n      "
+}

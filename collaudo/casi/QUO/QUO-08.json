@@ -1,0 +1,13 @@
+{
+  "id": "QUO-08",
+  "area": "QUO",
+  "title": "Retention e cancellazioni parziali",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Creare evidenze misurate di A e provocare un fallimento parziale di cancellazione S3 durante eliminazione o retention.",
+    "Controllare il ledger, ripristinare lo storage e completare la cancellazione."
+  ],
+  "expected": "I byte si liberano soltanto dopo la rimozione fisica confermata. I file non eliminati restano contabilizzati; il completamento libera i byte effettivamente rimossi."
+}

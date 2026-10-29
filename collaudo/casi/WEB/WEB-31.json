@@ -1,0 +1,15 @@
+{
+  "id": "WEB-31",
+  "area": "WEB",
+  "title": "Ripeti N volte",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il click viene eseguito tre volte e la verifica passa; nel report i passaggi del ciclo compaiono uno dopo l'altro, e gli step Ripeti/Fine ciclo non hanno screenshot. {{loopIndex}} vale 1, 2, 3. Con 0 il corpo non viene eseguito. abc e 500 fanno fallire lo step: servono numeri fra 0 e 200.",
+  "steps": [
+    "/add_remove_elements/: Ripeti 3; Click su «Add Element»; Fine ciclo; Verifica Conteggio Elementi .added-manually ==3.",
+    "Aggiungere nel ciclo un Esegui JavaScript return '{{loopIndex}}' !== '' e dopo il ciclo uno con return true.",
+    "Ripeti 0; poi abc; poi 500."
+  ],
+  "expected": "Il click viene eseguito tre volte e la verifica passa; nel report i passaggi del ciclo compaiono uno dopo l'altro, e gli step Ripeti/Fine ciclo non hanno screenshot. {{loopIndex}} vale 1, 2, 3. Con 0 il corpo non viene eseguito. abc e 500 fanno fallire lo step: servono numeri fra 0 e 200.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>/add_remove_elements/: <b>Ripeti</b> <code>3</code>; Click su «Add Element»; <b>Fine ciclo</b>; Verifica Conteggio Elementi <code>.added-manually</code> <code>==3</code>.</li><li>Aggiungere nel ciclo un Esegui JavaScript <code>return '{{loopIndex}}' !== ''</code> e dopo il ciclo uno con <code>return true</code>.</li><li><b>Ripeti</b> <code>0</code>; poi <code>abc</code>; poi <code>500</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il click viene eseguito tre volte e la verifica passa; nel report i passaggi del ciclo compaiono uno dopo l'altro, e gli step Ripeti/Fine ciclo non hanno screenshot. <code>{{loopIndex}}</code> vale 1, 2, 3. Con 0 il corpo non viene eseguito. <code>abc</code> e <code>500</code> fanno fallire lo step: servono numeri fra 0 e 200.</p>\n      "
+}

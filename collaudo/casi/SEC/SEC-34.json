@@ -1,0 +1,15 @@
+{
+  "id": "SEC-34",
+  "area": "SEC",
+  "title": "Mappa dell'impatto: isolamento",
+  "priority": "P1",
+  "actor": "owner.b · editor.a",
+  "preconditions": "PLN-37 nell'organizzazione A.",
+  "steps": [
+    "Come owner.b: GET /api/impact-rules; DELETE /api/impact-rules/<id di A>; POST /api/impact-rules con il tagId di un tag di A.",
+    "Come owner.b: POST /api/impact-rules/preview con il planId di un piano di A.",
+    "Come editor.a: POST /api/v1/plans/<piano>/runs con changedFiles di 6000 elementi."
+  ],
+  "expected": "1: elenco vuoto; 404; 400 «No such tag.». 2: 404 «Test plan not found.». 3: 400: al massimo 5000 file.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-37 nell'organizzazione A.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b: <code>GET /api/impact-rules</code>; <code>DELETE /api/impact-rules/&lt;id di A&gt;</code>; <code>POST /api/impact-rules</code> con il <code>tagId</code> di un tag di A.</li><li>Come owner.b: <code>POST /api/impact-rules/preview</code> con il planId di un piano di A.</li><li>Come editor.a: <code>POST /api/v1/plans/&lt;piano&gt;/runs</code> con <code>changedFiles</code> di 6000 elementi.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: elenco vuoto; 404; 400 «No such tag.». 2: 404 «Test plan not found.». 3: 400: al massimo 5000 file.</p>\n      "
+}

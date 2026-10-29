@@ -1,0 +1,13 @@
+{
+  "id": "SEC-59",
+  "area": "SEC",
+  "title": "Acquisizione prudente: nessuna trace per un test con password o segreti",
+  "priority": "P2",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 67. Un piano con Trace = Sempre e Video = Sempre. Un test di login che digita {{secret_password}} in input[type=password]; un test senza credenziali.",
+  "steps": [
+    "Eseguire il piano.",
+    "Aprire il log del run e i dettagli dei due test nel report."
+  ],
+  "expected": "Il log segnala per il test di login che la trace non è stata registrata perché il test gestisce una password o un segreto. Il test di login ha video e screenshot ma nessuna trace; l'altro test ha anche la trace. La documentazione (Risultati, Protezione dei dati) dice che screenshot, video e trace non vengono ripuliti dai segreti."
+}

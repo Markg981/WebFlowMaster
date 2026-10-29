@@ -1,0 +1,13 @@
+{
+  "id": "SEC-74",
+  "area": "SEC",
+  "title": "Upload Excel: archivio zip con dimensioni dichiarate eccessive",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 85. Un editor con sessione; un file .xlsx sotto i 10 MB il cui contenuto XML dichiarato supera 100 MB (zip bomb di prova, generato con uno strumento zip).",
+  "steps": [
+    "POST /api/upload-excel con il file di prova.",
+    "Ripetere con un .xlsx normale."
+  ],
+  "expected": "1: 413 con messaggio che indica che la cartella di lavoro si espande troppo, senza caricare il file in memoria e senza lasciarlo in uploads/. 2: 200 con i casi importati."
+}

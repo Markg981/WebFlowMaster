@@ -1,0 +1,12 @@
+{
+  "id": "ADM-19",
+  "area": "ADM",
+  "title": "Hard bounce",
+  "priority": "P1",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Inviare un hard_bounce firmato per un messaggio dell'organizzazione A; tentare un nuovo invio allo stesso indirizzo in A."
+  ],
+  "expected": "Bounce registrato e nuovo invio soppresso."
+}

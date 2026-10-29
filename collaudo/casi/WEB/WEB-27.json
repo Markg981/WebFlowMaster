@@ -1,0 +1,17 @@
+{
+  "id": "WEB-27",
+  "area": "WEB",
+  "title": "Cookie, localStorage ed Esegui JavaScript",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "I primi tre gruppi passano (il valore del localStorage conserva il secondo =). false fa fallire lo step con «The script returned false.», l'eccezione con il suo messaggio. Senza una pagina aperta il cookie viene rifiutato con la spiegazione di aprire prima una pagina.",
+  "steps": [
+    "Su una pagina dell'applicazione: Imposta cookie prova=1; Esegui JavaScript return document.cookie.includes('prova=1').",
+    "Imposta localStorage chiave=a=b; Esegui JavaScript localStorage.getItem('chiave') === 'a=b'.",
+    "Cancella cookie; Esegui JavaScript !document.cookie.includes('prova=1').",
+    "Esegui JavaScript false; in un altro test throw new Error('collaudo').",
+    "Imposta cookie come primo step di un test senza URL iniziale."
+  ],
+  "expected": "I primi tre gruppi passano (il valore del localStorage conserva il secondo =). false fa fallire lo step con «The script returned false.», l'eccezione con il suo messaggio. Senza una pagina aperta il cookie viene rifiutato con la spiegazione di aprire prima una pagina.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Su una pagina dell'applicazione: <b>Imposta cookie</b> <code>prova=1</code>; <b>Esegui JavaScript</b> <code>return document.cookie.includes('prova=1')</code>.</li><li><b>Imposta localStorage</b> <code>chiave=a=b</code>; <b>Esegui JavaScript</b> <code>localStorage.getItem('chiave') === 'a=b'</code>.</li><li><b>Cancella cookie</b>; <b>Esegui JavaScript</b> <code>!document.cookie.includes('prova=1')</code>.</li><li><b>Esegui JavaScript</b> <code>false</code>; in un altro test <code>throw new Error('collaudo')</code>.</li><li><b>Imposta cookie</b> come primo step di un test senza URL iniziale.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">I primi tre gruppi passano (il valore del localStorage conserva il secondo <code>=</code>). <code>false</code> fa fallire lo step con «The script returned false.», l'eccezione con il suo messaggio. Senza una pagina aperta il cookie viene rifiutato con la spiegazione di aprire prima una pagina.</p>\n      "
+}

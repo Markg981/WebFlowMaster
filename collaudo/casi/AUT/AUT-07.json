@@ -1,0 +1,14 @@
+{
+  "id": "AUT-07",
+  "area": "AUT",
+  "title": "Conferma ed eliminazione mobile",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Test mobile sacrificabile presente nel catalogo. Procedura: collaudo/critical-ui-e2e.md.",
+  "steps": [
+    "Aprire il comando di eliminazione e annullare la conferma.",
+    "Verificare che il test sia ancora presente; ripetere ed accettare la conferma.",
+    "Ricaricare il catalogo."
+  ],
+  "expected": "Annullare conserva il test; confermare lo elimina e il test resta assente dopo reload."
+}

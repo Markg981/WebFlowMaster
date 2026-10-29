@@ -1,0 +1,19 @@
+{
+  "id": "SSO-24",
+  "area": "SSO",
+  "title": "SCIM: creare, disattivare, riattivare e rimuovere un account",
+  "priority": "P1",
+  "actor": "operatore (provider)",
+  "preconditions": "SSO-23 con un token attivo; dominio acme.test nel single sign-on.",
+  "steps": [
+    "POST /api/scim/v2/Users con {\"schemas\":[\"urn:ietf:params:scim:schemas:core:2.0:User\"],\"userName\":\"sara@acme.test\",\"active\":true}; annotare l'id.",
+    "Stesso POST con userName sara@altro.test.",
+    "Sara accede con SSO (utente Keycloak sara@acme.test).",
+    "PATCH /api/scim/v2/Users/<id> con {\"schemas\":[\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\"Operations\":[{\"op\":\"replace\",\"value\":{\"active\":false}}]}; Sara ricarica la pagina; Membri.",
+    "Lo stesso PATCH con active: true.",
+    "DELETE /api/scim/v2/Users/<id>.",
+    "PATCH che disattiva owner.a, se è l'unico owner attivo."
+  ],
+  "expected": "1: 201; sara@acme.test compare in Membri con il ruolo dei nuovi account, senza password. 2: 400: dominio non del single sign-on. 3: entra nello stesso account (collegato per indirizzo). 4: la sessione di Sara termina e non può più accedere; Membri la segna disattivato; le sue chiavi API rispondono 401. 5: torna con il suo ruolo e i suoi dati. 6: 204; ciò che Sara aveva creato passa all'owner presente da più tempo. 7: 409, owner.a resta attivo. Il registro di audit ha come autore SCIM.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-23 con un token attivo; dominio <code>acme.test</code> nel single sign-on.</p>\n        <h4>Passi</h4>\n        <ol><li><code>POST /api/scim/v2/Users</code> con <code>{\"schemas\":[\"urn:ietf:params:scim:schemas:core:2.0:User\"],\"userName\":\"sara@acme.test\",\"active\":true}</code>; annotare l'id.</li><li>Stesso POST con <code>userName</code> <code>sara@altro.test</code>.</li><li>Sara accede con SSO (utente Keycloak sara@acme.test).</li><li><code>PATCH /api/scim/v2/Users/&lt;id&gt;</code> con <code>{\"schemas\":[\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\"Operations\":[{\"op\":\"replace\",\"value\":{\"active\":false}}]}</code>; Sara ricarica la pagina; Membri.</li><li>Lo stesso PATCH con <code>active: true</code>.</li><li><code>DELETE /api/scim/v2/Users/&lt;id&gt;</code>.</li><li>PATCH che disattiva owner.a, se è l'unico owner attivo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: 201; sara@acme.test compare in Membri con il ruolo dei nuovi account, senza password. 2: 400: dominio non del single sign-on. 3: entra nello stesso account (collegato per indirizzo). 4: la sessione di Sara termina e non può più accedere; Membri la segna <b>disattivato</b>; le sue chiavi API rispondono 401. 5: torna con il suo ruolo e i suoi dati. 6: 204; ciò che Sara aveva creato passa all'owner presente da più tempo. 7: 409, owner.a resta attivo. Il registro di audit ha come autore <b>SCIM</b>.</p>\n      "
+}

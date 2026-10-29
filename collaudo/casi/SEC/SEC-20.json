@@ -1,0 +1,16 @@
+{
+  "id": "SEC-20",
+  "area": "SEC",
+  "title": "Requisiti: isolamento, progetti riservati e audit",
+  "priority": "P1",
+  "actor": "owner.b · editor.a · editor.b",
+  "preconditions": "TRC-01 nell'organizzazione A; un progetto riservato di A con un test Carta nel vault di cui editor.a è membro ed editor.b no (editor.b nella stessa organizzazione).",
+  "steps": [
+    "Come owner.b (organizzazione B) aprire Requisiti; poi GET /api/requirements/<id di PAG-1>.",
+    "Come editor.a collegare a PAG-1 anche Carta nel vault; far fallire quel test in un run.",
+    "Come editor.b aprire Requisiti e poi Test su PAG-1; togliere la spunta al test API e salvare.",
+    "Come owner.a: Impostazioni → Audit."
+  ],
+  "expected": "1: nessun requisito di A; l'API risponde 404. 2: per editor.a PAG-1 è «Fallisce». 3: per editor.b PAG-1 è calcolato solo sui test che vede (non «Fallisce» per il test nascosto), mostra «+1 in progetti che non puoi vedere» senza nominarlo; il dialogo dice che resta collegato e, dopo il salvataggio, Carta nel vault è ancora collegato (editor.a lo vede). 4: eventi requirement.created, requirement.tests_changed (con test aggiunti e tolti), requirement.imported, requirement.deleted.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TRC-01 nell'organizzazione A; un progetto riservato di A con un test <code>Carta nel vault</code> di cui editor.a è membro ed editor.b no (editor.b nella stessa organizzazione).</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b (organizzazione B) aprire Requisiti; poi <code>GET /api/requirements/&lt;id di PAG-1&gt;</code>.</li><li>Come editor.a collegare a PAG-1 anche Carta nel vault; far fallire quel test in un run.</li><li>Come editor.b aprire Requisiti e poi <b>Test</b> su PAG-1; togliere la spunta al test API e salvare.</li><li>Come owner.a: Impostazioni → Audit.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: nessun requisito di A; l'API risponde 404. 2: per editor.a PAG-1 è «Fallisce». 3: per editor.b PAG-1 è calcolato solo sui test che vede (non «Fallisce» per il test nascosto), mostra «+1 in progetti che non puoi vedere» senza nominarlo; il dialogo dice che resta collegato e, dopo il salvataggio, Carta nel vault è ancora collegato (editor.a lo vede). 4: eventi <b>requirement.created</b>, <b>requirement.tests_changed</b> (con test aggiunti e tolti), <b>requirement.imported</b>, <b>requirement.deleted</b>.</p>\n      "
+}

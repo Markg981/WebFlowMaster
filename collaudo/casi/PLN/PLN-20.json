@@ -1,0 +1,15 @@
+{
+  "id": "PLN-20",
+  "area": "PLN",
+  "title": "Eseguire un piano in più lingue",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un test web su https://httpbin.org/headers con Verifica Testo Contenuto body che contiene {{locale}}.",
+  "steps": [
+    "Impostazioni del piano → Lingue: it-IT, en-US; Browser: Chromium e Firefox; salvare ed eseguire.",
+    "Aprire il report; controllare il log di esecuzione.",
+    "Riaprire le impostazioni del piano."
+  ],
+  "expected": "Il test gira quattro volte; il report mostra chromium · it-IT, chromium · en-US, firefox · it-IT, firefox · en-US, tutti passati: la pagina ha ricevuto l'header Accept-Language della lingua di ciascuna passata. Il log dice «on chromium in it-IT». Le impostazioni mostrano le lingue salvate.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test web su <code>https://httpbin.org/headers</code> con Verifica Testo Contenuto <code>body</code> che contiene <code>{{locale}}</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni del piano → <b>Lingue</b>: <code>it-IT, en-US</code>; <b>Browser</b>: Chromium e Firefox; salvare ed eseguire.</li><li>Aprire il report; controllare il log di esecuzione.</li><li>Riaprire le impostazioni del piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il test gira quattro volte; il report mostra <code>chromium · it-IT</code>, <code>chromium · en-US</code>, <code>firefox · it-IT</code>, <code>firefox · en-US</code>, tutti passati: la pagina ha ricevuto l'header Accept-Language della lingua di ciascuna passata. Il log dice «on chromium in it-IT». Le impostazioni mostrano le lingue salvate.</p>\n      "
+}

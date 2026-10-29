@@ -1,0 +1,15 @@
+{
+  "id": "SSO-21",
+  "area": "SSO",
+  "title": "Ruolo dai gruppi con SAML",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "SSO-13 (Protocollo SAML 2.0) e mappature di SSO-18.",
+  "steps": [
+    "Con Protocollo SAML 2.0, claim/attributo vuoto (groups); Salva.",
+    "In Keycloak mettere anna in wfm-editor; anna accede con SSO.",
+    "Spostarla in wfm-owner; anna rientra."
+  ],
+  "expected": "2: anna è editor. 3: anna è owner. L'attributo groups dell'asserzione SAML (visibile con un'estensione SAML-tracer) contiene i nomi dei gruppi.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-13 (Protocollo SAML 2.0) e mappature di SSO-18.</p>\n        <h4>Passi</h4>\n        <ol><li>Con Protocollo SAML 2.0, claim/attributo vuoto (groups); <b>Salva</b>.</li><li>In Keycloak mettere anna in wfm-editor; anna accede con SSO.</li><li>Spostarla in wfm-owner; anna rientra.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2: anna è editor. 3: anna è owner. L'attributo groups dell'asserzione SAML (visibile con un'estensione SAML-tracer) contiene i nomi dei gruppi.</p>\n      "
+}

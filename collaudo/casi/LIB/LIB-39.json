@@ -1,0 +1,13 @@
+{
+  "id": "LIB-39",
+  "area": "LIB",
+  "title": "Definizioni API e mobile caricate quando usate",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Test API con richiesta/asserzioni e test mobile con passi/configurazione noti; destinazioni simulatori o dispositivi disponibili per l’esecuzione. Nuovo ciclo protocollo 30: Da eseguire.",
+  "steps": [
+    "Aprire i gestori API/mobile con Network: controllare riepiloghi privi di configurazioni complete.",
+    "Caricare un test esistente per modificarlo e aprire il percorso di esecuzione; osservare il dettaglio richiesto."
+  ],
+  "expected": "Il gestore legge /api/api-tests/:id o /api/mobile-tests/:id prima di usare la definizione. Editor ed esecuzione ricevono la configurazione completa; nessun campo cancellato o esecuzione costruita dal riepilogo. Registrare separatamente eventuale esecuzione reale."
+}

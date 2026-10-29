@@ -1,0 +1,14 @@
+{
+  "id": "SEC-43",
+  "area": "SEC",
+  "title": "mobile: progetto riservato protegge le versioni",
+  "priority": "P1",
+  "actor": "editor.a, owner.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile in A con review pendente richiesta da editor.a. Test in progetto riservato; editor.a escluso dal progetto dopo la richiesta.",
+  "steps": [
+    "Come editor.a aprire cronologia e dettaglio versione con link o richiesta diretta.",
+    "Tentare ripristino, pubblicazione e decisione della review tramite richiesta autenticata.",
+    "Come owner.a verificare configurazione e review."
+  ],
+  "expected": "Accesso e modifiche rifiutati al membro escluso; nessuna configurazione esposta; cronologia, pubblicazione e review conservate."
+}

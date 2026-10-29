@@ -1,0 +1,14 @@
+{
+  "id": "TEL-04",
+  "area": "TEL",
+  "title": "Listener separati e isolamento della rete Compose",
+  "priority": "P1",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "In esecuzione diretta verificare i default API 127.0.0.1:9464 e worker 127.0.0.1:9465.",
+    "Applicare docker-compose.telemetry.yml a uno stack di prova e raggiungere api:9464 e worker:9465 dalla rete Compose.",
+    "Controllare le pubblicazioni delle porte sullo host."
+  ],
+  "expected": "I listener sono separati e configurabili per processo; l’overlay non pubblica le porte metriche sullo host e non installa un backend Prometheus o OTLP."
+}

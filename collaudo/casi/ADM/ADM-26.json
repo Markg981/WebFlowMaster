@@ -1,0 +1,14 @@
+{
+  "id": "ADM-26",
+  "area": "ADM",
+  "title": "Callback generico, rotazione e conflitto",
+  "priority": "P1",
+  "actor": "owner.a, owner.b, editor.a, viewer.a",
+  "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+  "steps": [
+    "Configurare provider generico e segreto di almeno 32 caratteri; inviare un evento HMAC normalizzato e verificarne lo stato.",
+    "Aprire le impostazioni in due sessioni owner; salvare dalla prima e tentare un salvataggio dalla seconda.",
+    "Conservare la bozza dopo 409, ricaricare esplicitamente e ruotare il callback; provare URL precedente e nuovo."
+  ],
+  "expected": "Contratto HMAC valido accettato; firma invalida rifiutata. Il conflitto conserva la bozza senza sovrascrivere dati recenti. La rotazione invalida il precedente endpoint; solo il nuovo riceve eventi autentici."
+}

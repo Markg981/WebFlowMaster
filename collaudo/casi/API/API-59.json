@@ -1,0 +1,14 @@
+{
+  "id": "API-59",
+  "area": "API",
+  "title": "Test di carico: esecuzione dedicata, un run per organizzazione, stop",
+  "priority": "P1",
+  "actor": "editor.a, viewer.a",
+  "preconditions": "Test di carico con uno stage di 600 s; un piano con test UI disponibile. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "Avviare il run di carico; avviare subito un secondo run (dello stesso o di un altro test di carico) e il piano.",
+    "Come viewer.a aprire le esecuzioni: verificare che il pulsante di stop non compaia; via API POST /api/load-test-runs/<id>/cancel.",
+    "Come editor.a premere 'Ferma l'esecuzione'; poi tentare di eliminare il test durante un run e dopo."
+  ],
+  "expected": "Il secondo run è rifiutato (409 'Another load test of the organization is running'); il piano parte e termina normalmente sui runner, e il run di carico non compare tra le esecuzioni dei piani. Il viewer vede il run ma riceve 403 sullo stop. Lo stop porta lo stato ad Annullato entro pochi secondi con il riepilogo parziale. L'eliminazione durante il run è rifiutata (409), dopo riesce e le esecuzioni spariscono con il test. Audit: load_test.created, .run, .cancelled, .deleted."
+}

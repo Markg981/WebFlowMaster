@@ -1,0 +1,14 @@
+{
+  "id": "COL-06",
+  "area": "COL",
+  "title": "Dashboard condivisa leggibile e duplicabile da un viewer",
+  "priority": "P1",
+  "actor": "owner.a, viewer.a, editor.a",
+  "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+  "steps": [
+    "Come autore condividere una dashboard con tutta A.",
+    "Come viewer.a selezionarla e tentare modifica tramite API.",
+    "Duplicarla come dashboard privata e personalizzare la copia."
+  ],
+  "expected": "Il viewer legge la condivisa, non può modificarla e può modificare la propria copia privata. La condivisa rimane invariata."
+}

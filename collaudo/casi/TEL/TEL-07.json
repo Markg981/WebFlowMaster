@@ -1,0 +1,13 @@
+{
+  "id": "TEL-07",
+  "area": "TEL",
+  "title": "Scrape worker quando Redis è indisponibile",
+  "priority": "P1",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "Con token corretto ottenere uno scrape riuscito del worker.",
+    "Interrompere Redis in uno stack sacrificabile e ripetere lo scrape, poi ripristinare Redis."
+  ],
+  "expected": "Durante il guasto il listener risponde 503 senza presentare valori obsoleti come scrape riuscito; dopo il recupero gli scrape tornano 200 con conteggi correnti."
+}

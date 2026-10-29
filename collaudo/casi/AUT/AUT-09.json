@@ -1,0 +1,14 @@
+{
+  "id": "AUT-09",
+  "area": "AUT",
+  "title": "Annullamento dal report e test successivo saltato",
+  "priority": "P1",
+  "actor": "owner.a / editor.a",
+  "preconditions": "Piano con due test API ordinati; prima richiesta trattenuta da un servizio controllabile di prova; worker attivo. Procedura: collaudo/critical-ui-e2e.md.",
+  "steps": [
+    "Avviare il piano dalla UI e attendere che il servizio riceva la prima richiesta.",
+    "Dal report aprire annullamento e scegliere di continuare, poi riaprire ed accettare.",
+    "Attendere il log worker di presa in carico della cancellazione prima di sbloccare la richiesta; ricaricare il report."
+  ],
+  "expected": "Rifiutare la conferma mantiene il run attivo; confermare persiste cancelled. Il primo test ha un risultato e il successivo è Skipped con motivo cancelled nel report."
+}

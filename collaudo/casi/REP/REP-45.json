@@ -1,0 +1,14 @@
+{
+  "id": "REP-45",
+  "area": "REP",
+  "title": "Run annullato, scaduto o in errore: errore in JUnit e Allure, mai solo i test verdi",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 82. Un piano con un test lento (per esempio un passo di attesa lunga) e una chiave API con runs:read e runs:write.",
+  "steps": [
+    "Avviare il piano e annullare il run mentre il test è in corso.",
+    "Scaricare JUnit (GET /api/v1/runs/:id/junit) ed esportare Allure dal report.",
+    "Aprire il report del run."
+  ],
+  "expected": "JUnit ha errors almeno 1 e un testcase «Run cancelled» con il motivo dell'annullamento; Allure contiene un risultato broken «Run cancelled». Nessun export presenta il run come tutto verde. Un run completato non ha il testcase aggiuntivo."
+}

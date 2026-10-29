@@ -1,0 +1,12 @@
+{
+  "id": "ADM-18",
+  "area": "ADM",
+  "title": "Callback contraffatto",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Modificare la firma del callback e inviarlo."
+  ],
+  "expected": "Richiesta rifiutata; nessun cambiamento dello storico."
+}

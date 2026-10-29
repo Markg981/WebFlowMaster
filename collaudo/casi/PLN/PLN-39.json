@@ -1,0 +1,16 @@
+{
+  "id": "PLN-39",
+  "area": "PLN",
+  "title": "Selezione: sicurezza prima di tutto",
+  "priority": "P2",
+  "actor": "ci-bot · editor.a",
+  "preconditions": "PLN-38; un test con tag checkout fallito nell'ultimo run concluso del piano.",
+  "steps": [
+    "--changed-since HEAD~1 su un commit che cambia solo src/search.",
+    "--changed-since nonesiste.",
+    "In una copia con git clone --depth 1 eseguire --changed-since origin/main.",
+    "--changed-since a --changed-files b."
+  ],
+  "expected": "1: oltre ai test di ricerca e senza tag gira anche il test checkout fallito l'ultima volta (il motivo dice «1 that failed last time»). 2 e 3: la CLI esce 2 con il messaggio di git e nessun run viene avviato (mai meno test di quanto chiesto). 4: «Use --changed-since or --changed-files, not both.»",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-38; un test con tag checkout fallito nell'ultimo run concluso del piano.</p>\n        <h4>Passi</h4>\n        <ol><li><code>--changed-since HEAD~1</code> su un commit che cambia solo src/search.</li><li><code>--changed-since nonesiste</code>.</li><li>In una copia con <code>git clone --depth 1</code> eseguire <code>--changed-since origin/main</code>.</li><li><code>--changed-since a --changed-files b</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: oltre ai test di ricerca e senza tag gira anche il test checkout fallito l'ultima volta (il motivo dice «1 that failed last time»). 2 e 3: la CLI esce 2 con il messaggio di git e <b>nessun run viene avviato</b> (mai meno test di quanto chiesto). 4: «Use --changed-since or --changed-files, not both.»</p>\n      "
+}

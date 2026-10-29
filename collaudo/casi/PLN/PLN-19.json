@@ -1,0 +1,13 @@
+{
+  "id": "PLN-19",
+  "area": "PLN",
+  "title": "Test visivi dentro un ciclo",
+  "priority": "P3",
+  "actor": "editor.a",
+  "preconditions": "Test visivi attivi (PLN-07).",
+  "steps": [
+    "Test su /add_remove_elements/: Ripeti 3; Click su «Add Element»; Fine ciclo. Eseguire nel piano due volte."
+  ],
+  "expected": "Il primo run registra una baseline per ogni passaggio del ciclo; il secondo non segnala differenze, anche se a ogni passaggio la pagina ha un elemento in più. Gli step Ripeti e Fine ciclo non hanno né screenshot né confronto.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Test visivi attivi (PLN-07).</p>\n        <h4>Passi</h4>\n        <ol><li>Test su /add_remove_elements/: <b>Ripeti</b> <code>3</code>; Click su «Add Element»; <b>Fine ciclo</b>. Eseguire nel piano due volte.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il primo run registra una baseline per ogni passaggio del ciclo; il secondo non segnala differenze, anche se a ogni passaggio la pagina ha un elemento in più. Gli step Ripeti e Fine ciclo non hanno né screenshot né confronto.</p>\n      "
+}

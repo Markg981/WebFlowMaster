@@ -1,0 +1,13 @@
+{
+  "id": "WEB-79",
+  "area": "WEB",
+  "title": "Wait for email filtrata per mittente (mailpit.from)",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Mailpit configurato; due email allo stesso indirizzo in pochi secondi, da mittenti diversi, entrambe con un codice.",
+  "steps": [
+    "Impostare il segreto mailpit.from sul mittente della prima email (la meno recente).",
+    "Eseguire Wait for email con indirizzo e pattern del codice."
+  ],
+  "expected": "1: nessun effetto immediato. 2: viene letta la mail del mittente indicato, anche se l'altra e' piu' recente; {{email.otp}} e' il suo codice."
+}

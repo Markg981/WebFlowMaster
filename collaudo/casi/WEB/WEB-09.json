@@ -1,0 +1,14 @@
+{
+  "id": "WEB-09",
+  "area": "WEB",
+  "title": "Salvare, ritrovare e sovrascrivere un test",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il progetto viene creato. Al secondo salvataggio viene chiesto se sovrascrivere; confermando, la Libreria mostra un solo Login ok con la data aggiornata.",
+  "steps": [
+    "Salva test con nome Login ok in un progetto nuovo creato dalla finestra.",
+    "Modificare uno step e salvare di nuovo con lo stesso nome."
+  ],
+  "expected": "Il progetto viene creato. Al secondo salvataggio viene chiesto se sovrascrivere; confermando, la Libreria mostra un solo Login ok con la data aggiornata.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><b>Salva test</b> con nome <code>Login ok</code> in un progetto nuovo creato dalla finestra.</li><li>Modificare uno step e salvare di nuovo con lo stesso nome.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il progetto viene creato. Al secondo salvataggio viene chiesto se sovrascrivere; confermando, la Libreria mostra un solo <code>Login ok</code> con la data aggiornata.</p>\n      "
+}

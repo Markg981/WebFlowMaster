@@ -1,0 +1,16 @@
+{
+  "id": "PLN-33",
+  "area": "PLN",
+  "title": "Un run diviso fra più runner",
+  "priority": "P1",
+  "actor": "operatore · editor.a",
+  "preconditions": "Due o tre worker (docker compose up -d --scale worker=3); un piano con 12 test web indipendenti di durata simile, due browser.",
+  "steps": [
+    "Impostazioni del piano: Esegui al massimo 2, Worker che si dividono un'esecuzione 1; eseguire e annotare la durata.",
+    "Impostare 3 worker; eseguire; seguire il log live.",
+    "Aprire il report; Impostazioni → Runner durante il run.",
+    "Provare 9."
+  ],
+  "expected": "1: tutto su un runner. 2: il log dice «Sharing this run with up to 2 more worker(s): 24 piece(s) of work…»; la durata scende sensibilmente. 3: il report è un solo run con 24 risultati, ciascuno una volta, e un solo esito e una sola notifica; durante il run più runner hanno un job attivo. 4: rifiutato: «I worker devono essere un numero intero tra 1 e 8.»",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Due o tre worker (<code>docker compose up -d --scale worker=3</code>); un piano con 12 test web indipendenti di durata simile, due browser.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni del piano: <b>Esegui al massimo</b> 2, <b>Worker che si dividono un'esecuzione</b> 1; eseguire e annotare la durata.</li><li>Impostare 3 worker; eseguire; seguire il log live.</li><li>Aprire il report; Impostazioni → Runner durante il run.</li><li>Provare 9.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: tutto su un runner. 2: il log dice «Sharing this run with up to 2 more worker(s): 24 piece(s) of work…»; la durata scende sensibilmente. 3: il report è un solo run con 24 risultati, ciascuno una volta, e un solo esito e una sola notifica; durante il run più runner hanno un job attivo. 4: rifiutato: «I worker devono essere un numero intero tra 1 e 8.»</p>\n      "
+}

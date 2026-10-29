@@ -1,0 +1,16 @@
+{
+  "id": "OPS-47",
+  "area": "OPS",
+  "title": "Benchmark: configurazioni non valide rifiutate",
+  "priority": "P2",
+  "actor": "Operatore del Collaudo",
+  "preconditions": "Catalogo versione 80. Un'installazione WFM dedicata (non quella in uso, mai produzione) con le metriche attive (WFM_METRICS_ENABLED, WFM_METRICS_TOKEN), una chiave API di servizio, un piano con almeno un test, e un database PostgreSQL di prova dedicato. Un file bench.json come in docs/admin/load-testing (sezione Crescita a dieci volte) con SLO approvati; chiave, token e DSN solo in variabili WFM_BENCHMARK_*.",
+  "steps": [
+    "Eseguire npm run test:benchmark.",
+    "Senza WFM_BENCHMARK_CONFIG: npm run benchmark -- --profile baseline.",
+    "Con WFM_BENCHMARK_CONFIG=bench.json: npm run benchmark -- --profile tenfold-everything.",
+    "In bench.json impostare environment.production a true (poi rimetterlo a false) e rieseguire la baseline.",
+    "Impostare DATABASE_URL uguale a WFM_BENCHMARK_DATABASE_URL e rieseguire; poi scrivere \"key\": \"...\" dentro target.targets[0] e rieseguire."
+  ],
+  "expected": "1: tutti i test passano. 2-5: ogni comando termina con exit 2 e una riga \"Refused: …\" che dice il motivo (variabile mancante, profilo sconosciuto, produzione, DSN dell'applicazione, credenziale nel file); nessuno strumento parte, nessuna chiave o password compare nel terminale."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "WEB-71",
+  "area": "WEB",
+  "title": "Registrare dentro web component aperti e riprodurre senza toccare i selettori",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 76. Server sulla propria macchina (la registrazione apre un browser locale). Fixture dei web component avviata con npm run fixture:shadow (http://127.0.0.1:5090).",
+  "steps": [
+    "Registra azioni utente su http://127.0.0.1:5090/ → Inizia registrazione.",
+    "Nella finestra: scrivere in User (componente x-login), scegliere blue nella tendina, spuntare I agree e premere Save (due componenti annidati), poi Add widget e scrivere nel nuovo campo, e scrivere nel campo del componente dichiarativo (x-decl).",
+    "Termina registrazione, salvare il test senza modificare alcun passo ed eseguirlo."
+  ],
+  "expected": "Ogni azione compare una sola volta, sul campo o sul pulsante usato e non sul componente che lo contiene; i selettori iniziano dal componente (es. body > x-login input[name=\"q\"]). La casella spuntata diventa Ensure state = checked. L'esecuzione passa e la riga in fondo alla pagina mostra gli stessi valori scritti in registrazione."
+}

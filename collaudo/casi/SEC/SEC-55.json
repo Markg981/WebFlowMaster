@@ -1,0 +1,15 @@
+{
+  "id": "SEC-55",
+  "area": "SEC",
+  "title": "Trace con password sintetica negata al viewer anche conoscendo l'URL",
+  "priority": "P1",
+  "actor": "editor + viewer",
+  "preconditions": "Catalogo versione 67. Un piano con Trace = Sempre e un test UI senza la parola password né {{secret_…}} che digita in un campo di testo il valore sintetico Collaudo-Pw-SEC55. Un viewer e un editor nella stessa organizzazione.",
+  "steps": [
+    "Come editor eseguire il piano, aprire il report e i dettagli del test: copiare il link \"Download the Playwright trace\" e scaricare la trace.",
+    "Come viewer aprire lo stesso report e i dettagli del test.",
+    "Come viewer incollare nel browser il link della trace copiato al passo 1.",
+    "Come viewer chiedere una trace inesistente cambiando il nome del file nel link."
+  ],
+  "expected": "Passo 1: la trace si scarica e contiene Collaudo-Pw-SEC55. Passo 2: nessun link a trace né HAR; la nota dice che solo editor e owner possono scaricarli; screenshot e video restano visibili. Passo 3: 403, nessun contenuto della trace. Passo 4: stesso 403 (il rifiuto non rivela se il file esiste)."
+}

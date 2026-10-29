@@ -1,0 +1,17 @@
+{
+  "id": "TMG-01",
+  "area": "TMG",
+  "title": "Collegare TestRail e verificare la connessione",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un'istanza TestRail (anche trial) con un progetto e un utente con API key abilitata (Administration → Site Settings → API).",
+  "steps": [
+    "Impostazioni → Test management → Strumento TestRail.",
+    "Nome TestRail QA; Aggiungi connessione senza altro.",
+    "Compilare Indirizzo, Utente (e-mail), Id del progetto 3, Token API; Aggiungi connessione.",
+    "Sulla riga, Verifica connessione.",
+    "Ripetere la verifica dopo aver cambiato il token in TestRail."
+  ],
+  "expected": "2: «The address of the tool is required.», poi via via utente e token richiesti; nulla viene salvato. 3: la riga mostra TestRail e il progetto «3»; il token non compare più da nessuna parte (neanche nella risposta di rete). 4: «Connected to <nome progetto>.» in verde. 5: «TestRail refused those credentials.» in rosso. Audit test_management.connected.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un'istanza TestRail (anche trial) con un progetto e un utente con API key abilitata (Administration → Site Settings → API).</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → <b>Test management</b> → Strumento TestRail.</li><li>Nome <code>TestRail QA</code>; <b>Aggiungi connessione</b> senza altro.</li><li>Compilare Indirizzo, Utente (e-mail), Id del progetto <code>3</code>, Token API; Aggiungi connessione.</li><li>Sulla riga, <b>Verifica connessione</b>.</li><li>Ripetere la verifica dopo aver cambiato il token in TestRail.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2: «The address of the tool is required.», poi via via utente e token richiesti; nulla viene salvato. 3: la riga mostra TestRail e il progetto «3»; il token non compare più da nessuna parte (neanche nella risposta di rete). 4: «Connected to &lt;nome progetto&gt;.» in verde. 5: «TestRail refused those credentials.» in rosso. Audit <b>test_management.connected</b>.</p>\n      "
+}
