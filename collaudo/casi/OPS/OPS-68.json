@@ -1,0 +1,13 @@
+{
+  "id": "OPS-68",
+  "area": "OPS",
+  "title": "Evidenze non salvate: avviso visibile nel report",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "ARTIFACT_STORE=s3; bucket irraggiungibile per tutta la durata del run.",
+  "steps": [
+    "Eseguire un run con screenshot.",
+    "Aprire il report del run."
+  ],
+  "expected": "Dopo tre tentativi il run termina con il suo esito; il report mostra l'avviso sulle evidenze non conservate; i file restano sul disco del worker."
+}

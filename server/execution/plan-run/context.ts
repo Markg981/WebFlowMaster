@@ -79,7 +79,15 @@ export class RunStop {
       message: `Stopping the run: ${reason.replace(/^Not run: /, '')}`,
     });
     // The other workers sharing it read it before each item they take.
-    if (this.shared) await recordStopReason(this.log.executionId, reason).catch(() => undefined);
+    if (this.shared)
+      await recordStopReason(this.log.executionId, reason).catch((error: unknown) => {
+        // Without it the other workers go on with the run: say so.
+        this.log.logger.warn({
+          message: 'Could not record why the run stopped; other workers may not see it',
+          executionId: this.log.executionId,
+          error: (error as Error)?.message ?? String(error),
+        });
+      });
   }
 }
 
