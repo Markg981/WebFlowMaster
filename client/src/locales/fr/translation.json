@@ -4340,6 +4340,7 @@
     "status": {
       "published": "Publiée",
       "failed": "Échec",
+      "partial": "Publié en partie",
       "nothing": "Rien à publier"
     },
     "title": "Gestion des tests",
