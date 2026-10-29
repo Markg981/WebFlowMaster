@@ -1,0 +1,13 @@
+{
+  "id": "OPS-69",
+  "area": "OPS",
+  "title": "Scrittura artefatto interrotta: la riserva di quota non blocca i nuovi tentativi",
+  "priority": "P2",
+  "actor": "amministratore",
+  "preconditions": "Quota artefatti in enforce; scrittura sul bucket fallita.",
+  "steps": [
+    "Provocare un errore di scrittura su una chiave.",
+    "Ripetere la scrittura della stessa chiave dopo il ripristino del bucket."
+  ],
+  "expected": "La riserva viene rilasciata (o confermata se l'oggetto è arrivato); la seconda scrittura riesce senza riconciliazione manuale."
+}

@@ -62,10 +62,6 @@ describe('ExportEraseCard', () => {
         ? reply({ erased: true })
         : reply({ organization: { name: 'Acme' } }),
     );
-    const confirm = vi
-      .spyOn(window, 'confirm')
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(true);
     const onErased = vi.fn();
     renderCard(onErased);
     const button = screen.getByText('Erase permanently').closest('button')!;
@@ -76,10 +72,11 @@ describe('ExportEraseCard', () => {
     expect(button).not.toBeDisabled();
 
     fireEvent.click(button);
-    expect(confirm).toHaveBeenCalledTimes(1);
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
 
     fireEvent.click(button);
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(onErased).toHaveBeenCalled());
     const del = fetchMock.mock.calls.find(([, init]) => init?.method === 'DELETE')!;
     expect(del[0]).toBe('/api/organization');

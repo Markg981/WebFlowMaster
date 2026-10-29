@@ -65,6 +65,12 @@ export function startupConfigWarnings(env: NodeJS.ProcessEnv = process.env): str
       'TRUST_PROXY is not set: assuming exactly 1 reverse proxy in front. Set it to the real proxy chain (hop count, false when none, or proxy IPs/CIDRs), or client IPs and per-IP rate limits can be forged via X-Forwarded-For.',
     );
   }
+  const key = env.ENCRYPTION_KEY ?? '';
+  if (key && !/^[0-9a-fA-F]{64}$/.test(key) && key.length < 32) {
+    warnings.push(
+      'ENCRYPTION_KEY is not a 64-character hex string and is shorter than 32 characters: it is hashed with plain SHA-256 and is easy to guess. Use `openssl rand -hex 32`; changing it needs ENCRYPTION_KEY_PREVIOUS for the old value.',
+    );
+  }
   return warnings;
 }
 

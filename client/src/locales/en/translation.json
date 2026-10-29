@@ -608,6 +608,7 @@
     "dropActionsPrompt": "Drop an element here"
   },
   "apiTesterPage": {
+    "confirmDeleteSavedTest": "Are you sure you want to delete this saved test?",
     "backToDashboard": {
       "button": "Back to Dashboard"
     },
@@ -1634,7 +1635,8 @@
       "title": "404 Page Not Found"
     },
     "didYouForgetToAddThePage": {
-      "description": "Did you forget to add the page to the router?"
+      "description": "The page you are looking for does not exist or has moved.",
+      "homeLink": "Back to home"
     }
   },
   "settingsPage": {
@@ -2584,6 +2586,7 @@
     }
   },
   "testPlanExecutionPage": {
+    "backToTestPlans": "Back to test plans",
     "logs": {
       "startingExecution": "Starting execution for plan: {{planName}}",
       "runningTest": "Running test: {{testName}}",
@@ -2851,6 +2854,15 @@
     "emptyHint": "None yet. Create one in Settings to use secrets and a saved login."
   },
   "common": {
+    "loginFailed": "Login failed",
+    "registrationFailed": "Registration failed",
+    "logoutFailed": "Logout failed",
+    "noEnvironment": "No Environment",
+    "loadingExecutions": "Loading executions...",
+    "refresh": "Refresh",
+    "refreshReport": "Refresh Report",
+    "visualCheck": "Visual check",
+    "saveLoginForEnvironment": "Save login for this environment",
     "error": "Error",
     "cancel": "Cancel",
     "save": "Save",
@@ -3217,6 +3229,7 @@
       "test_review_rejected": "Review rejected",
       "test_review_withdrawn": "Review withdrawn",
       "test_review_policy_changed": "Review policy changed",
+      "organization_ai_policy_changed": "External AI provider policy changed",
       "runner_drained": "Runner drained",
       "runner_resumed": "Runner resumed",
       "suite_created": "Suite created",

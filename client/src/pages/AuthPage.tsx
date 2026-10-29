@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, TestTube, CheckCircle2, ShieldCheck, Zap, BarChart3 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, type Variants } from 'framer-motion';
 import MfaChallengeForm from '@/components/security/MfaChallengeForm';
 import SsoSignIn from '@/components/security/SsoSignIn';
 import ForgotPassword from '@/components/security/ForgotPassword';
@@ -39,6 +39,7 @@ function resetFromUrl(): { token: string; username: string } {
 
 export default function AuthPage() {
   const { t } = useTranslation();
+  const reduceMotion = useReducedMotion();
   const { user, isLoading, loginMutation, registerMutation, mfaChallenge, verifyMfaMutation } =
     useAuth();
   const [, navigate] = useLocation();
@@ -174,7 +175,7 @@ export default function AuthPage() {
         >
           <motion.div variants={itemVariants} className="text-center mb-10">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-2xl mb-6 border border-primary/20 shadow-inner">
-              <TestTube className="h-10 w-10 text-primary animate-pulse" />
+              <TestTube className="h-10 w-10 text-primary animate-pulse motion-reduce:animate-none" />
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight text-foreground mb-2">
               {PRODUCT_NAME_PREFIX}
@@ -547,18 +548,12 @@ export default function AuthPage() {
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(67,56,202,0.2),transparent_70%)]" />
           <div className="absolute inset-0 bg-noise opacity-20 brightness-100 contrast-150" />
           <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 90, 0],
-            }}
+            animate={reduceMotion ? undefined : { scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
             transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
             className="absolute top-[-20%] right-[-20%] w-[80%] h-[80%] bg-primary/20 rounded-full blur-[120px]"
           />
           <motion.div
-            animate={{
-              scale: [1, 1.3, 1],
-              rotate: [0, -90, 0],
-            }}
+            animate={reduceMotion ? undefined : { scale: [1, 1.3, 1], rotate: [0, -90, 0] }}
             transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
             className="absolute bottom-[-20%] left-[-20%] w-[60%] h-[60%] bg-accent/20 rounded-full blur-[100px]"
           />

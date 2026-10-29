@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/use-auth';
 import QuarantineDialog from './QuarantineDialog';
 import AttemptsBadge from './AttemptsBadge';
 import { Repeat, ShieldAlert } from 'lucide-react';
+import { formatDate } from '@/lib/dates';
 
 /**
  * The tests that disagree with themselves.
@@ -141,7 +142,7 @@ function SignalList({ signals }: { signals: FlakySignal[] }) {
       <ul className="mt-1 space-y-1">
         {signals.slice(0, SHOWN_SIGNALS).map((signal, index) => {
           const href = evidenceHref(signal);
-          const text = `${new Date(signal.at).toLocaleDateString()} · ${label(signal)}`;
+          const text = `${formatDate(signal.at)} · ${label(signal)}`;
           return (
             <li key={`${signal.kind}-${signal.at}-${index}`} data-signal={signal.kind}>
               {href ? (

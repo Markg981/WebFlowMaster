@@ -1,0 +1,14 @@
+{
+  "id": "OPS-66",
+  "area": "OPS",
+  "title": "Il replay di un run recuperato che fallisce lascia una traccia nel log",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "Recupero dei run abbandonati attivo; replay forzato in errore (ad esempio coda non raggiungibile).",
+  "steps": [
+    "Interrompere un worker durante un run.",
+    "Far fallire il replay del run recuperato.",
+    "Leggere il log del server."
+  ],
+  "expected": "Il log contiene «Replay of a recovered run failed» con l'id del run; il run resta chiuso come fallito."
+}

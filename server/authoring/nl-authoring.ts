@@ -108,7 +108,13 @@ export interface Candidate {
 /** Asks a model for the lines the patterns did not cover. Absent when no key is configured. */
 export type ProposeFn = (prompt: string) => Promise<string | null>;
 
-const ACTION_IDS = new Set<string>(ADHOC_ACTION_IDS);
+/**
+ * Actions that run code or SQL. The prompt carries labels from the page under test, so a hostile
+ * label could suggest a step with code; the author writes these by hand in the builder.
+ */
+const CODE_ACTION_IDS = new Set<string>(['executeScript', 'queryDatabase']);
+const AUTHORABLE_ACTION_IDS = ADHOC_ACTION_IDS.filter((id) => !CODE_ACTION_IDS.has(id));
+const ACTION_IDS = new Set<string>(AUTHORABLE_ACTION_IDS);
 
 /** Words that name a kind of control rather than the control, dropped when matching. */
 const NOUN_WORDS = new Set([
@@ -839,7 +845,7 @@ export function buildPrompt(
   lines: { line: number; text: string }[],
   catalogue: CatalogueEntry[],
 ): string {
-  const actions = ADHOC_ACTION_IDS.map((id) => {
+  const actions = AUTHORABLE_ACTION_IDS.map((id) => {
     const requirements = ACTION_REQUIREMENTS[id];
     const options = ACTION_VALUE_OPTIONS[id];
     const parts = [
@@ -957,17 +963,20 @@ export async function authorSteps(
   }
 
   let usedModel = false;
+  let modelFailure: string | null = null;
   if (leftovers.length > 0 && deps.propose) {
     usedModel = true;
     const allowed = new Set(leftovers.map((item) => item.line));
     let answer: string | null = null;
     try {
       answer = await deps.propose(buildPrompt(leftovers, catalogue));
-    } catch {
+    } catch (error) {
       // A model that is down is a feature that degrades, not a request that fails: the
       // pattern-matched steps still come back, and the rest are reported as unread.
       answer = null;
+      modelFailure = error instanceof Error ? error.message : String(error);
     }
+    if (answer === null && !modelFailure) modelFailure = 'it returned no answer';
     for (const [line, candidate] of parseModelResponse(answer, allowed)) {
       byLine.set(line, { candidate, source: 'model' });
     }
@@ -979,9 +988,11 @@ export async function authorSteps(
       unresolved.push({
         line: item.line,
         text: item.text,
-        reason: deps.propose
-          ? 'Neither the phrasings this understands nor the model could express this as one step.'
-          : 'This phrasing is not one of the ones understood without a model. Set GEMINI_API_KEY to allow free-form sentences.',
+        reason: modelFailure
+          ? `The model could not be reached (${modelFailure}), so this sentence was not read.`
+          : deps.propose
+            ? 'Neither the phrasings this understands nor the model could express this as one step.'
+            : 'This phrasing is not one of the ones understood without a model. Set GEMINI_API_KEY to allow free-form sentences.',
       });
       continue;
     }

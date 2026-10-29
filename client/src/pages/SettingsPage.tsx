@@ -84,7 +84,7 @@ export default function SettingsPage() {
 
   if (form.settings.isLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div role="status" className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="ml-4 text-lg text-muted-foreground">
           {t('settingsPage.loadingSettings.text')}

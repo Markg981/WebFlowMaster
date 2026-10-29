@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { createContext, ReactNode, useContext, useState } from 'react';
 import { useQuery, useMutation, UseMutationResult } from '@tanstack/react-query';
 import { User as SelectUser, InsertUser } from '@shared/schema';
@@ -54,6 +55,7 @@ export class MfaError extends Error {
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [mfaChallenge, setMfaChallenge] = useState(false);
   const {
@@ -79,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: Error) => {
       toast({
-        title: 'Login failed',
+        title: t('common.loginFailed'),
         description: errorMessage(error),
         variant: 'destructive',
       });
@@ -119,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: Error) => {
       toast({
-        title: 'Registration failed',
+        title: t('common.registrationFailed'),
         description: errorMessage(error),
         variant: 'destructive',
       });
@@ -139,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: Error) => {
       toast({
-        title: 'Logout failed',
+        title: t('common.logoutFailed'),
         description: errorMessage(error),
         variant: 'destructive',
       });

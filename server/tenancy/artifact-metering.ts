@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import fs from 'fs-extra';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { organizations, quotaArtifacts, testPlanExecutions } from '@shared/schema';
 import { privilegedDb, withArtifactLock } from '../platform/db';
+import logger from '../platform/logger';
 import {
   getTenantOrgId,
   runWithTenant,
@@ -136,18 +137,72 @@ async function meteredWrite(
     }),
   );
   if (kept) return;
-  // On ambiguous errors the reservation stays: the object might exist despite a lost reply.
-  await raw.write(key, body, contentType);
+  try {
+    await raw.write(key, body, contentType);
+  } catch (error) {
+    await settleFailedWrite(raw, organizationId, key, body, token);
+    throw error;
+  }
   applicationMetrics.artifactBytes.inc(body.length);
-  await runWithTenant(organizationId, () =>
+  await commitReservation(organizationId, key, body.length, token);
+}
+
+const commitReservation = (organizationId: number, key: string, bytes: number, token: string) =>
+  runWithTenant(organizationId, () =>
     withTenantTransaction((tx) =>
       tx
         .update(quotaArtifacts)
-        .set({ bytes: body.length, reservedBytes: 0, reservationId: null, updatedAt: new Date() })
+        .set({ bytes, reservedBytes: 0, reservationId: null, updatedAt: new Date() })
         .where(and(eq(quotaArtifacts.key, key), eq(quotaArtifacts.reservationId, token)))
         .returning(),
     ),
   );
+
+/**
+ * A write that threw must not leave its reservation open: that blocks every retry of the key until
+ * an admin reconciles. Ask the store what it holds. Same size as the body: the write landed and
+ * the reply was lost, so commit it. Anything else (absent, or the previous content): release the
+ * reservation. If the store cannot answer either, the write stays ambiguous and the reservation
+ * stays for reconciliation.
+ */
+async function settleFailedWrite(
+  raw: ArtifactStore,
+  organizationId: number,
+  key: string,
+  body: Buffer,
+  token: string,
+): Promise<void> {
+  try {
+    const stored = await raw.read(key);
+    if (stored?.length === body.length) {
+      await commitReservation(organizationId, key, body.length, token);
+      return;
+    }
+    await runWithTenant(organizationId, () =>
+      withTenantTransaction(async (tx) => {
+        await tx
+          .update(quotaArtifacts)
+          .set({ reservedBytes: 0, reservationId: null, updatedAt: new Date() })
+          .where(and(eq(quotaArtifacts.key, key), eq(quotaArtifacts.reservationId, token)));
+        // A row that never held bytes was only the reservation.
+        await tx
+          .delete(quotaArtifacts)
+          .where(
+            and(
+              eq(quotaArtifacts.key, key),
+              eq(quotaArtifacts.bytes, 0),
+              isNull(quotaArtifacts.reservationId),
+            ),
+          );
+      }),
+    );
+  } catch (settleError) {
+    logger.warn({
+      message: 'Artifact write failed and its reservation stays for reconciliation',
+      key,
+      error: (settleError as Error)?.message ?? String(settleError),
+    });
+  }
 }
 
 async function available(organizationId: number, key: string): Promise<boolean> {

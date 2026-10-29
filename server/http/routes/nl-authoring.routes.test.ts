@@ -4,7 +4,11 @@ import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 import { privilegedDb } from '../../platform/db';
 import { projectElements, projects } from '@shared/schema';
-import { createTestOrganization, createTestUser } from '../../tests/factories';
+import {
+  createTestOrganization,
+  createTestUser,
+  enableOrganizationAi,
+} from '../../tests/factories';
 
 vi.mock('../../platform/logger', () => ({
   default: {
@@ -61,6 +65,7 @@ const detected = [
 
 beforeAll(async () => {
   organizationId = await createTestOrganization('Authoring Org');
+  await enableOrganizationAi(organizationId);
   userId = await createTestUser(organizationId, 'authoring-user');
   otherOrganizationId = await createTestOrganization('Other Authoring Org');
   otherUserId = await createTestUser(otherOrganizationId, 'other-authoring-user');

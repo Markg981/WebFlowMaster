@@ -46,6 +46,7 @@ import {
 } from '../../integrations/requirements';
 import logger from '../../platform/logger';
 import { aiService } from '../../authoring/ai-automation-service';
+import { aiEnabled, AI_NOT_ENABLED } from '../../authoring/ai-consent';
 import { htmlToText } from '../../messaging/email-inbox';
 import { toSequence } from '@shared/manual-tests';
 import { recordTestVersion } from '../../authoring/test-version-store';
@@ -491,6 +492,9 @@ router.post(
     const parsed = proposalSchema.safeParse(req.body ?? {});
     if (!Number.isInteger(id) || !parsed.success)
       return res.status(400).json({ error: 'Invalid payload' });
+    if (!(await withTenantTransaction((tx) => aiEnabled(tx, getTenantOrgId()!)))) {
+      return res.status(403).json({ error: AI_NOT_ENABLED });
+    }
     if (!aiService.isAvailable()) {
       return res
         .status(503)

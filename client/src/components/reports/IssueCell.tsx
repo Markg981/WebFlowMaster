@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { safeHttpUrl } from '@/lib/safe-url';
 import { Bug, ExternalLink, Loader2 } from 'lucide-react';
 
 /**
@@ -42,7 +43,7 @@ const IssueCell: React.FC<IssueCellProps> = ({ link, onFile, disabled }) => {
   if (link) {
     return (
       <a
-        href={link.issueUrl}
+        href={safeHttpUrl(link.issueUrl)}
         target="_blank"
         rel="noreferrer"
         className="inline-flex items-center text-xs underline hover:text-primary whitespace-nowrap"

@@ -51,7 +51,7 @@ non assegna esiti manuali dai risultati automatici.
 | Integrazioni        | CI, CLI, REST v1, webhook, tracker, commit status, test management, notifiche                                               | `integrations/`, `server/http/routes/api-v1.routes.ts`, `server/integrations/commit-status.ts`, `server/integrations/test-management.ts`                 |
 | Sicurezza e governo | Tenant/RLS, ruoli, scope API, SSO OIDC/SAML, MFA, SCIM, audit, quote e retention                                            | `server/platform/middleware/tenancy.ts`, `server/http/routes/`, `server/tenancy/tenant-quotas.ts`                                                        |
 | Collaborazione      | Commenti, menzioni e dashboard condivise                                                                                    | `server/http/routes/comments.routes.ts`, `server/http/routes/dashboards.routes.ts`                                                                       |
-| Esercizio           | Docker, migrator, backup/verify/restore, controllo rete SaaS, log, Prometheus e OpenTelemetry                               | `scripts/wfm-backup.ts`, `deployment/saas-network/`, `server/observability/`                                                                             |
+| Esercizio           | Docker, migrator, backup/verify/restore, controllo rete SaaS, log, Prometheus e OpenTelemetry                               | `scripts/wfm-backup.ts`, `deployment/saas-network/`, `server/platform/observability/`                                                                    |
 
 Non serve proporre come nuove funzionalità mobile, BDD, backup, SCIM, quote o telemetria: sono già
 implementate. Il lavoro utile è migliorarne riproducibilità, prova operativa e fruibilità.

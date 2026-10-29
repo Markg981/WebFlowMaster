@@ -80,10 +80,14 @@ router.post(
     const { sessionId, environmentId } = parseResult.data;
     // organizationId comes from the session: the environment written to has to be one
     // this caller's tenant owns, whatever id the body names.
-    const saved = await playwrightService.captureLoginState(sessionId, {
-      environmentId,
-      organizationId: req.user!.organizationId,
-    });
+    const saved = await playwrightService.captureLoginState(
+      sessionId,
+      {
+        environmentId,
+        organizationId: req.user!.organizationId,
+      },
+      req.user!.id,
+    );
     if (!saved) {
       return res.status(404).json({
         success: false,

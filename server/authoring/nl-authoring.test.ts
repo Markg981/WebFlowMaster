@@ -546,3 +546,17 @@ describe('authorSteps', () => {
     expect(result.unresolved[0].reason).toContain('Publish button');
   });
 });
+
+describe('when the model fails', () => {
+  it('says so instead of claiming it could not express the sentence', async () => {
+    const result = await authorSteps(
+      { text: 'Please do something unusual with the page' },
+      {
+        propose: async () => {
+          throw new Error('503 overloaded');
+        },
+      },
+    );
+    expect(result.unresolved[0]?.reason).toContain('503 overloaded');
+  });
+});

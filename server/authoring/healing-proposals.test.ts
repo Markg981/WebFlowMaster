@@ -505,3 +505,15 @@ describe('rejecting', () => {
     ).rejects.toMatchObject({ status: 409, code: 'proposal_approved' });
   });
 });
+
+describe('what the model is shown, continued', () => {
+  it('drops token-like data attributes and secrets in link queries', () => {
+    const shown = domForModel(
+      '<div data-auth-token="abc123" data-id="7"></div><a href="/cb?code=sekret99&page=2">go</a>',
+    );
+    expect(shown).not.toContain('abc123');
+    expect(shown).not.toContain('sekret99');
+    expect(shown).toContain('data-id="7"');
+    expect(shown).toContain('page=2');
+  });
+});
