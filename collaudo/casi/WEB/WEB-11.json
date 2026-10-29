@@ -1,0 +1,15 @@
+{
+  "id": "WEB-11",
+  "area": "WEB",
+  "title": "Registrare un test",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Server in esecuzione sulla propria macchina.",
+  "steps": [
+    "Modalità Registra azioni utente → Inizia registrazione.",
+    "Nella finestra che si apre: accedere su /login, usare Add assert su «Secure Area».",
+    "Termina registrazione."
+  ],
+  "expected": "La sequenza contiene gli step registrati, con l'asserzione. La password digitata compare come segnaposto {{secret_…}}, non in chiaro. Su un server senza schermo compare invece il messaggio che la registrazione non è disponibile.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Server in esecuzione sulla propria macchina.</p>\n        <h4>Passi</h4>\n        <ol><li>Modalità <b>Registra azioni utente</b> → <b>Inizia registrazione</b>.</li><li>Nella finestra che si apre: accedere su /login, usare <b>Add assert</b> su «Secure Area».</li><li><b>Termina registrazione</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La sequenza contiene gli step registrati, con l'asserzione. La password digitata compare come segnaposto <code>{{secret_…}}</code>, non in chiaro. Su un server senza schermo compare invece il messaggio che la registrazione non è disponibile.</p>\n      "
+}

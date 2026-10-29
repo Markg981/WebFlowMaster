@@ -1,0 +1,15 @@
+{
+  "id": "REP-13",
+  "area": "REP",
+  "title": "Esiti non ammessi",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un run di PLN-23 ancora in corso; un run annullato.",
+  "steps": [
+    "Durante il run: aprire la scheda Test manuali.",
+    "Sul run annullato: registrare Superato.",
+    "Dalla console: PUT .../results/<id di un risultato automatico>/manual-verdict con {outcome:'passed'}; poi sul risultato manuale con un numero di esiti degli step diverso dagli step."
+  ],
+  "expected": "Durante il run la scheda dice che gli esiti si registrano a run terminato. Sul run annullato l'esito è registrato ma il run resta Annullato. Il risultato automatico risponde 409; il numero di step sbagliato risponde 400.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un run di PLN-23 ancora in corso; un run annullato.</p>\n        <h4>Passi</h4>\n        <ol><li>Durante il run: aprire la scheda <b>Test manuali</b>.</li><li>Sul run annullato: registrare Superato.</li><li>Dalla console: <code>PUT .../results/&lt;id di un risultato automatico&gt;/manual-verdict</code> con <code>{outcome:'passed'}</code>; poi sul risultato manuale con un numero di esiti degli step diverso dagli step.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Durante il run la scheda dice che gli esiti si registrano a run terminato. Sul run annullato l'esito è registrato ma il run resta <b>Annullato</b>. Il risultato automatico risponde 409; il numero di step sbagliato risponde 400.</p>\n      "
+}

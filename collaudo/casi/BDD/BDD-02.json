@@ -1,0 +1,12 @@
+{
+  "id": "BDD-02",
+  "area": "BDD",
+  "title": "Evidenza dei passi manuali",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Importare manualmente uno scenario con doc string e tabella; avviare un piano e aprire il verdetto manuale."
+  ],
+  "expected": "Il report mostra argomenti e testo con escape; resta Pending fino al verdetto del tester."
+}

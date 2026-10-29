@@ -1,0 +1,15 @@
+{
+  "id": "PLN-53",
+  "area": "PLN",
+  "title": "Worker in stallo dopo la scadenza della lease: il secondo proprietario vince, le scritture tardive del primo sono rifiutate",
+  "priority": "P1",
+  "actor": "owner",
+  "preconditions": "Catalogo versione 75. Ambiente di collaudo con due worker (mai produzione) e accesso al database; un piano con «Worker che si dividono un'esecuzione» = 2, due test UI e «Se un runner si perde durante un test» = «Riesegui il test su un altro runner».",
+  "steps": [
+    "Avviare il piano; appena il worker A inizia un test, sospenderne il processo (docker pause) oltre WORK_CLAIM_LEASE_MS.",
+    "Attendere che il worker B riprenda il pezzo (run_work_items.epoch aumenta di 1) e lo concluda.",
+    "Riprendere il worker A (docker unpause) e attendere la fine del run.",
+    "Aprire il report e GET /api/test-plan-executions/<run>/units/<unità>."
+  ],
+  "expected": "Il run termina Completed con un solo risultato per unità, quello del worker B. Il tentativo del worker A risulta abandoned, senza evidenze; il worker A non scrive né risultato né screenshot (nella sua console: «is no longer this worker's» / risultato indeterminato). Nessuna notifica duplicata."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "OPS-07",
+  "area": "OPS",
+  "title": "Log e correlation id",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "Le righe di quella richiesta si trovano con l'id; password e token sono mascherati.",
+  "steps": [
+    "Provocare un errore nell'interfaccia e annotare il correlation id.",
+    "Cercarlo nei log (standard output o logs/app-…log)."
+  ],
+  "expected": "Le righe di quella richiesta si trovano con l'id; password e token sono mascherati.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Provocare un errore nell'interfaccia e annotare il correlation id.</li><li>Cercarlo nei log (standard output o <code>logs/app-…log</code>).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Le righe di quella richiesta si trovano con l'id; password e token sono mascherati.</p>\n      "
+}

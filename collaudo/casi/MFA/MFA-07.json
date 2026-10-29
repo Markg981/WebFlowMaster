@@ -1,0 +1,13 @@
+{
+  "id": "MFA-07",
+  "area": "MFA",
+  "title": "Disattivare il secondo fattore",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "L'organizzazione non lo richiede.",
+  "steps": [
+    "Sicurezza → Disattiva con password e codice."
+  ],
+  "expected": "Disattivato; l'accesso successivo chiede solo la password. Audit mfa.disabled.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>L'organizzazione non lo richiede.</p>\n        <h4>Passi</h4>\n        <ol><li>Sicurezza → <b>Disattiva</b> con password e codice.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Disattivato; l'accesso successivo chiede solo la password. Audit <b>mfa.disabled</b>.</p>\n      "
+}

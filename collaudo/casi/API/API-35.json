@@ -1,0 +1,13 @@
+{
+  "id": "API-35",
+  "area": "API",
+  "title": "Backfill API: prima revisione",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Copia isolata di database precedente alla 0075 con un test API salvato e un risultato storico senza versione; annotare configurazione e risultato prima dell’aggiornamento.",
+  "steps": [
+    "Applicare la 0075 e aprire cronologia e risultato storico.",
+    "Riapplicare il processo standard di migrazione e ricaricare."
+  ],
+  "expected": "Una sola revisione 1 riproduce la configurazione salvata prima della migrazione; nessuna storia inventata. Il risultato storico rimane senza versione."
+}

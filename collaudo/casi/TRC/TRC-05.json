@@ -1,0 +1,15 @@
+{
+  "id": "TRC-05",
+  "area": "TRC",
+  "title": "Risultati di un piano o di un run",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "TRC-02; un secondo piano Release con solo il test web, eseguito quando passava.",
+  "steps": [
+    "Risultati da = L'ultima esecuzione di Release.",
+    "Report di un run di Nightly → Requisiti coperti.",
+    "Mostra gli ultimi risultati."
+  ],
+  "expected": "1: contano solo i run di Release: il test web è passato lì e il test API in Release non c'è, quindi PAG-1 è «Non eseguito» con «1 superati · 0 falliti · 1 non eseguiti», anche se in Nightly fallisce. 2: la pagina dice «Risultati di un'esecuzione di Nightly», con il link al report, e usa solo quel run. 3: torna agli ultimi risultati di ogni test.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>TRC-02; un secondo piano <code>Release</code> con solo il test web, eseguito quando passava.</p>\n        <h4>Passi</h4>\n        <ol><li><b>Risultati da</b> = L'ultima esecuzione di Release.</li><li>Report di un run di Nightly → <b>Requisiti coperti</b>.</li><li><b>Mostra gli ultimi risultati</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: contano solo i run di Release: il test web è passato lì e il test API in Release non c'è, quindi PAG-1 è «Non eseguito» con «1 superati · 0 falliti · 1 non eseguiti», anche se in Nightly fallisce. 2: la pagina dice «Risultati di un'esecuzione di Nightly», con il link al report, e usa solo quel run. 3: torna agli ultimi risultati di ogni test.</p>\n      "
+}

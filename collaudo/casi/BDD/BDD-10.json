@@ -1,0 +1,12 @@
+{
+  "id": "BDD-10",
+  "area": "BDD",
+  "title": "Agenti precedenti e revisioni mancanti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Avviare BDD con agente privo di capability, revisione diversa, profilo revocato o progetto eliminato."
+  ],
+  "expected": "Errore prima del caricamento del supporto; nessun fallback su worker condiviso o browser locale."
+}

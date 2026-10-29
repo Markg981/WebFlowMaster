@@ -1,0 +1,13 @@
+{
+  "id": "PLN-36",
+  "area": "PLN",
+  "title": "Un run in attesa parte appena si libera un posto",
+  "priority": "P3",
+  "actor": "operatore",
+  "preconditions": "ORG_MAX_CONCURRENT_RUNS=1; un piano con un solo test API breve.",
+  "steps": [
+    "Avviare tre run di seguito; annotare quando finisce il primo e quando parte il secondo (report o API)."
+  ],
+  "expected": "Il secondo parte entro un paio di secondi dalla fine del primo, non dopo i 10 secondi di RUN_DEFERRAL_MS; lo stesso per il terzo. Mai più di un run in corso insieme.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>ORG_MAX_CONCURRENT_RUNS=1</code>; un piano con un solo test API breve.</p>\n        <h4>Passi</h4>\n        <ol><li>Avviare tre run di seguito; annotare quando finisce il primo e quando parte il secondo (report o API).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il secondo parte entro un paio di secondi dalla fine del primo, non dopo i 10 secondi di <code>RUN_DEFERRAL_MS</code>; lo stesso per il terzo. Mai più di un run in corso insieme.</p>\n      "
+}

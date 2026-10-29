@@ -1,0 +1,16 @@
+{
+  "id": "SEC-25",
+  "area": "SEC",
+  "title": "Test mobili nei piani: isolamento",
+  "priority": "P1",
+  "actor": "owner.b · editor.a",
+  "preconditions": "MOB-06 nell'organizzazione A; owner.b ha una griglia BrowserStack e un test mobile nella B.",
+  "steps": [
+    "Come owner.b: POST /api/test-plans con selectedTests che contiene l'id del test mobile di A e type mobile.",
+    "PUT /api/mobile-tests/<test di B> con gridId della griglia di A.",
+    "Aggiungi Suite di Test nella procedura guidata di un piano di B.",
+    "Come editor.a: leggere il report del run di MOB-06 e i log del server."
+  ],
+  "expected": "1: 400 «One or more selected tests do not exist.». 2: 404 «Grid not found.». 3: compaiono solo i test di B. 4: la chiave della griglia non compare nel report (passi, motivo, log) né nei log.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-06 nell'organizzazione A; owner.b ha una griglia BrowserStack e un test mobile nella B.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b: <code>POST /api/test-plans</code> con selectedTests che contiene l'id del test mobile di A e type <code>mobile</code>.</li><li><code>PUT /api/mobile-tests/&lt;test di B&gt;</code> con gridId della griglia di A.</li><li>Aggiungi Suite di Test nella procedura guidata di un piano di B.</li><li>Come editor.a: leggere il report del run di MOB-06 e i log del server.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: 400 «One or more selected tests do not exist.». 2: 404 «Grid not found.». 3: compaiono solo i test di B. 4: la chiave della griglia non compare nel report (passi, motivo, log) né nei log.</p>\n      "
+}

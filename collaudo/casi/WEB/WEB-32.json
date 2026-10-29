@@ -1,0 +1,14 @@
+{
+  "id": "WEB-32",
+  "area": "WEB",
+  "title": "Ripeti finché, e il ciclo che non finisce",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Il primo test cancella tutti gli elementi e passa. Il secondo si ferma dopo 200 passaggi con un errore che dice che la condizione non è mai diventata falsa; il worker torna libero.",
+  "steps": [
+    "/add_remove_elements/: Ripeti 4 volte il click su «Add Element»; poi Ripeti finché con elemento .added-manually e condizione exists; dentro Click su .added-manually; Fine ciclo; Verifica Conteggio ==0.",
+    "In un altro test: Ripeti finché senza elemento con condizione true e dentro un Attendi 10; Fine ciclo."
+  ],
+  "expected": "Il primo test cancella tutti gli elementi e passa. Il secondo si ferma dopo 200 passaggi con un errore che dice che la condizione non è mai diventata falsa; il worker torna libero.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>/add_remove_elements/: Ripeti 4 volte il click su «Add Element»; poi <b>Ripeti finché</b> con elemento <code>.added-manually</code> e condizione <code>exists</code>; dentro Click su <code>.added-manually</code>; <b>Fine ciclo</b>; Verifica Conteggio <code>==0</code>.</li><li>In un altro test: <b>Ripeti finché</b> senza elemento con condizione <code>true</code> e dentro un Attendi <code>10</code>; <b>Fine ciclo</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il primo test cancella tutti gli elementi e passa. Il secondo si ferma dopo 200 passaggi con un errore che dice che la condizione non è mai diventata falsa; il worker torna libero.</p>\n      "
+}

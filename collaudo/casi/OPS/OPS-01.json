@@ -1,0 +1,14 @@
+{
+  "id": "OPS-01",
+  "area": "OPS",
+  "title": "Installazione pulita",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "migrate termina, poi partono api e worker. La chiamata anonima risponde 401. Impostazioni → Runner mostra i worker online.",
+  "steps": [
+    "docker compose up -d --build su una macchina nuova.",
+    "curl -i $WFM_URL/api/user."
+  ],
+  "expected": "migrate termina, poi partono api e worker. La chiamata anonima risponde 401. Impostazioni → Runner mostra i worker online.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><code>docker compose up -d --build</code> su una macchina nuova.</li><li><code>curl -i $WFM_URL/api/user</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\"><code>migrate</code> termina, poi partono <code>api</code> e <code>worker</code>. La chiamata anonima risponde 401. Impostazioni → Runner mostra i worker online.</p>\n      "
+}

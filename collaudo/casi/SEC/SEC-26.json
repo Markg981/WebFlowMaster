@@ -1,0 +1,16 @@
+{
+  "id": "SEC-26",
+  "area": "SEC",
+  "title": "Test mobili in suite, requisiti e casi: isolamento",
+  "priority": "P1",
+  "actor": "owner.b · editor.a",
+  "preconditions": "MOB-10..12 nell'organizzazione A.",
+  "steps": [
+    "Come owner.b: POST /api/suites statica con items che contengono l'id del test mobile di A e type mobile.",
+    "PUT /api/requirements/<requisito di B>/tests con lo stesso test.",
+    "PUT /api/test-management/<connessione di B>/cases con lo stesso test e una chiave.",
+    "GET /api/test-management/<connessione di B>/cases."
+  ],
+  "expected": "1–2: 400 «One or more mobile tests do not exist.». 3: 400 «One or more tests do not exist.». 4: l'elenco non contiene test di A. In nessun caso si crea una riga che nomina un test di A.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-10..12 nell'organizzazione A.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b: <code>POST /api/suites</code> statica con items che contengono l'id del test mobile di A e type <code>mobile</code>.</li><li><code>PUT /api/requirements/&lt;requisito di B&gt;/tests</code> con lo stesso test.</li><li><code>PUT /api/test-management/&lt;connessione di B&gt;/cases</code> con lo stesso test e una chiave.</li><li><code>GET /api/test-management/&lt;connessione di B&gt;/cases</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1–2: 400 «One or more mobile tests do not exist.». 3: 400 «One or more tests do not exist.». 4: l'elenco non contiene test di A. In nessun caso si crea una riga che nomina un test di A.</p>\n      "
+}

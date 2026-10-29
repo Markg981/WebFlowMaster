@@ -1,0 +1,16 @@
+{
+  "id": "ACC-14",
+  "area": "ACC",
+  "title": "Link di reset indipendente dall'header Host",
+  "priority": "P2",
+  "actor": "nessuno",
+  "preconditions": "In produzione con WEBFLOW_PUBLIC_URL impostato, invio email attivo.",
+  "steps": [
+    "Avviare il server con NODE_ENV=production senza WEBFLOW_PUBLIC_URL: l'avvio viene rifiutato con un errore che nomina la variabile.",
+    "Impostare WEBFLOW_PUBLIC_URL=https://wfm.example.com e riavviare.",
+    "Richiedere il reset password con curl -H 'Host: evil.example' per un account esistente.",
+    "Aprire l'email ricevuta."
+  ],
+  "expected": "Il link nell'email inizia con https://wfm.example.com e non contiene evil.example.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>In produzione con WEBFLOW_PUBLIC_URL impostato, invio email attivo.</p>\n        <h4>Passi</h4>\n        <ol><li>Avviare il server con NODE_ENV=production senza WEBFLOW_PUBLIC_URL: l'avvio viene rifiutato con un errore che nomina la variabile.</li><li>Impostare WEBFLOW_PUBLIC_URL=https://wfm.example.com e riavviare.</li><li>Richiedere il reset password con curl -H 'Host: evil.example' per un account esistente.</li><li>Aprire l'email ricevuta.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il link nell'email inizia con https://wfm.example.com e non contiene evil.example.</p>\n      "
+}

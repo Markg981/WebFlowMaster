@@ -1,0 +1,15 @@
+{
+  "id": "SSO-17",
+  "area": "SSO",
+  "title": "Certificato o metadati non validi",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "SSO-13.",
+  "steps": [
+    "Incollare nel certificato un testo qualsiasi; Salva.",
+    "Incollare metadati con una riga <!DOCTYPE …>; Leggi i metadati.",
+    "Rimettere i metadati corretti; in Keycloak ruotare le chiavi del realm (Realm settings → Keys) senza aggiornare WebFlowMaster, poi accedere con SSO."
+  ],
+  "expected": "1: rifiutato con «certificato non valido». 2: rifiutato, nessun campo compilato. 3: l'accesso torna su /auth con errore del provider; il registro di audit ha l'accesso rifiutato. Reincollati i metadati, l'accesso riesce.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-13.</p>\n        <h4>Passi</h4>\n        <ol><li>Incollare nel certificato un testo qualsiasi; <b>Salva</b>.</li><li>Incollare metadati con una riga &lt;!DOCTYPE …&gt;; <b>Leggi i metadati</b>.</li><li>Rimettere i metadati corretti; in Keycloak ruotare le chiavi del realm (Realm settings → Keys) senza aggiornare WebFlowMaster, poi accedere con SSO.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: rifiutato con «certificato non valido». 2: rifiutato, nessun campo compilato. 3: l'accesso torna su /auth con errore del provider; il registro di audit ha l'accesso rifiutato. Reincollati i metadati, l'accesso riesce.</p>\n      "
+}

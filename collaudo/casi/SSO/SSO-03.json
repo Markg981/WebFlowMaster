@@ -1,0 +1,14 @@
+{
+  "id": "SSO-03",
+  "area": "SSO",
+  "title": "Stesso account anche se l'e-mail cambia",
+  "priority": "P1",
+  "actor": "nessuno",
+  "preconditions": "SSO-02.",
+  "steps": [
+    "In Keycloak cambiare l'e-mail di anna in anna.rossi@acme.test.",
+    "Accedere di nuovo con SSO."
+  ],
+  "expected": "Si entra nello stesso account (stessi test, stesso ruolo): l'identità è legata all'utente Keycloak, non all'indirizzo.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-02.</p>\n        <h4>Passi</h4>\n        <ol><li>In Keycloak cambiare l'e-mail di anna in <code>anna.rossi@acme.test</code>.</li><li>Accedere di nuovo con SSO.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Si entra nello stesso account (stessi test, stesso ruolo): l'identità è legata all'utente Keycloak, non all'indirizzo.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "OPS-29",
+  "area": "OPS",
+  "title": "Ripristino applicativo isolato completo",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "Docker e Chromium disponibili; checkout aggiornato e risorse per due stack temporanei.",
+  "steps": [
+    "Eseguire npm run test:restore-drill e npm run backup:drill dalla radice.",
+    "Allegare recovery.json, screenshot e hash secondo collaudo/application-restore-drill.md."
+  ],
+  "expected": "Exit 0; DB/RLS e archivi ripristinati; login riuscito; report storico con evidenze identiche; altro tenant escluso; nuovo run con segreto decifrato riuscito.",
+  "detailHtml": "<h4>Precondizioni</h4><p>Docker e Chromium disponibili; checkout aggiornato e risorse per due stack temporanei.</p><h4>Passi</h4><ol><li>Eseguire npm run test:restore-drill e npm run backup:drill dalla radice.</li><li>Allegare recovery.json, screenshot e hash secondo collaudo/application-restore-drill.md.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Exit 0; DB/RLS e archivi ripristinati; login riuscito; report storico con evidenze identiche; altro tenant escluso; nuovo run con segreto decifrato riuscito.</p>"
+}

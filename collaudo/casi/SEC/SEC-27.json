@@ -1,0 +1,15 @@
+{
+  "id": "SEC-27",
+  "area": "SEC",
+  "title": "Inspector: sessioni altrui e chiave della griglia",
+  "priority": "P1",
+  "actor": "owner.b · editor.a",
+  "preconditions": "Un inspector aperto da editor.a (MOB-13); prendere il suo id dalla risposta di POST /api/mobile-inspector.",
+  "steps": [
+    "Come owner.b: GET /api/mobile-inspector/<id>, POST /api/mobile-inspector/<id>/actions, DELETE /api/mobile-inspector/<id>.",
+    "Come owner.b: POST /api/mobile-inspector con il gridId della griglia di A.",
+    "Come editor.a: aprire l'inspector con un dispositivo inesistente (Google Pixel 99); leggere la risposta e il log di audit."
+  ],
+  "expected": "1: 404 «The inspector session has ended…» per tutte e tre; la sessione di A resta aperta. 2: 404 «Grid not found.». 3: 502 con il motivo della griglia, senza la chiave; in audit «Inspector aperto su un dispositivo» con griglia, dispositivo e piattaforma, anche quando il dispositivo non è stato trovato.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un inspector aperto da editor.a (MOB-13); prendere il suo id dalla risposta di POST /api/mobile-inspector.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b: <code>GET /api/mobile-inspector/&lt;id&gt;</code>, <code>POST /api/mobile-inspector/&lt;id&gt;/actions</code>, <code>DELETE /api/mobile-inspector/&lt;id&gt;</code>.</li><li>Come owner.b: POST /api/mobile-inspector con il gridId della griglia di A.</li><li>Come editor.a: aprire l'inspector con un dispositivo inesistente (<code>Google Pixel 99</code>); leggere la risposta e il log di audit.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: 404 «The inspector session has ended…» per tutte e tre; la sessione di A resta aperta. 2: 404 «Grid not found.». 3: 502 con il motivo della griglia, senza la chiave; in audit «Inspector aperto su un dispositivo» con griglia, dispositivo e piattaforma, anche quando il dispositivo non è stato trovato.</p>\n      "
+}

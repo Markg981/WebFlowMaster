@@ -1,0 +1,15 @@
+{
+  "id": "SEC-61",
+  "area": "SEC",
+  "title": "Quick start: ogni porta pubblicata solo su 127.0.0.1",
+  "priority": "P1",
+  "actor": "admin",
+  "preconditions": "Catalogo versione 68. Docker Compose 2.24 o successivo. Il repository con un .env generato come nel README. Una seconda macchina sulla stessa rete.",
+  "steps": [
+    "Eseguire docker compose up -d --build.",
+    "Eseguire docker compose ps e leggere la colonna PORTS.",
+    "Dalla seconda macchina provare a connettersi all'IP della prima sulle porte 5000, 5432, 6379, 8025 e 1025.",
+    "Eseguire node --test scripts/security/compose-bindings.test.mjs."
+  ],
+  "expected": "Passo 2: api 127.0.0.1:5000, postgres 127.0.0.1:5432, redis 127.0.0.1:6379, mailpit 127.0.0.1:8025 e 127.0.0.1:1025; nessuna porta su 0.0.0.0. Passo 3: ogni connessione rifiutata o in timeout. Passo 4: 9 test passati, nessuno saltato."
+}

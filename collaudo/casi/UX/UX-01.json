@@ -1,0 +1,13 @@
+{
+  "id": "UX-01",
+  "area": "UX",
+  "title": "Lingue dell'interfaccia",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Tutti i testi cambiano lingua; nessuna chiave tecnica visibile (tipo settings.sections…). Le voci ancora solo in inglese (modulo delle pianificazioni) sono note.",
+  "steps": [
+    "Impostazioni → Preferenze: italiano, inglese, francese, tedesco; per ognuna scorrere le pagine principali."
+  ],
+  "expected": "Tutti i testi cambiano lingua; nessuna chiave tecnica visibile (tipo settings.sections…). Le voci ancora solo in inglese (modulo delle pianificazioni) sono note.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Preferenze: italiano, inglese, francese, tedesco; per ognuna scorrere le pagine principali.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Tutti i testi cambiano lingua; nessuna chiave tecnica visibile (tipo <code>settings.sections…</code>). Le voci ancora solo in inglese (modulo delle pianificazioni) sono note.</p>\n      "
+}

@@ -1,0 +1,16 @@
+{
+  "id": "MOB-05",
+  "area": "MOB",
+  "title": "Griglia sbagliata, permessi, eliminazione",
+  "priority": "P2",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "MOB-01; una griglia «server Playwright» nelle impostazioni.",
+  "steps": [
+    "Aprire Esegui sul test e guardare l'elenco delle griglie.",
+    "Con l'API: POST /api/mobile-tests/<id>/runs con gridId del server Playwright.",
+    "Come viewer.a aprire App mobili.",
+    "Come editor.a eliminare il test."
+  ],
+  "expected": "1: nel dialogo compaiono solo le griglie BrowserStack/LambdaTest. 2: 400 «… is a Playwright server, which runs browsers only…». 3: il viewer vede l'elenco senza Nuovo test, Esegui, Modifica, Elimina. 4: il test e le sue esecuzioni spariscono; l'app resta sulla griglia; audit mobile_test.deleted.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-01; una griglia «server Playwright» nelle impostazioni.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire <b>Esegui</b> sul test e guardare l'elenco delle griglie.</li><li>Con l'API: POST /api/mobile-tests/&lt;id&gt;/runs con gridId del server Playwright.</li><li>Come viewer.a aprire App mobili.</li><li>Come editor.a eliminare il test.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: nel dialogo compaiono solo le griglie BrowserStack/LambdaTest. 2: 400 «… is a Playwright server, which runs browsers only…». 3: il viewer vede l'elenco senza Nuovo test, Esegui, Modifica, Elimina. 4: il test e le sue esecuzioni spariscono; l'app resta sulla griglia; audit mobile_test.deleted.</p>\n      "
+}

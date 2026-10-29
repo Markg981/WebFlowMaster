@@ -1,0 +1,14 @@
+{
+  "id": "SEC-65",
+  "area": "SEC",
+  "title": "Nessuna credenziale nel file Playwright esportato",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 79. Un test web con una precondizione che ha l’header Authorization «Bearer {{token}}», un secondo con Authorization «Bearer abc123» scritto a mano, un terzo con un dataset che ha una colonna password.",
+  "steps": [
+    "Esportare il primo test in bozza e in strict.",
+    "Esportare il secondo in strict, poi in bozza.",
+    "Esportare il terzo in bozza."
+  ],
+  "expected": "1: entrambi riusciti; il file contiene «{{token}}» e legge il valore da WFM_TOKEN al momento del run; nessun valore segreto nel file. 2: strict dà 422 con un rilievo nell’area «secrets»; la bozza non contiene «abc123» e fallisce al passo con la credenziale. 3: la colonna password non compare nel file ed è elencata tra i rilievi."
+}

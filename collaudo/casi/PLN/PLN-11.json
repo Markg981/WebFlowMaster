@@ -1,0 +1,14 @@
+{
+  "id": "PLN-11",
+  "area": "PLN",
+  "title": "Coda e limiti dell'organizzazione",
+  "priority": "P2",
+  "actor": "operatore · editor.a",
+  "preconditions": "ORG_MAX_CONCURRENT_RUNS=1, ORG_MAX_QUEUED_RUNS=2.",
+  "steps": [
+    "Avviare quattro run di seguito.",
+    "Guardare Impostazioni → Utilizzo dei run."
+  ],
+  "expected": "Uno è in corso, due in coda, il quarto è rifiutato con un messaggio sulla coda piena. Utilizzo dei run mostra i numeri corretti.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>ORG_MAX_CONCURRENT_RUNS=1</code>, <code>ORG_MAX_QUEUED_RUNS=2</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Avviare quattro run di seguito.</li><li>Guardare Impostazioni → Utilizzo dei run.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Uno è in corso, due in coda, il quarto è rifiutato con un messaggio sulla coda piena. Utilizzo dei run mostra i numeri corretti.</p>\n      "
+}

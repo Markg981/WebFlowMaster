@@ -1,0 +1,14 @@
+{
+  "id": "MEM-04",
+  "area": "MEM",
+  "title": "Il viewer legge ma non modifica",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Nessun pulsante per creare, modificare, eseguire o eliminare. La chiamata diretta risponde 403.",
+  "steps": [
+    "Scorrere Libreria, Piani di test, Report, Tester API, Impostazioni.",
+    "Dalla console del browser: fetch('/api/tests', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'})."
+  ],
+  "expected": "Nessun pulsante per creare, modificare, eseguire o eliminare. La chiamata diretta risponde 403.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Scorrere Libreria, Piani di test, Report, Tester API, Impostazioni.</li><li>Dalla console del browser: <code>fetch('/api/tests', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'})</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nessun pulsante per creare, modificare, eseguire o eliminare. La chiamata diretta risponde 403.</p>\n      "
+}

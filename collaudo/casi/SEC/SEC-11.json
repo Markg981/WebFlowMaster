@@ -1,0 +1,13 @@
+{
+  "id": "SEC-11",
+  "area": "SEC",
+  "title": "Dipendenze",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Nessuna vulnerabilità nelle dipendenze di produzione, o ciascuna motivata in docs/SECURITY-AUDIT.md.",
+  "steps": [
+    "npm audit --omit=dev sulla versione collaudata."
+  ],
+  "expected": "Nessuna vulnerabilità nelle dipendenze di produzione, o ciascuna motivata in docs/SECURITY-AUDIT.md.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><code>npm audit --omit=dev</code> sulla versione collaudata.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nessuna vulnerabilità nelle dipendenze di produzione, o ciascuna motivata in <code>docs/SECURITY-AUDIT.md</code>.</p>\n      "
+}

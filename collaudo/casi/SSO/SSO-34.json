@@ -1,0 +1,12 @@
+{
+  "id": "SSO-34",
+  "area": "SSO",
+  "title": "Revoca dei log live",
+  "priority": "P1",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Aprire un WebSocket dei log con sessione SAML, revocarla tramite SLO e produrre un nuovo log."
+  ],
+  "expected": "Nessun nuovo log ricevuto; socket chiuso quando viene verificato e nuovi upgrade rifiutati."
+}

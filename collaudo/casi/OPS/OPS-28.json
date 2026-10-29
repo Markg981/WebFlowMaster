@@ -1,0 +1,13 @@
+{
+  "id": "OPS-28",
+  "area": "OPS",
+  "title": "Recupero durante carico e riavvio controllato",
+  "priority": "P1",
+  "actor": "operatore collaudo",
+  "preconditions": "Stessi prerequisiti OPS-27; ambiente sacrificabile con backup verificato e finestra autorizzata di riavvio; registrare ID e stato dei run prima del riavvio. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "Avviare un carico prolungato e riavviare controllatamente worker o agente durante run in coda/in esecuzione.",
+    "Attendere il recupero e riconciliare ogni ID con esito terminale; verificare nuovi run schedulati e accessibilità degli artefatti già conclusi."
+  ],
+  "expected": "Nessun ID perso o duplicato; recovery e retry rispettano la configurazione, i run interrotti hanno esito esplicito e gli artefatti conclusi restano leggibili. Registrare tempi di recupero osservati senza dedurli dai test unitari."
+}

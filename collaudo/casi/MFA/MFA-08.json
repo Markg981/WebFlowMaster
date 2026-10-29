@@ -1,0 +1,16 @@
+{
+  "id": "MFA-08",
+  "area": "MFA",
+  "title": "Secondo fattore obbligatorio per l'organizzazione",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "owner.a senza secondo fattore; editor.a con una sessione aperta e senza secondo fattore.",
+  "steps": [
+    "Provare ad attivare Richiedilo a ogni membro.",
+    "Attivare il secondo fattore per owner.a, poi attivare la richiesta.",
+    "Nella sessione di editor.a cliccare una voce qualsiasi.",
+    "Con una chiave API di editor.a chiamare GET /api/v1/plans."
+  ],
+  "expected": "Senza secondo fattore proprio l'owner non può attivare la richiesta. Dopo, editor.a vede solo la configurazione del secondo fattore, anche nella sessione già aperta. La chiave API continua a funzionare. Con la richiesta attiva nessun membro può disattivarlo. Audit mfa.policy_changed.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>owner.a senza secondo fattore; editor.a con una sessione aperta e senza secondo fattore.</p>\n        <h4>Passi</h4>\n        <ol><li>Provare ad attivare <b>Richiedilo a ogni membro</b>.</li><li>Attivare il secondo fattore per owner.a, poi attivare la richiesta.</li><li>Nella sessione di editor.a cliccare una voce qualsiasi.</li><li>Con una chiave API di editor.a chiamare <code>GET /api/v1/plans</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Senza secondo fattore proprio l'owner non può attivare la richiesta. Dopo, editor.a vede solo la configurazione del secondo fattore, anche nella sessione già aperta. La chiave API continua a funzionare. Con la richiesta attiva nessun membro può disattivarlo. Audit <b>mfa.policy_changed</b>.</p>\n      "
+}

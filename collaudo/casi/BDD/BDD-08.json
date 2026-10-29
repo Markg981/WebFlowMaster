@@ -1,0 +1,12 @@
+{
+  "id": "BDD-08",
+  "area": "BDD",
+  "title": "Timeout, annullamento e limiti",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Eseguire scenari che superano deadline, output o allegati; annullare e scollegare l’agente durante un child con discendenti."
+  ],
+  "expected": "Esito non superato, processi posseduti terminati, directory temporanea rimossa; limiti di 8 MiB e 1 MiB rispettati."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "SSO-22",
+  "area": "SSO",
+  "title": "Verifica del dominio via DNS",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "SSO-01 salvato con il dominio acme.test.",
+  "steps": [
+    "Nella scheda, sezione Verifica dei domini: leggere il record TXT di acme.test.",
+    "Premere Verifica.",
+    "Aggiungere il dominio acme.example; Salva.",
+    "Riavviare il processo web con SSO_REQUIRE_DOMAIN_VERIFICATION=true; ricaricare la scheda e provare Sign in with SSO con anna@acme.test."
+  ],
+  "expected": "1: record _wfm-verification.acme.test con valore wfm-verification= seguito da 32 cifre esadecimali, stato «non verificato». 2: messaggio «No TXT record at _wfm-verification.acme.test» (i domini .test non hanno DNS). 3: acme.test mantiene lo stesso token; acme.example compare con un token suo. 4: la scheda dice che un dominio non fa accedere nessuno finché non è verificato; l'accesso SSO torna su /auth con dominio sconosciuto. Togliere la variabile al termine.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-01 salvato con il dominio acme.test.</p>\n        <h4>Passi</h4>\n        <ol><li>Nella scheda, sezione <b>Verifica dei domini</b>: leggere il record TXT di acme.test.</li><li>Premere <b>Verifica</b>.</li><li>Aggiungere il dominio acme.example; <b>Salva</b>.</li><li>Riavviare il processo web con SSO_REQUIRE_DOMAIN_VERIFICATION=true; ricaricare la scheda e provare <b>Sign in with SSO</b> con anna@acme.test.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: record _wfm-verification.acme.test con valore wfm-verification= seguito da 32 cifre esadecimali, stato «non verificato». 2: messaggio «No TXT record at _wfm-verification.acme.test» (i domini .test non hanno DNS). 3: acme.test mantiene lo stesso token; acme.example compare con un token suo. 4: la scheda dice che un dominio non fa accedere nessuno finché non è verificato; l'accesso SSO torna su /auth con dominio sconosciuto. Togliere la variabile al termine.</p>\n      "
+}

@@ -1,0 +1,13 @@
+{
+  "id": "REP-12",
+  "area": "REP",
+  "title": "Esito Bloccato",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "PLN-23 terminato.",
+  "steps": [
+    "Registrare Bloccato con nota Stampante guasta."
+  ],
+  "expected": "Il test conta tra i saltati, non tra i falliti; lo stato del run non peggiora. Il motivo mostrato è la nota.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-23 terminato.</p>\n        <h4>Passi</h4>\n        <ol><li>Registrare <b>Bloccato</b> con nota <code>Stampante guasta</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il test conta tra i saltati, non tra i falliti; lo stato del run non peggiora. Il motivo mostrato è la nota.</p>\n      "
+}

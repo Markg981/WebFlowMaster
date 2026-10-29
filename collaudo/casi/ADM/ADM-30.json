@@ -1,0 +1,15 @@
+{
+  "id": "ADM-30",
+  "area": "ADM",
+  "title": "Retention opzionale di audit ed evidenze",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "AUDIT_LOG_RETENTION_DAYS ed EVIDENCE_RETENTION_DAYS non impostate; voci di audit e tentativi vecchi di oltre 400 giorni.",
+  "steps": [
+    "Con le variabili non impostate, attendere uno sweep (o riavviare): le voci restano.",
+    "Impostare <code>AUDIT_LOG_RETENTION_DAYS=365</code> e riavviare.",
+    "Impostare <code>EVIDENCE_RETENTION_DAYS=365</code> e riavviare."
+  ],
+  "expected": "Senza variabili non viene eliminato nulla. Con la prima sparisce solo l'audit oltre 365 giorni; con la seconda i riferimenti alle evidenze dei tentativi vecchi sono svuotati ma tentativo ed esito restano.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>AUDIT_LOG_RETENTION_DAYS</code> ed <code>EVIDENCE_RETENTION_DAYS</code> non impostate; voci di audit e tentativi vecchi di oltre 400 giorni.</p>\n        <h4>Passi</h4>\n        <ol><li>Con le variabili non impostate, attendere uno sweep (o riavviare): le voci restano.</li><li>Impostare <code>AUDIT_LOG_RETENTION_DAYS=365</code> e riavviare.</li><li>Impostare <code>EVIDENCE_RETENTION_DAYS=365</code> e riavviare.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Senza variabili non viene eliminato nulla. Con la prima sparisce solo l'audit oltre 365 giorni; con la seconda i riferimenti alle evidenze dei tentativi vecchi sono svuotati ma tentativo ed esito restano.</p>\n      "
+}

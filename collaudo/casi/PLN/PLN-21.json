@@ -1,0 +1,14 @@
+{
+  "id": "PLN-21",
+  "area": "PLN",
+  "title": "Testi diversi per lingua e formati",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Ciascuna passata verifica il testo della propria lingua e passa. In tedesco navigator.language vale de-DE e il numero usa la virgola decimale. Con test visivi attivi, ogni lingua ha le proprie baseline.",
+  "steps": [
+    "Test su una pagina della propria applicazione tradotta: Se {{locale}} == it-IT → Verifica Testo Contenuto del testo italiano; Altrimenti → quello inglese; Fine se. Piano con lingue it-IT, en-US; eseguire.",
+    "In un test aggiungere Esegui JavaScript return navigator.language === '{{locale}}' && (1234.5).toLocaleString().includes(',') e lingua de-DE."
+  ],
+  "expected": "Ciascuna passata verifica il testo della propria lingua e passa. In tedesco navigator.language vale de-DE e il numero usa la virgola decimale. Con test visivi attivi, ogni lingua ha le proprie baseline.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Test su una pagina della propria applicazione tradotta: <b>Se</b> <code>{{locale}} == it-IT</code> → Verifica Testo Contenuto del testo italiano; <b>Altrimenti</b> → quello inglese; <b>Fine se</b>. Piano con lingue <code>it-IT, en-US</code>; eseguire.</li><li>In un test aggiungere <b>Esegui JavaScript</b> <code>return navigator.language === '{{locale}}' &amp;&amp; (1234.5).toLocaleString().includes(',')</code> e lingua <code>de-DE</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ciascuna passata verifica il testo della propria lingua e passa. In tedesco navigator.language vale de-DE e il numero usa la virgola decimale. Con test visivi attivi, ogni lingua ha le proprie baseline.</p>\n      "
+}

@@ -1,0 +1,12 @@
+{
+  "id": "ADM-17",
+  "area": "ADM",
+  "title": "Callback duplicato",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Reinviare lo stesso evento firmato con identico eventId e messageId."
+  ],
+  "expected": "Nessuna duplicazione dell'evento."
+}

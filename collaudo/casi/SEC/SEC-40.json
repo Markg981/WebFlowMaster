@@ -1,0 +1,13 @@
+{
+  "id": "SEC-40",
+  "area": "SEC",
+  "title": "API: viewer non modifica le pubblicazioni",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A con review pendente richiesta da editor.a. Viewer.a può leggere il progetto.",
+  "steps": [
+    "Come viewer.a leggere la cronologia.",
+    "Tentare ripristino, pubblicazione, rollback, richiesta review e decisione tramite richieste autenticate."
+  ],
+  "expected": "La cronologia accessibile è leggibile; tutte le operazioni di modifica riservate agli editor sono rifiutate, senza cambi a versione, review o pubblicazione."
+}

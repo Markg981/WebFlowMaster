@@ -1,0 +1,16 @@
+{
+  "id": "ACC-08",
+  "area": "ACC",
+  "title": "Cambiare la propria password",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Due sessioni di editor.a aperte in due browser.",
+  "steps": [
+    "Impostazioni → Account: password attuale sbagliata → rifiutata.",
+    "Nuova password di 7 caratteri → rifiutata.",
+    "Password attuale giusta e nuova valida → salvare.",
+    "Nel secondo browser cliccare una voce qualsiasi."
+  ],
+  "expected": "Il cambio riesce solo con la password attuale giusta. La sessione corrente resta aperta; l'altra viene chiusa alla richiesta successiva. Audit auth.password_changed, senza la password.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Due sessioni di editor.a aperte in due browser.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Account: password attuale sbagliata → rifiutata.</li><li>Nuova password di 7 caratteri → rifiutata.</li><li>Password attuale giusta e nuova valida → salvare.</li><li>Nel secondo browser cliccare una voce qualsiasi.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il cambio riesce solo con la password attuale giusta. La sessione corrente resta aperta; l'altra viene chiusa alla richiesta successiva. Audit <b>auth.password_changed</b>, senza la password.</p>\n      "
+}

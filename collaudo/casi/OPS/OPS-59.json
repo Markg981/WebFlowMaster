@@ -1,0 +1,13 @@
+{
+  "id": "OPS-59",
+  "area": "OPS",
+  "title": "Errore transitorio del database alla chiusura del run: il verdetto viene registrato",
+  "priority": "P1",
+  "actor": "Operatore",
+  "preconditions": "Un piano con test che passano; possibilità di interrompere il database per pochi secondi alla fine del run.",
+  "steps": [
+    "Avviare il piano e, appena i test finiscono, interrompere il database per 1 secondo.",
+    "Aprire il run."
+  ],
+  "expected": "1: avviato. 2: il run ha lo stato passed (la transizione finale viene ritentata), non worker_lost."
+}

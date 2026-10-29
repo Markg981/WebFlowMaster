@@ -1,0 +1,15 @@
+{
+  "id": "LIB-03",
+  "area": "LIB",
+  "title": "Pubblicare una versione",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Revisioni non obbligatorie; test con versioni 1–3; un piano che lo include.",
+  "steps": [
+    "Pubblicare la versione 2.",
+    "Salvare una modifica (versione 4) ed eseguire il piano.",
+    "Dalla cronologia Torna a questa sulla versione 1 pubblicata in precedenza (se c'è), altrimenti pubblicarne un'altra."
+  ],
+  "expected": "Il pannello indica «I piani eseguono la versione 2» e che la 4 non è pubblicata; il piano esegue la versione 2 (verificare gli step nel report).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Revisioni non obbligatorie; test con versioni 1–3; un piano che lo include.</p>\n        <h4>Passi</h4>\n        <ol><li>Pubblicare la versione 2.</li><li>Salvare una modifica (versione 4) ed eseguire il piano.</li><li>Dalla cronologia <b>Torna a questa</b> sulla versione 1 pubblicata in precedenza (se c'è), altrimenti pubblicarne un'altra.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il pannello indica «I piani eseguono la versione 2» e che la 4 non è pubblicata; il piano esegue la versione 2 (verificare gli step nel report).</p>\n      "
+}

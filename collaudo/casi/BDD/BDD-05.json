@@ -1,0 +1,12 @@
+{
+  "id": "BDD-05",
+  "area": "BDD",
+  "title": "Profili, ruoli e progetti riservati",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Creare un binding con owner.a; provare modifica con editor.a, lettura senza membership e accesso da organizzazione B; cambiare pool mantenendo identità/revisione."
+  ],
+  "expected": "RLS e ruoli impediscono accessi estranei; il binding pubblicato non può essere rediretto mantenendo UUID/revisione."
+}

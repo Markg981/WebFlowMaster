@@ -1,0 +1,15 @@
+{
+  "id": "REP-35",
+  "area": "REP",
+  "title": "Storage delle baseline non raggiungibile o screenshot non acquisibile: Error con la causa",
+  "priority": "P1",
+  "actor": "amministratore",
+  "preconditions": "Catalogo versione 70. Un piano con Test visivi attivo e un test UI che apre una pagina stabile; il piano è già stato eseguito una volta, quindi le baseline esistono. Ambiente di collaudo con storage S3/MinIO configurato e fermabile.",
+  "steps": [
+    "Fermare il servizio di storage (MinIO) lasciando attivi server e worker.",
+    "Eseguire il piano.",
+    "Aprire il report e il dettaglio degli step.",
+    "Riavviare lo storage e rieseguire il piano."
+  ],
+  "expected": "Con lo storage fermo il test è Error, lo step riporta la causa storage-unavailable, il run non conta il test come superato né come differenza visiva; la policy 'stop on step failure' non lo tratta come fallimento di uno step dell'applicazione. Con lo storage di nuovo attivo il test torna Passed (match)."
+}

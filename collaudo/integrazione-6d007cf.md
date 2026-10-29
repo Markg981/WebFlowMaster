@@ -2,7 +2,7 @@
 
 Versione di riferimento: commit `6d007cf`, branch `claude/vibrant-allen-8mh32x`.
 
-Integrazione applicata al catalogo locale `collaudo/casi.json`, versione 16 con 404 casi, a partire dai 358 casi dell’artifact versione 15 consultato il 2026-10-02. I 46 nuovi ID proseguono la numerazione esistente. Il replay SAML è già coperto da SSO-15 e non viene duplicato. ID, ciclo visibile, esiti e note precedenti sono stati conservati nella migrazione locale. Tutti i nuovi casi sono **Da eseguire**: il superamento delle suite automatiche non costituisce l’esito del collaudo manuale.
+Integrazione applicata al catalogo locale `collaudo/casi/`, versione 16 con 404 casi, a partire dai 358 casi dell’artifact versione 15 consultato il 2026-10-02. I 46 nuovi ID proseguono la numerazione esistente. Il replay SAML è già coperto da SSO-15 e non viene duplicato. ID, ciclo visibile, esiti e note precedenti sono stati conservati nella migrazione locale. Tutti i nuovi casi sono **Da eseguire**: il superamento delle suite automatiche non costituisce l’esito del collaudo manuale.
 
 Preparazione comune: installazione di collaudo aggiornata al commit, migrazioni fino alla 0074, organizzazioni A/B distinte, owner ed editor, progetto riservato e progetto accessibile, servizi API controllati, pagina web di prova per download e geolocalizzazione. Per SAML usare un IdP di prova; per email un relay di prova e un adattatore che produca callback firmati. Per SMS un numero di test o un simulatore del callback inbound. Non usare certificati o destinatari di produzione.
 

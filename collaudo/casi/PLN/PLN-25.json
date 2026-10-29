@@ -1,0 +1,15 @@
+{
+  "id": "PLN-25",
+  "area": "PLN",
+  "title": "Piano su BrowserStack con OS e versioni",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "PLN-24; un piano con due test.",
+  "steps": [
+    "Impostazioni del piano → Esegui su: «BrowserStack: BrowserStack».",
+    "Browser: chrome con OS Windows, versione 10, browser 120; chrome con OS macOS, versione Sonoma; firefox senza OS. Salvare, riaprire.",
+    "Eseguire il piano."
+  ],
+  "expected": "Con la griglia scelta ogni riga di browser mostra OS, versione OS e versione browser, e riaprendo sono conservati. Il log del run dice che i browser vengono dalla griglia, elencando «chrome 120 · Windows 10, chrome · macOS Sonoma, firefox»; nessun avviso «not applied». Il report ha 3 corsie per test con quelle etichette. Nella dashboard BrowserStack ogni test è una sessione col suo nome, raggruppata sotto «WebFlowMaster run <id>» e segnata passed/failed come nel report.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-24; un piano con due test.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni del piano → Esegui su: «BrowserStack: BrowserStack».</li><li>Browser: chrome con OS Windows, versione 10, browser 120; chrome con OS macOS, versione Sonoma; firefox senza OS. Salvare, riaprire.</li><li>Eseguire il piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con la griglia scelta ogni riga di browser mostra OS, versione OS e versione browser, e riaprendo sono conservati. Il log del run dice che i browser vengono dalla griglia, elencando «chrome 120 · Windows 10, chrome · macOS Sonoma, firefox»; nessun avviso «not applied». Il report ha 3 corsie per test con quelle etichette. Nella dashboard BrowserStack ogni test è una sessione col suo nome, raggruppata sotto «WebFlowMaster run &lt;id&gt;» e segnata passed/failed come nel report.</p>\n      "
+}

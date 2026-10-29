@@ -1,0 +1,12 @@
+{
+  "id": "API-64",
+  "area": "API",
+  "title": "Limiti RPC ed encoded",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "API/client aggiornati; fixture sintetiche collaudo/fixtures/wsdl; procedura collaudo/wsdl-expanded.md. Nuovo ciclo Da eseguire.",
+  "steps": [
+    "Provare style rpc e use encoded sul bundle; ripristinare document/literal e ripetere import."
+  ],
+  "expected": "RPC/encoded rifiutati; document/literal importato. Il supporto cliente richiede contratti reali ancora da validare."
+}

@@ -1,0 +1,12 @@
+{
+  "id": "WEB-65",
+  "area": "WEB",
+  "title": "Contenuto CSV",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Scaricare un CSV noto con celle quotate e configurare le verifiche previste di contenuto e righe."
+  ],
+  "expected": "Contenuto e struttura rilevati coerenti con il file; asserzioni soddisfatte."
+}

@@ -1,0 +1,12 @@
+{
+  "id": "API-23",
+  "area": "API",
+  "title": "Esecuzione SOAP e XPath",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Eseguire il test su un servizio noto; configurare un'asserzione XPath sul valore restituito."
+  ],
+  "expected": "La risposta XML viene verificata; il valore atteso produce un test riuscito."
+}
