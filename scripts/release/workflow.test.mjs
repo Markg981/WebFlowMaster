@@ -5,7 +5,8 @@ import { parse } from 'yaml';
 import { ROLES } from './model.mjs';
 
 const path = '.github/workflows/release.yml';
-const source = readFileSync(path, 'utf8');
+// Normalize CRLF so the multi-line regexes also pass on a Windows checkout with core.autocrlf.
+const source = readFileSync(path, 'utf8').replaceAll('\r\n', '\n');
 const workflow = parse(source);
 const jobs = workflow.jobs;
 const steps = (job) => jobs[job].steps;

@@ -1,0 +1,13 @@
+{
+  "id": "OPS-73",
+  "area": "OPS",
+  "title": "Variabili d'ambiente documentate: .env.example e guida di configurazione",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Repository aggiornato.",
+  "steps": [
+    "Eseguire npx vitest run server/tests/env-example.test.ts: ogni variabile letta dal codice server compare in .env.example o nell'elenco esplicito delle eccezioni.",
+    "Aprire docs/en/admin/configuration.md e docs/it/admin/configuration.md: WORK_CLAIM_LEASE_MS, WORK_CLAIM_MARGIN_MS, EXECUTION_OUTBOX_LEASE_MS, WFM_ELEMENT_TIMEOUT_MS e WFM_EGRESS_PROXY sono descritte."
+  ],
+  "expected": "Il test passa; le variabili operative sono documentate nelle due lingue."
+}
