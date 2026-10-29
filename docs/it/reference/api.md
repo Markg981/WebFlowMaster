@@ -77,7 +77,10 @@ nome.
 - **Errori**: sempre `{ "error": { "code": "…", "message": "…" } }`, con un `code` stabile su
   cui decidere e un `message` per le persone.
 - **Paginazione**: gli endpoint di elenco accettano `limit` (da 1 a 100, default 20) e `offset`
-  (default 0), e rispondono `{ "items": [...], "limit": 20, "offset": 0 }`.
+  (default 0), e rispondono `{ "items": [...], "limit": 20, "offset": 0 }`. Gli elenchi
+  dell'applicazione `GET /api/tests`, `/api/test-plans` e `/api/mobile-tests` rispondono ancora
+  con un array semplice, ora limitato a 1000 righe (`limit` da 1 a 1000, `offset`), con il totale
+  reale nell'intestazione `X-Total-Count`.
 - **Limite di frequenza**: ogni chiave può fare `API_RATE_LIMIT` richieste al minuto (600 di
   default). Oltre, la risposta è `429 rate_limited`, con `Retry-After` e gli header `RateLimit`.
 - **Idempotenza**: l'avvio di un run accetta un header `Idempotency-Key` (fino a 255 caratteri).
