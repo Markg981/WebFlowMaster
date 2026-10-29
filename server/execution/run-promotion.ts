@@ -4,6 +4,7 @@ import { isTerminalExecutionStatus, onExecutionTransition } from './execution-st
 import { runWithTenant, withTenantTransaction } from '../platform/middleware/tenancy';
 import { liveRunCounts, quotasFor } from '../tenancy/tenant-quotas';
 import { testExecutionQueue } from '../platform/queue';
+import logger from '../platform/logger';
 import { checkExecutionBudget } from '../tenancy/execution-usage';
 import { QuotaError } from '../tenancy/tenant-quotas';
 
@@ -88,7 +89,14 @@ export function registerRunPromotion(queue: PromotableQueue = testExecutionQueue
   registered?.();
   const off = onExecutionTransition(async (execution) => {
     if (!isTerminalExecutionStatus(execution.status)) return;
-    await promoteWaitingRuns(execution.organizationId, queue).catch(() => undefined);
+    await promoteWaitingRuns(execution.organizationId, queue).catch((error: unknown) => {
+      // A waiting run is then started by the next look, so this costs time, not the run.
+      logger.warn({
+        message: 'Could not promote waiting runs after a run ended',
+        organizationId: execution.organizationId,
+        error: (error as Error)?.message ?? String(error),
+      });
+    });
   });
   registered = () => {
     off();

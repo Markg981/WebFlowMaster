@@ -1,0 +1,12 @@
+{
+  "id": "REP-48",
+  "area": "REP",
+  "title": "Report con evidenze oltre quota",
+  "priority": "P2",
+  "actor": "visualizzatore",
+  "preconditions": "Run con artifactStorageStatus = quota_exceeded.",
+  "steps": [
+    "Aprire il report del run."
+  ],
+  "expected": "L'avviso indica la quota raggiunta; le immagini già conservate restano apribili; nessun nuovo tentativo di upload."
+}

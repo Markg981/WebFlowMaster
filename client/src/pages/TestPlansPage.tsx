@@ -202,7 +202,7 @@ const TestPlansPage: React.FC = () => {
           <TabsContent value="test-plan" className="mt-6">
             <>
               {isLoadingTestPlans && (
-                <div className="flex justify-center items-center py-10">
+                <div role="status" className="flex justify-center items-center py-10">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <p className="ml-2">{t('testSuitesPage.loadingTestPlans.text')}</p>
                 </div>

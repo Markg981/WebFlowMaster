@@ -352,29 +352,25 @@ describe('DashboardPageNew — overwriting a test', () => {
   };
 
   it('asks before replacing, then replaces the one that exists', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     failSaveWithConflict();
 
     await saveOnce();
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
 
     await waitFor(() => expect(mockApiRequest.mock.calls.some((c) => c[0] === 'PUT')).toBe(true));
 
-    expect(confirm).toHaveBeenCalled();
     const put = mockApiRequest.mock.calls.find((c) => c[0] === 'PUT')!;
     // The id from the conflict, so nobody has to go and look the test up first.
     expect(put[1]).toBe('/api/tests/77');
     expect(put[2]).toMatchObject({ name: SAVE_NAME, url: 'https://shop.test' });
-
-    confirm.mockRestore();
   });
 
   it('writes nothing when the prompt is declined', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     failSaveWithConflict();
 
     await saveOnce();
 
-    await waitFor(() => expect(confirm).toHaveBeenCalled());
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
 
     // No second request, and — the part that would be worst — no "Test saved" telling
     // someone their work is stored when it is not.
@@ -382,8 +378,6 @@ describe('DashboardPageNew — overwriting a test', () => {
       mockApiRequest.mock.calls.filter((c) => c[1]?.toString().startsWith('/api/tests')),
     ).toHaveLength(1);
     expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'Test saved' }));
-
-    confirm.mockRestore();
   });
 });
 

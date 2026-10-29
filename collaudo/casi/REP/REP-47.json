@@ -1,0 +1,12 @@
+{
+  "id": "REP-47",
+  "area": "REP",
+  "title": "Report con evidenze non salvate dopo errore dello storage",
+  "priority": "P2",
+  "actor": "visualizzatore",
+  "preconditions": "Run con artifactStorageStatus = error.",
+  "steps": [
+    "Aprire il report del run."
+  ],
+  "expected": "L'intestazione mostra l'avviso sulle evidenze non salvate; l'esito dei test è intatto."
+}

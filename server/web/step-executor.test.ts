@@ -1140,3 +1140,13 @@ describe('runBounded: a step the run can stop', () => {
     }
   });
 });
+
+describe('queued dialog answers nobody consumed', () => {
+  it('are counted so the run can report them', async () => {
+    const { queueDialogAnswer, unusedDialogAnswers } = await import('./step-executor');
+    const page = { on: () => undefined } as never;
+    expect(unusedDialogAnswers(page)).toBe(0);
+    queueDialogAnswer(page, { accept: true } as never);
+    expect(unusedDialogAnswers(page)).toBe(1);
+  });
+});

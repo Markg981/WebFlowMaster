@@ -247,6 +247,8 @@ Un set si usa in due modi:
   volta per riga del set, con le sue colonne come <code v-pre>{{colonna}}</code> — vedere
   [Dataset](./web-tests#dataset).
 
+Precedenza quando lo stesso nome è definito più volte, dalla più bassa alla più alta: URL di base predefinito, set di dati condivisi, valori e segreti dell'ambiente, poi le colonne della riga corrente del dataset. Una colonna di riga sostituisce un valore o un segreto dell'ambiente con lo stesso nome, quindi non dare a una colonna il nome di un segreto. Una run carica solo i set citati dal test.
+
 I nomi sono lettere minuscole, cifre e trattini bassi; le colonne lettere, cifre e trattini bassi,
 così un segnaposto può nominarle. Un set contiene fino a 1.000 righe e 50 colonne. Un set su cui
 gira un test non si può eliminare finché quel test non smette di usarlo; il rifiuto nomina i test.

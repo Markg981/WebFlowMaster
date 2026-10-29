@@ -1,0 +1,12 @@
+{
+  "id": "WEB-82",
+  "area": "WEB",
+  "title": "Salvataggio login state di una registrazione altrui rifiutato",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Due editor nella stessa organizzazione; l'editor A ha una registrazione aperta.",
+  "steps": [
+    "L'editor B chiama il salvataggio del login state indicando l'id di sessione di A."
+  ],
+  "expected": "1: risposta 404 e nessuno stato salvato sull'ambiente; il salvataggio di A funziona."
+}

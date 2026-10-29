@@ -9,11 +9,17 @@ import { parseControllersDir } from './netcontent/parse-controllers';
 import { mapEndpoints } from './netcontent/map-to-apitests';
 import { resolveUserId, findOrCreateProject, importApiTests } from './netcontent/importer';
 
-const DEFAULT_CONTROLLERS = String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\_NccNew\Controllers`;
-
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
-  const controllersDir = process.env.NETCONTENT_CONTROLLERS_DIR || DEFAULT_CONTROLLERS;
+  const controllersDir =
+    process.argv.slice(2).find((arg) => !arg.startsWith('--')) ||
+    process.env.NETCONTENT_CONTROLLERS_DIR;
+  if (!controllersDir) {
+    console.error(
+      'Usage: import-netcontent-api <controllers-dir> [--dry-run] (or set NETCONTENT_CONTROLLERS_DIR).',
+    );
+    process.exit(1);
+  }
   const baseUrlVar = process.env.NETCONTENT_BASE_URL_VAR || '{{baseUrl}}';
   const projectName = process.env.NETCONTENT_PROJECT_NAME || 'NetContent';
   const userOverride = process.env.WFM_IMPORT_USER_ID

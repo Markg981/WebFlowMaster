@@ -1,3 +1,4 @@
+import { useConfirm } from '@/hooks/use-confirm';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -17,6 +18,7 @@ import { Download, Loader2, Trash2 } from 'lucide-react';
 
 export default function ExportEraseCard({ onErased }: { onErased?: () => void }) {
   const { t } = useTranslation();
+  const { confirm, confirmDialog } = useConfirm();
   const { data } = useQuery<{ organization: { name: string } }>({
     queryKey: ['organization'],
     queryFn: async () => {
@@ -54,16 +56,15 @@ export default function ExportEraseCard({ onErased }: { onErased?: () => void })
   };
 
   const erase = async () => {
-    if (
-      !window.confirm(
-        t(
-          'organizationData.lastWarning',
-          'Erase {{name}} and every account in it? This cannot be undone.',
-          { name: organizationName },
-        ),
-      )
-    )
-      return;
+    const ok = await confirm({
+      destructive: true,
+      title: t(
+        'organizationData.lastWarning',
+        'Erase {{name}} and every account in it? This cannot be undone.',
+        { name: organizationName },
+      ),
+    });
+    if (!ok) return;
     setErasing(true);
     setError(null);
     try {
@@ -87,6 +88,7 @@ export default function ExportEraseCard({ onErased }: { onErased?: () => void })
 
   return (
     <div className="space-y-4">
+      {confirmDialog}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">

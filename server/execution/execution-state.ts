@@ -7,6 +7,7 @@ import {
 } from '@shared/schema';
 import { withTenantTransaction, type TenantTx } from '../platform/middleware/tenancy';
 import { liveRunCounts, lockOrganizationRuns, quotasFor } from '../tenancy/tenant-quotas';
+import logger from '../platform/logger';
 import { currentRunnerId } from '../runtime/runner-registry';
 import {
   beginExecutionUsage,
@@ -82,13 +83,21 @@ export function onExecutionTransition(listener: ExecutionTransitionListener): ()
   return () => transitionListeners.delete(listener);
 }
 
+function reportListenerFailure(error: unknown): void {
+  logger.warn({
+    message: 'A run transition listener failed',
+    error: (error as Error)?.message ?? String(error),
+  });
+}
+
 /** Tells the listeners; also used by the enqueue path for a run's first state, `queued`. */
 export function announceExecution(execution: TestPlanExecution): void {
   for (const listener of transitionListeners) {
     try {
-      void Promise.resolve(listener(execution)).catch(() => {});
-    } catch {
+      void Promise.resolve(listener(execution)).catch(reportListenerFailure);
+    } catch (error) {
       // A listener that throws is its own problem, not the run's.
+      reportListenerFailure(error);
     }
   }
 }

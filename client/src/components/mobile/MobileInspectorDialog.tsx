@@ -1,3 +1,4 @@
+import { useConfirm } from '@/hooks/use-confirm';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -136,6 +137,7 @@ const shortType = (type: string) =>
 
 export default function MobileInspectorDialog({ isOpen, request, onClose, onAddStep }: Props) {
   const { t } = useTranslation();
+  const { confirm, confirmDialog } = useConfirm();
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [opening, setOpening] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -186,16 +188,17 @@ export default function MobileInspectorDialog({ isOpen, request, onClose, onAddS
   }, [isOpen, request]);
 
   // Closing the dialog ends the session on the grid: its minutes are paid for.
-  const close = () => {
+  const close = async () => {
     if (
       recorded.length > 0 &&
-      !window.confirm(
-        t(
+      !(await confirm({
+        destructive: true,
+        title: t(
           'mobileInspector.discardRecorded',
           'Close and lose the {{count}} recorded step(s) not added to the test?',
           { count: recorded.length },
         ),
-      )
+      }))
     )
       return;
     if (sessionId.current)
@@ -426,6 +429,7 @@ export default function MobileInspectorDialog({ isOpen, request, onClose, onAddS
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
       <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto">
+        {confirmDialog}
         <DialogHeader>
           <DialogTitle>{t('mobileInspector.title', 'Inspector')}</DialogTitle>
           <DialogDescription>

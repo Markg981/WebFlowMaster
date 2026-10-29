@@ -1,0 +1,12 @@
+{
+  "id": "SEC-92",
+  "area": "SEC",
+  "title": "Link del tracker con schema javascript: non cliccabile",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un issue provider che restituisce issueUrl o externalUrl javascript:alert(1).",
+  "steps": [
+    "Aprire il report e la scheda Pubblicazioni."
+  ],
+  "expected": "Il link è mostrato senza href; gli URL http/https restano link."
+}

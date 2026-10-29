@@ -31,3 +31,10 @@ export async function createTestUser(organizationId: number, username?: string):
   );
   return Number((rows.rows[0] as { id: number }).id);
 }
+
+/** Opts the organization in to the external AI provider (C-29: off by default). */
+export async function enableOrganizationAi(organizationId: number): Promise<void> {
+  await privilegedDb.execute(
+    sql`UPDATE organizations SET ai_enabled = true WHERE id = ${organizationId}`,
+  );
+}

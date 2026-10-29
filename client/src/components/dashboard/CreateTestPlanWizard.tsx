@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { ArrowRight, ArrowLeft, PlusCircle, XCircle, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, PlusCircle, XCircle, Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -561,26 +561,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
                     <Label htmlFor="headless">
                       {t('createTestPlanWizard.step2.headless.label', 'Headless')}
                     </Label>
-                  </div>
-                  <div className="lg:col-span-1 flex items-end pb-1">
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto text-xs"
-                      onClick={() =>
-                        alert(
-                          t(
-                            'createTestPlanWizard.step2.desiredCapabilities.alertNotImplemented',
-                            'Desired Capabilities configuration is not yet implemented.',
-                          ),
-                        )
-                      }
-                    >
-                      {t(
-                        'createTestPlanWizard.step2.desiredCapabilities.link',
-                        'Desired Capabilities (Optional)',
-                      )}
-                      <ExternalLink className="ml-1 h-3 w-3" />
-                    </Button>
                   </div>
                 </div>
                 {testMachineFormError && (

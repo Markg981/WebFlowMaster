@@ -21,6 +21,14 @@ import { artifactStore, baselineRoot, BASELINES_PREFIX } from '../tenancy/artifa
 /** Fraction of the page's pixels that may differ before the step is called a failure. */
 export const DEFAULT_VISUAL_THRESHOLD = 0.01;
 
+/** WFM_VISUAL_THRESHOLD (a fraction between 0 and 1) overrides the default for the whole process. */
+export function visualThresholdFromEnv(env: NodeJS.ProcessEnv = process.env): number {
+  const value = Number(env.WFM_VISUAL_THRESHOLD);
+  return env.WFM_VISUAL_THRESHOLD && Number.isFinite(value) && value >= 0 && value <= 1
+    ? value
+    : DEFAULT_VISUAL_THRESHOLD;
+}
+
 /**
  * How different two pixels must be before pixelmatch counts them.
  *
@@ -254,7 +262,7 @@ export async function compareStepScreenshot(
     const baselineBuffer = stored;
     const baselinePng = await stage('baseline-corrupt', () => PNG.sync.read(baselineBuffer));
     const actualPng = await stage('screenshot-unavailable', () => PNG.sync.read(actual));
-    const threshold = ctx.threshold ?? DEFAULT_VISUAL_THRESHOLD;
+    const threshold = ctx.threshold ?? visualThresholdFromEnv();
 
     if (baselinePng.width !== actualPng.width || baselinePng.height !== actualPng.height) {
       // Two images of different sizes cannot be compared pixel by pixel, and the size change

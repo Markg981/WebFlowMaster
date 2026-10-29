@@ -50,7 +50,7 @@ manual acceptance results.
 | Integrations        | CI, CLI, REST v1, webhooks, trackers, commit statuses, test management and notifications                                     | `integrations/`, `server/http/routes/api-v1.routes.ts`, `server/integrations/commit-status.ts`, `server/integrations/test-management.ts`                 |
 | Security/governance | Tenant/RLS, roles, API scopes, OIDC/SAML SSO, MFA, SCIM, audit, quotas and retention                                         | `server/platform/middleware/tenancy.ts`, `server/http/routes/`, `server/tenancy/tenant-quotas.ts`                                                        |
 | Collaboration       | Comments, mentions and shared dashboards                                                                                     | `server/http/routes/comments.routes.ts`, `server/http/routes/dashboards.routes.ts`                                                                       |
-| Operations          | Docker, migrator, backup/verify/restore, SaaS network checks, logs, Prometheus and OpenTelemetry                             | `scripts/wfm-backup.ts`, `deployment/saas-network/`, `server/observability/`                                                                             |
+| Operations          | Docker, migrator, backup/verify/restore, SaaS network checks, logs, Prometheus and OpenTelemetry                             | `scripts/wfm-backup.ts`, `deployment/saas-network/`, `server/platform/observability/`                                                                    |
 
 Mobile, BDD, backups, SCIM, quotas and telemetry should not be proposed as new features. Useful work
 extends their reproducibility, operational verification and usability.

@@ -1,0 +1,13 @@
+{
+  "id": "WEB-83",
+  "area": "WEB",
+  "title": "Un test carica solo i data set che cita; precedenza documentata",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Due data set condivisi (customers, orders) e un test che usa solo {{data.customers.email}}.",
+  "steps": [
+    "Eseguire il test da un task del browser.",
+    "Leggere nella guida Dati di test la regola di precedenza dei nomi."
+  ],
+  "expected": "1: il test risolve {{data.customers.email}} come prima. 2: la guida (EN e IT) dice che la colonna della riga del dataset prevale su ambiente e segreti."
+}

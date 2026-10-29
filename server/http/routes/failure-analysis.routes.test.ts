@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../../platform/db';
 import { auditLog, reportTestCaseResults, testPlanExecutions, testPlans } from '@shared/schema';
 import {
@@ -10,7 +10,11 @@ import {
   parseFailureAnswer,
   promptValue,
 } from '../../reporting/failure-analysis';
-import { createTestOrganization, createTestUser } from '../../tests/factories';
+import {
+  createTestOrganization,
+  createTestUser,
+  enableOrganizationAi,
+} from '../../tests/factories';
 
 vi.mock('../../platform/logger', () => ({
   default: {
@@ -82,6 +86,7 @@ const answer = (overrides: Record<string, unknown> = {}) =>
 
 beforeAll(async () => {
   organizationId = await createTestOrganization('Analysis Org');
+  await enableOrganizationAi(organizationId);
   userId = await createTestUser(organizationId, 'analysis-user');
   otherOrganizationId = await createTestOrganization('Other Analysis Org');
   otherUserId = await createTestUser(otherOrganizationId, 'other-analysis-user');
@@ -354,6 +359,20 @@ describe('analysing a failed result', () => {
   it('rejects a language it does not write in', async () => {
     const { executionId, id } = await seedResult();
     expect((await analyse(executionId, id, { language: 'xx' })).status).toBe(400);
+  });
+
+  it('refuses with 403, and sends nothing, when the organization has not opted in to AI', async () => {
+    ai.explainFailure.mockResolvedValue(answer());
+    const { executionId, id } = await seedResult();
+    await privilegedDb.execute(
+      sql`UPDATE organizations SET ai_enabled = false WHERE id = ${organizationId}`,
+    );
+    try {
+      expect((await analyse(executionId, id)).status).toBe(403);
+      expect(ai.explainFailure).not.toHaveBeenCalled();
+    } finally {
+      await enableOrganizationAi(organizationId);
+    }
   });
 
   it('does not let another organization analyse, or read, a result', async () => {

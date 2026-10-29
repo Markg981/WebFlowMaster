@@ -1,0 +1,14 @@
+{
+  "id": "ADM-35",
+  "area": "ADM",
+  "title": "Il proprietario abilita l'AI per la propria organizzazione, con audit",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 93. Org A e org B con consenso AI spento.",
+  "steps": [
+    "Come proprietario di A, PUT /api/organization/ai-policy con enabled true (sessione).",
+    "Ripetere l'analisi AI di un risultato fallito in A e in B.",
+    "Provare lo stesso PUT con un editor o con una chiave API."
+  ],
+  "expected": "1: 200 e voce di audit organization.ai_policy_changed. 2: A ottiene l'analisi, B resta 403. 3: rifiutato (403)."
+}

@@ -110,9 +110,18 @@ export function smtpTransportOptions(
 function transportFor(
   env: NodeJS.ProcessEnv,
   config: ResolvedMailConfiguration,
+  verifiedIp?: string,
 ): Pick<Transporter, 'sendMail'> {
   if (mailerDeps.transport) return mailerDeps.transport;
   const options = smtpTransportOptions(config, env);
+  // Connect to the address the egress check saw, not to a second DNS answer; the certificate is
+  // still checked against the name.
+  if (verifiedIp && options.host)
+    return nodemailer.createTransport({
+      ...options,
+      host: verifiedIp,
+      tls: { ...options.tls, servername: options.tls?.servername ?? options.host },
+    });
   if (!config.inherited) return nodemailer.createTransport(options);
   const url = `${config.smtpUrl}:${env.SMTP_TLS_REJECT_UNAUTHORIZED}:${egressProxy()?.origin ?? ''}`;
   if (!cached || cached.url !== url) {
@@ -131,10 +140,15 @@ function transportFor(
  * on its own and offers no hook, so this is a check before the connection rather than on it.
  * The installation's inherited SMTP is the operator's, and the proxy decides when there is one.
  */
-async function assertSmtpAllowed(config: ResolvedMailConfiguration, env: NodeJS.ProcessEnv) {
-  if (config.inherited || egressProxy()) return;
+async function assertSmtpAllowed(
+  config: ResolvedMailConfiguration,
+  env: NodeJS.ProcessEnv,
+): Promise<string | undefined> {
+  if (config.inherited || egressProxy()) return undefined;
   const host = smtpTransportOptions(config, env).host;
-  if (host) await resolveVetted(host);
+  if (!host) return undefined;
+  const answers = await resolveVetted(host);
+  return answers?.[0]?.address;
 }
 
 /** The mail server's answer without the credentials in SMTP_URL. */
@@ -170,8 +184,8 @@ export async function sendMail(
         deliveryId,
         error: 'This recipient previously hard-bounced in this organization. Mail was not sent.',
       };
-    await assertSmtpAllowed(config, env);
-    const info = await transportFor(env, config).sendMail({
+    const verifiedIp = await assertSmtpAllowed(config, env);
+    const info = await transportFor(env, config, verifiedIp).sendMail({
       from: config.from || 'WebFlowMaster <no-reply@localhost>',
       to: message.to,
       subject: rendered.subject,

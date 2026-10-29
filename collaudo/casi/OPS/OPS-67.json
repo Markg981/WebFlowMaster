@@ -1,0 +1,14 @@
+{
+  "id": "OPS-67",
+  "area": "OPS",
+  "title": "Upload delle evidenze su S3 con nuovo tentativo",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "ARTIFACT_STORE=s3; bucket che rifiuta la prima scrittura.",
+  "steps": [
+    "Eseguire un run con screenshot.",
+    "Rendere il bucket irraggiungibile per un solo tentativo.",
+    "Aprire il report."
+  ],
+  "expected": "L'upload riesce al tentativo successivo e il report mostra le immagini senza avvisi; il log del worker riporta il tentativo fallito."
+}
