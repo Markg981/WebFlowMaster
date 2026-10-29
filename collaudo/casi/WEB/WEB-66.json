@@ -1,0 +1,12 @@
+{
+  "id": "WEB-66",
+  "area": "WEB",
+  "title": "Geolocalizzazione",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Impostare coordinate note prima di interrogare navigator.geolocation nella pagina di prova."
+  ],
+  "expected": "La pagina riceve le coordinate emulate."
+}

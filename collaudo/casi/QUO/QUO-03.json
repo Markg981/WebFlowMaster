@@ -1,0 +1,14 @@
+{
+  "id": "QUO-03",
+  "area": "QUO",
+  "title": "Capacità condivisa tra test web, BDD, API e mobile",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Impostare maxTests=3 su A in enforce e salvare una definizione web/BDD, una API e una mobile.",
+    "Tentare una quarta creazione, una clonazione e un import multiplo; modificare una definizione esistente.",
+    "Eliminare una definizione e creare quella sostitutiva."
+  ],
+  "expected": "Il totale è tre per tutta A; la crescita oltre limite riceve 429 e l’import multiplo è atomico. La modifica funziona; l’eliminazione libera capacità."
+}

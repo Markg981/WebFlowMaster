@@ -1,0 +1,15 @@
+{
+  "id": "WEB-40",
+  "area": "WEB",
+  "title": "Debug: saltare e fermare",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un test di 3 step in cui il secondo fallisce; un test con if … endIf.",
+  "steps": [
+    "Debug; al fallimento dello step 2: Salta.",
+    "Nuovo Debug con breakpoint sull'if: verificare i comandi offerti.",
+    "Nuovo Debug; al primo fermo: Ferma."
+  ],
+  "expected": "Dopo Salta lo step 3 viene eseguito; alla fine «Il test non è passato. 1 step saltati.». Su if/else/cicli il pulsante Salta non c'è. Ferma chiude il browser e il pannello dice «Fermato.».",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test di 3 step in cui il secondo fallisce; un test con if … endIf.</p>\n        <h4>Passi</h4>\n        <ol><li>Debug; al fallimento dello step 2: <b>Salta</b>.</li><li>Nuovo Debug con breakpoint sull'if: verificare i comandi offerti.</li><li>Nuovo Debug; al primo fermo: <b>Ferma</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Dopo Salta lo step 3 viene eseguito; alla fine «Il test non è passato. 1 step saltati.». Su if/else/cicli il pulsante Salta non c'è. Ferma chiude il browser e il pannello dice «Fermato.».</p>\n      "
+}

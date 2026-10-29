@@ -1,0 +1,15 @@
+{
+  "id": "SEC-19",
+  "area": "SEC",
+  "title": "Casella di test: solo l'indirizzo esatto, solo dopo l'inizio del test",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Stack del collaudo; il test di WEB-46 con mailpit.timeout = 10 nell'ambiente.",
+  "steps": [
+    "Inviare Invoke-RestMethod -Method Post http://localhost:8025/api/v1/send -ContentType application/json -Body '{\"From\":{\"Email\":\"noreply@app.test\"},\"To\":[{\"Email\":\"xotp.collaudo@example.com\"}],\"Subject\":\"Il tuo codice di accesso\",\"Text\":\"codice 111111\"}' e subito dopo eseguire il test.",
+    "Inviare la stessa email a otp.collaudo@example.com, attendere un minuto, poi eseguire il test.",
+    "Leggere configurazione e sicurezza nella documentazione (MAILPIT_URL)."
+  ],
+  "expected": "1 e 2 falliscono con «No email to otp.collaudo@example.com … arrived within 10s»: un indirizzo che contiene quello cercato non conta, né un'email arrivata prima dell'inizio del test. La documentazione dice di non impostare MAILPIT_URL su un'installazione condivisa da più aziende e di indicare la casella per ambiente.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Stack del collaudo; il test di WEB-46 con <code>mailpit.timeout</code> = <code>10</code> nell'ambiente.</p>\n        <h4>Passi</h4>\n        <ol><li>Inviare <code>Invoke-RestMethod -Method Post http://localhost:8025/api/v1/send -ContentType application/json -Body '{\"From\":{\"Email\":\"noreply@app.test\"},\"To\":[{\"Email\":\"xotp.collaudo@example.com\"}],\"Subject\":\"Il tuo codice di accesso\",\"Text\":\"codice 111111\"}'</code> e subito dopo eseguire il test.</li><li>Inviare la stessa email a <code>otp.collaudo@example.com</code>, attendere un minuto, poi eseguire il test.</li><li>Leggere configurazione e sicurezza nella documentazione (MAILPIT_URL).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1 e 2 falliscono con «No email to otp.collaudo@example.com … arrived within 10s»: un indirizzo che contiene quello cercato non conta, né un'email arrivata prima dell'inizio del test. La documentazione dice di non impostare MAILPIT_URL su un'installazione condivisa da più aziende e di indicare la casella per ambiente.</p>\n      "
+}

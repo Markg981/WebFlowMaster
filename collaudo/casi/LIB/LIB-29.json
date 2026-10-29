@@ -1,0 +1,14 @@
+{
+  "id": "LIB-29",
+  "area": "LIB",
+  "title": "Rollback API solo a revisione già pubblicata",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Revisioni 1 e 3 pubblicate in precedenza, 3 attualmente pubblicata, 2 mai pubblicata.",
+  "steps": [
+    "Tornare alla revisione 1 dalla cronologia.",
+    "Tentare rollback alla 2 attraverso la richiesta autenticata osservata in Network.",
+    "Avviare il piano."
+  ],
+  "expected": "Rollback alla 1 consentito senza nuova review; rollback alla 2 rifiutato. Copia di lavoro e cronologia conservate; piano indica versione 1."
+}

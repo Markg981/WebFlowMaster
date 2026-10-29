@@ -1,0 +1,14 @@
+{
+  "id": "OPS-38",
+  "area": "OPS",
+  "title": "Probe di salute e di prontezza del processo web",
+  "priority": "P2",
+  "actor": "Operatore del Collaudo",
+  "preconditions": "Stack di collaudo avviato con api healthy. Nessun run attivo.",
+  "steps": [
+    "Senza sessione: curl -s https://wfm.collaudo.test/healthz e curl -s https://wfm.collaudo.test/readyz.",
+    "Fermare PostgreSQL (wfmc stop postgres), attendere 5 secondi e ripetere le due richieste; osservare wfmc ps api dopo un minuto.",
+    "Riavviare PostgreSQL (wfmc start postgres) e ripetere /readyz."
+  ],
+  "expected": "Passo 1: /healthz 200 {\"status\":\"ok\"}; /readyz 200 con database, redis e sessions ok. Passo 2: /healthz resta 200; /readyz 503 con database failed e nessun dettaglio dell'errore (host, porta, credenziali); api diventa unhealthy entro i retry dell'HEALTHCHECK. Passo 3: /readyz torna 200 e api healthy."
+}

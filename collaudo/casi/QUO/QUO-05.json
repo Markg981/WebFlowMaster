@@ -1,0 +1,14 @@
+{
+  "id": "QUO-05",
+  "area": "QUO",
+  "title": "Inventario prima del limite sugli artifact",
+  "priority": "P1",
+  "actor": "amministratore installazione, owner.a, editor.a",
+  "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+  "steps": [
+    "Predisporre file preesistenti nel prefisso locale o S3 di A, non ancora riconciliato.",
+    "Tentare di salvare un limite finito maxArtifactBytes in enforce.",
+    "Eseguire Riconcilia artifact e salvare di nuovo il limite."
+  ],
+  "expected": "Prima dell’inventario il consumo è non misurato e il salvataggio riceve 409; dopo la riconciliazione i file sono conteggiati e il limite finito può essere salvato."
+}

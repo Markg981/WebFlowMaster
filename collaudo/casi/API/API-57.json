@@ -1,0 +1,13 @@
+{
+  "id": "API-57",
+  "area": "API",
+  "title": "Test di carico: soglie superate ed errori",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Test di carico di API-56. Nuovo ciclo: Da eseguire.",
+  "steps": [
+    "Impostare Throughput minimo a 100000 req/s e avviare un run.",
+    "Rimettere le soglie, fare rispondere l'endpoint protetto 503 a una richiesta su due (o sostituire il token atteso) e avviare un altro run con soglia errori 1%."
+  ],
+  "expected": "Il primo run è Fallito con 'throughput … req/s < 100000 req/s'. Nel secondo l'esito è Fallito con 'errors …% > 1%', le iterazioni fallite sono > 0, i primi errori indicano il test API e l'asserzione ('Read …: status_code equals \"200\" — actual: 503'); un'iterazione con login fallito non invia la lettura."
+}

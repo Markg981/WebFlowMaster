@@ -1,0 +1,12 @@
+{
+  "id": "ADM-13",
+  "area": "ADM",
+  "title": "Reset HTML",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Richiedere il reset di un utente noto e leggere il messaggio nel relay."
+  ],
+  "expected": "Alternative HTML e testo con link utilizzabile; storico senza corpo o token del link."
+}

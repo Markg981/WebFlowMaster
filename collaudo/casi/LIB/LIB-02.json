@@ -1,0 +1,14 @@
+{
+  "id": "LIB-02",
+  "area": "LIB",
+  "title": "Versioni e ripristino",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un test salvato tre volte con modifiche diverse.",
+  "steps": [
+    "Cronologia del test.",
+    "Ripristina la versione 1."
+  ],
+  "expected": "Le versioni 3, 2, 1 compaiono dalla più recente, con autore, numero di step ed esiti dei run. Il ripristino crea la versione 4 con il contenuto della 1 («back to version 1, saved as version 4»); la 2 e la 3 restano.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test salvato tre volte con modifiche diverse.</p>\n        <h4>Passi</h4>\n        <ol><li><b>Cronologia</b> del test.</li><li><b>Ripristina</b> la versione 1.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Le versioni 3, 2, 1 compaiono dalla più recente, con autore, numero di step ed esiti dei run. Il ripristino crea la versione 4 con il contenuto della 1 («back to version 1, saved as version 4»); la 2 e la 3 restano.</p>\n      "
+}

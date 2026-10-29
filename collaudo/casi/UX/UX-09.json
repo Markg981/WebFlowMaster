@@ -1,0 +1,17 @@
+{
+  "id": "UX-09",
+  "area": "UX",
+  "title": "Consultazione da telefono e tablet",
+  "priority": "P2",
+  "actor": "owner",
+  "preconditions": "Un owner con almeno un piano di test eseguito; un telefono (o gli strumenti di sviluppo del browser con un dispositivo da 375 px di larghezza) e un tablet in verticale (768 px).",
+  "steps": [
+    "Dal telefono accedere come owner: la sidebar non c'è; premere il pulsante menu (☰) nella barra in alto.",
+    "Con il cassetto aperto premere Tab più volte, poi Esc; riaprirlo e scegliere Report.",
+    "Scorrere la Dashboard e la pagina Report fino in fondo.",
+    "Aprire il report di un'esecuzione (Report > piano > esecuzione) e scorrerlo.",
+    "Ripetere i passi 3 e 4 sul tablet in verticale."
+  ],
+  "expected": "Il menu si apre come cassetto da sinistra con tutte le pagine; Tab resta nel cassetto, Esc lo chiude e riporta il focus sul pulsante menu; scegliendo una pagina il cassetto si chiude. Dashboard, Report e report dell'esecuzione stanno nella larghezza dello schermo: nessuno scorrimento orizzontale della pagina (le tabelle larghe scorrono da sole dentro il proprio riquadro), il titolo lungo del report è troncato con i puntini, i pulsanti del report vanno a capo. Nella barra in alto il titolo del report è \"Execution report\", non \"Test plans\".",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un owner con almeno un piano di test eseguito; un telefono (o gli strumenti di sviluppo del browser con un dispositivo da 375 px di larghezza) e un tablet in verticale (768 px).</p>\n        <h4>Passi</h4>\n        <ol><li>Dal telefono accedere come owner: la sidebar non c'è; premere il pulsante menu (☰) nella barra in alto.</li><li>Con il cassetto aperto premere Tab più volte, poi Esc; riaprirlo e scegliere Report.</li><li>Scorrere la Dashboard e la pagina Report fino in fondo.</li><li>Aprire il report di un'esecuzione (Report &gt; piano &gt; esecuzione) e scorrerlo.</li><li>Ripetere i passi 3 e 4 sul tablet in verticale.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il menu si apre come cassetto da sinistra con tutte le pagine; Tab resta nel cassetto, Esc lo chiude e riporta il focus sul pulsante menu; scegliendo una pagina il cassetto si chiude. Dashboard, Report e report dell'esecuzione stanno nella larghezza dello schermo: nessuno scorrimento orizzontale della pagina (le tabelle larghe scorrono da sole dentro il proprio riquadro), il titolo lungo del report è troncato con i puntini, i pulsanti del report vanno a capo. Nella barra in alto il titolo del report è \"Execution report\", non \"Test plans\".</p>\n      "
+}

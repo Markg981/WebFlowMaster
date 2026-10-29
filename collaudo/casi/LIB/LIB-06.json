@@ -1,0 +1,15 @@
+{
+  "id": "LIB-06",
+  "area": "LIB",
+  "title": "Suite statica",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Tre test salvati.",
+  "steps": [
+    "Suite → Nuova suite statica con i tre test in un ordine preciso.",
+    "Su un piano, Suite: spuntarla e salvare; aggiungere anche uno dei tre test fra quelli del piano.",
+    "Eseguire il piano."
+  ],
+  "expected": "Il run esegue prima i test del piano, poi quelli della suite nell'ordine scelto; il test presente due volte gira una volta sola. La suite mostra «Included by» con il piano.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Tre test salvati.</p>\n        <h4>Passi</h4>\n        <ol><li>Suite → <b>Nuova suite</b> statica con i tre test in un ordine preciso.</li><li>Su un piano, <b>Suite</b>: spuntarla e salvare; aggiungere anche uno dei tre test fra quelli del piano.</li><li>Eseguire il piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il run esegue prima i test del piano, poi quelli della suite nell'ordine scelto; il test presente due volte gira una volta sola. La suite mostra «Included by» con il piano.</p>\n      "
+}

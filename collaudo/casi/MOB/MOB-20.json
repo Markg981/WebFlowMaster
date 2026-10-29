@@ -1,0 +1,18 @@
+{
+  "id": "MOB-20",
+  "area": "MOB",
+  "title": "Quarantena di un test mobile",
+  "priority": "P1",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "MOB-06; un piano con il test mobile «Ricerca Wikipedia» e un test web che passa; uno step del test mobile modificato perché fallisca.",
+  "steps": [
+    "App mobili: sulla riga di «Ricerca Wikipedia» premere il pulsante a scudo (Quarantine), scrivere il motivo «La device farm chiude la sessione» e confermare.",
+    "Passare il mouse sull'etichetta che compare accanto al nome.",
+    "Eseguire il piano.",
+    "Report → Test in quarantena.",
+    "Come viewer.a aprire App mobili.",
+    "Come editor.a premere Rilascia nella scheda; rieseguire il piano."
+  ],
+  "expected": "1: la riga mostra «In quarantena» e il pulsante a scudo sparisce; senza motivo il pulsante Quarantena resta disabilitato. 2: il motivo appare come suggerimento. 3: il test mobile gira e il suo fallimento è registrato, ma il run è completato (non fallito) e il report lo segna come in quarantena. 4: la riga porta l'etichetta MOBILE, il motivo, chi l'ha messo e l'esito da allora. 5: il viewer vede l'etichetta, non il pulsante a scudo. 6: l'etichetta sparisce dalla riga e il run successivo fallisce di nuovo per il test mobile.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-06; un piano con il test mobile «Ricerca Wikipedia» e un test web che passa; uno step del test mobile modificato perché fallisca.</p>\n        <h4>Passi</h4>\n        <ol><li>App mobili: sulla riga di «Ricerca Wikipedia» premere il pulsante a scudo (Quarantine), scrivere il motivo «La device farm chiude la sessione» e confermare.</li><li>Passare il mouse sull'etichetta che compare accanto al nome.</li><li>Eseguire il piano.</li><li>Report → Test in quarantena.</li><li>Come viewer.a aprire App mobili.</li><li>Come editor.a premere Rilascia nella scheda; rieseguire il piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: la riga mostra «In quarantena» e il pulsante a scudo sparisce; senza motivo il pulsante Quarantena resta disabilitato. 2: il motivo appare come suggerimento. 3: il test mobile gira e il suo fallimento è registrato, ma il run è completato (non fallito) e il report lo segna come in quarantena. 4: la riga porta l'etichetta MOBILE, il motivo, chi l'ha messo e l'esito da allora. 5: il viewer vede l'etichetta, non il pulsante a scudo. 6: l'etichetta sparisce dalla riga e il run successivo fallisce di nuovo per il test mobile.</p>\n      "
+}

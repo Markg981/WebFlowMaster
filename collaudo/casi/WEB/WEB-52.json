@@ -1,0 +1,18 @@
+{
+  "id": "WEB-52",
+  "area": "WEB",
+  "title": "Dati di test condivisi: creare un set e usarne i valori",
+  "priority": "P1",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "1: la scheda mostra «clienti», 2 righe · 2 colonne e i segnaposto {{data.clienti.email}} · {{data.clienti.paese}}; il registro di audit ha test_data_set.created. 2: rifiutato («lowercase letters…» e «letters, digits and underscores»). 3: nel campo viene scritto anna@acme.test (prima riga). 4: il test passa. 5: vede il set, nessun pulsante Nuovo, Modifica o Elimina. 6: nessun set: quelli di A non si vedono.",
+  "steps": [
+    "Menu Dati di test → Nuovo set di dati: nome clienti, colonne email e paese, righe anna@acme.test/IT e bruno@acme.test/DE; salvare.",
+    "Provare il nome Clienti EU e una colonna e-mail.",
+    "In un test UI uno step Digita con valore {{data.clienti.email}} in un campo; Esegui il test dal builder.",
+    "In un test API mettere https://httpbin.org/anything?e={{data.clienti.email}} e un'asserzione body contains anna@acme.test; eseguirlo in un piano.",
+    "Come viewer.a aprire Dati di test.",
+    "Come owner.b aprire Dati di test."
+  ],
+  "expected": "1: la scheda mostra «clienti», 2 righe · 2 colonne e i segnaposto {{data.clienti.email}} · {{data.clienti.paese}}; il registro di audit ha test_data_set.created. 2: rifiutato («lowercase letters…» e «letters, digits and underscores»). 3: nel campo viene scritto anna@acme.test (prima riga). 4: il test passa. 5: vede il set, nessun pulsante Nuovo, Modifica o Elimina. 6: nessun set: quelli di A non si vedono.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Menu <b>Dati di test</b> → <b>Nuovo set di dati</b>: nome <code>clienti</code>, colonne <code>email</code> e <code>paese</code>, righe <code>anna@acme.test</code>/<code>IT</code> e <code>bruno@acme.test</code>/<code>DE</code>; salvare.</li><li>Provare il nome <code>Clienti EU</code> e una colonna <code>e-mail</code>.</li><li>In un test UI uno step Digita con valore <code>{{data.clienti.email}}</code> in un campo; <b>Esegui il test</b> dal builder.</li><li>In un test API mettere <code>https://httpbin.org/anything?e={{data.clienti.email}}</code> e un'asserzione body contains <code>anna@acme.test</code>; eseguirlo in un piano.</li><li>Come viewer.a aprire Dati di test.</li><li>Come owner.b aprire Dati di test.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: la scheda mostra «clienti», 2 righe · 2 colonne e i segnaposto {{data.clienti.email}} · {{data.clienti.paese}}; il registro di audit ha test_data_set.created. 2: rifiutato («lowercase letters…» e «letters, digits and underscores»). 3: nel campo viene scritto anna@acme.test (prima riga). 4: il test passa. 5: vede il set, nessun pulsante Nuovo, Modifica o Elimina. 6: nessun set: quelli di A non si vedono.</p>\n      "
+}

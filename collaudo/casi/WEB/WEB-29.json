@@ -1,0 +1,15 @@
+{
+  "id": "WEB-29",
+  "area": "WEB",
+  "title": "Se / Altrimenti su un elemento",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il ramo Altrimenti viene eseguito: la condizione risponde subito «false», senza attendere il timeout di 15 secondi. Il report mostra lo step Se con «false, skipping them» e non contiene il click. Gli step dentro il blocco sono rientrati a destra; Se, Altrimenti e Fine se sono allineati.",
+  "steps": [
+    "/login: Se con elemento #flash e condizione visible; dentro un Click su #flash .close; Altrimenti; dentro Inserimento Testo username tomsmith; Fine se.",
+    "Eseguire e cronometrare.",
+    "Nel costruttore guardare la disposizione degli step."
+  ],
+  "expected": "Il ramo Altrimenti viene eseguito: la condizione risponde subito «false», senza attendere il timeout di 15 secondi. Il report mostra lo step Se con «false, skipping them» e non contiene il click. Gli step dentro il blocco sono rientrati a destra; Se, Altrimenti e Fine se sono allineati.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>/login: <b>Se</b> con elemento <code>#flash</code> e condizione <code>visible</code>; dentro un Click su <code>#flash .close</code>; <b>Altrimenti</b>; dentro Inserimento Testo username <code>tomsmith</code>; <b>Fine se</b>.</li><li>Eseguire e cronometrare.</li><li>Nel costruttore guardare la disposizione degli step.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il ramo Altrimenti viene eseguito: la condizione risponde subito «false», senza attendere il timeout di 15 secondi. Il report mostra lo step Se con «false, skipping them» e non contiene il click. Gli step dentro il blocco sono rientrati a destra; Se, Altrimenti e Fine se sono allineati.</p>\n      "
+}

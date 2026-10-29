@@ -1,0 +1,14 @@
+{
+  "id": "PLN-35",
+  "area": "PLN",
+  "title": "Run diviso: annullamento e regola di arresto",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "PLN-33.",
+  "steps": [
+    "Run diviso su 3 worker con On Major Step Failure = Stop Execution e un test che fallisce presto; eseguire.",
+    "Un altro run diviso: Annulla run a metà."
+  ],
+  "expected": "1: tutti i runner smettono di avviare test: quelli non iniziati sono Saltati con il motivo della regola, su qualunque runner sarebbero girati. 2: il run termina «Annullato» su tutti i runner; i test non partiti sono saltati.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-33.</p>\n        <h4>Passi</h4>\n        <ol><li>Run diviso su 3 worker con <b>On Major Step Failure</b> = Stop Execution e un test che fallisce presto; eseguire.</li><li>Un altro run diviso: <b>Annulla run</b> a metà.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: tutti i runner smettono di avviare test: quelli non iniziati sono Saltati con il motivo della regola, su qualunque runner sarebbero girati. 2: il run termina «Annullato» su tutti i runner; i test non partiti sono saltati.</p>\n      "
+}

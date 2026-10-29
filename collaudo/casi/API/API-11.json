@@ -1,0 +1,14 @@
+{
+  "id": "API-11",
+  "area": "API",
+  "title": "Valori generati in una richiesta",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Ogni invio usa un UUID nuovo nell'URL e la data di oggi; httpbin li restituisce in url e args.d. Il generatore sbagliato viene segnalato come variabile non risolta.",
+  "steps": [
+    "GET https://httpbin.org/anything/{{$uuid}} con parametro query d = {{$today}}; Invia due volte.",
+    "Cambiare in {{$uuidd}}; Invia."
+  ],
+  "expected": "Ogni invio usa un UUID nuovo nell'URL e la data di oggi; httpbin li restituisce in url e args.d. Il generatore sbagliato viene segnalato come variabile non risolta.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>GET <code>https://httpbin.org/anything/{{$uuid}}</code> con parametro query <code>d</code> = <code>{{$today}}</code>; <b>Invia</b> due volte.</li><li>Cambiare in <code>{{$uuidd}}</code>; <b>Invia</b>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ogni invio usa un UUID nuovo nell'URL e la data di oggi; httpbin li restituisce in <code>url</code> e <code>args.d</code>. Il generatore sbagliato viene segnalato come variabile non risolta.</p>\n      "
+}

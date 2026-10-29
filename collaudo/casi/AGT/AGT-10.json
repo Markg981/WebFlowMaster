@@ -1,0 +1,14 @@
+{
+  "id": "AGT-10",
+  "area": "AGT",
+  "title": "Rilascio della sessione nativa dopo timeout",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Agente 1.1.0; servizio gRPC che non risponde alla chiamata unary.",
+  "steps": [
+    "Eseguire un test gRPC sul pool con il servizio che non risponde.",
+    "Dopo il deadline, eseguire un secondo test valido sullo stesso pool."
+  ],
+  "expected": "Il primo test restituisce DEADLINE_EXCEEDED (4), valutabile dalle asserzioni. La sessione viene liberata e il secondo test può eseguire.",
+  "detailHtml": "<h4>Precondizioni</h4><p>Agente 1.1.0; servizio gRPC che non risponde alla chiamata unary.</p><h4>Passi</h4><ol><li>Eseguire un test gRPC sul pool con il servizio che non risponde.</li><li>Dopo il deadline, eseguire un secondo test valido sullo stesso pool.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Il primo test restituisce DEADLINE_EXCEEDED (4), valutabile dalle asserzioni. La sessione viene liberata e il secondo test può eseguire.</p>"
+}

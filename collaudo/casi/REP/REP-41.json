@@ -1,0 +1,14 @@
+{
+  "id": "REP-41",
+  "area": "REP",
+  "title": "Evidenze di uno step healed senza il bordo rosso dell'evidenziazione",
+  "priority": "P2",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 74. Chiave AI configurata (o il doppio Gemini dello stack di collaudo). Un piano con screenshot sempre attivi e confronto visivo, su un test con un clic su un elemento che ha uno stile inline e un clic con selettore rotto.",
+  "steps": [
+    "Eseguire il piano due volte (la prima crea le baseline).",
+    "Aprire gli screenshot e il confronto visivo degli step di clic, incluso quello healed.",
+    "Ispezionare la pagina nella trace dopo i clic."
+  ],
+  "expected": "Nessuno screenshot o baseline mostra il bordo rosso o lo sfondo rosato dell'evidenziazione; il secondo run non ha differenze visive dovute all'evidenziazione. Dopo ogni clic l'elemento ha lo stesso attributo style di prima (lo stile inline originale è intatto). Lo step healed riporta healing con esito e destinazione."
+}

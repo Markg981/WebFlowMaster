@@ -1,0 +1,14 @@
+{
+  "id": "OPS-24",
+  "area": "OPS",
+  "title": "Runtime non-root e browser nelle immagini",
+  "priority": "P1",
+  "actor": "operatore release",
+  "preconditions": "Tre immagini candidate e Docker Linux amd64. Nuovi volumi sacrificabili; bind mount preparati con UID corretto.",
+  "steps": [
+    "Eseguire runtime-smoke.cjs nelle immagini API, worker e agente.",
+    "Controllare UID, avvio Chromium/Firefox/WebKit e CLI Lighthouse dove prevista.",
+    "Montare volumi di prova per risultati, baseline e upload e verificare scrittura come pwuser."
+  ],
+  "expected": "UID diverso da zero; Chromium, Firefox e WebKit funzionano; Lighthouse 13.5.0 su API/worker. Directory operative e volumi di prova sono scrivibili senza eseguire il prodotto come root."
+}

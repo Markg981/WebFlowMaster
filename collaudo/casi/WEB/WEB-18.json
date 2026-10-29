@@ -1,0 +1,14 @@
+{
+  "id": "WEB-18",
+  "area": "WEB",
+  "title": "Eliminare un elemento del repository usato dai test",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "WEB-15: Campo username usato da due test.",
+  "steps": [
+    "Impostazioni → Repository degli elementi: Elimina su Campo username; leggere la conferma.",
+    "Confermare; aprire uno dei due test ed eseguirlo."
+  ],
+  "expected": "La conferma dice quanti test usano l'elemento. Dopo l'eliminazione i test si aprono ancora e lo step indica chiaramente l'elemento mancante; nessun errore generico.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-15: <code>Campo username</code> usato da due test.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → Repository degli elementi: <b>Elimina</b> su <code>Campo username</code>; leggere la conferma.</li><li>Confermare; aprire uno dei due test ed eseguirlo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La conferma dice quanti test usano l'elemento. Dopo l'eliminazione i test si aprono ancora e lo step indica chiaramente l'elemento mancante; nessun errore generico.</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "ADM-33",
+  "area": "ADM",
+  "title": "Un editor revoca solo le proprie chiavi API",
+  "priority": "P1",
+  "actor": "editor.b",
+  "preconditions": "In A: una chiave di editor.a e una di editor.b; owner.a.",
+  "steps": [
+    "Da editor.b, revocare la chiave di editor.a.",
+    "Da editor.b, revocare la propria.",
+    "Da owner.a, revocare la chiave di editor.a."
+  ],
+  "expected": "1: 404, la chiave resta valida. 2: revocata. 3: revocata."
+}

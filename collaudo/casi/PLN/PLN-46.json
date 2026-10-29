@@ -1,0 +1,15 @@
+{
+  "id": "PLN-46",
+  "area": "PLN",
+  "title": "Scadenza dello step: un ciclo sincrono infinito non blocca la run",
+  "priority": "P1",
+  "actor": "amministratore del collaudo",
+  "preconditions": "Catalogo versione 69. Ambiente locale di collaudo (mai uno condiviso o di produzione), worker con browser locale. Worker avviato con RUN_STEP_DEADLINE_MS=20000. Un piano con due test UI: il primo ha uno step JavaScript 'while (true) {}' seguito da un secondo step, il secondo test passa.",
+  "steps": [
+    "Eseguire il piano e attendere la fine.",
+    "Aprire il report e leggere l'errore del primo test.",
+    "Controllare i processi del browser sulla macchina del worker.",
+    "Riavviare il worker senza RUN_STEP_DEADLINE_MS."
+  ],
+  "expected": "Il primo test fallisce dopo circa 20 secondi con 'Stopped: the step did not finish within its deadline of 20 s.' e il suo secondo step non compare; il secondo test viene eseguito e passa; la run è Fallita (non Tempo scaduto). Nessun processo del browser del primo test resta attivo. Dopo il riavvio la scadenza torna a 5 minuti."
+}

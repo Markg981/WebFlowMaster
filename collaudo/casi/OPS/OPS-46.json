@@ -1,0 +1,13 @@
+{
+  "id": "OPS-46",
+  "area": "OPS",
+  "title": "Prova di resilienza con crash del worker: perdita esplicita, nessun verde incompleto, nessun replay",
+  "priority": "P2",
+  "actor": "admin",
+  "preconditions": "Catalogo versione 75. Macchina di collaudo con Docker; stack usa-e-getta creato dallo strumento (mai produzione o servizi condivisi).",
+  "steps": [
+    "Eseguire npm run load:resilience -- --cycles 1 --worker-restart crash --recovery-timeout 180 --observation-seconds 40.",
+    "Aprire il report JSON prodotto nella cartella locale dello strumento."
+  ],
+  "expected": "Nessuna violazione: il run interrotto risulta error/worker_lost con il messaggio, nessuna sua unità resta running, ogni run completed ha un risultato per ogni unità attesa e nessun run è una riesecuzione di quello perso. Lo stack viene rimosso a fine prova."
+}

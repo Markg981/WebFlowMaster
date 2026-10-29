@@ -1,0 +1,15 @@
+{
+  "id": "OPS-12",
+  "area": "OPS",
+  "title": "Prova di ripristino (verify) e file danneggiato",
+  "priority": "P1",
+  "actor": "operatore",
+  "preconditions": "OPS-11.",
+  "steps": [
+    "npm run backup:verify -- <cartella> -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml.",
+    "Durante la verifica, nel database: SELECT datname FROM pg_database; dopo, ripetere.",
+    "Copiare la cartella; nella copia cambiare un byte di results.tar (o troncarlo); rieseguire verify sulla copia e leggere il codice di uscita."
+  ],
+  "expected": "1: «checksums 3 files match», «restored into \"webflowmaster_restore_check\": row counts, 68 migrations, row-level security on N tables and app_user grants all match» (N è lo stesso numero del manifest), «Restorable.», uscita 0. L'applicazione resta utilizzabile durante la verifica. 2: il database di prova esiste solo durante la verifica, poi sparisce. 3: «FAIL results.tar does not match its checksum: it changed or is damaged.», uscita 1, nessun database toccato.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>OPS-11.</p>\n        <h4>Passi</h4>\n        <ol><li><code>npm run backup:verify -- &lt;cartella&gt; -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml</code>.</li><li>Durante la verifica, nel database: <code>SELECT datname FROM pg_database</code>; dopo, ripetere.</li><li>Copiare la cartella; nella copia cambiare un byte di <code>results.tar</code> (o troncarlo); rieseguire verify sulla copia e leggere il codice di uscita.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: «checksums 3 files match», «restored into \"webflowmaster_restore_check\": row counts, 68 migrations, row-level security on N tables and app_user grants all match» (N è lo stesso numero del manifest), «Restorable.», uscita 0. L'applicazione resta utilizzabile durante la verifica. 2: il database di prova esiste solo durante la verifica, poi sparisce. 3: «FAIL results.tar does not match its checksum: it changed or is damaged.», uscita 1, nessun database toccato.</p>\n      "
+}

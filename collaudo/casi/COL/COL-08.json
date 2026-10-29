@@ -1,0 +1,14 @@
+{
+  "id": "COL-08",
+  "area": "COL",
+  "title": "Concorrenza e conferma eliminazione della dashboard",
+  "priority": "P1",
+  "actor": "owner.a, viewer.a, editor.a",
+  "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+  "steps": [
+    "Aprire la stessa dashboard condivisa in due sessioni autorizzate.",
+    "Salvare un titolo nella prima e poi salvare una modifica nella seconda.",
+    "Aprire la conferma eliminazione e verificare che non possa essere applicata a un’altra dashboard."
+  ],
+  "expected": "La seconda modifica obsoleta riceve 409 e conserva la bozza; nessuna sovrascrittura. La conferma elimina soltanto la dashboard per cui è stata aperta."
+}

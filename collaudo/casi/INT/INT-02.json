@@ -1,0 +1,16 @@
+{
+  "id": "INT-02",
+  "area": "INT",
+  "title": "API /api/v1 con curl",
+  "priority": "P1",
+  "actor": "ci-bot",
+  "preconditions": "INT-01; id di un piano.",
+  "steps": [
+    "GET /api/v1/plans con la chiave.",
+    "POST /api/v1/plans/{id}/runs; leggere l'header Location.",
+    "GET del run finché lo stato non è finale; poi /junit e /export/html, /pdf, /allure.",
+    "POST …/cancel sul run concluso."
+  ],
+  "expected": "Il primo risponde 403 insufficient_scope (manca plans:read). L'avvio risponde 202 con Location. Il run passa da queued/running a uno stato finale; JUnit ed export si scaricano. L'annullamento di un run concluso risponde 409 run_already_ended.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>INT-01; id di un piano.</p>\n        <h4>Passi</h4>\n        <ol><li><code>GET /api/v1/plans</code> con la chiave.</li><li><code>POST /api/v1/plans/{id}/runs</code>; leggere l'header Location.</li><li><code>GET</code> del run finché lo stato non è finale; poi <code>/junit</code> e <code>/export/html</code>, <code>/pdf</code>, <code>/allure</code>.</li><li><code>POST …/cancel</code> sul run concluso.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il primo risponde 403 <code>insufficient_scope</code> (manca <code>plans:read</code>). L'avvio risponde 202 con Location. Il run passa da queued/running a uno stato finale; JUnit ed export si scaricano. L'annullamento di un run concluso risponde 409 <code>run_already_ended</code>.</p>\n      "
+}

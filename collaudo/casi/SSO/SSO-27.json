@@ -1,0 +1,12 @@
+{
+  "id": "SSO-27",
+  "area": "SSO",
+  "title": "IdP login abilitato",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Abilitare l'opzione e inviare dall'IdP una nuova asserzione firmata valida per organizzazione, dominio e gruppi."
+  ],
+  "expected": "Accesso all'organizzazione e ruolo previsti."
+}

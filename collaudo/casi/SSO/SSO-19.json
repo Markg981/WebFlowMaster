@@ -1,0 +1,15 @@
+{
+  "id": "SSO-19",
+  "area": "SSO",
+  "title": "Il ruolo segue i gruppi anche verso il basso",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "SSO-18 (anna owner).",
+  "steps": [
+    "In Keycloak spostare anna in wfm-viewer; mappare in WebFlowMaster wfm-viewer → Viewer; Salva.",
+    "Anna accede di nuovo con SSO.",
+    "Togliere anna da ogni gruppo; anna accede di nuovo."
+  ],
+  "expected": "2: anna è viewer: niente pulsanti di modifica, Impostazioni → Membri non accessibile. 3: anna resta viewer (fuori da ogni gruppo mappato il ruolo non cambia) e l'accesso riesce.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-18 (anna owner).</p>\n        <h4>Passi</h4>\n        <ol><li>In Keycloak spostare anna in wfm-viewer; mappare in WebFlowMaster wfm-viewer → Viewer; <b>Salva</b>.</li><li>Anna accede di nuovo con SSO.</li><li>Togliere anna da ogni gruppo; anna accede di nuovo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">2: anna è viewer: niente pulsanti di modifica, Impostazioni → Membri non accessibile. 3: anna resta viewer (fuori da ogni gruppo mappato il ruolo non cambia) e l'accesso riesce.</p>\n      "
+}

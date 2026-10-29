@@ -1,0 +1,13 @@
+{
+  "id": "SEC-80",
+  "area": "SEC",
+  "title": "Export del report (HTML/PDF/JUnit/Allure): nessun dettaglio dei test riservati ai non membri",
+  "priority": "P1",
+  "actor": "viewer.a",
+  "preconditions": "Un progetto riservato con un test fallito in un piano eseguito; un utente dell'organizzazione non membro del progetto; un owner.",
+  "steps": [
+    "Come non membro: esportare il report del run in HTML e JUnit.",
+    "Cercare passi, log e rete del test del progetto riservato."
+  ],
+  "expected": "L'export non contiene passi, log né riepilogo di rete del test riservato."
+}

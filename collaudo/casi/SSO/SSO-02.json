@@ -1,0 +1,14 @@
+{
+  "id": "SSO-02",
+  "area": "SSO",
+  "title": "Primo accesso con SSO: account creato",
+  "priority": "P1",
+  "actor": "nessuno",
+  "preconditions": "SSO-01. Utente Keycloak anna@acme.test mai entrato.",
+  "steps": [
+    "/auth → Accedi con SSO → e-mail anna@acme.test → prosegui.",
+    "Accedere su Keycloak."
+  ],
+  "expected": "Si torna all'applicazione già dentro, come anna@acme.test, ruolo editor, organizzazione A. Audit member.provisioned e auth.login con metodo sso.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-01. Utente Keycloak <code>anna@acme.test</code> mai entrato.</p>\n        <h4>Passi</h4>\n        <ol><li>/auth → <b>Accedi con SSO</b> → e-mail <code>anna@acme.test</code> → prosegui.</li><li>Accedere su Keycloak.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Si torna all'applicazione già dentro, come <code>anna@acme.test</code>, ruolo editor, organizzazione A. Audit <b>member.provisioned</b> e <b>auth.login</b> con metodo sso.</p>\n      "
+}

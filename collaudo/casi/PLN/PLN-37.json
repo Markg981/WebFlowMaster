@@ -1,0 +1,17 @@
+{
+  "id": "PLN-37",
+  "area": "PLN",
+  "title": "Mappa dell'impatto e anteprima",
+  "priority": "P1",
+  "actor": "editor.a · viewer.a",
+  "preconditions": "Tre test web con tag checkout, ricerca e nessun tag; un piano che li include tutti.",
+  "steps": [
+    "Impostazioni → Mappa dell'impatto: aggiungere src/checkout/ → checkout, src/search/ → ricerca, docs/** → Nessun test.",
+    "Aggiungere di nuovo la prima regola; poi una regola con pattern vuoto.",
+    "Provala su una modifica: piano scelto, file src/checkout/cart.ts e docs/readme.md.",
+    "Stessa anteprima con anche package.json.",
+    "Come viewer.a aprire la sezione."
+  ],
+  "expected": "1: le regole compaiono come «pattern → tag» e «nessun test»; audit Regola d'impatto aggiunta. 2: «That rule already exists.», poi «A pattern is required.». 3: «2 / 3» con il motivo «… affect the tags checkout: 2 of 3 tests run …»: il test checkout e quello senza tag, non quello di ricerca. 4: «3 / 3»: package.json non corrisponde a nessuna regola, quindi girano tutti, e il motivo nomina il file. 5: il viewer vede regole e anteprima, non aggiunge né rimuove.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Tre test web con tag <code>checkout</code>, <code>ricerca</code> e nessun tag; un piano che li include tutti.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → <b>Mappa dell'impatto</b>: aggiungere <code>src/checkout/<b></b></code><b> → checkout, <code>src/search/</code></b> → ricerca, <code>docs/**</code> → Nessun test.</li><li>Aggiungere di nuovo la prima regola; poi una regola con pattern vuoto.</li><li><b>Provala su una modifica</b>: piano scelto, file <code>src/checkout/cart.ts</code> e <code>docs/readme.md</code>.</li><li>Stessa anteprima con anche <code>package.json</code>.</li><li>Come viewer.a aprire la sezione.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: le regole compaiono come «pattern → tag» e «nessun test»; audit <b>Regola d'impatto aggiunta</b>. 2: «That rule already exists.», poi «A pattern is required.». 3: «2 / 3» con il motivo «… affect the tags checkout: 2 of 3 tests run …»: il test checkout e quello senza tag, non quello di ricerca. 4: «3 / 3»: package.json non corrisponde a nessuna regola, quindi girano tutti, e il motivo nomina il file. 5: il viewer vede regole e anteprima, non aggiunge né rimuove.</p>\n      "
+}

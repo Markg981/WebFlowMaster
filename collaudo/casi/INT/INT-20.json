@@ -1,0 +1,15 @@
+{
+  "id": "INT-20",
+  "area": "INT",
+  "title": "Notifiche Slack e Teams nel formato nativo",
+  "priority": "P3",
+  "actor": "editor",
+  "preconditions": "Un piano con notifiche attive su successo e fallimento; un incoming webhook Slack e uno Teams (Workflows) di prova; WEBFLOW_PUBLIC_URL impostato.",
+  "steps": [
+    "Nel piano inserire come URL del webhook quello Slack ed eseguire il piano con un test che fallisce.",
+    "Ripetere con il webhook Teams e un run che passa.",
+    "Ripetere con un URL generico (per esempio un request bin)."
+  ],
+  "expected": "Slack mostra il messaggio con barra rossa, i numeri (Passed, Failed, Duration…) e il pulsante Open report che apre il report del run. Teams mostra una scheda con titolo verde, gli stessi numeri e il pulsante. L'URL generico riceve il JSON di sempre, con text ed execution.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un piano con notifiche attive su successo e fallimento; un incoming webhook Slack e uno Teams (Workflows) di prova; WEBFLOW_PUBLIC_URL impostato.</p>\n        <h4>Passi</h4>\n        <ol><li>Nel piano inserire come URL del webhook quello Slack ed eseguire il piano con un test che fallisce.</li><li>Ripetere con il webhook Teams e un run che passa.</li><li>Ripetere con un URL generico (per esempio un request bin).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Slack mostra il messaggio con barra rossa, i numeri (Passed, Failed, Duration…) e il pulsante Open report che apre il report del run. Teams mostra una scheda con titolo verde, gli stessi numeri e il pulsante. L'URL generico riceve il JSON di sempre, con text ed execution.</p>\n      "
+}

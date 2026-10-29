@@ -1,0 +1,13 @@
+{
+  "id": "OPS-35",
+  "area": "OPS",
+  "title": "Agenti riconnessi e artefatti conservati",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "Node.js 22.19+, Docker Compose e risorse per stack sacrificabile. Procedura collaudo/automatic-resilience.md; prerequisiti mancanti: Bloccato.",
+  "steps": [
+    "Verificare agent-reconnect e final-reconciliation-and-retained-artifacts; conservare report, log e hash."
+  ],
+  "expected": "Agenti riavviati tra run, nuovi run completati; screenshot scaricabili non vuoti con SHA-256; nessun errore di pulizia.",
+  "detailHtml": "<h4>Precondizioni</h4><p>Node.js 22.19+, Docker Compose e risorse per stack sacrificabile. Procedura collaudo/automatic-resilience.md; prerequisiti mancanti: Bloccato.</p><h4>Passi</h4><ol><li>Verificare agent-reconnect e final-reconciliation-and-retained-artifacts; conservare report, log e hash.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Agenti riavviati tra run, nuovi run completati; screenshot scaricabili non vuoti con SHA-256; nessun errore di pulizia.</p>"
+}

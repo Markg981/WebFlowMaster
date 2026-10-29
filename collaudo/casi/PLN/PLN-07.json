@@ -1,0 +1,14 @@
+{
+  "id": "PLN-07",
+  "area": "PLN",
+  "title": "Test visivi",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il primo run registra le baseline. Il secondo segnala la differenza e il dettaglio dello step mostra Baseline, This run e Difference.",
+  "steps": [
+    "Attivare Test visivi; eseguire un test su /dynamic_content.",
+    "Eseguire di nuovo."
+  ],
+  "expected": "Il primo run registra le baseline. Il secondo segnala la differenza e il dettaglio dello step mostra Baseline, This run e Difference.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Attivare <b>Test visivi</b>; eseguire un test su /dynamic_content.</li><li>Eseguire di nuovo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il primo run registra le baseline. Il secondo segnala la differenza e il dettaglio dello step mostra Baseline, This run e Difference.</p>\n      "
+}

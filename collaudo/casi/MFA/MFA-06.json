@@ -1,0 +1,14 @@
+{
+  "id": "MFA-06",
+  "area": "MFA",
+  "title": "Nuovi codici di recupero",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Una nuova serie di 10 codici viene mostrata; quelli vecchi non valgono più.",
+  "steps": [
+    "Sicurezza → Nuovi codici di recupero con un codice dell'app.",
+    "Provare ad accedere con un codice della serie precedente."
+  ],
+  "expected": "Una nuova serie di 10 codici viene mostrata; quelli vecchi non valgono più.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Sicurezza → <b>Nuovi codici di recupero</b> con un codice dell'app.</li><li>Provare ad accedere con un codice della serie precedente.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Una nuova serie di 10 codici viene mostrata; quelli vecchi non valgono più.</p>\n      "
+}

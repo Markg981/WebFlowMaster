@@ -1,0 +1,13 @@
+{
+  "id": "MFA-03",
+  "area": "MFA",
+  "title": "Cinque codici sbagliati",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Ai primi quattro: «That code is not valid.». Al quinto: «Too many wrong codes. Sign in with your password again.» e si torna alla password. Audit auth.login_failed con motivo codice errato.",
+  "steps": [
+    "Dopo la password, inserire 5 codici sbagliati."
+  ],
+  "expected": "Ai primi quattro: «That code is not valid.». Al quinto: «Too many wrong codes. Sign in with your password again.» e si torna alla password. Audit auth.login_failed con motivo codice errato.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Dopo la password, inserire 5 codici sbagliati.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Ai primi quattro: «That code is not valid.». Al quinto: «Too many wrong codes. Sign in with your password again.» e si torna alla password. Audit <b>auth.login_failed</b> con motivo codice errato.</p>\n      "
+}

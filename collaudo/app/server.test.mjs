@@ -4,6 +4,7 @@ import { mkdtemp, readFile, readdir, writeFile, mkdir, rm } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createCollaudoServer } from './server.mjs';
+import { loadCatalog } from './catalog.mjs';
 
 const catalog = {
   version: 16,
@@ -403,4 +404,40 @@ test('snapshot imports reject missing definitions, altered case hashes and confl
     Object.entries(backup.state.snapshots[cycle.catalogHash].cases[0]).reverse(),
   );
   assert.equal((await f.request('/api/import', backup)).status, 200);
+});
+
+test('the catalogue is one file per case, ordered by area and number, with counts filled in', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'wfm-collaudo-catalog-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const areas = [
+    { id: 'WEB', title: 'Web', intro: '' },
+    { id: 'API', title: 'API', intro: '' },
+  ];
+  await writeFile(join(directory, 'catalogo.json'), JSON.stringify({ version: 7, areas }));
+  await writeFile(join(directory, 'stile.css'), 'h3{}');
+  await writeFile(
+    join(directory, 'preparazione.html'),
+    '<p>Protocollo {{versione}}: {{casi}} casi in {{aree}} aree</p>',
+  );
+  const write = async (area, id, folder = area) => {
+    await mkdir(join(directory, folder), { recursive: true });
+    await writeFile(
+      join(directory, folder, `${id}.json`),
+      JSON.stringify({ ...catalog.cases[0], id, area }),
+    );
+  };
+  for (const [area, id] of [
+    ['API', 'API-10'],
+    ['API', 'API-2'],
+    ['WEB', 'WEB-1'],
+  ])
+    await write(area, id);
+  const loaded = await loadCatalog(directory);
+  assert.deepEqual(
+    loaded.cases.map((item) => item.id),
+    ['WEB-1', 'API-2', 'API-10'],
+  );
+  assert.equal(loaded.presentation.preparationHtml, '<p>Protocollo 7: 3 casi in 2 aree</p>');
+  await write('API', 'API-3', 'WEB');
+  await assert.rejects(loadCatalog(directory), /id o area non corrispondono/);
 });

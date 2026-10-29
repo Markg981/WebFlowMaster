@@ -1,0 +1,14 @@
+{
+  "id": "SEC-53",
+  "area": "SEC",
+  "title": "Frame, popup e service worker non raggiungono destinazioni vietate",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 66. Installazione self-hosted senza WFM_EGRESS_PROXY, runner locale (non agente né griglia). EGRESS_PRIVATE_TARGETS=deny, EGRESS_ALLOW_HOSTS=localhost. Sul runner un piccolo server di prova su 127.0.0.1:<porta> che registra le richieste e accetta WebSocket; un file C:\\temp\\marker.html (o /tmp/marker.html) con il testo FILE-MARKER.",
+  "steps": [
+    "Da una pagina su http://localhost:<porta>/ inserire un iframe e aprire un popup verso http://127.0.0.1:<porta>/api/x.",
+    "Registrare un service worker dalla stessa pagina e fargli eseguire fetch verso http://localhost:<porta>/api/ok e verso http://127.0.0.1:<porta>/api/x.",
+    "Ripetere da anteprima del builder, recorder e detection elementi sullo stesso URL iniziale."
+  ],
+  "expected": "Il service worker ottiene la risposta di localhost; iframe, popup e service worker ricevono 403 «Blocked by the egress policy» per 127.0.0.1. Il server di prova registra solo richieste verso localhost, da run, anteprima, recorder e detection."
+}

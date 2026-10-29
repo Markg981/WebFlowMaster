@@ -1,0 +1,15 @@
+{
+  "id": "PLN-30",
+  "area": "PLN",
+  "title": "Telefono e tablet nella matrice dei browser",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un test web su un sito responsive con un menu che su mobile diventa un pulsante ☰ (per esempio https://playwright.dev); passi: Naviga; Verifica che il pulsante del menu mobile sia visibile.",
+  "steps": [
+    "Impostazioni del piano → Browser: riga chromium con Dispositivo = Desktop; seconda riga chromium con Dispositivo = Pixel 7; terza riga webkit con Dispositivo = iPhone 15. Salva ed eseguire.",
+    "Aprire il report e gli screenshot dei tre passaggi.",
+    "Aggiungere uno step Esegui JavaScript return window.innerWidth < 500 && navigator.maxTouchPoints > 0 ed eseguire di nuovo."
+  ],
+  "expected": "1–2: tre risultati per test: «chromium», «chromium · Pixel 7», «webkit · iPhone 15». Sul desktop il menu è quello completo e il test fallisce la verifica del pulsante ☰; su Pixel 7 e iPhone 15 gli screenshot sono stretti e verticali, con il pulsante ☰, e la verifica passa. 3: lo step passa su Pixel 7 e iPhone 15, fallisce su desktop.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test web su un sito responsive con un menu che su mobile diventa un pulsante ☰ (per esempio https://playwright.dev); passi: Naviga; Verifica che il pulsante del menu mobile sia visibile.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni del piano → Browser: riga chromium con <b>Dispositivo</b> = Desktop; seconda riga chromium con Dispositivo = <code>Pixel 7</code>; terza riga webkit con Dispositivo = <code>iPhone 15</code>. Salva ed eseguire.</li><li>Aprire il report e gli screenshot dei tre passaggi.</li><li>Aggiungere uno step Esegui JavaScript <code>return window.innerWidth &lt; 500 &amp;&amp; navigator.maxTouchPoints &gt; 0</code> ed eseguire di nuovo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1–2: tre risultati per test: «chromium», «chromium · Pixel 7», «webkit · iPhone 15». Sul desktop il menu è quello completo e il test fallisce la verifica del pulsante ☰; su Pixel 7 e iPhone 15 gli screenshot sono stretti e verticali, con il pulsante ☰, e la verifica passa. 3: lo step passa su Pixel 7 e iPhone 15, fallisce su desktop.</p>\n      "
+}

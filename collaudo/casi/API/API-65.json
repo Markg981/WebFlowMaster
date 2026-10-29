@@ -1,0 +1,13 @@
+{
+  "id": "API-65",
+  "area": "API",
+  "title": "Tempo di risposta e timeout fino all'ultimo byte del corpo",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un endpoint che invia subito gli header e il corpo dopo circa 1 secondo (es. https://httpbin.org/drip?duration=1&numbytes=10&delay=0).",
+  "steps": [
+    "Creare un test API GET sull'endpoint con asserzione response time less than 500 e premere Invia.",
+    "Ripetere su un endpoint che restituisce un corpo oltre il limite API_RESPONSE_MAX_BYTES (impostato basso in collaudo, es. 1024)."
+  ],
+  "expected": "Il primo test fallisce con durata di circa 1000 ms, non quella agli header. Il secondo fallisce con 'Response body larger than 1024 bytes' senza errori del server."
+}

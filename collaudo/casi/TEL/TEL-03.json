@@ -1,0 +1,13 @@
+{
+  "id": "TEL-03",
+  "area": "TEL",
+  "title": "Autenticazione e superficie del listener metriche",
+  "priority": "P1",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "Abilitare le metriche con token di prova; chiamare GET /metrics senza token e con token errato.",
+    "Chiamare GET /metrics con Authorization: Bearer corretto e ripetere con POST o percorso diverso."
+  ],
+  "expected": "Senza token o con token errato: 401. GET autenticato: 200 in formato Prometheus, Cache-Control no-store, senza sessione applicativa. Altri metodi o percorsi: 404."
+}

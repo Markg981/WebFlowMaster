@@ -1,0 +1,15 @@
+{
+  "id": "OPS-15",
+  "area": "OPS",
+  "title": "Limiti di frequenza condivisi fra più processi web",
+  "priority": "P2",
+  "actor": "operatore",
+  "preconditions": "Lo stack di collaudo con due repliche del servizio api dietro Caddy (wfmc up -d --scale api=2) e WEBHOOK_RATE_LIMIT=10 su entrambe.",
+  "steps": [
+    "Da un indirizzo inviare 12 richieste POST a /api/webhooks/<token-qualunque> in meno di un minuto (Caddy le distribuisce sulle due repliche).",
+    "Fermare Redis (wfmc stop redis) e ripetere 12 richieste; poi riavviarlo.",
+    "Riavviato Redis, attendere un minuto e ripetere."
+  ],
+  "expected": "1: dall'11ª la risposta è 429 «Too many requests: at most 10 a minute…»: il limite è 10 in tutto, non 10 per replica. 2: le richieste rispondono subito (nessuna resta appesa) e il 429 arriva più tardi, perché ogni replica conta per conto suo. 3: di nuovo 429 dall'11ª.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Lo stack di collaudo con due repliche del servizio api dietro Caddy (<code>wfmc up -d --scale api=2</code>) e <code>WEBHOOK_RATE_LIMIT=10</code> su entrambe.</p>\n        <h4>Passi</h4>\n        <ol><li>Da un indirizzo inviare 12 richieste POST a <code>/api/webhooks/&lt;token-qualunque&gt;</code> in meno di un minuto (Caddy le distribuisce sulle due repliche).</li><li>Fermare Redis (<code>wfmc stop redis</code>) e ripetere 12 richieste; poi riavviarlo.</li><li>Riavviato Redis, attendere un minuto e ripetere.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: dall'11ª la risposta è 429 «Too many requests: at most 10 a minute…»: il limite è 10 in tutto, non 10 per replica. 2: le richieste rispondono subito (nessuna resta appesa) e il 429 arriva più tardi, perché ogni replica conta per conto suo. 3: di nuovo 429 dall'11ª.</p>\n      "
+}

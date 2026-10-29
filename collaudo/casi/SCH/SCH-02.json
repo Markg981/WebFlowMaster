@@ -1,0 +1,13 @@
+{
+  "id": "SCH-02",
+  "area": "SCH",
+  "title": "CRON e fuso orario",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "«Next Run At» indica le 9:00 ora italiana del prossimo giorno feriale, corretto anche a cavallo del cambio d'ora.",
+  "steps": [
+    "Frequency Custom CRON 0 9 * * 1-5, Timezone Europe/Rome."
+  ],
+  "expected": "«Next Run At» indica le 9:00 ora italiana del prossimo giorno feriale, corretto anche a cavallo del cambio d'ora.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Frequency <b>Custom CRON</b> <code>0 9 * * 1-5</code>, Timezone <code>Europe/Rome</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">«Next Run At» indica le 9:00 ora italiana del prossimo giorno feriale, corretto anche a cavallo del cambio d'ora.</p>\n      "
+}
