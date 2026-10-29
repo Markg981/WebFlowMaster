@@ -63,7 +63,7 @@ Un XPath viene valutato su documenti fino a 2 MB e 20.000 nodi, con espressione 
 
 Confronti: equals, not equals, contains, not contains, exists, not exists, is empty, is not
 empty, greater than, less than (o uguale), matches regex, not matches regex. Un'asserzione si può
-disattivare senza cancellarla. Il test passa quando passano tutte quelle attive.
+disattivare senza cancellarla. Il test passa quando passano tutte quelle attive. Un test senza asserzioni attive passa solo se lo stato è inferiore a 400 (controllo implicito). Un run di un piano senza test termina in errore (`run_empty`), non completato.
 Una regex è limitata a 200 caratteri e non può ripetere un gruppo già ripetuto come `(a+)+` (bloccherebbe
 il server): l'asserzione fallisce subito con il messaggio "Invalid regex".
 

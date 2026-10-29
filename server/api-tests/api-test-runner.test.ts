@@ -151,6 +151,15 @@ describe('runApiRequest', () => {
     expect(result.passed).toBe(true);
   }, 30_000);
 
+  it('does not pass a test with no assertions on an error status', async () => {
+    const result = await runApiRequest(
+      { method: 'GET', url: `${baseUrl}/boom`, assertions: [] },
+      {},
+    );
+    expect(result.status).toBe(500);
+    expect(result.passed).toBe(false);
+  }, 30_000);
+
   it('sends form-data as multipart, with its text fields and its files', async () => {
     // API-03: the page put a browser FormData in `body`, the JSON hop turned it into `{}`,
     // and the target received neither fields nor files.

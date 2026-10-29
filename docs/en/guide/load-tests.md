@@ -65,7 +65,7 @@ for example to make an order reference unique: `order-{{load.vu}}-{{load.iterati
 Each threshold is optional and judged on the requests sent after the warm-up:
 
 - **Median (p50)**, **95th percentile (p95)**, **99th percentile (p99)** and **Slowest**, in ms;
-- **Failed requests**, in percent;
+- **Failed requests**, in percent (an HTTP status of 400 or more counts as failed; with no threshold set, a run with more than 50% failed requests fails);
 - **Minimum throughput**, in requests per second over the judged time.
 
 A run **passes** when it reaches the end within every threshold and **fails** naming each

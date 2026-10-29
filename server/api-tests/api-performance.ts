@@ -19,7 +19,12 @@ import {
 export function failureOf(result: ApiRunResult): string | null {
   if (result.error) return result.error;
   const failed = result.assertions.find((a) => !a.pass);
-  if (!failed) return null;
+  if (!failed) {
+    // No assertion to blame: the implicit "status below 400" check is what failed.
+    return !result.passed && (result.status ?? 0) >= 400
+      ? `HTTP ${result.status}${result.statusText ? ` ${result.statusText}` : ''}`
+      : null;
+  }
   const { source, property, comparison, targetValue } = failed.assertion;
   return `${source}${property ? ` "${property}"` : ''} ${comparison} "${targetValue ?? ''}" — actual: ${JSON.stringify(failed.actualValue)}`;
 }

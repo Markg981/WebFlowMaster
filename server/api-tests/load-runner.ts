@@ -101,6 +101,8 @@ export interface StepOutcome {
   durationMs: number;
   /** Why the request failed — not made, or an assertion that did not hold — or null. */
   error: string | null;
+  /** The HTTP status when the request was answered: 400 or more is an error even without `error`. */
+  status?: number;
   extracted: Record<string, string>;
 }
 
@@ -233,7 +235,12 @@ export async function runLoad(
             break;
           }
           const startedAt = deps.now();
-          const outcome = await deps.send(index, vars);
+          const sent = await deps.send(index, vars);
+          // An HTTP status of 400 or more is an error of the request, thresholds or not.
+          const outcome: StepOutcome =
+            sent.error === null && (sent.status ?? 0) >= 400
+              ? { ...sent, error: `HTTP ${sent.status}` }
+              : sent;
           record(index, startedAt, outcome);
           // The next steps would send what this one did not capture: the iteration is over.
           if (outcome.error !== null) {
@@ -706,6 +713,7 @@ export async function executeLoadRun(
                   return {
                     durationMs: result.durationMs,
                     error: failureOf(result),
+                    status: result.status,
                     extracted: result.extracted,
                   };
                 },
