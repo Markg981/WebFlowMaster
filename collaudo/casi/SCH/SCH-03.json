@@ -1,0 +1,13 @@
+{
+  "id": "SCH-03",
+  "area": "SCH",
+  "title": "Riprova in caso di fallimento",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Un piano che fallisce.",
+  "steps": [
+    "Retry on Failure «Twice»; attendere il run pianificato."
+  ],
+  "expected": "Il report mostra i tentativi (1 di 3, 2 di 3…) e l'esito dell'ultimo.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un piano che fallisce.</p>\n        <h4>Passi</h4>\n        <ol><li><b>Retry on Failure</b> «Twice»; attendere il run pianificato.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il report mostra i tentativi (1 di 3, 2 di 3…) e l'esito dell'ultimo.</p>\n      "
+}

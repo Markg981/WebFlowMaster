@@ -1,0 +1,15 @@
+{
+  "id": "ACC-04",
+  "area": "ACC",
+  "title": "Inviti non validi",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un invito revocato, uno già usato.",
+  "steps": [
+    "Usare il link di un invito revocato.",
+    "Riusare il link di un invito già accettato.",
+    "Aprire un link valido e cambiare lo username prima di registrarsi."
+  ],
+  "expected": "In tutti e tre i casi: «That invitation is not valid.», nessun account creato. Il messaggio non distingue il motivo.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un invito revocato, uno già usato.</p>\n        <h4>Passi</h4>\n        <ol><li>Usare il link di un invito revocato.</li><li>Riusare il link di un invito già accettato.</li><li>Aprire un link valido e cambiare lo username prima di registrarsi.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">In tutti e tre i casi: «That invitation is not valid.», nessun account creato. Il messaggio non distingue il motivo.</p>\n      "
+}

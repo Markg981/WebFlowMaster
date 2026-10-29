@@ -1,0 +1,13 @@
+{
+  "id": "LIB-37",
+  "area": "LIB",
+  "title": "Intersezione dei tag nei cataloghi",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Test UI/API/mobile con solo tag A, solo B, entrambi A+B; elenco su più pagine. Nuovo ciclo protocollo 30: Da eseguire.",
+  "steps": [
+    "In Libreria selezionare A e B insieme.",
+    "Inviare richieste autenticate ai cataloghi API/mobile con tagIds=A,B e confrontare il totale con i soli test A+B."
+  ],
+  "expected": "Sono mostrati soltanto test che hanno tutti i tag selezionati; totale e navigazione rappresentano la stessa intersezione, senza risultati che hanno un solo tag."
+}

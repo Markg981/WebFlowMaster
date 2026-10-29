@@ -1,0 +1,15 @@
+{
+  "id": "WEB-37",
+  "area": "WEB",
+  "title": "Modificare ed eliminare un'azione usata",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "WEB-35 salvato in un test e usato anche in un gruppo di step.",
+  "steps": [
+    "Modificare lo script di Verifica riga (per esempio restituire false); eseguire il test salvato.",
+    "Provare a eliminare l'azione.",
+    "Rimuoverla dal test e dal gruppo; eliminarla; eseguire un test che la usava ancora (se ne resta uno)."
+  ],
+  "expected": "Il test esegue subito la versione modificata. L'eliminazione è rifiutata finché qualcosa la usa, e il messaggio elenca test e gruppi. Dopo l'eliminazione un test che la chiama fallisce dicendo che l'azione non esiste più. Audit custom_action.updated e custom_action.deleted.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-35 salvato in un test e usato anche in un gruppo di step.</p>\n        <h4>Passi</h4>\n        <ol><li>Modificare lo script di <b>Verifica riga</b> (per esempio restituire <code>false</code>); eseguire il test salvato.</li><li>Provare a eliminare l'azione.</li><li>Rimuoverla dal test e dal gruppo; eliminarla; eseguire un test che la usava ancora (se ne resta uno).</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il test esegue subito la versione modificata. L'eliminazione è rifiutata finché qualcosa la usa, e il messaggio elenca test e gruppi. Dopo l'eliminazione un test che la chiama fallisce dicendo che l'azione non esiste più. Audit <b>custom_action.updated</b> e <b>custom_action.deleted</b>.</p>\n      "
+}

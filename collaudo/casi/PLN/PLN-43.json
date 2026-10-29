@@ -1,0 +1,14 @@
+{
+  "id": "PLN-43",
+  "area": "PLN",
+  "title": "Limite di durata del run con il database non disponibile",
+  "priority": "P2",
+  "actor": "operatore · editor.a",
+  "preconditions": "RUN_MAX_DURATION_MS=60000 e RUN_HEARTBEAT_INTERVAL_MS=5000 sul worker; un piano con più test che dura oltre 2 minuti.",
+  "steps": [
+    "Avviare il piano e, appena il primo test è in corso, sospendere il database: docker compose -p wfm-collaudo pause postgres.",
+    "Attendere circa 90 secondi dall'avvio (oltre il limite, entro i 2 minuti dopo cui il run sarebbe considerato perso), poi riprendere il database: docker compose -p wfm-collaudo unpause postgres."
+  ],
+  "expected": "Il worker ferma il run al limite di 1 minuto anche senza database. Ripreso il database, nessun nuovo test parte, il run termina come «Tempo scaduto» e i test non eseguiti riportano 'the run went past its limit of 1 minutes'.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>RUN_MAX_DURATION_MS=60000 e RUN_HEARTBEAT_INTERVAL_MS=5000 sul worker; un piano con più test che dura oltre 2 minuti.</p>\n        <h4>Passi</h4>\n        <ol><li>Avviare il piano e, appena il primo test è in corso, sospendere il database: docker compose -p wfm-collaudo pause postgres.</li><li>Attendere circa 90 secondi dall'avvio (oltre il limite, entro i 2 minuti dopo cui il run sarebbe considerato perso), poi riprendere il database: docker compose -p wfm-collaudo unpause postgres.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il worker ferma il run al limite di 1 minuto anche senza database. Ripreso il database, nessun nuovo test parte, il run termina come «Tempo scaduto» e i test non eseguiti riportano 'the run went past its limit of 1 minutes'.</p>\n      "
+}

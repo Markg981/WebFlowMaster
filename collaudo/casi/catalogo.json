@@ -1,0 +1,130 @@
+{
+  "version": 94,
+  "areas": [
+    {
+      "id": "ACC",
+      "intro": "Registrazione, inviti, password e sessioni. Eseguire per prima: crea gli utenti delle altre aree.",
+      "title": "Accesso e account"
+    },
+    {
+      "id": "MFA",
+      "intro": "Autenticazione a due fattori personale e obbligatoria per l'organizzazione.",
+      "title": "Secondo fattore"
+    },
+    {
+      "id": "SSO",
+      "intro": "OpenID Connect e SAML con Keycloak: configurazione, creazione automatica degli account, obbligo e rifiuti; provisioning SCIM.",
+      "title": "Single sign-on"
+    },
+    {
+      "id": "MEM",
+      "intro": "Chi può fare cosa, e i progetti riservati.",
+      "title": "Membri, ruoli e progetti"
+    },
+    {
+      "id": "ENV",
+      "intro": "Valori cifrati per ambiente, variabili nei test e accesso salvato.",
+      "title": "Ambienti e segreti"
+    },
+    {
+      "id": "WEB",
+      "intro": "Il costruttore: rilevamento, azioni (tastiera, mouse, file, dialog, schede, variabili, cookie, JavaScript), condizioni e cicli, valori generati, azioni personalizzate, esecuzione di prova, registrazione, descrizione, dataset, precondizioni e pulizia, simulazione della rete, velocità delle pagine (Web Vitals e Lighthouse), gruppi, repository degli elementi.",
+      "title": "Test web"
+    },
+    {
+      "id": "API",
+      "intro": "Richieste, autorizzazioni, asserzioni e catture; import da OpenAPI e Postman.",
+      "title": "Test API"
+    },
+    {
+      "id": "LIB",
+      "intro": "Organizzare i test e decidere quale versione eseguono i piani; i test come file YAML/JSON e l'export in Playwright.",
+      "title": "Libreria, versioni, revisioni e suite"
+    },
+    {
+      "id": "TRC",
+      "intro": "Epic, user story e requisiti, i test che li coprono, la copertura dagli ultimi risultati, l'import da Jira e Azure DevOps, la matrice.",
+      "title": "Requisiti e tracciabilità"
+    },
+    {
+      "id": "TMG",
+      "intro": "Pubblicare ogni run concluso come run di TestRail, Test Execution di Xray o test cycle di Zephyr Scale, caso per caso.",
+      "title": "Test management: TestRail, Xray, Zephyr"
+    },
+    {
+      "id": "MOB",
+      "intro": "Test di app Android e iOS su dispositivi reali di BrowserStack o LambdaTest tramite Appium: scrittura, upload dell'app, esecuzione passo per passo, test mobili dentro i piani e nel report, nelle suite, nei requisiti e nel test management, inspector per scegliere gli elementi, Appium locale tramite un agente.",
+      "title": "App mobili native"
+    },
+    {
+      "id": "PLN",
+      "intro": "Creare ed eseguire piani: browser, lingue, parallelismo, un run diviso fra più runner, solo i test che un commit tocca (mappa dell'impatto), evidenze, test visivi, riesecuzioni, annullamento, code.",
+      "title": "Piani ed esecuzione"
+    },
+    {
+      "id": "SCH",
+      "intro": "Run automatici a orario.",
+      "title": "Pianificazioni"
+    },
+    {
+      "id": "REP",
+      "intro": "Report, dettagli degli step, esportazioni, test instabili e quarantena.",
+      "title": "Report e risultati"
+    },
+    {
+      "id": "INT",
+      "intro": "Chiavi API, API /api/v1, CLI, GitHub Actions, stato dei commit, webhook, issue tracker, notifiche.",
+      "title": "Integrazioni"
+    },
+    {
+      "id": "AGT",
+      "intro": "Eseguire test su applicazioni dentro una rete privata.",
+      "title": "Agenti locali"
+    },
+    {
+      "id": "ADM",
+      "intro": "Runner, impostazioni dell'installazione, audit, esportazione e cancellazione dell'organizzazione.",
+      "title": "Amministrazione"
+    },
+    {
+      "id": "SEC",
+      "intro": "Separazione fra organizzazioni, ruoli applicati dal server, intestazioni e segreti.",
+      "title": "Sicurezza e isolamento"
+    },
+    {
+      "id": "OPS",
+      "intro": "Installazione, aggiornamento, backup, guasti di worker e Redis, log.",
+      "title": "Operatività e resilienza"
+    },
+    {
+      "id": "UX",
+      "intro": "Lingue, tema, browser e stati vuoti.",
+      "title": "Interfaccia"
+    },
+    {
+      "id": "COL",
+      "title": "Collaborazione e dashboard",
+      "intro": "Conversazioni con risposte, menzioni e risoluzione; dashboard private o condivise, widget configurabili e isolamento."
+    },
+    {
+      "id": "BDD",
+      "intro": "Gherkin multilingua e definizioni Cucumber su agenti dedicati; predisporre un profilo operatore e un progetto riservato.",
+      "title": "BDD e Cucumber"
+    },
+    {
+      "id": "QUO",
+      "title": "Quote e consumi",
+      "intro": "Limiti per organizzazione, inventario degli artifact e minuti di esecuzione; amministratore umano dell’installazione, migrazione 0081 e organizzazioni di prova."
+    },
+    {
+      "id": "TEL",
+      "title": "Metriche e tracing",
+      "intro": "Prometheus e OpenTelemetry su API, worker e agenti; collector OTLP/HTTP JSON e token metriche di prova. Le integrazioni sono opzionali e disabilitate per impostazione predefinita."
+    },
+    {
+      "id": "AUT",
+      "title": "Percorsi UI critici",
+      "intro": "Regressione dei nove percorsi aggiunti agli E2E di installazione: sessioni separate, permessi e persistenza. Procedura e limiti in collaudo/critical-ui-e2e.md; nuovi cicli Da eseguire."
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "TEL-05",
+  "area": "TEL",
+  "title": "Metriche HTTP senza dati sensibili nelle label",
+  "priority": "P1",
+  "actor": "operatore installazione",
+  "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+  "steps": [
+    "Chiamare una route parametrica con ID, query e payload di prova riconoscibili; chiamare anche più percorsi sconosciuti.",
+    "Leggere wfm_http_duration_seconds sul listener API."
+  ],
+  "expected": "Metodo, template della route e stato sono misurati; le route sconosciute usano una label fissa. ID reali, query, payload, token e dati dell’organizzazione non diventano label."
+}

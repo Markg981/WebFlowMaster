@@ -1,0 +1,13 @@
+{
+  "id": "SEC-14",
+  "area": "SEC",
+  "title": "Analisi AI: isolamento",
+  "priority": "P1",
+  "actor": "owner.b",
+  "preconditions": "REP-15 nell'organizzazione A.",
+  "steps": [
+    "Come owner.b: POST /api/test-plan-executions/<run di A>/results/<risultato di A>/ai-analysis."
+  ],
+  "expected": "Risposta 404; nessuna chiamata al modello e l'analisi di A resta invariata.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>REP-15 nell'organizzazione A.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b: <code>POST /api/test-plan-executions/&lt;run di A&gt;/results/&lt;risultato di A&gt;/ai-analysis</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Risposta 404; nessuna chiamata al modello e l'analisi di A resta invariata.</p>\n      "
+}

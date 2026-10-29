@@ -1,0 +1,14 @@
+{
+  "id": "OPS-17",
+  "area": "OPS",
+  "title": "Catalogo del collaudo congelato per ciclo",
+  "priority": "P1",
+  "actor": "collaudatore locale",
+  "preconditions": "Pagina locale avviata con npm run dev:collaudo. Usare una copia isolata di collaudo/.local, senza alterare cicli reali.",
+  "steps": [
+    "Creare un ciclo A e registrare un esito con nota su un caso.",
+    "Cambiare titolo, passi e risultato atteso nel file del caso in collaudo/casi/ e aggiungere un caso con ID nuovo (un nuovo file). Riavviare il server.",
+    "Aprire il ciclo A ed esportare il CSV. Creare un ciclo B e aprirlo."
+  ],
+  "expected": "Il ciclo A mantiene definizioni, elenco, esito e nota originali; il CSV usa le stesse definizioni. B mostra il catalogo aggiornato ed esiti Da eseguire. Il backup JSON contiene catalogHash del ciclo e caseHash degli esiti."
+}

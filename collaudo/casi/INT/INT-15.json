@@ -1,0 +1,14 @@
+{
+  "id": "INT-15",
+  "area": "INT",
+  "title": "Scollegare GitHub/GitLab e cambiare un issue tracker",
+  "priority": "P3",
+  "actor": "owner.a",
+  "preconditions": "INT-07 e INT-10 configurati.",
+  "steps": [
+    "Impostazioni → GitHub e GitLab: scollegare; eseguire un run dalla CI.",
+    "Issue tracker: modificare il progetto, poi eliminarlo; far fallire un test con Apri una issue attivo."
+  ],
+  "expected": "Scollegato, il commit non riceve più stati e il run va a buon fine. Il tracker modificato usa i nuovi valori; eliminato, il piano non apre più issue e il report lo dice senza errori. Audit source_host.removed.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>INT-07 e INT-10 configurati.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostazioni → GitHub e GitLab: scollegare; eseguire un run dalla CI.</li><li>Issue tracker: modificare il progetto, poi eliminarlo; far fallire un test con <b>Apri una issue</b> attivo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Scollegato, il commit non riceve più stati e il run va a buon fine. Il tracker modificato usa i nuovi valori; eliminato, il piano non apre più issue e il report lo dice senza errori. Audit <b>source_host.removed</b>.</p>\n      "
+}

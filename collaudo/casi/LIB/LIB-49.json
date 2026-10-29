@@ -1,0 +1,14 @@
+{
+  "id": "LIB-49",
+  "area": "LIB",
+  "title": "Prima i fallback noti, poi l'AI; mai un locator che trova più elementi",
+  "priority": "P2",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 77. Nessuna chiave AI configurata. Un test registrato su un pulsante con data-testid, poi con il selettore principale reso non valido nell'editor; un secondo test con un selettore rotto su una pagina dove l'unico candidato corrisponde a due elementi.",
+  "steps": [
+    "Eseguire il primo test e aprire i dettagli dello step.",
+    "Eseguire il secondo test.",
+    "Configurare la chiave AI (o il doppio Gemini) e rieseguire il secondo test con un suggerimento che corrisponde a due elementi."
+  ],
+  "expected": "Il primo test passa dopo riparazione con origine «un fallback già noto alla registrazione» e locator [data-testid=…], anche senza AI. Il secondo test fallisce con l'errore originale dello step, senza proposta. Con l'AI attiva un suggerimento ambiguo non viene usato e lo step fallisce con l'errore originale."
+}

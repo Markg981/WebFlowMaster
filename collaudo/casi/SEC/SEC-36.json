@@ -1,0 +1,12 @@
+{
+  "id": "SEC-36",
+  "area": "SEC",
+  "title": "Isolamento tra organizzazioni",
+  "priority": "P1",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Come utente di B tentare lettura o scrittura dei commenti su un test di A."
+  ],
+  "expected": "Nessuna lettura o modifica consentita."
+}

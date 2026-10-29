@@ -1,0 +1,16 @@
+{
+  "id": "WEB-47",
+  "area": "WEB",
+  "title": "Casella di test: errori chiari",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Ambiente Staging.",
+  "steps": [
+    "Nell'ambiente, segreto mailpit.url = http://mailpit:9999; eseguire il test di WEB-46.",
+    "Segreto mailpit.url = http://mailpit:8025 e mailpit.timeout = 5; eseguire senza inviare nulla.",
+    "Valore dello step non-un-indirizzo.",
+    "Eliminare i due segreti."
+  ],
+  "expected": "1: fallisce subito con «The test inbox at http://mailpit:9999 could not be reached…». 2: fallisce dopo circa 5 secondi con «No email to otp.collaudo@example.com with \"codice di accesso\" in the subject arrived within 5s at http://mailpit:8025. Check that the application's SMTP server is that Mailpit…». 3: «\"non-un-indirizzo\" is not an email address». 4: torna a usare il Mailpit del server (MAILPIT_URL).",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Ambiente Staging.</p>\n        <h4>Passi</h4>\n        <ol><li>Nell'ambiente, segreto <code>mailpit.url</code> = <code>http://mailpit:9999</code>; eseguire il test di WEB-46.</li><li>Segreto <code>mailpit.url</code> = <code>http://mailpit:8025</code> e <code>mailpit.timeout</code> = <code>5</code>; eseguire senza inviare nulla.</li><li>Valore dello step <code>non-un-indirizzo</code>.</li><li>Eliminare i due segreti.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: fallisce subito con «The test inbox at http://mailpit:9999 could not be reached…». 2: fallisce dopo circa 5 secondi con «No email to otp.collaudo@example.com with \"codice di accesso\" in the subject arrived within 5s at http://mailpit:8025. Check that the application's SMTP server is that Mailpit…». 3: «\"non-un-indirizzo\" is not an email address». 4: torna a usare il Mailpit del server (MAILPIT_URL).</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "MEM-03",
+  "area": "MEM",
+  "title": "Rimuovere un membro e passare ad altri ciò che ha creato",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "editor.a ha creato un test, un piano e un ambiente.",
+  "steps": [
+    "Membri: cestino accanto a editor.a; scegliere un altro membro a cui passare i suoi dati; confermare.",
+    "Provare ad accedere come editor.a."
+  ],
+  "expected": "L'account non esiste più (accesso impossibile). Test, piano e ambiente sono ancora lì e appartengono al membro scelto. Audit member.removed con chi è subentrato. (Ricreare editor.a con un invito per le aree successive.)",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>editor.a ha creato un test, un piano e un ambiente.</p>\n        <h4>Passi</h4>\n        <ol><li>Membri: cestino accanto a editor.a; scegliere un altro membro a cui passare i suoi dati; confermare.</li><li>Provare ad accedere come editor.a.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'account non esiste più (accesso impossibile). Test, piano e ambiente sono ancora lì e appartengono al membro scelto. Audit <b>member.removed</b> con chi è subentrato. (Ricreare editor.a con un invito per le aree successive.)</p>\n      "
+}

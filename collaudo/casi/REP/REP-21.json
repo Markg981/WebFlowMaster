@@ -1,0 +1,15 @@
+{
+  "id": "REP-21",
+  "area": "REP",
+  "title": "Applicare al test il selettore proposto",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "GEMINI_API_KEY impostata; un test il cui bottone ha cambiato classe CSS, eseguito dopo questo aggiornamento.",
+  "steps": [
+    "Report → Test falliti → Analizza con l'AI.",
+    "Applica al test.",
+    "Aprire la Cronologia del test; pubblicare ed eseguire di nuovo il piano."
+  ],
+  "expected": "Il pulsante compare accanto a Copia quando la causa è Locator e lo step è del test. Dopo l'applicazione il dialogo dice «salvato come versione N»; la cronologia ha la nuova versione con solo quel selettore cambiato; il registro di audit ha test.updated con selettore precedente e nuovo. Il run successivo passa.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>GEMINI_API_KEY</code> impostata; un test il cui bottone ha cambiato classe CSS, eseguito dopo questo aggiornamento.</p>\n        <h4>Passi</h4>\n        <ol><li>Report → Test falliti → <b>Analizza con l'AI</b>.</li><li><b>Applica al test</b>.</li><li>Aprire la Cronologia del test; pubblicare ed eseguire di nuovo il piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il pulsante compare accanto a Copia quando la causa è Locator e lo step è del test. Dopo l'applicazione il dialogo dice «salvato come versione N»; la cronologia ha la nuova versione con solo quel selettore cambiato; il registro di audit ha test.updated con selettore precedente e nuovo. Il run successivo passa.</p>\n      "
+}

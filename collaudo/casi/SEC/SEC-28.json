@@ -1,0 +1,15 @@
+{
+  "id": "SEC-28",
+  "area": "SEC",
+  "title": "Appium locale: isolamento e nessuna chiave",
+  "priority": "P1",
+  "actor": "owner.b · editor.a",
+  "preconditions": "MOB-16 nell'organizzazione A; owner.b ha un proprio agente nel pool lab.",
+  "steps": [
+    "Come owner.b: POST /api/mobile-tests/<test di A>/runs, e POST /api/mobile-inspector con il gridId di Lab di A.",
+    "Come owner.b: crea una griglia Local Appium con pool lab ed esegui un proprio test.",
+    "Come editor.a: POST /api/browser-grids con provider local_appium, pool lab e un campo key; leggere la risposta e la riga."
+  ],
+  "expected": "1: 404 per entrambi. 2: le richieste passano solo dall'agente di B (il pool vale dentro la sua organizzazione): nessuna richiesta arriva all'agente di A. 3: hasKey false; la chiave non è salvata.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-16 nell'organizzazione A; owner.b ha un proprio agente nel pool <code>lab</code>.</p>\n        <h4>Passi</h4>\n        <ol><li>Come owner.b: POST /api/mobile-tests/&lt;test di A&gt;/runs, e POST /api/mobile-inspector con il gridId di Lab di A.</li><li>Come owner.b: crea una griglia Local Appium con pool <code>lab</code> ed esegui un proprio test.</li><li>Come editor.a: POST /api/browser-grids con provider local_appium, pool lab e un campo key; leggere la risposta e la riga.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: 404 per entrambi. 2: le richieste passano solo dall'agente di B (il pool vale dentro la sua organizzazione): nessuna richiesta arriva all'agente di A. 3: hasKey false; la chiave non è salvata.</p>\n      "
+}

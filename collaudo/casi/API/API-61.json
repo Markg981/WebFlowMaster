@@ -1,0 +1,12 @@
+{
+  "id": "API-61",
+  "area": "API",
+  "title": "Gruppi XSD annidati e namespace",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "API/client aggiornati; fixture sintetiche collaudo/fixtures/wsdl; procedura collaudo/wsdl-expanded.md. Nuovo ciclo Da eseguire.",
+  "steps": [
+    "Importare i tre file in collaudo/fixtures/wsdl; scegliere service.wsdl e aprire anteprima e test salvato."
+  ],
+  "expected": "OrderId/AddressId in urn:common, Sku/Quantity in urn:request, due Line; nessuna ServiceCode/AddressText; envelope conservato dopo reload."
+}

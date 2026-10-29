@@ -1,0 +1,14 @@
+{
+  "id": "OPS-21",
+  "area": "OPS",
+  "title": "Rilascio bloccato dalle vulnerabilità",
+  "priority": "P1",
+  "actor": "operatore release",
+  "preconditions": "Branch di prova sacrificabile con fixture di rapporto Trivy HIGH o CRITICAL; nessun tag reale.",
+  "steps": [
+    "Eseguire npm run test:release e il gate su un rapporto con vulnerabilità HIGH senza FixedVersion.",
+    "Ripetere con rapporto mancante/malformato.",
+    "Verificare esito nonzero e assenza di promozione."
+  ],
+  "expected": "HIGH/CRITICAL, anche senza fix, e rapporti mancanti/malformati bloccano. Il rapporto completo resta consultabile; nessuna eccezione silenziosa."
+}

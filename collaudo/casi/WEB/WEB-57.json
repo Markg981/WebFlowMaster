@@ -1,0 +1,16 @@
+{
+  "id": "WEB-57",
+  "area": "WEB",
+  "title": "Pulizia dopo il test",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Un test API salvato Elimina post: DELETE https://jsonplaceholder.typicode.com/posts/{{postId}} con asserzione status 200; un test web che salva un valore come postId (per esempio Imposta variabile postId=1).",
+  "steps": [
+    "Nel costruttore, sezione Pulizia: Aggiungi un test API salvato come pulizia… → Elimina post; salvare.",
+    "Esegui test; poi in un piano.",
+    "Far fallire uno step del test prima della fine; eseguire in un piano.",
+    "Spostare Imposta variabile dopo lo step che fallisce; eseguire."
+  ],
+  "expected": "1: senza pulizie la sezione dice «Nessuna pulizia. Ciò che il test crea resta nell'applicazione.». 2: il report ha dopo gli step la riga Cleanup riuscita, con DELETE …/posts/1. 3: il test è Fallito e la pulizia gira lo stesso; l'esito del test non cambia per la pulizia. 4: la chiamata non viene fatta e il report dice che è stata saltata perché postId non è mai stato impostato.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un test API salvato <code>Elimina post</code>: <code>DELETE https://jsonplaceholder.typicode.com/posts/{{postId}}</code> con asserzione status 200; un test web che salva un valore come <code>postId</code> (per esempio Imposta variabile <code>postId=1</code>).</p>\n        <h4>Passi</h4>\n        <ol><li>Nel costruttore, sezione <b>Pulizia</b>: <b>Aggiungi un test API salvato come pulizia…</b> → Elimina post; salvare.</li><li><b>Esegui test</b>; poi in un piano.</li><li>Far fallire uno step del test prima della fine; eseguire in un piano.</li><li>Spostare Imposta variabile dopo lo step che fallisce; eseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: senza pulizie la sezione dice «Nessuna pulizia. Ciò che il test crea resta nell'applicazione.». 2: il report ha dopo gli step la riga <b>Cleanup</b> riuscita, con DELETE …/posts/1. 3: il test è Fallito e la pulizia gira lo stesso; l'esito del test non cambia per la pulizia. 4: la chiamata non viene fatta e il report dice che è stata saltata perché <code>postId</code> non è mai stato impostato.</p>\n      "
+}

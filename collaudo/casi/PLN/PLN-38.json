@@ -1,0 +1,17 @@
+{
+  "id": "PLN-38",
+  "area": "PLN",
+  "title": "Eseguire solo i test toccati da un commit",
+  "priority": "P1",
+  "actor": "ci-bot",
+  "preconditions": "PLN-37; un repository git locale con un commit che cambia src/search/box.tsx; chiave API di ci-bot.",
+  "steps": [
+    "Nel repository: node wfm.mjs run <piano> --changed-since HEAD~1 --wait.",
+    "Aprire il report del run e il log live.",
+    "GET /api/v1/runs/<id>.",
+    "Ripetere con un file changed.txt contenente docs/x.md: --changed-files changed.txt.",
+    "Ripetere senza opzioni."
+  ],
+  "expected": "1: la CLI stampa «1 changed file(s): the run is narrowed…» e poi il motivo del server; esce 0. 2: il run ha solo il test ricerca e quello senza tag; il log dice quali tag e quanti test su quanti. 3: il campo selection ha mode affected, affectedTags [ricerca], selected 2, total 3. 4: gira solo il test senza tag. 5: girano tutti i test, senza campo selection.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-37; un repository git locale con un commit che cambia <code>src/search/box.tsx</code>; chiave API di ci-bot.</p>\n        <h4>Passi</h4>\n        <ol><li>Nel repository: <code>node wfm.mjs run &lt;piano&gt; --changed-since HEAD~1 --wait</code>.</li><li>Aprire il report del run e il log live.</li><li><code>GET /api/v1/runs/&lt;id&gt;</code>.</li><li>Ripetere con un file <code>changed.txt</code> contenente <code>docs/x.md</code>: <code>--changed-files changed.txt</code>.</li><li>Ripetere senza opzioni.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: la CLI stampa «1 changed file(s): the run is narrowed…» e poi il motivo del server; esce 0. 2: il run ha solo il test ricerca e quello senza tag; il log dice quali tag e quanti test su quanti. 3: il campo <code>selection</code> ha mode affected, affectedTags [ricerca], selected 2, total 3. 4: gira solo il test senza tag. 5: girano tutti i test, senza campo selection.</p>\n      "
+}

@@ -1,0 +1,17 @@
+{
+  "id": "LIB-13",
+  "area": "LIB",
+  "title": "Creare un test manuale",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Il test compare nella libreria con l'etichetta Manuale e la colonna URL mostra —. Un nome già usato è rifiutato con l'errore di nome duplicato. Senza almeno uno step con l'azione il salvataggio non è possibile («Write at least one step.»). L'API risponde 400 manual_step_empty e nessun test viene creato.",
+  "steps": [
+    "Libreria dei test → Nuovo test manuale.",
+    "Nome Verifica stampa fattura; step 1 azione Aprire una fattura e stamparla, atteso Il PDF riporta logo e totale; aggiungere lo step 2 Controllare l'email di conferma / Arriva entro 5 minuti; salvare.",
+    "Salvare di nuovo un test manuale con un nome già usato da un altro test.",
+    "Provare a salvare con tutti gli step vuoti.",
+    "Dalla console: POST /api/tests con name nuovo, url: '' e una sequence di step manualStep il cui value è vuoto."
+  ],
+  "expected": "Il test compare nella libreria con l'etichetta Manuale e la colonna URL mostra —. Un nome già usato è rifiutato con l'errore di nome duplicato. Senza almeno uno step con l'azione il salvataggio non è possibile («Write at least one step.»). L'API risponde 400 manual_step_empty e nessun test viene creato.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Libreria dei test → <b>Nuovo test manuale</b>.</li><li>Nome <code>Verifica stampa fattura</code>; step 1 azione <code>Aprire una fattura e stamparla</code>, atteso <code>Il PDF riporta logo e totale</code>; aggiungere lo step 2 <code>Controllare l'email di conferma</code> / <code>Arriva entro 5 minuti</code>; salvare.</li><li>Salvare di nuovo un test manuale con un nome già usato da un altro test.</li><li>Provare a salvare con tutti gli step vuoti.</li><li>Dalla console: <code>POST /api/tests</code> con <code>name</code> nuovo, <code>url: ''</code> e una <code>sequence</code> di step <code>manualStep</code> il cui <code>value</code> è vuoto.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il test compare nella libreria con l'etichetta <b>Manuale</b> e la colonna URL mostra —. Un nome già usato è rifiutato con l'errore di nome duplicato. Senza almeno uno step con l'azione il salvataggio non è possibile («Write at least one step.»). L'API risponde 400 <code>manual_step_empty</code> e nessun test viene creato.</p>\n      "
+}

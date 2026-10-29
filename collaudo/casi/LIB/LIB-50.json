@@ -1,0 +1,14 @@
+{
+  "id": "LIB-50",
+  "area": "LIB",
+  "title": "Export Playwright della versione eseguita, non della copia di lavoro",
+  "priority": "P1",
+  "actor": "editor",
+  "preconditions": "Catalogo versione 79. Un test web pubblicato (versione N) e poi modificato senza ripubblicarlo, così che la copia di lavoro sia diversa.",
+  "steps": [
+    "Chiamare GET /api/tests/:id/playwright senza parametri e leggere gli header della risposta.",
+    "Ripetere con ?version=working, ?version=published, ?version=N e con un numero di versione inesistente.",
+    "Su un test mai pubblicato chiamare ?version=published."
+  ],
+  "expected": "1: il file contiene gli step della versione pubblicata, non la modifica; X-WFM-Export-Source è «published» e X-WFM-Export-Version è N, la stessa versione che un piano esegue (testVersion nel report). 2: working esporta la modifica con source «working»; published e N esportano la versione N con i gruppi di step e le azioni personalizzate di quella versione; un numero inesistente dà 404. 3: 409 con un messaggio che dice che il test non è mai stato pubblicato."
+}

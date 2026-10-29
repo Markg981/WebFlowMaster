@@ -1,0 +1,16 @@
+{
+  "id": "WEB-55",
+  "area": "WEB",
+  "title": "Simulare una risposta del backend",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "1: la pagina mostra il JSON simulato e il test passa; il server vero non viene chiamato. 2: la risposta arriva dopo circa 2 secondi con lo stato 503. 3: dalla seconda simulazione in poi vale il corpo nuovo. 4: lo step fallisce dicendo che lo stato non è un numero. Precondizioni, pulizia e test API vanno sempre ai server veri.",
+  "steps": [
+    "Test su https://jsonplaceholder.typicode.com: Simula richiesta GET **/posts/1 | 200 | {\"id\":1,\"title\":\"simulato\"}; Naviga a https://jsonplaceholder.typicode.com/posts/1; Verifica Testo Contenuto «simulato».",
+    "Cambiare in GET **/posts/1 | 503 after 2s | fuori servizio; Verifica Testo Contenuto «fuori servizio»; cronometrare.",
+    "Aggiungere a metà test una seconda Simula richiesta sullo stesso indirizzo con un altro corpo, poi Naviga di nuovo.",
+    "Valore **/posts/1 | abc | x."
+  ],
+  "expected": "1: la pagina mostra il JSON simulato e il test passa; il server vero non viene chiamato. 2: la risposta arriva dopo circa 2 secondi con lo stato 503. 3: dalla seconda simulazione in poi vale il corpo nuovo. 4: lo step fallisce dicendo che lo stato non è un numero. Precondizioni, pulizia e test API vanno sempre ai server veri.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Test su <code>https://jsonplaceholder.typicode.com</code>: <b>Simula richiesta</b> <code>GET **/posts/1 | 200 | {\"id\":1,\"title\":\"simulato\"}</code>; Naviga a <code>https://jsonplaceholder.typicode.com/posts/1</code>; Verifica Testo Contenuto «simulato».</li><li>Cambiare in <code>GET **/posts/1 | 503 after 2s | fuori servizio</code>; Verifica Testo Contenuto «fuori servizio»; cronometrare.</li><li>Aggiungere a metà test una seconda <b>Simula richiesta</b> sullo stesso indirizzo con un altro corpo, poi Naviga di nuovo.</li><li>Valore <code>**/posts/1 | abc | x</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: la pagina mostra il JSON simulato e il test passa; il server vero non viene chiamato. 2: la risposta arriva dopo circa 2 secondi con lo stato 503. 3: dalla seconda simulazione in poi vale il corpo nuovo. 4: lo step fallisce dicendo che lo stato non è un numero. Precondizioni, pulizia e test API vanno sempre ai server veri.</p>\n      "
+}

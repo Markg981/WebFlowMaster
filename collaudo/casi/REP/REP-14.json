@@ -1,0 +1,14 @@
+{
+  "id": "REP-14",
+  "area": "REP",
+  "title": "Esiti manuali in sola lettura",
+  "priority": "P2",
+  "actor": "viewer.a",
+  "preconditions": "REP-11.",
+  "steps": [
+    "Come viewer.a: aprire il report e la scheda Test manuali.",
+    "Dalla console: PUT dell'esito come in REP-13."
+  ],
+  "expected": "viewer.a vede esiti, note e chi li ha registrati; il salvataggio risponde 403.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>REP-11.</p>\n        <h4>Passi</h4>\n        <ol><li>Come viewer.a: aprire il report e la scheda <b>Test manuali</b>.</li><li>Dalla console: <code>PUT</code> dell'esito come in REP-13.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">viewer.a vede esiti, note e chi li ha registrati; il salvataggio risponde 403.</p>\n      "
+}

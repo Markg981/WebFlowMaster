@@ -1,0 +1,12 @@
+{
+  "id": "ADM-14",
+  "area": "ADM",
+  "title": "Notifica di fine run",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Eseguire un piano con notifica email configurata e leggere il messaggio ricevuto."
+  ],
+  "expected": "Alternative HTML e testo con esito e link al run coerenti."
+}

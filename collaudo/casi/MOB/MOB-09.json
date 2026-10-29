@@ -1,0 +1,16 @@
+{
+  "id": "MOB-09",
+  "area": "MOB",
+  "title": "Senza griglia, filtro per tag, pianificazione",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "MOB-06.",
+  "steps": [
+    "Nel test mobile Nei piani di test gira su = Nessuna griglia; eseguire il piano.",
+    "Aggiungi Suite di Test filtrando per un tag.",
+    "Rimettere BrowserStack; aggiungere al piano una pianificazione fra due minuti e attenderla.",
+    "Con l'API: PUT /api/mobile-tests/<id> con gridId della griglia «server Playwright»."
+  ],
+  "expected": "1: la riga mobile è Errore con «… names no grid to run on. Choose a BrowserStack or LambdaTest grid in the test's settings.» e nessuna sessione parte su BrowserStack; gli altri test girano. 2: i test mobili non compaiono (non hanno tag). 3: il run pianificato include il risultato mobile. 4: 400 «… is a Playwright server, which runs browsers only…».",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>MOB-06.</p>\n        <h4>Passi</h4>\n        <ol><li>Nel test mobile <b>Nei piani di test gira su</b> = Nessuna griglia; eseguire il piano.</li><li><b>Aggiungi Suite di Test</b> filtrando per un tag.</li><li>Rimettere BrowserStack; aggiungere al piano una pianificazione fra due minuti e attenderla.</li><li>Con l'API: PUT /api/mobile-tests/&lt;id&gt; con <code>gridId</code> della griglia «server Playwright».</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: la riga mobile è Errore con «… names no grid to run on. Choose a BrowserStack or LambdaTest grid in the test's settings.» e nessuna sessione parte su BrowserStack; gli altri test girano. 2: i test mobili non compaiono (non hanno tag). 3: il run pianificato include il risultato mobile. 4: 400 «… is a Playwright server, which runs browsers only…».</p>\n      "
+}

@@ -1,0 +1,14 @@
+{
+  "id": "SEC-35",
+  "area": "SEC",
+  "title": "Il report Lighthouse non può leggere l'applicazione",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "WEB-61.",
+  "steps": [
+    "Aprire il link report di un audit Lighthouse; negli strumenti per sviluppatori guardare le intestazioni della risposta.",
+    "Nella console del report: fetch('/api/user') e document.cookie."
+  ],
+  "expected": "1: Content-Security-Policy con sandbox allow-scripts allow-popups e default-src 'none'; il report si visualizza normalmente. 2: la richiesta fallisce (origine opaca, nessun cookie dell'applicazione) e document.cookie è vuoto o genera un errore.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>WEB-61.</p>\n        <h4>Passi</h4>\n        <ol><li>Aprire il link <b>report</b> di un audit Lighthouse; negli strumenti per sviluppatori guardare le intestazioni della risposta.</li><li>Nella console del report: <code>fetch('/api/user')</code> e <code>document.cookie</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: Content-Security-Policy con <code>sandbox allow-scripts allow-popups</code> e <code>default-src 'none'</code>; il report si visualizza normalmente. 2: la richiesta fallisce (origine opaca, nessun cookie dell'applicazione) e document.cookie è vuoto o genera un errore.</p>\n      "
+}

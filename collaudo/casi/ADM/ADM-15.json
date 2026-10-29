@@ -1,0 +1,12 @@
+{
+  "id": "ADM-15",
+  "area": "ADM",
+  "title": "Accettazione SMTP",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Fare accettare il destinatario dal relay e aprire lo storico come owner."
+  ],
+  "expected": "Stato di accettazione SMTP, senza dichiarare già consegnato il messaggio."
+}

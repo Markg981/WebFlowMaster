@@ -1,0 +1,15 @@
+{
+  "id": "REP-15",
+  "area": "REP",
+  "title": "Analisi AI di un fallimento di locator",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "GEMINI_API_KEY impostata; un test il cui bottone ha cambiato classe CSS (lo step click fallisce); lingua dell'interfaccia italiano.",
+  "steps": [
+    "Report del run → Test falliti: pulsante ✨ Analizza con l'AI sulla riga.",
+    "Leggere il dialogo; premere Copia sul selettore proposto.",
+    "Chiudere e riaprire il dialogo."
+  ],
+  "expected": "Durante l'attesa il dialogo dice che sta leggendo step, errori e richieste. Risponde in italiano con categoria Locator, affidabilità, Step N corrispondente allo step fallito, Perché, Cosa fare e un selettore proposto copiabile; la riga dice modello, chi l'ha chiesta e quando, e se ha visto lo screenshot. Riaperto, compare subito senza nuova attesa e l'icona della riga è evidenziata. Audit run.failure_analysed.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p><code>GEMINI_API_KEY</code> impostata; un test il cui bottone ha cambiato classe CSS (lo step click fallisce); lingua dell'interfaccia italiano.</p>\n        <h4>Passi</h4>\n        <ol><li>Report del run → <b>Test falliti</b>: pulsante ✨ <b>Analizza con l'AI</b> sulla riga.</li><li>Leggere il dialogo; premere Copia sul selettore proposto.</li><li>Chiudere e riaprire il dialogo.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Durante l'attesa il dialogo dice che sta leggendo step, errori e richieste. Risponde in italiano con categoria <b>Locator</b>, affidabilità, <b>Step N</b> corrispondente allo step fallito, Perché, Cosa fare e un <b>selettore proposto</b> copiabile; la riga dice modello, chi l'ha chiesta e quando, e se ha visto lo screenshot. Riaperto, compare subito senza nuova attesa e l'icona della riga è evidenziata. Audit <b>run.failure_analysed</b>.</p>\n      "
+}

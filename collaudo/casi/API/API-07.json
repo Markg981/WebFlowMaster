@@ -1,0 +1,14 @@
+{
+  "id": "API-07",
+  "area": "API",
+  "title": "Cronologia e test salvati",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "La cronologia riapre la richiesta com'era. Il test salvato conserva le modifiche.",
+  "steps": [
+    "Inviare tre richieste; aprirne una dalla Cronologia.",
+    "Salva test con un progetto; modificarla e Salva modifiche; riaprirla da Test salvati."
+  ],
+  "expected": "La cronologia riapre la richiesta com'era. Il test salvato conserva le modifiche.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Inviare tre richieste; aprirne una dalla Cronologia.</li><li><b>Salva test</b> con un progetto; modificarla e <b>Salva modifiche</b>; riaprirla da Test salvati.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La cronologia riapre la richiesta com'era. Il test salvato conserva le modifiche.</p>\n      "
+}

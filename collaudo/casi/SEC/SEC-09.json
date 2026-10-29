@@ -1,0 +1,13 @@
+{
+  "id": "SEC-09",
+  "area": "SEC",
+  "title": "Registro di audit non modificabile",
+  "priority": "P2",
+  "actor": "DBA",
+  "preconditions": "Accesso al database con il ruolo dell'applicazione.",
+  "steps": [
+    "Come app_user: UPDATE audit_log … e DELETE FROM audit_log …."
+  ],
+  "expected": "Entrambi rifiutati per mancanza di permessi.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Accesso al database con il ruolo dell'applicazione.</p>\n        <h4>Passi</h4>\n        <ol><li>Come <code>app_user</code>: <code>UPDATE audit_log …</code> e <code>DELETE FROM audit_log …</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Entrambi rifiutati per mancanza di permessi.</p>\n      "
+}

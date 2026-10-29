@@ -1,0 +1,12 @@
+{
+  "id": "REP-24",
+  "area": "REP",
+  "title": "Preferenze persistenti",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Nascondere un widget e cambiare l'ordine; ricaricare la dashboard."
+  ],
+  "expected": "Visibilità e ordine conservati per l'utente."
+}

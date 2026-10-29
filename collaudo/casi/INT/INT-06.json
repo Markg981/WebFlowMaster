@@ -1,0 +1,13 @@
+{
+  "id": "INT-06",
+  "area": "INT",
+  "title": "GitHub Actions",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Repository di prova con la action di integrations/ e i segreti WFM_URL e WFM_API_KEY.",
+  "steps": [
+    "Push di un commit che avvia il workflow su un piano che passa; poi su uno che fallisce."
+  ],
+  "expected": "Il job è verde e poi rosso secondo il piano; gli output run-id, status, report-url e il riepilogo compaiono nella pagina del job; il report mostra la Build con il link al run di GitHub.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Repository di prova con la action di <code>integrations/</code> e i segreti WFM_URL e WFM_API_KEY.</p>\n        <h4>Passi</h4>\n        <ol><li>Push di un commit che avvia il workflow su un piano che passa; poi su uno che fallisce.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il job è verde e poi rosso secondo il piano; gli output run-id, status, report-url e il riepilogo compaiono nella pagina del job; il report mostra la Build con il link al run di GitHub.</p>\n      "
+}

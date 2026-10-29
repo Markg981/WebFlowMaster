@@ -1,0 +1,16 @@
+{
+  "id": "SEC-63",
+  "area": "SEC",
+  "title": "Quick start isolato: primo accesso, worker e Mailpit funzionano su HTTP",
+  "priority": "P1",
+  "actor": "owner",
+  "preconditions": "Catalogo versione 68. Uno stack quick start nuovo, sotto un proprio nome di progetto (docker compose -p wfm-prova ... up -d --build), con volumi vuoti.",
+  "steps": [
+    "Aprire http://localhost:5000 e registrare il primo account.",
+    "Ricaricare la pagina e aprire gli strumenti del browser alla voce Cookie.",
+    "Creare un test che apre https://example.com ed eseguirlo.",
+    "Aprire http://localhost:8025.",
+    "Eseguire docker compose -p wfm-prova logs worker."
+  ],
+  "expected": "Passo 1: la registrazione crea la prima organizzazione e si resta autenticati. Passo 2: il cookie di sessione non è Secure e la sessione resta valida. Passo 3: il run passa da In coda a Completato. Passo 4: la casella di Mailpit si apre. Passo 5: il worker si è collegato a Redis senza errori di connessione."
+}

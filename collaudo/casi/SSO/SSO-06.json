@@ -1,0 +1,17 @@
+{
+  "id": "SSO-06",
+  "area": "SSO",
+  "title": "Rendere obbligatorio il single sign-on",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "editor.a con password e una sessione aperta.",
+  "steps": [
+    "Attivare Rendilo obbligatorio e salvare.",
+    "Nella sessione di editor.a cliccare una voce.",
+    "Accedere come editor.a con la password giusta.",
+    "Accedere come owner.a con la password.",
+    "Chiamare l'API con una chiave di editor.a."
+  ],
+  "expected": "La sessione di editor.a viene chiusa. L'accesso con password di editor.a spiega che l'organizzazione usa il single sign-on e apre «Accedi con SSO». owner.a entra ancora con la password. La chiave API funziona.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>editor.a con password e una sessione aperta.</p>\n        <h4>Passi</h4>\n        <ol><li>Attivare <b>Rendilo obbligatorio</b> e salvare.</li><li>Nella sessione di editor.a cliccare una voce.</li><li>Accedere come editor.a con la password giusta.</li><li>Accedere come owner.a con la password.</li><li>Chiamare l'API con una chiave di editor.a.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La sessione di editor.a viene chiusa. L'accesso con password di editor.a spiega che l'organizzazione usa il single sign-on e apre «Accedi con SSO». owner.a entra ancora con la password. La chiave API funziona.</p>\n      "
+}

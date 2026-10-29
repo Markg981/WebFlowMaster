@@ -1,0 +1,15 @@
+{
+  "id": "INT-09",
+  "area": "INT",
+  "title": "Webhook di un piano",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Risposta 202 con testPlanRunId; il run risulta avviato da webhook. Dopo la revoca: 401.",
+  "steps": [
+    "Piani di test → Webhooks sulla riga: crearne uno; copiare il token (mostrato una volta).",
+    "curl -X POST $WFM_URL/api/webhooks/execute -H \"X-Webhook-Token: …\".",
+    "Revocare il webhook e ripetere."
+  ],
+  "expected": "Risposta 202 con testPlanRunId; il run risulta avviato da webhook. Dopo la revoca: 401.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Piani di test → <b>Webhooks</b> sulla riga: crearne uno; copiare il token (mostrato una volta).</li><li><code>curl -X POST $WFM_URL/api/webhooks/execute -H \"X-Webhook-Token: …\"</code>.</li><li>Revocare il webhook e ripetere.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Risposta 202 con <code>testPlanRunId</code>; il run risulta avviato da webhook. Dopo la revoca: 401.</p>\n      "
+}

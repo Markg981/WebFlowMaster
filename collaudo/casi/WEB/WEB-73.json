@@ -1,0 +1,13 @@
+{
+  "id": "WEB-73",
+  "area": "WEB",
+  "title": "Shadow root chiuso: segnalato come non riproducibile, mai indovinato",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 76. Server sulla propria macchina (la registrazione apre un browser locale). Fixture dei web component avviata con npm run fixture:shadow (http://127.0.0.1:5090).",
+  "steps": [
+    "Registrare su http://127.0.0.1:5090/: cliccare nel campo del componente chiuso in fondo alla pagina, scrivere un testo e uscire dal campo con Tab.",
+    "Guardare la lista della registrazione, poi Termina registrazione."
+  ],
+  "expected": "Le azioni sul componente chiuso compaiono con l'etichetta Non riproducibile e il motivo «shadow root chiuso»; il testo scritto non compare da nessuna parte. Allo stop un avviso dice che alcune interazioni non diventano passi, e la sequenza non contiene passi per il componente chiuso."
+}

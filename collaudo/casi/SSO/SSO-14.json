@@ -1,0 +1,14 @@
+{
+  "id": "SSO-14",
+  "area": "SSO",
+  "title": "Primo accesso con SAML",
+  "priority": "P1",
+  "actor": "—",
+  "preconditions": "SSO-13.",
+  "steps": [
+    "Da /auth, Sign in with SSO con anna@acme.test.",
+    "Accedere in Keycloak come anna."
+  ],
+  "expected": "Si torna nell'applicazione, autenticati come anna@acme.test: account nuovo con ruolo editor, oppure, se anna è già entrata con OIDC (SSO-02), lo stesso account collegato per e-mail. Nessun errore di CSRF.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>SSO-13.</p>\n        <h4>Passi</h4>\n        <ol><li>Da /auth, <b>Sign in with SSO</b> con anna@acme.test.</li><li>Accedere in Keycloak come anna.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Si torna nell'applicazione, autenticati come anna@acme.test: account nuovo con ruolo editor, oppure, se anna è già entrata con OIDC (SSO-02), lo stesso account collegato per e-mail. Nessun errore di CSRF.</p>\n      "
+}

@@ -1,0 +1,13 @@
+{
+  "id": "UX-15",
+  "area": "UX",
+  "title": "La lingua del documento segue la lingua scelta",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Catalogo versione 93. Un owner con sessione.",
+  "steps": [
+    "In Impostazioni cambiare la lingua da inglese a italiano.",
+    "Ispezionare l'elemento html (strumenti del browser) e ricaricare la pagina."
+  ],
+  "expected": "1-2: l'attributo lang di html passa da en a it subito e dopo il ricaricamento, senza ricarica manuale al passo 1."
+}

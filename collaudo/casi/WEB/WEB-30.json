@@ -1,0 +1,15 @@
+{
+  "id": "WEB-30",
+  "area": "WEB",
+  "title": "Condizione su valori",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Con Pagato passa dal ramo Se; con Pagata va nel ramo Altrimenti e fallisce su false. > confronta numeri, contains testi. abc > 3 fa fallire lo step dicendo che i valori non sono entrambi numeri.",
+  "steps": [
+    "Imposta variabile stato=Pagato; Se senza elemento con {{stato}} == Pagato; dentro Verifica Visibilità di un elemento della pagina; Altrimenti; Esegui JavaScript false; Fine se.",
+    "Cambiare in stato=Pagata ed eseguire.",
+    "Provare le condizioni {{n}} > 3 con n=10, {{stato}} contains Pag, e abc > 3."
+  ],
+  "expected": "Con Pagato passa dal ramo Se; con Pagata va nel ramo Altrimenti e fallisce su false. > confronta numeri, contains testi. abc > 3 fa fallire lo step dicendo che i valori non sono entrambi numeri.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li><b>Imposta variabile</b> <code>stato=Pagato</code>; <b>Se</b> senza elemento con <code>{{stato}} == Pagato</code>; dentro Verifica Visibilità di un elemento della pagina; <b>Altrimenti</b>; Esegui JavaScript <code>false</code>; <b>Fine se</b>.</li><li>Cambiare in <code>stato=Pagata</code> ed eseguire.</li><li>Provare le condizioni <code>{{n}} &gt; 3</code> con <code>n=10</code>, <code>{{stato}} contains Pag</code>, e <code>abc &gt; 3</code>.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Con Pagato passa dal ramo Se; con Pagata va nel ramo Altrimenti e fallisce su <code>false</code>. <code>&gt;</code> confronta numeri, <code>contains</code> testi. <code>abc &gt; 3</code> fa fallire lo step dicendo che i valori non sono entrambi numeri.</p>\n      "
+}

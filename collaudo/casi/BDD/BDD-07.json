@@ -1,0 +1,12 @@
+{
+  "id": "BDD-07",
+  "area": "BDD",
+  "title": "Verdetti Cucumber non superati",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+  "steps": [
+    "Eseguire separatamente passi indefiniti, ambigui, pending, skipped e hook falliti."
+  ],
+  "expected": "Nessuno dei casi viene classificato Passed; il report spiega il risultato normalizzato."
+}

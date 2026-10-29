@@ -1,0 +1,14 @@
+{
+  "id": "AUT-12",
+  "area": "AUT",
+  "title": "Appium reale: matrice dispositivi e report",
+  "priority": "P2",
+  "actor": "owner.a / editor.a",
+  "preconditions": "Appium con driver e dispositivi/emulatori oppure griglia cloud, app installabile e agente locale quando necessario.",
+  "steps": [
+    "Eseguire test mobile su almeno due coppie dispositivo/versione OS.",
+    "Verificare azioni native, screenshot, chiusura delle sessioni e report.",
+    "Confrontare capabilities restituite e richiesta per ogni coppia."
+  ],
+  "expected": "Risultati indipendenti con platformName, deviceName e platformVersion osservati; emulazione browser non vale come dispositivo Appium. Esiti manuali Da eseguire fino ad accettazione reale."
+}

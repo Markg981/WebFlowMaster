@@ -1,0 +1,15 @@
+{
+  "id": "PLN-28",
+  "area": "PLN",
+  "title": "Griglia irraggiungibile, eliminata, e agenti",
+  "priority": "P2",
+  "actor": "editor.a",
+  "preconditions": "PLN-25; un pool di agenti locali.",
+  "steps": [
+    "Modificare la chiave della griglia con una errata (o spegnere il server Playwright); Prova la connessione ed eseguire il piano.",
+    "Eliminare la griglia usata da PLN-25.",
+    "Dall'API: PUT /api/test-plans/<id> con agentPool e browserGridId insieme; poi impostare solo il pool su un piano che era su una griglia."
+  ],
+  "expected": "La prova dice perché non si connette, e ogni test del run fallisce con «Could not open … on the BrowserStack grid …», senza mai mostrare chiave o indirizzo con le credenziali. L'eliminazione avvisa che 1 piano torna sui runner del server, e il piano successivo gira in locale. Pool e griglia insieme rispondono 400; impostare il pool toglie la griglia.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-25; un pool di agenti locali.</p>\n        <h4>Passi</h4>\n        <ol><li>Modificare la chiave della griglia con una errata (o spegnere il server Playwright); Prova la connessione ed eseguire il piano.</li><li>Eliminare la griglia usata da PLN-25.</li><li>Dall'API: <code>PUT /api/test-plans/&lt;id&gt;</code> con <code>agentPool</code> e <code>browserGridId</code> insieme; poi impostare solo il pool su un piano che era su una griglia.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La prova dice perché non si connette, e ogni test del run fallisce con «Could not open … on the BrowserStack grid …», senza mai mostrare chiave o indirizzo con le credenziali. L'eliminazione avvisa che 1 piano torna sui runner del server, e il piano successivo gira in locale. Pool e griglia insieme rispondono 400; impostare il pool toglie la griglia.</p>\n      "
+}

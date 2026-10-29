@@ -1,0 +1,12 @@
+{
+  "id": "API-22",
+  "area": "API",
+  "title": "Importazione WSDL",
+  "priority": "P2",
+  "actor": "owner.a / editor.a, secondo le precondizioni",
+  "preconditions": "Installazione aggiornata al commit 6d007cf, migrazioni fino alla 0074 e servizi di prova configurati. Vedere collaudo/integrazione-6d007cf.md.",
+  "steps": [
+    "Importare un WSDL 1.1 con un binding SOAP supportato; aprire il test generato per un'operazione."
+  ],
+  "expected": "Test POST con envelope SOAP, endpoint e intestazioni coerenti con il binding."
+}

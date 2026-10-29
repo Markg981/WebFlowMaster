@@ -1,0 +1,16 @@
+{
+  "id": "API-06",
+  "area": "API",
+  "title": "Catture: passare un valore al test successivo",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Nell'ordine giusto entrambi passano e il report mostra il valore catturato (101). Nell'ordine invertito il Test 2 fallisce indicando la variabile postId mancante.",
+  "steps": [
+    "Test 1: POST https://jsonplaceholder.typicode.com/posts; cattura postId da body json path id; salvare.",
+    "Test 2: GET https://httpbin.org/anything/{{postId}}; asserzione json path url contains 101; salvare.",
+    "Piano con Test 1 poi Test 2; eseguire.",
+    "Invertire l'ordine ed eseguire."
+  ],
+  "expected": "Nell'ordine giusto entrambi passano e il report mostra il valore catturato (101). Nell'ordine invertito il Test 2 fallisce indicando la variabile postId mancante.",
+  "detailHtml": "\n        \n        <h4>Passi</h4>\n        <ol><li>Test 1: POST <code>https://jsonplaceholder.typicode.com/posts</code>; cattura <code>postId</code> da body json path <code>id</code>; salvare.</li><li>Test 2: GET <code>https://httpbin.org/anything/{{postId}}</code>; asserzione json path <code>url</code> contains 101; salvare.</li><li>Piano con Test 1 poi Test 2; eseguire.</li><li>Invertire l'ordine ed eseguire.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nell'ordine giusto entrambi passano e il report mostra il valore catturato (101). Nell'ordine invertito il Test 2 fallisce indicando la variabile <code>postId</code> mancante.</p>\n      "
+}

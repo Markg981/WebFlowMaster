@@ -9,7 +9,7 @@ Nel Collaudo locale usare sempre il progetto `wfm-collaudo` e il suo overlay, ma
 Il worker importa la CA privata di Chromium come `pwuser`; l'overlay abilita
 `INSTALL_COLLAUDO_CA_TOOLS=1` per installare `certutil` durante la build. Se lo script segnala
 che `certutil` manca, ricostruire il worker con l'overlay: l'avvio non installa pacchetti e non
-richiede privilegi root. Verifica dedicata OPS-36 in `collaudo/casi.json`.
+richiede privilegi root. Verifica dedicata OPS-36 in `collaudo/casi/`.
 
 Una release può cambiare lo schema del database, quindi l'ordine conta.
 

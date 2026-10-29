@@ -1,0 +1,15 @@
+{
+  "id": "PLN-34",
+  "area": "PLN",
+  "title": "Run diviso: un runner che muore, test concatenati, nessun aiuto",
+  "priority": "P2",
+  "actor": "operatore · editor.a",
+  "preconditions": "PLN-33.",
+  "steps": [
+    "Durante un run diviso, docker kill di un worker che non è quello che l'ha preso (Impostazioni → Runner, o i log).",
+    "Un piano con 3 worker i cui test API catturano valori per i successivi (API-06), su due browser; eseguire.",
+    "Con un solo worker attivo, eseguire il piano di PLN-33 con 3 worker."
+  ],
+  "expected": "1: il run finisce comunque con tutti i risultati: dopo circa due minuti i test che quel worker teneva vengono ripresi da un altro; nessun risultato manca. 2: ogni browser resta un unico pezzo eseguito in ordine su un runner: le catture funzionano come senza divisione. 3: nessun runner libero aiuta (o il log dice che nessuno ha potuto aiutare); il run gira tutto sul primo e finisce normalmente.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>PLN-33.</p>\n        <h4>Passi</h4>\n        <ol><li>Durante un run diviso, <code>docker kill</code> di un worker che non è quello che l'ha preso (Impostazioni → Runner, o i log).</li><li>Un piano con 3 worker i cui test API catturano valori per i successivi (API-06), su due browser; eseguire.</li><li>Con un solo worker attivo, eseguire il piano di PLN-33 con 3 worker.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">1: il run finisce comunque con tutti i risultati: dopo circa due minuti i test che quel worker teneva vengono ripresi da un altro; nessun risultato manca. 2: ogni browser resta un unico pezzo eseguito in ordine su un runner: le catture funzionano come senza divisione. 3: nessun runner libero aiuta (o il log dice che nessuno ha potuto aiutare); il run gira tutto sul primo e finisce normalmente.</p>\n      "
+}

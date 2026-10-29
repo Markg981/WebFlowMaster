@@ -1,0 +1,13 @@
+{
+  "id": "WEB-78",
+  "area": "WEB",
+  "title": "Ambiente dietro HTTP Basic auth: segreti http.username e http.password",
+  "priority": "P2",
+  "actor": "owner.a",
+  "preconditions": "Un sito di prova protetto da HTTP Basic auth; un ambiente con i segreti http.username e http.password; un test web che apre il sito.",
+  "steps": [
+    "Eseguire il test senza i segreti: osservare il risultato.",
+    "Aggiungere i segreti http.username e http.password corretti all'ambiente e rieseguire."
+  ],
+  "expected": "1: la pagina non si apre (401). 2: il browser si autentica da solo e lo step passa."
+}
