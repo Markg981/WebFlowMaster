@@ -10018,7 +10018,7 @@
       "area": "SCH",
       "detailHtml": "\n        <h4>Precondizioni</h4><p>Schedule attivo su un piano; ambiente di collaudo esistente.</p>\n        <h4>Passi</h4>\n        <ol><li>Creare uno schedule attivo che usa l'ambiente QA.</li><li>Impostazioni → Ambienti: eliminare QA.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">L'eliminazione è rifiutata con 409 e l'elenco degli schedule che lo usano; l'ambiente resta.</p>\n      ",
       "expected": "L'eliminazione è rifiutata con 409 e l'elenco degli schedule che lo usano; l'ambiente resta.",
-      "id": "SCH-6",
+      "id": "SCH-06",
       "preconditions": "Schedule attivo su un piano; ambiente di collaudo esistente.",
       "priority": "P2",
       "steps": [
@@ -10032,7 +10032,7 @@
       "area": "SCH",
       "detailHtml": "\n        <h4>Precondizioni</h4><p>Schedule attivo su un piano; ambiente di collaudo esistente.</p>\n        <h4>Passi</h4>\n        <ol><li>Impostare su uno schedule un nome ambiente che non esiste (modifica diretta o ambiente rinominato).</li><li>Attendere l'orario previsto.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Nessun run parte (niente esecuzione senza variabili né segreti) e il log del server riporta environment_missing con l'id dello schedule.</p>\n      ",
       "expected": "Nessun run parte (niente esecuzione senza variabili né segreti) e il log del server riporta environment_missing con l'id dello schedule.",
-      "id": "SCH-7",
+      "id": "SCH-07",
       "preconditions": "Schedule attivo su un piano; ambiente di collaudo esistente.",
       "priority": "P2",
       "steps": [
@@ -10046,7 +10046,7 @@
       "area": "SCH",
       "detailHtml": "\n        <h4>Precondizioni</h4><p>Schedule attivo su un piano; ambiente di collaudo esistente.</p>\n        <h4>Passi</h4>\n        <ol><li>Avere run completed, timed_out e cancelled nel periodo.</li><li>Aprire la dashboard, widget andamento.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">timed_out conta tra i falliti e abbassa il tasso di successo; cancelled non compare nel totale né nel tasso; il chip di timed_out è rosso.</p>\n      ",
       "expected": "timed_out conta tra i falliti e abbassa il tasso di successo; cancelled non compare nel totale né nel tasso; il chip di timed_out è rosso.",
-      "id": "SCH-8",
+      "id": "SCH-08",
       "preconditions": "Schedule attivo su un piano; ambiente di collaudo esistente.",
       "priority": "P2",
       "steps": [

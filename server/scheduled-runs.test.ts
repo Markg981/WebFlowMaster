@@ -206,10 +206,11 @@ describe('a scheduled occurrence', () => {
 
     const execution = await executeScheduledPlanForTest(schedule, plan, occurrence);
 
-    // Runs without an environment, as a name that matches nothing always did, and still says
-    // which one was asked for.
-    expect(execution!.environment).toBe('Staging');
-    expect(execution!.configurationSnapshot).toMatchObject({ environmentId: null });
+    // A run against no environment would pass or fail for the wrong reasons (C-33): it does not
+    // start, so the other organization's environment is never borrowed.
+    expect(execution).toBeNull();
+    expect(await runsOf(schedule.id)).toHaveLength(0);
+    expect(queued).toHaveLength(0);
   });
 
   it('does not run a schedule switched off after the cron job captured it, nor move it on', async () => {
