@@ -285,11 +285,11 @@ export function needsRehash(stored: string): boolean {
 export function passwordStamp(storedHash: string, mfaAt?: Date | null): string {
   // Without a second factor the stamp is the password's alone, as before; with one, turning it on,
   // off or resetting it changes the stamp and so ends the person's other sessions.
-  const mfa = mfaAt ? `|mfa:${mfaAt.getTime()}` : '';
-  return createHmac('sha256', process.env.SESSION_SECRET ?? '')
-    .update(storedHash + mfa)
+  const stamp = createHmac('sha256', process.env.SESSION_SECRET ?? '')
+    .update(storedHash)
     .digest('hex')
     .slice(0, 32);
+  return mfaAt ? `${stamp}.${mfaAt.getTime()}` : stamp;
 }
 
 const newPasswordSchema = z.string().min(1).max(PASSWORD_MAX_LENGTH);
