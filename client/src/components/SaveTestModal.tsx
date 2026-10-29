@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Dialog,
@@ -153,8 +153,16 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
     }
   }, [isOpen, initialTestName, refetchProjects]);
 
+  // A second click before the parent closes the modal would save the test twice.
+  const submitted = useRef(false);
+  useEffect(() => {
+    if (isOpen) submitted.current = false;
+  }, [isOpen]);
+
   const handleSave = () => {
+    if (submitted.current) return;
     if (internalTestName.trim()) {
+      submitted.current = true;
       const projectId = selectedProjectId ? parseInt(selectedProjectId, 10) : undefined;
       onSave(internalTestName.trim(), projectId);
     }
