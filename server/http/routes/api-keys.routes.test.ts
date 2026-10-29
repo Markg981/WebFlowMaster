@@ -252,6 +252,21 @@ describe('DELETE /api/api-keys/:id', () => {
     await request(app).delete(`/api/api-keys/${created.body.id}`).expect(404);
   });
 
+  it('an editor cannot revoke a key held by someone else in the organization (C-25)', async () => {
+    const colleagueId = await createTestUser(organizationId, 'keys-colleague');
+    currentUser = { id: colleagueId, username: 'keys-colleague', organizationId, role: 'editor' };
+    const created = await request(app)
+      .post('/api/api-keys')
+      .send({ expiresInDays: 30, scopes: ['runs:read'], name: 'Colleague' })
+      .expect(201);
+    currentUser = { id: userId, username: 'keys-user', organizationId, role: 'editor' };
+
+    await request(app).delete(`/api/api-keys/${created.body.id}`).expect(404);
+
+    currentUser = { id: userId, username: 'keys-user', organizationId, role: 'owner' };
+    await request(app).delete(`/api/api-keys/${created.body.id}`).expect(200);
+  });
+
   it("cannot revoke another organization's key, and is not told it exists", async () => {
     const created = await request(app)
       .post('/api/api-keys')
