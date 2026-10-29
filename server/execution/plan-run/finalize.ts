@@ -25,6 +25,22 @@ import type { Pass } from './browsers';
 import type { RunInputs } from './inputs';
 import type { LaneResults } from './execute-lanes';
 
+/** Attempts at the final transition: a blip in the database must not turn a finished run into `worker_lost`. */
+const FINAL_TRANSITION_ATTEMPTS = 3;
+
+export async function transitionWithRetry(
+  ...args: Parameters<typeof transitionExecution>
+): ReturnType<typeof transitionExecution> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await transitionExecution(...args);
+    } catch (error) {
+      if (attempt >= FINAL_TRANSITION_ATTEMPTS) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+    }
+  }
+}
+
 export interface Tally {
   total: number;
   passed: number;
@@ -152,16 +168,16 @@ export async function finalizeRun(
           : 'verdict';
     let finished: TestPlanExecution | null = null;
     if (ending === 'timed_out') {
-      finished = await transitionExecution(executionId, 'timed_out', {
+      finished = await transitionWithRetry(executionId, 'timed_out', {
         ...aggregates,
         failureCode: 'run_timed_out',
         failureMessage:
           watch.stopReason?.replace(/^Not run: /, '') ?? 'The run went past its time limit.',
       });
     } else if (ending === 'cancelled') {
-      finished = await transitionExecution(executionId, 'cancelled', aggregates);
+      finished = await transitionWithRetry(executionId, 'cancelled', aggregates);
     } else {
-      finished = await transitionExecution(executionId, finalOverallStatus, {
+      finished = await transitionWithRetry(executionId, finalOverallStatus, {
         ...aggregates,
         ...(finalOverallStatus === 'error'
           ? {
@@ -185,7 +201,7 @@ export async function finalizeRun(
     if (!finished && ending !== 'cancelled') {
       // A cancellation asked for after the watch last looked: the run is `cancelling`, and it is
       // this worker that finishes stopping it.
-      finished = await transitionExecution(executionId, 'cancelled', aggregates);
+      finished = await transitionWithRetry(executionId, 'cancelled', aggregates);
       if (finished) ending = 'cancelled';
     }
 
