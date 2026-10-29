@@ -79,6 +79,8 @@ export interface EmailQuery {
   address: string;
   subject: string;
   pattern: RegExp | null;
+  /** Only mail whose sender address contains this (the environment's mailpit.from). */
+  from?: string;
 }
 
 export function parseEmailQuery(value: string): EmailQuery | { error: string } {
@@ -184,6 +186,7 @@ interface Summary {
   ID: string;
   Created: string;
   Subject: string;
+  From?: { Address: string } | null;
   To?: { Address: string }[] | null;
   Cc?: { Address: string }[] | null;
   Bcc?: { Address: string }[] | null;
@@ -230,6 +233,7 @@ export async function waitForEmail(
   const search = `/api/v1/search?limit=50&query=${encodeURIComponent(`to:"${query.address}"`)}`;
   const address = query.address.toLowerCase();
   const subject = query.subject.toLowerCase();
+  const sender = (query.from ?? '').toLowerCase();
   for (;;) {
     const page = await getJson(get, config, search);
     const found = ((page?.messages ?? []) as Summary[])
@@ -240,6 +244,9 @@ export async function waitForEmail(
         ),
       )
       .filter((m) => !subject || (m.Subject ?? '').toLowerCase().includes(subject))
+      // `mailpit.from`: only mail from this sender (part of the address), so another mail
+      // in the same minute is not taken for it.
+      .filter((m) => !sender || (m.From?.Address ?? '').toLowerCase().includes(sender))
       .filter((m) => Date.parse(m.Created) >= since - CLOCK_SLACK_MS)
       .sort((a, b) => Date.parse(b.Created) - Date.parse(a.Created))[0];
     if (found) {

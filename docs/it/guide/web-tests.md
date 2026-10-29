@@ -320,10 +320,13 @@ precedente. Un pattern che non trova nulla fa fallire lo step.
 
 **Quale casella.** I segreti dell'ambiente `mailpit.url` (per esempio
 `https://mail.staging.example`) e, se li chiede, `mailpit.username` e `mailpit.password`;
-`mailpit.timeout` cambia l'attesa, in secondi. In loro assenza, quella del server (`MAILPIT_URL`,
+`mailpit.timeout` cambia l'attesa, in secondi; `mailpit.from` tiene solo le email il cui indirizzo mittente contiene quel testo, cosi' una seconda email nello stesso minuto non viene scambiata per quella attesa. Il codice non compare mai nel dettaglio dello step nel report. In loro assenza, quella del server (`MAILPIT_URL`,
 che lo stack docker-compose imposta sul suo Mailpit, aperto su http://localhost:8025). La casella
 viene letta da dove gira il browser, quindi un piano su un agente locale raggiunge un Mailpit della
 rete dell'agente.
+
+**Siti dietro HTTP Basic auth.** Imposta i segreti dell'ambiente `http.username` e
+`http.password`: il browser risponde con questi alla richiesta di autenticazione Basic del sito.
 
 ### SMS {#sms}
 
