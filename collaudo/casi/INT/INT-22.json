@@ -1,0 +1,13 @@
+{
+  "id": "INT-22",
+  "area": "INT",
+  "title": "Pubblicazione con alcuni casi rifiutati: stato Parziale",
+  "priority": "P3",
+  "actor": "editor",
+  "preconditions": "Una connessione Zephyr Scale in cui un caso collegato non esiste nel progetto, gli altri si; un run con test collegati.",
+  "steps": [
+    "Pubblicare il run dalla scheda Test management del report."
+  ],
+  "expected": "La pubblicazione compare come Parzialmente pubblicata, con il numero di casi accettati e il motivo di quelli rifiutati.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Una connessione Zephyr Scale in cui un caso collegato non esiste nel progetto, gli altri si; un run con test collegati.</p>\n        <h4>Passi</h4>\n        <ol><li>Pubblicare il run dalla scheda Test management del report.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">La pubblicazione compare come Parzialmente pubblicata, con il numero di casi accettati e il motivo di quelli rifiutati.</p>\n      "
+}

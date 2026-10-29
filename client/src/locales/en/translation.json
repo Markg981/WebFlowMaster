@@ -4341,6 +4341,7 @@
     "status": {
       "published": "Published",
       "failed": "Failed",
+      "partial": "Partially published",
       "nothing": "Nothing to publish"
     },
     "title": "Test management",

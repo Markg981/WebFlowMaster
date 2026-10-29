@@ -40,6 +40,8 @@ export interface CreatedIssue {
 
 export interface ProviderDeps {
   fetchImpl?: typeof fetch;
+  /** Waits between attempts; tests pass a no-op. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 /** The URL with any trailing slashes removed, so joining a path never doubles one. */
@@ -119,6 +121,33 @@ export async function call(
     throw new Error(`Could not reach ${new URL(url).host}: ${reason}`);
   } finally {
     clearTimeout(timer);
+  }
+}
+
+const RETRY_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 500;
+/** Statuses that say "try again": throttling and a gateway that could not reach the tool. */
+const RETRYABLE_STATUS = new Set([429, 502, 503, 504]);
+
+/**
+ * `call` with up to three attempts and a growing pause, on a network error, 429 or 502-504.
+ * Other answers (4xx, a plain 500) are returned at once: repeating a request the tool already
+ * judged would at best fail again, at worst create the same record twice.
+ */
+export async function callWithRetry(
+  url: string,
+  init: RequestInit,
+  deps: ProviderDeps,
+): ReturnType<typeof call> {
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const answer = await call(url, init, deps);
+      if (!RETRYABLE_STATUS.has(answer.status) || attempt >= RETRY_ATTEMPTS) return answer;
+    } catch (error) {
+      if (attempt >= RETRY_ATTEMPTS) throw error;
+    }
+    await sleep(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1));
   }
 }
 

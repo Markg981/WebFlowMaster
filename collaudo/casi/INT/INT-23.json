@@ -1,0 +1,13 @@
+{
+  "id": "INT-23",
+  "area": "INT",
+  "title": "Errore transitorio del webhook di notifica: nuovo tentativo automatico",
+  "priority": "P3",
+  "actor": "editor",
+  "preconditions": "Un piano con notifiche attive e un webhook di prova che risponde 503 alla prima chiamata e 200 alle successive.",
+  "steps": [
+    "Eseguire il piano."
+  ],
+  "expected": "Il webhook riceve la notifica al secondo tentativo senza intervento; un errore 4xx (URL errato) non viene ripetuto. Lo stesso vale per lo stato del commit su GitHub/GitLab; un run TestRail la cui aggiunta dei risultati fallisce mostra comunque la chiave del run creato.",
+  "detailHtml": "\n        <h4>Precondizioni</h4><p>Un piano con notifiche attive e un webhook di prova che risponde 503 alla prima chiamata e 200 alle successive.</p>\n        <h4>Passi</h4>\n        <ol><li>Eseguire il piano.</li></ol>\n        <h4>Risultato atteso</h4>\n        <p class=\"expected\">Il webhook riceve la notifica al secondo tentativo senza intervento; un errore 4xx (URL errato) non viene ripetuto. Lo stesso vale per lo stato del commit su GitHub/GitLab; un run TestRail la cui aggiunta dei risultati fallisce mostra comunque la chiave del run creato.</p>\n      "
+}

@@ -4341,6 +4341,7 @@
     "status": {
       "published": "Pubblicata",
       "failed": "Fallita",
+      "partial": "Pubblicata in parte",
       "nothing": "Niente da pubblicare"
     },
     "title": "Gestione test",
