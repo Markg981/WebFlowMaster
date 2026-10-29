@@ -108,6 +108,9 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 
 ### Fixed
 
+- Test engine residues (C-40): the recorder masks card, one-time-code and SSN fields; saving a login state needs the
+  recording session's owner; the OAuth 2.0 token cache is bounded; unconsumed `handleDialog` answers are logged.
+
 - No more false greens: a load answered by HTTP 4xx/5xx counts those as request errors (and fails above 50% errors when no threshold says otherwise), an API test with no assertions fails on a status of 400 or more, and a plan run with no tests ends `error` (`run_empty`) instead of `completed`
 - Dark-mode fixes for API Tester editors and the Create Test canvas ([#120](https://github.com/Markg981/WebFlowMaster/pull/120))
 - Make UI test authoring against SPA sites actually work ([#121](https://github.com/Markg981/WebFlowMaster/pull/121))

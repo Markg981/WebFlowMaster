@@ -425,6 +425,11 @@ export function parseDialogAnswer(value: string): DialogAnswer | null {
  */
 const pendingDialogAnswers = new WeakMap<Page, DialogAnswer[]>();
 
+/** How many answers queued by `handleDialog` steps no dialog ever consumed (MT-17: reported, not failed). */
+export function unusedDialogAnswers(page: Page): number {
+  return pendingDialogAnswers.get(page)?.length ?? 0;
+}
+
 function queueDialogAnswer(page: Page, answer: DialogAnswer) {
   let queue = pendingDialogAnswers.get(page);
   if (!queue) {

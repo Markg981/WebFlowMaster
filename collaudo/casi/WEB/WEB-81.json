@@ -1,0 +1,13 @@
+{
+  "id": "WEB-81",
+  "area": "WEB",
+  "title": "Registrazione: campi carta, codice monouso e SSN mascherati",
+  "priority": "P1",
+  "actor": "owner.a",
+  "preconditions": "Una pagina con campi autocomplete=\"cc-number\", autocomplete=\"one-time-code\" e name=\"ssn\".",
+  "steps": [
+    "Avviare la registrazione e compilare i tre campi.",
+    "Fermare la registrazione e aprire gli step registrati."
+  ],
+  "expected": "1: i campi sono accettati. 2: i tre step risultano mascherati e il valore digitato non compare."
+}

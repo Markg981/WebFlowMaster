@@ -35,6 +35,7 @@ import {
   stepInterruption,
   STEP_SETTLE_MS,
   StepInterruptedError,
+  unusedDialogAnswers,
   type InterruptionKind,
 } from '../step-executor';
 import { type SequenceStep } from '../../authoring/step-groups';
@@ -856,6 +857,12 @@ export class TestRunner {
         }
       }
 
+      const unusedDialogs = unusedDialogAnswers(page);
+      if (unusedDialogs > 0) {
+        resolvedLogger.warn({
+          message: `${unusedDialogs} handleDialog answer(s) were queued but no dialog appeared to consume them.`,
+        });
+      }
       await finishEvidence(overallSuccess);
       const duration = Date.now() - startTime;
       if (interrupted) {
