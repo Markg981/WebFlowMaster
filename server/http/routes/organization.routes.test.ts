@@ -58,6 +58,26 @@ describe('export and erasure', () => {
     expect((await request(app).get('/api/organization/export')).status).toBe(403);
   });
 
+  it('audits the export and leaves out hashes, ciphertext and tokens (C-25)', async () => {
+    await privilegedDb.execute(sql`
+      INSERT INTO api_keys (id, organization_id, user_id, name, scopes, prefix, hashed_key, expires_at)
+      VALUES ('c25-key', ${orgId}, ${ownerId}, 'k', '{}', 'wfm_c25', 'SECRET-HASH', now() + interval '1 day')
+    `);
+    try {
+      const res = await request(app).get('/api/organization/export');
+      expect(res.status).toBe(200);
+      expect(JSON.stringify(res.body)).not.toContain('SECRET-HASH');
+      expect(res.body.data.api_keys[0].hashed_key).toBeUndefined();
+      expect(res.body.data.api_keys[0].prefix).toBe('wfm_c25');
+      const entry = await privilegedDb.execute(
+        sql`SELECT 1 FROM audit_log WHERE organization_id = ${orgId} AND action = 'organization.exported'`,
+      );
+      expect(entry.rows).toHaveLength(1);
+    } finally {
+      await privilegedDb.execute(sql`DELETE FROM api_keys WHERE organization_id = ${orgId}`);
+    }
+  });
+
   it('refuses erasure without the organization’s name, and without owner', async () => {
     expect((await request(app).delete('/api/organization').send({})).status).toBe(400);
     expect(
@@ -744,6 +764,29 @@ describe('POST /api/organization/members/:userId/password-reset', () => {
     `);
     expect(entry.rows).toHaveLength(1);
     expect(JSON.stringify(entry.rows[0])).not.toContain(res.body.token);
+  });
+
+  it('refuses with 409 when the member also belongs to another organization (C-25)', async () => {
+    const other = await privilegedDb.execute(
+      sql`INSERT INTO organizations (name) VALUES ('Other B') RETURNING id`,
+    );
+    const otherOrg = Number((other.rows[0] as { id: number }).id);
+    try {
+      await privilegedDb.execute(sql`
+        INSERT INTO organization_memberships (user_id, organization_id, role) VALUES (${editorId}, ${otherOrg}, 'viewer')
+      `);
+      const res = await request(app).post(`/api/organization/members/${editorId}/password-reset`);
+      expect(res.status).toBe(409);
+      const stored = await privilegedDb.execute(
+        sql`SELECT 1 FROM password_resets WHERE user_id = ${editorId}`,
+      );
+      expect(stored.rows).toHaveLength(0);
+    } finally {
+      await privilegedDb.execute(
+        sql`DELETE FROM organization_memberships WHERE organization_id = ${otherOrg}`,
+      );
+      await privilegedDb.execute(sql`DELETE FROM organizations WHERE id = ${otherOrg}`);
+    }
   });
 
   it('refuses one for oneself, and for someone in another organization', async () => {
