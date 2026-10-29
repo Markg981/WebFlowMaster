@@ -3217,6 +3217,7 @@
       "test_review_rejected": "Review rejected",
       "test_review_withdrawn": "Review withdrawn",
       "test_review_policy_changed": "Review policy changed",
+      "organization_ai_policy_changed": "External AI provider policy changed",
       "runner_drained": "Runner drained",
       "runner_resumed": "Runner resumed",
       "suite_created": "Suite created",

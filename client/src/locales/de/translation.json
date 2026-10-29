@@ -3217,6 +3217,7 @@
       "test_review_rejected": "Prüfung abgelehnt",
       "test_review_withdrawn": "Prüfung zurückgezogen",
       "test_review_policy_changed": "Prüfrichtlinie geändert",
+      "organization_ai_policy_changed": "Richtlinie für externen KI-Anbieter geändert",
       "runner_drained": "Runner geleert",
       "runner_resumed": "Runner fortgesetzt",
       "suite_created": "Suite erstellt",
