@@ -446,6 +446,10 @@ dopo un **Attendi elemento** sul contenuto principale, per esempio — e dopo un
 conta l'INP. Solo Chromium misura LCP, CLS, INP e TBT; in Firefox e WebKit compaiono come — e un
 limite su di esse risulta non misurato invece che fallito, così lo stesso test gira su ogni browser.
 
+**Attendi elemento** accetta `visible` (predefinito), `hidden`, `attached` o `detached`; qualsiasi altro
+valore fa fallire il passo. **Attendi testo** attende che il testo sia visibile. **Verifica stato**
+`readonly` significa abilitato ma non modificabile: un campo disabilitato è `disabled`, non di sola lettura.
+
 **Audit Lighthouse** esegue [Lighthouse](https://developer.chrome.com/docs/lighthouse) sull'indirizzo
 della pagina corrente e ne controlla i punteggi per categoria (0–100): `performance >= 80,
 accessibility >= 90, best-practices >= 90, seo >= 80`, più `desktop` per il profilo desktop (mobile

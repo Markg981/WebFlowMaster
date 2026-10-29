@@ -1,0 +1,13 @@
+{
+  "id": "WEB-77",
+  "area": "WEB",
+  "title": "Misura delle prestazioni: la metrica non misurata è dichiarata nel dettaglio del passo",
+  "priority": "P1",
+  "actor": "editor.a",
+  "preconditions": "Catalogo versione 93. Un test con un passo Misura prestazioni su una pagina senza interazioni, in Firefox o WebKit (non riportano LCP, CLS, INP).",
+  "steps": [
+    "Eseguire il passo con il valore vuoto (limiti predefiniti).",
+    "Eseguire il passo con il valore LCP <= 2500."
+  ],
+  "expected": "1: il passo passa e il dettaglio indica «Not measured» con le metriche mancanti. 2: il passo passa (per design, così lo stesso test gira su ogni browser) e il dettaglio indica «Not measured: LCP»: l'assenza di valore non è presentata come limite rispettato."
+}
