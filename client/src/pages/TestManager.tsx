@@ -26,6 +26,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSearch } from 'wouter';
+import HubCatalogPanel from '@/components/test-manager/HubCatalogPanel';
 
 import { useTestSequences } from '@/hooks/useTestSequences';
 import { useExcelImport } from '@/hooks/useExcelImport';
@@ -77,6 +80,11 @@ const hasReport = (result?: RowResult) =>
 
 const TestManager: React.FC = () => {
   const { t } = useTranslation();
+  // The hub tab is a page of its own to link to: /test-manager?source=hub.
+  const query = useSearch();
+  const [tab, setTab] = React.useState<'excel' | 'hub'>(() =>
+    new URLSearchParams(query).get('source') === 'hub' ? 'hub' : 'excel',
+  );
 
   // Custom Hooks Integration
   const { sequences } = useTestSequences();
@@ -99,11 +107,18 @@ const TestManager: React.FC = () => {
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{t('testManager.title')}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t('testManager.subtitle')}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {tab === 'hub'
+              ? t(
+                  'testCaseHub.catalog.subtitle',
+                  'Choose cases from the QA team’s hub and import them as manual tests.',
+                )
+              : t('testManager.subtitle')}
+          </p>
         </div>
         {/* While the table is empty the empty state carries the file picker, so repeating it
             up here would put the same control on screen twice. */}
-        {hasRows && (
+        {hasRows && tab === 'excel' && (
           <div className="flex gap-2">
             <FilePicker accept=".xlsx" file={file} onChange={handleFileChange} className="w-72" />
             <Button onClick={handleUpload} disabled={isUploading || !file}>
@@ -114,198 +129,224 @@ const TestManager: React.FC = () => {
         )}
       </header>
 
-      <Card className="overflow-hidden">
-        {hasRows && (
-          <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
-            <p className="text-sm text-muted-foreground">
-              {t('testManager.rowCount', { count: parsedTestCases.length })}
-            </p>
-            <Button size="sm" onClick={runSelected} disabled={selectedIds.size === 0 || isRunning}>
-              {isRunning ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="mr-2 h-4 w-4" />
-              )}
-              {t('testManager.runSelected', { n: selectedIds.size })}
-            </Button>
-          </div>
-        )}
-
-        {hasRows ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]">{t('testManager.columns.select')}</TableHead>
-                <TableHead>{t('testManager.columns.excelId')}</TableHead>
-                <TableHead>{t('testManager.columns.priority')}</TableHead>
-                <TableHead>{t('testManager.columns.objective')}</TableHead>
-                <TableHead>{t('testManager.columns.mappedSequence')}</TableHead>
-                <TableHead>{t('testManager.columns.status')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {parsedTestCases.map((tc) => (
-                <TableRow key={tc.testCaseId}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedIds.has(tc.testCaseId)}
-                      onCheckedChange={() => toggleSelection(tc.testCaseId)}
-                      aria-label={t('testManager.selectRow', { id: tc.testCaseId })}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium tabular-nums">{tc.testCaseId}</TableCell>
-                  <TableCell>{tc.priority}</TableCell>
-                  <TableCell className="max-w-md truncate" title={tc.functionalObjective}>
-                    {tc.functionalObjective}
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={localMappings[tc.testCaseId]?.toString() || ''}
-                      onValueChange={(val) => handleMappingChange(tc.testCaseId, val)}
-                    >
-                      <SelectTrigger className="w-[250px]">
-                        <SelectValue placeholder={t('testManager.selectSequence')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {/* An empty list opened as a sliver with nothing to pick, which read as
-                            the page freezing; say why it is empty instead. */}
-                        {sequences.length === 0 ? (
-                          <p className="max-w-[240px] px-2 py-1.5 text-sm text-muted-foreground">
-                            {t('testManager.noSequences')}
-                          </p>
-                        ) : (
-                          sequences.map((seq) => (
-                            <SelectItem key={seq.id} value={seq.id.toString()}>
-                              {seq.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center gap-3">
-                      <RowStatusLabel result={results[tc.testCaseId]} />
-                      {hasReport(results[tc.testCaseId]) && (
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="h-auto p-0"
-                          onClick={() => setReportFor(tc.testCaseId)}
-                        >
-                          <ReportsIcon className="mr-1 h-4 w-4" aria-hidden />{' '}
-                          {t('testManager.viewReport')}
-                        </Button>
-                      )}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          /* An empty screen is where a new user lands, so it says what to do next and
-             offers the control to do it, rather than reporting that there is no data. */
-          <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-            <div className="rounded-full bg-muted p-3">
-              <FileSpreadsheet className="h-6 w-6 text-muted-foreground" aria-hidden />
-            </div>
-            <div>
-              <p className="font-medium">{t('testManager.empty.title')}</p>
-              <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                {t('testManager.empty.description')}
-              </p>
-            </div>
-            <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
-              <FilePicker accept=".xlsx" file={file} onChange={handleFileChange} className="w-80" />
-              {file && (
-                <Button onClick={handleUpload} disabled={isUploading}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  {isUploading ? t('testManager.uploading') : t('testManager.uploadExcel')}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-      </Card>
-
-      <Dialog
-        open={!!report}
-        onOpenChange={(open) => {
-          if (!open) setReportFor(null);
-        }}
-      >
-        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
-          {report && reportFor && (
-            <>
-              <DialogHeader>
-                <DialogTitle>
-                  {t('testManager.report.title', {
-                    id: reportFor,
-                    sequence: sequenceName(report.testId),
-                  })}
-                </DialogTitle>
-                <DialogDescription asChild>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <RowStatusLabel result={report} />
-                    <span>
-                      {t('testManager.report.summary', {
-                        passed: reportSteps.filter((step) => step.status === 'passed').length,
-                        total: reportSteps.length,
-                        seconds: ((report.durationMs ?? 0) / 1000).toFixed(1),
-                      })}
-                    </span>
-                  </div>
-                </DialogDescription>
-              </DialogHeader>
-              {report.error && (
-                <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {report.error}
+      <Tabs value={tab} onValueChange={(value) => setTab(value as 'excel' | 'hub')}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="excel" data-testid="test-manager-tab-excel">
+            {t('testCaseHub.tabs.excel', 'Excel file')}
+          </TabsTrigger>
+          <TabsTrigger value="hub" data-testid="test-manager-tab-hub">
+            {t('testCaseHub.tabs.hub', 'QA test case hub')}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="excel">
+          <Card className="overflow-hidden">
+            {hasRows && (
+              <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+                <p className="text-sm text-muted-foreground">
+                  {t('testManager.rowCount', { count: parsedTestCases.length })}
                 </p>
-              )}
-              {reportSteps.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('testManager.report.noSteps')}</p>
-              ) : (
-                <ol className="space-y-3">
-                  {reportSteps.map((step, index) => (
-                    <li key={index} className="rounded-md border p-3">
-                      <div className="flex items-start gap-2">
-                        {step.status === 'passed' ? (
-                          <CheckCircle2
-                            className="mt-0.5 h-4 w-4 shrink-0 text-success"
-                            aria-hidden
-                          />
-                        ) : (
-                          <XCircle
-                            className="mt-0.5 h-4 w-4 shrink-0 text-destructive"
-                            aria-hidden
-                          />
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium">
-                            {index + 1}. {step.name}
-                          </p>
-                          <p className="wrap-break-word text-sm text-muted-foreground">
-                            {step.error || step.details}
-                          </p>
-                        </div>
-                      </div>
-                      {step.screenshot && (
-                        <img
-                          src={step.screenshot}
-                          alt={t('testManager.report.screenshot', { n: index + 1 })}
-                          className="mt-2 max-h-64 rounded border"
-                          loading="lazy"
+                <Button
+                  size="sm"
+                  onClick={runSelected}
+                  disabled={selectedIds.size === 0 || isRunning}
+                >
+                  {isRunning ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="mr-2 h-4 w-4" />
+                  )}
+                  {t('testManager.runSelected', { n: selectedIds.size })}
+                </Button>
+              </div>
+            )}
+
+            {hasRows ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">{t('testManager.columns.select')}</TableHead>
+                    <TableHead>{t('testManager.columns.excelId')}</TableHead>
+                    <TableHead>{t('testManager.columns.priority')}</TableHead>
+                    <TableHead>{t('testManager.columns.objective')}</TableHead>
+                    <TableHead>{t('testManager.columns.mappedSequence')}</TableHead>
+                    <TableHead>{t('testManager.columns.status')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {parsedTestCases.map((tc) => (
+                    <TableRow key={tc.testCaseId}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(tc.testCaseId)}
+                          onCheckedChange={() => toggleSelection(tc.testCaseId)}
+                          aria-label={t('testManager.selectRow', { id: tc.testCaseId })}
                         />
-                      )}
-                    </li>
+                      </TableCell>
+                      <TableCell className="font-medium tabular-nums">{tc.testCaseId}</TableCell>
+                      <TableCell>{tc.priority}</TableCell>
+                      <TableCell className="max-w-md truncate" title={tc.functionalObjective}>
+                        {tc.functionalObjective}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={localMappings[tc.testCaseId]?.toString() || ''}
+                          onValueChange={(val) => handleMappingChange(tc.testCaseId, val)}
+                        >
+                          <SelectTrigger className="w-[250px]">
+                            <SelectValue placeholder={t('testManager.selectSequence')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {/* An empty list opened as a sliver with nothing to pick, which read as
+                            the page freezing; say why it is empty instead. */}
+                            {sequences.length === 0 ? (
+                              <p className="max-w-[240px] px-2 py-1.5 text-sm text-muted-foreground">
+                                {t('testManager.noSequences')}
+                              </p>
+                            ) : (
+                              sequences.map((seq) => (
+                                <SelectItem key={seq.id} value={seq.id.toString()}>
+                                  {seq.name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-3">
+                          <RowStatusLabel result={results[tc.testCaseId]} />
+                          {hasReport(results[tc.testCaseId]) && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto p-0"
+                              onClick={() => setReportFor(tc.testCaseId)}
+                            >
+                              <ReportsIcon className="mr-1 h-4 w-4" aria-hidden />{' '}
+                              {t('testManager.viewReport')}
+                            </Button>
+                          )}
+                        </span>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </ol>
+                </TableBody>
+              </Table>
+            ) : (
+              /* An empty screen is where a new user lands, so it says what to do next and
+             offers the control to do it, rather than reporting that there is no data. */
+              <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+                <div className="rounded-full bg-muted p-3">
+                  <FileSpreadsheet className="h-6 w-6 text-muted-foreground" aria-hidden />
+                </div>
+                <div>
+                  <p className="font-medium">{t('testManager.empty.title')}</p>
+                  <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                    {t('testManager.empty.description')}
+                  </p>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                  <FilePicker
+                    accept=".xlsx"
+                    file={file}
+                    onChange={handleFileChange}
+                    className="w-80"
+                  />
+                  {file && (
+                    <Button onClick={handleUpload} disabled={isUploading}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      {isUploading ? t('testManager.uploading') : t('testManager.uploadExcel')}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </Card>
+
+          <Dialog
+            open={!!report}
+            onOpenChange={(open) => {
+              if (!open) setReportFor(null);
+            }}
+          >
+            <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+              {report && reportFor && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {t('testManager.report.title', {
+                        id: reportFor,
+                        sequence: sequenceName(report.testId),
+                      })}
+                    </DialogTitle>
+                    <DialogDescription asChild>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <RowStatusLabel result={report} />
+                        <span>
+                          {t('testManager.report.summary', {
+                            passed: reportSteps.filter((step) => step.status === 'passed').length,
+                            total: reportSteps.length,
+                            seconds: ((report.durationMs ?? 0) / 1000).toFixed(1),
+                          })}
+                        </span>
+                      </div>
+                    </DialogDescription>
+                  </DialogHeader>
+                  {report.error && (
+                    <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      {report.error}
+                    </p>
+                  )}
+                  {reportSteps.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {t('testManager.report.noSteps')}
+                    </p>
+                  ) : (
+                    <ol className="space-y-3">
+                      {reportSteps.map((step, index) => (
+                        <li key={index} className="rounded-md border p-3">
+                          <div className="flex items-start gap-2">
+                            {step.status === 'passed' ? (
+                              <CheckCircle2
+                                className="mt-0.5 h-4 w-4 shrink-0 text-success"
+                                aria-hidden
+                              />
+                            ) : (
+                              <XCircle
+                                className="mt-0.5 h-4 w-4 shrink-0 text-destructive"
+                                aria-hidden
+                              />
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium">
+                                {index + 1}. {step.name}
+                              </p>
+                              <p className="wrap-break-word text-sm text-muted-foreground">
+                                {step.error || step.details}
+                              </p>
+                            </div>
+                          </div>
+                          {step.screenshot && (
+                            <img
+                              src={step.screenshot}
+                              alt={t('testManager.report.screenshot', { n: index + 1 })}
+                              className="mt-2 max-h-64 rounded border"
+                              loading="lazy"
+                            />
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </>
               )}
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+        <TabsContent value="hub">
+          <HubCatalogPanel />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

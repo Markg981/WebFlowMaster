@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
-export function useCatalogControls() {
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+/** `initialSearch` seeds the box, for a page opened from a link that names a test. */
+export function useCatalogControls(initialSearch = '') {
+  const [search, setSearch] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch.trim());
   const [page, setPage] = useState(1);
   const [pageSize, setSize] = useState(25);
   useEffect(() => {
