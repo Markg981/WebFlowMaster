@@ -5,5 +5,5 @@
     "definitions": [1, 2],
     "dependencyBundle": [1]
   },
-  "minimumRollbackRelease": null
+  "minimumRollbackRelease": "1.0.0-rc.1"
 }
