@@ -6,7 +6,7 @@ import path from 'node:path';
 import { randomUUID, sign, X509Certificate } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { deflateRawSync, inflateRawSync } from 'node:zlib';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { SignedXml } from 'xml-crypto';
 import { privilegedDb } from '../platform/db';
 import {
@@ -25,6 +25,7 @@ import {
   samlEmailOf,
   samlSubjectOf,
 } from './sso-saml';
+import { auditLogMaintenance } from '../tests/factories';
 
 // SAML sign-in against the real (PGlite) test database. The identity provider is this file: it reads
 // the AuthnRequest the product sends and answers with a Response whose assertion it signs with a test
@@ -73,7 +74,7 @@ beforeEach(async () => {
   process.env.SSO_REQUIRE_DOMAIN_VERIFICATION = 'false';
   process.env.WEBFLOW_PUBLIC_URL = BASE;
   await privilegedDb.delete(ssoSamlRequests);
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(users);
   await privilegedDb.delete(organizations);

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application } from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { parse as parseYaml } from 'yaml';
 import { privilegedDb } from './platform/db';
 import {
@@ -16,7 +16,7 @@ import {
   mobileStepGroups,
   type User,
 } from '@shared/schema';
-import { createTestOrganization } from './tests/factories';
+import { createTestOrganization, auditLogMaintenance } from './tests/factories';
 import { tenancyMiddleware } from './platform/middleware/tenancy';
 import { envName, toPlaywright } from './integrations/playwright-export';
 import { parseBundle, BundleError } from './integrations/test-bundle';
@@ -265,7 +265,7 @@ describe('the test file', () => {
   });
 
   beforeEach(async () => {
-    await privilegedDb.delete(auditLog);
+    await auditLogMaintenance(sql`DELETE FROM audit_log`);
     await privilegedDb.delete(testVersions);
     await privilegedDb.delete(tests);
     await privilegedDb.delete(apiTests);

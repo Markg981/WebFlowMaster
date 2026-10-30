@@ -5,7 +5,6 @@ import { privilegedDb } from './platform/db';
 import {
   users,
   organizations,
-  auditLog,
   projects,
   tests,
   testPlans,
@@ -19,8 +18,8 @@ import {
   userSettings,
   type User,
 } from '../shared/schema';
-import { eq } from 'drizzle-orm';
-import { createTestOrganization } from './tests/factories';
+import { eq, sql } from 'drizzle-orm';
+import { createTestOrganization, auditLogMaintenance } from './tests/factories';
 import { runTestPlan } from './execution/test-execution-service';
 
 /**
@@ -110,7 +109,7 @@ async function clearAll() {
   await privilegedDb.delete(projects);
   // Before organizations, which it references with no cascade: creating a plan or a test
   // records an entry now.
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(users);
   await privilegedDb.delete(organizations);
 }

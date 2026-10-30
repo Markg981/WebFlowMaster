@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -43,7 +43,7 @@ vi.mock('./execution/scheduler-service', () => ({
 
 const { privilegedDb } = await import('./platform/db');
 const { auditLog, tests, testPlanExecutions, testPlans, users } = await import('@shared/schema');
-const { createTestOrganization } = await import('./tests/factories');
+const { createTestOrganization, auditLogMaintenance } = await import('./tests/factories');
 const { runWithTenant } = await import('./platform/middleware/tenancy');
 const { default: testsRoutes } = await import('./http/routes/tests.routes');
 const { default: testPlansRoutes } = await import('./http/routes/test-plans.routes');
@@ -85,7 +85,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   viaKey = undefined;
-  await privilegedDb.delete(auditLog).where(eq(auditLog.organizationId, org));
+  await auditLogMaintenance(sql`DELETE FROM audit_log WHERE organization_id = ${org}`);
 });
 
 const trail = (action?: string) =>

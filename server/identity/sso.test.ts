@@ -4,7 +4,7 @@ import express, { type Express } from 'express';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { createHash, generateKeyPairSync, randomBytes, sign as rsaSign } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
 import {
   auditLog,
@@ -18,6 +18,7 @@ import {
 } from '@shared/schema';
 import { groupsOf, roleFromGroups } from '@shared/sso-roles';
 import { joinOrganization } from '../tenancy/organization-memberships';
+import { auditLogMaintenance } from '../tests/factories';
 
 // Auth runs against the real (PGlite) test database; the identity provider is a small one started
 // here, which signs its ID tokens with a key of its own. Only the logger is mocked.
@@ -149,7 +150,7 @@ beforeEach(async () => {
   // The default is to require proof of domains; most cases here are not about that.
   process.env.SSO_REQUIRE_DOMAIN_VERIFICATION = 'false';
   issued.clear();
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(users);
   await privilegedDb.delete(organizations);

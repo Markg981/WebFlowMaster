@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from './platform/db';
 import { users, organizations, invitations, auditLog, passwordResets } from '@shared/schema';
 import { storage } from './identity/storage';
+import { auditLogMaintenance } from './tests/factories';
 
 vi.mock('./platform/logger', () => ({
   default: {
@@ -35,7 +36,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(passwordResets);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(users);

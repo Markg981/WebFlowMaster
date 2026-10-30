@@ -2,16 +2,9 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vites
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
 import { privilegedDb } from './platform/db';
-import {
-  users,
-  organizations,
-  auditLog,
-  testPlans,
-  testPlanSchedules,
-  type User,
-} from '../shared/schema';
-import { eq } from 'drizzle-orm';
-import { createTestOrganization } from './tests/factories';
+import { users, organizations, testPlans, testPlanSchedules, type User } from '../shared/schema';
+import { eq, sql } from 'drizzle-orm';
+import { createTestOrganization, auditLogMaintenance } from './tests/factories';
 
 /**
  * C5 from the final security review: server/http/routes/test-plans.routes.ts's
@@ -68,7 +61,7 @@ async function clearAll() {
   await privilegedDb.delete(testPlanSchedules);
   await privilegedDb.delete(testPlans);
   // Before organizations, which it references: changing a schedule records an entry.
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   await privilegedDb.delete(users);
   await privilegedDb.delete(organizations);
 }

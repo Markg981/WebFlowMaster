@@ -4,16 +4,10 @@ import type { AddressInfo } from 'node:net';
 import express, { type Express } from 'express';
 import request from 'supertest';
 import { WebSocket } from 'ws';
-import { inArray } from 'drizzle-orm';
+import { inArray, sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
-import {
-  auditLog,
-  organizations,
-  testPlans,
-  testPlanExecutions,
-  executionLogs,
-  users,
-} from '@shared/schema';
+import { auditLogMaintenance } from '../tests/factories';
+import { organizations, testPlans, testPlanExecutions, executionLogs, users } from '@shared/schema';
 
 vi.mock('../platform/logger', () => ({
   default: {
@@ -212,9 +206,9 @@ afterAll(async () => {
     .where(inArray(testPlanExecutions.id, [execAId, execBId]));
   await privilegedDb.delete(testPlans).where(inArray(testPlans.id, [planAId, planBId]));
   // audit_log references organizations with no cascade: the logout writes an entry.
-  await privilegedDb
-    .delete(auditLog)
-    .where(inArray(auditLog.organizationId, [orgAId, orgBId, ...(extraOrgId ? [extraOrgId] : [])]));
+  await auditLogMaintenance(
+    sql`DELETE FROM audit_log WHERE organization_id IN ${[orgAId, orgBId, ...(extraOrgId ? [extraOrgId] : [])]}`,
+  );
   await privilegedDb
     .delete(users)
     .where(inArray(users.organizationId, [orgAId, orgBId, ...(extraOrgId ? [extraOrgId] : [])]));

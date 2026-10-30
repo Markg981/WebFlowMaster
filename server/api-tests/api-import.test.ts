@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application } from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
 import { apiTests, auditLog, users, type User } from '@shared/schema';
-import { createTestOrganization } from '../tests/factories';
+import { createTestOrganization, auditLogMaintenance } from '../tests/factories';
 import { tenancyMiddleware } from '../platform/middleware/tenancy';
 import { exampleOf, importApiDescription, ImportError } from './api-import';
 import { bundle, distributedWsdl } from '../tests/soap-bundle-fixtures';
@@ -288,7 +288,7 @@ describe('POST /api/api-tests/import', () => {
 
   beforeEach(async () => {
     await privilegedDb.delete(apiTests);
-    await privilegedDb.delete(auditLog);
+    await auditLogMaintenance(sql`DELETE FROM audit_log`);
     const organizationId = await createTestOrganization('Import Org');
     [user] = await privilegedDb
       .insert(users)

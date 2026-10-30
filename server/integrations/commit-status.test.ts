@@ -4,7 +4,7 @@ import type { AddressInfo } from 'net';
 import express from 'express';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../platform/db';
 import {
   auditLog,
@@ -13,7 +13,7 @@ import {
   testPlans,
   type TestPlanExecution,
 } from '@shared/schema';
-import { createTestOrganization, createTestUser } from '../tests/factories';
+import { createTestOrganization, createTestUser, auditLogMaintenance } from '../tests/factories';
 import { encryptSecret } from '../platform/crypto';
 
 vi.mock('../platform/logger', () => ({
@@ -400,7 +400,7 @@ describe('/api/source-hosts', () => {
   beforeEach(async () => {
     role = 'owner';
     await privilegedDb.delete(sourceHosts);
-    await privilegedDb.delete(auditLog);
+    await auditLogMaintenance(sql`DELETE FROM audit_log`);
   });
 
   it('checks the token before keeping it, keeps it encrypted, and never gives it back', async () => {

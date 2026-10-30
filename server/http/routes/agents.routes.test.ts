@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { privilegedDb } from '../../platform/db';
 import { agents, auditLog } from '@shared/schema';
-import { createTestOrganization, createTestUser } from '../../tests/factories';
+import { createTestOrganization, createTestUser, auditLogMaintenance } from '../../tests/factories';
 import { hashAgentToken } from '../../runtime/agents/agent-credentials';
 
 vi.mock('../../platform/logger', () => ({
@@ -60,7 +60,7 @@ afterAll(() => setAgentRelay(null));
 
 beforeEach(async () => {
   await privilegedDb.delete(agents);
-  await privilegedDb.delete(auditLog);
+  await auditLogMaintenance(sql`DELETE FROM audit_log`);
   relay.disconnect.mockClear();
   currentUser = { id: ownerId, username: 'agents-owner', organizationId, role: 'owner' };
 });

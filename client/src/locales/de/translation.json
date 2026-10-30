@@ -3132,11 +3132,13 @@
     },
     "categories": {
       "bdd_profile": "BDD-Profile",
+      "browser_grid": "Browser-Grids",
       "mail_settings": "E-Mail-Einstellungen",
       "mail_template": "E-Mail-Vorlagen",
       "all": "Alles",
       "member": "Mitglieder",
       "invitation": "Einladungen",
+      "issue_tracker": "Issue-Tracker",
       "api_key": "API-Schlüssel",
       "service_account": "Dienstkonten",
       "webhook": "Webhooks",
