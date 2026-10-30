@@ -21,10 +21,6 @@ const NOT_DOCUMENTED = new Set([
   'TEST_ALLOWED',
   'MAILPIT_TEST_URL',
   'MAILPIT_TEST_SMTP_PORT',
-  // Added by open pull requests that document them in `.env.example` themselves; listed so this
-  // test does not fail on whichever of the two merges second.
-  'WFM_VISUAL_THRESHOLD',
-  'GEMINI_TIMEOUT_MS',
 ]);
 
 function sourceFiles(dir: string): string[] {
