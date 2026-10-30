@@ -146,8 +146,9 @@ what an installation runs, so reconcile installed digests as described under
    followed by the evidence note. On Playwright upgrades, update
    all Docker bases to the matching official tag **and verify its registry digest**. Update the
    toolchain and Lighthouse lock through reviewed changes, never through a floating CI override.
-3. Merge, wait for the four required checks on the resulting main commit, create and push its
-   `vVERSION` tag. If CI is pending or failed, the release must wait; rerun after checks pass.
+3. Merge, wait for the required checks on the resulting main commit (`static-checks`,
+   `server-tests`, `client-tests`, `rls-on-real-postgres`, `ui-on-real-installation`), create and
+   push its `vVERSION` tag. If CI is pending or failed, the release must wait; rerun after checks pass.
 4. Inspect the draft, reports, rebuild evidence and manifest. Confirm all roles refer to the intended
    commit and migration journal, and run the verify commands recorded under `images.<role>.signing`,
    before publishing. Retain the previous release's manifest. Once it is published, rebuild the

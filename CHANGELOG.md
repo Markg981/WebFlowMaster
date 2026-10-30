@@ -10,6 +10,8 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 
 ## [Unreleased]
 
+## [1.0.0-rc.1] - 2026-10-30
+
 ### Added
 
 - Implement file-based logging with Winston ([#5](https://github.com/Markg981/WebFlowMaster/pull/5))
@@ -99,8 +101,28 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 - Native Slack and Teams messages ([#364](https://github.com/Markg981/WebFlowMaster/pull/364))
 - Per-user rate limit for signed-in sessions on /api ([#387](https://github.com/Markg981/WebFlowMaster/pull/387))
 - Pilot measured against the team's own tool, and an adoption decision gated on its evidence ([#458](https://github.com/Markg981/WebFlowMaster/pull/458))
+- Phone and tablet layouts for the reading pages + mobile e2e (§5.3) ([#393](https://github.com/Markg981/WebFlowMaster/pull/393))
+- Brochure with localized screens, open fonts and licence terms (§10.2) ([#416](https://github.com/Markg981/WebFlowMaster/pull/416))
+- "What's new" page from the shipped CHANGELOG (§11) ([#417](https://github.com/Markg981/WebFlowMaster/pull/417))
+- Promo video with voice-over, live clips, short cuts and social formats (§10.3) ([#418](https://github.com/Markg981/WebFlowMaster/pull/418))
+- Claims.json as the single list of what the materials say (§10.4) ([#420](https://github.com/Markg981/WebFlowMaster/pull/420))
+- Contextual help links from each page to the manual (§11) ([#421](https://github.com/Markg981/WebFlowMaster/pull/421))
+- Start a new organization from a sample project (§11) ([#422](https://github.com/Markg981/WebFlowMaster/pull/422))
+- Run manifest and unit/attempt identity (P07, C02/C07/C08) ([#446](https://github.com/Markg981/WebFlowMaster/pull/446))
+- Keep and drill into every attempt and dataset row (P08) ([#447](https://github.com/Markg981/WebFlowMaster/pull/447))
+- Freeze step groups, elements and custom actions with each version and run (P09, C04) ([#448](https://github.com/Markg981/WebFlowMaster/pull/448))
+- Fence work claims with epochs and leases, finalize from the manifest (P11, C08/C02) ([#450](https://github.com/Markg981/WebFlowMaster/pull/450))
+- Record inside open shadow roots the way the engine replays them (P12, C11) ([#451](https://github.com/Markg981/WebFlowMaster/pull/451))
+- Runs propose repaired locators, editors approve them (P13, M02) ([#452](https://github.com/Markg981/WebFlowMaster/pull/452))
+- Unify flaky triage — retries, flips, errors and edits apart (P14, M03) ([#453](https://github.com/Markg981/WebFlowMaster/pull/453))
+- Certify the exportable Playwright subset (P15, M04) ([#454](https://github.com/Markg981/WebFlowMaster/pull/454))
 
 ### Changed
+
+- The audit trail can no longer be edited or deleted: a database trigger (migration 0102) refuses
+  `UPDATE` and `DELETE` on `audit_log`, except the retention sweep and the erasure of an
+  organization, which switch on `app.audit_maintenance` for their own transaction
+  ([#539](https://github.com/Markg981/WebFlowMaster/pull/539))
 
 - Load react-dnd with the Create Test page, not the entry chunk ([#347](https://github.com/Markg981/WebFlowMaster/pull/347))
 - Bound the Postgres pool and bind a tenant in one round trip ([#383](https://github.com/Markg981/WebFlowMaster/pull/383))
@@ -110,7 +132,6 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 
 - Test engine residues (C-40): the recorder masks card, one-time-code and SSN fields; saving a login state needs the
   recording session's owner; the OAuth 2.0 token cache is bounded; unconsumed `handleDialog` answers are logged.
-
 - No more false greens: a load answered by HTTP 4xx/5xx counts those as request errors (and fails above 50% errors when no threshold says otherwise), an API test with no assertions fails on a status of 400 or more, and a plan run with no tests ends `error` (`run_empty`) instead of `completed`
 - Dark-mode fixes for API Tester editors and the Create Test canvas ([#120](https://github.com/Markg981/WebFlowMaster/pull/120))
 - Make UI test authoring against SPA sites actually work ([#121](https://github.com/Markg981/WebFlowMaster/pull/121))
@@ -133,8 +154,36 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 - Upsert user_settings instead of select-then-insert ([#386](https://github.com/Markg981/WebFlowMaster/pull/386))
 - Read system settings by key only from an allow-list ([#389](https://github.com/Markg981/WebFlowMaster/pull/389))
 - Release qualification: one verdict per run in JUnit, Allure and the report; unknown dependency formats refused before enqueue and gated at release ([#457](https://github.com/Markg981/WebFlowMaster/pull/457))
+- Draw the status and trend charts with a real height ([#404](https://github.com/Markg981/WebFlowMaster/pull/404))
+- Bind the provider sign-in to the organization it vouches for ([#428](https://github.com/Markg981/WebFlowMaster/pull/428))
+- Clear the query cache on every change of session ([#429](https://github.com/Markg981/WebFlowMaster/pull/429))
+- Keep the active organization in the session, not on the account ([#430](https://github.com/Markg981/WebFlowMaster/pull/430))
+- Timeout and duration up to the last byte of the body ([#431](https://github.com/Markg981/WebFlowMaster/pull/431))
+- Close all queue consumers at once on shutdown ([#432](https://github.com/Markg981/WebFlowMaster/pull/432))
+- Publish run jobs through a transactional outbox ([#433](https://github.com/Markg981/WebFlowMaster/pull/433))
+- Enforce the run deadline before the heartbeat I/O ([#434](https://github.com/Markg981/WebFlowMaster/pull/434))
+- Parse the saved test instead of reading the Response ([#435](https://github.com/Markg981/WebFlowMaster/pull/435))
+- Group flakiness by test identity, not by name ([#436](https://github.com/Markg981/WebFlowMaster/pull/436))
+- P01 — a result that cannot be recorded no longer turns a run green ([#439](https://github.com/Markg981/WebFlowMaster/pull/439))
+- Pin the fixed curl for CVE-2026-92392 ([#440](https://github.com/Markg981/WebFlowMaster/pull/440))
+- Make abort and deadline actually stop a test (P05, C06) ([#444](https://github.com/Markg981/WebFlowMaster/pull/444))
+- Give visual comparison errors a real verdict (P06, C09) ([#445](https://github.com/Markg981/WebFlowMaster/pull/445))
+- Save a healed selector only where the step is written (P10, C05) ([#449](https://github.com/Markg981/WebFlowMaster/pull/449))
+- Advisory locks around replica sweeps and the migrator (A-11) ([#479](https://github.com/Markg981/WebFlowMaster/pull/479))
+- Readable API validation errors, shared zod flatten helper (A-09) ([#480](https://github.com/Markg981/WebFlowMaster/pull/480))
+- Per-account throttle on password and second-factor attempts (A-07) ([#481](https://github.com/Markg981/WebFlowMaster/pull/481))
+- Retry scheduler start and gate /readyz on it (A-08) ([#483](https://github.com/Markg981/WebFlowMaster/pull/483))
+- Verified email, domain proof by default, safe account linking (A-05) ([#488](https://github.com/Markg981/WebFlowMaster/pull/488))
+- Erasure record, retention failure logging, optional audit/evidence retention (A-10) ([#490](https://github.com/Markg981/WebFlowMaster/pull/490))
+- Harden relay secret/tickets, login timing, reset policy, invitation tokens (A-12) ([#491](https://github.com/Markg981/WebFlowMaster/pull/491))
 
 ### Security
+
+- The findings of the independent audit of 27 October 2026 (C-01 to C-45) are fixed: CI runs again
+  and its checks are required on `main`, credential and session hardening, tenant isolation in
+  routes and the WebSocket, egress policy gaps, verdicts that can no longer turn green by mistake,
+  and the minor residues, in pull requests #493 to #540
+  ([#540](https://github.com/Markg981/WebFlowMaster/pull/540))
 
 - A content security policy, rate limits on the API, and installation-wide settings for its administrators ([#189](https://github.com/Markg981/WebFlowMaster/pull/189))
 - Rate limits shared by every web process through Redis ([#272](https://github.com/Markg981/WebFlowMaster/pull/272))
@@ -144,3 +193,12 @@ pull requests (`npm run changelog:draft`) and are edited by hand before a releas
 - The code editor ships a patched dompurify in place of the copy Monaco vendors ([#460](https://github.com/Markg981/WebFlowMaster/pull/460))
 - Move to zod 4; partial updates no longer reset fields to their defaults ([#466](https://github.com/Markg981/WebFlowMaster/pull/466))
 - Patched dompurify, msal-node, body-parser, multer, undici and zod clear the release vulnerability gate ([#476](https://github.com/Markg981/WebFlowMaster/pull/476))
+- Close the browser egress bypasses (P02, C01) ([#441](https://github.com/Markg981/WebFlowMaster/pull/441))
+- Protect traces and logs without promising universal redaction (P03, C03) ([#442](https://github.com/Markg981/WebFlowMaster/pull/442))
+- Bind the local quickstart to the loopback (P04, C10) ([#443](https://github.com/Markg981/WebFlowMaster/pull/443))
+- P17 dependency triage (Monaco/DOMPurify), unreachable risk accepted until 2026-12-31 ([#456](https://github.com/Markg981/WebFlowMaster/pull/456))
+- Configurable TRUST_PROXY and explicit egress defaults (A-04) ([#482](https://github.com/Markg981/WebFlowMaster/pull/482))
+- QueryDatabase step goes through the egress policy (A-01) ([#484](https://github.com/Markg981/WebFlowMaster/pull/484))
+- Require WEBFLOW_PUBLIC_URL in production (A-03) ([#485](https://github.com/Markg981/WebFlowMaster/pull/485))
+- Production audit gate in CI, ip-address patched, dompurify floor 3.4.17 (A-02) ([#486](https://github.com/Markg981/WebFlowMaster/pull/486))
+- Scopes and expiry required on API keys, session-only credential routes (A-06) ([#492](https://github.com/Markg981/WebFlowMaster/pull/492))

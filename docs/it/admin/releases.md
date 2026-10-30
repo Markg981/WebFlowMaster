@@ -152,8 +152,9 @@ in [Aggiornamento, rollback ed evidenze](#aggiornamento-rollback-ed-evidenze).
    release su GitHub, seguita dalla nota sulle evidenze. Per Playwright,
    aggiornare tutte le basi al tag ufficiale coerente e **verificarne il digest nel registry**.
    Aggiornare toolchain e lock Lighthouse con modifiche revisionate, evitando override mobili in CI.
-3. Fare merge e attendere i quattro controlli sul commit risultante in main, poi creare e fare push
-   del suo tag `vVERSION`. Se i controlli sono pendenti o falliti, il rilascio attende; rieseguire dopo
+3. Fare merge e attendere i controlli obbligatori sul commit risultante in main (`static-checks`,
+   `server-tests`, `client-tests`, `rls-on-real-postgres`, `ui-on-real-installation`), poi creare e
+   fare push del suo tag `vVERSION`. Se i controlli sono pendenti o falliti, il rilascio attende; rieseguire dopo
    il loro completamento.
 4. Esaminare draft, rapporti, evidenze di ricostruzione e manifest. Controllare commit e journal
    delle migrazioni ed eseguire i comandi di verifica registrati in `images.<ruolo>.signing` prima
