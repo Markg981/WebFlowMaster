@@ -42,10 +42,14 @@ async function startFixture(): Promise<Fixture> {
     document.getElementById('count').textContent = String(document.querySelectorAll('#items li').length);
   };
 </script>`;
+  // "Sent" appears once the fixture has recorded the effect, so the test can wait for it: the
+  // click is the last step, and the page may close before an unawaited request leaves.
   const inner = `<!doctype html><input id="city" aria-label="City"><button id="send">Send</button>
+<p id="sent"></p>
 <script>
   document.getElementById('send').onclick = () =>
-    fetch('/effect', { method: 'POST', body: 'city:' + document.getElementById('city').value });
+    fetch('/effect', { method: 'POST', body: 'city:' + document.getElementById('city').value })
+      .then(() => { document.getElementById('sent').textContent = 'Sent'; });
 </script>`;
   const server = http.createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://fixture');
@@ -136,6 +140,10 @@ function flow(who: string, expected: string) {
     step('counted', 'assertTextContains', '2', { selector: '#count' }),
     step('city', 'input', 'Torino', { selector: '#city', frameSelector: 'iframe[name="inner"]' }),
     step('send', 'click', '', { selector: '#send', frameSelector: 'iframe[name="inner"]' }),
+    step('sent', 'assertTextContains', 'Sent', {
+      selector: '#sent',
+      frameSelector: 'iframe[name="inner"]',
+    }),
   ];
 }
 
