@@ -10,6 +10,7 @@ import {
   index,
   uniqueIndex,
   unique,
+  foreignKey,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import type { RequirementKind } from '../requirements';
@@ -342,7 +343,10 @@ export const testCaseSources = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (table) => [uniqueIndex('test_case_sources_organization_id_unique').on(table.organizationId)],
+  (table) => [
+    uniqueIndex('test_case_sources_organization_id_unique').on(table.organizationId),
+    unique('test_case_sources_id_organization_unique').on(table.id, table.organizationId),
+  ],
 );
 
 export type TestCaseSource = typeof testCaseSources.$inferSelect;
@@ -399,6 +403,16 @@ export const hubTestCases = pgTable(
     importedBy: integer('imported_by').references(() => users.id, { onDelete: 'set null' }),
   },
   (table) => [
+    foreignKey({
+      name: 'hub_test_cases_source_id_same_org_fk',
+      columns: [table.sourceId, table.organizationId],
+      foreignColumns: [testCaseSources.id, testCaseSources.organizationId],
+    }),
+    foreignKey({
+      name: 'hub_test_cases_test_id_same_org_fk',
+      columns: [table.testId, table.organizationId],
+      foreignColumns: [tests.id, tests.organizationId],
+    }),
     index('hub_test_cases_organization_id_idx').on(table.organizationId),
     uniqueIndex('hub_test_cases_source_case_unique').on(table.sourceId, table.caseId),
     index('hub_test_cases_module_idx').on(table.organizationId, table.module),

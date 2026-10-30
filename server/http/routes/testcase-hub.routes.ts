@@ -1,6 +1,7 @@
 import { asyncRouter } from '../../platform/middleware/async-router';
 import { flattenZodError } from '../zod-error';
 import { z } from 'zod';
+import type { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { withTenantTransaction } from '../../platform/middleware/tenancy';
@@ -13,12 +14,7 @@ import {
   tests,
   type TestCaseSource,
 } from '@shared/schema';
-import {
-  HUB_IMPORT_MAX_CASES,
-  HUB_SOURCE_KINDS,
-  hubCaseToManualSteps,
-  hubTestName,
-} from '@shared/testcases-hub';
+import { HUB_IMPORT_MAX_CASES, hubCaseToManualSteps, hubTestName } from '@shared/testcases-hub';
 import {
   HubSourceError,
   checkSource,
@@ -106,9 +102,7 @@ function toSummary(row: TestCaseSource) {
 }
 
 async function currentSource(): Promise<TestCaseSource | null> {
-  const [row] = await withTenantTransaction((tx) =>
-    tx.select().from(testCaseSources).limit(1),
-  );
+  const [row] = await withTenantTransaction((tx) => tx.select().from(testCaseSources).limit(1));
   return row ?? null;
 }
 
@@ -122,7 +116,7 @@ async function tokenOf(source: TestCaseSource): Promise<string | null> {
   );
 }
 
-function sendHubError(res: any, error: unknown, fallback: string): void {
+function sendHubError(res: Response, error: unknown, fallback: string): void {
   if (error instanceof HubSourceError || error instanceof AuthoringError) {
     res.status(error.status).json({ error: error.message, code: error.code });
     return;
@@ -194,7 +188,13 @@ router.put('/api/testcase-hub', requireRole('editor'), async (req, res) => {
             ...values,
             // A catalog read from somewhere else says nothing about the new place.
             ...(kindChanged || locationChanged
-              ? { lastRefreshAt: null, lastRefreshHead: null, lastRefreshStatus: null, lastRefreshError: null, caseCount: 0 }
+              ? {
+                  lastRefreshAt: null,
+                  lastRefreshHead: null,
+                  lastRefreshStatus: null,
+                  lastRefreshError: null,
+                  caseCount: 0,
+                }
               : {}),
           })
           .where(eq(testCaseSources.id, existing.id))
@@ -474,11 +474,17 @@ router.get('/api/testcase-hub/facets', requireRole('viewer'), async (req, res) =
 // GET /api/testcase-hub/cases/:caseId — one case, with the steps it would become.
 router.get('/api/testcase-hub/cases/:caseId', requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
-  const caseId = String(req.params.caseId ?? '').trim().toUpperCase();
+  const caseId = String(req.params.caseId ?? '')
+    .trim()
+    .toUpperCase();
   if (!caseId) return res.status(400).json({ error: 'Invalid case id' });
   try {
     const found = await withTenantTransaction(async (tx) => {
-      const [row] = await tx.select().from(hubTestCases).where(eq(hubTestCases.caseId, caseId)).limit(1);
+      const [row] = await tx
+        .select()
+        .from(hubTestCases)
+        .where(eq(hubTestCases.caseId, caseId))
+        .limit(1);
       if (!row) return null;
       const [test] = row.testId
         ? await tx
@@ -504,7 +510,9 @@ router.get('/api/testcase-hub/cases/:caseId', requireRole('viewer'), async (req,
       testName: hubTestName(definition),
       preview: {
         standard: hubCaseToManualSteps(definition),
-        reference: row.refEnvSteps ? hubCaseToManualSteps(definition, { variant: 'reference' }) : null,
+        reference: row.refEnvSteps
+          ? hubCaseToManualSteps(definition, { variant: 'reference' })
+          : null,
       },
     });
   } catch (error) {

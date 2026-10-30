@@ -53,6 +53,8 @@ export const JSONB_PAYLOADS: Record<string, JsonbStrategy> = {
   // The group calls that led to a healed step, as the run read them (migration 0094): a record of
   // that run, never rewritten.
   'healing_proposals.call_path': 'snapshot',
+  // The ids of the hub cases a case depends on, as the hub lists them: a plain array of strings.
+  'hub_test_cases.depends_on': 'migration',
   'load_test_runs.definition': 'snapshot',
   'load_test_runs.summary': 'migration',
   'load_tests.stages': 'migration',

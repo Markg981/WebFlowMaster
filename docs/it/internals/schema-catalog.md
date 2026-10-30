@@ -4,7 +4,7 @@ Generato da `shared/schema/` (un file per dominio) con `node scripts/generate-sc
 
 Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le relazioni, poi cercare qui la tabella. Ogni riga riporta la proprietà TypeScript, il nome SQL e il builder completo: tipo, nullabilità, default e riferimenti dichiarati nella colonna. I vincoli definiti nel callback della tabella non sono espansi qui.
 
-**81 tabelle / 925 colonne dichiarate.**
+**83 tabelle / 978 colonne dichiarate.**
 
 ## Indice
 
@@ -88,6 +88,8 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | [test_management_publications](#test-management-publications) | `testManagementPublications` | 14      |
 | [requirement_tests](#requirement-tests)                       | `requirementTests`           | 9       |
 | [issue_links](#issue-links)                                   | `issueLinks`                 | 16      |
+| [test_case_sources](#test-case-sources)                       | `testCaseSources`            | 20      |
+| [hub_test_cases](#hub-test-cases)                             | `hubTestCases`               | 33      |
 | [billing_plans](#billing-plans)                               | `billingPlans`               | 16      |
 | [organization_subscriptions](#organization-subscriptions)     | `organizationSubscriptions`  | 15      |
 | [billing_events](#billing-events)                             | `billingEvents`              | 9       |
@@ -465,7 +467,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## sessions {#sessions}
 
-`sessions` — `shared/schema/identity.ts:864`
+`sessions` — `shared/schema/identity.ts:871`
 
 | Proprietà TS | Colonna SQL | Dichiarazione                   |
 | ------------ | ----------- | ------------------------------- |
@@ -1364,7 +1366,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## source_hosts {#source-hosts}
 
-`sourceHosts` — `shared/schema/integrations.ts:31`
+`sourceHosts` — `shared/schema/integrations.ts:35`
 
 | Proprietà TS        | Colonna SQL           | Dichiarazione                                                                |
 | ------------------- | --------------------- | ---------------------------------------------------------------------------- |
@@ -1383,7 +1385,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## issue_trackers {#issue-trackers}
 
-`issueTrackers` — `shared/schema/integrations.ts:72`
+`issueTrackers` — `shared/schema/integrations.ts:76`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------- |
@@ -1404,7 +1406,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## requirements {#requirements}
 
-`requirements` — `shared/schema/integrations.ts:102`
+`requirements` — `shared/schema/integrations.ts:106`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                    |
 | ---------------- | ----------------- | ------------------------------------------------------------------------------------------------ |
@@ -1426,7 +1428,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_management_connections {#test-management-connections}
 
-`testManagementConnections` — `shared/schema/integrations.ts:138`
+`testManagementConnections` — `shared/schema/integrations.ts:142`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                |
 | ---------------- | ----------------- | ---------------------------------------------------------------------------- |
@@ -1448,7 +1450,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_case_links {#test-case-links}
 
-`testCaseLinks` — `shared/schema/integrations.ts:165`
+`testCaseLinks` — `shared/schema/integrations.ts:169`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                               |
 | ---------------- | ----------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -1465,7 +1467,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## test_management_publications {#test-management-publications}
 
-`testManagementPublications` — `shared/schema/integrations.ts:188`
+`testManagementPublications` — `shared/schema/integrations.ts:192`
 
 | Proprietà TS          | Colonna SQL              | Dichiarazione                                                                                                  |
 | --------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------- |
@@ -1486,7 +1488,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## requirement_tests {#requirement-tests}
 
-`requirementTests` — `shared/schema/integrations.ts:220`
+`requirementTests` — `shared/schema/integrations.ts:224`
 
 | Proprietà TS     | Colonna SQL       | Dichiarazione                                                                                      |
 | ---------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
@@ -1502,7 +1504,7 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 
 ## issue_links {#issue-links}
 
-`issueLinks` — `shared/schema/integrations.ts:261`
+`issueLinks` — `shared/schema/integrations.ts:265`
 
 | Proprietà TS       | Colonna SQL          | Dichiarazione                                                                                   |
 | ------------------ | -------------------- | ----------------------------------------------------------------------------------------------- |
@@ -1522,6 +1524,73 @@ Leggere prima lo [schema per dominio](./database-schema) per le spiegazioni e le
 | `resolvedAt`       | `resolved_at`        | `timestamp('resolved_at')`                                                                      |
 | `createdAt`        | `created_at`         | `timestamp('created_at').defaultNow().notNull()`                                                |
 | `updatedAt`        | `updated_at`         | `timestamp('updated_at').defaultNow().notNull()`                                                |
+
+## test_case_sources {#test-case-sources}
+
+`testCaseSources` — `shared/schema/integrations.ts:317`
+
+| Proprietà TS        | Colonna SQL           | Dichiarazione                                                                |
+| ------------------- | --------------------- | ---------------------------------------------------------------------------- |
+| `id`                | `id`                  | `text('id').primaryKey()`                                                    |
+| `organizationId`    | `organization_id`     | `integer('organization_id') .notNull() .references(() => organizations.id)`  |
+| `kind`              | `kind`                | `text('kind').$type<HubSourceKind>().notNull()`                              |
+| `name`              | `name`                | `text('name').notNull()`                                                     |
+| `path`              | `path`                | `text('path')`                                                               |
+| `baseUrl`           | `base_url`            | `text('base_url')`                                                           |
+| `project`           | `project`             | `text('project')`                                                            |
+| `repository`        | `repository`          | `text('repository')`                                                         |
+| `branch`            | `branch`              | `text('branch')`                                                             |
+| `encryptedToken`    | `encrypted_token`     | `text('encrypted_token')`                                                    |
+| `tokenIv`           | `token_iv`            | `text('token_iv')`                                                           |
+| `tokenAuthTag`      | `token_auth_tag`      | `text('token_auth_tag')`                                                     |
+| `lastRefreshAt`     | `last_refresh_at`     | `timestamp('last_refresh_at')`                                               |
+| `lastRefreshHead`   | `last_refresh_head`   | `text('last_refresh_head')`                                                  |
+| `lastRefreshStatus` | `last_refresh_status` | `text('last_refresh_status').$type<'ok' &#124; 'failed'>()`                  |
+| `lastRefreshError`  | `last_refresh_error`  | `text('last_refresh_error')`                                                 |
+| `caseCount`         | `case_count`          | `integer('case_count').default(0).notNull()`                                 |
+| `createdBy`         | `created_by`          | `integer('created_by').references(() => users.id, { onDelete: 'set null' })` |
+| `createdAt`         | `created_at`          | `timestamp('created_at').defaultNow().notNull()`                             |
+| `updatedAt`         | `updated_at`          | `timestamp('updated_at').defaultNow().notNull()`                             |
+
+## hub_test_cases {#hub-test-cases}
+
+`hubTestCases` — `shared/schema/integrations.ts:364`
+
+| Proprietà TS            | Colonna SQL                | Dichiarazione                                                                                 |
+| ----------------------- | -------------------------- | --------------------------------------------------------------------------------------------- |
+| `id`                    | `id`                       | `serial('id').primaryKey()`                                                                   |
+| `organizationId`        | `organization_id`          | `integer('organization_id') .notNull() .references(() => organizations.id)`                   |
+| `sourceId`              | `source_id`                | `text('source_id') .notNull() .references(() => testCaseSources.id, { onDelete: 'cascade' })` |
+| `caseId`                | `case_id`                  | `text('case_id').notNull()`                                                                   |
+| `rawId`                 | `raw_id`                   | `text('raw_id').notNull()`                                                                    |
+| `module`                | `module`                   | `text('module').notNull()`                                                                    |
+| `executionModule`       | `execution_module`         | `text('execution_module')`                                                                    |
+| `status`                | `status`                   | `text('status').notNull()`                                                                    |
+| `priority`              | `priority`                 | `text('priority')`                                                                            |
+| `readinessLevel`        | `readiness_level`          | `integer('readiness_level').default(0).notNull()`                                             |
+| `versionFrom`           | `version_from`             | `text('version_from')`                                                                        |
+| `versionTo`             | `version_to`               | `text('version_to')`                                                                          |
+| `devopsId`              | `devops_id`                | `text('devops_id')`                                                                           |
+| `sme`                   | `sme`                      | `text('sme')`                                                                                 |
+| `featureHighlight`      | `feature_highlight`        | `text('feature_highlight')`                                                                   |
+| `executionGroup`        | `execution_group`          | `text('execution_group')`                                                                     |
+| `functionalObjective`   | `functional_objective`     | `text('functional_objective').default('').notNull()`                                          |
+| `precondition`          | `precondition`             | `text('precondition').default('').notNull()`                                                  |
+| `steps`                 | `steps`                    | `text('steps').default('').notNull()`                                                         |
+| `expectedOutcome`       | `expected_outcome`         | `text('expected_outcome').default('').notNull()`                                              |
+| `refEnvPrecondition`    | `ref_env_precondition`     | `text('ref_env_precondition').default('').notNull()`                                          |
+| `refEnvSteps`           | `ref_env_steps`            | `text('ref_env_steps').default('').notNull()`                                                 |
+| `refEnvExpectedOutcome` | `ref_env_expected_outcome` | `text('ref_env_expected_outcome').default('').notNull()`                                      |
+| `dependsOn`             | `depends_on`               | `jsonb('depends_on').$type<string[]>().default([]).notNull()`                                 |
+| `forceNotTested`        | `force_not_tested`         | `boolean('force_not_tested').default(false).notNull()`                                        |
+| `sourceUpdatedAt`       | `source_updated_at`        | `timestamp('source_updated_at')`                                                              |
+| `contentHash`           | `content_hash`             | `text('content_hash').notNull()`                                                              |
+| `refreshedAt`           | `refreshed_at`             | `timestamp('refreshed_at').defaultNow().notNull()`                                            |
+| `missingSince`          | `missing_since`            | `timestamp('missing_since')`                                                                  |
+| `testId`                | `test_id`                  | `integer('test_id').references(() => tests.id, { onDelete: 'set null' })`                     |
+| `importedHash`          | `imported_hash`            | `text('imported_hash')`                                                                       |
+| `importedAt`            | `imported_at`              | `timestamp('imported_at')`                                                                    |
+| `importedBy`            | `imported_by`              | `integer('imported_by').references(() => users.id, { onDelete: 'set null' })`                 |
 
 ## billing_plans {#billing-plans}
 

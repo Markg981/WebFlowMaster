@@ -151,7 +151,9 @@ function parseModules(json: unknown): string[] {
   if (!Array.isArray(json)) return [];
   return json
     .map((entry) =>
-      entry && typeof entry === 'object' ? String((entry as any).module_name ?? '').trim() : '',
+      entry && typeof entry === 'object'
+        ? String((entry as { module_name?: unknown }).module_name ?? '').trim()
+        : '',
     )
     .filter((name) => name !== '');
 }
@@ -167,7 +169,9 @@ async function folderHead(folder: string): Promise<string | null> {
       .readFile(path.join(folder, '.git', ...ref.split('/')), 'utf8')
       .catch(() => null);
     if (direct && /^[0-9a-f]{40}$/i.test(direct.trim())) return direct.trim();
-    const packed = await fs.readFile(path.join(folder, '.git', 'packed-refs'), 'utf8').catch(() => '');
+    const packed = await fs
+      .readFile(path.join(folder, '.git', 'packed-refs'), 'utf8')
+      .catch(() => '');
     const line = packed.split('\n').find((entry) => entry.endsWith(` ${ref}`));
     const sha = line?.split(' ')[0];
     return sha && /^[0-9a-f]{40}$/i.test(sha) ? sha : null;
@@ -281,13 +285,16 @@ function describeHttpFailure(status: number, what: string): HubSourceError {
   return new HubSourceError(502, 'upstream_failed', `Azure DevOps answered ${status} to ${what}.`);
 }
 
+/** What the Azure DevOps REST API answers with: a list under `value`, or one object. */
+type AdoJson = { value?: Array<Record<string, unknown>>; objectId?: unknown } | null;
+
 async function adoGetJson(
   config: AzureDevOpsHubConfig,
   deps: HubReaderDeps,
   url: string,
   what: string,
   maxBytes: number,
-): Promise<any> {
+): Promise<AdoJson> {
   const send = deps.fetchImpl ?? fetchTarget;
   let response: Response;
   try {
@@ -308,7 +315,11 @@ async function adoGetJson(
   try {
     return JSON.parse(text);
   } catch {
-    throw new HubSourceError(502, 'upstream_failed', `Azure DevOps answered ${what} with something other than JSON.`);
+    throw new HubSourceError(
+      502,
+      'upstream_failed',
+      `Azure DevOps answered ${what} with something other than JSON.`,
+    );
   }
 }
 
@@ -321,7 +332,7 @@ export async function azureDevOpsHead(
   const url = `${repositoryUrl(config)}/refs?filter=${encodeURIComponent(`heads/${branch}`)}&api-version=${API_VERSION}`;
   const body = await adoGetJson(config, deps, url, 'refs', 1024 * 1024);
   const wanted = `refs/heads/${branch}`;
-  const ref = (body?.value ?? []).find((entry: any) => entry?.name === wanted);
+  const ref = (body?.value ?? []).find((entry) => entry.name === wanted);
   if (!ref?.objectId)
     throw new HubSourceError(400, 'repository_not_found', `The branch ${branch} does not exist.`);
   return String(ref.objectId);
@@ -351,7 +362,11 @@ async function azureDevOpsTree(
     if (typeof item.size === 'number' && item.size > HUB_LIMITS.maxDefinitionBytes) continue;
     blobs.push({ objectId: String(item.objectId), module: match[1], caseFolder: match[2] });
     if (blobs.length > HUB_LIMITS.maxCases)
-      throw new HubSourceError(400, 'too_many_cases', `The hub has more than ${HUB_LIMITS.maxCases} cases.`);
+      throw new HubSourceError(
+        400,
+        'too_many_cases',
+        `The hub has more than ${HUB_LIMITS.maxCases} cases.`,
+      );
   }
   if (blobs.length === 0 && !(body?.value ?? []).length)
     throw new HubSourceError(
@@ -360,7 +375,9 @@ async function azureDevOpsTree(
       `The repository has no ${HUB_DEFINITIONS_DIR}/ directory on ${branch}: it is not a test case hub.`,
     );
   const modulesUrl = `${repositoryUrl(config)}/items?path=${encodeURIComponent(`/${HUB_MODULES_FILE}`)}&${version}&api-version=${API_VERSION}`;
-  const modules = await adoGetJson(config, deps, modulesUrl, 'modules', 1024 * 1024).catch(() => null);
+  const modules = await adoGetJson(config, deps, modulesUrl, 'modules', 1024 * 1024).catch(
+    () => null,
+  );
   return { blobs, modulesBlob: modules?.objectId ? String(modules.objectId) : null };
 }
 
@@ -393,7 +410,11 @@ async function azureDevOpsBlobsZip(
   if (!response.ok) throw describeHttpFailure(response.status, 'blobs');
   const bytes = Buffer.from(await response.arrayBuffer());
   if (bytes.length > HUB_LIMITS.maxZipBytes)
-    throw new HubSourceError(400, 'too_large', 'A blob archive from Azure DevOps is larger than allowed.');
+    throw new HubSourceError(
+      400,
+      'too_large',
+      'A blob archive from Azure DevOps is larger than allowed.',
+    );
   return bytes;
 }
 
@@ -407,7 +428,8 @@ const LFH_SIG = 0x04034b50;
  * blob ids, not arbitrary archives.
  */
 export function readZipEntries(zip: Buffer, limits = HUB_LIMITS): Map<string, Buffer> {
-  const invalid = () => new HubSourceError(502, 'upstream_failed', 'The blob archive is not a valid zip.');
+  const invalid = () =>
+    new HubSourceError(502, 'upstream_failed', 'The blob archive is not a valid zip.');
   if (zip.length < 22) throw invalid();
   let eocd = -1;
   for (let i = zip.length - 22; i >= Math.max(0, zip.length - 22 - 0xffff); i--) {
@@ -423,7 +445,11 @@ export function readZipEntries(zip: Buffer, limits = HUB_LIMITS): Map<string, Bu
   if (entries === 0xffff || cdSize === 0xffffffff || cdOffset === 0xffffffff)
     throw new HubSourceError(400, 'too_large', 'Zip64 archives are not supported.');
   if (entries > limits.maxZipEntries)
-    throw new HubSourceError(400, 'too_large', `The blob archive has too many entries (${entries}).`);
+    throw new HubSourceError(
+      400,
+      'too_large',
+      `The blob archive has too many entries (${entries}).`,
+    );
   if (cdOffset + cdSize > zip.length) throw invalid();
   const out = new Map<string, Buffer>();
   let pos = cdOffset;
@@ -439,9 +465,20 @@ export function readZipEntries(zip: Buffer, limits = HUB_LIMITS): Map<string, Bu
     const name = zip.toString('utf8', pos + 46, pos + 46 + nameLength);
     pos += 46 + nameLength + extraLength + commentLength;
     if (uncompressed > limits.maxDefinitionBytes * 4)
-      throw new HubSourceError(400, 'too_large', `A blob in the archive expands to too much data (${name}).`);
-    if (uncompressed > 64 * 1024 && uncompressed / Math.max(compressed, 1) > limits.maxCompressionRatio)
-      throw new HubSourceError(400, 'too_large', 'The blob archive compression ratio is not plausible.');
+      throw new HubSourceError(
+        400,
+        'too_large',
+        `A blob in the archive expands to too much data (${name}).`,
+      );
+    if (
+      uncompressed > 64 * 1024 &&
+      uncompressed / Math.max(compressed, 1) > limits.maxCompressionRatio
+    )
+      throw new HubSourceError(
+        400,
+        'too_large',
+        'The blob archive compression ratio is not plausible.',
+      );
     if (localOffset + 30 > zip.length || zip.readUInt32LE(localOffset) !== LFH_SIG) throw invalid();
     const localNameLength = zip.readUInt16LE(localOffset + 26);
     const localExtraLength = zip.readUInt16LE(localOffset + 28);
@@ -458,7 +495,11 @@ export function readZipEntries(zip: Buffer, limits = HUB_LIMITS): Map<string, Bu
         throw invalid();
       }
     } else {
-      throw new HubSourceError(502, 'upstream_failed', `The blob archive uses an unsupported compression (${method}).`);
+      throw new HubSourceError(
+        502,
+        'upstream_failed',
+        `The blob archive uses an unsupported compression (${method}).`,
+      );
     }
   }
   return out;
@@ -517,7 +558,10 @@ export async function readAzureDevOpsHub(
           warnings.push(`${where}: definition.json is not valid JSON and was skipped.`);
           continue;
         }
-        const parsed = parseHubDefinition(json, { module: blob.module, caseFolder: blob.caseFolder });
+        const parsed = parseHubDefinition(json, {
+          module: blob.module,
+          caseFolder: blob.caseFolder,
+        });
         if (!parsed) {
           warnings.push(`${where}: definition.json has no id and was skipped.`);
           continue;
@@ -538,7 +582,10 @@ export interface SourceReadDeps extends HubReaderDeps {
 }
 
 /** The snapshot of a saved source, whichever kind it is. */
-export async function readSource(source: TestCaseSource, deps: SourceReadDeps = {}): Promise<HubSnapshot> {
+export async function readSource(
+  source: TestCaseSource,
+  deps: SourceReadDeps = {},
+): Promise<HubSnapshot> {
   if (source.kind === 'folder') {
     const folder = await resolveHubFolder(source.path ?? '', deps.env);
     return readHubFolder(folder);
@@ -589,7 +636,10 @@ export async function checkSource(
       },
       deps,
     );
-    return { ok: true, detail: `Branch ${source.branch ?? 'main'} is at commit ${head.slice(0, 10)}.` };
+    return {
+      ok: true,
+      detail: `Branch ${source.branch ?? 'main'} is at commit ${head.slice(0, 10)}.`,
+    };
   } catch (error) {
     if (error instanceof HubSourceError) return { ok: false, detail: error.message };
     return { ok: false, detail: (error as Error).message };
@@ -732,7 +782,9 @@ export async function writeCatalog(
   const [totals] = await tx
     .select({ missing: sql<number>`count(*)` })
     .from(hubTestCases)
-    .where(and(eq(hubTestCases.sourceId, source.id), sql`${hubTestCases.missingSince} is not null`));
+    .where(
+      and(eq(hubTestCases.sourceId, source.id), sql`${hubTestCases.missingSince} is not null`),
+    );
   return {
     cases: rows.length,
     added,
@@ -825,7 +877,14 @@ export async function importCases(
     ? await tx.select().from(hubTestCases).where(inArray(hubTestCases.caseId, wanted))
     : [];
   const byCase = new Map(rows.map((row) => [row.caseId, row]));
-  const result: ImportResult = { cases: [], created: 0, updated: 0, unchanged: 0, skipped: 0, suiteId: null };
+  const result: ImportResult = {
+    cases: [],
+    created: 0,
+    updated: 0,
+    unchanged: 0,
+    skipped: 0,
+    suiteId: null,
+  };
   const createdIds: number[] = [];
   const now = new Date();
   for (const caseId of wanted) {
@@ -853,7 +912,12 @@ export async function importCases(
         continue;
       }
       if (!isManualSequence(existing.sequence)) {
-        result.cases.push({ caseId, outcome: 'skipped', testId: existing.id, reason: 'not_manual' });
+        result.cases.push({
+          caseId,
+          outcome: 'skipped',
+          testId: existing.id,
+          reason: 'not_manual',
+        });
         result.skipped++;
         continue;
       }
@@ -862,7 +926,12 @@ export async function importCases(
         .set({ ...fields, sequence: toSequence(steps), updatedAt: now })
         .where(eq(tests.id, existing.id))
         .returning();
-      await recordTestVersion(tx, { testId: updatedRow.id, organizationId, userId, test: updatedRow });
+      await recordTestVersion(tx, {
+        testId: updatedRow.id,
+        organizationId,
+        userId,
+        test: updatedRow,
+      });
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.TEST_UPDATED,
         actor: auditActor(req),
@@ -884,7 +953,11 @@ export async function importCases(
       continue;
     }
     const name = hubTestName(definition);
-    const [taken] = await tx.select({ id: tests.id }).from(tests).where(eq(tests.name, name)).limit(1);
+    const [taken] = await tx
+      .select({ id: tests.id })
+      .from(tests)
+      .where(eq(tests.name, name))
+      .limit(1);
     if (taken) {
       result.cases.push({ caseId, outcome: 'skipped', testId: taken.id, reason: 'name_conflict' });
       result.skipped++;
@@ -914,7 +987,12 @@ export async function importCases(
     });
     await tx
       .update(hubTestCases)
-      .set({ testId: created.id, importedHash: row.contentHash, importedAt: now, importedBy: userId })
+      .set({
+        testId: created.id,
+        importedHash: row.contentHash,
+        importedAt: now,
+        importedBy: userId,
+      })
       .where(eq(hubTestCases.id, row.id));
     createdIds.push(created.id);
     result.cases.push({ caseId, outcome: 'created', testId: created.id });
@@ -939,7 +1017,11 @@ async function placeInSuite(
     const [suite] = await tx.select().from(testSuites).where(eq(testSuites.id, suiteId)).limit(1);
     if (!suite) throw new HubSourceError(404, 'suite_not_found', 'The suite does not exist.');
     if (suite.kind !== 'static')
-      throw new HubSourceError(400, 'suite_dynamic', 'A dynamic suite is filled by its tags, not by hand.');
+      throw new HubSourceError(
+        400,
+        'suite_dynamic',
+        'A dynamic suite is filled by its tags, not by hand.',
+      );
   } else {
     const [suite] = await tx
       .insert(testSuites)

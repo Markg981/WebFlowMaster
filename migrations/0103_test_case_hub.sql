@@ -32,7 +32,8 @@ CREATE TABLE "test_case_sources" (
   "updated_at" timestamp DEFAULT now() NOT NULL,
   CONSTRAINT "test_case_sources_kind_known" CHECK ("kind" IN ('folder', 'azure-devops')),
   CONSTRAINT "test_case_sources_refresh_status_known"
-    CHECK ("last_refresh_status" IS NULL OR "last_refresh_status" IN ('ok', 'failed'))
+    CHECK ("last_refresh_status" IS NULL OR "last_refresh_status" IN ('ok', 'failed')),
+  CONSTRAINT "test_case_sources_id_organization_unique" UNIQUE ("id", "organization_id")
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX "test_case_sources_organization_id_unique" ON "test_case_sources" ("organization_id");
@@ -81,6 +82,11 @@ CREATE UNIQUE INDEX "hub_test_cases_source_case_unique" ON "hub_test_cases" ("so
 CREATE INDEX "hub_test_cases_module_idx" ON "hub_test_cases" ("organization_id", "module");
 --> statement-breakpoint
 CREATE INDEX "hub_test_cases_test_id_idx" ON "hub_test_cases" ("test_id");
+--> statement-breakpoint
+-- Every link stays inside one organization, whoever writes it (see 0034).
+ALTER TABLE "hub_test_cases" ADD CONSTRAINT "hub_test_cases_source_id_same_org_fk" FOREIGN KEY ("source_id", "organization_id") REFERENCES "test_case_sources" ("id", "organization_id");
+--> statement-breakpoint
+ALTER TABLE "hub_test_cases" ADD CONSTRAINT "hub_test_cases_test_id_same_org_fk" FOREIGN KEY ("test_id", "organization_id") REFERENCES "tests" ("id", "organization_id");
 --> statement-breakpoint
 DO $$
 DECLARE t text;
