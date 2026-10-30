@@ -5,6 +5,8 @@ import {
   integer,
   serial,
   timestamp,
+  jsonb,
+  boolean,
   index,
   uniqueIndex,
   unique,
@@ -12,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { RequirementKind } from '../requirements';
 import type { TestManagementProvider } from '../test-management';
+import type { HubSourceKind } from '../testcases-hub';
 import { apiTests } from './api-testing';
 import { mobileTests, tests } from './authoring';
 import { testPlanExecutions, testPlans } from './execution';
@@ -302,3 +305,106 @@ export const issueLinks = pgTable(
 
 export type IssueLink = typeof issueLinks.$inferSelect;
 export type InsertIssueLink = typeof issueLinks.$inferInsert;
+
+/**
+ * The QA test case hub an organization reads its test case definitions from (shared/testcases-hub.ts).
+ *
+ * One per organization: a folder the server can see (under an operator-allowed root), or an
+ * Azure DevOps git repository read through its REST API with a token encrypted as a tracker's.
+ * Refreshing fills `hub_test_cases`; importing picks rows of it and makes manual tests of them.
+ */
+export const testCaseSources = pgTable(
+  'test_case_sources',
+  {
+    id: text('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    kind: text('kind').$type<HubSourceKind>().notNull(),
+    name: text('name').notNull(),
+    /** `folder`: the directory that holds TestCasesDefinitions/. */
+    path: text('path'),
+    /** `azure-devops`: organization URL, project, repository and branch. */
+    baseUrl: text('base_url'),
+    project: text('project'),
+    repository: text('repository'),
+    branch: text('branch'),
+    encryptedToken: text('encrypted_token'),
+    tokenIv: text('token_iv'),
+    tokenAuthTag: text('token_auth_tag'),
+    lastRefreshAt: timestamp('last_refresh_at'),
+    /** The commit the catalog was read from, when the source knows one. */
+    lastRefreshHead: text('last_refresh_head'),
+    lastRefreshStatus: text('last_refresh_status').$type<'ok' | 'failed'>(),
+    lastRefreshError: text('last_refresh_error'),
+    caseCount: integer('case_count').default(0).notNull(),
+    createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex('test_case_sources_organization_id_unique').on(table.organizationId)],
+);
+
+export type TestCaseSource = typeof testCaseSources.$inferSelect;
+export type InsertTestCaseSource = typeof testCaseSources.$inferInsert;
+
+/**
+ * The catalog: what the hub held at the last refresh, one row per case, and which library test
+ * each imported case became.
+ *
+ * `test_id` is the link; `imported_hash` is the content it was made from, so that a later
+ * refresh can say "changed in the hub since you imported it" without touching the test.
+ * A case that disappears from the hub keeps its row with `missing_since` set: the test it
+ * became still says where it came from.
+ */
+export const hubTestCases = pgTable(
+  'hub_test_cases',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: integer('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    sourceId: text('source_id')
+      .notNull()
+      .references(() => testCaseSources.id, { onDelete: 'cascade' }),
+    caseId: text('case_id').notNull(),
+    rawId: text('raw_id').notNull(),
+    module: text('module').notNull(),
+    executionModule: text('execution_module'),
+    status: text('status').notNull(),
+    priority: text('priority'),
+    readinessLevel: integer('readiness_level').default(0).notNull(),
+    versionFrom: text('version_from'),
+    versionTo: text('version_to'),
+    devopsId: text('devops_id'),
+    sme: text('sme'),
+    featureHighlight: text('feature_highlight'),
+    executionGroup: text('execution_group'),
+    functionalObjective: text('functional_objective').default('').notNull(),
+    precondition: text('precondition').default('').notNull(),
+    steps: text('steps').default('').notNull(),
+    expectedOutcome: text('expected_outcome').default('').notNull(),
+    refEnvPrecondition: text('ref_env_precondition').default('').notNull(),
+    refEnvSteps: text('ref_env_steps').default('').notNull(),
+    refEnvExpectedOutcome: text('ref_env_expected_outcome').default('').notNull(),
+    dependsOn: jsonb('depends_on').$type<string[]>().default([]).notNull(),
+    forceNotTested: boolean('force_not_tested').default(false).notNull(),
+    sourceUpdatedAt: timestamp('source_updated_at'),
+    contentHash: text('content_hash').notNull(),
+    refreshedAt: timestamp('refreshed_at').defaultNow().notNull(),
+    missingSince: timestamp('missing_since'),
+    testId: integer('test_id').references(() => tests.id, { onDelete: 'set null' }),
+    importedHash: text('imported_hash'),
+    importedAt: timestamp('imported_at'),
+    importedBy: integer('imported_by').references(() => users.id, { onDelete: 'set null' }),
+  },
+  (table) => [
+    index('hub_test_cases_organization_id_idx').on(table.organizationId),
+    uniqueIndex('hub_test_cases_source_case_unique').on(table.sourceId, table.caseId),
+    index('hub_test_cases_module_idx').on(table.organizationId, table.module),
+    index('hub_test_cases_test_id_idx').on(table.testId),
+  ],
+);
+
+export type HubTestCase = typeof hubTestCases.$inferSelect;
+export type InsertHubTestCase = typeof hubTestCases.$inferInsert;

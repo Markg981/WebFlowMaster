@@ -857,6 +857,13 @@ export const AUDIT_ACTIONS = {
   BROWSER_GRID_CREATED: 'browser_grid.created',
   BROWSER_GRID_UPDATED: 'browser_grid.updated',
   BROWSER_GRID_DELETED: 'browser_grid.deleted',
+  // The QA test case hub (shared/testcases-hub.ts): the source holds a path or a token, the
+  // entry names what changed, never the token. Imports name the cases that became tests.
+  TESTCASE_HUB_CONFIGURED: 'testcase_hub.configured',
+  TESTCASE_HUB_UPDATED: 'testcase_hub.updated',
+  TESTCASE_HUB_REMOVED: 'testcase_hub.removed',
+  TESTCASE_HUB_REFRESHED: 'testcase_hub.refreshed',
+  TESTCASE_HUB_IMPORTED: 'testcase_hub.imported',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
